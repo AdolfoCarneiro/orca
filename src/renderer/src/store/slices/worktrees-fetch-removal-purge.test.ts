@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import {
@@ -56,7 +57,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([surviving])
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       sortEpoch: 7,
       rightSidebarTabByWorktree: {
@@ -124,7 +125,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([surviving])
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       sortEpoch: 7,
       rightSidebarTabByWorktree: {
@@ -143,7 +144,7 @@ describe('fetchWorktrees', () => {
     expect(store.getState().rightSidebarTabByWorktree).toEqual({ [surviving.id]: 'pr-checks' })
 
     // A shape-valid plugin panel tab also survives the purge.
-    store.setState({
+    setSessionTestState(store, {
       rightSidebarTabByWorktree: {
         [surviving.id]: 'plugin:orca-samples.my-plugin/dashboard' as never
       }
@@ -168,7 +169,9 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([surviving])
-    store.setState({ worktreesByRepo: { repo1: [removed, surviving] } } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [removed, surviving] }
+    } as Partial<AppState>)
     await store.getState().updateWorktreeMeta(removed.id, { linkedBitbucketPR: 101 })
     await store.getState().updateWorktreeMeta(surviving.id, { linkedAzureDevOpsPR: 202 })
 
@@ -203,7 +206,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected
       .mockResolvedValueOnce(previousDetected)
       .mockResolvedValueOnce(makeDetectedResult('repo1', [visible]))
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [visible] },
       detectedWorktreesByRepo: { repo1: previousDetected },
       sortEpoch: 7,
@@ -262,7 +265,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult('repo1', [surviving]))
     )
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo1',
@@ -321,7 +324,7 @@ describe('fetchWorktrees', () => {
       .mockResolvedValueOnce(hiddenDetected)
       .mockResolvedValueOnce(makeDetectedResult('repo1', [visible]))
       .mockResolvedValueOnce(recreatedDetected)
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
       ],
@@ -346,7 +349,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult(args.repoId, []))
     )
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'local-repo',
@@ -393,7 +396,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult('repo1', [surviving]))
     )
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: {
         repo1: makeDetectedResult('repo1', [], {
@@ -447,7 +450,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [missingFromFallback, fallback] },
       sortEpoch: 7,
       rightSidebarTabByWorktree: {
@@ -484,7 +487,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7,
       rightSidebarTabByWorktree: { [existing.id]: 'search' as never }
@@ -502,7 +505,7 @@ describe('fetchWorktrees', () => {
     const store = createTestStore()
 
     worktreeListMock.mockResolvedValue([])
-    store.setState({ worktreesByRepo: {}, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: {}, sortEpoch: 7 } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 

@@ -294,7 +294,7 @@ describe('worktree remote runtime mutations', () => {
     const folderWorkspace = makeFolderWorkspace({ id: 'folder-rejected' })
     setSessionTestState(store, { folderWorkspaces: [folderWorkspace], projectGroups: [] })
     const updateFolderWorkspace = vi.fn().mockResolvedValue(false)
-    store.setState({ updateFolderWorkspace } as Partial<AppState>)
+    setSessionTestState(store, { updateFolderWorkspace } as Partial<AppState>)
 
     const result = await store
       .getState()
@@ -309,7 +309,7 @@ describe('worktree remote runtime mutations', () => {
     const folderWorkspace = makeFolderWorkspace({ id: 'folder-throwing' })
     setSessionTestState(store, { folderWorkspaces: [folderWorkspace], projectGroups: [] })
     const updateFolderWorkspace = vi.fn().mockRejectedValue(new Error('Runtime is offline'))
-    store.setState({ updateFolderWorkspace } as Partial<AppState>)
+    setSessionTestState(store, { updateFolderWorkspace } as Partial<AppState>)
 
     const result = await store
       .getState()

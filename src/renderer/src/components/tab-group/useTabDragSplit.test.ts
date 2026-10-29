@@ -413,7 +413,9 @@ describe('useTabDragSplit', () => {
     )
     const activeData = makeDragData('group-1')
     const dropUnifiedTab = vi.fn(() => true)
-    useAppStore.setState({ dropUnifiedTab } as Partial<ReturnType<typeof useAppStore.getState>>)
+    setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
+      ReturnType<typeof useAppStore.getState>
+    >)
 
     const drag = renderDragHook()
 
@@ -446,7 +448,9 @@ describe('useTabDragSplit', () => {
     )
     const activeData = makeDragData('group-1')
     const dropUnifiedTab = vi.fn(() => true)
-    useAppStore.setState({ dropUnifiedTab } as Partial<ReturnType<typeof useAppStore.getState>>)
+    setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
+      ReturnType<typeof useAppStore.getState>
+    >)
 
     const drag = renderDragHook()
 

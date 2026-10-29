@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../../shared/agent-status-freshness'
 import type { AppState } from '../../types'
@@ -92,7 +93,7 @@ export function registerAgentStatusToolAssistantFieldsTests(): void {
       vi.useFakeTimers()
       const store = createTestStore()
       const setGeneratedTabTitleFromAgentPrompt = vi.fn()
-      store.setState({
+      setSessionTestState(store, {
         settings: { ...store.getState().settings, tabAutoGenerateTitle: true },
         setGeneratedTabTitleFromAgentPrompt
       } as Partial<AppState>)

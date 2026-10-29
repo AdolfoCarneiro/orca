@@ -1,4 +1,4 @@
-import type { StoreApi } from 'zustand/vanilla'
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import { createEditorStore } from './editor-slice-test-harness'
 import type { AppState } from '../types'
@@ -22,7 +22,7 @@ vi.mock('@/runtime/close-mirrored-editor-tab', () => ({
 describe('read-only editor tabs (AI Vault View Log)', () => {
   const LOG_PATH = '/home/user/.claude/sessions/log.jsonl'
 
-  const openReadOnlyLog = (store: StoreApi<AppState>): void => {
+  const openReadOnlyLog = (store: SessionTestStore<AppState>): void => {
     store.getState().openFile(
       {
         filePath: LOG_PATH,

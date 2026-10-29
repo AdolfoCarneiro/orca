@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import {
   getWorkspaceCleanupCandidateIdentity,
   getWorkspaceCleanupHostIdentity
@@ -60,7 +61,7 @@ describe('workspace cleanup removal and protection', () => {
       return { ok: true as const }
     })
     const store = createCleanupTestStore(removeWorktree)
-    store.setState({
+    setSessionTestState(store, {
       workspaceCleanupScan: { scannedAt: NOW, candidates, errors: [] }
     } as Partial<AppState>)
 
@@ -111,7 +112,7 @@ describe('workspace cleanup removal and protection', () => {
       preservedBranch: { branchName: 'feature/cleanup', head: 'saved-head' }
     })
     const store = createCleanupTestStore(removeWorktree)
-    store.setState({
+    setSessionTestState(store, {
       workspaceCleanupScan: {
         scannedAt: NOW,
         candidates: [candidate],
@@ -298,7 +299,7 @@ describe('workspace cleanup removal and protection', () => {
     }
 
     const store = createCleanupTestStore()
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId: WORKTREE_ID,
       tabsByWorktree: {
         'repo1::/tmp/terminal-workspace': [
@@ -338,7 +339,7 @@ describe('workspace cleanup removal and protection', () => {
 
     const removeWorktree = vi.fn().mockResolvedValue({ ok: true })
     const store = createCleanupTestStore(removeWorktree)
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId: 'repo1::/tmp/other-workspace'
     } as Partial<AppState>)
 
@@ -370,7 +371,7 @@ describe('workspace cleanup removal and protection', () => {
 
     const store = createCleanupTestStore(removeWorktree)
 
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         [WORKTREE_ID]: [{ id: 'tab-1', title: 'zsh' }] as AppState['tabsByWorktree'][string]
       },

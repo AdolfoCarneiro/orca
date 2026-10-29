@@ -362,7 +362,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
   })
 
   it('does not create a fallback while a backend startup terminal awaits mirroring', () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       getKnownWorktreeById: ((id: string) =>
         id === 'wt-1'
           ? { id: 'wt-1' }

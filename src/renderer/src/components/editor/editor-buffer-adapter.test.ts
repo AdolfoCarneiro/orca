@@ -1,8 +1,8 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
-import type { StoreApi } from 'zustand'
 import type { AppState } from '@/store'
 import { createEditorModelRegistry } from '@/lib/editor-model-registry'
 import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
@@ -13,7 +13,9 @@ import { attachClosedEditorTabCleanup } from './closed-editor-tab-controller'
 import { attachModelLifetimeView } from './editor-model-lifetime-fixture'
 import { showClosedUnsavedFilesToast } from './closed-unsaved-files-toast'
 
-const storeRef = vi.hoisted((): { current: StoreApi<AppState> | null } => ({ current: null }))
+const storeRef = vi.hoisted((): { current: SessionTestStore<AppState> | null } => ({
+  current: null
+}))
 const toastWarning = vi.hoisted(() => vi.fn())
 vi.mock('@/store', () => ({ useAppStore: { getState: () => storeRef.current?.getState() } }))
 vi.mock('sonner', () => ({ toast: { warning: toastWarning, dismiss: vi.fn(), error: vi.fn() } }))
@@ -22,7 +24,7 @@ const PATH = '/repo/notes.md'
 const bridge = createEditorModelRegistry()
 bridge.register(monaco)
 
-function twoViews(): { store: StoreApi<AppState>; a: string; b: string } {
+function twoViews(): { store: SessionTestStore<AppState>; a: string; b: string } {
   const store = createEditorStore()
   setSessionTestState(store, {
     worktreesByRepo: {
@@ -46,7 +48,7 @@ function twoViews(): { store: StoreApi<AppState>; a: string; b: string } {
 }
 
 function modelOf(
-  store: StoreApi<AppState>,
+  store: SessionTestStore<AppState>,
   viewId: string,
   text = 'disk'
 ): monaco.editor.ITextModel {
@@ -56,7 +58,7 @@ function modelOf(
   return monaco.editor.getModel(uri) ?? monaco.editor.createModel(text, 'markdown', uri)
 }
 
-const file = (store: StoreApi<AppState>, id: string) =>
+const file = (store: SessionTestStore<AppState>, id: string) =>
   store.getState().openFiles.find((tab) => tab.id === id)!
 
 afterEach(() => {
@@ -66,7 +68,7 @@ afterEach(() => {
 })
 
 describe('applyEditorBufferText', () => {
-  let store: StoreApi<AppState>
+  let store: SessionTestStore<AppState>
   let a: string
   let b: string
   beforeEach(() => {

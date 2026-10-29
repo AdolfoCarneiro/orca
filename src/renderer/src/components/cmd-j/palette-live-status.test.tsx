@@ -294,7 +294,9 @@ describe('palette live status', () => {
     const rendersAfterMount = bodyRenderCount
 
     await act(async () => {
-      useAppStore.setState({ unreadTerminalTabs: { 'term-a': true } } as Partial<AppState>)
+      setSessionTestState(useAppStore, {
+        unreadTerminalTabs: { 'term-a': true }
+      } as Partial<AppState>)
     })
 
     expect(dotLabels()).toEqual(['Unread agent completion'])
@@ -422,7 +424,7 @@ describe('palette live status', () => {
   })
 
   it('badges unread agent completion when the agent is quiet', async () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unreadAgentCompletionPanes: {
         [makePaneKey('term-a', LEAF)]: true
       }
@@ -451,7 +453,7 @@ describe('palette live status', () => {
 
   it('prefers working over unread on the same row', async () => {
     setAgentState('working')
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unreadTerminalTabs: { 'term-a': true }
     } as Partial<AppState>)
     await act(async () => {
@@ -500,7 +502,7 @@ describe('palette live status', () => {
 
   it('prefers unread over freshly done on the same row', async () => {
     setAgentState('done')
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unreadTerminalTabs: { 'term-a': true }
     } as Partial<AppState>)
     await act(async () => {
@@ -525,7 +527,7 @@ describe('palette live status', () => {
 
   it('prefers permission over unread on the same row', async () => {
     setAgentState('blocked')
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unreadTerminalTabs: { 'term-a': true }
     } as Partial<AppState>)
     await act(async () => {

@@ -1,3 +1,4 @@
+import type { StoreApi } from 'zustand'
 import {
   editSessionSource,
   unwrapSessionSourceWrite,
@@ -9,12 +10,17 @@ import {
 } from '../../store/session-source-edits'
 import { replaceSessionSourceFields } from '../../store/session-source-write-boundary'
 
+export type SessionTestStore<S> = Omit<StoreApi<S>, 'setState'> & { setState: SessionSourceSet<S> }
+
 type FixtureStore<S> = { getState(): S; setState: SessionSourceSet<S> }
 
 /** Fixture ingress explicitly replaces source fields; actions still use the production boundary. */
 export function setSessionTestState<S extends object>(
   store: FixtureStore<S>,
-  partial: Partial<S> | SessionSourceWrite<S> | ((state: S) => Partial<S>),
+  partial:
+    | Partial<S>
+    | SessionSourceWrite<S>
+    | ((state: S) => Partial<S> | SessionSourceWrite<S> | undefined),
   replace?: false
 ): void
 export function setSessionTestState<S extends object>(
@@ -24,15 +30,22 @@ export function setSessionTestState<S extends object>(
 ): void
 export function setSessionTestState<S extends object>(
   store: FixtureStore<S>,
-  partial: Partial<S> | SessionSourceWrite<S> | ((state: S) => Partial<S>),
+  partial:
+    | Partial<S>
+    | SessionSourceWrite<S>
+    | ((state: S) => Partial<S> | SessionSourceWrite<S> | undefined),
   replace?: boolean
 ): void {
   const next = typeof partial === 'function' ? partial(store.getState()) : partial
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
-  const accepted = unwrapSessionSourceWrite(next as SessionSourcePartial<S>).receipt
-    ? // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
+  if (next === undefined) {
+    return
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture ingress admits raw source fields through the same explicit replacement boundary.
+  const data = unwrapSessionSourceWrite<S>(next as SessionSourcePartial<S>)
+  const accepted = data.receipt
+    ? // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the boundary returns a receipt only for an already-opaque accepted write.
       (next as SessionSourceWrite<S>)
-    : replaceSessionSourceFields(next, 'hydration')
+    : replaceSessionSourceFields<S>(data.partial, 'hydration')
   if (replace) {
     // SAFETY: the replacement overload requires a complete root, just like the store setter.
     store.setState(accepted, true)

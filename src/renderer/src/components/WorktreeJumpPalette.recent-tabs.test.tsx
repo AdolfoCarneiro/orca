@@ -683,7 +683,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toEqual(['tab-beta', 'tab-alpha'])
 
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         agentStatusByPaneKey: {
           [makePaneKey('term-alpha', LEAF_ID)]: makeAgentEntry('term-alpha', 'blocked', Date.now())
         }
@@ -704,11 +704,11 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
 
     // The retained palette clears queries after the snapshot effect; reopening must not freeze an old query’s subset.
     await act(async () => {
-      useAppStore.setState({ activeModal: undefined } as Partial<AppState>)
+      setSessionTestState(useAppStore, { activeModal: undefined } as Partial<AppState>)
     })
     await flushEffects()
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         activeModal: 'worktree-palette'
       } as Partial<AppState>)
     })

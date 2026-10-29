@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { CLEARED_HOSTED_REVIEW_SELECTION_UPDATES } from '../../../../shared/worktree/hosted-review-links'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { _clearGitHubPRRefreshStartedEntriesForTest } from '../github/request-coordination'
@@ -43,7 +44,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: {
         [repoId]: [
@@ -68,7 +69,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       worktreeId,
       linkedPRNumber: 12
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
           {
@@ -238,7 +239,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         linkedPR: 12
       })
     })
-    store.setState({
+    setSessionTestState(store, {
       prCache: {
         [`${repoId}::${branch}`]: {
           data: makePR({
@@ -490,7 +491,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       worktreeId,
       linkedPRNumber: 12
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
           makePRRefreshWorktree({
@@ -551,7 +552,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       worktreeId,
       linkedPRNumber: 12
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
           makePRRefreshWorktree({

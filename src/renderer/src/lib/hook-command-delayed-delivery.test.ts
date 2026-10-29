@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import {
@@ -11,7 +12,7 @@ const initialTabsByWorktree = useAppStore.getState().tabsByWorktree
 const initialGetKnownWorktreeById = useAppStore.getState().getKnownWorktreeById
 
 function setStorePartial(partial: Record<string, unknown>): void {
-  useAppStore.setState(partial as Partial<AppState>)
+  setSessionTestState(useAppStore, partial as Partial<AppState>)
 }
 
 function markWorktreeKnown(worktreeId: string): void {

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prCommentsCacheSuffix } from '../github/cache-identity'
 import { mergePRCommentIntoList } from '../github/pr-comment-cache'
@@ -69,7 +70,7 @@ describe('createGitHubSlice.fetchPRComments', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
 
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [
         {
@@ -113,7 +114,7 @@ describe('createGitHubSlice.fetchPRComments', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
 
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -155,7 +156,7 @@ describe('createGitHubSlice.fetchPRComments', () => {
     const repoPath = '/repo'
     const repoId = 'caller-repo-id'
     const sourceContext = githubSourceContext('runtime:source-runtime', 'runtime-repo-id')
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-runtime' } as AppState['settings'],
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -311,7 +312,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const store = createTestStore()
     const repoPath = '/repo'
     const repoId = 'repo-id'
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
 
@@ -338,7 +339,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
     const sourceContext = githubSourceContext('local', repoId)
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
 
@@ -384,7 +385,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const store = createTestStore()
     const repoPath = '/repo'
     const repoId = 'repo-id'
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [
         {
@@ -431,7 +432,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
     const cacheKey = `${repoId}::pr-comments::acme/widgets::12`
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       commentsCache: {
         [cacheKey]: {
@@ -479,7 +480,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
     const cacheKey = `${repoId}::pr-comments::acme/widgets::12`
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       commentsCache: {
         [cacheKey]: {
@@ -540,7 +541,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const store = createTestStore()
     const repoPath = '/repo'
     const repoId = 'repo-id'
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [
         {
@@ -578,7 +579,7 @@ describe('createGitHubSlice PR comment mutations', () => {
     const store = createTestStore()
     const repoPath = '/repo'
     const repoId = 'repo-id'
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
 

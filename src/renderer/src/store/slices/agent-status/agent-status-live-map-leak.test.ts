@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** Regression for #9872: missed pane teardown must not let heavy live status rows grow unbounded. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ParsedAgentStatusPayload } from '../../../../../shared/agent-status-types'
@@ -15,7 +16,7 @@ const BIG_ASSISTANT_MESSAGE = 'a'.repeat(8 * 1024)
 const BIG_INTERACTIVE_PROMPT = 'q'.repeat(16 * 1024)
 
 function seedWorktree(store: ReturnType<typeof createTestStore>): void {
-  store.setState({
+  setSessionTestState(store, {
     repos: [
       {
         id: 'repo-1',
@@ -145,7 +146,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
   it("never evicts a live pane's waiting or blocked row, even under the hard-cap fallback", () => {
     const store = createTestStore()
     seedWorktree(store)
-    store.setState({
+    setSessionTestState(store, {
       terminalLayoutsByTabId: {
         'tab-live': {
           root: { type: 'leaf', leafId: 'leaf-live' },
@@ -197,7 +198,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
   it('keeps fresh rows of rootless / empty-snapshot / no-renderer-tab panes (live agents, #2962)', () => {
     const store = createTestStore()
     seedWorktree(store)
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [
           makeTab({ id: 'tab-live', worktreeId: 'wt-1' }),
@@ -269,7 +270,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
     churnDeadLeaves(store, MAX_LIVE_AGENT_STATUSES)
     const evictedPaneKey = 'tab-live:dead-0'
     const keptPaneKey = 'tab-live:dead-1'
-    store.setState({
+    setSessionTestState(store, {
       sleepingAgentSessionsByPaneKey: {
         [evictedPaneKey]: sleepingRecord(evictedPaneKey),
         [keptPaneKey]: sleepingRecord(keptPaneKey)
@@ -305,7 +306,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
     churnDeadLeaves(store, MAX_LIVE_AGENT_STATUSES, workingPayload)
     const existingPaneKey = 'tab-live:dead-0'
     const existing = store.getState().agentStatusByPaneKey[existingPaneKey]
-    store.setState({
+    setSessionTestState(store, {
       agentStatusByPaneKey: {
         ...store.getState().agentStatusByPaneKey,
         'tab-live:dead-extra': {

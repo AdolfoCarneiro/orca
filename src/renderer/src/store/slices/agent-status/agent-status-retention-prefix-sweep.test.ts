@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStatusEntry } from '../../../../../shared/agent-status-types'
 import type { AppState } from '../../types'
@@ -194,7 +195,7 @@ describe('agent status retention + prefix sweep', () => {
           terminalHandle: 'term-worker'
         }
       )
-    store.setState({
+    setSessionTestState(store, {
       acknowledgedAgentsByPaneKey: { [paneKey]: Date.now() }
     } as Partial<AppState>)
 

@@ -562,7 +562,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       const cachedPR = makePR({ number: 12, state, title: 'Visible event PR' })
       const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
 
-      store.setState({
+      setSessionTestState(store, {
         prCache: {
           [cacheKey]: {
             data: cachedPR,

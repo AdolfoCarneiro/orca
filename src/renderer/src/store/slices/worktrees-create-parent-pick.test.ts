@@ -89,7 +89,9 @@ describe('createWorktree composer parent pick', () => {
 
   it('drops a stale parent pick and falls back to the active folder workspace', async () => {
     const store = createParentPickStore()
-    store.setState({ activeWorkspaceKey: folderWorkspaceKey('folder-1') } as Partial<AppState>)
+    setSessionTestState(store, {
+      activeWorkspaceKey: folderWorkspaceKey('folder-1')
+    } as Partial<AppState>)
     mockApi.worktrees.create.mockResolvedValue({
       worktree: makeWorktree({ id: 'repo1::/path/child', repoId: 'repo1', path: '/path/child' })
     })

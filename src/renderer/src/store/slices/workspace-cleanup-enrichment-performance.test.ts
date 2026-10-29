@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import type {
@@ -208,7 +209,7 @@ describe('workspace cleanup enrichment performance', () => {
       })
     ) as unknown as AppState['tabsByWorktree']
     const store = createCleanupTestStore()
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId: BETA_ID,
       tabsByWorktree,
       openFiles,
@@ -326,7 +327,7 @@ describe('workspace cleanup enrichment performance', () => {
       getForegroundProcess: vi.fn().mockResolvedValue('zsh')
     }
     const store = createCleanupTestStore()
-    store.setState({ tabsByWorktree, ptyIdsByTabId } as Partial<AppState>)
+    setSessionTestState(store, { tabsByWorktree, ptyIdsByTabId } as Partial<AppState>)
 
     const scanPromise = store.getState().scanWorkspaceCleanup()
     onProgress?.({
@@ -416,7 +417,7 @@ describe('workspace cleanup enrichment performance', () => {
       getForegroundProcess: vi.fn().mockResolvedValue('zsh')
     }
     const store = createCleanupTestStore()
-    store.setState({ tabsByWorktree, ptyIdsByTabId } as Partial<AppState>)
+    setSessionTestState(store, { tabsByWorktree, ptyIdsByTabId } as Partial<AppState>)
 
     const scanPromise = store.getState().scanWorkspaceCleanup()
     onProgress?.({
@@ -471,7 +472,7 @@ describe('workspace cleanup enrichment performance', () => {
 
     await store.getState().scanWorkspaceCleanup()
     const removal = store.getState().removeWorkspaceCleanupCandidates([candidate.worktreeId])
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         [candidate.worktreeId]: [
           { id: 'post-scan-tab', title: 'shell' }

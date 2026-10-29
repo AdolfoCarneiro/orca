@@ -366,12 +366,12 @@ describe('createPreflightSlice', () => {
       .mockReturnValueOnce(firstRuntime.promise)
       .mockReturnValueOnce(secondRuntime.promise)
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'runtime-1' }
     } as Partial<AppState>)
 
     const first = store.getState().refreshPreflightStatus()
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'runtime-2' }
     } as Partial<AppState>)
     const second = store.getState().refreshPreflightStatus()
@@ -458,14 +458,18 @@ describe('createPreflightSlice', () => {
       .mockReturnValueOnce(runtimeB.promise)
       .mockReturnValueOnce(reconnectedB.promise)
     const store = createTestStore()
-    store.setState({ settings: { activeRuntimeEnvironmentId: 'runtime-a' } } as Partial<AppState>)
+    setSessionTestState(store, {
+      settings: { activeRuntimeEnvironmentId: 'runtime-a' }
+    } as Partial<AppState>)
     store.getState().setRuntimeEnvironmentStatus('runtime-a', {
       status: { runtimeId: 'server-a' } as never,
       checkedAt: 1
     })
 
     const requestA = store.getState().refreshPreflightStatus()
-    store.setState({ settings: { activeRuntimeEnvironmentId: 'runtime-b' } } as Partial<AppState>)
+    setSessionTestState(store, {
+      settings: { activeRuntimeEnvironmentId: 'runtime-b' }
+    } as Partial<AppState>)
     store.getState().setRuntimeEnvironmentStatus('runtime-b', {
       status: { runtimeId: 'server-b' } as never,
       checkedAt: 2

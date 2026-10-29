@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** Rename must update worktree IDs inside tab-keyed close tombstones and environment-keyed browser intents or host snapshots resurrect closed surfaces. Main coverage: worktree-identity-migration-field-coverage.test.ts. */
 import { describe, expect, it } from 'vitest'
 import type { AppState } from '../../../types'
@@ -11,7 +12,7 @@ const OTHER = 'repo1::/ws/other'
 /** Real worktree slice with explicit terminal/browser maps; omitted overrides exercise nullish fallback instead of masking regressions. */
 function appState(overrides: Partial<AppState>): AppState {
   const store = createTestStore()
-  store.setState(overrides)
+  setSessionTestState(store, overrides)
   return store.getState()
 }
 

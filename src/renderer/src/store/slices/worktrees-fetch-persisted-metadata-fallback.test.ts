@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
@@ -65,7 +66,7 @@ describe('fetchWorktrees', () => {
       executionHostId: 'ssh:ssh-1',
       result: detected
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map([
         [
@@ -126,7 +127,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map(),
       worktreesByRepo: { [sshRepo.id]: [existing] }
@@ -177,7 +178,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [sshRepo, localRepo],
       sshConnectionStates: new Map(),
       worktreesByRepo: { [sshRepo.id]: [sshExisting, localExisting] }
@@ -215,7 +216,7 @@ describe('fetchWorktrees', () => {
       path: '/home/orca/purged'
     })
     listKnownForExecutionHostMock.mockImplementationOnce(async (args) => {
-      store.setState({
+      setSessionTestState(store, {
         sshConnectionStates: new Map([
           [
             TEST_SSH_AUTHORITY.targetId,
@@ -241,7 +242,7 @@ describe('fetchWorktrees', () => {
         })
       }
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map()
     } as Partial<AppState>)
@@ -282,7 +283,10 @@ describe('fetchWorktrees', () => {
       })
     })
     const connectedStates = createTestStore().getState().sshConnectionStates
-    store.setState({ repos: [sshRepo], sshConnectionStates: new Map() } as Partial<AppState>)
+    setSessionTestState(store, {
+      repos: [sshRepo],
+      sshConnectionStates: new Map()
+    } as Partial<AppState>)
 
     await store.getState().fetchWorktrees(sshRepo.id)
     expect(store.getState().worktreesByRepo[sshRepo.id]).toEqual([
@@ -290,7 +294,7 @@ describe('fetchWorktrees', () => {
     ])
 
     worktreeListMock.mockResolvedValueOnce([live])
-    store.setState({ sshConnectionStates: connectedStates } as Partial<AppState>)
+    setSessionTestState(store, { sshConnectionStates: connectedStates } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
     expect(store.getState().worktreesByRepo[sshRepo.id]).toEqual([live])
@@ -327,7 +331,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [sshRepo, localRepo],
       sshConnectionStates: new Map(),
       detectedWorktreesByRepo: { [sshRepo.id]: authoritative }
@@ -377,7 +381,10 @@ describe('fetchWorktrees', () => {
     })
     const connectedStates = createTestStore().getState().sshConnectionStates
     listKnownForExecutionHostMock.mockResolvedValueOnce(metadataResult())
-    store.setState({ repos: [sshRepo], sshConnectionStates: new Map() } as Partial<AppState>)
+    setSessionTestState(store, {
+      repos: [sshRepo],
+      sshConnectionStates: new Map()
+    } as Partial<AppState>)
 
     await store.getState().fetchWorktrees(sshRepo.id)
     expect(store.getState().worktreesByRepo[sshRepo.id]).toEqual([
@@ -386,13 +393,13 @@ describe('fetchWorktrees', () => {
 
     // The host connects and an authoritative scan proves the worktree is gone.
     worktreeListMock.mockResolvedValueOnce([live])
-    store.setState({ sshConnectionStates: connectedStates } as Partial<AppState>)
+    setSessionTestState(store, { sshConnectionStates: connectedStates } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
     expect(store.getState().worktreesByRepo[sshRepo.id]).toEqual([live])
 
     // The host drops again; persisted metadata still lists the deleted worktree.
     listKnownForExecutionHostMock.mockResolvedValueOnce(metadataResult())
-    store.setState({ sshConnectionStates: new Map() } as Partial<AppState>)
+    setSessionTestState(store, { sshConnectionStates: new Map() } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
     expect(store.getState().worktreesByRepo[sshRepo.id]).toEqual([live])
@@ -429,14 +436,17 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
-    store.setState({ repos: [sshRepo], sshConnectionStates: new Map() } as Partial<AppState>)
+    setSessionTestState(store, {
+      repos: [sshRepo],
+      sshConnectionStates: new Map()
+    } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
     // The non-authoritative fallback saw the same absence but must not act on it.
     expect(forgetRemovedForExecutionHostMock).not.toHaveBeenCalled()
 
     worktreeListMock.mockResolvedValueOnce([live])
-    store.setState({ sshConnectionStates: connectedStates } as Partial<AppState>)
+    setSessionTestState(store, { sshConnectionStates: connectedStates } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
     // Why: the renderer's suppression memory dies with the reload, so the metadata itself has to go.
@@ -466,7 +476,7 @@ describe('fetchWorktrees', () => {
       repoId: localRepo.id,
       path: '/local/survivor'
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [localRepo],
       worktreesByRepo: { [localRepo.id]: [removed, survivor] }
     } as Partial<AppState>)
@@ -489,7 +499,10 @@ describe('fetchWorktrees', () => {
       addedAt: 0,
       connectionId: 'ssh-1'
     }
-    store.setState({ repos: [sshRepo], sshConnectionStates: new Map() } as Partial<AppState>)
+    setSessionTestState(store, {
+      repos: [sshRepo],
+      sshConnectionStates: new Map()
+    } as Partial<AppState>)
     const worktreesByRepo = store.getState().worktreesByRepo
     const detectedWorktreesByRepo = store.getState().detectedWorktreesByRepo
 

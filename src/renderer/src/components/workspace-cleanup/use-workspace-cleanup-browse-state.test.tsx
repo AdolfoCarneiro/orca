@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 // @vitest-environment happy-dom
 import { act } from 'react'
@@ -51,7 +52,7 @@ describe('useWorkspaceCleanupBrowseState', () => {
       ...globalThis.window,
       api: { ui: { set: vi.fn().mockResolvedValue(undefined) } }
     }
-    store.setState({
+    setSessionTestState(store, {
       workspaceCleanupBrowse: createDefaultWorkspaceCleanupBrowseState()
     } as Partial<AppState>)
   })

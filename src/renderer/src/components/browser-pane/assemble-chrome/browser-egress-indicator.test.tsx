@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -34,12 +35,15 @@ describe('SshEgressIndicator', () => {
   beforeEach(() => {
     priorSettings = useAppStore.getState().settings
     priorLabels = useAppStore.getState().sshTargetLabels
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       sshTargetLabels: new Map([['target-a', 'openclaw']])
     } as SetState)
   })
   afterEach(() => {
-    useAppStore.setState({ settings: priorSettings, sshTargetLabels: priorLabels } as SetState)
+    setSessionTestState(useAppStore, {
+      settings: priorSettings,
+      sshTargetLabels: priorLabels
+    } as SetState)
     cleanup()
   })
 
@@ -59,7 +63,7 @@ describe('SshEgressIndicator', () => {
 
   it('shows the this-device icon when the target opted out', () => {
     mocks.executionHostId = 'ssh:target-a'
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       settings: { ...priorSettings, browserSshWorkspaceRoutingDisabledTargetIds: ['target-a'] }
     } as SetState)
     renderIndicator('wt-1')

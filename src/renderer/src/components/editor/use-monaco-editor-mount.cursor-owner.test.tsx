@@ -1,3 +1,4 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { cleanup, renderHook } from '@testing-library/react'
@@ -5,7 +6,6 @@ import { Suspense } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { editor, IRange } from 'monaco-editor'
 import type { OnMount } from '@monaco-editor/react'
-import type { StoreApi } from 'zustand'
 import type { AppState } from '@/store'
 import { createEditorTabsStore } from '@/store/slices/editor-slice-test-harness'
 import { captureEditorFileOperationProvenance } from '@/lib/editor-file-operation-owner'
@@ -15,7 +15,7 @@ import { MonacoGutterContextMenu } from './MonacoGutterContextMenu'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: vi.fn() }))
 
-const storeRef = vi.hoisted((): { current?: StoreApi<AppState> } => ({}))
+const storeRef = vi.hoisted((): { current?: SessionTestStore<AppState> } => ({}))
 vi.mock('@/store', () => ({
   useAppStore: { getState: () => storeRef.current?.getState() }
 }))
@@ -36,7 +36,7 @@ afterEach(() => {
 })
 
 function mountParams(
-  store: StoreApi<AppState>,
+  store: SessionTestStore<AppState>,
   fileId: string,
   filePath: string
 ): MonacoEditorMountParams {

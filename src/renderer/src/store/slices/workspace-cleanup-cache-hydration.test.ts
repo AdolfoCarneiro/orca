@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import type {
@@ -46,7 +47,7 @@ describe('workspace cleanup cache hydration', () => {
     installWorkspaceCleanupApi(vi.fn(), getCachedScan)
     const store = createCleanupTestStore()
     const live = { scannedAt: NOW, candidates: [makeCandidate()], errors: [] }
-    store.setState({ workspaceCleanupScan: live } as Partial<AppState>)
+    setSessionTestState(store, { workspaceCleanupScan: live } as Partial<AppState>)
 
     await expect(store.getState().hydrateWorkspaceCleanupFromCache()).resolves.toBe(false)
 

@@ -1,3 +1,4 @@
+import type { Repo } from '../../../../shared/repo-types'
 import { createStore } from 'zustand/vanilla'
 import type { AppState } from '../types'
 import { getDefaultSettings } from '../../../../shared/constants'
@@ -21,4 +22,13 @@ export function createRuntimeDetectedAgentsTestStore() {
         }) as AppState
     )
   )
+}
+
+export function makeDetectedRepo(overrides: Partial<Repo> & { id: string; path: string }): Repo {
+  return {
+    displayName: 'Repo',
+    badgeColor: '#000000',
+    addedAt: 0,
+    ...overrides
+  }
 }

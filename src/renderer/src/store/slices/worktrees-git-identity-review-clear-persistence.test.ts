@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import { resetHostedReviewLinkMutationGenerationForTests } from './worktrees'
@@ -46,7 +47,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: { remoteName: 'fork', branchName: 'old/review-head' }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -102,7 +103,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -154,7 +155,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -206,7 +207,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -261,7 +262,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -272,7 +273,7 @@ describe('updateWorktreeGitIdentity', () => {
     )
     await Promise.resolve()
     const switched = store.getState().worktreesByRepo.repo1[0]
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         repo1: [
           {
@@ -317,7 +318,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: { remoteName: 'fork', branchName: 'old/review-head' }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -327,7 +328,7 @@ describe('updateWorktreeGitIdentity', () => {
       null
     )
     const switched = store.getState().worktreesByRepo.repo1[0]
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         repo1: [
           {
@@ -379,7 +380,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: { remoteName: 'fork', branchName: 'old/review-head' }
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -436,7 +437,7 @@ describe('updateWorktreeGitIdentity', () => {
       linkedPR: 101
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
       {
@@ -494,7 +495,7 @@ describe('updateWorktreeGitIdentity', () => {
       linkedPR: 101
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
       {
@@ -540,7 +541,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: undefined
     })
 
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
       {

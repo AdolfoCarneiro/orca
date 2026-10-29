@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { resetHookCommandDelayedDeliveryForTests } from './hook-command-delayed-delivery'
@@ -40,7 +41,7 @@ function setTabs(
   tabs: { id: string; launchAgent?: string; viewMode?: 'terminal' | 'chat' }[],
   runtimeOwnerEnvironmentId?: string
 ): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: { 'wt-1': tabs },
     terminalLayoutsByTabId: {},
     agentStatusByPaneKey: {},
@@ -98,7 +99,7 @@ beforeEach(() => {
 
 afterEach(() => {
   resetHookCommandDelayedDeliveryForTests()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: initialTabsByWorktree,
     unifiedTabsByWorktree: initialUnifiedTabsByWorktree,
     getKnownWorktreeById: initialGetKnownWorktreeById,

@@ -474,13 +474,13 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     expect(store.getState().hasHydratedWorktreePurge).toBe(false)
     expect(store.getState().tabsByWorktree['repoA::/a/zombie']).toBeDefined()
 
-    store.setState({ workspaceSessionReady: true } as Partial<AppState>)
+    setSessionTestState(store, { workspaceSessionReady: true } as Partial<AppState>)
     await store.getState().fetchAllWorktrees()
 
     expect(store.getState().hasHydratedWorktreePurge).toBe(false)
     expect(store.getState().tabsByWorktree['repoA::/a/zombie']).toBeDefined()
 
-    store.setState({ hydrationSucceeded: true } as Partial<AppState>)
+    setSessionTestState(store, { hydrationSucceeded: true } as Partial<AppState>)
     await store.getState().fetchAllWorktrees()
 
     expect(store.getState().hasHydratedWorktreePurge).toBe(true)

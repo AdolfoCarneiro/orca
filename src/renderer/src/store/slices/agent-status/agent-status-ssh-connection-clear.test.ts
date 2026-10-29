@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AppState } from '../../types'
@@ -51,7 +52,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
         { updatedAt: 6 },
         { connectionId: null }
       )
-    store.setState({
+    setSessionTestState(store, {
       agentLaunchConfigByPaneKey: {
         [oldA]: {
           launchConfig: { agentCommand: 'codex', agentArgs: '--full-auto', agentEnv: {} },
@@ -86,7 +87,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
     // Resolve unstamped SSH status by owning worktree or relay restart leaves unclickable rows fresh for 30m (#9030).
     vi.useFakeTimers()
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-a',
@@ -156,7 +157,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
     // Repo IDs/buckets collide across hosts; resolve worktree ownership before clearing (#9030).
     vi.useFakeTimers()
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'shared',
@@ -214,7 +215,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
     // repoId::path collides across hosts: explicit other-host stamps win, unstamped collided rows stay ambiguous and must survive (#9030).
     vi.useFakeTimers()
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'shared',

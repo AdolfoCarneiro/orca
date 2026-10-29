@@ -717,7 +717,10 @@ describe('createBrowserSlice annotations', () => {
 describe('createBrowserSlice floating tabs', () => {
   it('tracks new floating browser tabs without changing the main browser surface', async () => {
     const { store, main } = await createTestStoreDrawnFromMain()
-    store.setState({ activeWorktreeId: 'wt-1', activeTabType: 'terminal' } as Partial<AppState>)
+    setSessionTestState(store, {
+      activeWorktreeId: 'wt-1',
+      activeTabType: 'terminal'
+    } as Partial<AppState>)
     const mainTab = store.getState().createBrowserTab('wt-1', 'https://example.com')
     await main.settle()
     const activeTabTypeBeforeFloating = store.getState().activeTabType

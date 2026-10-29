@@ -8,7 +8,7 @@ import { observeSessionSourceOracle } from './session-source-oracle'
 
 /** Slice fixtures keep the production source domains and check every accepted notification. */
 export function withSessionSourceTestWrites(createState: SessionStateCreator<AppState>) {
-  return withSessionSourceWrites((...args) => {
+  return withSessionSourceWrites<AppState>((...args) => {
     const collections = Object.fromEntries(
       Object.entries(SESSION_SOURCE_KINDS).flatMap(([field, kind]) =>
         kind === 'sequence' ? [[field, []]] : []

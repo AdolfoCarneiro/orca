@@ -717,7 +717,7 @@ describe('attachEditorAutosaveController', () => {
       expect(openFileScans).toBe(1)
       openFileScans = 0
 
-      store.setState({ activeWorktreeId: 'wt-2' } as Partial<AppState>)
+      setSessionTestState(store, { activeWorktreeId: 'wt-2' } as Partial<AppState>)
       expect(openFileScans).toBe(0)
 
       store.getState().setEditorDraft('/repo/file.ts', 'edited')

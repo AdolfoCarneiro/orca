@@ -150,7 +150,7 @@ describe('hosted review slice', () => {
   it('clears stale GitHub PR cache when branch review lookup finds a non-GitHub review', async () => {
     mockApi.hostedReview.forBranch.mockResolvedValueOnce(review)
     const store = makeStore()
-    store.setState({
+    setSessionTestState(store, {
       prCache: {
         'repo-1::feature/gitlab': {
           data: {

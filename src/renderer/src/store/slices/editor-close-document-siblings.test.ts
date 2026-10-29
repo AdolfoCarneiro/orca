@@ -1,5 +1,5 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
-import type { StoreApi } from 'zustand/vanilla'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,7 +22,7 @@ vi.mock('@/runtime/runtime-layout-client', async (importOriginal) =>
   ).runtimeLayoutClientWithTestFrames(await importOriginal())
 )
 
-const live = vi.hoisted((): { store: StoreApi<AppState> | null } => ({ store: null }))
+const live = vi.hoisted((): { store: SessionTestStore<AppState> | null } => ({ store: null }))
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => {
@@ -34,7 +34,7 @@ vi.mock('@/store', () => ({
   }
 }))
 
-let store: StoreApi<AppState>
+let store: SessionTestStore<AppState>
 let file: OpenFile
 let main: TabsDrawnFromMain | null = null
 

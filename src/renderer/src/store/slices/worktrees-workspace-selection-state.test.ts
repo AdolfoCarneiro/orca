@@ -254,7 +254,7 @@ describe('markWorktreeVisited', () => {
     expect(store.getState().activeWorktreeId).toBe('repo1::/a')
 
     // A pointer into a not-yet-hydrated (e.g. SSH pre-connect) repo is deferred.
-    store.setState({ activeWorktreeId: 'ssh-repo::/b' } as Partial<AppState>)
+    setSessionTestState(store, { activeWorktreeId: 'ssh-repo::/b' } as Partial<AppState>)
     store.getState().pruneLastVisitedTimestamps()
     expect(store.getState().activeWorktreeId).toBe('ssh-repo::/b')
   })

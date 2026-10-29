@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   _clearGitHubPRRefreshStartedEntriesForTest,
@@ -88,7 +89,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const branch = 'feature/test'
     const pr = makePR({ number: 44 })
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-1',
@@ -133,7 +134,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const branch = 'feature/test'
     const pr = makePR({ number: 44 })
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-1',
@@ -189,7 +190,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
-    store.setState({
+    setSessionTestState(store, {
       settings: null,
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -198,7 +199,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       force: true,
       repoId
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings']
     } as Partial<AppState>)
     resolveRefresh({
@@ -222,7 +223,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const repoId = 'repo-1'
     const branch = 'feature/exact-linked-provenance'
     const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
     mockApi.gh.refreshPRNow.mockResolvedValueOnce({
@@ -269,7 +270,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
 
@@ -277,7 +278,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       force: true,
       repoId
     })
-    store.setState({
+    setSessionTestState(store, {
       hostedReviewCache: {
         [hostedReviewCacheKey]: {
           data: newerReview,
@@ -326,7 +327,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
 
@@ -335,7 +336,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       repoId,
       fallbackPRNumber: 12
     })
-    store.setState({
+    setSessionTestState(store, {
       hostedReviewCache: {
         [hostedReviewCacheKey]: {
           data: matchingReview,
@@ -387,7 +388,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
 
@@ -396,7 +397,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       repoId,
       linkedPRNumber: 88
     })
-    store.setState({
+    setSessionTestState(store, {
       hostedReviewCache: {
         [hostedReviewCacheKey]: {
           data: createdReview,
@@ -445,7 +446,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
     try {
-      store.setState({
+      setSessionTestState(store, {
         repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
       } as unknown as Partial<AppState>)
 
@@ -453,7 +454,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         force: true,
         repoId
       })
-      store.setState({
+      setSessionTestState(store, {
         hostedReviewCache: {
           [hostedReviewCacheKey]: {
             data: externalReview,

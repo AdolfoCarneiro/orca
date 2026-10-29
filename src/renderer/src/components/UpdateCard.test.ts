@@ -1,3 +1,4 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { createStore } from 'zustand/vanilla'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -36,7 +37,7 @@ const RICH_CHANGELOG: ChangelogData = {
   releasesBehind: 3
 }
 
-function setState(store: StoreApi<AppState>, status: UpdateStatus): void {
+function setState(store: SessionTestStore<AppState>, status: UpdateStatus): void {
   store.getState().setUpdateStatus(status)
 }
 

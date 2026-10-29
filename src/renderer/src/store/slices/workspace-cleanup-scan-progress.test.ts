@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import type {
@@ -185,7 +186,7 @@ describe('workspace cleanup scan progress', () => {
       }
     ).api.pty = { hasChildProcesses, getForegroundProcess }
     const store = createCleanupTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'repo1::/tmp/terminal': [
           { id: 'tab-1', title: 'zsh' }
@@ -313,7 +314,7 @@ describe('workspace cleanup scan progress', () => {
       }
     ).api.pty = { hasChildProcesses, getForegroundProcess }
     const store = createCleanupTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'repo1::/tmp/terminal': [
           { id: 'tab-1', title: 'zsh' }
@@ -389,7 +390,7 @@ describe('workspace cleanup scan progress', () => {
       }
     ).api.pty = { hasChildProcesses, getForegroundProcess }
     const store = createCleanupTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'repo1::/tmp/terminal': [
           { id: 'tab-1', title: 'zsh' }
@@ -468,7 +469,7 @@ describe('workspace cleanup scan progress', () => {
       }
     ).api.pty = { hasChildProcesses, getForegroundProcess }
     const store = createCleanupTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'repo1::/tmp/terminal': [
           { id: 'tab-1', title: 'zsh' }
@@ -553,7 +554,7 @@ describe('workspace cleanup scan progress', () => {
     ).api.workspaceCleanup.cancelScan = cancelScan
     const removeWorktree = vi.fn().mockResolvedValue({ ok: true })
     const store = createCleanupTestStore(removeWorktree)
-    store.setState({
+    setSessionTestState(store, {
       workspaceCleanupScan: { scannedAt: NOW - 1, candidates: [candidate], errors: [] }
     } as Partial<AppState>)
 

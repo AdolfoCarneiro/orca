@@ -328,7 +328,7 @@ describe('fetchWorktrees', () => {
     const createdWorkspace = makeWorkspaceLineage({
       childWorkspaceKey: worktreeWorkspaceKey(worktree.id)
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreeLineageById: { [created.worktreeId]: created },
       workspaceLineageByChildKey: { [createdWorkspace.childWorkspaceKey]: createdWorkspace }
     } as Partial<AppState>)
@@ -402,7 +402,7 @@ describe('fetchWorktrees', () => {
       childWorkspaceKey: childKey,
       parentWorkspaceKey: worktreeWorkspaceKey('repo1::/remote/new-parent')
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreeLineageById: { [reassigned.worktreeId]: reassigned },
       workspaceLineageByChildKey: { [childKey]: reassignedWorkspace }
     } as Partial<AppState>)
@@ -460,7 +460,7 @@ describe('fetchWorktrees', () => {
     })
 
     const pending = store.getState().fetchWorktreeLineage({ executionHostId: 'runtime:env-1' })
-    store.setState({
+    setSessionTestState(store, {
       worktreeLineageById: {},
       workspaceLineageByChildKey: {}
     } as Partial<AppState>)

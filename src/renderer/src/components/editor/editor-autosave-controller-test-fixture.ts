@@ -1,7 +1,8 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // Use a real editor slice and isolated window/filesystem bridge across autosave suites.
 import { vi } from 'vitest'
-import { createStore, type StoreApi } from 'zustand/vanilla'
+import { createStore } from 'zustand/vanilla'
 import { createEditorSlice } from '@/store/slices/editor'
 import { withEditorBufferRecords } from '@/store/editor-buffer-record-lifecycle'
 import type { AppState } from '@/store'
@@ -149,7 +150,7 @@ export function createUntitledNoteStore(fileName: string) {
 }
 
 /** Stamp loaded-file baselines in fixtures; saves without known disk versions are refused. */
-export function withLoadedBaselines<T extends Pick<StoreApi<AppState>, 'getState'>>(
+export function withLoadedBaselines<T extends Pick<SessionTestStore<AppState>, 'getState'>>(
   store: T,
   disk?: FakeEditorDisk
 ): T {

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { persistGitHubCacheChanges } from '../github/cache-persistence'
 import { prChecksCacheSuffix, prCommentsCacheSuffix } from '../github/cache-identity'
@@ -71,7 +72,7 @@ describe('createGitHubSlice.fetchPRChecks', () => {
     const runtimeChecksCacheKey = `runtime:env-1::${repoId}::pr-checks::12`
     const localChecksCacheKey = `${repoId}::pr-checks::12`
 
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [
         {
@@ -116,7 +117,7 @@ describe('createGitHubSlice.fetchPRChecks', () => {
     const localChecksCacheKey = `${repoId}::pr-checks::12`
     const runtimeChecksCacheKey = `runtime:env-1::${repoId}::pr-checks::12`
 
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       prCache: {
@@ -487,7 +488,7 @@ describe('createGitHubSlice.fetchPRChecks', () => {
     const repoPath = '/repo'
     const repoId = 'caller-repo-id'
     const sourceContext = githubSourceContext('runtime:source-runtime', 'runtime-repo-id')
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-runtime' } as AppState['settings'],
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -550,7 +551,7 @@ describe('createGitHubSlice.fetchPRCheckDetails', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
 
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [
         {
@@ -603,7 +604,7 @@ describe('createGitHubSlice.fetchPRCheckDetails', () => {
       const repoPath = '/repo'
       const repoId = 'repo-id'
 
-      store.setState({
+      setSessionTestState(store, {
         settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
         repos: [
           {
@@ -645,7 +646,7 @@ describe('createGitHubSlice.fetchPRCheckDetails', () => {
       const store = createTestStore()
       const repoPath = '/repo'
       const repoId = 'repo-id'
-      store.setState({
+      setSessionTestState(store, {
         settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
         repos: [
           {
@@ -706,7 +707,7 @@ describe('createGitHubSlice.fetchPRCheckDetails', () => {
     const repoPath = '/repo'
     const repoId = 'repo-id'
 
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings'],
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)

@@ -1,5 +1,5 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
-import type { StoreApi } from 'zustand/vanilla'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import {
@@ -98,7 +98,7 @@ describe('createEditorSlice untitled cleanup routing', () => {
     vi.unstubAllGlobals()
   })
 
-  function seedRemoteWorktree(store: StoreApi<AppState>): void {
+  function seedRemoteWorktree(store: SessionTestStore<AppState>): void {
     setSessionTestState(store, {
       settings: { ...getDefaultSettings('/tmp'), activeRuntimeEnvironmentId: 'env-1' },
       repos: [

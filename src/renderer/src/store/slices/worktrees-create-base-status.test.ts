@@ -57,7 +57,7 @@ describe('createWorktree base status merge', () => {
 
   it('prefetches create base through runtime RPC for remote runtime targets', async () => {
     const store = createRepoTestStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'remote-runtime' }
     } as Partial<AppState>)
     seedRepoHost(store, 'runtime:remote-runtime')
@@ -296,7 +296,7 @@ describe('createWorktree base status merge', () => {
       parentWorkspaceKey: folderWorkspaceKey('folder-1'),
       capture: { source: 'active-workspace', confidence: 'explicit' }
     })
-    store.setState({
+    setSessionTestState(store, {
       activeWorkspaceKey: folderWorkspaceKey('folder-1')
     } as Partial<AppState>)
     mockApi.worktrees.create.mockResolvedValue({ worktree: wt, workspaceLineage })
@@ -617,7 +617,7 @@ describe('createWorktree base status merge', () => {
 
   it('persists the dismissal flag when the suggestion toast is closed or swiped', async () => {
     const store = createRepoTestStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: { refreshLocalBaseRefOnWorktreeCreate: false } as AppState['settings'],
       updateSettings: vi.fn().mockResolvedValue(undefined)
     } as Partial<AppState>)
@@ -643,7 +643,7 @@ describe('createWorktree base status merge', () => {
 
   it('does not record a dismissal on close when the feature is already enabled', async () => {
     const store = createRepoTestStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: { refreshLocalBaseRefOnWorktreeCreate: true } as AppState['settings'],
       updateSettings: vi.fn().mockResolvedValue(undefined)
     } as Partial<AppState>)
@@ -669,7 +669,7 @@ describe('createWorktree base status merge', () => {
 
   it('stamps manualOrder on create while Manual sort is active', async () => {
     const store = createRepoTestStore()
-    store.setState({ sortBy: 'manual' } as Partial<AppState>)
+    setSessionTestState(store, { sortBy: 'manual' } as Partial<AppState>)
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(123_456)
     const wt = makeWorktree({
       id: 'repo1::/path/wt1',

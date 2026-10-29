@@ -291,7 +291,9 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toEqual(['tab-beta'])
 
     await act(async () => {
-      useAppStore.setState({ unreadTerminalTabs: { 'term-alpha': true } } as Partial<AppState>)
+      setSessionTestState(useAppStore, {
+        unreadTerminalTabs: { 'term-alpha': true }
+      } as Partial<AppState>)
     })
     await flushEffects()
 
@@ -314,7 +316,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toContain('tab-alpha')
 
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unreadTerminalTabs: {},
         agentStatusByPaneKey: {
           [makePaneKey('term-alpha', LEAF_ID)]: makeAgentEntry('term-alpha', 'working', Date.now())
@@ -346,7 +348,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toContain('tab-alpha')
 
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         agentStatusByPaneKey: {
           [makePaneKey('term-alpha', LEAF_ID)]: makeAgentEntry('term-alpha', 'done', Date.now())
         }

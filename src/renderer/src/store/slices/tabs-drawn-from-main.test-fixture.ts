@@ -1,3 +1,4 @@
+import type { SessionSourceSet } from '@/store/session-source-edits'
 // With main layout ownership, emulate command replies and frames; install runtimeRpcClientWithLayoutApply/runtimeLayoutClientWithTestFrames mocks first. Inert for window-owned layouts.
 
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
@@ -14,7 +15,7 @@ import type { AppState } from '../types'
 
 type DrawnStore = {
   getState: () => AppState
-  setState: (patch: Partial<AppState>) => void
+  setState: SessionSourceSet<AppState>
   subscribe: (listener: (state: AppState) => void) => () => void
 }
 

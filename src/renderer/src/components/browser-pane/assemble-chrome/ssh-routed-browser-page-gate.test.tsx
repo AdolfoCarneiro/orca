@@ -99,7 +99,7 @@ describe('SshRoutedBrowserPageGate', () => {
   it('stays unrouted when the setting is off', async () => {
     mocks.executionHostId = 'ssh:target-a'
     const priorSettings = useAppStore.getState().settings
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       settings: { ...priorSettings, browserSshWorkspaceRoutingEnabled: false }
     } as Parameters<typeof useAppStore.setState>[0])
     try {
@@ -112,7 +112,7 @@ describe('SshRoutedBrowserPageGate', () => {
       expect(screen.getByTestId('page').textContent).toBe('null')
       expect(mocks.prepare).not.toHaveBeenCalled()
     } finally {
-      useAppStore.setState({ settings: priorSettings } as Parameters<
+      setSessionTestState(useAppStore, { settings: priorSettings } as Parameters<
         typeof useAppStore.setState
       >[0])
     }
@@ -168,7 +168,7 @@ describe('SshRoutedBrowserPageGate', () => {
   it('mounts unrouted for a target the user opted out of', async () => {
     mocks.executionHostId = 'ssh:target-a'
     const priorSettings = useAppStore.getState().settings
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       settings: { ...priorSettings, browserSshWorkspaceRoutingDisabledTargetIds: ['target-a'] }
     } as Parameters<typeof useAppStore.setState>[0])
     try {
@@ -181,7 +181,7 @@ describe('SshRoutedBrowserPageGate', () => {
       expect(screen.getByTestId('page').textContent).toBe('null')
       expect(mocks.prepare).not.toHaveBeenCalled()
     } finally {
-      useAppStore.setState({ settings: priorSettings } as Parameters<
+      setSessionTestState(useAppStore, { settings: priorSettings } as Parameters<
         typeof useAppStore.setState
       >[0])
     }

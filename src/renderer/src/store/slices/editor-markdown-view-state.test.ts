@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import { createEditorStore, ownedEditorFileId } from './editor-slice-test-harness'
 import type { AppState } from '../types'
@@ -561,7 +562,7 @@ describe('createEditorSlice openMarkdownPreview', () => {
 
   it('uses the resolved active runtime owner when opening markdown previews', () => {
     const store = createEditorStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-active' } as AppState['settings'],
       openFiles: [
         {

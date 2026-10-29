@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -247,7 +248,7 @@ describe('createGitHubSlice.fetchPRChecks checks cache freshness', () => {
       { name: 'build', status: 'completed', conclusion: 'failure', url: null } as const
     ]
 
-    store.setState({
+    setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
           data: cachedChecks,
@@ -275,7 +276,7 @@ describe('createGitHubSlice.fetchPRChecks checks cache freshness', () => {
       { name: 'build', status: 'completed', conclusion: 'success', url: null } as const
     ]
 
-    store.setState({
+    setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
           data: oldHeadChecks,
@@ -305,7 +306,7 @@ describe('createGitHubSlice.applyGitHubPRRefreshEvent checks cache reuse', () =>
     const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
     const checksCacheKey = `${repoId}::${prChecksCacheSuffix(12, null, 'head-oid')}`
 
-    store.setState({
+    setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
           data: [],
@@ -345,7 +346,7 @@ describe('createGitHubSlice.applyGitHubPRRefreshEvent checks cache reuse', () =>
     const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
     const checksCacheKey = `${repoId}::${prChecksCacheSuffix(12, null, 'head-oid')}`
 
-    store.setState({
+    setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
           data: [{ name: 'build', status: 'completed', conclusion: 'success', url: null }],

@@ -92,7 +92,9 @@ describe('tab-move-to-pane-column', () => {
 
   it('creates a sibling split pane via dropUnifiedTab', () => {
     const dropUnifiedTab = vi.fn(() => true)
-    useAppStore.setState({ dropUnifiedTab } as Partial<ReturnType<typeof useAppStore.getState>>)
+    setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
+      ReturnType<typeof useAppStore.getState>
+    >)
 
     expect(
       moveTabToNewPaneColumn({ unifiedTabId: 'tab-b', groupId: 'group-1', direction: 'right' })
@@ -112,7 +114,9 @@ describe('tab-move-to-pane-column', () => {
 
   it('does not mirror when the local store rejects the move', () => {
     const dropUnifiedTab = vi.fn(() => false)
-    useAppStore.setState({ dropUnifiedTab } as Partial<ReturnType<typeof useAppStore.getState>>)
+    setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
+      ReturnType<typeof useAppStore.getState>
+    >)
 
     expect(
       moveTabToNewPaneColumn({ unifiedTabId: 'tab-b', groupId: 'group-1', direction: 'right' })

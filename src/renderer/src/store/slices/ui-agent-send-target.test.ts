@@ -1,5 +1,5 @@
+import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
-import type { StoreApi } from 'zustand/vanilla'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
@@ -109,7 +109,7 @@ function makeTerminalTab(id: string, worktreeId: string): TerminalTab {
 }
 
 // Why: send targets list structured chats from the tabs slice, which the UI harness omits.
-function createAgentSendStore(): StoreApi<AppState> {
+function createAgentSendStore(): SessionTestStore<AppState> {
   const store = createUIStore()
   setSessionTestState(store, { unifiedTabsByWorktree: {} })
   return store
@@ -131,7 +131,7 @@ describe('createUISlice agent send target mode', () => {
   const readyPaneKey = makePaneKey(tabId, readyLeafId)
   const workingPaneKey = makePaneKey(tabId, workingLeafId)
 
-  function seedAgentSendState(store: StoreApi<AppState>): void {
+  function seedAgentSendState(store: SessionTestStore<AppState>): void {
     const now = Date.now()
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
@@ -358,7 +358,7 @@ describe('createUISlice agent send target mode', () => {
   const chatPaneKey = structuredAgentSessionPaneKey(chatTabId, 'claude_1')
 
   function seedChatState(
-    store: StoreApi<AppState>,
+    store: SessionTestStore<AppState>,
     agentStatusByPaneKey: AppState['agentStatusByPaneKey']
   ): void {
     setSessionTestState(store, {
@@ -819,7 +819,7 @@ describe('openDiffNotesSendMenuForActiveWorktree', () => {
   function stubDiffNotesStore(
     comments: { sentAt?: number }[],
     activeWorktreeId: string | null = 'wt-1'
-  ): { store: StoreApi<AppState>; setRightSidebarTab: ReturnType<typeof vi.fn> } {
+  ): { store: SessionTestStore<AppState>; setRightSidebarTab: ReturnType<typeof vi.fn> } {
     const store = createAgentSendStore()
     const setRightSidebarTab = vi.fn()
     store.setState({

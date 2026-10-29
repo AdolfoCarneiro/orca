@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import type { Worktree } from '../../../../shared/worktree/types'
@@ -44,7 +45,7 @@ describe('fetchWorktrees', () => {
     const detected = makeDetectedResult('repo1', [existing])
 
     mockApi.worktrees.listDetected.mockResolvedValueOnce(detected)
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       detectedWorktreesByRepo: { repo1: detected },
       sortEpoch: 7
@@ -86,7 +87,7 @@ describe('fetchWorktrees', () => {
       path: '/path/second'
     })
     const detected = makeDetectedResult('repo1', [first, second])
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second] },
       detectedWorktreesByRepo: { repo1: detected },
       sortEpoch: 7
@@ -124,7 +125,7 @@ describe('fetchWorktrees', () => {
       path: '/path/stable'
     })
     const detected = makeDetectedResult('repo1', [changed, stable])
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [changed, stable] },
       detectedWorktreesByRepo: { repo1: detected },
       sortEpoch: 7
@@ -165,7 +166,10 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
-    store.setState({ worktreesByRepo: { repo1: [existing] }, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [existing] },
+      sortEpoch: 7
+    } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 
@@ -195,7 +199,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
     await Promise.resolve()
@@ -235,7 +239,9 @@ describe('fetchWorktrees', () => {
       resolveListing = resolve
     })
     worktreeListMock.mockReturnValueOnce(listing)
-    store.setState({ worktreesByRepo: { repo1: [requestStarted] } } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [requestStarted] }
+    } as Partial<AppState>)
 
     const refresh = store.getState().fetchWorktrees('repo1')
     await vi.waitFor(() => expect(worktreeListMock).toHaveBeenCalledTimes(1))
@@ -245,7 +251,7 @@ describe('fetchWorktrees', () => {
       head: 'latest-head',
       linkedPR: 303
     })
-    store.setState({ worktreesByRepo: { repo1: [latest] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [latest] } } as Partial<AppState>)
     resolveListing([staleResponse])
 
     await refresh
@@ -275,7 +281,7 @@ describe('fetchWorktrees', () => {
       resolveListing = resolve
     })
     worktreeListMock.mockReturnValueOnce(listing)
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [daily, relay] },
       detectedWorktreesByRepo: { repo1: detected }
     } as Partial<AppState>)
@@ -320,7 +326,9 @@ describe('fetchWorktrees', () => {
       resolveListing = resolve
     })
     worktreeListMock.mockReturnValueOnce(listing)
-    store.setState({ worktreesByRepo: { repo1: [requestStarted] } } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [requestStarted] }
+    } as Partial<AppState>)
 
     const refresh = store.getState().fetchWorktrees('repo1')
     await vi.waitFor(() => expect(worktreeListMock).toHaveBeenCalledTimes(1))
@@ -353,7 +361,9 @@ describe('fetchWorktrees', () => {
         resolveListing = resolve
       })
     )
-    store.setState({ worktreesByRepo: { repo1: [requestStarted] } } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [requestStarted] }
+    } as Partial<AppState>)
 
     const refresh = store.getState().fetchWorktrees('repo1')
     await vi.waitFor(() => expect(worktreeListMock).toHaveBeenCalledTimes(1))
@@ -385,7 +395,9 @@ describe('fetchWorktrees', () => {
         resolveListing = resolve
       })
     )
-    store.setState({ worktreesByRepo: { repo1: [requestStarted] } } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [requestStarted] }
+    } as Partial<AppState>)
 
     const refresh = store.getState().fetchWorktrees('repo1')
     await vi.waitFor(() => expect(worktreeListMock).toHaveBeenCalledTimes(1))
@@ -413,7 +425,7 @@ describe('fetchWorktrees', () => {
     const staleResponse = { ...existing, displayNameMode: undefined }
 
     worktreeListMock.mockResolvedValueOnce([staleResponse])
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
     store.getState().updateWorktreeGitIdentity(existing.id, { branch: 'refs/heads/next' }, null)
@@ -438,7 +450,7 @@ describe('fetchWorktrees', () => {
     const peerRenamed = { ...existing, displayName: 'peer label', displayNameMode: undefined }
 
     worktreeListMock.mockResolvedValueOnce([peerRenamed])
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 
@@ -463,7 +475,7 @@ describe('fetchWorktrees', () => {
     }
 
     worktreeListMock.mockResolvedValueOnce([rederived])
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 
@@ -487,7 +499,7 @@ describe('fetchWorktrees', () => {
     const rederived = { ...existing, branch: '', displayName: 'wt1', displayNameMode: undefined }
 
     worktreeListMock.mockResolvedValueOnce([rederived])
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 
@@ -515,7 +527,7 @@ describe('fetchWorktrees', () => {
       })
     )
     worktreeListMock.mockResolvedValueOnce([staleResponse])
-    store.setState({ worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     const rename = store.getState().updateWorktreeMeta(existing.id, { displayName: 'new label' })
     await vi.waitFor(() => expect(mockApi.worktrees.updateMeta).toHaveBeenCalledTimes(1))
@@ -547,7 +559,10 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
-    store.setState({ worktreesByRepo: { repo1: [existing] }, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [existing] },
+      sortEpoch: 7
+    } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 
@@ -570,7 +585,10 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
-    store.setState({ worktreesByRepo: { repo1: [existing] }, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [existing] },
+      sortEpoch: 7
+    } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
 
@@ -588,7 +606,10 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
-    store.setState({ worktreesByRepo: { repo1: [existing] }, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [existing] },
+      sortEpoch: 7
+    } as Partial<AppState>)
 
     const result = await store.getState().fetchWorktrees('repo1')
 
@@ -607,7 +628,10 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
-    store.setState({ worktreesByRepo: { repo1: [existing] }, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [existing] },
+      sortEpoch: 7
+    } as Partial<AppState>)
 
     const result = await store.getState().fetchWorktrees('repo1')
 
@@ -635,7 +659,10 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
-    store.setState({ worktreesByRepo: { repo1: [existing] }, sortEpoch: 7 } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [existing] },
+      sortEpoch: 7
+    } as Partial<AppState>)
 
     const result = await store.getState().fetchWorktrees('repo1', { requireAuthoritative: true })
 

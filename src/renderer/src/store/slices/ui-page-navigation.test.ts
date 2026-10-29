@@ -252,7 +252,7 @@ describe('createUISlice settings navigation', () => {
       providerIdentity: { provider: 'linear', workspaceId: 'workspace-1' }
     }
 
-    store.setState({
+    setSessionTestState(store, {
       settings: {
         visibleTaskProviders: ['linear'],
         defaultTaskSource: 'linear'
@@ -370,7 +370,7 @@ describe('createUISlice page navigation history', () => {
   it('records provider-depth interactions for direct Tasks detail opens', () => {
     const store = createUIStore()
     const recordFeatureInteraction = vi.fn()
-    store.setState({ recordFeatureInteraction } as Partial<AppState>)
+    setSessionTestState(store, { recordFeatureInteraction } as Partial<AppState>)
     const workItem = makeGitHubWorkItem()
     const linearIssue = makeLinearIssue()
     const jiraIssue = makeJiraIssue()
@@ -494,7 +494,7 @@ describe('createUISlice page navigation history', () => {
   it('can suppress the Tasks surface interaction for in-page provider navigation', () => {
     const store = createUIStore()
     const recordFeatureInteraction = vi.fn()
-    store.setState({ recordFeatureInteraction } as Partial<AppState>)
+    setSessionTestState(store, { recordFeatureInteraction } as Partial<AppState>)
     const workItem = makeGitHubWorkItem()
     const linearIssue = makeLinearIssue()
     const jiraIssue = makeJiraIssue()
