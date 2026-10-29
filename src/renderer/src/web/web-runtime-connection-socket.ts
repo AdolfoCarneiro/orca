@@ -1,11 +1,13 @@
 import type { WebRuntimeConnectionTransport } from './web-runtime-connection-transport'
-import type { WebRuntimeConnectionLifecycle } from './web-runtime-connection-auth'
+import type {
+  WebRuntimeConnectionLifecycle,
+  WebRuntimeConnectionAuth
+} from './web-runtime-connection-auth'
 import type { PairedRuntimeConnection } from '../../../shared/paired-runtime-connection'
 import {
   createPairedE2EEClientHandshake,
   type PairedE2EEClientHandshake
 } from '../../../shared/paired-e2ee-client-handshake'
-import type { WebRuntimeConnectionAuth } from './web-runtime-connection-auth'
 import type { WebRuntimeAuthPlan } from './web-runtime-credential-source'
 import type { WebRuntimeConnectionTimers } from './web-runtime-connection-timers'
 import { WEB_PAIRED_E2EE_PRIMITIVES } from './web-paired-e2ee-primitives'
