@@ -11,7 +11,7 @@ import {
   rename,
   rm
 } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { dirname } from 'node:path'
 
 export type NativeHookDestination = {
   path: string
@@ -24,7 +24,7 @@ export async function writeHooksJsonAsync(
   options?: {
     serialized?: string
     privateMode?: boolean
-    beforePublish?: (destination: NativeHookDestination) => Promise<void>
+    beforePublish?: (selectedPath: string) => Promise<void>
   }
 ): Promise<void> {
   const link = await lstat(configPath).catch((error: unknown) => {
@@ -45,16 +45,7 @@ export async function writeHooksJsonAsync(
     if (!options?.beforePublish) {
       return
     }
-    await mkdir(dirname(writePath), { recursive: true })
-    const parent = await realpath(dirname(writePath))
-    const identity = await stat(parent, { bigint: true })
-    if (!identity.isDirectory() || identity.ino <= 0n || identity.dev <= 0n) {
-      throw new Error('Could not identify settings publication parent')
-    }
-    await options.beforePublish({
-      path: join(parent, basename(writePath)),
-      parent: { dev: String(identity.dev), ino: String(identity.ino) }
-    })
+    await options.beforePublish(writePath)
   }
   if (original === serialized) {
     await beforePublish()

@@ -171,8 +171,7 @@ export class ClaudeHookService {
       }
     }
 
-    const nextConfig = this.prepareHooks(config, options)
-    writeHooksJson(configPath, nextConfig)
+    writeHooksJson(configPath, this.prepareHooks(options)(config))
     return this.getStatus(options)
   }
 
@@ -182,25 +181,25 @@ export class ClaudeHookService {
     return this.install(options)
   }
 
-  private prepareHooks(config: HooksConfig, options: ClaudeHookInstallOptions): HooksConfig {
+  private prepareHooks(options: ClaudeHookInstallOptions): (config: HooksConfig) => HooksConfig {
     const scriptPath = getManagedScriptPath(this.options.settings)
     const plan = this.managedHookPlan(options)
     const exePath = this.usesWindowsEntry ? installWindowsClaudeHookExecutable(scriptPath) : null
     const execForm = claudeAcceptsExecFormHooks(options.claudeVersion)
-    const nextConfig = applyManagedHooks(
-      config,
-      (eventName) =>
-        getManagedEventHook(eventName, scriptPath, this.options.settings, exePath, { execForm }),
-      getManagedScriptFileName(this.options.settings),
-      plan
+    const definitions = new Map(
+      plan.install.map(({ eventName }) => [
+        eventName,
+        getManagedEventHook(eventName, scriptPath, this.options.settings, exePath, { execForm })
+      ])
     )
-    const payload = this.managedScript()
     if (this.usesWindowsEntry) {
-      installWindowsClaudeHookFiles(scriptPath, payload)
+      installWindowsClaudeHookFiles(scriptPath, this.managedScript())
     } else {
-      writeManagedScript(scriptPath, payload)
+      writeManagedScript(scriptPath, this.managedScript())
     }
-    return nextConfig
+    const hookFor = (eventName: string) => definitions.get(eventName)!
+    const scriptName = getManagedScriptFileName(this.options.settings)
+    return (config) => applyManagedHooks(config, hookFor, scriptName, plan)
   }
 
   async installSystem(
@@ -212,12 +211,13 @@ export class ClaudeHookService {
   ): Promise<AgentHookInstallStatus> {
     const target = options.target ?? systemClaudeHookTarget()
     try {
-      await installClaudeSystemHooks(
-        getConfigPath(this.options.settings, target.configDir),
-        this.managedHookPlan(options),
-        (config) => this.prepareHooks(config, options),
-        options
-      )
+      options.signal?.throwIfAborted()
+      if (options.shouldContinue?.() === false) {
+        throw new Error('Claude hook installation was canceled')
+      }
+      const path = getConfigPath(this.options.settings, target.configDir)
+      const plan = this.managedHookPlan(options)
+      await installClaudeSystemHooks(path, plan, this.prepareHooks(options), options)
       return this.getStatus({ ...options, target })
     } catch (error) {
       return { ...this.getStatus({ ...options, target }), state: 'error', detail: String(error) }

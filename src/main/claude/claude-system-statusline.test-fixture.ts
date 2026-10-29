@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises'
+import type * as syncFs from 'node:fs'
 import * as os from 'node:os'
 import type * as childProcess from 'node:child_process'
 import { promisify } from 'node:util'
@@ -14,7 +15,21 @@ const seam = vi.hoisted(
     bytes: Map<string, number> | null
     probes: number
     online: boolean
-  } => ({ home: '', before: null, after: null, calls: null, bytes: null, probes: 0, online: true })
+    unavailableHost: boolean
+    zeroParent: string | null
+    syncAfter: null | ((method: string, path: string) => void)
+  } => ({
+    home: '',
+    before: null,
+    after: null,
+    calls: null,
+    bytes: null,
+    probes: 0,
+    online: true,
+    unavailableHost: false,
+    zeroParent: null,
+    syncAfter: null
+  })
 )
 vi.mock('node:child_process', async (original) => {
   const actual = await original<typeof childProcess>()
@@ -26,6 +41,9 @@ vi.mock('node:child_process', async (original) => {
   Object.defineProperty(execFile, promisify.custom, {
     value: (...args: unknown[]) => {
       seam.probes++
+      if (seam.unavailableHost && (args[0] === 'ioreg' || String(args[0]).endsWith('reg.exe'))) {
+        throw new Error('Host probe unavailable')
+      }
       return Reflect.apply(originalAsync, undefined, args)
     }
   })
@@ -71,7 +89,9 @@ vi.mock('node:fs/promises', async (original) => {
           'writeFile',
           'readdir',
           'link',
-          'copyFile'
+          'copyFile',
+          'mkdir',
+          'chmod'
         ] as const
       ).map((method) => [
         method,
@@ -81,7 +101,19 @@ vi.mock('node:fs/promises', async (original) => {
           )
           seam.calls?.set(`${method}:${path}`, (seam.calls.get(`${method}:${path}`) ?? 0) + 1)
           await seam.before?.(method, path)
+          if (seam.unavailableHost && path.startsWith('/var/tmp/orca-managed-hooks-')) {
+            throw new Error('Host token storage unavailable')
+          }
           const result = await Reflect.apply(actual[method], undefined, args)
+          if (
+            method === 'stat' &&
+            path === seam.zeroParent &&
+            typeof result === 'object' &&
+            result !== null
+          ) {
+            Reflect.set(result, 'dev', 0n)
+            Reflect.set(result, 'ino', 0n)
+          }
           const payload = method === 'readFile' ? result : method === 'writeFile' ? args[1] : null
           if (typeof payload === 'string' || Buffer.isBuffer(payload)) {
             seam.bytes?.set(
@@ -96,6 +128,32 @@ vi.mock('node:fs/promises', async (original) => {
             )
           }
           await seam.after?.(method, path)
+          return result
+        }
+      ])
+    )
+  }
+})
+vi.mock('node:fs', async (original) => {
+  const actual = await original<typeof syncFs>()
+  return {
+    ...actual,
+    ...Object.fromEntries(
+      (['readFileSync', 'writeFileSync', 'copyFileSync', 'renameSync'] as const).map((method) => [
+        method,
+        (...args: unknown[]) => {
+          const path = String(
+            method === 'copyFileSync' || method === 'renameSync' ? args[1] : args[0]
+          )
+          const key = `${method}:${path}`
+          seam.calls?.set(key, (seam.calls.get(key) ?? 0) + 1)
+          const result = Reflect.apply(actual[method], undefined, args)
+          seam.syncAfter?.(method, path)
+          const payload =
+            method === 'readFileSync' ? result : method === 'writeFileSync' ? args[1] : null
+          if (typeof payload === 'string' || Buffer.isBuffer(payload)) {
+            seam.bytes?.set(key, (seam.bytes.get(key) ?? 0) + Buffer.byteLength(payload))
+          }
           return result
         }
       ])
@@ -151,10 +209,19 @@ beforeEach(async () => {
   vi.stubEnv('USERPROFILE', seam.home)
   vi.stubEnv('CLAUDE_CONFIG_DIR', '')
   vi.stubEnv('ORCA_CLAUDE_INJECTED_CONFIG_DIR', '')
+  vi.stubEnv('ORCA_USER_DATA_PATH', join(seam.home, 'data'))
+  vi.stubEnv('XDG_CONFIG_HOME', join(seam.home, '.config'))
+  vi.stubEnv('APPDATA', join(seam.home, 'AppData/Roaming'))
+  vi.stubEnv('CODEX_HOME', join(seam.home, '.codex'))
+  vi.stubEnv('ORCA_CODEX_HOME', join(seam.home, '.codex'))
+  await resetService()
 })
 afterEach(async () => {
   seam.before = seam.after = null
   seam.calls = seam.bytes = null
+  seam.unavailableHost = false
+  seam.zeroParent = null
+  seam.syncAfter = null
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
   process.exitCode = undefined

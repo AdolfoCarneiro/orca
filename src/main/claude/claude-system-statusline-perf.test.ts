@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import * as fs from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import {
   seam,
   file,
@@ -11,9 +11,11 @@ import {
   erase,
   documentPath,
   document,
-  resetService
+  resetService,
+  applyAgentStatusHooksEnabled
 } from './claude-system-statusline.test-fixture'
-it('measures real production adoption and System decisions at 100 and 1000 physical owners', async () => {
+
+it('measures current-only System work and exact index bytes at 100 and 1000 production-acquired owners', async () => {
   const base = seam.home
   const rows: Record<string, number>[] = []
   for (const population of [100, 1000]) {
@@ -23,6 +25,16 @@ it('measures real production adoption and System decisions at 100 and 1000 physi
     vi.stubEnv('USERPROFILE', seam.home)
     await resetService()
     seam.probes = 0
+    const coldStarted = performance.now()
+    expect(
+      (
+        await applyAgentStatusHooksEnabled(true, null, {
+          agents: ['claude', 'gemini'],
+          env: { CLAUDE_CONFIG_DIR: dirname(file('r0000')) }
+        })
+      ).map((entry) => entry.state)
+    ).toEqual(['installed', 'installed'])
+    const coldApplyMs = performance.now() - coldStarted
     expect((await install('r0000')).state).toBe('installed')
     const coldProbes = seam.probes
     const template = await read(file('r0000'))
@@ -38,7 +50,7 @@ it('measures real production adoption and System decisions at 100 and 1000 physi
       await fs.writeFile(join(seam.home, '.orca', `unrelated-${index}`), '')
     }
     const meta = await documentPath()
-    const measure = async (action: () => Promise<unknown>) => {
+    const measure = async (name: string, action: () => Promise<unknown>) => {
       seam.calls = new Map()
       seam.bytes = new Map()
       seam.probes = 0
@@ -50,6 +62,12 @@ it('measures real production adoption and System decisions at 100 and 1000 physi
         last = now
       }, 1)
       const start = performance.now()
+      let nextAgentMs = 0
+      seam.syncAfter = (method, path) => {
+        if (method === 'readFileSync' && path === join(seam.home, '.gemini/settings.json')) {
+          nextAgentMs = performance.now() - start
+        }
+      }
       await action()
       const elapsed = performance.now() - start
       clearInterval(timer)
@@ -61,107 +79,128 @@ it('measures real production adoption and System decisions at 100 and 1000 physi
         )
       const row = {
         population,
+        nextAgentMs,
         elapsed,
         maxDelay,
-        historyReads: count('readFile', (path) => corpus.has(path)),
-        historyBytes: count('readFile', (path) => corpus.has(path), seam.bytes),
+        otherRootWork: [...seam.calls].reduce(
+          (sum, [key, n]) =>
+            sum +
+            (['readFile', 'lstat', 'stat', 'realpath'].some(
+              (method) =>
+                key.startsWith(`${method}:`) &&
+                [...corpus].some(
+                  (path) =>
+                    path !== file(name) &&
+                    [path, dirname(path)].includes(key.slice(method.length + 1))
+                )
+            )
+              ? n
+              : 0),
+          0
+        ),
+        currentReads: count('readFile', (path) => path === file(name)),
+        currentReadBytes: count('readFile', (path) => path === file(name), seam.bytes),
         indexReads: count('readFile', (path) => path === meta),
         indexReadBytes: count('readFile', (path) => path === meta, seam.bytes),
         serializedBytes: count('writeFile', (path) => path.startsWith(`${meta}.`), seam.bytes),
         indexBackupBytes: count('copyFile', (path) => path.startsWith(`${meta}.bak.`), seam.bytes),
+        indexWrites: count('rename', (path) => path === meta),
         settingsWrites: count('rename', (path) => path.endsWith('/settings.json')),
-        settingsSerializedBytes: count(
-          'writeFile',
-          (path) => path.includes('/settings.json.') && !path.includes('.bak.'),
+        copies: count('copyFile', () => true),
+        renames: count('rename', () => true),
+        dependencyReads: count('readFileSync', (path) => path.includes('/agent-hooks/')),
+        dependencyBytes: count(
+          'readFileSync',
+          (path) => path.includes('/agent-hooks/'),
           seam.bytes
         ),
-        indexWrites: count('rename', (path) => path === meta),
-        stats: count('stat', () => true),
-        realpaths: count('realpath', () => true),
+        dependencyCopies: count('copyFileSync', () => true),
+        dependencyRenames: count('renameSync', () => true),
         unrelatedNames: count('readdir', (path) => path === join(seam.home, '.orca')),
         lockListings: count('readdir', (path) => path.endsWith('/lock')),
-        lockAttempts: count('link', (path) => path.endsWith('managed-hook-install.lock')),
         probes: seam.probes
       }
       seam.calls = seam.bytes = null
+      seam.syncAfter = null
+      expect(row.otherRootWork).toBe(0)
       expect(row.unrelatedNames).toBe(0)
+      expect(row.lockListings).toBe(1)
+      expect(row.probes).toBe(0)
+      expect(row.elapsed).toBeLessThan(2000)
+      expect(row.maxDelay).toBeLessThan(50)
       return row
     }
-    const unchanged = await document()
-    const m = await measure(async () => {
-      expect((await install('r0000')).state).toBe('installed')
-    })
-    expect(m.historyReads).toBe(3) // Current read, publisher equality read and positive readback only; no other owner is inspected.
-    expect(m.indexReads).toBe(1)
+    const unchanged = await fs.readFile(meta, 'utf8')
+    const m = await measure('r0000', () => install('r0000'))
     expect(m.indexWrites).toBe(0)
-    expect(await document()).toEqual(unchanged)
+    expect(m.settingsWrites).toBe(0)
+    expect(m.dependencyReads).toBe(2) // One event script preparation and one callback script verification.
+    expect(m.dependencyCopies + m.dependencyRenames).toBe(0)
+    expect(await fs.readFile(meta, 'utf8')).toBe(unchanged)
     await write(file('user'), { statusLine: { type: 'command', command: '/user/owned' } })
-    const u = await measure(() => install('user'))
-    expect(u.historyReads).toBe(0)
-    expect(u.indexReads).toBe(0)
-    const allM = await measure(async () => {
-      expect((await install('fresh')).state).toBe('installed')
+    const u = await measure('user', () => install('user'))
+    expect(u.indexReads + u.indexWrites).toBe(0)
+    seam.before = async (method, path) => {
+      if (
+        ['readFile', 'stat', 'lstat', 'realpath'].includes(method) &&
+        [...corpus].some((entry) => [entry, dirname(entry)].includes(path))
+      ) {
+        throw new Error('Unrelated owner is unavailable')
+      }
+    }
+    const beforeFresh = Buffer.byteLength(await fs.readFile(meta, 'utf8'))
+    const fresh = await measure('fresh', async () => {
+      const results = await applyAgentStatusHooksEnabled(true, null, {
+        agents: ['claude', 'gemini'],
+        env: { CLAUDE_CONFIG_DIR: dirname(file('fresh')) }
+      })
+      expect(results.map((entry) => entry.state)).toEqual(['installed', 'installed'])
     })
-    expect(allM.historyReads).toBe(population)
     expect((await read(file('fresh'))).statusLine).toBeDefined()
-    const retire = await measure(() => install('fresh', { claudeVersion: '1.0.0' }))
-    expect(retire.historyReads).toBe(0)
-    const last = `r${String(population - 1).padStart(4, '0')}`
-    await erase(last)
-    const deletion = await measure(async () => {
-      expect((await install('fresh')).state).toBe('installed')
-    })
-    expect((await read(file('fresh'))).statusLine).toBeUndefined()
-    expect(deletion.historyReads).toBe(population + 1) // Last witness is rechecked under the transaction scope.
-    expect(deletion.elapsed).toBeLessThan(2000)
-    expect(deletion.maxDelay).toBeLessThan(50)
-    await fs.writeFile(file(last), 'null')
-    const unknown = await measure(async () => {
-      expect((await install('fresh')).state).toBe('installed')
-    })
-    expect(unknown.historyReads).toBe(population)
-    expect((await read(file('fresh'))).statusLine).toBeDefined()
-    expect(unknown.elapsed).toBeLessThan(2000)
-    expect(unknown.maxDelay).toBeLessThan(50)
-    await install('fresh', { claudeVersion: '1.0.0' })
-    const deleted = { ...template }
-    delete deleted.statusLine
-    await write(file(last), deleted)
-    const big = await read(file('r0000'))
+    expect(fresh.nextAgentMs).toBeGreaterThan(0)
+    expect(fresh.nextAgentMs).toBeLessThan(50)
+    expect(fresh.indexReads).toBe(2) // Loaded authority plus the publisher's equality/backup read.
+    expect(fresh.indexReadBytes).toBe(2 * beforeFresh)
+    expect(fresh.indexBackupBytes).toBe(beforeFresh)
+    expect(fresh.serializedBytes).toBe(Buffer.byteLength(await fs.readFile(meta, 'utf8')))
+    seam.before = null
+    await erase('r0000')
+    const deletion = await measure('r0000', () => install('r0000'))
+    expect((await read(file('r0000'))).statusLine).toBeUndefined()
+    expect(deletion.indexWrites).toBe(0)
+    const big = await read(file('fresh'))
     big.largeControl = 'x'.repeat(256 * 1024)
-    await write(file('r0000'), big)
-    const large = await measure(() => install('fresh'))
-    const reset = await measure(() => remove('fresh'))
-    expect(reset.historyReads).toBe(0)
+    await write(file('fresh'), big)
+    const large = await measure('fresh', () => install('fresh'))
+    const retire = await measure('fresh', () => install('fresh', { claudeVersion: '1.0.0' }))
+    const beforeReset = Buffer.byteLength(await fs.readFile(meta, 'utf8'))
+    const reset = await measure('r0000', () => remove('r0000'))
+    expect(reset.indexBackupBytes).toBe(beforeReset)
     expect(reset.indexWrites).toBe(1)
-    expect(reset.indexBackupBytes).toBeGreaterThan(200 * population)
-    rows.push(allM)
+    expect((await document()).destinations).toHaveLength(population - 1)
+    rows.push(fresh)
     console.log(
-      'SL_PERF',
+      'SL_CURRENT_PERF',
       JSON.stringify({
         coldProbes,
-        corpusBytes: allM.historyBytes,
+        coldApplyMs,
         settingsPathBytes: Buffer.byteLength(file('r0000')),
         m,
         u,
-        allM,
+        fresh,
         deletion,
-        unknown,
-        retire,
         large,
+        retire,
         reset
       })
     )
   }
-  for (const key of [
-    'historyReads',
-    'indexReadBytes',
-    'serializedBytes',
-    'stats',
-    'realpaths',
-    'lockAttempts'
-  ]) {
+  for (const key of ['currentReads', 'indexReads', 'settingsWrites', 'probes']) {
+    expect(rows[1][key]).toBe(rows[0][key])
+  }
+  for (const key of ['indexReadBytes', 'serializedBytes', 'indexBackupBytes']) {
     expect(rows[1][key]).toBeLessThanOrEqual(10 * rows[0][key] + 2048)
   }
   seam.home = base
+  // Real production acquires and serializes 100/1000 physical records before measuring the bounded invocation work.
 }, 60_000)

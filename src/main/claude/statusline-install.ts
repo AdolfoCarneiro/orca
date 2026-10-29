@@ -1,5 +1,5 @@
 import { homedir } from 'node:os'
-import { rm } from 'node:fs/promises'
+import { lstat, rm } from 'node:fs/promises'
 import { writeManagedScript, type HooksConfig } from '../agent-hooks/installer-utils'
 import {
   writeHooksJsonAsync,
@@ -18,9 +18,11 @@ import {
   removeManagedHooks,
   getManagedScriptFileName
 } from './hook-settings'
-import { inspectStatusLineHistory, observeStatusLineOwner } from './statusline-history'
 import {
   readSystemHookSettings,
+  readStatusLineEvidence,
+  selectedStatusLineDestination,
+  existingStatusLineDestination,
   sameStatusLineDestination,
   withClaudeSystemScope
 } from './statusline-ownership'
@@ -70,158 +72,116 @@ export async function installClaudeSystemHooks(
   options: SystemOperation = {}
 ) {
   const home = homedir()
-  const started = Date.now()
   const invocation = request(home, options)
   const admission = AbortSignal.any([invocation.signal, AbortSignal.timeout(2000)])
   try {
-    const snapshot = await withClaudeSystemScope(home, admission, async (store) => {
-      invocation.check()
-      const current = await readSystemHookSettings(path)
-      const slot = getStatusLineSlotState(current.config)
-      let next = mergeEvents(current.config)
-      if (slot === 'user') {
-        await writeHooksJsonAsync(path, next, { beforePublish: async () => invocation.check() })
-        return null
-      }
-      if (plan.statusLine === 'install' && slot === 'managed') {
-        next = managed(next)
-      }
-      try {
-        await store.read()
-      } catch (error) {
-        if (current.raw !== null) {
-          await writeHooksJsonAsync(path, next, { beforePublish: async () => invocation.check() })
-        }
-        throw error
-      }
-      if (plan.statusLine === 'retire') {
-        next = removeManagedStatusLine(next, getStatusLineScriptFileName()).config
-      }
-      let destination: NativeHookDestination | undefined
-      await writeHooksJsonAsync(path, next, {
-        beforePublish: async (selected) => {
-          invocation.check()
-          destination = selected
-          const owner = store.document.destinations.find((entry) =>
-            sameStatusLineDestination(entry, selected)
-          )
-          if (
-            owner?.phase === 'managed' &&
-            (current.raw === null || (slot === 'managed' && plan.statusLine === 'retire'))
-          ) {
-            await store.set(selected, 'own-change')
-            try {
-              invocation.check()
-            } catch (error) {
-              await store.set(selected, 'managed')
-              throw error
-            }
-          }
-          invocation.check()
-        }
-      })
-      if (!destination) {
-        throw new Error('Claude settings publication destination is unavailable')
-      }
-      const published = destination
-      const owner = store.document.destinations.find((entry) =>
-        sameStatusLineDestination(entry, published)
-      )
-      if (slot === 'managed' && plan.statusLine === 'install') {
-        if ((await observeStatusLineOwner({ ...destination, phase: 'managed' })) !== 'managed') {
-          throw new Error('Claude callback publication could not be verified')
-        }
-        await store.set(destination, 'managed')
-        return null
-      }
-      if (owner?.phase === 'own-change') {
-        await store.set(destination)
-      }
-      if (plan.statusLine !== 'install' || (current.raw !== null && owner?.phase === 'managed')) {
-        return null
-      }
-      return store.document
-    })
-    if (!snapshot) {
-      return
-    }
-    invocation.check()
-    const remaining = 2000 - (Date.now() - started)
-    if (remaining <= 0) {
-      throw new Error('Claude statusline evidence admission timed out')
-    }
-    const history = await inspectStatusLineHistory(
-      snapshot.destinations,
-      invocation.signal,
-      getConfigPath(CLAUDE_HOOK_SETTINGS),
-      remaining
-    )
     await withClaudeSystemScope(
       home,
-      AbortSignal.any([invocation.signal, AbortSignal.timeout(250)]),
-      async (store) => {
+      admission,
+      async (ownership) => {
         invocation.check()
-        await store.read()
-        if (store.document.revision !== snapshot.revision) {
-          throw new Error('Claude statusline ownership changed during inspection')
-        }
         const current = await readSystemHookSettings(path)
-        const slot = getStatusLineSlotState(current.config)
-        if (slot === 'user') {
+        let selectedPath = path
+        if (current.raw !== null) {
           await writeHooksJsonAsync(path, mergeEvents(current.config), {
-            beforePublish: async () => invocation.check()
+            beforePublish: async (selected) => {
+              invocation.check()
+              selectedPath = selected
+            }
           })
-          return
-        }
-        let suppress = false
-        if (history.witness) {
-          suppress = (await observeStatusLineOwner(history.witness)) === 'removed'
-          if (!suppress && !history.complete) {
-            throw new Error('Claude statusline deletion evidence changed during inspection')
+          if (getStatusLineSlotState(current.config) === 'user') {
+            return
           }
         }
-        const recovered = new Map(store.document.destinations.map((owner) => [owner.path, owner]))
-        for (const [owner, observed] of history.observations) {
+        const store = ownership()
+        const inspect = async (selected: string) =>
+          await readStatusLineEvidence(admission, async () => {
+            await store.read()
+            return await selectedStatusLineDestination(selected)
+          })
+        let destination: NativeHookDestination
+        if (current.raw === null) {
           invocation.check()
-          if (owner.phase !== 'own-change' || observed === 'unknown') {
-            continue
+          const events = mergeEvents(current.config)
+          const next = plan.statusLine === 'install' ? managed(events) : events
+          await writeHooksJsonAsync(path, next, {
+            beforePublish: async (selected) => {
+              destination = await inspect(selected)
+              invocation.check()
+              const owner = store.document.destinations.find((entry) =>
+                sameStatusLineDestination(entry, destination)
+              )
+              if (owner?.phase === 'managed') {
+                await store.set(destination, 'own-change')
+              }
+              invocation.check()
+            }
+          })
+        } else {
+          destination = await inspect(selectedPath)
+          // Read fresh after optional evidence, inside the same real mutation scope.
+          const fresh = await readStatusLineEvidence(admission, () =>
+            readSystemHookSettings(destination.path)
+          )
+          invocation.check()
+          if (fresh.raw === null) {
+            throw new Error('Claude settings disappeared during installation')
           }
-          const fresh = await observeStatusLineOwner(owner)
-          if (fresh === 'managed') {
-            recovered.set(owner.path, { ...owner, phase: 'managed' })
-          } else if (fresh !== 'unknown') {
-            recovered.delete(owner.path)
+          const slot = getStatusLineSlotState(fresh.config)
+          if (slot === 'user') {
+            return
+          }
+          const owner = store.document.destinations.find((entry) =>
+            sameStatusLineDestination(entry, destination)
+          )
+          if (slot === 'empty' && owner?.phase === 'managed') {
+            return
+          }
+          let next = mergeEvents(fresh.config)
+          if (plan.statusLine === 'install') {
+            next = managed(next)
+          } else if (plan.statusLine === 'retire' && slot === 'managed') {
+            await store.set(destination, 'own-change')
+            next = removeManagedStatusLine(next, getStatusLineScriptFileName()).config
+          }
+          invocation.check()
+          await writeHooksJsonAsync(destination.path, next, {
+            beforePublish: async (selected) => {
+              invocation.check()
+              const actual = await readStatusLineEvidence(admission, () =>
+                selectedStatusLineDestination(selected)
+              )
+              if (!sameStatusLineDestination(destination, actual)) {
+                throw new Error('Claude settings destination changed')
+              }
+              invocation.check()
+            }
+          })
+        }
+        if (plan.statusLine === 'install') {
+          // Publication has begun: join physical readback/receipt through real completion.
+          const published = await selectedStatusLineDestination(destination!.path)
+          if ((await lstat(published.path)).isSymbolicLink()) {
+            throw new Error('Claude callback destination changed after publication')
+          }
+          const verified = await readSystemHookSettings(published.path)
+          if (
+            !sameStatusLineDestination(destination!, published) ||
+            getStatusLineSlotState(verified.config) !== 'managed'
+          ) {
+            throw new Error('Claude callback publication could not be verified')
+          }
+          await store.set(published, 'managed')
+        } else {
+          const owner = store.document.destinations.find((entry) =>
+            sameStatusLineDestination(entry, destination!)
+          )
+          if (owner?.phase === 'own-change') {
+            await store.set(destination!)
           }
         }
-        if (
-          history.migration &&
-          !recovered.has(history.migration.path) &&
-          (await observeStatusLineOwner(history.migration)) === 'managed'
-        ) {
-          recovered.set(history.migration.path, history.migration)
-        }
-        invocation.check()
-        await store.save([...recovered.values()])
-        if (slot === 'empty' && suppress) {
-          return
-        }
-        invocation.check()
-        const next = managed(mergeEvents(current.config))
-        let destination: NativeHookDestination | undefined
-        await writeHooksJsonAsync(path, next, {
-          beforePublish: async (selected) => {
-            invocation.check()
-            destination = selected
-          }
-        })
-        if (
-          !destination ||
-          (await observeStatusLineOwner({ ...destination, phase: 'managed' })) !== 'managed'
-        ) {
-          throw new Error('Claude callback publication could not be verified')
-        }
-        await store.set(destination, 'managed')
-      }
+      },
+      invocation.check
     )
   } finally {
     invocation.finish()
@@ -231,36 +191,95 @@ export async function installClaudeSystemHooks(
 export async function removeClaudeSystemHooks(path: string, options: SystemOperation = {}) {
   const home = homedir()
   const invocation = request(home, options)
+  const admission = AbortSignal.any([invocation.signal, AbortSignal.timeout(2000)])
   try {
     await withClaudeSystemScope(
       home,
-      AbortSignal.any([invocation.signal, AbortSignal.timeout(2000)]),
-      async (store) => {
-        invocation.check()
-        await store.save([], true)
+      admission,
+      async (ownership) => {
         const errors: string[] = []
-        for (const target of new Set([path, getConfigPath(CLAUDE_HOOK_SETTINGS)])) {
+        const targets = new Set([path, getConfigPath(CLAUDE_HOOK_SETTINGS)])
+        // Event teardown is independent of optional callback authority at both known targets.
+        for (const target of targets) {
           try {
+            invocation.check()
             const current = await readSystemHookSettings(target)
             if (current.raw === null) {
               continue
             }
-            const events = removeManagedHooks(current.config, getManagedScriptFileName()).config
-            const next = removeManagedStatusLine(events, getStatusLineScriptFileName()).config
-            await writeHooksJsonAsync(target, next, {
-              beforePublish: async () => invocation.check()
-            })
+            const events = removeManagedHooks(current.config, getManagedScriptFileName())
+            if (events.changed) {
+              await writeHooksJsonAsync(target, events.config, {
+                beforePublish: async () => invocation.check()
+              })
+            }
           } catch (error) {
             errors.push(String(error))
           }
         }
+        try {
+          const store = ownership()
+          const destinations: NativeHookDestination[] = []
+          await readStatusLineEvidence(admission, async () => {
+            await store.read()
+            for (const target of targets) {
+              try {
+                const selected = await existingStatusLineDestination(target)
+                if (selected) {
+                  destinations.push(selected)
+                }
+              } catch (error) {
+                errors.push(String(error))
+              }
+            }
+          })
+          invocation.check()
+          await store.save(
+            store.document.destinations.filter(
+              (owner) =>
+                !destinations.some((selected) => sameStatusLineDestination(owner, selected))
+            ),
+            true
+          )
+          for (const selected of destinations) {
+            try {
+              invocation.check()
+              const fresh = await readSystemHookSettings(selected.path)
+              if (fresh.raw === null) {
+                continue
+              }
+              const events = removeManagedHooks(fresh.config, getManagedScriptFileName())
+              const callback = removeManagedStatusLine(events.config, getStatusLineScriptFileName())
+              if (events.changed || callback.changed) {
+                await writeHooksJsonAsync(selected.path, callback.config, {
+                  beforePublish: async (writePath) => {
+                    invocation.check()
+                    const actual = await readStatusLineEvidence(admission, () =>
+                      selectedStatusLineDestination(writePath)
+                    )
+                    if (!sameStatusLineDestination(selected, actual)) {
+                      throw new Error('Claude settings destination changed')
+                    }
+                    invocation.check()
+                  }
+                })
+              }
+            } catch (error) {
+              errors.push(String(error))
+            }
+          }
+        } catch (error) {
+          errors.push(String(error))
+        }
+        invocation.check()
         await rm(getStatusLineInstallMarkerPath(), { force: true }).catch((error: unknown) =>
           errors.push(String(error))
         )
         if (errors.length) {
           throw new Error(errors.join('; '))
         }
-      }
+      },
+      invocation.check
     )
   } finally {
     invocation.finish()

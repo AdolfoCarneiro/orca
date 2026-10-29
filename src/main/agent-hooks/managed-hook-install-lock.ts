@@ -20,6 +20,31 @@ const LOCK_RETRY_MS = 20
 const scopedPreparation = new Map<string, Promise<string | null | undefined>>()
 let scopedProcessIdentity: Promise<string | null | undefined> | undefined
 
+export async function waitForManagedHookPreparation<T>(
+  preparation: Promise<T>,
+  signal?: AbortSignal
+): Promise<T> {
+  if (!signal) {
+    return await preparation
+  }
+  signal.throwIfAborted()
+  let abort!: () => void
+  try {
+    return await Promise.race([
+      preparation,
+      new Promise<never>((_, reject) => {
+        abort = () => reject(signal.reason)
+        signal.addEventListener('abort', abort, { once: true })
+        if (signal.aborted) {
+          abort()
+        }
+      })
+    ])
+  } finally {
+    signal.removeEventListener('abort', abort)
+  }
+}
+
 async function releaseInstallLock(
   lockPath: string,
   lockParent: string,
@@ -61,12 +86,12 @@ async function acquireInstallLock(
   const hostIdentity = suppliedHostIdentity ?? (await readManagedHookHostIdentity())
   let preparation = explicitParent ? scopedPreparation.get(lockParent) : undefined
   if (!preparation) {
+    if (explicitParent && scopedPreparation.size > 0) {
+      throw new Error('Managed-hook scoped preparation is still running')
+    }
+    const ownerSignal = explicitParent ? AbortSignal.timeout(2000) : undefined
     preparation = (async () => {
-      await cleanupManagedHookLockFiles(
-        lockParent,
-        hostIdentity,
-        explicitParent ? signal : undefined
-      )
+      await cleanupManagedHookLockFiles(lockParent, hostIdentity, ownerSignal)
       if (!explicitParent) {
         return await readManagedHookProcessIdentity(process.pid)
       }
@@ -82,7 +107,9 @@ async function acquireInstallLock(
           throw error
         }
       )
-      return await scopedProcessIdentity
+      const identity = await scopedProcessIdentity
+      ownerSignal?.throwIfAborted()
+      return identity
     })()
     if (explicitParent) {
       scopedPreparation.set(lockParent, preparation)
@@ -92,7 +119,10 @@ async function acquireInstallLock(
       )
     }
   }
-  const processIdentity = await preparation
+  const processIdentity = await waitForManagedHookPreparation(
+    preparation,
+    explicitParent ? signal : undefined
+  )
   if (typeof processIdentity !== 'string') {
     throw new Error('Could not identify the managed-hook installer process')
   }

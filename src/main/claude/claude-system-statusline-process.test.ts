@@ -131,7 +131,6 @@ async function fixture() {
         export async function readFile(path,...args) {
           const data = await fs.readFile(path,...args);
           if (mode === 'snapshot' && String(path) === target + '/settings.json') await barrier('snapshot');
-          if (mode === 'history' && String(path) === process.env.WITNESS) await barrier('history');
           return data;
         }
         export async function link(a,b) {
@@ -143,7 +142,7 @@ async function fixture() {
       }
     ]
   })
-  async function start(target: string, operation = 'install', mode = '', witness = '') {
+  async function start(target: string, operation = 'install', mode = '') {
     const child = spawnProcess({
       program: process.execPath,
       args: [entry, join(home, target), operation, mode],
@@ -153,8 +152,7 @@ async function fixture() {
         USERPROFILE: home,
         CLAUDE_CONFIG_DIR: '',
         ORCA_CLAUDE_INJECTED_CONFIG_DIR: '',
-        ORCA_BACKGROUND_LAUNCH: '1',
-        WITNESS: witness
+        ORCA_BACKGROUND_LAUNCH: '1'
       },
       stdio: ['ignore', 'pipe', 'pipe', 'ipc']
     })
@@ -170,7 +168,7 @@ async function fixture() {
         messages.push(message)
       }
     })
-    const wait = async (phase: string) => {
+    const waitForPhase = async (phase: string) => {
       while (!messages.some((m) => m.phase === phase)) {
         await Promise.race([
           once(child, 'message'),
@@ -181,17 +179,17 @@ async function fixture() {
       }
       return messages.find((m) => m.phase === phase)!
     }
-    await wait('started')
+    await waitForPhase('started')
     expect(child.pid).toBeGreaterThan(0)
     const identity = await readManagedHookProcessIdentity(child.pid!)
     console.log('SL_OWNED_PROCESS', JSON.stringify({ pid: child.pid, identity }))
     return {
       child,
       closed,
-      wait,
-      metrics: async () => (await wait('done')).metrics,
+      wait: waitForPhase,
+      metrics: async () => (await waitForPhase('done')).metrics,
       done: async () => {
-        const result = await wait('done')
+        const result = await waitForPhase('done')
         await closed
         if (!isPlainObject(result.status)) {
           throw new Error('Missing child service status')
@@ -211,6 +209,7 @@ it.skipIf(process.platform === 'win32')(
     const p = await f.start('X', 'install', 'published')
     await p.wait('published')
     const publishedAt = performance.now()
+    // ast-grep-ignore: test-no-real-time-wait -- A real live owner must remain protected beyond the former 10s lease across processes.
     await delay(10_100)
     const q = await f.start('X', 'reset')
     expect((await q.done()).state).toBe('error')
@@ -237,33 +236,23 @@ it.skipIf(process.platform === 'win32')(
 )
 
 it.skipIf(process.platform === 'win32')(
-  'orders fresh event snapshots and scan completion against reset and a new user slot',
+  'serializes current event snapshots, off, fresh user slots and retirement across processes',
   async () => {
     const f = await fixture()
     expect((await (await f.start('X')).done()).state).toBe('installed')
     const event = await f.start('X', 'install', 'snapshot')
     await event.wait('snapshot')
     expect((await (await f.start('X', 'reset')).done()).state).toBe('error')
+    const user = { statusLine: { type: 'command', command: '/user/new' } }
     event.child.send('continue')
     expect((await event.done()).state).toBe('installed')
     expect((await (await f.start('X', 'reset')).done()).state).toBe('not_installed')
     expect(JSON.parse(await readFile(f.settings('X'), 'utf8')).statusLine).toBeUndefined()
+    await writeFile(f.settings('X'), JSON.stringify(user))
     expect((await (await f.start('X')).done()).state).toBe('installed')
-    const scanning = await f.start('Z', 'install', 'history', f.settings('X'))
-    await scanning.wait('history')
-    const user = { statusLine: { command: '/user/new', type: 'command' } }
-    await writeFile(f.settings('Z'), JSON.stringify(user))
-    scanning.child.send('continue')
-    expect((await scanning.done()).state).toBe('installed')
-    const merged = JSON.parse(await readFile(f.settings('Z'), 'utf8'))
-    expect(merged.statusLine).toEqual(user.statusLine)
-    expect(merged.hooks.SessionStart).toHaveLength(1)
-    const resetScan = await f.start('new', 'install', 'history', f.settings('X'))
-    await resetScan.wait('history')
     expect((await (await f.start('X', 'reset')).done()).state).toBe('not_installed')
-    resetScan.child.send('continue')
-    expect((await resetScan.done()).state).toBe('error')
-    expect(JSON.parse(await readFile(f.settings('new'), 'utf8')).statusLine).toBeUndefined()
+    expect(JSON.parse(await readFile(f.settings('X'), 'utf8')).statusLine).toEqual(user.statusLine)
+    await writeFile(f.settings('X'), '{}')
     expect((await (await f.start('X')).done()).state).toBe('installed')
     const retiring = await f.start('X', 'retire', 'retired')
     await retiring.wait('retired')
