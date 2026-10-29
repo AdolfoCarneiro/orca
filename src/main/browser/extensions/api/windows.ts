@@ -9,7 +9,8 @@ import {
 import {
   describeBrowserExtensionTab,
   listBrowserExtensionTabs,
-  resolveCallerWindowId
+  resolveCallerWindowId,
+  type BrowserExtensionTabEntry
 } from '../browser-extension-tab-model'
 import {
   WINDOW_ID_CURRENT,
@@ -63,10 +64,11 @@ type QueryOptions = z.infer<typeof queryOptionsSchema>
 function describe(
   caller: BrowserExtensionCaller,
   entry: BrowserExtensionWindowEntry,
-  options: QueryOptions | undefined
+  options: QueryOptions | undefined,
+  populatedTabs?: readonly BrowserExtensionTabEntry[]
 ): chrome.windows.Window {
   const tabs = options?.populate
-    ? listBrowserExtensionTabs(caller.session)
+    ? (populatedTabs ?? listBrowserExtensionTabs(caller.session))
         .filter((tab) => tab.windowId === entry.window.id)
         .map((tab) => describeBrowserExtensionTab(caller.extension, tab))
     : undefined
@@ -124,10 +126,16 @@ export function registerWindowsNamespace(): void {
     methods: {
       getAll: defineBrowserExtensionMethod(
         z.tuple([queryOptionsSchema.optional()]),
-        (caller, options) =>
-          listBrowserExtensionWindows(caller.session)
-            .filter((entry) => !options?.windowTypes || options.windowTypes.includes(entry.type))
-            .map((entry) => describe(caller, entry, options))
+        (caller, options) => {
+          const windows = listBrowserExtensionWindows(caller.session).filter(
+            (entry) => !options?.windowTypes || options.windowTypes.includes(entry.type)
+          )
+          const tabs =
+            options?.populate && windows.length > 0
+              ? listBrowserExtensionTabs(caller.session)
+              : undefined
+          return windows.map((entry) => describe(caller, entry, options, tabs))
+        }
       ),
       get: defineBrowserExtensionMethod(
         z.tuple([windowIdSchema, queryOptionsSchema.optional()]),

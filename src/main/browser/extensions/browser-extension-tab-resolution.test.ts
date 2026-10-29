@@ -107,6 +107,30 @@ vi.mock('./browser-extension-discarded-tabs', () => ({
   }
 }))
 vi.mock('./browser-extension-window-model', () => ({
+  WINDOW_ID_CURRENT: -2,
+  getBrowserExtensionWindow: (id: number, session: Electron.Session) => {
+    if (id === 1 && mocks.hasMain) {
+      return { window: mocks.main, type: 'normal', isMain: true }
+    }
+    const window = mocks.popouts.get(id)
+    return window?.webContents.session === session ? { window, type: 'popup', isMain: false } : null
+  },
+  describeBrowserExtensionWindow: (
+    entry: { window: { id: number }; type: 'normal' | 'popup' },
+    tabs?: chrome.tabs.Tab[]
+  ) => ({
+    id: entry.window.id,
+    type: entry.type,
+    focused: false,
+    top: 10,
+    left: 20,
+    width: 800,
+    height: 600,
+    incognito: false,
+    state: 'normal',
+    alwaysOnTop: false,
+    ...(tabs ? { tabs } : {})
+  }),
   getBrowserExtensionMainWindow: () => (mocks.hasMain ? mocks.main : null),
   getLastFocusedBrowserExtensionWindowId: () => 1,
   getPopoutWindowForWebContents: (contents: { id: number }) =>
@@ -124,6 +148,7 @@ vi.mock('./browser-extension-window-model', () => ({
 const { listBrowserExtensionTabs, recordActiveBrowserPage, resolveBrowserExtensionTab } =
   await import('./browser-extension-tab-model')
 const { registerTabsNamespace } = await import('./api/tabs')
+const { registerWindowsNamespace } = await import('./api/windows')
 const { getBrowserExtensionNamespace } = await import('./browser-extension-namespace-registry')
 
 function caller(permissions: string[] = ['tabs']): BrowserExtensionCaller {
@@ -163,6 +188,7 @@ beforeEach(() => {
   recordActiveBrowserPage('none')
   resetCounts()
   registerTabsNamespace()
+  registerWindowsNamespace()
 })
 
 describe('extension tab enumeration', () => {
@@ -326,5 +352,214 @@ describe('extension tab enumeration', () => {
     second.destroyed = true
     expect(resolveBrowserExtensionTab(20)).toBeNull()
     expect(resolveBrowserExtensionTab(10)).toMatchObject({ index: 0 })
+  })
+})
+
+function invokeWindows(method: string, args: unknown[], target = caller()) {
+  const handler = getBrowserExtensionNamespace('windows')?.methods[method]
+  if (!handler) {
+    throw new Error(`windows.${method} is not registered`)
+  }
+  return handler.invoke(target, args)
+}
+
+function expectedTab(
+  id: number,
+  index: number,
+  windowId: number,
+  active: boolean,
+  visible = true
+): chrome.tabs.Tab {
+  return {
+    id,
+    index,
+    windowId,
+    active,
+    highlighted: active,
+    selected: active,
+    pinned: false,
+    discarded: false,
+    autoDiscardable: true,
+    incognito: false,
+    groupId: -1,
+    status: 'complete',
+    audible: false,
+    mutedInfo: { muted: false },
+    ...(visible ? { url: `https://page.test/${id}`, title: `Page ${id}` } : {})
+  }
+}
+
+function expectedWindow(id: number, tabs?: chrome.tabs.Tab[]): chrome.windows.Window {
+  return {
+    id,
+    type: id === 1 ? 'normal' : 'popup',
+    focused: false,
+    top: 10,
+    left: 20,
+    width: 800,
+    height: 600,
+    incognito: false,
+    state: 'normal',
+    alwaysOnTop: false,
+    ...(tabs ? { tabs } : {})
+  }
+}
+
+function addPopout(windowId: number, tabId: number, session = mocks.workSession): void {
+  const webContents = mocks.addGuest(tabId, session, false)
+  mocks.popouts.set(windowId, { id: windowId, webContents })
+}
+
+describe('populated extension windows', () => {
+  it.each([10, 100])('enumerates %i tabs once across the selected windows', (count) => {
+    for (let index = 0; index < count; index++) {
+      mocks.addGuest(index + 10)
+    }
+    for (let index = 0; index < count - 1; index++) {
+      addPopout(index + 100, index + 10_000)
+    }
+    recordActiveBrowserPage('page-10')
+    resetCounts()
+    expect(invokeWindows('getAll', [{ populate: true }])).toEqual([
+      expectedWindow(
+        1,
+        Array.from({ length: count }, (_, index) => expectedTab(index + 10, index, 1, index === 0))
+      ),
+      ...Array.from({ length: count - 1 }, (_, index) =>
+        expectedWindow(index + 100, [expectedTab(index + 10_000, 0, index + 100, true)])
+      )
+    ])
+    expect(mocks.counts.lookups).toBe(count * 3)
+    expect(mocks.counts.registries).toBe(1)
+  })
+
+  it('resolves a discarded active page once while populating multiple windows', () => {
+    mocks.addGuest(10)
+    mocks.addGuest(20)
+    addPopout(2, 50)
+    addPopout(3, 60)
+    mocks.discarded.push({
+      browserPageId: 'saved',
+      tabId: 2_000_000_000,
+      session: mocks.workSession,
+      url: 'https://saved.test',
+      title: 'Saved'
+    })
+    recordActiveBrowserPage('saved')
+    resetCounts()
+    expect(invokeWindows('getAll', [{ populate: true }])).toEqual([
+      expectedWindow(1, [expectedTab(10, 0, 1, false), expectedTab(20, 1, 1, false)]),
+      expectedWindow(2, [expectedTab(50, 0, 2, true)]),
+      expectedWindow(3, [expectedTab(60, 0, 3, true)])
+    ])
+    expect(mocks.counts.discardedReads).toBe(1)
+    expect(mocks.counts.lookups).toBe(6)
+  })
+
+  it.each([
+    { args: [], noWindows: false },
+    { args: [{ populate: false }], noWindows: false },
+    { args: [{ populate: true, windowTypes: [] }], noWindows: false },
+    { args: [{ populate: true, windowTypes: ['panel'] }], noWindows: false },
+    { args: [{ populate: true }], noWindows: true }
+  ])('does no tab work before population and selection gates: $args', ({ args, noWindows }) => {
+    mocks.addGuest(10)
+    if (noWindows) {
+      mocks.hasMain = false
+    } else {
+      addPopout(2, 50)
+    }
+    const result = invokeWindows('getAll', args)
+    expect(result).toEqual(args[0]?.populate ? [] : [expectedWindow(1), expectedWindow(2)])
+    expect(mocks.counts).toEqual({ lookups: 0, registries: 0, discardedReads: 0 })
+  })
+
+  it('preserves selected window order, session isolation, duplicate indices and URL permissions', () => {
+    mocks.addGuest(10)
+    mocks.addGuest(20, mocks.otherSession)
+    mocks.addGuest(30).destroyed = true
+    mocks.addGuest(40)
+    mocks.pages.set('alias', 10)
+    addPopout(2, 50)
+    addPopout(3, 60, mocks.otherSession)
+    addPopout(4, 70)
+    mocks.hostPatterns.push('https://page.test/40')
+    mocks.activeGrants.add(50)
+    recordActiveBrowserPage('page-40')
+    const target = caller([])
+    expect(invokeWindows('getAll', [{ populate: true }], target)).toEqual([
+      expectedWindow(1, [
+        expectedTab(10, 0, 1, false, false),
+        expectedTab(40, 2, 1, true),
+        expectedTab(10, 0, 1, false, false)
+      ]),
+      expectedWindow(2, [expectedTab(50, 0, 2, true)]),
+      expectedWindow(4, [expectedTab(70, 0, 4, true, false)])
+    ])
+    expect(invokeWindows('getAll', [{ populate: true, windowTypes: ['popup'] }], target)).toEqual([
+      expectedWindow(2, [expectedTab(50, 0, 2, true)]),
+      expectedWindow(4, [expectedTab(70, 0, 4, true, false)])
+    ])
+    expect(
+      invokeWindows('getAll', [{ populate: true }], { ...target, session: mocks.otherSession })
+    ).toEqual([
+      expectedWindow(1, [expectedTab(20, 1, 1, false, false)]),
+      expectedWindow(3, [expectedTab(60, 0, 3, true, false)])
+    ])
+  })
+
+  it('refreshes request-local tabs after reorder, activation, metadata, session and window changes', () => {
+    mocks.addGuest(10)
+    const second = mocks.addGuest(20)
+    addPopout(2, 50)
+    recordActiveBrowserPage('page-10')
+    const first = invokeWindows('getAll', [{ populate: true }])
+    expect(first).toEqual([
+      expectedWindow(1, [expectedTab(10, 0, 1, true), expectedTab(20, 1, 1, false)]),
+      expectedWindow(2, [expectedTab(50, 0, 2, true)])
+    ])
+    mocks.pages.delete('page-10')
+    mocks.pages.set('page-10', 10)
+    recordActiveBrowserPage('page-20')
+    second.getURL = () => 'https://changed.test/'
+    second.getTitle = () => 'Changed'
+    mocks.popouts.delete(2)
+    expect(invokeWindows('getAll', [{ populate: true }])).toEqual([
+      expectedWindow(1, [
+        { ...expectedTab(20, 0, 1, true), url: 'https://changed.test/', title: 'Changed' },
+        expectedTab(10, 1, 1, false)
+      ])
+    ])
+    second.session = mocks.otherSession
+    expect(invokeWindows('getAll', [{ populate: true }])).toEqual([
+      expectedWindow(1, [expectedTab(10, 1, 1, false)])
+    ])
+    expect(first).toEqual([
+      expectedWindow(1, [expectedTab(10, 0, 1, true), expectedTab(20, 1, 1, false)]),
+      expectedWindow(2, [expectedTab(50, 0, 2, true)])
+    ])
+  })
+
+  it.each(['get', 'getCurrent', 'getLastFocused'])(
+    'keeps fresh population for windows.%s',
+    (method) => {
+      mocks.addGuest(10)
+      recordActiveBrowserPage('page-10')
+      resetCounts()
+      expect(
+        invokeWindows(method, method === 'get' ? [1, { populate: true }] : [{ populate: true }])
+      ).toEqual(expectedWindow(1, [expectedTab(10, 0, 1, true)]))
+      expect(mocks.counts.lookups).toBe(3)
+      mocks.addGuest(20)
+      expect(
+        invokeWindows(method, method === 'get' ? [1, { populate: true }] : [{ populate: true }])
+      ).toEqual(expectedWindow(1, [expectedTab(10, 0, 1, true), expectedTab(20, 1, 1, false)]))
+    }
+  )
+
+  it('validates options before tab work', () => {
+    mocks.addGuest(10)
+    expect(() => invokeWindows('getAll', [{ populate: 'yes' }])).toThrow('Invalid arguments')
+    expect(mocks.counts).toEqual({ lookups: 0, registries: 0, discardedReads: 0 })
   })
 })
