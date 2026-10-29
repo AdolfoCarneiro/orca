@@ -5,7 +5,11 @@ import {
   includesQualifiedSearchRefs,
   projectRepoSearchRefsForClient
 } from './repo-search-ref-projection'
-import { RepoSelector, RepoShow } from '../../../../shared/rpc-contract/github-repo-target-params'
+import {
+  RepoIssueCommandRead,
+  RepoSelector,
+  RepoShow
+} from '../../../../shared/rpc-contract/github-repo-target-params'
 import { hostQualifiedRepoSelector } from '../../runtime-repo-selector'
 import {
   projectRepoResultVisibilityForClient,
@@ -259,8 +263,9 @@ export const REPO_METHODS = [
   defineMethod({
     name: 'repo.issueCommandRead',
     permission: 'workspace',
-    params: RepoSelector,
-    handler: async (params, { runtime }) => runtime.readRepoIssueCommand(params.repo)
+    params: RepoIssueCommandRead,
+    handler: async (params, { runtime }) =>
+      runtime.readRepoIssueCommand(params.repo, { wakeWslDistro: params.wakeWslDistro })
   }),
   defineMethod({
     name: 'repo.issueCommandWrite',

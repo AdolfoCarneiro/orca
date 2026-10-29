@@ -70,18 +70,21 @@ export async function inspectRuntimeSetupScriptImports(
   )
 }
 
+/** `wakeWslDistro`: a launch, a user act that may start the repo's stopped WSL distro (E9). */
 export async function readRuntimeIssueCommand(
   hostId: ExecutionHostId,
-  repoId: string
+  repoId: string,
+  options: { wakeWslDistro?: boolean } = {}
 ): Promise<IssueCommandReadResult> {
+  const wake = options.wakeWslDistro ? { wakeWslDistro: true } : {}
   const target = getHookInspectionTarget(hostId)
   if (target.kind !== 'environment') {
-    return window.api.hooks.readIssueCommand({ repoId, hostId })
+    return window.api.hooks.readIssueCommand({ repoId, hostId, ...wake })
   }
   return callRuntimeRpc<IssueCommandReadResult>(
     target,
     'repo.issueCommandRead',
-    { repo: repoId },
+    { repo: repoId, ...wake },
     { timeoutMs: 15_000 }
   )
 }
