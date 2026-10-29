@@ -1,4 +1,5 @@
 import { runProcess } from '@orca/process-host'
+import { runPsInProcess } from '../../shared/libproc-process-table'
 
 const PROCESS_TABLE_LOOKUP_TIMEOUT_MS = 250
 const PROCESS_TABLE_QUERY_TIMEOUT_MS = PROCESS_TABLE_LOOKUP_TIMEOUT_MS / 2
@@ -28,12 +29,15 @@ function hasUsableTty(tty: string): boolean {
 }
 
 async function runPs(pid: number): Promise<string> {
-  const result = await runProcess({
-    program: 'ps',
-    args: ['-p', String(pid), '-o', 'pid=,tpgid=,tty='],
-    timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS,
-    maxOutputBytes: PROCESS_TABLE_MAX_BYTES
-  })
+  const args = ['-p', String(pid), '-o', 'pid=,tpgid=,tty=']
+  const result =
+    (await runPsInProcess(args)) ??
+    (await runProcess({
+      program: 'ps',
+      args,
+      timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS,
+      maxOutputBytes: PROCESS_TABLE_MAX_BYTES
+    }))
   if (result.code !== 0 || result.timedOut || result.outputTruncated) {
     throw new Error('PTY foreground group is unavailable')
   }

@@ -2,6 +2,7 @@ import { execFile as execFileCb } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { psLocaleEnvironment } from './ps-locale-environment'
+import { runPsInProcess } from './libproc-process-table'
 import {
   captureDarwinProcessTable,
   resetDarwinProcessTableCaptureForTests
@@ -243,6 +244,10 @@ async function readLinuxProcessStartTimes(
 }
 
 async function captureProcessTable(args: readonly string[], timeout = PS_TIMEOUT_MS) {
+  const inProcess = await runPsInProcess(args, psLocaleEnvironment())
+  if (inProcess) {
+    return assertWholeCapture(inProcess.stdout)
+  }
   let stdout: string
   try {
     ;({ stdout } = await execFile('ps', [...args], {

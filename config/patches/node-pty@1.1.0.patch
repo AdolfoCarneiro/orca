@@ -297,10 +297,10 @@ index 181ccabbbe9c4948a9725fb1db907a68e9de01fc..67f31facf85562b67adbfbd04ce28ddd
  process.send!({ consoleProcessList });
  process.exit(0);
 diff --git a/src/unix/pty.cc b/src/unix/pty.cc
-index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e7baac249 100644
+index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e487438a0f9361b51faa6c44583a0e5e1938e9ca 100644
 --- a/src/unix/pty.cc
 +++ b/src/unix/pty.cc
-@@ -23,7 +23,9 @@
+@@ -23,8 +23,11 @@
  #include <errno.h>
  #include <string.h>
  #include <stdlib.h>
@@ -308,9 +308,11 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  #include <unistd.h>
 +#include <string>
  #include <thread>
++#include <vector>
  
  #include <sys/types.h>
-@@ -47,6 +49,39 @@
+ #include <sys/stat.h>
+@@ -47,6 +50,39 @@
  #include <termios.h>
  #endif
  
@@ -350,7 +352,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  /* Some platforms name VWERASE and VDISCARD differently */
  #if !defined(VWERASE) && defined(VWERSE)
  #define VWERASE	VWERSE
-@@ -228,6 +263,9 @@ Napi::Value PtyGetProc(const Napi::CallbackInfo& info);
+@@ -228,6 +264,9 @@ Napi::Value PtyGetProc(const Napi::CallbackInfo& info);
  static int
  pty_nonblock(int);
  
@@ -360,7 +362,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  #if defined(__APPLE__)
  static char *
  pty_getproc(int);
-@@ -237,13 +275,23 @@ pty_getproc(int, char *);
+@@ -237,13 +276,23 @@ pty_getproc(int, char *);
  #endif
  
  #if defined(__APPLE__) || defined(__OpenBSD__)
@@ -385,7 +387,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  #endif
  
  struct DelBuf {
-@@ -345,8 +393,8 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
+@@ -345,8 +394,8 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
    term->c_cc[VSTATUS] = 20;
    #endif
  
@@ -396,7 +398,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  
    // helperPath
    std::string helper_path = info[9].As<Napi::String>();
-@@ -367,14 +415,18 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
+@@ -367,14 +416,18 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
      argv[i + 3] = strdup(arg.c_str());
    }
  
@@ -419,7 +421,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  #else
    int argc = argv_.Length();
    int argl = argc + 2;
-@@ -445,6 +497,9 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
+@@ -445,6 +498,9 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
        if (pty_nonblock(master) == -1) {
          throw Napi::Error::New(napiEnv, "Could not set master fd to nonblocking.");
        }
@@ -429,7 +431,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
    }
  #endif
  
-@@ -586,6 +641,23 @@ pty_nonblock(int fd) {
+@@ -586,6 +642,23 @@ pty_nonblock(int fd) {
    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
  }
  
@@ -453,7 +455,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  /**
   * pty_getproc
   * Taken from tmux.
-@@ -684,15 +756,73 @@ pty_getproc(int fd, char *tty) {
+@@ -684,15 +757,73 @@ pty_getproc(int fd, char *tty) {
  #endif
  
  #if defined(__APPLE__)
@@ -529,25 +531,25 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
  
    for (; count < 3; count++) {
      low_fds[count] = posix_openpt(O_RDWR);
-@@ -706,80 +836,118 @@ pty_posix_spawn(char** argv, char** env,
+@@ -706,84 +837,342 @@ pty_posix_spawn(char** argv, char** env,
                POSIX_SPAWN_SETSID;
    *master = posix_openpt(O_RDWR);
    if (*master == -1) {
 -    return;
 +    pty_set_spawn_error(err, "posix_openpt", errno);
 +    goto done;
++  }
++
++  res = grantpt(*master);
++  if (res == -1) {
++    pty_set_spawn_error(err, "grantpt", errno);
++    goto done;
    }
  
 -  int res = grantpt(*master) || unlockpt(*master);
-+  res = grantpt(*master);
++  res = unlockpt(*master);
    if (res == -1) {
 -    return;
-+    pty_set_spawn_error(err, "grantpt", errno);
-+    goto done;
-+  }
-+
-+  res = unlockpt(*master);
-+  if (res == -1) {
 +    pty_set_spawn_error(err, "unlockpt", errno);
 +    goto done;
    }
@@ -672,6 +674,242 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..5e67653b45061e9a9cad4b2d461d563e
    }
  }
  #endif
+ 
++#if defined(__APPLE__)
++/**
++ * Orca: in-process libproc/sysctl process table
++ *
++ * /bin/ps is setuid root, so every exec triggers an uncached syspolicyd
++ * assessment; pollers read the table here instead (#31783).
++ */
++
++static bool
++orca_read_process_args(pid_t pid, std::vector<char>& buf, std::string* out) {
++  int mib[3] = { CTL_KERN, KERN_PROCARGS2, pid };
++  size_t size = buf.size();
++  if (sysctl(mib, 3, buf.data(), &size, NULL, 0) != 0 || size <= sizeof(int)) {
++    return false;
++  }
++  int argc;
++  memcpy(&argc, buf.data(), sizeof(argc));
++  const char* cursor = buf.data() + sizeof(argc);
++  const char* end = buf.data() + size;
++  while (cursor < end && *cursor != '\0') cursor++;
++  while (cursor < end && *cursor == '\0') cursor++;
++  out->clear();
++  for (int i = 0; i < argc && cursor < end; i++) {
++    size_t length = strnlen(cursor, end - cursor);
++    if (i > 0) out->push_back(' ');
++    out->append(cursor, length);
++    cursor += length + 1;
++  }
++  return argc > 0;
++}
++
++static bool
++orca_read_kinfo_all(std::vector<struct kinfo_proc>* procs) {
++  int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
++  for (int attempt = 0; attempt < 8; attempt++) {
++    size_t size = 0;
++    if (sysctl(mib, 3, NULL, &size, NULL, 0) != 0) return false;
++    size += size / 8 + sizeof(struct kinfo_proc) * 16;
++    procs->resize(size / sizeof(struct kinfo_proc));
++    if (sysctl(mib, 3, procs->data(), &size, NULL, 0) == 0) {
++      procs->resize(size / sizeof(struct kinfo_proc));
++      return true;
++    }
++    if (errno != ENOMEM) return false;
++  }
++  return false;
++}
++
++static bool
++orca_read_kinfo_pid(pid_t pid, struct kinfo_proc* proc) {
++  int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
++  size_t size = sizeof(*proc);
++  return sysctl(mib, 4, proc, &size, NULL, 0) == 0 && size == sizeof(*proc);
++}
++
++struct orca_process_row {
++  struct kinfo_proc proc;
++  bool has_command;
++  std::string command;
++};
++
++// Runs on a worker thread: argv for ~2,000 processes costs ~17ms of syscalls.
++static bool
++orca_gather_process_table(bool include_command,
++                          const std::vector<pid_t>* pids,
++                          std::vector<orca_process_row>* rows) {
++  std::vector<struct kinfo_proc> procs;
++  if (pids) {
++    for (pid_t pid : *pids) {
++      struct kinfo_proc proc;
++      if (orca_read_kinfo_pid(pid, &proc)) {
++        procs.push_back(proc);
++      }
++    }
++  } else if (!orca_read_kinfo_all(&procs)) {
++    return false;
++  }
++  std::vector<char> args_buf;
++  if (include_command) {
++    int argmax = 0;
++    size_t argmax_size = sizeof(argmax);
++    int mib[2] = { CTL_KERN, KERN_ARGMAX };
++    if (sysctl(mib, 2, &argmax, &argmax_size, NULL, 0) != 0 || argmax <= 0) {
++      argmax = 1024 * 1024;
++    }
++    args_buf.resize(argmax);
++  }
++  rows->reserve(procs.size());
++  for (const struct kinfo_proc& proc : procs) {
++    pid_t pid = proc.kp_proc.p_pid;
++    if (pid <= 0) continue;
++    orca_process_row row = { proc, false, "" };
++    if (include_command) {
++      row.has_command = orca_read_process_args(pid, args_buf, &row.command);
++      if (!row.has_command) {
++        // Another user's argv needs setuid ps; the executable path still names the program.
++        char path[PROC_PIDPATHINFO_MAXSIZE];
++        int length = proc_pidpath(pid, path, sizeof(path));
++        if (length > 0) {
++          row.command.assign(path, length);
++          row.has_command = true;
++        }
++      }
++    }
++    rows->push_back(std::move(row));
++  }
++  return true;
++}
++
++static Napi::Array
++orca_process_rows_to_js(Napi::Env env, bool include_command, const std::vector<orca_process_row>& rows) {
++  Napi::Array result = Napi::Array::New(env, rows.size());
++  uint32_t index = 0;
++  for (const orca_process_row& entry : rows) {
++    const struct kinfo_proc& proc = entry.proc;
++    Napi::Object row = Napi::Object::New(env);
++    row.Set("pid", Napi::Number::New(env, proc.kp_proc.p_pid));
++    row.Set("ppid", Napi::Number::New(env, proc.kp_eproc.e_ppid));
++    row.Set("pgid", Napi::Number::New(env, proc.kp_eproc.e_pgid));
++    row.Set("tpgid", Napi::Number::New(env, proc.kp_eproc.e_tpgid));
++    row.Set("tdev", Napi::Number::New(env, proc.kp_eproc.e_tdev));
++    row.Set("status", Napi::Number::New(env, proc.kp_proc.p_stat));
++    row.Set("flags", Napi::Number::New(env, proc.kp_proc.p_flag));
++    row.Set("sessionLeader", Napi::Boolean::New(env, (proc.kp_eproc.e_flag & EPROC_SLEADER) != 0));
++    row.Set("startSec", Napi::Number::New(env, (double)proc.kp_proc.p_starttime.tv_sec));
++    row.Set("comm", Napi::String::New(env, proc.kp_proc.p_comm, strnlen(proc.kp_proc.p_comm, sizeof(proc.kp_proc.p_comm))));
++    if (include_command) {
++      row.Set("command", entry.has_command ? Napi::Value(Napi::String::New(env, entry.command)) : env.Null());
++    }
++    result.Set(index++, row);
++  }
++  return result;
++}
++
++static bool
++orca_read_pid_list(const Napi::CallbackInfo& info, std::vector<pid_t>* pids) {
++  if (info.Length() < 2 || !info[1].IsArray()) {
++    return false;
++  }
++  Napi::Array list = info[1].As<Napi::Array>();
++  for (uint32_t i = 0; i < list.Length(); i++) {
++    Napi::Value pid = list.Get(i);
++    if (pid.IsNumber()) {
++      pids->push_back(pid.As<Napi::Number>().Int32Value());
++    }
++  }
++  return true;
++}
++
++class OrcaProcessTableWorker : public Napi::AsyncWorker {
++ public:
++  OrcaProcessTableWorker(Napi::Env env, bool include_command, std::vector<pid_t> pids, bool selected)
++      : Napi::AsyncWorker(env),
++        deferred_(Napi::Promise::Deferred::New(env)),
++        include_command_(include_command),
++        pids_(std::move(pids)),
++        selected_(selected) {}
++
++  Napi::Promise Promise() { return deferred_.Promise(); }
++
++  void Execute() override {
++    if (!orca_gather_process_table(include_command_, selected_ ? &pids_ : NULL, &rows_)) {
++      SetError("orca: process table sysctl failed");
++    }
++  }
++
++  void OnOK() override {
++    deferred_.Resolve(orca_process_rows_to_js(Env(), include_command_, rows_));
++  }
++
++  void OnError(const Napi::Error& error) override {
++    deferred_.Reject(error.Value());
++  }
++
++ private:
++  Napi::Promise::Deferred deferred_;
++  bool include_command_;
++  std::vector<pid_t> pids_;
++  bool selected_;
++  std::vector<orca_process_row> rows_;
++};
++
++Napi::Value OrcaProcessTableAsync(const Napi::CallbackInfo& info) {
++  bool include_command = info.Length() > 0 && info[0].ToBoolean().Value();
++  std::vector<pid_t> pids;
++  bool selected = orca_read_pid_list(info, &pids);
++  OrcaProcessTableWorker* worker =
++      new OrcaProcessTableWorker(info.Env(), include_command, std::move(pids), selected);
++  Napi::Promise promise = worker->Promise();
++  worker->Queue();
++  return promise;
++}
++
++Napi::Value OrcaProcessCwd(const Napi::CallbackInfo& info) {
++  Napi::Env env(info.Env());
++  if (info.Length() < 1 || !info[0].IsNumber()) {
++    throw Napi::Error::New(env, "Usage: processCwd(pid)");
++  }
++  struct proc_vnodepathinfo vnode;
++  int size = proc_pidinfo(info[0].As<Napi::Number>().Int32Value(), PROC_PIDVNODEPATHINFO, 0, &vnode, sizeof(vnode));
++  if (size != (int)sizeof(vnode) || vnode.pvi_cdir.vip_path[0] == '\0') {
++    return env.Null();
++  }
++  return Napi::String::New(env, vnode.pvi_cdir.vip_path);
++}
++
++Napi::Value OrcaProcessPath(const Napi::CallbackInfo& info) {
++  Napi::Env env(info.Env());
++  if (info.Length() < 1 || !info[0].IsNumber()) {
++    throw Napi::Error::New(env, "Usage: processPath(pid)");
++  }
++  char path[PROC_PIDPATHINFO_MAXSIZE];
++  int length = proc_pidpath(info[0].As<Napi::Number>().Int32Value(), path, sizeof(path));
++  if (length <= 0) {
++    return env.Null();
++  }
++  return Napi::String::New(env, path, length);
++}
++#endif
++
+ /**
+  * Init
+  */
+@@ -793,6 +1182,11 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
+   exports.Set("open",    Napi::Function::New(env, PtyOpen));
+   exports.Set("resize",  Napi::Function::New(env, PtyResize));
+   exports.Set("process", Napi::Function::New(env, PtyGetProc));
++#if defined(__APPLE__)
++  exports.Set("processTable", Napi::Function::New(env, OrcaProcessTableAsync));
++  exports.Set("processCwd", Napi::Function::New(env, OrcaProcessCwd));
++  exports.Set("processPath", Napi::Function::New(env, OrcaProcessPath));
++#endif
+   return exports;
+ }
+ 
 diff --git a/src/unixTerminal.ts b/src/unixTerminal.ts
 index 98733dc0cd752b554bd94e45904ca341ad141bba..3dd5ad9b3124dbd5ba7f76679b26650dad503ec6 100644
 --- a/src/unixTerminal.ts

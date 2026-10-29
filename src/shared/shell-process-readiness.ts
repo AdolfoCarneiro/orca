@@ -4,6 +4,7 @@ import { access, readlink, realpath, stat } from 'node:fs/promises'
 import { delimiter, isAbsolute, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { LSOF_NONBLOCKING_ARGS } from './lsof-nonblocking-args'
+import { readLibprocProcessPath, runPsInProcess } from './libproc-process-table'
 import { PS_MAX_BUFFER_BYTES } from './process-table-snapshot'
 
 const execFile = promisify(execFileCallback)
@@ -30,6 +31,10 @@ async function readExecutablePath(pid: number): Promise<string | null> {
   if (process.platform !== 'darwin') {
     return null
   }
+  const inProcess = readLibprocProcessPath(pid)
+  if (inProcess !== undefined) {
+    return inProcess
+  }
   const { stdout } = await execFile(
     '/usr/sbin/lsof',
     [...LSOF_NONBLOCKING_ARGS, '-a', '-p', String(pid), '-d', 'txt', '-Fn'],
@@ -41,16 +46,29 @@ async function readExecutablePath(pid: number): Promise<string | null> {
   return parseDarwinExecutablePath(stdout)
 }
 
+/** Rejects like execFile when ps exits nonzero, so callers keep their error paths. */
+async function readPs(args: string[]): Promise<string> {
+  const inProcess = await runPsInProcess(args)
+  if (inProcess) {
+    if (inProcess.code !== 0) {
+      throw new Error(`ps ${args.join(' ')} matched no process`)
+    }
+    return inProcess.stdout
+  }
+  const { stdout } = await execFile('ps', args, {
+    encoding: 'utf8',
+    timeout: PROCESS_READINESS_TIMEOUT_MS,
+    maxBuffer: PS_MAX_BUFFER_BYTES
+  })
+  return stdout
+}
+
 export async function readShellProcessReadiness(
   pid: number
 ): Promise<ShellProcessReadiness | null> {
-  const [executablePath, { stdout }] = await Promise.all([
+  const [executablePath, stdout] = await Promise.all([
     readExecutablePath(pid),
-    execFile('ps', ['-p', String(pid), '-o', 'stat=,tty='], {
-      encoding: 'utf8',
-      timeout: PROCESS_READINESS_TIMEOUT_MS,
-      maxBuffer: PS_MAX_BUFFER_BYTES
-    })
+    readPs(['-p', String(pid), '-o', 'stat=,tty='])
   ])
   const [status, ttyName] = stdout.trim().split(/\s+/)
   return status && executablePath
@@ -63,11 +81,7 @@ export async function readShellProcessReadiness(
 }
 
 export async function listChildProcessIds(pid: number): Promise<number[]> {
-  const { stdout } = await execFile('ps', ['-axo', 'pid=,ppid='], {
-    encoding: 'utf8',
-    timeout: PROCESS_READINESS_TIMEOUT_MS,
-    maxBuffer: PS_MAX_BUFFER_BYTES
-  })
+  const stdout = await readPs(['-axo', 'pid=,ppid='])
   return stdout
     .split('\n')
     .map((line) => line.trim().split(/\s+/))

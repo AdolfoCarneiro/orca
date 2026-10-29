@@ -6,6 +6,7 @@ import {
   type WindowsTreeKillTarget
 } from './windows-pty-root-identity'
 import { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
+import { runPsInProcess } from '../shared/libproc-process-table'
 
 export { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
 
@@ -37,29 +38,23 @@ export type ProcessTableCapture = {
 export type ProcessTableReader = (timeoutMs?: number) => Promise<ProcessTableCapture>
 export type SignalSender = (pid: number, signal: NodeJS.Signals) => void
 
-function readFreshProcessTable(
+const DESCENDANT_PS_ARGS = ['-axo', 'pid=,ppid=,pgid=,tpgid=,lstart=']
+
+async function readFreshProcessTable(
   timeoutMs = DESCENDANT_SNAPSHOT_TIMEOUT_MS
 ): Promise<ProcessTableCapture> {
   // Stamp before ps starts so a capture-second PID cannot appear older after a clock rollover.
   const capturedAtMs = Date.now()
+  // Pin lstart’s locale so delayed identity checks parse it consistently.
+  const env = { ...process.env, LANG: 'C', LC_ALL: 'C' }
+  const inProcess = await runPsInProcess(DESCENDANT_PS_ARGS, env)
+  if (inProcess) {
+    return { rows: parseProcessTable(inProcess.stdout), capturedAtMs }
+  }
+  const options = { maxBuffer: PS_MAX_BUFFER_BYTES, timeout: timeoutMs, env }
   return new Promise((resolve, reject) => {
-    execFile(
-      'ps',
-      ['-axo', 'pid=,ppid=,pgid=,tpgid=,lstart='],
-      {
-        maxBuffer: PS_MAX_BUFFER_BYTES,
-        timeout: timeoutMs,
-        killSignal: 'SIGKILL',
-        // Pin lstart’s locale so delayed identity checks parse it consistently.
-        env: { ...process.env, LANG: 'C', LC_ALL: 'C' }
-      },
-      (error, stdout) => {
-        if (error) {
-          reject(error)
-          return
-        }
-        resolve({ rows: parseProcessTable(stdout), capturedAtMs })
-      }
+    execFile('ps', DESCENDANT_PS_ARGS, { ...options, killSignal: 'SIGKILL' }, (error, stdout) =>
+      error ? reject(error) : resolve({ rows: parseProcessTable(stdout), capturedAtMs })
     )
   })
 }

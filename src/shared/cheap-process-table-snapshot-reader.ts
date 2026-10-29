@@ -12,10 +12,15 @@ import {
   withEvidenceBudget
 } from './process-table-snapshot-reader'
 import { psLocaleEnvironment } from './ps-locale-environment'
+import { runPsInProcess } from './libproc-process-table'
 
 /** Keep cheap captures separate: without tty=/command= they parse differently and cannot serve strict evidence readers. Share coalescing/TTL policy. */
 const cheapProcessTableReader = createProcessTableSnapshotReader<CheapProcessTableRow[]>({
   runPs: async () => {
+    const inProcess = await runPsInProcess(CHEAP_PS_ARGS, psLocaleEnvironment())
+    if (inProcess) {
+      return parseCheapProcessTableRows(inProcess.stdout)
+    }
     const result = await runProcess({
       program: 'ps',
       args: CHEAP_PS_ARGS,
