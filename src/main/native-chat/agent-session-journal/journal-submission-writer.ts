@@ -49,6 +49,7 @@ export class JournalSubmissionWriter {
           }
         : {})
     })
+    let claimsCommitted: (() => void) | void
     let card: JournalQueuePlan | undefined
     return rowWriter
       .enqueueRows(
@@ -69,7 +70,11 @@ export class JournalSubmissionWriter {
           write: (db, row) => {
             card?.receipt.write(db)
             // New client sends require stored uploads; queued cards already claimed theirs.
-            claimAttachments(db, input.body, input.origin === 'client' && !consume)
+            claimsCommitted = claimAttachments(
+              db,
+              input.body,
+              input.origin === 'client' && !consume
+            )
             receipt?.write(db, row)
           },
           finished: () => {
@@ -77,6 +82,7 @@ export class JournalSubmissionWriter {
             finishJournalReceipt(receipt)
           },
           committed: () => {
+            claimsCommitted?.()
             card?.receipt.committed()
             receipt?.committed()
           }

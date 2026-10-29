@@ -54,9 +54,6 @@ beforeEach(() => {
     }
   })
   registerHttpLinkStoreAccessor(() => ({
-    repos: [],
-    endpointProjects: [],
-    endpointProjectHostSetups: [],
     settings: routing.settings,
     setActiveWorktree: vi.fn(),
     createBrowserTab
@@ -198,6 +195,10 @@ describe('rich Markdown alternate browser click', () => {
     await vi.waitFor(() =>
       expect(openFileUri).toHaveBeenCalledWith('file:///repo/docs/child.md', 'local')
     )
+    // The click is a user act, so its existence check may start a stopped WSL distro (E9).
+    expect(window.api.shell.pathExists).toHaveBeenCalledWith('/repo/docs/child.md', {
+      wakeWslDistro: true
+    })
     expect(activateMarkdownLink).not.toHaveBeenCalled()
     expect(createBrowserTab).not.toHaveBeenCalled()
   })

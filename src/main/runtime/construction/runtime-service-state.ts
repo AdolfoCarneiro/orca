@@ -12,11 +12,7 @@ import type { RuntimeNotifier } from '../runtime-notifier-contract'
 import { RuntimeClientEventBus } from '../runtime-client-event-bus'
 import { RuntimeNativeChatDraftResolutions } from '../runtime-native-chat-draft-resolutions'
 import { RuntimeWorktreeLifecycleEvents } from '../runtime-worktree-lifecycle-events'
-import type {
-  RuntimeWorktreeLifecycleEvent,
-  RuntimeWorktreeScanCache,
-  RuntimeWorktreeScanInFlight
-} from '../orca-runtime-core'
+import type * as RuntimeCore from '../orca-runtime-core'
 import type { AgentBrowserBridge } from '../../browser/agent-browser-bridge'
 import type { BrowserBackend } from '../../browser/browser-backend'
 import type { EmulatorBridge } from '../../emulator/emulator-bridge'
@@ -35,8 +31,7 @@ import { OrchestrationMailboxOwner } from '../orchestration/mailbox-owner'
 import { OrchestrationMailboxDeliveryTarget } from '../orchestration/mailbox-delivery-target'
 import { OrchestrationMailboxPointerDelivery } from '../orchestration/mailbox-pointer-delivery'
 import { OrchestrationMailboxNotificationCoordinator } from '../orchestration/mailbox-notification-coordinator'
-import type { RuntimeMessageWaiter } from '../runtime-message-waiters'
-import { RuntimeMessageWaiters } from '../runtime-message-waiters'
+import { RuntimeMessageWaiters, type RuntimeMessageWaiter } from '../runtime-message-waiters'
 import type { RuntimeSkillCommands } from '../runtime-skill-command-surface'
 import { RuntimeTerminalStreamConsumers } from '../runtime-terminal-stream-consumers'
 import type { RecentPtyOutputBuffer } from '../recent-pty-output-buffer'
@@ -44,6 +39,9 @@ import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { mainListsEveryPane } from '../terminal/surface/main-terminal-surfaces'
 import { TUI_IDLE_QUIESCENCE_MS } from '../orca-runtime-postlude'
 import { screenClearsBlockedTail } from '../blocked-tail-screen-clear'
+import { conversationRecordReader } from '../orchestration/structured-session-lineage'
+import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/structured-agent-session-registry'
+import { peekOpenedAgentSessionRecordStore } from '../agent-session-record-store-slot'
 
 export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWithRuntimeId {
   protected readonly stopRequestedPtyIds = new Set<string>()
@@ -85,7 +83,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
   })
 
   protected readonly worktreeLifecycleEvents =
-    new RuntimeWorktreeLifecycleEvents<RuntimeWorktreeLifecycleEvent>()
+    new RuntimeWorktreeLifecycleEvents<RuntimeCore.RuntimeWorktreeLifecycleEvent>()
 
   protected agentBrowserBridge: AgentBrowserBridge | null = null
 
@@ -97,9 +95,9 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
 
   protected worktreeScanGenerations = new Map<string, number>()
 
-  protected worktreeScanCache = new Map<string, RuntimeWorktreeScanCache>()
+  protected worktreeScanCache = new Map<string, RuntimeCore.RuntimeWorktreeScanCache>()
 
-  protected worktreeScanInFlight = new Map<string, RuntimeWorktreeScanInFlight>()
+  protected worktreeScanInFlight = new Map<string, RuntimeCore.RuntimeWorktreeScanInFlight>()
 
   /** Bound abandoned Git-admin filesystem probes to one per repo. */
   protected worktreeAdminFingerprintProbes = new Set<string>()
@@ -107,7 +105,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
   protected readonly worktreeLineage = new RuntimeWorktreeLineageController({
     getStore: () => this.store,
     getDb: () => this.getOrchestrationDbIfAvailable(),
-    resolveWorktree: (selector) => this.resolveWorktreeSelector(selector),
+    resolveWorktree: (selector) => this.resolveGitWorktreeSelector(selector),
     listResolvedWorktrees: () => this.listResolvedWorktrees(),
     showTerminal: (handle) => this.showTerminal(handle)
   })
@@ -124,7 +122,12 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     getHandleForPaneKey: (paneKey) => this.getTerminalHandleForPaneKey(paneKey),
     getPaneKey: (handle) => this.getPaneKeyForTerminalHandle(handle),
     getDispatchAuthority: (handle) => this.getOrchestrationDispatchAuthority(handle),
-    getAgentStatusSnapshot: () => this.getOrchestrationFleetAgentStatusSnapshot()
+    getAgentStatusSnapshot: () => this.getOrchestrationFleetAgentStatusSnapshot(),
+    getSessionRecords: () => {
+      const store =
+        getStructuredAgentSessionHost()?.deps.store ?? peekOpenedAgentSessionRecordStore()
+      return store ? conversationRecordReader(store) : null
+    }
   })
 
   protected readonly terminalList = new RuntimeTerminalList({
@@ -133,7 +136,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     getExplicitWorktreeId: (selector) => this.getExplicitSessionWorktreeIdSelector(selector),
     getResolvedCache: () => this.resolvedWorktrees.peek(),
     buildWorktreeFromId: (worktreeId) => this.buildResolvedWorktreeFromId(worktreeId),
-    resolveWorktree: (selector) => this.resolveWorktreeSelector(selector),
+    resolveWorktree: (selector) => this.resolveWorkspaceSelector(selector),
     listKnownWorktrees: (worktreeId, target) =>
       this.listKnownResolvedWorktreesForExplicitTarget(worktreeId, target),
     getWorktreeMap: () => this.getResolvedWorktreeMap(),

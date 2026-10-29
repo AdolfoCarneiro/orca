@@ -21,6 +21,10 @@ export function finishJournalReceipt(receipt?: JournalOperationReceipt): void {
   }
 }
 
+export type JournalReceiptPreparation =
+  | JournalOperationReceipt
+  | ((rows: readonly JournalRow[]) => JournalOperationReceipt | undefined)
+
 export function composeJournalOperationReceipts(
   ...receipts: JournalOperationReceipt[]
 ): JournalOperationReceipt {
@@ -63,13 +67,14 @@ export class JournalRowWriter {
 
   enqueue(
     build: (seq: number, ts: number) => JournalRow,
-    receipt?: JournalOperationReceipt
+    prepareReceipt?: JournalReceiptPreparation
   ): Promise<JournalRow> {
     return this.deps.serialize(() => {
       assertJournalWritable(this.deps.readOnly(), this.deps.sessionId)
       const savedAt = this.deps.now()
       const row = build(this.deps.nextSequence(), savedAt)
       assertJournalFence(row.fence, this.deps.highestFence())
+      const receipt = typeof prepareReceipt === 'function' ? prepareReceipt([row]) : prepareReceipt
       try {
         this.deps.database().transaction(
           (db) => {
@@ -91,7 +96,7 @@ export class JournalRowWriter {
   /** Plan on the write lane and commit all rows atomically; receiptRow identifies the receipt target. */
   enqueueRows(
     plan: () => readonly ((seq: number, ts: number) => JournalRow)[],
-    receipt?: JournalOperationReceipt,
+    receipt?: JournalReceiptPreparation,
     receiptRow?: (rows: readonly JournalRow[]) => JournalRow | undefined
   ): Promise<JournalRow[]> {
     return this.deps.serialize(() => this.writeRows(plan, receipt, receiptRow))
@@ -100,7 +105,7 @@ export class JournalRowWriter {
   /** Caller must already own the write lane. */
   writeRows(
     plan: () => readonly ((seq: number, ts: number) => JournalRow)[],
-    receipt?: JournalOperationReceipt,
+    prepareReceipt?: JournalReceiptPreparation,
     receiptRow?: (rows: readonly JournalRow[]) => JournalRow | undefined
   ): JournalRow[] {
     assertJournalWritable(this.deps.readOnly(), this.deps.sessionId)
@@ -113,6 +118,7 @@ export class JournalRowWriter {
     for (const row of rows) {
       assertJournalFence(row.fence, this.deps.highestFence())
     }
+    const receipt = typeof prepareReceipt === 'function' ? prepareReceipt(rows) : prepareReceipt
     try {
       this.deps.database().transaction(
         (db) => {

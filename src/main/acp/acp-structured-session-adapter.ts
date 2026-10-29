@@ -35,15 +35,23 @@ import { stopAcpChildren, acpChildStopCapabilities } from './acp-structured-chil
 import { acpStartupFailure, isAcpReadySession } from './acp-structured-child'
 import { AcpStructuredChildren } from './acp-structured-child-lifecycle'
 import { AcpConversationCopies } from './acp-conversation-copies'
+import { AcpTextTasks } from './acp-text-task'
 import { supportsAcpStructuredLocation } from './acp-structured-location-support'
 
 export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapter {
+  readonly atRestCommands: AcpStructuredSessionAdapterDeps['atRestCommands']
   private readonly children: AcpStructuredChildren
   private readonly copies: AcpConversationCopies
+  private readonly textTasks: AcpTextTasks
   constructor(private readonly deps: AcpStructuredSessionAdapterDeps) {
+    this.atRestCommands = deps.atRestCommands
     this.children = new AcpStructuredChildren(deps)
     this.copies = new AcpConversationCopies(deps)
+    this.textTasks = new AcpTextTasks(deps)
   }
+
+  generateText: NonNullable<StructuredAgentSessionAdapter['generateText']> = (input) =>
+    this.textTasks.generate(input)
 
   copyConversation: NonNullable<StructuredAgentSessionAdapter['copyConversation']> = (input) =>
     this.copies.copy(input)
@@ -290,9 +298,8 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
     input
   ) => stopAcpChildren(this.live(input.sessionId), input.fence, input.taskIds, input.acknowledge)
 
-  backgroundTaskStops: NonNullable<StructuredAgentSessionAdapter['backgroundTaskStops']> = (
-    sessionId
-  ) => acpChildStopCapabilities(this.children.sessions.get(sessionId))
+  backgroundTaskStops = (sessionId: string) =>
+    acpChildStopCapabilities(this.children.sessions.get(sessionId))
 
   closeSession = (sessionId: string): Promise<boolean> => this.children.close(sessionId)
   disposeSession = (sessionId: string): Promise<boolean> => this.children.close(sessionId)
@@ -303,18 +310,11 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
   forceCloseSession = (sessionId: string): Promise<boolean> => this.children.stop(sessionId, false)
 
   async closeAll(): Promise<void> {
-    const copiedChildren = this.copies.closeAll()
-    const ids = new Set([
-      ...this.children.sessions.keys(),
-      ...this.children.starts.failedSessionIds()
+    await this.children.closeAll([
+      this.atRestCommands?.closeAll?.(),
+      this.copies.closeAll(),
+      this.textTasks.closeAll()
     ])
-    // The host aborts in-progress starts before this teardown.
-    const proven = await Promise.all(
-      [...ids].map((sessionId) => this.children.stop(sessionId, true))
-    )
-    if (!(await copiedChildren) || proven.includes(false)) {
-      throw new Error('an ACP agent child could not be proven stopped')
-    }
   }
 
   private live(sessionId: string): AcpStructuredSession {

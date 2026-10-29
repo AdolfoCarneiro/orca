@@ -1,11 +1,18 @@
+import type { AgentSessionExecutionLocation } from '../../../shared/agent-session-record'
 import { vi, type Mock } from 'vitest'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
 import { activeProviderContext } from '../../../shared/agent-session-provider-context'
-import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
+import {
+  claudeProviderHandle,
+  codexProviderHandle
+} from '../../../shared/agent-session-provider-handle-encoding'
 import type { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
 import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
 import type { StructuredAgentSessionEventSink } from './structured-agent-session-event-sink'
-import type { StructuredAgentSessionHost } from './structured-agent-session-host'
+import type {
+  StructuredAgentSessionHost,
+  StructuredAgentSessionHostDeps
+} from './structured-agent-session-host'
 import { startsWhenPublished } from './structured-agent-session-instant-start.test-support'
 import {
   HOST_TEST_NOW as NOW,
@@ -13,6 +20,7 @@ import {
 } from './structured-agent-session-host-test-data'
 
 export type QueuedRigProviderOptions = {
+  agent?: 'claude'
   rewind?: NonNullable<StructuredAgentSessionAdapter['rewind']>
   recoverRewind?: NonNullable<StructuredAgentSessionAdapter['recoverRewind']>
   /** Resume the saved thread on later children after close/death. */
@@ -24,6 +32,16 @@ export type QueuedRigProviderOptions = {
   /** The model its child reports running; otherwise the agent's own `default`. */
   reportsModel?: string
   reportsEffort?: string
+}
+
+export type QueuedMessageTestRigOptions = QueuedRigProviderOptions & {
+  idleSweep?: { idleMs: number; intervalMs: number }
+  now?: () => number
+  /** Teardown records its restart offers, which `restartOffers` lists. */
+  recoveryCapsule?: true
+  location?: AgentSessionExecutionLocation
+  /** Defaults to indeterminate. */
+  probeOwner?: StructuredAgentSessionHostDeps['probeOwner']
 }
 
 /** How long a winding-down child is given after the interrupt before the Stop ends it. */
@@ -94,7 +112,10 @@ export function createQueuedRigProvider(
         acquisitionGeneration: 'generation-1',
         link: {
           linkId: `link-${fence}`,
-          handle: codexProviderHandle(thread),
+          handle:
+            options.agent === 'claude'
+              ? claudeProviderHandle(thread, null)
+              : codexProviderHandle(thread),
           origin: resumes ? ('resumed' as const) : ('created' as const),
           mintedAtFence: fence,
           observedAt: NOW
