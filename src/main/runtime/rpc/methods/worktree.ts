@@ -158,7 +158,8 @@ export const WORKTREE_METHODS = [
         prNumber: params.prNumber,
         headRefName: params.headRefName,
         baseRefName: params.baseRefName,
-        isCrossRepository: params.isCrossRepository
+        isCrossRepository: params.isCrossRepository,
+        wakeWslDistro: params.wakeWslDistro
       })
   }),
   defineMethod({
