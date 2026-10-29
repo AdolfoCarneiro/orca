@@ -16,13 +16,14 @@ const ROW_HEIGHT = 30
 const VIEWPORT_HEIGHT = 90
 
 let editor: Editor
+let editorElement: HTMLDivElement
 let host: HTMLDivElement
 let reactRoot: Root
 
 beforeEach(() => {
-  const element = document.createElement('div')
-  document.body.append(element)
-  editor = new Editor({ element, extensions: [StarterKit], content: '<p>/</p>' })
+  editorElement = document.createElement('div')
+  document.body.append(editorElement)
+  editor = new Editor({ element: editorElement, extensions: [StarterKit], content: '<p>/</p>' })
   vi.spyOn(editor.view, 'coordsAtPos').mockReturnValue({ left: 0, right: 0, top: 0, bottom: 0 })
   host = document.createElement('div')
   document.body.append(host)
@@ -96,4 +97,21 @@ it('stays open for editor clicks and closes for presses outside the editor', asy
   document.body.append(outside)
   press(outside)
   expect(onClose).toHaveBeenCalledTimes(1)
+})
+
+it('closes when its workspace is hidden while still painted (opacity-0 + inert)', async () => {
+  const workspace = document.createElement('div')
+  document.body.append(workspace)
+  workspace.append(editorElement)
+  const onClose = vi.fn()
+  renderMenu(0, onClose)
+
+  workspace.className = 'absolute inset-0 flex'
+  await act(() => Promise.resolve())
+  expect(onClose).not.toHaveBeenCalled()
+
+  workspace.inert = true
+  workspace.setAttribute('aria-hidden', 'true')
+  await act(() => Promise.resolve())
+  expect(onClose).toHaveBeenCalled()
 })
