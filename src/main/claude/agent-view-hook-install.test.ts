@@ -12,7 +12,7 @@ afterEach(() => {
   roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true }))
 })
 
-it('keeps local hooks installed when the optional mod cannot be written', () => {
+it('keeps local hooks installed when the optional mod cannot be written', async () => {
   const root = mkdtempSync(join(tmpdir(), 'orca-agent-view-hook-install-'))
   roots.push(root)
   vi.stubEnv('HOME', root)
@@ -21,7 +21,7 @@ it('keeps local hooks installed when the optional mod cannot be written', () => 
   mkdirSync(join(root, '.claude'))
   writeFileSync(join(root, '.claude', 'skills'), 'blocked')
 
-  const status = new ClaudeHookService().install({ claudeVersion: '2.1.309' })
+  const status = await new ClaudeHookService().installSystem({ claudeVersion: '2.1.309' })
 
   expect(status).toMatchObject({ state: 'installed', managedHooksPresent: true, detail: null })
   const settings = JSON.parse(readFileSync(join(root, '.claude', 'settings.json'), 'utf8'))

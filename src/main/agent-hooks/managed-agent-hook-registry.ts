@@ -30,6 +30,8 @@ import { zcodeHookService } from '../zcode/hook-service'
 export type ManagedAgentHookInstallOptions = ManagedHookInvocation & {
   userInitiated?: boolean
   cliVersion?: string
+  signal?: AbortSignal
+  shouldContinue?: () => boolean
 }
 export type ManagedAgentHookInstaller = readonly [
   HookInstallAgent,
@@ -40,7 +42,9 @@ export type ManagedAgentHookInstaller = readonly [
 export type ManagedAgentHookScriptRefresher = readonly [HookInstallAgent, () => Promise<void>]
 export type ManagedAgentHookRemover = readonly [
   HookInstallAgent,
-  (options?: ManagedHookInvocation) => AgentHookInstallStatus | Promise<AgentHookInstallStatus>
+  (
+    options?: ManagedHookInvocation & { signal?: AbortSignal; shouldContinue?: () => boolean }
+  ) => AgentHookInstallStatus | Promise<AgentHookInstallStatus>
 ]
 export type ManagedAgentHookAsyncRemover = readonly [
   HookInstallAgent,
@@ -52,9 +56,11 @@ export const MANAGED_AGENT_HOOK_INSTALLERS: readonly ManagedAgentHookInstaller[]
   [
     'claude',
     async (options) =>
-      claudeHookService.install({
+      claudeHookService.installSystem({
         target: await resolveSystemClaudeHookTarget(options),
-        claudeVersion: options?.cliVersion
+        claudeVersion: options?.cliVersion,
+        signal: options?.signal,
+        shouldContinue: options?.shouldContinue
       })
   ],
   ['openclaude', () => openClaudeHookService.install()],
@@ -110,7 +116,11 @@ export const MANAGED_AGENT_HOOK_REMOVERS: readonly ManagedAgentHookRemover[] = [
   [
     'claude',
     async (options) =>
-      claudeHookService.remove({ target: await resolveSystemClaudeHookTarget(options) })
+      claudeHookService.removeSystem({
+        target: await resolveSystemClaudeHookTarget(options),
+        signal: options?.signal,
+        shouldContinue: options?.shouldContinue
+      })
   ],
   ['openclaude', () => openClaudeHookService.remove()],
   ['codex', () => codexHookService.remove()],

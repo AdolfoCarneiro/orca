@@ -90,7 +90,7 @@ it.skipIf(process.platform === 'win32')(
       const claudeVersion = '2.1.261'
       version.mockResolvedValue(claudeVersion)
       writeFileSync(join(conventional, 'settings.json'), '{"model":"sonnet"}')
-      service.install({
+      await service.installSystem({
         claudeVersion,
         target: { kind: 'system-default', configDir: conventional }
       })
@@ -134,7 +134,10 @@ it.skipIf(process.platform === 'win32')(
       })
       // A hook-only difference must be repaired even though provisioning skips the copy.
       writeFileSync(settings, JSON.stringify(removeManagedHooks(copied, 'claude-hook.sh').config))
-      service.install({ claudeVersion, target: { kind: 'system-default', configDir: custom } })
+      await service.installSystem({
+        claudeVersion,
+        target: { kind: 'system-default', configDir: custom }
+      })
       const refreshed = await setup()
       expect(refreshed.surfaces).toMatchObject({ 'settings.json': 'unchanged', hooks: 'merged' })
       expect(JSON.parse(readFileSync(settings, 'utf8')).hooks).toEqual(copied.hooks)

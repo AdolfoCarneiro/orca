@@ -251,7 +251,8 @@ async function cleanLockEntry(
 
 export async function cleanupManagedHookLockFiles(
   lockParent: string,
-  hostIdentity: string
+  hostIdentity: string,
+  signal?: AbortSignal
 ): Promise<void> {
   let entries: string[]
   try {
@@ -259,15 +260,27 @@ export async function cleanupManagedHookLockFiles(
   } catch {
     return
   }
-  await Promise.all(
-    entries.map(async (entry) => {
-      try {
-        await cleanLockEntry(entry, lockParent, hostIdentity)
-      } catch (error) {
-        if (!hasCode(error, 'ENOENT')) {
-          console.warn('[agent-hooks] Failed to clean managed-hook lock file', error)
-        }
+  const clean = async (entry: string) => {
+    signal?.throwIfAborted()
+    try {
+      await cleanLockEntry(entry, lockParent, hostIdentity)
+    } catch (error) {
+      if (!hasCode(error, 'ENOENT')) {
+        console.warn('[agent-hooks] Failed to clean managed-hook lock file', error)
+      }
+    }
+  }
+  if (!signal) {
+    await Promise.all(entries.map(clean))
+    return
+  }
+  let cursor = 0
+  await Promise.allSettled(
+    [0, 1].map(async () => {
+      while (cursor < entries.length) {
+        await clean(entries[cursor++])
       }
     })
   )
+  signal.throwIfAborted()
 }

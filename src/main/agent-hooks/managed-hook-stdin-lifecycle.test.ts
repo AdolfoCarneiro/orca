@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 import type * as osModule from 'node:os'
 import type * as NativeHookExecutableModule from './windows-native-hook-executable'
+import { withClaudeSystemScope } from '../claude/statusline-ownership'
 
 let isolatedUserDataDir = ''
 let previousUserDataPath: string | undefined
@@ -163,7 +164,7 @@ const REMOTE_INSTALLERS = [
 
 const LOCAL_INSTALLERS = [
   { agent: 'antigravity', install: () => new AntigravityHookService().install() },
-  { agent: 'claude', install: () => new ClaudeHookService().install() },
+  { agent: 'claude', install: async () => await new ClaudeHookService().installSystem() },
   { agent: 'openclaude', install: () => openClaudeHookService.install() },
   { agent: 'codex', install: () => new CodexHookService().install() },
   { agent: 'command-code', install: () => new CommandCodeHookService().install() },
@@ -269,6 +270,8 @@ async function generatePosixScripts(onlyAgent?: string): Promise<Map<string, str
 // Keep the platform override pinned across asynchronous installers.
 async function withPlatform<T>(platform: NodeJS.Platform, run: () => T | Promise<T>): Promise<T> {
   const original = Object.getOwnPropertyDescriptor(process, 'platform')
+  // Capture real ownership before the generated-script platform override.
+  await withClaudeSystemScope(homedirMock(), AbortSignal.timeout(2000), async () => {})
   Object.defineProperty(process, 'platform', { configurable: true, value: platform })
   try {
     return await run()
@@ -510,7 +513,7 @@ describe('Windows managed hook stdin structure', () => {
       seedCmdAutoRunTarget(absentProfile)
       try {
         bundledHook.path = bundled ? buildWindowsNativeHookExecutable() : null
-        expect(new ClaudeHookService().install().state).toBe('installed')
+        expect((await new ClaudeHookService().installSystem()).state).toBe('installed')
         const settings = JSON.parse(
           readFileSync(join(home, '.claude', 'settings.json'), 'utf8')
         ) as { hooks: Record<string, { hooks: { command: string; args?: string[] }[] }[]> }

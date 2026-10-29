@@ -34,7 +34,7 @@ export async function provisionWslClaudeAccountProfile(
     userConfigDir,
     installHooks: hooks
       ? ({ configDir }) =>
-          new ClaudeHookService().install({
+          new ClaudeHookService().installProfile({
             target: {
               kind: 'profile',
               configDir,

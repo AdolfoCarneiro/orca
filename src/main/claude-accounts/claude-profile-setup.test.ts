@@ -42,7 +42,7 @@ function fixture() {
   mkdirSync(dataRoot)
   const service = new ClaudeHookService()
   const installHooks = (target: { configDir: string }) =>
-    service.install({ claudeVersion: '2.1.261', target: { kind: 'profile', ...target } })
+    service.installProfile({ claudeVersion: '2.1.261', target: { kind: 'profile', ...target } })
   const setup = () =>
     provisionClaudeAccountProfile({
       dataRoot,
@@ -62,7 +62,7 @@ describe('Claude account profile setup', () => {
     const f = fixture()
     mkdirSync(join(f.defaultHome, 'skills'))
     writeFileSync(join(f.defaultHome, 'settings.json'), '{"model":"opus"}')
-    f.service.install({ claudeVersion: '2.1.261' })
+    await f.service.installSystem({ claudeVersion: '2.1.261' })
     const report = await f.setup()
     const home = join(f.dataRoot, 'claude-profiles/a/home')
     expect(report).toMatchObject({ outcome: 'prepared', warnings: [] })

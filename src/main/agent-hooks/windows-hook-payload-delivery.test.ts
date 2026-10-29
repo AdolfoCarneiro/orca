@@ -227,7 +227,7 @@ type Provider = {
   name: string
   script: string
   stdout: string
-  install: () => { state: string }
+  install: () => { state: string } | Promise<{ state: string }>
   commands: (home: string) => (string | undefined)[]
   /** Seed legacy encoded registration to verify replacement without duplication. */
   seedStale?: (home: string, stale: string) => void
@@ -240,7 +240,7 @@ const PROVIDERS: Provider[] = [
     name: 'Claude',
     script: 'claude-hook.cmd',
     stdout: '{}',
-    install: () => new ClaudeHookService().install(),
+    install: async () => await new ClaudeHookService().installSystem(),
     commands: () => commandsOf(readHooksJson(getConfigPath())?.hooks?.PreToolUse)
   },
   {
@@ -248,9 +248,9 @@ const PROVIDERS: Provider[] = [
     name: 'Claude (orca-agent-hook.exe)',
     script: 'orca-agent-hook.exe',
     stdout: '{}',
-    install: () => {
+    install: async () => {
       bundledHook.path = buildWindowsNativeHookExecutable()
-      return new ClaudeHookService().install()
+      return await new ClaudeHookService().installSystem()
     },
     commands: () => commandsOf(readHooksJson(getConfigPath())?.hooks?.PreToolUse),
     runners: [CMD_PLAIN, GIT_BASH, POWERSHELL_PLAIN]
@@ -463,7 +463,7 @@ describe.skipIf(process.platform !== 'win32')('Windows managed hook payload deli
       seedCmdAutoRunTarget(home)
       const scriptPath = join(home, '.orca', 'agent-hooks', provider.script)
       provider.seedStale?.(home, wrapWindowsHookCommand(scriptPath))
-      expect(provider.install().state).toBe('installed')
+      expect((await provider.install()).state).toBe('installed')
 
       const commands = provider.commands(home)
       expect(commands, 'exactly one managed registration').toHaveLength(1)

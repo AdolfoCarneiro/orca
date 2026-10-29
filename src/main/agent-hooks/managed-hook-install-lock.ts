@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises'
+import { chmod, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { removeManagedHookLock } from './managed-hook-lock-claims'
@@ -17,6 +17,8 @@ import {
 
 const LOCK_WAIT_TIMEOUT_MS = 10_000
 const LOCK_RETRY_MS = 20
+const scopedPreparation = new Map<string, Promise<string | null | undefined>>()
+let scopedProcessIdentity: Promise<string | null | undefined> | undefined
 
 async function releaseInstallLock(
   lockPath: string,
@@ -47,14 +49,50 @@ async function acquireInstallLock(
   home: string,
   signal?: AbortSignal,
   suppliedHostIdentity?: string,
-  waitTimeoutMs = LOCK_WAIT_TIMEOUT_MS
+  waitTimeoutMs = LOCK_WAIT_TIMEOUT_MS,
+  explicitParent?: string
 ): Promise<() => Promise<void>> {
-  const lockParent = join(home, '.orca')
+  const lockParent = explicitParent ?? join(home, '.orca')
   const lockPath = join(lockParent, 'managed-hook-install.lock')
-  await mkdir(lockParent, { recursive: true })
+  await mkdir(lockParent, { recursive: true, ...(explicitParent ? { mode: 0o700 } : {}) })
+  if (explicitParent && process.platform !== 'win32') {
+    await chmod(lockParent, 0o700)
+  }
   const hostIdentity = suppliedHostIdentity ?? (await readManagedHookHostIdentity())
-  await cleanupManagedHookLockFiles(lockParent, hostIdentity)
-  const processIdentity = await readManagedHookProcessIdentity(process.pid)
+  let preparation = explicitParent ? scopedPreparation.get(lockParent) : undefined
+  if (!preparation) {
+    preparation = (async () => {
+      await cleanupManagedHookLockFiles(
+        lockParent,
+        hostIdentity,
+        explicitParent ? signal : undefined
+      )
+      if (!explicitParent) {
+        return await readManagedHookProcessIdentity(process.pid)
+      }
+      scopedProcessIdentity ??= readManagedHookProcessIdentity(process.pid).then(
+        (identity) => {
+          if (typeof identity !== 'string') {
+            scopedProcessIdentity = undefined
+          }
+          return identity
+        },
+        (error: unknown) => {
+          scopedProcessIdentity = undefined
+          throw error
+        }
+      )
+      return await scopedProcessIdentity
+    })()
+    if (explicitParent) {
+      scopedPreparation.set(lockParent, preparation)
+      void preparation.then(
+        () => scopedPreparation.delete(lockParent),
+        () => scopedPreparation.delete(lockParent)
+      )
+    }
+  }
+  const processIdentity = await preparation
   if (typeof processIdentity !== 'string') {
     throw new Error('Could not identify the managed-hook installer process')
   }
@@ -131,13 +169,14 @@ export async function withManagedHookInstallLock<T>(
   signal: AbortSignal | undefined,
   run: () => Promise<T>,
   hostIdentity?: string,
-  options?: { waitTimeoutMs?: number }
+  options?: { waitTimeoutMs?: number; lockParent?: string }
 ): Promise<T> {
   const release = await acquireInstallLock(
     home,
     signal,
     hostIdentity,
-    options?.waitTimeoutMs ?? LOCK_WAIT_TIMEOUT_MS
+    options?.waitTimeoutMs ?? LOCK_WAIT_TIMEOUT_MS,
+    options?.lockParent
   )
   try {
     signal?.throwIfAborted()

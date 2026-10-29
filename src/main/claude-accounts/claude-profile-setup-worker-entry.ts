@@ -18,7 +18,7 @@ void provisionClaudeAccountProfile({
   userConfigDir: job.userConfigDir,
   installHooks: job.hooks
     ? ({ configDir }) =>
-        new ClaudeHookService().install({
+        new ClaudeHookService().installProfile({
           target: {
             kind: 'profile',
             configDir,
