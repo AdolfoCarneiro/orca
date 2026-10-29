@@ -77,6 +77,7 @@ const reads: {
   projects: Mock
   connect: Mock
   test: Mock
+  select: Mock
 } = vi.hoisted(() => ({
   list: vi.fn(),
   search: vi.fn(),
@@ -87,7 +88,8 @@ const reads: {
   create: vi.fn(),
   projects: vi.fn(),
   connect: vi.fn(),
-  test: vi.fn()
+  test: vi.fn(),
+  select: vi.fn()
 }))
 
 const accountViewer = vi.hoisted(() => ({
@@ -99,6 +101,7 @@ const accountViewer = vi.hoisted(() => ({
 vi.mock('@/runtime/runtime-linear-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   linearTestConnection: (...args: unknown[]) => reads.test(...args),
+  linearSelectWorkspace: (...args: unknown[]) => reads.select(...args),
   linearDisconnect: async () => {},
   linearConnect: (...args: unknown[]) => reads.connect(...args),
   linearStatus: async () => ({ connected: true, viewer: accountViewer, selectedWorkspaceId: 'w' }),
@@ -225,10 +228,9 @@ export function response(view: View, state: string) {
 }
 
 export function fixture(s: Store, rows: LinearIssue[], view: View = 'list') {
-  const state = s.getState()
   return {
     settings: null,
-    linearStatus: state.linearStatus,
+    linearStatus: s.getState().linearStatus,
     selectedLinearWorkspaceId: 'w',
     linearTaskSourceContext: null,
     linearMode: 'issues',
@@ -277,8 +279,6 @@ export function display(
     const viewResult = useLinearIssueResult(`${scope.contextKey}view`, { items: rows }, scope)
     const result = view === 'custom-view' ? viewResult : projectResult
     const current = view === 'project' || view === 'custom-view' ? result.data.items : rows
-    const loading = result.loading
-    const error = result.error
     const model = {
       ...base,
       linearTaskSourceContext: context,
@@ -320,7 +320,7 @@ export function display(
     // SAFETY: fixture supplies the selection prelude fields.
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const selection = useTaskPageLinearListSelectionPrelude(model as never)
-    return { ...selection, loading, error }
+    return { ...selection, loading: result.loading, error: result.error }
   })
 }
 

@@ -27,6 +27,7 @@ import { useState } from 'react'
 import LinearItemDrawer from '../../LinearItemDrawer'
 import { useTaskPageLinearBoard } from './use-task-page-linear-board'
 import { useTaskPageLinearIssueCreation } from './use-task-page-linear-issue-creation'
+import { useLinearIssueCreationForm } from './use-task-page-linear-creation-state'
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
 import { useTaskPageDetailRouting } from '../use-task-page-detail-routing'
 import { useLinearIssueWorkspaceDetail } from '../../linear-issue-workspace-detail-state'
@@ -395,24 +396,7 @@ it('postcreate hydration follows replacement and respects actual selection-commi
       linearTaskSourceContext: null,
       setLinearRefreshNonce: noop,
       selectedLinearProject: null,
-      setNewLinearIssueOpen: noop,
-      newLinearIssueTitle: 'Created',
-      setNewLinearIssueTitle: noop,
-      newLinearIssueBody: '',
-      setNewLinearIssueBody: noop,
-      newLinearIssueSubmitting: false,
-      setNewLinearIssueSubmitting: noop,
-      newLinearIssueStateId: null,
-      setNewLinearIssueStateId: noop,
-      newLinearIssueAssigneeId: null,
-      setNewLinearIssueAssigneeId: noop,
-      newLinearIssuePriority: 0,
-      setNewLinearIssuePriority: noop,
-      newLinearIssueProjectId: null,
-      setNewLinearIssueProjectId: noop,
-      newLinearIssueLabelIds: [],
-      setNewLinearIssueLabelIds: noop,
-      discardNewLinearIssueDraft: noop,
+      ...useLinearIssueCreationForm('runtime', { open: true, title: 'Created', body: '' }),
       newLinearIssueTargetTeam: { id: 'team-1', workspaceId: 'w' }
     } as never)
     return { route, model }

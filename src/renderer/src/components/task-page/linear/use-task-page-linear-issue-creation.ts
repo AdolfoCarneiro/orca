@@ -17,25 +17,19 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
     setSelectedLinearIssue,
     setLinearRefreshNonce,
     selectedLinearProject,
-    setNewLinearIssueOpen,
     newLinearIssueTitle,
-    setNewLinearIssueTitle,
     newLinearIssueBody,
-    setNewLinearIssueBody,
     newLinearIssueSubmitting,
-    setNewLinearIssueSubmitting,
     newLinearIssueStateId,
-    setNewLinearIssueStateId,
     newLinearIssueAssigneeId,
-    setNewLinearIssueAssigneeId,
     newLinearIssuePriority,
-    setNewLinearIssuePriority,
     newLinearIssueProjectId,
-    setNewLinearIssueProjectId,
     newLinearIssueLabelIds,
-    setNewLinearIssueLabelIds,
-    discardNewLinearIssueDraft,
-    newLinearIssueTargetTeam
+    newLinearIssueTargetTeam,
+    captureNewLinearIssueDraft,
+    completeNewLinearIssueDraft,
+    beginNewLinearIssue,
+    settleNewLinearIssue
   } = model
   const publication = useRef<{ release: () => void } | null>(null)
   const sourceSettings = linearTaskSourceContext ?? defaultScopeSource(settings)
@@ -56,9 +50,8 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
       lifetime.live = false
       publication.current?.release()
       publication.current = null
-      setNewLinearIssueSubmitting(false)
     }
-  }, [lifetime, setNewLinearIssueSubmitting])
+  }, [lifetime])
   useLayoutEffect(() => {
     committed.current = {
       lifetime,
@@ -98,7 +91,9 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
       committed.current?.lifetime === origin.lifetime &&
       committed.current.selection === origin.selection &&
       origin.scope.isCurrentRuntime()
-    setNewLinearIssueSubmitting(true)
+    const attempt = {}
+    const submitted = captureNewLinearIssueDraft()
+    beginNewLinearIssue(attempt)
     const submitProviderRuntimeContextKey = providerRuntimeContextKey
     const initialSelection = origin.selection
     publication.current?.release()
@@ -115,7 +110,10 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
         projectId: newLinearIssueProjectId || null,
         labelIds: newLinearIssueLabelIds.length > 0 ? newLinearIssueLabelIds : undefined
       })
-      if (submitProviderRuntimeContextKey !== providerRuntimeContextKeyRef.current) {
+      if (
+        !origin.scope.isCurrentRuntime() ||
+        submitProviderRuntimeContextKey !== providerRuntimeContextKeyRef.current
+      ) {
         return
       }
       if (!result.ok) {
@@ -138,18 +136,10 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
             : undefined
         }
       )
-      discardNewLinearIssueDraft()
+      completeNewLinearIssueDraft(submitted)
       if (!isLive()) {
         return
       }
-      setNewLinearIssueOpen(false)
-      setNewLinearIssueTitle('')
-      setNewLinearIssueBody('')
-      setNewLinearIssueStateId(null)
-      setNewLinearIssueAssigneeId(null)
-      setNewLinearIssuePriority(0)
-      setNewLinearIssueProjectId(null)
-      setNewLinearIssueLabelIds([])
       setLinearRefreshNonce((n) => n + 1)
       useAppStore.getState().recordFeatureInteraction('linear-tasks')
 
@@ -176,9 +166,7 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
         release()
       }
     } finally {
-      if (isLive()) {
-        setNewLinearIssueSubmitting(false)
-      }
+      settleNewLinearIssue(attempt)
     }
   }, [
     newLinearIssueBody,
@@ -192,18 +180,12 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
     newLinearIssueLabelIds,
     providerRuntimeContextKey,
     selectedLinearProject,
-    discardNewLinearIssueDraft,
-    setNewLinearIssuePriority,
-    setNewLinearIssueBody,
     providerRuntimeContextKeyRef,
-    setNewLinearIssueAssigneeId,
-    setNewLinearIssueProjectId,
-    setNewLinearIssueOpen,
-    setNewLinearIssueLabelIds,
-    setNewLinearIssueTitle,
-    setNewLinearIssueStateId,
-    setNewLinearIssueSubmitting,
-    setLinearRefreshNonce
+    setLinearRefreshNonce,
+    captureNewLinearIssueDraft,
+    completeNewLinearIssueDraft,
+    beginNewLinearIssue,
+    settleNewLinearIssue
   ])
   const nextModel = Object.assign(model, { handleCreateNewLinearIssue })
   return nextModel
