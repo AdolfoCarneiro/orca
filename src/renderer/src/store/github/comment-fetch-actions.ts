@@ -54,7 +54,7 @@ export const createCommentFetchActions = (
           repoPath,
           options?.sourceContext
         )
-        const comments =
+        const comments: PRComment[] =
           requestContext.target.kind === 'environment'
             ? await callRuntimeRpc<PRComment[]>(
                 { kind: 'environment', environmentId: requestContext.target.environmentId },
@@ -67,7 +67,7 @@ export const createCommentFetchActions = (
                 },
                 { timeoutMs: 30_000 }
               )
-            : ((await window.api.gh.prComments({
+            : await window.api.gh.prComments({
                 repoPath,
                 repoId,
                 prNumber,
@@ -77,7 +77,7 @@ export const createCommentFetchActions = (
                 ...(options?.repoOwnerExecutionHostId
                   ? { repoOwnerExecutionHostId: options.repoOwnerExecutionHostId }
                   : {})
-              })) as PRComment[])
+              })
         set((s) => ({
           commentsCache: withBoundedCacheEntry(s.commentsCache, cacheKey, {
             data: comments,

@@ -6,7 +6,6 @@ import {
 import type { Repo } from '../../../../shared/repo-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { AppState } from '../types'
-import { findRepoForHost } from '../slices/repo-host-identity'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
 
 export type GitHubPRCommentOwnerOptions = {
@@ -46,7 +45,7 @@ export function githubPRCommentOwner(
     if (!repoId) {
       return { ok: false }
     }
-    const repo = findRepoForHost(ownedRows, repoId, { hostId })
+    const repo = ownedRows[0]
     return ownedRows.length === 1 && repo ? { ok: true, repo } : { ok: false }
   }
   // Legacy reads/posts may arrive before their repo catalog is hydrated.
