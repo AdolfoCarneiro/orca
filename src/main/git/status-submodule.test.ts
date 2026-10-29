@@ -87,7 +87,7 @@ describe('submodule diff routing', () => {
         return Promise.resolve({ stdout: `160000 ${OLD_OID} 0\tflutter_mine\n` })
       }
       if (args[0] === 'ls-tree') {
-        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\n` })
+        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\0` })
       }
       if (args[0] === 'rev-parse') {
         return Promise.resolve({ stdout: `${NEW_OID}\n` })
@@ -142,7 +142,7 @@ describe('submodule diff routing', () => {
         return Promise.resolve({ stdout: `160000 ${NEW_OID} 0\tflutter_mine\n` })
       }
       if (args[0] === 'ls-tree') {
-        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\n` })
+        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\0` })
       }
       if (args[0] === 'rev-parse') {
         return Promise.resolve({ stdout: `${NEW_OID}\n` })
@@ -344,7 +344,7 @@ describe('getSubmoduleStatus', () => {
         return Promise.resolve({ stdout: `160000 ${NEW_OID} 0\tflutter_mine\n` })
       }
       if (args[0] === 'ls-tree') {
-        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\n` })
+        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\0` })
       }
       if (args[0] === 'rev-parse') {
         return Promise.resolve({ stdout: `${NEW_OID}\n` })
@@ -374,7 +374,7 @@ describe('getSubmoduleStatus', () => {
         return Promise.resolve({ stdout: `160000 ${NEW_OID} 0\tflutter_mine\n` })
       }
       if (args[0] === 'ls-tree') {
-        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\n` })
+        return Promise.resolve({ stdout: `160000 commit ${OLD_OID}\tflutter_mine\0` })
       }
       return Promise.resolve({ stdout: '' })
     })

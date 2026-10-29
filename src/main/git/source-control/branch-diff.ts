@@ -4,7 +4,8 @@ import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitRuntimeOptionsKey } from './git-runtime-options-cache-key'
 import { gitDiffReadDedupe } from './git-read-cache-invalidation'
 import { buildDiffResult } from './diff-result'
-import { assertReadableGitBlobs, readGitBlobAtOidPath } from './git-blob-read'
+import { assertReadableGitBlobs } from './git-blob-read'
+import { readHistoricalDiffSide } from './historical-diff-side'
 
 export async function getBranchDiff(
   worktreePath: string,
@@ -41,10 +42,9 @@ async function loadBranchDiff(
   options: GitRuntimeOptions
 ): Promise<GitDiffResult> {
   const leftPath = args.oldPath ?? args.filePath
-  // Read independent blobs concurrently to avoid doubling diff latency.
   const [leftBlob, rightBlob] = await Promise.all([
-    readGitBlobAtOidPath(worktreePath, args.mergeBase, leftPath, options),
-    readGitBlobAtOidPath(worktreePath, args.headOid, args.filePath, options)
+    readHistoricalDiffSide(worktreePath, args.mergeBase, leftPath, options),
+    readHistoricalDiffSide(worktreePath, args.headOid, args.filePath, options)
   ])
 
   assertReadableGitBlobs(args.filePath, leftBlob, rightBlob)

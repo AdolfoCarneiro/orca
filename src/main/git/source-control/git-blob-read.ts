@@ -102,6 +102,26 @@ export async function readGitBlobAtOidPath(
   }
 }
 
+export async function readGitBlobByObjectOid(
+  worktreePath: string,
+  oid: string,
+  filePath: string,
+  options: GitRuntimeOptions
+): Promise<GitBlobReadResult> {
+  try {
+    const { stdout } = await gitExecFileAsyncBuffer(['cat-file', 'blob', '--', oid], {
+      ...gitReadOptionsForWorktree(worktreePath, options),
+      maxBuffer: MAX_GIT_SHOW_BYTES
+    })
+    return { ...bufferToBlob(stdout, filePath), exists: true }
+  } catch (error) {
+    if (isMaxBufferOverflowError(error)) {
+      return TOO_LARGE_BLOB
+    }
+    return { content: '', isBinary: false, exists: true, failed: true }
+  }
+}
+
 export function assertReadableGitBlobs(filePath: string, ...blobs: GitBlobReadResult[]): void {
   if (blobs.some((blob) => blob.failed)) {
     throw new Error(`Could not read the complete diff for "${filePath}".`)

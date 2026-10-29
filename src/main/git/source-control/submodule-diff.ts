@@ -9,6 +9,10 @@ import {
   readWorkingSubmoduleHead
 } from './submodule-gitlink-oid'
 
+export function submodulePointerContent(oid: string): string {
+  return oid ? `Subproject commit ${oid}\n` : ''
+}
+
 /** Feed gitlink OIDs to the text differ as Subproject commit lines. */
 export async function buildSubmodulePointerDiff(
   worktreePath: string,
@@ -34,8 +38,8 @@ export async function buildSubmodulePointerDiff(
     rightOid = await readWorkingSubmoduleHead(submoduleWorktreePath, options)
   }
   return buildDiffResult(
-    leftOid ? `Subproject commit ${leftOid}\n` : '',
-    rightOid ? `Subproject commit ${rightOid}\n` : '',
+    submodulePointerContent(leftOid),
+    submodulePointerContent(rightOid),
     false,
     false,
     submodulePath

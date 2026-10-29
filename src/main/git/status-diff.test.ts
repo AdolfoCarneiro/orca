@@ -83,6 +83,9 @@ async function waitForMockCalls(mock: ReturnType<typeof vi.fn>, calls: number): 
 describe('getDiff', () => {
   beforeEach(() => {
     gitExecFileAsyncMock.mockReset()
+    gitExecFileAsyncMock.mockImplementation(async (args: string[]) => ({
+      stdout: args[0] === 'ls-tree' ? `100644 blob ${'a'.repeat(40)}\tsrc/file.ts\0` : ''
+    }))
     gitExecFileAsyncBufferMock.mockReset()
     lstatMock.mockReset()
     readFileMock.mockReset()

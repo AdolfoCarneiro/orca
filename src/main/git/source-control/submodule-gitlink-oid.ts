@@ -1,6 +1,7 @@
 import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitOptionsForWorktree } from '../git-runtime-options'
 import { gitExecFileAsync, gitOptionalLocksDisabledEnv } from '../runner'
+import { readGitTreeEntryAtPath } from './git-tree-entry'
 
 export async function readGitlinkOidFromTree(
   worktreePath: string,
@@ -9,11 +10,8 @@ export async function readGitlinkOidFromTree(
   options: GitRuntimeOptions
 ): Promise<string> {
   try {
-    const { stdout } = await gitExecFileAsync(['ls-tree', ref, '--', submodulePath], {
-      ...gitOptionsForWorktree(worktreePath, options),
-      env: gitOptionalLocksDisabledEnv()
-    })
-    return stdout.match(/^160000 commit ([0-9a-f]+)\t/m)?.[1] ?? ''
+    const entry = await readGitTreeEntryAtPath(worktreePath, ref, submodulePath, options)
+    return entry?.mode === '160000' && entry.objectType === 'commit' ? entry.oid : ''
   } catch {
     return ''
   }

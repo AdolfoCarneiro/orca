@@ -4,11 +4,8 @@ import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitRuntimeOptionsKey } from './git-runtime-options-cache-key'
 import { gitDiffReadDedupe } from './git-read-cache-invalidation'
 import { buildDiffResult } from './diff-result'
-import {
-  assertReadableGitBlobs,
-  readGitBlobAtOidPath,
-  type GitBlobReadResult
-} from './git-blob-read'
+import { assertReadableGitBlobs, type GitBlobReadResult } from './git-blob-read'
+import { readHistoricalDiffSide } from './historical-diff-side'
 
 export async function getCommitDiff(
   worktreePath: string,
@@ -45,12 +42,11 @@ async function loadCommitDiff(
   options: GitRuntimeOptions
 ): Promise<GitDiffResult> {
   const leftPath = args.oldPath ?? args.filePath
-  // Read independent blobs concurrently; root commits have no parent blob.
   const [leftBlob, rightBlob] = await Promise.all([
     args.parentOid
-      ? readGitBlobAtOidPath(worktreePath, args.parentOid, leftPath, options)
+      ? readHistoricalDiffSide(worktreePath, args.parentOid, leftPath, options)
       : Promise.resolve<GitBlobReadResult>({ content: '', isBinary: false, exists: false }),
-    readGitBlobAtOidPath(worktreePath, args.commitOid, args.filePath, options)
+    readHistoricalDiffSide(worktreePath, args.commitOid, args.filePath, options)
   ])
 
   assertReadableGitBlobs(args.filePath, leftBlob, rightBlob)
