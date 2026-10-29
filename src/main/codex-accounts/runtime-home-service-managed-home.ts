@@ -147,8 +147,10 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
 
   // Reading a distro's history over 9P would boot it (E9); the WSL lane owns those homes.
   protected isHostHistorySourceInWsl(): boolean {
-    const sourceHome = resolveHostCodexSessionSourceHome(this.store.getSettings())
-    return Boolean(sourceHome && parseWslUncPath(sourceHome))
+    // The home the lanes actually read: the setting, else the system home they fall back to.
+    const sourceHome =
+      resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath()
+    return parseWslUncPath(sourceHome) !== null
   }
 
   protected getSelfContainedSessionBridgeSourceHomes(): string[] {
