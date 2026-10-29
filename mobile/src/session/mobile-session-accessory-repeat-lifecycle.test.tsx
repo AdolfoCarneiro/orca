@@ -251,11 +251,11 @@ describe('mounted accessory-repeat delivery lifecycle', () => {
 
   it('dispatches distinct taps while earlier host acknowledgments are pending', async () => {
     const view = await mount()
-    const replies: Array<(reply: RpcResponse) => void> = []
+    const replies: ((reply: RpcResponse) => void)[] = []
     view.client.sendRequest.mockImplementation(
       () => new Promise<RpcResponse>((resolve) => replies.push(resolve))
     )
-    const taps: Array<Promise<boolean>> = []
+    const taps: Promise<boolean>[] = []
     await act(async () => {
       for (let index = 0; index < 5; index += 1) {
         taps.push(view.current().prepareAccessoryPress(input).tap())
