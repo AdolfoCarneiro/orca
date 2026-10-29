@@ -2,6 +2,7 @@
  * Keep worktree.create's PTY/handle contract for older clients.
  * operationId adds durable at-most-once execution and recorded replay; unknown outcomes refuse, while stranded-surface recovery remains separate. */
 
+import { agentLaunchFeatureRequirement } from '../agent-launch-feature-requirement'
 import { AgentLaunchTabClosedError } from '../../../../shared/agent-launch-tab-closed'
 import { computeAgentLaunchFingerprint } from '../../../../shared/agent-launch-operation'
 import type { AgentLaunchResult } from '../../../../shared/agent-launch-intent'
@@ -11,13 +12,14 @@ import {
   WORKTREE_CREATE_COLLISION_CODE
 } from '../../../../shared/new-workspace/worktree-create-collision'
 import { executeAgentLaunch } from '../../../agent-launch/agent-launch-executor'
-import {
-  trackTerminalSpawnDispatch,
-  type TerminalSpawnDispatch
-} from '../../../agent-launch/agent-launch-not-started'
+import { trackTerminalSpawnDispatch } from '../../../agent-launch/agent-launch-not-started'
 import type { OrcaRuntimeService } from '../../orca-runtime'
 import { defineMethod, type RpcContext } from '../core'
-import { admitAgentLaunchOperation, agentLaunchOperationCallerKey } from './agent-launch-replay'
+import {
+  admitAgentLaunchOperation,
+  agentLaunchOperationCallerKey,
+  type ReplaySafeLaunch
+} from './agent-launch-replay'
 import {
   AgentLaunchExecutionError,
   agentLaunchRefusalError,
@@ -57,15 +59,6 @@ export { supportsAgentLaunch } from './agent-launch-target-authorization'
 
 type HostLaunchContext = RpcContext & {
   agentLaunchPolicy?: { onSurfacePublished?: (surface: AgentLaunchResult) => void }
-}
-
-/** What a launch admitted under an operation id carries into its execution. */
-type ReplaySafeLaunch = {
-  attachOperationId: string
-  callerKey: string
-  terminalSpawn: TerminalSpawnDispatch
-  /** Queue provisional surface/prompt recording without awaiting it; ordered ledger transactions keep final settlement after it. */
-  recordSurface: (provisional: AgentLaunchResult) => void
 }
 
 async function runAgentLaunch(
@@ -268,6 +261,7 @@ function runReplaySafeAgentLaunch(
 export const AGENT_LAUNCH_METHODS = [
   defineMethod({
     name: 'agent.launchReplay',
+    requires: agentLaunchFeatureRequirement,
     permission: 'workspace',
     params: AgentLaunchReplay,
     handler: async (params, context): Promise<AgentLaunchResult> => {
@@ -299,6 +293,7 @@ export const AGENT_LAUNCH_METHODS = [
   }),
   defineMethod({
     name: 'agent.launch',
+    requires: agentLaunchFeatureRequirement,
     permission: 'workspace',
     params: AgentLaunch,
     handler: (params, context) => launchAgentOnHost(params, context)

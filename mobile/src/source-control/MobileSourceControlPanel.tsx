@@ -157,7 +157,7 @@ export function MobileSourceControlPanel({
   const actionSheetActions = useMobileSourceControlActionSheet(state, review)
   const primaryAction = useMemo(
     () => buildMobileSourceControlPrimaryAction({ ...primaryActionArgs, review }),
-    [primaryActionArgs, review]
+    [primaryActionArgs, review, t]
   )
   const isHostedRepo = prController.prSidebarIsGithubRepo
   const prSidebarKind = prController.prSidebarState.kind
@@ -264,12 +264,14 @@ export function MobileSourceControlPanel({
     ) : screenState.kind === 'error' || screenState.kind === 'unavailable' ? (
       <View style={styles.state}>
         <Text style={styles.stateTitle}>
-          {screenState.kind === 'unavailable' ? 'Source Control Unavailable' : 'Unable to Load'}
+          {screenState.kind === 'unavailable'
+            ? t('sourceControl.panel.unavailableTitle', 'Source Control Unavailable')
+            : t('sourceControl.panel.loadFailedTitle', 'Unable to Load')}
         </Text>
         <Text style={styles.stateText}>{screenState.message}</Text>
         {screenState.kind === 'error' && statusRetry ? (
           <Pressable style={styles.retryButton} onPress={statusRetry}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t('common.retry', 'Retry')}</Text>
           </Pressable>
         ) : null}
       </View>
