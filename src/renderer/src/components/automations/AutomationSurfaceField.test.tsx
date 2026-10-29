@@ -64,6 +64,8 @@ function makeRouteState(): AgentLaunchRouteStore {
   return {
     ...makeStoreState().state,
     projects: [],
+    projectGroups: [],
+    folderWorkspaces: [],
     activeRepoId: null,
     activeWorktreeId: null,
     settings: getDefaultSettings('/tmp'),
