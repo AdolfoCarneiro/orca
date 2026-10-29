@@ -7,6 +7,7 @@ import { resolveDocumentTheme } from '@/lib/document-theme'
 import { pluginAppThemeSlotUpdate } from '../../../../../shared/plugin-theme-settings'
 import { withTerminalPluginPalettes } from '@/lib/terminal-plugin-palettes'
 import { useAppStore } from '@/store'
+import { PLUGIN_ACTION_TOAST_DURATION_MS } from './plugin-action-toast'
 import { usePluginIconThemeStore } from '@/store/plugin-icon-themes'
 import { usePluginThemeStore, usePluginTerminalThemeStore } from '@/store/plugin-themes'
 
@@ -136,6 +137,7 @@ export async function applyPluginThemesNow(pluginKey: string): Promise<boolean> 
             value0: label
           }),
     {
+      duration: PLUGIN_ACTION_TOAST_DURATION_MS,
       action: {
         label: translate('auto.components.settings.pluginThemeApply.switchBack', 'Switch back'),
         onClick: () => void useAppStore.getState().updateSettings(previous)
