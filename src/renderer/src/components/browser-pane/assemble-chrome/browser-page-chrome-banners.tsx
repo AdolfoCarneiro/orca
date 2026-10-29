@@ -10,7 +10,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { BrowserAnnotationSendMenuContent } from '../annotate/BrowserAnnotationSendMenuContent'
-import { browserAnnotationLimitMessage } from '../annotate/use-browser-page-grab-annotations'
+import { browserAnnotationLimitMessage } from '../annotate/browser-annotation-limit-message'
 import {
   isBrowserAnnotationPageFull,
   type BrowserGrabPayload

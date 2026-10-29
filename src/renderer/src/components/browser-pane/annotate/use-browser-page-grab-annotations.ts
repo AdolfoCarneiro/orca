@@ -12,12 +12,12 @@ import { translate } from '@/i18n/i18n'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useAppStore } from '@/store'
 import {
-  GRAB_BUDGET,
   isBrowserAnnotationPageFull,
   type BrowserAnnotationIntent,
   type BrowserGrabPayload
 } from '../../../../../shared/browser-grab-types'
 import { formatGrabPayloadAsText } from './GrabConfirmationSheet'
+import { browserAnnotationLimitMessage } from './browser-annotation-limit-message'
 import {
   createBrowserAnnotationId,
   createBrowserAnnotationPayload,
@@ -45,12 +45,6 @@ const annotationAddedGrabToastMessage = (): string =>
   translate(
     'auto.components.browser.pane.annotate.use.browser.page.grab.annotations.1f5cb19034',
     'Annotation added'
-  )
-export const browserAnnotationLimitMessage = (): string =>
-  translate(
-    'auto.components.browser.pane.annotate.use.browser.page.grab.annotations.limitReached',
-    'Limit of {{value0}} annotations reached. Send, delete or clear some to add more.',
-    { value0: GRAB_BUDGET.annotationsMaxPerPage }
   )
 
 export function useBrowserPageGrabAnnotations({
