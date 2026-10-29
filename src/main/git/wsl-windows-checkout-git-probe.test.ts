@@ -21,6 +21,7 @@ import {
 afterEach(() => {
   resetWslWindowsCheckoutGitConfigForTests()
   resetWslWindowsCheckoutProbesForTests()
+  vi.useRealTimers()
 })
 
 const CWD = String.raw`C:\Users\dev\repo`
@@ -151,7 +152,7 @@ describe('pendingWslWindowsCheckoutGitConfig', () => {
 
   it('does not trust a joined sample that began before the checkout was replaced', async () => {
     let finishSample: (result: WslResult) => void = () => {}
-    const { deps, run, flagged } = harness({
+    const { clock, deps, run, flagged } = harness({
       runWsl: vi.fn(() => new Promise<WslResult>((resolve) => (finishSample = resolve)))
     })
     await run(READ)
@@ -162,7 +163,7 @@ describe('pendingWslWindowsCheckoutGitConfig', () => {
     finishSample(wsl())
     await write
     expect(flagged(WRITE)).toBe(false)
-    expect(withWslWindowsCheckoutGitConfig(WRITE, CWD, 'Ubuntu', 'win32', Date.now())).toEqual([
+    expect(withWslWindowsCheckoutGitConfig(WRITE, CWD, 'Ubuntu', 'win32', clock.now)).toEqual([
       '-c',
       'core.autocrlf=input',
       ...WRITE
@@ -241,6 +242,31 @@ describe('pendingWslWindowsCheckoutGitConfig', () => {
     expect(deps.admit).toHaveBeenCalledTimes(2)
     expect(deps.admit).toHaveBeenCalledWith(expect.objectContaining({ wslDistro: 'Ubuntu' }))
   })
+
+  it.each(['host', 'sample'] as const)(
+    'retires idle %s failure history after its retry grace',
+    async (stage) => {
+      vi.useFakeTimers()
+      const { clock, deps, run } = harness(
+        stage === 'host'
+          ? { runHostGit: async () => host({ code: 128, stdout: '', stderr: 'unavailable' }) }
+          : { runWsl: async () => wsl({ code: 128, stdout: '', stderr: 'unavailable' }) }
+      )
+      const probe = stage === 'host' ? deps.runHostGit : deps.runWsl
+      await run(WRITE)
+      expect(vi.getTimerCount()).toBe(1)
+
+      clock.now += 30_000 + 10 * 60_000
+      await vi.advanceTimersByTimeAsync(10 * 60_000)
+      expect(vi.getTimerCount()).toBe(0)
+
+      await run(WRITE)
+      expect(probe).toHaveBeenCalledTimes(2)
+      clock.now += 30_000
+      await run(WRITE)
+      expect(probe).toHaveBeenCalledTimes(3)
+    }
+  )
 
   it('stops waiting when the command aborts', async () => {
     const { run } = harness({ runHostGit: vi.fn(() => new Promise<HostGitResult>(() => {})) })

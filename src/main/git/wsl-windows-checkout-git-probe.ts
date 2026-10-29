@@ -9,6 +9,10 @@ import { nonInteractiveGitEnv } from './command-runner/git-process-env'
 import type { GitAdmissionTier } from './command-runner/git-exec-options'
 import { isWslDirectGitReadCommand } from './wsl-direct-git-read-commands'
 import {
+  WslCheckoutProbeFailureRetirement,
+  type CheckoutProbeFailure
+} from './wsl-windows-checkout-probe-retirement'
+import {
   classifyLineEndingSample,
   forgetLineEndingSample,
   getWslWindowsCheckoutState,
@@ -57,7 +61,8 @@ type ProbeOptions = { cwd: string; wslDistro: string; tier?: GitAdmissionTier }
 type Stage = 'host' | 'sample'
 
 const pending = new Map<string, Promise<void>>()
-const failures = new Map<string, { count: number; retryAfter: number }>()
+const failures = new Map<string, CheckoutProbeFailure>()
+const failureRetirement = new WslCheckoutProbeFailureRetirement(failures, pending, RETRY_MAX_MS)
 
 function isNotARepository(stderr: string): boolean {
   return /not a git repository/i.test(stderr)
@@ -90,12 +95,15 @@ async function defaultCheckoutIdentity(cwd: string): Promise<string | null> {
   }
 }
 
-function rememberFailure(key: string, now: number): void {
+function rememberFailure(key: string, now: () => number): void {
+  const failedAt = now()
   const count = (failures.get(key)?.count ?? 0) + 1
   failures.set(key, {
     count,
-    retryAfter: now + Math.min(RETRY_BASE_MS * 2 ** (count - 1), RETRY_MAX_MS)
+    retryAfter: failedAt + Math.min(RETRY_BASE_MS * 2 ** (count - 1), RETRY_MAX_MS),
+    now
   })
+  failureRetirement.schedule()
 }
 
 async function admitted<T>(
@@ -134,10 +142,11 @@ async function probeHost(
   }
   if (answer === null) {
     // Missing host Git, dubious ownership and timeouts leave ownership unknown.
-    rememberFailure(`host\0${key}`, now())
+    rememberFailure(`host\0${key}`, now)
     return
   }
   failures.delete(`host\0${key}`)
+  failureRetirement.stopIfEmpty()
   recordHostAutocrlf(key, answer, now())
 }
 
@@ -179,10 +188,11 @@ async function probeSample(
     }
   }
   if (answer === null) {
-    rememberFailure(`sample\0${key}`, now())
+    rememberFailure(`sample\0${key}`, now)
     return
   }
   failures.delete(`sample\0${key}`)
+  failureRetirement.stopIfEmpty()
   recordLineEndingSample(key, answer, identity, now())
 }
 
@@ -301,6 +311,7 @@ export function pendingWslWindowsCheckoutGitConfig(
 }
 
 export function resetWslWindowsCheckoutProbesForTests(): void {
+  failureRetirement.reset()
   pending.clear()
   failures.clear()
 }

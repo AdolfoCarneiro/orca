@@ -861,7 +861,6 @@
 2 test-no-wall-clock:src/main/git/status-diff-settled-cache.test.ts
 1 test-no-wall-clock:src/main/git/status-upstream-negative-cache.test.ts
 2 test-no-wall-clock:src/main/git/worktree-created-description-real-git.test.ts
-1 test-no-wall-clock:src/main/git/wsl-windows-checkout-git-probe.test.ts
 2 test-no-wall-clock:src/main/github/client-pr-fallback-number.test.ts
 1 test-no-wall-clock:src/main/github/client-work-items.test.ts
 2 test-no-wall-clock:src/main/github/client/check/check-job-log-routing.test.ts
