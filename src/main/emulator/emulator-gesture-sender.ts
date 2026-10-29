@@ -42,6 +42,8 @@ export async function sendEmulatorGestureSequence(
       cleanup()
       if (index < points.length) {
         reject(new Error('Emulator gesture stream closed before all points were sent'))
+      } else {
+        resolve()
       }
     })
   })
