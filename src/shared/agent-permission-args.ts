@@ -29,7 +29,8 @@ const EXTRA_CARRIERS: Partial<Record<TuiAgent, readonly string[]>> = {
   'claude-agent-teams': CLAUDE_PERMISSION_OPTIONS,
   codex: ['-a', '--ask-for-approval', '-s', '--sandbox', '--yolo', '--not-so-yolo', '--full-auto'],
   grok: ['--permission-mode', '--always-approve', '--yolo', '--dangerously-skip-permissions'],
-  gemini: ['--approval-mode', '-y']
+  gemini: ['--approval-mode', '-y'],
+  kimi: ['--yolo', '-y']
 }
 const CODEX_VALUES = [
   '-a',
