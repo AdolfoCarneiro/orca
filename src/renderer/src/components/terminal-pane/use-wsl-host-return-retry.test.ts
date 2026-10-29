@@ -2,15 +2,7 @@
 import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const store = vi.hoisted(() => {
-  const wslHostStatuses: Record<string, { state: string }> = {}
-  return { wslHostStatuses }
-})
-
-vi.mock('@/store', () => ({
-  useAppStore: <T>(selector: (state: typeof store) => T) => selector(store)
-}))
-
+import type { WslHostConnectionState } from '../../../../shared/wsl-host-types'
 import type { PtyTransport } from './pty-transport-types'
 import { useRetryPanesWhenWslHostReturns } from './use-wsl-host-return-retry'
 
@@ -22,13 +14,15 @@ function pane(environmentId: string | null): PtyTransport {
   } as unknown as PtyTransport
 }
 
-function hostStatus(state: string): void {
-  store.wslHostStatuses = { 'wsl:ubuntu': { state } }
+let status: WslHostConnectionState | undefined
+
+function hostStatus(state: WslHostConnectionState): void {
+  status = state
 }
 
 afterEach(() => {
   cleanup()
-  store.wslHostStatuses = {}
+  status = undefined
 })
 
 describe('a stopped WSL host coming back on its own', () => {
@@ -42,10 +36,12 @@ describe('a stopped WSL host coming back on its own', () => {
         [2, otherPane]
       ])
     }
-    const { rerender } = renderHook(() => useRetryPanesWhenWslHostReturns('wsl:ubuntu', transports))
+    const { rerender } = renderHook(() =>
+      useRetryPanesWhenWslHostReturns('wsl:ubuntu', status, transports)
+    )
     expect(hostPane.retryRecovery).not.toHaveBeenCalled()
 
-    for (const state of ['distro-stopped', 'connecting', 'ready']) {
+    for (const state of ['distro-stopped', 'connecting', 'ready'] as const) {
       hostStatus(state)
       rerender()
     }
@@ -64,7 +60,7 @@ describe('a stopped WSL host coming back on its own', () => {
     hostStatus('distro-stopped')
     const hostPane = pane('wsl:ubuntu')
     const { rerender } = renderHook(() =>
-      useRetryPanesWhenWslHostReturns('wsl:ubuntu', { current: new Map([[1, hostPane]]) })
+      useRetryPanesWhenWslHostReturns('wsl:ubuntu', status, { current: new Map([[1, hostPane]]) })
     )
     hostStatus('ready')
     rerender()

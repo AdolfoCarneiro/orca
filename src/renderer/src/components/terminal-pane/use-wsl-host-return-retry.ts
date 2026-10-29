@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useAppStore } from '@/store'
+import type { WslHostConnectionState } from '../../../../shared/wsl-host-types'
 import type { PtyTransport } from './pty-transport-types'
 
 /**
@@ -8,11 +8,10 @@ import type { PtyTransport } from './pty-transport-types'
  */
 export function useRetryPanesWhenWslHostReturns(
   ownerEnvironmentId: string | null,
+  /** The owner's WSL host state, from the caller's own subscription (no listener of its own). */
+  status: WslHostConnectionState | undefined,
   paneTransports: { readonly current: ReadonlyMap<number, PtyTransport> }
 ): void {
-  const status = useAppStore((state) =>
-    ownerEnvironmentId ? state.wslHostStatuses[ownerEnvironmentId]?.state : undefined
-  )
   const stoppedHost = useRef<string | null>(null)
   useEffect(() => {
     if (status === 'distro-stopped') {

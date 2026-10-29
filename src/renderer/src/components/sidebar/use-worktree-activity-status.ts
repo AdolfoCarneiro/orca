@@ -15,6 +15,18 @@ import { selectWorkspaceRuntimeEnvironmentId } from '../terminal-pane/remote-ser
 
 const NO_LIVE_PTYS: Record<string, string[]> = {}
 
+// Why the cheap check first: every card's selector runs on each store update, and few hosts stop.
+function hasStoppedWslHost(state: {
+  wslHostStatuses?: Record<string, { state: string }>
+}): boolean {
+  for (const id in state.wslHostStatuses) {
+    if (state.wslHostStatuses[id]?.state === 'distro-stopped') {
+      return true
+    }
+  }
+  return false
+}
+
 export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
   const tabs = useAppStore((s) => s.tabsByWorktree[worktreeId] ?? EMPTY_TABS)
   const browserTabs = useAppStore((s) => s.browserTabsByWorktree[worktreeId] ?? EMPTY_BROWSER_TABS)
@@ -24,15 +36,15 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
   const runtimePaneTitlesForWorktree = useAppStore(
     useShallow((s) => selectRuntimePaneTitlesForWorktree(s, worktreeId))
   )
+  // Why one selector: a second subscription per card costs a store listener on every workspace.
   const ptyIdsForWorktree = useAppStore(
-    useShallow((s) => selectLivePtyIdsForWorktree(s, worktreeId))
-  )
-  // A stopped distro ended every terminal in it, whatever bindings the panes keep for its Start.
-  // Why the cheap check first: every card subscribes, and almost no host is stopped.
-  const hostStopped = useAppStore(
-    (s) =>
-      Object.values(s.wslHostStatuses ?? {}).some((status) => status.state === 'distro-stopped') &&
+    useShallow((s) =>
+      // A stopped distro ended every terminal in it, whatever bindings the panes keep for its Start.
+      hasStoppedWslHost(s) &&
       selectStoppedWslDistro(s, selectWorkspaceRuntimeEnvironmentId(s, worktreeId)) !== null
+        ? NO_LIVE_PTYS
+        : selectLivePtyIdsForWorktree(s, worktreeId)
+    )
   )
   const terminalLayoutRootsByTabId = useAppStore(
     useShallow((s) => selectTerminalLayoutRootsForWorktree(s, worktreeId))
@@ -58,7 +70,7 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
         tabs,
         browserTabs,
         hasStructuredChat,
-        ptyIdsByTabId: hostStopped ? NO_LIVE_PTYS : ptyIdsForWorktree,
+        ptyIdsByTabId: ptyIdsForWorktree,
         runtimePaneTitlesByTabId: runtimePaneTitlesForWorktree,
         agentStatusPaneIdsByTabId,
         stalePaneIdsByTabId,
@@ -77,7 +89,6 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
       tabs,
       browserTabs,
       hasStructuredChat,
-      hostStopped,
       ptyIdsForWorktree,
       runtimePaneTitlesForWorktree,
       agentStatusPaneIdsByTabId,
