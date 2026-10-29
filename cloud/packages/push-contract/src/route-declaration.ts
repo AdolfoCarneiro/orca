@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { PushDeviceRegistrationRequestSchema } from './device-registration-messages.js'
+export { pushRouteDeclarationContent } from './route-declaration-content.js'
 
 export const PushRouteDeclarationSchema = z
   .object({
@@ -25,17 +26,3 @@ export const PushRouteDeclarationSchema = z
   )
 
 export type PushRouteDeclaration = z.infer<typeof PushRouteDeclarationSchema>
-
-export function pushRouteDeclarationContent(
-  value: Omit<PushRouteDeclaration, 'signature'>
-): string {
-  return JSON.stringify({
-    ...(value.apnsEnvironment ? { apnsEnvironment: value.apnsEnvironment } : {}),
-    hosts: [...new Set(value.hosts)].sort(),
-    platform: value.platform,
-    routeKey: value.routeKey,
-    token: value.token,
-    v: value.v,
-    version: value.version
-  })
-}

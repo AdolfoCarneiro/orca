@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import nacl from 'tweetnacl'
-import {
-  pushRouteDeclarationContent,
-  type PushRouteDeclaration
-} from '../../../cloud/packages/push-contract/src/route-declaration'
+import { pushRouteDeclarationContent } from '../../../cloud/packages/push-contract/src/route-declaration-content'
+import type { PushRouteDeclaration } from '../../../cloud/packages/push-contract/src/route-declaration'
 
 const state = vi.hoisted(() => ({
   storage: new Map<string, string>(),

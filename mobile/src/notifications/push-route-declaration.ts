@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as ExpoCrypto from 'expo-crypto'
 import nacl from 'tweetnacl'
-import { pushRouteDeclarationContent } from '../../../cloud/packages/push-contract/src/route-declaration'
+import { pushRouteDeclarationContent } from '../../../cloud/packages/push-contract/src/route-declaration-content'
 import { readPairingKeychainItem, writePairingKeychainItem } from '../transport/pairing-keychain'
 import { decodeBase64Bytes, encodeBase64Bytes } from '../transport/base64-byte-codec'
 import { loadHostCatalog } from '../transport/host-store'
