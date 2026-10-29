@@ -100,12 +100,17 @@ describe('options at rest', () => {
     const current = await readStructuredAgentSessionOptions(context, SESSION, {
       readsWithoutModel: true
     })
-    expect(current.current).toEqual({ defaulted: [], permissionMode: 'ask' })
+    expect(current.current).toEqual({
+      defaulted: [],
+      permissionMode: 'ask',
+      acceptedInputSources: {}
+    })
     expect(read).toHaveBeenCalledTimes(2)
     const older = await readStructuredAgentSessionOptions(context, SESSION, {
       readsWithoutModel: false
     })
     expect(older.current).toEqual({
+      acceptedInputSources: { model: 'policy' },
       model: 'gpt-account',
       defaulted: [],
       permissionMode: 'ask'
@@ -159,6 +164,9 @@ describe('options at rest', () => {
     expect(resting.listedModelIds).toEqual(['gpt-5.5'])
     expect(resting.current).toMatchObject({ model: 'gpt-unlisted', defaulted: [] })
     expect(running.current).toMatchObject({ model: 'gpt-unlisted', defaulted: [] })
+    for (const answer of [resting, running]) {
+      expect(answer.current.acceptedInputSources).toMatchObject({ model: 'saved', effort: 'saved' })
+    }
   })
 
   it.each(['omp', 'grok', 'opencode'] as const)(
@@ -205,6 +213,7 @@ describe('options at rest', () => {
       expect((await read()).current).toEqual({
         model: 'later-model',
         effort: 'off',
+        acceptedInputSources: { model: 'saved', effort: 'saved' },
         defaulted: []
       })
       for (const emptyStart of [false, true]) {
