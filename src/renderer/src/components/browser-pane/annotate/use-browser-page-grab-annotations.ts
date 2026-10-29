@@ -13,6 +13,7 @@ import { useMountedRef } from '@/hooks/useMountedRef'
 import { useAppStore } from '@/store'
 import {
   GRAB_BUDGET,
+  isBrowserAnnotationPageFull,
   type BrowserAnnotationIntent,
   type BrowserGrabPayload
 } from '../../../../../shared/browser-grab-types'
@@ -162,7 +163,7 @@ export function useBrowserPageGrabAnnotations({
       // The store refuses notes past the cap, so say so before the user writes one.
       if (
         grabPayloadRef.current === grab.payload &&
-        browserAnnotationsLengthRef.current >= GRAB_BUDGET.annotationsMaxPerPage
+        isBrowserAnnotationPageFull(browserAnnotationsLengthRef.current)
       ) {
         showGrabToast(browserAnnotationLimitMessage(), 'error', grab.payload)
         return

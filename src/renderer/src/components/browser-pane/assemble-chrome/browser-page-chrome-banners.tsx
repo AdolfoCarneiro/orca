@@ -11,7 +11,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { translate } from '@/i18n/i18n'
 import { BrowserAnnotationSendMenuContent } from '../annotate/BrowserAnnotationSendMenuContent'
 import { browserAnnotationLimitMessage } from '../annotate/use-browser-page-grab-annotations'
-import { GRAB_BUDGET, type BrowserGrabPayload } from '../../../../../shared/browser-grab-types'
+import {
+  isBrowserAnnotationPageFull,
+  type BrowserGrabPayload
+} from '../../../../../shared/browser-grab-types'
 import type { GrabModeHook } from '../annotate/useGrabMode'
 import { preventAgentSendTargetOutsideDismiss } from '../annotate/prevent-agent-send-target-outside-dismiss'
 import type { GrabIntent } from '../describe-page/browser-page-types'
@@ -98,7 +101,7 @@ export function BrowserPageChromeBanners({
                       'auto.components.browser.pane.BrowserPane.b733a91bd9',
                       'Add feedback for the selected element.'
                     )
-                  : browserAnnotationsLength >= GRAB_BUDGET.annotationsMaxPerPage
+                  : isBrowserAnnotationPageFull(browserAnnotationsLength)
                     ? browserAnnotationLimitMessage()
                     : browserAnnotationsLength === 1
                       ? translate(

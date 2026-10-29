@@ -179,6 +179,10 @@ export const GRAB_BUDGET = {
   screenshotMaxBytes: 2 * 1024 * 1024
 } as const
 
+export function isBrowserAnnotationPageFull(annotationCount: number): boolean {
+  return annotationCount >= GRAB_BUDGET.annotationsMaxPerPage
+}
+
 /** Only these attribute names are included in the payload by default. */
 export const GRAB_SAFE_ATTRIBUTE_NAMES = new Set([
   'id',
