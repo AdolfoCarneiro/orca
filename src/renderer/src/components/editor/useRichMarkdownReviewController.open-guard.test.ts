@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
-import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import type { Editor } from '@tiptap/react'
+import { act, cleanup, fireEvent, renderHook } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { Editor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { DragSelectionGuard, richMarkdownSelectionCompletionEvents } from './drag-selection-guard'
 import { useRichMarkdownReviewController } from './useRichMarkdownReviewController'
 import type { RichMarkdownAnnotationTarget } from './rich-markdown-review-annotations'
 
@@ -41,6 +43,12 @@ const sampleTarget: RichMarkdownAnnotationTarget = {
   buttonTop: 12,
   buttonLeft: 8
 }
+
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+  vi.useRealTimers()
+})
 
 describe('useRichMarkdownReviewController openAnnotationPopover draft guard', () => {
   it('returns true without replacing an open draft (product B)', () => {
@@ -92,21 +100,19 @@ describe('useRichMarkdownReviewController openAnnotationPopover draft guard', ()
     expect(dispatch).not.toHaveBeenCalled()
   })
 
-  it('flushes the pending ProseMirror selection before reading the target', () => {
-    const flush = vi.fn()
-    const setSelection = vi.fn()
-    // An empty target makes opening no-op, isolating the requirement to flush native selection first.
-    const editorRef = {
-      current: {
-        view: {
-          dispatch: vi.fn(),
-          domObserver: { flush, currentSelection: { set: setSelection } }
-        },
-        state: { selection: { empty: true } }
-      } as unknown as Editor
-    }
+  it('completes a native selection before opening a review note for its text', () => {
+    vi.useFakeTimers()
+    const editor = new Editor({
+      extensions: [StarterKit, DragSelectionGuard],
+      content: '<p>abc lower</p>',
+      editorProps: { handleDOMEvents: richMarkdownSelectionCompletionEvents }
+    })
+    const editorRef = { current: editor }
     const rootRef = { current: document.createElement('div') }
     const scrollContainerRef = { current: document.createElement('div') }
+    rootRef.current.append(editor.view.dom)
+    document.body.append(rootRef.current)
+    vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(10, 10, 100, 20))
 
     const { result } = renderHook(() =>
       useRichMarkdownReviewController({
@@ -125,13 +131,31 @@ describe('useRichMarkdownReviewController openAnnotationPopover draft guard', ()
       })
     )
 
-    let opened = true
-    act(() => {
-      opened = result.current.openAnnotationPopover(true)
-    })
-
-    expect(flush).toHaveBeenCalledTimes(1)
-    expect(opened).toBe(false)
-    expect(result.current.annotationPopover).toBeNull()
+    try {
+      editor.view.focus()
+      const text = editor.view.dom.querySelector('p')?.firstChild
+      if (!text) {
+        throw new Error('Expected editor text')
+      }
+      vi.spyOn(editor.view, 'posAtCoords').mockReturnValue({ pos: 5, inside: -1 })
+      fireEvent.mouseDown(editor.view.dom, { button: 0, shiftKey: true })
+      document.getSelection()?.setBaseAndExtent(text, 9, text, 4)
+      document.dispatchEvent(new Event('selectionchange'))
+      fireEvent.mouseUp(document, { button: 0 })
+      expect(editor.state.selection.empty).toBe(true)
+      let opened = false
+      act(() => {
+        opened = result.current.openAnnotationPopover(true)
+      })
+      expect(opened).toBe(true)
+      expect(result.current.annotationPopover).toMatchObject({
+        from: 5,
+        to: 10,
+        selectedText: 'lower'
+      })
+    } finally {
+      editor.destroy()
+      rootRef.current.remove()
+    }
   })
 })

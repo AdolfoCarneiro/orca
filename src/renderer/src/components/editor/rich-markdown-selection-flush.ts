@@ -1,41 +1,15 @@
 import type { Editor } from '@tiptap/react'
-
-type NativeSelectionSnapshot = {
-  anchorNode: Node | null
-  anchorOffset: number
-  focusNode: Node | null
-  focusOffset: number
-}
-
-type ProseMirrorDomObserver = {
-  currentSelection?: {
-    set?: (selection: NativeSelectionSnapshot) => void
-  }
-  flush?: () => void
-}
-
-type ProseMirrorViewWithDomObserver = Editor['view'] & {
-  domObserver?: ProseMirrorDomObserver
-}
+import { completeRichMarkdownSelection } from './drag-selection-guard'
 
 export function flushPendingProseMirrorSelection(editor: Editor): void {
-  let observer: ProseMirrorDomObserver | undefined
+  let view: Editor['view']
   try {
-    observer = (editor.view as ProseMirrorViewWithDomObserver).domObserver
+    view = editor.view
   } catch {
     return
   }
-
-  if (typeof observer?.flush !== 'function') {
-    return
+  // External controls consume the model once another focus owner has taken the native range.
+  if (view.hasFocus()) {
+    completeRichMarkdownSelection(view)
   }
-
-  // Immediate keyboard actions after mouse selection can precede ProseMirror’s native-selection sync.
-  observer.currentSelection?.set?.({
-    anchorNode: null,
-    anchorOffset: 0,
-    focusNode: null,
-    focusOffset: 0
-  })
-  observer.flush()
 }

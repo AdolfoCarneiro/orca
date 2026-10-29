@@ -88,6 +88,45 @@ test.beforeEach(async ({ orcaPage, registerPostElectronShutdownCleanup }, testIn
   await editor.locator('p').first().click()
 })
 
+test('toolbar formatting consumes completed forward and backward native drags', async ({
+  orcaPage
+}) => {
+  const editor = orcaPage.locator('.rich-markdown-editor')
+  for (const action of [
+    { label: 'Bold', paragraph: FIRST, from: 6, to: 11, selected: 'alpha', tag: 'strong' },
+    { label: 'Heading 2', paragraph: SECOND, from: 11, to: 7, selected: 'beta', tag: 'h2' }
+  ]) {
+    const paragraph = editor.getByText(action.paragraph, { exact: true })
+    await centered(paragraph)
+    const start = await textPoint(paragraph, action.from)
+    const end = await textPoint(paragraph, action.to)
+    await orcaPage.mouse.move(start.x, start.y)
+    await orcaPage.mouse.down()
+    await editor.evaluate((element, expected) => {
+      element.removeAttribute('data-observed-native-selection')
+      const observe = () => {
+        if (document.getSelection()?.toString() === expected) {
+          element.setAttribute('data-observed-native-selection', expected)
+          document.removeEventListener('selectionchange', observe)
+        }
+      }
+      document.addEventListener('selectionchange', observe)
+    }, action.selected)
+    await orcaPage.mouse.move(end.x, end.y, { steps: 15 })
+    // Deliver the final native notification while held; mouseup must not need another endpoint change.
+    await expect(editor).toHaveAttribute('data-observed-native-selection', action.selected)
+    await orcaPage.mouse.up()
+    expect(await selectedText(orcaPage)).toBe(action.selected)
+    await expect(editor).toBeFocused()
+    await orcaPage.getByRole('button', { name: action.label, exact: true }).click()
+    await expect(editor.locator(action.tag)).toHaveText(
+      action.label === 'Bold' ? action.selected : action.paragraph
+    )
+  }
+  await expect(editor.locator('p').filter({ hasText: FIRST })).toHaveCount(1)
+  await expect(editor.locator('strong')).toHaveText('alpha')
+})
+
 test('Find preserves Shift-click, double-click, and multi-paragraph copy selection', async ({
   orcaPage
 }, testInfo) => {

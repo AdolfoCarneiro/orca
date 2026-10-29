@@ -11,6 +11,9 @@ import {
 import { CellSelection } from '@tiptap/pm/tables'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { focusRichMarkdownEditorFromSearch } from './rich-markdown-search-focus'
+import { createElement } from 'react'
+import { fireEvent, render } from '@testing-library/react'
+import { RichMarkdownToolbar } from './RichMarkdownToolbar'
 
 function findTextPosition(editor: Editor, text: string): number {
   let position: number | null = null
@@ -62,6 +65,115 @@ afterEach(() => {
 })
 
 describe('Find focus with editor-owned selection', () => {
+  it('bounds repeated input mapping to the owning document at N and 10N', async () => {
+    vi.useFakeTimers()
+    const samples: number[] = []
+    for (const scale of [1, 10]) {
+      const paragraphs = 20 * scale
+      const surfaces = Array.from({ length: 3 * scale }, () =>
+        createSurface('<p>lower caret</p>'.repeat(paragraphs))
+      )
+      const active = surfaces[surfaces.length - 1].editor
+      const text = active.view.dom.querySelector('p:last-child')?.firstChild
+      if (!text) {
+        throw new Error('Expected editor text')
+      }
+      active.view.focus()
+      active.commands.setTextSelection(active.view.posAtDOM(text, 2))
+      const reads = surfaces.map(() => 0)
+      const publications = vi.fn()
+      active.on('selectionUpdate', publications)
+      const restoreChildren = surfaces.map(({ editor }, owner) => {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Count real sibling reads on the pinned engine's root view description, without replacing its mapping logic.
+        const view = editor.view as Editor['view'] & { docView: { children: unknown[] } }
+        const children = view.docView.children
+        const descriptors = Object.getOwnPropertyDescriptors(children)
+        children.forEach((child, index) => {
+          Object.defineProperty(children, index, {
+            configurable: true,
+            get: () => {
+              reads[owner]++
+              return child
+            }
+          })
+        })
+        return () => Object.defineProperties(children, descriptors)
+      })
+      const mappings = surfaces.map(({ editor }) => vi.spyOn(editor.view, 'posAtDOM'))
+      const native = document.getSelection()
+      if (!native) {
+        throw new Error('Expected native selection')
+      }
+      const restorations = vi.spyOn(native, 'setBaseAndExtent')
+      try {
+        fireEvent.keyDown(active.view.dom, { key: 'Shift' })
+        document.dispatchEvent(new Event('selectionchange'))
+        vi.runAllTimers()
+        expect(publications).not.toHaveBeenCalled()
+        expect(restorations).not.toHaveBeenCalled()
+        expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
+        expect(reads[reads.length - 1]).toBeGreaterThanOrEqual(paragraphs)
+        expect(reads[reads.length - 1]).toBeLessThanOrEqual(20 * paragraphs)
+        samples.push(reads[reads.length - 1])
+
+        native.setBaseAndExtent(text, 7, text, 2)
+        restorations.mockClear()
+        reads.fill(0)
+        fireEvent.keyDown(active.view.dom, { key: 'Control' })
+        expect(publications).toHaveBeenCalledOnce()
+        expect(active.state.selection.anchor - active.state.selection.head).toBe(5)
+        // Deliver completion's notification and settle engine work; it must not restore and notify again.
+        document.dispatchEvent(new Event('selectionchange'))
+        vi.runAllTimers()
+        expect(publications).toHaveBeenCalledOnce()
+        expect(restorations).toHaveBeenCalledTimes(1)
+        expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
+        expect(reads[reads.length - 1]).toBeLessThanOrEqual(30 * paragraphs)
+      } finally {
+        restoreChildren.forEach((restore) => restore())
+        surfaces.forEach(({ editor }) => editor.destroy())
+        restorations.mockRestore()
+      }
+      await Promise.resolve()
+      const counts = mappings.map((mapping) => mapping.mock.calls.length)
+      document.dispatchEvent(new Event('selectionchange'))
+      vi.runAllTimers()
+      expect(mappings.map((mapping) => mapping.mock.calls.length)).toEqual(counts)
+    }
+    expect(samples[1]).toBeLessThanOrEqual(12 * samples[0])
+  })
+
+  it('formats the deliberate model selection while Find owns focus', () => {
+    vi.useFakeTimers()
+    const { editor, input } = createSurface('<p>first</p><p>lower caret</p>')
+    const toolbar = render(
+      createElement(RichMarkdownToolbar, {
+        editor,
+        onToggleLink: vi.fn(),
+        onImagePick: vi.fn()
+      })
+    )
+    try {
+      editor.view.focus()
+      const text = editor.view.dom.querySelector('p:last-child')?.firstChild
+      if (!text) {
+        throw new Error('Expected editor text')
+      }
+      document.getSelection()?.setBaseAndExtent(text, 2, text, 7)
+      input.focus()
+      // Explicit Find navigation changes the model while the input owns the native selection.
+      editor.commands.setTextSelection({ from: 1, to: 6 })
+      const bold = toolbar.getByRole('button', { name: 'Bold', exact: true })
+      fireEvent.mouseDown(bold, { button: 0 })
+      fireEvent.click(bold)
+      expect(editor.view.dom.querySelector('strong')?.textContent).toBe('first')
+      expect(editor.view.dom.querySelector('p:last-child')?.textContent).toBe('lower caret')
+    } finally {
+      toolbar.unmount()
+      editor.destroy()
+    }
+  })
+
   it.each(['find', 'replace'] as const)(
     'publishes undelivered native selections before %s takes focus and before immediate copy',
     (field) => {

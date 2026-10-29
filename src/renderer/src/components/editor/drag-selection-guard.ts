@@ -83,13 +83,14 @@ export function completeRichMarkdownSelection(editorView: EditorView): false {
     if (
       !view.isDestroyed &&
       view.state.doc === doc &&
+      !view.state.selection.eq(selection) &&
       view.state.selection instanceof TextSelection &&
       view.state.selection.anchor === anchor &&
       view.state.selection.head === head &&
       anchorNode.isConnected &&
       focusNode.isConnected
     ) {
-      // Rewriting an equivalent range loses Chromium's native table highlight.
+      // Restore native table highlighting once per publication, without rewriting on its selectionchange notification.
       view.dom.ownerDocument
         .getSelection()
         ?.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset)
