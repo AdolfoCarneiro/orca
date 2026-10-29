@@ -350,6 +350,45 @@ describe('setup helper launch window', () => {
       )
     expect(statusLaunches).toHaveLength(1)
   })
+
+  it('keeps latest-wins when a later request coalesces onto an earlier one (A, B, A)', async () => {
+    await openComputerUsePermissions()
+    await Promise.all([
+      openComputerUsePermissions('accessibility'),
+      openComputerUsePermissions('screenshots'),
+      openComputerUsePermissions('accessibility')
+    ])
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(setupLaunches()).toEqual([['--permissions'], ['--permission', 'accessibility']])
+  })
+
+  it('cancels a queued setup launch when permissions are reset', async () => {
+    vi.mocked(spawnSync).mockReturnValue({ status: 0 } as ReturnType<typeof spawnSync>)
+    await openComputerUsePermissions()
+    await openComputerUsePermissions('accessibility')
+    const reset = resetComputerUsePermissions()
+    await vi.advanceTimersByTimeAsync(5_000)
+    await reset
+    expect(setupLaunches()).toEqual([['--permissions']])
+  })
+
+  it('never serves a seeded grant after a partial reset failure', async () => {
+    mockPermissionStatus('{"accessibility":"granted","screenshots":"granted"}')
+    await gate.current!.read()
+    vi.mocked(spawn).mockImplementation(
+      fakeSpawnDispatch((program, args) =>
+        program === '/usr/bin/tccutil' && args[1] === 'ScreenCapture' ? { code: 1 } : {}
+      )
+    )
+    await expect(resetComputerUsePermissions()).rejects.toThrow('Could not reset ScreenCapture')
+
+    mockPermissionStatus('{"accessibility":"not-granted","screenshots":"granted"}')
+    const afterReset = gate.current!.read()
+    await vi.advanceTimersByTimeAsync(5_000)
+    await expect(afterReset).resolves.toMatchObject({
+      permissions: expect.arrayContaining([{ id: 'accessibility', status: 'not-granted' }])
+    })
+  })
 })
 
 function mockPermissionStatus(json: string): void {

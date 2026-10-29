@@ -197,7 +197,14 @@ export function ComputerUsePane(): React.JSX.Element {
       if (!mountedRef.current) {
         return
       }
-      if (result.launchedHelper) {
+      if (result.launchQueued) {
+        toast.message(
+          translate(
+            'auto.components.settings.ComputerUsePane.60ef4f0ec2',
+            'Opening macOS Privacy & Security…'
+          )
+        )
+      } else if (result.launchedHelper) {
         toast.message(
           translate(
             'auto.components.settings.ComputerUsePane.697005758f',

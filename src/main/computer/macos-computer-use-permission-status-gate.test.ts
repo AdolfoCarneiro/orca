@@ -136,6 +136,79 @@ describe('createPermissionStatusGate', () => {
     await expect(afterReset).resolves.toBe(denied)
     expect(probe).toHaveBeenCalledTimes(2)
   })
+
+  it('never lets a stale trailing timer launch inside the floor', async () => {
+    const probe = vi.fn(async () => denied)
+    const gate = createPermissionStatusGate(probe)
+
+    await gate.read()
+    await vi.advanceTimersByTimeAsync(1_000)
+    void gate.read()
+    // The trailing timer is late: a reader past the floor launches before it fires.
+    vi.setSystemTime(5_001)
+    await gate.read()
+    await vi.advanceTimersByTimeAsync(0)
+    void gate.read()
+    expect(probe).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(4_999)
+    expect(probe).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(1_100)
+    expect(probe).toHaveBeenCalledTimes(3)
+  })
+
+  it('stops reusing a denial for setup once the floor expires', async () => {
+    const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
+    const gate = createPermissionStatusGate(probe)
+
+    await gate.read()
+    await expect(gate.peek()).resolves.toBe(denied)
+    await vi.advanceTimersByTimeAsync(5_000)
+    await expect(gate.peek()).resolves.toBe(granted)
+    expect(probe).toHaveBeenCalledTimes(2)
+  })
+
+  it('sends a late joiner that gets a denial to the next probe', async () => {
+    let finishFirst: (result: ComputerUsePermissionStatusResult) => void = () => {}
+    const probe = vi
+      .fn()
+      .mockReturnValueOnce(
+        new Promise<ComputerUsePermissionStatusResult>((resolve) => {
+          finishFirst = resolve
+        })
+      )
+      .mockResolvedValueOnce(granted)
+    const gate = createPermissionStatusGate(probe)
+
+    // A web read starts a probe; the user grants and returns to Orca a second later.
+    void gate.read()
+    await vi.advanceTimersByTimeAsync(1_000)
+    const onReturn = gate.read()
+    finishFirst(denied)
+    await vi.advanceTimersByTimeAsync(4_000)
+    await expect(onReturn).resolves.toBe(granted)
+    expect(probe).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not cache a grant from a probe that started before an invalidation', async () => {
+    let finishFirst: (result: ComputerUsePermissionStatusResult) => void = () => {}
+    const probe = vi
+      .fn()
+      .mockReturnValueOnce(
+        new Promise<ComputerUsePermissionStatusResult>((resolve) => {
+          finishFirst = resolve
+        })
+      )
+      .mockResolvedValue(denied)
+    const gate = createPermissionStatusGate(probe)
+
+    void gate.read()
+    gate.invalidate()
+    finishFirst(granted)
+    await vi.advanceTimersByTimeAsync(1_000)
+    const afterReset = gate.read()
+    await vi.advanceTimersByTimeAsync(4_000)
+    await expect(afterReset).resolves.toBe(denied)
+  })
 })
 
 describe('computerUsePermissionStatusGate', () => {

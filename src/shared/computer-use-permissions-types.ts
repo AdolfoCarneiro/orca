@@ -21,6 +21,7 @@ export type ComputerUsePermissionSetupResult = {
   openedSettings: boolean
   // True when a helper launched or is queued to launch within 5s; older clients only read this.
   launchedHelper: boolean
+  // Queued for when the 5s setup window reopens; a later request (latest wins) may supersede it.
   launchQueued?: boolean
   permissions?: ComputerUsePermissionState[]
   nextStep?: string | null

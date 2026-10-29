@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import type {
   ComputerUsePermissionId,
   ComputerUsePermissionResetResult,
@@ -8,6 +8,12 @@ import type {
 import { computerUsePermissionStatusGate } from '../computer/macos-computer-use-permission-status-gate'
 
 export function registerComputerUsePermissionHandlers(): void {
+  // A queued setup helper must not pop up while Orca is shutting down.
+  app.on('will-quit', () => {
+    void import('../computer/macos-computer-use-permissions').then((permissions) =>
+      permissions.cancelQueuedSetupHelperLaunch()
+    )
+  })
   ipcMain.handle(
     'computerUsePermissions:openSetup',
     async (

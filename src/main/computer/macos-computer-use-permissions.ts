@@ -17,63 +17,88 @@ export { getComputerUsePermissionStatus } from './macos-computer-use-permission-
 
 // One setup-helper launch per 5s across every permission; the window is claimed synchronously.
 const SETUP_HELPER_LAUNCH_WINDOW_MS = 5_000
+// Requests are numbered when they arrive so latest-wins holds even for ones that coalesce.
+type SetupLaunchRequest = { seq: number; helperAppPath: string; helperArgs: string[] }
+let setupRequestSeq = 0
+let lastLaunchedSeq = 0
 let lastSetupLaunchAt = Number.NEGATIVE_INFINITY
-let queuedSetupLaunch: { helperAppPath: string; helperArgs: string[] } | null = null
-const setupInFlight = new Map<string, Promise<ComputerUsePermissionSetupResult>>()
+let queuedSetupLaunch: SetupLaunchRequest | null = null
+let queuedSetupTimer: ReturnType<typeof setTimeout> | null = null
+const setupInFlight = new Map<
+  string,
+  { request: { seq: number }; promise: Promise<ComputerUsePermissionSetupResult> }
+>()
 
 export function openComputerUsePermissions(
   permissionId?: ComputerUsePermissionId
 ): Promise<ComputerUsePermissionSetupResult> {
   const key = permissionId ?? 'all'
+  const seq = ++setupRequestSeq
   const existing = setupInFlight.get(key)
   if (existing) {
-    return existing
+    existing.request.seq = seq
+    return existing.promise
   }
-  const run = openComputerUsePermissionsAsync(permissionId).finally(() => setupInFlight.delete(key))
-  setupInFlight.set(key, run)
-  return run
+  const request = { seq }
+  const promise = openComputerUsePermissionsAsync(permissionId, () => request.seq).finally(() =>
+    setupInFlight.delete(key)
+  )
+  setupInFlight.set(key, { request, promise })
+  return promise
 }
 
-// Launches now, or queues the latest request for when the window reopens; never drops a click.
-function requestSetupHelperLaunch(
-  helperAppPath: string,
-  helperArgs: string[]
-): 'launched' | 'queued' {
+// Drops a queued launch, e.g. on quit or reset, so no helper appears after the user moved on.
+export function cancelQueuedSetupHelperLaunch(): void {
+  if (queuedSetupTimer) {
+    clearTimeout(queuedSetupTimer)
+    queuedSetupTimer = null
+  }
+  queuedSetupLaunch = null
+}
+
+// Launches now, or queues for when the window reopens; a later request supersedes a queued one.
+function requestSetupHelperLaunch(request: SetupLaunchRequest): 'launched' | 'queued' {
   const waitMs = lastSetupLaunchAt + SETUP_HELPER_LAUNCH_WINDOW_MS - Date.now()
   if (waitMs <= 0 && !queuedSetupLaunch) {
-    launchSetupHelper(helperAppPath, helperArgs)
+    launchSetupHelper(request)
     return 'launched'
   }
-  if (!queuedSetupLaunch) {
-    const timer = setTimeout(
+  if (!queuedSetupLaunch || request.seq > queuedSetupLaunch.seq) {
+    queuedSetupLaunch = request
+  }
+  if (!queuedSetupTimer) {
+    queuedSetupTimer = setTimeout(
       () => {
         const queued = queuedSetupLaunch
-        queuedSetupLaunch = null
-        if (queued) {
-          launchSetupHelper(queued.helperAppPath, queued.helperArgs)
+        cancelQueuedSetupHelperLaunch()
+        // A launch that started after this request already showed what the user asked for last.
+        if (queued && queued.seq > lastLaunchedSeq) {
+          launchSetupHelper(queued)
         }
       },
       Math.max(0, waitMs)
     )
-    timer.unref?.()
+    queuedSetupTimer.unref?.()
   }
-  queuedSetupLaunch = { helperAppPath, helperArgs }
   return 'queued'
 }
 
-function launchSetupHelper(helperAppPath: string, helperArgs: string[]): void {
+function launchSetupHelper(request: SetupLaunchRequest): void {
   lastSetupLaunchAt = Date.now()
+  lastLaunchedSeq = Math.max(lastLaunchedSeq, request.seq)
   // Kill and relaunch so a repeated click always brings the helper back to the front.
   closeExistingPermissionHelpers()
-  const helper = spawn('/usr/bin/open', ['-n', helperAppPath, '--args', ...helperArgs], {
-    detached: true,
-    stdio: 'ignore'
-  })
+  const helper = spawn(
+    '/usr/bin/open',
+    ['-n', request.helperAppPath, '--args', ...request.helperArgs],
+    { detached: true, stdio: 'ignore' }
+  )
   helper.unref()
 }
 
 async function openComputerUsePermissionsAsync(
-  permissionId: ComputerUsePermissionId | undefined
+  permissionId: ComputerUsePermissionId | undefined,
+  currentSeq: () => number
 ): Promise<ComputerUsePermissionSetupResult> {
   if (process.platform !== 'darwin') {
     return {
@@ -113,7 +138,7 @@ async function openComputerUsePermissionsAsync(
   }
 
   const helperArgs = permissionId ? ['--permission', permissionId] : ['--permissions']
-  const launch = requestSetupHelperLaunch(helperAppPath, helperArgs)
+  const launch = requestSetupHelperLaunch({ seq: currentSeq(), helperAppPath, helperArgs })
 
   return {
     platform: process.platform,
@@ -156,6 +181,7 @@ async function resetComputerUsePermissionsAsync(): Promise<ComputerUsePermission
   }
 
   const bundleId = (await readMacosBundleId(helperAppPath)) ?? DEFAULT_COMPUTER_USE_BUNDLE_ID
+  cancelQueuedSetupHelperLaunch()
   closeExistingPermissionHelpers()
   try {
     await resetTccPermission('Accessibility', bundleId)
