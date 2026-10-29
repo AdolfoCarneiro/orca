@@ -15,6 +15,7 @@ import {
   wslWindowsCheckoutKey
 } from '../wsl-windows-checkout-git-config'
 import { DriveCheckoutSuspectPaths } from './drive-checkout-suspect-paths'
+import { selectDriveCheckoutSuspectPaths } from './drive-checkout-pathspec-scopes'
 import { bulkPathspecCommands } from './git-pathspec'
 import type { GetStatusOptions } from './get-status-options'
 import type { GitRuntimeOptions } from '../git-runtime-options'
@@ -232,14 +233,6 @@ export async function reconcileDriveCheckoutSuspects(
   return merged
 }
 
-function pathspecScope(pathspec: string): string {
-  const scope = pathspec
-    .replace(/\\/g, '/')
-    .replace(/^(?:\.\/)+/, '')
-    .replace(/\/+$/, '')
-  return scope === '.' ? '' : scope
-}
-
 /** Read existing suspects within worktree-relative pathspecs (. means all), only for minimal-stat writes. */
 export function driveCheckoutSuspectsWithin(
   worktreePath: string,
@@ -250,12 +243,10 @@ export function driveCheckoutSuspectsWithin(
   if (!tracker || tracker.size === 0 || !runsMinimalStat(['add'], worktreePath, options)) {
     return []
   }
-  const scopes = pathspecs.map(pathspecScope)
-  return tracker
-    .paths()
-    .filter((suspect) =>
-      scopes.some((scope) => scope === '' || suspect === scope || suspect.startsWith(`${scope}/`))
-    )
+  if (pathspecs.length === 0) {
+    return []
+  }
+  return selectDriveCheckoutSuspectPaths(tracker.paths(), pathspecs)
 }
 
 export function driveCheckoutSuspectTrackerForTests(

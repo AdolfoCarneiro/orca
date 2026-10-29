@@ -45,6 +45,7 @@ vi.mock('../runner', async (importOriginal) => {
 
 const {
   driveCheckoutSuspectTrackerForTests,
+  driveCheckoutSuspectsWithin,
   mergeSuspectStatus,
   reconcileDriveCheckoutSuspects,
   resetDriveCheckoutSuspectsForTests
@@ -141,6 +142,75 @@ describe('reconcileDriveCheckoutSuspects', () => {
       return { stoppedEarly: false }
     })
   }
+
+  it.each([
+    { suspects: 30, selections: 100 },
+    { suspects: 300, selections: 1_000 }
+  ])('indexes $selections scopes for $suspects suspects', async ({ suspects, selections }) => {
+    await reconcileDriveCheckoutSuspects(repo, [], {})
+    const names = Array.from({ length: suspects }, (_, index) => `dirty/f${index}.ts`)
+    changed(names)
+    const unrelated = Array.from({ length: selections }, (_, index) => `other/f${index}.ts`)
+    const prefixes = new Set(unrelated.map((scope) => `${scope}/`))
+    const startsWith = String.prototype.startsWith
+    let prefixChecks = 0
+    const spy = vi.spyOn(String.prototype, 'startsWith').mockImplementation(function (
+      this: string,
+      searchString: string,
+      position?: number
+    ) {
+      if (prefixes.has(searchString)) {
+        prefixChecks += 1
+      }
+      return startsWith.call(this, searchString, position)
+    })
+    try {
+      expect(driveCheckoutSuspectsWithin(repo, [...unrelated, 'dirty'], {})).toEqual(names)
+      expect(prefixChecks).toBeLessThanOrEqual(selections)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('keeps a tiny selection from walking every ancestor of a deep suspect', async () => {
+    await reconcileDriveCheckoutSuspects(repo, [], {})
+    const name = `${Array.from({ length: 257 }, () => 'deep').join('/')}/file.ts`
+    changed([name])
+    const slice = String.prototype.slice
+    let prefixSlices = 0
+    const spy = vi.spyOn(String.prototype, 'slice').mockImplementation(function (
+      this: string,
+      start?: number,
+      end?: number
+    ) {
+      if (this === name) {
+        prefixSlices += 1
+      }
+      return slice.call(this, start, end)
+    })
+    try {
+      expect(driveCheckoutSuspectsWithin(repo, ['other-a', 'other-b'], {})).toEqual([])
+      expect(prefixSlices).toBe(0)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it.each([
+    { scopes: [], expected: [] },
+    { scopes: ['.'], expected: ['src/a.ts', 'src/deep/b.ts', 'src-other/c.ts'] },
+    { scopes: ['./src///'], expected: ['src/a.ts', 'src/deep/b.ts'] },
+    { scopes: ['src\\deep\\'], expected: ['src/deep/b.ts'] },
+    { scopes: ['src/a.ts', 'src/a.ts'], expected: ['src/a.ts'] },
+    { scopes: ['sr', 'src/a'], expected: [] },
+    { scopes: ['SRC'], expected: [] },
+    { scopes: ['src//deep', 'src/../src'], expected: [] },
+    { scopes: ['src-other', 'src/deep'], expected: ['src/deep/b.ts', 'src-other/c.ts'] }
+  ])('preserves scope selection for $scopes', async ({ scopes, expected }) => {
+    await reconcileDriveCheckoutSuspects(repo, [], {})
+    changed(['src/a.ts', 'src/deep/b.ts', 'src-other/c.ts'])
+    expect(driveCheckoutSuspectsWithin(repo, scopes, {})).toEqual(expected)
+  })
 
   it('does nothing for checkouts outside the Windows-checkout config', async () => {
     mocks.appliesTo = new Set()
