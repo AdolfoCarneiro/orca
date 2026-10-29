@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { isPublicOrchestrationAddress } from './orchestration-agent-reference'
 
 export const CrewParty = z.string().refine(isPublicOrchestrationAddress)
+export const CrewSubscribeParams = z.object({ party: CrewParty })
 export const CrewRow = z.object({
   partyKey: z.string(),
   role: z.enum(['manager', 'worker', 'peer']),

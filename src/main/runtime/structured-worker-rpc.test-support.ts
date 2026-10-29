@@ -18,10 +18,10 @@ export function rpcRuntime(db: Db): {
   return {
     runtime,
     call: async (name, params) => {
-      const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-        .filter((method) => !isStreamingMethod(method))
-        .find((candidate) => candidate.name === name)
-      if (!method?.params) {
+      const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+        (candidate) => candidate.name === name
+      )
+      if (!method?.params || isStreamingMethod(method)) {
         throw new Error(`Method not found: ${name}`)
       }
       return method.handler(method.params.parse(params), { runtime })
