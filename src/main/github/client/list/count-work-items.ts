@@ -40,7 +40,7 @@ export async function countWorkItemsForQuery(
   if (usesGraphqlWorkItemSearch(ownerRepo, ghOptions)) {
     ghOptions.env = { ...process.env }
     try {
-      if (query.scope === 'pr' && !query.freeText) {
+      if (query.scope === 'pr') {
         const request = buildWorkItemListRequest({
           kind: 'pr',
           ownerRepo,

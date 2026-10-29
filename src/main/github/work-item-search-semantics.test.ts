@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { api } from './work-item-search-test-harness'
 import { listWorkItems } from './client/list/list-work-items'
 import { countWorkItems } from './client/list/count-work-items'
@@ -88,11 +88,13 @@ it.each([
     JSON.stringify(`( ${prSearch} ) repo:fixture/repo type:pr sort:created-desc`)
   )
   expect(request?.args.join(' ')).toContain('reviewRequests(first: 100)')
-  api.expectedSearch = query.includes('title:')
-    ? countSearch
-    : `( ${prSearch} ) repo:fixture/repo type:pr`
   expect(await countWorkItems('fixture/repo', query)).toBe(120)
-  expect(api.graphqlCalls).toBe(query.includes('title:') ? 2 : 1)
+  expect(api.graphqlCalls).toBe(1)
+  vi.stubEnv('GH_TOKEN', 'fixture-rest-fallback')
+  api.graphqlAvailable = false
+  api.expectedSearch = countSearch
+  expect(await countWorkItems('fixture/repo', query)).toBe(120)
+  expect(api.restSearches).toBe(1)
 })
 
 it('falls back with the original numbered query when GraphQL is unavailable', async () => {
