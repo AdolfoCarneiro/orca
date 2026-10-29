@@ -24,7 +24,7 @@ import {
   CompactAgentSummaryButton
 } from './worktree-card-compact-agents'
 import { buildAgentRowLineageTree } from '@/components/dashboard/agent-row-lineage-model'
-import { revealElementInScrollContainer } from './worktree-sidebar-reveal'
+import { revealCompactAgentCard } from './worktree-sidebar-reveal'
 import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion-state'
 import { translate } from '@/i18n/i18n'
 import { agentSendDisabledReasonLabel } from '@/lib/agent-send-disabled-reason-label'
@@ -39,15 +39,6 @@ export const SUPPRESS_WORKTREE_LIST_SCROLL_ADJUSTMENT_EVENT =
 
 const dispatchSuppressScrollAdjustment = () => {
   window.dispatchEvent(new CustomEvent(SUPPRESS_WORKTREE_LIST_SCROLL_ADJUSTMENT_EVENT))
-}
-
-function revealCompactAgentCard(agentListRoot: HTMLElement | null): void {
-  const sidebarElement = agentListRoot?.closest('[data-worktree-sidebar]')
-  const worktreeOptionElement = agentListRoot?.closest('[role="option"]')
-  if (!(sidebarElement instanceof HTMLElement) || !worktreeOptionElement) {
-    return
-  }
-  revealElementInScrollContainer(sidebarElement, worktreeOptionElement, 'auto')
 }
 
 type Props = {
