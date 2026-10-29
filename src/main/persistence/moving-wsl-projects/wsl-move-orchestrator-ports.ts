@@ -25,11 +25,14 @@ export type WslMoveOrchestratorPorts = {
   prepareHost: (distro: string, stillWanted: () => boolean) => Promise<WslMoveHostReadiness>
   /** E11: the user's Remove of the distro's host has not proven its server stopped. */
   hostRemovalPending: (distro: string) => boolean
+  /** Whether the distro has a WSL host record or bridge projects; a distro with neither is pruned. */
+  isDistroInUse: (distro: string) => boolean
   /** Whether the distro still has a WSL host record; never connects. */
   hasHost: (distro: string) => boolean
   /** Whether the distro's host connection is ready now; never connects. Gates timer steps. */
   isHostReady: (distro: string) => boolean
-  preview: (distro: string) => Promise<WslMovePreview>
+  /** `userAsked`: the user's own step may finish a committed earlier move now, reloading the window. */
+  preview: (distro: string, userAsked: boolean) => Promise<WslMovePreview>
   /**
    * Runs the move. `stillWanted` turns false once the user released or snoozed the distro; the
    * port checks it after its own waits (the window's panes) and refuses rather than start.
@@ -57,4 +60,6 @@ export type WslMoveOrchestratorPorts = {
     cause?: WslMovePreview | WslMoveResult
   ) => void
   publish: (records: WslMoveOrchestratorRecord[]) => void
+  /** Runs a step the user asked for as their act on the distro (the WSL stopped-distro gates). */
+  runAsUserAct: <T>(distro: string, act: () => Promise<T>) => Promise<T>
 }

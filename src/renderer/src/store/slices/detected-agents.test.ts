@@ -126,6 +126,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       wslDistro: 'Ubuntu',
       projectRuntime: {
         status: 'resolved',
@@ -204,6 +205,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().refreshDetectedAgents()).resolves.toEqual(['codex'])
 
     expect(refreshAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       wslDistro: 'Debian',
       projectRuntime: {
         status: 'resolved',
@@ -246,6 +248,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     expect(store.getState().readLocalAgentInventory().state).toBe('failed')
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       projectRuntime: {
         status: 'repair-required',
         repair: {
@@ -273,6 +276,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       wslDistro: 'Debian',
       projectRuntime: {
         status: 'resolved',
@@ -303,6 +307,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       projectRuntime: {
         status: 'resolved',
         runtime: {
@@ -331,6 +336,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       wslDistro: 'Fedora',
       projectRuntime: {
         status: 'resolved',
@@ -358,6 +364,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       wslDistro: 'Ubuntu',
       projectRuntime: {
         status: 'resolved',
@@ -400,6 +407,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
 
     expect(detectAgents).toHaveBeenCalledWith({
+      enabledOnly: true,
       projectRuntime: {
         status: 'resolved',
         runtime: {

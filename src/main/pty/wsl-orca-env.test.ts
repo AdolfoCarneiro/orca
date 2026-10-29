@@ -245,9 +245,13 @@ describe('addOrcaWslInteropEnv', () => {
 
   // #10861: wsl.exe drops SSH_CONNECTION, so WSL Codex copied only to the Windows clipboard.
   it('crosses the Codex remote-viewer clipboard marker into the guest untranslated (/u)', () => {
-    const env: Record<string, string> = { SSH_CONNECTION: CODEX_REMOTE_VIEWER_SSH_CONNECTION }
+    const env: Record<string, string> = {
+      SSH_CONNECTION: CODEX_REMOTE_VIEWER_SSH_CONNECTION,
+      ORCA_REMOTE_VIEWER_CLIPBOARD: '1'
+    }
     addOrcaWslInteropEnv(env)
     expect(env.WSLENV?.split(':')).toContain('SSH_CONNECTION/u')
+    expect(env.WSLENV?.split(':')).toContain('ORCA_REMOTE_VIEWER_CLIPBOARD/u')
   })
 
   it("leaves the Windows host's own SSH session out of the guest", () => {

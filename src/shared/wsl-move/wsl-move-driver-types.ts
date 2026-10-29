@@ -3,6 +3,7 @@
  * the move; the renderer previews it, starts it, may cancel it before the switch, and follows its
  * progress. Every call refuses with `wsl_move_unavailable` while the internal WSL hosts gate is off.
  */
+import type { WslMoveBrowserCookieFreshPartitionReason } from './wsl-move-browser-cookie-copy'
 import type { WslMoveCutoverPhase } from './wsl-move-cutover'
 
 /** Which projects of a distro to move; omitted ids mean every project in the distro. */
@@ -39,6 +40,8 @@ export type WslMoveRefusalCode =
   | 'wsl_move_unavailable'
   /** This app is already moving projects into the distro. */
   | 'wsl_move_already_running'
+  /** A moved project of the distro is coming back to this computer; no move starts until it has. */
+  | 'wsl_move_undo_running'
   /** An earlier move of the distro has not finished; it resumes or resets first. */
   | 'wsl_move_already_in_flight'
   /** Every selected project is already on the host. */
@@ -78,6 +81,8 @@ export type WslMovePreview =
       refused: { kind: 'repo' | 'folder-workspace'; id: string; reason: string }[]
       /** Empty when the move can start now. */
       blockers: WslMoveBlocker[]
+      /** Set when the host's browser would start signed out; listed, never a blocker (R44). */
+      browserLoginsNotCarried?: WslMoveBrowserCookieFreshPartitionReason
     }
   | WslMoveRefusal
 
@@ -157,3 +162,6 @@ export type WslMoveUnfinished = {
 }
 
 export const WSL_MOVE_PROGRESS_CHANNEL = 'wslMove:progress'
+
+/** The `detail` of an earlier move committed on the host whose desktop half waits for a restart. */
+export const WSL_MOVE_FINISH_PENDING_DETAIL = 'finish-pending'

@@ -83,7 +83,9 @@ export function AgentSessionContinuationDialog({
   const observation = useAgentMenuObservation(
     workspace ? { workspace, launchCwd: request?.initialCwd } : null,
     open && Boolean(request),
-    detectionTarget
+    detectionTarget,
+    false,
+    { wakeOnOpen: true }
   )
   const { detectedIds, detectionFailed } = observation.detection
   const detecting =

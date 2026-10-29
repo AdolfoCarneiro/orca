@@ -1,3 +1,10 @@
+import {
+  exerciseInvalidatedLocalAgentFirstProbe,
+  exerciseLocalAgentProjectRuntimeRetarget,
+  exerciseFailedLocalAgentFirstProbeRetry,
+  exerciseCachedLocalAgentCapabilities,
+  exerciseNativeAgentRecoveryAlongsideWslInventories
+} from './local-agent-inventory-lifecycle.test-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -7,10 +14,11 @@ import * as runtime from '../../../shared/project-execution-runtime'
 import * as folderHost from '../../../shared/folder-workspace-execution-host'
 import * as projectIndex from '@/lib/local-runtime-project-index'
 import * as preflight from '@/lib/local-preflight-context'
-import {
-  loadWindowsTerminalCapabilities,
-  resetWindowsTerminalCapabilitiesForTests
-} from '@/lib/windows-terminal-capabilities'
+import * as routeInput from '@/lib/agent-launch-route-input'
+import * as menuRows from '@/lib/new-tab-agent-menu-rows'
+import * as menuSelection from '@/lib/agent-menu-selection'
+import * as agentCatalog from '@/lib/agent-catalog'
+import { resetWindowsTerminalCapabilitiesForTests } from '@/lib/windows-terminal-capabilities'
 import { useLocalAgentPreflightContext } from './useLocalAgentPreflightContext'
 import { useAppStore } from '@/store'
 import {
@@ -18,10 +26,13 @@ import {
   makeFolderWorkspace,
   TEST_REPO
 } from '@/store/slices/worktrees-slice-test-fixtures'
-import { useNewTabAgentMenuRows } from '@/components/tab-bar/use-new-tab-agent-menu-rows'
+import { useAgentMenuObservation } from '@/components/tab-bar/use-new-tab-agent-menu-rows'
+import { resetHostStructuredAgentsForTests } from '@/runtime/host-structured-agents'
+import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import { FLOATING_TERMINAL_WORKTREE_ID, getDefaultSettings } from '../../../shared/constants'
 import type { Project } from '../../../shared/project-types'
 import type { Repo } from '../../../shared/repo-types'
+import type { TuiAgent } from '../../../shared/tui-agent'
 import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
 import { useDetectedAgents, type AgentDetectionTarget } from './useDetectedAgents'
 
@@ -55,6 +66,8 @@ beforeEach(() => {
 afterEach(() => {
   resetWindowsTerminalCapabilitiesForTests()
   cleanup()
+  resetHostStructuredAgentsForTests()
+  setLocalRuntimeCapabilitiesForTests(null)
   useAppStore.getState().clearLocalDetectedAgents()
   useAppStore.setState(initialState, true)
 })
@@ -65,114 +78,17 @@ const localTargets: AgentDetectionTarget[] = [
 ]
 
 it.each(localTargets)('restarts an invalidated first probe for $worktreeId', async (target) => {
-  let finishOldProbe: (agents: string[]) => void = () => {}
-  detectAgents.mockReturnValueOnce(
-    new Promise<string[]>((resolve) => {
-      finishOldProbe = resolve
-    })
-  )
-  const { result } = renderHook(() => useDetectedAgents(target))
-  expect(result.current).toMatchObject({ detectedIds: null, isLoading: true })
-
-  await act(async () => {
-    useAppStore.getState().clearLocalDetectedAgents()
-  })
-  expect(detectAgents).toHaveBeenCalledTimes(2)
-  expect(result.current).toMatchObject({ detectedIds: ['codex'], isLoading: false })
-
-  await act(async () => {
-    finishOldProbe(['claude'])
-  })
-  expect(result.current.detectedIds).toEqual(['codex'])
+  await exerciseInvalidatedLocalAgentFirstProbe(target, detectAgents)
 })
 
 it('retargets a mounted first load when the project switches to WSL', async () => {
-  const project: Project = {
-    id: TEST_REPO.id,
-    displayName: TEST_REPO.displayName,
-    badgeColor: TEST_REPO.badgeColor,
-    sourceRepoIds: [TEST_REPO.id],
-    createdAt: 0,
-    updatedAt: 0,
-    localWindowsRuntimePreference: { kind: 'windows-host' }
-  }
-  const worktree = makeWorktree({ id: 'wt1', repoId: TEST_REPO.id, path: 'C:\\project' })
-  useAppStore.setState({
-    activeRepoId: TEST_REPO.id,
-    activeWorktreeId: worktree.id,
-    repos: [{ ...TEST_REPO, path: worktree.path }],
-    projects: [project],
-    worktreesByRepo: { [TEST_REPO.id]: [worktree] },
-    settings: {
-      ...getDefaultSettings('/home/test'),
-      localWindowsRuntimeDefault: { kind: 'windows-host' }
-    }
-  })
-  let finishHostProbe: (agents: string[]) => void = () => {}
-  detectAgents.mockReturnValueOnce(
-    new Promise<string[]>((resolve) => {
-      finishHostProbe = resolve
-    })
-  )
-  const { result } = renderHook(() => ({
-    detection: useDetectedAgents({ kind: 'local' }),
-    menu: useNewTabAgentMenuRows(worktree.id, false, { kind: 'local' })
-  }))
-  expect(result.current.detection.isLoading).toBe(true)
-  expect(result.current.menu.state).toBe('loading')
-  const preference = { kind: 'wsl', distro: 'Ubuntu' } as const
-  updateProject.mockResolvedValue({ ...project, localWindowsRuntimePreference: preference })
-
-  await act(async () => {
-    await expect(
-      useAppStore
-        .getState()
-        .updateProject(project.id, { localWindowsRuntimePreference: preference }, 'local')
-    ).resolves.toBe(true)
-  })
-  expect(detectAgents).toHaveBeenCalledTimes(2)
-  expect(detectAgents).toHaveBeenLastCalledWith(
-    expect.objectContaining({
-      projectRuntime: expect.objectContaining({
-        runtime: expect.objectContaining({ kind: 'wsl', distro: 'Ubuntu' })
-      })
-    })
-  )
-  expect(result.current.detection).toMatchObject({ detectedIds: ['codex'], isLoading: false })
-  expect(result.current.menu).toMatchObject({
-    state: 'settled',
-    rows: expect.arrayContaining([expect.objectContaining({ agent: 'codex' })])
-  })
-
-  await act(async () => {
-    finishHostProbe(['claude'])
-  })
-  expect(result.current.detection.detectedIds).toEqual(['codex'])
+  await exerciseLocalAgentProjectRuntimeRetarget(detectAgents, updateProject)
 })
 
 it.each(localTargets)(
   'keeps a failed first inventory unknown until Retry for $worktreeId',
   async (target) => {
-    detectAgents.mockRejectedValue(new Error('probe failed'))
-    const { result, rerender } = renderHook(() => useDetectedAgents(target))
-    await act(async () => {})
-    expect(result.current).toMatchObject({
-      detectedIds: null,
-      isLoading: false,
-      detectionFailed: true
-    })
-    expect(
-      useAppStore
-        .getState()
-        .readLocalAgentInventory(target.kind === 'local' ? target.worktreeId : undefined)
-    ).toEqual({ ids: null, state: 'failed' })
-    rerender()
-    await act(async () => {})
-    expect(detectAgents).toHaveBeenCalledTimes(1)
-    await act(async () => {
-      await result.current.refresh()
-    })
-    expect(result.current).toMatchObject({ detectedIds: ['codex'], detectionFailed: false })
+    await exerciseFailedLocalAgentFirstProbeRetry(target, detectAgents)
   }
 )
 
@@ -490,6 +406,382 @@ it('bounds repeated inventory work at N/10N and renders only the observed contex
     expect(folder.result.current).toBeUndefined()
     folder.unmount()
     mounted.forEach((hook) => hook.unmount())
+    // The ordinary open row path includes both independent before-equality producers.
+    useAppStore.setState({
+      repos,
+      projects: projects(
+        catalog.projects.map((project) => ({
+          ...project,
+          localWindowsRuntimePreference: { kind: 'wsl', distro: 'Ubuntu' }
+        }))
+      ),
+      worktreesByRepo: Object.fromEntries(worktrees.map((wt) => [wt.repoId, [wt]])),
+      localAgentInventoryFailedByContext: failures({}),
+      localDetectedAgentIdsByContext: Object.fromEntries(
+        keys.flatMap((key) => [
+          [key, ['claude']],
+          [`${key}\u0000all-agents`, ['claude']]
+        ])
+      ),
+      settings: getDefaultSettings('/tmp')
+    })
+    setLocalRuntimeCapabilitiesForTests([])
+    const imperative = vi.spyOn(preflight, 'getLocalAgentPreflightContext')
+    const projectRuntime = vi.spyOn(preflight, 'getLocalProjectExecutionRuntimeContext')
+    const routes = vi.spyOn(routeInput, 'buildAgentLaunchRouteInput')
+    const rows = vi.spyOn(menuRows, 'buildNewTabAgentMenuRows')
+    const metadata = vi.spyOn(agentCatalog, 'getAgentCatalog')
+    const selections = vi.spyOn(menuSelection, 'resolveAgentMenuSelection')
+    const menuRenders = Array<number>(count).fill(0)
+    const menus = worktrees.slice(0, count).map((wt, index) =>
+      renderHook(
+        ({ id, open }) => {
+          menuRenders[index]++
+          return useAgentMenuObservation(id, open, { kind: 'local', worktreeId: id }, false, {
+            wakeOnOpen: true
+          })
+        },
+        { initialProps: { id: wt.id, open: true } }
+      )
+    )
+    await act(async () => {})
+    expect(menus.every((menu) => menu.result.current.model.state === 'settled')).toBe(true)
+    const clearMenuWork = () => {
+      menuRenders.fill(0)
+      reads = projectRows = workspaceRows = indexRows = folderRows = projectFixtureCopies = 0
+      for (const spy of [
+        resolution,
+        selection,
+        candidates,
+        imperative,
+        projectRuntime,
+        routes,
+        rows,
+        metadata,
+        selections
+      ]) {
+        spy.mockClear()
+      }
+    }
+    const selectedKeys = keys.flatMap((key) => [key, `${key}\u0000all-agents`])
+    const selectedBefore = selectedKeys.map((key) =>
+      useAppStore.getState().readLocalAgentInventoryByKey(key)
+    )
+    clearMenuWork()
+    const menuPublications = [
+      () => useAppStore.setState({ settingsSearchQuery: 'unused search' }),
+      () => useAppStore.setState({ remoteDetectedAgentIds: { anotherHost: ['codex'] } }),
+      () =>
+        useAppStore.setState((state) => ({
+          localAgentInventoryFailedByContext: failures({
+            ...state.localAgentInventoryFailedByContext,
+            unused: true
+          })
+        }))
+    ]
+    for (const publish of menuPublications) {
+      clearMenuWork()
+      await act(async () => publish())
+      const work = {
+        consumers: count,
+        open: true,
+        scalarReads: reads,
+        inputs: selection.mock.calls.length,
+        wakeContext: imperative.mock.calls.length,
+        hostProjectRuntime: projectRuntime.mock.calls.length,
+        sharedRuntime: resolution.mock.calls.length,
+        routes: routes.mock.calls.length,
+        projectRows,
+        indexRows,
+        workspaceRows,
+        folderRows,
+        projectFixtureCopies,
+        candidateBuilders: rows.mock.calls.length,
+        candidateVisits: rows.mock.calls.reduce(
+          (sum, [input]) => sum + (input.configurationCommandCandidates?.length ?? 0),
+          0
+        ),
+        rowMetadata: rows.mock.results.reduce(
+          (sum, result) => sum + (result.type === 'return' ? result.value.length : 0),
+          0
+        ),
+        metadata: metadata.mock.calls.length,
+        selections: selections.mock.calls.length,
+        renders: [...menuRenders]
+      }
+      process.stdout.write(`${JSON.stringify({ metric: 'active-ordinary-menu', ...work })}\n`)
+      expect.soft(work.wakeContext, 'F33 imperative context before selected failure').toBe(0)
+      expect.soft(work.hostProjectRuntime, 'F35 unused route runtime before host equality').toBe(0)
+      expect.soft(work.sharedRuntime).toBe(0)
+      expect.soft(work.routes).toBe(0)
+      expect
+        .soft([projectRows, indexRows, workspaceRows, folderRows, projectFixtureCopies])
+        .toEqual([0, 0, 0, 0, 0])
+      expect
+        .soft([
+          work.candidateBuilders,
+          work.candidateVisits,
+          work.rowMetadata,
+          work.metadata,
+          work.selections
+        ])
+        .toEqual([0, 0, 0, 0, 0])
+      expect.soft(menuRenders).toEqual(Array(count).fill(0))
+      expect.soft(work.inputs).toBeLessThanOrEqual(12 * count)
+      expect.soft(work.scalarReads).toBeLessThanOrEqual(12 * count)
+      expect(
+        selectedKeys.map((key) => useAppStore.getState().readLocalAgentInventoryByKey(key))
+      ).toEqual(selectedBefore)
+    }
+    const emptyIds: TuiAgent[] = []
+    await act(async () =>
+      useAppStore.setState((state) => ({
+        localDetectedAgentIdsByContext: {
+          ...state.localDetectedAgentIdsByContext,
+          [keys[count - 1]]: emptyIds
+        }
+      }))
+    )
+    const retainedArrays = menus.map((menu) => menu.result.current.detection.detectedIds)
+    expect(retainedArrays[count - 1]).toBe(emptyIds)
+    for (const [index, menu] of menus.entries()) {
+      menu.rerender({ id: worktrees[index].id, open: false })
+    }
+    await act(async () => {})
+    clearMenuWork()
+    await act(async () => useAppStore.setState({ settingsSearchQuery: 'closed unused search' }))
+    process.stdout.write(
+      `${JSON.stringify({ metric: 'closed-ordinary-menu', consumers: count, inputs: selection.mock.calls.length, scalarReads: reads, wakeContext: imperative.mock.calls.length, hostProjectRuntime: projectRuntime.mock.calls.length, sharedRuntime: resolution.mock.calls.length, workspaceRows, renders: menuRenders })}\n`
+    )
+    expect.soft(imperative).not.toHaveBeenCalled()
+    expect.soft(projectRuntime).not.toHaveBeenCalled()
+    expect.soft(resolution).not.toHaveBeenCalled()
+    expect.soft(workspaceRows).toBe(0)
+    expect.soft(menuRenders).toEqual(Array(count).fill(0))
+    expect(selection.mock.calls.length).toBeLessThanOrEqual(12 * count)
+    expect(reads).toBeLessThanOrEqual(12 * count)
+    clearMenuWork()
+    await act(async () => useAppStore.setState({ detectedAgentIds: ['gemini'] }))
+    const closedLegacyWork = {
+      metric: 'closed-menu-divergent-legacy',
+      consumers: count,
+      inputs: selection.mock.calls.length,
+      scalarReads: reads,
+      wakeContext: imperative.mock.calls.length,
+      hostProjectRuntime: projectRuntime.mock.calls.length,
+      sharedRuntime: resolution.mock.calls.length,
+      routes: routes.mock.calls.length,
+      projectRows,
+      indexRows,
+      workspaceRows,
+      folderRows,
+      projectFixtureCopies,
+      candidates: rows.mock.calls.length,
+      metadata: metadata.mock.calls.length,
+      selections: selections.mock.calls.length,
+      renders: [...menuRenders]
+    }
+    expect([
+      imperative.mock.calls.length,
+      projectRuntime.mock.calls.length,
+      resolution.mock.calls.length,
+      routes.mock.calls.length,
+      projectRows,
+      indexRows,
+      workspaceRows,
+      folderRows,
+      projectFixtureCopies,
+      rows.mock.calls.length,
+      metadata.mock.calls.length,
+      selections.mock.calls.length
+    ]).toEqual(Array(12).fill(0))
+    expect(menuRenders).toEqual(Array(count).fill(0))
+    menus.forEach((menu, index) =>
+      expect(menu.result.current.detection.detectedIds).toBe(retainedArrays[index])
+    )
+    expect(closedLegacyWork.inputs).toBeLessThanOrEqual(12 * count)
+    expect(closedLegacyWork.scalarReads).toBeLessThanOrEqual(12 * count)
+    process.stdout.write(`${JSON.stringify(closedLegacyWork)}\n`)
+    const passiveWorktree = worktrees[count]
+    const passiveProject = projectIndex.getIndexedLocalRuntimeProject(
+      useAppStore.getState().projects,
+      passiveWorktree.projectId ?? passiveWorktree.repoId,
+      passiveWorktree.repoId
+    )
+    if (!passiveProject) {
+      throw new Error('Expected the passive worktree project')
+    }
+    const spareIds = useAppStore.getState().localDetectedAgentIdsByContext[keys[count]]
+    const passiveRequests = detectAgents.mock.calls.length
+    menus[0].rerender({ id: passiveWorktree.id, open: false })
+    expect(menus[0].result.current.detection.detectedIds).toBe(spareIds)
+    expect(detectAgents).toHaveBeenCalledTimes(passiveRequests)
+    const passiveColdKey = `${passiveWorktree.repoId}:wsl:Debian`
+    expect(useAppStore.getState().localDetectedAgentIdsByContext[passiveColdKey]).toBeUndefined()
+    clearMenuWork()
+    await act(async () =>
+      useAppStore.setState((state) => ({
+        projects: projects(
+          state.projects.map((project) =>
+            project.id === passiveProject.id
+              ? { ...project, localWindowsRuntimePreference: { kind: 'wsl', distro: 'Debian' } }
+              : project
+          )
+        )
+      }))
+    )
+    const passiveColdWork = {
+      metric: 'closed-menu-current-cold-runtime',
+      consumers: count,
+      inputs: selection.mock.calls.length,
+      scalarReads: reads,
+      runtime: resolution.mock.calls.length,
+      projectRows,
+      indexRows,
+      projectFixtureCopies,
+      renders: [...menuRenders],
+      addedRequests: detectAgents.mock.calls.length - passiveRequests
+    }
+    expect(menus[0].result.current.detection.detectedIds).toBeNull()
+    expect(useAppStore.getState().detectedAgentIds).toEqual(['gemini'])
+    expect(detectAgents).toHaveBeenCalledTimes(passiveRequests)
+    expect(menuRenders[0]).toBeGreaterThan(0)
+    expect(menuRenders.slice(1)).toEqual(Array(count - 1).fill(0))
+    menus
+      .slice(1)
+      .forEach((menu, index) =>
+        expect(menu.result.current.detection.detectedIds).toBe(retainedArrays[index + 1])
+      )
+    process.stdout.write(`${JSON.stringify(passiveColdWork)}\n`)
+    await act(async () =>
+      useAppStore.setState((state) => ({
+        projects: projects(
+          state.projects.map((project) =>
+            project.id === passiveProject.id
+              ? { ...project, localWindowsRuntimePreference: { kind: 'wsl', distro: 'Ubuntu' } }
+              : project
+          )
+        )
+      }))
+    )
+    expect(menus[0].result.current.detection.detectedIds).toBe(spareIds)
+    expect(detectAgents).toHaveBeenCalledTimes(passiveRequests)
+    for (const [index, menu] of menus.entries()) {
+      menu.rerender({ id: worktrees[index].id, open: true })
+    }
+    await act(async () => {})
+    clearMenuWork()
+    await act(async () =>
+      useAppStore.setState((state) => ({
+        localAgentInventoryFailedByContext: failures({
+          ...state.localAgentInventoryFailedByContext,
+          [keys[0]]: true
+        })
+      }))
+    )
+    expect(menuRenders[0]).toBeGreaterThan(0)
+    expect(menuRenders.slice(1)).toEqual(Array(count - 1).fill(0))
+    expect(menus[0].result.current.detection.detectionFailed).toBe(true)
+    await act(async () =>
+      useAppStore.setState({ isRefreshingLocalAgentsByContext: { [keys[0]]: true } })
+    )
+    expect(menus[0].result.current.detection.detectionFailed).toBe(false)
+    await act(async () => useAppStore.setState({ isRefreshingLocalAgentsByContext: {} }))
+    expect(menus[0].result.current.detection.detectionFailed).toBe(true)
+    clearMenuWork()
+    menus[0].rerender({ id: worktrees[count].id, open: true })
+    await act(async () => {})
+    expect(menus[0].result.current.detection.detectionFailed).toBe(false)
+    expect(menuRenders.slice(1)).toEqual(Array(count - 1).fill(0))
+    const currentWorktree = worktrees[count]
+    const currentState = useAppStore.getState()
+    expect(currentState.worktreesByRepo[currentWorktree.repoId]).toContain(currentWorktree)
+    const selectedProject = projectIndex.getIndexedLocalRuntimeProject(
+      currentState.projects,
+      currentWorktree.projectId ?? currentWorktree.repoId,
+      currentWorktree.repoId
+    )
+    if (!selectedProject) {
+      throw new Error('Expected the current worktree project')
+    }
+    expect(selectedProject.sourceRepoIds).toEqual([currentWorktree.repoId])
+    expect(
+      currentState.projectHostSetups.filter((setup) => setup.repoId === currentWorktree.repoId)
+    ).toEqual([expect.objectContaining({ projectId: selectedProject.id })])
+    expect(
+      catalog.projects.find((project) => project.sourceRepoIds?.includes(currentWorktree.repoId))
+        ?.id
+    ).toBe(selectedProject.id)
+    expect(selectedProject.localWindowsRuntimePreference).toEqual({ kind: 'wsl', distro: 'Ubuntu' })
+    expect(
+      currentState.projects.filter((project) => project.id === selectedProject.id)
+    ).toHaveLength(1)
+    const unaffectedArrays = menus.slice(1).map((menu) => menu.result.current.detection.detectedIds)
+    const legacyBeforeRuntime = currentState.detectedAgentIds
+    clearMenuWork()
+    await act(async () =>
+      useAppStore.setState((state) => ({
+        projects: projects(
+          state.projects.map((project) =>
+            project.id === selectedProject.id
+              ? { ...project, localWindowsRuntimePreference: { kind: 'wsl', distro: 'Debian' } }
+              : project
+          )
+        )
+      }))
+    )
+    const currentRuntimeWork = {
+      metric: 'active-menu-selected-runtime',
+      consumers: count,
+      projectFixtureCopies,
+      projectRows,
+      indexRows,
+      resolverCalls: resolution.mock.calls.length,
+      unaffectedRenders: menuRenders.slice(1)
+    }
+    expect(menuRenders[0]).toBeGreaterThan(0)
+    expect(menuRenders.slice(1)).toEqual(Array(count - 1).fill(0))
+    menus
+      .slice(1)
+      .forEach((menu, index) =>
+        expect(menu.result.current.detection.detectedIds).toBe(unaffectedArrays[index])
+      )
+    expect(useAppStore.getState().detectedAgentIds).not.toBe(legacyBeforeRuntime)
+    expect(useAppStore.getState().detectedAgentIds).toEqual(['codex'])
+    expect(resolution.mock.calls.length).toBeGreaterThan(0)
+    expect(
+      resolution.mock.calls.every(([input]) => input.projectId === worktrees[count].repoId)
+    ).toBe(true)
+    expect(menus[0].result.current.detection.detectedIds).toEqual(['codex'])
+    process.stdout.write(`${JSON.stringify(currentRuntimeWork)}\n`)
+    expect(detectAgents).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabledOnly: true,
+        wslDistro: 'Debian',
+        projectRuntime: {
+          status: 'resolved',
+          runtime: {
+            kind: 'wsl',
+            distro: 'Debian',
+            hostPlatform: 'wsl',
+            projectId: currentWorktree.repoId,
+            reason: 'project-override',
+            cacheKey: `${currentWorktree.repoId}:wsl:Debian`
+          }
+        }
+      })
+    )
+    expect(
+      projectIndex.getIndexedLocalRuntimeProject(
+        useAppStore.getState().projects,
+        currentWorktree.projectId ?? currentWorktree.repoId,
+        currentWorktree.repoId
+      )?.localWindowsRuntimePreference
+    ).toEqual({ kind: 'wsl', distro: 'Debian' })
+    menus.forEach((menu) => menu.unmount())
+    for (const spy of [imperative, projectRuntime, routes, rows, metadata, selections]) {
+      spy.mockRestore()
+    }
   }
   expect(measured[0]).toBeGreaterThanOrEqual(10)
   expect(measured[1]).toBeLessThanOrEqual(10 * measured[0])
@@ -503,36 +795,9 @@ it('bounds repeated inventory work at N/10N and renders only the observed contex
 })
 
 it('reads newly cached capabilities with the same AppState without acquiring an inventory', async () => {
-  useAppStore.setState({
-    settings: {
-      ...getDefaultSettings('/tmp'),
-      localWindowsRuntimeDefault: { kind: 'wsl', distro: 'Ubuntu' }
-    }
-  })
-  Object.assign(window.api, {
-    wsl: {
-      isAvailable: vi.fn().mockResolvedValue(false),
-      listDistros: vi.fn().mockResolvedValue([])
-    },
-    pwsh: { isAvailable: vi.fn().mockResolvedValue(false) },
-    gitBash: { isAvailable: vi.fn().mockResolvedValue(false) },
-    runtime: { getStatus: vi.fn().mockResolvedValue({ hostPlatform: 'win32' }) }
-  })
-  const { result, rerender } = renderHook(() => useLocalAgentPreflightContext())
-  expect(result.current?.projectRuntime).toMatchObject({
-    status: 'resolved',
-    runtime: { distro: 'Ubuntu' }
-  })
-  const state = useAppStore.getState()
-  await act(async () => {
-    await loadWindowsTerminalCapabilities()
-  })
-  expect(useAppStore.getState()).toBe(state)
-  rerender()
-  expect(result.current?.projectRuntime).toMatchObject({
-    status: 'repair-required',
-    repair: { reason: 'wsl-unavailable' }
-  })
-  expect(detectAgents).not.toHaveBeenCalled()
-  expect(refreshAgents).not.toHaveBeenCalled()
+  await exerciseCachedLocalAgentCapabilities(detectAgents, refreshAgents)
+})
+
+it('recovers mounted native consumers after availability changes alongside WSL launch and Settings inventories', async () => {
+  await exerciseNativeAgentRecoveryAlongsideWslInventories(detectAgents)
 })

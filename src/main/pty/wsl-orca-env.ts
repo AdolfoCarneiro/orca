@@ -15,6 +15,7 @@ import {
 } from '../../shared/setup-agent-sequencing'
 import { getShellReadyWrapperRoot } from '../providers/local-pty-shell-ready-wrapper-root'
 import { ORCA_IMAGE_PROTOCOL_ENV } from '../../shared/terminal-image-protocol'
+import { REMOTE_VIEWER_CLIPBOARD_ENV } from '../../shared/remote-viewer-clipboard-env'
 import {
   RUNTIME_SOURCE_ID_ENV,
   RUNTIME_SOURCE_INCARNATION_ENV,
@@ -127,6 +128,7 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     // Forward only Orca's clipboard marker; a host SSH session must not leak into bare guest shells.
     ...(env.SSH_CONNECTION === CODEX_REMOTE_VIEWER_SSH_CONNECTION ? ['SSH_CONNECTION/u'] : []),
     `${PI_CLIPBOARD_OSC52_ENV}/u`,
+    `${REMOTE_VIEWER_CLIPBOARD_ENV}/u`,
     'ORCA_OMP_FRESH_CONFIG/p',
     ...worktreeSetupWslenvEntries(env)
   ]

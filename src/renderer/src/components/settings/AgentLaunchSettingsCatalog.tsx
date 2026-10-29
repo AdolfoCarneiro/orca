@@ -89,7 +89,7 @@ export function AgentLaunchSettingsCatalog({
     detectionFailed,
     isRefreshing,
     refresh
-  } = useDetectedAgents(detectionTarget)
+  } = useDetectedAgents(detectionTarget, 'all')
   const projectRuntime = useLocalAgentPreflightContext(
     detectionTarget.kind === 'local' ? detectionTarget.worktreeId : undefined,
     detectionTarget.kind === 'local'

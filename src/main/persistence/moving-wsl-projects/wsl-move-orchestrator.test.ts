@@ -347,8 +347,12 @@ describe('WslMoveOrchestrator', () => {
       const ports = fakePorts()
       const orchestrator = new WslMoveOrchestrator(ports)
       await orchestrator.trigger('Ubuntu', 'connect')
-      orchestrator.releasedByUser('Ubuntu')
-      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'parked', reason: 'declined' })
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({
+        kind: 'parked',
+        reason: 'declined',
+        cause: 'released-here'
+      })
       ports.clock.now += 30 * 86_400_000
       await orchestrator.trigger('Ubuntu', 'project-opened')
       await orchestrator.trigger('Ubuntu', 'connect')

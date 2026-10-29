@@ -1,3 +1,13 @@
+import type {
+  AgentMenuObservationOptions,
+  AgentMenuRowsTarget,
+  NewTabAgentMenuModel
+} from './agent-menu-observation-types'
+export type {
+  AgentMenuObservationOptions,
+  AgentMenuRowsTarget,
+  NewTabAgentMenuModel
+} from './agent-menu-observation-types'
 import { useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -8,10 +18,12 @@ import { LOCAL_EXECUTION_HOST_ID, parseExecutionHostId } from '../../../../share
 import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import { isNativeChatEnabled } from '../../../../shared/structured-native-chat-launch-route'
 import { useAppStore } from '@/store'
+import { useAgentPickerRefusedWake } from './use-agent-picker-refused-wake'
+import { useLocalAgentPreflightContext } from '@/hooks/useLocalAgentPreflightContext'
+import { localAgentInventoryContextKey } from '@/lib/local-preflight-context-key'
 import {
   buildAgentLaunchRouteInput,
-  workspaceKindForWorktreeId,
-  type ProspectiveWorkspace
+  workspaceKindForWorktreeId
 } from '@/lib/agent-launch-route-input'
 import { useHostStructuredAgentsVersion } from '@/lib/chat-provider-agents'
 import { structuredAgentSessionTargetForHost } from '@/runtime/structured-agent-session-owner'
@@ -30,11 +42,7 @@ import {
   readLocalRuntimeCapabilityObservation,
   subscribeLocalRuntimeCapabilityObservation
 } from '@/runtime/local-runtime-capabilities'
-import {
-  useDetectedAgents,
-  type AgentDetectionTarget,
-  type UseDetectedAgentsResult
-} from '@/hooks/useDetectedAgents'
+import { useDetectedAgents, type AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import { readAgentMenuHostFacts } from '@/lib/agent-menu-host-facts'
 import { readDetectedAgentsForTarget } from '@/lib/agent-detection-target-inventory'
@@ -43,18 +51,7 @@ import { readChatProgram } from '@/lib/host-chat-program'
 import { resolveAgentMenuSelection } from '@/lib/agent-menu-selection'
 import { useHostAgentMenuSettings } from '@/components/settings/use-host-agent-launch-preferences'
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { AgentLaunchSurface } from '@/lib/agent-session-launch-plan'
-
-export type NewTabAgentMenuModel =
-  | { state: 'loading'; placeholderCount: number }
-  | {
-      state: 'settled'
-      rows: ReturnType<typeof buildNewTabAgentMenuRows>
-      detection: UseDetectedAgentsResult
-      /** The default these rows were ordered by, so the new-agent badge marks the same agent. */
-      defaultTuiAgent?: GlobalSettings['defaultTuiAgent']
-    }
 
 function catalogUnlearned(
   host: string,
@@ -69,27 +66,22 @@ function catalogUnlearned(
   )
 }
 
-/** A launch whose workspace may not exist yet, or that starts in a directory of its own. */
-export type AgentMenuRowsTarget = {
-  workspace: ProspectiveWorkspace
-  /** Only a terminal can start here, so chat rows say so instead of dropping the directory. */
-  launchCwd?: string | null
-}
-
 /** `detectionTarget` is the workspace's agent-inventory host, resolved by the caller. */
 export function useNewTabAgentMenuRows(
   target: string | AgentMenuRowsTarget,
   open: boolean,
-  detectionTarget: AgentDetectionTarget | undefined
+  detectionTarget: AgentDetectionTarget | undefined,
+  options?: AgentMenuObservationOptions
 ): NewTabAgentMenuModel {
-  return useAgentMenuObservation(target, open, detectionTarget).model
+  return useAgentMenuObservation(target, open, detectionTarget, false, options).model
 }
 
 export function useAgentMenuObservation(
   target: string | AgentMenuRowsTarget | null,
   open: boolean,
   detectionTarget: AgentDetectionTarget | undefined,
-  configurationCommands = false
+  configurationCommands = false,
+  options?: AgentMenuObservationOptions
 ) {
   const worktreeId = typeof target === 'string' ? target : target?.workspace.worktreeId
   const launchCwd = typeof target === 'string' ? undefined : target?.launchCwd
@@ -99,10 +91,27 @@ export function useAgentMenuObservation(
     (state) => typeof target === 'string' && state.activeWorktreeId === worktreeId
   )
   // Why: acquiring while the workspace is shown means the first open already knows its agents.
-  const acquired = useDetectedAgents(open || worktreeShown ? detectionTarget : undefined)
+  const acquiring = open || worktreeShown
+  const acquired = useDetectedAgents(acquiring ? detectionTarget : undefined)
+  useAgentPickerRefusedWake(options?.wakeOnOpen === true && open, detectionTarget)
   // Closing the menu or leaving the workspace must not erase the known inventory.
+  const retainedTarget = acquiring ? undefined : detectionTarget
+  const retainedLocal = retainedTarget?.kind === 'local' ? retainedTarget : undefined
+  const retainedContext = useLocalAgentPreflightContext(
+    retainedLocal?.worktreeId,
+    retainedLocal !== undefined && retainedLocal.contextKey == null
+  )
+  const retainedKey = retainedLocal
+    ? (retainedLocal.contextKey ?? localAgentInventoryContextKey(retainedContext))
+    : undefined
   const storedIds = useAppStore((state) =>
-    detectionTarget ? readDetectedAgentsForTarget(state, detectionTarget) : null
+    retainedTarget
+      ? retainedLocal
+        ? retainedKey
+          ? (state.localDetectedAgentIdsByContext[retainedKey] ?? null)
+          : state.detectedAgentIds
+        : readDetectedAgentsForTarget(state, retainedTarget)
+      : null
   )
   // No owner means no agents to offer; a later owner publication resumes normal detection.
   const detection = {

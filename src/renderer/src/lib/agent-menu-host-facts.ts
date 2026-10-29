@@ -1,9 +1,6 @@
 import type { AppState } from '@/store/types'
 import type { AgentDetectionTarget } from '@/hooks/useDetectedAgents'
-import {
-  buildAgentLaunchRouteInput,
-  type ProspectiveWorkspace
-} from '@/lib/agent-launch-route-input'
+import { resolveAgentLaunchHost, type ProspectiveWorkspace } from '@/lib/agent-launch-route-input'
 import { parseExecutionHostId } from '../../../shared/execution-host'
 import { lastVerifiedRuntimeStatus } from '../../../shared/runtime-host-status'
 import { runtimeHostContactForEntry } from '../../../shared/runtime-host-contact'
@@ -15,7 +12,7 @@ export function readAgentMenuHostFacts(
   workspace: ProspectiveWorkspace,
   detectionTarget: AgentDetectionTarget | undefined
 ) {
-  const input = buildAgentLaunchRouteInput(state, { agent: 'claude', workspace })
+  const input = resolveAgentLaunchHost(state, workspace)
   const host = parseExecutionHostId(input.executionHostId)
   const status =
     host?.kind === 'runtime'

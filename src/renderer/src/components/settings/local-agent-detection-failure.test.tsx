@@ -6,6 +6,7 @@ import { type ComponentProps, Profiler, useState } from 'react'
 import * as runtime from '../../../../shared/project-execution-runtime'
 import { useLocalAgentPreflightContext } from '@/hooks/useLocalAgentPreflightContext'
 import { localAgentInventoryContextKey } from '@/lib/local-preflight-context-key'
+import { getLocalAgentPreflightContext } from '@/lib/local-preflight-context'
 import { projectHostSetupProjectionFromRepos } from '../../../../shared/project-host-setup-projection'
 import type { RepoSourceControlAiOverrides } from '../../../../shared/source-control-ai-types'
 import { useRepositorySourceControlAiGlobalUx } from './repository/source-control/repository-source-control-ai-global-ux'
@@ -97,7 +98,7 @@ it('shows a native failure and retries the native host even with a global WSL de
   await act(async () => {
     fireEvent.click(view.getAllByRole('button', { name: 'Retry' })[0])
   })
-  expect(refreshAgents).toHaveBeenCalledExactlyOnceWith(undefined)
+  expect(refreshAgents).toHaveBeenCalledExactlyOnceWith({ enabledOnly: true })
   expect(useAppStore.getState().readLocalAgentInventory(FLOATING_TERMINAL_WORKTREE_ID)).toEqual({
     ids: ['claude'],
     state: 'successful'
@@ -166,7 +167,7 @@ it('recovers the cold catalog through Retry and keeps retained rows editable aft
   expect(view.queryByRole('button', { name: 'Retry' })).toBeNull()
   refreshAgents.mockRejectedValue(new Error('refresh failed'))
   await act(async () => {
-    await useAppStore.getState().refreshDetectedAgents()
+    await useAppStore.getState().refreshAllDetectedAgents()
   })
   expect(view.getAllByText('Claude').length).toBeGreaterThan(0)
   const availability = view.getByRole('radiogroup', { name: 'Claude availability' })
@@ -379,7 +380,29 @@ it('scopes the real catalog and AgentStep subscriptions while preserving full ru
     })),
     projectHostSetups: [...catalog.setups]
   })
+  const nativeContext = getLocalAgentPreflightContext(useAppStore.getState())
+  expect(nativeContext).toEqual({
+    projectRuntime: {
+      status: 'resolved',
+      runtime: {
+        kind: 'windows-host',
+        hostPlatform: 'win32',
+        projectId: repo.id,
+        reason: 'project-override',
+        cacheKey: `${repo.id}:windows-host`
+      }
+    }
+  })
+  expect(localAgentInventoryContextKey(nativeContext)).toBe('host')
+  expect(localAgentInventoryContextKey(nativeContext, true)).toBe('host\u0000all-agents')
+  const enabledRequest = { ...nativeContext, enabledOnly: true }
   await useAppStore.getState().ensureDetectedAgents()
+  expect(detectAgents).toHaveBeenCalledExactlyOnceWith(enabledRequest)
+  expect(useAppStore.getState().readLocalAgentInventoryByKey('host')).toEqual({
+    ids: null,
+    state: 'failed'
+  })
+  expect(useAppStore.getState().isDetectingLocalAgentsByContext.host).toBeUndefined()
   const resolution = vi.spyOn(runtime, 'resolveProjectExecutionRuntime')
   const commits = { catalog: 0, step: 0 }
   const view = render(
@@ -407,32 +430,60 @@ it('scopes the real catalog and AgentStep subscriptions while preserving full ru
   )
   const selected = renderHook(() => useLocalAgentPreflightContext())
   await act(async () => {})
+  expect(detectAgents).toHaveBeenCalledTimes(2)
+  expect(detectAgents).toHaveBeenNthCalledWith(2, nativeContext)
+  expect(useAppStore.getState().readLocalAgentInventoryByKey('host\u0000all-agents')).toEqual({
+    ids: null,
+    state: 'failed'
+  })
+  expect(
+    useAppStore.getState().isDetectingLocalAgentsByContext['host\u0000all-agents']
+  ).toBeUndefined()
   expect(view.queryByText(/isn't on your PATH|No agents detected/)).toBeNull()
   expect(view.getByRole('button', { name: 'Retry' })).toBeTruthy()
   commits.catalog = commits.step = 0
   resolution.mockClear()
-  const publications: Partial<AppState>[] = [
-    { isDetectingAgents: false },
-    { detectedWorktreesByRepo: { otherHost: makeDetectedResult('otherHost', []) } },
-    { remoteDetectedAgentIds: { otherHost: ['codex'] } },
-    { localAgentInventoryFailedByContext: { host: true, anotherContext: true } }
+  const selectedFailure = () => {
+    const state = useAppStore.getState()
+    return ['host', 'host\u0000all-agents'].map((key) => ({
+      key,
+      failed: state.localAgentInventoryFailedByContext[key],
+      outcome: state.readLocalAgentInventoryByKey(key)
+    }))
+  }
+  const beforeFailure = selectedFailure()
+  expect(beforeFailure.every(({ failed }) => failed === true)).toBe(true)
+  const publications: ((state: AppState) => Partial<AppState>)[] = [
+    () => ({ isDetectingAgents: false }),
+    () => ({ detectedWorktreesByRepo: { otherHost: makeDetectedResult('otherHost', []) } }),
+    () => ({ remoteDetectedAgentIds: { otherHost: ['codex'] } }),
+    (state) => ({
+      localAgentInventoryFailedByContext: {
+        ...state.localAgentInventoryFailedByContext,
+        anotherContext: true
+      }
+    })
   ]
   for (const patch of publications) {
     await act(async () => {
       useAppStore.setState(patch)
     })
+    expect(selectedFailure()).toEqual(beforeFailure)
     expect(commits).toEqual({ catalog: 0, step: 0 })
     expect(resolution).not.toHaveBeenCalled()
+    expect(detectAgents).toHaveBeenCalledTimes(2)
   }
   await act(async () => {
     useAppStore.setState({ isRefreshingLocalAgentsByContext: { host: true } })
   })
   expect(commits.step).toBeGreaterThan(0)
+  expect(detectAgents).toHaveBeenCalledTimes(2)
   expect(view.getByText(/isn't on your PATH/)).toBeTruthy()
   await act(async () => {
     useAppStore.setState({ isRefreshingLocalAgentsByContext: {} })
   })
   expect(view.queryByText(/isn't on your PATH/)).toBeNull()
+  expect(detectAgents).toHaveBeenCalledTimes(2)
   const before = selected.result.current
   expect(before?.projectRuntime).toMatchObject({ runtime: { reason: 'project-override' } })
   await act(async () => {
@@ -448,6 +499,21 @@ it('scopes the real catalog and AgentStep subscriptions while preserving full ru
   expect(selected.result.current?.projectRuntime).toMatchObject({
     runtime: { projectId: repo.id, reason: 'global-default' }
   })
+  expect(selected.result.current).toEqual({
+    projectRuntime: {
+      status: 'resolved',
+      runtime: {
+        kind: 'windows-host',
+        hostPlatform: 'win32',
+        projectId: repo.id,
+        reason: 'global-default',
+        cacheKey: `${repo.id}:windows-host`
+      }
+    }
+  })
+  expect(localAgentInventoryContextKey(selected.result.current, true)).toBe('host\u0000all-agents')
+  expect(selectedFailure()).toEqual(beforeFailure)
+  expect(detectAgents).toHaveBeenCalledTimes(2)
   await act(async () => {
     useAppStore.setState((s) => ({
       settings: {
@@ -460,6 +526,29 @@ it('scopes the real catalog and AgentStep subscriptions while preserving full ru
     status: 'repair-required',
     repair: { source: 'global-default', reason: 'wsl-distro-required' }
   })
+  const repairContext = selected.result.current
+  const repairKey = `${repo.id}:repair:wsl-distro-required:default\u0000all-agents`
+  expect(repairContext).toEqual({
+    projectRuntime: {
+      status: 'repair-required',
+      repair: {
+        projectId: repo.id,
+        preferredRuntime: { kind: 'wsl', distro: null },
+        source: 'global-default',
+        reason: 'wsl-distro-required',
+        cacheKey: `${repo.id}:repair:wsl-distro-required:default`
+      }
+    }
+  })
+  expect(localAgentInventoryContextKey(repairContext, true)).toBe(repairKey)
+  expect(detectAgents).toHaveBeenCalledTimes(3)
+  expect(detectAgents).toHaveBeenNthCalledWith(3, repairContext)
+  expect(useAppStore.getState().readLocalAgentInventoryByKey(repairKey)).toEqual({
+    ids: null,
+    state: 'failed'
+  })
+  expect(useAppStore.getState().isDetectingLocalAgentsByContext[repairKey]).toBeUndefined()
+  expect(selectedFailure()).toEqual(beforeFailure)
   expect(view.getByText(/Choose a WSL distro/)).toBeTruthy()
   expect(view.getByText(/Open project Settings → Project Runtime/)).toBeTruthy()
   expect(view.queryByText(/Try again/)).toBeNull()
@@ -473,6 +562,10 @@ it('scopes the real catalog and AgentStep subscriptions while preserving full ru
   })
   expect(view.queryByText(/Open project Settings → Project Runtime/)).toBeNull()
   expect(view.getByText(/Couldn't check which agents/)).toBeTruthy()
-  expect(detectAgents).toHaveBeenCalledTimes(2)
+  expect(localAgentInventoryContextKey(selected.result.current, true)).toBe('host\u0000all-agents')
+  expect(selectedFailure()).toEqual(beforeFailure)
+  const expectedRequests = [[enabledRequest], [nativeContext], [repairContext]]
+  expect(detectAgents.mock.calls).toEqual(expectedRequests)
+  expect(detectAgents).toHaveBeenCalledTimes(expectedRequests.length)
   resolution.mockRestore()
 })

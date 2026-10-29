@@ -37,11 +37,13 @@ import {
 import { runTrackedWslMove } from '../telemetry/wsl-move-telemetry'
 import { readWslDistroRegistrations } from '../wsl/wsl-distro-registry-id'
 import { wslHostsGateOpen } from '../wsl/wsl-host-gate'
+import { runAsWslUserAct } from '../wsl/wsl-unc-access-gate'
 import { getWslHostService } from '../wsl/wsl-host-service-instance'
 import { onWslHostUserAction } from '../wsl/wsl-host-user-actions'
 import { getTrustedUIRendererWebContents, getTrustedUIRendererWindow } from './ui'
 import { onWslMoveReleasedByUser, releaseWslMoveChainHere } from './wsl-move-release-here'
 import { createWslMoveUndoPorts } from './wsl-move-undo-wiring'
+import { isDistroInUse } from './wsl-move-distro-in-use'
 import { answerWslMoveSleptPanes, requestSleptPanes } from './wsl-move-orchestrator-slept-panes'
 import { wslHostRemovalPending } from './wsl-move-host-connect'
 
@@ -121,15 +123,17 @@ function createOrchestrator(
     appVersion: app.getVersion(),
     autoMoveEnabled: () => process.env[WSL_MOVE_ORCHESTRATOR_AUTO_ENV] !== '0',
     prepareHost: (distro, stillWanted) => prepareHost(userDataPath, distro, stillWanted),
+    isDistroInUse: (distro) => isDistroInUse(store, userDataPath, distro),
     hostRemovalPending: (distro) => wslHostRemovalPending(userDataPath, distro),
     hasHost: (distro) =>
       getWslHostService()?.recordForEnvironment(defaultWslOrcadEnvironmentId(distro)) != null,
     isHostReady,
-    preview: async (distro) =>
-      previewWslMove(driverDeps(), {
-        distro,
-        sleptPanes: await requestSleptPanes()
-      }),
+    preview: async (distro, userAsked) =>
+      previewWslMove(
+        driverDeps(),
+        { distro, sleptPanes: await requestSleptPanes() },
+        { settleInterrupted: userAsked ? 'finish-now' : 'finish-at-restart' }
+      ),
     start: async (distro, stillWanted) => {
       const sleptPanes = await requestSleptPanes()
       // The user may have released or snoozed the distro while the window answered.
@@ -156,7 +160,8 @@ function createOrchestrator(
     },
     track: (trigger, record, cause) =>
       trackWslMoveOrchestrator(wslMoveOrchestratorEventProps(trigger, record, cause)),
-    publish
+    publish,
+    runAsUserAct: runAsWslUserAct
   })
 }
 
@@ -268,10 +273,12 @@ export function registerWslMoveOrchestrator(
     const created = createOrchestrator(store, driverDeps)
     orchestrator = created
     followHostReadiness(created)
-    onWslMoveReleasedByUser((distro) => created.releasedByUser(distro))
+    onWslMoveReleasedByUser((distro) => created.releasedByUser(distro, 'released-here'))
     // A Remove is the user declining the host; only their own Add (or Retry) takes it back.
     onWslHostUserAction(({ kind, distro }) =>
-      kind === 'removed' ? created.releasedByUser(distro) : created.hostAddedByUser(distro)
+      kind === 'removed'
+        ? created.releasedByUser(distro, 'removed')
+        : created.hostAddedByUser(distro)
     )
   } catch (error) {
     console.warn('[wsl-move] Move orchestrator did not start:', error)
