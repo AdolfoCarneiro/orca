@@ -225,4 +225,40 @@ describe('terminal clipboard writes', () => {
     await copy(text)
     expect(run).toHaveBeenCalledTimes(2)
   })
+  it('bounds retained native text before validation and recovers after failure', async () => {
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const validate = vi.fn(async (value: string) => value)
+    validate.mockImplementationOnce(async () => {
+      await gate
+      throw new Error('validation failed')
+    })
+    const copy = writer(false, validate)
+    const text = 'x'.repeat(CLIPBOARD_TEXT_WRITE_MAX_BYTES / 2 + 1)
+    const first = copy(text)
+    const failure = expect(first).rejects.toThrow('validation failed')
+    let overflowError: unknown
+    const overflow = copy(text).catch((error: unknown) => {
+      overflowError = error
+    })
+
+    try {
+      await Promise.resolve()
+      expect(overflowError).toEqual(new Error('Too many pending clipboard writes'))
+      expect(validate).toHaveBeenCalledOnce()
+      expect(write).not.toHaveBeenCalled()
+    } finally {
+      release()
+      await failure
+      await overflow
+    }
+    await copy('after overflow', 'ordinary')
+
+    expect(write).toHaveBeenCalledOnce()
+    expect(write).toHaveBeenLastCalledWith('after overflow', 'ordinary')
+    expect(run).not.toHaveBeenCalled()
+    expect(clearCache).not.toHaveBeenCalled()
+  })
 })
