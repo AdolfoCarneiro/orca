@@ -117,11 +117,12 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
     [activeWorktreeId, createBrowserTab, openNewBrowserTabInActiveWorkspace]
   )
   // Why wrappers: menus pass their select event as the first argument.
-  const handleNewBrowserTab = useCallback(() => openNewBrowserTab(), [openNewBrowserTab])
-  const handleNewBrowserTabSplitRight = useCallback(
-    () => openNewBrowserTab('right'),
-    [openNewBrowserTab]
-  )
+  const handleNewBrowserTab = useCallback(() => {
+    openNewBrowserTab()
+  }, [openNewBrowserTab])
+  const handleNewBrowserTabSplitRight = useCallback(() => {
+    openNewBrowserTab('right')
+  }, [openNewBrowserTab])
 
   const handleOpenEntry = useCallback(async (args: TabCreateEntryArgs) => {
     await openTabBarEntry(args)
