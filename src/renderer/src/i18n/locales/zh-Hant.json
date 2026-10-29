@@ -14485,7 +14485,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "下載應用程式",
           "a8fb43cf1c": "繼續",
           "3f90dbd274": "完成",
           "b622eba64d": "返回",
@@ -14574,7 +14573,10 @@
               },
               "stable": {
                 "tagline": "公開發布版，每週更新。"
-              }
+              },
+              "downloadApk": "下載 APK",
+              "openTestFlight": "開啟 TestFlight",
+              "openAppStore": "開啟 App Store"
             }
           }
         },

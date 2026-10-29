@@ -14167,7 +14167,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "앱 다운로드",
           "a8fb43cf1c": "Continue",
           "3f90dbd274": "완료",
           "b622eba64d": "뒤로",
@@ -14256,7 +14255,10 @@
               },
               "stable": {
                 "tagline": "정식 출시 버전, 매주 업데이트."
-              }
+              },
+              "downloadApk": "APK 다운로드",
+              "openTestFlight": "TestFlight 열기",
+              "openAppStore": "App Store 열기"
             }
           }
         },

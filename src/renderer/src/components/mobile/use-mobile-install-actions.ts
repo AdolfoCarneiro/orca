@@ -16,8 +16,8 @@ export function useMobileInstallActions(
   const mountedRef = useMountedRef()
 
   const openInstallUrl = useCallback((): void => {
-    void window.api.shell.openUrl('https://onorca.dev/download')
-  }, [])
+    void window.api.shell.openUrl(getInstallCopy(platform, iosChannel).url)
+  }, [iosChannel, platform])
 
   const openAndroidInstallGuide = useCallback((): void => {
     void window.api.shell.openUrl(ANDROID_INSTALL_GUIDE_URL)

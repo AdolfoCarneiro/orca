@@ -8,7 +8,7 @@ import {
   type Platform,
   type StepIndex
 } from './MobileHero'
-import type { IosChannel } from './mobile-platform-copy'
+import { getInstallCopy, type IosChannel } from './mobile-platform-copy'
 import type { MobilePageStage } from './mobile-page-stage'
 import { MobilePageToolbar } from './MobilePageToolbar'
 import { PhoneCarousel } from './PhoneCarousel'
@@ -134,6 +134,7 @@ export function MobilePageContent({
               platform={platform}
               onPlatformChange={setPlatform}
               installQrUrl={installQrUrl}
+              installCopy={getInstallCopy(platform, iosChannel)}
               iosChannel={iosChannel}
               onIosChannelChange={setIosChannel}
               onOpenAndroidInstallGuide={openAndroidInstallGuide}

@@ -15064,7 +15064,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "Скачать приложение",
           "a8fb43cf1c": "Продолжить",
           "3f90dbd274": "Готово",
           "b622eba64d": "Назад",
@@ -15153,7 +15152,10 @@
               },
               "stable": {
                 "tagline": "Общедоступный выпуск, обновления каждую неделю."
-              }
+              },
+              "downloadApk": "Скачать APK",
+              "openTestFlight": "Открыть TestFlight",
+              "openAppStore": "Открыть App Store"
             }
           }
         },

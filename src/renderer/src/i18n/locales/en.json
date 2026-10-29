@@ -14753,8 +14753,7 @@
           "androidHelp": {
             "guide": "Install guide"
           },
-          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code.",
-          "downloadApp": "Download app"
+          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code."
         },
         "MobilePage": {
           "e17393c6a3": "Phone preview",
@@ -14790,7 +14789,10 @@
               },
               "stable": {
                 "tagline": "The public release, updated weekly."
-              }
+              },
+              "downloadApk": "Download APK",
+              "openTestFlight": "Open TestFlight",
+              "openAppStore": "Open App Store"
             }
           }
         },

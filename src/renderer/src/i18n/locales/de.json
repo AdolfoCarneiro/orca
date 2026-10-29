@@ -14662,7 +14662,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "App herunterladen",
           "a8fb43cf1c": "Fortfahren",
           "3f90dbd274": "Abschließen",
           "b622eba64d": "Zurück",
@@ -14751,7 +14750,10 @@
               },
               "stable": {
                 "tagline": "Die öffentliche Version, wöchentlich aktualisiert."
-              }
+              },
+              "downloadApk": "APK herunterladen",
+              "openTestFlight": "TestFlight öffnen",
+              "openAppStore": "App Store öffnen"
             }
           }
         },

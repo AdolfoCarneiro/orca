@@ -14514,7 +14514,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "Télécharger l’application",
           "a8fb43cf1c": "Continuer",
           "3f90dbd274": "Terminé",
           "b622eba64d": "Retour",
@@ -14603,7 +14602,10 @@
               },
               "stable": {
                 "tagline": "La version publique, mise à jour chaque semaine."
-              }
+              },
+              "downloadApk": "Télécharger l'APK",
+              "openTestFlight": "Ouvrir TestFlight",
+              "openAppStore": "Ouvrir l'App Store"
             }
           }
         },

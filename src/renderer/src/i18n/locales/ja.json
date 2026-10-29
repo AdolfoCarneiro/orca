@@ -14167,7 +14167,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "アプリをダウンロード",
           "a8fb43cf1c": "Continue",
           "3f90dbd274": "完了",
           "b622eba64d": "戻る",
@@ -14256,7 +14255,10 @@
               },
               "stable": {
                 "tagline": "一般公開版、毎週更新。"
-              }
+              },
+              "downloadApk": "APK をダウンロード",
+              "openTestFlight": "TestFlight を開く",
+              "openAppStore": "App Store を開く"
             }
           }
         },
