@@ -19711,6 +19711,24 @@
         "gitInitFailed": "Git リポジトリを初期化できませんでした: {{detail}}",
         "initialCommitFailed": "最初のコミットを作成できませんでした: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} はすでにホストです。",
+        "distroStopped": "一覧の読み取り後に {{distro}} が停止しました。「起動して追加」を選択して起動してください。",
+        "wsl1": "{{distro}} は Orca がサポートを終了した WSL 1 を使用しています。Windows のターミナルで次のコマンドを実行し、WSL 2 に変換してください: {{command}}",
+        "notRegistered": "{{distro}} はインストール済みの WSL ディストリビューションではありません。Windows のターミナルで {{command}} を実行してインストール済みのものを確認するか、再インストールしてからやり直してください。",
+        "sshManaged": "{{distro}} ではすでに「{{server}}」の Orca サーバーが実行されており、このコンピューターは SSH 経由で接続しています。先にそのサーバーを削除してください。WSL ホストへの移行はまだサポートされていません。"
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows からディストリビューションの実行状態が報告されませんでした。",
+        "guestUnanswered": "ディストリビューションは実行中ですが、Orca の確認に応答しませんでした。",
+        "orcadUnanswered": "ディストリビューション内の Orca サーバーが応答しませんでした。",
+        "restartGaveUp_other": "{{count}} 回試行しましたが、{{distro}} 内の Orca サーバーを再起動できませんでした",
+        "serviceUnconfirmed": "WSL サービスからディストリビューションが実行中かどうかの確認が得られませんでした。",
+        "peerCheckFailed": "Orca は WSL ホストに、このコンピューター上の別の Orca がまだ使用しているかを問い合わせられませんでした: {{detail}}",
+        "removalUnrecorded": "Orca は、今回の削除後も実行中のものを記録できませんでした: {{detail}}"
+      }
     }
   },
   "editor": {

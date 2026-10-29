@@ -119,6 +119,24 @@
         "gitInitFailed": "無法初始化 Git 存放庫：{{detail}}",
         "initialCommitFailed": "無法建立初始提交：{{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} 已是主機。",
+        "distroStopped": "讀取清單後，{{distro}} 已停止。選擇「啟動並新增」以啟動它。",
+        "wsl1": "{{distro}} 使用 WSL 1，Orca 已不再支援。請在 Windows 終端機中使用以下命令將其轉換為 WSL 2：{{command}}",
+        "notRegistered": "{{distro}} 不是已安裝的 WSL 發行版。請在 Windows 終端機中執行 {{command}} 查看已安裝的發行版，或重新安裝它後再試一次。",
+        "sshManaged": "{{distro}} 已在為「{{server}}」執行 Orca 伺服器，此電腦透過 SSH 存取該伺服器。請先移除該伺服器；目前尚不支援將其移轉為 WSL 主機。"
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows 未回報此發行版是否正在執行。",
+        "guestUnanswered": "發行版正在執行，但未回應 Orca 的檢查。",
+        "orcadUnanswered": "發行版中的 Orca 伺服器未回應。",
+        "restartGaveUp_other": "嘗試 {{count}} 次後仍無法重新啟動 {{distro}} 中的 Orca 伺服器",
+        "serviceUnconfirmed": "WSL 服務未確認此發行版是否正在執行。",
+        "peerCheckFailed": "Orca 無法向 WSL 主機詢問此電腦上的另一個 Orca 是否仍在使用該主機：{{detail}}",
+        "removalUnrecorded": "Orca 無法記錄此次移除後仍在執行的項目：{{detail}}"
+      }
     }
   },
   "app": {

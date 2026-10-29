@@ -119,6 +119,25 @@
         "gitInitFailed": "Git repository'si başlatılamadı: {{detail}}",
         "initialCommitFailed": "İlk commit oluşturulamadı: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} zaten ana makine olarak ekli.",
+        "distroStopped": "Liste okunduktan sonra {{distro}} durdu. Başlatmak için “Başlat ve ekle” seçeneğini seçin.",
+        "wsl1": "{{distro}}, Orca'nın artık desteklemediği WSL 1'i kullanıyor. Windows terminalinde şu komutla WSL 2'ye dönüştürün: {{command}}",
+        "notRegistered": "{{distro}} yüklü bir WSL dağıtımı değil. Yüklü dağıtımları görmek için Windows terminalinde {{command}} komutunu çalıştırın veya dağıtımı yeniden yükleyip tekrar deneyin.",
+        "sshManaged": "{{distro}} içinde zaten “{{server}}” için Orca sunucusu çalışıyor ve bu bilgisayar ona SSH üzerinden bağlanıyor. Önce bu sunucuyu kaldırın; WSL ana makinesine taşıma henüz desteklenmiyor."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows, dağıtımın çalışıp çalışmadığını bildirmedi.",
+        "guestUnanswered": "Dağıtım çalışıyor ancak Orca'nın kontrolüne yanıt vermedi.",
+        "orcadUnanswered": "Dağıtım içindeki Orca sunucusu yanıt vermedi.",
+        "restartGaveUp_one": "{{count}} denemeden sonra {{distro}} içindeki Orca sunucusu yeniden başlatılamadı",
+        "restartGaveUp_other": "{{count}} denemeden sonra {{distro}} içindeki Orca sunucusu yeniden başlatılamadı",
+        "serviceUnconfirmed": "WSL hizmeti dağıtımın çalışıp çalışmadığını doğrulamadı.",
+        "peerCheckFailed": "Orca tarafından WSL ana makinesine bu bilgisayardaki başka bir Orca'nın onu hâlâ kullanıp kullanmadığı sorulamadı: {{detail}}",
+        "removalUnrecorded": "Bu kaldırma işleminden sonra nelerin çalışmaya devam ettiği Orca tarafından kaydedilemedi: {{detail}}"
+      }
     }
   },
   "app": {

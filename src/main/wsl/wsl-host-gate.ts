@@ -12,8 +12,6 @@ import type { OrcadDeploymentLink } from '../../shared/runtime-environments'
 import type { WslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 
 export const WSL_HOSTS_GATED_OFF_MESSAGE = 'WSL hosts are not available in this build.'
-export const WSL_HOSTS_NEW_WORK_PAUSED_MESSAGE =
-  'Adding WSL hosts and moving projects onto them is paused in this build. Your saved WSL hosts keep working.'
 
 // Fixed for the run once main reads the disk; nothing can create a host or a move while not open.
 let promoted: { hasSavedWslHost: boolean; hasWslMoveCutover: boolean } | null = null

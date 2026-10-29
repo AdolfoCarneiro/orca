@@ -1766,6 +1766,25 @@
         "targetNotEmpty": "\"{{name}}\" already exists at this location and is not empty.",
         "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder."
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} is already a host.",
+        "distroStopped": "{{distro}} stopped since the list was read. Choose Start and add to start it.",
+        "notRegistered": "{{distro}} is not an installed WSL distro. Run {{command}} in a Windows terminal to see the installed ones, or reinstall it and try again.",
+        "sshManaged": "{{distro}} already runs the Orca server for “{{server}}”, which this computer reaches over SSH. Remove that server first; moving it to a WSL host isn’t supported yet.",
+        "wsl1": "{{distro}} runs WSL 1, which Orca no longer supports. Convert it to WSL 2 in a Windows terminal with: {{command}}"
+      },
+      "statusDetails": {
+        "guestUnanswered": "The distro is running but didn’t answer Orca’s check.",
+        "orcadUnanswered": "Orca’s server in the distro didn’t answer.",
+        "peerCheckFailed": "Orca couldn’t ask the WSL host whether another Orca on this computer still uses it: {{detail}}",
+        "removalUnrecorded": "Orca couldn’t record what this Remove left running: {{detail}}",
+        "restartGaveUp_one": "Could not restart the Orca server in {{distro}} after {{count}} attempt",
+        "restartGaveUp_other": "Could not restart the Orca server in {{distro}} after {{count}} attempts",
+        "runningListUnavailable": "Windows didn’t report whether the distro is running.",
+        "serviceUnconfirmed": "The WSL service did not confirm whether the distro runs."
+      }
     }
   },
   "sourceControl": {

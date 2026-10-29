@@ -119,6 +119,25 @@
         "gitInitFailed": "Git-Repository konnte nicht initialisiert werden: {{detail}}",
         "initialCommitFailed": "Erster Commit konnte nicht erstellt werden: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} ist bereits ein Host.",
+        "distroStopped": "{{distro}} wurde nach dem Einlesen der Liste gestoppt. Zum Starten „Starten und hinzufügen“ auswählen.",
+        "wsl1": "{{distro}} läuft unter WSL 1, das Orca nicht mehr unterstützt. In einem Terminal unter Windows mit folgendem Befehl auf WSL 2 umstellen: {{command}}",
+        "notRegistered": "{{distro}} ist keine installierte WSL-Distribution. In einem Terminal unter Windows {{command}} ausführen, um die installierten Distributionen anzuzeigen, oder die Distribution neu installieren und erneut versuchen.",
+        "sshManaged": "In {{distro}} läuft bereits der Orca-Server für „{{server}}“, den dieser Computer über SSH erreicht. Diesen Server zuerst entfernen; der Wechsel zu einem WSL-Host wird noch nicht unterstützt."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows hat nicht gemeldet, ob die Distribution läuft.",
+        "guestUnanswered": "Die Distribution läuft, hat aber nicht auf Orcas Prüfanfrage geantwortet.",
+        "orcadUnanswered": "Der Orca-Server in der Distribution hat nicht geantwortet.",
+        "restartGaveUp_one": "Der Orca-Server in {{distro}} konnte nach {{count}} Versuch nicht neu gestartet werden",
+        "restartGaveUp_other": "Der Orca-Server in {{distro}} konnte nach {{count}} Versuchen nicht neu gestartet werden",
+        "serviceUnconfirmed": "Der WSL-Dienst hat nicht bestätigt, ob die Distribution läuft.",
+        "peerCheckFailed": "Orca konnte den WSL-Host nicht fragen, ob eine andere Orca-Instanz auf diesem Computer ihn noch nutzt: {{detail}}",
+        "removalUnrecorded": "Orca konnte nicht erfassen, was nach dem Entfernen noch läuft: {{detail}}"
+      }
     }
   },
   "app": {

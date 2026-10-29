@@ -20577,6 +20577,26 @@
         "gitInitFailed": "No se pudo inicializar el repositorio Git: {{detail}}",
         "initialCommitFailed": "No se pudo crear el commit inicial: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} ya es un host.",
+        "distroStopped": "{{distro}} se detuvo después de que se leyera la lista. Elige «Iniciar y agregar» para iniciarla.",
+        "wsl1": "{{distro}} usa WSL 1, que Orca ya no admite. Conviértela a WSL 2 en una terminal de Windows con: {{command}}",
+        "notRegistered": "{{distro}} no es una distro WSL instalada. Ejecuta {{command}} en una terminal de Windows para ver las instaladas, o reinstálala e inténtalo de nuevo.",
+        "sshManaged": "{{distro}} ya ejecuta el servidor Orca de «{{server}}», al que este equipo accede por SSH. Elimina primero ese servidor; aún no se admite moverlo a un host WSL."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows no indicó si la distro está en ejecución.",
+        "guestUnanswered": "La distro está en ejecución, pero no respondió a la comprobación de Orca.",
+        "orcadUnanswered": "El servidor Orca de la distro no respondió.",
+        "restartGaveUp_one": "No se pudo reiniciar el servidor Orca en {{distro}} después de {{count}} intento",
+        "restartGaveUp_other": "No se pudo reiniciar el servidor Orca en {{distro}} después de {{count}} intentos",
+        "restartGaveUp_many": "No se pudo reiniciar el servidor Orca en {{distro}} después de {{count}} intentos",
+        "serviceUnconfirmed": "El servicio WSL no confirmó si la distro está en ejecución.",
+        "peerCheckFailed": "Orca no pudo consultar al host WSL si otro Orca en este equipo aún lo usa: {{detail}}",
+        "removalUnrecorded": "Orca no pudo registrar qué quedó en ejecución tras esta eliminación: {{detail}}"
+      }
     }
   },
   "rendererRecovery": {

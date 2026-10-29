@@ -20346,6 +20346,26 @@
         "gitInitFailed": "Impossible d’initialiser le dépôt Git : {{detail}}",
         "initialCommitFailed": "Impossible de créer le commit initial : {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} est déjà un hôte.",
+        "distroStopped": "{{distro}} s'est arrêtée depuis la lecture de la liste. Choisissez « Démarrer et ajouter » pour la démarrer.",
+        "wsl1": "{{distro}} utilise WSL 1, qu'Orca ne prend plus en charge. Convertissez-la en WSL 2 dans un terminal Windows avec : {{command}}",
+        "notRegistered": "{{distro}} n'est pas une distro WSL installée. Exécutez {{command}} dans un terminal Windows pour voir celles qui sont installées, ou réinstallez-la et réessayez.",
+        "sshManaged": "{{distro}} exécute déjà le serveur Orca de « {{server}} », auquel cet ordinateur accède via SSH. Supprimez d'abord ce serveur ; son déplacement vers un hôte WSL n'est pas encore pris en charge."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows n'a pas indiqué si la distro est en cours d'exécution.",
+        "guestUnanswered": "La distro est en cours d'exécution, mais n'a pas répondu à la vérification d'Orca.",
+        "orcadUnanswered": "Le serveur Orca dans la distro n'a pas répondu.",
+        "restartGaveUp_one": "Impossible de redémarrer le serveur Orca dans {{distro}} après {{count}} tentative",
+        "restartGaveUp_other": "Impossible de redémarrer le serveur Orca dans {{distro}} après {{count}} tentatives",
+        "restartGaveUp_many": "Impossible de redémarrer le serveur Orca dans {{distro}} après {{count}} tentatives",
+        "serviceUnconfirmed": "Le service WSL n'a pas confirmé si la distro est en cours d'exécution.",
+        "peerCheckFailed": "Orca n'a pas pu demander à l'hôte WSL si un autre Orca sur cet ordinateur l'utilise encore : {{detail}}",
+        "removalUnrecorded": "Orca n'a pas pu enregistrer ce qui est resté en cours d'exécution après cette suppression : {{detail}}"
+      }
     }
   },
   "editor": {

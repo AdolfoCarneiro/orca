@@ -19711,6 +19711,24 @@
         "gitInitFailed": "Git 리포지토리를 초기화하지 못했습니다: {{detail}}",
         "initialCommitFailed": "초기 commit을 생성하지 못했습니다: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}}은(는) 이미 호스트입니다.",
+        "distroStopped": "목록을 읽은 후 {{distro}}이(가) 중지되었습니다. 시작하려면 “시작 및 추가”를 선택하세요.",
+        "wsl1": "{{distro}}은(는) Orca에서 더 이상 지원하지 않는 WSL 1을 사용합니다. Windows 터미널에서 다음 명령으로 WSL 2로 변환하세요: {{command}}",
+        "notRegistered": "{{distro}}은(는) 설치된 WSL 배포판이 아닙니다. Windows 터미널에서 {{command}}을(를) 실행해 설치된 배포판을 확인하거나, 다시 설치한 후 재시도하세요.",
+        "sshManaged": "{{distro}}에서 이미 “{{server}}”의 Orca 서버가 실행 중이며, 이 컴퓨터는 SSH로 해당 서버에 연결합니다. 먼저 해당 서버를 제거하세요. WSL 호스트로 옮기는 기능은 아직 지원되지 않습니다."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows에서 배포판의 실행 여부를 보고하지 않았습니다.",
+        "guestUnanswered": "배포판이 실행 중이지만 Orca의 확인 요청에 응답하지 않았습니다.",
+        "orcadUnanswered": "배포판 내 Orca 서버가 응답하지 않았습니다.",
+        "restartGaveUp_other": "{{count}}회 시도 후에도 {{distro}}의 Orca 서버를 다시 시작하지 못했습니다",
+        "serviceUnconfirmed": "WSL 서비스가 배포판의 실행 여부를 확인해 주지 않았습니다.",
+        "peerCheckFailed": "Orca가 WSL 호스트에 이 컴퓨터의 다른 Orca가 아직 사용 중인지 확인을 요청하지 못했습니다: {{detail}}",
+        "removalUnrecorded": "Orca가 이번 제거 후에도 계속 실행 중인 항목을 기록하지 못했습니다: {{detail}}"
+      }
     }
   },
   "editor": {
