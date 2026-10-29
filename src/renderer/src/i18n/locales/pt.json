@@ -8796,10 +8796,6 @@
           "useForLight": "Usar no claro:",
           "useForDark": "Usar no escuro:"
         },
-        "pluginThemeApply": {
-          "setAsLight": "{{value0}} agora é seu tema claro",
-          "setAsDark": "{{value0}} agora é seu tema escuro"
-        },
         "AppearanceInterfaceSection": {
           "lightTheme": "Tema claro",
           "darkTheme": "Tema escuro",

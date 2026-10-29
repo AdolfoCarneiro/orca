@@ -109,16 +109,28 @@ it('fills both slots from a light and dark pair, plus icon and terminal themes',
   })
 })
 
-it('fills only the matching slot of a single theme and says so when it is not showing', async () => {
+it('switches to the mode of a single theme so installing it visibly changes the app', async () => {
   installApi({ themes: [appTheme('dusk', 'dark')], terminals: [darkTerminal] })
   await applyPluginThemesNow(pluginKey)
   expect(useAppStore.getState().settings).toMatchObject({
-    theme: 'light',
+    theme: 'dark',
     pluginAppThemeLight: null,
     pluginAppThemeDark: `plugin:${pluginKey}/dusk`,
     terminalThemeDark: `plugin:${pluginKey}/term`
   })
-  expect(vi.mocked(toast.success).mock.calls.at(-1)?.[0]).toBe('Dusk set as your dark theme')
+  expect(vi.mocked(toast.success).mock.calls.at(-1)?.[0]).toBe('Now using Dusk')
+  switchBack()
+  await vi.waitFor(() => expect(useAppStore.getState().settings?.theme).toBe('light'))
+})
+
+it('puts a lone terminal theme for the other mode in the terminal slot that is showing', async () => {
+  installApi({ terminals: [darkTerminal] })
+  await applyPluginThemesNow(pluginKey)
+  expect(useAppStore.getState().settings).toMatchObject({
+    theme: 'light',
+    terminalThemeLight: `plugin:${pluginKey}/term`,
+    terminalUseSeparateLightTheme: true
+  })
 })
 
 it('keeps another pack in the other slot so packs mix', async () => {

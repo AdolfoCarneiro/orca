@@ -11396,9 +11396,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} を使用中",
-          "switchBack": "元に戻す",
-          "setAsLight": "{{value0}} をライトテーマに設定しました",
-          "setAsDark": "{{value0}} をダークテーマに設定しました"
+          "switchBack": "元に戻す"
         },
         "pluginError": {
           "installManifestMissing": "読み取り可能なorca-plugin.jsonが見つかりません。プラグインのルートフォルダーを選択してください。",

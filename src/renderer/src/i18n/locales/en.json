@@ -13109,9 +13109,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "Now using {{value0}}",
-          "switchBack": "Switch back",
-          "setAsLight": "{{value0}} set as your light theme",
-          "setAsDark": "{{value0}} set as your dark theme"
+          "switchBack": "Switch back"
         },
         "PluginChips": {
           "updateNeedsReview": "Update needs review",

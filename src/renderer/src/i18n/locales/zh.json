@@ -11396,9 +11396,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "正在使用 {{value0}}",
-          "switchBack": "切换回去",
-          "setAsLight": "已将 {{value0}} 设为浅色主题",
-          "setAsDark": "已将 {{value0}} 设为深色主题"
+          "switchBack": "切换回去"
         },
         "pluginError": {
           "installManifestMissing": "未找到可读的 orca-plugin.json。请选择插件的根文件夹。",

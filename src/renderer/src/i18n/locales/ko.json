@@ -11396,9 +11396,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} 사용 중",
-          "switchBack": "되돌리기",
-          "setAsLight": "{{value0}}을(를) 라이트 테마로 설정함",
-          "setAsDark": "{{value0}}을(를) 다크 테마로 설정함"
+          "switchBack": "되돌리기"
         },
         "pluginError": {
           "installManifestMissing": "읽을 수 있는 orca-plugin.json이 없습니다. 플러그인 루트 폴더를 선택하세요.",

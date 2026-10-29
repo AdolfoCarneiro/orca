@@ -11847,9 +11847,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} est maintenant utilisé",
-          "switchBack": "Revenir",
-          "setAsLight": "{{value0}} est maintenant votre thème clair",
-          "setAsDark": "{{value0}} est maintenant votre thème sombre"
+          "switchBack": "Revenir"
         },
         "pluginError": {
           "installManifestMissing": "Aucun orca-plugin.json lisible trouvé. Choisissez le dossier racine du plugin.",
