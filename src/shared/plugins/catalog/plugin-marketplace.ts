@@ -226,7 +226,6 @@ export type PluginMarketplace = z.infer<typeof pluginMarketplaceListingSchema>
 export type PluginMarketplaceEntry = z.infer<typeof pluginMarketplaceListingEntrySchema>
 export type PluginMarketplaceGitSource = z.infer<typeof pluginMarketplaceGitSourceSchema>
 export type PluginCatalogGitSource = z.infer<typeof catalogV2GitSourceSchema>
-export type PluginMarketplaceTrustMetadata = z.infer<typeof pluginMarketplaceTrustMetadataSchema>
 
 export const OFFICIAL_MARKETPLACE_GIT_SOURCE: PluginMarketplaceGitSource = {
   kind: 'git',
@@ -270,6 +269,9 @@ type GitRepositoryIdentity = {
   path: string
 }
 
+// Why only these: a self-hosted server may serve `team/Plugin` and `team/plugin` as two repositories.
+const CASE_INSENSITIVE_GIT_HOSTS = new Set(['github.com', 'gitlab.com', 'bitbucket.org'])
+
 /** Extracts the host and first owner segment from the HTTPS/SSH Git forms the
  * installer accepts. It is intentionally only a provenance parser. */
 export function parseGitRepositoryIdentity(url: string): GitRepositoryIdentity | null {
@@ -302,17 +304,21 @@ function repositoryIdentity(host: string, repositoryPath: string): GitRepository
   if (!repository) {
     return null
   }
-  const path = [...segments.slice(0, -1), repository].join('/').toLowerCase()
-  return { host: host.toLowerCase(), owner: segments[0]!, repository, path }
+  const lowerHost = host.toLowerCase()
+  const exactPath = [...segments.slice(0, -1), repository].join('/')
+  const path = CASE_INSENSITIVE_GIT_HOSTS.has(lowerHost) ? exactPath.toLowerCase() : exactPath
+  return { host: lowerHost, owner: segments[0]!, repository, path }
 }
 
 /** `host/owner` of a repository, with every GitLab subgroup (`gitlab.com/acme/tools`). */
 export function gitRepositoryOwnerLabel(url: string): string | null {
   const identity = parseGitRepositoryIdentity(url)
-  return identity ? [identity.host, ...identity.path.split('/').slice(0, -1)].join('/') : null
+  return identity
+    ? [identity.host, ...identity.path.split('/').slice(0, -1)].join('/').toLowerCase()
+    : null
 }
 
-/** Same repository regardless of URL spelling (https vs scp, `.git`, case). */
+/** Same repository regardless of URL spelling (https vs scp, `.git`, case where the host ignores it). */
 export function isSameGitRepository(left: string, right: string): boolean {
   const a = parseGitRepositoryIdentity(left)
   const b = parseGitRepositoryIdentity(right)

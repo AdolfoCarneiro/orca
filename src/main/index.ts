@@ -11,6 +11,7 @@ import { openMainWindow as openMainWindowController } from './startup/main-windo
 import { mainProcessState as state } from './startup/main-process-state'
 import { runMainProcessPreflight } from './startup/main-process-preflight'
 import { runWslHolderUninstallPreflight } from './startup/wsl-holder-uninstall-preflight'
+import { runAgentHooksUninstallPreflight } from './startup/agent-hooks-uninstall-preflight'
 import { enableLinearRegexpFallback } from './startup/linear-regexp-fallback'
 import { registerMainProcessIpcHandlers } from './startup/main-process-ipc-bootstrap'
 import { initializeMainProcessReady } from './startup/main-process-ready'
@@ -39,6 +40,7 @@ import { wslHostsServing } from './wsl/wsl-host-gate'
 import { configureWslHostsGateFromDisk } from './wsl/wsl-host-gate-startup'
 import { ignoreInheritedWslHostsGateState } from '../shared/wsl-host-internal-gate'
 import { registerOrcaProtocolClient } from './startup/orca-protocol-registration'
+import { clearWindowsStdHandleInheritance } from './startup/windows-std-handle-inheritance'
 
 function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}): BrowserWindow {
   return openMainWindowController(options)
@@ -106,11 +108,14 @@ const handleMacAppActivation = createMacAppActivationHandler({
   requestActivation: requestDesktopActivation
 })
 
+// Before anything spawns: no child may inherit Orca's std handles.
+clearWindowsStdHandleInheritance()
 // A relaunch or installer inherits the parent's published WSL gate state; this process recomputes.
 ignoreInheritedWslHostsGateState()
-// The uninstaller's holder release runs instead of the app, never alongside it.
+// The uninstaller's holder release and hook removal run instead of the app, never alongside it.
 const preflightReady =
   !runWslHolderUninstallPreflight() &&
+  !runAgentHooksUninstallPreflight() &&
   runMainProcessPreflight({
     focusExistingWindow,
     requestDesktopActivation
@@ -161,9 +166,9 @@ if (preflightReady) {
         handleMacAppActivation
       })
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
       const message =
-        formatProfileStateStartupFailure(error) ??
-        `Orca could not finish starting: ${error instanceof Error ? error.message : String(error)}`
+        formatProfileStateStartupFailure(error) ?? `Orca could not finish starting: ${detail}`
       const failureClass = profileStateStartupFailureClass(error)
       if (failureClass !== undefined) {
         recordDurableCrashBreadcrumb('profile_state_startup_failed', {
@@ -220,7 +225,13 @@ if (preflightReady) {
             return
           }
           await presentProfileStateStartupRecoveryDialog({
-            message,
+            message:
+              formatProfileStateStartupFailure(error, translateMain) ??
+              translateMain(
+                'startupFailure.finishFailed',
+                'Orca could not finish starting: {{detail}}',
+                { detail }
+              ),
             ...(failureClass === 'recovery-required' || failureClass === 'ambiguous-authority'
               ? { recoveryCommand: 'orca profile state exports' }
               : {}),

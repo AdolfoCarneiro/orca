@@ -23,7 +23,11 @@ import { execCommand } from '../ssh/remote-exec/remote-exec-command'
 import { readConfirmedRunningWslDistros } from '../wsl-background-distro-gate'
 import { readWindowsProcessTableFresh } from '../windows/windows-process-table'
 import { resolveWslInteropSpawnCwd } from '../wsl-interop-spawn-directory'
-import { buildWslExecArgs, buildWslLoginShellCommand } from '../../shared/wsl-login-shell-command'
+import {
+  buildWslExecArgs,
+  buildWslInteractiveLoginShellCommand,
+  buildWslLoginShellCommand
+} from '../../shared/wsl-login-shell-command'
 import { resolveWslExecutablePath } from './wsl-executable-path'
 import { createWslDistroHolder, type WslDistroHolder } from './wsl-distro-holder'
 import { WSL_DISTRO_HOLDER_POLL_SECONDS } from './wsl-distro-holder-command'
@@ -62,6 +66,8 @@ const RECEIPT_DIR = process.env.ORCA_WSL_ORCAD_LANE_RECEIPTS ?? join(WORK_DIR, '
 const IDLE_TIMEOUT_MS = 15_000
 // Idle period, one holder poll, then WSL's own stop of a distro with no client left.
 const RELEASE_BUDGET_MS = IDLE_TIMEOUT_MS + WSL_DISTRO_HOLDER_POLL_SECONDS * 1000 + 90_000
+// Round-trip counts are exact; five runs keep the ms medians readable on a noisy runner.
+const RESTART_RUNS = 5
 const HELD_WITH_TERMINAL_MS = IDLE_TIMEOUT_MS + WSL_DISTRO_HOLDER_POLL_SECONDS * 1000 + 45_000
 
 type Receipt = Record<string, unknown>
@@ -446,6 +452,46 @@ async function restartThroughBridgeExec(): Promise<Receipt> {
   return { firstOutputMs }
 }
 
+/**
+ * (c) Old bridge as the app runs it: wsl.exe in a ConPTY with the same setup command the bridge's
+ * WSL terminals use (cd, PATH, the distro's interactive login shell), the probe typed ahead.
+ */
+async function restartThroughBridgeConpty(): Promise<Receipt> {
+  await terminatePlain()
+  const pty = await import('node-pty')
+  const probe = outputProbe()
+  const setup = ['cd "$HOME"', buildWslInteractiveLoginShellCommand()].join(' && ')
+  const started = performance.now()
+  const terminal = pty.spawn(
+    resolveWslExecutablePath(),
+    buildWslExecArgs(PLAIN, ['sh', '-c', setup]),
+    {
+      cols: 120,
+      rows: 30,
+      cwd: resolveWslInteropSpawnCwd(),
+      env: { ...process.env }
+    }
+  )
+  let output = ''
+  let firstPaintMs: number | null = null
+  terminal.onData((data) => {
+    firstPaintMs ??= Math.round(performance.now() - started)
+    output += data
+  })
+  try {
+    terminal.write(`${probe.command}\r`)
+    await waitFor(
+      'the bridge terminal to answer',
+      async () => (output.includes(probe.token) ? true : null),
+      120_000,
+      50
+    )
+    return { firstPaintMs, firstOutputMs: Math.round(performance.now() - started) }
+  } finally {
+    terminal.kill()
+  }
+}
+
 // A guest command's output is capped at 1 MiB; read big files in base64 chunks below that.
 const GUEST_READ_BLOCK_BYTES = 64 * 1024
 const GUEST_READ_BLOCKS_PER_CHUNK = 8
@@ -497,7 +543,7 @@ async function profileOrcadRestart(repoPath: string): Promise<string[]> {
 }
 
 /**
- * Distro restart (VM warm) to first command output, median of 3 each, alternating so neither path
+ * Distro restart (VM warm) to first command output, median of 5 each, alternating so neither path
  * always runs on a warmer VM.
  */
 async function distroRestartBaseline(): Promise<void> {
@@ -506,12 +552,14 @@ async function distroRestartBaseline(): Promise<void> {
   await restartThroughBridgeExec()
   const host: Awaited<ReturnType<typeof restartThroughHost>>[] = []
   const bridge: Receipt[] = []
-  for (let i = 0; i < 3; i++) {
+  const conpty: Receipt[] = []
+  for (let i = 0; i < RESTART_RUNS; i++) {
     host.push(await restartThroughHost(repoPath))
     bridge.push(await restartThroughBridgeExec())
+    conpty.push(await restartThroughBridgeConpty())
   }
   const median = (runs: Receipt[], key: string): number =>
-    runs.map((run) => Number(run[key])).toSorted((a, b) => a - b)[1] ?? 0
+    runs.map((run) => Number(run[key])).toSorted((a, b) => a - b)[(runs.length - 1) >> 1] ?? 0
   receipt.distroRestartToFirstOutput = {
     host,
     bridgeExecLowerBound: bridge,
@@ -521,7 +569,10 @@ async function distroRestartBaseline(): Promise<void> {
     medianHostSendToFirstOutputMs: median(host, 'sendToFirstOutputMs'),
     medianOrcadStartup: medianOrcadStartupTiming(host.map((run) => run.orcadStartup)),
     medianHostPhases: medianWslOrcadEnsurePhases(host.map((run) => run.phases)),
-    medianBridgeExecLowerBoundMs: median(bridge, 'firstOutputMs')
+    medianBridgeExecLowerBoundMs: median(bridge, 'firstOutputMs'),
+    bridgeConpty: conpty,
+    medianBridgeConptyFirstPaintMs: median(conpty, 'firstPaintMs'),
+    medianBridgeConptyFirstOutputMs: median(conpty, 'firstOutputMs')
   }
   receipt.orcadStartupProfiles = await profileOrcadRestart(repoPath)
   await terminatePlain()
@@ -549,7 +600,7 @@ describe.runIf(RUN && process.platform === 'win32')('WSL distro idle release', (
     RELEASE_BUDGET_MS + 2 * HELD_WITH_TERMINAL_MS + 6 * 60_000
   )
 
-  // After the idle phase: six distro restarts, a warm-up and one profiled restart, each bounded.
+  // After the idle phase: fifteen distro restarts, a warm-up and one profiled restart, each bounded.
   it(
     'measures distro restart to first output for the WSL host and an old-bridge exec lower bound',
     distroRestartBaseline,

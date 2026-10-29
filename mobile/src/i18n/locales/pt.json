@@ -1278,6 +1278,7 @@
       "chooseWorkspaceFile": "Selecione um arquivo neste espaço de trabalho.",
       "discard": "Descartar",
       "discardMessage": "As alterações não salvas serão perdidas.",
+      "discardMessageSaving": "O salvamento em andamento pode não ser concluído. As edições não salvas serão perdidas.",
       "discardTitle": "Descartar alterações?",
       "fileTitle": "Arquivo",
       "loadFailed": "Não foi possível carregar a pré-visualização",

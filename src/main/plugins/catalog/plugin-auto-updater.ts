@@ -183,7 +183,11 @@ export class PluginAutoUpdater {
     const outcome: PluginCatalogInstallOutcome = await installCatalogReleaseWithApproval({
       pluginKey: plugin.pluginKey,
       pluginService,
-      install: () => installer.install(preview, { requireInstalled: true }),
+      // Why at the last await: the user may turn auto-update off while this pass waits.
+      install: async () =>
+        this.options.isEnabled()
+          ? installer.install(preview, { requireInstalled: true })
+          : { ok: false, error: 'automatic updates were turned off' },
       approve: this.options.approve
     })
     if (!outcome.ok) {
