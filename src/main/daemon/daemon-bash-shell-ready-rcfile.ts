@@ -106,8 +106,9 @@ __orca_osc133_epilogue() {
   trap '__orca_osc133_preexec' DEBUG
   # Readline renders PS1 after entering raw mode; prompt hooks still run in cooked mode.
   if [[ -n "$__orca_ready_marker" ]]; then
-    # ble.sh discards Bash's own prompt output and has already taken over the TTY, so print directly.
-    if [[ -n "\${BLE_ATTACHED-}" ]]; then
+    # Attached ble.sh (0.3+) discards Bash's own prompt output and owns the TTY, so print directly.
+    # Require its functions here so an inherited variable cannot select this cooked-mode path.
+    if [[ -n "\${_ble_attached-}" ]] && declare -F ble-attach >/dev/null; then
       printf "\\033]777;orca-shell-ready\\007"
     else
       PS1="\${PS1-}"'\\[\\e]777;orca-shell-ready\\a\\]'

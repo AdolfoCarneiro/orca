@@ -219,14 +219,30 @@ describePosix('daemon shell-ready bash wrapper', () => {
     }
   )
 
-  itWithBash('emits the ready marker once while ble.sh hides the readline prompt', async () => {
+  // Profiles discard Bash's own prompt output the way attached ble.sh does (internal_suppress_bash_output).
+  itWithBash('prints the ready marker directly once ble.sh is attached in this shell', async () => {
     const { getDaemonBashShellReadyRcfileContent } = await importFreshDaemonBashRcfile()
-    // Like ble.sh's internal_suppress_bash_output: after attach, Bash's own prompt goes nowhere.
-    writeFileSync(join(userDataPath, '.bash_profile'), 'BLE_ATTACHED=1\nexec 2>/dev/null\n')
+    writeFileSync(
+      join(userDataPath, '.bash_profile'),
+      'ble-attach() { :; }\n_ble_attached=1\nexec 2>/dev/null\n'
+    )
 
     const output = runInteractiveBashRcfile(getDaemonBashShellReadyRcfileContent(), userDataPath)
 
     expect(output.split('\x1b]777;orca-shell-ready\x07')).toHaveLength(2)
+  })
+
+  itWithBash('keeps the PS1 marker when ble.sh variables are only inherited', async () => {
+    const { getDaemonBashShellReadyRcfileContent } = await importFreshDaemonBashRcfile()
+    writeFileSync(
+      join(userDataPath, '.bash_profile'),
+      'export BLE_ATTACHED=1 _ble_attached=1\nPROMPT_COMMAND=\'printf "PS1=[%s]\\n" "$PS1"\'\nexec 2>/dev/null\n'
+    )
+
+    const output = runInteractiveBashRcfile(getDaemonBashShellReadyRcfileContent(), userDataPath)
+
+    expect(output).not.toContain('\x1b]777;orca-shell-ready\x07')
+    expect(output).toContain('\\e]777;orca-shell-ready\\a')
   })
 
   itWithBash('normalizes array PROMPT_COMMAND hooks so bash 3.2 still runs cleanup', async () => {
