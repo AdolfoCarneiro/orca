@@ -70,7 +70,7 @@ describe('IPC process description lifetime', () => {
       agentOwnership: 'unknown'
     }))
     const retained = Object.fromEntries(
-      rows.map((row, i) => [
+      rows.map((_, i) => [
         terminalProcessMetadataKey(i % 2 ? 'ssh:other' : 'local', `retained-${i}`),
         { observationRevision: 1, incarnationId: `retained-${i}`, retired: true as const }
       ])
