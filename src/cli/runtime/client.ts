@@ -11,7 +11,12 @@ import {
 import type { PairedRuntimeConnection } from '../../shared/paired-runtime-connection'
 import { openLocalOrca } from './open-local-orca'
 import { getDefaultUserDataPath, readMetadata } from './metadata'
-import { getCliStatus, projectRemoteAppStatus } from './status'
+import {
+  getCliStatus,
+  getOfflineRuntimeAdmission,
+  type OfflineRuntimeAdmission,
+  projectRemoteAppStatus
+} from './status'
 import { sendRequest } from './transport'
 import { RuntimeClientError, RuntimeRpcFailureError, type RuntimeRpcSuccess } from './types'
 import {
@@ -247,6 +252,18 @@ export class RuntimeClient {
       }
     }
     return getCliStatus(this.userDataPath)
+  }
+
+  async getOfflineRuntimeAdmission(): Promise<OfflineRuntimeAdmission> {
+    if (this.remote) {
+      const status = await this.getCliStatus()
+      return {
+        reachable: status.result.runtime.reachable,
+        legacyPidRunning: status.result.app.running,
+        pid: status.result.app.pid ?? null
+      }
+    }
+    return getOfflineRuntimeAdmission(this.userDataPath)
   }
 
   private async ensureOrchestrationContractCompatible(timeoutMs: number): Promise<void> {

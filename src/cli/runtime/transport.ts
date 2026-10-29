@@ -17,7 +17,8 @@ export async function sendRequest<TResult>(
   timeoutMs: number,
   envelope?: RuntimeOrchestrationEnvelope,
   // Federation forwards envelopes; the runtime fence must stay local.
-  expectedRuntimeSource?: ExpectedRuntimeSource
+  expectedRuntimeSource?: ExpectedRuntimeSource,
+  classifySocketError: (error: Error) => RuntimeClientError | null = runtimeAccessDeniedError
 ): Promise<RuntimeRpcResponse<TResult>> {
   if (!isSafeTimerDelayMs(timeoutMs)) {
     throw new RuntimeClientError(
@@ -79,7 +80,7 @@ export async function sendRequest<TResult>(
         ok: false,
         // Access denial does not establish that the app is dead.
         error:
-          runtimeAccessDeniedError(error) ??
+          classifySocketError(error) ??
           new RuntimeClientError(
             'runtime_unavailable',
             'This terminal could not connect to Orca.',
