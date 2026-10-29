@@ -10,15 +10,12 @@ import {
   FeatureTipEyebrow,
   FeatureTipSettingsLine
 } from './FeatureTipDialogFrame'
-import { getLocalizedFeatureTipCopy } from './feature-tip-localized-copy'
 
 type ShownVariant = Exclude<ChatUiLaunchTipVariant, 'none'>
 
-// Side by side, the buttons' bottom meets the bottom of the card's composer box: the gap below the
-// centered 22rem card (the column is the frame less its 1px borders), the card's border, and the
-// composer's bottom padding of three spacing steps at the card's 12px chat text.
-const BUTTONS_ON_COMPOSER_EDGE =
-  'md:pb-[calc((min(27rem,100vh-2rem)-2px-22rem)/2+1px+(12px*3/3.5))]'
+// Side by side, the outer edge of the primary button's 3px focus ring sits on the bottom of the
+// visual's centered 22rem card; the column is the frame less its 1px borders.
+const BUTTONS_ON_CARD_EDGE = 'md:pb-[calc((min(27rem,100vh-2rem)-2px-22rem)/2+3px)]'
 
 function variantCopy(variant: ShownVariant): {
   paragraphs: string[]
@@ -63,6 +60,7 @@ export function ChatUiHereTipDialog({
   variant,
   onOpenChange,
   onPrimaryAction,
+  onSkip,
   onSettingsClick
 }: {
   open: boolean
@@ -70,10 +68,10 @@ export function ChatUiHereTipDialog({
   variant: ShownVariant
   onOpenChange: (open: boolean) => void
   onPrimaryAction: () => void
+  onSkip: () => void
   onSettingsClick: () => void
 }): JSX.Element {
   const primaryButtonRef = useRef<HTMLButtonElement>(null)
-  const copy = getLocalizedFeatureTipCopy(tip)
   const { paragraphs, secondaryLabel, primaryLabel } = variantCopy(variant)
 
   return (
@@ -86,13 +84,13 @@ export function ChatUiHereTipDialog({
         primaryButtonRef.current?.focus({ preventScroll: true })
       }}
       visual={<ChatUiHereFeatureTipVisual />}
-      copyClassName={BUTTONS_ON_COMPOSER_EDGE}
+      copyClassName={BUTTONS_ON_CARD_EDGE}
     >
       <DialogHeader className="gap-4 text-left">
         <div>
-          <FeatureTipEyebrow label={copy.eyebrow} />
+          <FeatureTipEyebrow label={translate('featureTips.eyebrowNew', 'New')} />
           <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
-            {copy.title}
+            {translate('featureTips.chatUiHere.title', 'Chat UI is here')}
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl space-y-3 text-sm leading-relaxed">
             {paragraphs.map((paragraph) => (
@@ -116,7 +114,7 @@ export function ChatUiHereTipDialog({
           currentTip={tip}
           primaryBusy={false}
           onPrimaryAction={onPrimaryAction}
-          onSkip={() => onOpenChange(false)}
+          onSkip={onSkip}
           showSkip={secondaryLabel !== null}
           secondaryLabel={secondaryLabel ?? undefined}
           fullWidth

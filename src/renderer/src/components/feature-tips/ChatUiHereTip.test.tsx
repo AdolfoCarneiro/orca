@@ -7,7 +7,9 @@ import { FEATURE_TIPS, type FeatureTip } from '../../../../shared/feature-tips'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { ChatUiLaunchTipVariant } from '../../../../shared/native-chat/chat-ui-launch-tip-audience'
 import { TUI_AGENT_CONFIG } from '../../../../shared/tui-agent-config'
+import { track } from '@/lib/telemetry'
 import { useAppStore } from '@/store'
+import { chatDemoRevealTokens, getChatDemoCopy } from './chat-ui-here-feature-tip-demo'
 import { FeatureTipActions } from './FeatureTipActions'
 import FeatureTipsModal from './FeatureTipsModal'
 
@@ -33,6 +35,7 @@ beforeEach(() => {
   container = document.createElement('div')
   root = createRoot(container)
   updateSettings.mockReset()
+  vi.mocked(track).mockReset()
   updateSettingsOrThrow.mockReset().mockResolvedValue(undefined)
 })
 
@@ -69,6 +72,10 @@ describe('Chat UI is here tip', () => {
     ])
     act(() => footerButtons()[0]?.click())
     expect(useAppStore.getState().activeModal).toBe('none')
+    expect(track).toHaveBeenLastCalledWith('chat_ui_feature_tip_action', {
+      variant: 'chat_ui_off',
+      action: 'stay_in_terminal'
+    })
 
     openTip('chat-ui-off')
     await act(async () => footerButtons()[1]?.click())
@@ -79,6 +86,10 @@ describe('Chat UI is here tip', () => {
       )
     })
     expect(updateSettings).not.toHaveBeenCalled()
+    expect(track).toHaveBeenLastCalledWith('chat_ui_feature_tip_action', {
+      variant: 'chat_ui_off',
+      action: 'use_chat_ui'
+    })
   })
 
   it('offers chat users a single Got it that closes without saving', async () => {
@@ -93,6 +104,20 @@ describe('Chat UI is here tip', () => {
   it('renders nothing for a profile outside the audience, even when named', () => {
     openTip('none')
     expect(container.innerHTML).toBe('')
+  })
+
+  it('reveals the reply word by word around an untranslated file link, in any script', () => {
+    const reply = getChatDemoCopy().reply
+    expect(reply.map((token) => token.text).join('')).toBe(
+      'Login starts in auth.ts: the browser posts to /login, the server checks the password and creates a session, then redirects you to the app. Here’s the flow:'
+    )
+    expect(reply.filter((token) => token.link)).toEqual([{ text: 'auth.ts', link: true }])
+    expect(reply[0]).toEqual({ text: 'Login ' })
+    // Japanese has no spaces; it still streams in several steps instead of one block.
+    const japanese = 'ブラウザが /login に送信し、サーバーがパスワードを確認します。'
+    const tokens = chatDemoRevealTokens(japanese)
+    expect(tokens.map((token) => token.text).join('')).toBe(japanese)
+    expect(tokens.length).toBeGreaterThan(5)
   })
 
   it('keeps the other tips’ default secondary label', () => {

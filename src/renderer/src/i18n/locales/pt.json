@@ -691,7 +691,15 @@
       "changeInSettings": "Altere quando quiser em <link>Configurações → Agentes</link>.",
       "stayInTerminal": "Continuar no terminal",
       "cta": "Usar a interface de chat",
-      "saveFailed": "Não foi possível ativar a interface de chat. Escolha Chat em Configurações → Agentes."
+      "saveFailed": "Não foi possível ativar a interface de chat. Escolha Chat em Configurações → Agentes.",
+      "demoTabTitle": "Explicar o login",
+      "demoPrompt": "Mostre como o login funciona",
+      "demoReply": "O login começa em {{file}}: o navegador envia para /login, o servidor verifica a senha e cria uma sessão, depois redireciona você para o app. Este é o fluxo:",
+      "demoBrowser": "Navegador",
+      "demoSession": "Sessão",
+      "demoApp": "App",
+      "demoPassword": "senha",
+      "demoCookie": "cookie"
     }
   },
   "rendererRecovery": {

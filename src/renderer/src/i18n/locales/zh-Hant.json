@@ -19900,7 +19900,15 @@
       "changeInSettings": "隨時可在<link>設定 → 代理程式</link>中變更。",
       "stayInTerminal": "繼續使用終端機",
       "cta": "使用聊天介面",
-      "saveFailed": "無法開啟聊天介面。請在「設定 → 代理程式」中選擇聊天。"
+      "saveFailed": "無法開啟聊天介面。請在「設定 → 代理程式」中選擇聊天。",
+      "demoTabTitle": "說明登入流程",
+      "demoPrompt": "說明登入是怎麼運作的",
+      "demoReply": "登入從 {{file}} 開始：瀏覽器送出到 /login，伺服器檢查密碼並建立工作階段，然後將您重新導向到應用程式。流程如下：",
+      "demoBrowser": "瀏覽器",
+      "demoSession": "工作階段",
+      "demoApp": "應用程式",
+      "demoPassword": "密碼",
+      "demoCookie": "Cookie"
     }
   },
   "quickOpen": {

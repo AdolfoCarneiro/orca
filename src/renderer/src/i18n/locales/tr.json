@@ -20198,7 +20198,15 @@
       "changeInSettings": "İstediğiniz zaman <link>Ayarlar → Ajanlar</link> bölümünden değiştirin.",
       "stayInTerminal": "Terminalde kal",
       "cta": "Sohbet arayüzünü kullan",
-      "saveFailed": "Sohbet arayüzü açılamadı. Ayarlar → Ajanlar bölümünden Sohbet’i seçin."
+      "saveFailed": "Sohbet arayüzü açılamadı. Ayarlar → Ajanlar bölümünden Sohbet’i seçin.",
+      "demoTabTitle": "Girişi açıkla",
+      "demoPrompt": "Girişin nasıl çalıştığını çıkar",
+      "demoReply": "Giriş {{file}} dosyasında başlar: tarayıcı /login adresine gönderir, sunucu parolayı denetleyip bir oturum oluşturur, ardından sizi uygulamaya yönlendirir. Akış şöyle:",
+      "demoBrowser": "Tarayıcı",
+      "demoSession": "Oturum",
+      "demoApp": "Uygulama",
+      "demoPassword": "parola",
+      "demoCookie": "çerez"
     }
   },
   "quickOpen": {

@@ -20655,7 +20655,15 @@
       "changeInSettings": "Change anytime in <link>Settings → Agents</link>.",
       "stayInTerminal": "Stay in terminal",
       "cta": "Use Chat UI",
-      "saveFailed": "Could not turn on Chat UI. Choose Chat in Settings → Agents."
+      "saveFailed": "Could not turn on Chat UI. Choose Chat in Settings → Agents.",
+      "demoTabTitle": "Explain login",
+      "demoPrompt": "Map out how login works",
+      "demoReply": "Login starts in {{file}}: the browser posts to /login, the server checks the password and creates a session, then redirects you to the app. Here’s the flow:",
+      "demoBrowser": "Browser",
+      "demoSession": "Session",
+      "demoApp": "App",
+      "demoPassword": "password",
+      "demoCookie": "cookie"
     }
   },
   "quickOpen": {

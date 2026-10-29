@@ -1,32 +1,25 @@
-import { useEffect, useState, type CSSProperties, type JSX, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type JSX, type ReactNode } from 'react'
 import { ArrowUp, ChevronDown, ChevronRight, Eye, Hand, Plus, Square, X } from 'lucide-react'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { usePrefersReducedMotion } from '@/components/feature-wall/feature-wall-modal-helpers'
+import { nativeChatPermissionModeLabel } from '@/components/native-chat/native-chat-permission-mode-labels'
+import { nativeChatToolRowVerb } from '@/components/native-chat/native-chat-tool-line-label'
+import { translate } from '@/i18n/i18n'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { cn } from '@/lib/utils'
 import {
+  CHAT_DEMO_FILE,
   CHAT_DEMO_FINISHED_AT,
-  CHAT_DEMO_FLOW,
   CHAT_DEMO_LOOP_MS,
   CHAT_DEMO_MODEL,
-  CHAT_DEMO_PERMISSION,
-  CHAT_DEMO_PLACEHOLDER,
-  CHAT_DEMO_PROMPT,
-  CHAT_DEMO_REPLY,
-  CHAT_DEMO_TAB_TITLE,
-  CHAT_DEMO_TOOL,
-  CHAT_DEMO_WORKING,
-  chatDemoFrameAt,
-  nextChatDemoBeat,
+  createChatDemoTimeline,
+  getChatDemoCopy,
+  type ChatDemoCopy,
   type ChatDemoFrame
 } from './chat-ui-here-feature-tip-demo'
 
 // The smallest chat text size, so the real chat spacing fits the 22rem card the sibling visuals use.
 const CHAT_SCALE = { '--chat-font-size': '12px' } as CSSProperties
-const FLOW_WIDTH = 318
-const FLOW_GAP =
-  (FLOW_WIDTH - 2 - CHAT_DEMO_FLOW.reduce((sum, node) => sum + node.width, 0)) /
-  (CHAT_DEMO_FLOW.length - 1)
 
 /** A row that takes no height until it appears, so the transcript grows from its end. */
 function Row({ on, children }: { on: boolean; children: ReactNode }): JSX.Element {
@@ -40,78 +33,53 @@ function Row({ on, children }: { on: boolean; children: ReactNode }): JSX.Elemen
   )
 }
 
-function FlowDiagram({ frame }: { frame: ChatDemoFrame }): JSX.Element {
-  let x = 1
-  const nodes = CHAT_DEMO_FLOW.map((node, index) => {
-    const left = x
-    x += node.width + FLOW_GAP
-    const arrowStart = left + node.width + 4
-    const arrowEnd = left + node.width + FLOW_GAP - 4
-    const arrowOn = index < frame.arrows
-    return (
-      <g key={node.name}>
-        {node.arrow !== null ? (
-          <g className="fill-none stroke-chart-3 [stroke-width:1.25]">
-            <path
-              d={`M${arrowStart} 45 L${arrowEnd - 1} 45`}
-              pathLength={1}
-              strokeDasharray={1}
-              className="transition-[stroke-dashoffset] duration-300 ease-in-out"
-              style={{ strokeDashoffset: arrowOn ? 0 : 1 }}
-            />
-            <path
-              d={`M${arrowEnd - 4} 42 L${arrowEnd} 45 L${arrowEnd - 4} 48`}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              data-on={arrowOn}
-              className="opacity-0 transition-opacity delay-250 duration-100 data-[on=true]:opacity-100"
-            />
-            {node.arrow ? (
-              <text
-                x={(arrowStart + arrowEnd) / 2}
-                y={23}
-                textAnchor="middle"
-                data-on={arrowOn}
-                className="fill-chat-foreground-faint stroke-none text-[9px] opacity-0 transition-opacity delay-100 duration-300 data-[on=true]:opacity-100"
-              >
-                {node.arrow}
-              </text>
-            ) : null}
-          </g>
-        ) : null}
-        <g
-          data-on={index < frame.nodes}
-          className="origin-center scale-[0.94] opacity-0 transition-[opacity,scale] duration-300 ease-out [transform-box:fill-box] data-[on=true]:scale-100 data-[on=true]:opacity-100"
-        >
-          <rect
-            x={left}
-            y={30}
-            width={node.width}
-            height={30}
-            rx={7}
-            className="fill-[color-mix(in_srgb,var(--chart-1)_16%,var(--chat-canvas))] stroke-[color:color-mix(in_srgb,var(--chart-3)_55%,transparent)]"
-          />
-          <text
-            x={left + node.width / 2}
-            y={49}
-            textAnchor="middle"
-            className="fill-chat-foreground-strong text-[10.5px] font-medium"
+/** Boxes size to their labels; the arrows share what is left of the row. */
+function FlowDiagram({
+  flow,
+  frame
+}: {
+  flow: ChatDemoCopy['flow']
+  frame: ChatDemoFrame
+}): JSX.Element {
+  return (
+    <div className="flex items-end pt-[14px] pb-[10px]">
+      {flow.map((node, index) => (
+        <div key={node.name} className="contents">
+          <span
+            data-on={index < frame.nodes}
+            className="flex h-[30px] shrink-0 scale-[0.94] items-center rounded-[7px] border border-[color:color-mix(in_srgb,var(--chart-3)_55%,transparent)] bg-[color-mix(in_srgb,var(--chart-1)_16%,var(--chat-canvas))] px-[9px] text-[10.5px] font-medium whitespace-nowrap text-chat-foreground-strong opacity-0 transition-[opacity,scale] duration-300 ease-out data-[on=true]:scale-100 data-[on=true]:opacity-100"
           >
             {node.name}
-          </text>
-        </g>
-      </g>
-    )
-  })
-  return (
-    <svg viewBox={`0 0 ${FLOW_WIDTH} 70`} width="100%" height={70} className="block">
-      {nodes}
-    </svg>
+          </span>
+          {node.arrow !== null ? (
+            <span
+              data-on={index < frame.arrows}
+              className="group/arrow flex min-w-[20px] flex-1 flex-col items-center gap-[4px] px-[4px]"
+            >
+              {/* Centred over the arrow without widening it, so long labels never push the boxes out. */}
+              <span className="relative h-[12px] w-full">
+                <span className="absolute left-1/2 -translate-x-1/2 text-[9px] leading-[12px] whitespace-nowrap text-chat-foreground-faint opacity-0 transition-opacity delay-100 duration-300 group-data-[on=true]/arrow:opacity-100">
+                  {node.arrow}
+                </span>
+              </span>
+              <span className="flex h-[30px] w-full items-center">
+                <span className="h-[1.25px] flex-1 origin-left scale-x-0 bg-chart-3 transition-[scale] duration-300 ease-in-out group-data-[on=true]/arrow:scale-x-100" />
+                <svg
+                  viewBox="0 0 4 6"
+                  className="-ml-px h-1.5 w-1 fill-none stroke-chart-3 opacity-0 transition-opacity delay-250 duration-100 [stroke-width:1.25] group-data-[on=true]/arrow:opacity-100"
+                >
+                  <path d="M0 0 L4 3 L0 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </div>
   )
 }
 
-function Transcript({ frame }: { frame: ChatDemoFrame }): JSX.Element {
-  let wordIndex = 0
+function Transcript({ copy, frame }: { copy: ChatDemoCopy; frame: ChatDemoFrame }): JSX.Element {
   return (
     <div
       className="flex min-h-full shrink-0 flex-col transition-opacity duration-700 ease-in-out"
@@ -125,7 +93,7 @@ function Transcript({ frame }: { frame: ChatDemoFrame }): JSX.Element {
         <div className="min-h-0 overflow-hidden">
           <div className="mt-4 flex flex-col items-end">
             <div className="max-w-[80%] rounded-xl border border-chat-user-border bg-chat-user-surface px-3.5 py-2.5 text-chat-foreground-strong">
-              {CHAT_DEMO_PROMPT}
+              {copy.prompt}
             </div>
           </div>
         </div>
@@ -135,43 +103,36 @@ function Transcript({ frame }: { frame: ChatDemoFrame }): JSX.Element {
           <span className="flex size-4 items-center justify-center text-chat-foreground-faint">
             <Eye className="size-3.5" />
           </span>
-          <span className="text-chat-foreground-faint">{CHAT_DEMO_TOOL.verb}</span>
-          <span>{CHAT_DEMO_TOOL.target}</span>
+          <span className="text-chat-foreground-faint">{nativeChatToolRowVerb('read')}</span>
+          <span>{CHAT_DEMO_FILE}</span>
           <ChevronRight className="ml-auto size-3.5 text-chat-foreground-faint" />
         </div>
       </Row>
       <Row on={frame.working}>
         <div className="mt-5 flex min-h-6 items-center gap-1.5 text-chat-foreground-faint">
           <LoadingSpinner className="size-4 shrink-0" />
-          <span className="text-chat-foreground">{CHAT_DEMO_WORKING}</span>
+          <span className="text-chat-foreground">
+            {translate('components.native-chat.status.working', 'Working…')}
+          </span>
         </div>
       </Row>
-      {CHAT_DEMO_REPLY.map((line, lineIndex) => {
-        const firstWord = wordIndex
-        wordIndex += line.length
-        return (
-          <Row key={firstWord} on={frame.words > firstWord}>
-            <p className={cn('whitespace-nowrap', lineIndex === 0 && 'mt-5')}>
-              {line.map(({ word, link }, index) => (
-                <span
-                  key={word + index}
-                  data-on={frame.words > firstWord + index}
-                  className="opacity-0 transition-opacity duration-100 data-[on=true]:opacity-100"
-                >
-                  {index > 0 && word !== ':' ? ' ' : null}
-                  {link ? (
-                    <span className="text-chat-foreground-strong underline decoration-current/40 underline-offset-2">
-                      {word}
-                    </span>
-                  ) : (
-                    word
-                  )}
-                </span>
-              ))}
-            </p>
-          </Row>
-        )
-      })}
+      <Row on={frame.words > 0}>
+        <p className="mt-5">
+          {copy.reply.map((token, index) => (
+            <span
+              key={index}
+              data-on={index < frame.words}
+              className={cn(
+                'opacity-0 transition-opacity duration-100 data-[on=true]:opacity-100',
+                token.link &&
+                  'text-chat-foreground-strong underline decoration-current/40 underline-offset-2'
+              )}
+            >
+              {token.text}
+            </span>
+          ))}
+        </p>
+      </Row>
       <Row on={frame.visual}>
         <div className="relative mt-2.5 mb-0.5">
           <div
@@ -182,7 +143,7 @@ function Transcript({ frame }: { frame: ChatDemoFrame }): JSX.Element {
             data-on={frame.page}
             className="relative opacity-0 transition-opacity duration-300 data-[on=true]:opacity-100"
           >
-            <FlowDiagram frame={frame} />
+            <FlowDiagram flow={copy.flow} frame={frame} />
           </div>
         </div>
       </Row>
@@ -190,7 +151,7 @@ function Transcript({ frame }: { frame: ChatDemoFrame }): JSX.Element {
   )
 }
 
-function Composer({ frame }: { frame: ChatDemoFrame }): JSX.Element {
+function Composer({ prompt, frame }: { prompt: string; frame: ChatDemoFrame }): JSX.Element {
   const typing = frame.typed > 0
   return (
     <div className="shrink-0 px-3 pt-1.5 pb-3">
@@ -198,25 +159,30 @@ function Composer({ frame }: { frame: ChatDemoFrame }): JSX.Element {
         <div className="relative min-h-8 overflow-hidden px-2 py-0.5 whitespace-nowrap">
           {typing ? (
             <span className="whitespace-pre text-chat-foreground-strong">
-              {CHAT_DEMO_PROMPT.slice(0, frame.typed)}
+              {Array.from(prompt).slice(0, frame.typed).join('')}
               <span className="ml-px inline-block h-[14px] w-px bg-chat-foreground-strong align-[-3px]" />
             </span>
           ) : (
-            <span className="text-chat-foreground-faint">{CHAT_DEMO_PLACEHOLDER}</span>
+            <span className="text-chat-foreground-faint">
+              {translate(
+                'components.native-chat.composer.placeholder',
+                'Ask anything, @ to mention files, / for commands'
+              )}
+            </span>
           )}
         </div>
         <div className="flex items-center justify-between gap-1.5 text-chat-foreground-faint">
           <div className="flex min-w-0 items-center gap-1.5">
-            <span className="flex size-6.5 items-center justify-center">
+            <span className="flex size-6.5 shrink-0 items-center justify-center">
               <Plus className="size-3.5" />
             </span>
-            <span className="flex h-5.5 items-center gap-1 px-1.5 text-xs font-medium whitespace-nowrap">
-              <Hand className="size-3" />
-              {CHAT_DEMO_PERMISSION}
-              <ChevronDown className="size-3" />
+            <span className="flex h-5.5 min-w-0 items-center gap-1 px-1.5 text-xs font-medium whitespace-nowrap">
+              <Hand className="size-3 shrink-0" />
+              <span className="truncate">{nativeChatPermissionModeLabel('ask')}</span>
+              <ChevronDown className="size-3 shrink-0" />
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             <span className="flex h-5.5 items-center gap-1 px-1.5 text-xs font-medium whitespace-nowrap text-chat-foreground">
               {CHAT_DEMO_MODEL}
               <ChevronDown className="size-3 text-chat-foreground-faint" />
@@ -251,32 +217,41 @@ function Composer({ frame }: { frame: ChatDemoFrame }): JSX.Element {
 /** A miniature chat that sends one question and draws its reply, then fades and starts over. */
 export function ChatUiHereFeatureTipVisual(): JSX.Element {
   const reducedMotion = usePrefersReducedMotion()
+  const copy = getChatDemoCopy()
+  const promptLength = Array.from(copy.prompt).length
+  const timeline = useMemo(
+    () => createChatDemoTimeline(promptLength, copy.reply.length),
+    [promptLength, copy.reply.length]
+  )
   const [at, setAt] = useState(0)
-  const frame = chatDemoFrameAt(reducedMotion ? CHAT_DEMO_FINISHED_AT : at)
+  const frame = timeline.frameAt(reducedMotion ? CHAT_DEMO_FINISHED_AT : at)
 
   useEffect(() => {
     if (reducedMotion) {
       return
     }
-    const next = nextChatDemoBeat(at)
+    const next = timeline.nextBeat(at)
     const timeoutId = window.setTimeout(
       () => setAt(next >= CHAT_DEMO_LOOP_MS ? 0 : next),
       next - at
     )
     return () => window.clearTimeout(timeoutId)
-  }, [at, reducedMotion])
+  }, [at, reducedMotion, timeline])
 
   return (
     <div
       className="relative flex h-full min-h-[23rem] flex-col items-center justify-center overflow-hidden px-6 py-7"
       aria-hidden="true"
     >
-      <div className="flex h-[22rem] w-full max-w-[22rem] flex-col overflow-hidden rounded-xl border border-border/80 bg-chat-canvas text-left tracking-[0.01em] shadow-xs">
+      {/* Turning reduced motion on mid-loop jumps straight to the finished still. */}
+      <div className="flex h-[22rem] w-full max-w-[22rem] flex-col overflow-hidden rounded-xl border border-border/80 bg-chat-canvas text-left tracking-[0.01em] shadow-xs motion-reduce:**:transition-none">
         <div className="flex h-10 shrink-0 items-stretch border-b border-border bg-card">
-          <span className="-mb-px flex items-center gap-1.5 border-r border-border bg-chat-canvas px-3 text-[11px] whitespace-nowrap text-foreground">
-            <AgentIcon agent="claude" size={12} />
-            {CHAT_DEMO_TAB_TITLE}
-            <X className="ml-1 size-2.5 text-muted-foreground" />
+          <span className="-mb-px flex max-w-[75%] items-center gap-1.5 border-r border-border bg-chat-canvas px-3 text-[11px] whitespace-nowrap text-foreground">
+            <span className="shrink-0">
+              <AgentIcon agent="claude" size={12} />
+            </span>
+            <span className="truncate">{copy.tabTitle}</span>
+            <X className="ml-1 size-2.5 shrink-0 text-muted-foreground" />
           </span>
         </div>
         <div
@@ -285,9 +260,9 @@ export function ChatUiHereFeatureTipVisual(): JSX.Element {
         >
           {/* Bottom-anchored, so a transcript taller than the card keeps its end in view. */}
           <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-[calc(var(--spacing)*3+5px)]">
-            <Transcript frame={frame} />
+            <Transcript copy={copy} frame={frame} />
           </div>
-          <Composer frame={frame} />
+          <Composer prompt={copy.prompt} frame={frame} />
         </div>
       </div>
     </div>

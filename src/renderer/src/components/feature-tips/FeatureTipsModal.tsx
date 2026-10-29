@@ -118,6 +118,11 @@ export default function FeatureTipsModal(): JSX.Element | null {
     openSettingsPage()
   }
 
+  const stayInTerminal = (): void => {
+    trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'stay_in_terminal')
+    handleSkip()
+  }
+
   const openAgentSettings = (): void => {
     trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'open_settings')
     markCurrentTipSeen()
@@ -145,11 +150,10 @@ export default function FeatureTipsModal(): JSX.Element | null {
           trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'dismissed')
           break
         }
-        trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'use_chat_ui')
         try {
-          await updateSettingsOrThrow({
-            nativeChatProviders: { ...settings?.nativeChatProviders, ...everyAgentChatChoices() }
-          })
+          // Every saved choice is for a known agent, so this covers them all.
+          await updateSettingsOrThrow({ nativeChatProviders: everyAgentChatChoices() })
+          trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'use_chat_ui')
         } catch {
           toast.error(
             translate(
@@ -312,6 +316,7 @@ export default function FeatureTipsModal(): JSX.Element | null {
         variant={chatUiLaunchTipVariant}
         onOpenChange={handleOpenChange}
         onPrimaryAction={() => void handlePrimaryAction()}
+        onSkip={stayInTerminal}
         onSettingsClick={openAgentSettings}
       />
     )

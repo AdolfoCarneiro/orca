@@ -1,30 +1,64 @@
-// One recorded English chat replayed by the tip's miniature; it is sample session content, so it
-// stays as written in every locale, like an agent's own words.
-export const CHAT_DEMO_TAB_TITLE = 'Explain login'
-export const CHAT_DEMO_PROMPT = 'Map out how login works'
-export const CHAT_DEMO_PLACEHOLDER = 'Ask anything, @ to mention files, / for commands'
-export const CHAT_DEMO_PERMISSION = 'Ask for approval'
-export const CHAT_DEMO_MODEL = 'Opus'
-export const CHAT_DEMO_WORKING = 'Working…'
-export const CHAT_DEMO_TOOL = { verb: 'Read', target: 'auth.ts' }
-/** The reply's lines as they wrap at 12px in the card; `link` marks the underlined file link. */
-export const CHAT_DEMO_REPLY: readonly (readonly { word: string; link?: true }[])[] = [
-  [
-    ...'Login starts in'.split(' ').map((word) => ({ word })),
-    { word: 'auth.ts', link: true },
-    ...': the browser posts to /login,'.split(' ').map((word) => ({ word }))
-  ],
-  'the server checks the password and creates a session,'.split(' ').map((word) => ({ word })),
-  'then redirects you to the app. Here’s the flow:'.split(' ').map((word) => ({ word }))
-]
-export const CHAT_DEMO_FLOW = [
-  { name: 'Browser', width: 62, arrow: 'password' },
-  { name: '/login', width: 54, arrow: '' },
-  { name: 'Session', width: 62, arrow: 'cookie' },
-  { name: 'App', width: 44, arrow: null }
-] as const
+import { getIntlLocale, translate } from '@/i18n/i18n'
 
-const WORD_COUNT = CHAT_DEMO_REPLY.flat().length
+export const CHAT_DEMO_FILE = 'auth.ts'
+export const CHAT_DEMO_MODEL = 'Opus'
+// Stands in for the file link so translations keep their own word order around it.
+const FILE_SLOT = '\u0001'
+
+export type ChatDemoToken = { text: string; link?: true }
+
+export type ChatDemoCopy = {
+  tabTitle: string
+  prompt: string
+  /** The reply in reveal order; whitespace rides on the token before it so the text wraps naturally. */
+  reply: ChatDemoToken[]
+  flow: { name: string; arrow: string | null }[]
+}
+
+export function chatDemoRevealTokens(text: string): ChatDemoToken[] {
+  const tokens: ChatDemoToken[] = []
+  for (const { segment } of new Intl.Segmenter(getIntlLocale(), { granularity: 'word' }).segment(
+    text
+  )) {
+    const last = tokens.at(-1)
+    if (last && !last.link && segment.trim() === '') {
+      last.text += segment
+    } else {
+      tokens.push({ text: segment })
+    }
+  }
+  return tokens
+}
+
+export function getChatDemoCopy(): ChatDemoCopy {
+  const [before, ...after] = translate(
+    'featureTips.chatUiHere.demoReply',
+    'Login starts in {{file}}: the browser posts to /login, the server checks the password and creates a session, then redirects you to the app. Here’s the flow:',
+    { file: FILE_SLOT }
+  ).split(FILE_SLOT)
+  return {
+    tabTitle: translate('featureTips.chatUiHere.demoTabTitle', 'Explain login'),
+    prompt: translate('featureTips.chatUiHere.demoPrompt', 'Map out how login works'),
+    reply: [
+      ...chatDemoRevealTokens(before),
+      ...(after.length > 0
+        ? [{ text: CHAT_DEMO_FILE, link: true as const }, ...chatDemoRevealTokens(after.join(''))]
+        : [])
+    ],
+    flow: [
+      {
+        name: translate('featureTips.chatUiHere.demoBrowser', 'Browser'),
+        arrow: translate('featureTips.chatUiHere.demoPassword', 'password')
+      },
+      { name: '/login', arrow: '' },
+      {
+        name: translate('featureTips.chatUiHere.demoSession', 'Session'),
+        arrow: translate('featureTips.chatUiHere.demoCookie', 'cookie')
+      },
+      { name: translate('featureTips.chatUiHere.demoApp', 'App'), arrow: null }
+    ]
+  }
+}
 
 /** Milliseconds into the 12.9 s loop at which each beat starts. */
 const AT = {
@@ -47,11 +81,7 @@ const AT = {
   empty: 12300,
   loop: 12900
 }
-
-const charAt = (index: number): number =>
-  AT.typeStart + (index / CHAT_DEMO_PROMPT.length) * AT.typeLength
-const wordAt = (index: number): number => AT.replyStart + (index / WORD_COUNT) * AT.replyLength
-const nodeAt = (index: number): number => AT.firstNode + index * AT.nodeStep
+const NODE_COUNT = 4
 
 export type ChatDemoSend = 'empty' | 'ready' | 'pressed' | 'stop'
 
@@ -70,61 +100,68 @@ export type ChatDemoFrame = {
   faded: boolean
 }
 
-const count = (times: readonly number[], at: number): number =>
+const spread = (count: number, start: number, length: number): number[] =>
+  Array.from({ length: count }, (_, index) => start + (index / count) * length)
+const countUpTo = (times: readonly number[], at: number): number =>
   times.filter((time) => time <= at).length
 
-const CHAR_TIMES = Array.from(CHAT_DEMO_PROMPT, (_, index) => charAt(index))
-const WORD_TIMES = Array.from({ length: WORD_COUNT }, (_, index) => wordAt(index))
-const NODE_TIMES = CHAT_DEMO_FLOW.map((_, index) => nodeAt(index))
-const ARROW_TIMES = NODE_TIMES.slice(0, -1).map((time) => time + AT.arrowLag)
+export type ChatDemoTimeline = {
+  frameAt: (at: number) => ChatDemoFrame
+  /** The next moment the frame changes; the loop's end wraps to 0. */
+  nextBeat: (at: number) => number
+}
 
-export function chatDemoFrameAt(at: number): ChatDemoFrame {
-  const live = at < AT.empty
-  const typing = at >= AT.typeStart && at < AT.sent
-  const turnRunning = at >= AT.sent && at < AT.done
-  const pressed = at >= AT.press && at < AT.press + AT.pressLength
+/** Typing and streaming pace follow the translated prompt's and reply's lengths. */
+export function createChatDemoTimeline(promptLength: number, wordCount: number): ChatDemoTimeline {
+  const charTimes = spread(promptLength, AT.typeStart, AT.typeLength)
+  const wordTimes = spread(wordCount, AT.replyStart, AT.replyLength)
+  const nodeTimes = Array.from({ length: NODE_COUNT }, (_, i) => AT.firstNode + i * AT.nodeStep)
+  const arrowTimes = nodeTimes.slice(0, -1).map((time) => time + AT.arrowLag)
+  const beats = [
+    ...new Set([
+      ...charTimes,
+      ...wordTimes,
+      ...nodeTimes,
+      ...arrowTimes,
+      AT.press,
+      AT.press + AT.pressLength,
+      AT.sent,
+      AT.working,
+      AT.tool,
+      AT.replyStart,
+      AT.visual,
+      AT.page,
+      AT.done,
+      AT.fadeOut,
+      AT.empty,
+      AT.loop
+    ])
+  ].sort((a, b) => a - b)
+
   return {
-    typed: typing ? count(CHAR_TIMES, at) : 0,
-    send: turnRunning ? 'stop' : pressed ? 'pressed' : typing ? 'ready' : 'empty',
-    sent: live && at >= AT.sent,
-    working: at >= AT.working && at < AT.replyStart,
-    tool: live && at >= AT.tool,
-    words: live ? count(WORD_TIMES, at) : 0,
-    visual: live && at >= AT.visual,
-    page: live && at >= AT.page,
-    nodes: live ? count(NODE_TIMES, at) : 0,
-    arrows: live ? count(ARROW_TIMES, at) : 0,
-    faded: at >= AT.fadeOut
+    frameAt: (at) => {
+      const live = at < AT.empty
+      const typing = at >= AT.typeStart && at < AT.sent
+      const pressed = at >= AT.press && at < AT.press + AT.pressLength
+      return {
+        typed: typing ? countUpTo(charTimes, at) : 0,
+        send:
+          at >= AT.sent && at < AT.done ? 'stop' : pressed ? 'pressed' : typing ? 'ready' : 'empty',
+        sent: live && at >= AT.sent,
+        working: at >= AT.working && at < AT.replyStart,
+        tool: live && at >= AT.tool,
+        words: live ? countUpTo(wordTimes, at) : 0,
+        visual: live && at >= AT.visual,
+        page: live && at >= AT.page,
+        nodes: live ? countUpTo(nodeTimes, at) : 0,
+        arrows: live ? countUpTo(arrowTimes, at) : 0,
+        faded: at >= AT.fadeOut
+      }
+    },
+    nextBeat: (at) => beats.find((beat) => beat > at) ?? AT.loop
   }
 }
 
 /** The held, finished frame; also the reduced-motion still. */
 export const CHAT_DEMO_FINISHED_AT = AT.done
-
-const BEATS = [
-  ...new Set([
-    ...CHAR_TIMES,
-    ...WORD_TIMES,
-    ...NODE_TIMES,
-    ...ARROW_TIMES,
-    AT.press,
-    AT.press + AT.pressLength,
-    AT.sent,
-    AT.working,
-    AT.tool,
-    AT.replyStart,
-    AT.visual,
-    AT.page,
-    AT.done,
-    AT.fadeOut,
-    AT.empty,
-    AT.loop
-  ])
-].sort((a, b) => a - b)
-
-/** The next moment the frame changes; the loop's end wraps to 0. */
-export function nextChatDemoBeat(at: number): number {
-  return BEATS.find((beat) => beat > at) ?? AT.loop
-}
-
 export const CHAT_DEMO_LOOP_MS = AT.loop

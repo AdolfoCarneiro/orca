@@ -20179,7 +20179,15 @@
       "changeInSettings": "<link>設定 → Agent</link> でいつでも変更できます。",
       "stayInTerminal": "ターミナルのまま使う",
       "cta": "チャット UI を使う",
-      "saveFailed": "チャット UI をオンにできませんでした。設定 → Agent でチャットを選んでください。"
+      "saveFailed": "チャット UI をオンにできませんでした。設定 → Agent でチャットを選んでください。",
+      "demoTabTitle": "ログインの説明",
+      "demoPrompt": "ログインの仕組みを図にして",
+      "demoReply": "ログインは {{file}} から始まります。ブラウザが /login に送信し、サーバーがパスワードを確認してセッションを作成し、アプリにリダイレクトします。流れは次のとおりです:",
+      "demoBrowser": "ブラウザ",
+      "demoSession": "セッション",
+      "demoApp": "アプリ",
+      "demoPassword": "パスワード",
+      "demoCookie": "Cookie"
     }
   },
   "quickOpen": {

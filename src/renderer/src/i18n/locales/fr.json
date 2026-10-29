@@ -20586,7 +20586,15 @@
       "changeInSettings": "Modifiable à tout moment dans <link>Paramètres → Agents</link>.",
       "stayInTerminal": "Rester dans le terminal",
       "cta": "Utiliser l'interface de chat",
-      "saveFailed": "Impossible d'activer l'interface de chat. Choisissez Chat dans Paramètres → Agents."
+      "saveFailed": "Impossible d'activer l'interface de chat. Choisissez Chat dans Paramètres → Agents.",
+      "demoTabTitle": "Expliquer la connexion",
+      "demoPrompt": "Explique comment fonctionne la connexion",
+      "demoReply": "La connexion commence dans {{file}} : le navigateur envoie à /login, le serveur vérifie le mot de passe et crée une session, puis vous redirige vers l’app. Voici le flux :",
+      "demoBrowser": "Navigateur",
+      "demoSession": "Session",
+      "demoApp": "App",
+      "demoPassword": "mot de passe",
+      "demoCookie": "cookie"
     }
   },
   "quickOpen": {

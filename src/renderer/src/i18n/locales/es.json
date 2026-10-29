@@ -20627,7 +20627,15 @@
       "changeInSettings": "Cámbialo cuando quieras en <link>Configuración → Agentes</link>.",
       "stayInTerminal": "Seguir en el terminal",
       "cta": "Usar la interfaz de chat",
-      "saveFailed": "No se pudo activar la interfaz de chat. Elige Chat en Configuración → Agentes."
+      "saveFailed": "No se pudo activar la interfaz de chat. Elige Chat en Configuración → Agentes.",
+      "demoTabTitle": "Explicar el inicio de sesión",
+      "demoPrompt": "Explica cómo funciona el inicio de sesión",
+      "demoReply": "El inicio de sesión empieza en {{file}}: el navegador envía a /login, el servidor comprueba la contraseña y crea una sesión, y luego te redirige a la app. Este es el flujo:",
+      "demoBrowser": "Navegador",
+      "demoSession": "Sesión",
+      "demoApp": "App",
+      "demoPassword": "contraseña",
+      "demoCookie": "cookie"
     }
   },
   "fileExplorer": {

@@ -6,16 +6,7 @@ type FeatureTipCopy = Pick<FeatureTip, 'eyebrow' | 'title' | 'description' | 'ct
 
 const getFeatureTipCopyById = createLocalizedCatalog(
   (): Partial<Record<FeatureTipId, FeatureTipCopy>> => ({
-    // The dialog renders each variant's body and buttons itself.
-    'chat-ui-here': {
-      eyebrow: translate('featureTips.eyebrowNew', 'New'),
-      title: translate('featureTips.chatUiHere.title', 'Chat UI is here'),
-      description: translate(
-        'featureTips.chatUiHere.offIntro',
-        'Agents can now open as a chat, with rich messages, visuals, images and file links.'
-      ),
-      ctaLabel: translate('featureTips.chatUiHere.cta', 'Use Chat UI')
-    },
+    // The Chat UI tip's dialog renders its own translated copy for each variant.
     'agent-session-search': {
       eyebrow: translate('featureTips.eyebrowNew', 'New'),
       title: translate('featureTips.sessionSearch.title', 'Search every agent session'),

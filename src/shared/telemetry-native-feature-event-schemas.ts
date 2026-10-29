@@ -92,7 +92,7 @@ export const chatUiFeatureTipShownSchema = z
 export const chatUiFeatureTipActionSchema = z
   .object({
     variant: chatUiFeatureTipVariantSchema,
-    action: z.enum(['use_chat_ui', 'open_settings', 'dismissed']),
+    action: z.enum(['use_chat_ui', 'stay_in_terminal', 'open_settings', 'dismissed']),
     nth_repo_added: nthRepoAddedSchema
   })
   .strict()

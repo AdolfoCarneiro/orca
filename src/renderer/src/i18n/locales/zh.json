@@ -20180,7 +20180,15 @@
       "changeInSettings": "可随时在<link>设置 → 智能体</link>中更改。",
       "stayInTerminal": "继续使用终端",
       "cta": "使用聊天界面",
-      "saveFailed": "无法开启聊天界面。请在“设置 → 智能体”中选择聊天。"
+      "saveFailed": "无法开启聊天界面。请在“设置 → 智能体”中选择聊天。",
+      "demoTabTitle": "解释登录流程",
+      "demoPrompt": "梳理一下登录是怎么工作的",
+      "demoReply": "登录从 {{file}} 开始：浏览器提交到 /login，服务器检查密码并创建会话，然后将你重定向到应用。流程如下：",
+      "demoBrowser": "浏览器",
+      "demoSession": "会话",
+      "demoApp": "应用",
+      "demoPassword": "密码",
+      "demoCookie": "Cookie"
     }
   },
   "quickOpen": {

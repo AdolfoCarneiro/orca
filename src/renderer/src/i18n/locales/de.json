@@ -20215,7 +20215,15 @@
       "changeInSettings": "Jederzeit unter <link>Einstellungen → Agenten</link> ändern.",
       "stayInTerminal": "Im Terminal bleiben",
       "cta": "Chat-Oberfläche nutzen",
-      "saveFailed": "Die Chat-Oberfläche konnte nicht aktiviert werden. Unter Einstellungen → Agenten „Chat“ wählen."
+      "saveFailed": "Die Chat-Oberfläche konnte nicht aktiviert werden. Unter Einstellungen → Agenten „Chat“ wählen.",
+      "demoTabTitle": "Anmeldung erklären",
+      "demoPrompt": "Zeig mir, wie die Anmeldung funktioniert",
+      "demoReply": "Die Anmeldung beginnt in {{file}}: Der Browser sendet an /login, der Server prüft das Passwort und erstellt eine Sitzung, dann leitet er dich zur App weiter. So läuft es ab:",
+      "demoBrowser": "Browser",
+      "demoSession": "Sitzung",
+      "demoApp": "App",
+      "demoPassword": "Passwort",
+      "demoCookie": "Cookie"
     }
   },
   "quickOpen": {
