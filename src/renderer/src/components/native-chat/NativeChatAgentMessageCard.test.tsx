@@ -363,7 +363,9 @@ it.each(['task', 'mail'] as const)(
     expect(screen.getByText('Edited task')).toBeInTheDocument()
     expect(convert).toHaveBeenCalled()
     expect(renderMarkdown).toHaveBeenCalled()
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Copy message' })))
+    const copyButton = screen.getByRole('button', { name: 'Copy message' })
+    await act(async () => fireEvent.click(copyButton))
+    expect(copyButton).toHaveAccessibleName('Copied')
     expect(writeClipboardText).toHaveBeenCalledWith('Edited task')
     expect(nativeChatSlotCopyText(slots(edited), edited.id)).toBe('Edited task')
     const multiple: NativeChatMessage = {
@@ -371,7 +373,7 @@ it.each(['task', 'mail'] as const)(
       blocks: [...edited.blocks, { type: 'text', text: 'Another paragraph' }]
     }
     mounted.rerender(card(multiple))
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Copy message' })))
+    await act(async () => fireEvent.click(copyButton))
     expect(writeClipboardText).toHaveBeenCalledWith(`${prefix}Edited task\n\nAnother paragraph`)
     expect(nativeChatSlotCopyText(slots(multiple), multiple.id)).toBe(
       `${prefix}Edited task\n\nAnother paragraph`
