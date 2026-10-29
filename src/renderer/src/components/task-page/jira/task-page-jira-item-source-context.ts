@@ -1,9 +1,9 @@
-import type { JiraIssue, JiraSite } from '../../../shared/jira/jira-types'
+import type { JiraIssue, JiraSite } from '../../../../../shared/jira/jira-types'
 import { getJiraAccountLabel } from '@/lib/jira-account-label'
 import {
   normalizeTaskSourceContext,
   type TaskSourceContext
-} from '../../../shared/task-source-context'
+} from '../../../../../shared/task-source-context'
 
 export function bindTaskPageJiraItemSourceContext(args: {
   issue: JiraIssue

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { JiraIssue, JiraSite } from '../../../shared/jira/jira-types'
-import type { TaskSourceContext } from '../../../shared/task-source-context'
+import type { JiraIssue, JiraSite } from '../../../../../shared/jira/jira-types'
+import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import { bindTaskPageJiraItemSourceContext } from './task-page-jira-item-source-context'
 
 const SOURCE_CONTEXT: TaskSourceContext = {
