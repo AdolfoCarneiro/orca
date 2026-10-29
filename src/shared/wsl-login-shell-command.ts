@@ -77,8 +77,9 @@ export function buildWslInteractiveLoginShellCommand(): string {
     '    ;;',
     // Why: a WSL fish pane gets no shell-ready wrapper or XDG handoff, so this is its only `claude`.
     // fish before 2.7 rejects -C and would fail the pane; it starts plain (no claude, no cwd hook).
+    // fish 2.x prints --version to stderr, so both streams are read.
     '  fish)',
-    '    _orca_fish_version=$("$_orca_wsl_shell" --version 2>/dev/null)',
+    '    _orca_fish_version=$("$_orca_wsl_shell" --version 2>&1)',
     '    case "${_orca_fish_version##*version }" in',
     '      [01].*|2.[0-6]|2.[0-6].*) ;;',
     `      *) exec "$_orca_wsl_shell" -l -C ${quotePosixShell(getWslFishInitCommand())} ;;`,

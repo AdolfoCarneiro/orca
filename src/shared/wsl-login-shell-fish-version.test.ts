@@ -21,6 +21,10 @@ writeFileSync(
     '#!/bin/sh',
     'if [ "$1" = --version ]; then',
     '  [ -n "$ORCA_TEST_FISH_VERSION" ] || exit 1',
+    // fish 2.x writes its version to stderr.
+    '  if [ -n "$ORCA_TEST_FISH_VERSION_ON_STDERR" ]; then',
+    '    printf "%s\\n" "$ORCA_TEST_FISH_VERSION" >&2; exit 0',
+    '  fi',
     '  printf "%s\\n" "$ORCA_TEST_FISH_VERSION"; exit 0',
     'fi',
     'printf "%s\\n" "$@"',
@@ -31,10 +35,14 @@ chmodSync(join(tools, 'getent'), 0o755)
 chmodSync(fish, 0o755)
 afterAll(() => rmSync(root, { recursive: true, force: true }))
 
-function startFlags(version: string): string[] {
+function startFlags(version: string, onStderr = false): string[] {
   const argv = execFileSync('/bin/sh', ['-c', buildWslInteractiveLoginShellCommand()], {
     encoding: 'utf8',
-    env: { PATH: `${tools}:/usr/bin:/bin`, ORCA_TEST_FISH_VERSION: version }
+    env: {
+      PATH: `${tools}:/usr/bin:/bin`,
+      ORCA_TEST_FISH_VERSION: version,
+      ...(onStderr ? { ORCA_TEST_FISH_VERSION_ON_STDERR: '1' } : {})
+    }
   })
   return argv.split('\n').filter((arg) => arg === '-l' || arg === '-C')
 }
@@ -47,6 +55,10 @@ describe.skipIf(process.platform === 'win32')('a WSL bridge fish pane by fish ve
       expect(startFlags(version)).toEqual(['-l'])
     }
   )
+
+  it('reads a fish 2.x version printed to stderr and starts plain', () => {
+    expect(startFlags('fish, version 2.3.1', true)).toEqual(['-l'])
+  })
 
   it.each([
     'fish, version 2.7.1',
