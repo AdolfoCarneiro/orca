@@ -97,7 +97,7 @@ beforeEach(async () => {
   vi.spyOn(runtime, 'getClientSettings').mockImplementation(
     () =>
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the RPC gate reads only this one setting.
-      ({ experimentalNativeChat: true }) as ReturnType<OrcaRuntimeService['getClientSettings']>
+      ({}) as ReturnType<OrcaRuntimeService['getClientSettings']>
   )
   dispatcher = new RpcDispatcher({ runtime, methods: STRUCTURED_AGENT_SESSION_METHODS })
 })

@@ -2,10 +2,7 @@ import { isAgentSessionHandleProvider } from '../../../../shared/agent-session-p
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { buildNativeChatProviderUpdate } from '../../../../shared/native-chat/native-chat-providers'
-import {
-  isNativeChatDefaultFor,
-  isNativeChatEnabled
-} from '../../../../shared/structured-native-chat-launch-route'
+import { nativeChatPreferenceFor } from '../../../../shared/structured-native-chat-launch-route'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import { getAgentLabel } from '@/lib/agent-catalog'
@@ -48,7 +45,7 @@ export function buildDefaultAgentOpensAs({
   updateSettings: (updates: Partial<GlobalSettings>) => void | Promise<void>
   installedHere: readonly TuiAgent[] | null
 }): DefaultAgentOpensAs | undefined {
-  if (defaultAgent === null || defaultAgent === 'blank' || !isNativeChatEnabled(settings)) {
+  if (defaultAgent === null || defaultAgent === 'blank') {
     return undefined
   }
   const agent = defaultAgent
@@ -62,7 +59,7 @@ export function buildDefaultAgentOpensAs({
   }
   return {
     agentLabel: getAgentLabel(agent),
-    value: isNativeChatDefaultFor(settings, agent) ? 'chat' : 'cli',
+    value: nativeChatPreferenceFor(settings, agent) ? 'chat' : 'cli',
     onChange: (value) =>
       void saveNativeChatProviderChoice({
         agent,

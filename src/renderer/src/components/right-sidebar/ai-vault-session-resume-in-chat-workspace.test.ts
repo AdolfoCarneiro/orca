@@ -41,9 +41,7 @@ function resumeInChat(session: AiVaultSession = codexSession) {
     resumeState: { blocked: true, worktreeId: null, usesSessionWorktree: false },
     activeWorkspaceId: PAIRED_WORKSPACE,
     targetState: { folderWorkspaces: [], projectGroups: [], repos: [], worktreesByRepo: {} },
-    settings: {
-      experimentalNativeChat: true
-    }
+    settings: {}
   })
 }
 

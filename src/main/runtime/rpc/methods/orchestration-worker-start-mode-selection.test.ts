@@ -38,7 +38,6 @@ vi.mock('./orchestration-structured-worker-session', async (importOriginal) => (
 }))
 
 const STRUCTURED_DEFAULT = {
-  experimentalNativeChat: true,
   agentCmdOverrides: {},
   agentDefaultArgs: {},
   agentDefaultEnv: {}
@@ -169,7 +168,7 @@ describe('worker-start honours the settings default', () => {
   })
 
   it('starts a terminal agent worker when it is not', async () => {
-    const result = await startWorker({ experimentalNativeChat: false })
+    const result = await startWorker({ nativeChatProviders: { claude: false, codex: false } })
 
     expect(result).toMatchObject({
       state: 'ready',
@@ -222,14 +221,14 @@ describe('worker-start honours the settings default', () => {
 
   it.each([false, true])(
     'keeps OpenCode version refusal before worker effects with native default %s',
-    async (experimentalNativeChat) => {
+    async (opencode) => {
       const dispatch = vi.spyOn(db, 'createStartingWorkerDispatch')
       vi.spyOn(runtime, 'probeOrchestrationOpenCodeModelLaunchSupport').mockRejectedValue(
         new OrchestrationError('capability_unsupported', OPENCODE_MODEL_VERSION_REFUSAL)
       )
       await expect(
         startWorker(
-          { ...STRUCTURED_DEFAULT, experimentalNativeChat },
+          { ...STRUCTURED_DEFAULT, nativeChatProviders: { opencode } },
           { agent: 'opencode', model: 'opencode/fledge-alpha-free' }
         )
       ).rejects.toMatchObject({
@@ -268,7 +267,7 @@ describe('worker-start honours the settings default', () => {
     const created = mockWorktreeCreation()
 
     const result = await startWorker(
-      { ...STRUCTURED_DEFAULT, experimentalNativeChat: false },
+      { ...STRUCTURED_DEFAULT, nativeChatProviders: { claude: false, codex: false } },
       { worktree: 'new-child', name: 'worker-child' }
     )
 

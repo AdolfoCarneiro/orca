@@ -46,9 +46,7 @@ const LISTS_GROK = {
     { agent: 'grok', capabilities: {} }
   ]
 }
-const SETTINGS = {
-  experimentalNativeChat: true
-}
+const SETTINGS = {}
 const LOCAL: ProspectiveWorkspace = { kind: 'git-worktree', repoId: 'repo-1' }
 const PAIRED: ProspectiveWorkspace = { kind: 'git-worktree', runtimeEnvironmentId: 'env-1' }
 

@@ -18,7 +18,6 @@ export function buildInterfaceSettingsSections({
   isMac,
   isWindows,
   isWebClient,
-  nativeChatEnabled,
   hostQueuesMessages,
   typedChatPermissions,
   managedBrowserCreationEnabled,
@@ -41,34 +40,27 @@ export function buildInterfaceSettingsSections({
       }),
       group: 'interface'
     },
-    ...(nativeChatEnabled
-      ? [
-          {
-            id: 'chat',
-            title: translate('settings.appearance.chat.title', 'Chat'),
-            description: translate(
-              'settings.chat.description',
-              'Choose how chats look and behave.'
-            ),
-            icon: MessageSquare,
-            searchEntries: [
-              getChatPermissionSearchEntry(typedChatPermissions),
-              ...getChatAppearanceSearchEntries(),
-              ...getChatBehaviorSearchEntries().filter(
-                (entry) => hostQueuesMessages || entry.targetSectionId !== 'chat-queue-follow-ups'
-              ),
-              ...(showDesktopOnlySettings
-                ? [
-                    getChatProvidersSearchEntry(),
-                    getChatNamingSearchEntry(),
-                    getChatInlineVisualsSearchEntry()
-                  ]
-                : [])
-            ],
-            group: 'interface'
-          }
-        ]
-      : []),
+    {
+      id: 'chat',
+      title: translate('settings.appearance.chat.title', 'Chat'),
+      description: translate('settings.chat.description', 'Choose how chats look and behave.'),
+      icon: MessageSquare,
+      searchEntries: [
+        getChatPermissionSearchEntry(typedChatPermissions),
+        ...getChatAppearanceSearchEntries(),
+        ...getChatBehaviorSearchEntries().filter(
+          (entry) => hostQueuesMessages || entry.targetSectionId !== 'chat-queue-follow-ups'
+        ),
+        ...(showDesktopOnlySettings
+          ? [
+              getChatProvidersSearchEntry(),
+              getChatNamingSearchEntry(),
+              getChatInlineVisualsSearchEntry()
+            ]
+          : [])
+      ],
+      group: 'interface'
+    },
     {
       id: 'input',
       title: translate('auto.hooks.useSettingsNavigationMetadata.0c6ee88a5f', 'Input & Editing'),

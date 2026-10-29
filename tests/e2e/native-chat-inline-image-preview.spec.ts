@@ -7,7 +7,6 @@ import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } fro
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
 import {
   claudeTranscriptLines,
-  enableNativeChatSetting,
   seedClaudeProviderSession,
   toggleTerminalTabToChatView
 } from './helpers/native-chat-transcript-fixture'
@@ -59,7 +58,6 @@ test('opens a native-chat Markdown table image in the image dialog without a fil
     const descriptor = await waitForActivePaneHookDescriptor(orcaPage)
     const [tabId] = descriptor.paneKey.split(':')
     writeFileSync(transcriptPath, transcript(sessionId, imagePath))
-    await enableNativeChatSetting(orcaPage)
     await orcaPage.evaluate(async () => {
       await window.__store?.getState().updateSettings({ terminalLinkClickBehavior: 'actions' })
     })

@@ -9,7 +9,8 @@ import { OrcaRuntimeService } from '../../src/main/runtime/orca-runtime'
 import { OrcaRuntimeRpcServer } from '../../src/main/runtime/runtime-rpc'
 import {
   runtimeStub,
-  setAgentLaunchRecordStore
+  setAgentLaunchRecordStore,
+  TERMINAL_PREFERENCE
 } from '../../src/main/runtime/rpc/methods/agent-launch.test-fixture'
 import { AGENT_LAUNCH_METHODS } from '../../src/main/runtime/rpc/methods/agent-launch'
 import { STATUS_METHODS } from '../../src/main/runtime/rpc/methods/status'
@@ -32,7 +33,7 @@ describe.each([
     const store = await openTestAgentSessionRecordStore(directory)
     setAgentLaunchRecordStore(store)
     const boundary = runtimeStub({
-      settings: {},
+      settings: TERMINAL_PREFERENCE,
       terminalPaneKey: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d:3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       startupTerminalPaneKey:
         '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d:3f2504e0-4f89-41d3-9a0c-0305e82c3301',

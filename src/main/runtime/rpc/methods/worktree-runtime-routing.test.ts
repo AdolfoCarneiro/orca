@@ -104,7 +104,7 @@ describe('worktree.create with a startup agent', () => {
         run(),
       showRepo: vi.fn().mockResolvedValue(repo),
       // The chat default is on: `worktree.create` still answers with a terminal agent.
-      getClientSettings: () => ({ experimentalNativeChat: true }),
+      getClientSettings: () => ({}),
       getStructuredAgentSessionCreateSupport: vi.fn(async () => ({
         supported: true
       })),

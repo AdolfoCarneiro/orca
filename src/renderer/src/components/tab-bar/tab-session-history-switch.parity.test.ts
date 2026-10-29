@@ -63,7 +63,7 @@ function makeState(): AppState {
     activeRepoId: 'repo-1',
     activeWorktreeId: WORKTREE_ID,
     repos: [makeRepo()],
-    settings: { ...getDefaultSettings('/home/me'), experimentalNativeChat: true },
+    settings: { ...getDefaultSettings('/home/me') },
     worktreesByRepo: {
       'repo-1': [
         makeWorktree(WORKTREE_ID, 'wt', { path: '/repo/wt' }),

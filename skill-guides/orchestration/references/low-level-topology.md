@@ -3,7 +3,7 @@
 Load this reference only when `worker-start` cannot express required custom argv
 or terminal topology. It is not the normal supervised loop and is never a full
 handoff recipe. A model or effort is not custom argv: `worker-start --model
---effort` carries them and keeps the user's Chat UI setting.
+--effort` carries them and keeps the user's Chat | CLI choice.
 
 ```text
 ORCA terminal create --worktree active --title <task_name> --command "<agent_command>" --json

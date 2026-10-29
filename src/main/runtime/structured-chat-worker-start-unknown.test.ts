@@ -26,7 +26,6 @@ it('keeps a minted worker start unknown after one preamble handover without an e
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: launch-mode selection reads only getSettings on this store double.
   vi.spyOn(runtime, 'requireStore').mockReturnValue({
     getSettings: () => ({
-      experimentalNativeChat: true,
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {}

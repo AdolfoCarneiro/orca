@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => {
     terminalLayoutsByTabId: layouts,
     unifiedTabsByWorktree: { wt: [tab] },
     tabsByWorktree: {},
-    settings: { experimentalNativeChat: true },
+    settings: {} as { nativeChatProviders?: Record<string, boolean> },
     pendingPaneAccountRestarts: [],
     runtimePaneTitlesByTabId: { tab: { 1: 'codex', 2: 'codex' } },
     agentStatusByPaneKey: {},
@@ -137,7 +137,7 @@ function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: strin
 }
 
 beforeEach(() => {
-  mocks.state.settings.experimentalNativeChat = true
+  mocks.state.settings.nativeChatProviders = {}
   mocks.state.runtimePaneTitlesByTabId.tab = { 1: 'codex', 2: 'codex' }
   mocks.state.setTabViewMode('tab', 'chat')
   mocks.state.setTabLayout('tab', {
@@ -169,7 +169,7 @@ describe('terminal chat ownership lifecycle', () => {
     expect(mocks.state.terminalLayoutsByTabId.tab.chatLeafId).toBeUndefined()
   })
 
-  it('keeps a saved legacy chat and its explicit toggle available with Chat UI off', () => {
+  it('keeps a saved legacy chat and its explicit toggle available with its agents set to CLI', () => {
     const push = vi.fn()
     const fixture = makeFixture(undefined, { push })
     mocks.state.runtimePaneTitlesByTabId.tab = { 1: 'bash', 2: 'codex' }
@@ -178,7 +178,7 @@ describe('terminal chat ownership lifecycle', () => {
       [RIGHT]: 'remote:host:chat'
     }
     const hook = renderHook(() => useFixture(fixture, RIGHT))
-    mocks.state.settings.experimentalNativeChat = false
+    mocks.state.settings.nativeChatProviders = { claude: false, codex: false }
     hook.rerender()
     hook.result.current.persistLayoutSnapshot()
     expect(hook.result.current.effectiveChatViewMode).toBe(true)

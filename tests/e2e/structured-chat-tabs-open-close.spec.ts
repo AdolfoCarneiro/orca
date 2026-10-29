@@ -68,7 +68,6 @@ test.describe('structured chat tabs', () => {
     // An absolute Command setting is used as-is or refuses the start; it never falls back.
     await page.evaluate(async (command) => {
       await window.__store?.getState().updateSettings({
-        experimentalNativeChat: true,
         defaultTuiAgent: 'claude',
         agentCmdOverrides: { claude: command }
       })

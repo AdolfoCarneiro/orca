@@ -193,7 +193,7 @@ it('publishes real chat options to main and popout, retaining card candidates an
   transport.call.mockResolvedValue({ agents: [{ agent: 'grok', capabilities: {} }] })
   transport.subscribe.mockResolvedValue({ unsubscribe })
   setLocalRuntimeCapabilitiesForTests([CHAT, CATALOG, HEALTH])
-  seed({ ...getDefaultSettings('/tmp'), experimentalNativeChat: true })
+  seed({ ...getDefaultSettings('/tmp') })
   useAppStore.setState({
     detectedAgentIds: [],
     worktreesByRepo: { 'repo-1': [worktree(), { ...worktree(), id: 'wt-2' }] }

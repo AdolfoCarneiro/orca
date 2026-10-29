@@ -31,6 +31,12 @@ import type { RuntimeEnvironmentStatus } from '../../../shared/runtime-host-stat
 import * as runtimeRpc from '@/runtime/runtime-rpc-client'
 import * as hostOffer from './native-chat-restart-host-offer'
 import { getStructuredAgentSessionStatusFeed } from '@/runtime/structured-agent-session-status-feed'
+import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
+
+// Every agent set to CLI: no new launch opens a chat on this machine.
+const EVERY_AGENT_CLI = Object.fromEntries(
+  Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
+)
 
 const rpc = vi.hoisted(() => vi.fn<RestartRpc>())
 const subscriptions = vi.hoisted(() => ({ opened: 0, closed: 0 }))
@@ -210,7 +216,7 @@ it.each([513, 5_130])(
       }
     })
     useAppStore.setState({
-      settings: { ...getDefaultSettings(''), experimentalNativeChat: false },
+      settings: { ...getDefaultSettings(''), nativeChatProviders: EVERY_AGENT_CLI },
       runtimeEnvironments: [pairedEnvironment('ssh')],
       runtimeStatusByEnvironmentId: new Map([['ssh', ready('r1')]])
     })
@@ -753,7 +759,7 @@ it.each(['available', 'unavailable', 'other-desktop'])(
       settings: {
         ...getDefaultSettings(''),
         ...useAppStore.getState().settings,
-        experimentalNativeChat: false
+        nativeChatProviders: EVERY_AGENT_CLI
       },
       runtimeEnvironments: [pairedEnvironment('ssh')],
       runtimeStatusByEnvironmentId: new Map([['ssh', ready('r1')]])

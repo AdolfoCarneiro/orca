@@ -81,7 +81,7 @@ async function create(
   const runtime = {
     getRuntimeId: () => 'runtime-1',
     // Fixtures pass capability admission so they exercise the pre-commit refusal boundary.
-    getClientSettings: () => ({ experimentalNativeChat: true }),
+    getClientSettings: () => ({}),
     registerSubscriptionCleanup: vi.fn(),
     cleanupSubscription: vi.fn(),
     cleanupSubscriptionsByPrefix: vi.fn(),

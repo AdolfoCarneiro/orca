@@ -7739,8 +7739,6 @@
           "dd6f0a1d45": "Compagnon",
           "0e89a574ae": "Compagnon animé flottant dans le coin inférieur droit.",
           "nativeChat": {
-            "title": "Chat UI",
-            "toggleLabel": "Activer Chat UI",
             "shellEnvNamesLabel": "Variables à transmettre depuis votre shell",
             "shellEnvNamePlaceholder": "Nom de la variable",
             "shellEnvNameAdd": "Ajouter",
@@ -7752,9 +7750,7 @@
             "shellEnvToggleLabel": "Activer l'utilisation de l'environnement de votre shell",
             "resumeTitle": "Reprendre automatiquement les discussions de travail après un redémarrage",
             "resumeCopy": "Lorsqu'Orca quitte ou installe une mise à jour, les discussions en cours reprennent automatiquement à la réouverture d'Orca.",
-            "resumeToggleLabel": "Activer la reprise automatique après un redémarrage",
-            "copy": "Les nouveaux agents pris en charge s’ouvrent dans un chat structuré. Les autres agents s’ouvrent dans un terminal ; les chats existants restent disponibles.",
-            "description": "Ouvrez les nouveaux agents pris en charge dans l'interface utilisateur de Chat."
+            "resumeToggleLabel": "Activer la reprise automatique après un redémarrage"
           },
           "agentDashboard": {
             "title": "Tableau de bord des agents",
@@ -8242,7 +8238,6 @@
           "nestedWorkerDepthDescription": "Combien de générations de travailleurs détachés peuvent engendrer leurs propres travailleurs. 1 maintient l'arborescence des agents à plat : un coordinateur répartit les travailleurs, et ces travailleurs ne répartissent pas.",
           "chatErrorEscalationTitle": "Prévenir le coordinateur des erreurs du chat",
           "chatErrorEscalationDescription": "Quand un agent assigné rencontre une erreur qui met fin à son tour, envoie l'erreur exacte au coordinateur qui l'a assigné. La tâche reste assignée à l'agent. Fonctionne uniquement pour les agents dans l'interface de chat.",
-          "chatErrorEscalationNeedsChat": "Activez l'interface de chat dans les paramètres expérimentaux pour l'utiliser.",
           "chatErrorEscalationKeywordError": "erreur",
           "chatErrorEscalationKeywordChat": "chat",
           "heartbeatTitle": "Signaux de vie des travailleurs",
@@ -9966,19 +9961,6 @@
             "051203d37c": "animal",
             "6b5a56ac35": "Compagnon animé flottant dans le coin inférieur droit.",
             "87d99e634b": "Compagnon",
-            "nativeChat": {
-              "title": "Chat UI",
-              "grok": "grok",
-              "native": "natif",
-              "chat": "chat",
-              "claude": "claude",
-              "codex": "codex",
-              "openclaude": "openclaude",
-              "omp": "omp",
-              "terminal": "Terminal",
-              "agent": "agent",
-              "description": "Ouvrez les nouveaux agents pris en charge dans l'interface utilisateur de Chat."
-            },
             "agentDashboard": {
               "title": "Tableau de bord des agents",
               "description": "Tableau Kanban pour surveiller les agents de tous les worktrees, dans la fenêtre ou en fenêtre indépendante.",
@@ -20523,18 +20505,6 @@
     }
   },
   "featureTips": {
-    "nativeChatUpgrade": {
-      "eyebrow": "Nouveau",
-      "title": "Le chat natif évolue",
-      "intro": "Les nouveaux chats des agents compatibles utilisent la vue améliorée. Pour alterner entre chat et CLI, ouvrez {{panel}} (barre latérale droite) :",
-      "resumeInNativeChat": "{{action}} ouvre une conversation CLI compatible dans le chat natif.",
-      "resumeInCli": "{{action}} copie un chat Claude/Codex dans une CLI neuve ; l'original reste intact.",
-      "gotIt": "Compris",
-      "leaveOff": "Laisser désactivé",
-      "enableNow": "Activer maintenant",
-      "enableError": "Impossible d'activer le mode chat.",
-      "manageInSettings": "Gérez Chat UI dans <link>Paramètres → Expérimental</link>."
-    },
     "voice": {
       "demoPrompt": "Relisez ce diff à la recherche de cas limites et ajoutez des tests pour tout ce que vous trouvez.",
       "startDictation": "Démarrer la dictée",

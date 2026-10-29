@@ -90,7 +90,7 @@ beforeEach(() => {
       ...getDefaultSettings('/home/me'),
       defaultTuiAgent: 'opencode',
       disabledTuiAgents: ['codex'],
-      experimentalNativeChat: false
+      nativeChatProviders: { claude: false, codex: false }
     },
     runtimeStatusByEnvironmentId: new Map([
       ['alpha', status()],
@@ -120,8 +120,8 @@ it.each(['wt', 'folder:f1'])(
     expect(hook.result.current.state).toBe('loading')
     await act(async () => {})
     expect(hook.result.current.state === 'settled' && hook.result.current.rows).toEqual([
-      { kind: 'terminal', agent: 'codex', executionHostId: 'runtime:alpha' },
-      { kind: 'terminal', agent: 'claude', executionHostId: 'runtime:alpha' }
+      { kind: 'cli', agent: 'codex', chat: true, executionHostId: 'runtime:alpha' },
+      { kind: 'cli', agent: 'claude', chat: true, executionHostId: 'runtime:alpha' }
     ])
     expect(rpc.call.mock.calls[0]?.[0]).toEqual({ kind: 'environment', environmentId: 'alpha' })
     expect(rpc.call.mock.calls[0]?.[3]).toMatchObject({
@@ -134,7 +134,7 @@ it.each(['wt', 'folder:f1'])(
 
 it('filters chat and CLI rows with host preferences while keeping the desktop chat presentation', async () => {
   useAppStore.setState((state) => ({
-    settings: { ...state.settings!, experimentalNativeChat: true }
+    settings: { ...state.settings!, nativeChatProviders: {} }
   }))
   const hook = renderHook(() =>
     useNewTabAgentMenuRows('folder:f1', true, { kind: 'runtime', environmentId: 'alpha' })

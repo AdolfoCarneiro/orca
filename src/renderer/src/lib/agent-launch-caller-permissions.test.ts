@@ -130,7 +130,7 @@ describe('agent launch caller arguments and permission bypass', () => {
     async (chatUi, storedArgs, expectedArgs) => {
       store.settings = {
         ...store.settings,
-        experimentalNativeChat: chatUi,
+        nativeChatProviders: chatUi ? {} : { claude: false, codex: false },
         ...(storedArgs === undefined ? {} : { agentDefaultArgs: { codex: storedArgs } }),
         nativeChatSessionOptions: {
           codex: {

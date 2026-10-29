@@ -5,10 +5,7 @@ import {
 import { STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY as CATALOG } from '../../../shared/protocol-version'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { isNativeChatProviderDisplayedOn } from '../../../shared/native-chat/native-chat-providers'
-import {
-  isNativeChatEnabled,
-  type NativeChatDefaultSettings
-} from '../../../shared/structured-native-chat-launch-route'
+import type { NativeChatDefaultSettings } from '../../../shared/structured-native-chat-launch-route'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import { filterEnabledTuiAgents } from '../../../shared/tui-agent-selection'
@@ -81,7 +78,7 @@ export function buildNewTabAgentMenuRows(args: {
   const { settings } = args
   const defaultAgent = settings?.defaultTuiAgent
   const installed = filterEnabledTuiAgents(args.detectedOnHost ?? [], settings?.disabledTuiAgents)
-  if (!isNativeChatEnabled(settings) || args.hostChatAnswer('claude') === 'no-chats') {
+  if (args.hostChatAnswer('claude') === 'no-chats') {
     return orderAgents(defaultAgent, installed).map((agent) => ({ kind: 'terminal', agent }))
   }
   const runnable: TuiAgent[] = []

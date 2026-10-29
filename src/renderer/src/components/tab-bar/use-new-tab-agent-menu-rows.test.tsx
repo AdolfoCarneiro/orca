@@ -177,7 +177,6 @@ beforeEach(() => {
     activeWorktreeId: 'one',
     settings: {
       ...getDefaultSettings('/home/me'),
-      experimentalNativeChat: true,
       disabledTuiAgents: []
     },
     localDetectedAgentIdsByContext: { host: ['claude', 'codex'] },
@@ -305,7 +304,6 @@ it('shares real answer preparation at N and 10N across candidates, owners and se
             activeWorkspaceExecutionHostId: 'local',
             settings: {
               ...getDefaultSettings('/home/me'),
-              experimentalNativeChat: true,
               nativeChatProviders: { opencode: false, pi: false, omp: false },
               disabledTuiAgents: []
             }

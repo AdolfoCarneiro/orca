@@ -24,7 +24,7 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve, reject }
 }
 
-function makeHost(options: { structuredChat?: boolean } = {}) {
+function makeHost() {
   const registry = new RuntimeSubscriptionRegistry()
   const stopListening = vi.fn()
   const tabListeners: ((snapshot: RuntimeMobileSessionTabsResult, sequence: number) => void)[] = []
@@ -35,9 +35,7 @@ function makeHost(options: { structuredChat?: boolean } = {}) {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the session tab methods reach only these members; a missing one throws and fails the test.
   const runtime = {
     getRuntimeId: () => 'test-runtime',
-    getClientSettings: () => ({
-      experimentalNativeChat: options.structuredChat === true
-    }),
+    getClientSettings: () => ({}),
     restoreStructuredAgentSessionTabs: restore,
     listMobileSessionTabs,
     supportsAuthoritativeSessionTabsInventory: () => false,
@@ -104,7 +102,7 @@ describe('session.tabs.subscribe registers when the request arrives', () => {
   ])(
     'an unsubscribe ($unsubscribe) during the $stage await ends the stream and leaves nothing',
     async ({ stage, unsubscribe }) => {
-      const host = makeHost({ structuredChat: true })
+      const host = makeHost()
       const gate = deferred<void>()
       const listing = deferred<RuntimeMobileSessionTabsResult>()
       if (stage === 'restore') {
@@ -322,7 +320,7 @@ describe('session.tabs.subscribeAll registers before restoring structured tabs',
         host.runtime.cleanupSubscriptionsForConnection(CONNECTION)
     }
   ])('a $release during the restore leaves no stream behind', async ({ act }) => {
-    const host = makeHost({ structuredChat: true })
+    const host = makeHost()
     const gate = deferred<void>()
     host.restore.mockReturnValueOnce(gate.promise)
     const messages: Frame[] = []

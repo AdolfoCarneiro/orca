@@ -58,20 +58,19 @@ describe('ACP agents in the runtime registrations', () => {
     expect(registration?.launchCheck).toBeDefined()
   })
 
-  it.each(['omp', 'opencode2'])('opens %s as a structured chat with Chat UI on', (agent) => {
-    const settings = {
-      experimentalNativeChat: true
+  it.each(['omp', 'opencode2'])(
+    'opens %s as a structured chat unless it is set to CLI',
+    (agent) => {
+      const placement = { agent, workspaceKind: 'git-worktree' } as const
+      expect(decideAgentLaunchMode({ placement, settings: {} }).mode).toBe('structured')
+      expect(
+        decideAgentLaunchMode({
+          placement,
+          settings: { nativeChatProviders: { [agent]: false } }
+        })
+      ).toMatchObject({ mode: 'terminal', reason: 'user_default' })
     }
-    const placement = { agent, workspaceKind: 'git-worktree' } as const
-    expect(decideAgentLaunchMode({ placement, settings }).mode).toBe('structured')
-    // Off: new launches use the terminal.
-    expect(
-      decideAgentLaunchMode({
-        placement,
-        settings: { experimentalNativeChat: false }
-      })
-    ).toMatchObject({ mode: 'terminal', reason: 'user_default' })
-  })
+  )
 
   it("finds OMP's agent directory from the launch env, else OMP's default", async () => {
     const { resolveAccountHome } = structuredAgentRuntimeRegistration('omp')!

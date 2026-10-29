@@ -149,7 +149,6 @@ it('recovers mounted native consumers after availability changes alongside WSL l
   }
   const settings = {
     ...getDefaultSettings('/home/test'),
-    experimentalNativeChat: true,
     localWindowsRuntimeDefault: { kind: 'windows-host' } as const
   }
   useAppStore.setState({

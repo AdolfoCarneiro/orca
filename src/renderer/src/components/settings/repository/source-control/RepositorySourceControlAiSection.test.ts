@@ -139,7 +139,7 @@ describe('RepositorySourceControlAiActionRows', () => {
         repos: [{ ...TEST_REPO, id: 'repo-1' }],
         settings: {
           ...settings,
-          experimentalNativeChat: false,
+          nativeChatProviders: { claude: false, codex: false },
           defaultTuiAgent: 'claude',
           sourceControlAi: source
         },
@@ -221,10 +221,13 @@ describe('RepositorySourceControlAiActionRows', () => {
           )
         ).toBe(true)
       }
-      for (const experimentalNativeChat of [true, false]) {
+      for (const chat of [true, false]) {
         await act(() =>
           useAppStore.setState({
-            settings: { ...useAppStore.getState().settings!, experimentalNativeChat }
+            settings: {
+              ...useAppStore.getState().settings!,
+              nativeChatProviders: chat ? {} : { claude: false, codex: false, [agent]: false }
+            }
           })
         )
         for (const card of cards) {
@@ -232,7 +235,7 @@ describe('RepositorySourceControlAiActionRows', () => {
           expect(input?.value).toBe(
             surface === 'terminal'
               ? '--saved-cli'
-              : surface === 'chat' || (experimentalNativeChat && agent !== 'opencode')
+              : surface === 'chat' || (chat && agent !== 'opencode')
                 ? undefined
                 : '--saved-cli'
           )
@@ -315,7 +318,7 @@ it.each(['', '--model raw'])(
 it('keeps default and missing-agent editors disabled only until the host inventory settles', async () => {
   const settings = useAppStore.getState().settings!
   useAppStore.setState({
-    settings: { ...settings, experimentalNativeChat: false },
+    settings: { ...settings, nativeChatProviders: { claude: false, codex: false } },
     detectedAgentIds: null,
     ensureDetectedAgents: vi.fn(() => new Promise<TuiAgent[]>(() => {}))
   })
@@ -378,7 +381,7 @@ it.each([1, 10])(
     useAppStore.setState({
       settings: {
         ...settings,
-        experimentalNativeChat: false,
+        nativeChatProviders: { claude: false, codex: false },
         defaultTuiAgent: 'claude',
         disabledTuiAgents: ['codex']
       },

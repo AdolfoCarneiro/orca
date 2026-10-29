@@ -35,7 +35,6 @@ describe('default agent chat or CLI', () => {
   it("flips the default agent's own chat switch, the one Providers and the + menu read", async () => {
     const updateSettings = renderDefault(
       createGlobalSettingsFixture({
-        experimentalNativeChat: true,
         defaultTuiAgent: 'claude',
         nativeChatProviders: { codex: false }
       })
@@ -48,12 +47,5 @@ describe('default agent chat or CLI', () => {
         nativeChatProviders: { codex: false, claude: false }
       })
     )
-  })
-
-  it('offers no choice while Chat UI is off', () => {
-    renderDefault(
-      createGlobalSettingsFixture({ experimentalNativeChat: false, defaultTuiAgent: 'claude' })
-    )
-    expect(screen.queryByRole('radiogroup')).toBeNull()
   })
 })

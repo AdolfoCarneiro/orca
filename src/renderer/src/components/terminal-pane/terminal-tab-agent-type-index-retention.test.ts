@@ -49,7 +49,7 @@ describe('terminal tab agent type source lifetime', () => {
         select(state.agentStatusByPaneKey, 'tab-1')
       })
       selectLiveTabAgentPanes(statuses, 'tab-1')
-      selectTabBar({ agentStatusByPaneKey: statuses, settings: { experimentalNativeChat: true } })
+      selectTabBar({ agentStatusByPaneKey: statuses })
 
       // Parking removes pane subscribers while the retained tab strip still observes removals.
       unsubscribe()
@@ -57,7 +57,7 @@ describe('terminal tab agent type source lifetime', () => {
       const current = store.getState().agentStatusByPaneKey
       expect(current).toEqual({})
       selectLiveTabAgentPanes(current, 'tab-1')
-      selectTabBar({ agentStatusByPaneKey: current, settings: { experimentalNativeChat: true } })
+      selectTabBar({ agentStatusByPaneKey: current })
       return new WeakRef(statuses)
     }
 

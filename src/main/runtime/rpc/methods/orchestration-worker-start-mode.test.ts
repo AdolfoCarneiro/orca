@@ -7,9 +7,7 @@ import {
   type WorkerStartModeReceipt
 } from './orchestration-worker-start-mode'
 
-const STRUCTURED_DEFAULT = {
-  experimentalNativeChat: true
-}
+const STRUCTURED_DEFAULT = {}
 
 function decide(
   overrides: {
@@ -33,9 +31,7 @@ describe('worker start mode from the user default', () => {
   })
 
   it.each([
-    ['native chat off', { ...STRUCTURED_DEFAULT, experimentalNativeChat: false }],
-    ['chat-by-default off', { ...STRUCTURED_DEFAULT, experimentalNativeChat: false }],
-    ['structured off', { ...STRUCTURED_DEFAULT, experimentalNativeChat: false }],
+    ['the agent is set to CLI', { ...STRUCTURED_DEFAULT, nativeChatProviders: { claude: false } }],
     ['no settings at all', null]
   ])('starts a terminal worker when %s', (_name, settings) => {
     expect(decide({ settings })).toMatchObject({

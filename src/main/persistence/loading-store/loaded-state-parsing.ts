@@ -2,7 +2,7 @@ import { homedir } from 'node:os'
 import { normalizeProxyUrl } from '../../../shared/network-proxy'
 import { normalizeKagiSessionLink } from '../../../shared/browser-url'
 import type { PersistedState } from '../../../shared/persisted-state-types'
-import type { NativeChatUpgradeTipAudience } from '../../../shared/native-chat/native-chat-upgrade-tip-audience'
+import type { ChatUiLaunchTipAudience } from '../../../shared/native-chat/chat-ui-launch-tip-audience'
 import type { SshPtyConsumerRecovery } from '../../../shared/ssh-types'
 import { getDefaultPersistedState } from '../../../shared/constants'
 import { pruneLocalTerminalScrollbackBuffers } from '../../../shared/workspace-session-terminal-buffers'
@@ -80,7 +80,7 @@ export class LoadedStateParsingOperations {
 
     let result: PersistedState | null = null
     let parsed: PersistedState | undefined
-    let nativeChatUpgradeTipAudience: NativeChatUpgradeTipAudience | null = null
+    let chatUiLaunchTipAudience: ChatUiLaunchTipAudience | null = null
     try {
       if (fileExistedOnLoad) {
         const readStartedAt = performance.now()
@@ -101,7 +101,7 @@ export class LoadedStateParsingOperations {
           throw new Error('Profile state startup snapshot is missing')
         }
         // Freeze audience before defaults or migrations alter the saved Chat UI state.
-        nativeChatUpgradeTipAudience = this.cohorts.captureNativeChatUpgradeTipAudience(parsed)
+        chatUiLaunchTipAudience = this.cohorts.captureChatUiLaunchTipAudience(parsed)
         if (parsed.settings?.opencodeSessionCookie) {
           parsed.settings.opencodeSessionCookie = this.runtime.protectedSecrets.decrypt(
             PROTECTED_SECRET_SLOT.opencodeSessionCookie,
@@ -257,13 +257,19 @@ export class LoadedStateParsingOperations {
       this.runtime.loadNeedsSave = true
     }
 
+    // The retired upgrade tip's audience record is dropped from saved state.
+    const loaded: PersistedState & { nativeChatUpgradeTipAudience?: unknown } = result
+    const { nativeChatUpgradeTipAudience: retiredUpgradeTipAudience, ...current } = loaded
+    if (retiredUpgradeTipAudience !== undefined) {
+      this.runtime.loadNeedsSave = true
+    }
     const migrated = {
       ...this.cohorts.migrateTabSwitchKeybindings(
-        this.cohorts.migrateTelemetry(result, fileExistedOnLoad),
+        this.cohorts.migrateTelemetry(current, fileExistedOnLoad),
         fileExistedOnLoad
       ),
-      nativeChatUpgradeTipAudience:
-        nativeChatUpgradeTipAudience ?? this.cohorts.captureNativeChatUpgradeTipAudience(undefined)
+      chatUiLaunchTipAudience:
+        chatUiLaunchTipAudience ?? this.cohorts.captureChatUiLaunchTipAudience(undefined)
     }
 
     // Legacy inline caches seed the session, then move to the cache sidecar.

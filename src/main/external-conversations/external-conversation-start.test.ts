@@ -16,7 +16,7 @@ it('starts the requested connector agent in a background terminal even with chat
       path: '/repo/task',
       connectionId: null
     })),
-    requireStore: () => ({ getSettings: () => ({ experimentalNativeChat: true }) }),
+    requireStore: () => ({ getSettings: () => ({}) }),
     getStructuredAgentSessionCreateSupport: vi.fn(async () => ({ supported: true })),
     createTerminal
   } as unknown as OrcaRuntimeService

@@ -43,7 +43,7 @@ absence included, is a checkpoint.
 
 Model or effort selection does not make a handoff supervised: `orca-cli`'s
 `worktree create --agent` and `agent launch` take `--model` and `--effort`, and
-open a chat or a terminal per the user's Chat UI setting, as `worker-start` does.
+open a chat or a terminal per the user's Chat | CLI choice, as `worker-start` does.
 Never substitute a non-Orca subagent tool when Orca orchestration provenance was
 requested.
 

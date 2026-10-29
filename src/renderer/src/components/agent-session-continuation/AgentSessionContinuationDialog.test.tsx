@@ -52,7 +52,7 @@ beforeEach(() => {
   mocks.launch.mockResolvedValue(true)
   setLocalRuntimeCapabilitiesForTests([CHAT])
   useAppStore.setState({
-    settings: { ...getDefaultSettings('/test'), experimentalNativeChat: true },
+    settings: { ...getDefaultSettings('/test') },
     repos: [{ id: 'repo-1', path: '/repo', displayName: 'repo', badgeColor: '', addedAt: 0 }],
     worktreesByRepo: {
       'repo-1': [makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' })]

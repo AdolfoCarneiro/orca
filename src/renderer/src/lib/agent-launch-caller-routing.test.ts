@@ -74,9 +74,7 @@ function serverReports(capabilities: readonly string[] | null): void {
   })
 }
 
-const CHAT_DEFAULT_SETTINGS = {
-  experimentalNativeChat: true
-}
+const CHAT_DEFAULT_SETTINGS = { nativeChatProviders: {} }
 
 const cases = callerProfileCases()
 

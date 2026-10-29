@@ -27,6 +27,12 @@ import {
   getNativeChatRestartOffer,
   refreshNativeChatRestartOffer
 } from './native-chat-resume-on-restart-store'
+import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
+
+// Every agent set to CLI: no new launch opens a chat on this machine.
+const EVERY_AGENT_CLI = Object.fromEntries(
+  Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
+)
 
 const rpc: Mock<RestartRpc> = vi.hoisted(() => vi.fn<RestartRpc>())
 const statusStream: ResumeStatusStream = vi.hoisted(() => ({
@@ -295,7 +301,6 @@ it('resumes and continues once when the launch begins opted in', async () => {
   useAppStore.setState({
     settings: {
       ...getDefaultSettings(''),
-      experimentalNativeChat: true,
       nativeChatResumeWorkOnRestart: true
     }
   })
@@ -311,8 +316,10 @@ it('resumes and continues once when the launch begins opted in', async () => {
   await act(async () =>
     useAppStore.getState().updateSettings({ nativeChatResumeWorkOnRestart: true })
   )
-  await act(async () => useAppStore.getState().updateSettings({ experimentalNativeChat: false }))
-  await act(async () => useAppStore.getState().updateSettings({ experimentalNativeChat: true }))
+  await act(async () =>
+    useAppStore.getState().updateSettings({ nativeChatProviders: EVERY_AGENT_CLI })
+  )
+  await act(async () => useAppStore.getState().updateSettings({ nativeChatProviders: {} }))
   expect(calls()).toEqual([
     ['agentSession.restartResumable', undefined],
     ['agentSession.restartContinue', { sessionIds: ['a', 'b'] }]
@@ -326,7 +333,6 @@ it('shows an opted-in launch resume in the status bar while it runs', async () =
   useAppStore.setState({
     settings: {
       ...getDefaultSettings(''),
-      experimentalNativeChat: true,
       nativeChatResumeWorkOnRestart: true
     }
   })
@@ -346,7 +352,6 @@ it('reports chats an opted-in launch could not carry on in one toast and the sta
   useAppStore.setState({
     settings: {
       ...getDefaultSettings(''),
-      experimentalNativeChat: true,
       nativeChatResumeWorkOnRestart: true
     }
   })

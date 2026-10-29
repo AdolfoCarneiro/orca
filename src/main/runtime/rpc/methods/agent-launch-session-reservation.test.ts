@@ -18,7 +18,8 @@ import {
   rpcContext,
   runtimeStub,
   setAgentLaunchRecordStore,
-  type AgentLaunchRuntimeStub as RuntimeStub
+  type AgentLaunchRuntimeStub as RuntimeStub,
+  TERMINAL_PREFERENCE
 } from './agent-launch.test-fixture'
 
 type StructuredCreateArgs = { envelope: { sessionId: string } }
@@ -42,7 +43,7 @@ const AGENT_LAUNCH = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launch')
 const AGENT_LAUNCH_REPLAY = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launchReplay')
 
 const SESSION_ID = 'claude_9b1deb4d_3b7d_4bad_9bdd_2b0d7b3dcb6d'
-const TERMINAL_ONLY = {}
+const TERMINAL_ONLY = TERMINAL_PREFERENCE
 const EXISTING_LAUNCH = { agent: 'claude', target: { kind: 'existing', worktree: 'id:wt-7' } }
 const CREATE_LAUNCH = {
   agent: 'claude',

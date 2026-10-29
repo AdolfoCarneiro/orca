@@ -7,10 +7,6 @@ import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import { seedNativeChatLaunchDraftForAgentTab } from '@/lib/agent-launch-prompt-delivery'
 import { pasteAgentLaunchPromptOnceReady } from '@/lib/launch-agent-tab-prompt-paste'
-import {
-  launchNewTabPromptThroughHost,
-  newTabPromptLaunchesThroughHost
-} from '@/lib/launch-agent-new-tab-host-route'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { isWebRuntimeSessionActive } from '@/runtime/web-runtime-session-environment'
 import { launchAgentInWebHostTab } from '@/lib/launch-agent-web-host-tab'
@@ -208,33 +204,6 @@ export function launchAgentInNewTabWithOutcome(
 
   if (beforeSurfaceOpen?.({ kind: 'local-terminal' }) === false) {
     return null
-  }
-  if (
-    pasteDraftAfterLaunch !== null &&
-    newTabPromptLaunchesThroughHost({ promptDelivery, pastesPrompt: true, isRemote })
-  ) {
-    const launched = launchNewTabPromptThroughHost({
-      agent,
-      worktreeId,
-      ...(groupId ? { groupId } : {}),
-      prompt: trimmedPrompt,
-      ...(agentArgs !== undefined ? { agentArgs } : {}),
-      ...(terminalOptions.sessionOptions ? { sessionOptions: terminalOptions.sessionOptions } : {}),
-      ...(initialCwd?.trim() ? { cwd: initialCwd } : {}),
-      launchSource: launchSource ?? 'tab_bar_quick_launch',
-      quickCommandLabel,
-      ...(pendingActivationSpawn ? { pendingActivationSpawn: true } : {}),
-      pasteContent: pasteDraftAfterLaunch,
-      submit: submitPastedPrompt,
-      ...(onPromptDelivered ? { onPromptDelivered } : {}),
-      ...(onPromptDeliveryUnconfirmed ? { onPromptDeliveryUnconfirmed } : {})
-    })
-    return {
-      surface: { kind: 'local-terminal', tabId: launched.tabId },
-      startupPlan,
-      pasteDraftAfterLaunch: true,
-      promptDeliveryResult: launched.promptDeliveryResult
-    }
   }
   const tab = store.createTab(worktreeId, groupId, undefined, {
     launchAgent: agent,

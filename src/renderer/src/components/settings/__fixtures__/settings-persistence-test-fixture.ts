@@ -24,7 +24,6 @@ beforeEach(() => {
   useAppStore.setState({
     settings: {
       ...getDefaultSettings('/synthetic'),
-      experimentalNativeChat: true,
       sourceControlAi: normalizeSourceControlAiSettings({
         ...normalizeSourceControlAiSettings(undefined),
         enabled: false,

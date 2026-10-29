@@ -1,4 +1,4 @@
-// Persist explicit choices only; Chat UI routes unchosen agents to chat and Settings enables installed non-built-ins.
+// Persist explicit choices only; launches route unchosen agents to chat and Settings enables installed non-built-ins.
 
 import { isAgentSessionHandleProvider } from '../agent-session-provider-handle'
 import type { GlobalSettings } from '../global-settings-types'

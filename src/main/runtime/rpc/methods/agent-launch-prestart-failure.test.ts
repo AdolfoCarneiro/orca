@@ -18,6 +18,7 @@ import {
   methodNamed,
   runtimeStub,
   setAgentLaunchRecordStore,
+  TERMINAL_PREFERENCE,
   type AgentLaunchRuntimeStub
 } from './agent-launch.test-fixture'
 
@@ -106,7 +107,7 @@ describe('a launch whose terminal fails', () => {
   }
 
   it('reports a failure before the spawn request with its real cause and records it', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     failingCreate(runtime, new Error(NO_LAUNCH_COMMAND), false)
 
     const response = await replay(runtime, EXISTING_LAUNCH)
@@ -116,7 +117,7 @@ describe('a launch whose terminal fails', () => {
   })
 
   it('keeps a stable runtime code such as runtime_unavailable', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     failingCreate(runtime, new Error('runtime_unavailable'), false)
 
     const response = await replay(runtime, EXISTING_LAUNCH)
@@ -125,11 +126,11 @@ describe('a launch whose terminal fails', () => {
   })
 
   it('answers a retry of the same operation from the record instead of launching again', async () => {
-    const first = runtimeStub({ settings: {} })
+    const first = runtimeStub({ settings: TERMINAL_PREFERENCE })
     failingCreate(first, new Error(NO_LAUNCH_COMMAND), false)
     await replay(first, EXISTING_LAUNCH)
 
-    const retry = runtimeStub({ settings: {} })
+    const retry = runtimeStub({ settings: TERMINAL_PREFERENCE })
     const response = await replay(retry, EXISTING_LAUNCH)
 
     expect(retry.createTerminal).not.toHaveBeenCalled()
@@ -138,7 +139,7 @@ describe('a launch whose terminal fails', () => {
 
   it('stays unknown when the failure came after the spawn request left', async () => {
     // An SSH or daemon spawn whose reply was lost may still have started an agent.
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     failingCreate(runtime, new Error('ssh_channel_closed'), true)
 
     const response = await replay(runtime, EXISTING_LAUNCH)
@@ -153,12 +154,12 @@ describe('a launch whose terminal fails', () => {
   it('stays unknown when another launch saw the same error before its own spawn request', async () => {
     // A failed pane spawn rejects one error into the spawner and into a create waiting on that pane.
     const shared = new Error('ssh_channel_closed')
-    const waiting = runtimeStub({ settings: {} })
+    const waiting = runtimeStub({ settings: TERMINAL_PREFERENCE })
     failingCreate(waiting, shared, false)
     await replay(waiting, EXISTING_LAUNCH, OTHER_OPERATION_ID)
     expect(outcomeOf(OTHER_OPERATION_ID)?.status).toBe('failed')
 
-    const spawner = runtimeStub({ settings: {} })
+    const spawner = runtimeStub({ settings: TERMINAL_PREFERENCE })
     failingCreate(spawner, shared, true)
     const response = await replay(spawner, EXISTING_LAUNCH)
 
@@ -170,7 +171,7 @@ describe('a launch whose terminal fails', () => {
   })
 
   it('stays unknown for a launch that created its workspace first', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     // No startup terminal came back, so the launch builds its own in the new workspace.
     runtime.createManagedWorktree.mockResolvedValueOnce({
       worktree: { id: 'wt-new' },
@@ -200,7 +201,7 @@ describe('a launch whose terminal fails', () => {
     'refuses conclusive %s before effects and replays it',
     async (reason) => {
       const runtime = runtimeStub({
-        settings: {},
+        settings: TERMINAL_PREFERENCE,
         ...(reason === 'cwd' ? {} : { createSupport: { supported: false, reason } })
       })
       const subfolderChat = {
@@ -229,7 +230,7 @@ describe('a launch whose terminal fails', () => {
   )
 
   it('starts the CLI for an explicit terminal even when chats are the default', async () => {
-    const runtime = runtimeStub({ settings: { experimentalNativeChat: true } })
+    const runtime = runtimeStub({ settings: {} })
 
     const response = await replay(runtime, { ...EXISTING_LAUNCH, surface: 'terminal' })
 
@@ -255,7 +256,7 @@ describe('a launch whose terminal fails', () => {
       sessionOptions: { model: 'private-proof/model-b' }
     }
   ])('records and replays a model refusal before adapter effects', async (launch) => {
-    const first = runtimeStub({ settings: {} })
+    const first = runtimeStub({ settings: TERMINAL_PREFERENCE })
     expect(await replay(first, launch)).toMatchObject({
       ok: false,
       error: { code: 'capability_unsupported' }
@@ -267,7 +268,7 @@ describe('a launch whose terminal fails', () => {
     expect(first.showRepo).not.toHaveBeenCalled()
     expect(first.createManagedWorktree).not.toHaveBeenCalled()
     expect(first.createTerminal).not.toHaveBeenCalled()
-    const retry = runtimeStub({ settings: {} })
+    const retry = runtimeStub({ settings: TERMINAL_PREFERENCE })
     expect(await replay(retry, launch)).toMatchObject({
       ok: false,
       error: { code: 'capability_unsupported' }
@@ -286,7 +287,7 @@ describe('a launch whose terminal fails', () => {
         ...(callerDowngrade ? {} : { nativeChatDefault: false }),
         prompt: { text: 'Reply with OK', delivery: 'submit' }
       }
-      const first = runtimeStub({ settings: { experimentalNativeChat: true } })
+      const first = runtimeStub({ settings: {} })
       first.createManagedWorktree.mockImplementation(async (args) => {
         expect(args).toMatchObject({
           startupAgent: 'opencode',
@@ -304,7 +305,7 @@ describe('a launch whose terminal fails', () => {
       expect(outcomeOf(OPERATION_ID)).toMatchObject({ status: 'failed' })
       expect(first.createManagedWorktree).not.toHaveBeenCalled()
       expect(first.createTerminal).not.toHaveBeenCalled()
-      const retry = runtimeStub({ settings: {} })
+      const retry = runtimeStub({ settings: TERMINAL_PREFERENCE })
       expect(await replay(retry, launch, OPERATION_ID, caller)).toMatchObject({
         ok: false,
         error: { code: 'capability_unsupported' }
@@ -316,7 +317,7 @@ describe('a launch whose terminal fails', () => {
   it.each([undefined, 'chat'] as const)(
     'keeps an OpenCode model create on its chat route %s',
     async (surface) => {
-      const runtime = runtimeStub({ settings: { experimentalNativeChat: true } })
+      const runtime = runtimeStub({ settings: {} })
       const launch = {
         ...CREATE_LAUNCH,
         agent: 'opencode',
@@ -369,7 +370,7 @@ describe('a launch whose terminal fails', () => {
         }
       }
     })
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     expect(await replay(runtime, launch)).toMatchObject({
       ok: true,
       result: { outcome: { handle: 'term_historical' }, worktreeId: 'wt_historical' }

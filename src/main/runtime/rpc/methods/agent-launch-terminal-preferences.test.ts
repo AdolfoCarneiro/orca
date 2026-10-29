@@ -8,7 +8,8 @@ import {
   methodNamed,
   rpcContext,
   runtimeStub,
-  type AgentLaunchRuntimeStub as RuntimeStub
+  type AgentLaunchRuntimeStub as RuntimeStub,
+  TERMINAL_PREFERENCE
 } from './agent-launch.test-fixture'
 
 vi.mock('./structured-agent-session-create', () => ({
@@ -21,7 +22,7 @@ vi.mock('./structured-agent-session-create', () => ({
 const { AGENT_LAUNCH_METHODS } = await import('./agent-launch')
 const AGENT_LAUNCH = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launch')
 
-const TERMINAL_ONLY = {}
+const TERMINAL_ONLY = TERMINAL_PREFERENCE
 const EXISTING_LAUNCH = { agent: 'claude', target: { kind: 'existing', worktree: 'id:wt-7' } }
 const CREATE_LAUNCH = {
   agent: 'claude',

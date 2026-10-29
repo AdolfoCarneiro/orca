@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 import { FLOATING_TERMINAL_WORKTREE_ID, getDefaultSettings } from '../../../shared/constants'
 import { createTestStore, makeWorktree, seedStore } from '../store/slices/store-test-helpers'
 import { createStoreCascadesMockApi } from '../store/slices/store-cascades-test-harness'
@@ -32,7 +33,13 @@ function seedMainWindowOnEditor(): ReturnType<typeof createTestStore> {
   const store = createTestStore()
   storeBox.store = store
   seedStore(store, {
-    settings: getDefaultSettings('/tmp'),
+    // Every agent set to CLI: this launch opens a terminal.
+    settings: {
+      ...getDefaultSettings('/tmp'),
+      nativeChatProviders: Object.fromEntries(
+        Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
+      )
+    },
     worktreesByRepo: {
       repo1: [makeWorktree({ id: MAIN_WORKTREE_ID, repoId: 'repo1', path: '/path/wt1' })]
     },

@@ -56,7 +56,6 @@ const structuredFeasibleFor = (appStore: AgentLaunchRouteStore, args: AgentLaunc
   structuredAgentSessionLaunchFeasible(appStore, { ...args, settings: STRUCTURED_SETTINGS })
 
 const STRUCTURED_SETTINGS = {
-  experimentalNativeChat: true,
   agentCmdOverrides: {},
   agentDefaultArgs: {},
   agentDefaultEnv: {}
@@ -290,7 +289,7 @@ describe('buildAgentLaunchRouteInput', () => {
   })
 
   // Grok reads its transcript off local disk, so it is the agent the readability answer routes on.
-  const NATIVE_CHAT_SETTINGS = { experimentalNativeChat: true }
+  const NATIVE_CHAT_SETTINGS = {}
   const UNLANDED_WORKSPACE = {
     kind: 'git-worktree',
     worktreeId: 'repo-1::/repo/wt-1',

@@ -3,19 +3,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import type { Page } from '@stablyai/playwright-test'
-import type { GlobalSettings } from '../../src/shared/global-settings-types'
 import { test, expect } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
 
 const TRANSCRIPT_ROWS = 650
-
-async function enableNativeChatSetting(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const nextSettings = await window.api.settings.set({ experimentalNativeChat: true })
-    window.__store?.setState({ settings: nextSettings as GlobalSettings })
-  })
-}
 
 async function seedClaudeProviderSession(
   page: Page,
@@ -131,7 +123,6 @@ test.describe('Native chat transcript anchoring', () => {
     writeFileSync(transcriptPath, claudeTranscript(TRANSCRIPT_ROWS, sessionId))
 
     try {
-      await enableNativeChatSetting(orcaPage)
       await seedClaudeProviderSession(orcaPage, {
         paneKey: descriptor.paneKey,
         worktreeId: descriptor.worktreeId,
@@ -263,7 +254,6 @@ test.describe('Native chat transcript anchoring', () => {
     writeFileSync(transcriptPath, claudeTranscript(TRANSCRIPT_ROWS, sessionId))
 
     try {
-      await enableNativeChatSetting(orcaPage)
       await seedClaudeProviderSession(orcaPage, {
         paneKey: descriptor.paneKey,
         worktreeId: descriptor.worktreeId,

@@ -1,10 +1,9 @@
 import { randomInt, randomUUID } from 'node:crypto'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import {
-  createNewProfileNativeChatUpgradeTipAudience,
-  parseNativeChatUpgradeTipAudience,
-  type NativeChatUpgradeTipAudience
-} from '../../../shared/native-chat/native-chat-upgrade-tip-audience'
+  parseChatUiLaunchTipAudience,
+  type ChatUiLaunchTipAudience
+} from '../../../shared/native-chat/chat-ui-launch-tip-audience'
 import { savedChatUiWithTerminalDefaultView } from '../applying-settings/terminal-settings-migrations'
 
 import type { StoreRuntimeState } from './store-runtime-state'
@@ -31,41 +30,29 @@ export class LoadedCohortMigrationOperations {
     }
   }
 
-  captureNativeChatUpgradeTipAudience(savedProfile: unknown): NativeChatUpgradeTipAudience {
-    const saved = isRecord(savedProfile) ? savedProfile.nativeChatUpgradeTipAudience : undefined
-    const kept = saved === undefined ? null : parseNativeChatUpgradeTipAudience(saved)
+  /** Reads the retired Chat UI switch from the raw profile, before load strips it. */
+  captureChatUiLaunchTipAudience(savedProfile: unknown): ChatUiLaunchTipAudience {
+    const saved = isRecord(savedProfile) ? savedProfile.chatUiLaunchTipAudience : undefined
+    const kept = saved === undefined ? null : parseChatUiLaunchTipAudience(saved)
     if (kept) {
       return kept
     }
     // Persist this decision before later settings changes can alter the apparent audience.
     this.runtime.loadNeedsSave = true
     if (!isRecord(savedProfile)) {
-      return createNewProfileNativeChatUpgradeTipAudience()
+      return { version: 1, membership: 'excluded', basis: 'new-profile' }
     }
     if (saved !== undefined) {
-      // Never rederive a damaged audience record from current Chat UI settings.
+      // Never rederive a damaged audience record from current settings.
       return { version: 1, membership: 'excluded', basis: 'unreadable-record' }
     }
     const settings = isRecord(savedProfile.settings) ? savedProfile.settings : undefined
-    const chatUi = settings?.experimentalNativeChat
-    if (chatUi === true) {
-      // The retired key proves the opt-in predates the upgrade; later opt-ins cannot establish membership.
-      if (!settings || !Object.hasOwn(settings, 'openAgentTabsInChatByDefault')) {
-        return { version: 1, membership: 'excluded', basis: 'chat-ui-on-unproven' }
-      }
-      return {
-        version: 1,
-        membership: 'eligible',
-        basis: savedChatUiWithTerminalDefaultView(settings)
-          ? 'chat-ui-on-terminal-default'
-          : 'chat-ui-on'
-      }
-    }
-    return {
-      version: 1,
-      membership: 'excluded',
-      basis: chatUi === false ? 'chat-ui-off' : 'chat-ui-unset'
-    }
+    // Opt-ins saved with new tabs opening in the terminal were kept on the terminal, so they count as off.
+    const chatUiOn =
+      settings?.experimentalNativeChat === true && !savedChatUiWithTerminalDefaultView(settings)
+    return chatUiOn
+      ? { version: 1, membership: 'excluded', basis: 'chat-ui-on' }
+      : { version: 1, membership: 'eligible', basis: 'chat-ui-off' }
   }
 
   migrateTelemetry(state: PersistedState, fileExistedOnLoad: boolean): PersistedState {

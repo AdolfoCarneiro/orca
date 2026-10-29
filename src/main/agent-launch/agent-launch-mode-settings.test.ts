@@ -10,7 +10,6 @@ describe('host launch preference ownership', () => {
   it.each([false, true])('reads saved choices privately with Agents disabled=%s', (disabled) => {
     const settings: ReturnType<RuntimeStore['getSettings']> = {
       ...getDefaultSettings('/tmp'),
-      experimentalNativeChat: true,
       nativeChatProviders: { claude: false },
       disabledTuiAgents: disabled ? ['claude'] : []
     }
@@ -26,7 +25,7 @@ describe('host launch preference ownership', () => {
   })
 
   it('keeps an unchosen provider on without discovering installed agents', () => {
-    const saved = { experimentalNativeChat: true }
+    const saved = {}
     const runtime = { requireStore: () => ({ getSettings: () => saved }) }
     expect(
       decideAgentLaunchMode({
@@ -37,19 +36,27 @@ describe('host launch preference ownership', () => {
     expect(saved).not.toHaveProperty('nativeChatProviders')
   })
 
-  it.each([false, true])('preserves desktop stamp %s against opposite host choices', (stamp) => {
+  it.each([false, true])('maps desktop stamp %s onto the launched agent only', (stamp) => {
     const runtime = {
       requireStore: () => ({
-        getSettings: () => ({
-          experimentalNativeChat: !stamp,
-          nativeChatProviders: { grok: !stamp }
-        })
+        getSettings: () => ({ nativeChatProviders: { grok: !stamp, claude: !stamp } })
       })
     }
-    const mode = decideAgentLaunchMode({
-      placement: { agent: 'grok' },
-      settings: readAgentLaunchModeSettings(runtime, stamp)
+    const settings = readAgentLaunchModeSettings(runtime, {
+      agent: 'grok',
+      nativeChatDefault: stamp
     })
-    expect(mode.mode).toBe(stamp ? 'structured' : 'terminal')
+    expect(settings).toEqual({ nativeChatProviders: { grok: stamp } })
+    expect(decideAgentLaunchMode({ placement: { agent: 'grok' }, settings }).mode).toBe(
+      stamp ? 'structured' : 'terminal'
+    )
+    // An explicit surface wins over the stamp.
+    expect(
+      decideAgentLaunchMode({
+        placement: { agent: 'grok' },
+        settings,
+        surface: stamp ? 'terminal' : 'chat'
+      }).mode
+    ).toBe(stamp ? 'terminal' : 'structured')
   })
 })

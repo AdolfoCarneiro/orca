@@ -78,7 +78,6 @@ beforeEach(() => {
     modalData: {},
     settings: {
       ...getDefaultSettings('/test'),
-      experimentalNativeChat: true,
       defaultTuiAgent: 'claude'
     }
   })
@@ -144,7 +143,6 @@ it('submits the untouched refusal-aware OpenCode CLI instead of the registered c
     useAppStore.setState({
       settings: {
         ...getDefaultSettings('/test'),
-        experimentalNativeChat: true,
         defaultTuiAgent: 'opencode'
       }
     })

@@ -55,7 +55,7 @@ function renderPicker(
         selection: resolveAgentMenuSelection({
           agent: value,
           surface,
-          settings: { experimentalNativeChat: true },
+          settings: {},
           inventoryReady: model.state === 'settled',
           answer:
             model.state === 'settled' &&
@@ -182,7 +182,7 @@ it('keeps a recorded host chat without its CLI on CHAT after ArrowRight and Ente
   // QA controls/phase-matrix/probe.json: external.raw.inventory + streams.health[0].result.
   const detectedOnHost: TuiAgent[] = ['codex', 'opencode', 'pi', 'omp']
   const rows = buildNewTabAgentMenuRows({
-    settings: { experimentalNativeChat: true, defaultTuiAgent: 'antigravity' },
+    settings: { defaultTuiAgent: 'antigravity' },
     detectedOnHost,
     chatAgents: ['antigravity'],
     hostChatAnswer: () => 'yes',

@@ -14,7 +14,7 @@ beforeEach(() => {
   deliverTerminalAgentLaunchPrompt.mockResolvedValue(true)
 })
 
-const CHAT_DEFAULT_ON = { experimentalNativeChat: true }
+const CHAT_DEFAULT_ON = {}
 
 function harness(options: { startupTerminal?: Record<string, unknown> | null } = {}) {
   const runtime = {

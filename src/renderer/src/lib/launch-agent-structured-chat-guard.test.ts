@@ -83,7 +83,6 @@ const store = {
     agentDefaultArgs: {},
     agentDefaultEnv: {},
     activeRuntimeEnvironmentId: null,
-    experimentalNativeChat: true,
     nativeChatSessionOptions: undefined as
       | Record<
           string,
@@ -278,7 +277,7 @@ describe('structured chat adoption guard on the launch path', () => {
     ])
     mockCreateSupport.mockResolvedValue({ supported: true })
     hostCapabilities = STRUCTURED_HOST_CAPABILITIES
-    store.settings.experimentalNativeChat = true
+    store.settings.nativeChatProviders = {}
     store.settings.nativeChatSessionOptions = undefined
   })
 
@@ -440,7 +439,7 @@ describe('structured chat adoption guard on the launch path', () => {
 
   // Recheck persisted opt-in against current default view; the hidden toggle can remain enabled under Terminal chat.
   it('ignores a stale structured opt-in while the default view is Terminal chat', async () => {
-    store.settings.experimentalNativeChat = false
+    store.settings.nativeChatProviders = { claude: false, codex: false }
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
     const result = launchAgentInNewTab({

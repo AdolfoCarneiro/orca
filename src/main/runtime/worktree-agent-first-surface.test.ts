@@ -66,7 +66,7 @@ function chatCreateRuntime(args: {
     getSettings: () => ({
       ...runtimeStore.getSettings(),
       setupScriptLaunchMode: args.setupScriptLaunchMode,
-      ...(args.nativeChat ? { experimentalNativeChat: true } : {})
+      ...(args.nativeChat ? {} : { nativeChatProviders: { claude: false, codex: false } })
     })
   })
   const spawn = vi.fn<NonNullable<RuntimePtyController['spawn']>>(async () => {

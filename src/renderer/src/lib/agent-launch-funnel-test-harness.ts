@@ -1,4 +1,5 @@
 import { vi } from 'vitest'
+import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 import { settleAgentLaunchPaneStart } from './agent-launch-pane-start'
 
 /** Share the store double across caller suites so newly read funnel fields cannot drift between fixture copies. */
@@ -8,7 +9,7 @@ export type LaunchFunnelSettings = {
   agentDefaultEnv: Record<string, Record<string, string>>
   activeRuntimeEnvironmentId: string | null
   terminalWindowsShell?: string
-  experimentalNativeChat?: boolean
+  nativeChatProviders?: Record<string, boolean>
   experimentalStructuredNativeChat?: boolean
   openAgentTabsInChatByDefault?: boolean
   nativeChatSessionOptions?: Record<
@@ -25,6 +26,10 @@ export function launchFunnelSettings(
     agentDefaultArgs: {},
     agentDefaultEnv: {},
     activeRuntimeEnvironmentId: null,
+    // Every agent set to CLI, so default launches open terminals.
+    nativeChatProviders: Object.fromEntries(
+      Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
+    ),
     ...overrides
   }
 }

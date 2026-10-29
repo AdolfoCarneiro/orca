@@ -56,7 +56,7 @@ it('settles ownerless continuation and plus inventory without borrowing agents, 
     setLocalRuntimeCapabilitiesForTests(worktreeId.startsWith('folder:') ? null : [CHAT, CLIENT])
     useAppStore.setState({
       ...initial,
-      settings: { ...getDefaultSettings('/home/me'), experimentalNativeChat: true },
+      settings: { ...getDefaultSettings('/home/me') },
       activeWorktreeId: worktreeId,
       activeWorkspaceExecutionHostId: null,
       folderWorkspaces: [],

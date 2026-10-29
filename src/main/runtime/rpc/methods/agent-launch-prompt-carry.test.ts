@@ -6,7 +6,8 @@ import {
   methodNamed,
   rpcContext,
   runtimeStub,
-  type AgentLaunchRuntimeStub
+  type AgentLaunchRuntimeStub,
+  TERMINAL_PREFERENCE
 } from './agent-launch.test-fixture'
 
 const { AGENT_LAUNCH_METHODS } = await import('./agent-launch')
@@ -48,7 +49,7 @@ describe('an argv agent’s launch prompt, by what the runtime reports about its
 
   it('pastes it once the agent is ready when the line could not carry it', async () => {
     const { runtime, sendTerminalAgentPrompt } = withPromptWriter(
-      runtimeStub({ settings: {}, lineCarriesPrompt: false })
+      runtimeStub({ settings: TERMINAL_PREFERENCE, lineCarriesPrompt: false })
     )
 
     const result = await launch({ ...EXISTING, prompt: SUBMIT }, runtime)
@@ -59,7 +60,7 @@ describe('an argv agent’s launch prompt, by what the runtime reports about its
 
   it('does not paste a prompt the line already carried', async () => {
     const { runtime, sendTerminalAgentPrompt } = withPromptWriter(
-      runtimeStub({ settings: {}, lineCarriesPrompt: true })
+      runtimeStub({ settings: TERMINAL_PREFERENCE, lineCarriesPrompt: true })
     )
 
     const result = await launch({ ...EXISTING, prompt: SUBMIT }, runtime)
@@ -70,7 +71,7 @@ describe('an argv agent’s launch prompt, by what the runtime reports about its
 
   it('pastes into an agent-first create’s startup terminal when its line could not carry it', async () => {
     const { runtime, sendTerminalAgentPrompt } = withPromptWriter(
-      runtimeStub({ settings: {}, lineCarriesPrompt: false })
+      runtimeStub({ settings: TERMINAL_PREFERENCE, lineCarriesPrompt: false })
     )
 
     const result = await launch(
@@ -92,7 +93,7 @@ describe('an argv agent’s launch prompt, by what the runtime reports about its
 
   it('does not paste into an agent-first create’s startup terminal whose line carried it', async () => {
     const { runtime, sendTerminalAgentPrompt } = withPromptWriter(
-      runtimeStub({ settings: {}, lineCarriesPrompt: true })
+      runtimeStub({ settings: TERMINAL_PREFERENCE, lineCarriesPrompt: true })
     )
 
     await launch(

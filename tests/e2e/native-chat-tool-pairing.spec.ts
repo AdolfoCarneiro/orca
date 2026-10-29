@@ -7,7 +7,6 @@ import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } fro
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
 import {
   claudeTranscriptLines,
-  enableNativeChatSetting,
   seedClaudeProviderSession,
   toggleTerminalTabToChatView
 } from './helpers/native-chat-transcript-fixture'
@@ -121,7 +120,6 @@ test('keeps named output owners and accepted tasks while retaining a standalone 
 
   try {
     writeFileSync(transcriptPath, pairingTranscript(sessionId))
-    await enableNativeChatSetting(orcaPage)
     await seedClaudeProviderSession(orcaPage, {
       paneKey: descriptor.paneKey,
       worktreeId: descriptor.worktreeId,

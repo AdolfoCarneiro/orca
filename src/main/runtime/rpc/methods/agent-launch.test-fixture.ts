@@ -1,6 +1,7 @@
 /** Use one runtime stub for RPC and replay tests so they exercise the same host surface. */
 
 import { vi } from 'vitest'
+import { TUI_AGENT_CONFIG } from '../../../../shared/tui-agent-config'
 import { AGENT_LAUNCH_RUNTIME_CAPABILITY } from '../../../../shared/agent-launch-runtime-capability'
 import type { WorktreeLineageWarning } from '../../../../shared/worktree/lineage-types'
 import { AgentLaunchPaneAlreadyLiveError } from '../../../../shared/agent-launch-pane-already-live'
@@ -13,8 +14,12 @@ import type {
   AgentLaunchTabPublishRequest
 } from '../../../../shared/agent-launch-tab-publication'
 
-export const STRUCTURED_PREFERENCE = {
-  experimentalNativeChat: true
+export const STRUCTURED_PREFERENCE = {}
+/** Every agent set to CLI, so default launches open terminals. */
+export const TERMINAL_PREFERENCE = {
+  nativeChatProviders: Object.fromEntries(
+    Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
+  )
 }
 
 export type AgentLaunchRuntimeStubOptions = {

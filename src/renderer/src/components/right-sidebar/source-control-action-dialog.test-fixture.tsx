@@ -65,7 +65,6 @@ export function mountSourceDialog(
   const settings = {
     ...getDefaultSettings('/tmp/fc1-action'),
     defaultTuiAgent: 'claude' as const,
-    experimentalNativeChat: true,
     agentPermissionDefault: 'own' as const
   }
   settings.sourceControlAi!.actions = { resolveConflicts: global }
@@ -150,7 +149,7 @@ export function renderDialog(
   )!.launchPreferences!
   settings.sourceControlAi!.actions = { resolveConflicts: { agentId: null, launchPreferences } }
   useAppStore.setState({
-    settings: { ...settings, experimentalNativeChat: chat },
+    settings: { ...settings, nativeChatProviders: chat ? {} : { claude: false, codex: false } },
     detectedAgentIds: ['claude', 'codex'],
     localDetectedAgentIdsByContext: { host: ['claude', 'codex'] }
   })

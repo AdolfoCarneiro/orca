@@ -45,7 +45,7 @@ it('carries the accepted route across preparation and retains CLI startup/prompt
     pendingFirstAgentMessageRename: false,
     trimmedNote: 'Fix the checkout'
   }
-  const settings = { ...getDefaultSettings('/test'), experimentalNativeChat: true }
+  const settings = { ...getDefaultSettings('/test') }
   const original = useAppStore.getState().settings
   const prepare = vi.fn<() => Promise<PreparedQuickSubmit | null>>()
   const { result } = renderHook(() =>
@@ -96,7 +96,7 @@ it('carries the accepted route across preparation and retains CLI startup/prompt
         )
       })
       useAppStore.setState({
-        settings: { ...settings, experimentalNativeChat: route === 'terminal-tui' }
+        settings: { ...settings, nativeChatProviders: { opencode: route === 'terminal-tui' } }
       })
       await act(async () => {
         deferred.resolve(prepared)

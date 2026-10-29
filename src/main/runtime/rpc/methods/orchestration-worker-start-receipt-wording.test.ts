@@ -7,9 +7,7 @@ import {
   type WorkerStartModeReceipt
 } from './orchestration-worker-start-mode'
 
-const STRUCTURED_PREFERENCE = {
-  experimentalNativeChat: true
-} as const
+const STRUCTURED_PREFERENCE = {} as const
 
 function structuredReceipt(): WorkerStartModeReceipt {
   const receipt = decideWorkerStartMode({

@@ -132,7 +132,6 @@ export function buildDefaultSettings(args: {
     terminalLinkActionPopoverEnabled: true,
     terminalLinkClickBehavior: 'actions',
     terminalUrlMiddleClickBehavior: 'open',
-    experimentalNativeChat: false,
     experimentalBrowserExtensions: false,
     nativeChatResumeWorkOnRestart: false,
     nativeChatQueueFollowUps: true,

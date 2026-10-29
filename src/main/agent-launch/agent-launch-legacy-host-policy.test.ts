@@ -12,7 +12,7 @@ vi.mock('../preflight/agent-detection', () => ({
 const getStructuredAgentSessionCreateSupport = vi.fn(async () => ({ supported: true }))
 // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the stub implements the two runtime methods the executor reaches; the chat default is on so a terminal-only launch is proven to ignore it.
 const runtime = {
-  requireStore: () => ({ getSettings: () => ({ experimentalNativeChat: true }) }),
+  requireStore: () => ({ getSettings: () => ({}) }),
   getStructuredAgentSessionCreateSupport
 } as unknown as AgentLaunchExecution['runtime']
 
@@ -59,7 +59,7 @@ describe('terminal-only launches', () => {
     expect(
       decideAgentLaunchMode({
         placement: { agent: 'claude', workspaceKind: 'git-worktree' },
-        settings: { experimentalNativeChat: true },
+        settings: {},
         terminalOnly: true
       })
     ).toMatchObject({

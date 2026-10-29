@@ -90,8 +90,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   useAppStore.setState({
     settings: {
-      ...initialSettings,
-      experimentalNativeChat: true
+      ...initialSettings
     }
   })
 })

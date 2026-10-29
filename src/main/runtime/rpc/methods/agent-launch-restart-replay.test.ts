@@ -24,7 +24,8 @@ import {
   rpcContext,
   runtimeStub,
   setAgentLaunchRecordStore,
-  type AgentLaunchRuntimeStub
+  type AgentLaunchRuntimeStub,
+  TERMINAL_PREFERENCE
 } from './agent-launch.test-fixture'
 
 const deliverTerminalPrompt = vi.hoisted(() =>
@@ -41,7 +42,7 @@ const AGENT_LAUNCH_REPLAY = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launchRepla
 const OPERATION_ID = `${Date.now()}-000000000000000000000000000000ee`
 const PANE_KEY = '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d:3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 // No structured preference: every launch here is a terminal agent, the surface a restart outlives.
-const TERMINAL_ONLY = {}
+const TERMINAL_ONLY = TERMINAL_PREFERENCE
 const PROMPTED_LAUNCH = {
   agent: 'claude',
   target: { kind: 'existing', worktree: 'id:wt-7' },

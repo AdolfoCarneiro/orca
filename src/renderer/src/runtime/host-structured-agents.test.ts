@@ -9,11 +9,11 @@ import type { RuntimeCapability } from '../../../shared/protocol-version'
 type Statuses = Map<string, RuntimeEnvironmentStatus>
 type StoreState = {
   runtimeStatusByEnvironmentId: Statuses
-  settings: { experimentalNativeChat: boolean } | null
+  settings: { nativeChatProviders?: Record<string, boolean> } | null
   ensureNativeDetectedAgents: () => Promise<string[]>
 }
 
-const ON = { experimentalNativeChat: true }
+const ON = {}
 
 const mocks = vi.hoisted(() => {
   const state: StoreState = {
@@ -38,10 +38,14 @@ vi.mock('./local-runtime-capabilities', () => ({
     return () => mocks.capabilitiesKnown.delete(listener)
   }
 }))
-vi.mock('./local-structured-chats', () => ({
-  localStructuredChatsInUse: async (settings: StoreState['settings']) =>
-    settings?.experimentalNativeChat === true
-}))
+vi.mock('./local-structured-chats', () => {
+  const launchesChats = (settings: StoreState['settings']): boolean =>
+    settings !== null && settings.nativeChatProviders?.claude !== false
+  return {
+    newAgentLaunchesMayOpenChats: launchesChats,
+    localStructuredChatsInUse: async (settings: StoreState['settings']) => launchesChats(settings)
+  }
+})
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => mocks.state,
@@ -171,7 +175,7 @@ describe('host structured agents', () => {
 
   // Asking installs a host's structured store; a profile with structured chat off never pays it.
   it('asks no host until structured chat is turned on', async () => {
-    mocks.state = { ...mocks.state, settings: { experimentalNativeChat: false } }
+    mocks.state = { ...mocks.state, settings: { nativeChatProviders: { claude: false } } }
     uninstall = installHostStructuredAgentsSync()
     setStatuses(new Map([['env-1', pairedStatus('rt-1', REGISTERED)]]))
     await Promise.resolve()

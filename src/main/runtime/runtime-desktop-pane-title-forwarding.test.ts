@@ -126,8 +126,7 @@ it('routes old-client chat tab renames to the owning record with or without an a
       const runtime = attached ? desktop.runtime : new OrcaRuntimeService(null)
       vi.spyOn(runtime, 'ensureStructuredAgentSessionHost').mockResolvedValue(undefined)
       vi.spyOn(runtime, 'getClientSettings').mockReturnValue({
-        ...desktop.runtime.getClientSettings(),
-        experimentalNativeChat: true
+        ...desktop.runtime.getClientSettings()
       })
       const snapshot: RuntimeMobileSessionTabsSnapshot = {
         worktree: TEST_WORKTREE_ID,

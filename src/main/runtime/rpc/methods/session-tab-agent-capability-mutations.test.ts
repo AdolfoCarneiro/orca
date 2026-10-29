@@ -96,8 +96,7 @@ describe('session tab structured capability mutations', () => {
 
     it(`${expectedToAllowPromptedRow ? 'allows' : 'rejects'} ${method.name} on a row an old mobile client was prompted to update`, async () => {
       const { calls, dispatch } = createFixture([], {
-        clientKind: 'mobile',
-        structuredNativeChatEnabled: true
+        clientKind: 'mobile'
       })
 
       const response = await dispatch(method.name, method.params('codex-session'))
@@ -110,8 +109,7 @@ describe('session tab structured capability mutations', () => {
 
     it(`${expectedToAllowPromptedRow ? 'allows' : 'rejects'} ${method.name} on a prompted Claude row for a mobile client without the Claude capability`, async () => {
       const { calls, dispatch } = createFixture([STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY], {
-        clientKind: 'mobile',
-        structuredNativeChatEnabled: true
+        clientKind: 'mobile'
       })
 
       const response = await dispatch(method.name, method.params('claude-session'))
@@ -131,7 +129,7 @@ describe('session tab structured capability mutations', () => {
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Dispatcher uses only the methods supplied by this test double.
       const runtime = {
         getRuntimeId: () => 'test-runtime',
-        getClientSettings: vi.fn(() => ({ experimentalNativeChat: true })),
+        getClientSettings: vi.fn(() => ({})),
         listMobileSessionTabs: vi.fn().mockResolvedValue(snapshot),
         closeMobileSessionTab
       } as unknown as OrcaRuntimeService
@@ -169,7 +167,7 @@ describe('session tab structured capability mutations', () => {
 
 function createFixture(
   capabilities: RuntimeCapability[],
-  options: { clientKind?: 'mobile' | 'runtime'; structuredNativeChatEnabled?: boolean } = {}
+  options: { clientKind?: 'mobile' | 'runtime' } = {}
 ) {
   const snapshot = agentSnapshot()
   const calls = {
@@ -182,10 +180,7 @@ function createFixture(
   const runtime = {
     getRuntimeId: () => 'test-runtime',
     listMobileSessionTabs: vi.fn().mockResolvedValue(snapshot),
-    getClientSettings: () => ({
-      // Default-on settings isolate capability gating; opt explicitly into off cases.
-      experimentalNativeChat: options.structuredNativeChatEnabled !== false
-    }),
+    getClientSettings: () => ({}),
     ...calls
   } as unknown as OrcaRuntimeService
   const dispatcher = new RpcDispatcher({ runtime, methods: SESSION_TAB_METHODS })

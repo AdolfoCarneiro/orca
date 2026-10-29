@@ -5,10 +5,7 @@ import { test, expect } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
 import { readHookEndpoint } from './helpers/agent-hook-endpoint'
-import {
-  enableNativeChatSetting,
-  toggleTerminalTabToChatView
-} from './helpers/native-chat-transcript-fixture'
+import { toggleTerminalTabToChatView } from './helpers/native-chat-transcript-fixture'
 
 test('ZCode native chat reads ordered visible history and follows new messages', async ({
   orcaPage,
@@ -51,7 +48,6 @@ test('ZCode native chat reads ordered visible history and follows new messages',
     insert('hidden', 'user', 'HIDDEN BOOKKEEPING MUST NOT RENDER', 1, true)
     const descriptor = await waitForActivePaneHookDescriptor(orcaPage)
     const [tabId] = descriptor.paneKey.split(':')
-    await enableNativeChatSetting(orcaPage)
     const endpoint = await readHookEndpoint(electronApp)
     const response = await fetch(`http://127.0.0.1:${endpoint.port}/hook/zcode`, {
       method: 'POST',

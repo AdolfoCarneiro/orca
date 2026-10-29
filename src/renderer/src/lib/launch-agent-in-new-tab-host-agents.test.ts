@@ -11,9 +11,7 @@ const REGISTERED: RuntimeCapability[] = [
   STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
   STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
 ]
-const SETTINGS = {
-  experimentalNativeChat: true
-}
+const SETTINGS = {}
 
 const mocks = vi.hoisted(() => {
   const state: { current: Record<string, unknown> } = { current: {} }
@@ -188,7 +186,7 @@ describe('a new tab whose chat route waits on the host agent list', () => {
     })
     expect(
       routeNewTabLaunch(
-        storeWithSettings({ ...SETTINGS, experimentalNativeChat: false }),
+        storeWithSettings({ ...SETTINGS, nativeChatProviders: { opencode: false } }),
         args,
         request
       )

@@ -8,7 +8,8 @@ import {
   methodNamed,
   rpcContext,
   runtimeStub,
-  type AgentLaunchRuntimeStub as RuntimeStub
+  type AgentLaunchRuntimeStub as RuntimeStub,
+  TERMINAL_PREFERENCE
 } from './agent-launch.test-fixture'
 
 /** Include refusal replies so the fixture can exercise structured-to-terminal downgrade. */
@@ -336,7 +337,7 @@ describe('the worktree factory', () => {
   })
 
   it('keeps agent-first creation for a launch the user wants as a terminal', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     const result = await launch(CREATE_LAUNCH, runtime)
 
     const args = createArgs(runtime)
@@ -346,7 +347,7 @@ describe('the worktree factory', () => {
   })
 
   it('carries terminal launch inputs into an agent-first worktree create', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch(
       {
         ...CREATE_LAUNCH,
@@ -374,17 +375,17 @@ describe('the worktree factory', () => {
         create: { ...CREATE_LAUNCH.target.create, launchSource: 'cli' }
       }
     }
-    const named = runtimeStub({ settings: {} })
+    const named = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch({ ...createWithSource, launchSource: 'onboarding' }, named)
     expect(createArgs(named)).toMatchObject({ startupLaunchSource: 'onboarding' })
 
-    const unnamed = runtimeStub({ settings: {} })
+    const unnamed = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch(createWithSource, unnamed)
     expect(createArgs(unnamed)).not.toHaveProperty('startupLaunchSource')
   })
 
   it('preserves an explicit no-arguments value for an agent-first worktree create', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch({ ...CREATE_LAUNCH, agentArgs: null }, runtime)
 
     expect(createArgs(runtime)).toHaveProperty('startupAgentArgs', null)
@@ -431,7 +432,7 @@ describe('whose window a new workspace moves', () => {
   ] as const)(
     '%s creates without activating the host, and its setup still runs (%s)',
     async (_name, mode, context) => {
-      const runtime = runtimeStub(mode === 'terminal' ? { settings: {} } : {})
+      const runtime = runtimeStub(mode === 'terminal' ? { settings: TERMINAL_PREFERENCE } : {})
       await launch(ACTIVATING_CREATE_LAUNCH, runtime, context)
 
       expect(createArgs(runtime)).toMatchObject({
@@ -464,7 +465,7 @@ describe('whose window a new workspace moves', () => {
   })
 
   it('still activates a create the CLI asked to activate', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch(ACTIVATING_CREATE_LAUNCH, runtime, {})
 
     const args = createArgs(runtime)
@@ -541,7 +542,7 @@ describe('a create that succeeded but is incomplete', () => {
   it('carries a create warning onto an agent-first terminal launch', async () => {
     // Agent-first success can carry an untracked-copy warning alongside a handle; startup-terminal failure cannot.
     const runtime = runtimeStub({
-      settings: {},
+      settings: TERMINAL_PREFERENCE,
       createWarning: 'Could not copy untracked files into the new workspace.'
     })
 
@@ -661,7 +662,7 @@ describe('launch inputs that cross the wire', () => {
   }
 
   it('carries agentArgs and cwd through to the terminal create', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch(
       { ...EXISTING_LAUNCH, agentArgs: '--model opus', cwd: '/repo/packages/api' },
       runtime
@@ -675,7 +676,7 @@ describe('launch inputs that cross the wire', () => {
   })
 
   it("hands the caller's launch_source to the runtime, which attributes the launch", async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch({ ...EXISTING_LAUNCH, launchSource: 'source_control_recovery' }, runtime)
 
     // Derive agent_kind/request_kind on the host; only launchSource crosses this boundary.
@@ -684,7 +685,7 @@ describe('launch inputs that cross the wire', () => {
   })
 
   it('starts the agent anyway when launch_source is one this build has never heard of', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     const result = await launch(
       { ...EXISTING_LAUNCH, launchSource: 'a_surface_added_later' },
       runtime
@@ -696,7 +697,7 @@ describe('launch inputs that cross the wire', () => {
   })
 
   it('names no launch source when the caller named none', async () => {
-    const runtime = runtimeStub({ settings: {} })
+    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
     await launch(EXISTING_LAUNCH, runtime)
 
     expect(terminalOptions(runtime)).not.toHaveProperty('launchSource')

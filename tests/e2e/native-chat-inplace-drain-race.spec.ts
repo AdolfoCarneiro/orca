@@ -7,7 +7,6 @@ import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } fro
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
 import {
   claudeTranscriptLines,
-  enableNativeChatSetting,
   seedClaudeProviderSession,
   toggleTerminalTabToChatView
 } from './helpers/native-chat-transcript-fixture'
@@ -103,7 +102,6 @@ test('renders a larger transcript rewrite during snapshot publication, then ordi
     })
   }
   try {
-    await enableNativeChatSetting(orcaPage)
     await seedClaudeProviderSession(orcaPage, { ...descriptor, sessionId, transcriptPath })
     await toggleTerminalTabToChatView(orcaPage, { tabId, worktreeId: descriptor.worktreeId })
     await expect(transcript).toBeVisible()

@@ -32,10 +32,12 @@ afterEach(() => {
 })
 
 const SETTING_OFF = {
-  requireStore: () => ({ getSettings: () => ({ experimentalNativeChat: false }) })
+  requireStore: () => ({
+    getSettings: () => ({ nativeChatProviders: { claude: false, codex: false } })
+  })
 }
 const SETTING_ON = {
-  requireStore: () => ({ getSettings: () => ({ experimentalNativeChat: true }) })
+  requireStore: () => ({ getSettings: () => ({}) })
 }
 // A client that picks each launch's mode itself, as the desktop does.
 const MODE_CHOOSING_CLIENT = {
@@ -57,7 +59,7 @@ const RELEASED_PHONE = {
 const CREATE_SUPPORT = WORK_METHODS.find((entry) => entry.method === 'agentSession.createSupport')!
 const UNSUPPORTED = { message: expect.stringContaining('structured_agent_session_unsupported') }
 
-describe('a host with structured chat turned off', () => {
+describe('a host whose agents are set to CLI', () => {
   it.each(WORK_METHODS)('still serves $method to a capable client', async ({ method, params }) => {
     const response = await call(method, params, MODE_CHOOSING_CLIENT, SETTING_OFF).catch(
       (error: Error) => {
@@ -148,7 +150,7 @@ describe('a host with structured chat turned off', () => {
 })
 
 describe('a client that leaves the launch mode to the host', () => {
-  it('is told a chat is unsupported while the host setting is off, so it opens a terminal', async () => {
+  it("is told a chat is unsupported while the host's choice for the agent is CLI, so it opens a terminal", async () => {
     const response = await call(
       CREATE_SUPPORT.method,
       CREATE_SUPPORT.params,
@@ -160,15 +162,14 @@ describe('a client that leaves the launch mode to the host', () => {
     expect(runtimeCalls.getStructuredAgentSessionCreateSupport).not.toHaveBeenCalled()
   })
 
-  it('is answered by the workspace once the host setting is on', async () => {
-    const response = await call(
-      CREATE_SUPPORT.method,
-      CREATE_SUPPORT.params,
-      RELEASED_PHONE,
-      SETTING_ON
-    )
+  it("is answered by the workspace when the host's choice for that agent is chat", async () => {
+    for (const settings of [{}, { nativeChatProviders: { claude: false, codex: true } }]) {
+      const response = await call(CREATE_SUPPORT.method, CREATE_SUPPORT.params, RELEASED_PHONE, {
+        requireStore: () => ({ getSettings: () => settings })
+      })
 
-    expect(response).toMatchObject({ ok: true })
+      expect(response).toMatchObject({ ok: true })
+    }
   })
 
   it('reads an unreadable settings store as off', async () => {

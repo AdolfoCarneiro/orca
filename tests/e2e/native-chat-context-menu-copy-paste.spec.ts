@@ -50,12 +50,10 @@ test('chat right-click offers Copy for selected text and Paste in the composer o
       })
     await orcaPage.evaluate(
       async ({ paneKey, worktreeId, sessionId, transcriptPath, tabId }) => {
-        const settings = await window.api.settings.set({ experimentalNativeChat: true })
         const store = window.__store
         if (!store) {
           throw new Error('Store unavailable')
         }
-        store.setState({ settings })
         const state = store.getState()
         state.setAgentStatus(
           paneKey,

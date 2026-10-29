@@ -6,7 +6,6 @@ import { test, expect } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
 import {
-  enableNativeChatSetting,
   seedClaudeProviderSession,
   toggleTerminalTabToChatView,
   claudeTranscriptLines
@@ -40,7 +39,6 @@ test.describe('Native chat first-flush transcript race (#8401)', () => {
     })
 
     try {
-      await enableNativeChatSetting(orcaPage)
       await seedClaudeProviderSession(orcaPage, {
         paneKey: descriptor.paneKey,
         worktreeId: descriptor.worktreeId,

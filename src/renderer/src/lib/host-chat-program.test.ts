@@ -45,7 +45,7 @@ beforeEach(() => {
   rpc.subscribe.mockReset().mockResolvedValue({ unsubscribe: vi.fn() })
   setLocalRuntimeCapabilitiesForTests(CAPS)
   useAppStore.setState({
-    settings: { ...getDefaultSettings('/tmp'), experimentalNativeChat: true },
+    settings: { ...getDefaultSettings('/tmp') },
     runtimeStatusByEnvironmentId: new Map([['B', status()]])
   })
 })
@@ -120,7 +120,7 @@ it('adapts only absent publication on older hosts and shares the saved Checks ga
   setLocalRuntimeCapabilitiesForTests([CHAT, CATALOG, INSTALL])
   const local = { kind: 'git-worktree' } as const
   const settings = getDefaultSettings('/tmp')
-  settings.experimentalNativeChat = true
+  settings.nativeChatProviders = {}
   settings.sourceControlAi = getDefaultSourceControlAiSettings()
   settings.sourceControlAi.actions = { fixChecks: { agentId: 'antigravity' } }
   useAppStore.setState({ settings, ensureDetectedAgents: async () => [] })

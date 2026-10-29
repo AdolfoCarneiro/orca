@@ -3,7 +3,7 @@ import type { CreateWorktreeResult } from '../../shared/worktree/create-types'
 import type { RuntimeManagedWorktreeCreateArgs } from '../runtime/runtime-managed-worktree-create-types'
 import { createWorktreeWithStartupAgent } from './startup-agent-worktree-create'
 
-const CHAT_DEFAULT_ON = { experimentalNativeChat: true }
+const CHAT_DEFAULT_ON = {}
 
 function harness(
   options: {

@@ -4,7 +4,7 @@ import { getConnectionIdFromState } from './connection-owner-resolution'
 import { planAgentSessionLaunch } from './agent-session-launch-plan'
 
 // Use real owner resolution to catch ambiguous-host fallback; Grok’s local transcript policy makes this answer affect routing.
-const NATIVE_CHAT_SETTINGS = { experimentalNativeChat: true }
+const NATIVE_CHAT_SETTINGS = {}
 const WORKTREE_ID = 'repo-1::/repo/wt-1'
 const WORKSPACE = { kind: 'git-worktree', worktreeId: WORKTREE_ID, repoId: 'repo-1' } as const
 

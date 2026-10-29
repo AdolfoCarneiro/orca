@@ -6,16 +6,8 @@ import type { Page } from '@stablyai/playwright-test'
 import { test, expect } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from './helpers/terminal'
-import type { GlobalSettings } from '../../src/shared/global-settings-types'
 
 const QUESTION = 'Tabs or spaces?'
-
-async function enableNativeChatSetting(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const nextSettings = await window.api.settings.set({ experimentalNativeChat: true })
-    window.__store?.setState({ settings: nextSettings as GlobalSettings })
-  })
-}
 
 // #11761: model paired-headless status with identity/working state but no interactivePrompt/toolName; only the transcript carries the ask.
 async function seedStatusWithoutAskPayload(
@@ -120,7 +112,6 @@ test.describe('Desktop chat AskUserQuestion card (#11761)', () => {
       const userText = 'Reformat the config file for me'
       writeFileSync(transcriptPath, pendingAskTranscript({ sessionId, userText }))
 
-      await enableNativeChatSetting(orcaPage)
       await seedStatusWithoutAskPayload(orcaPage, {
         paneKey: descriptor.paneKey,
         worktreeId: descriptor.worktreeId,

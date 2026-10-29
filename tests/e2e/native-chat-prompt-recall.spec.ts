@@ -62,12 +62,10 @@ test('Up and Down walk the prompts already in the chat', async ({ orcaPage }) =>
 
   await orcaPage.evaluate(
     async ({ paneKey, worktreeId, tabId, sessionId, transcriptPath }) => {
-      const settings = await window.api.settings.set({ experimentalNativeChat: true })
       const store = window.__store
       if (!store) {
         throw new Error('Store unavailable')
       }
-      store.setState({ settings })
       const state = store.getState()
       state.setAgentStatus(
         paneKey,

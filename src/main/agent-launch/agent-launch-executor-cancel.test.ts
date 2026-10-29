@@ -64,7 +64,7 @@ function harness(options: {
   })
   const runtime: AgentLaunchExecution['runtime'] = {
     requireStore: () => ({
-      getSettings: () => (options.structured ? { experimentalNativeChat: true } : null)
+      getSettings: () => (options.structured ? {} : null)
     }),
     getStructuredAgentSessionCreateSupport
   }

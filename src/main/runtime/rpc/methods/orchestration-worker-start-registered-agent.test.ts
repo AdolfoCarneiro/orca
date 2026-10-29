@@ -10,7 +10,6 @@ import {
 } from './orchestration-worker-start-mode'
 
 const STRUCTURED_PREFERENCE = {
-  experimentalNativeChat: true,
   nativeChatProviders: { grok: true, opencode: true, omp: true, pi: true, gemini: true }
 } as const
 
@@ -91,12 +90,12 @@ describe('a worker for a registered native-chat agent', () => {
     ).toMatchObject({ mode: 'terminal', reason: 'agent_without_structured_session' })
   })
 
-  it('starts a terminal agent while the setting is off, as Claude does', () => {
+  it('starts a terminal agent while it is set to CLI, as Claude does', () => {
     for (const agent of ['opencode', 'claude']) {
       expect(
         decideWorkerStartMode({
           params: { agent },
-          settings: { experimentalNativeChat: false }
+          settings: { nativeChatProviders: { [agent]: false } }
         })
       ).toMatchObject({ mode: 'terminal', preferred: 'terminal', reason: 'user_default' })
     }

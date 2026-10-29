@@ -41,7 +41,7 @@ vi.mock('../../store', () => {
         },
         terminalLayoutsByTabId: {},
         agentStatusByPaneKey: {},
-        settings: { experimentalNativeChat: true },
+        settings: {},
         toggleTabViewMode
       })
     }

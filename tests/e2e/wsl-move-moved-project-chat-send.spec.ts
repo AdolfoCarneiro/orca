@@ -86,7 +86,6 @@ test("a moved project's existing chat still answers here after the move", async 
     const worktreeId = `${repoId}::${realpathSync(repoPath)}`
     await launched.page.evaluate(async (command) => {
       await window.__store?.getState().updateSettings({
-        experimentalNativeChat: true,
         defaultTuiAgent: 'claude',
         agentCmdOverrides: { claude: command }
       })

@@ -27,7 +27,7 @@ function fakes(created: { startupTerminal?: { handle: string } } = {}) {
     })),
     createTerminal: vi.fn(async () => ({ handle: 'term_worker' })),
     // Chat default on: federation still starts a terminal and never asks about a session.
-    getClientSettings: vi.fn(() => ({ experimentalNativeChat: true })),
+    getClientSettings: vi.fn(() => ({})),
     getStructuredAgentSessionCreateSupport: vi.fn(async () => ({ supported: true }))
   }
   const db = {

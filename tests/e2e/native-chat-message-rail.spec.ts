@@ -13,13 +13,6 @@ import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from '.
 const TRANSCRIPT_ROWS = 60
 const SHOT_DIR = path.join(os.tmpdir(), 'orca-rail-validation-larvacean', 'shots')
 
-async function enableNativeChatSetting(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const nextSettings = await window.api.settings.set({ experimentalNativeChat: true })
-    window.__store?.setState({ settings: nextSettings })
-  })
-}
-
 async function seedClaudeProviderSession(
   page: Page,
   args: { paneKey: string; worktreeId: string; sessionId: string; transcriptPath: string }
@@ -103,7 +96,6 @@ test.describe('Native chat message rail', () => {
     writeFileSync(transcriptPath, claudeTranscript(TRANSCRIPT_ROWS, sessionId))
     mkdirSync(SHOT_DIR, { recursive: true })
 
-    await enableNativeChatSetting(orcaPage)
     await seedClaudeProviderSession(orcaPage, {
       paneKey: descriptor.paneKey,
       worktreeId: descriptor.worktreeId,

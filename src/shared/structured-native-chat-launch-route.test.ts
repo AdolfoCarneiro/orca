@@ -6,6 +6,7 @@ import {
   STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
 } from './protocol-version'
 import {
+  nativeChatPreferenceFor,
   resolveStructuredNativeChatSupport,
   type StructuredNativeChatSupportInput
 } from './structured-native-chat-launch-route'
@@ -112,5 +113,24 @@ describe('agents beyond Claude and Codex', () => {
   it('leave Claude and Codex offered by hosts that predate the capability', () => {
     expect(support({ agent: 'claude' })).toEqual({ supported: true })
     expect(support({ agent: 'codex' })).toEqual({ supported: true })
+  })
+})
+
+describe('per-agent Chat | CLI preference', () => {
+  it('reads a host-registered agent id the same way as a built-in agent', () => {
+    expect(nativeChatPreferenceFor({}, 'acme-agent')).toBe(true)
+    expect(nativeChatPreferenceFor({ nativeChatProviders: { claude: false } }, 'acme-agent')).toBe(
+      true
+    )
+    expect(
+      nativeChatPreferenceFor({ nativeChatProviders: { 'acme-agent': false } }, 'acme-agent')
+    ).toBe(false)
+    // Inherited object keys are not saved choices.
+    expect(nativeChatPreferenceFor({ nativeChatProviders: {} }, 'constructor')).toBe(true)
+  })
+
+  it('never picks chat from settings it could not read', () => {
+    expect(nativeChatPreferenceFor(null, 'claude')).toBe(false)
+    expect(nativeChatPreferenceFor(undefined, 'acme-agent')).toBe(false)
   })
 })

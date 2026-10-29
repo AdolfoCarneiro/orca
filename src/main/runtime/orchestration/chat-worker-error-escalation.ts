@@ -15,21 +15,16 @@ import type { DispatchContextRow } from './types'
 import { escalateWorkerFailure } from './worker-failure-escalation'
 
 export type ChatWorkerErrorEscalationDeps = {
-  /** Chat UI is on and the user left the Orchestration switch on. */
+  /** The user left the Orchestration switch on. */
   enabled: () => boolean
   db: () => OrchestrationDb | null
   notify: (handle: string, messageType: string) => void
 }
 
 export function chatWorkerErrorEscalationEnabled(
-  settings:
-    | Pick<GlobalSettings, 'experimentalNativeChat' | 'orchestrationChatErrorEscalationEnabled'>
-    | undefined
+  settings: Pick<GlobalSettings, 'orchestrationChatErrorEscalationEnabled'> | undefined
 ): boolean {
-  return (
-    settings?.experimentalNativeChat === true &&
-    settings.orchestrationChatErrorEscalationEnabled !== false
-  )
+  return settings !== undefined && settings.orchestrationChatErrorEscalationEnabled !== false
 }
 
 type ChatWorkerDispatch = { dispatch: DispatchContextRow; from: string }
