@@ -291,7 +291,7 @@ describe('OSC 7 file URIs from nushell', () => {
 })
 
 describe('OSC 7 file URIs both parsers must agree on (daemon side)', () => {
-  it.each(OSC7_PARSER_AGREEMENT_CASES)('%s', (_case, uri, path) => {
-    expect(parseFileUriPath(uri, { pathFlavor: 'posix' })).toBe(path)
+  it.each(OSC7_PARSER_AGREEMENT_CASES)('$name', ({ uri, folder }) => {
+    expect(parseFileUriPath(uri, { pathFlavor: 'posix' })).toBe(folder)
   })
 })
