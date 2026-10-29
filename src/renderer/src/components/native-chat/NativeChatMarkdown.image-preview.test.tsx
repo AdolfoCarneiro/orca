@@ -11,11 +11,7 @@ import {
   resetLocalImageSrcStateForTests
 } from '@/components/editor/useLocalImageSrc'
 import { useAppStore } from '@/store'
-import {
-  cacheLocalImageBlob,
-  pinLocalImageCache,
-  unpinLocalImageCache
-} from '@/components/editor/local-image-src-cache'
+import * as imageCache from '@/components/editor/local-image-src-cache'
 import { NativeChatMarkdown } from './NativeChatMarkdown'
 import {
   NativeChatMarkdownImageOwnerContext,
@@ -324,14 +320,9 @@ describe('native chat Markdown image preview', () => {
 
   it('retries a cache-byte-budget rejection on open after another image releases its lease', async () => {
     vi.stubGlobal('IntersectionObserver', ImageVisibilityObserver)
-    pinLocalImageCache('budget-reservation')
-    expect(cacheLocalImageBlob('budget-reservation', 'blob:reserved', 128 * 1024 * 1024 - 2)).toBe(
-      true
-    )
-    const content = Array.from(
-      { length: 3 },
-      (_, index) => `![Chart ${index}](chart-${index}.png)`
-    ).join('\n\n')
+    imageCache.pinLocalImageCache('reserved')
+    expect(imageCache.cacheLocalImageBlob('reserved', 'blob:reserved', 2 ** 27 - 2)).toBe(true)
+    const content = [0, 1, 2].map((i) => `![Chart ${i}](chart-${i}.png)`).join('\n\n')
     const { container } = render(<Transcript content={content} />)
     const triggers = screen.getAllByRole('button')
     expect(mocks.readRuntimeFilePreview).not.toHaveBeenCalled()
@@ -354,7 +345,7 @@ describe('native chat Markdown image preview', () => {
       }
     })
     expect(container.querySelectorAll('img')).toHaveLength(0)
-    unpinLocalImageCache('budget-reservation')
+    imageCache.unpinLocalImageCache('reserved')
     expect(URL.revokeObjectURL).toHaveBeenCalledTimes(4)
   })
 
