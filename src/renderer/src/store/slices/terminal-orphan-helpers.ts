@@ -78,9 +78,10 @@ export function getOrphanTerminalIds(
 export function buildOrphanTerminalCleanupPatch(
   edit: SessionSourceEdit<OrphanTerminalCleanupState>,
   worktreeId: string,
-  orphanTerminalIds: Set<string>
+  orphanTerminalIds: Set<string>,
+  priorPatch: OrdinarySourcePartial<OrphanTerminalCleanupState> = {}
 ): OrdinarySourcePartial<OrphanTerminalCleanupState> {
-  const state = edit.view()
+  const state = edit.view(priorPatch)
   if (orphanTerminalIds.size === 0) {
     return {
       runtimePaneTitlesByTabId: state.runtimePaneTitlesByTabId,

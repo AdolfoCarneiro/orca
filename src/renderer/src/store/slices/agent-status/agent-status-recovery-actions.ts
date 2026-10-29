@@ -40,7 +40,7 @@ export function createAgentStatusRecoveryActions(
             changed = true
           }
         }
-        return changed ? edit.finish() : s
+        return changed ? edit.finish() : undefined
       })
     },
 
@@ -64,7 +64,7 @@ export function createAgentStatusRecoveryActions(
             changed = true
           }
         }
-        return changed ? edit.finish() : s
+        return changed ? edit.finish() : undefined
       })
     },
 

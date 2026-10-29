@@ -153,10 +153,10 @@ function finishTitleStages(
   const patch = edit.finish(
     sortEpochIncrement > 0 ? { sortEpoch: state.sortEpoch + sortEpochIncrement } : {}
   )
-  if (patch.tabsByWorktree) {
+  if (tabsChanged) {
     adoptTerminalTabOwnerMetadataOnlyBuckets(
       state.tabsByWorktree,
-      patch.tabsByWorktree,
+      edit.read('tabsByWorktree'),
       stages.keys()
     )
   }

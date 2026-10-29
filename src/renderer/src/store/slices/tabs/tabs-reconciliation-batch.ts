@@ -2,6 +2,7 @@ import type { AppState } from '../../types'
 
 /** One multi-workspace fold clones each shared map once and indexes read-only openFiles once, avoiding repeated map spreads and file scans per workspace. */
 export type WorktreeTabModelReconciliationBatch = {
+  readonly ownedStateKeys: Set<'unreadTerminalTabs'>
   readonly liveEditorIdsByWorktree: ReadonlyMap<string, Set<string>>
 }
 
@@ -19,5 +20,5 @@ export function createWorktreeTabModelReconciliationBatch(
     }
     ids.add(file.id)
   }
-  return { liveEditorIdsByWorktree }
+  return { ownedStateKeys: new Set(), liveEditorIdsByWorktree }
 }

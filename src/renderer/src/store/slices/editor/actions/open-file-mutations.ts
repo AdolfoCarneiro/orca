@@ -142,14 +142,14 @@ export function createOpenFileMutations(
       set((s) => {
         const edit = editSessionSource(s)
         const patch = updateEditorBuffer(edit, fileId, { externalMutation: mutation ?? undefined })
-        return patch ? edit.finish(patch) : s
+        return patch ? edit.finish(patch) : undefined
       }),
 
     setLastKnownDiskSignature: (fileId, signature) =>
       set((s) => {
         const edit = editSessionSource(s)
         const patch = updateEditorBuffer(edit, fileId, { lastKnownDiskSignature: signature })
-        return patch ? edit.finish(patch) : s
+        return patch ? edit.finish(patch) : undefined
       }),
 
     // Why: never touches readOnly, which also guards transcripts and keeps dirty drafts out of sessions.

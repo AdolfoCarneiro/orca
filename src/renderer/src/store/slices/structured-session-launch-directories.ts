@@ -43,7 +43,7 @@ export const createStructuredSessionLaunchDirectorySlice: SessionStateCreator<
                 tabId
               )
             }
-          : state
+          : undefined
       }
       if (current?.sessionId === sessionId && current.launchDirectory === launchDirectory) {
         return undefined

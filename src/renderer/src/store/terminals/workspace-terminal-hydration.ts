@@ -216,7 +216,8 @@ export function createWorkspaceTerminalHydrationActions(
         return replaceSessionSourceFields(
           options?.replaceWorkspaceKeys
             ? targetScopedWorkspaceHydrationPatch(s, hydrated, session, options)
-            : hydrated
+            : hydrated,
+          'hydration'
         )
       })
       for (const [tabId, transfers] of ownershipTransfersByTabId) {

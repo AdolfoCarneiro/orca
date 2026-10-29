@@ -293,7 +293,7 @@ export const createRuntimeStatusSlice: (
           changed = true
         }
       }
-      return changed ? { runtimeStatusByEnvironmentId: next } : s
+      return changed ? { runtimeStatusByEnvironmentId: next } : undefined
     })
   },
 

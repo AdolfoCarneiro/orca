@@ -235,10 +235,11 @@ export function buildRestoredEditorOwnerTransition(
             }
           : file
     )
-    edit.replace('editorDrafts', rekeyFileIdRecord(s.editorDrafts, migrations))
+    edit.replace('editorDrafts', rekeyFileIdRecord(s.editorDrafts, migrations), 'order')
     edit.replace(
       'markdownFrontmatterVisible',
-      rekeyFileIdRecord(s.markdownFrontmatterVisible, migrations)
+      rekeyFileIdRecord(s.markdownFrontmatterVisible, migrations),
+      'order'
     )
 
     assignResult({ ok: true, fileId: newFileId })

@@ -35,7 +35,7 @@ export function createOpenFileAction(
     set((s) => {
       const edit = editSessionSource(s)
       const patch = applyOpenFileToState(edit, file, options, scratch, linkIntent)
-      return patch ? edit.finish(patch) : s
+      return patch ? edit.finish(patch) : undefined
     })
     if (scratch.refused) {
       return { fileId: scratch.editorItemFileId, result: null }

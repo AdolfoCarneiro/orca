@@ -149,7 +149,7 @@ export function createBrowserPageMetadataActions(
       set((s) => {
         const markers = omitRecordKeys(s.browserAnnotationMarkerIdsByPageId, [pageId])
         return markers === s.browserAnnotationMarkerIdsByPageId
-          ? s
+          ? undefined
           : { browserAnnotationMarkerIdsByPageId: markers }
       }),
 

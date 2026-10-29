@@ -165,7 +165,7 @@ export function createTerminalEphemeralActions(
                 next ??= { ...s.lastTerminalInputAtByPaneKey }
                 next[key] = at
               }
-              return next ? { lastTerminalInputAtByPaneKey: next } : s
+              return next ? { lastTerminalInputAtByPaneKey: next } : undefined
             })
         }
       })

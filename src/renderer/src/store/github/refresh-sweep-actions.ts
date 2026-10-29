@@ -33,7 +33,7 @@ export const createRefreshSweepActions = (
         next.workItemsCache === s.workItemsCache &&
         next.projectViewCache === s.projectViewCache &&
         next.prRefreshStates === s.prRefreshStates
-        ? s
+        ? undefined
         : next
     })
 

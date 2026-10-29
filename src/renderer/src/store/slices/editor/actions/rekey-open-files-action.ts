@@ -1,4 +1,9 @@
-import { editSessionSource, type SessionSourceWrite } from '../../../session-source-edits'
+import {
+  editSessionSource,
+  type SessionSourceEdit,
+  type OrdinarySourcePartial,
+  type SessionSourceWrite
+} from '../../../session-source-edits'
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import type { EditorSlice } from '../types/editor-slice'
 import type { AppState } from '../../../types'
@@ -9,17 +14,22 @@ import { migrateHydratedEditorTabsAndGroups } from '../file-ids/hydrated-editor-
 import { renameEditorFilesThroughLayoutOwner } from '../tabs/editor-file-rename-through-layout-owner'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../../shared/layout-owner-switch'
 
+export type RekeyOpenFilesEdit =
+  | { ok: true; patch: OrdinarySourcePartial<AppState> }
+  | Extract<RekeyOpenFilesResult, { ok: false }>
+
 // The store change is pure, so a layout-owner build applies it in the frame that shows main's rename.
 export type RekeyOpenFilesPatch =
   | { ok: true; patch: SessionSourceWrite<AppState> }
   | Extract<RekeyOpenFilesResult, { ok: false }>
 
 /** The rekey of `s`; refused as a whole when a source is gone or two files would share an id. */
-export function rekeyOpenFilesPatch(
+export function applyOpenFileRekeys(
+  edit: SessionSourceEdit<AppState>,
   s: AppState,
   rekeys: readonly OpenFilePathRekey[],
   moveOperationId: string | undefined
-): RekeyOpenFilesPatch {
+): RekeyOpenFilesEdit {
   const migrations = new Map<string, string>()
   const rekeyByOldId = new Map<string, OpenFilePathRekey>()
   for (const rekey of rekeys) {
@@ -44,7 +54,6 @@ export function rekeyOpenFilesPatch(
     }
   }
 
-  const edit = editSessionSource(s)
   edit.sequence('openFiles').map((f) => {
     const rekey = rekeyByOldId.get(f.id)
     if (!rekey) {
@@ -114,15 +123,16 @@ export function rekeyOpenFilesPatch(
       ? rekeyByOldId.get(reveal.fileId)
       : rekeys.find((r) => r.oldFilePath === reveal.filePath)
 
-  edit.replace('editorDrafts', rekeyFileIdRecord(s.editorDrafts, migrations))
+  edit.replace('editorDrafts', rekeyFileIdRecord(s.editorDrafts, migrations), 'order')
   edit.replace(
     'markdownFrontmatterVisible',
-    rekeyFileIdRecord(s.markdownFrontmatterVisible, migrations)
+    rekeyFileIdRecord(s.markdownFrontmatterVisible, migrations),
+    'order'
   )
   migrateHydratedEditorTabsAndGroups(edit, migrationsByWorktree)
   return {
     ok: true,
-    patch: edit.finish({
+    patch: {
       ...rekeyEditorBuffers(s, s.openFiles, migrations, 'rename'),
       editorCursorLine: rekeyFileIdRecord(s.editorCursorLine, migrations),
       markdownViewMode: rekeyFileIdRecord(s.markdownViewMode, migrations),
@@ -144,8 +154,18 @@ export function rekeyOpenFilesPatch(
             }
           }
         : {})
-    })
+    }
   }
+}
+
+export function rekeyOpenFilesPatch(
+  s: AppState,
+  rekeys: readonly OpenFilePathRekey[],
+  moveOperationId: string | undefined
+): RekeyOpenFilesPatch {
+  const edit = editSessionSource(s)
+  const result = applyOpenFileRekeys(edit, s, rekeys, moveOperationId)
+  return result.ok ? { ok: true, patch: edit.finish(result.patch) } : result
 }
 
 export function createRekeyOpenFilesAction(
@@ -164,7 +184,7 @@ export function createRekeyOpenFilesAction(
           get,
           rekeys,
           moveOperationId,
-          rekeyOpenFilesPatch
+          applyOpenFileRekeys
         )
       }
       let result: RekeyOpenFilesResult = { ok: true }

@@ -20,7 +20,7 @@ export function createRestoredEditorOwner(
           pendingOwnerMigration: pending || undefined
         })
         changed = next !== null
-        return next ? edit.finish(next) : s
+        return next ? edit.finish(next) : undefined
       })
       return changed
     },

@@ -34,7 +34,7 @@ function replaceWorkspaceRecordKeys<T>(
 function projectWorktreeTabModelReconciliations(
   state: AppState,
   worktreeIds: readonly string[]
-): SessionSourceWrite<AppState> {
+): SessionSourceWrite<AppState> | undefined {
   const batch = createWorktreeTabModelReconciliationBatch(state)
   const edit = editSessionSource(state)
   const merged: OrdinarySourcePartial<AppState> = {}
@@ -45,7 +45,7 @@ function projectWorktreeTabModelReconciliations(
     }
     Object.assign(merged, patch)
   }
-  return edit.finish(merged)
+  return edit.changed || Object.keys(merged).length ? edit.finish(merged) : undefined
 }
 
 export function createTabsSessionActions(
@@ -65,7 +65,7 @@ export function createTabsSessionActions(
         return
       }
       const patch = projectWorktreeTabModelReconciliations(get(), worktreeIds)
-      if (Object.keys(patch).length > 0) {
+      if (patch) {
         set(patch)
       }
     },
@@ -97,33 +97,36 @@ export function createTabsSessionActions(
       addAdditionalValidWorkspaceKeys(validWorktreeIds, options)
       const hydrated = buildHydratedTabState(session, validWorktreeIds)
       if (!options?.replaceWorkspaceKeys) {
-        set(replaceSessionSourceFields(hydrated))
+        set(replaceSessionSourceFields(hydrated, 'hydration'))
         return
       }
       const replaceWorkspaceKeys = new Set(options.replaceWorkspaceKeys)
       set((current) =>
-        replaceSessionSourceFields({
-          unifiedTabsByWorktree: replaceWorkspaceRecordKeys(
-            current.unifiedTabsByWorktree,
-            hydrated.unifiedTabsByWorktree,
-            replaceWorkspaceKeys
-          ),
-          groupsByWorktree: replaceWorkspaceRecordKeys(
-            current.groupsByWorktree,
-            hydrated.groupsByWorktree,
-            replaceWorkspaceKeys
-          ),
-          activeGroupIdByWorktree: replaceWorkspaceRecordKeys(
-            current.activeGroupIdByWorktree,
-            hydrated.activeGroupIdByWorktree,
-            replaceWorkspaceKeys
-          ),
-          layoutByWorktree: replaceWorkspaceRecordKeys(
-            current.layoutByWorktree,
-            hydrated.layoutByWorktree,
-            replaceWorkspaceKeys
-          )
-        })
+        replaceSessionSourceFields(
+          {
+            unifiedTabsByWorktree: replaceWorkspaceRecordKeys(
+              current.unifiedTabsByWorktree,
+              hydrated.unifiedTabsByWorktree,
+              replaceWorkspaceKeys
+            ),
+            groupsByWorktree: replaceWorkspaceRecordKeys(
+              current.groupsByWorktree,
+              hydrated.groupsByWorktree,
+              replaceWorkspaceKeys
+            ),
+            activeGroupIdByWorktree: replaceWorkspaceRecordKeys(
+              current.activeGroupIdByWorktree,
+              hydrated.activeGroupIdByWorktree,
+              replaceWorkspaceKeys
+            ),
+            layoutByWorktree: replaceWorkspaceRecordKeys(
+              current.layoutByWorktree,
+              hydrated.layoutByWorktree,
+              replaceWorkspaceKeys
+            )
+          },
+          'hydration'
+        )
       )
     }
   }

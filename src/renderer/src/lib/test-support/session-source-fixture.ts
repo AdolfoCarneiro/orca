@@ -31,7 +31,7 @@ export function setSessionTestState<S extends object>(
   // SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
   const accepted = unwrapSessionSourceWrite(next as SessionSourcePartial<S>).receipt
     ? (next as SessionSourceWrite<S>)
-    : replaceSessionSourceFields(next)
+    : replaceSessionSourceFields(next, 'hydration')
   if (replace) {
     // SAFETY: the replacement overload requires a complete root, just like the store setter.
     store.setState(accepted, true)

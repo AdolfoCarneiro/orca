@@ -31,7 +31,7 @@ export function createPairedTerminalTabCloseIntentSlice(
       set((s) => {
         const edit = editSessionSource(s)
         const changed = recordPairedTerminalTabCloseIntent(edit, environmentId, intent)
-        return changed ? edit.finish() : s
+        return changed ? edit.finish() : undefined
       })
     },
     clearPairedTerminalTabCloseIntents: (environmentId, intentKeys) => {
@@ -42,7 +42,7 @@ export function createPairedTerminalTabCloseIntentSlice(
           intentKeys,
           now: Date.now()
         })
-        return changed ? edit.finish() : s
+        return changed ? edit.finish() : undefined
       })
     }
   }

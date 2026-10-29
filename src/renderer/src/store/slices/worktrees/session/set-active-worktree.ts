@@ -44,7 +44,7 @@ export function createSetActiveWorktree(
         activated = false
         return edit.changed || Object.keys(stateTransition.patch).length
           ? edit.finish(stateTransition.patch)
-          : current
+          : undefined
       }
       if (!worktreeId) {
         cancelActiveWorktreeRemoval()

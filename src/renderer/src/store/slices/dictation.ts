@@ -35,7 +35,7 @@ export const createDictationSlice: SessionStateCreator<AppState, DictationSlice>
   const setModelStates = (states: SpeechModelState[]): void => {
     set((prev) => {
       const modelStates = resolveModelStates(prev.modelStates, states)
-      return modelStates === prev.modelStates ? prev : { modelStates }
+      return modelStates === prev.modelStates ? undefined : { modelStates }
     })
   }
 

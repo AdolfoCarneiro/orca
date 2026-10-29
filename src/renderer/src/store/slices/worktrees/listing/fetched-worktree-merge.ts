@@ -215,7 +215,7 @@ export function mergeFetchedWorktrees(
     )
     if (!args.refresh.result.authoritative && worktrees.length === 0 && currentForHost.length > 0) {
       return areDetectedWorktreeResultsEqual(s.detectedWorktreesByRepo[args.repoId], mergedDetected)
-        ? s
+        ? undefined
         : {
             detectedWorktreesByRepo: {
               ...s.detectedWorktreesByRepo,

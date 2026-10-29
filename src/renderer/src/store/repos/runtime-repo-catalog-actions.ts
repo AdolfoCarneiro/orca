@@ -72,50 +72,53 @@ export function createRuntimeRepoCatalogActions(
           finalizedHostRepos = finalizedRepos.filter(
             (repo) => getRepoExecutionHostId(repo) === result.hostId
           )
-          return replaceSessionSourceFields({
-            repos: finalizedRepos,
-            ...(visibilityDefaults === undefined
-              ? {}
-              : {
-                  worktreeVisibilityDefaultsByHost: {
-                    ...s.worktreeVisibilityDefaultsByHost,
-                    [targetHostId]: visibilityDefaults
-                  }
-                }),
-            ...(visibilityDefaults !== undefined && s.settings
-              ? s.settings.activeRuntimeEnvironmentId === environmentId
-                ? visibilityDefaults
-                  ? {
-                      settings: {
-                        ...s.settings,
-                        worktreeVisibilityDefaults: visibilityDefaults
-                      },
-                      worktreeVisibilityDefaultsSupportedRuntimeEnvironmentId: environmentId,
-                      worktreeVisibilitySourceDefaultsSupportedRuntimeEnvironmentId:
-                        visibilitySnapshot.sourceDefaultsSupported ? environmentId : null
+          return replaceSessionSourceFields(
+            {
+              repos: finalizedRepos,
+              ...(visibilityDefaults === undefined
+                ? {}
+                : {
+                    worktreeVisibilityDefaultsByHost: {
+                      ...s.worktreeVisibilityDefaultsByHost,
+                      [targetHostId]: visibilityDefaults
                     }
-                  : {
-                      settings: Object.fromEntries(
-                        Object.entries(s.settings).filter(
-                          ([key]) => key !== 'worktreeVisibilityDefaults'
-                        )
-                      ) as GlobalSettings,
-                      worktreeVisibilityDefaultsSupportedRuntimeEnvironmentId: null,
-                      worktreeVisibilitySourceDefaultsSupportedRuntimeEnvironmentId: null
-                    }
-                : {}
-              : {}),
-            pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
-            ...reconcileFetchedCatalogWorktreeState(s, catalog, finalizedRepos),
-            ...mergedProjectCompatibility,
-            activeRepoId:
-              s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
-            filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
-            setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
-              s.setupScriptPromptDismissedRepoIds,
-              validRepoHostIdentities
-            )
-          })
+                  }),
+              ...(visibilityDefaults !== undefined && s.settings
+                ? s.settings.activeRuntimeEnvironmentId === environmentId
+                  ? visibilityDefaults
+                    ? {
+                        settings: {
+                          ...s.settings,
+                          worktreeVisibilityDefaults: visibilityDefaults
+                        },
+                        worktreeVisibilityDefaultsSupportedRuntimeEnvironmentId: environmentId,
+                        worktreeVisibilitySourceDefaultsSupportedRuntimeEnvironmentId:
+                          visibilitySnapshot.sourceDefaultsSupported ? environmentId : null
+                      }
+                    : {
+                        settings: Object.fromEntries(
+                          Object.entries(s.settings).filter(
+                            ([key]) => key !== 'worktreeVisibilityDefaults'
+                          )
+                        ) as GlobalSettings,
+                        worktreeVisibilityDefaultsSupportedRuntimeEnvironmentId: null,
+                        worktreeVisibilitySourceDefaultsSupportedRuntimeEnvironmentId: null
+                      }
+                  : {}
+                : {}),
+              pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
+              ...reconcileFetchedCatalogWorktreeState(s, catalog, finalizedRepos),
+              ...mergedProjectCompatibility,
+              activeRepoId:
+                s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
+              filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
+              setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
+                s.setupScriptPromptDismissedRepoIds,
+                validRepoHostIdentities
+              )
+            },
+            'catalog'
+          )
         })
         scheduleSafeAutoForkSync(finalizedHostRepos)
         return finalizedHostRepos

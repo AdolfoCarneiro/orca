@@ -34,7 +34,7 @@ export function createTerminalTabPresentationActions(
         if (result.runtimeGraphChanged) {
           scheduleRuntimeGraphSync()
         }
-        return result.patch ?? state
+        return result.patch ?? undefined
       })
     },
     updateTabTitles: (updates) => {
@@ -46,7 +46,7 @@ export function createTerminalTabPresentationActions(
         if (result.runtimeGraphChanged) {
           scheduleRuntimeGraphSync()
         }
-        return result.patch ?? state
+        return result.patch ?? undefined
       })
     },
     setAiVaultTabTitle: (tabId, aiVaultTitle) => {
@@ -103,7 +103,7 @@ export function createTerminalTabPresentationActions(
         if (result.runtimeGraphChanged) {
           scheduleRuntimeGraphSync()
         }
-        return result.patch ?? latestState
+        return result.patch ?? undefined
       })
     },
     setGeneratedTabTitlesFromAgentPrompts: (updates) => {
@@ -115,7 +115,7 @@ export function createTerminalTabPresentationActions(
         if (result.runtimeGraphChanged) {
           scheduleRuntimeGraphSync()
         }
-        return result.patch ?? state
+        return result.patch ?? undefined
       })
     },
     clearTabLaunchAgent: (tabId) => {

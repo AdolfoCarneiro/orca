@@ -130,7 +130,7 @@ export function createTabsGroupActions(
           edit.set('activeGroupIdByWorktree', worktreeId, groupId)
         }
         if (state.activeWorktreeId !== worktreeId) {
-          return groupAlreadyFocused ? state : edit.finish()
+          return groupAlreadyFocused ? undefined : edit.finish()
         }
         const activeSurfacePatch = buildActiveSurfacePatch(edit, worktreeId, groupId)
         if (

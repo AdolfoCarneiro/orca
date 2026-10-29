@@ -97,7 +97,9 @@ export function createUiTourActions(set: UISliceSet, get: UISliceGet): Partial<U
         ) {
           return undefined
         }
-        return s.activeContextualTourSuppressed ? s : { activeContextualTourSuppressed: true }
+        return s.activeContextualTourSuppressed
+          ? undefined
+          : { activeContextualTourSuppressed: true }
       }),
     detachContextualTourSource: (id, source) =>
       set((s) => {
@@ -105,7 +107,7 @@ export function createUiTourActions(set: UISliceSet, get: UISliceGet): Partial<U
           return undefined
         }
         return s.activeContextualTourSourceDetached
-          ? s
+          ? undefined
           : { activeContextualTourSourceDetached: true }
       }),
     advanceContextualTour: () =>

@@ -153,7 +153,7 @@ export const createRuntimeDetectedAgentsSlice: (
         isDetectingRuntimeAgents === s.isDetectingRuntimeAgents &&
         isRefreshingRuntimeAgents === s.isRefreshingRuntimeAgents &&
         runtimeAgentDetectionNeedsServerUpdate === s.runtimeAgentDetectionNeedsServerUpdate
-        ? s
+        ? undefined
         : {
             runtimeDetectedAgentIds,
             isDetectingRuntimeAgents,

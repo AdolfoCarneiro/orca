@@ -95,7 +95,7 @@ export function createMarkWorktreesDeleting(
         }
         changed = true
       }
-      return changed ? { deleteStateByWorktreeId: nextDeleteState } : s
+      return changed ? { deleteStateByWorktreeId: nextDeleteState } : undefined
     })
   }
 }
@@ -129,7 +129,7 @@ export function createMarkWorktreesQueuedForDeletion(
         }
         changed = true
       }
-      return changed ? { deleteStateByWorktreeId: nextDeleteState } : s
+      return changed ? { deleteStateByWorktreeId: nextDeleteState } : undefined
     })
   }
 }

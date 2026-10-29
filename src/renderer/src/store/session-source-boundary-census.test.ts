@@ -45,6 +45,44 @@ describe('session source boundary completeness', () => {
     expect(violations).toEqual([])
   })
 
+  it('restricts complete source replacements to named full boundaries', () => {
+    const root = join(process.cwd(), 'src/renderer/src')
+    const replacements = new Set([
+      'store/session-source-edits.ts',
+      'store/session-source-write-boundary.ts',
+      'store/project-groups/project-group-catalog-actions.ts',
+      'store/repos/runtime-repo-catalog-actions.ts',
+      'store/repos/all-host-repo-catalog-actions.ts',
+      'store/repos/repo-catalog-actions.ts',
+      'store/repos/repo-ordering.ts',
+      'store/folder-workspaces/folder-workspace-catalog-actions.ts',
+      'store/terminals/workspace-terminal-hydration.ts',
+      'store/slices/editor/actions/hydrate-editor-session.ts',
+      'store/slices/tabs/tabs-session-actions.ts',
+      'store/slices/browser/browser-hydration-actions.ts',
+      'hooks/ipc-events/ssh-managed-server-state-effects.ts'
+    ])
+    const editReplacements = new Set([
+      'store/session-source-edits.ts',
+      // Rekeying preserves native insertion order through the order-only boundary.
+      'store/slices/editor/actions/rekey-open-files-action.ts',
+      'store/slices/editor/actions/restored-editor-owner-transition.ts',
+      'store/slices/worktrees/teardown/purge-stale-runtime-host-state.ts'
+    ])
+    const violations = productionFiles(root).flatMap((path) => {
+      const name = relative(root, path)
+      const source = readFileSync(path, 'utf8')
+      return (/\breplaceSessionSourceFields\b/.test(source) && !replacements.has(name)) ||
+        (/\.replace\(\s*['"](?:editorDrafts|markdownFrontmatterVisible|repos|projectGroups|folderWorkspaces|worktreesByRepo|restoredRuntimeHostIdByWorkspaceSessionKey)['"]/.test(
+          source
+        ) &&
+          !editReplacements.has(name))
+        ? [name]
+        : []
+    })
+    expect(violations).toEqual([])
+  })
+
   it('refuses parallel whole-map partials and permits a sequential middleware chain', () => {
     const before = { editorDrafts: { a: 'A', b: 'B' } }
     const first = editSessionSource(before).set('editorDrafts', 'a', 'next').finish()

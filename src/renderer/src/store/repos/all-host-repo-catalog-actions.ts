@@ -83,18 +83,21 @@ export function createAllHostRepoCatalogActions(
           hostRepos = finalizedRepos.filter(
             (repo) => getRepoExecutionHostId(repo) === result.hostId
           )
-          return replaceSessionSourceFields({
-            repos: finalizedRepos,
-            pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
-            ...reconcileFetchedCatalogWorktreeState(s, catalog, finalizedRepos),
-            ...mergedProjectCompatibility,
-            ...(arrayElementsUnchanged(finalizedRepos, s.repos)
-              ? {}
-              : { folderWorkspacePathStatuses: {} }),
-            activeRepoId: s.activeRepoId,
-            filterRepoIds: s.filterRepoIds,
-            setupScriptPromptDismissedRepoIds: s.setupScriptPromptDismissedRepoIds
-          })
+          return replaceSessionSourceFields(
+            {
+              repos: finalizedRepos,
+              pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
+              ...reconcileFetchedCatalogWorktreeState(s, catalog, finalizedRepos),
+              ...mergedProjectCompatibility,
+              ...(arrayElementsUnchanged(finalizedRepos, s.repos)
+                ? {}
+                : { folderWorkspacePathStatuses: {} }),
+              activeRepoId: s.activeRepoId,
+              filterRepoIds: s.filterRepoIds,
+              setupScriptPromptDismissedRepoIds: s.setupScriptPromptDismissedRepoIds
+            },
+            'catalog'
+          )
         })
         // Why: keep the safe-auto fork sync (as fetchRepos does) so cold-start, which now routes here, still updates safe-auto forks.
         scheduleSafeAutoForkSync(hostRepos)

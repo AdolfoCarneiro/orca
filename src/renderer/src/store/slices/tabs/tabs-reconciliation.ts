@@ -219,7 +219,7 @@ export function projectWorktreeTabModelReconciliation(
         ? { unreadTerminalTabs: nextUnreadTerminalTabs }
         : {}),
       ...(orphanTerminalIds.size > 0
-        ? buildOrphanTerminalCleanupPatch(edit, worktreeId, orphanTerminalIds)
+        ? buildOrphanTerminalCleanupPatch(edit, worktreeId, orphanTerminalIds, priorPatch)
         : {})
     }
   }

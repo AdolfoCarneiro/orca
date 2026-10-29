@@ -134,10 +134,13 @@ export function seedStore(
 ): void {
   // Centralize fixture to keep cascade suites within max-lines limits without suppressing growth checks.
   store.setState(
-    replaceSessionSourceFields({
-      repos: [{ ...TEST_REPO, executionHostId: 'local' }],
-      ...state
-    })
+    replaceSessionSourceFields(
+      {
+        repos: [{ ...TEST_REPO, executionHostId: 'local' }],
+        ...state
+      },
+      'hydration'
+    )
   )
 }
 

@@ -1,3 +1,4 @@
+import { observeOrdinarySessionSourceWrites } from '@/lib/test-support/session-source-oracle'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as AgentStatusModule from '@/lib/agent-status'
@@ -101,10 +102,12 @@ async function boot() {
   await settle()
   check.forgetBuilds()
   const send = async (layout: PublishedWorkspaceLayout, asSnapshot = false): Promise<void> => {
+    const stop = asSnapshot ? () => {} : observeOrdinarySessionSourceWrites(store)
     stream.onFrame!(
       asSnapshot ? frames.snapshot({ [GIT_KEY]: layout }) : frames.records(GIT_KEY, layout)
     )
     await settle()
+    stop()
   }
   return { store, sync, first, send }
 }

@@ -63,7 +63,7 @@ export const createWorkspaceAttentionSlice: SessionStateCreator<
     const before = get()
     set((s) => {
       const next = removeTabsAttention(s, tabIds)
-      return sameMarkers(s, next) ? s : next
+      return sameMarkers(s, next) ? undefined : next
     })
     const removed = collectRemovedAttention(before, get())
     if (removed) {

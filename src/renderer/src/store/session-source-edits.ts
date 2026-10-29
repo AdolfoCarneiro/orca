@@ -24,6 +24,8 @@ export type {
   SessionSourceSet
 } from './session-source-write-types'
 
+type FullSourceBoundary = 'hydration' | 'catalog' | 'order' | 'unload'
+
 type SourceEntry = { present: boolean; value: unknown }
 
 class SourceWrite<S> {
@@ -210,12 +212,12 @@ export class SessionSourceEdit<S extends object> {
     this.presence.set(field, entries)
   }
 
-  replace<F extends SourceKey<S>>(field: F, value: S[F]): this {
+  replace<F extends SourceKey<S>>(field: F, value: S[F], boundary: FullSourceBoundary): this {
     Object.assign(this.partial, { [field]: value })
     this.copied.delete(field)
     this.changes.set(field, null)
     this.full = true
-    this.fullBoundary = 'replacement'
+    this.fullBoundary = boundary === 'order' ? 'order' : 'replacement'
     return this
   }
 
@@ -262,11 +264,9 @@ export class SessionSourceEdit<S extends object> {
       for (const key of keys) {
         // SAFETY: set/remove capture the base entry before admitting a keyed edit.
         const base = this.baseEntries.get(field)?.get(key) as SourceEntry
-        const oldPresent = base.present
         const nextPresent = after instanceof Map ? after.has(key) : Object.hasOwn(after ?? {}, key)
-        const oldValue = base.value
         const nextValue = after instanceof Map ? after.get(key) : Reflect.get(after ?? {}, key)
-        if (oldPresent === nextPresent && oldValue === nextValue) {
+        if (base.present === nextPresent && base.value === nextValue) {
           keys.delete(key)
         }
       }
@@ -291,11 +291,14 @@ export function editSessionSource<S extends object>(state: S): SessionSourceEdit
 
 type SequenceRow<S, F extends keyof S> = S[F] extends readonly (infer V)[] ? V : never
 
-export function replaceSessionSourceFields<S extends object>(partial: S): SessionSourceWrite<S> {
+export function replaceSessionSourceFields<S extends object>(
+  partial: S,
+  boundary: FullSourceBoundary
+): SessionSourceWrite<S> {
   return new SourceWrite(partial, {
     changes: new Map(SESSION_SOURCE_FIELDS.map((field) => [field, null])),
     full: true,
-    fullBoundary: 'replacement'
+    fullBoundary: boundary === 'order' ? 'order' : 'replacement'
   })
 }
 

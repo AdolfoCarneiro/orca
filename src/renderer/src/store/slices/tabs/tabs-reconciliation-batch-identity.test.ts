@@ -1,4 +1,4 @@
-import { editSessionSource } from '../../session-source-edits'
+import { editSessionSource, unwrapSessionSourceWrite } from '../../session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it } from 'vitest'
 import { projectWorktreeTabModelReconciliation } from './tabs-reconciliation'
@@ -60,7 +60,7 @@ describe('projectWorktreeTabModelReconciliation identity', () => {
 
     const edit = editSessionSource(before)
     const result = projectWorktreeTabModelReconciliation(edit, WORKTREE)
-    const patch = edit.finish(result.patch)
+    const patch = unwrapSessionSourceWrite(edit.finish(result.patch)).partial
 
     expect(patch.tabsByWorktree?.[WORKTREE]).toEqual([])
     expect(edit.read('unifiedTabsByWorktree')).toBe(before.unifiedTabsByWorktree)
@@ -81,11 +81,9 @@ describe('shared reconciliation edit identity', () => {
     edit.set('activeGroupIdByWorktree', 'second', 'next')
     edit.set('activeGroupIdByWorktree', 'absent', undefined)
     expect(edit.read('activeGroupIdByWorktree')).toBe(owned)
-    expect(Object.keys(edit.finish().activeGroupIdByWorktree!)).toEqual([
-      'first',
-      'second',
-      'absent'
-    ])
+    expect(
+      Object.keys(unwrapSessionSourceWrite(edit.finish()).partial.activeGroupIdByWorktree!)
+    ).toEqual(['first', 'second', 'absent'])
     expect(current).toEqual({ first: 'one', second: 'two' })
   })
 })

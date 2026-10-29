@@ -44,11 +44,14 @@ export function createRepoOrderingActions(
       }
       const manualRepoOrder = getManualRepoOrder(next)
       set(
-        replaceSessionSourceFields({
-          repos: next,
-          manualRepoOrder,
-          folderWorkspacePathStatuses: {}
-        })
+        replaceSessionSourceFields(
+          {
+            repos: next,
+            manualRepoOrder,
+            folderWorkspacePathStatuses: {}
+          },
+          'order'
+        )
       )
       try {
         // Why: each host persists only its own repos and rejects non-permutations; dispatch one per-host permutation per owner.

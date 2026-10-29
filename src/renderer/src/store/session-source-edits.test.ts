@@ -81,7 +81,7 @@ describe('atomic named source edits', () => {
       'a'
     ])
     const empty = editSessionSource(before)
-      .replace('editorDrafts', {})
+      .replace('editorDrafts', {}, 'hydration')
       .set('editorDrafts', 'c', 'new')
       .finish()
     expect(unwrapSessionSourceWrite(empty).partial.editorDrafts).toEqual({ c: 'new' })
@@ -174,11 +174,14 @@ describe('source write identity gate', () => {
       isDirty: false
     }
     store.setState(
-      replaceSessionSourceFields({
-        ...fixture(),
-        openFiles: [{ ...file, isDirty: true }],
-        editorDrafts: { a: 'shared' }
-      }),
+      replaceSessionSourceFields(
+        {
+          ...fixture(),
+          openFiles: [{ ...file, isDirty: true }],
+          editorDrafts: { a: 'shared' }
+        },
+        'hydration'
+      ),
       true
     )
     const before = store.getState()
@@ -244,7 +247,7 @@ describe('source write identity gate', () => {
         store.setState(unsupported)
         expect(full).toBe(true)
       }
-      store.setState(replaceSessionSourceFields(fixture()), true)
+      store.setState(replaceSessionSourceFields(fixture(), 'hydration'), true)
       expect(full).toBe(true)
     }
   })

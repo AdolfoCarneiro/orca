@@ -178,6 +178,6 @@ export const createCommitMessageGenerationSlice: SessionStateCreator<
           changed = true
         }
       }
-      return changed ? { commitMessageGenerationRecords: nextRecords } : state
+      return changed ? { commitMessageGenerationRecords: nextRecords } : undefined
     })
 })

@@ -54,10 +54,13 @@ export function createFolderWorkspaceCatalogActions(
       if (arrayElementsUnchanged(folderWorkspaces, current.folderWorkspaces)) {
         return undefined
       }
-      return replaceSessionSourceFields({
-        folderWorkspaces,
-        folderWorkspacePathStatuses: {}
-      })
+      return replaceSessionSourceFields(
+        {
+          folderWorkspaces,
+          folderWorkspacePathStatuses: {}
+        },
+        'catalog'
+      )
     })
     return applied
   }
@@ -104,8 +107,8 @@ export function createFolderWorkspaceCatalogActions(
           )
           return restoredRuntimeHostIdByWorkspaceSessionKey ===
             s.restoredRuntimeHostIdByWorkspaceSessionKey
-            ? s
-            : replaceSessionSourceFields({ restoredRuntimeHostIdByWorkspaceSessionKey })
+            ? undefined
+            : replaceSessionSourceFields({ restoredRuntimeHostIdByWorkspaceSessionKey }, 'catalog')
         })
       }
       try {

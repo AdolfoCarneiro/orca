@@ -44,7 +44,7 @@ export function createEditorBufferIdentityActions(
             retired: true
           }
         }
-        return detached ? { editorBufferDetached: detached } : s
+        return detached ? { editorBufferDetached: detached } : undefined
       }),
 
     releaseKeptEditorBuffers: (notice) =>

@@ -156,7 +156,9 @@ describe('terminal tab title batches', () => {
       }
     })
     adoptTerminalTabOwnerMetadataOnlyBuckets(currentTabsByWorktree, observedTabsByWorktree, [])
-    store.setState(replaceSessionSourceFields({ tabsByWorktree: observedTabsByWorktree }))
+    store.setState(
+      replaceSessionSourceFields({ tabsByWorktree: observedTabsByWorktree }, 'hydration')
+    )
     outerKeyVisits = 0
     bucketVisits = 0
 

@@ -113,7 +113,7 @@ export const createSshSlice: SessionStateCreator<AppState, SshSlice> = (set) => 
         sshTargetGenerationsEqual(s.sshTargetGenerations, sshTargetGenerations)
       ) {
         // An unchanged empty list still proves first hydration.
-        return s.sshTargetsHydrated ? s : { sshTargetsHydrated: true }
+        return s.sshTargetsHydrated ? undefined : { sshTargetsHydrated: true }
       }
       return {
         sshTargetLabels: new Map(targets.map((target) => [target.id, target.label])),

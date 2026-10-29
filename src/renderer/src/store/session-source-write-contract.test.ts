@@ -46,8 +46,10 @@ function sourceWriteContracts(
   set((current) => ({ sortEpoch: current.sortEpoch + 1 }))
   set(finished)
   set((current) => editSessionSource(current).set('editorDrafts', 'a', 'next').finish())
+  // @ts-expect-error full ingress must name its authorized boundary.
   set(replaceSessionSourceFields({ editorDrafts: {} }))
-  set(replaceSessionSourceFields(state), true)
+  set(replaceSessionSourceFields({ editorDrafts: {} }, 'hydration'))
+  set(replaceSessionSourceFields(state, 'hydration'), true)
   set(() => undefined)
 }
 

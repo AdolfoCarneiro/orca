@@ -298,6 +298,6 @@ export const createPullRequestGenerationSlice: SessionStateCreator<
           changed = true
         }
       }
-      return changed ? { pullRequestGenerationRecords: nextRecords } : state
+      return changed ? { pullRequestGenerationRecords: nextRecords } : undefined
     })
 })

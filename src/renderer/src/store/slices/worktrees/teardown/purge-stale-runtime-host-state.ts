@@ -263,19 +263,20 @@ export function createPurgeStaleRuntimeHostState(
 
           const rowsChanged = worktreesChanged || detectedChanged
           if (reposChanged) {
-            edit.replace('repos', survivingRepos)
+            edit.replace('repos', survivingRepos, 'catalog')
           }
           if (groupsChanged) {
-            edit.replace('projectGroups', projectGroups)
-            edit.replace('folderWorkspaces', folderWorkspaces)
+            edit.replace('projectGroups', projectGroups, 'catalog')
+            edit.replace('folderWorkspaces', folderWorkspaces, 'catalog')
           }
           if (worktreesChanged) {
-            edit.replace('worktreesByRepo', worktreeDrop.rowsByRepo)
+            edit.replace('worktreesByRepo', worktreeDrop.rowsByRepo, 'catalog')
           }
           if (restoredSessionOwnersChanged) {
             edit.replace(
               'restoredRuntimeHostIdByWorkspaceSessionKey',
-              survivingRestoredSessionOwners
+              survivingRestoredSessionOwners,
+              'catalog'
             )
           }
           return edit.finish({

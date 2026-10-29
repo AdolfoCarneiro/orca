@@ -241,7 +241,7 @@ export const createRefreshEventActions = (
             prCache: nextPRCache,
             hostedReviewCache: nextHostedReviewCache
           }
-        : s
+        : undefined
     })
     for (const clear of divergedLinkedPRClears) {
       void get().updateWorktreeMeta(clear.worktreeId, CLEARED_HOSTED_REVIEW_SELECTION_UPDATES, {

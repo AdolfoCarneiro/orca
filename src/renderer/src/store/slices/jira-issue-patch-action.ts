@@ -42,7 +42,7 @@ export function createJiraIssuePatchAction(set: JiraSliceSet): Pick<JiraSlice, '
           jiraSearchCache[key] = { ...entry, data: updatedIssues }
           changed = true
         }
-        return changed ? { jiraIssueCache, jiraSearchCache } : state
+        return changed ? { jiraIssueCache, jiraSearchCache } : undefined
       })
     }
   }

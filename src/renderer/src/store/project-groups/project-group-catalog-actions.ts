@@ -32,10 +32,13 @@ export function createProjectGroupCatalogActions(
       if (arrayElementsUnchanged(projectGroups, s.projectGroups)) {
         return undefined
       }
-      return replaceSessionSourceFields({
-        projectGroups,
-        folderWorkspacePathStatuses: {}
-      })
+      return replaceSessionSourceFields(
+        {
+          projectGroups,
+          folderWorkspacePathStatuses: {}
+        },
+        'catalog'
+      )
     })
   }
 

@@ -162,7 +162,7 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
       ) {
         // An unchanged empty list still proves first hydration.
         return bucket.targetsHydrated
-          ? s
+          ? undefined
           : withBucket(s, environmentId, { ...bucket, connectionStates, targetsHydrated: true })
       }
       return withBucket(s, environmentId, {
@@ -233,6 +233,6 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
           changed = true
         }
       }
-      return changed ? { sshStateByEnvironment: next } : s
+      return changed ? { sshStateByEnvironment: next } : undefined
     })
 })

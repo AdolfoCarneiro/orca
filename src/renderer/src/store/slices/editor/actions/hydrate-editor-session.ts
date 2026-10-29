@@ -35,7 +35,14 @@ export function createHydrateEditorSession(
         )
         const edit = editSessionSource(s)
         migrateHydratedEditorTabsAndGroups(edit, editorFileIdMigrationsByWorktree)
-        return replaceSessionSourceFields({ ...state, ...edit.finish() })
+        return replaceSessionSourceFields(
+          {
+            ...state,
+            unifiedTabsByWorktree: edit.read('unifiedTabsByWorktree'),
+            groupsByWorktree: edit.read('groupsByWorktree')
+          },
+          'hydration'
+        )
       })
     }
   }

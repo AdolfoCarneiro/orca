@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as AgentStatusModule from '@/lib/agent-status'
@@ -176,7 +177,9 @@ function drawMainMove(
     facts: loaded.facts,
     view: loaded.desktopView
   })
-  store.setState(buildLayoutFrameStorePatch(state, slices, [WT]))
+  const edit = editSessionSource(state)
+  buildLayoutFrameStorePatch(edit, slices, [WT])
+  store.setState(edit.finish())
 }
 
 beforeEach(() => {

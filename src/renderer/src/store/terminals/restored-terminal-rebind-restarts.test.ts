@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // Layout-owner build, two restarts: a terminal recorded only on its tab (an older session, or an
 // unvisited SSH relay tab) must reattach after each one. Runs main's Loader, the window's startup
@@ -124,7 +125,9 @@ function applyMainFrames(
     }
   }
   const slices = buildLayoutFrameSlices({ layouts, facts, view: desktopView })
-  store.setState(buildLayoutFrameStorePatch(store.getState(), slices, Object.keys(layouts)))
+  const edit = editSessionSource(store.getState())
+  buildLayoutFrameStorePatch(edit, slices, Object.keys(layouts))
+  store.setState(edit.finish())
 }
 
 /** One app launch: main's load, the window's hydration and reconnect, then main's frames. */

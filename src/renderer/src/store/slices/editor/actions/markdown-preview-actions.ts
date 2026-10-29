@@ -231,7 +231,7 @@ export function createMarkdownPreviewActions(
           })
           sourceEdit.set('unifiedTabsByWorktree', worktreeId, updated)
         }
-        return changed ? sourceEdit.finish() : s
+        return changed ? sourceEdit.finish() : undefined
       })
       // Switch point: main makes the preview tabs the user kept permanent.
       if (ORCA_LAYOUT_OWNER_IS_MAIN && promoted.length > 0) {

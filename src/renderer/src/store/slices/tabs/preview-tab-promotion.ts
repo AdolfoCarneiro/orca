@@ -16,7 +16,7 @@ type SetTabs = SessionSourceSet<TabsState>
 function endPreviewHere(set: SetTabs, tabId: string): void {
   set((state) => {
     const edit = editSessionSource(state)
-    return patchTab(edit, tabId, { isPreview: undefined }) ? edit.finish() : state
+    return patchTab(edit, tabId, { isPreview: undefined }) ? edit.finish() : undefined
   })
 }
 

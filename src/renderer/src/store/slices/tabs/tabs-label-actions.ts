@@ -208,7 +208,7 @@ export function createTabsLabelActions(
     setTabLabel: (tabId, label) => {
       set((state) => {
         const edit = editSessionSource(state)
-        return patchTab(edit, tabId, { label }) ? edit.finish() : state
+        return patchTab(edit, tabId, { label }) ? edit.finish() : undefined
       })
     },
 
@@ -231,7 +231,7 @@ export function createTabsLabelActions(
       const exists = get().getTab(tabId) !== null
       set((state) => {
         const edit = editSessionSource(state)
-        return patchTab(edit, tabId, { customLabel: label }) ? edit.finish() : state
+        return patchTab(edit, tabId, { customLabel: label }) ? edit.finish() : undefined
       })
       if (exists && opts?.recordInteraction !== false) {
         get().recordFeatureInteraction?.('terminal-tabs')
@@ -242,7 +242,7 @@ export function createTabsLabelActions(
       const exists = get().getTab(tabId) !== null
       set((state) => {
         const edit = editSessionSource(state)
-        return patchTab(edit, tabId, { color }) ? edit.finish() : state
+        return patchTab(edit, tabId, { color }) ? edit.finish() : undefined
       })
       if (exists && opts?.recordInteraction !== false) {
         get().recordFeatureInteraction?.('terminal-tabs')

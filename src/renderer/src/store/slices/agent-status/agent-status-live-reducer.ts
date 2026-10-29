@@ -10,15 +10,16 @@ import { removePaneKeys } from './agent-status-pane-keyed-records'
 import type { AgentStatusLiveEntryBuild } from './agent-status-live-entry-builder'
 import { agentProviderSessionsEqual } from '../../../../../shared/agent-session-resume'
 import { liveResumeRecordChange } from '../../../../../shared/agent-resume-record-from-status'
-import { editSessionSource, type SessionSourceWrite } from '../../session-source-edits'
+import type { SessionSourceEdit, OrdinarySourcePartial } from '../../session-source-edits'
 
 export type AgentStatusLiveUpdateReduction = {
-  patch: SessionSourceWrite<AppState>
+  patch: OrdinarySourcePartial<AppState>
   /** Rows the cap dropped, so freshness can move its cached minimum without a full rescan. */
   evictedEntries: AgentStatusEntry[]
 }
 
 export function reduceAgentStatusLiveUpdate(
+  edit: SessionSourceEdit<AppState>,
   state: AppState,
   build: AgentStatusLiveEntryBuild,
   updatedAt: number
@@ -36,7 +37,6 @@ export function reduceAgentStatusLiveUpdate(
     sortRelevantChange
   } = build
   const paneKey = entry.paneKey
-  const edit = editSessionSource(state)
   let nextRetentionSuppressedPaneKeys = state.retentionSuppressedPaneKeys
   if (paneKey in nextRetentionSuppressedPaneKeys) {
     nextRetentionSuppressedPaneKeys = { ...nextRetentionSuppressedPaneKeys }
@@ -106,7 +106,7 @@ export function reduceAgentStatusLiveUpdate(
     }
     nextLaunchConfigs = removePaneKeys(nextLaunchConfigs, evicted)
   }
-  const patch = edit.finish({
+  const patch = {
     agentStatusByPaneKey: nextLive,
     retainedAgentsByPaneKey: nextRetainedAgents,
     agentLaunchConfigByPaneKey: nextLaunchConfigs,
@@ -120,6 +120,6 @@ export function reduceAgentStatusLiveUpdate(
       sortRelevantChange || migrationUnsupported.changed || evictedOrphans
         ? state.sortEpoch + 1
         : state.sortEpoch
-  })
+  }
   return { patch, evictedEntries }
 }

@@ -134,7 +134,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
             delete next[key]
           }
         }
-        return next ? { manuallyUnreadTurnsByPaneKey: next } : s
+        return next ? { manuallyUnreadTurnsByPaneKey: next } : undefined
       }),
     activityClearedAtByPaneKey: {},
     applyActivityClearedAt: (patch) =>
@@ -152,7 +152,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
             next[key] = value
           }
         }
-        return next ? { activityClearedAtByPaneKey: next } : s
+        return next ? { activityClearedAtByPaneKey: next } : undefined
       })
   }
 }

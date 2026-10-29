@@ -28,7 +28,7 @@ function hydrateFixtureStore(): { store: Store; workspaceIds: string[] } {
   expect(fixture.workspaceIds).toHaveLength(HYDRATED_WORKSPACE_COUNT)
   expect(fixture.tabCount).toBe(HYDRATED_TAB_COUNT)
   const store = createTestStore()
-  store.setState(fixture.state)
+  setSessionTestState(store, fixture.state)
   return { store, workspaceIds: fixture.workspaceIds }
 }
 

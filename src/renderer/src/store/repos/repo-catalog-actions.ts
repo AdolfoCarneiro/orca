@@ -75,13 +75,16 @@ export function createRepoCatalogActions(
           compatibility.projectHostSetups,
           getProjectHostSetupOwnerKey
         )
-        return replaceSessionSourceFields({
-          repos,
-          pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
-          ...worktreeState,
-          projects,
-          projectHostSetups
-        })
+        return replaceSessionSourceFields(
+          {
+            repos,
+            pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
+            ...worktreeState,
+            projects,
+            projectHostSetups
+          },
+          'catalog'
+        )
       }),
 
     fetchRepos: async (options) => {
@@ -126,22 +129,25 @@ export function createRepoCatalogActions(
           finalizedHostRepos = prunedRepos.filter(
             (repo) => getRepoExecutionHostId(repo) === result.hostId
           )
-          return replaceSessionSourceFields({
-            repos: prunedRepos,
-            pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
-            ...reconcileFetchedCatalogWorktreeState(s, catalog, prunedRepos),
-            ...mergedProjectCompatibility,
-            ...(arrayElementsUnchanged(prunedRepos, s.repos)
-              ? {}
-              : { folderWorkspacePathStatuses: {} }),
-            activeRepoId:
-              s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
-            filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
-            setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
-              s.setupScriptPromptDismissedRepoIds,
-              validRepoHostIdentities
-            )
-          })
+          return replaceSessionSourceFields(
+            {
+              repos: prunedRepos,
+              pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
+              ...reconcileFetchedCatalogWorktreeState(s, catalog, prunedRepos),
+              ...mergedProjectCompatibility,
+              ...(arrayElementsUnchanged(prunedRepos, s.repos)
+                ? {}
+                : { folderWorkspacePathStatuses: {} }),
+              activeRepoId:
+                s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
+              filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
+              setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
+                s.setupScriptPromptDismissedRepoIds,
+                validRepoHostIdentities
+              )
+            },
+            'catalog'
+          )
         })
         scheduleSafeAutoForkSync(finalizedHostRepos)
       } catch (err) {

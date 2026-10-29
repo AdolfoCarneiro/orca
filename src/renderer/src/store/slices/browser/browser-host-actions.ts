@@ -22,7 +22,7 @@ export function createBrowserHostActions(
       set((s) => {
         const edit = editSessionSource(s)
         const changed = recordClientHostedBrowserCloseIntents(edit, closes, Date.now())
-        return changed ? edit.finish() : s
+        return changed ? edit.finish() : undefined
       })
     },
 
@@ -34,7 +34,7 @@ export function createBrowserHostActions(
           browserPageIds,
           now: Date.now()
         })
-        return changed ? edit.finish() : s
+        return changed ? edit.finish() : undefined
       })
     },
 

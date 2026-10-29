@@ -113,7 +113,7 @@ export function createPruneLastVisitedTimestamps(
           patch.activeWorkspaceExecutionHostId = null
         }
       }
-      return Object.keys(patch).length > 0 ? patch : s
+      return Object.keys(patch).length > 0 ? patch : undefined
     })
   }
   return () => runAsAutomaticDeselection(prune)

@@ -279,7 +279,7 @@ export const createTerminalQuickCommandHostsSlice: SessionStateCreator<
           changed = true
         }
       }
-      return changed ? { runtimeTerminalQuickCommands: next } : state
+      return changed ? { runtimeTerminalQuickCommands: next } : undefined
     })
   }
 })

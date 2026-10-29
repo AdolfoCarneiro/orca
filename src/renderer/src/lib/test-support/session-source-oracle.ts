@@ -63,3 +63,12 @@ export function observeSessionSourceOracle(store: SourceTestStore): () => void {
     }
   })
 }
+
+/** Ordinary actions cannot hide behind an authorized complete-domain replacement. */
+export function observeOrdinarySessionSourceWrites(store: SourceTestStore): () => void {
+  return store.subscribe(() => {
+    expect(store.getSessionSourceReceipt()?.full, 'ordinary action publishes keyed receipts').toBe(
+      false
+    )
+  })
+}

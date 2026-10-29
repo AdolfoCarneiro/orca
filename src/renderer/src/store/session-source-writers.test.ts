@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { useAppStore } from './index'
 import type { AppState } from './types'
 import { editSessionSource } from './session-source-edits'
+import { observeOrdinarySessionSourceWrites } from '../lib/test-support/session-source-oracle'
 import { withSessionSourceWrites } from './session-source-write-boundary'
 import {
   discoverSessionSources,
@@ -44,7 +45,17 @@ function verifyTransition(
   expect(receipt?.changes).toEqual(discoverSessionSources(before, after).changes)
 }
 
-describe('production source writer receipts', () => {
+const layoutOwner = vi.hoisted(() => ({ main: false }))
+vi.mock('../../../shared/layout-owner-switch', () => ({
+  get ORCA_LAYOUT_OWNER_IS_MAIN() {
+    return layoutOwner.main
+  }
+}))
+
+describe.each([false, true])('production source writer receipts (main owns layout: %s)', (main) => {
+  beforeEach(() => {
+    layoutOwner.main = main
+  })
   it('reports background editor selection without changing the foreground selection', () => {
     const store = createStore<AppState>()(
       withSessionSourceWrites(
@@ -59,6 +70,7 @@ describe('production source writer receipts', () => {
         true
       )
     )
+    observeOrdinarySessionSourceWrites(store)
     let receipt: SessionSourceDiscovery | undefined
     store.subscribe(() => {
       receipt = store.getSessionSourceReceipt()
@@ -90,6 +102,7 @@ describe('production source writer receipts', () => {
         true
       )
     )
+    observeOrdinarySessionSourceWrites(store)
     let receipt: SessionSourceDiscovery | undefined
     store.subscribe(() => {
       receipt = store.getSessionSourceReceipt()
@@ -127,6 +140,7 @@ describe('production source writer receipts', () => {
     const store = createStore<AppState>()(withSessionSourceWrites(fixture, true))
     const runtime = createAgentStatusRuntime(store.setState, store.getState, () => store.getState())
     const before = store.getState()
+    observeOrdinarySessionSourceWrites(store)
     let receipt: SessionSourceDiscovery | undefined
     let publications = 0
     store.subscribe(() => {

@@ -149,7 +149,7 @@ export function createAgentStatusRetentionActions(
             next[key] = retained
           }
         }
-        return changed ? { retainedAgentsByPaneKey: next } : s
+        return changed ? { retainedAgentsByPaneKey: next } : undefined
       })
     },
 
@@ -164,7 +164,7 @@ export function createAgentStatusRetentionActions(
           delete next[paneKey]
           changed = true
         }
-        return changed ? { retentionSuppressedPaneKeys: next } : s
+        return changed ? { retentionSuppressedPaneKeys: next } : undefined
       })
     }
   }

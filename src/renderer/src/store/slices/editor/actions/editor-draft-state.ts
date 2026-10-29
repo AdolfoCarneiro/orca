@@ -51,7 +51,7 @@ function clearEditorDraftsOf<TState extends Pick<AppState, 'editorDrafts'> & Edi
       }
     }
   }
-  return changed ? edit.finish() : s
+  return changed ? edit.finish() : undefined
 }
 
 export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorDraftState {

@@ -56,7 +56,8 @@ export function createBrowserHydrationActions(
         }
         addAdditionalValidWorkspaceKeys(validWorktreeIds, options)
         return replaceSessionSourceFields(
-          projectHydratedBrowserSession(s, session, validWorktreeIds)
+          projectHydratedBrowserSession(s, session, validWorktreeIds),
+          'hydration'
         )
       })
 

@@ -1,3 +1,4 @@
+import { editSessionSource } from '../../session-source-edits'
 import { resolvePaneKey } from '../../../lib/agent-status-pane-ownership'
 import type { AgentStatusSlice } from './agent-status-slice-contract'
 import type { AgentStatusRuntime } from './agent-status-runtime'
@@ -105,7 +106,8 @@ export function createAgentStatusLiveActions(
         return undefined
       }
       const previousEntries = state.agentStatusByPaneKey
-      const reduction = reduceAgentStatusLiveUpdate(state, built, updatedAt)
+      const edit = editSessionSource(state)
+      const reduction = reduceAgentStatusLiveUpdate(edit, state, built, updatedAt)
       liveEntryDelta = {
         previousEntries,
         nextEntries: reduction.patch.agentStatusByPaneKey ?? previousEntries,
@@ -122,9 +124,9 @@ export function createAgentStatusLiveActions(
         }
         const nextRetired = { ...state.recentlyRetiredAgentStatusPaneKeys }
         delete nextRetired[paneKey]
-        return { ...reduction.patch, recentlyRetiredAgentStatusPaneKeys: nextRetired }
+        return edit.finish({ ...reduction.patch, recentlyRetiredAgentStatusPaneKeys: nextRetired })
       }
-      return reduction.patch
+      return edit.finish(reduction.patch)
     })
     if (liveEntryDelta) {
       freshness.noteLiveEntryDelta(liveEntryDelta)
