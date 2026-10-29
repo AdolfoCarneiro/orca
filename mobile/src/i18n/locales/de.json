@@ -97,6 +97,7 @@
       "connecting": "Verbindung wird hergestellt…",
       "invalidPairingCode": "Kein gültiger Kopplungscode – vom Computer kopieren und erneut einfügen",
       "invalidQrCode": "Kein gültiger Orca-QR-Code",
+      "downloadQrCode": "Das ist der Download-Code. Scanne den Kopplungscode in Schritt 2 auf deinem Computer.",
       "openDesktopStep": "Orca auf dem Computer öffnen",
       "openMobileSettingsStep": "Einstellungen → Mobil öffnen",
       "openSettings": "Einstellungen öffnen",

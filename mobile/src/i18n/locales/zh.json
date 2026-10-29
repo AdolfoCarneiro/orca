@@ -97,6 +97,7 @@
       "connecting": "正在连接…",
       "invalidPairingCode": "配对码无效，请从电脑上复制后重新粘贴",
       "invalidQrCode": "无效的 Orca 二维码",
+      "downloadQrCode": "这是下载码。请扫描桌面端第 2 步中的配对码。",
       "openDesktopStep": "在电脑上打开 Orca",
       "openMobileSettingsStep": "前往“设置” → “移动端”",
       "openSettings": "打开设置",
