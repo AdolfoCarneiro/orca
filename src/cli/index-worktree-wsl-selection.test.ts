@@ -55,6 +55,7 @@ import {
 } from './caller-host-worktree-selection'
 import { buildWorktree, okFixture, worktreeListFixture } from './test-fixtures'
 import { useWorktreeAwarenessEnvironment } from './index-test-harness'
+import { toSshExecutionHostId } from '../shared/execution-host'
 
 const UPPER = String.raw`\\wsl.localhost\Ubuntu\home\Alice\App`
 const LOWER = String.raw`\\wsl$\Ubuntu\home\alice\app`
@@ -103,7 +104,7 @@ describe('WSL enclosing selection with Windows path resolution on every platform
       }
     }
     const wrongDistro = { ...upper, path: UPPER.replace('Ubuntu', 'Debian') }
-    const wrongHost = { ...upper, hostId: 'ssh:other' }
+    const wrongHost = { ...upper, hostId: toSshExecutionHostId('other') }
     expect(
       selectEnclosingWorktreeSelectionOnHost([wrongDistro, wrongHost], UPPER, 'local')
     ).toBeUndefined()
