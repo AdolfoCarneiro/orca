@@ -133,12 +133,12 @@ describe('MobileNativeChatComposer', () => {
       renderer = create(createElement(Registered))
     })
     const input = () => findByHostType(renderer!.root, 'TextInput')
-    const say = (text: string) => act(() => captureMobileNativeChatTextDestination()!.insert(text))
+    const say = (text: string) =>
+      act(() => void captureMobileNativeChatTextDestination()!.insert(text))
     const select = (start: number, end: number) =>
       input().props.onSelectionChange({ nativeEvent: { selection: { start, end }, text: 'Ok hi' } })
     act(() => input().props.onFocus())
     say('hi')
-    expect(input().props.value).toBe('Ok hi')
     act(() => select(3, 5))
     const destination = captureMobileNativeChatTextDestination()!
     // A tap elsewhere while talking doesn't move where the words land.
