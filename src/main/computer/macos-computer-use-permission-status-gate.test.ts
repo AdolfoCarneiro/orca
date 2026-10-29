@@ -120,6 +120,26 @@ describe('createPermissionStatusGate', () => {
     expect(probe).toHaveBeenCalledTimes(2)
   })
 
+  it('does not revive an expired grant when a new probe starts', async () => {
+    let finishSecond: (result: ComputerUsePermissionStatusResult) => void = () => {}
+    const probe = vi
+      .fn()
+      .mockResolvedValueOnce(granted)
+      .mockReturnValueOnce(
+        new Promise<ComputerUsePermissionStatusResult>((resolve) => {
+          finishSecond = resolve
+        })
+      )
+    const gate = createPermissionStatusGate(probe)
+
+    await gate.read()
+    await vi.advanceTimersByTimeAsync(5_000)
+    void gate.read()
+    const joined = gate.read()
+    finishSecond(denied)
+    await expect(joined).resolves.toBe(denied)
+  })
+
   it('launches no trailing probe without a waiter', async () => {
     const probe = vi.fn(async () => denied)
     const gate = createPermissionStatusGate(probe)

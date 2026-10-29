@@ -23,6 +23,8 @@ export function createPermissionStatusGate(
   let lastLaunchAt = Number.NEGATIVE_INFINITY
   // Only grants are cached; a denial or error is never served, so a fresh grant shows within one floor.
   let granted: StatusResult | null = null
+  // Reuse ends one floor after the probe that produced the answer, not after whichever probe ran last.
+  let cachedUntil = Number.NEGATIVE_INFINITY
   // Setup may reuse a denial until the floor expires, so it never acts on one older than a floor.
   let lastDenied: StatusResult | null = null
   let waiters: {
@@ -46,7 +48,7 @@ export function createPermissionStatusGate(
           armTrailing()
         }
       },
-      Math.max(0, floorExpiresAt() - performance.now())
+      Math.max(0, Math.ceil(floorExpiresAt() - performance.now()))
     )
     trailingTimer.unref?.()
   }
@@ -70,6 +72,7 @@ export function createPermissionStatusGate(
           if (entry.joinable) {
             granted = isCacheable(result) ? result : null
             lastDenied = granted ? null : result
+            cachedUntil = floorExpiresAt()
           }
         },
         () => {
@@ -103,7 +106,7 @@ export function createPermissionStatusGate(
   }
 
   const read = (): Promise<StatusResult> => {
-    if (granted && performance.now() < floorExpiresAt()) {
+    if (granted && performance.now() < cachedUntil) {
       return Promise.resolve(granted)
     }
     if (inFlight?.joinable) {
@@ -125,12 +128,10 @@ export function createPermissionStatusGate(
       if (inFlight?.joinable) {
         return inFlight.promise
       }
-      if (granted && performance.now() < floorExpiresAt()) {
+      if (granted && performance.now() < cachedUntil) {
         return Promise.resolve(granted)
       }
-      return lastDenied && performance.now() < floorExpiresAt()
-        ? Promise.resolve(lastDenied)
-        : read()
+      return lastDenied && performance.now() < cachedUntil ? Promise.resolve(lastDenied) : read()
     },
     invalidate: () => {
       granted = null

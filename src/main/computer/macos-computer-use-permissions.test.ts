@@ -365,32 +365,43 @@ describe('setup helper launch window', () => {
   })
 
   it('lets an A that arrives after A launches queue and win over B', async () => {
-    let reentered = true
-    vi.mocked(spawn).mockImplementation((program, args) => {
-      // The second A lands while the first A's launch is still on the stack.
-      if (
-        program === '/usr/bin/open' &&
-        !reentered &&
-        Array.isArray(args) &&
-        !args.includes('--permission-status-file')
-      ) {
-        reentered = true
-        void openComputerUsePermissions('accessibility')
-      }
-      return fakeSpawnDispatch(() => ({}))(program, Array.isArray(args) ? args : [])
-    })
     await openComputerUsePermissions()
     await vi.advanceTimersByTimeAsync(5_000)
-    reentered = false
-    await Promise.all([
-      openComputerUsePermissions('accessibility'),
-      openComputerUsePermissions('screenshots')
-    ])
+    const first = openComputerUsePermissions('accessibility')
+    const second = openComputerUsePermissions('screenshots')
+    while (setupLaunches().length < 2) {
+      await Promise.resolve()
+    }
+    const third = openComputerUsePermissions('accessibility')
+    await Promise.all([first, second, third])
     await vi.advanceTimersByTimeAsync(5_000)
     expect(setupLaunches().slice(1)).toEqual([
       ['--permission', 'accessibility'],
       ['--permission', 'accessibility']
     ])
+  })
+
+  it('spawns concurrent same-permission Opens once per window', async () => {
+    await Promise.all(Array.from({ length: 5 }, () => openComputerUsePermissions('accessibility')))
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(setupLaunches()).toEqual([['--permission', 'accessibility']])
+  })
+
+  it('never fires a queued setup spawn early when the timer delay is fractional', async () => {
+    const spawnedAt: number[] = []
+    vi.mocked(spawn).mockImplementation((program, args) => {
+      if (program === '/usr/bin/open') {
+        spawnedAt.push(performance.now())
+      }
+      return fakeSpawnDispatch(() => ({}))(program, Array.isArray(args) ? args : [])
+    })
+    await openComputerUsePermissions('accessibility')
+    // Timers truncate fractional delays, so this one would fire half a millisecond early.
+    vi.advanceTimersByTime(0.5)
+    await openComputerUsePermissions('screenshots')
+    await vi.advanceTimersByTimeAsync(6_000)
+    const setupSpawns = spawnedAt.slice(-2)
+    expect(setupSpawns[1]! - setupSpawns[0]!).toBeGreaterThanOrEqual(5_000)
   })
 
   it('spaces real setup spawns 5s apart even when pkill is slow', async () => {

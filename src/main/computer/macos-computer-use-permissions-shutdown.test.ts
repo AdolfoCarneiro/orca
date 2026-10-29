@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComputerUsePermissionStatusResult } from '../../shared/computer-use-permissions-types'
+import type * as PermissionsModule from './macos-computer-use-permissions'
 
-const mocks = vi.hoisted(() => {
-  const quitHandlers: (() => void)[] = []
-  return { spawn: vi.fn(), spawnSync: vi.fn(), peek: vi.fn(), readBundleId: vi.fn(), quitHandlers }
-})
+const mocks = vi.hoisted(() => ({
+  spawn: vi.fn(),
+  spawnSync: vi.fn(),
+  peek: vi.fn(),
+  readBundleId: vi.fn()
+}))
 
 vi.mock('node:child_process', () => ({ spawn: mocks.spawn, spawnSync: mocks.spawnSync }))
 vi.mock('./macos-native-provider-paths', () => ({
@@ -20,12 +23,6 @@ vi.mock('./macos-computer-use-permission-status-gate', () => ({
 vi.mock('../macos-tcc-reset', () => ({
   readMacosBundleId: mocks.readBundleId,
   resetMacosTccPermission: async () => ({ ok: true })
-}))
-vi.mock('../../shared/app-environment', () => ({
-  hasAppEnvironment: () => true,
-  getAppEnvironment: () => ({
-    onWillQuit: (handler: () => void) => mocks.quitHandlers.push(handler)
-  })
 }))
 
 const denied: ComputerUsePermissionStatusResult = {
@@ -55,6 +52,16 @@ function deferredStatus(): {
   return { promise, resolve }
 }
 
+// Fresh modules per test: the shutdown flag and setup window are process-wide.
+async function loadModules(): Promise<{
+  permissions: typeof PermissionsModule
+  markHostShuttingDown: () => void
+}> {
+  const permissions = await import('./macos-computer-use-permissions')
+  const { markHostShuttingDown } = await import('../host-shutdown-state')
+  return { permissions, markHostShuttingDown }
+}
+
 describe('computer-use setup cancellation', () => {
   const originalPlatform = process.platform
 
@@ -65,7 +72,6 @@ describe('computer-use setup cancellation', () => {
     mocks.spawnSync.mockReset()
     mocks.peek.mockReset().mockResolvedValue(denied)
     mocks.readBundleId.mockReset().mockResolvedValue(null)
-    mocks.quitHandlers.length = 0
     Object.defineProperty(process, 'platform', { value: 'darwin' })
   })
 
@@ -74,55 +80,50 @@ describe('computer-use setup cancellation', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform })
   })
 
-  it('drops a queued launch when any host runs its quit handlers', async () => {
-    const { openComputerUsePermissions } = await import('./macos-computer-use-permissions')
-    await openComputerUsePermissions('accessibility')
-    await openComputerUsePermissions('screenshots')
-    for (const quit of mocks.quitHandlers) {
-      quit()
-    }
+  it('never spawns a queued helper once the host is shutting down', async () => {
+    const { permissions, markHostShuttingDown } = await loadModules()
+    await permissions.openComputerUsePermissions('accessibility')
+    await permissions.openComputerUsePermissions('screenshots')
+    markHostShuttingDown()
     await vi.advanceTimersByTimeAsync(5_000)
     expect(setupLaunches()).toEqual([['--permission', 'accessibility']])
   })
 
-  it('drops an Open still waiting on status when the host quits', async () => {
+  it('cancels an Open whose status resolves during shutdown, as an error', async () => {
     const status = deferredStatus()
     mocks.peek.mockReturnValue(status.promise)
-    const { openComputerUsePermissions } = await import('./macos-computer-use-permissions')
-    const open = openComputerUsePermissions('accessibility')
-    for (const quit of mocks.quitHandlers) {
-      quit()
-    }
+    const { permissions, markHostShuttingDown } = await loadModules()
+    const open = permissions.openComputerUsePermissions('accessibility')
+    markHostShuttingDown()
     status.resolve()
-    await expect(open).resolves.toMatchObject({ launchedHelper: false })
+    await expect(open).rejects.toThrow('cancelled')
     expect(setupLaunches()).toEqual([])
   })
 
-  it('drops an Open still waiting on status when permissions are reset', async () => {
+  it('cancels an Open that predates a reset, and the next Open still launches', async () => {
     const status = deferredStatus()
     mocks.peek.mockReturnValueOnce(status.promise)
-    const { openComputerUsePermissions, resetComputerUsePermissions } =
-      await import('./macos-computer-use-permissions')
-    const open = openComputerUsePermissions('accessibility')
-    const reset = resetComputerUsePermissions()
+    const { permissions } = await loadModules()
+    const stale = permissions.openComputerUsePermissions('accessibility')
+    await permissions.resetComputerUsePermissions()
+    const fresh = permissions.openComputerUsePermissions('accessibility')
     status.resolve()
-    await expect(open).resolves.toMatchObject({ launchedHelper: false })
-    await reset
-    expect(setupLaunches()).toEqual([])
+    await expect(stale).rejects.toThrow('cancelled')
+    await expect(fresh).resolves.toMatchObject({ launchedHelper: true, launchQueued: false })
+    expect(setupLaunches()).toEqual([['--permission', 'accessibility']])
   })
 
   it('cancels a queued launch before reset waits on the bundle id', async () => {
-    const { openComputerUsePermissions, resetComputerUsePermissions } =
-      await import('./macos-computer-use-permissions')
-    await openComputerUsePermissions('accessibility')
-    await openComputerUsePermissions('screenshots')
+    const { permissions } = await loadModules()
+    await permissions.openComputerUsePermissions('accessibility')
+    await permissions.openComputerUsePermissions('screenshots')
     let finishBundleRead = (): void => {}
     mocks.readBundleId.mockReturnValue(
       new Promise<null>((resolve) => {
         finishBundleRead = () => resolve(null)
       })
     )
-    const reset = resetComputerUsePermissions()
+    const reset = permissions.resetComputerUsePermissions()
     await vi.advanceTimersByTimeAsync(6_000)
     finishBundleRead()
     await reset
