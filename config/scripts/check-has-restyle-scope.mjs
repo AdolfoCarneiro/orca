@@ -1,7 +1,7 @@
-// Rejects compiled `:has()` rules that make Blink restyle the anchor's whole subtree on any
-// mutation (#34312). Checks Tailwind's real output, so every spelling of a utility is covered.
+// Rejects `:has()` rules that make Blink restyle the anchor's whole subtree on any mutation
+// (#34312). Checks Tailwind's compiled output, so utility spellings cannot route around it.
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import process from 'node:process'
@@ -10,6 +10,22 @@ import { pathToFileURL } from 'node:url'
 const TAILWIND_ENTRY = 'src/renderer/src/assets/main.css'
 // Plain pathspec `*` also matches `/`; files main.css imports are rescanned harmlessly.
 const PLAIN_CSS = ['src/renderer/*.css', 'src/shared/*.css']
+// Package stylesheets imported from renderer JS (xterm is also compiled in through main.css).
+const VENDOR_CSS = [
+  '@xterm/xterm/css/xterm.css',
+  'monaco-editor/min/vs/editor/editor.main.css',
+  'pdfjs-dist/web/pdf_viewer.css',
+  'react-grab/styles.css'
+]
+// Accepted vendor findings. pdf.js's sheet stays loaded once the lazy ImageViewer first opens, but
+// these anchor on viewer-only widgets: the #34312 harness showed no subtree restyle and the same
+// cost as with every pdf.js :has() rule removed. A vendor bump that adds a finding fails here.
+const VENDOR_BASELINE = new Set([
+  'pdfjs-dist/web/pdf_viewer.css: .annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton):has([data-canvas-name="checked"]) input:checked',
+  'pdfjs-dist/web/pdf_viewer.css: .annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton):has([data-canvas-name="unchecked"]) input:not(:checked)',
+  'pdfjs-dist/web/pdf_viewer.css: #addSignatureDialog .mainContainer #addSignatureActionContainer #addSignatureControls #horizontalContainer #addSignatureDescriptionContainer:has(input:disabled) > label'
+])
+const CSS_IMPORT = /\bimport\s*\(?\s*['"]([^'"./][^'"]*\.css)['"]/g
 const SPECIFIC = new Set(['class', 'id', 'attribute'])
 const SIBLING = new Set(['next-sibling', 'later-sibling'])
 
@@ -43,21 +59,23 @@ function isBroad(compound) {
   return !compound.some((component) => SPECIFIC.has(component.type))
 }
 
-// `:has(+ x)` / `:has(~ x)` only look at siblings; an argument without a combinator is a descendant.
+// Only `:has(+ x)` / `:has(~ x)` (a leading :scope) stay among siblings; `:has(.a + .b)` starts with a descendant.
 function isSiblingOnly(relativeSelectors) {
-  return relativeSelectors.every((selector) => {
-    const combinators = selector.filter((component) => component.type === 'combinator')
-    return combinators.length > 0 && combinators.every(({ value }) => SIBLING.has(value))
-  })
+  return relativeSelectors.every(
+    ([first, ...rest]) =>
+      first?.type === 'pseudo-class' &&
+      first.kind === 'scope' &&
+      rest.every((component) => component.type !== 'combinator' || SIBLING.has(component.value))
+  )
 }
 
-// `outerSubject` is the compound that a match of this selector's own subject still feeds into, or null.
+// `outerSubject` is the rule's final subject when this selector sits inside a non-subject compound, else null.
 function visitSelector(selector, outerSubject, report) {
   const parts = compounds(selector)
   parts.forEach((compound, index) => {
-    const subject = index === parts.length - 1 ? outerSubject : parts.at(-1)
+    const subject = index === parts.length - 1 ? outerSubject : (outerSubject ?? parts.at(-1))
     for (const component of compound) {
-      if (component.type !== 'pseudo-class' || !component.selectors) {
+      if (component.type !== 'pseudo-class') {
         continue
       }
       if (component.kind === 'has') {
@@ -65,9 +83,11 @@ function visitSelector(selector, outerSubject, report) {
           report()
         }
         component.selectors.forEach((nested) => visitSelector(nested, null, report))
-      } else {
-        // :is()/:where()/:not() arguments match this same element, so they keep its context.
-        component.selectors.forEach((nested) => visitSelector(nested, subject, report))
+        continue
+      }
+      // :is()/:where()/:not()/:nth-child(of) arguments match this same element, so they keep its context.
+      for (const nested of [...(component.selectors ?? []), ...(component.of ?? [])]) {
+        visitSelector(nested, subject, report)
       }
     }
   })
@@ -96,16 +116,22 @@ function splitSelectorList(text) {
 
 /** Selectors whose non-subject `:has()` invalidates a whole subtree; nesting is lowered first. */
 export function findHasRestyleProblems(css, { lightningcss } = loadToolchain(process.cwd())) {
-  const flat = lightningcss
-    .transform({
-      filename: 'input.css',
-      code: Buffer.from(css),
-      include: lightningcss.Features.Nesting,
-      errorRecovery: true
-    })
-    .code.toString()
+  const lowered = lightningcss.transform({
+    filename: 'input.css',
+    code: Buffer.from(css),
+    include: lightningcss.Features.Nesting,
+    errorRecovery: true
+  })
+  const sourceLines = css.split('\n')
+  // A rule the parser recovered past is invisible below; refuse to wave through a :has() one.
+  const problems = new Set(
+    lowered.warnings
+      .map(({ loc }) => sourceLines[loc.line - 1] ?? '')
+      .filter((line) => line.includes(':has('))
+      .map((line) => `unparsed: ${line.trim()}`)
+  )
+  const flat = lowered.code.toString()
   const lines = flat.split('\n')
-  const problems = new Set()
   lightningcss.transform({
     filename: 'flat.css',
     code: Buffer.from(flat),
@@ -129,41 +155,83 @@ export function findHasRestyleProblems(css, { lightningcss } = loadToolchain(pro
   return [...problems]
 }
 
-async function compileTailwind(root, { tailwind, oxide }) {
-  const base = path.join(root, path.dirname(TAILWIND_ENTRY))
-  const compiler = await tailwind.compile(readFileSync(path.join(root, TAILWIND_ENTRY), 'utf8'), {
-    base,
-    onDependency() {}
-  })
+/** Tailwind's build of `css` as Vite would emit it, scanning `scanBase` for candidates. */
+export async function compileTailwind(
+  css,
+  { base, scanBase, toolchain = loadToolchain(process.cwd()) }
+) {
+  const { tailwind, oxide } = toolchain
+  const compiler = await tailwind.compile(css, { base, onDependency() {} })
   const detected =
     compiler.root === 'none'
       ? []
       : compiler.root === null
-        ? [{ base: path.join(root, 'src/renderer'), pattern: '**/*', negated: false }]
+        ? [{ base: scanBase, pattern: '**/*', negated: false }]
         : [{ ...compiler.root, negated: false }]
   const scanner = new oxide.Scanner({ sources: [...detected, ...compiler.sources] })
   return compiler.build(scanner.scan())
 }
 
+// Tracked and untracked-but-not-ignored files, so local work is checked before it is staged.
+function listFiles(root, pathspecs) {
+  return execFileSync(
+    'git',
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ...pathspecs],
+    { cwd: root, encoding: 'utf8' }
+  )
+    .split('\0')
+    .filter((file) => file && existsSync(path.join(root, file)))
+}
+
+function unlistedVendorImports(root) {
+  const specifiers = new Set()
+  for (const file of listFiles(root, ['src/renderer/*.ts', 'src/renderer/*.tsx'])) {
+    for (const [, specifier] of readFileSync(path.join(root, file), 'utf8').matchAll(CSS_IMPORT)) {
+      specifiers.add(specifier)
+    }
+  }
+  return [...specifiers].filter((specifier) => !VENDOR_CSS.includes(specifier)).sort()
+}
+
 export async function main(root = process.cwd()) {
   const toolchain = loadToolchain(root)
-  const plainFiles = execFileSync('git', ['ls-files', '-z', '--', ...PLAIN_CSS], {
-    cwd: root,
-    encoding: 'utf8'
-  })
-    .split('\0')
-    .filter((file) => file && file !== TAILWIND_ENTRY)
+  const unlisted = unlistedVendorImports(root)
+  if (unlisted.length > 0) {
+    console.error(`Add renderer-imported stylesheets to VENDOR_CSS: ${unlisted.join(', ')}`)
+    return 1
+  }
+  const resolveVendor = createRequire(path.join(root, 'src/renderer/src/main.tsx')).resolve
+  const entry = path.join(root, TAILWIND_ENTRY)
   const sources = [
-    { name: `${TAILWIND_ENTRY} (compiled)`, css: await compileTailwind(root, toolchain) },
-    ...plainFiles.map((file) => ({ name: file, css: readFileSync(path.join(root, file), 'utf8') }))
+    {
+      name: `${TAILWIND_ENTRY} (compiled)`,
+      css: await compileTailwind(readFileSync(entry, 'utf8'), {
+        base: path.dirname(entry),
+        scanBase: path.join(root, 'src/renderer'),
+        toolchain
+      })
+    },
+    ...listFiles(root, PLAIN_CSS)
+      .filter((file) => file !== TAILWIND_ENTRY)
+      .map((file) => ({ name: file, css: readFileSync(path.join(root, file), 'utf8') })),
+    ...VENDOR_CSS.map((specifier) => ({
+      name: specifier,
+      css: readFileSync(resolveVendor(specifier), 'utf8')
+    }))
   ]
-  const findings = sources.flatMap(({ name, css }) =>
-    findHasRestyleProblems(css, toolchain).map((selector) => ({ name, selector }))
+  const all = sources.flatMap(({ name, css }) =>
+    findHasRestyleProblems(css, toolchain).map((selector) => `${name}: ${selector}`)
   )
+  const stale = [...VENDOR_BASELINE].filter((entry) => !all.includes(entry))
+  if (stale.length > 0) {
+    console.error(`Remove stale VENDOR_BASELINE entries:\n- ${stale.join('\n- ')}`)
+    return 1
+  }
+  const findings = all.filter((finding) => !VENDOR_BASELINE.has(finding))
   if (findings.length > 0) {
     console.error(`:has() restyle-scope check failed with ${findings.length} finding(s):`)
-    for (const { name, selector } of findings) {
-      console.error(`- ${name}: ${selector}`)
+    for (const finding of findings) {
+      console.error(`- ${finding}`)
     }
     console.error(
       'A :has() followed by a combinator into a subject with no class, id or attribute makes ' +
