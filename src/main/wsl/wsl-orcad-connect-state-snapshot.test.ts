@@ -103,7 +103,7 @@ describe.skipIf(process.platform === 'win32')('WSL connect state snapshot', () =
     // The plain read refuses an oversized file too (exit 65), so the connect still fails closed.
     await expect(reader.readActivationRecord(target())).rejects.toThrow()
     expect(mockExec).toHaveBeenCalledTimes(2)
-    expect(reader.snapshot()?.activation.state).toBe('unreadable')
+    expect(reader.snapshot()).toBeNull()
   })
 
   it('falls back to the plain record read when the answer has another shape', async () => {
@@ -114,6 +114,32 @@ describe.skipIf(process.platform === 'win32')('WSL connect state snapshot', () =
     await expect(reader.readActivationRecord(target())).resolves.toEqual(ACTIVE)
 
     expect(mockExec).toHaveBeenCalledTimes(2)
+    expect(reader.snapshot()).toBeNull()
+  })
+})
+
+describe.skipIf(process.platform === 'win32')('WSL connect state snapshot fallbacks', () => {
+  it('falls back to the plain read when the snapshot command itself fails', async () => {
+    write('.orca-remote/orcad-active.json', serializeOrcadActivationRecord(ACTIVE))
+    mockExec.mockImplementationOnce(async () => {
+      throw new Error('transport closed')
+    })
+    const reader = createWslOrcadConnectStateReader()
+
+    await expect(reader.readActivationRecord(target())).resolves.toEqual(ACTIVE)
+    expect(reader.snapshot()).toBeNull()
+  })
+
+  it('gives no hints when only the fallback read could answer the record', async () => {
+    write('.orca-remote/orcad-active.json', serializeOrcadActivationRecord(ACTIVE))
+    mockExec.mockImplementationOnce(
+      async () =>
+        'UNREADABLE\n__ORCA_WSL_CONNECT_STATE_END__\nABSENT\n__ORCA_WSL_CONNECT_STATE_END__\n' +
+        'ABSENT\n__ORCA_WSL_CONNECT_STATE_END__\nOPEN\n'
+    )
+    const reader = createWslOrcadConnectStateReader()
+
+    await expect(reader.readActivationRecord(target())).resolves.toEqual(ACTIVE)
     expect(reader.snapshot()).toBeNull()
   })
 })

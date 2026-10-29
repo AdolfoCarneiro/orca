@@ -12,6 +12,7 @@ import { MobileTerminalInputActions } from './MobileTerminalInputActions'
 import { MobileSessionAccessoryKeys } from './MobileSessionAccessoryKeys'
 import { colors } from '../theme/mobile-theme'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { styles } from './mobile-session-styles'
 import type { MobileSessionController } from './use-mobile-session-controller'
 
@@ -33,6 +34,7 @@ export function MobileSessionCommandDock({
   keysInRail: boolean
 }) {
   useMobileColorScheme()
+  const t = useMobileTranslation()
   const {
     insets,
     bufferedTerminalDraftState,
@@ -87,11 +89,14 @@ export function MobileSessionCommandDock({
                 onChange={handleLiveInputChange}
                 onKeyPress={handleLiveInputKeyPress}
                 onSubmitEditing={submitLiveInput}
-                placeholder="Live input"
+                placeholder={t('session.terminalLiveInputStatus.liveInput', 'Live input')}
                 placeholderTextColor={colors.textMuted}
                 selectionColor={colors.accentBlue}
-                accessibilityLabel="Live terminal input"
-                accessibilityHint="Typed text is sent directly to the active terminal"
+                accessibilityLabel={t('session.commandDock.liveInputLabel', 'Live terminal input')}
+                accessibilityHint={t(
+                  'session.commandDock.liveInputHint',
+                  'Typed text is sent directly to the active terminal'
+                )}
                 showSoftInputOnFocus
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -157,7 +162,11 @@ export function MobileSessionCommandDock({
                   }
                 }}
                 // The preview stands in for an empty draft, so its placeholder must not show through.
-                placeholder={commandDictationPreview ? undefined : 'Type a command…'}
+                placeholder={
+                  commandDictationPreview
+                    ? undefined
+                    : t('session.commandDock.commandPlaceholder', 'Type a command…')
+                }
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={autocompleteEnabled}
@@ -185,6 +194,7 @@ export function MobileSessionCommandDock({
               dictation={dictation}
               dictationMode={dictationMode}
               dictationEnabled={dictationEnabled}
+              meterHalo={dictation.meter}
               buttonStyle={styles.dictationButton}
               activeButtonStyle={styles.dictationButtonActive}
               disabledButtonStyle={styles.sendButtonDisabled}
@@ -199,7 +209,7 @@ export function MobileSessionCommandDock({
               style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
               disabled={!canSend}
               onPress={() => void handleSend()}
-              accessibilityLabel="Send command"
+              accessibilityLabel={t('session.commandDock.sendCommand', 'Send command')}
             >
               <ArrowUp size={18} color={colors.textSecondary} strokeWidth={2.5} />
             </Pressable>
