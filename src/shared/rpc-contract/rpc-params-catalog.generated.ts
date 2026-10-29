@@ -42,7 +42,7 @@ import {
   OrcadPeerDesktopsParamsSchema
 } from '../orcad-peer-desktops-contract'
 import { OrcadTerminalCensusParamsSchema } from '../orcad-terminal-census'
-import { pluginConsentRequestSchema } from '../plugins/plugin-consent-request'
+import { pluginConsentRequestSchema } from '../plugins/approval/plugin-consent-request'
 import {
   AccountsUnsubscribeParams,
   AddClaudeFromConfigDirParams,
@@ -123,6 +123,7 @@ import {
   MouseButton,
   MouseWheel,
   MouseXY,
+  ProfileClearGoogleCookies,
   ProfileDelete,
   ProfileImportFromBrowser,
   Screencast,
@@ -217,12 +218,14 @@ import {
   FileDelete,
   FileMutationOpen,
   FileRename,
+  FileReplaceWithUpload,
   FileWrite,
   FileWriteBase64,
   FileWriteBase64Chunk,
   FileWriteIfUnchanged
 } from './files-mutation-params'
 import {
+  ChatImageRead,
   DocPreviewFileRead,
   FileDirRead,
   FileListAll,
@@ -867,6 +870,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'browser.openUrl': BrowserOpenUrlParams,
   'browser.pdf': BrowserTarget,
   'browser.profileClearDefaultCookies': null,
+  'browser.profileClearGoogleCookies': ProfileClearGoogleCookies,
   'browser.profileCreate': ProfileCreate,
   'browser.profileDelete': ProfileDelete,
   'browser.profileDetectBrowsers': null,
@@ -967,6 +971,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.openDiff': FileOpenDiff,
   'files.pathsExist': FilePathsExist,
   'files.read': FileOpen,
+  'files.readChatImage': ChatImageRead,
   'files.readChunk': FileReadChunk,
   'files.readDir': FileDirRead,
   'files.readDocPreview': DocPreviewFileRead,
@@ -974,6 +979,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.readTerminalArtifact': TerminalArtifactFile,
   'files.readTerminalArtifactPreview': TerminalArtifactFile,
   'files.rename': FileRename,
+  'files.replaceWithUpload': FileReplaceWithUpload,
   'files.resolveTerminalPath': ResolveTerminalPath,
   'files.saveAbort': FileSaveAbort,
   'files.saveBegin': FileSaveBegin,

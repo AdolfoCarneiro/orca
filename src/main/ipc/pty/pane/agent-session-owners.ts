@@ -41,6 +41,7 @@ export function seedTerminalRestoreRecordsFromSpawnResult(
   }
   if (result.isReattach === true) {
     runtime?.startReattachedOutputClock?.(result.id)
+    runtime?.restoreReattachedAgentStatus?.(result.id)
   }
 }
 

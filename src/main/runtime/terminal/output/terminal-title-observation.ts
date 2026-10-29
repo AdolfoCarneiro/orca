@@ -90,8 +90,9 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
     rawTitle: string,
     normalizedTitle: string,
     meta?: TerminalTitleFactMeta,
-    /** `statusOnly`: no title was observed, so title evidence, clocks and display stay as they are. */
-    { statusOnly = false }: { statusOnly?: boolean } = {}
+    /** `statusOnly`: no title was observed, so title evidence, clocks and display stay as they are.
+     *  `status`: the agent reported its status some other way, so the title is not classified. */
+    { statusOnly = false, status }: { statusOnly?: boolean; status?: AgentStatus } = {}
   ): boolean {
     if (meta?.staleWorkingTitleClear) {
       return this.applyStaleWorkingTitleClear(ptyId, rawTitle, normalizedTitle)
@@ -106,7 +107,8 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
       : identityOnlyTitle
         ? null
         : normalizedTitle
-    const agentStatus = identityOnlyTitle ? null : this.classifyPtyTitleStatus(ptyId, rawTitle)
+    const agentStatus =
+      status ?? (identityOnlyTitle ? null : this.classifyPtyTitleStatus(ptyId, rawTitle))
     // Why before retiring the clear: the lifecycle counts a turn from the status the clear showed.
     this.recordAgentPromptLifecycleState(ptyId, agentStatus)
     let ptyRecordChanged = false

@@ -45,6 +45,9 @@ import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { mainListsEveryPane } from '../terminal/surface/main-terminal-surfaces'
 import { TUI_IDLE_QUIESCENCE_MS } from '../orca-runtime-postlude'
 import { screenClearsBlockedTail } from '../blocked-tail-screen-clear'
+import { conversationRecordReader } from '../orchestration/structured-session-lineage'
+import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/structured-agent-session-registry'
+import { peekOpenedAgentSessionRecordStore } from '../agent-session-record-store-slot'
 
 export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWithRuntimeId {
   protected readonly stopRequestedPtyIds = new Set<string>()
@@ -108,7 +111,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
   protected readonly worktreeLineage = new RuntimeWorktreeLineageController({
     getStore: () => this.store,
     getDb: () => this.getOrchestrationDbIfAvailable(),
-    resolveWorktree: (selector) => this.resolveWorktreeSelector(selector),
+    resolveWorktree: (selector) => this.resolveGitWorktreeSelector(selector),
     listResolvedWorktrees: () => this.listResolvedWorktrees(),
     showTerminal: (handle) => this.showTerminal(handle)
   })
@@ -125,7 +128,12 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     getHandleForPaneKey: (paneKey) => this.getTerminalHandleForPaneKey(paneKey),
     getPaneKey: (handle) => this.getPaneKeyForTerminalHandle(handle),
     getDispatchAuthority: (handle) => this.getOrchestrationDispatchAuthority(handle),
-    getAgentStatusSnapshot: () => this.getOrchestrationFleetAgentStatusSnapshot()
+    getAgentStatusSnapshot: () => this.getOrchestrationFleetAgentStatusSnapshot(),
+    getSessionRecords: () => {
+      const store =
+        getStructuredAgentSessionHost()?.deps.store ?? peekOpenedAgentSessionRecordStore()
+      return store ? conversationRecordReader(store) : null
+    }
   })
 
   protected readonly terminalList = new RuntimeTerminalList({
@@ -134,7 +142,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     getExplicitWorktreeId: (selector) => this.getExplicitSessionWorktreeIdSelector(selector),
     getResolvedCache: () => this.resolvedWorktrees.peek(),
     buildWorktreeFromId: (worktreeId) => this.buildResolvedWorktreeFromId(worktreeId),
-    resolveWorktree: (selector) => this.resolveWorktreeSelector(selector),
+    resolveWorktree: (selector) => this.resolveWorkspaceSelector(selector),
     listKnownWorktrees: (worktreeId, target) =>
       this.listKnownResolvedWorktreesForExplicitTarget(worktreeId, target),
     getWorktreeMap: () => this.getResolvedWorktreeMap(),
