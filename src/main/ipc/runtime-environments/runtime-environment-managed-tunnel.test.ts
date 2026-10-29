@@ -13,6 +13,7 @@ import { PromiseSettlementWaiters } from '../../../shared/promise-settlement-wai
 import type * as ServingModule from '../../managed-server/lifecycle/orcad-managed-serving'
 import type { ManagedOrcadStartListener } from '../../managed-server/lifecycle/orcad-managed-serving'
 import type { SshTarget } from '../../../shared/ssh-types'
+import type { updateManagedOrcadOnRestore } from '../../managed-server/lifecycle/orcad-managed-update-on-restore'
 
 const mocks = vi.hoisted(() => {
   const startListener: { current: ManagedOrcadStartListener | null } = { current: null }
@@ -30,7 +31,7 @@ const mocks = vi.hoisted(() => {
     ensureTunnel: vi.fn(async () => {}),
     rebuildTunnel: vi.fn(async () => {}),
     verify: vi.fn(),
-    restoreUpdate: vi.fn(() => null),
+    restoreUpdate: vi.fn((): ReturnType<typeof updateManagedOrcadOnRestore> => null),
     redeploy: vi.fn(async () => true),
     forgetVerdict: vi.fn(),
     restoreForwards: vi.fn(async () => {}),
