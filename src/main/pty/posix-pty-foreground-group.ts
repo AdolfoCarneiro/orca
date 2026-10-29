@@ -1,5 +1,5 @@
 import { runProcess } from '@orca/process-host'
-import { runPsInProcess } from '../../shared/libproc-process-table'
+import { inProcessSliceMs, runPsInProcess } from '../../shared/libproc-process-table'
 
 const PROCESS_TABLE_LOOKUP_TIMEOUT_MS = 250
 const PROCESS_TABLE_QUERY_TIMEOUT_MS = PROCESS_TABLE_LOOKUP_TIMEOUT_MS / 2
@@ -30,10 +30,9 @@ function hasUsableTty(tty: string): boolean {
 
 async function runPs(pid: number): Promise<string> {
   const args = ['-p', String(pid), '-o', 'pid=,tpgid=,tty=']
-  // Half the budget in process: a read stuck behind a busy pool still leaves ps time before signalling.
-  const nativeTimeoutMs = Math.floor(PROCESS_TABLE_QUERY_TIMEOUT_MS / 2)
+  // A native read stuck behind a busy pool leaves ps its full timeout before signalling.
   const inProcess = await runPsInProcess(args, {
-    timeoutMs: nativeTimeoutMs,
+    timeoutMs: inProcessSliceMs(PROCESS_TABLE_QUERY_TIMEOUT_MS),
     maxOutputBytes: PROCESS_TABLE_MAX_BYTES
   })
   const result =
@@ -42,7 +41,7 @@ async function runPs(pid: number): Promise<string> {
       : await runProcess({
           program: 'ps',
           args,
-          timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS - (inProcess ? nativeTimeoutMs : 0),
+          timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS,
           maxOutputBytes: PROCESS_TABLE_MAX_BYTES
         })
   if (result.code !== 0 || result.timedOut || result.outputTruncated) {

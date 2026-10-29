@@ -6,7 +6,7 @@ import {
   type WindowsTreeKillTarget
 } from './windows-pty-root-identity'
 import { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
-import { runPsInProcess } from '../shared/libproc-process-table'
+import { inProcessSliceMs, runPsInProcess } from '../shared/libproc-process-table'
 
 export { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
 
@@ -47,15 +47,15 @@ async function readFreshProcessTable(
   const capturedAtMs = Date.now()
   // Pin lstart’s locale so delayed identity checks parse it consistently.
   const env = { ...process.env, LANG: 'C', LC_ALL: 'C' }
-  // Registered now, so no native read submitted before this request can serve it. Half the budget: a read stuck
-  // behind a busy pool still leaves ps time to find descendants to signal.
-  const nativeTimeoutMs = Math.floor(timeoutMs / 2)
-  const inProcess = await runPsInProcess(DESCENDANT_PS_ARGS, { env, timeoutMs: nativeTimeoutMs })
+  // Registered now, so no native read submitted before this request serves it; a stalled one leaves ps its full timeout.
+  const inProcess = await runPsInProcess(DESCENDANT_PS_ARGS, {
+    env,
+    timeoutMs: inProcessSliceMs(timeoutMs)
+  })
   if (inProcess && !inProcess.timedOut) {
     return { rows: parseProcessTable(inProcess.stdout), capturedAtMs }
   }
-  const remainingMs = inProcess ? timeoutMs - nativeTimeoutMs : timeoutMs
-  const options = { maxBuffer: PS_MAX_BUFFER_BYTES, timeout: remainingMs, env }
+  const options = { maxBuffer: PS_MAX_BUFFER_BYTES, timeout: timeoutMs, env }
   return new Promise((resolve, reject) => {
     execFile('ps', DESCENDANT_PS_ARGS, { ...options, killSignal: 'SIGKILL' }, (error, stdout) =>
       error ? reject(error) : resolve({ rows: parseProcessTable(stdout), capturedAtMs })
@@ -110,7 +110,9 @@ export function readProcessTableBeforeDeadline(
       clearTimeout(timer)
       resolve(capture)
     }
-    const timer = setTimeout(() => finish(null), timeoutMs)
+    // The production reader may spend inProcessSliceMs in process before giving ps the whole timeout.
+    const slackMs = readTable === readProcessTable ? inProcessSliceMs(timeoutMs) : 0
+    const timer = setTimeout(() => finish(null), timeoutMs + slackMs)
     timer.unref?.()
     try {
       void readTable(timeoutMs).then(

@@ -84,6 +84,12 @@ async function nameTerminals(
   }
 }
 
+/** Native reads take milliseconds: a signalling caller tries them for this slice, then gives ps its whole
+ * original timeout (extending any outer deadline by the slice), so a slow ps succeeds exactly as before. */
+export function inProcessSliceMs(timeoutMs: number): number {
+  return Math.min(150, Math.floor(timeoutMs / 4))
+}
+
 /** ps output for `args`, read in process; null when the addon or the invocation is unsupported so callers run ps. */
 export async function runPsInProcess(
   args: readonly string[],

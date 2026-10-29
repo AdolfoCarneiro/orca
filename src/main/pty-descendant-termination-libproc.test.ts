@@ -1,10 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// A native read that times out falls back to ps; keep that fallback from reading the real host.
-vi.mock('node:child_process', () => ({
-  execFile: (_file: string, _args: string[], _options: unknown, callback: (error: Error) => void) =>
-    callback(new Error('ps unavailable in this test'))
+type ExecFileCallback = (error: Error | null, stdout?: string) => void
+const { execFile } = vi.hoisted(() => ({
+  execFile:
+    vi.fn<
+      (
+        file: string,
+        args: string[],
+        options: { timeout: number },
+        callback: ExecFileCallback
+      ) => void
+    >()
 }))
+// A native read that times out falls back to ps; keep that fallback from reading the real host.
+vi.mock('node:child_process', () => ({ execFile }))
 import {
   setLibprocAddonForTests,
   type LibprocProcessRow,
@@ -31,7 +40,17 @@ function row(pid: number, ppid: number): LibprocProcessRow {
   }
 }
 
+/** ps `lstart` in the C locale and UTC, as the descendant reader's env pins it. */
+const LSTART = 'Thu Sep  3 16:02:01 2026'
+
+beforeEach(() => {
+  execFile.mockImplementation((_file, _args, _options, callback) =>
+    callback(new Error('ps unavailable in this test'))
+  )
+})
+
 afterEach(() => {
+  execFile.mockReset()
   setLibprocAddonForTests(undefined)
   resetNativeReadsForTests()
   vi.useRealTimers()
@@ -57,7 +76,7 @@ describe('descendant teardown over the in-process process table', () => {
         .fn<(query: LibprocQuery) => Promise<Rows>>()
         .mockReturnValueOnce(abandoned)
         // Since that read was submitted, descendant 200 exited and an unrelated process took its pid.
-        .mockImplementation(async () => [row(1, 0), row(100, 1), row(200, 1)])
+        .mockImplementation(async () => [row(1, 0), row(100, 1), row(200, 1), row(300, 100)])
       setLibprocAddonForTests({
         readProcessTable,
         processCwd: () => null,
@@ -77,8 +96,38 @@ describe('descendant teardown over the in-process process table', () => {
       await teardown
 
       expect(killRoot).toHaveBeenCalledOnce()
-      expect(sendSignal).not.toHaveBeenCalled()
+      // The fresh rows were used: their real descendant is signalled, the reused pid is not.
+      expect(sendSignal.mock.calls).toEqual([[300, 'SIGTERM']])
       expect(readProcessTable).toHaveBeenCalledTimes(2)
     }
   )
+
+  it('gives a slow ps its whole timeout when the native read is stalled', async () => {
+    vi.useFakeTimers()
+    setLibprocAddonForTests({
+      readProcessTable: () => new Promise<never>(() => {}),
+      processCwd: () => null,
+      processPath: () => null
+    })
+    // A 750ms ps, killed at its timeout like execFile.
+    execFile.mockImplementation((_file, _args, { timeout }, callback) => {
+      const done = setTimeout(() => {
+        clearTimeout(killed)
+        callback(null, `  100     1   100     0 ${LSTART}\n  200   100   200     0 ${LSTART}\n`)
+      }, 750)
+      const killed = setTimeout(() => {
+        clearTimeout(done)
+        callback(new Error('ps timed out'))
+      }, timeout)
+    })
+    const sendSignal = vi.fn()
+    const killRoot = vi.fn()
+
+    const teardown = killWithDescendantSweep(100, killRoot, { sendSignal, graceMs: 60_000 })
+    await vi.advanceTimersByTimeAsync(2_000)
+    await teardown
+
+    expect(killRoot).toHaveBeenCalledOnce()
+    expect(sendSignal.mock.calls).toEqual([[200, 'SIGTERM']])
+  })
 })
