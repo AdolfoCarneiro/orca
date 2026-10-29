@@ -211,7 +211,7 @@ it.each([
       }
     })
     const names = [
-      'normal.txt',
+      'report.csv',
       '_notes_.txt',
       'a&copy;.txt',
       'a©.txt',

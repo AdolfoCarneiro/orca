@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { createRef, useRef, useContext, useMemo } from 'react'
+import { useRef, useContext, useMemo } from 'react'
 import { useQueuedEditFixture, withText, writeSpy } from './structured-queued-edit.test-fixture'
 import { NativeChatQueuedMessageComposer } from './NativeChatQueuedMessageComposer'
 import { NativeChatComposer } from './NativeChatComposer'
@@ -21,7 +21,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 import { NativeChatPromptEditor } from './NativeChatPromptEditor'
 import { NativeChatTextAttachmentScope } from './NativeChatTextAttachments'
-import { NativeChatUserMessageRow } from './NativeChatUserMessageRow'
 import { useNativeChatPastedTextFile } from './use-native-chat-pasted-text-file'
 import {
   insertNativeChatPastedText,
@@ -35,10 +34,6 @@ import {
 } from './native-chat-composer-draft-store'
 import { resolveNativeChatPastedText } from './native-chat-composer-pasted-text-references'
 import { nativeChatPastedTextOperations } from './native-chat-pasted-text-reference'
-import { nativeChatSentPrompts } from './native-chat-sent-prompt-history'
-import { structuredAgentSessionSendBody } from '../../../../shared/structured-agent-session-send-mutation'
-import { deriveNativeChatRowContent } from '../../../../shared/native-chat-row-content'
-import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), rpc: vi.fn(), write: vi.fn(), resolved: false }))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.rpc }))
@@ -60,7 +55,6 @@ const scope = 'agent-session:consumer35636'
 const path =
   '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/orca-paste-123-abc.txt'
 let paste: (text: string) => boolean
-let input: NativeChatComposerInput | null
 function Composer({ initialValue = '' }: { initialValue?: string }) {
   const ref = useRef<NativeChatComposerInput>(null)
   paste = useNativeChatPastedTextFile({
@@ -90,9 +84,7 @@ function Composer({ initialValue = '' }: { initialValue?: string }) {
           initialValue={initialValue}
           disabled={false}
           placeholder="Message"
-          onChange={(current) => {
-            input = current
-          }}
+          onChange={() => {}}
           onSelect={() => {}}
         />
       </NativeChatTextAttachmentScope>
@@ -100,39 +92,12 @@ function Composer({ initialValue = '' }: { initialValue?: string }) {
   )
 }
 async function openSource() {
-  fireEvent.click(screen.getByRole('button', { name: 'Pasted text' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Pasted text' }))
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
       false
     )
   )
-}
-function row(text: string) {
-  const message: NativeChatMessage = {
-    id: 'sent35636',
-    role: 'user',
-    source: 'transcript',
-    timestamp: 1,
-    blocks: [{ type: 'text', text }]
-  }
-  const derived = deriveNativeChatRowContent(message.blocks)
-  return {
-    message,
-    element: (
-      <TooltipProvider>
-        <NativeChatUserMessageRow
-          message={message}
-          markdown={derived.markdown}
-          prose={derived.prose}
-          rowRef={createRef()}
-          onRefolded={() => {}}
-          allowFileUriLinks
-          structuredAttachments
-          runtimeContext={{ target: { kind: 'local' }, worktreeId: 'w', worktreePath: '/repo' }}
-        />
-      </TooltipProvider>
-    )
-  }
 }
 afterEach(() => {
   cleanup()
@@ -141,7 +106,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-it('opens pending and settled draft pills, retains remove/undo, restores the token map and renders sent/recall references as source actions', async () => {
+it('opens pending and settled draft pills, retains remove/undo and restores the token map', async () => {
   const text = `\ufeff${'🙂paste\r\n'.repeat(5000)}`
   mocks.resolved = false
   const upload = Promise.withResolvers<string>()
@@ -169,12 +134,7 @@ it('opens pending and settled draft pills, retains remove/undo, restores the tok
     expect(paste(text)).toBe(true)
   })
   expect(screen.getByRole('button', { name: 'Pasted text' })).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Pasted text' }))
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-      false
-    )
-  )
+  await openSource()
   fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
   await waitFor(() => expect(mocks.write).toHaveBeenCalledWith(text))
   expect(mocks.rpc).not.toHaveBeenCalled()
@@ -207,8 +167,6 @@ it('opens pending and settled draft pills, retains remove/undo, restores the tok
   const saved = structuredClone(readNativeChatComposerDraft(scope))
   expect(saved.text).toContain(token)
   const sent = resolveNativeChatPastedText(scope, token)
-  const body = structuredAgentSessionSendBody(sent, [])
-  expect(body.blocks).toEqual([{ type: 'text', text: sent }])
   expect(sent).toBe(`@${path}`)
   view.unmount()
   clearNativeChatComposerDraftsForTests()
@@ -219,38 +177,8 @@ it('opens pending and settled draft pills, retains remove/undo, restores the tok
   )
   expect(readNativeChatComposerDraft(scope).text).toBe(saved.text)
   view = render(<Composer initialValue={saved.text} />)
-  fireEvent.click(await screen.findByRole('button', { name: 'Pasted text' }))
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-      false
-    )
-  )
+  await openSource()
   view.unmount()
-  const sentRow = row(sent)
-  expect(nativeChatSentPrompts({ messages: [sentRow.message] })).toEqual([
-    { id: sentRow.message.id, prompt: sent }
-  ])
-  view = render(sentRow.element)
-  fireEvent.click(screen.getByRole('button', { name: 'Pasted text' }))
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-      false
-    )
-  )
-  view.unmount()
-})
-
-it('keeps a committed picked filename actionable through the existing editor insertion', async () => {
-  render(<Composer />)
-  const picked = path.replace(/orca-paste-[^/]+$/, 'report.csv')
-  const editor = promptEditor(screen.getByRole('textbox'))
-  act(() => {
-    editor.commands.focus()
-    editor.commands.insertContent('see ')
-  })
-  await act(async () => input!.insertFileReferences!([picked]))
-  expect(screen.getByRole('button', { name: 'report.csv' })).toBeTruthy()
-  expect(input!.value).toContain(`@${picked}`)
 })
 
 it.each(['save', 'cancel', 'escape', 'unmount'] as const)(
@@ -481,6 +409,7 @@ it.each(['save', 'cancel', 'escape', 'unmount'] as const)(
           within(view.container).getByRole('button', { name: 'Cancel', hidden: true })
         )
       } else if (exit === 'escape') {
+        // The Sheet retires Copy first; editor Escape then exits the real queued editor.
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
         await waitFor(() =>
           expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()

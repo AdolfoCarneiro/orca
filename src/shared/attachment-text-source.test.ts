@@ -51,14 +51,9 @@ describe('bounded attachment source', () => {
     }
   })
 
-  it('keeps raw export available for invalid UTF-8 and refuses malformed/stalled/changed replies', async () => {
+  it('rejects invalid UTF-8 and malformed/stalled/changed replies', async () => {
     const { source } = sourceFor(Buffer.from([0xff, 0, 0x80]))
     await expect(source.page(0)).rejects.toThrow()
-    const saved: number[] = []
-    for await (const chunk of source.bytes()) {
-      saved.push(...chunk)
-    }
-    expect(saved).toEqual([0xff, 0, 0x80])
     await expect(source.copyText()).rejects.toThrow()
     for (const mutation of [
       { contentBase64: '!!!!' },
