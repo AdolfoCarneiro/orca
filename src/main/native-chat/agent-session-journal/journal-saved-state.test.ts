@@ -97,14 +97,10 @@ function requireState(state: JournalReducerState | null | undefined): JournalRed
 
 function expectSameState(actual: JournalReducerState, expected: JournalReducerState): void {
   expect(Object.keys(actual)).toEqual(Object.keys(expected))
-  for (const key in expected) {
-    if (!Object.hasOwn(expected, key)) {
-      continue
-    }
-    // SAFETY: iteration is over this reducer's own enumerable field names.
-    const field = key as keyof JournalReducerState
-    const left = actual[field]
-    const right = expected[field]
+  const actualFields: Record<string, unknown> = { ...actual }
+  const expectedFields: Record<string, unknown> = { ...expected }
+  for (const [field, right] of Object.entries(expectedFields)) {
+    const left = actualFields[field]
     if (
       (left instanceof Map && right instanceof Map) ||
       (left instanceof Set && right instanceof Set)
