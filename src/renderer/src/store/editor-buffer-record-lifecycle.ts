@@ -107,12 +107,8 @@ function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
   let changedFiles: typeof openFiles | undefined
   const mirrors = result.viewMirrors
   if (mirrors.size > 0) {
-    changedFiles = openFiles.map((file) => {
-      const next = showEditorBufferView(file, mirrors.get(file.id))
-      sourceEdit.file(file, next)
-      return next
-    })
-    sourceEdit.files(changedFiles)
+    sourceEdit.sequence('openFiles').map((file) => showEditorBufferView(file, mirrors.get(file.id)))
+    changedFiles = sourceEdit.read('openFiles')
   }
   const next = reconciledEditorBufferState(result, changedFiles ?? openFiles)
   if (!rejoin && isEditorBufferRejoinDue(next)) {
@@ -141,12 +137,15 @@ function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
     return write
   }
   return composeSessionSourceWrites(
-    // SAFETY: callers retain their existing receipt; the identity gate handles unsupported raw writes.
-    write as SessionSourceWrite<TState>,
-    // SAFETY: changed excludes both session-source fields in EditorBufferState.
-    changed as OrdinarySourcePartial<TState>,
-    // SAFETY: sourceEdit writes the same editor fields TState extends.
-    sourceWrite as SessionSourceWrite<TState>
+    [
+      // SAFETY: callers retain their existing receipt; the identity gate handles unsupported raw writes.
+      write as SessionSourceWrite<TState>,
+      // SAFETY: changed excludes both session-source fields in EditorBufferState.
+      changed as OrdinarySourcePartial<TState>,
+      // SAFETY: sourceEdit writes the same editor fields TState extends.
+      sourceWrite as SessionSourceWrite<TState>
+    ],
+    true
   )
 }
 

@@ -65,16 +65,13 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
         if (!file || Boolean(file.csvPreviewOnly) === enabled) {
           return state
         }
-        sourceEdit.files(
-          state.openFiles.map((candidate) =>
-            sourceEdit.file(
-              candidate,
-              candidate.id === fileId
-                ? { ...candidate, csvPreviewOnly: enabled || undefined }
-                : candidate
-            )
+        sourceEdit
+          .sequence('openFiles')
+          .map((candidate) =>
+            candidate.id === fileId
+              ? { ...candidate, csvPreviewOnly: enabled || undefined }
+              : candidate
           )
-        )
         return sourceEdit.finish({})
       }),
     setEditorDraft: (fileId, content) =>

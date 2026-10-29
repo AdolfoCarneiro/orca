@@ -3,7 +3,7 @@ import { useAppStore } from '../store'
 import { makeWorktree, TEST_REPO } from '../store/slices/worktrees-slice-test-fixtures'
 import type { AppState } from '../store/types'
 import { buildHostSessionRouting } from './workspace-session-host-persistence'
-import { discoverSessionSources } from './session-source-discovery'
+import { discoverSessionSources } from './test-support/session-source-discovery'
 import { SessionRoutingCatalog } from './session-routing-catalog'
 import { SessionUnitProjection } from './session-unit-projection'
 

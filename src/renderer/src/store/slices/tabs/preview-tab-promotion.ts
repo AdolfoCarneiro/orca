@@ -6,7 +6,7 @@ import { runtimeEnvironmentIdUnlessTwin } from '@/lib/resolve-owner'
 import { sendLayoutApply } from '@/runtime/layout-apply-send'
 import type { AppState } from '../../types'
 import { patchTab } from '../tab-group-state'
-import type { SessionSourceSet } from '../../session-source-edits'
+import { editSessionSource, type SessionSourceSet } from '../../session-source-edits'
 
 type OwnerState = Parameters<typeof sendLayoutApply>[0]
 type TabsState = Pick<AppState, 'unifiedTabsByWorktree'>
@@ -14,7 +14,10 @@ type SetTabs = SessionSourceSet<TabsState>
 
 /** Ends a tab's preview in the window's own copy; main stores the flag only while it is true. */
 function endPreviewHere(set: SetTabs, tabId: string): void {
-  set((state) => patchTab(state, tabId, { isPreview: undefined }) ?? {})
+  set((state) => {
+    const edit = editSessionSource(state)
+    return patchTab(edit, tabId, { isPreview: undefined }) ? edit.finish() : state
+  })
 }
 
 /** Whether the window ends a preview in its own copy: always with the switch off. */

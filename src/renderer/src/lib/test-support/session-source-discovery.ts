@@ -1,13 +1,13 @@
-import type { AppState } from '../store/types'
-import type { OpenFile } from '../store/slices/editor'
+import type { AppState } from '../../store/types'
+import type { OpenFile } from '../../store/slices/editor'
 import {
   SESSION_SOURCE_FIELDS,
   groupSessionFiles,
   groupSessionCatalog,
   type SessionSourceField,
   type SessionSourceDiscovery
-} from './session-source-fields'
-export * from './session-source-fields'
+} from '../session-source-fields'
+export * from '../session-source-fields'
 
 function sourceKeys(value: object): string[] {
   return value instanceof Map ? [...value.keys()] : Object.keys(value)
@@ -95,7 +95,7 @@ export function discoverSessionSources(
   const changes = new Map<SessionSourceField, ReadonlySet<string> | null>()
   let full = false
   let filesByOwner: Map<string, OpenFile[]> | undefined
-  const catalogs: NonNullable<SessionSourceDiscovery['catalogs']> = {}
+  const catalogs: NonNullable<SessionSourceDiscovery['sequences']> = {}
   for (const field of fields) {
     const before = previous[field],
       after = next[field]
@@ -208,5 +208,5 @@ export function discoverSessionSources(
       changes.set(field, keys)
     }
   }
-  return { changes, full, filesByOwner, catalogs }
+  return { changes, full, sequences: { ...catalogs, openFiles: filesByOwner } }
 }

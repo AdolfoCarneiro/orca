@@ -15,16 +15,64 @@ export const SESSION_SOURCE_FIELDS = [
   ...SESSION_ROUTING_FIELDS
 ] as const
 export type SessionSourceField = (typeof SESSION_SOURCE_FIELDS)[number]
+export const SESSION_SOURCE_KINDS = {
+  activeRepoId: 'field',
+  activeWorkspaceKey: 'field',
+  activeWorkspaceExecutionHostId: 'field',
+  activeWorktreeId: 'field',
+  activeTabId: 'field',
+  tabsByWorktree: 'keyed',
+  ptyIdsByTabId: 'keyed',
+  terminalLayoutsByTabId: 'keyed',
+  localOnlyScrollbackByTabId: 'keyed',
+  activeTabIdByWorktree: 'keyed',
+  openFiles: 'sequence',
+  editorDrafts: 'keyed',
+  markdownFrontmatterVisible: 'keyed',
+  activeFileIdByWorktree: 'keyed',
+  activeTabTypeByWorktree: 'keyed',
+  browserTabsByWorktree: 'keyed',
+  browserPagesByWorkspace: 'keyed',
+  activeBrowserTabIdByWorktree: 'keyed',
+  browserUrlHistory: 'field',
+  workspaceDocHistory: 'field',
+  remoteBrowserPageHandlesByPageId: 'keyed',
+  unifiedTabsByWorktree: 'keyed',
+  groupsByWorktree: 'keyed',
+  layoutByWorktree: 'keyed',
+  activeGroupIdByWorktree: 'keyed',
+  sshConnectionStates: 'keyed',
+  repos: 'sequence',
+  worktreesByRepo: 'keyed',
+  lastKnownRelayPtyIdByTabId: 'keyed',
+  lastVisitedAtByWorktreeId: 'keyed',
+  defaultTerminalTabsAppliedByWorktreeId: 'keyed',
+  sleepingAgentSessionsByPaneKey: 'keyed',
+  clientHostedBrowserCloseIntentsByEnvironment: 'keyed',
+  pairedTerminalTabCloseIntentsByEnvironment: 'keyed',
+  pendingReconnectPtyIdByTabId: 'keyed',
+  deferredSshSessionIdsByTabId: 'keyed',
+  folderWorkspaces: 'sequence',
+  projectGroups: 'sequence',
+  restoredRuntimeHostIdByWorkspaceSessionKey: 'keyed',
+  hydratedRuntimeSessionHostIds: 'field',
+  contestedPrimaryHostBySessionKey: 'keyed',
+  contestedHostWorkspaceSessions: 'field'
+} as const satisfies Record<SessionSourceField, 'field' | 'keyed' | 'sequence'>
+export type SessionSourceKind<K extends 'field' | 'keyed' | 'sequence'> = {
+  [F in SessionSourceField]: (typeof SESSION_SOURCE_KINDS)[F] extends K ? F : never
+}[SessionSourceField]
+export type SessionSequenceField = SessionSourceKind<'sequence'>
+export type SessionSourceSequences = {
+  [F in SessionSequenceField]?: ReadonlyMap<string, AppState[F]>
+}
+export type SessionSourcePresence = { before: boolean; after: boolean }
 export type SessionMutation = ReadonlyMap<SessionSourceField, ReadonlySet<string> | null>
 export type SessionSourceDiscovery = {
   changes: SessionMutation
   full: boolean
-  filesByOwner?: ReadonlyMap<string, OpenFile[]>
-  catalogs?: {
-    repos?: Map<string, AppState['repos']>
-    folderWorkspaces?: Map<string, AppState['folderWorkspaces']>
-    projectGroups?: Map<string, AppState['projectGroups']>
-  }
+  sequences?: SessionSourceSequences
+  presence?: ReadonlyMap<SessionSourceField, ReadonlyMap<string, SessionSourcePresence>>
 }
 
 export function groupSessionFiles(

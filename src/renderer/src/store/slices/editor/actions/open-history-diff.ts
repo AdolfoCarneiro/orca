@@ -50,9 +50,7 @@ export function createOpenHistoryDiff(
             isPreview: updatedPreview,
             runtimeEnvironmentId
           })
-          sourceEdit.files(
-            s.openFiles.map((f) => sourceEdit.file(f, f.id === id ? reopenedDiff : f))
-          )
+          sourceEdit.sequence('openFiles').map((f) => (f.id === id ? reopenedDiff : f))
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
           return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
@@ -92,9 +90,7 @@ export function createOpenHistoryDiff(
             }
           }
         }
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
@@ -141,9 +137,7 @@ export function createOpenHistoryDiff(
             isPreview: updatedPreview,
             runtimeEnvironmentId
           })
-          sourceEdit.files(
-            s.openFiles.map((f) => sourceEdit.file(f, f.id === id ? reopenedDiff : f))
-          )
+          sourceEdit.sequence('openFiles').map((f) => (f.id === id ? reopenedDiff : f))
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
           return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
@@ -183,9 +177,7 @@ export function createOpenHistoryDiff(
             }
           }
         }
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })

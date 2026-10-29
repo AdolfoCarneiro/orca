@@ -60,21 +60,16 @@ export function createCheckRunDetailsActions(
               next: checkRunDetails
             }
           }
-          sourceEdit.files(
-            s.openFiles.map((f) =>
-              sourceEdit.file(
-                f,
-                f.id === id
-                  ? {
-                      ...f,
-                      mode: 'check-details' as const,
-                      relativePath: label,
-                      language: 'plaintext',
-                      checkRunDetails: incomingIsStale ? existingDetails : checkRunDetails
-                    }
-                  : f
-              )
-            )
+          sourceEdit.sequence('openFiles').map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  mode: 'check-details' as const,
+                  relativePath: label,
+                  language: 'plaintext',
+                  checkRunDetails: incomingIsStale ? existingDetails : checkRunDetails
+                }
+              : f
           )
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
@@ -93,9 +88,7 @@ export function createCheckRunDetailsActions(
           checkRunDetails
         }
 
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
@@ -161,11 +154,9 @@ export function createCheckRunDetailsActions(
           return s
         }
         accepted = { previous: current, next: nextCheckRunDetails }
-        sourceEdit.files(
-          s.openFiles.map((f) =>
-            sourceEdit.file(f, f.id === id ? { ...f, checkRunDetails: nextCheckRunDetails } : f)
-          )
-        )
+        sourceEdit
+          .sequence('openFiles')
+          .map((f) => (f.id === id ? { ...f, checkRunDetails: nextCheckRunDetails } : f))
         return sourceEdit.finish({})
       })
       if (accepted) {

@@ -71,9 +71,8 @@ export function writeEditorBuffer(
   const viewIds = new Set(editorBufferViewIds(state, recordId))
   viewIds.add(fileId)
   let editorBuffers = state.editorBuffers
-  const openFiles = state.openFiles.map((file) => {
+  edit.sequence('openFiles').map((file) => {
     if (!viewIds.has(file.id)) {
-      edit.file(file, file)
       return file
     }
     if (editorBuffers === state.editorBuffers) {
@@ -82,12 +81,10 @@ export function writeEditorBuffer(
         [recordId]: { ...(editorBuffers[recordId] ?? editorBufferRecordFromFile(file)), ...patch }
       }
     }
-    return edit.file(
-      file,
-      file.id === fileId ? { ...file, ...tabPatch, ...patch } : { ...file, ...patch }
-    )
+    return file.id === fileId ? { ...file, ...tabPatch, ...patch } : { ...file, ...patch }
   })
-  return { ...edit.files(openFiles).finish({ editorBuffers }), openFiles, editorBuffers }
+  const write = edit.finish({ editorBuffers })
+  return { ...write, openFiles: write.openFiles!, editorBuffers }
 }
 
 /** Writes `patch` through the file's record; returns `state` itself when the record already holds it. */

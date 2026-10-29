@@ -11,7 +11,7 @@ import type { SessionUnitAddress } from '../../../shared/session-unit-index'
 import type { SessionSourceDiscovery } from './session-source-fields'
 import type { OpenFile } from '../store/slices/editor'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
-import { SESSION_ROUTING_FIELDS } from './session-source-fields'
+import { SESSION_ROUTING_FIELDS, SESSION_SOURCE_KINDS } from './session-source-fields'
 
 import {
   SessionProjectionIndex,
@@ -30,7 +30,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
       [...mutation].some(
         ([field, keys]) =>
           (keys === null && SESSION_ROUTING_FIELDS.some((candidate) => candidate === field)) ||
-          (keys === null && (Object.hasOwn(SOURCE_MAPS, field) || field === 'openFiles'))
+          (keys === null && SESSION_SOURCE_KINDS[field] !== 'field')
       )
     ) {
       const rebuilt = new SessionUnitProjection(state)
@@ -92,7 +92,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
           for (const id of this.index.ids('openFilesByWorktree', owner, 'file')) {
             queue.push(...this.index.references('file', id))
           }
-          const files = discovery.filesByOwner?.get(owner)
+          const files = discovery.sequences?.openFiles?.get(owner)
           this.index.replace('openFilesByWorktree', owner, files)
           owners.add(owner)
           queue.push({ field: 'openFilesByWorktree', key: owner })

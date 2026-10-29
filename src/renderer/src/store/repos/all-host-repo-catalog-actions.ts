@@ -1,5 +1,4 @@
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
-import { editSessionSource } from '@/store/session-source-edits'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
 import { applyManualRepoOrder } from '../../../../shared/manual-repo-order'
@@ -118,19 +117,16 @@ export function createAllHostRepoCatalogActions(
         set((s) => {
           const validRepoIds = new Set(s.repos.map((repo) => repo.id))
           const validRepoHostIdentities = new Set(s.repos.map(getRepoHostIdentity))
-          return editSessionSource(s)
-            .scalar(
-              'activeRepoId',
-              s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null
-            )
-            .finish({
-              filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
-              setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
-                s.setupScriptPromptDismissedRepoIds,
-                validRepoHostIdentities
-              ),
-              trustedOrcaHooks: filterTrustedOrcaHooksToValidRepos(s.trustedOrcaHooks, validRepoIds)
-            })
+          return {
+            activeRepoId:
+              s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
+            filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
+            setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
+              s.setupScriptPromptDismissedRepoIds,
+              validRepoHostIdentities
+            ),
+            trustedOrcaHooks: filterTrustedOrcaHooksToValidRepos(s.trustedOrcaHooks, validRepoIds)
+          }
         })
       }
 

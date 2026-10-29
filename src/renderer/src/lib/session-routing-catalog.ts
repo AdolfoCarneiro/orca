@@ -194,7 +194,7 @@ export class SessionRoutingCatalog {
   update(state: AppState, discovery: SessionSourceDiscovery): ReadonlySet<string> {
     const changed = new Set<string>()
     for (const id of discovery.changes.get('repos') ?? []) {
-      const rows = discovery.catalogs?.repos?.get(id)
+      const rows = discovery.sequences?.repos?.get(id)
       if (rows) {
         this.repos.set(id, rows)
       } else {
@@ -216,7 +216,7 @@ export class SessionRoutingCatalog {
       for (const row of this.folders.get(id) ?? []) {
         this.foldersByGroup.get(row.projectGroupId)?.delete(id)
       }
-      const rows = discovery.catalogs?.folderWorkspaces?.get(id)
+      const rows = discovery.sequences?.folderWorkspaces?.get(id)
       if (rows) {
         this.folders.set(id, rows)
       } else {
@@ -226,7 +226,7 @@ export class SessionRoutingCatalog {
       changed.add(folderWorkspaceKey(id))
     }
     for (const id of discovery.changes.get('projectGroups') ?? []) {
-      const rows = discovery.catalogs?.projectGroups?.get(id)
+      const rows = discovery.sequences?.projectGroups?.get(id)
       if (rows) {
         this.groups.set(id, rows)
       } else {

@@ -1,53 +1,35 @@
-import type { OpenFile } from './slices/editor/types/open-file'
-import type { SessionSourceDiscovery, SessionSourceField } from '../lib/session-source-fields'
+import { SessionSourceReceipts } from '../lib/session-source-receipts'
+import { SESSION_SOURCE_KINDS } from '../lib/session-source-fields'
 import {
-  SESSION_SOURCE_RECEIPT,
+  readSessionSourceReceipt,
+  withSessionSourceReceipt,
   type OrdinarySourcePartial,
   type SessionSourceWrite
 } from './session-source-edits'
 
-/** Later middleware values win; receipts retain all selected addresses until projection consumes them. */
+/** Only middleware may compose overlapping fields; it starts from the preceding write's result. */
 export function composeSessionSourceWrites<S>(
-  ...writes: (SessionSourceWrite<S> | OrdinarySourcePartial<S>)[]
+  writes: (SessionSourceWrite<S> | OrdinarySourcePartial<S>)[],
+  middlewareChain = false
 ): SessionSourceWrite<S> {
-  const changes = new Map<SessionSourceField, Set<string> | null>()
-  let full = false
-  const filesByOwner = new Map<string, OpenFile[]>()
-  const catalogs: NonNullable<SessionSourceDiscovery['catalogs']> = {}
+  const receipts = new SessionSourceReceipts()
+  const fields = new Set<string>()
   for (const write of writes) {
-    // SAFETY: only the private boundary symbol identifies a receipt; ordinary partials omit it.
-    const receipt = Reflect.get(write, SESSION_SOURCE_RECEIPT) as SessionSourceDiscovery | undefined
-    if (!receipt) {
-      continue
+    const receipt = readSessionSourceReceipt(write)
+    for (const field of receipt?.changes.keys() ?? []) {
+      if (
+        import.meta.env.DEV &&
+        !middlewareChain &&
+        SESSION_SOURCE_KINDS[field] === 'keyed' &&
+        fields.has(field)
+      ) {
+        throw new Error(`Composed source writes overlap: ${field}`)
+      }
+      fields.add(field)
     }
-    full ||= receipt.full
-    for (const [field, keys] of receipt.changes) {
-      const prior = changes.get(field)
-      changes.set(
-        field,
-        keys === null || prior === null ? null : new Set([...(prior ?? []), ...keys])
-      )
-    }
-    for (const [owner, rows] of receipt.filesByOwner ?? []) {
-      filesByOwner.set(owner, rows)
-    }
-    if (receipt.catalogs?.repos) {
-      catalogs.repos = new Map([...(catalogs.repos ?? []), ...receipt.catalogs.repos])
-    }
-    if (receipt.catalogs?.folderWorkspaces) {
-      catalogs.folderWorkspaces = new Map([
-        ...(catalogs.folderWorkspaces ?? []),
-        ...receipt.catalogs.folderWorkspaces
-      ])
-    }
-    if (receipt.catalogs?.projectGroups) {
-      catalogs.projectGroups = new Map([
-        ...(catalogs.projectGroups ?? []),
-        ...receipt.catalogs.projectGroups
-      ])
+    if (receipt) {
+      receipts.add(receipt)
     }
   }
-  return Object.assign({}, ...writes, {
-    [SESSION_SOURCE_RECEIPT]: { changes, full, filesByOwner, catalogs }
-  })
+  return withSessionSourceReceipt(Object.assign({}, ...writes), receipts.snapshot())
 }

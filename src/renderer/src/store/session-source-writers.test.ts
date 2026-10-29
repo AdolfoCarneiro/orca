@@ -7,7 +7,7 @@ import { withSessionSourceWrites } from './session-source-write-boundary'
 import {
   discoverSessionSources,
   type SessionSourceDiscovery
-} from '../lib/session-source-discovery'
+} from '../lib/test-support/session-source-discovery'
 import { createTerminalTabAppearanceActions } from './terminals/terminal-tab-appearance'
 import { createTerminalTabAgentLaunchPaneActions } from './terminals/terminal-tab-agent-launch-pane'
 import { createTerminalTabPresentationActions } from './terminals/terminal-tab-presentation'

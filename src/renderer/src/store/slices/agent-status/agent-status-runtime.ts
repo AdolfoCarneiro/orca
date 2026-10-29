@@ -7,11 +7,11 @@ import { createFreshnessScheduler } from './agent-status-freshness-scheduler'
 import { SessionSourceReceipts } from '@/lib/session-source-receipts'
 import {
   editSessionSource,
-  SESSION_SOURCE_RECEIPT,
+  readSessionSourceReceipt,
+  withSessionSourceReceipt,
   type SessionSourceUpdate,
   type SessionSourceSnapshot
 } from '../../session-source-edits'
-import type { SessionSourceDiscovery } from '@/lib/session-source-fields'
 
 export type AgentStatusStateUpdate = SessionSourceUpdate<AppState>
 
@@ -60,10 +60,7 @@ export function createAgentStatusRuntime(
       return
     }
     batchedAgentStatusRevision += 1
-    // SAFETY: the source boundary owns this symbol; only typed writes attach its receipt.
-    const receipt = Reflect.get(nextState, SESSION_SOURCE_RECEIPT) as
-      | SessionSourceDiscovery
-      | undefined
+    const receipt = readSessionSourceReceipt(nextState)
     if (receipt) {
       batchedSourceReceipts?.add(receipt)
     }
@@ -170,10 +167,10 @@ export function createAgentStatusRuntime(
       batchedGeneratedTabTitleUpdates = null
       batchedAgentStatusFreshnessRequested = false
       if (hasStagedWrites) {
-        const patch = {
-          ...buildAgentStatusBatchPatch(initialState, nextState, touchedKeys),
-          [SESSION_SOURCE_RECEIPT]: sourceReceipt
-        }
+        const patch = withSessionSourceReceipt(
+          buildAgentStatusBatchPatch(initialState, nextState, touchedKeys),
+          sourceReceipt
+        )
         storeSet(patch, false)
       }
       if (generatedTabTitleUpdates.length > 0) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { useAppStore } from '../store'
 import type { OpenFile } from '../store/slices/editor/types/open-file'
-import { discoverSessionSources } from './session-source-discovery'
+import { discoverSessionSources } from './test-support/session-source-discovery'
 import { SessionUnitProjection } from './session-unit-projection'
 import { buildEditorSessionData } from './workspace-session'
 

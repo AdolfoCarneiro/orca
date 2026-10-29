@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '../store'
-import { discoverSessionSources } from './session-source-discovery'
+import { discoverSessionSources } from './test-support/session-source-discovery'
 import { SessionUnitProjection } from './session-unit-projection'
 import { SessionUnitWriter } from './session-unit-writer'
 import { createTerminalTabOwnerIndex } from '../store/slices/terminal-tab-owner-index'

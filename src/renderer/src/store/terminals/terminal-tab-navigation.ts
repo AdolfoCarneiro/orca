@@ -61,13 +61,10 @@ export function createTerminalTabNavigationActions(
         const isActiveWorktreeTab =
           tabOwnerWorktreeId !== null && ownsGlobalSelection(s, tabOwnerWorktreeId)
         const edit = editSessionSource(s)
-        if (isActiveWorktreeTab) {
-          edit.scalar('activeTabId', tabId)
-        }
         if (tabOwnerWorktreeId !== null) {
           edit.set('activeTabIdByWorktree', tabOwnerWorktreeId, tabId)
         }
-        return edit.finish()
+        return edit.finish(isActiveWorktreeTab ? { activeTabId: tabId } : {})
       })
       const state = get()
       const ownerUnifiedTabs =

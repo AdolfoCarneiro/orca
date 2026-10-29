@@ -56,27 +56,22 @@ export function createOpenCombinedDiff(
         const runtimeEnvironmentId = resolveDiffRuntimeEnvironmentId(s, worktreeId, undefined)
         const existing = s.openFiles.find((f) => f.id === id)
         if (existing) {
-          sourceEdit.files(
-            s.openFiles.map((f) =>
-              sourceEdit.file(
-                f,
-                f.id === id
-                  ? {
-                      ...f,
-                      diffSource: branchCompare ? 'combined-all' : 'combined-uncommitted',
-                      branchCompare,
-                      branchEntriesSnapshot,
-                      uncommittedEntriesSnapshot,
-                      combinedAlternate: alternate,
-                      combinedAreaFilter: areaFilter,
-                      skippedConflicts,
-                      conflictReview: undefined,
-                      conflict: undefined,
-                      runtimeEnvironmentId
-                    }
-                  : f
-              )
-            )
+          sourceEdit.sequence('openFiles').map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  diffSource: branchCompare ? 'combined-all' : 'combined-uncommitted',
+                  branchCompare,
+                  branchEntriesSnapshot,
+                  uncommittedEntriesSnapshot,
+                  combinedAlternate: alternate,
+                  combinedAreaFilter: areaFilter,
+                  skippedConflicts,
+                  conflictReview: undefined,
+                  conflict: undefined,
+                  runtimeEnvironmentId
+                }
+              : f
           )
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
@@ -101,9 +96,7 @@ export function createOpenCombinedDiff(
           conflict: undefined,
           runtimeEnvironmentId
         }
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
@@ -120,24 +113,19 @@ export function createOpenCombinedDiff(
         const branchEntriesSnapshot = s.gitBranchChangesByWorktree[worktreeId] ?? []
         const existing = s.openFiles.find((f) => f.id === id)
         if (existing) {
-          sourceEdit.files(
-            s.openFiles.map((f) =>
-              sourceEdit.file(
-                f,
-                f.id === id
-                  ? {
-                      ...f,
-                      branchCompare,
-                      branchEntriesSnapshot,
-                      combinedAlternate: alternate,
-                      conflict: undefined,
-                      skippedConflicts: undefined,
-                      conflictReview: undefined,
-                      runtimeEnvironmentId
-                    }
-                  : f
-              )
-            )
+          sourceEdit.sequence('openFiles').map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  branchCompare,
+                  branchEntriesSnapshot,
+                  combinedAlternate: alternate,
+                  conflict: undefined,
+                  skippedConflicts: undefined,
+                  conflictReview: undefined,
+                  runtimeEnvironmentId
+                }
+              : f
           )
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
@@ -160,9 +148,7 @@ export function createOpenCombinedDiff(
           conflictReview: undefined,
           runtimeEnvironmentId
         }
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
@@ -188,24 +174,19 @@ export function createOpenCombinedDiff(
         const runtimeEnvironmentId = resolveDiffRuntimeEnvironmentId(s, worktreeId, undefined)
         const existing = s.openFiles.find((f) => f.id === id)
         if (existing) {
-          sourceEdit.files(
-            s.openFiles.map((f) =>
-              sourceEdit.file(
-                f,
-                f.id === id
-                  ? {
-                      ...f,
-                      relativePath: label,
-                      commitCompare,
-                      commitEntriesSnapshot: entries,
-                      conflict: undefined,
-                      skippedConflicts: undefined,
-                      conflictReview: undefined,
-                      runtimeEnvironmentId
-                    }
-                  : f
-              )
-            )
+          sourceEdit.sequence('openFiles').map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  relativePath: label,
+                  commitCompare,
+                  commitEntriesSnapshot: entries,
+                  conflict: undefined,
+                  skippedConflicts: undefined,
+                  conflictReview: undefined,
+                  runtimeEnvironmentId
+                }
+              : f
           )
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
@@ -228,9 +209,7 @@ export function createOpenCombinedDiff(
           conflictReview: undefined,
           runtimeEnvironmentId
         }
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })

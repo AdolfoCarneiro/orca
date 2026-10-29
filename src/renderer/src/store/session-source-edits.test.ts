@@ -13,7 +13,7 @@ import {
 import {
   discoverSessionSources,
   type SessionSourceDiscovery
-} from '../lib/session-source-discovery'
+} from '../lib/test-support/session-source-discovery'
 import type { AppState } from './types'
 import { withEditorBufferRecords } from './editor-buffer-record-lifecycle'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
@@ -83,14 +83,16 @@ describe('atomic named source edits', () => {
     expect(before.editorDrafts).toEqual({ a: 'before', b: 'untouched' })
   })
 
-  it('keeps scalar edits in the same write receipt', () => {
-    const before = fixture()
-    verify(
-      before,
-      editSessionSource(before)
-        .scalar('activeTabId', 'tab')
-        .set('editorDrafts', 'a', 'next')
-        .finish()
+  it('derives field-level receipts from the final accepted write', () => {
+    const store = createStore<AppState>()(withSessionSourceWrites(fixture, true))
+    const before = store.getState()
+    store.subscribe((after) => {
+      expect(store.getSessionSourceReceipt()?.changes).toEqual(
+        discoverSessionSources(before, after).changes
+      )
+    })
+    store.setState(
+      editSessionSource(before).set('editorDrafts', 'a', 'next').finish({ activeTabId: 'tab' })
     )
   })
 
@@ -98,15 +100,33 @@ describe('atomic named source edits', () => {
     const row = { ...TEST_REPO, id: 'same' }
     const before = { ...fixture(), repos: [row, row] }
     const edit = editSessionSource(before)
-    const repos = before.repos.map((repo, index) => {
-      const next = index === 0 ? { ...repo, name: 'renamed' } : repo
-      edit.catalog('repos', repo, next)
-      return next
-    })
-    const write = edit.catalogs('repos', repos).finish()
+    edit.sequence('repos').map((repo, index) => (index === 0 ? { ...repo, name: 'renamed' } : repo))
+    const write = edit.finish()
+    const repos = write.repos
     verify(before, write)
-    expect(write[SESSION_SOURCE_RECEIPT].catalogs?.repos?.get('same')).toEqual(repos)
+    expect(write[SESSION_SOURCE_RECEIPT].sequences?.repos?.get('same')).toEqual(repos)
     expect(before.repos).toEqual([row, row])
+  })
+
+  it('retains delete/reinsert order across accepted writes before a flush', () => {
+    const before = { ...fixture(), editorDrafts: { a: 'A', b: 'B' } }
+    Object.freeze(before.editorDrafts)
+    Object.freeze(before)
+    const first = editSessionSource(before).remove('editorDrafts', 'a').finish()
+    const middle = { ...before, ...first }
+    Object.freeze(middle.editorDrafts)
+    const second = editSessionSource(middle).set('editorDrafts', 'a', 'A').finish()
+    const after = { ...middle, ...second }
+    const pending = new SessionSourceReceipts()
+    pending.add(first[SESSION_SOURCE_RECEIPT])
+    pending.add(second[SESSION_SOURCE_RECEIPT])
+    const receipt = pending.take(before, after)
+    const native = discoverSessionSources(before, after)
+    expect(Object.keys(after.editorDrafts)).toEqual(['b', 'a'])
+    expect(receipt.full).toBe(native.full)
+    expect(receipt.full).toBe(true)
+    expect(receipt.changes).toEqual(native.changes)
+    expect(before.editorDrafts).toEqual({ a: 'A', b: 'B' })
   })
 
   it('coalesces pending keyed receipts against the captured source without enumerating Records', () => {
@@ -162,14 +182,8 @@ describe('source write identity gate', () => {
       receipt = store.getSessionSourceReceipt()
     })
     const edit = editSessionSource(before)
-    const rows = before.openFiles.map((row) => {
-      edit.file(row, row)
-      return row
-    })
     const added = { ...file, id: 'b' }
-    edit.file(undefined, added)
-    rows.push(added)
-    store.setState(edit.files(rows).finish())
+    store.setState(edit.sequence('openFiles').append(added).finish())
     const after = store.getState()
     expect(after.openFiles.every((row) => row.isDirty)).toBe(true)
     expect(receipt?.changes).toEqual(discoverSessionSources(before, after).changes)
@@ -182,7 +196,7 @@ describe('source write identity gate', () => {
     store.subscribe(() => {
       if (!nested) {
         nested = true
-        store.setState(editSessionSource(store.getState()).scalar('activeTabId', 'nested').finish())
+        store.setState({ activeTabId: 'nested' })
       }
     })
     store.subscribe(() => captured.push([...store.getSessionSourceReceipt()!.changes.keys()]))

@@ -158,16 +158,13 @@ export function createOpenFileMutations(
     setTerminalArtifactGrant: (fileId, grantId) =>
       set((s) => {
         const sourceEdit = editSessionSource(s)
-        sourceEdit.files(
-          s.openFiles.map((f) =>
-            sourceEdit.file(
-              f,
-              f.id === fileId && f.terminalArtifactGrantId !== grantId
-                ? { ...f, terminalArtifactGrantId: grantId }
-                : f
-            )
+        sourceEdit
+          .sequence('openFiles')
+          .map((f) =>
+            f.id === fileId && f.terminalArtifactGrantId !== grantId
+              ? { ...f, terminalArtifactGrantId: grantId }
+              : f
           )
-        )
         return sourceEdit.finish({})
       }),
 
@@ -179,21 +176,17 @@ export function createOpenFileMutations(
         if (!file?.pendingSelfMoveEcho) {
           return s
         }
-        sourceEdit.files(
-          s.openFiles.map((f) =>
-            sourceEdit.file(f, f.id === fileId ? { ...f, pendingSelfMoveEcho: undefined } : f)
-          )
-        )
+        sourceEdit
+          .sequence('openFiles')
+          .map((f) => (f.id === fileId ? { ...f, pendingSelfMoveEcho: undefined } : f))
         return sourceEdit.finish({})
       }),
     clearUntitled: (fileId) =>
       set((s) => {
         const sourceEdit = editSessionSource(s)
-        sourceEdit.files(
-          s.openFiles.map((f) =>
-            sourceEdit.file(f, f.id === fileId ? { ...f, isUntitled: undefined } : f)
-          )
-        )
+        sourceEdit
+          .sequence('openFiles')
+          .map((f) => (f.id === fileId ? { ...f, isUntitled: undefined } : f))
         return sourceEdit.finish({})
       })
   }

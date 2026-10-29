@@ -1,4 +1,3 @@
-import { editSessionSource } from '@/store/session-source-edits'
 import type { BrowserHistoryEntry } from '../../../../../shared/browser-workspace-types'
 import type {
   BrowserSlice,
@@ -72,14 +71,12 @@ export function createBrowserHistoryActions(
               { docLocation, title: normalizedTitle, lastVisitedAt: now, visitCount: 1 },
               ...s.workspaceDocHistory
             ]
-        return editSessionSource(s)
-          .scalar(
-            'workspaceDocHistory',
+        return {
+          workspaceDocHistory:
             next.length > MAX_WORKSPACE_DOC_HISTORY_ENTRIES
               ? normalizeWorkspaceDocHistoryEntries(next)
               : next
-          )
-          .finish({})
+        }
       })
     },
 
@@ -119,7 +116,7 @@ export function createBrowserHistoryActions(
             .sort((a, b) => b.lastVisitedAt - a.lastVisitedAt)
             .slice(0, MAX_BROWSER_HISTORY_ENTRIES)
         }
-        return editSessionSource(s).scalar('browserUrlHistory', next).finish({})
+        return { browserUrlHistory: next }
       })
     },
 
@@ -127,14 +124,9 @@ export function createBrowserHistoryActions(
       const removed =
         get().browserUrlHistory.find((entry) => entry.normalizedUrl === normalizedUrl) ?? null
       if (removed) {
-        set((s) =>
-          editSessionSource(s)
-            .scalar(
-              'browserUrlHistory',
-              s.browserUrlHistory.filter((entry) => entry !== removed)
-            )
-            .finish({})
-        )
+        set((s) => ({
+          browserUrlHistory: s.browserUrlHistory.filter((entry) => entry !== removed)
+        }))
       }
       return removed
     },
@@ -154,24 +146,19 @@ export function createBrowserHistoryActions(
         if (urls.length === 0 && docs.length === 0) {
           return s
         }
-        return editSessionSource(s)
-          .scalar('browserUrlHistory', [...urls, ...s.browserUrlHistory])
-          .scalar('workspaceDocHistory', [...docs, ...s.workspaceDocHistory])
-          .finish({})
+        return {
+          browserUrlHistory: [...urls, ...s.browserUrlHistory],
+          workspaceDocHistory: [...docs, ...s.workspaceDocHistory]
+        }
       })
     },
 
     removeWorkspaceDocHistoryEntry: (docLocation) => {
-      set((s) =>
-        editSessionSource(s)
-          .scalar(
-            'workspaceDocHistory',
-            s.workspaceDocHistory.filter(
-              (entry) => !browserPageDocLocationsEqual(entry.docLocation, docLocation)
-            )
-          )
-          .finish({})
-      )
+      set((s) => ({
+        workspaceDocHistory: s.workspaceDocHistory.filter(
+          (entry) => !browserPageDocLocationsEqual(entry.docLocation, docLocation)
+        )
+      }))
     },
 
     // One clear for both sources: the dropdown presents them as one history.
@@ -181,18 +168,10 @@ export function createBrowserHistoryActions(
         browserUrlHistory: browserUrlHistory.filter((entry) => entry.lastVisitedAt >= since),
         workspaceDocHistory: workspaceDocHistory.filter((entry) => entry.lastVisitedAt >= since)
       }
-      set((sourceState) =>
-        editSessionSource(sourceState)
-          .scalar(
-            'browserUrlHistory',
-            browserUrlHistory.filter((entry) => entry.lastVisitedAt < since)
-          )
-          .scalar(
-            'workspaceDocHistory',
-            workspaceDocHistory.filter((entry) => entry.lastVisitedAt < since)
-          )
-          .finish({})
-      )
+      set((_sourceState) => ({
+        browserUrlHistory: browserUrlHistory.filter((entry) => entry.lastVisitedAt < since),
+        workspaceDocHistory: workspaceDocHistory.filter((entry) => entry.lastVisitedAt < since)
+      }))
       return removed
     },
 

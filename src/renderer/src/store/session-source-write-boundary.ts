@@ -1,7 +1,12 @@
 import type { StateCreator, StoreApi } from 'zustand'
-import { SESSION_SOURCE_FIELDS, type SessionSourceDiscovery } from '../lib/session-source-fields'
+import {
+  SESSION_SOURCE_FIELDS,
+  SESSION_SOURCE_KINDS,
+  type SessionSourceDiscovery
+} from '../lib/session-source-fields'
 import {
   SESSION_SOURCE_RECEIPT,
+  readSessionSourceReceipt,
   type SessionSourceSet,
   type SessionSourceWrite
 } from './session-source-edits'
@@ -60,30 +65,30 @@ export function withSessionSourceWrites<T extends object>(
               if (requested === state) {
                 return state
               }
-              // SAFETY: the private symbol is owned by the typed source-edit boundary.
-              let receipt = Reflect.get(requested, SESSION_SOURCE_RECEIPT) as
-                | SessionSourceDiscovery
-                | undefined
-              const unreported = SESSION_SOURCE_FIELDS.filter(
-                (field) =>
-                  (replace || Object.hasOwn(requested, field)) &&
-                  (Reflect.get(state, field) !== Reflect.get(requested, field) ||
-                    Object.hasOwn(state, field) !== Object.hasOwn(requested, field)) &&
-                  !receipt?.changes.has(field)
-              )
-              if (unreported.length) {
-                if (development) {
-                  throw new Error(`Unreported session source write: ${unreported.join(', ')}`)
-                }
-                receipt = { changes: new Map(unreported.map((field) => [field, null])), full: true }
-              }
               const prepared = prepare ? prepare(state, requested) : requested
-              // SAFETY: editor middleware composes receipts through the same typed operations.
-              currentReceipt = receipt?.full
-                ? receipt
-                : ((Reflect.get(prepared, SESSION_SOURCE_RECEIPT) as
-                    | SessionSourceDiscovery
-                    | undefined) ?? receipt)
+              let receipt = readSessionSourceReceipt(prepared)
+              const changes = new Map(receipt?.changes)
+              const unreported: string[] = []
+              for (const field of SESSION_SOURCE_FIELDS) {
+                if (
+                  !(replace || Object.hasOwn(prepared, field)) ||
+                  (Reflect.get(state, field) === Reflect.get(prepared, field) &&
+                    Object.hasOwn(state, field) === Object.hasOwn(prepared, field))
+                ) {
+                  continue
+                }
+                if (SESSION_SOURCE_KINDS[field] === 'field') {
+                  changes.set(field, null)
+                } else if (!changes.has(field)) {
+                  unreported.push(field)
+                  changes.set(field, null)
+                }
+              }
+              if (unreported.length && development) {
+                throw new Error(`Unreported session source write: ${unreported.join(', ')}`)
+              }
+              receipt = { ...receipt, changes, full: Boolean(receipt?.full || unreported.length) }
+              currentReceipt = receipt
               const next = { ...prepared }
               Reflect.deleteProperty(next, SESSION_SOURCE_RECEIPT)
               return Object.keys(next).length ? next : state

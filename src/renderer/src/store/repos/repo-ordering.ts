@@ -1,5 +1,4 @@
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
-import { editSessionSource } from '@/store/session-source-edits'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
 import { getManualRepoOrder } from '../../../../shared/manual-repo-order'
@@ -13,10 +12,7 @@ export function createRepoOrderingActions(
   get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'setActiveRepo' | 'reorderRepos'> {
   return {
-    setActiveRepo: (projectId) =>
-      set((sourceState) =>
-        editSessionSource(sourceState).scalar('activeRepoId', projectId).finish({})
-      ),
+    setActiveRepo: (projectId) => set((_sourceState) => ({ activeRepoId: projectId })),
 
     reorderRepos: async (orderedIds) => {
       // Optimistically apply the new order for instant sidebar update; resync only if main rejects (racing add/remove).

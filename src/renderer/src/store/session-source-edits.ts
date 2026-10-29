@@ -1,29 +1,28 @@
-import type { OpenFile } from './slices/editor/types/open-file'
-import type { SessionSourceDiscovery, SessionSourceField } from '../lib/session-source-fields'
+import {
+  SESSION_SOURCE_KINDS,
+  type SessionSourceKind,
+  type SessionSourceDiscovery,
+  type SessionSourceField,
+  type SessionSourcePresence
+} from '../lib/session-source-fields'
+import { SessionSourceSequence } from './session-source-sequence'
 
 export const SESSION_SOURCE_RECEIPT = Symbol('session source receipt')
 declare const SOURCE_SNAPSHOT: unique symbol
 export type SessionSourceSnapshot<S> = S & { readonly [SOURCE_SNAPSHOT]: true }
-type CatalogField = 'repos' | 'folderWorkspaces' | 'projectGroups'
 type SourceEntry = { present: boolean; value: unknown }
-type CatalogKey<S> = Extract<SourceKey<S>, CatalogField>
-type CatalogRow<S, F extends CatalogKey<S>> = S[F] extends readonly (infer V)[] ? V : never
 type SourceKey<S> = Extract<keyof S, SessionSourceField>
-type RecordKey<S> = {
-  [F in SourceKey<S>]: NonNullable<S[F]> extends readonly unknown[]
-    ? never
-    : NonNullable<S[F]> extends ReadonlyMap<string, unknown> | Record<string, unknown>
-      ? F
-      : never
-}[SourceKey<S>]
+type RecordKey<S> = Extract<SourceKey<S>, SessionSourceKind<'keyed'>>
 type Entry<S, F extends RecordKey<S>> =
   NonNullable<S[F]> extends ReadonlyMap<string, infer V>
     ? V
     : NonNullable<S[F]> extends Record<string, infer V>
       ? V
       : never
-export type OrdinarySourcePartial<S> = Partial<Omit<S, SourceKey<S>>> &
-  Partial<Record<SourceKey<S>, never>>
+export type OrdinarySourcePartial<S> = Partial<
+  Omit<S, Exclude<SourceKey<S>, SessionSourceKind<'field'>>>
+> &
+  Partial<Record<Exclude<SourceKey<S>, SessionSourceKind<'field'>>, never>>
 export type SessionSourceWrite<S> = Partial<S> & {
   readonly [SESSION_SOURCE_RECEIPT]: SessionSourceDiscovery
 }
@@ -47,13 +46,9 @@ export class SessionSourceEdit<S extends object> {
   private readonly changes = new Map<SessionSourceField, Set<string> | null>()
   private readonly copied = new Set<SourceKey<S>>()
   private readonly baseEntries = new Map<SessionSourceField, Map<string, SourceEntry>>()
-  private readonly fileRows = new Map<string, OpenFile[]>()
-  private readonly fileOwners = new Set<string>()
+  private readonly presence = new Map<SessionSourceField, Map<string, SessionSourcePresence>>()
   private full = false
-  private filesByOwner?: Map<string, OpenFile[]>
-  private readonly catalogRows = new Map<CatalogField, Map<string, unknown[]>>()
-  private readonly catalogsChanged = new Map<CatalogField, Set<string>>()
-  private readonly catalogsResult: NonNullable<SessionSourceDiscovery['catalogs']> = {}
+  private readonly sequences: NonNullable<SessionSourceDiscovery['sequences']> = {}
 
   constructor(private readonly source: S) {}
 
@@ -140,8 +135,8 @@ export class SessionSourceEdit<S extends object> {
       (source instanceof Map ? source.has(key) : Object.hasOwn(source ?? {}, key))
     ) {
       this.full = true
-      this.changes.set(field, null)
     }
+    this.transition(field, key, present, true)
     const record = this.record(field)
     if (record instanceof Map) {
       record.set(key, value)
@@ -163,6 +158,7 @@ export class SessionSourceEdit<S extends object> {
     if (!(current instanceof Map ? current.has(key) : Object.hasOwn(current ?? {}, key))) {
       return this
     }
+    this.transition(field, key, true, false)
     const record = this.record(field)
     if (record instanceof Map) {
       record.delete(key)
@@ -173,16 +169,14 @@ export class SessionSourceEdit<S extends object> {
     return this
   }
 
-  scalar<F extends Exclude<SourceKey<S>, RecordKey<S> | 'openFiles' | CatalogField>>(
-    field: F,
-    value: S[F]
-  ): this {
-    const current = Object.hasOwn(this.partial, field) ? this.partial : this.source
-    if (current[field] !== value || !Object.hasOwn(current, field)) {
-      Object.assign(this.partial, { [field]: value })
-      this.changes.set(field, null)
+  private transition(field: SourceKey<S>, key: string, before: boolean, after: boolean): void {
+    const entries = this.presence.get(field) ?? new Map<string, SessionSourcePresence>()
+    const prior = entries.get(key)
+    if (prior && !prior.after && after) {
+      this.full = true
     }
-    return this
+    entries.set(key, { before: prior?.before ?? before, after })
+    this.presence.set(field, entries)
   }
 
   replace<F extends SourceKey<S>>(field: F, value: S[F]): this {
@@ -193,87 +187,40 @@ export class SessionSourceEdit<S extends object> {
     return this
   }
 
-  file(before: OpenFile | undefined, after: OpenFile): OpenFile
-  file(before: OpenFile | undefined, after: undefined): undefined
-  file(before: OpenFile | undefined, after: OpenFile | undefined): OpenFile | undefined
-  file(before: OpenFile | undefined, after: OpenFile | undefined): OpenFile | undefined {
-    if (before !== after) {
-      if (before) {
-        this.fileOwners.add(before.worktreeId)
+  sequence<F extends Extract<SourceKey<S>, SessionSourceKind<'sequence'>>>(field: F) {
+    // SAFETY: the exhaustive field-kind table permits only arrays in the sequence domain.
+    const rows = this.read(field) as readonly SequenceRow<S, F>[]
+    return new SessionSourceSequence(
+      rows,
+      (row) => {
+        // SAFETY: openFiles groups by owner; the three catalogs group by entity ID.
+        return Reflect.get(row as object, field === 'openFiles' ? 'worktreeId' : 'id') as string
+      },
+      (rows, groups, keys, reordered, presence) => {
+        Object.assign(this.partial, { [field]: rows })
+        const selected = this.changes.get(field)
+        if (selected !== null) {
+          const union = new Set([...(selected ?? []), ...keys])
+          this.changes.set(field, union)
+          Reflect.set(
+            this.sequences,
+            field,
+            new Map([...union].map((key) => [key, groups.get(key) ?? []]))
+          )
+        }
+        for (const [key, change] of presence) {
+          this.transition(field, key, change.before, change.after)
+        }
+        this.full ||= field !== 'openFiles' && reordered
+        return this
       }
-      if (after) {
-        this.fileOwners.add(after.worktreeId)
-      }
-    }
-    if (after) {
-      const rows = this.fileRows.get(after.worktreeId) ?? []
-      rows.push(after)
-      this.fileRows.set(after.worktreeId, rows)
-    }
-    return after
-  }
-
-  files(files: OpenFile[]): this {
-    Object.assign(this.partial, { openFiles: files })
-    this.filesByOwner = new Map(
-      [...this.fileOwners].map((owner) => [owner, this.fileRows.get(owner) ?? []])
     )
-    this.changes.set('openFiles', new Set(this.fileOwners))
-    this.fileOwners.clear()
-    this.fileRows.clear()
-    return this
-  }
-
-  catalog<F extends CatalogKey<S>>(
-    field: F,
-    before: CatalogRow<S, F> | undefined,
-    after: CatalogRow<S, F> | undefined
-  ): void {
-    // SAFETY: the three catalog fields are arrays of entities with string IDs.
-    const prior = before as { id: string } | undefined
-    // SAFETY: the same catalog domain applies to its candidate row.
-    const next = after as { id: string } | undefined
-    const changed = this.catalogsChanged.get(field) ?? new Set<string>()
-    if (before !== after) {
-      if (prior) {
-        changed.add(prior.id)
-      }
-      if (next) {
-        changed.add(next.id)
-      }
-    }
-    this.catalogsChanged.set(field, changed)
-    if (next) {
-      const rows = this.catalogRows.get(field) ?? new Map<string, unknown[]>()
-      const entries = rows.get(next.id) ?? []
-      entries.push(after)
-      rows.set(next.id, entries)
-      this.catalogRows.set(field, rows)
-    }
-  }
-
-  catalogs<F extends CatalogKey<S>>(field: F, rows: S[F]): this {
-    Object.assign(this.partial, { [field]: rows })
-    const changed = this.catalogsChanged.get(field) ?? new Set<string>()
-    this.changes.set(field, new Set(changed))
-    Object.assign(this.catalogsResult, {
-      [field]: new Map([...changed].map((id) => [id, this.catalogRows.get(field)?.get(id) ?? []]))
-    })
-    this.catalogRows.delete(field)
-    this.catalogsChanged.delete(field)
-    return this
   }
 
   finish(other: OrdinarySourcePartial<S> = {}): SessionSourceWrite<S> {
     this.copied.clear()
     for (const [field, keys] of this.changes) {
-      if (
-        !keys ||
-        field === 'openFiles' ||
-        field === 'repos' ||
-        field === 'folderWorkspaces' ||
-        field === 'projectGroups'
-      ) {
+      if (!keys || SESSION_SOURCE_KINDS[field] !== 'keyed') {
         continue
       }
       const after = Reflect.get(this.partial, field)
@@ -295,10 +242,10 @@ export class SessionSourceEdit<S extends object> {
           [...this.changes].map(([field, keys]) => [field, keys === null ? null : new Set(keys)])
         ),
         full: this.full,
-        catalogs: { ...this.catalogsResult },
-        filesByOwner:
-          this.filesByOwner &&
-          new Map([...this.filesByOwner].map(([owner, rows]) => [owner, [...rows]]))
+        sequences: Object.fromEntries(
+          Object.entries(this.sequences).map(([field, groups]) => [field, new Map(groups)])
+        ),
+        presence: new Map([...this.presence].map(([field, entries]) => [field, new Map(entries)]))
       }
     })
   }
@@ -306,4 +253,18 @@ export class SessionSourceEdit<S extends object> {
 
 export function editSessionSource<S extends object>(state: S): SessionSourceEdit<S> {
   return new SessionSourceEdit(state)
+}
+
+type SequenceRow<S, F extends keyof S> = S[F] extends readonly (infer V)[] ? V : never
+
+export function readSessionSourceReceipt(write: object): SessionSourceDiscovery | undefined {
+  // SAFETY: this symbol is private to the typed boundary implementation.
+  return Reflect.get(write, SESSION_SOURCE_RECEIPT) as SessionSourceDiscovery | undefined
+}
+
+export function withSessionSourceReceipt<S>(
+  partial: Partial<S>,
+  receipt: SessionSourceDiscovery
+): SessionSourceWrite<S> {
+  return Object.assign({}, partial, { [SESSION_SOURCE_RECEIPT]: receipt })
 }

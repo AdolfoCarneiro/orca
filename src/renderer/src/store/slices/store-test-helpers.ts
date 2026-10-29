@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { observeSessionSourceOracle } from '../../lib/test-support/session-source-oracle'
 import type { AppState } from '../types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { createRepoSlice } from './repos'
@@ -67,7 +68,7 @@ export {
 
 export function createTestStore() {
   // Why the record middleware: views of one file share a record only through it, as in the app.
-  return create<AppState>()(
+  const store = create<AppState>()(
     withEditorBufferRecords<AppState>(
       (...a) => ({
         ...createRepoSlice(...a),
@@ -123,6 +124,8 @@ export function createTestStore() {
       true
     )
   )
+  observeSessionSourceOracle(store)
+  return store
 }
 
 export function seedStore(

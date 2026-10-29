@@ -1,12 +1,17 @@
 import type { AppState } from '../store/types'
-import type { OpenFile } from '../store/slices/editor'
-import type { SessionSourceDiscovery, SessionSourceField } from './session-source-fields'
+import {
+  SESSION_SOURCE_KINDS,
+  type SessionSourceDiscovery,
+  type SessionSourceField,
+  type SessionSourcePresence,
+  type SessionSourceSequences
+} from './session-source-fields'
 
-/** Pending source addresses share the subscriber lifetime, independent of delivery ACKs. */
+/** Source coalescing is independent of delivery ACKs; deletion history retains native order. */
 export class SessionSourceReceipts {
   private readonly changes = new Map<SessionSourceField, Set<string> | null>()
-  private readonly filesByOwner = new Map<string, OpenFile[]>()
-  private readonly catalogs: NonNullable<SessionSourceDiscovery['catalogs']> = {}
+  private readonly sequences: SessionSourceSequences = {}
+  private readonly presence = new Map<SessionSourceField, Map<string, SessionSourcePresence>>()
   private full = false
 
   get size(): number {
@@ -15,6 +20,17 @@ export class SessionSourceReceipts {
 
   add(receipt: SessionSourceDiscovery): void {
     this.full ||= receipt.full
+    for (const [field, entries] of receipt.presence ?? []) {
+      const pending = this.presence.get(field) ?? new Map<string, SessionSourcePresence>()
+      this.presence.set(field, pending)
+      for (const [key, transition] of entries) {
+        const prior = pending.get(key)
+        if (prior && !prior.after && transition.after) {
+          this.full = true
+        }
+        pending.set(key, { before: prior?.before ?? transition.before, after: transition.after })
+      }
+    }
     for (const [field, keys] of receipt.changes) {
       const prior = this.changes.get(field)
       if (prior === null) {
@@ -30,44 +46,38 @@ export class SessionSourceReceipts {
         this.changes.set(field, selected)
       }
     }
-    for (const [owner, rows] of receipt.filesByOwner ?? []) {
-      this.filesByOwner.set(owner, rows)
-    }
-    if (receipt.catalogs?.repos) {
-      this.catalogs.repos ??= new Map()
-      for (const [id, rows] of receipt.catalogs.repos) {
-        this.catalogs.repos.set(id, rows)
+    for (const field of Object.keys(receipt.sequences ?? {})) {
+      // SAFETY: sequence properties are restricted to the exhaustive sequence field domain.
+      const incoming = Reflect.get(receipt.sequences!, field) as ReadonlyMap<string, unknown[]>
+      const pending = Reflect.get(this.sequences, field) ?? new Map<string, unknown[]>()
+      for (const [key, rows] of incoming ?? []) {
+        pending.set(key, rows)
       }
+      Reflect.set(this.sequences, field, pending)
     }
-    if (receipt.catalogs?.folderWorkspaces) {
-      this.catalogs.folderWorkspaces ??= new Map()
-      for (const [id, rows] of receipt.catalogs.folderWorkspaces) {
-        this.catalogs.folderWorkspaces.set(id, rows)
-      }
-    }
-    if (receipt.catalogs?.projectGroups) {
-      this.catalogs.projectGroups ??= new Map()
-      for (const [id, rows] of receipt.catalogs.projectGroups) {
-        this.catalogs.projectGroups.set(id, rows)
-      }
+  }
+
+  snapshot(): SessionSourceDiscovery {
+    return {
+      changes: new Map([...this.changes].map(([field, keys]) => [field, keys && new Set(keys)])),
+      full: this.full,
+      sequences: Object.fromEntries(
+        Object.entries(this.sequences).map(([field, rows]) => [field, new Map(rows)])
+      ),
+      presence: new Map([...this.presence].map(([field, entries]) => [field, new Map(entries)]))
     }
   }
 
   take(before: AppState, after: AppState): SessionSourceDiscovery {
+    const receipt = this.snapshot()
     const changes = new Map<SessionSourceField, ReadonlySet<string> | null>()
-    for (const [field, selected] of this.changes) {
+    for (const [field, selected] of receipt.changes) {
       const prior = before[field],
         next = after[field]
-      if (prior === next) {
+      if (prior === next && Object.hasOwn(before, field) === Object.hasOwn(after, field)) {
         continue
       }
-      if (
-        !selected ||
-        field === 'openFiles' ||
-        field === 'repos' ||
-        field === 'folderWorkspaces' ||
-        field === 'projectGroups'
-      ) {
+      if (!selected || SESSION_SOURCE_KINDS[field] !== 'keyed') {
         changes.set(field, selected)
         continue
       }
@@ -83,6 +93,6 @@ export class SessionSourceReceipts {
       }
       changes.set(field, keys)
     }
-    return { changes, full: this.full, filesByOwner: this.filesByOwner, catalogs: this.catalogs }
+    return { ...receipt, changes }
   }
 }

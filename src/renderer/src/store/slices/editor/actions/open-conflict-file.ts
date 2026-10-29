@@ -46,26 +46,21 @@ export function createOpenConflictFile(
 
         if (existing) {
           const updatedPreview = isPreview ? existing.isPreview : false
-          sourceEdit.files(
-            s.openFiles.map((f) =>
-              sourceEdit.file(
-                f,
-                f.id === id
-                  ? {
-                      ...f,
-                      mode: 'edit' as const,
-                      language,
-                      relativePath: entry.path,
-                      filePath: absolutePath,
-                      conflict,
-                      diffSource: undefined,
-                      skippedConflicts: undefined,
-                      conflictReview: undefined,
-                      isPreview: updatedPreview
-                    }
-                  : f
-              )
-            )
+          sourceEdit.sequence('openFiles').map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  mode: 'edit' as const,
+                  language,
+                  relativePath: entry.path,
+                  filePath: absolutePath,
+                  conflict,
+                  diffSource: undefined,
+                  skippedConflicts: undefined,
+                  conflictReview: undefined,
+                  isPreview: updatedPreview
+                }
+              : f
           )
           sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
           sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
@@ -114,9 +109,7 @@ export function createOpenConflictFile(
           }
         }
 
-        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
-        openFiles.push(sourceEdit.file(undefined, newFile))
-        sourceEdit.files(openFiles)
+        sourceEdit.sequence('openFiles').append(newFile)
         sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
         sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
         return sourceEdit.finish({
