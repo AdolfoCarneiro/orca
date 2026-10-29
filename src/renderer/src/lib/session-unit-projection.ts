@@ -1,4 +1,5 @@
 import type { AppState } from '../store/types'
+import { selectWorktreesByRepo } from '../store/workspace-record-selectors'
 import { SESSION_RELEVANT_FIELDS, type WorkspaceSessionSnapshot } from './workspace-session'
 import { buildWorkspaceSessionPatch } from './workspace-session-patch'
 import {
@@ -199,7 +200,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
         )
       })
     }
-    Object.assign(sparse.worktreesByRepo, this.catalog.worktreeRows(owners))
+    Object.assign(selectWorktreesByRepo(sparse), this.catalog.worktreeRows(owners))
     const connectionIds = new Set<string>(mutation.get('sshConnectionStates') ?? [])
     for (const id of tabIds) {
       const old = this.remoteConnectionByTab.get(id)

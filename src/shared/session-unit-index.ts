@@ -1,10 +1,9 @@
 import { SessionFieldOrder } from './session-field-order'
-import type { WorkspaceSessionState } from './workspace-session-state-types'
 import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from './workspace-session-host-field-ownership'
 import { getRepoIdFromWorktreeId } from './worktree/id'
 import { parseWorkspaceKey } from './workspace-scope'
 import { parsePaneKey } from './stable-pane-id'
-import { SESSION_MAP_FIELDS, sessionMap, type SessionMapField } from './session-change-set'
+import { SESSION_MAP_FIELDS, type SessionMapField } from './session-change-set'
 
 export type SessionReferenceKind =
   | 'owner'
@@ -45,11 +44,11 @@ export class SessionUnitIndex {
   private readonly reverse = new Map<SessionReferenceKind, Map<string, Set<Contribution>>>()
 
   constructor(
-    session: WorkspaceSessionState,
+    session: Partial<Record<SessionMapField, unknown>>,
     private readonly order = new SessionFieldOrder()
   ) {
     for (const field of SESSION_MAP_FIELDS) {
-      for (const [key, value] of Object.entries(sessionMap(session, field) ?? {})) {
+      for (const [key, value] of Object.entries(record(session[field]) ?? {})) {
         this.replace(field, key, value, true)
       }
     }

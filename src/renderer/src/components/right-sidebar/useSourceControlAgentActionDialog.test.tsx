@@ -385,7 +385,7 @@ it('distinguishes masked eligibility from owning reset and uses the captured par
   const reopened = f.mount()
   expect(screen.getByText(/Model from Settings: o3/)).toBeDefined()
   reopened.unmount()
-  useAppStore.setState((state) => ({
+  setSessionTestState(useAppStore, (state) => ({
     repos: state.repos.map((row) =>
       row.id === f.repo.id
         ? {

@@ -5,11 +5,8 @@ import { SESSION_RELEVANT_FIELDS } from './workspace-session'
 import { buildWorkspaceSessionPatch } from './workspace-session-patch'
 import { SESSION_MAP_FIELDS, type SessionMapField } from '../../../shared/session-change-set'
 import { SessionUnitIndex } from '../../../shared/session-unit-index'
-import type {
-  WorkspaceSessionPatch,
-  WorkspaceSessionState
-} from '../../../shared/workspace-session-state-types'
-import type { SessionSourceField } from './session-source-fields'
+import type { WorkspaceSessionPatch } from '../../../shared/workspace-session-state-types'
+import { groupSessionFiles, type SessionSourceField } from './session-source-fields'
 
 import { parseAppSshPtyId } from '../../../shared/ssh-pty-id'
 export const SOURCE_MAPS = {
@@ -99,14 +96,14 @@ export class SessionProjectionIndex {
     }
     return owners
   }
-  protected rawSession(state: AppState): WorkspaceSessionState {
-    const session: WorkspaceSessionState = {
+  protected rawSession(state: AppState) {
+    const session = {
       activeRepoId: state.activeRepoId,
       activeWorktreeId: state.activeWorktreeId,
       activeTabId: state.activeTabId,
       tabsByWorktree: state.tabsByWorktree,
       terminalLayoutsByTabId: state.terminalLayoutsByTabId,
-      openFilesByWorktree: buildWorkspaceSessionPatch(state, ['openFiles']).openFilesByWorktree
+      openFilesByWorktree: Object.fromEntries(groupSessionFiles(state.openFiles))
     }
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these are the fixed, exhaustive source-to-session map keys.
     for (const source of Object.keys(SOURCE_MAPS) as (keyof typeof SOURCE_MAPS)[]) {

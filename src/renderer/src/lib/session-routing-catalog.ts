@@ -3,6 +3,7 @@ import { folderWorkspaceKey, parseWorkspaceKey } from '../../../shared/workspace
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { AppState } from '../store/types'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '../store/workspace-record-selectors'
 import {
   buildHostSessionRouting,
   type HostPersistenceState,
@@ -34,12 +35,12 @@ export class SessionRoutingCatalog {
   constructor(state: AppState) {
     this.state = state
     this.repos = groupSessionCatalog(state.repos)
-    this.folders = groupSessionCatalog(state.folderWorkspaces ?? [])
+    this.folders = groupSessionCatalog(selectFolderWorkspaces(state) ?? [])
     this.groups = groupSessionCatalog(state.projectGroups ?? [])
     for (const [id, rows] of this.folders) {
       this.indexFolder(id, rows)
     }
-    for (const [bucket, rows] of Object.entries(state.worktreesByRepo)) {
+    for (const [bucket, rows] of Object.entries(selectWorktreesByRepo(state))) {
       this.replaceBucket(bucket, rows)
     }
     for (const key of Object.keys(state.restoredRuntimeHostIdByWorkspaceSessionKey ?? {})) {
@@ -205,10 +206,10 @@ export class SessionRoutingCatalog {
       }
     }
     for (const bucket of discovery.changes.get('worktreesByRepo') ?? []) {
-      for (const owner of this.replaceBucket(bucket, state.worktreesByRepo[bucket] ?? [])) {
+      for (const owner of this.replaceBucket(bucket, selectWorktreesByRepo(state)[bucket] ?? [])) {
         changed.add(owner)
       }
-      if (!Object.hasOwn(state.worktreesByRepo, bucket)) {
+      if (!Object.hasOwn(selectWorktreesByRepo(state), bucket)) {
         this.order.write('worktreesByRepo', bucket, false)
       }
     }
