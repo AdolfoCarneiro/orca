@@ -1,3 +1,11 @@
+import type {
+  CrewSetupFact,
+  RuntimeEnvironmentSetupFailure
+} from '../../shared/runtime-environment-subscription-setup'
+
+export type SshConnectDecision = Extract<CrewSetupFact, { kind: 'ssh' }>['decision']
+export type SshSessionStartObserver = (failure: RuntimeEnvironmentSetupFailure) => void
+
 // Errors from opening the SSH session itself, so a setup that never reached the host is not called a server failure.
 const sessionStartFailures = new WeakSet<object>()
 

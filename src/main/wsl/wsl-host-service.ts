@@ -3,6 +3,7 @@
  * Add/Connect, or when the user switches to one of its workspaces. After a confirmed stop the host is
  * parked: polls and visible work keep it down until the user acts or the distro runs again.
  */
+import { assertWslHostRunAllowed, wslHostRuntimeCallGuard } from './wsl-host-gate'
 import { focusReachability } from './wsl-host-focus-reachability'
 import { rethrowRetryable, settlingConnectFailure } from './wsl-host-connect-failure'
 import type { WslHostDeploymentRecord } from '../../shared/wsl-host-deployment-store'
@@ -24,7 +25,6 @@ import {
   sameWslDistro,
   wslHostNotConnectedMessage,
   wslHostStoppedMessage,
-  WSL_HOST_REMOVING_MESSAGE,
   wslHostRunRefusal
 } from './wsl-host-add-admission'
 import type { WslOrcadConnection } from './wsl-orcad-connection'
@@ -200,10 +200,7 @@ export class WslHostService {
     if (!record) {
       throw new Error('This server is not a WSL host.')
     }
-    const refusal = wslHostRunRefusal(this.deps)
-    if (refusal || this.removing.has(environmentId)) {
-      throw new Error(refusal?.message ?? WSL_HOST_REMOVING_MESSAGE)
-    }
+    assertWslHostRunAllowed(this.deps, this.removing, environmentId)
     admitConnectToPendingHost(this.deps.userDataPath(), record, withdrawPendingRemoval)
     this.wsl.forgetPairingFailures?.(environmentId)
     this.parked.delete(environmentId)
@@ -224,22 +221,19 @@ export class WslHostService {
     if (reachability === 'available') {
       return
     }
-    const refusal = wslHostRunRefusal(this.deps)
-    if (refusal || this.removing.has(environmentId)) {
-      throw new Error(refusal?.message ?? WSL_HOST_REMOVING_MESSAGE)
-    }
+    assertWslHostRunAllowed(this.deps, this.removing, environmentId)
     // A pending host never reconnects for a runtime call.
     admitConnectToPendingHost(this.deps.userDataPath(), record, false)
     if (reachability === 'stopped') {
       this.parked.add(environmentId)
     }
     if (this.parked.has(environmentId)) {
-      throw new Error(wslHostStoppedMessage(record.distro))
+      throw wslHostRuntimeCallGuard(wslHostStoppedMessage(record.distro), 'parked')
     }
     // Unconfirmed (running list unreadable, or possibly stale right after an exit) or not
     // visible: refuse rather than risk a boot; liveness publishes the verdict.
     if (reachability !== 'unreachable' || !this.visible.has(environmentId)) {
-      throw new Error(wslHostNotConnectedMessage(record.distro))
+      throw wslHostRuntimeCallGuard(wslHostNotConnectedMessage(record.distro), 'unavailable')
     }
     if (connector.isSettling(record.distro)) {
       throw settlingConnectFailure(record.distro)

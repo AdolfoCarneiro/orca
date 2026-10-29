@@ -1,3 +1,7 @@
+import {
+  runtimeEnvironmentSetupFailure,
+  type RuntimeEnvironmentSetupOutcome
+} from '../../../shared/runtime-environment-subscription-setup'
 import { sendRemoteRuntimeRequest } from '../../../shared/remote-runtime/remote-runtime-client'
 import {
   getPreferredPairedRuntimeConnection,
@@ -46,7 +50,7 @@ type ResumeRecoveryDependencies = {
   getConnectionManager: () => SshConnectionManager | null
   getManagerGeneration: () => number
   getTargetStore: () => ReturnType<typeof getSshTargetRegistryStore>
-  inFlight: Map<string, Promise<void>>
+  inFlight: Map<string, Promise<RuntimeEnvironmentSetupOutcome<void>>>
   ownershipGenerations: Map<string, number>
   probeTunnel?: OrcadManagedTunnelProbe
   targeting: OrcadManagedTunnelTargeting
@@ -140,13 +144,24 @@ export class OrcadManagedTunnelResumeRecovery {
       ownershipGeneration,
       managerGeneration,
       options
-    ).finally(() => {
-      if (this.dependencies.inFlight.get(environmentId) === operation) {
-        this.dependencies.inFlight.delete(environmentId)
-      }
-    })
+    )
+      .then<RuntimeEnvironmentSetupOutcome<void>, RuntimeEnvironmentSetupOutcome<void>>(
+        () => ({ ok: true, value: undefined }),
+        (error: unknown) => ({
+          ok: false,
+          failure: runtimeEnvironmentSetupFailure(error, 'managed-preparation')
+        })
+      )
+      .finally(() => {
+        if (this.dependencies.inFlight.get(environmentId) === operation) {
+          this.dependencies.inFlight.delete(environmentId)
+        }
+      })
     this.dependencies.inFlight.set(environmentId, operation)
-    await operation
+    const outcome = await operation
+    if (!outcome.ok) {
+      throw outcome.failure.error
+    }
   }
 
   private async reconnectAndRebuild(

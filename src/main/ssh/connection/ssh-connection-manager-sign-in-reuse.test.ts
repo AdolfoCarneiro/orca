@@ -1,3 +1,11 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { Store } from '../../persistence'
+import { SshConnectionStore } from './ssh-connection-store'
+import { OrcadManagedTunnelManager } from '../../managed-server/lifecycle/orcad-managed-tunnel-manager'
+import { createEnvironmentFromPairingOffer } from '../../../shared/runtime-environments'
+import { PAIRING_OFFER_VERSION } from '../../../shared/pairing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clientInstances,
@@ -5,9 +13,14 @@ import {
   eventHandlers,
   ssh2Mock
 } from '../__tests__/ssh-connection-test-client'
-import { resetSshConnectionMocks } from './ssh-connection-test-harness'
+import {
+  resetSshConnectionMocks,
+  nextSshClientCreation,
+  advanceToNextSshClient
+} from './ssh-connection-test-harness'
 import { createCallbacks, createTarget } from './ssh-connection-test-fixtures'
 import { SshConnectionManager } from './ssh-connection-manager'
+import type { SshConnectionCallbacks } from './ssh-connection-callbacks'
 import {
   recordSshCredentialDeclined,
   resetSshCredentialDeclinesForTests
@@ -55,7 +68,9 @@ function lastConnectPassword(): unknown {
 }
 
 describe('SshConnectionManager on a password host', () => {
-  const onCredentialRequest = vi.fn(async () => 'hunter2')
+  const onCredentialRequest = vi.fn<NonNullable<SshConnectionCallbacks['onCredentialRequest']>>(
+    async () => 'hunter2'
+  )
   let manager: SshConnectionManager
 
   beforeEach(async () => {
@@ -71,7 +86,184 @@ describe('SshConnectionManager on a password host', () => {
   })
 
   afterEach(async () => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
     await manager.disconnectAll()
+  })
+
+  it('reports the actual submitted-password stop and busy attempt without changing their errors', async () => {
+    await manager.disconnect('target-1')
+    onCredentialRequest.mockResolvedValueOnce('incorrect-fixture-password')
+    const refused = authFailure()
+    ssh2Mock.connectSequence = [authFailure(), refused]
+    const observed = vi.fn()
+    await expect(manager.connect(createTarget(), undefined, observed)).rejects.toBe(refused)
+    expect(observed).toHaveBeenCalledExactlyOnceWith({
+      error: refused,
+      fact: { kind: 'ssh', decision: 'stopped' }
+    })
+    expect(onCredentialRequest).toHaveBeenCalledTimes(2)
+    expect(manager.hasCachedCredential(createTarget())).toBe(false)
+    expect(manager.getConnection('target-1')).toBeUndefined()
+
+    const answer = Promise.withResolvers<string | null>()
+    onCredentialRequest.mockImplementationOnce(() => answer.promise)
+    ssh2Mock.connectSequence = [authFailure()]
+    const pending = manager.connect(createTarget())
+    const pendingResult = expect(pending).rejects.toThrow()
+    await vi.waitFor(() => expect(onCredentialRequest).toHaveBeenCalledTimes(3))
+    const busy = vi.fn()
+    await expect(manager.connect(createTarget(), undefined, busy)).rejects.toThrow(
+      'already in progress'
+    )
+    expect(busy.mock.calls[0][0].fact).toEqual({ kind: 'ssh', decision: 'busy' })
+    answer.resolve(null)
+    await pendingResult
+  })
+
+  it('keeps concurrent decisions on the operation when the exact same Error is reused', async () => {
+    await manager.disconnect('target-1')
+    vi.useFakeTimers()
+    const reused: Error & { code?: string } = new Error('untyped external startup failure')
+    const release = Promise.withResolvers<void>()
+    const cleaned = Promise.withResolvers<void>()
+    const originalClose = manager.disconnectConnection.bind(manager)
+    vi.spyOn(manager, 'disconnectConnection').mockImplementationOnce(async (...args) => {
+      await originalClose(...args)
+      cleaned.resolve()
+      await release.promise
+    })
+    ssh2Mock.connectSequence = [reused]
+    const firstObservation = vi.fn()
+    const firstCreated = nextSshClientCreation()
+    const first = manager.connect(createTarget(), undefined, firstObservation)
+    const firstResult = expect(first).rejects.toBe(reused)
+    await firstCreated
+    await vi.advanceTimersByTimeAsync(1)
+    await cleaned.promise
+    expect(firstObservation).not.toHaveBeenCalled()
+    reused.code = 'ECONNREFUSED'
+    ssh2Mock.connectSequence = Array.from({ length: 5 }, () => reused)
+    const secondObservation = vi.fn()
+    const secondCreated = nextSshClientCreation()
+    const second = manager.connect(createTarget({ id: 'target-2' }), undefined, secondObservation)
+    const secondResult = expect(second).rejects.toBe(reused)
+    await secondCreated
+    await vi.advanceTimersByTimeAsync(1)
+    for (let retry = 0; retry < 4; retry++) {
+      await advanceToNextSshClient(2_000)
+    }
+    await secondResult
+    expect(secondObservation).toHaveBeenCalledExactlyOnceWith({
+      error: reused,
+      fact: { kind: 'ssh', decision: 'exhausted-transient' }
+    })
+    release.resolve()
+    await firstResult
+    expect(firstObservation).toHaveBeenCalledExactlyOnceWith({
+      error: reused,
+      fact: { kind: 'ssh', decision: 'stopped' }
+    })
+    expect(manager.getConnection('target-1')).toBeUndefined()
+    expect(manager.getConnection('target-2')).toBeUndefined()
+    delete reused.code
+    ssh2Mock.connectSequence = [reused]
+    const sequentialObservation = vi.fn()
+    const sequentialCreated = nextSshClientCreation()
+    const sequential = manager.connect(createTarget(), undefined, sequentialObservation)
+    const sequentialResult = expect(sequential).rejects.toBe(reused)
+    await sequentialCreated
+    await vi.advanceTimersByTimeAsync(1)
+    await sequentialResult
+    expect(sequentialObservation).toHaveBeenCalledExactlyOnceWith({
+      error: reused,
+      fact: { kind: 'ssh', decision: 'stopped' }
+    })
+  })
+
+  it('carries the default-started shared build through its existing single joined retry', async () => {
+    await manager.disconnect('target-1')
+    const root = mkdtempSync(join(tmpdir(), 'orca-D2-tunnel-owner-'))
+    const target = createTarget({ generation: 7, orcadFence: { environmentId: 'environment-1' } })
+    const targetStore = new SshConnectionStore(
+      new Store({ dataFile: join(root, 'state.json'), serializedState: '{}' })
+    )
+    vi.spyOn(targetStore, 'getTarget').mockReturnValue(target)
+    const tunnels = new OrcadManagedTunnelManager({
+      getConnectionManager: () => manager,
+      getTargetStore: () => targetStore
+    })
+    const environment = {
+      ...createEnvironmentFromPairingOffer({
+        id: 'environment-1',
+        name: 'Builder',
+        now: 1,
+        connectionDependency: 'ssh-tunnel',
+        offer: {
+          v: PAIRING_OFFER_VERSION,
+          endpoint: 'ws://127.0.0.1:42000',
+          deviceToken: 'fixture',
+          publicKeyB64: 'fixture'
+        }
+      }),
+      orcadDeployment: {
+        sshTargetId: target.id,
+        sshTargetGeneration: 7,
+        localPort: 42000,
+        remotePort: 6768
+      }
+    }
+    const firstFailure = new Error('first untyped owner stop')
+    const finalFailure = new Error('final untyped owner stop')
+    ssh2Mock.connectSequence = ['silent', 'silent']
+    try {
+      const firstCreated = nextSshClientCreation()
+      const ordinary = tunnels.ensure(environment)
+      const ordinaryResult = expect(ordinary).rejects.toBe(firstFailure)
+      await firstCreated
+      const firstClient = clientInstances.at(-1)!
+      const observe = vi.fn()
+      const crew = tunnels.ensure(environment, () => environment, true, observe)
+      const crewResult = expect(crew).rejects.toBe(finalFailure)
+      const replacementCreated = nextSshClientCreation()
+      firstClient.emit('error', firstFailure)
+      await ordinaryResult
+      await replacementCreated
+      expect(observe).not.toHaveBeenCalled()
+      clientInstances.at(-1)!.emit('error', finalFailure)
+      await crewResult
+      expect(observe).toHaveBeenCalledExactlyOnceWith({
+        error: finalFailure,
+        fact: { kind: 'ssh', decision: 'stopped' }
+      })
+      expect(manager.getConnection(target.id)).toBeUndefined()
+    } finally {
+      await tunnels.shutdown()
+      tunnels.dispose()
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('preserves the stopped primary observation through actual startup cleanup failure', async () => {
+    await manager.disconnect('target-1')
+    const startup = new Error('untyped primary failure')
+    const cleanup = new Error('cleanup failed')
+    vi.spyOn(manager, 'disconnectConnection').mockRejectedValueOnce(cleanup)
+    ssh2Mock.connectSequence = [startup]
+    const observe = vi.fn()
+    const result: unknown = await manager
+      .connect(createTarget(), undefined, observe)
+      .catch((error: unknown) => error)
+    expect(result).toBeInstanceOf(AggregateError)
+    if (!(result instanceof AggregateError)) {
+      throw new Error('Expected startup/cleanup aggregate')
+    }
+    expect(result.errors).toEqual([startup, cleanup])
+    expect(result.message).toBe('ssh_connection_startup_cleanup_failed')
+    expect(observe).toHaveBeenCalledExactlyOnceWith({
+      error: result,
+      fact: { kind: 'ssh', decision: 'stopped' }
+    })
   })
 
   it('does not ask again when a background dial lands while the dropped connection reconnects', async () => {

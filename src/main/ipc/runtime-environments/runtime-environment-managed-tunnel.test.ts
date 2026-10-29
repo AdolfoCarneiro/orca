@@ -1,4 +1,15 @@
+import type * as RuntimeEnvironmentStore from '../../../shared/runtime-environment-store'
+import { subscribeRuntimeEnvironment } from './runtime-environment-transport-routing'
+import { EventEmitter } from 'node:events'
+import {
+  registerRuntimeEnvironmentSubscriptionHandlers,
+  type PendingRuntimeSubscription,
+  type RetainedRemoteRuntimeSubscription
+} from './runtime-environment-subscription-handlers'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEnvironmentFromPairingOffer } from '../../../shared/runtime-environments'
+import { PAIRING_OFFER_VERSION } from '../../../shared/pairing'
+import { PromiseSettlementWaiters } from '../../../shared/promise-settlement-waiters'
 import type * as ServingModule from '../../managed-server/lifecycle/orcad-managed-serving'
 import type { ManagedOrcadStartListener } from '../../managed-server/lifecycle/orcad-managed-serving'
 import type { SshTarget } from '../../../shared/ssh-types'
@@ -13,6 +24,9 @@ const mocks = vi.hoisted(() => {
     ensureForRuntimeCall: vi.fn(async () => {}),
     requireRunningWithoutStart: vi.fn(async () => {}),
     hasWslService: true,
+    rawSubscribe: vi.fn(),
+    handle: vi.fn(),
+    on: vi.fn(),
     ensureTunnel: vi.fn(async () => {}),
     rebuildTunnel: vi.fn(async () => {}),
     verify: vi.fn(),
@@ -24,7 +38,15 @@ const mocks = vi.hoisted(() => {
   }
 })
 
-vi.mock('../../../shared/runtime-environment-store', () => ({
+vi.mock('electron', () => ({
+  BrowserWindow: { getAllWindows: () => [] },
+  ipcMain: { handle: mocks.handle, on: mocks.on }
+}))
+vi.mock('../../../shared/remote-runtime/remote-runtime-client', () => ({
+  subscribeRemoteRuntimeRequest: mocks.rawSubscribe
+}))
+vi.mock('../../../shared/runtime-environment-store', async (importOriginal) => ({
+  ...(await importOriginal<typeof RuntimeEnvironmentStore>()),
   resolveEnvironment: (_userData: string, id: string) => {
     const environment = mocks.environments[id]
     if (!environment) {
@@ -260,4 +282,194 @@ describe('a managed server start shown on the status line', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(mocks.forgetVerdict).not.toHaveBeenCalled()
   })
+})
+
+describe('crew waits at the actual managed preparation/routing boundary', () => {
+  beforeEach(() => {
+    mocks.ensureTunnel.mockReset().mockResolvedValue(undefined)
+    mocks.rawSubscribe.mockReset()
+    mocks.verify.mockResolvedValue({ state: 'serving' })
+    mocks.restoreUpdate.mockReset().mockResolvedValue(undefined)
+  })
+
+  it('preserves the actual readonly AbortError on the ordinary subscription hint path', async () => {
+    mocks.environments = {
+      plain: createEnvironmentFromPairingOffer({
+        id: 'plain',
+        name: 'Paired',
+        now: 1,
+        offer: {
+          v: PAIRING_OFFER_VERSION,
+          endpoint: 'ws://127.0.0.1:42000',
+          deviceToken: 'fixture',
+          publicKeyB64: 'fixture'
+        }
+      })
+    }
+    const abort = new DOMException('The operation was aborted.', 'AbortError')
+    mocks.rawSubscribe.mockRejectedValueOnce(abort)
+    await expect(
+      subscribeRuntimeEnvironment('/u', 'plain', 'orchestration.crewSubscribe', {}, undefined, {
+        onEvent: vi.fn(),
+        onClose: vi.fn()
+      })
+    ).rejects.toBe(abort)
+    expect(abort.name).toBe('AbortError')
+    expect(abort.message).toBe('The operation was aborted.')
+    const remote = new Map<string, RetainedRemoteRuntimeSubscription>()
+    const pending = new Map<string, PendingRuntimeSubscription>()
+    mocks.handle.mockClear()
+    registerRuntimeEnvironmentSubscriptionHandlers({
+      getUserDataPath: () => '/u',
+      remoteRuntimeSubscriptions: remote,
+      pendingSubscriptions: pending,
+      recordLayoutFrame: vi.fn()
+    })
+    const sender = Object.assign(new EventEmitter(), {
+      id: 101,
+      mainFrame: { detached: false },
+      isDestroyed: () => false,
+      send: vi.fn()
+    })
+    const subscribe = mocks.handle.mock.calls.find(
+      ([channel]) => channel === 'runtimeEnvironments:subscribe'
+    )![1]
+    mocks.rawSubscribe.mockRejectedValueOnce(abort)
+    await expect(
+      subscribe(
+        { sender, senderFrame: sender.mainFrame },
+        {
+          selector: 'plain',
+          method: 'orchestration.crewSubscribe',
+          subscriptionId: 'lower-abort',
+          setupResult: 'crew',
+          expectedEnvironmentPairingRevision: 1,
+          expectedEnvironmentRuntimeId: null
+        }
+      )
+    ).resolves.toEqual({
+      subscriptionId: 'lower-abort',
+      ok: false,
+      failure: { message: abort.message, fact: { kind: 'operation', operation: 'subscription' } }
+    })
+    expect(pending.size).toBe(0)
+    expect(remote.size).toBe(0)
+    expect(sender.eventNames()).toEqual([])
+  })
+
+  it.each(['resolve', 'reject'] as const)(
+    'retires N/10N removable waits before shared preparation can %s',
+    async (settlement) => {
+      const waits: InstanceType<typeof PromiseSettlementWaiters>[] = []
+      const wait = PromiseSettlementWaiters.prototype.wait
+      const waitSpy = vi
+        .spyOn(PromiseSettlementWaiters.prototype, 'wait')
+        .mockImplementation(function (this: PromiseSettlementWaiters<unknown>, options) {
+          waits.push(this)
+          return wait.call(this, options)
+        })
+      try {
+        for (const count of [1, 10]) {
+          waits.length = 0
+          mocks.rawSubscribe.mockReset()
+          mocks.ensureTunnel.mockReset()
+          const held = Promise.withResolvers<void>()
+          mocks.ensureTunnel.mockReturnValue(held.promise)
+          mocks.environments = {
+            crew: {
+              ...createEnvironmentFromPairingOffer({
+                id: 'crew',
+                name: 'Builder',
+                now: 1,
+                connectionDependency: 'ssh-tunnel',
+                offer: {
+                  v: PAIRING_OFFER_VERSION,
+                  endpoint: 'ws://127.0.0.1:42000',
+                  deviceToken: 'fixture',
+                  publicKeyB64: 'fixture'
+                }
+              }),
+              orcadDeployment: {
+                sshTargetId: 'ssh-1',
+                sshTargetGeneration: 1,
+                localPort: 42000,
+                remotePort: 6768
+              }
+            }
+          }
+          const remote = new Map<string, RetainedRemoteRuntimeSubscription>()
+          const pendingOwners = new Map<string, PendingRuntimeSubscription>()
+          mocks.handle.mockClear()
+          registerRuntimeEnvironmentSubscriptionHandlers({
+            getUserDataPath: () => '/u',
+            remoteRuntimeSubscriptions: remote,
+            pendingSubscriptions: pendingOwners,
+            recordLayoutFrame: vi.fn()
+          })
+          const sender = Object.assign(new EventEmitter(), {
+            id: 100,
+            mainFrame: { detached: false },
+            isDestroyed: () => false,
+            send: vi.fn()
+          })
+          const subscribe = mocks.handle.mock.calls.find(
+            ([channel]) => channel === 'runtimeEnvironments:subscribe'
+          )![1]
+          const cancel = mocks.handle.mock.calls.find(
+            ([channel]) => channel === 'runtimeEnvironments:unsubscribe'
+          )![1]
+          const pending = Array.from({ length: count }, (_, index) =>
+            subscribe(
+              { sender, senderFrame: sender.mainFrame },
+              {
+                selector: 'crew',
+                method: 'orchestration.crewSubscribe',
+                subscriptionId: `crew-${index}`,
+                setupResult: 'crew',
+                expectedEnvironmentPairingRevision: 1,
+                expectedEnvironmentRuntimeId: null
+              }
+            )
+          )
+          expect(mocks.ensureTunnel).toHaveBeenCalledTimes(count)
+          expect(pendingOwners.size).toBe(count)
+          expect(remote.size).toBe(0)
+          expect(waits).toHaveLength(count)
+          expect(waits.reduce((total, owner) => total + owner.waiterCount, 0)).toBe(count)
+          expect(sender.listenerCount('did-navigate')).toBe(1)
+          for (let index = 0; index < count; index++) {
+            expect(cancel({ sender }, { subscriptionId: `crew-${index}` })).toEqual({
+              unsubscribed: true
+            })
+          }
+          const outcomes = await Promise.all(pending)
+          expect(outcomes).toEqual(
+            Array.from({ length: count }, (_, index) => ({
+              subscriptionId: `crew-${index}`,
+              ok: false,
+              failure: { message: expect.any(String), fact: { kind: 'cancelled' } }
+            }))
+          )
+          expect(pendingOwners.size).toBe(0)
+          expect(remote.size).toBe(0)
+          expect(sender.eventNames()).toEqual([])
+          expect(waits.reduce((total, owner) => total + owner.waiterCount, 0)).toBe(0)
+          expect(mocks.rawSubscribe).not.toHaveBeenCalled()
+          // The N async preparation wrappers are still held; cancellation does not cancel that work.
+          if (settlement === 'resolve') {
+            held.resolve()
+          } else {
+            held.reject(new Error('late shared failure'))
+          }
+          await Promise.all(waits.map((owner) => owner.promise.catch(() => undefined)))
+          expect(mocks.rawSubscribe).not.toHaveBeenCalled()
+          expect(sender.send).not.toHaveBeenCalled()
+          expect(mocks.ensureTunnel).toHaveBeenCalledTimes(count)
+        }
+      } finally {
+        waitSpy.mockRestore()
+        mocks.ensureTunnel.mockReset().mockResolvedValue(undefined)
+      }
+    }
+  )
 })

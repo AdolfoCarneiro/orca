@@ -317,17 +317,45 @@ describe.each(['orcadDeployment', 'sshAccess'] as const)(
       }
     )
 
+    it('preserves missing dependency and unavailable services as different actual guards', async () => {
+      const state = setup()
+      const missing = state.manager.ensure({ ...environment(), connectionDependency: undefined })
+      await expect(missing).rejects.toMatchObject({
+        name: 'Error',
+        setupFact: { kind: 'binding', reason: 'missing-dependency' }
+      })
+      const unavailable = new OrcadManagedTunnelManager({
+        getConnectionManager: () => null,
+        getTargetStore: () => null
+      })
+      const result = unavailable.ensure(environment())
+      await expect(result).rejects.toMatchObject({
+        name: 'Error',
+        setupFact: { kind: 'binding', reason: 'services-unavailable' }
+      })
+      expect(state.connect).not.toHaveBeenCalled()
+      unavailable.dispose()
+    })
+
     it('fails closed when the SSH registration generation changed', async () => {
       const state = setup({ generation: 8 })
 
-      await expect(state.manager.ensure(environment())).rejects.toThrow('removed or re-created')
+      const result = state.manager.ensure(environment())
+      await expect(result).rejects.toThrow('removed or re-created')
+      await expect(result).rejects.toMatchObject({
+        setupFact: { kind: 'binding', reason: 'registration-changed' }
+      })
       expect(state.connect).not.toHaveBeenCalled()
     })
 
     it('fails closed when another environment owns the target', async () => {
       const state = setup({ orcadFence: { environmentId: 'environment-2' } })
 
-      await expect(state.manager.ensure(environment())).rejects.toThrow('no longer owned')
+      const result = state.manager.ensure(environment())
+      await expect(result).rejects.toThrow('no longer owned')
+      await expect(result).rejects.toMatchObject({
+        setupFact: { kind: 'binding', reason: 'wrong-owner' }
+      })
       expect(state.connect).not.toHaveBeenCalled()
     })
 
