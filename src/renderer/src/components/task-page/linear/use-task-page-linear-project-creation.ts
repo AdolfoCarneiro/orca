@@ -73,15 +73,16 @@ export function useTaskPageLinearProjectCreation(model: TaskPageGitHubIssueCreat
         )
         return
       }
+      const projectUrl = result.project.url
       toast.success(
         translate('auto.components.TaskPage.cb98f0350c', 'Created {{value0}}', {
           value0: result.project.name
         }),
         {
-          action: result.project.url
+          action: projectUrl
             ? {
                 label: translate('auto.components.TaskPage.9c57663908', 'View'),
-                onClick: () => openAppHttpLink(result.project.url)
+                onClick: () => openAppHttpLink(projectUrl)
               }
             : undefined
         }
