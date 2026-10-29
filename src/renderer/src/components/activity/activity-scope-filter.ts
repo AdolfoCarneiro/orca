@@ -1,7 +1,9 @@
 import { projectRepoFilterMatcher } from '../../../../shared/project-grouping'
-import { getRepoExecutionHostId } from '../../../../shared/execution-host'
-import type { ExecutionHostId } from '../../../../shared/execution-host'
-import { getWorktreeExecutionHostId } from '../../../../shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  getWorktreeExecutionHostId,
+  type ExecutionHostId
+} from '../../../../shared/execution-host'
 import type { Repo } from '../../../../shared/repo-types'
 import {
   isAutomationGeneratedWorkspace,

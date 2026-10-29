@@ -54,7 +54,12 @@ export function getProjectHeaderHostContexts(args: {
     )
   const hostsByProjectKey = new Map<string, Set<ExecutionHostId>>()
   for (const repo of args.repoMap.values()) {
-    const key = getProjectGroupingForRepo(repo.id, args.repoMap, projectIndex).key
+    const key = getProjectGroupingForRepo(
+      repo.id,
+      args.repoMap,
+      projectIndex,
+      getRepoExecutionHostId(repo)
+    ).key
     const hostId = repoHostId(repo)
     const projectHosts = hostsByProjectKey.get(key) ?? new Set<ExecutionHostId>()
     projectHosts.add(hostId)

@@ -1,4 +1,9 @@
 import {
+  buildProjectGroups,
+  type GroupingSetup,
+  type ProjectGroupingSettings
+} from '../../../../shared/project-grouping'
+import {
   getRepoDisplayLabelKey,
   getRepoDisplayLabelsByPath
 } from '../../../../shared/repo-display-labels'
@@ -50,6 +55,7 @@ function toFilterOption({
 }
 
 export type PaletteFilterModel = {
+  membersByProjectKey?: ReadonlyMap<string, readonly GroupingSetup[]>
   hosts: readonly PaletteFilterOption[]
   repositories: readonly PaletteFilterOption[]
   /** Repository IDs represented by each project row in the sidebar grouping. */
@@ -94,7 +100,12 @@ function buildRepoIdsByProjectKey(
 ): Map<string, string[]> {
   const repoIdsByProjectKey = new Map<string, string[]>()
   for (const repo of repos) {
-    const target = getProjectHeaderRevealTarget(repo.id, repoById, grouping)
+    const target = getProjectHeaderRevealTarget(
+      repo.id,
+      repoById,
+      grouping,
+      getRepoExecutionHostId(repo)
+    )
     if (!target.repo) {
       continue
     }
@@ -114,6 +125,7 @@ export function buildPaletteFilterModel({
   hostOptions,
   projects,
   projectHostSetups,
+  settings,
   defaultHostId = LOCAL_EXECUTION_HOST_ID
 }: {
   repos: readonly Repo[]
@@ -121,13 +133,15 @@ export function buildPaletteFilterModel({
   hostOptions: readonly SidebarHostOption[]
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
+  settings?: ProjectGroupingSettings | null
   defaultHostId?: ExecutionHostId
 }): PaletteFilterModel {
   const repoById = new Map(repos.map((repo) => [repo.id, repo]))
   const hostIdsByRepoId = buildRepoHostIndex(repos, defaultHostId)
   const repoIdsByProjectKey = buildRepoIdsByProjectKey([...repoById.values()], repoById, {
     projects,
-    projectHostSetups
+    projectHostSetups,
+    settings
   })
 
   const worktreeCountByHostId = new Map<string, number>()
@@ -181,6 +195,12 @@ export function buildPaletteFilterModel({
     hosts,
     repositories,
     repoIdsByProjectKey,
+    membersByProjectKey: new Map(
+      buildProjectGroups({ projects, projectHostSetups }, settings).map((group) => [
+        group.key,
+        group.members
+      ])
+    ),
     hostIdsByRepoId,
     repoById,
     defaultHostId,

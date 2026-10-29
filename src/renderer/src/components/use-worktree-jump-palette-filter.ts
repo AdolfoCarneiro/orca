@@ -84,9 +84,10 @@ export function useWorktreeJumpPaletteFilter({
         hostOptions,
         projects,
         projectHostSetups,
+        settings,
         defaultHostId
       }),
-    [workspaces, defaultHostId, hostOptions, projectHostSetups, projects, repos]
+    [workspaces, defaultHostId, hostOptions, projectHostSetups, projects, repos, settings]
   )
   const filterActive = isPaletteFilterActive(filter)
   const hostFilterActive = filter.hostIds.length > 0

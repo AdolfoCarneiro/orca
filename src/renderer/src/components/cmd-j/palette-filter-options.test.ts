@@ -76,6 +76,29 @@ describe('buildPaletteFilterModel', () => {
     expect(model.repositories[0]?.searchText).toContain(path.join('/repos', 'r1'))
   })
 
+  it('keeps host-scoped project rows and filters distinct when checkout ids repeat', () => {
+    const local = setup('local-copy', 'p1', 'local', 'r1')
+    const remote = setup('remote-copy', 'p1', 'runtime:server', 'r1')
+    const model = buildPaletteFilterModel({
+      repos: [repos[0], { ...repos[0], executionHostId: 'runtime:server' }],
+      worktrees: [],
+      hostOptions,
+      projects,
+      projectHostSetups: [local, remote],
+      settings: { projectGroupingMode: 'host' }
+    })
+    const predicate = buildPaletteFilterPredicate(
+      { hostIds: [], repoIds: ['r1', 'runtime:server\0r1'] },
+      model
+    )
+    expect(predicate?.matchesProjectRowKey('project:p1::host:local::local::default')).toBe(false)
+    expect(
+      predicate?.matchesProjectRowKey('project:p1::host:runtime:server::runtime:server::default')
+    ).toBe(true)
+    expect(predicate?.matchesWorktree({ repoId: 'r1', hostId: 'local' })).toBe(false)
+    expect(predicate?.matchesWorktree({ repoId: 'r1', hostId: 'runtime:server' })).toBe(true)
+  })
+
   it('counts a worktree against its own host stamp, not its repo host', () => {
     const model = buildModel([
       worktree('w1', 'r1'),

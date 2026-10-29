@@ -1,3 +1,4 @@
+import { projectRepoFilterMatcher } from '../../../../shared/project-grouping'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { getVisibleWorkspaceHostIdSet } from '../sidebar/visible-worktree-host-scope'
@@ -126,6 +127,7 @@ export function buildPaletteFilterPredicate(
         )
       : null
   const selectedRepoIds = filter.repoIds.length > 0 ? new Set(filter.repoIds) : null
+  const matchesRepo = projectRepoFilterMatcher(filter.repoIds)
   const repoMatchesSelectedHost = (repoId: string): boolean => {
     if (!selectedHostIds) {
       return true
@@ -144,6 +146,14 @@ export function buildPaletteFilterPredicate(
 
   return {
     matchesProjectRowKey: (rowKey) => {
+      const members = model.membersByProjectKey?.get(rowKey)
+      if (members) {
+        return members.some(
+          (member) =>
+            matchesRepo(member.repoId, member.hostId) &&
+            (!selectedHostIds || selectedHostIds.has(member.hostId))
+        )
+      }
       const rowRepoIds = model.repoIdsByProjectKey.get(rowKey) ?? []
       return rowRepoIds.some(
         (repoId) =>
@@ -151,7 +161,12 @@ export function buildPaletteFilterPredicate(
       )
     },
     matchesWorktree: (worktree) => {
-      if (selectedRepoIds && !selectedRepoIds.has(worktree.repoId)) {
+      if (
+        !matchesRepo(
+          worktree.repoId,
+          resolveWorktreeFilterHostId(worktree, model.repoById, model.defaultHostId)
+        )
+      ) {
         return false
       }
       if (!selectedHostIds) {

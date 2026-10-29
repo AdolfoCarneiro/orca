@@ -1,3 +1,4 @@
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import type { ProjectGroupingSettings } from '../../../../shared/project-grouping'
 import { isCmdJPaletteQueryTooLarge } from './palette-results'
 import {
@@ -101,7 +102,12 @@ function buildCmdJProjectSearchCandidates({
     if (renderableRepoIds && !renderableRepoIds.has(repo.id)) {
       return
     }
-    const target = getProjectHeaderRevealTarget(repo.id, repoMap, projectGrouping)
+    const target = getProjectHeaderRevealTarget(
+      repo.id,
+      repoMap,
+      projectGrouping,
+      getRepoExecutionHostId(repo)
+    )
     if (!target.repo || seenRowKeys.has(target.key)) {
       return
     }

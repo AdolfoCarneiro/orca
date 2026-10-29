@@ -147,9 +147,15 @@ export function getProjectGroupingForRepo<
 export function getProjectHeaderRevealTarget(
   repoId: string,
   repoMap: Map<string, Repo>,
-  projectGrouping?: ProjectGroupingModel
+  projectGrouping?: ProjectGroupingModel,
+  hostId?: string
 ): ProjectHeaderRevealTarget {
-  return getProjectGroupingForRepo(repoId, repoMap, buildProjectGroupingIndex(projectGrouping))
+  return getProjectGroupingForRepo(
+    repoId,
+    repoMap,
+    buildProjectGroupingIndex(projectGrouping),
+    hostId
+  )
 }
 
 /** Actual membership, independent of where a lineage occurrence is displayed. */

@@ -1,3 +1,4 @@
+import { getWorktreeExecutionHostId } from '../execution-host'
 import type { FolderWorkspace } from '../folder-workspace-types'
 import type { ProjectGroup } from '../project-group-types'
 import type { Repo } from '../repo-types'
@@ -128,7 +129,12 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
     isPinned: (worktree) => worktree.isPinned === true,
     duplicatePinned: pinnedDisplayPolicy === 'duplicate-in-groups',
     owningSectionOf: (worktree) =>
-      getProjectGroupingForRepo(worktree.repoId, repoMap, projectIndex),
+      getProjectGroupingForRepo(
+        worktree.repoId,
+        repoMap,
+        projectIndex,
+        getWorktreeExecutionHostId(worktree, repoOf(worktree))
+      ),
     projectIdOf: (worktree) => worktree.repoId,
     sectionsOf: ({ pinned, natural, displayRootByIdentity }) => {
       const groups: OrderedGroupEntry[] =

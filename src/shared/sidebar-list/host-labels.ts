@@ -89,7 +89,7 @@ export function getNoticeHostContextLabels(
     if (!label) {
       continue
     }
-    const projectKey = getProjectGroupingForRepo(repoId, repoMap, projectIndex).projectId ?? repoId
+    const projectKey = getProjectGroupingForRepo(repoId, repoMap, projectIndex).key
     const hostId = projectIndex?.setupByRepoId.get(repoId)?.hostId ?? getRepoHostId(repoId, repoMap)
     if (hostId) {
       const hostIds = hostIdsForProject.get(projectKey) ?? new Set<string>()
