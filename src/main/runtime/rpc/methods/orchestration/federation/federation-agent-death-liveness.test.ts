@@ -69,10 +69,10 @@ describe('federation host agent-death liveness', () => {
   afterEach(() => db.close())
 
   async function call(name: string) {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((candidate) => candidate.name === name)
-    if (!method) {
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (candidate) => candidate.name === name
+    )
+    if (!method || isStreamingMethod(method)) {
       throw new Error(`Method not found: ${name}`)
     }
     const params =

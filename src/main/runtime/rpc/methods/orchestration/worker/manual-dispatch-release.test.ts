@@ -180,10 +180,10 @@ describe('manual Dispatch release', () => {
   }
 
   async function call(name: string, params: Record<string, unknown>): Promise<unknown> {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((candidate) => candidate.name === name)
-    if (!method) {
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (candidate) => candidate.name === name
+    )
+    if (!method || isStreamingMethod(method)) {
       throw new Error(`Method not found: ${name}`)
     }
     return method.handler(method.params!.parse(params), { runtime })
@@ -231,9 +231,12 @@ describe('orchestration.workerAbandon', () => {
   }
 
   async function abandon(dispatchId: string, ctx: Partial<RpcContext>) {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((m) => m.name === 'orchestration.workerAbandon')!
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (m) => m.name === 'orchestration.workerAbandon'
+    )
+    if (!method || isStreamingMethod(method)) {
+      throw new Error('Method not found: orchestration.workerAbandon')
+    }
     return method.handler(method.params!.parse({ dispatch: dispatchId }), { runtime, ...ctx })
   }
 

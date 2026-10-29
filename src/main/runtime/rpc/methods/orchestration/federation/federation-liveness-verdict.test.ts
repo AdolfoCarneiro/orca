@@ -90,10 +90,10 @@ describe('federation host liveness verdicts', () => {
   afterEach(() => db.close())
 
   async function call(name: string, params: Record<string, unknown>) {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((candidate) => candidate.name === name)
-    if (!method) {
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (candidate) => candidate.name === name
+    )
+    if (!method || isStreamingMethod(method)) {
       throw new Error(`Method not found: ${name}`)
     }
     return method.handler(method.params!.parse(params), {
@@ -147,10 +147,10 @@ describe('federation host liveness verdicts', () => {
     })
     hostDb.markRemoteAttachmentReady(DISPATCH_ID)
     const callHost = async (name: string, params: Record<string, unknown>) => {
-      const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-        .filter((method) => !isStreamingMethod(method))
-        .find((candidate) => candidate.name === name)
-      if (!method) {
+      const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+        (candidate) => candidate.name === name
+      )
+      if (!method || isStreamingMethod(method)) {
         throw new Error(`Method not found: ${name}`)
       }
       return method.handler(method.params!.parse(params), {
