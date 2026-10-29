@@ -20,6 +20,10 @@ const args: CrewSubscriptionAttemptArgs = {
   expectedEnvironmentRuntimeId: 'rt',
   timeoutMs: 15_000
 }
+const legacyArgs: Parameters<PreloadApi['runtimeEnvironments']['subscribe']>[0] = {
+  ...args,
+  expectedEnvironmentRuntimeId: 'rt'
+}
 const environment: StoredWebRuntimeEnvironment = {
   id: 'host',
   name: 'Host',
@@ -104,7 +108,10 @@ describe('opt-in browser API and actual renderer attempt boundary', () => {
     })
     expect(CrewSocket.sockets).toHaveLength(0)
     await expect(
-      api.subscribe({ ...args, expectedEnvironmentPairingRevision: 2 }, { onResponse: vi.fn() })
+      api.subscribe(
+        { ...legacyArgs, expectedEnvironmentPairingRevision: 2 },
+        { onResponse: vi.fn() }
+      )
     ).rejects.toThrow('The paired Orca server changed')
     expect(observer).toHaveBeenCalledOnce()
   })
@@ -178,10 +185,10 @@ describe('opt-in browser API and actual renderer attempt boundary', () => {
   })
 
   it('preserves the default pending-ID and abort rejection contract through the actual API', async () => {
-    const ordinary = api.subscribe(args, { onResponse: vi.fn() })
+    const ordinary = api.subscribe(legacyArgs, { onResponse: vi.fn() })
     const rejected = expect(ordinary).rejects.toMatchObject({ name: 'AbortError' })
     const cancellation = api.cancelSubscription({ subscriptionId: 'crew' })
-    await expect(api.subscribe(args, { onResponse: vi.fn() })).rejects.toThrow(
+    await expect(api.subscribe(legacyArgs, { onResponse: vi.fn() })).rejects.toThrow(
       'Subscription id already exists'
     )
     await cancellation
@@ -312,7 +319,7 @@ describe('opt-in browser API and actual renderer attempt boundary', () => {
       const blockers = Array.from({ length: 8 }, () =>
         session.runtimeCallQueuePool.enqueue('host', 'test.hold', () => held.promise)
       )
-      const pending = []
+      const pending: ReturnType<typeof subscribe>[] = []
       for (let index = 0; index < count; index++) {
         pending.push(subscribe(args, { onResponse: vi.fn() }))
         void api.cancelSubscription({ subscriptionId: 'crew' })
