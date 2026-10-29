@@ -62,8 +62,6 @@ Never:
 - A `worker_done` settles its Task; never mark a reported failure completed.
 - When every worker has settled, report to the user per Task: outcome,
   evidence, open blockers.
-- Outside an Orca terminal or chat nothing wakes you: block with
-  `check --run <run_id> --wait --timeout-ms 540000` instead.
 - Lost track? `ORCA orchestration inbox --terminal run:<run_id> --limit 50 --full --json`
   shows mail `check` already handled.
 
