@@ -7126,7 +7126,13 @@
           "xcodeLicense": "Apple developer tools require license acceptance before Git can run.",
           "developerTools": "Apple command-line developer tools are missing or unavailable.",
           "architectureMismatch": "A Git-related executable could not run because its CPU architecture is incompatible with this execution host. Install Git and related tools for the host architecture.",
-          "copyDiagnostics": "Copy diagnostics"
+          "copyDiagnostics": "Copy diagnostics",
+          "wslStoppedTitle": "WSL distro {{value0}} is stopped",
+          "wslUnverifiableTitle": "Couldn't confirm WSL distro {{value0}} is running",
+          "wslRetained": "Showing the worktrees Orca already knew about. They refresh when Orca sees the distro running.",
+          "wslStartHint": "Open a terminal in this project to start it.",
+          "wslCheckAgain": "Check again",
+          "wslCheckAgainHint": "Click the icon to check again."
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Accept the Xcode license to use Git",

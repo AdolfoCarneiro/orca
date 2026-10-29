@@ -21,11 +21,16 @@ import { findExactRepoOwner, isCapturedRepoCurrent } from './worktree-host-owner
 import type { WorktreeIpcContext } from '../worktree-ipc-context'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { dropWorkspacesTheListingInvalidates } from '../../../persistence/restoring-sessions/invalid-workspace-layout-purge'
+import { notifyWatchedWorktreeCatalogChanged } from '../../watched-worktree-catalog-notification'
+import { setWslStoppedWorktreeRescanNotifier } from './wsl-stopped-worktree-listing'
 
 export const DETECTED_WORKTREE_PROVIDER_TIMEOUT_MS = 30_000
 
 export function registerDetectedWorktreeHandlers(context: WorktreeIpcContext): void {
   const { store, detectedWorktreeCancellations } = context
+  setWslStoppedWorktreeRescanNotifier((repoId) =>
+    notifyWatchedWorktreeCatalogChanged(context.mainWindow, repoId)
+  )
 
   ipcMain.handle(
     'worktrees:listDetected',

@@ -250,4 +250,6 @@ export type DetectedWorktreeListResult = {
   failureKind?: WorktreeScanFailureKind
   /** Which catalog this listing describes; additive, older hosts omit it. */
   catalogVersion?: WorktreeCatalogVersion
+  /** The repo's WSL distro is stopped or unverifiable, so rows are stored ones; additive, older hosts omit it. */
+  wslDistroStopped?: { distro: string; state: 'stopped' | 'unverifiable' }
 }
