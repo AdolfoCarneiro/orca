@@ -20433,6 +20433,7 @@
       "wslTranscriptFsProcessFailed": "Dosya sistemi yardımcı işlemi hata verdiği için WSL oturum dökümü dosyaları geçici olarak kullanılamıyor ({{detail}}). Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
       "wslDistroNotRunning": "'{{distro}}' WSL dağıtımı çalışmadığı için WSL oturum dökümü dosyaları kullanılamıyor. Dağıtımı başlatmak için içinde bir terminal açın.",
       "wslDistroUnverifiable": "WSL, '{{distro}}' dağıtımının çalışıp çalışmadığına yanıt vermediği için WSL oturum dökümü dosyaları kullanılamıyor. Kısa süre sonra yeniden deneyin.",
+      "wslSessionsFromLastScan": "WSL denetlenemedi; oturumlar son taramadan alındı.",
       "scopePathsTruncated": "Yalnızca ilk {{limit}} proje yolu tarandı.",
       "invalidResultsSkipped_one": "Ajan Oturum Geçmişi sonuçlarındaki {{count}} geçersiz girdi atlandı.",
       "invalidResultsSkipped_other": "Ajan Oturum Geçmişi sonuçlarındaki {{count}} geçersiz girdi atlandı.",

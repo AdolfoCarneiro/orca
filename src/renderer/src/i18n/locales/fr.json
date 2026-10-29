@@ -20983,6 +20983,7 @@
       "wslTranscriptFsProcessFailed": "Les fichiers de transcription WSL sont temporairement indisponibles, car le processus auxiliaire du système de fichiers a échoué ({{detail}}). Réessayez dans un instant ou redémarrez Orca si le problème persiste.",
       "wslDistroNotRunning": "Les fichiers de transcription WSL sont indisponibles, car la distro WSL « {{distro}} » n’est pas en cours d’exécution. Ouvrez-y un terminal pour la démarrer.",
       "wslDistroUnverifiable": "Les fichiers de transcription WSL sont indisponibles, car WSL n’a pas indiqué si « {{distro}} » est en cours d’exécution. Réessayez dans un instant.",
+      "wslSessionsFromLastScan": "Impossible de vérifier WSL ; ses sessions proviennent de la dernière analyse.",
       "scopePathsTruncated": "Seuls les {{limit}} premiers chemins de projet ont été analysés.",
       "invalidResultsSkipped_one": "{{count}} entrée de résultat invalide de l’historique des sessions d’agent ignorée.",
       "invalidResultsSkipped_other": "{{count}} entrées de résultat invalides de l’historique des sessions d’agent ignorées.",

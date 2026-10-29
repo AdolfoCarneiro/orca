@@ -1,4 +1,5 @@
 import type { AiVaultListResult, AiVaultSession } from '../../shared/ai-vault-types'
+import { aiVaultScanIssueText } from '../../shared/ai-vault-scan-issue-copy'
 import { isWslUncPath } from '../../shared/wsl-paths'
 
 // The WSL rows of the last scan whose WSL roots a confirmed running list named, per scope key.
@@ -37,7 +38,7 @@ export function carryOverUnconfirmedWslSessions(
         agent: carried[0]?.agent ?? 'codex',
         kind: 'notice',
         path: '',
-        message: 'WSL could not be checked; its sessions are from the last scan.'
+        ...aiVaultScanIssueText('wslSessionsFromLastScan')
       }
     ]
   }

@@ -21304,6 +21304,7 @@
       "wslTranscriptFsProcessFailed": "Los archivos de transcripción de WSL no están disponibles temporalmente porque falló el proceso auxiliar del sistema de archivos ({{detail}}). Inténtalo de nuevo en breve o reinicia Orca si el problema persiste.",
       "wslDistroNotRunning": "Los archivos de transcripción de WSL no están disponibles porque la distro WSL «{{distro}}» no está en ejecución. Abre un terminal en ella para iniciarla.",
       "wslDistroUnverifiable": "Los archivos de transcripción de WSL no están disponibles porque WSL no respondió si «{{distro}}» está en ejecución. Inténtalo de nuevo en breve.",
+      "wslSessionsFromLastScan": "No se pudo comprobar WSL; sus sesiones son del último análisis.",
       "scopePathsTruncated": "Solo se escanearon las primeras {{limit}} rutas de proyectos.",
       "invalidResultsSkipped_one": "Se omitió {{count}} entrada de resultado no válida del historial de sesiones de agentes.",
       "invalidResultsSkipped_other": "Se omitieron {{count}} entradas de resultado no válidas del historial de sesiones de agentes.",
