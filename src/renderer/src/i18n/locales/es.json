@@ -11679,6 +11679,7 @@
           "installGit": "No se pudo obtener esta revisión de Git. Revisa la URL, el #ref y el acceso.",
           "invalidManifestMissing": "A la raíz del plugin le falta orca-plugin.json. Añádelo y actualiza los plugins.",
           "invalidManifest": "orca-plugin.json no es válido. Corrígelo y actualiza los plugins.",
+          "installedManifestUnloadable": "Esta versión no se puede cargar en este Orca. Actualízala o reinstálala.",
           "invalidArtifact": "Falta un archivo de proceso o de panel, o no es seguro. Corrígelo y actualiza.",
           "consentChanged": "Este plugin cambió mientras lo revisabas. Revísalo de nuevo."
         },
@@ -12676,6 +12677,7 @@
           "noAccessReach": "Nada fuera de sus propios archivos"
         },
         "PluginManagerRows": {
+          "reinstall": "Reinstalar",
           "crashedCount": "Falló {{value0}} veces seguidas",
           "crashed": "Falló al iniciar",
           "remove": "Quitar…",

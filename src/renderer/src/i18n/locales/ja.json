@@ -11405,6 +11405,7 @@
           "installGit": "この Git リビジョンを取得できませんでした。URL、#ref、アクセス権を確認してください。",
           "invalidManifestMissing": "プラグインルートにorca-plugin.jsonがありません。追加してからプラグインを更新してください。",
           "invalidManifest": "orca-plugin.jsonが無効です。修正してからプラグインを更新してください。",
+          "installedManifestUnloadable": "このバージョンはこの Orca では読み込めません。更新するか再インストールしてください。",
           "invalidArtifact": "ワーカーまたはパネルのファイルが見つからないか安全ではありません。修正してから更新してください。",
           "consentChanged": "確認中にこのプラグインが変更されました。もう一度確認してください。"
         },
@@ -12399,6 +12400,7 @@
           "noAccessReach": "自身のファイル以外にはアクセスしません"
         },
         "PluginManagerRows": {
+          "reinstall": "再インストール",
           "crashedCount": "{{value0}} 回連続でクラッシュしました",
           "crashed": "起動中にクラッシュしました",
           "remove": "削除…",
