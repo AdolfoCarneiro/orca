@@ -302,7 +302,9 @@ describe('FileExplorerToolbar', () => {
     const openInItems = findOpenInMenuItems(element)
     expect(openInItems.props.worktreePath).toBe('/tmp/orca')
     expect(openInItems.props.connectionId).toBe('ssh-1')
-    expect(openInItems.props.labelPrefix).toBe('Open in ')
+    expect((openInItems.props.formatLabel as (app: string) => string)('Cursor')).toBe(
+      'Open in Cursor'
+    )
   })
 
   it('passes the managed target owner to folder open-in launchers', () => {
@@ -327,6 +329,6 @@ describe('FileExplorerToolbar', () => {
 
     expect(queryMoreActionsButton(element)).not.toBeNull()
     expect(queryGitIgnoredMenuItem(element)).toBeNull()
-    expect(findOpenInMenuItems(element).props.labelPrefix).toBe('Open in ')
+    expect(findOpenInMenuItems(element).props.formatLabel).toBeTypeOf('function')
   })
 })
