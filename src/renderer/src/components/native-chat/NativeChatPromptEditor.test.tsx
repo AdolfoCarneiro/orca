@@ -233,10 +233,11 @@ describe('a pasted run too long to lay out with kerning', () => {
     expect(input.value).toBe(`short line\nsee ${blob} here`)
   })
 
-  it('keeps kerning on long prose and on many short Shift+Enter lines', () => {
+  it('keeps kerning on long prose, CJK paragraphs and many short Shift+Enter lines', () => {
     const { editor, container } = setup('')
     act(() => {
       editor.commands.insertContent('a few words '.repeat(500))
+      editor.commands.insertContent('日本語の文章です。中文的句子。'.repeat(100))
       for (let line = 0; line < 60; line++) {
         editor.commands.insertContent('y'.repeat(70))
         editor.commands.setHardBreak()

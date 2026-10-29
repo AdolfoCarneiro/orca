@@ -7,11 +7,25 @@ const KERNED_RUN_MAX_CHARS = 256
 export const NATIVE_CHAT_UNKERNED_STYLE = 'font-kerning: none'
 export const NATIVE_CHAT_UNKERNED_CSS: CSSProperties = { fontKerning: 'none' }
 
+// Whitespace, plus scripts Chromium breaks between characters: Thai, Hangul, kana, CJK ideographs.
 function breaksRun(code: number): boolean {
-  return code === 32 || (code >= 9 && code <= 13) || code === 0xa0 || code === 0x3000
+  return (
+    code === 32 ||
+    (code >= 9 && code <= 13) ||
+    code === 0xa0 ||
+    (code >= 0x0e00 && code <= 0x0e7f) ||
+    (code >= 0x1100 && code <= 0x11ff) ||
+    (code >= 0x2e80 && code <= 0x9fff) ||
+    (code >= 0xa960 && code <= 0xa97f) ||
+    (code >= 0xac00 && code <= 0xd7af) ||
+    // High surrogates of the supplementary ideograph planes (U+20000-U+3FFFF).
+    (code >= 0xd840 && code <= 0xd8bf) ||
+    (code >= 0xf900 && code <= 0xfaff) ||
+    (code >= 0xff00 && code <= 0xffef)
+  )
 }
 
-/** `[start, end)` of every whitespace-free run too long to lay out kerned; one linear pass. */
+/** `[start, end)` of every run with no break opportunity too long to lay out kerned; one linear pass. */
 export function nativeChatUnkernedRuns(text: string, limit = Infinity): [number, number][] {
   const runs: [number, number][] = []
   let start = 0
