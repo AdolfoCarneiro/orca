@@ -40,11 +40,12 @@ function highlightBlock(
   defaultLanguage: string | null | undefined
 ): Decoration[] {
   const language = (block.node.attrs.language as string | null | undefined) || defaultLanguage
+  // Why: unlabeled fences show as Plain text, matching the preview's rehype-highlight.
   if (!language) {
     return []
   }
   const highlighted =
-    language && (languages.has(language) || lowlight.registered(language))
+    languages.has(language) || lowlight.registered(language)
       ? lowlight.highlight(language, block.node.textContent)
       : lowlight.highlightAuto(block.node.textContent)
   const decorations: Decoration[] = []
