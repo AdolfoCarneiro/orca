@@ -81,6 +81,27 @@ describe('structured turn completion feed (renderer)', () => {
   afterEach(() => {
     resetStructuredAgentSessionTurnCompletionFeedsForTests()
     vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('applies a remote read at the feed owner while no chat tab listens', async () => {
+    const applyRemoteStructuredRead = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('window', { api: { notifications: { applyRemoteStructuredRead } } })
+    const feed = getStructuredAgentSessionTurnCompletionFeed({
+      kind: 'environment',
+      environmentId: 'host-B'
+    })
+    const release = feed.activate()
+    await vi.advanceTimersByTimeAsync(0)
+    const read = {
+      scope: completion('unused').scope,
+      sessionId: 'session-1',
+      observedCursor: { epoch: 'journal-B', sequence: 4 }
+    }
+    subscription().emit({ type: 'read', read })
+    expect(applyRemoteStructuredRead).toHaveBeenCalledExactlyOnceWith(read)
+    release()
+    expect(subscription().unsubscribe).toHaveBeenCalledOnce()
   })
 
   it('delivers completions to every listener while the stream is up', async () => {
