@@ -179,7 +179,7 @@ it.each(['append-only', 'already-blanked'] as const)(
         const row = JSON.parse(saved.rowJson)
         if (row.kind === 'item' && row.itemId === 'claude:claude-1:reply' && row.revision < 3) {
           row.body.blocks[0].text = ''
-          updateTestJournalRowJson(db, 'session-1', saved.seq, JSON.stringify(row), saved.ts)
+          updateTestJournalRowJson(db, 'session-1', saved.seq, JSON.stringify(row))
         }
       }
     }

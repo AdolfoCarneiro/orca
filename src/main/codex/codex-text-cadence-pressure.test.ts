@@ -7,6 +7,10 @@ import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key
 import { codexItemIdentity, CodexTurnOrdinals } from './codex-structured-item-translation'
 import { createCodexJournalTranslator } from './codex-structured-journal-translation'
 import { createCodexStructuredNotificationRetry } from './codex-structured-notification-retry'
+import { CodexBackgroundTaskTracker } from './codex-background-task-tracker'
+import { createCodexDispatchEchoes } from './codex-structured-dispatch-echo'
+import { CodexPromptRegistry } from './codex-structured-prompt-replies'
+import { createCodexTurnOpenWaits } from './codex-structured-turn-open-wait'
 import type { CodexSession } from './codex-structured-session-state'
 import type { CodexAppServerConnection } from './app-server/codex-app-server-connection-types'
 
@@ -52,8 +56,21 @@ async function pressureRig(primaryThreadId?: string) {
     })
   }
   const fatal = vi.fn()
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: retry reads only connection, ended and forceCloseUnexpected; the injected translation ignores the partial session and uses the real translator/queue.
-  const session = { connection, ended: false, forceCloseUnexpected: fatal } as CodexSession
+  const session: CodexSession = {
+    connection,
+    ended: false,
+    forceCloseUnexpected: fatal,
+    fence: 1,
+    acquisitionGeneration: 'generation-1',
+    threadId: io.thread,
+    turnOpenWaits: createCodexTurnOpenWaits(),
+    prompts: new CodexPromptRegistry(),
+    options: new Map(),
+    reportedOptions: {},
+    dispatchEchoes: createCodexDispatchEchoes(),
+    backgroundTasks: new CodexBackgroundTaskTracker(io.thread),
+    translator
+  }
   const retries = createCodexStructuredNotificationRetry({
     sessionFor: () => session,
     translate: (_id, _session, method, params) => notify(method, params)

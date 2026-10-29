@@ -76,6 +76,7 @@ export function registerJournalRowWriterTests(): void {
     function textRow(seq: number, itemId: string, revision: number): JournalRow {
       return {
         ...row(seq, 0),
+        kind: 'item',
         v: 2,
         itemId,
         revision,
