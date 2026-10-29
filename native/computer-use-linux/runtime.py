@@ -987,6 +987,34 @@ def type_text(value):
     Atspi.generate_keyboard_event(0, str(value), Atspi.KeySynthType.STRING)
 
 
+def insert_focused_text(window, value):
+    # Why: EditableText needs no window focus and still works on Wayland, where key synthesis is a no-op.
+    node = first_descendant(window, lambda candidate: has_state(candidate, Atspi.StateType.FOCUSED))
+    if node is None or not has_state(node, Atspi.StateType.EDITABLE):
+        return None
+    editable = attempt(node.get_editable_text_iface)
+    text = text_iface(node)
+    if editable is None or text is None:
+        return None
+    start = end = int(attempt(lambda: Atspi.Text.get_caret_offset(text), -1))
+    if int(attempt(lambda: Atspi.Text.get_n_selections(text), 0)) > 0:
+        selection = attempt(lambda: Atspi.Text.get_selection(text, 0))
+        if selection is not None and 0 <= selection.start_offset < selection.end_offset:
+            start, end = selection.start_offset, selection.end_offset
+    if start < 0 or not attempt(lambda: Atspi.EditableText.insert_text(editable, end, value, len(value)), False):
+        return None
+    # Why insert before deleting: a failed insert then leaves the selection intact for the fallback.
+    if end > start:
+        attempt(lambda: Atspi.EditableText.delete_text(editable, start, end))
+    caret = start + len(value)
+    if attempt(lambda: Atspi.Text.get_caret_offset(text)) != caret:
+        attempt(lambda: Atspi.Text.set_caret_offset(text, caret))
+    action = {"path": "accessibility", "actionName": "insertText", "fallbackReason": None}
+    if attempt(lambda: Atspi.Text.get_text(text, start, caret)) == value:
+        action["verification"] = {"state": "verified", "property": "focusedText", "expected": value}
+    return action
+
+
 def paste_text(value):
     text = str(value)
     previous = read_clipboard()
@@ -1089,7 +1117,7 @@ def run_operation(operation):
     if operation.get("restoreWindow"):
         restore_window(app, window)
         _, window = choose_window(app, operation.get("windowId"), operation.get("windowIndex"))
-    if tool in {"type_text", "press_key", "hotkey", "paste_text"}:
+    if tool in {"press_key", "hotkey"}:
         require_keyboard_focus(window, operation)
     bounds = screen_rect(window)
     saved = operation.get("element")
@@ -1099,9 +1127,6 @@ def run_operation(operation):
     action = None
 
     if tool == "click":
-        # Why: agents expect a click into a target app to make the next
-        # keyboard action safe, even when the click uses an accessibility path.
-        restore_window(app, window)
         preferred = preferred_action(node)
         click_count = (
             require_positive_integer(operation.get("click_count"), "click_count")
@@ -1111,6 +1136,8 @@ def run_operation(operation):
         has_modifiers = bool(str(operation.get("modifiers") or "").strip())
         handled = not has_modifiers and operation.get("mouse_button", "left") == "left" and click_count <= 1 and perform_action(node, preferred)
         if not handled:
+            # Why: pointer clicks are synthetic global input; AT-SPI actions need no focus.
+            restore_window(app, window)
             click_at(
                 *screen_point(bounds, saved, operation.get("x"), operation.get("y"), node),
                 operation.get("mouse_button", "left"),
@@ -1145,8 +1172,12 @@ def run_operation(operation):
         )
         action = {"path": "synthetic", "actionName": "drag", "fallbackReason": None}
     elif tool == "type_text":
-        type_text(require_non_empty_string(operation.get("text"), "text"))
-        action = {"path": "synthetic", "actionName": "typeText", "fallbackReason": None, "verification": {"state": "unverified", "reason": "synthetic_input"}}
+        text = require_non_empty_string(operation.get("text"), "text")
+        action = insert_focused_text(window, text)
+        if action is None:
+            require_keyboard_focus(window, operation)
+            type_text(text)
+            action = {"path": "synthetic", "actionName": "typeText", "fallbackReason": None, "verification": {"state": "unverified", "reason": "synthetic_input"}}
     elif tool == "press_key":
         press_key(require_non_empty_string(operation.get("key"), "key"))
         action = {"path": "synthetic", "actionName": "pressKey", "fallbackReason": None, "verification": {"state": "unverified", "reason": "synthetic_input"}}
@@ -1154,8 +1185,12 @@ def run_operation(operation):
         hotkey(require_non_empty_string(operation.get("key"), "key"))
         action = {"path": "synthetic", "actionName": "hotkey", "fallbackReason": None, "verification": {"state": "unverified", "reason": "synthetic_input"}}
     elif tool == "paste_text":
-        paste_text(require_non_empty_string(operation.get("text"), "text"))
-        action = {"path": "clipboard", "actionName": "paste", "fallbackReason": None, "verification": {"state": "unverified", "reason": "clipboard_paste"}}
+        text = require_non_empty_string(operation.get("text"), "text")
+        action = insert_focused_text(window, text)
+        if action is None:
+            require_keyboard_focus(window, operation)
+            paste_text(text)
+            action = {"path": "clipboard", "actionName": "paste", "fallbackReason": None, "verification": {"state": "unverified", "reason": "clipboard_paste"}}
     elif tool == "set_value":
         if not set_value(node, operation.get("value", "")):
             raise RuntimeError("element value is not settable")
