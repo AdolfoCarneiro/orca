@@ -76,7 +76,11 @@ describe('keybindings', () => {
     ).toEqual({ ok: true, value: 'Mod+Alt+Shift+J' })
     expect(
       keybindingFromInput({ key: 'Control', code: 'ControlLeft', control: true }, 'linux')
-    ).toEqual({ ok: false, error: 'Press a key, not only a modifier.' })
+    ).toEqual({
+      ok: false,
+      error: 'Press a key, not only a modifier.',
+      errorCode: 'modifierOnly'
+    })
   })
 
   it('captures macOS Option-composed key events via the physical code', () => {
@@ -97,7 +101,11 @@ describe('keybindings', () => {
         { key: 'Alt', code: 'AltLeft', meta: false, control: false, alt: true, shift: false },
         'darwin'
       )
-    ).toEqual({ ok: false, error: 'Press a key, not only a modifier.' })
+    ).toEqual({
+      ok: false,
+      error: 'Press a key, not only a modifier.',
+      errorCode: 'modifierOnly'
+    })
     expect(
       keybindingFromInput(
         { key: '¡', code: 'Digit1', meta: true, control: false, alt: true, shift: false },

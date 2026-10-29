@@ -77,6 +77,23 @@
       "quitDuringMoveTitle": "要在專案移動期間結束嗎？",
       "quitDuringMoveDescription": "有專案正在移至其 WSL 主機。仍要結束嗎？下次啟動時會復原此次移動。",
       "quitDuringMoveConfirm": "仍要結束"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "名稱不可為空白",
+        "nameInvalid": "名稱不可包含斜線，也不可為 \".\" / \"..\"",
+        "parentRequired": "必須指定上層目錄",
+        "parentNotAbsolute": "上層目錄必須是絕對路徑",
+        "targetInaccessible": "無法存取目標路徑：{{detail}}",
+        "targetNotEmpty": "此位置已存在「{{name}}」，且內容不為空。",
+        "targetNotFolder": "此位置已存在「{{name}}」，且不是資料夾。",
+        "readDirectoryFailed": "無法讀取目錄：{{detail}}",
+        "createDirectoryFailed": "無法建立目錄：{{detail}}",
+        "prepareDirectoryFailed": "無法準備目錄：{{detail}}",
+        "gitIdentityMissing": "尚未設定 Git 作者身分。請執行 `git config --global user.name \"Your Name\"` 和 `git config --global user.email \"you@example.com\"`，然後再試一次。",
+        "gitInitFailed": "無法初始化 Git 存放庫：{{detail}}",
+        "initialCommitFailed": "無法建立初始提交：{{detail}}"
+      }
     }
   },
   "app": {
@@ -674,7 +691,26 @@
       "workspace": "工作區"
     },
     "shortcuts": {
-      "parseFailed": "無法解析快速鍵。"
+      "parseFailed": "無法解析快速鍵。",
+      "validation": {
+        "invalidFormat": "請使用 Ctrl+Shift+P 或 Cmd+K 這類快速鍵。",
+        "mixedModifiers": "請使用 Mod 或特定平台的修飾鍵，不要同時使用兩者。",
+        "modifierRequired": "請至少包含一個修飾鍵。",
+        "digitKeyRequired": "請選擇 1–9 的數字鍵搭配修飾鍵，例如 Cmd+1 或 Ctrl+1。",
+        "modifierOnly": "請按下一般按鍵，不要只按修飾鍵。",
+        "invalidBindingValue": "請使用字串、字串陣列、null 或 false。",
+        "stringArrayRequired": "請使用字串陣列。",
+        "fileNotObject": "鍵繫結檔案必須包含 JSON 物件。"
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} 必須是物件。",
+        "unknownAction": "已忽略未知的鍵繫結操作「{{actionId}}」。",
+        "shortcutIgnored": "已忽略「{{actionId}}」的快速鍵：{{reason}}",
+        "platformsNotObject": "platforms 必須是包含 darwin、linux 或 win32 區段的物件。",
+        "unknownPlatform": "已忽略未知的平台「{{platform}}」。",
+        "conflictingOverrides": "已忽略有衝突的自訂快速鍵：{{actions}}。",
+        "readFailed": "無法讀取鍵繫結檔案：{{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -860,14 +896,7 @@
             "b8a1618172": "網頁用戶端無法產生 PR 詳細資訊。",
             "e57c82d276": "網頁用戶端無法探索提交訊息模型。",
             "9fc90740b6": "網頁用戶端無法產生提交訊息。",
-            "52bee9d8a0": "衝突的自訂快速鍵被忽略：{{value0}}。",
-            "32f15bdb0f": "未知平台「{{value0}}」被忽略。",
-            "0a69fcd8bc": "platforms 必須是具有 darwin、linux 或 win32 部分的物件。",
-            "10898045f3": "「{{value0}}」的快速鍵被忽略：使用字串陣列。",
-            "36761d9604": "未知的鍵繫結操作「{{value0}}」被忽略。",
-            "d2e43e426a": "{{value0}} 必須是一個物件。",
-            "fb290366b2": "無法在網頁版使用。",
-            "76122208ca": "「{{value0}}」的快速鍵被忽略：{{value1}}"
+            "fb290366b2": "無法在網頁版使用。"
           }
         },
         "runtime": {

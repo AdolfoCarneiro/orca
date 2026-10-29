@@ -409,7 +409,26 @@
       "claudeWorkspace": "Claude 워크스페이스"
     },
     "shortcuts": {
-      "parseFailed": "단축키를 해석할 수 없습니다."
+      "parseFailed": "단축키를 해석할 수 없습니다.",
+      "validation": {
+        "invalidFormat": "Ctrl+Shift+P 또는 Cmd+K 같은 단축키를 사용하세요.",
+        "mixedModifiers": "Mod 또는 플랫폼별 수정자 중 하나만 사용하세요.",
+        "modifierRequired": "수정 키를 하나 이상 포함하세요.",
+        "digitKeyRequired": "Cmd+1 또는 Ctrl+1처럼 수정 키와 숫자 키 1–9를 조합하세요.",
+        "modifierOnly": "수정 키만 누르지 말고 다른 키도 누르세요.",
+        "invalidBindingValue": "문자열, 문자열 배열, null 또는 false를 사용하세요.",
+        "stringArrayRequired": "문자열 배열을 사용하세요.",
+        "fileNotObject": "키바인딩 파일에는 JSON 객체가 있어야 합니다."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}}은(는) 객체여야 합니다.",
+        "unknownAction": "알 수 없는 키 바인딩 작업 \"{{actionId}}\"이(가) 무시되었습니다.",
+        "shortcutIgnored": "\"{{actionId}}\"의 단축키가 무시되었습니다: {{reason}}",
+        "platformsNotObject": "platforms는 darwin, linux 또는 win32 섹션이 있는 객체여야 합니다.",
+        "unknownPlatform": "알 수 없는 플랫폼 \"{{platform}}\"이(가) 무시되었습니다.",
+        "conflictingOverrides": "충돌하는 맞춤 단축키가 무시되었습니다: {{actions}}.",
+        "readFailed": "키바인딩 파일을 읽지 못했습니다: {{reason}}"
+      }
     }
   },
   "menu": {
@@ -584,14 +603,7 @@
             "b8a1618172": "웹 클라이언트에서는 PR 세부 정보 생성을 사용할 수 없습니다.",
             "e57c82d276": "웹 클라이언트에서는 Commit 메시지 모델 검색을 사용할 수 없습니다.",
             "9fc90740b6": "웹 클라이언트에서는 Commit 메시지 생성을 사용할 수 없습니다.",
-            "52bee9d8a0": "충돌하는 맞춤 단축키가 무시되었습니다: {{value0}}.",
-            "32f15bdb0f": "알 수 없는 플랫폼 \"{{value0}}\"이(가) 무시되었습니다.",
-            "0a69fcd8bc": "플랫폼은 darwin, linux 또는 win32 섹션이 있는 객체여야 합니다.",
-            "10898045f3": "\"{{value0}}\"에 대한 단축키가 무시되었습니다. 문자열 배열을 사용하세요.",
-            "36761d9604": "알 수 없는 키 바인딩 작업 \"{{value0}}\"이(가) 무시되었습니다.",
-            "d2e43e426a": "{{value0}}은(는) 객체여야 합니다.",
-            "fb290366b2": "웹에서는 사용할 수 없습니다.",
-            "76122208ca": "\"{{value0}}\"에 대한 단축키가 무시되었습니다: {{value1}}"
+            "fb290366b2": "웹에서는 사용할 수 없습니다."
           }
         },
         "runtime": {
@@ -19684,6 +19696,23 @@
     "startupWorktreeRefresh": {
       "loading": "워크스페이스를 찾는 중…",
       "description": "로컬 및 원격 프로젝트를 불러오는 동안 워크스페이스가 더 표시될 수 있습니다."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "이름은 비워 둘 수 없습니다",
+        "nameInvalid": "이름에 슬래시를 포함하거나 \".\" / \"..\"로 지정할 수 없습니다",
+        "parentRequired": "상위 디렉터리가 필요합니다",
+        "parentNotAbsolute": "상위 디렉터리는 절대 경로여야 합니다",
+        "targetInaccessible": "대상 경로에 접근할 수 없습니다: {{detail}}",
+        "targetNotEmpty": "이 위치에 \"{{name}}\"이(가) 이미 있으며 비어 있지 않습니다.",
+        "targetNotFolder": "이 위치에 \"{{name}}\"이(가) 이미 있으며 폴더가 아닙니다.",
+        "readDirectoryFailed": "디렉터리를 읽지 못했습니다: {{detail}}",
+        "createDirectoryFailed": "디렉터리를 생성하지 못했습니다: {{detail}}",
+        "prepareDirectoryFailed": "디렉터리를 준비하지 못했습니다: {{detail}}",
+        "gitIdentityMissing": "Git 작성자 정보가 설정되지 않았습니다. `git config --global user.name \"Your Name\"` 및 `git config --global user.email \"you@example.com\"` 명령을 실행한 후 다시 시도하세요.",
+        "gitInitFailed": "Git 리포지토리를 초기화하지 못했습니다: {{detail}}",
+        "initialCommitFailed": "초기 commit을 생성하지 못했습니다: {{detail}}"
+      }
     }
   },
   "editor": {

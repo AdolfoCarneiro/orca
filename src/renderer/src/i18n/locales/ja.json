@@ -409,7 +409,26 @@
       "claudeWorkspace": "Claude ワークスペース"
     },
     "shortcuts": {
-      "parseFailed": "ショートカットを解析できません。"
+      "parseFailed": "ショートカットを解析できません。",
+      "validation": {
+        "invalidFormat": "Ctrl+Shift+P や Cmd+K のようなショートカットを使用してください。",
+        "mixedModifiers": "Mod またはプラットフォーム固有の修飾キーのどちらかを使用し、併用しないでください。",
+        "modifierRequired": "修飾キーを少なくとも1つ含めてください。",
+        "digitKeyRequired": "Cmd+1 や Ctrl+1 のように、1–9 の数字キーと修飾キーを組み合わせてください。",
+        "modifierOnly": "修飾キーだけでなく、別のキーも押してください。",
+        "invalidBindingValue": "文字列、文字列配列、null、または false を使用してください。",
+        "stringArrayRequired": "文字列配列を使用してください。",
+        "fileNotObject": "キーバインドファイルには JSON オブジェクトを含める必要があります。"
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} はオブジェクトである必要があります。",
+        "unknownAction": "不明なキーバインド操作「{{actionId}}」は無視されました。",
+        "shortcutIgnored": "「{{actionId}}」のショートカットは無視されました: {{reason}}",
+        "platformsNotObject": "platforms は darwin、linux、または win32 セクションを持つオブジェクトである必要があります。",
+        "unknownPlatform": "不明なプラットフォーム「{{platform}}」は無視されました。",
+        "conflictingOverrides": "競合するカスタムショートカットは無視されました: {{actions}}。",
+        "readFailed": "キーバインドファイルを読み取れませんでした: {{reason}}"
+      }
     }
   },
   "menu": {
@@ -584,14 +603,7 @@
             "b8a1618172": "PR の詳細の生成は、Web クライアントでは使用できません。",
             "e57c82d276": "コミットメッセージモデルの検出は、Web クライアントでは使用できません。",
             "9fc90740b6": "コミットメッセージの生成は、Web クライアントでは使用できません。",
-            "52bee9d8a0": "競合するカスタムショートカットは無視されました: {{value0}}。",
-            "32f15bdb0f": "不明なプラットフォーム「{{value0}}」は無視されました。",
-            "0a69fcd8bc": "プラットフォームは、darwin、linux、または win32 セクションを持つオブジェクトである必要があります。",
-            "10898045f3": "「{{value0}}」のショートカットは無視されました: 文字列配列を使用してください。",
-            "36761d9604": "不明なキーバインド 操作「{{value0}}」は無視されました。",
-            "d2e43e426a": "{{value0}} はオブジェクトでなければなりません。",
-            "fb290366b2": "ウェブでは利用できません。",
-            "76122208ca": "「{{value0}}」のショートカットは無視されました: {{value1}}"
+            "fb290366b2": "ウェブでは利用できません。"
           }
         },
         "runtime": {
@@ -19684,6 +19696,23 @@
     "startupWorktreeRefresh": {
       "loading": "ワークスペースを検出中…",
       "description": "ローカルおよびリモートのプロジェクトを読み込む間に、さらにワークスペースが表示されることがあります。"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "名前を空にすることはできません",
+        "nameInvalid": "名前にスラッシュは使用できず、\".\" / \"..\" にもできません",
+        "parentRequired": "親ディレクトリは必須です",
+        "parentNotAbsolute": "親ディレクトリは絶対パスである必要があります",
+        "targetInaccessible": "対象パスにアクセスできません: {{detail}}",
+        "targetNotEmpty": "この場所にはすでに「{{name}}」が存在し、空ではありません。",
+        "targetNotFolder": "この場所にはすでに「{{name}}」が存在し、フォルダーではありません。",
+        "readDirectoryFailed": "ディレクトリを読み取れませんでした: {{detail}}",
+        "createDirectoryFailed": "ディレクトリを作成できませんでした: {{detail}}",
+        "prepareDirectoryFailed": "ディレクトリを準備できませんでした: {{detail}}",
+        "gitIdentityMissing": "Git の作成者情報が設定されていません。`git config --global user.name \"Your Name\"` と `git config --global user.email \"you@example.com\"` を実行してから、もう一度お試しください。",
+        "gitInitFailed": "Git リポジトリを初期化できませんでした: {{detail}}",
+        "initialCommitFailed": "最初のコミットを作成できませんでした: {{detail}}"
+      }
     }
   },
   "editor": {

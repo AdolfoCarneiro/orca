@@ -77,6 +77,23 @@
       "quitDuringMoveTitle": "Bir proje taşınırken çıkılsın mı?",
       "quitDuringMoveDescription": "Bir proje WSL ana makinesine taşınıyor. Yine de çıkılsın mı? Taşıma bir sonraki açılışta geri alınır.",
       "quitDuringMoveConfirm": "Yine de çık"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Ad boş olamaz",
+        "nameInvalid": "Ad eğik çizgi içeremez veya \".\" / \"..\" olamaz",
+        "parentRequired": "Üst dizin gereklidir",
+        "parentNotAbsolute": "Üst dizin mutlak bir yol olmalıdır",
+        "targetInaccessible": "Hedef yola erişilemiyor: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" bu konumda zaten var ve boş değil.",
+        "targetNotFolder": "\"{{name}}\" bu konumda zaten var ve bir klasör değil.",
+        "readDirectoryFailed": "Dizin okunamadı: {{detail}}",
+        "createDirectoryFailed": "Dizin oluşturulamadı: {{detail}}",
+        "prepareDirectoryFailed": "Dizin hazırlanamadı: {{detail}}",
+        "gitIdentityMissing": "Git yazar kimliği yapılandırılmamış. `git config --global user.name \"Your Name\"` ve `git config --global user.email \"you@example.com\"` komutlarını çalıştırın, ardından yeniden deneyin.",
+        "gitInitFailed": "Git repository'si başlatılamadı: {{detail}}",
+        "initialCommitFailed": "İlk commit oluşturulamadı: {{detail}}"
+      }
     }
   },
   "app": {
@@ -674,7 +691,26 @@
       "workspace": "Çalışma Alanı"
     },
     "shortcuts": {
-      "parseFailed": "Kısayol ayrıştırılamadı."
+      "parseFailed": "Kısayol ayrıştırılamadı.",
+      "validation": {
+        "invalidFormat": "Ctrl+Shift+P veya Cmd+K gibi bir kısayol kullanın.",
+        "mixedModifiers": "Mod veya platforma özgü bir değiştirici kullanın; ikisini birlikte kullanmayın.",
+        "modifierRequired": "En az bir değiştirici tuş ekleyin.",
+        "digitKeyRequired": "Cmd+1 veya Ctrl+1 gibi, 1–9 arasında bir rakam tuşunu değiştiriciyle birlikte seçin.",
+        "modifierOnly": "Yalnızca değiştirici tuşa değil, başka bir tuşa da basın.",
+        "invalidBindingValue": "Bir dize, dize dizisi, null veya false kullanın.",
+        "stringArrayRequired": "Bir dize dizisi kullanın.",
+        "fileNotObject": "Tuş atamaları dosyası bir JSON nesnesi içermelidir."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} bir nesne olmalıdır.",
+        "unknownAction": "Bilinmeyen tuş ataması eylemi \"{{actionId}}\" yok sayıldı.",
+        "shortcutIgnored": "\"{{actionId}}\" için kısayol yok sayıldı: {{reason}}",
+        "platformsNotObject": "platforms, darwin, linux veya win32 bölümlerine sahip bir nesne olmalıdır.",
+        "unknownPlatform": "Bilinmeyen platform \"{{platform}}\" yok sayıldı.",
+        "conflictingOverrides": "Çakışan özel kısayollar yok sayıldı: {{actions}}.",
+        "readFailed": "Tuş atamaları dosyası okunamadı: {{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -860,14 +896,7 @@
             "b8a1618172": "Pull request ayrıntı oluşturma web istemcisinde kullanılamaz.",
             "e57c82d276": "Commit mesajı model keşfi web istemcisinde kullanılamaz.",
             "9fc90740b6": "Commit mesajı oluşturma web istemcisinde kullanılamaz.",
-            "52bee9d8a0": "Çakışan özel kısayollar yok sayıldı: {{value0}}.",
-            "32f15bdb0f": "Bilinmeyen platform \"{{value0}}\" yok sayıldı.",
-            "0a69fcd8bc": "platforms, darwin, linux veya win32 bölümlerine sahip bir nesne olmalıdır.",
-            "10898045f3": "\"{{value0}}\" için kısayol yok sayıldı: Bir dize dizisi kullanın.",
-            "36761d9604": "Bilinmeyen tuş ataması eylemi \"{{value0}}\" yok sayıldı.",
-            "d2e43e426a": "{{value0}} bir nesne olmalıdır.",
-            "fb290366b2": "Web'de kullanılamaz.",
-            "76122208ca": "\"{{value0}}\" için kısayol yok sayıldı: {{value1}}"
+            "fb290366b2": "Web'de kullanılamaz."
           }
         },
         "runtime": {

@@ -77,6 +77,23 @@
     "startupWorktreeRefresh": {
       "loading": "Arbeitsbereiche werden gesucht…",
       "description": "Während lokale und entfernte Projekte geladen werden, können weitere Arbeitsbereiche erscheinen."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Name darf nicht leer sein",
+        "nameInvalid": "Name darf weder Schrägstriche enthalten noch \".\" / \"..\" sein",
+        "parentRequired": "Übergeordnetes Verzeichnis ist erforderlich",
+        "parentNotAbsolute": "Übergeordnetes Verzeichnis muss ein absoluter Pfad sein",
+        "targetInaccessible": "Zugriff auf Zielpfad nicht möglich: {{detail}}",
+        "targetNotEmpty": "„{{name}}“ existiert bereits an diesem Ort und ist nicht leer.",
+        "targetNotFolder": "„{{name}}“ existiert bereits an diesem Ort und ist kein Ordner.",
+        "readDirectoryFailed": "Verzeichnis konnte nicht gelesen werden: {{detail}}",
+        "createDirectoryFailed": "Verzeichnis konnte nicht erstellt werden: {{detail}}",
+        "prepareDirectoryFailed": "Verzeichnis konnte nicht vorbereitet werden: {{detail}}",
+        "gitIdentityMissing": "Git-Autorenidentität ist nicht konfiguriert. `git config --global user.name \"Your Name\"` und `git config --global user.email \"you@example.com\"` ausführen und dann erneut versuchen.",
+        "gitInitFailed": "Git-Repository konnte nicht initialisiert werden: {{detail}}",
+        "initialCommitFailed": "Erster Commit konnte nicht erstellt werden: {{detail}}"
+      }
     }
   },
   "app": {
@@ -696,7 +713,26 @@
       "workspace": "Arbeitsbereich"
     },
     "shortcuts": {
-      "parseFailed": "Tastenkürzel konnte nicht ausgewertet werden."
+      "parseFailed": "Tastenkürzel konnte nicht ausgewertet werden.",
+      "validation": {
+        "invalidFormat": "Ein Tastenkürzel wie Ctrl+Shift+P oder Cmd+K verwenden.",
+        "mixedModifiers": "Entweder Mod oder eine plattformspezifische Modifikatortaste verwenden, nicht beides.",
+        "modifierRequired": "Mindestens eine Modifikatortaste verwenden.",
+        "digitKeyRequired": "Eine Zifferntaste von 1–9 mit einer Modifikatortaste wählen, z. B. Cmd+1 oder Ctrl+1.",
+        "modifierOnly": "Eine Taste drücken, nicht nur eine Modifikatortaste.",
+        "invalidBindingValue": "Eine Zeichenfolge, ein Array aus Zeichenfolgen, null oder false verwenden.",
+        "stringArrayRequired": "Ein Array aus Zeichenfolgen verwenden.",
+        "fileNotObject": "Die Tastenbelegungsdatei muss ein JSON-Objekt enthalten."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} muss ein Objekt sein.",
+        "unknownAction": "Unbekannte Tastenbelegungsaktion „{{actionId}}“ wurde ignoriert.",
+        "shortcutIgnored": "Tastenkürzel für „{{actionId}}“ wurde ignoriert: {{reason}}",
+        "platformsNotObject": "platforms muss ein Objekt mit Abschnitten für darwin, linux oder win32 sein.",
+        "unknownPlatform": "Unbekannte Plattform „{{platform}}“ wurde ignoriert.",
+        "conflictingOverrides": "Benutzerdefinierte Tastenkürzel mit Konflikten wurden ignoriert: {{actions}}.",
+        "readFailed": "Tastenbelegungsdatei konnte nicht gelesen werden: {{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -882,14 +918,7 @@
             "b8a1618172": "Das Generieren von Pull-Request-Details ist im Web-Client nicht verfügbar.",
             "e57c82d276": "Die Modellerkennung für Commit-Nachrichten ist im Web-Client nicht verfügbar.",
             "9fc90740b6": "Das Generieren von Commit-Nachrichten ist im Web-Client nicht verfügbar.",
-            "52bee9d8a0": "Benutzerdefinierte Tastenkürzel mit Konflikten wurden ignoriert: {{value0}}.",
-            "32f15bdb0f": "Unbekannte Plattform „{{value0}}“ wurde ignoriert.",
-            "0a69fcd8bc": "platforms muss ein Objekt mit Abschnitten für darwin, linux oder win32 sein.",
-            "10898045f3": "Tastenkürzel für „{{value0}}“ wurde ignoriert: Ein Array aus Zeichenfolgen verwenden.",
-            "36761d9604": "Unbekannte Tastenbelegungsaktion „{{value0}}“ wurde ignoriert.",
-            "d2e43e426a": "{{value0}} muss ein Objekt sein.",
-            "fb290366b2": "Im Web nicht verfügbar.",
-            "76122208ca": "Tastenkürzel für „{{value0}}“ wurde ignoriert: {{value1}}"
+            "fb290366b2": "Im Web nicht verfügbar."
           }
         },
         "runtime": {

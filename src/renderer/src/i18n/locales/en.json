@@ -77,6 +77,23 @@
     "startupWorktreeRefresh": {
       "loading": "Discovering workspaces…",
       "description": "More workspaces may appear while local and remote projects load."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Name cannot be empty",
+        "nameInvalid": "Name cannot contain slashes or be \".\" / \"..\"",
+        "parentRequired": "Parent directory is required",
+        "parentNotAbsolute": "Parent directory must be an absolute path",
+        "targetInaccessible": "Cannot access target path: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" already exists at this location and is not empty.",
+        "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder.",
+        "readDirectoryFailed": "Failed to read directory: {{detail}}",
+        "createDirectoryFailed": "Failed to create directory: {{detail}}",
+        "prepareDirectoryFailed": "Failed to prepare directory: {{detail}}",
+        "gitIdentityMissing": "Git author identity is not configured. Run `git config --global user.name \"Your Name\"` and `git config --global user.email \"you@example.com\"`, then try again.",
+        "gitInitFailed": "Failed to initialize git repository: {{detail}}",
+        "initialCommitFailed": "Failed to create initial commit: {{detail}}"
+      }
     }
   },
   "app": {
@@ -694,7 +711,26 @@
       }
     },
     "shortcuts": {
-      "parseFailed": "Unable to parse shortcut."
+      "parseFailed": "Unable to parse shortcut.",
+      "validation": {
+        "invalidFormat": "Use a shortcut like Ctrl+Shift+P or Cmd+K.",
+        "mixedModifiers": "Use either Mod or a platform-specific modifier, not both.",
+        "modifierRequired": "Include at least one modifier key.",
+        "digitKeyRequired": "Pick a number key 1–9 with a modifier, like Cmd+1 or Ctrl+1.",
+        "modifierOnly": "Press a key, not only a modifier.",
+        "invalidBindingValue": "Use a string, string array, null, or false.",
+        "stringArrayRequired": "Use a string array.",
+        "fileNotObject": "Keybindings file must contain a JSON object."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} must be an object.",
+        "unknownAction": "Unknown keybinding action \"{{actionId}}\" was ignored.",
+        "shortcutIgnored": "Shortcut for \"{{actionId}}\" was ignored: {{reason}}",
+        "platformsNotObject": "platforms must be an object with darwin, linux, or win32 sections.",
+        "unknownPlatform": "Unknown platform \"{{platform}}\" was ignored.",
+        "conflictingOverrides": "Conflicting custom shortcuts were ignored: {{actions}}.",
+        "readFailed": "Could not read keybindings file: {{reason}}"
+      }
     },
     "mcp": {
       "inspectFailed": "Unable to inspect {{directory}}.",
@@ -897,14 +933,7 @@
             "b8a1618172": "Pull request detail generation is unavailable in the web client.",
             "e57c82d276": "Commit message model discovery is unavailable in the web client.",
             "9fc90740b6": "Commit message generation is unavailable in the web client.",
-            "52bee9d8a0": "Conflicting custom shortcuts were ignored: {{value0}}.",
-            "32f15bdb0f": "Unknown platform \"{{value0}}\" was ignored.",
-            "0a69fcd8bc": "platforms must be an object with darwin, linux, or win32 sections.",
-            "10898045f3": "Shortcut for \"{{value0}}\" was ignored: Use a string array.",
-            "36761d9604": "Unknown keybinding action \"{{value0}}\" was ignored.",
-            "d2e43e426a": "{{value0}} must be an object.",
-            "fb290366b2": "Unavailable on web.",
-            "76122208ca": "Shortcut for \"{{value0}}\" was ignored: {{value1}}"
+            "fb290366b2": "Unavailable on web."
           }
         },
         "runtime": {

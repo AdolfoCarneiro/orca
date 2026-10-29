@@ -409,7 +409,26 @@
       "claudeWorkspace": "Espacio de trabajo de Claude"
     },
     "shortcuts": {
-      "parseFailed": "No se pudo interpretar el atajo."
+      "parseFailed": "No se pudo interpretar el atajo.",
+      "validation": {
+        "invalidFormat": "Usa un atajo como Ctrl+Shift+P o Cmd+K.",
+        "mixedModifiers": "Usa Mod o un modificador específico de la plataforma, pero no ambos.",
+        "modifierRequired": "Incluye al menos una tecla modificadora.",
+        "digitKeyRequired": "Elige una tecla numérica (1–9) con un modificador, como Cmd+1 o Ctrl+1.",
+        "modifierOnly": "Pulsa una tecla, no solo un modificador.",
+        "invalidBindingValue": "Usa un string, un array de strings, null o false.",
+        "stringArrayRequired": "Usa un array de strings.",
+        "fileNotObject": "El archivo de combinaciones de teclas debe contener un objeto JSON."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} debe ser un objeto.",
+        "unknownAction": "Se ignoró la acción de atajo desconocida \"{{actionId}}\".",
+        "shortcutIgnored": "Se ignoró el atajo para \"{{actionId}}\": {{reason}}",
+        "platformsNotObject": "platforms debe ser un objeto con secciones darwin, linux o win32.",
+        "unknownPlatform": "Se ignoró la plataforma desconocida \"{{platform}}\".",
+        "conflictingOverrides": "Se ignoraron los atajos personalizados en conflicto: {{actions}}.",
+        "readFailed": "No se pudo leer el archivo de combinaciones de teclas: {{reason}}"
+      }
     }
   },
   "menu": {
@@ -584,14 +603,7 @@
             "b8a1618172": "La generación de detalles de pull requests no está disponible en el cliente web.",
             "e57c82d276": "La detección del modelo para mensajes de commit no está disponible en el cliente web.",
             "9fc90740b6": "La generación de mensajes de commit no está disponible en el cliente web.",
-            "52bee9d8a0": "Se ignoraron los atajos personalizados en conflicto: {{value0}}.",
-            "32f15bdb0f": "Se ignoró la plataforma desconocida \"{{value0}}\".",
-            "0a69fcd8bc": "platforms debe ser un objeto con secciones darwin, linux o win32.",
-            "10898045f3": "Se ignoró el atajo para \"{{value0}}\": usa un array de strings.",
-            "36761d9604": "Se ignoró la acción de atajo desconocida \"{{value0}}\".",
-            "d2e43e426a": "{{value0}} debe ser un objeto.",
-            "fb290366b2": "No está disponible en la web.",
-            "76122208ca": "Se ignoró el atajo para \"{{value0}}\": {{value1}}"
+            "fb290366b2": "No está disponible en la web."
           }
         },
         "runtime": {
@@ -20225,6 +20237,23 @@
     "startupWorktreeRefresh": {
       "loading": "Buscando espacios de trabajo…",
       "description": "Pueden aparecer más espacios de trabajo mientras se cargan los proyectos locales y remotos."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "El nombre no puede estar vacío",
+        "nameInvalid": "El nombre no puede contener barras ni ser \".\" / \"..\"",
+        "parentRequired": "Se requiere un directorio padre",
+        "parentNotAbsolute": "El directorio padre debe ser una ruta absoluta",
+        "targetInaccessible": "No se puede acceder a la ruta de destino: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" ya existe en esta ubicación y no está vacío.",
+        "targetNotFolder": "\"{{name}}\" ya existe en esta ubicación y no es una carpeta.",
+        "readDirectoryFailed": "No se pudo leer el directorio: {{detail}}",
+        "createDirectoryFailed": "No se pudo crear el directorio: {{detail}}",
+        "prepareDirectoryFailed": "No se pudo preparar el directorio: {{detail}}",
+        "gitIdentityMissing": "La identidad del autor de Git no está configurada. Ejecuta `git config --global user.name \"Your Name\"` y `git config --global user.email \"you@example.com\"` y vuelve a intentarlo.",
+        "gitInitFailed": "No se pudo inicializar el repositorio Git: {{detail}}",
+        "initialCommitFailed": "No se pudo crear el commit inicial: {{detail}}"
+      }
     }
   },
   "rendererRecovery": {

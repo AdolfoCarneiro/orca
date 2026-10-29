@@ -591,7 +591,26 @@
       "claudeWorkspace": "Espace de travail Claude"
     },
     "shortcuts": {
-      "parseFailed": "Impossible d’analyser le raccourci."
+      "parseFailed": "Impossible d’analyser le raccourci.",
+      "validation": {
+        "invalidFormat": "Utilisez un raccourci comme Ctrl+Shift+P ou Cmd+K.",
+        "mixedModifiers": "Utilisez soit Mod, soit un modificateur propre à la plateforme, pas les deux.",
+        "modifierRequired": "Incluez au moins une touche de modification.",
+        "digitKeyRequired": "Choisissez une touche de 1 à 9 avec un modificateur, comme Cmd+1 ou Ctrl+1.",
+        "modifierOnly": "Appuyez sur une touche, pas seulement sur un modificateur.",
+        "invalidBindingValue": "Utilisez une chaîne, un tableau de chaînes, null ou false.",
+        "stringArrayRequired": "Utilisez un tableau de chaînes.",
+        "fileNotObject": "Le fichier de raccourcis clavier doit contenir un objet JSON."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} doit être un objet.",
+        "unknownAction": "Action de raccourci inconnue « {{actionId}} » ignorée.",
+        "shortcutIgnored": "Raccourci pour « {{actionId}} » ignoré : {{reason}}",
+        "platformsNotObject": "« platforms » doit être un objet avec des sections darwin, linux ou win32.",
+        "unknownPlatform": "Plateforme inconnue « {{platform}} » ignorée.",
+        "conflictingOverrides": "Des raccourcis personnalisés en conflit ont été ignorés : {{actions}}.",
+        "readFailed": "Impossible de lire le fichier de raccourcis clavier : {{reason}}"
+      }
     }
   },
   "menu": {
@@ -766,14 +785,7 @@
             "b8a1618172": "La génération du détail de pull request est indisponible dans le client web.",
             "e57c82d276": "La découverte des modèles de messages de commit est indisponible dans le client web.",
             "9fc90740b6": "La génération des messages de commit est indisponible dans le client web.",
-            "52bee9d8a0": "Des raccourcis personnalisés en conflit ont été ignorés : {{value0}}.",
-            "32f15bdb0f": "Plateforme inconnue « {{value0}} » ignorée.",
-            "0a69fcd8bc": "« platforms » doit être un objet avec des sections darwin, linux ou win32.",
-            "10898045f3": "Raccourci pour « {{value0}} » ignoré : utilisez un tableau de chaînes.",
-            "36761d9604": "Action de raccourci inconnue « {{value0}} » ignorée.",
-            "d2e43e426a": "{{value0}} doit être un objet.",
-            "fb290366b2": "Indisponible sur le web.",
-            "76122208ca": "Raccourci pour « {{value0}} » ignoré : {{value1}}"
+            "fb290366b2": "Indisponible sur le web."
           }
         },
         "runtime": {
@@ -19997,6 +20009,23 @@
     "startupWorktreeRefresh": {
       "loading": "Recherche des espaces de travail…",
       "description": "D'autres espaces de travail peuvent apparaître pendant le chargement des projets locaux et distants."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Le nom ne peut pas être vide",
+        "nameInvalid": "Le nom ne peut pas contenir de barres obliques ni être \".\" / \"..\"",
+        "parentRequired": "Le répertoire parent est requis",
+        "parentNotAbsolute": "Le répertoire parent doit être un chemin absolu",
+        "targetInaccessible": "Impossible d’accéder au chemin cible : {{detail}}",
+        "targetNotEmpty": "« {{name}} » existe déjà à cet emplacement et n’est pas vide.",
+        "targetNotFolder": "« {{name}} » existe déjà à cet emplacement et n’est pas un dossier.",
+        "readDirectoryFailed": "Impossible de lire le répertoire : {{detail}}",
+        "createDirectoryFailed": "Impossible de créer le répertoire : {{detail}}",
+        "prepareDirectoryFailed": "Impossible de préparer le répertoire : {{detail}}",
+        "gitIdentityMissing": "L’identité de l’auteur Git n’est pas configurée. Exécutez `git config --global user.name \"Your Name\"` et `git config --global user.email \"you@example.com\"`, puis réessayez.",
+        "gitInitFailed": "Impossible d’initialiser le dépôt Git : {{detail}}",
+        "initialCommitFailed": "Impossible de créer le commit initial : {{detail}}"
+      }
     }
   },
   "editor": {

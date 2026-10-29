@@ -229,6 +229,23 @@
       "quitDuringMoveTitle": "Sair enquanto um projeto está sendo movido?",
       "quitDuringMoveDescription": "Um projeto está sendo movido para o host WSL dele. Sair mesmo assim? A movimentação será desfeita na próxima inicialização.",
       "quitDuringMoveConfirm": "Sair mesmo assim"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "O nome não pode estar vazio",
+        "nameInvalid": "O nome não pode conter barras nem ser \".\" / \"..\"",
+        "parentRequired": "O diretório pai é obrigatório",
+        "parentNotAbsolute": "O diretório pai deve ser um caminho absoluto",
+        "targetInaccessible": "Não é possível acessar o caminho de destino: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" já existe neste local e não está vazio.",
+        "targetNotFolder": "\"{{name}}\" já existe neste local e não é uma pasta.",
+        "readDirectoryFailed": "Não foi possível ler o diretório: {{detail}}",
+        "createDirectoryFailed": "Não foi possível criar o diretório: {{detail}}",
+        "prepareDirectoryFailed": "Não foi possível preparar o diretório: {{detail}}",
+        "gitIdentityMissing": "A identidade do autor do Git não está configurada. Execute `git config --global user.name \"Your Name\"` e `git config --global user.email \"you@example.com\"` e tente novamente.",
+        "gitInitFailed": "Não foi possível inicializar o repositório Git: {{detail}}",
+        "initialCommitFailed": "Não foi possível criar o commit inicial: {{detail}}"
+      }
     }
   },
   "tray": {
@@ -1177,7 +1194,26 @@
       "claudeWorkspace": "Espaço de trabalho do Claude"
     },
     "shortcuts": {
-      "parseFailed": "Não foi possível interpretar o atalho."
+      "parseFailed": "Não foi possível interpretar o atalho.",
+      "validation": {
+        "invalidFormat": "Use um atalho como Ctrl+Shift+P ou Cmd+K.",
+        "mixedModifiers": "Use Mod ou um modificador específico da plataforma, não ambos.",
+        "modifierRequired": "Inclua pelo menos uma tecla modificadora.",
+        "digitKeyRequired": "Escolha uma tecla numérica de 1 a 9 com um modificador, como Cmd+1 ou Ctrl+1.",
+        "modifierOnly": "Pressione uma tecla, não apenas um modificador.",
+        "invalidBindingValue": "Use uma string, um array de strings, null ou false.",
+        "stringArrayRequired": "Use um array de strings.",
+        "fileNotObject": "O arquivo de atalhos deve conter um objeto JSON."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} deve ser um objeto.",
+        "unknownAction": "A ação de atalho desconhecida \"{{actionId}}\" foi ignorada.",
+        "shortcutIgnored": "O atalho para \"{{actionId}}\" foi ignorado: {{reason}}",
+        "platformsNotObject": "platforms deve ser um objeto com seções darwin, linux ou win32.",
+        "unknownPlatform": "A plataforma desconhecida \"{{platform}}\" foi ignorada.",
+        "conflictingOverrides": "Atalhos personalizados conflitantes foram ignorados: {{actions}}.",
+        "readFailed": "Não foi possível ler o arquivo de atalhos: {{reason}}"
+      }
     }
   },
   "auto": {
@@ -1254,14 +1290,7 @@
             "b8a1618172": "A geração de detalhes de pull request não está disponível no cliente web.",
             "e57c82d276": "A descoberta de modelo para mensagens de commit não está disponível no cliente web.",
             "9fc90740b6": "A geração de mensagens de commit não está disponível no cliente web.",
-            "52bee9d8a0": "Atalhos personalizados conflitantes foram ignorados: {{value0}}.",
-            "32f15bdb0f": "A plataforma desconhecida \"{{value0}}\" foi ignorada.",
-            "0a69fcd8bc": "platforms deve ser um objeto com seções darwin, linux ou win32.",
-            "10898045f3": "O atalho para \"{{value0}}\" foi ignorado: use um array de strings.",
-            "36761d9604": "A ação de atalho desconhecida \"{{value0}}\" foi ignorada.",
-            "d2e43e426a": "{{value0}} deve ser um objeto.",
-            "fb290366b2": "Indisponível na web.",
-            "76122208ca": "O atalho para \"{{value0}}\" foi ignorado: {{value1}}"
+            "fb290366b2": "Indisponível na web."
           }
         },
         "runtime": {

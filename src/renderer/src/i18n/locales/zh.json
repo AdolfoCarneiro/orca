@@ -409,7 +409,26 @@
       "claudeWorkspace": "Claude 工作区"
     },
     "shortcuts": {
-      "parseFailed": "无法解析快捷键。"
+      "parseFailed": "无法解析快捷键。",
+      "validation": {
+        "invalidFormat": "请使用 Ctrl+Shift+P 或 Cmd+K 这样的快捷键。",
+        "mixedModifiers": "请使用 Mod 或平台专用修饰键，不要同时使用两者。",
+        "modifierRequired": "请至少包含一个修饰键。",
+        "digitKeyRequired": "请选择 1–9 数字键并搭配修饰键，例如 Cmd+1 或 Ctrl+1。",
+        "modifierOnly": "请按下普通按键，而不只是修饰键。",
+        "invalidBindingValue": "请使用字符串、字符串数组、null 或 false。",
+        "stringArrayRequired": "请使用字符串数组。",
+        "fileNotObject": "键绑定文件必须包含 JSON 对象。"
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} 必须是对象。",
+        "unknownAction": "未知的键绑定操作“{{actionId}}”已被忽略。",
+        "shortcutIgnored": "“{{actionId}}”的快捷键已被忽略：{{reason}}",
+        "platformsNotObject": "platforms 必须是包含 darwin、linux 或 win32 部分的对象。",
+        "unknownPlatform": "未知平台“{{platform}}”已被忽略。",
+        "conflictingOverrides": "有冲突的自定义快捷键已被忽略：{{actions}}。",
+        "readFailed": "无法读取键绑定文件：{{reason}}"
+      }
     }
   },
   "menu": {
@@ -584,14 +603,7 @@
             "b8a1618172": "PR详细信息生成在 Web 客户端中不可用。",
             "e57c82d276": "Commit 消息模型发现在 Web 客户端中不可用。",
             "9fc90740b6": "Commit 消息生成在 Web 客户端中不可用。",
-            "52bee9d8a0": "冲突的自定义快捷键被忽略：{{value0}}。",
-            "32f15bdb0f": "未知平台“{{value0}}”被忽略。",
-            "0a69fcd8bc": "platform 必须是具有 darwin、linux 或 win32 部分的对象。",
-            "10898045f3": "“{{value0}}”的快捷方式被忽略：使用字符串数组。",
-            "36761d9604": "未知的键绑定操作“{{value0}}”被忽略。",
-            "d2e43e426a": "{{value0}} 必须是一个对象。",
-            "fb290366b2": "无法在网络上使用。",
-            "76122208ca": "“{{value0}}”的快捷方式被忽略：{{value1}}"
+            "fb290366b2": "无法在网络上使用。"
           }
         },
         "runtime": {
@@ -19684,6 +19696,23 @@
     "startupWorktreeRefresh": {
       "loading": "正在发现工作区…",
       "description": "本地和远程项目加载期间，可能会显示更多工作区。"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "名称不能为空",
+        "nameInvalid": "名称不能包含斜杠，也不能是 \".\" / \"..\"",
+        "parentRequired": "必须指定父目录",
+        "parentNotAbsolute": "父目录必须为绝对路径",
+        "targetInaccessible": "无法访问目标路径：{{detail}}",
+        "targetNotEmpty": "此位置已存在“{{name}}”，且不为空。",
+        "targetNotFolder": "此位置已存在“{{name}}”，且不是文件夹。",
+        "readDirectoryFailed": "读取目录失败：{{detail}}",
+        "createDirectoryFailed": "创建目录失败：{{detail}}",
+        "prepareDirectoryFailed": "准备目录失败：{{detail}}",
+        "gitIdentityMissing": "未配置 Git 作者身份。请运行 `git config --global user.name \"Your Name\"` 和 `git config --global user.email \"you@example.com\"`，然后重试。",
+        "gitInitFailed": "初始化 Git 仓库失败：{{detail}}",
+        "initialCommitFailed": "创建初始提交失败：{{detail}}"
+      }
     }
   },
   "editor": {
