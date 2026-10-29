@@ -10,10 +10,14 @@ import {
 import { getDefaultSettings } from '../../../../../shared/constants'
 import type { CreateHostedReviewResult } from '../../../../../shared/hosted-review'
 import { getDefaultSourceControlAiSettings } from '../../../../../shared/source-control-ai-settings'
+import type * as AppHttpLinkOpen from '@/lib/app-http-link-open'
 import { useChecksPanelCreateReview } from './use-checks-panel-create-review'
 
 const { openAppHttpLink } = vi.hoisted(() => ({ openAppHttpLink: vi.fn() }))
-vi.mock('@/lib/app-http-link-open', () => ({ openAppHttpLink }))
+vi.mock('@/lib/app-http-link-open', async (importOriginal) => ({
+  ...(await importOriginal<typeof AppHttpLinkOpen>()),
+  openAppHttpLink
+}))
 
 type CreateInput = Parameters<typeof useChecksPanelCreateReview>[0]
 
@@ -410,9 +414,8 @@ describe('useChecksPanelCreateReview provider flow', () => {
     await act(async () => result.current.handleCreatePullRequest(false))
 
     expect(input.setRightSidebarTab).toHaveBeenCalledWith('checks')
-    expect(openAppHttpLink).toHaveBeenCalledWith(
-      'https://github.com/orca/app/pull/42',
-      'worktree-1'
-    )
+    expect(openAppHttpLink).toHaveBeenCalledWith('https://github.com/orca/app/pull/42', {
+      worktreeId: 'worktree-1'
+    })
   })
 })

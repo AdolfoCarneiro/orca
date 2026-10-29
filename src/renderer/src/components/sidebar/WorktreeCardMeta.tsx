@@ -269,6 +269,7 @@ export function WorktreeCardDetailsHover({
                               'View on Linear'
                             )}
                             href={linearIssue.url}
+                            workspaceId={workspace?.id}
                           >
                             <ExternalLink className="size-3" />
                           </MetadataActionIcon>
@@ -317,6 +318,7 @@ export function WorktreeCardDetailsHover({
                           'View on Jira'
                         )}
                         href={jiraIssue.url}
+                        workspaceId={workspace?.id}
                       >
                         <ExternalLink className="size-3" />
                       </MetadataActionIcon>

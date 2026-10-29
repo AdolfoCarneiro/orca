@@ -22,7 +22,7 @@ export function renderTimelineTarget(
       type="button"
       className="min-w-0 truncate font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground"
       title={getTimelineTargetLabel(target)}
-      onClick={() => openAppHttpLink(target.url)}
+      onClick={(event) => openAppHttpLink(target.url, { event })}
     >
       {getTimelineTargetLabel(target)}
     </button>

@@ -105,7 +105,7 @@ export function ProjectViewToolbar({ tableState }: { tableState: ProjectViewTabl
               variant="outline"
               size="icon"
               className="h-7 w-7"
-              onClick={() => openAppHttpLink(selectedViewUrl)}
+              onClick={(event) => openAppHttpLink(selectedViewUrl, { event })}
               aria-label={translate(
                 'auto.components.github.project.ProjectViewWrapper.fd15491034',
                 'Open view in GitHub'

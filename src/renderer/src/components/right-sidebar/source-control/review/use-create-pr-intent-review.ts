@@ -229,7 +229,7 @@ export function useSourceControlCreatePrIntentReview({
             }
           )
           if (openChecks && resolvedPrCreationDefaults.openAfterCreate) {
-            openAppHttpLink(result.url, token.worktreeId)
+            openAppHttpLink(result.url, { worktreeId: token.worktreeId })
           }
           setCreatePrIntentNoticeForWorktree(token.worktreeId, null)
           return true

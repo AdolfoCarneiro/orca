@@ -179,7 +179,11 @@ export function JiraIssueTransitionControl({
               <Button variant="ghost" size="sm" onClick={reset} disabled={busy}>
                 {translate('jira.transitions.back', 'Back')}
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => openAppHttpLink(issue.url)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={(event) => openAppHttpLink(issue.url, { event })}
+              >
                 <ExternalLink className="size-3" />
                 {translate('auto.components.JiraIssueWorkspace.69da9a208c', 'Open in Jira')}
               </Button>

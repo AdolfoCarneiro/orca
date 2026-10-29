@@ -62,7 +62,7 @@ function GitHubStarButton({
       return
     }
     if (state === 'web-fallback') {
-      openAppHttpLink(ORCA_GITHUB_URL)
+      await window.api.shell.openUrl(ORCA_GITHUB_URL)
       return
     }
     if (state !== 'not-starred') {
@@ -192,7 +192,7 @@ function PreflightBanner({
             <p className="text-xs leading-snug text-muted-foreground">{issue.description}</p>
             <button
               className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline cursor-pointer"
-              onClick={() => openAppHttpLink(issue.fixUrl)}
+              onClick={(event) => openAppHttpLink(issue.fixUrl, { event })}
             >
               {issue.fixLabel}
               <ExternalLink className="size-3" />

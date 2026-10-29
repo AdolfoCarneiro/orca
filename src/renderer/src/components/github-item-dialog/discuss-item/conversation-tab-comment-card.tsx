@@ -115,7 +115,7 @@ export function renderCommentCard(
                   variant="ghost"
                   size="icon-xs"
                   className="size-7"
-                  onClick={() => openAppHttpLink(comment.url)}
+                  onClick={(event) => openAppHttpLink(comment.url, { event })}
                   aria-label={translate(
                     'auto.components.GitHubItemDialog.a154ec5224',
                     'Open comment on GitHub'

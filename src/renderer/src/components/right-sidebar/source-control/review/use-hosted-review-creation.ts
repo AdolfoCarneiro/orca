@@ -163,7 +163,7 @@ export function useSourceControlHostedReviewCreation({
             context
           )
           if (context.openChecks && resolvedPrCreationDefaults.openAfterCreate) {
-            openAppHttpLink(result.url)
+            openAppHttpLink(result.url, { worktreeId: activeWorktreeId })
           }
           return
         }

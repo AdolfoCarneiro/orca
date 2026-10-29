@@ -8,12 +8,18 @@ import { Separator } from '../ui/separator'
 import { SearchableSetting } from './SearchableSetting'
 import { SettingsSubsectionHeader } from './SettingsFormControls'
 import { translate } from '@/i18n/i18n'
-import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 // Do not deep-link to /stargazers: GitHub 404s that page for users without repo write access.
 const ORCA_GITHUB_URL = 'https://github.com/stablyai/orca'
 
-type SupportState = 'loading' | 'not-starred' | 'web-fallback' | 'starring' | 'starred' | 'hidden'
+type SupportState =
+  | 'loading'
+  | 'not-starred'
+  | 'web-fallback'
+  | 'opening-github'
+  | 'starring'
+  | 'starred'
+  | 'hidden'
 
 type GeneralSupportSectionProps = {
   hasPrecedingSections: boolean
@@ -45,7 +51,11 @@ export function GeneralSupportSection({
 
   const handleStarClick = async (): Promise<void> => {
     if (starState === 'web-fallback') {
-      openAppHttpLink(ORCA_GITHUB_URL)
+      setStarState('opening-github')
+      await window.api.shell.openUrl(ORCA_GITHUB_URL)
+      if (mountedRef.current) {
+        setStarState('web-fallback')
+      }
       return
     }
     if (starState !== 'not-starred') {
@@ -130,7 +140,7 @@ function SupportRow({
   state,
   onStarClick
 }: {
-  state: 'not-starred' | 'web-fallback' | 'starring' | 'starred'
+  state: 'not-starred' | 'web-fallback' | 'opening-github' | 'starring' | 'starred'
   onStarClick: () => void | Promise<void>
 }): React.JSX.Element {
   // Keep the setting label stable; only its action changes to confirmation after starring.
@@ -160,10 +170,10 @@ function SupportRow({
           variant="default"
           size="sm"
           onClick={() => void onStarClick()}
-          disabled={state === 'starring'}
+          disabled={state === 'starring' || state === 'opening-github'}
           className="shrink-0 gap-1.5"
         >
-          {state === 'starring' ? (
+          {state === 'starring' || state === 'opening-github' ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : state === 'web-fallback' ? (
             <ExternalLink className="size-3.5" />
@@ -172,12 +182,14 @@ function SupportRow({
           )}
           {state === 'starring'
             ? translate('auto.components.settings.GeneralSupportSection.397719bee5', 'Starring...')
-            : state === 'web-fallback'
-              ? translate(
-                  'auto.components.settings.GeneralSupportSection.f2d4f877b2',
-                  'Open GitHub'
-                )
-              : translate('auto.components.settings.GeneralSupportSection.964acc6bb4', 'Star')}
+            : state === 'opening-github'
+              ? translate('auto.components.settings.GeneralSupportSection.cb65c75b11', 'Opening...')
+              : state === 'web-fallback'
+                ? translate(
+                    'auto.components.settings.GeneralSupportSection.f2d4f877b2',
+                    'Open GitHub'
+                  )
+                : translate('auto.components.settings.GeneralSupportSection.964acc6bb4', 'Star')}
         </Button>
       )}
     </SearchableSetting>

@@ -29,7 +29,12 @@ function LinkButton({ url, label }: { url: string | null; label: string }) {
     return null
   }
   return (
-    <Button variant="link" size="xs" className="-ml-2" onClick={() => openAppHttpLink(url)}>
+    <Button
+      variant="link"
+      size="xs"
+      className="-ml-2"
+      onClick={(event) => openAppHttpLink(url, { event })}
+    >
       {label}
       <ArrowUpRight />
     </Button>

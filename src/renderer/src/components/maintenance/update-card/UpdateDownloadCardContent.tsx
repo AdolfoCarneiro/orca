@@ -87,9 +87,10 @@ export function UpdateDownloadingContent({
         <button
           type="button"
           className="text-xs text-muted-foreground underline hover:text-foreground self-start"
-          onClick={() =>
+          onClick={(event) =>
             openAppHttpLink(
-              release ? release.releaseNotesUrl : getReleaseNotesUrlForVersion(version)
+              release ? release.releaseNotesUrl : getReleaseNotesUrlForVersion(version),
+              { event }
             )
           }
         >

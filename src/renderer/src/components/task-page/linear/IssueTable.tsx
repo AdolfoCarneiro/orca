@@ -279,7 +279,7 @@ export function TaskPageLinearIssueTable({
                     size="icon-xs"
                     onClick={(event) => {
                       event.stopPropagation()
-                      openAppHttpLink(issue.url)
+                      openAppHttpLink(issue.url, { event })
                     }}
                     aria-label={translate(
                       'auto.components.TaskPage.246bd64aed',

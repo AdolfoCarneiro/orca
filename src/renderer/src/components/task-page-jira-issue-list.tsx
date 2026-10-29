@@ -250,7 +250,7 @@ function JiraIssueRow({
                 size="icon-xs"
                 onClick={(event) => {
                   event.stopPropagation()
-                  openAppHttpLink(issue.url)
+                  openAppHttpLink(issue.url, { event })
                 }}
                 aria-label={translate(
                   'auto.components.TaskPage.4ac8ff2275',

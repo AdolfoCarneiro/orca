@@ -103,7 +103,7 @@ export function LinearIssueWorkspaceHeader({
               type="button"
               variant="ghost"
               size="icon-sm"
-              onClick={() => openAppHttpLink(issue.url)}
+              onClick={(event) => openAppHttpLink(issue.url, { event })}
               aria-label={translate(
                 'auto.components.LinearIssueWorkspace.openOnLinear',
                 'Open on Linear'

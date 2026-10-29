@@ -106,7 +106,7 @@ export function PrivacyPane({ settings }: PrivacyPaneProps): React.JSX.Element {
             <button
               type="button"
               className="underline underline-offset-2 hover:text-foreground"
-              onClick={() => openAppHttpLink(PRIVACY_URL)}
+              onClick={(event) => openAppHttpLink(PRIVACY_URL, { event })}
             >
               {translate('auto.components.settings.PrivacyPane.77410e0566', 'Privacy policy')}
             </button>

@@ -156,7 +156,7 @@ export function GitHubItemDialogPRHeader({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => openAppHttpLink(workItem.url)}
+                onClick={(event) => openAppHttpLink(workItem.url, { event })}
                 aria-label={translate(
                   'auto.components.GitHubItemDialog.3fdf777817',
                   'Open on GitHub'

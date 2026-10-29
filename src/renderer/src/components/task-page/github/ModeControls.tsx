@@ -114,11 +114,11 @@ export function TaskPageGitHubModeControls({
             type="button"
             variant="outline"
             size="icon-sm"
-            onClick={() => {
+            onClick={(event) => {
               if (!selectedGitHubRepoExternalLink?.url) {
                 return
               }
-              openAppHttpLink(selectedGitHubRepoExternalLink.url)
+              openAppHttpLink(selectedGitHubRepoExternalLink.url, { event })
             }}
             aria-label={
               selectedGitHubRepoExternalLink

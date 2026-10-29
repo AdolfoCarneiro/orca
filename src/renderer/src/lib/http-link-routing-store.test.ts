@@ -545,3 +545,14 @@ it('opens a link from Orca UI in the system browser when the workspace browser c
   expect(openUrl).toHaveBeenCalledExactlyOnceWith(URL_TO_OPEN)
   expect(useAppStore.getState().browserTabsByWorktree[WORKSPACE] ?? []).toHaveLength(0)
 })
+
+it('opens a link from Orca UI in the system browser on the escape modifier click', () => {
+  const openUrl = vi.fn(() => Promise.resolve())
+  vi.stubGlobal('window', { ...window, api: { ...window.api, shell: { openUrl } } })
+
+  // Shift plus both platform keys reads as the escape modifier on every OS.
+  openAppHttpLink(URL_TO_OPEN, { event: { shiftKey: true, metaKey: true, ctrlKey: true } })
+
+  expect(openUrl).toHaveBeenCalledExactlyOnceWith(URL_TO_OPEN)
+  expect(useAppStore.getState().browserTabsByWorktree[WORKSPACE] ?? []).toHaveLength(0)
+})

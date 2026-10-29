@@ -87,7 +87,7 @@ export function UpdateAvailableRichContent({
             <button
               type="button"
               className="text-xs text-muted-foreground/70 underline hover:text-foreground inline"
-              onClick={() => openAppHttpLink(release.releaseNotesUrl)}
+              onClick={(event) => openAppHttpLink(release.releaseNotesUrl, { event })}
             >
               {translate(
                 'auto.components.UpdateCard.moreSinceLastUpdate',
@@ -101,7 +101,7 @@ export function UpdateAvailableRichContent({
       <button
         type="button"
         className="text-xs text-muted-foreground underline hover:text-foreground self-start"
-        onClick={() => openAppHttpLink(release.releaseNotesUrl)}
+        onClick={(event) => openAppHttpLink(release.releaseNotesUrl, { event })}
       >
         {translate('auto.components.UpdateCard.aad383aecc', 'Read the full release notes')}
       </button>
@@ -161,7 +161,7 @@ export function UpdateAvailableSimpleContent({
         <button
           type="button"
           className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground self-start"
-          onClick={() => openAppHttpLink(releaseUrl)}
+          onClick={(event) => openAppHttpLink(releaseUrl, { event })}
         >
           {translate('auto.components.UpdateCard.44324ef542', 'Release notes')}
         </button>

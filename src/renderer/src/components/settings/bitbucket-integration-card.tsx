@@ -215,7 +215,7 @@ export function BitbucketIntegrationCard(): React.JSX.Element {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => openAppHttpLink(API_TOKEN_DOCS_URL)}
+                onClick={(event) => openAppHttpLink(API_TOKEN_DOCS_URL, { event })}
               >
                 <ExternalLink className="size-3.5 mr-1.5" />
                 {translate(

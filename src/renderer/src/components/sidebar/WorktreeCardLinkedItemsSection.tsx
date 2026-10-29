@@ -76,7 +76,7 @@ export function WorktreeCardLinkedItemsSection({
         onOpen(item.url, event)
       } else {
         event.preventDefault()
-        openAppHttpLink(item.url, workspace.id)
+        openAppHttpLink(item.url, { worktreeId: workspace.id, event })
       }
     } else {
       event.preventDefault()

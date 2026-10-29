@@ -1,5 +1,4 @@
 import React from 'react'
-import { openAppHttpLinkFromAnchor } from '@/lib/app-http-link-open'
 
 export function isGitHubUserAttachmentUrl(href: string | undefined): href is string {
   if (!href) {
@@ -42,10 +41,7 @@ function AttachmentFallbackLink({
       target="_blank"
       rel="noreferrer"
       className="break-all text-primary underline underline-offset-2 hover:text-primary/80"
-      onClick={(e) => {
-        e.stopPropagation()
-        openAppHttpLinkFromAnchor(e)
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
       {children}
     </a>
@@ -103,10 +99,7 @@ export function GitHubUserAttachmentImage({
       target="_blank"
       rel="noreferrer"
       className="inline-block max-w-full"
-      onClick={(e) => {
-        e.stopPropagation()
-        openAppHttpLinkFromAnchor(e)
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
       <img
         src={src}

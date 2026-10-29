@@ -49,8 +49,8 @@ export function ProjectMissingRepoDialog({
           {missingRepo?.url ? (
             <Button
               variant="outline"
-              onClick={() => {
-                openAppHttpLink(missingRepo.url!)
+              onClick={(event) => {
+                openAppHttpLink(missingRepo.url!, { event })
                 onClose()
               }}
             >

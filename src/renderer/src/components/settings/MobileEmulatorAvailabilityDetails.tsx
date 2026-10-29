@@ -145,7 +145,7 @@ export function MobileEmulatorAvailabilityDetails({
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => openAppHttpLink(ANDROID_STUDIO_URL)}
+                  onClick={(event) => openAppHttpLink(ANDROID_STUDIO_URL, { event })}
                 >
                   {translate(
                     'auto.components.settings.MobileEmulatorSdkStatus.b94ff260e6',

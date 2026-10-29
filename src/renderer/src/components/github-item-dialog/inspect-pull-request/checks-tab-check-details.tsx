@@ -223,7 +223,7 @@ export function ChecksTabCheckDetails({
                 variant="ghost"
                 size="xs"
                 className="h-7 gap-1 px-2 text-[11px]"
-                onClick={() => openAppHttpLink(openUrl)}
+                onClick={(event) => openAppHttpLink(openUrl, { event })}
               >
                 {translate(
                   'auto.components.GitHubItemDialog.checkOpenInBrowser',

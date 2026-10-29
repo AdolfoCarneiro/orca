@@ -67,11 +67,14 @@ export function DetailHeader({
 export function MetadataActionIcon({
   label,
   href,
+  workspaceId,
   onClick,
   children
 }: {
   label: string
   href?: string
+  /** The card's workspace hosts the link, not whichever one is selected. */
+  workspaceId?: string
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
   children: React.ReactNode
 }): React.JSX.Element {
@@ -84,7 +87,7 @@ export function MetadataActionIcon({
         aria-label={label}
         onClick={(event) => {
           event.stopPropagation()
-          openAppHttpLinkFromAnchor(event)
+          openAppHttpLinkFromAnchor(event, workspaceId)
         }}
       >
         {children}

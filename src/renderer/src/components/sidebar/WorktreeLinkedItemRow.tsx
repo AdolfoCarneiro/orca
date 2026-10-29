@@ -98,7 +98,9 @@ export function WorktreeLinkedItemRow({
                 variant="ghost"
                 size="icon-xs"
                 aria-label={translate('workspace.links.openItem', 'Open {{label}}', { label })}
-                onClick={() => openAppHttpLink(item.url ?? '')}
+                onClick={(event) =>
+                  openAppHttpLink(item.url ?? '', { worktreeId: workspace?.id, event })
+                }
               >
                 <ExternalLink className="size-3" />
               </Button>

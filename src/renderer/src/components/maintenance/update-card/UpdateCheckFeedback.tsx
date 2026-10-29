@@ -27,7 +27,7 @@ export function UpdateCheckFeedback({
           <button
             type="button"
             className="text-xs text-muted-foreground underline hover:text-foreground mt-0.5"
-            onClick={() => openAppHttpLink(action.url)}
+            onClick={(event) => openAppHttpLink(action.url, { event })}
           >
             {action.label}
           </button>

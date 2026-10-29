@@ -137,7 +137,7 @@ export function renderLinearItemDrawerSheet({
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        onClick={() => openAppHttpLink(displayed.url)}
+                        onClick={(event) => openAppHttpLink(displayed.url, { event })}
                         aria-label={translate(
                           'auto.components.LinearItemDrawer.0190b760c1',
                           'Open on Linear'

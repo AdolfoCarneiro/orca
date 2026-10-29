@@ -86,7 +86,7 @@ export function AgentStep({
             variant="outline"
             size="xs"
             className="shrink-0"
-            onClick={() => openAppHttpLink(selectedEntry.homepageUrl)}
+            onClick={(event) => openAppHttpLink(selectedEntry.homepageUrl, { event })}
           >
             {translate('auto.components.onboarding.AgentStep.9c163bb0e0', 'Install instructions')}
             <ExternalLink className="size-3" />

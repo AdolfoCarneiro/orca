@@ -124,7 +124,7 @@ export function ConversationCommentCard({
                   variant="ghost"
                   size="icon-xs"
                   className="size-7"
-                  onClick={() => openAppHttpLink(comment.url)}
+                  onClick={(event) => openAppHttpLink(comment.url, { event })}
                   aria-label={translate(
                     'auto.components.PullRequestPage.0ac19bb52e',
                     'Open comment on GitHub'

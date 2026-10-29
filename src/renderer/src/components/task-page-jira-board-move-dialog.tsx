@@ -133,9 +133,9 @@ export function JiraBoardMoveDialog({
             ) : null}
             <Button
               variant="secondary"
-              onClick={() => {
+              onClick={(event) => {
                 if (prompt) {
-                  openAppHttpLink(prompt.issue.url)
+                  openAppHttpLink(prompt.issue.url, { event })
                 }
               }}
             >

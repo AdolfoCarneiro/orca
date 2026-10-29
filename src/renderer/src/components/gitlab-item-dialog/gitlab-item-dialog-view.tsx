@@ -238,7 +238,7 @@ export function GitLabItemDialogView({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openAppHttpLink(item.url)}
+                  onClick={(event) => openAppHttpLink(item.url, { event })}
                   className="gap-1.5"
                 >
                   <ExternalLink className="size-3.5" />

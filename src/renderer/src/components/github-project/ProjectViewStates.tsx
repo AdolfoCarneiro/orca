@@ -123,7 +123,7 @@ function ProjectViewTab({
             type="button"
             size="xs"
             variant="outline"
-            onClick={() => openAppHttpLink(ORCA_FEATURE_REQUEST_URL)}
+            onClick={(event) => openAppHttpLink(ORCA_FEATURE_REQUEST_URL, { event })}
           >
             {translate(
               'auto.components.github.project.ProjectViewWrapper.4d2a77a119',

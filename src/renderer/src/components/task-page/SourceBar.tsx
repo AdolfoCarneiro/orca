@@ -167,11 +167,11 @@ export function TaskPageSourceBar({
                 type="button"
                 variant="outline"
                 size="icon-sm"
-                onClick={() => {
+                onClick={(event) => {
                   if (!selectedLinearTeamForExternalLink?.url) {
                     return
                   }
-                  openAppHttpLink(selectedLinearTeamForExternalLink.url)
+                  openAppHttpLink(selectedLinearTeamForExternalLink.url, { event })
                 }}
                 disabled={!selectedLinearTeamForExternalLink}
                 aria-label={

@@ -123,7 +123,7 @@ export function PullRequestPageHeader({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => openAppHttpLink(workItem.url)}
+                  onClick={(event) => openAppHttpLink(workItem.url, { event })}
                   aria-label={translate(
                     'auto.components.PullRequestPage.8ecda455a0',
                     'Open on GitHub'

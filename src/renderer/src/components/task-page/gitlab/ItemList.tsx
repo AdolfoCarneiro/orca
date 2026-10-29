@@ -140,7 +140,7 @@ export function TaskPageGitLabItemList({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    openAppHttpLink(item.url)
+                    openAppHttpLink(item.url, { event: e })
                   }}
                   aria-label={translate('auto.components.TaskPage.bcdc1330b2', 'Open in GitLab')}
                   className="text-muted-foreground hover:text-foreground"

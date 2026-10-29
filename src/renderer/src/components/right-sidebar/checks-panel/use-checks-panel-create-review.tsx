@@ -183,7 +183,7 @@ export function useChecksPanelCreateReview(model: ChecksPanelCreateReviewInput) 
             panelShowsReview
           )
           if (prCreationDefaults.openAfterCreate && foreground) {
-            openAppHttpLink(result.url, activeWorktreeId)
+            openAppHttpLink(result.url, { worktreeId: activeWorktreeId })
           }
           if (activePullRequestGenerationKey) {
             updatePullRequestGenerationRecord(

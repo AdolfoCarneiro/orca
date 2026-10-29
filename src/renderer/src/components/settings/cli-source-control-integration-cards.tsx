@@ -126,7 +126,7 @@ export function GitHubIntegrationCard(): React.JSX.Element {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openAppHttpLink('https://cli.github.com')}
+                  onClick={(event) => openAppHttpLink('https://cli.github.com', { event })}
                 >
                   <ExternalLink className="size-3.5 mr-1.5" />
                   {translate(
@@ -161,7 +161,9 @@ export function GitHubIntegrationCard(): React.JSX.Element {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openAppHttpLink('https://cli.github.com/manual/gh_auth_login')}
+                  onClick={(event) =>
+                    openAppHttpLink('https://cli.github.com/manual/gh_auth_login', { event })
+                  }
                 >
                   <ExternalLink className="size-3.5 mr-1.5" />
                   {translate(
@@ -245,7 +247,9 @@ export function GitLabIntegrationCard(): React.JSX.Element {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openAppHttpLink('https://gitlab.com/gitlab-org/cli#installation')}
+                  onClick={(event) =>
+                    openAppHttpLink('https://gitlab.com/gitlab-org/cli#installation', { event })
+                  }
                 >
                   <ExternalLink className="size-3.5 mr-1.5" />
                   {translate(
@@ -280,9 +284,10 @@ export function GitLabIntegrationCard(): React.JSX.Element {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
+                  onClick={(event) =>
                     openAppHttpLink(
-                      'https://gitlab.com/gitlab-org/cli/-/blob/main/docs/source/auth/login.md'
+                      'https://gitlab.com/gitlab-org/cli/-/blob/main/docs/source/auth/login.md',
+                      { event }
                     )
                   }
                 >

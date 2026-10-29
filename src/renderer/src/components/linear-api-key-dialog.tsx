@@ -27,7 +27,6 @@ import {
   resolveLinearApiKeyDialogState
 } from './linear-api-key-dialog-state'
 import { translate } from '@/i18n/i18n'
-import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 type LinearApiKeyDialogProps = {
   open: boolean
@@ -232,7 +231,7 @@ export function LinearApiKeyDialog({
               <button
                 type="button"
                 className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
-                onClick={() => openAppHttpLink(personalKeyUrl)}
+                onClick={() => window.api.shell.openUrl(personalKeyUrl)}
               >
                 <ExternalLink className="size-3" />
                 {translate('auto.components.linear.api.key.dialog.dc7ccb0f7c', 'Personal API keys')}
@@ -241,7 +240,7 @@ export function LinearApiKeyDialog({
               <button
                 type="button"
                 className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
-                onClick={() => openAppHttpLink(workspaceApiUrl)}
+                onClick={() => window.api.shell.openUrl(workspaceApiUrl)}
               >
                 <ExternalLink className="size-3" />
                 {translate(
