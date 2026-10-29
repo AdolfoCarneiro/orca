@@ -401,6 +401,8 @@ it.each(['{Enter}', ' '])(
     )
     const panel = document.querySelector('[role="dialog"]')!
     expect(panel).not.toBeNull()
+    const closeAutoFocus = vi.fn()
+    panel.addEventListener('focusScope.autoFocusOnUnmount', closeAutoFocus, { once: true })
     const otherRow = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
       (row) => row.textContent === 'Claude'
     )!
@@ -421,10 +423,7 @@ it.each(['{Enter}', ' '])(
     expect(search).not.toBeNull()
     expect(replacement).not.toBe(panel)
     await waitFor(() => expect(panel.isConnected).toBe(false))
-    // The outgoing FocusScope restores focus on a deferred unmount callback.
-    await act(async () => {
-      await new Promise<void>((resolve) => setTimeout(resolve, 60))
-    })
+    await waitFor(() => expect(closeAutoFocus).toHaveBeenCalledOnce())
     expect(document.activeElement).toBe(search)
     await user.keyboard('astra')
     expect(search.value).toBe('astra')
