@@ -374,19 +374,27 @@ class RuntimeRenderTest(unittest.TestCase):
 
     def test_partial_text_replacement_fails_without_typing_again(self):
         for tool in ("type_text", "paste_text"):
-            for failure in (False, True, TimeoutError("provider timed out")):
+            for failure in (False, True, TimeoutError("provider timed out"), "wrong-range"):
                 field = FakeAccessible("text", "Message", value="Hello world")
                 field.caret, field.selection = 11, (6, 11)
                 field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
                 field.get_editable_text_iface = lambda: field
+                def delete(node, _start, _end):
+                    if failure == "wrong-range":
+                        node.value = node.value[5:]
+                        node.selection = None
+                        return True
+                    if isinstance(failure, Exception):
+                        raise failure
+                    return failure
                 with self.subTest(tool=tool, failure=failure), SnapshotFixture(
                     FakeAccessible("frame", "Editor", children=[field])
-                ) as fixture, patch.object(runtime.Atspi.EditableText, "delete_text", side_effect=failure if isinstance(failure, Exception) else None, return_value=failure), \
+                ) as fixture, patch.object(runtime.Atspi.EditableText, "delete_text", delete), \
                      patch.object(runtime, "type_text") as keys, patch.object(runtime, "paste_text") as paste:
                     fixture.root.get_state_set = lambda: FakeStateSet(FakeStateType.ACTIVE)
                     with self.assertRaisesRegex(RuntimeError, "text_replacement_incomplete"):
-                        runtime.run_operation({"tool": tool, "app": "Fixture", "text": "world", "noScreenshot": True})
-                    self.assertEqual(field.value, "Hello worldworld")
+                        runtime.run_operation({"tool": tool, "app": "Fixture", "text": "there", "noScreenshot": True})
+                    self.assertEqual(field.value, " worldthere" if failure == "wrong-range" else "Hello worldthere")
                     keys.assert_not_called()
                     paste.assert_not_called()
 

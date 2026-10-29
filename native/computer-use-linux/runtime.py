@@ -1017,6 +1017,11 @@ def insert_focused_text(window, value):
     original_count = attempt(lambda: Atspi.Text.get_character_count(text))
     if original_count is None or original_count < 0:
         return None
+    original = None
+    if end > start:
+        original = attempt(lambda: Atspi.Text.get_text(text, 0, original_count))
+        if original is None or len(original) != original_count:
+            return None
     inserted_count = original_count + len(value)
     if (not attempt(lambda: Atspi.EditableText.insert_text(editable, end, value, len(value.encode("utf-8"))), False)
             or attempt(lambda: Atspi.Text.get_character_count(text)) != inserted_count
@@ -1024,7 +1029,9 @@ def insert_focused_text(window, value):
         raise RuntimeError("text_insertion_unconfirmed: text insertion did not confirm success; inspect state before retrying")
     # Why insert before deleting: an unsuccessful insert leaves the selected text intact.
     if end > start and (not attempt(lambda: Atspi.EditableText.delete_text(editable, start, end), False)
-            or attempt(lambda: Atspi.Text.get_character_count(text)) != inserted_count - (end - start)):
+            or attempt(lambda: Atspi.Text.get_character_count(text)) != inserted_count - (end - start)
+            or attempt(lambda: Atspi.Text.get_text(text, 0, inserted_count - (end - start)))
+            != original[:start] + value + original[end:]):
         raise RuntimeError("text_replacement_incomplete: text was inserted but selection deletion did not confirm success; inspect state before retrying")
     caret = start + len(value)
     if attempt(lambda: Atspi.Text.get_caret_offset(text)) != caret:
