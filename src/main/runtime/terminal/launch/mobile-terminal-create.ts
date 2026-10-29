@@ -21,6 +21,8 @@ import { seedResumeLaunchIdentity } from '../../../ipc/pty/pane/resume-launch-id
 import type { AgentSessionSwitchAuthority } from '../../../../shared/agent-session-switch-execution'
 
 export type OwnedMobileTerminalDispatchRecipe = {
+  tabId: string
+  leafId: string
   launchConfig?: SleepingAgentLaunchConfig
   launchAgent?: TuiAgent
   connectionId: string | null

@@ -1,4 +1,11 @@
-import { TerminalCreationWork, type PendingTerminalCreation } from './terminal-creation-work'
+import { terminalSessionExitCode } from './terminal-host-returned-process'
+import {
+  reconcileUnpublishedTerminalCreation,
+  registerPendingTerminalCreation,
+  recoverUnpublishedTerminalCreation,
+  TerminalCreationWork,
+  type PendingTerminalCreation
+} from './terminal-creation-work'
 import { beginTerminalHostFencedTermination } from './terminal-host-fenced-termination'
 import type { PtyFencedTerminationRequest } from '../../shared/pty-fenced-termination'
 import type { Session } from './session'
@@ -67,14 +74,11 @@ export class TerminalHost extends TerminalHostInspection {
 
   async createOrAttach(opts: InternalCreateOrAttachOptions): Promise<CreateOrAttachResult> {
     const creation = new TerminalCreationWork()
-    const original = opts
+    const reportDisposition = opts.onCreationDisposition
     opts = {
       ...opts,
       creationWork: creation,
-      onPhysicalOwner: (completion, exitCode) => {
-        creation.owner(completion, exitCode)
-        original.onPhysicalOwner?.(completion, exitCode)
-      }
+      onPhysicalOwner: creation.physicalObserver(opts.onPhysicalOwner)
     }
     try {
       this.assertCreateOrAttachAllowed(opts)
@@ -95,19 +99,11 @@ export class TerminalHost extends TerminalHostInspection {
       this.assertCreateOrAttachAllowed(opts)
 
       this.sessions.get(opts.sessionId)?.noteUse()
-      let settleCreation: () => void = () => {}
-      const pending: PendingTerminalCreation = {
-        completion: new Promise<void>((resolve) => {
-          settleCreation = resolve
-        }),
-        recover: async () => {
-          const disposition = await creation.completion
-          if (disposition.kind !== 'no-fork') {
-            await disposition.recover?.()
-          }
-        }
-      }
-      this.pendingCreations.set(opts.sessionId, pending)
+      const finishPending = registerPendingTerminalCreation(
+        this.pendingCreations,
+        opts.sessionId,
+        creation
+      )
       let published = false
       try {
         const result = await createOrAttachClaimedAgentSession({
@@ -123,7 +119,7 @@ export class TerminalHost extends TerminalHostInspection {
               Boolean(session?.isAlive && !session.isTerminating)
             )
             if (live && session) {
-              creation.owner(session.physicalCompletion, () => session.exitCode)
+              creation.owner(session.physicalCompletion, terminalSessionExitCode(session))
             }
             return live
           },
@@ -152,38 +148,15 @@ export class TerminalHost extends TerminalHostInspection {
         published = true
         return result
       } finally {
-        const finish = () => {
-          if (this.pendingCreations.get(opts.sessionId) === pending) {
-            this.pendingCreations.delete(opts.sessionId)
-          }
-          settleCreation()
-        }
-        if (published || this.sessions.has(opts.sessionId)) {
-          finish()
-        } else {
-          void creation.completion.then(async (disposition) => {
-            if (disposition.kind === 'unknown') {
-              return
-            }
-            if (disposition.kind === 'physical' || disposition.kind === 'failed') {
-              await disposition.completion
-            }
-            finish()
-          })
-        }
+        finishPending(published || this.sessions.has(opts.sessionId))
       }
     } finally {
-      await creation.finish(async (release) => {
-        // Registered Sessions retain their ordinary current/use-fenced close authority.
-        if (!this.sessions.has(opts.sessionId)) {
-          await release()
-        }
-      })
+      await creation.finish(reconcileUnpublishedTerminalCreation(this.sessions, opts.sessionId))
       const disposition = await creation.completion
-      original.onCreationDisposition?.(disposition)
+      reportDisposition?.(disposition)
       if (!this.sessions.has(opts.sessionId) && disposition.kind !== 'no-fork') {
         // Failed unpublished resources keep the same ordinary cleanup owner across Retry/disposal.
-        void disposition.recover?.().catch(() => {})
+        recoverUnpublishedTerminalCreation(disposition)
       }
     }
   }

@@ -355,6 +355,27 @@ it.each(['refused', 'adopted', 'stable-adopted', 'ensure-adopted', 'fresh-unavai
   }
 )
 
+it('does not fill missing unavailable launch facts from the rejected request', async () => {
+  const { runtime, spawn } = createRuntimeWithAttachedWindow()
+  spawn.mockResolvedValue({ id: 'effective-pty', agentResumeUnavailable: true })
+  const result = await runtime.createTerminal('id:repo-1::/tmp/wt-cli', {
+    launchAgent: 'claude',
+    title: 'Rejected C',
+    resumeOrigin: 'saved',
+    resumeProviderSession: { key: 'session_id', id: 'C' },
+    launchConfig: { agentCommand: 'claude', agentArgs: '', agentEnv: {} }
+  })
+  expect(result).toMatchObject({
+    ptyId: 'effective-pty',
+    title: 'Rejected C',
+    agentResumeUnavailable: true
+  })
+  expect(result.launchAgent).toBeUndefined()
+  expect(result.launchConfig).toBeUndefined()
+  expect(result.launchToken).toBeUndefined()
+  expect(spawn).toHaveBeenCalledOnce()
+})
+
 it.each(['unchanged', 'hook', 'config', 'incarnation', 'handle'] as const)(
   'samples the actual created PTY after snapshot awaits and revalidates %s on reconnect',
   async (change) => {

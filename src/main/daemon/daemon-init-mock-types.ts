@@ -1,4 +1,5 @@
 import type { Mock } from 'vitest'
+import type { DaemonPtyAdapter } from './daemon-pty-adapter'
 
 export type MockSpawner = {
   ensureRunning: Mock
@@ -27,6 +28,8 @@ export type MockAdapter = {
   listProcesses: Mock
   listSessions: Mock
   establishLifecycleLease: Mock
+  settleSwitchWorkForReplacement: Mock<DaemonPtyAdapter['settleSwitchWorkForReplacement']>
+  inheritSwitchReleaseCleanup: Mock<DaemonPtyAdapter['inheritSwitchReleaseCleanup']>
   shutdown: Mock
   dispose: Mock
   disconnectOnly: Mock

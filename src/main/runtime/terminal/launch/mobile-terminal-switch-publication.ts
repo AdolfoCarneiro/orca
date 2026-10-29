@@ -69,7 +69,7 @@ export async function createPublishedSwitchTerminal(args: {
   }
   const withdrawUnused = async () => {
     if (shown?.created !== true || !running.current() || owner.hasLiveTerminalForPaneKey(paneKey)) {
-      return
+      return false
     }
     const withdrawn = await owner.withdrawAgentLaunchPaneInMainLayout(
       pane,
@@ -80,6 +80,7 @@ export async function createPublishedSwitchTerminal(args: {
     if (withdrawn && running.current()) {
       owner.reportAgentLaunchPaneVerdict(pane, { kind: 'withdrawn' })
     }
+    return withdrawn
   }
   try {
     const request = {
@@ -120,9 +121,34 @@ export async function createPublishedSwitchTerminal(args: {
       throw new Error('tab_not_found')
     }
     const result = await createOwned(identity, trackPhysical)
-    running.agentBound()
-    running.finish({ kind: 'proceed' })
-    owner.reportAgentLaunchPaneVerdict(pane, { kind: 'proceed' })
+    if (result.tab.parentTabId === identity.tabId && result.tab.leafId === identity.leafId) {
+      running.agentBound()
+      running.finish({ kind: 'proceed' })
+      owner.reportAgentLaunchPaneVerdict(pane, { kind: 'proceed' })
+    } else {
+      const { parentTabId, leafId } = result.tab
+      if (!parentTabId || !leafId) {
+        throw new Error('terminal_handle_stale')
+      }
+      owner.reportAgentLaunchPaneVerdict(
+        {
+          worktreeId,
+          tabId: parentTabId,
+          leafId,
+          operationId: opts.clientMutationId
+        },
+        { kind: 'proceed' }
+      )
+      const cleanup =
+        physicalOwners.size > 0
+          ? Promise.all(physicalOwners).then(withdrawUnused)
+          : withdrawUnused()
+      void cleanup
+        .then((withdrawn) => {
+          running.finish(withdrawn ? { kind: 'withdrawn' } : { kind: 'unconfirmed' })
+        })
+        .catch(() => running.finish({ kind: 'unconfirmed' }))
+    }
     return result
   } catch (error) {
     const live = owner.hasLiveTerminalForPaneKey(paneKey)

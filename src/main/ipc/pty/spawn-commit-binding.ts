@@ -107,8 +107,8 @@ export async function savePtySpawnPaneBinding(
 
 /** Runs inside the existing durable mutation, after source/topology checks and before any bind. */
 export async function persistFreshPaneBinding(
-  store: Store,
-  binding: PersistPtyBindingArgs,
+  store: Pick<Store, 'persistPtyBinding' | 'getWorkspaceSession'>,
+  input: PersistPtyBindingArgs | (() => PersistPtyBindingArgs),
   connectionId?: string | null,
   absentOwner?: AbsentPaneBinding,
   observeAuthority?: () => void
@@ -117,6 +117,7 @@ export async function persistFreshPaneBinding(
   const hostId = connectionId ? toSshExecutionHostId(connectionId) : undefined
   const persisted = await store.persistPtyBinding(() => {
     observeAuthority?.()
+    const binding = typeof input === 'function' ? input() : input
     const session = store.getWorkspaceSession(hostId)
     const paneKey = makePaneKey(binding.tabId, binding.leafId)
     if (ptyBindingIsRefused(binding, session, binding.worktreeId, paneKey, [])) {

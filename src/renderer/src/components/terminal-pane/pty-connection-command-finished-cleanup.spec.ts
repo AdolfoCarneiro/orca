@@ -159,8 +159,8 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('keeps Droid routing visible through command-finished foreground confirmation', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      const getForegroundProcess = vi.mocked(window.api.pty.confirmForegroundProcess)
-      getForegroundProcess.mockResolvedValue('droid')
+      const inspectProcess = vi.mocked(window.api.pty.inspectProcess)
+      inspectProcess.mockResolvedValue({ foregroundProcess: 'droid', hasChildProcesses: false })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-droid-confirmation-window'
       const transport = createMockTransport(ptyId)
@@ -190,7 +190,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
         delete mockStoreState.agentLaunchConfigByPaneKey[key]
       })
 
-      const readsBeforeFinish = getForegroundProcess.mock.calls.length
+      const readsBeforeFinish = inspectProcess.mock.calls.length
       dataCallbackRef.current?.('\x1b]133;D;0\x07')
       expect(mockStoreState.clearAgentLaunchConfig).not.toHaveBeenCalled()
       expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('alt-enter')
@@ -199,7 +199,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       expect(mockStoreState.clearAgentLaunchConfig).not.toHaveBeenCalled()
       expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('csi-u')
 
-      expect(getForegroundProcess).toHaveBeenCalledTimes(readsBeforeFinish + 1)
+      expect(inspectProcess).toHaveBeenCalledTimes(readsBeforeFinish + 1)
       expect(mockStoreState.clearAgentLaunchConfig).not.toHaveBeenCalled()
       expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]).toEqual({
         agent: 'droid',
@@ -213,7 +213,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('retires pane launch routing after one fresh scan confirms shell', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('powershell.exe')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'powershell.exe',
+        hasChildProcesses: false
+      })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-droid-confirmed-shell'
       const transport = createMockTransport(ptyId)
@@ -259,7 +262,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     ])('%s', async (_label, stoppingOnPurpose) => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('zsh')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'zsh',
+        hasChildProcesses: false
+      })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-sleeping-confirmed-shell'
       const transport = createMockTransport(ptyId)
@@ -368,7 +374,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       // Import after resetModules to share pty-connection’s registry; static imports would assert against a different instance.
       const { createCommandFinishedStatusStore } =
         await import('./command-finished-status-store-test-fixture')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('powershell.exe')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'powershell.exe',
+        hasChildProcesses: false
+      })
       vi.mocked(window.api.agentStatus.reconcileEndedProcess).mockClear()
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-claude-row-confirmed-shell'
@@ -414,7 +423,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('does NOT reconcile when the process check could not confirm a shell', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue(null)
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: null,
+        hasChildProcesses: false
+      })
       vi.mocked(window.api.agentStatus.reconcileEndedProcess).mockClear()
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-unconfirmed-shell'
@@ -458,7 +470,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('disarms stale TUI modes in the emulator after a confirmed return to shell', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('bash')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'bash',
+        hasChildProcesses: false
+      })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-stale-mode-disarm'
       const transport = createMockTransport(ptyId)
@@ -504,8 +519,9 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('grounds xterm and the input mirror in stream order when output is still queued', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      const confirmRead = createDeferred<string>()
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockReturnValue(confirmRead.promise)
+      const confirmRead =
+        createDeferred<Awaited<ReturnType<typeof window.api.pty.inspectProcess>>>()
+      vi.mocked(window.api.pty.inspectProcess).mockReturnValue(confirmRead.promise)
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-stale-mode-queued-output'
       const transport = createMockTransport(ptyId)
@@ -531,12 +547,12 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       dataCallbackRef.current?.('\x1b]133;D;0\x07')
       await vi.advanceTimersByTimeAsync(350)
       await flushAsyncTicks()
-      expect(window.api.pty.confirmForegroundProcess).toHaveBeenCalled()
+      expect(window.api.pty.inspectProcess).toHaveBeenCalled()
 
       // Hidden-pane output sits in the background queue when the shell proof lands.
       dataCallbackRef.current?.('\x1b[>5u')
       expect(writes.some((w) => w.includes('\x1b[>5u'))).toBe(false)
-      confirmRead.resolve('bash')
+      confirmRead.resolve({ foregroundProcess: 'bash', hasChildProcesses: false })
       await flushAsyncTicks()
       await vi.advanceTimersByTimeAsync(100)
 
@@ -589,7 +605,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('retires stale routing after unavailable command-finish reads without asserting shell', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue(null)
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: null,
+        hasChildProcesses: false
+      })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-droid-unavailable-finish'
       const tabId = 'tab-droid-unavailable-finish'
@@ -635,7 +654,10 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
     it('cancels deferred cleanup on a new command and retires identity at its later shell', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('powershell.exe')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'powershell.exe',
+        hasChildProcesses: false
+      })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const ptyId = 'pty-droid-superseded-confirmation'
       const transport = createMockTransport(ptyId)

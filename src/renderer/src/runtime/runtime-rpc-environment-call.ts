@@ -32,6 +32,7 @@ async function callRuntimeEnvironmentOnce(args: {
       args.dispatchObservation?.()
     )
   }
+  args.beforeSend?.()
   return window.api.runtimeEnvironments.call({
     selector: args.environmentId,
     method: args.method,

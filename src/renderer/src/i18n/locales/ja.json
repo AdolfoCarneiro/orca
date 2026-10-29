@@ -19124,8 +19124,6 @@
           "toCliTooltip": "CLI に切り替え: ネイティブチャットで {{agent}} を停止し、ターミナルで同じ会話を続けます。",
           "openedInWorkspace": "{{workspace}} でチャットを開きました。",
           "toNativeChatTooltip": "ネイティブチャットに切り替え: このタブのチャットで同じ会話を続けます。",
-          "exitAgentFirst": "切り替えるには、このターミナルで {{agent}} を終了してください。",
-          "waitForReply": "応答が終わるまで待つか停止してから、切り替えてください。",
           "noConversation": "このターミナルには、保存された会話がまだありません。"
         },
         "BrowserTab": {

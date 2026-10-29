@@ -19876,8 +19876,6 @@
           "toCliTooltip": "Passer à la CLI : arrête {{agent}} dans le chat natif et poursuit la même conversation dans un terminal.",
           "openedInWorkspace": "Chat ouvert dans {{workspace}}.",
           "toNativeChatTooltip": "Passer au chat natif : poursuit la même conversation dans un chat, dans cet onglet.",
-          "exitAgentFirst": "Quittez {{agent}} dans ce terminal pour basculer.",
-          "waitForReply": "Attendez la fin de la réponse ou arrêtez-la, puis basculez.",
           "noConversation": "Aucune conversation enregistrée n’est encore disponible dans ce terminal."
         },
         "BrowserTab": {

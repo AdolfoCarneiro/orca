@@ -33,11 +33,15 @@ export type SpawnedDaemonPty = {
   startupCommandDeliveredInShellArgs?: boolean
   /** False when a wrapper owns the reported status, so no exit code may be read from it. */
   reportsChildExitStatus: boolean
-  /** Windows: output and exit seen while confirming ConPTY reads input; claim before subscribing. */
+  /** Windows: output seen while confirming ConPTY reads input; claim before subscribing. */
   claimStartupEvents?: () => ConptyStartupEvents
 }
 
-type SpawnedNativePty = { proc: pty.IPty; claimStartupEvents?: () => ConptyStartupEvents }
+type SpawnedNativePty = {
+  proc: pty.IPty
+  physicalOwner: DaemonPtyPhysicalOwner
+  claimStartupEvents?: () => ConptyStartupEvents
+}
 
 export async function spawnNativeDaemonPty(args: {
   creationWork?: TerminalCreationWork
@@ -57,12 +61,11 @@ export async function spawnNativeDaemonPty(args: {
 }): Promise<SpawnedDaemonPty> {
   let reportsChildExitStatus = true
   let lastAttempt: Promise<PtyCreationDisposition> | undefined
-  const physicalOwners = new WeakMap<pty.IPty, DaemonPtyPhysicalOwner>()
   const spawnOnce = async (
     shellPath: string,
     shellArgs: string[],
     cwd: string
-  ): Promise<pty.IPty> => {
+  ): Promise<{ proc: pty.IPty; physicalOwner: DaemonPtyPhysicalOwner }> => {
     args.signal?.throwIfAborted()
     assertWslDistroAllowed(shellPath, shellArgs)
     const tcc = wrapShellSpawnForMacosTccAttribution(shellPath, shellArgs, args.env)
@@ -92,9 +95,9 @@ export async function spawnNativeDaemonPty(args: {
       attempt.resolve({ kind: 'failed', completion: Promise.resolve() })
       throw error
     }
+    let physical: DaemonPtyPhysicalOwner
     try {
-      const physical = createDaemonPtyPhysicalOwner(proc)
-      physicalOwners.set(proc, physical)
+      physical = createDaemonPtyPhysicalOwner(proc)
       attempt.resolve({
         kind: 'physical',
         completion: physical.completion,
@@ -111,7 +114,7 @@ export async function spawnNativeDaemonPty(args: {
     } catch {
       /* Diagnostics cannot revoke an owned child. */
     }
-    return proc
+    return { proc, physicalOwner: physical }
   }
   const spawnAt = async (
     shellPath: string,
@@ -120,7 +123,7 @@ export async function spawnNativeDaemonPty(args: {
     respawnSafe: boolean
   ): Promise<SpawnedNativePty> => {
     if (process.platform !== 'win32') {
-      return { proc: await spawnOnce(shellPath, shellArgs, cwd) }
+      return await spawnOnce(shellPath, shellArgs, cwd)
     }
     return spawnConptyWithInputReader(() => spawnOnce(shellPath, shellArgs, cwd), {
       label: shellPath,
@@ -139,7 +142,7 @@ export async function spawnNativeDaemonPty(args: {
     )
     return {
       process: spawned.proc,
-      physicalOwner: physicalOwners.get(spawned.proc),
+      physicalOwner: spawned.physicalOwner,
       shellPath: args.shellPath,
       spawnCwd: args.spawnCwd,
       reportsChildExitStatus,
@@ -167,7 +170,7 @@ export async function spawnNativeDaemonPty(args: {
         )
         return {
           process: spawned.proc,
-          physicalOwner: physicalOwners.get(spawned.proc),
+          physicalOwner: spawned.physicalOwner,
           shellPath: attempt.shellPath,
           spawnCwd: attempt.effectiveCwd,
           startupCommandDeliveredInShellArgs: attempt.startupCommandDeliveredInShellArgs,

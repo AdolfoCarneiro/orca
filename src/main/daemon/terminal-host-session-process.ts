@@ -1,3 +1,7 @@
+import {
+  discardStagedStartupCommand,
+  type StartupCommandStaging
+} from '../../shared/startup-command-staging'
 import type { TerminalHostSessionCreateDependencies } from './terminal-host-session-create'
 import { enumerateDirectoryOnce } from './directory-enumeration-probe'
 import type { InternalCreateOrAttachOptions } from './terminal-host-agent-session-claim'
@@ -10,11 +14,11 @@ export function createSessionExitHandler(
   onSessionExit: TerminalHostSessionCreateDependencies['onSessionExit'],
   sessionId: string,
   generation: string | undefined,
-  discardStagedCommand: () => void,
+  staging: { current?: StartupCommandStaging },
   spawnGate: TerminalSpawnGate | undefined
 ): () => void {
   return () => {
-    discardStagedCommand()
+    discardStagedStartupCommand(staging.current)
     spawnGate?.onSessionExit(sessionId)
     onSessionExit(sessionId, generation)
   }

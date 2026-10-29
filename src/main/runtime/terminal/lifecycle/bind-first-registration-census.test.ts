@@ -15,9 +15,9 @@ const CREATE_PATHS = [
     bindsWith: 'savePtySpawnPaneBinding('
   },
   {
-    // An adoption attaches to a live owner whose pane already binds it; nothing is written.
+    // Adoption reuses the live owner surface; switch reconciliation binds it before registration.
     path: 'spawn commit, an adopted live owner',
-    file: 'src/main/ipc/pty/spawn-commit-assembly.ts',
+    file: 'src/main/ipc/pty/spawn-commit-adopted-session.ts',
     bindsWith: 'adopted.owner'
   },
   {

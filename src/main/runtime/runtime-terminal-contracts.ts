@@ -114,6 +114,8 @@ export type TerminalCreateOptions = {
   /** Called before the spawn request leaves this process; a throw before it proves nothing spawned. */
   beforePtySpawn?: () => void
   onPtySpawnDispatched?: (launch?: {
+    tabId: string
+    leafId: string
     launchConfig?: SleepingAgentLaunchConfig
     launchAgent?: TuiAgent
   }) => void

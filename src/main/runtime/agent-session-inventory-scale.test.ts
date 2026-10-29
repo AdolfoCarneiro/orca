@@ -524,8 +524,8 @@ describe('real conversation inventory work', () => {
       expect(slept.stoppedSessionIds).not.toContain('damaged-chat')
       expect(slept.failures?.some((row) => row.sessionId === 'damaged-chat')).toBe(true)
       expect(work.counts.inventories).toBe(1)
-      // One inventory and six checked observations per selected healthy member.
-      expect(work.counts.views).toBe(n + 1 + 6 * (n / 2 + 1))
+      // One inventory and seven checked observations, including post-revocation membership, per selected healthy member.
+      expect(work.counts.views).toBe(n + 1 + 7 * (n / 2 + 1))
       expect(rig.store.getConversation(rig.rows[1]!.sessionId)?.location.workspaceId).toBe('other')
       work.reset()
       expect(rig.host.knownAgentIds()).toContain('claude')

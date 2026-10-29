@@ -1,9 +1,7 @@
 import type { PtyCreationDisposition } from '../../shared/claimed-agent-pty-owner'
 import type { SubprocessHandle } from './session-subprocess-handle'
-import type { TerminalExitCause } from '../../shared/terminal-exit-cause'
 import { buildStartupCommandSubmission } from '../../shared/startup-command-submission'
 import {
-  discardStagedStartupCommand,
   stageStartupCommand,
   startupStagingFailureNotice,
   type StartupCommandStaging
@@ -11,8 +9,11 @@ import {
 import { resolvePtyOwnerBackend } from '../../shared/pty-owner-backend'
 import { getDaemonSessionResultMetadata } from './daemon-create-or-attach-result'
 import { Session } from './session'
-import { SessionTerminationController } from './session-termination-controller'
-import { shutdownOwnedTerminalProcess } from './terminal-host-session-shutdown'
+import {
+  observeReturnedTerminalProcess,
+  recoverUnpublishedTerminalSession,
+  terminalSessionExitCode
+} from './terminal-host-returned-process'
 import { shellPathSupportsPtyStartupBarrier } from './shell-ready'
 import type { InternalCreateOrAttachOptions } from './terminal-host-agent-session-claim'
 import type { CreateOrAttachResult } from './terminal-host-create-contract'
@@ -45,7 +46,7 @@ export async function spawnAndPublishSession(
   const lower = Promise.withResolvers<PtyCreationDisposition>()
   opts.creationWork?.join(lower.promise)
   let lowerReported = false
-  let recoverCreated: (() => Promise<void>) | undefined
+  let physical: ReturnType<typeof observeReturnedTerminalProcess>
   let subprocess: SubprocessHandle
   try {
     subprocess = await deps.spawnSubprocess({
@@ -72,56 +73,17 @@ export async function spawnAndPublishSession(
       ...(opts.cancelSignal ? { cancelSignal: opts.cancelSignal } : {})
     })
     // External implementations returning a handle have transferred an actual resource.
-    const exited = Promise.withResolvers<void>()
-    let code: number | null = null
-    let exitCause: TerminalExitCause | undefined
-    let sessionExit: Parameters<typeof subprocess.onExit>[0] | undefined
-    const rawTermination = new SessionTerminationController({
-      sessionId: opts.sessionId,
-      subprocess,
-      isExited: () => code !== null,
-      releaseProducerPause: ({ resume }) => {
-        if (resume) {
-          subprocess.resume?.()
-        }
-      }
-    })
-    recoverCreated = () =>
-      shutdownOwnedTerminalProcess({
-        pid: subprocess.pid,
-        isAlive: () => code === null,
-        terminateOwnedTree: () => subprocess.terminateOwnedTree(),
-        close: async () => {
-          await rawTermination.forceKillAndWaitForExit()
-          rawTermination.disposeSubprocessHandle()
-        }
-      })
-    subprocess.onExit((value, cause) => {
-      code = value
-      exitCause = cause
-      rawTermination.markPhysicalExit()
-      deps.spawnGate?.onSessionExit(opts.sessionId)
-      exited.resolve()
-      sessionExit?.(value, cause)
-    })
-    subprocess.onExit = (callback) => {
-      sessionExit = callback
-      if (code !== null) {
-        callback(code, exitCause)
-      }
-    }
+    physical = observeReturnedTerminalProcess(subprocess, opts.sessionId, deps.spawnGate)
     if (!lowerReported) {
       lower.resolve({
         kind: 'physical',
-        completion: exited.promise,
-        exitCode: () => code,
-        recover: async () => {
-          await recoverCreated?.()
-        }
+        completion: physical.completion,
+        exitCode: physical.exitCode,
+        recover: physical.recover
       })
     }
-    opts.onPhysicalOwner?.(exited.promise, () => code)
-    onPublished(opts.sessionId, code === null)
+    opts.onPhysicalOwner?.(physical.completion, physical.exitCode)
+    onPublished(opts.sessionId, physical.exitCode() === null)
   } catch (error) {
     if (!lowerReported) {
       lower.resolve({ kind: 'unknown' })
@@ -129,7 +91,7 @@ export async function spawnAndPublishSession(
     throw error
   }
 
-  let staging: StartupCommandStaging | undefined
+  const staging: { current?: StartupCommandStaging } = {}
   // Reconcile fallback-shell capability or its first command could remain queued until timeout.
   const shellReadySupported =
     (opts.shellReadySupported ?? false) &&
@@ -155,7 +117,7 @@ export async function spawnAndPublishSession(
       deps.onSessionExit,
       opts.sessionId,
       opts.agentSessionGeneration,
-      () => discardStagedStartupCommand(staging),
+      staging,
       deps.spawnGate
     ),
     ...(deps.reportReadinessEvent ? { reportReadinessEvent: deps.reportReadinessEvent } : {}),
@@ -163,23 +125,14 @@ export async function spawnAndPublishSession(
       ? { shellReadyTimeoutMs: opts.shellReadyTimeoutMs }
       : {})
   })
-  recoverCreated = () =>
-    shutdownOwnedTerminalProcess({
-      pid: session.pid,
-      isAlive: () => session.isAlive,
-      terminateOwnedTree: () => session.terminateOwnedTree(),
-      close: async () => {
-        await session.forceKillAndWaitForExit()
-        session.dispose()
-      }
-    })
-  opts.onPhysicalOwner?.(session.physicalCompletion, () => session.exitCode)
+  physical.useRecovery(recoverUnpublishedTerminalSession(session))
+  opts.onPhysicalOwner?.(session.physicalCompletion, terminalSessionExitCode(session))
   recordSessionSpawnPaneKey(session, opts.env?.ORCA_PANE_KEY)
 
   try {
     trackSessionInput(session, subprocess, deps.reportReadinessEvent)
   } catch (error) {
-    void session.physicalCompletion.then(() => session.dispose())
+    void session.physicalCompletion.then(session.dispose.bind(session))
     throw error
   }
 
@@ -240,18 +193,18 @@ export async function spawnAndPublishSession(
     // Diagnostics must never turn a live PTY into a failed create.
   }
   if (startupCommandWritten && opts.command) {
-    staging = stageStartupCommand({
+    staging.current = stageStartupCommand({
       command: opts.command,
       shellPath: subprocess.shellPath,
       orcaBuiltLine: opts.launchAgent !== undefined
     })
-    const notice = startupStagingFailureNotice(staging)
+    const notice = startupStagingFailureNotice(staging.current)
     if (notice) {
       session.startupIngress.accept(notice)
       try {
         deps.reportReadinessEvent?.('startup-command-stage-failed', {
           sessionId: opts.sessionId,
-          reason: staging.failure
+          reason: staging.current.failure
         })
       } catch {
         // Diagnostics must never turn a live PTY into a failed create.
@@ -259,7 +212,7 @@ export async function spawnAndPublishSession(
     }
     // Why: only Orca-wrapped shells advertise the paste-safe startup barrier.
     session.writeStartupCommand(
-      buildStartupCommandSubmission(staging.command, {
+      buildStartupCommandSubmission(staging.current.command, {
         bracketedPasteSafe: shellReadySupported
       })
     )

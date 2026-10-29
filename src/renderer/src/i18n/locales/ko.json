@@ -19124,8 +19124,6 @@
           "toCliTooltip": "CLI로 전환: 네이티브 채팅에서 {{agent}}을(를) 중지하고 터미널에서 같은 대화를 이어갑니다.",
           "openedInWorkspace": "{{workspace}}에서 채팅을 열었습니다.",
           "toNativeChatTooltip": "네이티브 채팅으로 전환: 이 탭의 채팅에서 같은 대화를 이어갑니다.",
-          "exitAgentFirst": "전환하려면 이 터미널에서 {{agent}}을(를) 종료하세요.",
-          "waitForReply": "응답이 끝날 때까지 기다리거나 응답을 중지한 후 전환하세요.",
           "noConversation": "이 터미널에는 아직 저장된 대화가 없습니다."
         },
         "BrowserTab": {

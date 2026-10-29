@@ -246,8 +246,13 @@ it.each(['none', 'publication', 'spawn'] as const)(
       })
     }
     vi.spyOn(runtime, 'createTerminal').mockImplementation(async (_selector, opts = {}) => {
+      if (!opts.tabId || !opts.leafId) {
+        throw new Error('missing ordinary published identity')
+      }
       opts.beforePtySpawn?.()
       opts.onPtySpawnDispatched?.({
+        tabId: opts.tabId,
+        leafId: opts.leafId,
         launchAgent: 'codex',
         ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {})
       })
@@ -263,9 +268,6 @@ it.each(['none', 'publication', 'spawn'] as const)(
       if (navigation === 'spawn') {
         entered.resolve()
         await release.promise
-      }
-      if (!opts.tabId || !opts.leafId) {
-        throw new Error('missing ordinary published identity')
       }
       bindPty({
         worktreeId: WORKTREE_ID,
@@ -404,3 +406,117 @@ it.each(['window', 'main', 'headless'] as const)(
     }
   }
 )
+
+it('settles a random retry placeholder around the original live switch destination without another dispatch', async () => {
+  const { fixture, admitRuntimeSpawnPane } =
+    await import('../../persistence/loading-store/profile-state-delayed-authority-fixture')
+  const { OrcaRuntimeService } = await import('../orca-runtime')
+  const { store } = await fixture()
+  const worktreeId = 'repo-local::/fixture/local'
+  const runtime = new OrcaRuntimeService(store)
+  runtime.syncWindowGraph(0, { tabs: [], leaves: [] })
+  await admitRuntimeSpawnPane(store, { worktreeId, tabId: TAB_ID, leafId: LEAF_A })
+  await store.persistPtyBinding({ worktreeId, tabId: TAB_ID, leafId: LEAF_A, ptyId: PTY_A })
+  runtime.registerPty(PTY_A, worktreeId, null, { tabId: TAB_ID, leafId: LEAF_A })
+  const session = () => store.getWorkspaceSession()
+  Object.assign(runtime, {
+    resolveTerminalWorkspaceLaunchScope: async () => ({
+      id: worktreeId,
+      path: '/fixture/local',
+      connectionId: null,
+      repo: null,
+      folderWorkspace: null
+    })
+  })
+  const inventory: {
+    id: string
+    worktreeId: string
+    terminalHandle: string
+    cwd: string
+    title: string
+  }[] = []
+  let original: { tabId: string; leafId: string } | undefined
+  const spawn = vi.fn(
+    async (args: { tabId?: string; leafId?: string; preAllocatedHandle?: string }) => {
+      if (!args.tabId || !args.leafId || !args.preAllocatedHandle) {
+        throw new Error('missing actual dispatch identity')
+      }
+      original = { tabId: args.tabId, leafId: args.leafId }
+      await store.persistPtyBinding({ worktreeId, ...original, ptyId: 'original-switch-live' })
+      // The lower spawn publication arrives; only its observer reply is lost.
+      runtime.registerPty('original-switch-live', worktreeId, null, {
+        ...original,
+        terminalHandle: args.preAllocatedHandle
+      })
+      inventory.push({
+        id: 'original-switch-live',
+        worktreeId,
+        terminalHandle: args.preAllocatedHandle,
+        cwd: '/fixture/local',
+        title: 'Codex'
+      })
+      throw new Error('lost-successful-reply')
+    }
+  )
+  const kill = vi.fn()
+  runtime.setPtyController({
+    spawn,
+    kill,
+    write: () => true,
+    getForegroundProcess: async () => null,
+    listProcesses: async () => inventory
+  })
+  const publish = vi.spyOn(runtime, 'publishAgentLaunchTabInMainLayout')
+  const verdict = vi.spyOn(runtime, 'reportAgentLaunchPaneVerdict')
+  const request = {
+    command: 'cx',
+    launchAgent: 'codex' as const,
+    clientMutationId: 'same-switch-operation',
+    switchExecution: {
+      invocationId: 'same-switch-invocation',
+      check: () => {},
+      signal: new AbortController().signal,
+      remaining: () => 60_000,
+      viewer: 'none' as const,
+      selectionCurrent: () => true
+    }
+  }
+  await expect(runtime.createMobileSessionTerminal(`id:${worktreeId}`, request)).rejects.toThrow(
+    'lost-successful-reply'
+  )
+  if (!original) {
+    throw new Error('missing accepted original dispatch')
+  }
+  expect(session().terminalLayoutsByTabId[original.tabId]?.ptyIdsByLeafId?.[original.leafId]).toBe(
+    'original-switch-live'
+  )
+  const result = await runtime.createMobileSessionTerminal(`id:${worktreeId}`, request)
+  expect(result.tab).toMatchObject({
+    parentTabId: original?.tabId,
+    leafId: original?.leafId,
+    ptyId: 'original-switch-live',
+    status: 'ready'
+  })
+  expect(publish).toHaveBeenCalledTimes(2)
+  const retryPane = publish.mock.calls[1][0]
+  expect(retryPane.tabId).not.toBe(original?.tabId)
+  await chatTabCommandsSettled()
+  expect(session().tabsByWorktree[worktreeId].some((tab) => tab.id === retryPane.tabId)).toBe(false)
+  expect(session().terminalLayoutsByTabId[original.tabId]?.ptyIdsByLeafId?.[original.leafId]).toBe(
+    'original-switch-live'
+  )
+  expect(session().terminalLayoutsByTabId[TAB_ID]?.ptyIdsByLeafId?.[LEAF_A]).toBe(PTY_A)
+  expect(
+    verdict.mock.calls.some(
+      ([pane, outcome]) => pane.tabId === retryPane.tabId && outcome.kind === 'proceed'
+    )
+  ).toBe(false)
+  expect(verdict).toHaveBeenCalledWith(expect.objectContaining({ tabId: retryPane.tabId }), {
+    kind: 'withdrawn'
+  })
+  expect(runtime.resolveTerminalPane(`${result.tab.parentTabId}:${result.tab.leafId}`).ptyId).toBe(
+    'original-switch-live'
+  )
+  expect(spawn).toHaveBeenCalledOnce()
+  expect(kill).not.toHaveBeenCalled()
+})

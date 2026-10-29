@@ -124,6 +124,8 @@ export function createDaemonInitModuleFactories(state: DaemonInitMockState) {
     readonly listProcesses: Mock
     readonly listSessions: Mock
     readonly establishLifecycleLease: Mock
+    readonly settleSwitchWorkForReplacement: MockAdapter['settleSwitchWorkForReplacement']
+    readonly inheritSwitchReleaseCleanup: MockAdapter['inheritSwitchReleaseCleanup']
     readonly shutdown: Mock
     readonly dispose: Mock
     readonly disconnectOnly: Mock
@@ -149,6 +151,8 @@ export function createDaemonInitModuleFactories(state: DaemonInitMockState) {
           throw lifecycleLeaseError
         }
       })
+      this.settleSwitchWorkForReplacement = vi.fn(async () => {})
+      this.inheritSwitchReleaseCleanup = vi.fn()
       this.shutdown = vi.fn(async () => {})
       this.dispose = vi.fn()
       const disconnectOnlyError = disconnectOnlyErrors.shift()

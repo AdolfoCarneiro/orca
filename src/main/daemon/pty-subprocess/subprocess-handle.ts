@@ -36,7 +36,7 @@ export function createDaemonPtySubprocessHandle(args: {
   requestedCwd?: string
   sessionId: string
   startupAgentRecognition: RecognizedAgentProcess | null
-  /** Output and exit buffered before this handle subscribed; replayed ahead of live events. */
+  /** Output buffered before this handle subscribed; replayed ahead of live events. */
   startupEvents?: ConptyStartupEvents
 }): SubprocessHandle {
   const reportsChildExitStatus = args.reportsChildExitStatus
@@ -125,11 +125,7 @@ export function createDaemonPtySubprocessHandle(args: {
       hostReportsChildExitStatus: reportsChildExitStatus
     })
   }
-  if (args.startupEvents?.exit) {
-    acceptExit(args.startupEvents.exit)
-  } else {
-    proc.onExit(acceptExit)
-  }
+  const exitSubscription = physical.onExit(acceptExit)
 
   const slavePath = readPtySlavePath(proc)
   return {
@@ -255,6 +251,7 @@ export function createDaemonPtySubprocessHandle(args: {
       dead = true
       clearMasterRetiredTimer()
       inputClosedListener = null
+      exitSubscription.dispose()
       events.clear()
       physical.dispose()
     }

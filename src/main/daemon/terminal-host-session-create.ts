@@ -1,3 +1,5 @@
+import { terminalSessionExitCode } from './terminal-host-returned-process'
+import { settleUnpublishedTerminalSpawnLease } from './terminal-creation-work'
 import { spawnAndPublishSession } from './terminal-host-session-publish'
 import { getDaemonSessionResultMetadata } from './daemon-create-or-attach-result'
 import { normalizePtySize } from './daemon-pty-size'
@@ -59,7 +61,10 @@ export async function createOrAttachTerminalSession(
   if (existing && existing.isAlive && !existing.isTerminating) {
     deps.assertCreateAllowed()
     const attachedSession = existing
-    opts.onPhysicalOwner?.(attachedSession.physicalCompletion, () => attachedSession.exitCode)
+    opts.onPhysicalOwner?.(
+      attachedSession.physicalCompletion,
+      terminalSessionExitCode(attachedSession)
+    )
     const snapshot = existing.getSnapshot()
     existing.detachAllClients()
     const token = existing.attachClient(opts.streamClient)
@@ -95,6 +100,7 @@ export async function createOrAttachTerminalSession(
   const size = normalizePtySize(opts.cols, opts.rows)
   const wslDistro = resolveWslSessionContext(opts)?.distro
   const sessionId = opts.sessionId
+  const spawnGate = deps.spawnGate
   let lease = deps.spawnGate?.admit(
     {
       clientId: opts.spawnAdmission?.clientId ?? 'in-process',
@@ -131,18 +137,12 @@ export async function createOrAttachTerminalSession(
     if (published || !opts.creationWork) {
       admitted?.abandon()
     } else {
-      void opts.creationWork.completion.then(async (disposition) => {
-        if (disposition.kind === 'no-fork') {
-          admitted?.abandon()
-        } else if (disposition.kind === 'failed') {
-          await disposition.completion
-          admitted?.abandon()
-        } else if (disposition.kind === 'physical') {
-          admitted?.commit(opts.sessionId, true)
-          await disposition.completion
-          deps.spawnGate?.onSessionExit(opts.sessionId)
-        }
-      })
+      settleUnpublishedTerminalSpawnLease(
+        opts.creationWork.completion,
+        admitted,
+        sessionId,
+        spawnGate
+      )
     }
   }
 }

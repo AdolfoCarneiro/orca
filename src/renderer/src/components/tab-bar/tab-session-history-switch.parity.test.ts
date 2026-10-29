@@ -122,22 +122,36 @@ describe('the tab menu offers exactly what the Session History row offers', () =
     })
   })
 
-  it('nothing for a CLI conversation a native chat already holds', () => {
-    const state = useAppStore.getState()
-    const owned = row({
-      structuredSession: { sessionId: 'orca-chat-1', workspaceId: WORKTREE_ID }
-    })
-    expect(panelTargets(state, owned).resumeInNewChatWorkspaceId).toBeNull()
-    expect(
-      resolveTabSessionSwitch(state, owned, {
-        kind: 'cli',
-        agent: 'claude',
-        providerSessionId: owned.sessionId,
-        workspaceId: WORKTREE_ID,
-        request
+  it.each(['local', 'ssh:unavailable'] as const)(
+    'keeps an owned conversation eligible only on its supported switch route (%s)',
+    (executionHostId) => {
+      useAppStore.setState((state) => ({
+        repos: state.repos.map((repo) => ({ ...repo, executionHostId }))
+      }))
+      const state = useAppStore.getState()
+      const owned = row({
+        executionHostId,
+        structuredSession: { sessionId: 'orca-chat-1', workspaceId: WORKTREE_ID }
       })
-    ).toBeNull()
-  })
+      const panel = panelTargets(state, owned)
+      expect(panel.resumeInNewChatWorkspaceId).toBe(
+        executionHostId === 'local' ? WORKTREE_ID : null
+      )
+      expect(
+        resolveTabSessionSwitch(state, owned, {
+          kind: 'cli',
+          agent: 'claude',
+          providerSessionId: owned.sessionId,
+          workspaceId: WORKTREE_ID,
+          request: { ...request, executionHostScope: executionHostId }
+        })
+      ).toEqual(
+        executionHostId === 'local'
+          ? { action: 'resume-in-new-chat', worktreeId: WORKTREE_ID }
+          : null
+      )
+    }
+  )
 
   it("Switch to Chat in the conversation's own worktree when that differs", () => {
     const state = useAppStore.getState()

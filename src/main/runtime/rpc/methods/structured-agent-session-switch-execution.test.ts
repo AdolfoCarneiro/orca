@@ -495,14 +495,16 @@ it.each([false, true])(
     const spawn = vi
       .spyOn(runtime, 'createTerminal')
       .mockImplementation(async (_selector, opts = {}) => {
-        opts.beforePtySpawn?.()
-        opts.onPtySpawnDispatched?.({
-          launchAgent: 'codex',
-          ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {})
-        })
         if (!opts.tabId || !opts.leafId) {
           throw new Error('missing ordinary published pane')
         }
+        opts.beforePtySpawn?.()
+        opts.onPtySpawnDispatched?.({
+          tabId: opts.tabId,
+          leafId: opts.leafId,
+          launchAgent: 'codex',
+          ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {})
+        })
         bindPty({
           worktreeId: WORKTREE_ID,
           tabId: opts.tabId,

@@ -1,4 +1,5 @@
 import type { PtyCreationDisposition } from '../../shared/claimed-agent-pty-owner'
+import type { TerminalSpawnGate, TerminalSpawnLease } from './terminal-spawn-gate'
 
 export type PendingTerminalCreation = {
   completion: Promise<void>
@@ -16,6 +17,15 @@ export class TerminalCreationWork {
     recover?: () => Promise<void>
   }[] = []
   private uncertain = false
+
+  physicalObserver(
+    report: ((completion: Promise<void>, exitCode: () => number | null) => void) | undefined
+  ): (completion: Promise<void>, exitCode: () => number | null) => void {
+    return (completion, exitCode) => {
+      this.owner(completion, exitCode)
+      report?.(completion, exitCode)
+    }
+  }
 
   join(disposition: Promise<PtyCreationDisposition>): void {
     this.dependencies.push(disposition)
@@ -74,5 +84,85 @@ export class TerminalCreationWork {
     } else {
       this.result.resolve({ kind: 'no-fork' })
     }
+  }
+}
+
+export function reconcileUnpublishedTerminalCreation(
+  sessions: ReadonlyMap<string, unknown>,
+  sessionId: string
+): (release: () => Promise<void>) => Promise<void> {
+  return async (release) => {
+    // Registered Sessions retain their ordinary current/use-fenced close authority.
+    if (!sessions.has(sessionId)) {
+      await release()
+    }
+  }
+}
+
+/** Keep pending recovery and exact-entry retirement outside the completed request's scope. */
+export function registerPendingTerminalCreation(
+  pendingCreations: Map<string, PendingTerminalCreation>,
+  sessionId: string,
+  creation: TerminalCreationWork
+): (published: boolean) => void {
+  const settled = Promise.withResolvers<void>()
+  const pending: PendingTerminalCreation = {
+    completion: settled.promise,
+    recover: async () => {
+      const disposition = await creation.completion
+      if (disposition.kind !== 'no-fork') {
+        await disposition.recover?.()
+      }
+    }
+  }
+  pendingCreations.set(sessionId, pending)
+  const finish = () => {
+    if (pendingCreations.get(sessionId) === pending) {
+      pendingCreations.delete(sessionId)
+    }
+    settled.resolve()
+  }
+  return (published) => {
+    if (published) {
+      finish()
+    } else {
+      void creation.completion.then(async (disposition) => {
+        if (disposition.kind === 'unknown') {
+          return
+        }
+        if (disposition.kind === 'physical' || disposition.kind === 'failed') {
+          await disposition.completion
+        }
+        finish()
+      })
+    }
+  }
+}
+
+/** An unpublished attempt keeps its existing lease until its actual disposition permits release. */
+export function settleUnpublishedTerminalSpawnLease(
+  completion: Promise<PtyCreationDisposition>,
+  admitted: TerminalSpawnLease | undefined,
+  sessionId: string,
+  spawnGate: TerminalSpawnGate | undefined
+): void {
+  void completion.then(async (disposition) => {
+    if (disposition.kind === 'no-fork') {
+      admitted?.abandon()
+    } else if (disposition.kind === 'failed') {
+      await disposition.completion
+      admitted?.abandon()
+    } else if (disposition.kind === 'physical') {
+      admitted?.commit(sessionId, true)
+      await disposition.completion
+      spawnGate?.onSessionExit(sessionId)
+    }
+  })
+}
+
+/** Recovery may outlive the observer; its rejection observer needs only the actual outcome. */
+export function recoverUnpublishedTerminalCreation(disposition: PtyCreationDisposition): void {
+  if (disposition.kind !== 'no-fork') {
+    void disposition.recover?.().catch(() => {})
   }
 }

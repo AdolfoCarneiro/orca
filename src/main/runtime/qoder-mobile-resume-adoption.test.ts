@@ -1,5 +1,6 @@
 import './rpc/unused-default-rpc-methods.test-fixture'
 import { expect, it, vi } from 'vitest'
+import type { OwnedMobileTerminalCreateOptions } from './terminal/launch/mobile-terminal-create'
 import type { SleepingAgentLaunchConfig } from '../../shared/agent-session-resume'
 import { buildAgentResumeStartupPlan } from '../../shared/tui-agent-startup'
 
@@ -14,6 +15,10 @@ const { bindPaneFirst, committingSpawn, registerBoundPty } =
 type SpawnPane = { worktreeId?: string; tabId?: string; leafId?: string }
 
 class QoderAdoptionRuntime extends OrcaRuntimeService {
+  createOwned(worktreeId: string, opts: OwnedMobileTerminalCreateOptions) {
+    return this.createRuntimeOwnedMobileSessionTerminal(worktreeId, false, undefined, opts)
+  }
+
   retainedRecipe(ptyId: string, worktreeId: string) {
     return this.recordPtyWorktree(ptyId, worktreeId)
   }
@@ -192,6 +197,7 @@ it.each([
         ).rejects.toThrow('runtime_unavailable')
         inventoryUnavailable = false
       }
+      let retryError: unknown
       const retryPromise = runtime
         .createMobileSessionTerminal(`id:${TEST_WORKTREE_ID}`, {
           ...resume,
@@ -200,7 +206,10 @@ it.each([
             : {}),
           signal: connection.signal
         })
-        .catch(() => null)
+        .catch((error: unknown) => {
+          retryError = error
+          return null
+        })
       await vi.advanceTimersByTimeAsync(10_001)
       const retry = await retryPromise
       expect(acceptedCommands).toHaveLength(1)
@@ -209,7 +218,10 @@ it.each([
           ? "qoder '--resume' 'same-qoder-session'"
           : "qoder '--captured-option' '--resume' 'same-qoder-session'"
       )
-      expect(retry?.tab).toMatchObject({ ptyId: 'qoder-live-resume', launchAgent: 'qoder' })
+      expect(
+        retry?.tab,
+        retryError instanceof Error ? retryError.message : undefined
+      ).toMatchObject({ ptyId: 'qoder-live-resume', launchAgent: 'qoder' })
       expect(spawn).toHaveBeenCalledTimes(1)
       expect(send).not.toHaveBeenCalled()
       if (!retry) {
@@ -468,3 +480,241 @@ it('releases abandoned dispatch capacity without guessing an expired live recipe
     vi.useRealTimers()
   }
 }, 30_000)
+
+it('recovers an unhinted allocated pane across a lost reply and a publication error, ignoring the retry pair', async () => {
+  const { TEST_WORKTREE_ID } = await import('./orca-runtime-test-fixtures.spec')
+  const runtime = new QoderAdoptionRuntime({ ...store })
+  runtime.syncWindowGraph(0, { tabs: [], leaves: [] })
+  const request = {
+    command: 'qodercli --resume original',
+    launchAgent: 'qoder' as const,
+    launchConfig: { agentCommand: 'qodercli', agentArgs: '--original' },
+    createMutation: { clientIdentity: 'unhinted-phone', id: 'unhinted-operation' }
+  }
+  const inventory: {
+    id: string
+    worktreeId: string
+    terminalHandle: string
+    cwd: string
+    title: string
+  }[] = []
+  let allocated: { tabId: string; leafId: string } | undefined
+  const spawn = vi.fn(async (args: SpawnPane & { preAllocatedHandle?: string }) => {
+    if (!args.tabId || !args.leafId || !args.preAllocatedHandle) {
+      throw new Error('missing actual allocation')
+    }
+    allocated = { tabId: args.tabId, leafId: args.leafId }
+    inventory.push({
+      id: 'unhinted-live',
+      worktreeId: TEST_WORKTREE_ID,
+      terminalHandle: args.preAllocatedHandle,
+      cwd: TEST_WORKTREE_PATH,
+      title: 'Qoder'
+    })
+    throw new Error('lost-spawn-reply')
+  })
+  const kill = vi.fn()
+  runtime.setPtyController({
+    spawn,
+    kill,
+    write: () => true,
+    getForegroundProcess: async () => null,
+    listProcesses: async () => inventory
+  })
+  await expect(runtime.createOwned(TEST_WORKTREE_ID, request)).rejects.toThrow('lost-spawn-reply')
+  expect(allocated).toBeDefined()
+  await expect(
+    runtime.createOwned(TEST_WORKTREE_ID, { ...request, launchAgent: 'codex' })
+  ).rejects.toThrow('terminal_create_identity_conflict')
+  expect(runtime.retainedRecipe('unhinted-live', TEST_WORKTREE_ID).runtimeSessionOwned).toBe(false)
+  const retry = {
+    ...request,
+    identity: { tabId: 'retry-tab', leafId: '99999999-9999-4999-8999-999999999999' }
+  }
+  const unsubscribe = runtime.onMobileSessionTabsChanged(() => {
+    throw new Error('publication-observer-failed')
+  })
+  try {
+    await expect(runtime.createOwned(TEST_WORKTREE_ID, retry)).rejects.toThrow(
+      'publication-observer-failed'
+    )
+    expect(runtime['ownedMobileDispatchRecipes'].size).toBe(1)
+  } finally {
+    unsubscribe()
+  }
+  const result = await runtime.createOwned(TEST_WORKTREE_ID, retry)
+  expect(result.tab).toMatchObject({
+    parentTabId: allocated?.tabId,
+    leafId: allocated?.leafId,
+    ptyId: 'unhinted-live',
+    launchAgent: 'qoder',
+    status: 'ready'
+  })
+  expect(result.tab.parentTabId).not.toBe(retry.identity.tabId)
+  expect(runtime.resolveTerminalPane(`${result.tab.parentTabId}:${result.tab.leafId}`).ptyId).toBe(
+    'unhinted-live'
+  )
+  expect(runtime['ownedMobileDispatchRecipes'].size).toBe(0)
+  expect(spawn).toHaveBeenCalledOnce()
+  expect(kill).not.toHaveBeenCalled()
+})
+
+it.each(['moved', 'closed', 'replaced'] as const)(
+  'retains ordinary %s authority while inventory reconciliation waits',
+  async (change) => {
+    const { fixture } =
+      await import('../persistence/loading-store/profile-state-delayed-authority-fixture')
+    const { store: durable } = await fixture()
+    const worktreeId = 'repo-local::/fixture/local'
+    const runtime = new QoderAdoptionRuntime(durable)
+    Object.assign(runtime, {
+      resolveTerminalWorkspaceLaunchScope: async () => ({
+        id: worktreeId,
+        path: '/fixture/local',
+        connectionId: null,
+        repo: null,
+        folderWorkspace: null
+      })
+    })
+    runtime.syncWindowGraph(0, { tabs: [], leaves: [] })
+    const request = {
+      command: 'qodercli --resume original',
+      launchAgent: 'qoder' as const,
+      launchConfig: { agentCommand: 'qodercli', agentArgs: '--original' },
+      keepPaneOnStartFailure: true as const,
+      createMutation: { clientIdentity: 'authority-phone', id: 'authority-operation' },
+      identity: {
+        tabId: '11111111-1111-4111-8111-111111111111',
+        leafId: '22222222-2222-4222-8222-222222222222'
+      }
+    }
+    const incarnationId = '33333333-3333-4333-8333-333333333333'
+    const inventory: {
+      id: string
+      worktreeId: string
+      terminalHandle: string
+      cwd: string
+      title: string
+      incarnationId: string
+    }[] = []
+    const spawn = vi.fn(async (args: SpawnPane & { preAllocatedHandle?: string }) => {
+      if (!args.preAllocatedHandle) {
+        throw new Error('missing actual handle')
+      }
+      inventory.push({
+        id: 'original-live',
+        worktreeId,
+        terminalHandle: args.preAllocatedHandle,
+        cwd: '/fixture/local',
+        title: 'Qoder',
+        incarnationId
+      })
+      throw new Error('lost-spawn-reply')
+    })
+    const entered = Promise.withResolvers<void>()
+    const release = Promise.withResolvers<void>()
+    let hold = false
+    const kill = vi.fn()
+    runtime.setPtyController({
+      spawn,
+      kill,
+      write: () => true,
+      getForegroundProcess: async () => null,
+      listProcesses: async () => {
+        if (hold) {
+          entered.resolve()
+          await release.promise
+        }
+        return inventory
+      }
+    })
+    await expect(runtime.createOwned(worktreeId, request)).rejects.toThrow('lost-spawn-reply')
+    await durable.persistPtyBinding({
+      worktreeId,
+      ...request.identity,
+      ptyId: 'original-live',
+      incarnationId
+    })
+    runtime.registerPty('original-live', worktreeId, null, {
+      ...request.identity,
+      terminalHandle: inventory[0].terminalHandle,
+      incarnationId
+    })
+    hold = true
+    const retry = runtime.createOwned(worktreeId, {
+      ...request,
+      identity: {
+        tabId: 'unrelated-retry',
+        leafId: '99999999-9999-4999-8999-999999999999'
+      }
+    })
+    const observed = retry.then(
+      (value) => ({ value, error: null }),
+      (error: unknown) => ({ value: null, error })
+    )
+    await entered.promise
+    let movedTabId: string | undefined
+    try {
+      if (change === 'closed') {
+        await runtime.closeTerminalSurfaceFromRenderer({
+          worktreeId,
+          target: { kind: 'tab', tabId: request.identity.tabId },
+          reason: 'user'
+        })
+      } else {
+        expect(
+          await durable.persistPtyBinding({
+            worktreeId,
+            ...request.identity,
+            ptyId: change === 'replaced' ? 'successor-live' : 'original-live',
+            incarnationId
+          })
+        ).toBe(true)
+        if (change === 'moved') {
+          const moved = await durable.moveTerminalLeafToNewTab({
+            worktreeId,
+            sourceTabId: request.identity.tabId,
+            targetTabId: '44444444-4444-4444-8444-444444444444',
+            leafId: request.identity.leafId,
+            ptyId: 'original-live'
+          })
+          expect(moved.status).toBe('moved')
+          movedTabId =
+            moved.status === 'moved'
+              ? (moved.tabId ?? '44444444-4444-4444-8444-444444444444')
+              : undefined
+        }
+      }
+    } finally {
+      release.resolve()
+    }
+    const outcome = await observed
+    const session = durable.getWorkspaceSession()
+    if (change === 'moved') {
+      expect(outcome.error).toBeNull()
+      expect(outcome.value?.tab).toMatchObject({
+        parentTabId: movedTabId,
+        leafId: request.identity.leafId,
+        ptyId: 'original-live'
+      })
+      expect(
+        session.terminalLayoutsByTabId[request.identity.tabId]?.ptyIdsByLeafId?.[
+          request.identity.leafId
+        ]
+      ).not.toBe('original-live')
+    } else {
+      expect(outcome.error).toBeInstanceOf(Error)
+      expect(outcome.value).toBeNull()
+      expect(
+        session.terminalLayoutsByTabId[request.identity.tabId]?.ptyIdsByLeafId?.[
+          request.identity.leafId
+        ]
+      ).toBe(change === 'replaced' ? 'successor-live' : undefined)
+    }
+    expect(session.tabsByWorktree[worktreeId].some((tab) => tab.id === 'unrelated-retry')).toBe(
+      false
+    )
+    expect(spawn).toHaveBeenCalledOnce()
+    expect(kill).not.toHaveBeenCalled()
+  }
+)

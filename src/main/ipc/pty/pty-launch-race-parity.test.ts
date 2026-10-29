@@ -758,6 +758,7 @@ describe('launch race parity, both spawn lanes', () => {
           })
         )
         const records: AgentSessionRecordStore = Object.create(AgentSessionRecordStore.prototype)
+        records.getRecord = (sessionId) => (sessionId === chat.sessionId ? chat : null)
         records.listConversations = () => [agentSessionConversationView(chat)]
         records.getVisibleSessionTabIndex = () => ({ present: true, sessionIds: [chat.sessionId] })
         const forget = vi.fn(async () => {})

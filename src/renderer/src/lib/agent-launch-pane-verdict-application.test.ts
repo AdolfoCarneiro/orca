@@ -22,6 +22,12 @@ const testStore = vi.hoisted(() => {
 })
 vi.mock('@/store', () => ({
   useAppStore: {
+    setState: (patch: Parameters<ReturnType<typeof createTestStore>['setState']>[0]) => {
+      if (!testStore.current) {
+        throw new Error('no test store')
+      }
+      testStore.current.setState(patch)
+    },
     getState: () => {
       if (!testStore.current) {
         throw new Error('no test store')
@@ -40,7 +46,11 @@ createTabsSliceMockApi()
 const { applyAgentLaunchPaneVerdict } = await import('./agent-launch-pane-verdict-application')
 const { agentLaunchPanePrompt, rememberAgentLaunchPanePrompt } =
   await import('./agent-launch-pane-prompt')
-const { wasAgentLaunchPaneClosedByUser } = await import('./agent-launch-pane-closes')
+const { noteAgentLaunchPaneClosedByUser, wasAgentLaunchPaneClosedByUser } =
+  await import('./agent-launch-pane-closes')
+const { awaitAgentLaunchPaneStart } = await import('./agent-launch-pane-start')
+const { agentLaunchPaneOutcomeForLeaf } =
+  await import('../components/terminal-pane/agent-launch-pane-notice-text')
 
 const WT = 'repo1::/tmp/feature'
 const LEAF = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
@@ -52,7 +62,7 @@ function launchTab() {
 }
 
 function apply(verdict: AgentLaunchPaneVerdict, leafId = LEAF): void {
-  applyAgentLaunchPaneVerdict({ worktreeId: WT, tabId, leafId, verdict })
+  applyAgentLaunchPaneVerdict({ worktreeId: WT, tabId, leafId, operationId: 'op-1', verdict })
 }
 
 beforeEach(() => {
@@ -64,6 +74,14 @@ beforeEach(() => {
     initialLeafId: LEAF,
     agentLaunchPane: { leafId: LEAF, operationId: 'op-1' }
   }).id
+  applyAgentLaunchPaneVerdict({
+    worktreeId: WT,
+    tabId,
+    leafId: LEAF,
+    operationId: 'op-1',
+    accepted: true,
+    verdict: { kind: 'proceed' }
+  })
   rememberAgentLaunchPanePrompt(tabId, 'fix the build')
 })
 
@@ -91,15 +109,31 @@ describe("a launch pane's verdict in the window", () => {
     expect(launchTab()?.agentLaunchPane).toBeUndefined()
   })
 
-  it('final, for a launch pane the user already closed out of a split: nothing is kept', () => {
+  it('final after a user closes the launch leaf does not affect its surviving sibling', async () => {
+    const sibling = '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'
+    const started = awaitAgentLaunchPaneStart(tabId, LEAF)
+    // The ordinary split-close owner records the user close before persisting the surviving tree.
+    noteAgentLaunchPaneClosedByUser(tabId, LEAF)
     store.getState().setTabLayout(tabId, {
-      root: { type: 'leaf', leafId: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d' },
-      activeLeafId: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
+      root: { type: 'leaf', leafId: sibling },
+      activeLeafId: sibling,
       expandedLeafId: null
     })
+    const layout = store.getState().terminalLayoutsByTabId[tabId]
+    await expect(started).resolves.toBeNull()
+    expect(wasAgentLaunchPaneClosedByUser(tabId, LEAF)).toBe(true)
+
     apply({ kind: 'not-started', code: 'agent_launch_tab_closed' })
-    expect(launchTab()?.agentLaunchPane).toBeUndefined()
-    expect(agentLaunchPanePrompt(tabId)).toBeNull()
+
+    expect(store.getState().terminalLayoutsByTabId[tabId]).toBe(layout)
+    expect(launchTab()?.agentLaunchPane).toEqual({
+      leafId: LEAF,
+      operationId: 'op-1',
+      outcome: { kind: 'not-started', code: 'agent_launch_tab_closed' }
+    })
+    expect(agentLaunchPanePrompt(tabId)).toBe('fix the build')
+    expect(agentLaunchPaneOutcomeForLeaf(launchTab(), sibling)).toBeNull()
+    expect(applyClosedTerminalLeafNotice).not.toHaveBeenCalled()
   })
 
   it('withdrawn: a tab with only the launch pane goes', () => {
@@ -107,7 +141,7 @@ describe("a launch pane's verdict in the window", () => {
     expect(launchTab()).toBeUndefined()
   })
 
-  it('withdrawn: a split the user added stays; only the launch pane closes', () => {
+  it('withdrawn: a split the user added keeps both panes without closing either', () => {
     store.getState().setTabLayout(tabId, {
       root: {
         type: 'split',
@@ -118,9 +152,13 @@ describe("a launch pane's verdict in the window", () => {
       activeLeafId: LEAF,
       expandedLeafId: null
     })
+    const layout = store.getState().terminalLayoutsByTabId[tabId]
+    const tab = launchTab()
     apply({ kind: 'withdrawn' })
-    expect(launchTab()).toBeDefined()
-    expect(applyClosedTerminalLeafNotice).toHaveBeenCalledWith(tabId, LEAF)
+    expect(launchTab()).toBe(tab)
+    expect(store.getState().terminalLayoutsByTabId[tabId]).toBe(layout)
+    expect(agentLaunchPanePrompt(tabId)).toBe('fix the build')
+    expect(applyClosedTerminalLeafNotice).not.toHaveBeenCalled()
   })
 
   it('never touches a pane no launch laid out', () => {

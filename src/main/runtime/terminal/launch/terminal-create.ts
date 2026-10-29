@@ -4,7 +4,10 @@ import { OrcaRuntimeWithTerminalCreateDeduplication } from './terminal-create-de
 import * as dependencies from '../../orca-runtime-create-terminal-dependencies'
 import { createDesktopTerminal } from '../../orca-runtime-create-terminal-desktop'
 import { terminalCreateTeamAllocation } from './terminal-create-team-allocation'
-import { createIdempotentCallback } from '../../orca-runtime-report-pty-spawn-commit'
+import {
+  createIdempotentCallback,
+  reportTerminalSpawnDispatched
+} from '../../orca-runtime-report-pty-spawn-commit'
 import { recordPtySurface, spawnSurfaceClaimSequence } from '../../pty-recorded-surface-topology'
 import { agentLaunchTokenFor, withAgentLaunchToken } from '../../../agent-launch/agent-launch-token'
 import { seedPtyLaunchTitle } from './pty-launch-title'
@@ -110,13 +113,12 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
           result = await dependencies.spawnInAdmittedPane(this.store, ptyController, {
             keepOnFailure: launchOpts.keepPaneOnStartFailure,
             beforeAdmission: launchOpts.beforePtySpawn,
-            beforeSpawn: () => {
-              launchOpts.beforePtySpawn?.()
-              launchOpts.onPtySpawnDispatched?.({
-                launchConfig: effectiveLaunchConfig,
-                launchAgent
-              })
-            },
+            beforeSpawn: reportTerminalSpawnDispatched(launchOpts, () => ({
+              tabId,
+              leafId,
+              launchConfig: effectiveLaunchConfig,
+              launchAgent
+            })),
             ...initialSize,
             cwd,
             command: sequencedStartupCommand

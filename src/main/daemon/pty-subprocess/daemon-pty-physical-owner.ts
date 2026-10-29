@@ -7,8 +7,8 @@ import { SessionTerminationController } from '../session-termination-controller'
 import { shutdownOwnedTerminalProcess } from '../terminal-host-session-shutdown'
 export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
   const nativeProc: DisposableNativePty = proc
-  let exited = false
-  let code: number | null = null
+  let exit: { exitCode: number; signal?: number } | null = null
+  const exitListeners = new Set<Parameters<pty.IPty['onExit']>[0]>()
   let disposed = false
   let nodePtyKillIssued = false
   const groupSweep = new PendingPtyGroupSweep()
@@ -25,19 +25,19 @@ export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
     }
   }
   const forceKillPosix = async (): Promise<void> => {
-    if (exited) {
+    if (exit) {
       return
     }
     // A reaped root frees its pid and TTY for reuse, so a table read that outlives it signals nothing.
     await groupSweep.track(
-      forceKillPosixPtyProcessGroups(proc.pid, killRoot, { ownsRoot: () => !exited }).catch(
+      forceKillPosixPtyProcessGroups(proc.pid, killRoot, { ownsRoot: () => exit === null }).catch(
         fallBackToNodePtyKill
       )
     )
   }
   // Stays synchronous: dispose() reads nodePtyKillIssued right after to avoid double-closing ConPTY.
   const forceKillConpty = (): void => {
-    if (exited) {
+    if (exit) {
       return
     }
     // Escalate a ConPTY kill through the job without double-closing node-pty's shell handle.
@@ -53,7 +53,7 @@ export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
   }
 
   const kill = (): void => {
-    if (exited) {
+    if (exit) {
       return
     }
     nodePtyKillIssued = true
@@ -85,29 +85,78 @@ export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
   const termination = new SessionTerminationController({
     sessionId: String(proc.pid),
     subprocess: { kill, forceKill, signal: (signal) => proc.kill(signal), dispose },
-    isExited: () => exited,
+    isExited: () => exit !== null,
     releaseProducerPause: ({ resume }) => {
       if (resume) {
         proc.resume()
       }
     }
   })
-  proc.onExit(({ exitCode }) => {
-    exited = true
-    code = exitCode
+  let nativeExitSubscription: pty.IDisposable | undefined
+  const retireNativeExitSubscription = (): void => {
+    const subscription = nativeExitSubscription
+    nativeExitSubscription = undefined
+    subscription?.dispose()
+  }
+  nativeExitSubscription = proc.onExit((event) => {
+    if (exit) {
+      return
+    }
+    exit = {
+      exitCode: event.exitCode,
+      ...(event.signal !== undefined ? { signal: event.signal } : {})
+    }
     termination.markPhysicalExit()
+    const errors: unknown[] = []
+    try {
+      retireNativeExitSubscription()
+    } catch (error) {
+      errors.push(error)
+    }
+    try {
+      const listeners = [...exitListeners]
+      for (const listener of listeners) {
+        if (exitListeners.delete(listener)) {
+          try {
+            listener(exit)
+          } catch (error) {
+            errors.push(error)
+          }
+        }
+      }
+    } finally {
+      exitListeners.clear()
+    }
+    if (errors.length > 0) {
+      throw errors[0]
+    }
   })
+  if (exit) {
+    retireNativeExitSubscription()
+  }
   return {
     completion: termination.physicalCompletion,
-    exitCode: () => code,
-    hasExited: () => exited,
+    exitCode: () => exit?.exitCode ?? null,
+    onExit: (listener: Parameters<pty.IPty['onExit']>[0]): pty.IDisposable => {
+      if (exit) {
+        listener(exit)
+      } else {
+        exitListeners.add(listener)
+      }
+      return {
+        dispose: () => {
+          exitListeners.delete(listener)
+        }
+      }
+    },
+    hasExited: () => exit !== null,
     kill,
     forceKill,
     dispose,
     recover: () =>
       shutdownOwnedTerminalProcess({
         pid: proc.pid,
-        isAlive: () => !exited,
+        isAlive: () => exit === null,
         terminateOwnedTree: () => terminatePtyJob(proc),
         close: async () => {
           await termination.forceKillAndWaitForExit()

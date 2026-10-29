@@ -234,28 +234,45 @@ describe("a chat assignee's liveness, stop and close", () => {
   })
 })
 
-// An idle reply does not settle an assignment; the same chat/caller must still finish it.
+// Stop ends the provider turn; the same chat/caller still owns its direct assignment.
 it.each(['pending', 'dispatched'] as const)(
-  'keeps %s direct work at rest through switch refusal and original completion',
+  'Stops %s direct work for a switch and resumes the same assignment on the next send',
   async (status) => {
     const { taskId, dispatchId } = await dispatchToChat()
     await clearChat(PEER_CHAT)
     await host.close(PEER_CHAT, 'evict')
     db.db.prepare('UPDATE dispatch_contexts SET status = ? WHERE id = ?').run(status, dispatchId)
+    await startClearedContext(PEER_CHAT)
+    const worker = connectionFor(PEER_CHAT)
+    expect(await sendUserMessage(PEER_CHAT, 'continue original work')).toMatchObject({ ok: true })
+    await vi.waitFor(() => expect(worker.turns).toHaveLength(2), WAIT)
+    worker.handlers.onNotification?.('turn/started', { turn: { id: 'turn-2' } })
+    await host.flushStreamedEvents(PEER_CHAT)
     const before = db.getDispatchContextById(dispatchId)
-    const close = vi.spyOn(host.deps.adapter, 'closeSession')
+    const close = vi.spyOn(host.deps.adapter, 'disposeSession')
     const acquire = vi.spyOn(host.deps.adapter, 'acquire')
-    await expect(host.switchToTerminal(PEER_CHAT)).rejects.toMatchObject({
-      refusal: { details: { reason: 'turnActive' } }
-    })
-    expect(close).not.toHaveBeenCalled()
+    await host.switchToTerminal(PEER_CHAT)
+    expect(worker.methods).toContain('turn/interrupt')
+    expect(close).toHaveBeenCalled()
+    expect(worker.closed).toBe(true)
     expect(acquire).not.toHaveBeenCalled()
+    expect(host.deps.store.getRecord(PEER_CHAT)?.lease.claimStatus).toBe('released')
+    expect((await host.journalSnapshot(PEER_CHAT)).items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          body: expect.objectContaining({ kind: 'turn', turnId: 'turn-2', state: 'interrupted' })
+        })
+      ])
+    )
     expect(db.getDispatchContextById(dispatchId)).toEqual(before)
     expect(host.deps.store.getVisibleSessionTabIndex().sessionIds).toContain(PEER_CHAT)
     db.db
       .prepare('UPDATE dispatch_contexts SET status = ? WHERE id = ?')
       .run('dispatched', dispatchId)
     await startClearedContext(PEER_CHAT)
+    expect(connectionFor(PEER_CHAT)).not.toBe(worker)
+    expect(acquire).toHaveBeenCalledTimes(1)
+    expect(host.deps.store.getRecord(PEER_CHAT)?.lease.claimStatus).toBe('live')
     await call(
       'orchestration.send',
       { to: WORKER, subject: 'follow up', body: 'finish original work' },

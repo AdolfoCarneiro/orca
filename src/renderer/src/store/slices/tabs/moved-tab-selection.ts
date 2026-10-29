@@ -101,7 +101,8 @@ export function showFramePatch(
       typeof patch === 'function' ? patch(current) : patch
     )
     taken = shown.taken
-    return protectSwitchProjections(current, shown.patch)
+    const next = protectSwitchProjections(current, shown.patch)
+    return Object.keys(next).length === 0 ? current : next
   })
   return taken
 }

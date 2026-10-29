@@ -1912,7 +1912,8 @@
           "terminalStartFailed": "{{agent}} could not start in a terminal. Check its setup and try again.",
           "writerUnconfirmed": "Orca could not confirm {{agent}} stopped. Check its open chats and terminals, then try this action again.",
           "sourceExitUnconfirmed": "Orca could not confirm {{agent}} stopped in this terminal. Quit {{agent}} here, then try this action again.",
-          "sourceKept": "{{agent}} opened successfully. The original tab was kept; continue in the new tab."
+          "sourceKept": "{{agent}} opened successfully. The original tab was kept; continue in the new tab.",
+          "sourceStopUnknown": "Orca could not confirm {{agent}} stopped. Check {{agent}} in the original terminal, then try switching again."
         },
         "SortableTabContextMenu": {
           "switchToTerminalView": "Continue with Terminal Agent"

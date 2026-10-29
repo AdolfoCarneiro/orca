@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 
+import { ConfirmationDialogProvider } from '@/components/confirmation-dialog'
+
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -46,14 +48,16 @@ function setWslStatus(state: WslHostStatus['state']): void {
 
 function renderPane() {
   return render(
-    <NativeChatStructuredSession
-      isVisible
-      isFocusedGroup
-      tabId="structured-wsl-stopped-tab"
-      sessionId="wsl-stopped-session"
-      target={{ kind: 'environment', environmentId: 'wsl:ubuntu' }}
-      agent="claude"
-    />
+    <ConfirmationDialogProvider>
+      <NativeChatStructuredSession
+        isVisible
+        isFocusedGroup
+        tabId="structured-wsl-stopped-tab"
+        sessionId="wsl-stopped-session"
+        target={{ kind: 'environment', environmentId: 'wsl:ubuntu' }}
+        agent="claude"
+      />
+    </ConfirmationDialogProvider>
   )
 }
 

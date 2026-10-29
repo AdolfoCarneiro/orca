@@ -22,7 +22,8 @@ export function resolveTerminalLaunchResult(
     stablePaneAdopted ||
     result.isReattach === true ||
     result.agentSessionEnsure?.disposition === 'adopted'
-  const refused = Boolean(result.agentResumeRefused || result.agentResumeUnavailable)
+  const refused = Boolean(result.agentResumeRefused)
+  const requestedRecipeUnavailable = refused || result.agentResumeUnavailable || adoptedStablePane
   const owner = result.stablePaneOwner
   const surface =
     (result.switchRecoveredSurface
@@ -40,13 +41,13 @@ export function resolveTerminalLaunchResult(
     surface,
     launchAgent: refused
       ? undefined
-      : (result.launchAgent ?? (adoptedStablePane ? undefined : requested.launchAgent)),
+      : (result.launchAgent ?? (requestedRecipeUnavailable ? undefined : requested.launchAgent)),
     launchConfig: refused
       ? undefined
-      : (result.launchConfig ?? (adoptedStablePane ? undefined : requested.launchConfig)),
+      : (result.launchConfig ?? (requestedRecipeUnavailable ? undefined : requested.launchConfig)),
     launchToken: refused
       ? undefined
-      : (result.launchToken ?? (adoptedStablePane ? undefined : requested.launchToken)),
+      : (result.launchToken ?? (requestedRecipeUnavailable ? undefined : requested.launchToken)),
     effectiveTitle: refused || adoptedStablePane ? null : requested.title,
     effectiveViewMode: refused || adoptedStablePane ? undefined : requested.viewMode
   }
