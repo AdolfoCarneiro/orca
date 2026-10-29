@@ -5,7 +5,6 @@ import {
   _settlePendingWorktreeRemovalsForTests,
   finishAcceptedWorktreeRemoval,
   removesInBackground,
-  retryFailedWorktreeRemoval,
   startBackgroundWorktreeRemoval,
   waitForPendingWorktreeRemoval
 } from './worktree-background-removal'
@@ -13,11 +12,7 @@ import {
   projectPendingWorktreeRemovals,
   snapshotPendingWorktreeRemovals
 } from './worktree-removal-listing'
-import {
-  assertNoPendingWorktreeRemovalConflict,
-  failedWorktreeRemovals,
-  pendingWorktreeRemovals
-} from './worktree-removal-table'
+import { assertNoPendingWorktreeRemovalConflict } from './worktree-removal-table'
 
 const removal = {
   worktreeId: 'repo-1::/work/feature',
@@ -42,45 +37,6 @@ describe('background worktree removal', () => {
   afterEach(() => {
     _resetPendingWorktreeRemovalsForTests()
   })
-
-  it.each([false, true])(
-    'does not join or retry accepted deleteBranch=%s as its opposite',
-    async (deleteBranch) => {
-      const git = deferred<Record<string, never>>()
-      const run = vi.fn(() => git.promise)
-      const original = { ...removal, deleteBranch }
-      const pending = startBackgroundWorktreeRemoval({ removal: original, run, publish: () => {} })
-      const record = pendingWorktreeRemovals.get(removal.worktreeId)
-      try {
-        expect(() =>
-          waitForPendingWorktreeRemoval(removal.worktreeId, 'local', !deleteBranch)
-        ).toThrow('different branch choice')
-        expect(waitForPendingWorktreeRemoval(removal.worktreeId, 'local', deleteBranch)).toBe(
-          pending
-        )
-        expect(waitForPendingWorktreeRemoval(removal.worktreeId, 'local')).toBe(pending)
-        expect(pendingWorktreeRemovals.get(removal.worktreeId)).toBe(record)
-        expect(record?.deleteBranch).toBe(deleteBranch)
-      } finally {
-        git.resolve({})
-        await pending
-      }
-      expect(run).toHaveBeenCalledOnce()
-      if (!record) {
-        throw new Error('Missing accepted record')
-      }
-      failedWorktreeRemovals.set(removal.worktreeId, {
-        ...record,
-        failure: { message: 'failed', failedAt: 1 }
-      })
-      const jobFor = vi.fn()
-      expect(() =>
-        retryFailedWorktreeRemoval(removal.worktreeId, 'local', jobFor, false, !deleteBranch)
-      ).toThrow('different branch choice')
-      expect(jobFor).not.toHaveBeenCalled()
-      expect(failedWorktreeRemovals.get(removal.worktreeId)?.deleteBranch).toBe(deleteBranch)
-    }
-  )
 
   it('resolves with the delete result once Git finishes, after the row has left the table', async () => {
     const git = deferred<{ preservedBranch: { branchName: string; head: string } }>()

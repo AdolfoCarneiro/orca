@@ -16,6 +16,7 @@ import {
   publicKeyToBase64
 } from '../../shared/e2ee-crypto'
 import { RuntimeClient } from './client'
+import { requestWorktreeRemoval } from '../handlers/worktree-removal-request'
 import { launchOrcaApp } from './launch'
 import { addEnvironmentFromPairingCode } from './environments'
 import { RuntimeClientError } from './types'
@@ -261,6 +262,52 @@ describe('CLI remote WebSocket transport', () => {
       }
     })
   })
+
+  it.each(['capable', 'absent', 'failed', 'disconnect'] as const)(
+    'preflights branch intent on the mutation socket after cached compatibility: %s',
+    async (mode) => {
+      const status = {
+        capabilities: ['worktree.remove-branch-policy.v1'],
+        failure: false,
+        disconnect: false
+      }
+      const runtime = await startTestRuntime('removal', status)
+      servers.push(runtime)
+      const client = new RuntimeClient(
+        '/tmp/unused',
+        5000,
+        encodePairingOffer({
+          v: 2,
+          endpoint: runtime.endpoint,
+          deviceToken: runtime.deviceToken,
+          publicKeyB64: runtime.publicKeyB64
+        })
+      )
+      await client.getCliStatus()
+      if (mode === 'absent') {
+        status.capabilities = []
+      }
+      status.failure = mode === 'failed'
+      status.disconnect = mode === 'disconnect'
+      const removal = requestWorktreeRemoval(client, {
+        worktree: 'id:task',
+        hostId: 'local',
+        force: false,
+        deleteBranch: false,
+        runHooks: false,
+        allowFailedArchiveHook: false
+      })
+      await (mode === 'capable'
+        ? expect(removal).resolves.toMatchObject({ result: { removed: true } })
+        : expect(removal).rejects.toBeInstanceOf(Error))
+      expect(runtime.connectionCount()).toBe(2)
+      expect(runtime.requestMethods).toEqual(
+        mode === 'capable'
+          ? ['status.get', 'status.get', 'worktree.rm']
+          : ['status.get', 'status.get']
+      )
+    }
+  )
 })
 
 async function startTestRuntime(
@@ -276,6 +323,8 @@ async function startTestRuntime(
       reason: 'manual-service-update-required'
     }
     capabilities?: string[]
+    failure?: boolean
+    disconnect?: boolean
     degradations?: RuntimeStatus['degradations']
   } = {}
 ): Promise<TestRuntime> {
@@ -328,37 +377,50 @@ async function startTestRuntime(
 
       const request = JSON.parse(plaintext) as { id: string; method: string }
       requestMethods.push(request.method)
+      if (request.method === 'status.get' && statusOverrides.disconnect) {
+        ws.close()
+        return
+      }
       const response =
-        request.method === 'status.get'
+        request.method === 'status.get' && statusOverrides.failure
           ? {
               id: request.id,
-              ok: true,
-              result: {
-                runtimeId,
-                rendererGraphEpoch: 1,
-                graphStatus: 'ready',
-                authoritativeWindowId: null,
-                desktopWindowStatus: statusOverrides.desktopWindowStatus,
-                liveTabCount: 0,
-                liveLeafCount: 0,
-                runtimeProtocolVersion:
-                  statusOverrides.runtimeProtocolVersion ?? RUNTIME_PROTOCOL_VERSION,
-                minCompatibleRuntimeClientVersion:
-                  statusOverrides.minCompatibleRuntimeClientVersion ??
-                  MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION,
-                appVersion: statusOverrides.appVersion,
-                remoteUpdateSupport: statusOverrides.remoteUpdateSupport,
-                capabilities: statusOverrides.capabilities,
-                degradations: statusOverrides.degradations
-              },
-              _meta: { runtimeId }
-            }
-          : {
-              id: request.id,
               ok: false,
-              error: { code: 'method_not_found', message: 'Unknown method' },
+              error: { code: 'runtime_unavailable', message: 'status failed' },
               _meta: { runtimeId }
             }
+          : request.method === 'worktree.rm'
+            ? { id: request.id, ok: true, result: { removed: true }, _meta: { runtimeId } }
+            : request.method === 'status.get'
+              ? {
+                  id: request.id,
+                  ok: true,
+                  result: {
+                    runtimeId,
+                    rendererGraphEpoch: 1,
+                    graphStatus: 'ready',
+                    authoritativeWindowId: null,
+                    desktopWindowStatus: statusOverrides.desktopWindowStatus,
+                    liveTabCount: 0,
+                    liveLeafCount: 0,
+                    runtimeProtocolVersion:
+                      statusOverrides.runtimeProtocolVersion ?? RUNTIME_PROTOCOL_VERSION,
+                    minCompatibleRuntimeClientVersion:
+                      statusOverrides.minCompatibleRuntimeClientVersion ??
+                      MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION,
+                    appVersion: statusOverrides.appVersion,
+                    remoteUpdateSupport: statusOverrides.remoteUpdateSupport,
+                    capabilities: statusOverrides.capabilities,
+                    degradations: statusOverrides.degradations
+                  },
+                  _meta: { runtimeId }
+                }
+              : {
+                  id: request.id,
+                  ok: false,
+                  error: { code: 'method_not_found', message: 'Unknown method' },
+                  _meta: { runtimeId }
+                }
       ws.send(encrypt(JSON.stringify(response), sharedKey))
     })
   })

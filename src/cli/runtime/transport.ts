@@ -6,7 +6,8 @@ import type {
   RuntimeOrchestrationEnvelope
 } from '../../shared/runtime-rpc-envelope'
 import { isKeepaliveFrame, RuntimeRpcEnvelopeSchema } from './envelope-schema'
-import { RuntimeClientError, type RuntimeRpcResponse } from './types'
+import { RuntimeClientError, RuntimeRpcFailureError, type RuntimeRpcResponse } from './types'
+import type { RuntimeStatus } from '../../shared/runtime-types'
 import { MAX_TIMER_DELAY_MS, isSafeTimerDelayMs } from '../../shared/timer-delay'
 import { runtimeAccessDeniedError } from './runtime-access-denied'
 
@@ -17,7 +18,8 @@ export async function sendRequest<TResult>(
   timeoutMs: number,
   envelope?: RuntimeOrchestrationEnvelope,
   // Federation forwards envelopes; the runtime fence must stay local.
-  expectedRuntimeSource?: ExpectedRuntimeSource
+  expectedRuntimeSource?: ExpectedRuntimeSource,
+  validateStatus?: (status: RuntimeStatus) => void
 ): Promise<RuntimeRpcResponse<TResult>> {
   if (!isSafeTimerDelayMs(timeoutMs)) {
     throw new RuntimeClientError(
@@ -40,6 +42,8 @@ export async function sendRequest<TResult>(
     let lineSegments: string[] = []
     let settled = false
     const requestId = randomUUID()
+    const statusRequestId = validateStatus ? randomUUID() : null
+    let awaitingStatus = statusRequestId !== null
 
     const timeout = setTimeout(() => {
       if (settled) {
@@ -156,7 +160,7 @@ export async function sendRequest<TResult>(
         }
 
         const response = frame as RuntimeRpcResponse<TResult>
-        if (response.id !== requestId) {
+        if (response.id !== (awaitingStatus ? statusRequestId : requestId)) {
           finish({
             ok: false,
             error: new RuntimeClientError(
@@ -176,17 +180,32 @@ export async function sendRequest<TResult>(
           })
           return
         }
+        if (awaitingStatus) {
+          try {
+            if (frame.ok === false) {
+              throw new RuntimeRpcFailureError(frame)
+            }
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: status.get supplies RuntimeStatus; validation checks the required capability before mutation.
+            validateStatus?.(frame.result as RuntimeStatus)
+          } catch (error) {
+            finish({ ok: false, error: error instanceof Error ? error : new Error(String(error)) })
+            return
+          }
+          awaitingStatus = false
+          send(requestId, method, params)
+          continue
+        }
         finish({ ok: true, response })
         return
       }
     })
-    socket.on('connect', () => {
+    const send = (id: string, requestedMethod: string, requestedParams: unknown): void => {
       socket.write(
         `${JSON.stringify({
-          id: requestId,
+          id,
           authToken: metadata.authToken,
-          method,
-          params,
+          method: requestedMethod,
+          params: requestedParams,
           orchestrationCapability: envelope?.orchestrationCapability,
           orchestrationContractVersion: envelope?.orchestrationContractVersion,
           orchestrationRequestId: envelope?.orchestrationRequestId,
@@ -194,6 +213,13 @@ export async function sendRequest<TResult>(
           orchestrationCompatibilityEvidence: envelope?.orchestrationCompatibilityEvidence,
           expectedRuntimeSource
         })}\n`
+      )
+    }
+    socket.on('connect', () => {
+      send(
+        statusRequestId ?? requestId,
+        statusRequestId ? 'status.get' : method,
+        statusRequestId ? undefined : params
       )
     })
   })

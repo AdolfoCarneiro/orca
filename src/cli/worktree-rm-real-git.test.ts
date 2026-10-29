@@ -1,6 +1,17 @@
 import '../main/runtime/rpc/unused-default-rpc-methods.test-fixture'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { RuntimeWorkspaceSelectors } from '../main/runtime/workspaces/workspace-selectors'
+import { resolveRuntimeWorktreeRemovalTarget } from '../main/runtime/runtime-worktree-removal-target'
+import { getExplicitWorktreeIdSelector } from '../main/runtime/runtime-worktree-selection'
+import { mergeRuntimeFolderWorkspace } from '../main/runtime/runtime-folder-workspace'
+import type { ResolvedWorktree } from '../main/runtime/runtime-worktree-path-identity'
+import { WorktreeRemove } from '../shared/rpc-contract/worktree-params'
+import { UnixSocketTransport } from '../main/runtime/rpc/unix-socket-transport'
+import { getRuntimeMetadataPath } from '../shared/runtime-bootstrap'
+import { RuntimeClient } from './runtime/client'
+import type { Repo } from '../shared/repo-types'
 import { mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -12,13 +23,6 @@ import type { GitWorktreeInfo } from '../shared/worktree/types'
 import { retryFailedRemovalUnlessRegistered } from '../main/worktree-removal-leftover'
 import type { RemoveWorktreeResult } from '../shared/worktree/create-types'
 
-const transport = vi.hoisted(() => ({ call: vi.fn() }))
-vi.mock('./runtime-client', async () => ({
-  ...(await import('./runtime/types')),
-  RuntimeClient: class {
-    call = transport.call
-  }
-}))
 // Keep app construction and unrelated project creation outside this CLI/Git boundary test.
 vi.mock('../main/runtime/workspaces/workspace-metadata', () => ({
   OrcaRuntimeWithCreateManagedRemoteWorktree: class {}
@@ -28,7 +32,6 @@ vi.mock('../main/ipc/worktree-remote', () => ({
 }))
 
 import { main } from './index'
-import { RuntimeRpcFailureError } from './runtime/types'
 import { RpcDispatcher } from '../main/runtime/rpc/dispatcher'
 import { WORKTREE_METHODS } from '../main/runtime/rpc/methods/worktree'
 import { OrcaRuntimeWithRemoveManagedWorktree } from '../main/runtime/workspaces/workspace-removal'
@@ -53,6 +56,16 @@ let repoPath = ''
 let checkout = ''
 let id = ''
 let dispatcher: RpcDispatcher
+let socket: UnixSocketTransport
+let client: RuntimeClient
+let repo: Repo
+let folderRepo: Repo
+let rows: ResolvedWorktree[]
+let afterShow = () => {}
+const stopped = vi.fn(async () => {})
+const removedMetadata = vi.fn()
+const received = vi.fn()
+let beforeStatus = async () => {}
 let removeManaged: (
   selector: string,
   options: RemoveManagedWorktreeOptions
@@ -87,24 +100,71 @@ beforeEach(async () => {
   await git('-C', checkout, 'commit', '-qam', 'task')
   await git('merge', '--squash', 'task')
   await git('commit', '-qm', 'squashed task')
-  const repo = { id: 'repo', path: repoPath, displayName: 'repo', addedAt: 1, badgeColor: '' }
+  repo = { id: 'repo', path: repoPath, displayName: 'repo', addedAt: 1, badgeColor: '' }
+  beforeStatus = async () => {}
+  received.mockClear()
+  removedMetadata.mockClear()
+  vi.stubEnv('ORCA_USER_DATA_PATH', directory)
+  vi.stubEnv('ORCA_PAIRING_CODE', '')
+  vi.stubEnv('ORCA_REMOTE_PAIRING', '')
+  vi.stubEnv('ORCA_ENVIRONMENT', '')
+  folderRepo = { ...repo, id: 'folder', path: directory, kind: 'folder' }
+  rows = [
+    {
+      ...mergeRuntimeFolderWorkspace(repo, id, {}),
+      path: checkout,
+      branch: 'task',
+      parentWorktreeId: null,
+      childWorktreeIds: [],
+      lineage: null,
+      git: { path: checkout, branch: 'task', head: '', isBare: false, isMainWorktree: false }
+    }
+  ]
+  afterShow = () => {}
+  stopped.mockClear()
   const store = {
-    getRepos: () => [repo],
-    getRepo: () => repo,
+    getRepos: () => [repo, folderRepo],
+    getRepo: (repoId: string) => (repoId === repo.id ? repo : folderRepo),
     getWorktreeMeta: () => ({ preserveBranchOnDelete }),
     getProjectRuntime: () => undefined
   }
-  const target = { id, repoId: 'repo', path: checkout }
+  const match = (selector: string): ResolvedWorktree =>
+    Reflect.apply(
+      Reflect.get(RuntimeWorkspaceSelectors.prototype, 'matchWorktreeSelector'),
+      { store, getValidatedExplicitWorktreeIdSelector: getExplicitWorktreeIdSelector },
+      [selector, rows]
+    )
   const runtime = {
     store,
     workspaceLifecycle: new WorkspaceLifecycleQueue(),
     removeManagedWorktreeInFlight: new RuntimeWorktreeRemovalInFlight(),
     getRuntimeId: () => 'rm-runtime',
     listRepos: store.getRepos,
-    showManagedWorktree: async () => ({ ...target, hostId: replyHostId }),
+    showManagedWorktree: async (selector: string) => {
+      const target = match(selector)
+      const result = {
+        ...target,
+        hostId: replyHostId,
+        workspaceKind: store.getRepo(target.repoId).kind === 'folder' ? 'folder-workspace' : 'git'
+      }
+      afterShow()
+      return result
+    },
+    getLocalProvider: () => null,
+    removeWorktreeMetadataAndHistory: removedMetadata,
+    invalidateResolvedWorktreeCache: () => {},
+    notifyWorktreesChanged: () => {},
     listTerminals: async () => ({ totalCount: 0 }),
     requireStore: () => store,
-    resolveWorktreeRemovalTarget: async () => target,
+    resolveWorktreeRemovalTarget: (selector: string, hostId?: 'local') =>
+      resolveRuntimeWorktreeRemovalTarget({
+        selector,
+        store: null,
+        resolveWorktree: async (value) => match(value),
+        resolveExplicitWorktreeIdScoped: async (value, host) =>
+          host === 'local' ? (rows.find((row) => row.id === value) ?? null) : null,
+        requiredHostId: hostId
+      }),
     joinPendingWorktreeRemoval(worktreeId: string, options: RemoveManagedWorktreeOptions) {
       return waitForPendingWorktreeRemoval(worktreeId, 'local', options.deleteBranch)
     },
@@ -122,7 +182,7 @@ beforeEach(async () => {
       )
     },
     acquireFileWatcherRemoval: async () => ({ finish: async () => {} }),
-    stopPtysForDestructiveWorktreeRemoval: async () => {},
+    stopPtysForDestructiveWorktreeRemoval: stopped,
     closeFileWatchersForRemoval: async () => {},
     purgeRemovedWorktree: () => {},
     emitWorktreeLifecycle: () => {},
@@ -139,21 +199,50 @@ beforeEach(async () => {
     runtime: runtime as unknown as OrcaRuntimeService,
     methods: WORKTREE_METHODS
   })
-  transport.call.mockReset().mockImplementation(async (method: string, params?: unknown) => {
-    if (method === 'status.get') {
-      return { ok: true, result: { capabilities: supported ? [capability] : [] } }
-    }
-    const reply = await dispatcher.dispatch({ id: 'rm', authToken: 'test', method, params })
-    if (!reply.ok) {
-      throw new RuntimeRpcFailureError(reply)
-    }
-    return reply
+  const kind = process.platform === 'win32' ? 'named-pipe' : 'unix'
+  const endpoint =
+    process.platform === 'win32'
+      ? `\\\\.\\pipe\\orca-rm-${process.pid}`
+      : join(directory, 'rpc.sock')
+  socket = new UnixSocketTransport({ kind, endpoint })
+  socket.onMessage((message, reply) => {
+    const request = JSON.parse(message)
+    received(request.method, request.params)
+    void (async () => {
+      if (request.method === 'status.get') {
+        await beforeStatus()
+        reply(
+          JSON.stringify({
+            id: request.id,
+            ok: true,
+            result: { capabilities: supported ? [capability] : [] },
+            _meta: { runtimeId: 'rm-runtime' }
+          })
+        )
+      } else {
+        reply(JSON.stringify(await dispatcher.dispatch(request)))
+      }
+    })()
   })
+  await socket.start()
+  await writeFile(
+    getRuntimeMetadataPath(directory),
+    JSON.stringify({
+      runtimeId: 'rm-runtime',
+      pid: process.pid,
+      transports: [{ kind, endpoint }],
+      authToken: 'test',
+      startedAt: 1
+    })
+  )
+  client = new RuntimeClient(directory, 5000, null, null)
 })
 
 afterEach(async () => {
   await _settlePendingWorktreeRemovalsForTests()
   _resetPendingWorktreeRemovalsForTests()
+  await socket?.stop()
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
   process.exitCode = undefined
   await removeTree(directory)
@@ -170,6 +259,7 @@ it.each([
     replyHostId = host ?? 'local'
     // Existing branches have preservation metadata; explicit opt-in must override it.
     preserveBranchOnDelete = flags.includes('--delete-branch')
+    const head = await git('rev-parse', 'task')
     await main(['worktree', 'rm', '--worktree', `id:${id}`, ...flags, '--json'], repoPath)
     expect(process.exitCode).not.toBe(1)
     await _settlePendingWorktreeRemovalsForTests()
@@ -177,6 +267,9 @@ it.each([
     expect(await git('for-each-ref', '--format=%(refname:short)', 'refs/heads/task')).toBe(
       deleted ? '' : 'task'
     )
+    if (!deleted) {
+      expect(await git('rev-parse', 'task')).toBe(head)
+    }
   }
 )
 
@@ -192,13 +285,13 @@ it.each([{ flags: [] }, { flags: ['--delete-branch'] }])(
     })
     expect(existsSync(checkout)).toBe(true)
     expect(await git('for-each-ref', '--format=%(refname:short)', 'refs/heads/task')).toBe('task')
-    expect(transport.call.mock.calls.some(([method]) => method === 'worktree.rm')).toBe(false)
+    expect(received.mock.calls.some(([method]) => method === 'worktree.rm')).toBe(false)
   }
 )
 
 it.each([false, true])('preserves legacy omitted-field metadata policy %s', async (preserve) => {
   preserveBranchOnDelete = preserve
-  await transport.call('worktree.rm', { worktree: `id:${id}`, waitForBackgroundRemoval: true })
+  await client.call('worktree.rm', { worktree: `id:${id}`, waitForBackgroundRemoval: true })
   expect(existsSync(checkout)).toBe(false)
   expect(await git('for-each-ref', '--format=%(refname:short)', 'refs/heads/task')).toBe(
     preserve ? 'task' : ''
@@ -229,6 +322,7 @@ it.each([false, true])(
   async (deleteBranch) => {
     const block = Promise.withResolvers<void>()
     const gitPending = Promise.withResolvers<RemoveWorktreeResult>()
+    const run = vi.fn(() => gitPending.promise)
     const first = acceptance.runSerializedWorktreeRemovalAcceptance(repoPath, () => block.promise)
     const entering = vi.spyOn(acceptance, 'runSerializedWorktreeRemovalAcceptance')
     const request = removeManaged(`id:${id}`, {
@@ -248,10 +342,13 @@ it.each([false, true])(
           deleteBranch,
           force: false
         },
-        run: () => gitPending.promise,
+        run,
         publish: () => {}
       })
       const record = pendingWorktreeRemovals.get(id)
+      const joined = waitForPendingWorktreeRemoval(id, 'local', deleteBranch)
+      expect(waitForPendingWorktreeRemoval(id, 'local')).toBe(joined)
+      expect(joined).toBeDefined()
       block.resolve()
       await first
       await new Promise((resolve) => setImmediate(resolve))
@@ -261,6 +358,8 @@ it.each([false, true])(
       expect(await git('for-each-ref', '--format=%(refname:short)', 'refs/heads/task')).toBe('task')
       gitPending.resolve({})
       await refused
+      await expect(joined).resolves.toEqual({})
+      expect(run).toHaveBeenCalledOnce()
     } finally {
       block.resolve()
       gitPending.resolve({})
@@ -268,3 +367,151 @@ it.each([false, true])(
     }
   }
 )
+
+it.each([false, true])('keeps folder directory on incapable host, root=%s', async (root) => {
+  repo.kind = 'folder'
+  supported = false
+  id = root
+    ? `repo::${repoPath}`
+    : `repo::${repoPath}::workspace:00000000-0000-4000-8000-000000000001`
+  rows = [{ ...rows[0], id, path: repoPath }]
+  await main(['worktree', 'rm', '--worktree', `id:${id}`, '--json'], repoPath)
+  expect(process.exitCode === 1).toBe(root)
+  expect(removedMetadata).toHaveBeenCalledTimes(root ? 0 : 1)
+  expect(existsSync(repoPath)).toBe(true)
+  expect(received.mock.calls.map(([method]) => method)).toEqual(['worktree.show', 'worktree.rm'])
+  expect(received.mock.calls.at(-1)?.[1]).not.toHaveProperty('deleteBranch')
+  const output = String(vi.mocked(console.log).mock.calls.at(-1)?.[0])
+  expect(output).not.toContain('branch')
+  if (root) {
+    expect(output).toContain('root workspace')
+  }
+})
+
+it('keeps the verified receiver when discovery switches to a live legacy receiver', async () => {
+  const kind = process.platform === 'win32' ? 'named-pipe' : 'unix'
+  const endpoint =
+    process.platform === 'win32'
+      ? String.raw`\\.\pipe\orca-rm-${process.pid}-legacy`
+      : join(directory, 'old.sock')
+  const legacy = new UnixSocketTransport({ kind, endpoint })
+  const methods: string[] = []
+  legacy.onMessage((message, reply) => {
+    const request = JSON.parse(message)
+    methods.push(request.method)
+    if (request.method === 'worktree.rm') {
+      request.params = WorktreeRemove.omit({ deleteBranch: true }).parse(request.params)
+    }
+    void dispatcher.dispatch(request).then((result) => reply(JSON.stringify(result)))
+  })
+  try {
+    await legacy.start()
+    beforeStatus = () =>
+      writeFile(
+        getRuntimeMetadataPath(directory),
+        JSON.stringify({
+          runtimeId: 'rm-runtime',
+          pid: process.pid,
+          transports: [{ kind, endpoint }],
+          authToken: 'test',
+          startedAt: 2
+        })
+      )
+    const head = await git('rev-parse', 'task')
+    await main(['worktree', 'rm', '--worktree', `id:${id}`, '--json'], repoPath)
+    expect(process.exitCode).not.toBe(1)
+    expect(existsSync(checkout)).toBe(false)
+    expect(await git('rev-parse', 'task')).toBe(head)
+    expect(methods).toEqual([])
+    expect(received.mock.calls.map(([method]) => method)).toEqual([
+      'worktree.show',
+      'status.get',
+      'worktree.rm'
+    ])
+  } finally {
+    await legacy.stop()
+  }
+})
+
+it('does not dispatch after its preflight receiver disconnects', async () => {
+  beforeStatus = () => socket.stop()
+  await main(['worktree', 'rm', '--worktree', `id:${id}`, '--json'], repoPath)
+  expect(process.exitCode).toBe(1)
+  expect(received.mock.calls.map(([method]) => method)).toEqual(['worktree.show', 'status.get'])
+  expect(existsSync(checkout)).toBe(true)
+  expect(await git('rev-parse', 'task')).not.toBe('')
+})
+
+it.each([false, true])(
+  'pins a renamed folder instance and never falls back to Git when missing=%s',
+  async (missing) => {
+    const gitRow = rows[0]
+    gitRow.displayName = 'other'
+    const folderId = `folder::${directory}::workspace:00000000-0000-4000-8000-000000000001`
+    const folder = {
+      ...mergeRuntimeFolderWorkspace(folderRepo, folderId, { displayName: 'target' }),
+      parentWorktreeId: null,
+      childWorktreeIds: [],
+      lineage: null,
+      git: { path: directory, branch: '', head: '', isBare: false, isMainWorktree: false }
+    }
+    rows.push(folder)
+    afterShow = () => {
+      afterShow = () => {}
+      folder.displayName = 'renamed'
+      gitRow.displayName = 'target'
+      if (missing) {
+        rows = [gitRow]
+      }
+    }
+    const head = await git('rev-parse', 'task')
+    await main(['worktree', 'rm', '--worktree', 'name:target', '--json'], repoPath)
+    expect(process.exitCode === 1).toBe(missing)
+    expect(received.mock.calls.at(-1)).toEqual([
+      'worktree.rm',
+      expect.objectContaining({ worktree: `id:${folderId}`, hostId: 'local' })
+    ])
+    expect(received.mock.calls.at(-1)?.[1]).not.toHaveProperty('deleteBranch')
+    expect(removedMetadata).toHaveBeenCalledTimes(missing ? 0 : 1)
+    if (!missing) {
+      expect(removedMetadata.mock.calls[0]?.[1]).toBe(folderId)
+    }
+    expect(existsSync(checkout)).toBe(true)
+    expect(existsSync(directory)).toBe(true)
+    expect(await git('rev-parse', 'task')).toBe(head)
+  }
+)
+
+it('settles the same dirty-checkout refusal for omitted and explicit keep intent', async () => {
+  await writeFile(join(checkout, 'file'), 'unsaved')
+  const head = await git('rev-parse', 'task')
+  const registered = await git('worktree', 'list', '--porcelain')
+  const failures: string[] = []
+  for (const deleteBranch of [undefined, false]) {
+    const failure = await client
+      .call('worktree.rm', {
+        worktree: `id:${id}`,
+        hostId: 'local',
+        force: false,
+        runHooks: false,
+        allowUnverifiedPtyStop: false,
+        allowFailedArchiveHook: false,
+        ...(deleteBranch === undefined ? {} : { deleteBranch }),
+        waitForBackgroundRemoval: true
+      })
+      .then(
+        () => {
+          throw new Error('Expected dirty refusal')
+        },
+        (error: unknown) => String(error)
+      )
+    failures.push(failure)
+    expect(await readFile(join(checkout, 'file'), 'utf8')).toBe('unsaved')
+    expect(await git('rev-parse', 'task')).toBe(head)
+    expect(await git('worktree', 'list', '--porcelain')).toBe(registered)
+    expect(pendingWorktreeRemovals.size).toBe(0)
+  }
+  expect(failures[0]).toContain('M file')
+  expect(failures[1]).toBe(failures[0])
+  expect(stopped).not.toHaveBeenCalled()
+})

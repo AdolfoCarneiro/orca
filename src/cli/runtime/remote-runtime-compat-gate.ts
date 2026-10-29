@@ -33,8 +33,9 @@ export class RemoteRuntimeCompatGate {
     params: unknown
     timeoutMs: number
     envelope?: RuntimeOrchestrationEnvelope
+    validateStatus?: (status: RuntimeStatus) => void
   }): Promise<RuntimeRpcResponse<TResult>> {
-    if (this.checked || args.method === 'status.get') {
+    if (!args.validateStatus && (this.checked || args.method === 'status.get')) {
       return args.transport.sendWebSocketRequest<TResult>(
         args.connection,
         args.method,
@@ -53,6 +54,7 @@ export class RemoteRuntimeCompatGate {
           throw new RuntimeRpcFailureError(response)
         }
         this.noteVerifiedStatus(response.result)
+        args.validateStatus?.(response.result)
         if (this.environmentSelector) {
           markEnvironmentUsed(this.userDataPath, this.environmentSelector, {
             runtimeId: response._meta.runtimeId

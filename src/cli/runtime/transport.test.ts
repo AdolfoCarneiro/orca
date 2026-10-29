@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { once } from 'node:events'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -8,6 +8,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeMetadata } from '../../shared/runtime-bootstrap'
 import { MAX_TIMER_DELAY_MS } from '../../shared/timer-delay'
 import { sendRequest } from './transport'
+import { RuntimeClient } from './client'
+import { getRuntimeMetadataPath } from '../../shared/runtime-bootstrap'
+import { requestWorktreeRemoval } from '../handlers/worktree-removal-request'
 
 vi.mock('node:net', async (importOriginal) => {
   const net = await importOriginal<typeof Net>()
@@ -70,6 +73,67 @@ describe('runtime transport timeout validation', () => {
 
 // These fixtures create Unix domain sockets rather than Windows named pipes.
 describe.skipIf(process.platform === 'win32')('runtime transport', () => {
+  it.each(['preflight', 'mutation'] as const)(
+    'reports a timeout during %s truthfully',
+    async (phase) => {
+      const directory = mkdtempSync(join(tmpdir(), 'orca-removal-timeout-'))
+      roots.push(directory)
+      const endpoint = join(directory, 'runtime.sock')
+      const received = Promise.withResolvers<void>()
+      const methods: string[] = []
+      const server = createServer((socket) => {
+        sockets.add(socket)
+        socket.once('close', () => sockets.delete(socket))
+        socket.on('data', (data) => {
+          const request = JSON.parse(String(data).trim())
+          methods.push(request.method)
+          if (phase === 'mutation' && request.method === 'status.get') {
+            socket.write(
+              `${JSON.stringify({
+                id: request.id,
+                ok: true,
+                result: { capabilities: ['worktree.remove-branch-policy.v1'] },
+                _meta: { runtimeId: 'timeout' }
+              })}\n`
+            )
+          } else {
+            received.resolve()
+          }
+        })
+      })
+      servers.add(server)
+      await new Promise<void>((resolve) => server.listen(endpoint, resolve))
+      writeFileSync(
+        getRuntimeMetadataPath(directory),
+        JSON.stringify({
+          runtimeId: 'timeout',
+          pid: process.pid,
+          transports: [{ kind: 'unix', endpoint }],
+          authToken: 'test',
+          startedAt: 1
+        })
+      )
+      const client = new RuntimeClient(directory, 5000, null, null)
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const response = requestWorktreeRemoval(client, {
+        worktree: 'id:task',
+        hostId: 'local',
+        force: false,
+        deleteBranch: false,
+        runHooks: false,
+        allowFailedArchiveHook: false
+      }).catch((error: unknown) => error)
+      await received.promise
+      await vi.runAllTimersAsync()
+      expect(await response).toMatchObject({
+        code: phase === 'preflight' ? 'runtime_timeout' : 'worktree_removal_in_progress'
+      })
+      expect(methods).toEqual(
+        phase === 'preflight' ? ['status.get'] : ['status.get', 'worktree.rm']
+      )
+    }
+  )
+
   it('refreshes the per-call timeout when the runtime sends keepalive frames', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-transport-'))
     roots.push(userDataPath)

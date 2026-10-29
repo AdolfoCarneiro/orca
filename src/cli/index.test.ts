@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY } from '../shared/worktree-runtime-capabilities'
 import { worktreeRemovalReplyTimeoutMs } from '../shared/worktree/archive-hook-removal-gate'
 
 const {
@@ -92,14 +91,13 @@ describe('command aliases dispatch to the canonical handler', () => {
     queueFixtures(
       callMock,
       okFixture('req_show', { worktree: { hostId: 'local' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] }),
       okFixture('req', { removed: true })
     )
 
     await main(['worktree', 'remove', '--worktree', 'id:wt-1', '--force', '--json'], '/tmp/repo')
 
     expect(callMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       'worktree.rm',
       expect.objectContaining({ worktree: 'id:wt-1', hostId: 'local', force: true }),
       expect.anything()
@@ -110,14 +108,13 @@ describe('command aliases dispatch to the canonical handler', () => {
     queueFixtures(
       callMock,
       okFixture('req_show', { worktree: { hostId: 'runtime:env-1' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] }),
       okFixture('req', { removed: true })
     )
 
     await main(['worktree', 'delete', '--worktree', 'id:wt-1', '--json'], '/tmp/repo')
 
     expect(callMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       'worktree.rm',
       expect.objectContaining({ worktree: 'id:wt-1', hostId: 'runtime:env-1' }),
       expect.anything()
@@ -128,17 +125,16 @@ describe('command aliases dispatch to the canonical handler', () => {
     queueFixtures(
       callMock,
       okFixture('req_show', { worktree: { hostId: 'local' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] }),
       okFixture('req', { removed: true })
     )
 
     await main(['worktree', 'rm', '--worktree', 'id:wt-1', '--run-hooks'], '/tmp/repo')
 
     expect(callMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       'worktree.rm',
       expect.objectContaining({ waitForBackgroundRemoval: true }),
-      { timeoutMs: worktreeRemovalReplyTimeoutMs(true) }
+      { timeoutMs: worktreeRemovalReplyTimeoutMs(true), validateStatus: expect.any(Function) }
     )
     expect(logSpy).toHaveBeenCalledWith('removed: true')
   })
@@ -147,7 +143,6 @@ describe('command aliases dispatch to the canonical handler', () => {
     queueFixtures(
       callMock,
       okFixture('req_show', { worktree: { hostId: 'local' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] }),
       okFixture('req', { removed: true, removing: true })
     )
 
@@ -179,11 +174,7 @@ describe('command aliases dispatch to the canonical handler', () => {
 
   it('exits non-zero when worktree removal is refused by a failed archive hook', async () => {
     const { RuntimeRpcFailureError } = await import('./runtime/types.js')
-    queueFixtures(
-      callMock,
-      okFixture('req_show', { worktree: { hostId: 'local' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] })
-    )
+    queueFixtures(callMock, okFixture('req_show', { worktree: { hostId: 'local' } }))
     callMock.mockRejectedValueOnce(
       new RuntimeRpcFailureError({
         id: 'req_archive',
@@ -205,7 +196,7 @@ describe('command aliases dispatch to the canonical handler', () => {
 
       expect(process.exitCode).toBe(1)
       expect(callMock).toHaveBeenNthCalledWith(
-        3,
+        2,
         'worktree.rm',
         expect.objectContaining({
           runHooks: true,
@@ -225,11 +216,7 @@ describe('command aliases dispatch to the canonical handler', () => {
   })
 
   it('rejects the archive-hook waiver without --run-hooks instead of ignoring it', async () => {
-    queueFixtures(
-      callMock,
-      okFixture('req_show', { worktree: { hostId: 'local' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] })
-    )
+    queueFixtures(callMock, okFixture('req_show', { worktree: { hostId: 'local' } }))
     const priorExitCode = process.exitCode
 
     try {
@@ -256,7 +243,6 @@ describe('command aliases dispatch to the canonical handler', () => {
     queueFixtures(
       callMock,
       okFixture('req_show', { worktree: { hostId: 'local' } }),
-      okFixture('req_status', { capabilities: [WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY] }),
       okFixture('req', { removed: true })
     )
 
@@ -274,7 +260,7 @@ describe('command aliases dispatch to the canonical handler', () => {
     )
 
     expect(callMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       'worktree.rm',
       expect.objectContaining({ runHooks: true, allowFailedArchiveHook: true }),
       expect.anything()

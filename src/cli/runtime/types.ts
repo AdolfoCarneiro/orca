@@ -1,3 +1,5 @@
+import type { RuntimeOrchestrationEnvelope } from '../../shared/runtime-rpc-envelope'
+import type { RuntimeStatus } from '../../shared/runtime-types'
 import type { RuntimeRpcFailure } from '../../shared/runtime-rpc-envelope'
 import { redactOrchestrationCompatibilitySecrets } from '../../shared/orchestration-compatibility-evidence'
 
@@ -6,6 +8,13 @@ export type {
   RuntimeRpcResponse,
   RuntimeRpcSuccess
 } from '../../shared/runtime-rpc-envelope'
+
+export type RuntimeCallOptions = {
+  timeoutMs?: number
+  legacyTerminalPrompt?: true
+  terminalPromptPreflight?: { runtimeId: string | null }
+  validateStatus?: (status: RuntimeStatus) => void
+} & RuntimeOrchestrationEnvelope
 
 export class RuntimeClientError extends Error {
   readonly code: string
