@@ -1,11 +1,14 @@
 import { EventEmitter } from 'node:events'
+import * as timers from 'node:timers'
 import { afterEach, expect, it, vi } from 'vitest'
 import Database from '../../sqlite/sync-database'
 import { JournalCheckpointOwner } from './journal-checkpoint-owner'
 
 vi.mock('node:timers', () => ({
   setTimeout: vi.fn((run: () => void, ms?: number) => globalThis.setTimeout(run, ms)),
-  clearTimeout: (timer: ReturnType<typeof globalThis.setTimeout>) => globalThis.clearTimeout(timer)
+  clearTimeout: vi.fn((timer: ReturnType<typeof globalThis.setTimeout>) =>
+    globalThis.clearTimeout(timer)
+  )
 }))
 
 class CheckpointThread extends EventEmitter {
@@ -45,12 +48,17 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-it('keeps startup maintenance, coalesces checks, and rechecks writes crossing an outstanding check', () => {
+it('coalesces checks with unrefed health deadlines and a refed close deadline', async () => {
   const { worker, owner, auto } = setup()
+  const startup = vi.mocked(timers.setTimeout).mock.results.at(-1)?.value
+  expect(startup?.hasRef()).toBe(false)
   owner.afterCommit()
   expect(auto()).toBe(1000)
   expect(worker.postMessage).not.toHaveBeenCalled()
   worker.emit('message', { type: 'ready' })
+  expect(timers.clearTimeout).toHaveBeenCalledWith(startup)
+  const firstCheck = vi.mocked(timers.setTimeout).mock.results.at(-1)?.value
+  expect(firstCheck?.hasRef()).toBe(false)
   expect(auto()).toBe(0)
   expect(worker.postMessage).toHaveBeenCalledTimes(1)
   owner.afterCommit()
@@ -59,9 +67,18 @@ it('keeps startup maintenance, coalesces checks, and rechecks writes crossing an
   worker.emit('message', { type: 'checked' })
   expect(worker.postMessage).toHaveBeenCalledTimes(1)
   worker.emit('message', { type: 'checked', id: 1 })
+  expect(timers.clearTimeout).toHaveBeenCalledWith(firstCheck)
+  const secondCheck = vi.mocked(timers.setTimeout).mock.results.at(-1)?.value
+  expect(secondCheck?.hasRef()).toBe(false)
   expect(worker.postMessage).toHaveBeenCalledTimes(2)
   worker.emit('message', { type: 'checked', id: 2 })
   expect(worker.postMessage).toHaveBeenCalledTimes(2)
+  expect(timers.clearTimeout).toHaveBeenCalledWith(secondCheck)
+  const closing = owner.close()
+  const close = vi.mocked(timers.setTimeout).mock.results.at(-1)?.value
+  expect(close?.hasRef()).toBe(true)
+  await closing
+  expect(timers.clearTimeout).toHaveBeenCalledWith(close)
 })
 
 it.each(['init-error', 'error', 'exit', 'send', 'startup-timeout', 'check-timeout'])(

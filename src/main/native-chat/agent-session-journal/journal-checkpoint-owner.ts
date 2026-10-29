@@ -13,7 +13,7 @@ type CheckpointResponse = { type: 'ready' | 'checked' | 'closed'; id?: number }
 export class JournalCheckpointOwner {
   private worker: WorkerRequestTransport | undefined
   private exited: Promise<void> = Promise.resolve()
-  private deadline: NodeJS.Timeout | undefined
+  private deadline: ReturnType<typeof setTimeout> | undefined
   private healthy = false
   private stopped = false
   private closing = false
@@ -184,7 +184,15 @@ export class JournalCheckpointOwner {
       () => this.fallback(new Error('checkpoint worker response timed out')),
       this.options.timeoutMs ?? HEALTH_TIMEOUT_MS
     )
-    this.deadline.unref()
+    const timer: unknown = this.deadline
+    if (
+      typeof timer === 'object' &&
+      timer !== null &&
+      'unref' in timer &&
+      typeof timer.unref === 'function'
+    ) {
+      timer.unref()
+    }
   }
 
   private clearDeadline(): void {
@@ -196,7 +204,7 @@ export class JournalCheckpointOwner {
     const worker = this.worker
     if (worker) {
       // A close timeout requests termination; only observed exit releases the native connection.
-      let timeout: NodeJS.Timeout | undefined
+      let timeout: ReturnType<typeof setTimeout> | undefined
       const forcedExit = new Promise<void>((resolve, reject) => {
         timeout = setTimeout(() => {
           try {
