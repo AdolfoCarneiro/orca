@@ -665,6 +665,7 @@ describe('github owner/repo resolution', () => {
       `[includeIf "gitdir:${includedDir}/"]\n\tpath = "${includedConfigPath}"\n`
     )
     try {
+      gitExecFileAsyncMock.mockResolvedValue({ stdout: 'refs/heads/main\n' })
       const firstSignature = await readLocalGitConfigSignature({
         repoPath,
         connectionId: null
