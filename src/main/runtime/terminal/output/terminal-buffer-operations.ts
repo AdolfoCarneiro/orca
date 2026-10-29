@@ -2,7 +2,8 @@ import type { PtyProviderBufferSnapshot } from '../../../providers/pty-provider-
 import type {
   HeadlessSeedMetadata,
   ProviderTerminalBufferWait,
-  RuntimeHeadlessTerminal
+  RuntimeHeadlessTerminal,
+  RuntimeVisibleTerminalState
 } from '../../runtime-terminal-state-records'
 import type { OrcaRuntimeWithSerializeTerminalBufferFromAvailableState } from './terminal-buffer-selection'
 import { OrcaRuntimeWithNotifyRemoteTerminalViewPresenceChanged } from '../layout/terminal-view-presence'
@@ -14,7 +15,6 @@ import {
 } from '../../terminal-tail-restore-seed'
 
 import { hookLeadTurnState } from '../../tui-idle-hook-lane'
-import { detectTerminalComposerDraft } from '../../../../shared/terminal-composer-draft'
 import { agentHookServer } from '../../../agent-hooks/server'
 
 export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRuntimeWithNotifyRemoteTerminalViewPresenceChanged {
@@ -77,7 +77,9 @@ export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRun
     dims: { cols: number; rows: number }
   ): RuntimeHeadlessTerminal
   protected abstract applySeededAgentStatus(ptyId: string, title: string): void
-  protected abstract readWholeScreenModel(ptyId: string): RuntimeHeadlessTerminal | null
+  protected abstract readCurrentTerminalWaitScreen(
+    ptyId: string
+  ): Promise<RuntimeVisibleTerminalState | null | undefined>
 
   serializeMainTerminalBuffer(
     ptyId: string,
@@ -264,16 +266,17 @@ export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRun
       if (!turn) {
         return
       }
-      // The draft check must read the screen the daemon restored, not a half-written one.
-      await this.readWholeScreenModel(ptyId)?.writeChain
+      // Text typed before the restart sits in the composer; the pointer and Enter would send it.
+      const screen = await this.readCurrentTerminalWaitScreen(ptyId)
       // A respawn, an exit or a live report since the reattach decides instead.
       if (
+        !screen ||
+        screen.draft !== undefined ||
         this.ptysById.get(ptyId) !== pty ||
         pty.incarnationId !== incarnationId ||
         this.getPtyLifecycleGeneration(ptyId) !== generation ||
         !pty.connected ||
-        pty.lastAgentStatusObservedLive ||
-        this.hasUnsentDraft(ptyId)
+        pty.lastAgentStatusObservedLive
       ) {
         return
       }
@@ -282,12 +285,6 @@ export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRun
         status: turn === 'done' ? 'idle' : turn
       })
     })
-  }
-
-  /** Text typed before the restart sits in the composer; the pointer and Enter would send it. */
-  private hasUnsentDraft(ptyId: string): boolean {
-    const screen = this.readWholeScreenModel(ptyId)
-    return !!screen && detectTerminalComposerDraft(screen.emulator.getCursorLineContext()) !== null
   }
 
   protected readOutputClockAt(ptyId: string | null | undefined): number | null {
