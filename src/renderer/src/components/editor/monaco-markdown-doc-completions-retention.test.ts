@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { createElement, useRef } from 'react'
+import { createElement, useLayoutEffect, useRef } from 'react'
 import type { MarkdownDocument } from '../../../../shared/filesystem-entry-types'
 import { useMonacoEditorDecorations } from './use-monaco-editor-decorations'
 import type { editor, languages, Position } from 'monaco-editor'
@@ -116,10 +116,13 @@ function Pane({
   language?: string
 }): null {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: completion registration only reads the editor's model in this hook fixture.
-  editorRef.current = {
-    getModel: () => textModel
-  } as editor.IStandaloneCodeEditor
+  // Layout effects commit before the hook's passive effects read the editor.
+  useLayoutEffect(() => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: completion registration only reads the editor's model in this hook fixture.
+    editorRef.current = {
+      getModel: () => textModel
+    } as editor.IStandaloneCodeEditor
+  }, [textModel])
   useMonacoEditorDecorations({
     editorRef,
     mountedEditor: null,
