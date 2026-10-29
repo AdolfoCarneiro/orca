@@ -49,6 +49,17 @@ describe('getIntlLocale', () => {
     expect(getIntlLocale()).toBe('ru-RU')
   })
 
+  it('uses a replacement pack locale without changing its active resource language', async () => {
+    withSupportedLocales(['ru-RU', 'fr-FR'])
+    await activate(PACK_RESOURCE, [PACK])
+    expect(getIntlLocale()).toBe('ru-RU')
+
+    setRendererPluginLanguagePacks([{ ...PACK, locale: 'fr-FR' }])
+
+    expect(i18n.language).toBe(PACK_RESOURCE)
+    expect(getIntlLocale()).toBe('fr-FR')
+  })
+
   it('falls back to the default locale when ICU has no data for the tag', async () => {
     withSupportedLocales([])
     await activate('es')
