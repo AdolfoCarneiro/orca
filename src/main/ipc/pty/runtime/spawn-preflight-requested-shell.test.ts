@@ -104,6 +104,17 @@ describe('runtime pty spawn options: declared spawn intent', () => {
   })
 })
 
+describe("runtime pty spawn options: the user's act on a WSL distro (E9)", () => {
+  it('marks every main-side start as background work unless its caller names the user', async () => {
+    await expect(resolveSpawnOptions({ cols: 120, rows: 40 })).resolves.toMatchObject({
+      wslBackgroundStart: true
+    })
+    await expect(
+      resolveSpawnOptions({ cols: 120, rows: 40, wslUserAct: true })
+    ).resolves.not.toHaveProperty('wslBackgroundStart')
+  })
+})
+
 /** Runtime --shell must choose the provider shell, not type its name into the host default shell. */
 describe('runtime pty spawn preflight: requested shell on a local Windows host', () => {
   afterEach(() => {
