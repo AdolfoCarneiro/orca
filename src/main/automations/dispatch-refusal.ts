@@ -10,6 +10,7 @@ import { resolveAutomationRunTarget, type AutomationRunTargetResult } from './ru
 import type { AutomationRunWriter } from './automation-run-writer'
 import { wslMoveRepoBackoff } from '../persistence/moving-wsl-projects/wsl-move-background-backoff'
 import { isOrcadFencedAutomation } from './orcad-fenced-automation'
+import { blockedWslDistroForPath } from '../wsl/wsl-unc-access-gate'
 import {
   AUTOMATION_RUN_FAILURE_COPY,
   automationRunFailure,
@@ -40,6 +41,24 @@ export function describeScheduledRefusal(input: {
     return automationRunFailure(backoff === 'moving' ? 'wslMoveInProgress' : 'wslMoveOwnedByHost')
   }
   return input.canDispatch ? null : automationRunFailure('noDispatchHost')
+}
+
+/** E9: a scheduled run never starts a stopped (or unverifiable) WSL distro; Run now is the user's act. */
+export async function describeStoppedWslDistroRefusal(
+  cwd: string
+): Promise<AutomationRunFailure | null> {
+  const blocked = await blockedWslDistroForPath(cwd)
+  return blocked ? automationRunFailure('wslDistroStopped', { distro: blocked.distro }) : null
+}
+
+/** A tick's refusal: the synchronous reasons, then a stopped WSL distro (an async read). */
+export async function describeScheduledTickRefusal(
+  input: Parameters<typeof describeScheduledRefusal>[0]
+): Promise<AutomationRunFailure | null> {
+  return (
+    describeScheduledRefusal(input) ??
+    (input.target.ok ? await describeStoppedWslDistroRefusal(input.target.cwd) : null)
+  )
 }
 
 /** Record refused manual attempts so run history agrees with the caller’s typed conflict. */
