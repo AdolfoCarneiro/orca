@@ -111,7 +111,9 @@ export function registerPtyConnectionForegroundProcessExitTests(): void {
 
       // Stale agent titles cannot retain agent-specific keys in the shell.
       expect(hasCtrlEnterCsiUAuthorityForPane(mockStoreState, cacheKey, 'Droid')).toBe(false)
-      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe('alt-enter')
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey, 'Droid')).toBe(
+        'alt-enter'
+      )
       // The next unmarked launch is discovered even while the pane remains hidden.
       deps.isVisibleRef.current = false
       foreground = 'droid'

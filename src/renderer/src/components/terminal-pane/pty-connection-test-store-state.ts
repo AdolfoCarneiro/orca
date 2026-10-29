@@ -140,7 +140,8 @@ export type WindowsShiftEnterPaneState = Parameters<
 
 export function resolveMockPaneWindowsShiftEnterEncoding(
   state: StoreState,
-  paneKey: string
+  paneKey: string,
+  terminalTitle?: string
 ): ReturnType<typeof resolveWindowsShiftEnterEncodingForPane> {
   return resolveWindowsShiftEnterEncodingForPane(
     {
@@ -148,6 +149,7 @@ export function resolveMockPaneWindowsShiftEnterEncoding(
       agentLaunchConfigByPaneKey:
         state.agentLaunchConfigByPaneKey as WindowsShiftEnterPaneState['agentLaunchConfigByPaneKey']
     },
-    paneKey
+    paneKey,
+    terminalTitle
   )
 }
