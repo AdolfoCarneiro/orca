@@ -14,6 +14,7 @@ import {
 } from './remote-server-notice-claims'
 import { RemoteServerOutageNotice } from './RemoteServerOutageNotice'
 import { WslHostStoppedCard } from './WslHostStoppedCard'
+import { useRetryPanesWhenWslHostReturns } from './use-wsl-host-return-retry'
 import { useCalmStatusReveal } from '@/hooks/use-calm-status-reveal'
 import { useAppStore } from '@/store'
 import { paneShowsWslHostStoppedCard, selectStoppedWslDistro } from '@/lib/wsl-host-stopped-status'
@@ -65,6 +66,7 @@ export function TerminalPaneRecoveryPortals({
   const pairingRefusedEnvironmentId = useManagedPairingRefusedEnvironmentId(controller.worktreeId)
   const ownerEnvironmentId = useWorkspaceRuntimeEnvironmentId(controller.worktreeId)
   const stoppedWslDistro = useAppStore((state) => selectStoppedWslDistro(state, ownerEnvironmentId))
+  useRetryPanesWhenWslHostReturns(ownerEnvironmentId, paneTransportsRef)
   const retryingOutageEnvironmentId = useRetryingOutageEnvironmentId(controller.worktreeId)
   const isolated = controller.isolatedPaneKey !== null
   // Why: a pane waiting for SSH sign-in says so itself; "reconnecting" over it would be false.
