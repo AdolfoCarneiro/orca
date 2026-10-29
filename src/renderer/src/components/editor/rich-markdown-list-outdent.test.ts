@@ -75,7 +75,9 @@ describe('mixed list outdent', () => {
     try {
       const last = itemAtText(editor, 'Last')
       const originalLast = last.node.toJSON()
-      const originalList = editor.state.doc.resolve(last.position).parent
+      const $originalLast = editor.state.doc.resolve(last.position)
+      const originalList = $originalLast.parent
+      const originalIndex = $originalLast.index()
       const selectedItem = itemAtText(editor, selected)
       editor.commands.setTextSelection(selectedItem.position + 3)
       const before = editor.getJSON()
@@ -84,9 +86,15 @@ describe('mixed list outdent', () => {
 
       const result = itemAtText(editor, 'Last')
       expect(result.node.toJSON()).toEqual(originalLast)
-      const resultList = editor.state.doc.resolve(result.position).parent
+      const $result = editor.state.doc.resolve(result.position)
+      const resultList = $result.parent
       expect(resultList.type).toBe(originalList.type)
-      expect(resultList.attrs).toEqual(originalList.attrs)
+      expect({ ...resultList.attrs, start: null }).toEqual({ ...originalList.attrs, start: null })
+      if (typeof originalList.attrs.start === 'number') {
+        expect(resultList.attrs.start + $result.index()).toBe(
+          originalList.attrs.start + originalIndex
+        )
+      }
       const lifted = itemAtText(editor, selected)
       expect(editor.state.doc.resolve(lifted.position).depth).toBe(1)
       const after = editor.getJSON()

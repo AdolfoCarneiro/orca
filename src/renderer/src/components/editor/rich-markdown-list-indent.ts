@@ -1,5 +1,5 @@
 import type { Editor } from '@tiptap/react'
-import { Fragment } from '@tiptap/pm/model'
+import { Fragment, type Attrs } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 
 type ListItemTypeName = 'listItem' | 'taskItem'
@@ -65,10 +65,21 @@ function splitListBeforeCursorItem(editor: Editor): void {
   }
   const { state } = editor
   const { $from } = state.selection
-  if ($from.index(context.itemDepth - 1) === 0) {
+  const index = $from.index(context.itemDepth - 1)
+  if (index === 0) {
     return
   }
-  editor.view.dispatch(state.tr.split($from.before(context.itemDepth), 1))
+  const list = $from.node(context.itemDepth - 1)
+  editor.view.dispatch(
+    state.tr.split($from.before(context.itemDepth), 1, [
+      { type: list.type, attrs: withShiftedStart(list.attrs, index) }
+    ])
+  )
+}
+
+/** Keep ordered-list numbering when a list is split or its tail is moved. */
+function withShiftedStart(attrs: Attrs, offset: number): Attrs {
+  return typeof attrs.start === 'number' ? { ...attrs, start: attrs.start + offset } : attrs
 }
 
 function retypeListAtCursor(editor: Editor, target: ListItemTypeName): void {
@@ -92,7 +103,11 @@ function retypeListAtCursor(editor: Editor, target: ListItemTypeName): void {
   const items = list.children.slice(0, selectedEnd).map((item, index) => {
     const content =
       index === selectedEnd - 1 && trailing.size > 0
-        ? item.content.append(Fragment.from(list.copy(trailing)))
+        ? item.content.append(
+            Fragment.from(
+              list.type.create(withShiftedStart(list.attrs, selectedEnd), trailing, list.marks)
+            )
+          )
         : item.content
     return itemType.create(null, content, item.marks)
   })
