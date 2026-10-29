@@ -1,4 +1,7 @@
-import { AGENT_SESSION_COHERENT_MODEL_CATALOG_CAPABILITY } from '../../../src/shared/structured-agent-session-surface-capabilities'
+import {
+  AGENT_SESSION_COMMANDS_ON_REQUEST_CAPABILITY,
+  AGENT_SESSION_COHERENT_MODEL_CATALOG_CAPABILITY
+} from '../../../src/shared/structured-agent-session-surface-capabilities'
 import {
   AGENT_SESSION_CONVERSATION_STOP_RUNTIME_CAPABILITY,
   AGENT_SESSION_ITEM_DETAIL_RUNTIME_CAPABILITY,
@@ -27,6 +30,7 @@ import {
 import { SKILL_DISCOVER_WORKSPACE_CAPABILITY } from '../../../src/shared/skill-install-capability'
 
 export type StructuredAgentSessionHostSupport = {
+  commandsOnRequest?: boolean
   coherentModelCatalog?: boolean
   promptCancel: boolean
   questionAnswers: boolean
@@ -61,6 +65,7 @@ export function structuredAgentSessionHostSupport(
   capabilities: readonly string[]
 ): StructuredAgentSessionHostSupport {
   return {
+    commandsOnRequest: capabilities.includes(AGENT_SESSION_COMMANDS_ON_REQUEST_CAPABILITY),
     coherentModelCatalog: capabilities.includes(AGENT_SESSION_COHERENT_MODEL_CATALOG_CAPABILITY),
     promptCancel: capabilities.includes(AGENT_SESSION_PROMPT_CANCEL_RUNTIME_CAPABILITY),
     questionAnswers: capabilities.includes(AGENT_SESSION_QUESTION_ANSWERS_RUNTIME_CAPABILITY),

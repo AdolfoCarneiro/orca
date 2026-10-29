@@ -13,11 +13,11 @@ import {
 
 describe('keybindings', () => {
   it('accepts bounded plugin command action IDs and rejects malformed variants', () => {
-    expect(isKeybindingActionId('plugin:orca-samples.tasks/open')).toBe(true)
-    expect(isKeybindingActionId('plugin:orca-samples.tasks/task.open-latest')).toBe(true)
+    expect(isKeybindingActionId('plugin:samples.tasks/open')).toBe(true)
+    expect(isKeybindingActionId('plugin:samples.tasks/task.open-latest')).toBe(true)
     expect(isKeybindingActionId('plugin:tasks/open')).toBe(false)
-    expect(isKeybindingActionId('plugin:orca-samples.tasks/../open')).toBe(false)
-    expect(isKeybindingActionId(`plugin:orca-samples.tasks/${'a'.repeat(401)}`)).toBe(false)
+    expect(isKeybindingActionId('plugin:samples.tasks/../open')).toBe(false)
+    expect(isKeybindingActionId(`plugin:samples.tasks/${'a'.repeat(401)}`)).toBe(false)
   })
 
   it('normalizes editable shortcut input and rejects unsafe bindings', () => {
@@ -169,9 +169,9 @@ describe('keybindings', () => {
 
   it('formats keybindings with platform labels', () => {
     expect(formatKeybindingList(['Mod+Shift+J'], 'darwin')).toBe('⌘⇧J')
-    expect(formatKeybindingList(['Mod+Shift+J'], 'linux')).toBe('Ctrl+Shift+J')
+    expect(formatKeybindingList(['Mod+Shift+J'], 'linux')).toBe('Ctrl+⇧+J')
     expect(formatKeybindingList(['Mod+Shift+Backspace'], 'darwin')).toBe('⌘⇧⌫')
-    expect(formatKeybindingList(['Mod+Shift+Backspace'], 'linux')).toBe('Ctrl+Shift+Backspace')
+    expect(formatKeybindingList(['Mod+Shift+Backspace'], 'linux')).toBe('Ctrl+⇧+Backspace')
     expect(formatKeybindingList([], 'win32')).toBe('Unassigned')
   })
 

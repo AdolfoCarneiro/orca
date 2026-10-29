@@ -256,7 +256,12 @@ export type AgentSessionStatusSummary = {
 }
 
 /** `failedAt` dates the run, so a repeat failure with the same message still republishes. */
-export type AgentSessionNamingError = { message: string; failedAt: number }
+export type AgentSessionNamingError = {
+  message: string
+  failedAt: number
+  /** Names Orca-authored copy; `message` stays English for older clients. */
+  messageCode?: string
+}
 
 export type AgentSessionConversationName = {
   sessionId: string
@@ -424,7 +429,10 @@ export type AgentSessionSlashCommand = {
 }
 
 /** Per-session provider commands; older hosts return method_not_found and clients retain their curated catalog. */
-export type AgentSessionCommandsResult = { commands?: AgentSessionSlashCommand[] }
+export type AgentSessionCommandsResult = {
+  commands?: AgentSessionSlashCommand[]
+  commandsPending?: boolean
+}
 
 export type AgentSessionContinuationContext =
   | { status: 'current'; capturedText?: string; transcriptPath?: string }

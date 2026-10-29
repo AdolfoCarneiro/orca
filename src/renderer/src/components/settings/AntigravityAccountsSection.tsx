@@ -21,6 +21,7 @@ import {
   antigravityChatSignInBlocked,
   useAntigravityChatSignIn
 } from './AntigravityChatSignInRow'
+import { openAppHttpLinkFromAnchor } from '@/lib/app-http-link-open'
 
 export function AntigravityAccountsSection({
   owner,
@@ -164,6 +165,7 @@ export function AntigravityAccountsSection({
           className="underline"
           href="https://antigravity.google/docs/cli/install/"
           target="_blank"
+          onClick={openAppHttpLinkFromAnchor}
           rel="noopener noreferrer"
         >
           {translate('accounts.antigravity.docs', 'Sign-in instructions')}
