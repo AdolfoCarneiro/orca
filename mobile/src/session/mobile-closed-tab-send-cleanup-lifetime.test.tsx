@@ -212,7 +212,7 @@ it.each([
   [true, 'accepted'],
   [true, 'unknown']
 ] as const)(
-  'clears only the sent inputs on the original live tab after navigation: structured=%s, outcome=%s',
+  'preserves original inputs until structured acceptance after navigation: structured=%s, outcome=%s',
   async (structured, outcome) => {
     const screen = await mount(structured)
     const send = await screen.begin()
@@ -222,11 +222,12 @@ it.each([
       appendStoredInputs(OTHER, 'other', structured)
     })
     expect(await send.finish(outcome)).toBe(true)
-    expect(readMobileNativeChatDraftInputs(ORIGINAL).images.map((image) => image.id)).toEqual([
-      'newer'
-    ])
+    const original = structured && outcome !== 'accepted' ? ['sent', 'newer'] : ['newer']
+    expect(readMobileNativeChatDraftInputs(ORIGINAL).images.map((image) => image.id)).toEqual(
+      original
+    )
     expect(readMobileNativeChatDraftInputs(ORIGINAL).files.map((file) => file.id)).toEqual(
-      structured ? ['newer'] : []
+      structured ? original : []
     )
     expect(readMobileNativeChatDraftInputs(OTHER).images.map((image) => image.id)).toEqual([
       'other'
