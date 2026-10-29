@@ -145,13 +145,20 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
     })
   }
 
+  // Reading a distro's history over 9P would boot it (E9); the WSL lane owns those homes.
+  protected isHostHistorySourceInWsl(): boolean {
+    const sourceHome = resolveHostCodexSessionSourceHome(this.store.getSettings())
+    return Boolean(sourceHome && parseWslUncPath(sourceHome))
+  }
+
   protected getSelfContainedSessionBridgeSourceHomes(): string[] {
-    // Honor custom history sources without changing credential routing.
-    const sourceHome =
-      resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath()
     return [
-      // Reading a distro's history over 9P would boot it (E9); the WSL lane owns those homes.
-      ...(parseWslUncPath(sourceHome) ? [] : [sourceHome]),
+      // Honor custom history sources without changing credential routing.
+      ...(this.isHostHistorySourceInWsl()
+        ? []
+        : [
+            resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath()
+          ]),
       // Resolve the mirror path without creating it for per-account launches.
       resolveOrcaManagedCodexHomePath(),
       ...this.getManagedHostAccountHomesForSessionDiscovery()
@@ -235,7 +242,8 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
     const settings = this.store.getSettings()
     if (
       normalizeCodexRuntimeSelection(settings).host !== null ||
-      hasCustomCodexHomeOverrideForLaunch(launchEnv)
+      hasCustomCodexHomeOverrideForLaunch(launchEnv) ||
+      this.isHostHistorySourceInWsl()
     ) {
       return null
     }

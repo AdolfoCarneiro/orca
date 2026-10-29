@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { installFakeAppEnvironment } from '../../../config/scripts/vitest-host-ports-setup'
 import { createSettings } from './runtime-home-settings-test-fixtures'
@@ -191,4 +192,26 @@ describe('the Codex history-sharing opt-out (#24511)', () => {
     expect(service.isHostSystemDefaultSessionMigrationEligible()).toBe(eligible)
     vi.unstubAllEnvs()
   })
+
+  it.each([
+    ['a WSL history source', WSL_SOURCE.host, false],
+    ['an ordinary custom source', '/custom/codex', true]
+  ])(
+    'preparing a migration pass with %s marks the backfill pending: %s',
+    async (_name, host, marks) => {
+      vi.stubEnv('HOME', testState.fakeHomeDir)
+      const store = createStore(
+        createSettings({ realHomeRoutable: true, codexSessionSourceHome: { host } })
+      )
+      const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+      const { resolveCodexSessionBackfillPaths } = await import('../codex/codex-session-backfill')
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the harness store implements the getSettings/updateSettings surface this service reads.
+      const service = new CodexRuntimeHomeService(store as never)
+
+      service.prepareHostSystemDefaultSessionMigrationPass()
+
+      expect(existsSync(resolveCodexSessionBackfillPaths(host).markerPath)).toBe(marks)
+      vi.unstubAllEnvs()
+    }
+  )
 })
