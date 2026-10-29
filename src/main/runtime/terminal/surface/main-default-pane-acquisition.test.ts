@@ -100,7 +100,7 @@ async function fixture(population: number, ordinary: boolean) {
         .replaceAll(run.id, '<run>')
         .replaceAll(task.id, '<task>')
         .replaceAll(dispatch.id, '<dispatch>')
-        .replaceAll(runtime.runtimeId, '<runtime>'),
+        .replaceAll(runtime.getRuntimeId(), '<runtime>'),
     close: async () => {
       stop()
       db.close()
