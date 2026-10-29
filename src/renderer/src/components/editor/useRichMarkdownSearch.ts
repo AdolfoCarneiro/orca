@@ -15,6 +15,7 @@ import {
 import { createRichMarkdownSearchMatchesCache } from './rich-markdown-search-matches-cache'
 import { useRichMarkdownSearchHighlights } from './useRichMarkdownSearchHighlights'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
+import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
 
 export function useRichMarkdownSearch({
   editor,
@@ -269,29 +270,24 @@ export function useRichMarkdownSearch({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       const root = rootRef.current
-      if (!root) {
+      if (!root || isImeOwnedKeyboardEvent(event)) {
         return
       }
 
       const target = event.target
       const targetInsideEditor = target instanceof Node && root.contains(target)
-      if (
-        isMarkdownPreviewFindShortcut(event, getShortcutPlatform(), keybindings) &&
-        targetInsideEditor
-      ) {
+      const platform = getShortcutPlatform()
+      const openFromShortcut = !targetInsideEditor
+        ? null
+        : isMarkdownPreviewFindShortcut(event, platform, keybindings)
+          ? openSearch
+          : isMarkdownPreviewReplaceShortcut(event, platform, keybindings)
+            ? openReplace
+            : null
+      if (openFromShortcut) {
         event.preventDefault()
         event.stopPropagation()
-        openSearch()
-        return
-      }
-
-      if (
-        isMarkdownPreviewReplaceShortcut(event, getShortcutPlatform(), keybindings) &&
-        targetInsideEditor
-      ) {
-        event.preventDefault()
-        event.stopPropagation()
-        openReplace()
+        openFromShortcut()
         return
       }
 
