@@ -6,6 +6,7 @@ import {
 import { FENCED_TERMINATION_PROTOCOL_VERSION } from './daemon-protocol-version'
 import { emitPtyListeners, createPtyExitPayload } from './daemon-pty-listener-emission'
 import type { DaemonPtyRouterExitEvent } from './daemon-pty-router-events'
+import { logWslPaneDiagnostic } from './daemon-wsl-diagnostic-log'
 import { classifyWslBridgeExit, WSL_DISTRO_LOSS_EXIT_CODE } from './daemon-wsl-bridge-exit'
 import { isProvenProcessExit } from '../../shared/terminal-exit-cause'
 import { DaemonPtyDaemonRecovery } from './daemon-pty-daemon-recovery'
@@ -223,10 +224,13 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
           }
           return
         }
+        // Every bridge exit marks a possible stop (unseen to the user; covers poweroff or --shutdown).
         if (wslDistro) {
           this.wslBridgeBootIdentity.noteExit(wslDistro)
         }
-        if (wslDistro && isProvenProcessExit(event.payload.code)) {
+        // A terminate never exits 0 (awin: -1 per bridge pane; `exit`/`exit 0` gave 0): a clean exit is
+        // the user's own, so it closes at once, without the settle wait or classification.
+        if (wslDistro && event.payload.code !== 0 && isProvenProcessExit(event.payload.code)) {
           const exitAt = performance.now()
           void this.finishWslBridgeExit(event.sessionId, event.payload, wslDistro, exitAt)
           return
@@ -254,9 +258,15 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
       this.wslBridgeBootIdentity.rebootedSinceSpawn(sessionId, wslDistro)
     )
     // Lost, or booted again since the spawn, keeps the tab; an unanswered check reads as an exit.
-    // The code lets a verify run show which codes a terminate yields (only 1 is on record).
-    console.info(
-      `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${Math.round(performance.now() - exitAt)}ms)`
+    // The code shows a verify run which codes a terminate yields.
+    const probeMs = Math.round(performance.now() - exitAt)
+    logWslPaneDiagnostic(
+      'wsl.bridge-exit',
+      {
+        console: `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${probeMs}ms)`,
+        trace: `[pty] WSL bridge exit: ${verdict} (code ${exit.code}, probe ${probeMs}ms)`
+      },
+      { verdict, code: exit.code, probeMs }
     )
     // A spawn that replaced this incarnation meanwhile owns the session now.
     const current = this.sessionIncarnations.get(sessionId)

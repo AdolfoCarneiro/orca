@@ -20,7 +20,10 @@ import { REMOTE_RUNTIME_MAX_OUTBOUND_JSON_BYTES } from '../../../shared/remote-r
 import { MOBILE_BRIDGE_MAX_FRAME_BYTES } from '../../../shared/mobile-bridge-frame-bytes'
 import { agentSessionHostStatusBody } from '../../../shared/agent-session-host-status-rows'
 import { isSubagentBlock } from '../../../shared/native-chat-types'
-import { subagentFoldKey, subagentItemBlock } from '../../../shared/native-chat-subagent-items'
+import {
+  subagentFoldKey,
+  subagentItemBlock
+} from '../../../shared/native-chat/transcript/native-chat-subagent-items'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
 
 export const AGENT_SESSION_HISTORY_MAX_PAGE_BYTES = REMOTE_RUNTIME_MAX_OUTBOUND_JSON_BYTES / 2

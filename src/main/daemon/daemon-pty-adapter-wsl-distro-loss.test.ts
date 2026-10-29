@@ -2,10 +2,11 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { WslRunningDistrosRead } from '../wsl-background-distro-gate'
 import type { DaemonPtyAdapter } from './daemon-pty-adapter'
 import type { DaemonServer } from './daemon-server'
+import { setActiveSink } from '../observability/tracer'
 import { HistoryManager } from './history-manager'
 import { WslBridgeBootIdentity } from './daemon-wsl-bridge-boot-identity'
 import {
@@ -27,6 +28,7 @@ describe('a WSL bridge pane exit', () => {
   // The distro's boot id each read returns; never a real wsl.exe.
   let bootIds: string[]
   const readBootId = vi.fn(async () => (bootIds.length > 1 ? bootIds.shift()! : bootIds[0]!))
+  const noteMayHaveStopped = vi.fn()
 
   beforeEach(async () => {
     historyDir = mkdtempSync(join(tmpdir(), 'orca-distro-loss-history-'))
@@ -35,6 +37,7 @@ describe('a WSL bridge pane exit', () => {
     readRunning.mockClear()
     bootIds = ['boot-1']
     readBootId.mockClear()
+    noteMayHaveStopped.mockClear()
     const harness = await startDaemonAdapterHarness(
       () => {
         const subprocess = createMockSubprocess()
@@ -46,7 +49,8 @@ describe('a WSL bridge pane exit', () => {
         historyPath: historyDir,
         wslBridgeBootIdentity: new WslBridgeBootIdentity({
           isRunning: async () => true,
-          readBootId
+          readBootId,
+          noteMayHaveStopped
         })
       }
     )
@@ -97,8 +101,42 @@ describe('a WSL bridge pane exit', () => {
     expect(clear).toHaveBeenCalledWith(id, -1, expect.any(String), { closeHistory: false })
   })
 
+  it("closes a pane's own clean exit at once, with no settle wait or running-list read", async () => {
+    // A list that never answers: classifying the exit would hang it.
+    running = () => new Promise<WslRunningDistrosRead>(() => {})
+    const exits = collectExits()
+    const id = await spawnBridgePane()
+
+    subprocesses[0]!._simulateExit(0)
+
+    await waitFor(() => exits.length > 0)
+    expect(exits).toEqual([expect.objectContaining({ id, code: 0 })])
+    expect(exits[0]).not.toHaveProperty('hostLost')
+    expect(readRunning).not.toHaveBeenCalled()
+    // Still marked: background reads must settle in case the distro did stop (poweroff, --shutdown).
+    expect(noteMayHaveStopped).toHaveBeenCalledWith('Ubuntu')
+  })
+
+  it('marks a non-zero exit as a possible stop before classifying it', async () => {
+    running = async () => ({ status: 'confirmed', distros: [] })
+    const exits = collectExits()
+    await spawnBridgePane()
+
+    subprocesses[0]!._simulateExit(1)
+
+    await waitFor(() => exits.length > 0)
+    expect(noteMayHaveStopped).toHaveBeenCalledWith('Ubuntu')
+  })
+
   it('logs what the running list said, so a run can tell host loss from a raced reboot', async () => {
     const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const spans: unknown[] = []
+    setActiveSink({
+      push: (span) => spans.push(span),
+      flush: () => {},
+      close: () => {}
+    })
+    onTestFinished(() => setActiveSink(null))
     for (const [distros, verdict] of [
       [[], 'lost'],
       [['Ubuntu'], 'running']
@@ -115,6 +153,12 @@ describe('a WSL bridge pane exit', () => {
           )
         )
       )
+      // Kept in the local trace too: a packaged build keeps no console (verify-18).
+      expect(spans.at(-1)).toMatchObject({
+        name: 'wsl.bridge-exit',
+        attributes: { verdict, code: 1 }
+      })
+      expect(JSON.stringify(spans.at(-1))).not.toContain('Ubuntu')
     }
   })
 
@@ -166,6 +210,21 @@ describe('a WSL bridge pane exit', () => {
     await waitFor(() => exits.length === 2)
     expect(exits[1]).toMatchObject({ id: second, code: 1 })
     expect(exits[1]).not.toHaveProperty('hostLost')
+  })
+
+  // awin: a terminate exited each bridge pane with -1, never 0; a user's `exit` gives 0.
+  it('reads no boot id for a clean exit, which stays an exit even across a reboot', async () => {
+    bootIds = ['boot-1', 'boot-2']
+    const exits = collectExits()
+    const id = await spawnBridgePane()
+    await waitFor(() => readBootId.mock.calls.length === 1)
+
+    subprocesses[0]!._simulateExit(0)
+
+    await waitFor(() => exits.length > 0)
+    expect(exits[0]).toMatchObject({ id, code: 0 })
+    expect(exits[0]).not.toHaveProperty('hostLost')
+    expect(readBootId).toHaveBeenCalledOnce()
   })
 
   it('stays a normal exit when the running list cannot answer', async () => {

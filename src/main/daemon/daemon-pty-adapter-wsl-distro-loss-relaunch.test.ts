@@ -38,8 +38,17 @@ describe('a WSL bridge pane whose distro was terminated, after a relaunch', () =
     return lastSubprocess
   }
 
+  const reaped = new Set<string>()
+
   beforeEach(async () => {
-    const harness = await startDaemonAdapterHarness(spawnSubprocess)
+    reaped.clear()
+    const harness = await startDaemonAdapterHarness(
+      spawnSubprocess,
+      {},
+      {
+        onPtySessionExit: (sessionId) => reaped.add(sessionId)
+      }
+    )
     harness.adapter.dispose()
     dir = harness.dir
     socketPath = harness.socketPath
@@ -80,8 +89,9 @@ describe('a WSL bridge pane whose distro was terminated, after a relaunch', () =
     const bridge = await openBridgePane(app)
     await app.disconnectOnly()
 
-    // The daemon reaps the session as its process exits.
     bridge._simulateExit(1)
+    // The relaunch must find no session to attach to, only the history to restore.
+    await vi.waitFor(() => expect(reaped.has(PANE)).toBe(true))
 
     await expect(relaunchAndRestore()).resolves.toBe(true)
   })

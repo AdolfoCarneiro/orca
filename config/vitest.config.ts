@@ -33,7 +33,9 @@ const phoneContractModules = [
   'mobile/src/transport/rpc-incompatible-reply-error.ts',
   'mobile/src/transport/rpc-operation-reply.ts',
   'mobile/src/transport/rpc-operation-result-reader.ts',
-  'mobile/src/transport/rpc-operation.ts'
+  'mobile/src/transport/rpc-operation.ts',
+  'mobile/src/i18n/mobile-i18n.ts',
+  'mobile/src/i18n/locale-catalog-imports.ts'
 ].map((file) => normalizePath(resolve(file)))
 const phoneContractPattern = new RegExp(
   `^(?:${phoneContractModules.map((file) => file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?:\\?.*)?$`

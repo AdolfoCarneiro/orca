@@ -29,6 +29,8 @@ describe('checkWslBridgeDistro', () => {
     )
     const exitAt = performance.now()
     const checks = [1, 2, 3].map(() => checkWslBridgeDistro('Ubuntu', exitAt, readRunning(probe)))
+    // The checks first wait out the stop's settle anchor, so the probe starts a tick later.
+    await vi.waitFor(() => expect(probe).toHaveBeenCalled())
     answer(['Debian'])
 
     await expect(Promise.all(checks)).resolves.toEqual(['lost', 'lost', 'lost'])

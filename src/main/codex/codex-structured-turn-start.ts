@@ -155,8 +155,9 @@ export async function startCodexTurn(
   if (steered) {
     return steered
   }
-  const previousApplied = host.appliedTurnOptions
-  const previousOptions = input.turnOptions ? new Map(host.options) : null
+  let previousApplied = host.appliedTurnOptions
+  let previousOptions: Map<string, string> | null | undefined
+  let requested: Readonly<Record<string, string>> = {}
   let enqueued = false
   let discardSettingsAttempt: (() => void) | undefined
   const enqueue = (
@@ -164,14 +165,20 @@ export async function startCodexTurn(
     body = input.body
   ) => {
     checkDispatchAuthority(host, input.clientMessageId, input.signal, input.isCurrent)
+    previousApplied = host.appliedTurnOptions
+    previousOptions = input.turnOptions ? new Map(host.options) : null
     if (input.turnOptions) {
       host.options.clear()
       for (const [key, value] of Object.entries(input.turnOptions)) {
         host.options.set(key, value)
       }
     }
-    host.appliedTurnOptions = input.turnOptions ?? Object.fromEntries(host.options)
-    const requested = codexTurnRequestOptions(host)
+    requested = codexTurnRequestOptions(host)
+    const known = { ...previousApplied }
+    for (const key of Object.keys(requested)) {
+      delete known[key]
+    }
+    host.appliedTurnOptions = known
     discardSettingsAttempt = host.appliedSettings?.attempt(requested)
     enqueued = true
     host.dispatchEchoes.expect(
@@ -218,18 +225,18 @@ export async function startCodexTurn(
     if (isCodexAppServerRequestError(error) || isCodexAppServerUnsupportedError(error)) {
       discardSettingsAttempt?.()
     }
-    if (
-      previousOptions &&
-      (isCodexAppServerRequestError(error) || isCodexAppServerUnsupportedError(error))
-    ) {
+    if (isCodexAppServerRequestError(error) || isCodexAppServerUnsupportedError(error)) {
       host.appliedTurnOptions = previousApplied
-      host.options.clear()
-      for (const [key, value] of previousOptions) {
-        host.options.set(key, value)
+      if (previousOptions) {
+        host.options.clear()
+        for (const [key, value] of previousOptions) {
+          host.options.set(key, value)
+        }
       }
     }
     throw error
   }
+  host.appliedTurnOptions = { ...previousApplied, ...requested }
   return { turnId: readCodexTurnId(answer), via: 'start' }
 }
 
@@ -305,14 +312,5 @@ export async function dispatchCodexTurn(
 
 /** Steers retain running-turn options; starts use request overrides over thread defaults. */
 function codexRanOptions(session: CodexTurnHost): Record<string, string> {
-  const requested = codexTurnRequestOptions(session)
-  const thread = session.reportedOptions ?? {}
-  const model = requested.model ?? thread.model
-  const effort = requested.effort ?? (model === thread.model ? thread.effort : undefined)
-  const { serviceTier } = requested
-  return {
-    ...(model ? { model } : {}),
-    ...(effort ? { effort } : {}),
-    ...(serviceTier ? { serviceTier } : {})
-  }
+  return { ...session.appliedTurnOptions }
 }

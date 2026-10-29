@@ -1,9 +1,7 @@
-import type { StructuredRewindRecoveryEvidence } from './structured-rewind-recovery'
 import {
   publishAttachedChild,
   readBoundChildRewind,
-  type AttachCandidate,
-  type BoundAttach
+  type AttachAttempt
 } from './structured-agent-session-attach-publish'
 
 import { agentSessionLeaseAdmitsWriter } from '../../../shared/agent-session-lease-adjudication'
@@ -32,10 +30,7 @@ import type {
 export type { StructuredAgentSessionAttachOptions } from './structured-agent-session-attach-context'
 import { structuredAgentSessionConversationFence } from './structured-agent-session-provider-child'
 import { structuredAgentSessionAttachPermission } from './structured-agent-session-launch-permission'
-import {
-  isStructuredAgentSessionStartupExpired,
-  type StructuredAgentSessionStartupAttempt
-} from './structured-agent-session-startup-attempt-contract'
+import { isStructuredAgentSessionStartupExpired } from './structured-agent-session-startup-attempt-contract'
 import {
   type AgentSessionCreatePhaseRecorder,
   addAgentSessionCreatePhaseAttributes,
@@ -47,7 +42,8 @@ import {
   type StructuredAgentSessionAttachLock
 } from './structured-agent-session-attach-lock'
 
-/** Share attach steps; background starts use a lock, client attaches hold serialization throughout. */
+/** The attach an agent start runs under its own lock (`structured-agent-session-start-flight`);
+ *  `attachStructuredAgentSession` runs the same steps inside one `serialize`, for a client. */
 export function attachStructuredAgentSessionForStart(
   context: StructuredAgentSessionAttachContext,
   callerKey: string,
@@ -181,13 +177,17 @@ async function runAttachUnderAbort(
   }
   // Attempt sinks become session-owned only on successful attach; failures close their buffered writes.
   const attemptSink = context.runtimeState.mintEventSink(sessionId)
-  const attempt: {
-    candidate: AttachCandidate | null
-    committed: boolean
-    startup: StructuredAgentSessionStartupAttempt | null
-    bound: BoundAttach | null
-    rewind: StructuredRewindRecoveryEvidence
-  } = { candidate: null, committed: false, startup: null, bound: null, rewind: null }
+  const attempt: AttachAttempt = {
+    candidate: null,
+    committed: false,
+    startup: null,
+    bound: null,
+    rewind: null,
+    catalogSource: context.deps.modelCatalog?.captureSource?.({
+      provider: params.agent,
+      location: params.location
+    })
+  }
   try {
     const attached = await performAttach({
       models: priorRecord ? undefined : options.catalogModels,
@@ -222,6 +222,10 @@ async function runAttachUnderAbort(
       lock,
       ...(options.startupAttemptId ? { startupAttemptId: options.startupAttemptId } : {}),
       onStartupAttempt: (startup) => {
+        const record = context.deps.store.getRecord(sessionId)
+        if (record) {
+          attempt.catalogSource?.bind?.(record)
+        }
         attempt.startup = startup
         return context.runtimeState.startupAttempts.track(sessionId, startup)
       },
@@ -295,6 +299,7 @@ async function runAttachUnderAbort(
     return stampFailedCreateOwnerVerdict(context.deps.store, callerKey, params.envelope, attached)
   } finally {
     if (!attempt.committed) {
+      attempt.catalogSource?.release?.()
       attemptSink.close()
       if (attempt.startup) {
         context.runtimeState.startupAttempts.abandon(sessionId, attempt.startup.attemptId)
