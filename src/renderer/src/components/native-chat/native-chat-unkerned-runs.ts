@@ -24,7 +24,7 @@ export function nativeChatBreaksUnkernedRun(code: number): boolean {
   )
 }
 
-const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff
+export const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff
 export const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff
 
 /** `[start, end)` of every run with no break opportunity too long to lay out kerned; one linear pass. */

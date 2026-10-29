@@ -4,6 +4,7 @@ import { Plugin, PluginKey, type Transaction } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import {
   NATIVE_CHAT_UNKERNED_STYLE,
+  isHighSurrogate,
   isLowSurrogate,
   nativeChatBreaksUnkernedRun,
   nativeChatUnkernedRuns
@@ -14,14 +15,9 @@ type UnkernedState = { set: DecorationSet; pending: Range | null }
 
 function addRunDecorations(decorations: Decoration[], text: string, textPos: number): void {
   for (const [start, end] of nativeChatUnkernedRuns(text)) {
-    // Inclusive, so typing at a run's edge maps to the range a rescan finds.
+    // Not inclusive: an inclusive edge can map across a joined block's boundary, where it can't be removed.
     decorations.push(
-      Decoration.inline(
-        textPos + start,
-        textPos + end,
-        { style: NATIVE_CHAT_UNKERNED_STYLE },
-        { inclusiveStart: true, inclusiveEnd: true }
-      )
+      Decoration.inline(textPos + start, textPos + end, { style: NATIVE_CHAT_UNKERNED_STYLE }, {})
     )
   }
 }
@@ -71,8 +67,9 @@ function runEdge(doc: ProseMirrorNode, set: DecorationSet, pos: number, dir: -1 
     for (let index = text.length - 1; index >= 0; index--) {
       const code = text.charCodeAt(index)
       // Ending on a supplementary ideograph's low surrogate, the run starts after the pair.
+      const high = text.charCodeAt(index - 1)
       const pairEnd =
-        isLowSurrogate(code) && nativeChatBreaksUnkernedRun(text.charCodeAt(index - 1))
+        isLowSurrogate(code) && isHighSurrogate(high) && nativeChatBreaksUnkernedRun(high)
       if (pairEnd || nativeChatBreaksUnkernedRun(code)) {
         return pos - (text.length - 1 - index)
       }
@@ -90,7 +87,16 @@ function runEdge(doc: ProseMirrorNode, set: DecorationSet, pos: number, dir: -1 
 // Why windowed: replacing every decoration in a block per keystroke is quadratic in its runs.
 function rescan(doc: ProseMirrorNode, set: DecorationSet, [from, to]: Range): DecorationSet {
   const size = doc.content.size
-  const left = runEdge(doc, set, Math.max(0, Math.min(from, size)), -1)
+  let left = runEdge(doc, set, Math.max(0, Math.min(from, size)), -1)
+  const $left = doc.resolve(left)
+  const before = $left.nodeBefore?.text ?? ''
+  // An edit can complete a surrogate pair at the window's edge; classify the pair whole.
+  if (
+    isHighSurrogate(before.charCodeAt(before.length - 1)) &&
+    isLowSurrogate(($left.nodeAfter?.text ?? '').charCodeAt(0))
+  ) {
+    left = runEdge(doc, set, left - 1, -1)
+  }
   const right = runEdge(doc, set, Math.max(0, Math.min(to, size)), 1)
   const fresh: Decoration[] = []
   doc.nodesBetween(left, right, (node, pos) => {
