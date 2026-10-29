@@ -1,3 +1,5 @@
+import { useAutomationSetupConsent } from './use-automation-setup-consent'
+import { SetupHookTrustDrawer } from '../components/SetupHookTrustDrawer'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useAutomationRuns, type AutomationRunScope } from './use-automation-runs'
@@ -59,6 +61,7 @@ export function AutomationManager(props: {
     },
     catalog.isCurrentSnapshot
   )
+  const setupConsent = useAutomationSetupConsent(props.client)
   const disabled = !catalog.connected || catalog.busy
   const row =
     view.kind === 'detail'
@@ -195,7 +198,11 @@ export function AutomationManager(props: {
     void catalog.perform(
       async (client, current) => {
         if (editing) {
-          const params = automationUpdateParams(editing.automation.id, draft, original, targets)
+          const prepared = await setupConsent.prepare(client, draft, targets, current, original)
+          if (!prepared || !current()) {
+            return null
+          }
+          const params = automationUpdateParams(editing.automation.id, prepared, original, targets)
           const result = automationUpdateWrite.interpret(
             await automationUpdateWrite.request(
               client,
@@ -213,17 +220,17 @@ export function AutomationManager(props: {
               : editing.item
           }
         }
-        await createAttempt.submit(client, draft, targets, catalog.capabilities, current)
+        await createAttempt.submit(client, draft, targets, catalog.capabilities, current, () =>
+          setupConsent.prepare(client, draft, targets, current)
+        )
         return null
       },
       (saved) => {
         if (!saved) {
           return
         }
-        catalog.setRows((previous) => [
-          ...previous.filter((entry) => entry.automation.id !== saved.automation.id),
-          saved
-        ])
+        const id = saved.automation.id
+        catalog.setRows((rows) => [...rows.filter((row) => row.automation.id !== id), saved])
         setView({ kind: 'detail', row: saved })
       }
     )
@@ -375,6 +382,7 @@ export function AutomationManager(props: {
           </View>
         ) : null}
       </ScrollView>
+      <SetupHookTrustDrawer {...setupConsent.drawer} />
       <ConfirmModal
         visible={deleting !== null}
         title={t('automations.mobile.deleteAutomationTitle', 'Delete automation?')}
@@ -386,11 +394,7 @@ export function AutomationManager(props: {
         confirmLabel={t('automations.mobile.deleteAutomation', 'Delete automation')}
         destructive
         onCancel={() => setDeleting(null)}
-        onConfirm={() => {
-          if (deleting) {
-            remove(deleting)
-          }
-        }}
+        onConfirm={() => deleting && remove(deleting)}
       />
     </>
   )

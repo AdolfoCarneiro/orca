@@ -1,6 +1,6 @@
 import { act } from 'react-test-renderer'
 import { hookMount } from '../test-support/rpc-recording/hook-mount'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAutomationCreateAttempt } from './use-automation-create-attempt'
 import { automationClient, automationTargets, savedAutomation } from './automation-test-fixtures'
 import { automationSetupKey } from './automation-target-inventory'
@@ -114,6 +114,11 @@ describe('mobile automation create refusal recovery', () => {
       })
       const { result } = renderAttempt()
       const capabilities = [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY]
+      const prepare = vi.fn(async () => ({
+        ...draft(),
+        name: 'revision0',
+        setupDecision: 'run' as const
+      }))
       for (let index = 0; index < 2; index++) {
         await act(async () => {
           await expect(
@@ -122,13 +127,18 @@ describe('mobile automation create refusal recovery', () => {
               { ...draft(), name: `revision${index}` },
               automationTargets(),
               capabilities,
-              current
+              current,
+              prepare
             )
           ).rejects.toThrow('may have applied')
         })
       }
       expect(port.send.mock.calls[1]?.[1]).toEqual(port.send.mock.calls[0]?.[1])
-      expect(port.send.mock.calls[1]?.[1]).toMatchObject({ name: 'revision0' })
+      expect(port.send.mock.calls[1]?.[1]).toMatchObject({
+        name: 'revision0',
+        setupDecision: 'run'
+      })
+      expect(prepare).toHaveBeenCalledTimes(1)
     }
   )
 })

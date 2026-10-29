@@ -41,7 +41,7 @@ export function AutomationAdvancedFields({
           { value: 'run', label: t('automations.mobile.runSetupScript', 'Run setup script') },
           { value: 'skip', label: t('automations.mobile.skipSetupScript', 'Skip setup script') }
         ]}
-        onSelect={(setupDecision) => change({ setupDecision })}
+        onSelect={(setupDecision) => change({ setupDecision, setupDecisionEdited: true })}
         disabled={disabled}
       />
       {draft.workspaceMode === 'existing' ? (

@@ -17,6 +17,7 @@ import { MAX_AUTOMATION_PRECHECK_TIMEOUT_SECONDS } from '../../../src/shared/aut
 
 export type AutomationDraft = {
   targetEdited?: boolean
+  setupDecisionEdited?: boolean
   name: string
   prompt: string
   agentId: TuiAgent | null

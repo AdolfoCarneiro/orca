@@ -1,3 +1,5 @@
+import { getAutomationSetupDefaultDecision } from '../../../../shared/automation-setup-decision'
+export { getAutomationSetupDefaultDecision } from '../../../../shared/automation-setup-decision'
 import type { AutomationWorkspaceMode } from '../../../../shared/automations-types'
 import type { OrcaHooks, SetupRunPolicy } from '../../../../shared/orca-yaml-hook-types'
 import type { ProjectHostSetup } from '../../../../shared/project-types'
@@ -41,15 +43,6 @@ function getAutomationSetupSource(
     setupScript: setupConfig.command,
     setupRunPolicy: hookSettings?.setupRunPolicy ?? 'run-by-default'
   }
-}
-
-export function getAutomationSetupDefaultDecision(
-  source: Pick<AutomationSetupSource, 'setupRunPolicy'> | null
-): Extract<SetupDecision, 'run' | 'skip'> | undefined {
-  if (!source) {
-    return undefined
-  }
-  return source.setupRunPolicy === 'run-by-default' ? 'run' : 'skip'
 }
 
 export function getVisibleAutomationSetupDecision(args: {

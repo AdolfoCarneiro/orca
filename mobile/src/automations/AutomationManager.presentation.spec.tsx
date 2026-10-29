@@ -1,3 +1,4 @@
+import { SetupHookTrustDrawer } from '../components/SetupHookTrustDrawer'
 import { createElement } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { expect, it, type vi } from 'vitest'
@@ -6,7 +7,12 @@ import type { MobileAutomation, MobileAutomationRow } from './automation-reply-s
 import type { AutomationTargets } from './automation-target-inventory'
 import { AutomationManager } from './AutomationManager'
 import { AutomationList } from './AutomationList'
-import { AutomationChoice, AutomationMetadata } from './AutomationControls'
+import {
+  AutomationChoice,
+  AutomationMetadata,
+  AutomationButton,
+  AutomationField
+} from './AutomationControls'
 import { ConfirmModal } from '../components/ConfirmModal'
 import type { RpcClient } from '../transport/rpc-client'
 import { TEXT_INPUT_FONT_SIZE } from '../platform/text-input-font-size'
@@ -22,13 +28,79 @@ export function registerAutomationPresentationTests({
   inventory,
   root,
   press,
-  setTree
+  setTree,
+  mount: mountManager
 }: {
   inventory: { targets: ReturnType<typeof vi.fn>; agents: ReturnType<typeof vi.fn> }
   root: () => ReactTestInstance
   press: (label: string) => Promise<void>
   setTree: (tree: ReactTestRenderer) => void
+  mount: (
+    loseCreate?: boolean | 'legacy',
+    confirmSetup?: boolean
+  ) => Promise<Pick<ReturnType<typeof automationClient>, 'send'>>
 }): void {
+  it('resolves project setup and obtains trust before creating through Task, Schedule and Review', async () => {
+    const port = await mountManager(false, true)
+    await press('New automation')
+    const field = (label: string) =>
+      root()
+        .findAllByType(AutomationField)
+        .find((node) => node.props.label === label)!
+    await act(async () => {
+      field('Name').props.onChange('Daily review')
+      field('Instructions').props.onChange('Review changes')
+    })
+    expect(root().findAll((node) => String(node.type) === 'Switch')).toHaveLength(0)
+    await press('Continue')
+    expect(
+      root()
+        .findAllByType(AutomationChoice)
+        .some((node) => node.props.label === 'Cadence')
+    ).toBe(true)
+    await press('Continue')
+    await press('Create automation')
+    expect(port.send.mock.calls.filter(([method]) => method === 'automation.create')).toEqual([])
+    const drawer = root().findByType(SetupHookTrustDrawer)
+    expect(drawer.props).toMatchObject({
+      visible: true,
+      prompt: { repoId: 'repo-1', contentHash: 'setup-hash', scriptContent: 'npm ci' }
+    })
+    expect(drawer.props.busy).toBe(false)
+    await act(async () => {
+      drawer.props.onRunOnce()
+    })
+    const attempts = port.send.mock.calls.filter(([method]) => method === 'automation.create')
+    expect(attempts).toHaveLength(1)
+    expect(attempts[0]?.[1]).toMatchObject({
+      enabled: true,
+      name: 'Daily review',
+      repo: 'id:repo-1',
+      setupDecision: 'run',
+      runContext: {
+        hostId: 'local',
+        repoId: 'repo-1',
+        path: '/repo',
+        projectHostSetupId: 'setup-1'
+      },
+      destination: { selector: { kind: 'self' } },
+      creationKey: expect.any(String)
+    })
+    expect(port.send.mock.calls.find(([method]) => method === 'repo.hooks')?.[1]).toEqual({
+      repo: 'id:repo-1'
+    })
+    expect(port.send.mock.calls.findIndex(([method]) => method === 'ui.set')).toBeLessThan(
+      port.send.mock.calls.findIndex(([method]) => method === 'automation.create')
+    )
+    expect(root().findAll((node) => String(node.type) === 'Switch')).toHaveLength(1)
+    await press('All automations')
+    expect(
+      root()
+        .findAllByType(AutomationButton)
+        .some((node) => node.props.label === 'New automation')
+    ).toBe(true)
+  })
+
   const metadata = (label: string) =>
     root()
       .findAllByType(AutomationMetadata)

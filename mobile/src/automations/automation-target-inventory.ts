@@ -33,7 +33,7 @@ import {
   type AutomationWorkspace
 } from './automation-reply-schema'
 
-const repoSchema = z.object({
+export const automationRepoSchema = z.object({
   id: z.string(),
   displayName: z.string(),
   path: z.string(),
@@ -52,7 +52,7 @@ export async function loadAutomationTargets(client: RpcClient, limit = 200) {
   ])
   const workspaceReply = automationWorkspacesRead.interpret(catalog)
   const repoRows = newTabRepoListRead.interpret(repos).flatMap((raw) => {
-    const parsed = repoSchema.safeParse(raw)
+    const parsed = automationRepoSchema.safeParse(raw)
     return parsed.success ? [parsed.data] : []
   })
   const repoLookup = createRepoRowExecutionHostLookup(repoRows)

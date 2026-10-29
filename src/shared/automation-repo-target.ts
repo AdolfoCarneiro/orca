@@ -4,12 +4,14 @@ import type { WorkspaceRunContext } from './task-source-context'
 import { getRepoExecutionHostId, isRepoSshOnlyHost, parseExecutionHostId } from './execution-host'
 
 /** A captured target names a row; a legacy bare id must resolve uniquely. */
-export function findAutomationRepo(
-  repos: readonly Repo[],
+export function findAutomationRepo<
+  T extends Pick<Repo, 'id' | 'path' | 'connectionId' | 'executionHostId'>
+>(
+  repos: readonly T[],
   repoId: string,
   context?: Pick<WorkspaceRunContext, 'hostId' | 'path'> | null,
   incomingRuntimeAlias = false
-): Repo | undefined {
+): T | undefined {
   const host = context ? parseExecutionHostId(context.hostId) : null
   const runtimeAlias = incomingRuntimeAlias && host?.kind === 'runtime'
   const hostId = runtimeAlias ? 'local' : host?.id

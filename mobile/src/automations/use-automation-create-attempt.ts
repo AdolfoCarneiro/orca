@@ -50,7 +50,11 @@ export function useAutomationCreateAttempt(
     const changes: Partial<AutomationDraft> = {}
     const submittedEntries = new Map(Object.entries(submitted.draft))
     for (const [key, value] of Object.entries(current)) {
-      if (key !== 'targetEdited' && value !== submittedEntries.get(key)) {
+      if (
+        key !== 'targetEdited' &&
+        key !== 'setupDecisionEdited' &&
+        value !== submittedEntries.get(key)
+      ) {
         Object.assign(changes, { [key]: value })
       }
     }
@@ -69,7 +73,8 @@ export function useAutomationCreateAttempt(
       draft: AutomationDraft,
       targets: AutomationTargets,
       capabilities: readonly string[],
-      current: () => boolean
+      current: () => boolean,
+      prepare?: () => Promise<AutomationDraft | null>
     ) => {
       if (attempt.current?.affirmed) {
         return
@@ -78,9 +83,15 @@ export function useAutomationCreateAttempt(
         throw new Error(AUTOMATION_OUTCOME_UNKNOWN)
       }
       const firstSubmission = attempt.current === null
+      const generation = client.getGeneration?.()
+      const sameAuthority = () => current() && generation === client.getGeneration?.()
+      const prepared = firstSubmission && prepare ? await prepare() : draft
+      if (!prepared || !sameAuthority()) {
+        return
+      }
       const submitted: SubmittedAutomationCreate = attempt.current ?? {
         params: automationCreateParams(
-          draft,
+          prepared,
           targets,
           capabilities.includes(AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY)
             ? randomV4Uuid()
@@ -89,8 +100,6 @@ export function useAutomationCreateAttempt(
         draft: { ...draft }
       }
       attempt.current = submitted
-      const generation = client.getGeneration?.()
-      const sameAuthority = () => current() && generation === client.getGeneration?.()
       const sameAttempt = () => attempt.current === submitted && sameAuthority()
       let response: RpcResponse
       try {

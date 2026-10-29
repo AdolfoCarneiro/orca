@@ -38,10 +38,12 @@ vi.mock(
   async () => await import('../platform/text-input-font-size.web')
 )
 vi.mock('lucide-react-native', () => ({
+  Check: 'Check',
   CalendarClock: 'CalendarClock',
   ChevronRight: 'ChevronRight'
 }))
 vi.mock('../components/PickerModal', () => ({ PickerModal: 'PickerModal' }))
+vi.mock('../components/BottomDrawer', () => ({ BottomDrawer: 'BottomDrawer' }))
 vi.mock('../components/ConfirmModal', () => ({ ConfirmModal: 'ConfirmModal' }))
 vi.mock('../navigation/route-handoff', () => ({
   useRouteHandoff: () => ({ push: inventory.push })
@@ -90,7 +92,7 @@ async function press(label: string) {
 function text(node: ReactTestInstance): string {
   return JSON.stringify(node.props.children)
 }
-async function mount(loseCreate: boolean | 'legacy' = false) {
+async function mount(loseCreate: boolean | 'legacy' = false, confirmSetup = false) {
   const pendingList = deferred<unknown>()
   let created = false
   let automation = savedAutomation()
@@ -98,9 +100,31 @@ async function mount(loseCreate: boolean | 'legacy' = false) {
   const manualRun = { ...savedRun('manual-run'), status: 'dispatched', trigger: 'manual' }
   let runs = [oldRun]
   const port = automationClient((method, params) => {
+    if (method === 'repo.list') {
+      return {
+        repos: [{ id: 'repo-1', displayName: 'Project', path: '/repo', executionHostId: 'local' }]
+      }
+    }
+    if (method === 'repo.hooks') {
+      return {
+        source: null,
+        setupRunPolicy: 'run-by-default',
+        setupConfig: confirmSetup ? { command: 'npm ci' } : null,
+        setupTrust: confirmSetup ? { contentHash: 'setup-hash', scriptContent: 'npm ci' } : null
+      }
+    }
+    if (method === 'ui.get') {
+      return { ui: { trustedOrcaHooks: {} } }
+    }
+    if (method === 'ui.set') {
+      return { ui: params }
+    }
     if (method === 'status.get') {
       return {
-        capabilities: loseCreate === true ? [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY] : []
+        capabilities:
+          loseCreate === true || confirmSetup
+            ? [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY]
+            : []
       }
     }
     if (method === 'automation.list') {
@@ -174,7 +198,7 @@ async function mount(loseCreate: boolean | 'legacy' = false) {
 
 describe('mobile automation navigation and setup', () => {
   registerAutomationRunHistoryTests({ mount, root, press })
-  registerAutomationPresentationTests({ inventory, root, press, setTree })
+  registerAutomationPresentationTests({ inventory, root, press, setTree, mount })
   registerAutomationHostReselectionTests({
     inventory,
     root,
@@ -644,37 +668,6 @@ describe('mobile automation navigation and setup', () => {
       root().findByType(MobileSegmentedControl).props.onSelect('automations')
     })
   })
-  it('creates through Task, Schedule and Review without an enabled switch', async () => {
-    const port = await mount()
-    await press('New automation')
-    const field = (label: string) =>
-      root()
-        .findAllByType(AutomationField)
-        .find((node) => node.props.label === label)!
-    await act(async () => {
-      field('Name').props.onChange('Daily review')
-      field('Instructions').props.onChange('Review changes')
-    })
-    expect(root().findAll((node) => String(node.type) === 'Switch')).toHaveLength(0)
-    await press('Continue')
-    expect(
-      root()
-        .findAllByType(AutomationChoice)
-        .some((node) => node.props.label === 'Cadence')
-    ).toBe(true)
-    await press('Continue')
-    await press('Create automation')
-    const sent = port.send.mock.calls.find(([method]) => method === 'automation.create')
-    expect(sent?.[1]).toMatchObject({ enabled: true, name: 'Daily review', repo: 'id:repo-1' })
-    expect(root().findAll((node) => String(node.type) === 'Switch')).toHaveLength(1)
-    await press('All automations')
-    expect(
-      root()
-        .findAllByType(AutomationButton)
-        .some((node) => node.props.label === 'New automation')
-    ).toBe(true)
-  })
-
   it('preserves an uncertain legacy create without issuing a second uncorrelated write', async () => {
     const port = await mount('legacy')
     await press('New automation')
