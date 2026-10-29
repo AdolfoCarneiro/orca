@@ -13,6 +13,7 @@ import {
   sanitizeAgentPermissionUpdates
 } from './tui-agent-permission-choice'
 import { projectAgentLaunchProfile } from './agent-launch-profile'
+import { agentCommandSetsPermission } from './agent-permission-args'
 import {
   resolveStartupShell,
   tokenizeStartupCommand,
@@ -30,7 +31,11 @@ const UNSUPPORTED_TUI_AGENT_ARGS: Partial<Record<TuiAgent, readonly string[]>> =
 export type AgentLaunchProfileSettings = Partial<
   Pick<
     GlobalSettings,
-    'agentDefaultArgs' | 'agentDefaultEnv' | 'agentPermissionDefault' | 'agentPermissionOverrides'
+    | 'agentCmdOverrides'
+    | 'agentDefaultArgs'
+    | 'agentDefaultEnv'
+    | 'agentPermissionDefault'
+    | 'agentPermissionOverrides'
   >
 >
 
@@ -178,9 +183,12 @@ export function resolveTuiAgentLaunchArgs(
   if (!isTuiAgent(agent)) {
     return ownArgs(agent, settings) ?? getTuiAgentDefaultArgs(agent)
   }
+  const choice = agentCommandSetsPermission(agent, settings?.agentCmdOverrides?.[agent])
+    ? 'own'
+    : permissionChoice
   return projectAgentLaunchProfile(agent, settings, {
     target: 'terminal',
-    ...(permissionChoice ? { choices: { permissionMode: permissionChoice } } : {})
+    ...(choice ? { choices: { permissionMode: choice } } : {})
   }).args
 }
 

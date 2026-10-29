@@ -381,7 +381,7 @@ describe('permission carrier ownership across save, reload and consumers', () =>
     ['claude', disagreement, disagreement, disagreement, 'auto', true],
     ['grok', '--yolo', '--yolo', '--yolo', 'ask', true]
   ] as const
-  it.each(['--yolo', '-y'])(
+  it.each(['--yolo', '-y', '--yes', '--auto-approve'])(
     'preserves Kimi literal %s under Full through save and reload',
     (value) => {
       const before: AgentLaunchSettingsSource = { agentPermissionDefault: 'full-access' }
@@ -402,6 +402,13 @@ describe('permission carrier ownership across save, reload and consumers', () =>
       expect(agentArgsSetPermission('kimi', value)).toBe(true)
     }
   )
+
+  it('keeps an unmigrated Kimi --yolo profile on its own permission', () => {
+    const loaded = migrateAgentPermissionChoice({ agentDefaultArgs: { kimi: '--yolo' } }, 'linux')
+    expect(resolveAgentPermission('kimi', loaded).choice).toBe('own')
+    expect(loaded.agentDefaultArgs.kimi).toBe('--yolo')
+    expect(resolveTuiAgentLaunchArgs('kimi', loaded)).toBe('--yolo')
+  })
 
   it.each(
     ownershipCases.flatMap(([agent, value, raw, launch, chat, carrier]) =>

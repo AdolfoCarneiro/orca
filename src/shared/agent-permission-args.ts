@@ -30,7 +30,7 @@ const EXTRA_CARRIERS: Partial<Record<TuiAgent, readonly string[]>> = {
   codex: ['-a', '--ask-for-approval', '-s', '--sandbox', '--yolo', '--not-so-yolo', '--full-auto'],
   grok: ['--permission-mode', '--always-approve', '--yolo', '--dangerously-skip-permissions'],
   gemini: ['--approval-mode', '-y'],
-  kimi: ['--yolo', '-y']
+  kimi: ['--yolo', '-y', '--yes', '--auto-approve']
 }
 const CODEX_VALUES = [
   '-a',
@@ -193,6 +193,20 @@ export function agentArgsSetPermission(agent: TuiAgent, text: string | null | un
   return PERMISSION_LAUNCH_GRAMMARS.some((grammar) => {
     const parsed = tokenizeStartupCommand(text ?? '', grammar)
     return parsed.ok && analyzeAgentChoiceWords(agent, parsed.tokens).carrier
+  })
+}
+
+export function agentCommandSetsPermission(
+  agent: TuiAgent,
+  text: string | null | undefined
+): boolean {
+  if (!text) {
+    return false
+  }
+  return PERMISSION_LAUNCH_GRAMMARS.some((grammar) => {
+    const parsed = tokenizeStartupCommand(text, grammar)
+    const firstArg = parsed.ok ? parsed.spans[1] : undefined
+    return firstArg !== undefined && agentArgsSetPermission(agent, text.slice(firstArg.start))
   })
 }
 
