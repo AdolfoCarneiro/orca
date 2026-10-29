@@ -78,6 +78,61 @@ describe('what a right-click shows', () => {
     { id: 'toolbar', title: 'Toolbar', contexts: ['action'] }
   )
 
+  it.each([100, 1000])('discovers %i flat items with bounded input visits', (size) => {
+    const flat = Array.from({ length: size }, (_, id): StoredContextMenuItem => ({
+      id,
+      title: `Item ${id}`,
+      type: 'normal',
+      contexts: ['page'],
+      enabled: true,
+      visible: true
+    }))
+    let visits = 0
+    const observed = new Proxy(flat, {
+      get(target, key, receiver) {
+        if (typeof key === 'string' && /^\d+$/.test(key)) {
+          visits++
+        }
+        return Reflect.get(target, key, receiver)
+      }
+    })
+
+    expect(visibleContextMenuTree(observed, pageClick).map((entry) => entry.key)).toEqual(
+      flat.map((entry) => JSON.stringify(entry.id))
+    )
+    expect(visits).toBeLessThanOrEqual(size * 4)
+  })
+
+  it('preserves loaded duplicate order and typed parent ids in trees and direct subtrees', () => {
+    const loaded = build(
+      { id: 1, title: 'Number' },
+      { id: '1', title: 'String' },
+      { id: '', title: 'Empty' },
+      { id: 'number-child', title: 'Number child', parentId: 1 },
+      { id: 'string-child', title: 'String child', parentId: '1' },
+      { id: 'empty-child', title: 'Empty child', parentId: '' }
+    )
+    loaded.splice(1, 0, { ...loaded[0], title: 'Loaded duplicate' })
+
+    expect(
+      visibleContextMenuTree(loaded, pageClick).map((entry) => [
+        entry.title,
+        entry.children.map((child) => child.key)
+      ])
+    ).toEqual([
+      ['Number', ['"number-child"']],
+      ['Loaded duplicate', ['"number-child"']],
+      ['String', ['"string-child"']],
+      ['Empty', ['"empty-child"']]
+    ])
+    expect(visibleContextMenuTree(loaded, pageClick, 1).map((entry) => entry.key)).toEqual([
+      '"number-child"'
+    ])
+    expect(visibleContextMenuTree(loaded, pageClick, '').map((entry) => entry.key)).toEqual([
+      '"empty-child"'
+    ])
+  })
+
   it('applies contexts, document and target patterns, and visibility', () => {
     expect(visibleContextMenuTree(items, pageClick).map((item) => item.key)).toEqual(['"page"'])
     const editable = contextMenuTargetFromParams(
