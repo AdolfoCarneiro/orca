@@ -29,10 +29,9 @@ import type {
   PluginMarketplaceListing,
   PluginMarketplaceService
 } from './plugin-marketplace-service'
-import { marketplaceSourceId } from './plugin-marketplace-store'
+import { marketplaceInstallOf, type MarketplaceInstall } from './plugin-marketplace-install-origin'
 import { isSamePluginSource } from '../../../shared/plugins/catalog/plugin-marketplace'
 import type {
-  PluginInstallSource,
   PluginLockEntry,
   PluginLockfile
 } from '../../../shared/plugins/installation/plugin-install-lockfile'
@@ -66,20 +65,6 @@ export type PluginMarketplaceInstallPreview = {
 
 /** `repositoryMoved`: this replaced an install that came from a different repository. */
 export type PluginMarketplaceInstallResult = PluginInstallResult & { repositoryMoved?: true }
-
-type MarketplaceInstallSource = Extract<PluginInstallSource, { kind: 'marketplace' }>
-type MarketplaceInstall = { sourceId: string; plugin: MarketplaceInstallSource['plugin'] }
-
-function marketplaceInstallOf(entry: PluginLockEntry | null): MarketplaceInstall | null {
-  if (entry?.source.kind !== 'marketplace') {
-    return null
-  }
-  const { marketplace, plugin } = entry.source
-  return {
-    sourceId: marketplaceSourceId({ kind: 'git', url: marketplace.url, ref: marketplace.ref }),
-    plugin
-  }
-}
 
 export type PluginMarketplacePreviewIdentity = Pick<
   PluginMarketplaceInstallPreview,
