@@ -273,7 +273,9 @@ describe('useAutomationDispatchEvents setup launch', () => {
   })
 
   it('creates a new-per-run workspace on the captured run host, and names none without one', async () => {
-    await registerAndDispatch(makeAutomation({ runContext: { repoId: 'repo-1', hostId: 'local' } }))
+    await registerAndDispatch(
+      makeAutomation({ runContext: { repoId: 'repo-1', hostId: 'local', path: '/repo' } })
+    )
     expect(mockCreateWorktree.mock.calls[0]?.at(-1)).toEqual(
       expect.objectContaining({ executionHostId: 'local' })
     )
@@ -342,6 +344,7 @@ describe('useAutomationDispatchEvents setup launch', () => {
     state.folderWorkspaces = [
       {
         id: 'fw-1',
+        name: folderWorkspace.displayName,
         projectGroupId: 'group-1',
         folderPath: '/srv/project',
         connectionId: 'ssh-folder'
@@ -356,7 +359,7 @@ describe('useAutomationDispatchEvents setup launch', () => {
         workspaceMode: 'existing',
         workspaceId: folderWorkspace.id,
         setupDecision: 'skip',
-        runContext: { repoId: 'repo-1', hostId: 'ssh:ssh-folder' }
+        runContext: { repoId: 'repo-1', hostId: 'ssh:ssh-folder', path: '/srv/project/repo' }
       })
     )
 
@@ -399,7 +402,7 @@ describe('useAutomationDispatchEvents setup launch', () => {
       makeAutomation({
         workspaceMode: 'existing',
         workspaceId: folderWorkspace.id,
-        runContext: { repoId: 'repo-1', hostId: 'local' }
+        runContext: { repoId: 'repo-1', hostId: 'local', path: '/repo' }
       })
     )
 

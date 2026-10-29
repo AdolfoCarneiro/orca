@@ -33,6 +33,7 @@ import { BROWSER_CORE_METHODS } from '../rpc/methods/browser-core'
 import { BROWSER_SCREENCAST_METHODS } from '../rpc/methods/browser-screencast'
 import { SSH_METHODS } from '../rpc/methods/ssh'
 import { RUNTIME_CLIENT_CAPABILITY_METHODS } from '../rpc/methods/runtime-client-capabilities'
+import { WORKTREE_METHODS } from '../rpc/methods/worktree'
 import { CLIENT_UI_METHODS } from '../rpc/methods/client-ui'
 import { PAIRING_METHODS } from '../rpc/methods/pairing'
 import { sendRequest } from '../runtime-rpc-test-harness'
@@ -137,6 +138,7 @@ describe('mobile desktop relay: phone -> desktop -> server', () => {
         ...SSH_METHODS,
         ...RUNTIME_CLIENT_CAPABILITY_METHODS,
         ...CLIENT_UI_METHODS,
+        ...WORKTREE_METHODS,
         ...PAIRING_METHODS
       ],
       enableWebSocket: true,

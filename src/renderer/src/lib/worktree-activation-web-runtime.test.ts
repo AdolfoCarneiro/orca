@@ -56,7 +56,7 @@ describe('activateAndRevealWorktree', () => {
       }
       seedEmptyActivatableWorktree(worktree, { extraWorktrees: [twin] })
       const createTab = vi.fn()
-      const setActiveWorktree = vi.fn()
+      const setActiveWorktree = vi.fn<typeof originalSetActiveWorktree>()
       useAppStore.setState((state) => ({
         settings: { ...state.settings!, activeRuntimeEnvironmentId: 'ambient-other' },
         createTab,
@@ -76,7 +76,11 @@ describe('activateAndRevealWorktree', () => {
           providesInitialSurface: true
         })
       ).not.toBe(false)
-      expect(setActiveWorktree).toHaveBeenCalledWith(worktree.id, hostId)
+      expect(setActiveWorktree).toHaveBeenCalledWith(worktree.id, hostId, {
+        stateTransition: expect.any(Function)
+      })
+      const transition = setActiveWorktree.mock.calls[0]?.[2]?.stateTransition
+      expect(transition?.(useAppStore.getState())).toMatchObject({ activate: true })
       if (environmentId) {
         await vi.waitFor(() =>
           expect(runtimeCall).toHaveBeenCalledWith(

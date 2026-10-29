@@ -61,6 +61,9 @@ export function settleEditorRecordAfterWrite(
   const moved: OpenFile[] = []
   store.setState((state) => {
     let next = state
+    const writerStillOpen = state.openFiles.some(
+      (file) => viewIds.includes(file.id) && sameEditorSaveResource(state, source, file)
+    )
     const seen = new Set<string>()
     for (const file of state.openFiles) {
       const recordId = editorBufferIdOfView(state, file.id)
@@ -75,6 +78,10 @@ export function settleEditorRecordAfterWrite(
         ? file.isDirty
         : (draft === undefined ? !original && file.isDirty : draft !== content) ||
           hasPendingEditorBufferChange(state, file.id)
+      // A live divergent record must not adopt another record's write as its autosave baseline.
+      if (!original && isDirty && writerStillOpen) {
+        continue
+      }
       const editorDrafts = { ...next.editorDrafts }
       for (const peer of siblings) {
         moved.push(peer)
@@ -132,7 +139,10 @@ export function settleEditorRecordAfterWrite(
     if (file.externalMutation === 'changed' && !discarded) {
       trackExternalChangeConflictAction(file, 'save_overwrite')
     }
-    if (!store.getState().openFiles.find((peer) => peer.id === file.id)?.isDirty) {
+    if (
+      file.id !== source.id &&
+      !store.getState().openFiles.find((peer) => peer.id === file.id)?.isDirty
+    ) {
       notifyEditorFileCacheStale(file.id)
     }
   }

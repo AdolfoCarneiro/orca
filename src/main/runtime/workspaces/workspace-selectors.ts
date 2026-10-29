@@ -51,7 +51,9 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
     const explicitWorktreeId = this.getValidatedExplicitWorktreeIdSelector(selector)
     // Only id selectors name a repo; scoping other selectors would hide fleet-wide ambiguity.
     if (explicitWorktreeId && !this.hasFreshResolvedWorktreeCache()) {
-      const scoped = await this.resolveExplicitWorktreeIdScoped(explicitWorktreeId, requiredHostId)
+      const scoped = await (requiredHostId === undefined
+        ? this.resolveExplicitWorktreeIdScoped(explicitWorktreeId)
+        : this.resolveExplicitWorktreeIdScoped(explicitWorktreeId, requiredHostId))
       if (scoped) {
         return scoped
       }

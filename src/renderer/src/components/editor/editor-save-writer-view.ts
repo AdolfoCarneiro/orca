@@ -97,6 +97,9 @@ export function captureEditorSave(
   trigger: EditorSaveTrigger
 ): EditorSaveAcquisition {
   try {
+    if (file.csvPreviewOnly === true) {
+      throw new Error('Large CSV previews are read-only.')
+    }
     const writer = editorSaveWriterView(store.getState(), file.id, trigger) ?? file
     const operation = acquireEditorFileOperation(store.getState, writer)
     return { operation, access: editorTabFileAccess(store.getState(), operation.file) }

@@ -96,10 +96,6 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     const fileId = liveFile.id
     // Track views across mid-write closure and record rekeys, which retain views but change IDs.
     const recordViewIds = [fileId, ...editorBufferSiblingViewIds(state, fileId)]
-    if (liveFile.csvPreviewOnly === true) {
-      throw new Error('Large CSV previews are read-only.')
-    }
-
     // Read-only artifact tabs must never write agent-owned files.
     if (liveFile.readOnly === true) {
       return 'failed'

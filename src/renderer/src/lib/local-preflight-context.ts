@@ -13,7 +13,7 @@ import type { Worktree } from '../../../shared/worktree/types'
 import type { ResolvedAgentBackgroundTarget } from './agent-background-session-contract'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { projectMatchesRepo } from '../../../shared/project-repo-match'
-import { getIndexedRepoMap } from '@/store/worktree-repo-index'
+import { getIndexedRepoMap, getIndexedReposById } from '@/store/worktree-repo-index'
 import { defaultScopeHost } from './default-creation-host'
 import { getLocalProjectRuntimeWorkspace } from './local-project-runtime-workspace'
 import { getActiveWorkspaceOwnerTarget } from './resolved-worktree-execution-host'
@@ -280,9 +280,8 @@ function getLocalRuntimeRepoForWorktree(
   }
   const repoId = worktree?.repoId ?? state.activeRepoId
   if (worktree) {
-    const repos = (state.repos ?? EMPTY_REPOS).filter(
-      (repo) =>
-        repo.id === repoId && (!worktree.hostId || getRepoExecutionHostId(repo) === worktree.hostId)
+    const repos = getIndexedReposById(state.repos ?? EMPTY_REPOS, worktree.repoId).filter(
+      (repo) => !worktree.hostId || getRepoExecutionHostId(repo) === worktree.hostId
     )
     return repos.length === 1 ? repos[0] : undefined
   }
