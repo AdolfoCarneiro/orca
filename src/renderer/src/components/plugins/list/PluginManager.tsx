@@ -370,7 +370,8 @@ export function PluginManager({
           <PluginAllInstalled onShowInstalled={() => setTab('installed')} />
         ) : filter === 'all' || filter === 'available' ? (
           <div className="@container/plugin-catalog space-y-8">
-            {filter === 'all' ? installedGroup : null}
+            {/* Why the error too: without it Not installed would offer plugins you may already have. */}
+            {filter === 'all' || pluginsError ? installedGroup : null}
             <PluginCatalogGroups
               catalog={catalog}
               available={entries.available}

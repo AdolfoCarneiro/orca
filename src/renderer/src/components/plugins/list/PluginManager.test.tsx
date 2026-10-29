@@ -170,13 +170,16 @@ afterEach(() => {
 
 describe('PluginManager', () => {
   it('lists each catalog plugin once, in catalog order, capped with Show all', async () => {
-    const container = await render()
+    const pastCap = { ...installedPlugin, pluginKey: 'stablyai.extra-13', name: 'Extra 13' }
+    const container = await render([installedPlugin, pastCap])
     const catalogCards = (): Element[] =>
       Array.from(container.querySelectorAll('[data-plugin-key]'))
     const rows = catalogCards().map((row) => row.getAttribute('data-plugin-key'))
     // Why one grid: an installed catalog plugin keeps its card, so installing never moves it.
     expect(rows.filter((key) => key === 'stablyai.orca-nord-theme')).toHaveLength(1)
-    expect(rows).toHaveLength(PLUGIN_GROUP_ROW_CAP)
+    // Why: an installed plugin past the cap keeps its card, so its switch never hides behind Show all.
+    expect(rows).toHaveLength(PLUGIN_GROUP_ROW_CAP + 1)
+    expect(rows).toContain('stablyai.extra-13')
 
     await act(async () =>
       buttonNamed(container, `Show all ${PLUGIN_GROUP_ROW_CAP + 3} plugins`)?.click()
