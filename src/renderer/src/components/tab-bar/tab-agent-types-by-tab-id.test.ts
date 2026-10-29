@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { shallow } from 'zustand/shallow'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
+import { mulberry32 } from '../../../../shared/agent-tui-ansi-fuzz-stream'
 import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
 import { findTabAgentEntry } from '../native-chat/native-chat-tab-agent-entry'
 import {
@@ -356,11 +357,10 @@ describe('selectTabAgentTypesByTabId', () => {
   })
 
   it('patches incrementally to the same result as a full projection', () => {
-    let seed = 7
-    const random = (limit: number): number => {
-      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
-      return seed % limit
-    }
+    // Why: an LCG multiply past 2^53 loses low bits and collapses the picks onto a few cases.
+    const nextRandom = mulberry32(7)
+    const random = (limit: number): number => Math.floor(nextRandom() * limit)
+    const tabCount = 8
     const agents = ['claude', 'codex', 'grok', undefined] as const
     const leaves = ['leaf-a', 'leaf-b', 'leaf-c'] as const
     const layoutChoices: TerminalLayoutSnapshot[] = [
@@ -379,15 +379,23 @@ describe('selectTabAgentTypesByTabId', () => {
     const select = createTabBarAgentProjectionSelector()
     let statuses: Record<string, AgentStatusEntry> = {}
     let layouts: Record<string, TerminalLayoutSnapshot> = {}
+    const seenTabIds = new Set<string>()
+    const seenAgents = new Set<(typeof agents)[number]>()
+    const seenLayouts = new Set<TerminalLayoutSnapshot>()
+    const appliedOperations = new Set<number>()
     for (let step = 0; step < 2_000; step++) {
-      const tabId = `tab-${random(8)}`
+      const tabId = `tab-${random(tabCount)}`
       const paneKey = `${tabId}:${leaves[random(leaves.length)]}`
       const operation = random(7)
+      seenTabIds.add(tabId)
+      // A status ping for a missing pane falls through, like operation 6, to reselect unchanged inputs.
+      if (operation !== 1 || statuses[paneKey]) {
+        appliedOperations.add(operation)
+      }
       if (operation === 0) {
-        statuses = {
-          ...statuses,
-          [paneKey]: entry({ agentType: agents[random(agents.length)] })
-        }
+        const agentType = agents[random(agents.length)]
+        seenAgents.add(agentType)
+        statuses = { ...statuses, [paneKey]: entry({ agentType }) }
       } else if (operation === 1 && statuses[paneKey]) {
         statuses = {
           ...statuses,
@@ -400,10 +408,9 @@ describe('selectTabAgentTypesByTabId', () => {
         // Same keys and entries in a new insertion order.
         statuses = Object.fromEntries(Object.entries(statuses).toReversed())
       } else if (operation === 4) {
-        layouts = {
-          ...layouts,
-          [tabId]: layoutChoices[random(layoutChoices.length)]!
-        }
+        const layout = layoutChoices[random(layoutChoices.length)]!
+        seenLayouts.add(layout)
+        layouts = { ...layouts, [tabId]: layout }
       } else if (operation === 5) {
         const { [tabId]: _removed, ...rest } = layouts
         layouts = rest
@@ -417,6 +424,11 @@ describe('selectTabAgentTypesByTabId', () => {
         selectNativeChatTabWideFallbackUnsafeTabsById(layouts)
       )
     }
+    // Why: a degenerate generator silently narrows the differential check, so pin what it exercised.
+    expect(seenTabIds.size).toBe(tabCount)
+    expect(seenAgents).toEqual(new Set(agents))
+    expect(seenLayouts).toEqual(new Set(layoutChoices))
+    expect(appliedOperations).toEqual(new Set([0, 1, 2, 3, 4, 5, 6]))
   })
 
   it('normalizes missing maps to shared empty inputs', () => {
