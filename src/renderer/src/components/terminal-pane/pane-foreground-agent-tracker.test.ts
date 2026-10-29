@@ -221,21 +221,45 @@ describe('createPaneForegroundAgentTracker', () => {
     })
   })
 
-  it('coalesces accepted submit and OSC start into one confirm-only bounded ladder', async () => {
-    readForegroundProcess.mockResolvedValue(null)
+  it('keeps accepted input confirm-only when no real command marker arrives', async () => {
+    readForegroundProcess.mockResolvedValue('zsh')
     const tracker = makeTracker()
     tracker.onAcceptedCommandBoundary()
-    tracker.onAcceptedCommandBoundary()
-    expect(publish).not.toHaveBeenCalled()
-    tracker.onCommandStarted(true)
-    tracker.onVisiblePtyBound()
-    expect(publish).toHaveBeenCalledExactlyOnceWith({ agent: null, shellForeground: false })
     await flushSettleRead(COMMAND_SETTLE_MS + WRAPPER_RESOLVE_RETRY_MS + SECOND_WRAPPER_RETRY_MS)
     expect(confirmForegroundProcess).toHaveBeenCalledTimes(3)
-    expect(publish).toHaveBeenCalledTimes(1)
+    expect(publish).not.toHaveBeenCalled()
     expect(onConfirmedShellForeground).not.toHaveBeenCalled()
-    expect(tracker.hasReadInFlight()).toBe(false)
   })
+
+  it.each([false, true])(
+    'coalesces accepted submit with OSC start (read in flight=%s)',
+    async (inFlight) => {
+      readForegroundProcess.mockResolvedValue(null)
+      let finishFirstRead: (value: string | null) => void = () => {}
+      readForegroundProcess.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFirstRead = resolve
+          })
+      )
+      const tracker = makeTracker()
+      tracker.onAcceptedCommandBoundary()
+      tracker.onAcceptedCommandBoundary()
+      expect(publish).not.toHaveBeenCalled()
+      if (inFlight) await flushSettleRead(COMMAND_SETTLE_MS)
+      tracker.onCommandStarted(true)
+      tracker.onVisiblePtyBound()
+      expect(publish).toHaveBeenCalledExactlyOnceWith({ agent: null, shellForeground: false })
+      if (!inFlight) await flushSettleRead(COMMAND_SETTLE_MS)
+      finishFirstRead(null)
+      await flushSettleRead(0)
+      await flushSettleRead(WRAPPER_RESOLVE_RETRY_MS + SECOND_WRAPPER_RETRY_MS)
+      expect(confirmForegroundProcess).toHaveBeenCalledTimes(3)
+      expect(publish).toHaveBeenCalledTimes(2)
+      expect(onConfirmedShellForeground).not.toHaveBeenCalled()
+      expect(tracker.hasReadInFlight()).toBe(false)
+    }
+  )
 
   it('discovers an alias result only from confirmed process data and fences a replaced PTY', async () => {
     readForegroundProcess.mockResolvedValue('droid')

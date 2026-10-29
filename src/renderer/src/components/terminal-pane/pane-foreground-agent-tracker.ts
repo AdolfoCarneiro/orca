@@ -71,10 +71,11 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     scheduledReadReason = reason
     readTimer = setTimeout(() => {
       readTimer = null
+      const startedReason = scheduledReadReason ?? reason
       scheduledReadReason = null
-      activeReadReason = reason
-      void readForeground(generation, retryIndex, reason).finally(() => {
-        if (generation === readGeneration && activeReadReason === reason) {
+      activeReadReason = startedReason
+      void readForeground(generation, retryIndex, startedReason).finally(() => {
+        if (generation === readGeneration) {
           activeReadReason = null
         }
       })
@@ -135,6 +136,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       settleAbortedRead(generation)
       return
     }
+    const settledReason = activeReadReason ?? reason
     const recognized =
       remoteEvidenceVerdict === 'live'
         ? recognizeAgentProcess(processName)
@@ -154,7 +156,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       if (!remote) {
         deps.onAgentProcessRead?.(recognized)
       }
-      if (reason === 'visible-pty' || reason === 'accepted-input') {
+      if (settledReason === 'visible-pty' || settledReason === 'accepted-input') {
         deps.onVisibleForegroundSettled?.('agent')
       }
       return
@@ -164,23 +166,23 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     const hasConfirmationExpectation =
       hasForegroundAgentEvidence || hasKnownAgentEvidence || hasAgentExpectation
     const shouldRetryExpectedIdentity =
-      hasConfirmationExpectation && (reason !== 'command-finished' || processName === null)
+      hasConfirmationExpectation && (settledReason !== 'command-finished' || processName === null)
     const shouldRetry =
       retryDelay !== undefined &&
       (shouldRetryExpectedIdentity ||
         (processName !== null &&
-          (reason === 'command' || isAgentForegroundWrapperProcess(processName))))
+          (settledReason === 'command' || isAgentForegroundWrapperProcess(processName))))
     if (shouldRetry) {
       // Bound retries across PowerShell-to-WMIC enrichment, which may initially hide a live agent.
-      scheduleRead(retryDelay, retryIndex + 1, reason)
+      scheduleRead(retryDelay, retryIndex + 1, settledReason)
       return
     }
-    if (reason === 'accepted-input') {
+    if (settledReason === 'accepted-input') {
       hasAgentExpectation = false
       deps.onVisibleForegroundSettled?.('inconclusive')
       return
     }
-    if (reason === 'command') {
+    if (settledReason === 'command') {
       if (remoteEvidenceVerdict !== null && remoteEvidenceVerdict !== 'live') {
         hasAgentExpectation = false
         return
@@ -189,7 +191,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       deps.publish({ agent: null, shellForeground: false })
       return
     }
-    if (reason === 'visible-pty') {
+    if (settledReason === 'visible-pty') {
       if (
         (hasForegroundAgentEvidence || hasKnownAgentEvidence) &&
         processName !== null &&
@@ -197,14 +199,14 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       ) {
         clearAgentEvidence()
         deps.publish({ agent: null, shellForeground: true })
-        deps.onConfirmedShellForeground?.(reason)
+        deps.onConfirmedShellForeground?.(settledReason)
         deps.onVisibleForegroundSettled?.('shell')
       } else {
         deps.onVisibleForegroundSettled?.('inconclusive')
       }
       return
     }
-    if (reason === 'command-finished') {
+    if (settledReason === 'command-finished') {
       if (processName === null) {
         if (remoteEvidenceVerdict !== null && remoteEvidenceVerdict !== 'live') {
           deps.onCommandFinishedUnavailable?.()
@@ -225,7 +227,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       clearAgentEvidence()
       deps.publish({ agent: null, shellForeground: true })
       // Clear stale agent titles that the shell does not repaint.
-      deps.onConfirmedShellForeground?.(reason)
+      deps.onConfirmedShellForeground?.(settledReason)
     }
   }
 
@@ -280,6 +282,12 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       }
       const alreadyHasKnownIdentity = deps.hasKnownAgentIdentity?.() === true
       hasAgentExpectation = requireConfirmation || acceptedReadPending
+      if (scheduledReadReason === 'accepted-input') {
+        scheduledReadReason = 'command'
+      }
+      if (activeReadReason === 'accepted-input') {
+        activeReadReason = 'command'
+      }
       if (alreadyHasKnownIdentity) {
         hasKnownAgentEvidence = true
       }
