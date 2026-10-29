@@ -81,6 +81,7 @@ jobs:
             /config/scripts/pr-layout-oracle-route.mjs
             /config/scripts/pr-e2e-source-routing.mjs
             /config/scripts/pr-browser-e2e-source-routes.mjs
+            /config/scripts/pr-editor-preview-e2e-source-routes.mjs
             /config/scripts/ci-e2e-job-selection.mjs
             /config/scripts/pr-ready-check-reuse.mjs
           sparse-checkout-cone-mode: false
@@ -502,6 +503,14 @@ jobs:
         if: needs.code_paths.outputs.static_analysis == 'true'
         run: bun config/scripts/audit-localization-coverage.mjs --check
 
+      - name: Verify mobile localization
+        if: needs.code_paths.outputs.static_analysis == 'true'
+        run: bun config/scripts/verify-mobile-localization.mjs
+
+      - name: Verify mobile localization coverage
+        if: needs.code_paths.outputs.static_analysis == 'true'
+        run: bun run verify:mobile-localization-coverage
+
       - wait: [localization-catalogs, localization-extraction]
 
       # Keep project declarations in .ts: skipLibCheck silently widened unresolved .d.ts names to any, hiding #1186 IPC breakage. See .github/CONTRIBUTING.md#type-declarations-prefer-ts-over-dts.
@@ -870,6 +879,7 @@ jobs:
             src/main/runtime/structured-session-cli-login-shell.live-shell.test.ts \
             src/renderer/src/components/terminal-pane/fish-color-scheme-child-stdin.node-pty.test.ts \
             src/shared/fish-query-reply-child-stdin.node-pty.test.ts \
+            src/shared/fish-wsl-cwd-report.node-pty.test.ts \
             src/shared/pty-reply-echo-shapes.node-pty.test.ts \
             src/shared/startup-shell-portability.live-shell.test.ts \
             src/shared/posix-command-path-lookup.test.ts
@@ -1104,6 +1114,7 @@ jobs:
           src/main/browser/browser-client-page-renderer-lifecycle.electron.test.ts
           src/main/browser/browser-route-webrtc-egress.electron.test.ts
           src/main/persistence/profile-state/profile-state-writer-stall.electron.test.ts
+          src/main/browser/cookies/browser-google-cookie-clear.electron.test.ts
           src/main/browser/popup-origin-chrome.electron.test.ts
           src/main/browser/browser-link-materialization.electron.test.ts
           src/main/browser/browser-popup-compatibility.electron.test.ts
@@ -1452,6 +1463,7 @@ jobs:
       run_changed_e2e: true
       needs_build: true
       artifact_suffix: -layout-oracle
+      fast_runners: true
 
   # Keep native IME advisory while PR reliability is established (nightly 20/20, 2026-08-09..29, p50 3m25s); do not hide red via continue-on-error. To gate, add verify.needs, TERMINAL_IME_NATIVE env and separate success-or-skipped validation.
   terminal_ime_native:
