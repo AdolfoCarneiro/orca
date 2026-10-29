@@ -1,11 +1,5 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
-import { describe, expect, it, vi } from 'vitest'
-import { getDefaultSettings } from '../../../../shared/constants'
-import { AUTOMATION_SURFACE_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
-import type { Repo } from '../../../../shared/repo-types'
-import { unscopedAutomationListRows, type AutomationListRow } from './automation-list-row-identity'
 import {
   addRuntimeProject,
   api,
@@ -20,16 +14,24 @@ import {
   settleHostQueries
 } from './automations-page-test-harness'
 import {
+  CHAT_CAPABILITIES,
+  createRpcCalls,
+  draftRecord,
+  runtimeCreateReturns,
+  save
+} from './automations-page-actions-test-harness'
+import { act } from 'react'
+import { describe, expect, it, vi } from 'vitest'
+import { getDefaultSettings } from '../../../../shared/constants'
+import { AUTOMATION_SURFACE_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
+import type { Repo } from '../../../../shared/repo-types'
+import { unscopedAutomationListRows, type AutomationListRow } from './automation-list-row-identity'
+import {
   addSshHost,
   addSshProject,
   capableChatDestination,
-  CHAT_CAPABILITIES,
-  createRpcCalls,
   DESKTOP_SELF_KEY,
-  draftRecord,
-  runtimeCreateReturns,
   RUNTIME_SELF_KEY,
-  save,
   SSH_HOST_KEY,
   SSH_REPO_ID,
   SSH_TARGET_ID

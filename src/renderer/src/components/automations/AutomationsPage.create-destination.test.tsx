@@ -2,11 +2,6 @@
 
 /** Choose, display and revalidate the storage destination explicitly; workspace execution cannot infer authority, and stale destinations must preserve the refused form. */
 
-import { act } from 'react'
-import { getDefaultSettings } from '../../../../shared/constants'
-import { STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
-import type { HookCheckResult } from '@/runtime/runtime-hooks-client'
-import { describe, expect, it, vi } from 'vitest'
 import {
   addRuntimeProject,
   api,
@@ -22,21 +17,28 @@ import {
   settleHostQueries
 } from './automations-page-test-harness'
 import {
-  openCreateDialogFor,
+  CHAT_CAPABILITIES,
+  createRpcCalls,
+  draftRecord,
   holdRuntimeSave,
-  observeRuntimeIncarnation,
   learnRuntimeAgents,
+  observeRuntimeIncarnation,
+  openCreateDialogFor,
+  runtimeCreateReturns,
+  save
+} from './automations-page-actions-test-harness'
+import { act } from 'react'
+import { getDefaultSettings } from '../../../../shared/constants'
+import { STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
+import type { HookCheckResult } from '@/runtime/runtime-hooks-client'
+import { describe, expect, it, vi } from 'vitest'
+import {
   addSshHost,
   addSshProject,
   capableChatDestination,
-  CHAT_CAPABILITIES,
-  createRpcCalls,
   DESKTOP_SELF_KEY,
-  draftRecord,
   observeRuntimeChat,
-  runtimeCreateReturns,
   RUNTIME_SELF_KEY,
-  save,
   SSH_HOST_KEY,
   SSH_REPO_ID
 } from './automations-page-destination-fixtures'
@@ -294,7 +296,7 @@ describe('AutomationsPage create destination', () => {
       return await previous?.(target, method, params, options)
     })
     const { loadHostStructuredAgents } = await import('@/runtime/host-structured-agents')
-    const { REGISTERED_CHAT_CAPABILITIES } = await import('./automations-page-destination-fixtures')
+    const { REGISTERED_CHAT_CAPABILITIES } = await import('./automations-page-actions-test-harness')
     await loadHostStructuredAgents(`runtime:${RUNTIME_ID}`, REGISTERED_CHAT_CAPABILITIES, 'B')
     await held.page.rerender()
     await held.release()

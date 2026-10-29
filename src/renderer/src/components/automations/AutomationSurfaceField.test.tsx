@@ -9,6 +9,9 @@ import {
 } from './AutomationEditorDialog'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { makeStoreState } from './automations-page-fixtures'
+import type { AgentLaunchRouteStore } from '@/lib/agent-launch-route-input'
+import { getDefaultSettings } from '../../../../shared/constants'
+import type { RuntimeStatus } from '../../../../shared/runtime-types'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import {
   AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
@@ -57,9 +60,20 @@ import {
   resetHostStructuredAgentsForTests
 } from '@/runtime/host-structured-agents'
 
-let routeState = makeStoreState().state
+function makeRouteState(): AgentLaunchRouteStore {
+  return {
+    ...makeStoreState().state,
+    projects: [],
+    activeRepoId: null,
+    activeWorktreeId: null,
+    settings: getDefaultSettings('/tmp'),
+    runtimeStatusByEnvironmentId: new Map()
+  }
+}
+
+let routeState = makeRouteState()
 beforeEach(() => {
-  routeState = makeStoreState().state
+  routeState = makeRouteState()
   resetHostStructuredAgentsForTests()
   registryRpc.mockReset()
 })
@@ -281,21 +295,32 @@ it('observes only established current-runtime facts and retains independent defi
     false
   )
   const paired = { ...local, executionHostId: 'runtime:paired' }
+  const pairedStatus: RuntimeStatus = {
+    runtimeId: 'A',
+    rendererGraphEpoch: 0,
+    graphStatus: 'ready',
+    authoritativeWindowId: null,
+    liveTabCount: 0,
+    liveLeafCount: 0,
+    capabilities: registeredCapabilities
+  }
   routeState.runtimeStatusByEnvironmentId = new Map([
-    ['paired', { status: { runtimeId: 'A', capabilities: registeredCapabilities } }]
+    ['paired', { checkedAt: 0, status: pairedStatus }]
   ])
   registryRpc.mockResolvedValue({ agents: [{ agent: 'pi', capabilities: {} }] })
   await loadHostStructuredAgents('runtime:paired', registeredCapabilities, 'A')
   expect(automationChatSupport(routeState, pi, paired)).toBe(true)
   routeState.runtimeStatusByEnvironmentId = new Map([
-    ['paired', { status: { runtimeId: 'B', capabilities: registeredCapabilities } }]
+    ['paired', { checkedAt: 0, status: { ...pairedStatus, runtimeId: 'B' } }]
   ])
   expect(automationChatSupport(routeState, pi, paired)).toBeNull()
   routeState.runtimeStatusByEnvironmentId = new Map([
     [
       'paired',
       {
+        checkedAt: 0,
         status: {
+          ...pairedStatus,
           runtimeId: 'B',
           capabilities: registeredCapabilities.filter(
             (c) => c !== STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY

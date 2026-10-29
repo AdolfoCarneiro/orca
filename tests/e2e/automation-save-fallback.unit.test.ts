@@ -10,7 +10,7 @@ import {
   holdRuntimeSave,
   observeRuntimeIncarnation,
   REGISTERED_CHAT_CAPABILITIES
-} from '../../src/renderer/src/components/automations/automations-page-destination-fixtures'
+} from '../../src/renderer/src/components/automations/automations-page-actions-test-harness'
 import {
   closeTestStores,
   createStore,
@@ -53,15 +53,31 @@ it('settles the actual implicit late-false save with real final-store refusal of
         repo,
         workspace: _workspace,
         destination: _destination,
+        workspaceMode,
+        timezone,
         ...input
       } = AutomationCreate.parse(payload)
       expect(repo).toBe(`id:${RUNTIME_REPO_ID}`)
-      return { automation: disk.createAutomation({ ...input, projectId: RUNTIME_REPO_ID }) }
+      if (workspaceMode !== 'new_per_run') {
+        throw new Error('Expected actual new_per_run workspace mode')
+      }
+      if (typeof timezone !== 'string' || timezone.trim().length === 0) {
+        throw new Error('Expected actual nonempty timezone')
+      }
+      return {
+        automation: disk.createAutomation({
+          ...input,
+          workspaceMode,
+          timezone,
+          projectId: RUNTIME_REPO_ID
+        })
+      }
     })
     await held.page.rerender()
     await held.release()
     expect(createRpcCalls()).toHaveLength(1)
     expect(createRpcCalls()[0]?.[2]).not.toHaveProperty('launchSetupPatch')
+    expect(create).toHaveBeenCalledOnce()
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ extraAgentArgs: '--resume x' }))
     expect(create.mock.results[0]?.type).toBe('throw')
     expect(disk.listAutomations()).toEqual(before)
