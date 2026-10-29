@@ -101,10 +101,14 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
     const pty = this.ptysById.get(ptyId)
     // Only quiet-window refusal expires with time; schedule just beyond it and re-arm from fresher output if still streaming.
     const elapsed = pty?.lastOutputAt ? Date.now() - pty.lastOutputAt : 0
+    const quietRemainingMs = TUI_IDLE_QUIESCENCE_MS - elapsed
+    const holding = this.isPtyHoldingDelivery(ptyId)
+    // A refusal that outlived the quiet window is not time-bound; the next output, title or mail edge rechecks it.
+    if (!holding && quietRemainingMs <= 0 && pty?.lastOutputAt) {
+      return
+    }
     // A dialog or draft lifts only when the user acts, so poll it slowly rather than at 20 Hz.
-    const delay = this.isPtyHoldingDelivery(ptyId)
-      ? DIALOG_HOLD_RECHECK_MS
-      : Math.max(TUI_IDLE_QUIESCENCE_MS - elapsed, 0) + 50
+    const delay = holding ? DIALOG_HOLD_RECHECK_MS : Math.max(quietRemainingMs, 0) + 50
     const timer = setTimeout(() => {
       this.deliveryRecheckTimersByPtyId.delete(ptyId)
       // Delivery rechecks settlement first; the agent may have become busy again.
