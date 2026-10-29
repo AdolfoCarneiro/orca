@@ -36,6 +36,10 @@ function sourceWriteContracts(
   set({ ...finished, editorDrafts: { b: 'unreported' } })
   // @ts-expect-error sequences require a collector or explicit ingress.
   set({ openFiles: [] })
+  // @ts-expect-error narrowing the edit's state cannot authorize a hidden source field.
+  editSessionSource({ sortEpoch: 0 }).finish({ editorDrafts: { a: 'unreported' } })
+  // @ts-expect-error an empty state cannot manufacture an accepted source partial.
+  editSessionSource({}).finish({ openFiles: [] })
   // @ts-expect-error a narrowed setter cannot be exposed as a broad Zustand setter.
   const broad: StoreApi<State>['setState'] = set
   // @ts-expect-error a broad setter cannot apply the opaque result contract.

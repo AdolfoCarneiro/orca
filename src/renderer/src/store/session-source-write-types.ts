@@ -12,7 +12,7 @@ export type Entry<S, F extends RecordKey<S>> =
 export type OrdinarySourcePartial<S> = Partial<
   Omit<S, Exclude<SourceKey<S>, SessionSourceKind<'field'>>>
 > &
-  Partial<Record<Exclude<SourceKey<S>, SessionSourceKind<'field'>>, never>> & {
+  Partial<Record<SessionSourceKind<'keyed' | 'sequence'>, never>> & {
     readonly sourceWrite?: never
   }
 export type SessionSourcePartial<S> = OrdinarySourcePartial<S> | SessionSourceWrite<S>
