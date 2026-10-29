@@ -22,10 +22,10 @@ function webBody(response: Readable, request: ClientRequest): ReadableStream<Uin
   })
 }
 
-/** Use net.request: net.fetch rejects manual redirects, but icon fetching must vet every hop. Proxy challenges are cancelled. */
-export function fetchRepoIconWithManualRedirects(
+/** net.fetch rejects manual redirects; expose each hop so callers can validate its destination. */
+export function fetchWithElectronManualRedirects(
   url: string,
-  init: RequestInit
+  init: RequestInit = {}
 ): Promise<Response> {
   const { signal } = init
   if (signal?.aborted) {
