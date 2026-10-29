@@ -24,7 +24,7 @@ import {
   RUNTIME_PROTOCOL_VERSION
 } from '../../../../shared/protocol-version'
 import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
-import { RichMarkdownImageClipboard } from './rich-markdown-image-clipboard'
+import { RichMarkdownClipboardOrigin } from './rich-markdown-clipboard-origin'
 import { handleRichMarkdownImageDrop } from './rich-markdown-image-drop'
 import { setRichMarkdownImageResolverContext } from './rich-markdown-image-context'
 
@@ -146,7 +146,7 @@ function createEditor(owner: string | null, filePath: string, content: string): 
     extensions: [
       StarterKit,
       Image.configure({ inline: true }),
-      RichMarkdownImageClipboard,
+      RichMarkdownClipboardOrigin,
       Markdown
     ],
     content,

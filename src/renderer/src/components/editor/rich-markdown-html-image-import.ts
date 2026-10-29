@@ -5,11 +5,11 @@ import { assertClipboardImageBase64LengthWithinLimit } from '../../../../shared/
 import { readLocalImagePreview } from './local-image-src-reader'
 import {
   readRichMarkdownClipboardImageSources,
+  sameRichMarkdownClipboardFileOwner,
   type RichMarkdownClipboardImageSource
-} from './rich-markdown-image-clipboard'
+} from './rich-markdown-clipboard-origin'
 import { basename, dirname } from '@/lib/path'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
-import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
 import { blobToBase64, convertImageBlobToPng } from '@/lib/image-blob-png'
 import { importRuntimeImage } from '@/runtime/runtime-image-import-client'
 import { createRuntimeImportSessionGuard } from '@/runtime/runtime-file-mutation-rpc'
@@ -107,7 +107,7 @@ export function handleRichMarkdownHtmlImageImport({
       }
       source.assertCurrent?.()
       if (
-        sameImageFileOwner(source.runtimeContext, destination.context) &&
+        sameRichMarkdownClipboardFileOwner(source.runtimeContext, destination.context) &&
         normalizeRuntimePathForComparison(dirname(source.filePath)) ===
           normalizeRuntimePathForComparison(dirname(filePath))
       ) {
@@ -258,18 +258,4 @@ async function readCopiedImage(
   }
   assertClipboardImageBase64LengthWithinLimit(result.content.length)
   return new Blob([decodeBase64Bytes(result.content)], { type: result.mimeType ?? 'image/png' })
-}
-
-function sameImageFileOwner(
-  source: RichMarkdownClipboardImageSource['runtimeContext'],
-  destination: RuntimeFileOperationArgs
-): boolean {
-  return (
-    (source?.target.kind ?? 'local') === destination.target.kind &&
-    (source?.target.kind !== 'environment' ||
-      (destination.target.kind === 'environment' &&
-        source.target.environmentId === destination.target.environmentId)) &&
-    (source?.connectionId ?? null) === (destination.connectionId ?? null) &&
-    source?.expectedExternalSshTargetId === destination.expectedExternalSshTargetId
-  )
 }

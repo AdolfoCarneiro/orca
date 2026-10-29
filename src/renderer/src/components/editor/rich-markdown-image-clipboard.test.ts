@@ -14,7 +14,7 @@ import { SaveImageAsTempFile } from '../../../../shared/rpc-contract/clipboard-p
 import type { RuntimeRpcRequest } from '@/runtime/runtime-file-client-test-harness'
 import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
 import { setRichMarkdownImageResolverContext } from './rich-markdown-image-context'
-import { RichMarkdownImageClipboard } from './rich-markdown-image-clipboard'
+import { RichMarkdownClipboardOrigin } from './rich-markdown-clipboard-origin'
 import { handleRichMarkdownImageDrop } from './rich-markdown-image-drop'
 
 vi.mock('@/store', () => ({
@@ -70,7 +70,7 @@ function createEditor(content: string | JSONContent, filePath = '/source/note.md
     extensions: [
       StarterKit,
       Image.configure({ inline: true, allowBase64: true }),
-      RichMarkdownImageClipboard,
+      RichMarkdownClipboardOrigin,
       TableKit,
       Markdown
     ],
@@ -159,6 +159,46 @@ afterEach(() => {
   editors.splice(0).forEach((editor) => editor.destroy())
   document.body.replaceChildren()
   vi.useRealTimers()
+})
+
+it('rebases a copied link while importing its neighboring image through native paste parsing', async () => {
+  const source = createEditor('[guide](./guide.md) ![image](image.png)')
+  const target = createEditor('', '/target/note.md')
+  target.setOptions({
+    editorProps: {
+      ...target.options.editorProps,
+      handlePaste: (view, event, slice) =>
+        handleRichMarkdownPaste({
+          editor: target,
+          event,
+          filePath: '/target/note.md',
+          worktreeId: '',
+          slice,
+          view
+        })
+    }
+  })
+  const imported = new Promise<void>((resolve) => {
+    const onUpdate = (): void => {
+      if (target.getMarkdown().includes('copy-')) {
+        target.off('update', onUpdate)
+        resolve()
+      }
+    }
+    target.on('update', onUpdate)
+  })
+  const html = serialize(source)
+  const clipboardData = new DataTransfer()
+  clipboardData.setData('text/html', html)
+  expect(
+    target.view.pasteHTML(html, new ClipboardEvent('paste', { clipboardData, cancelable: true }))
+  ).toBe(true)
+  await imported
+  expect(target.view.dom.querySelector('a')?.getAttribute('href')).toBe('../source/guide.md')
+  expect(target.getMarkdown()).toContain('![image](copy-1.png)')
+  expect(
+    [...files.values()].filter((bytes) => bytes === btoa('original image bytes'))
+  ).toHaveLength(3)
 })
 
 it('imports a closed source selection once, preserves its marks and image attributes, and undoes it', async () => {

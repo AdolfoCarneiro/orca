@@ -9,7 +9,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
 import { handleRichMarkdownImageDrop } from './rich-markdown-image-drop'
 import { setRichMarkdownImageResolverContext } from './rich-markdown-image-context'
-import { RichMarkdownImageClipboard } from './rich-markdown-image-clipboard'
+import { RichMarkdownClipboardOrigin } from './rich-markdown-clipboard-origin'
 
 vi.mock('@/store', () => ({
   useAppStore: {
@@ -32,7 +32,7 @@ function createEditor(content: JSONContent, filePath = '/source/note.md'): Edito
     extensions: [
       StarterKit,
       Image.configure({ inline: true }),
-      RichMarkdownImageClipboard,
+      RichMarkdownClipboardOrigin,
       TableKit,
       Markdown
     ],
@@ -110,6 +110,7 @@ async function closeCopiedEditorsWhileReading(started: Promise<void>, operation:
         type: 'paragraph',
         content: [
           { type: 'text', text: 'x'.repeat(1024 * 1024) },
+          { type: 'text', text: 'guide', marks: [{ type: 'link', attrs: { href: './guide.md' } }] },
           { type: 'image', attrs: { src: 'image.png' } }
         ]
       }
@@ -124,8 +125,9 @@ async function closeCopiedEditorsWhileReading(started: Promise<void>, operation:
   if (imagePosition < 0) {
     throw new Error('Missing source image')
   }
-  source.commands.setNodeSelection(imagePosition)
+  source.commands.setTextSelection({ from: imagePosition - 5, to: imagePosition + 1 })
   const html = source.view.serializeForClipboard(source.state.selection.content()).dom.innerHTML
+  expect(html).toContain('data-orca-link-clipboard-origin=')
   const target = createEditor(
     {
       type: 'doc',
