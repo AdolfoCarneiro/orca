@@ -148,7 +148,7 @@ describe('rich markdown editing with Find open', () => {
       const { editor, mounted, input, shortcut, scrollTo, dispose } = fixture
       try {
         if (entry === 'Replace Escape') {
-          fireEvent.click(mounted.getByRole('button', { name: 'Toggle replace', exact: true }))
+          fireEvent.click(mounted.getByRole('button', { name: 'Toggle replace' }))
           act(() =>
             mounted.getByRole('textbox', { name: 'Replace in rich markdown editor' }).focus()
           )
