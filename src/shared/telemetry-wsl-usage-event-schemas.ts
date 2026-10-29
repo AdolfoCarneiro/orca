@@ -47,7 +47,9 @@ export const wslUsageSnapshotSchema = z
     project_distros_used: countBucketSchema,
     wsl_hosts_gate_open: z.boolean(),
     /** open / serve-only / closed. Optional, so older builds' payloads still validate. */
-    wsl_hosts_gate_state: z.enum(['open', 'serve-only', 'closed']).optional()
+    wsl_hosts_gate_state: z.enum(['open', 'serve-only', 'closed']).optional(),
+    /** A cached remote policy closed the gate this launch opened. Optional, for older builds. */
+    wsl_hosts_policy_blocked: z.boolean().optional()
   })
   .strict()
 

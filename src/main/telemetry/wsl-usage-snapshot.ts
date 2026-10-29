@@ -34,6 +34,8 @@ export type WslUsageSnapshotInput = {
   windowsDriveReposWithWslWorktrees: number
   wslHostsGateOpen: boolean
   wslHostsGateState?: WslHostsGateState
+  /** The launch environment opened the gate but a cached remote policy closed it. */
+  wslHostsPolicyBlocked?: boolean
 }
 
 /** `2.4.13.0` → `2.4`; anything else is dropped rather than sent. */
@@ -116,6 +118,9 @@ export function buildWslUsageSnapshot(input: WslUsageSnapshotInput): WslUsageSna
     ),
     project_distros_used: bucketWslUsageCount(projectDistros.size),
     wsl_hosts_gate_open: input.wslHostsGateOpen,
-    ...(input.wslHostsGateState ? { wsl_hosts_gate_state: input.wslHostsGateState } : {})
+    ...(input.wslHostsGateState ? { wsl_hosts_gate_state: input.wslHostsGateState } : {}),
+    ...(input.wslHostsPolicyBlocked !== undefined
+      ? { wsl_hosts_policy_blocked: input.wslHostsPolicyBlocked }
+      : {})
   }
 }

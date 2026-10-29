@@ -14,6 +14,7 @@ import { getCanonicalUserDataPath } from '../persistence'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { loadWslMoveFence } from '../persistence/moving-wsl-projects/wsl-move-scope-guard'
 import { startWslMoveStartup } from '../persistence/moving-wsl-projects/wsl-move-startup'
+import { startWslHostsPolicyLiveUpdates } from '../wsl/wsl-hosts-policy-live-update'
 import { createProfileStateStoreForStartup } from '../persistence/profile-state/profile-state-startup-authority'
 import { getProfileUserDataPath } from '../orca-profiles/profile-storage-paths'
 import { initializeBrowserClientHostId } from '../browser/browser-client-host-id'
@@ -181,6 +182,9 @@ export async function initializeReadyFoundation(): Promise<void> {
     }
   )
   installElectronProxyRequestGuard(session.defaultSession)
+  if (!state.isServeMode) {
+    void state.initialProxyApplicationReady.then(startWslHostsPolicyLiveUpdates)
+  }
   // Wait for profile-sidecar location, then defer potentially blocking OS-keyring probes past first paint (STA-5765).
   scheduleSecretProtectionGapReport({
     dataFile: profile.dataFile,

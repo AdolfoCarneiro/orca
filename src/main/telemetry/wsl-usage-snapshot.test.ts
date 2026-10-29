@@ -125,6 +125,13 @@ describe('buildWslUsageSnapshot', () => {
     expect(buildWslUsageSnapshot(baseInput)).not.toHaveProperty('wsl_hosts_gate_state')
   })
 
+  it('reports a remote policy block when known, as an optional field', () => {
+    const props = buildWslUsageSnapshot({ ...baseInput, wslHostsPolicyBlocked: true })
+    expect(props.wsl_hosts_policy_blocked).toBe(true)
+    expect(validate('wsl_usage_snapshot', props).ok).toBe(true)
+    expect(buildWslUsageSnapshot(baseInput)).not.toHaveProperty('wsl_hosts_policy_blocked')
+  })
+
   it('reports no WSL and an unreadable registry without a version', () => {
     const props = buildWslUsageSnapshot({
       ...baseInput,
