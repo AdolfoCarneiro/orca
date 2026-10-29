@@ -77,6 +77,7 @@ async function setup(
     foreignToken?: boolean
   } = {}
 ) {
+  const inputHooks = options.throwOnce ? [hooks[1]] : hooks
   const parent = await load('parent'),
     child = await load('child')
   let oldKill = parent.find((r) => r.subtype === 'agents_killed')!
@@ -100,7 +101,7 @@ async function setup(
     servers.push(previous)
     await previous.start(startOptions)
     for (let i = 0; i < (options.paneCount ?? 1); i++) {
-      for (const h of hooks) {
+      for (const h of inputHooks) {
         expect(
           (
             await postHookEvent(previous, {
@@ -123,7 +124,7 @@ async function setup(
       join(endpointDir, 'spool', 'claude.jsonl'),
       lines(
         Array.from({ length: options.paneCount ?? 1 }, (_, i) =>
-          hooks.map((h) => ({
+          inputHooks.map((h) => ({
             ...body(h),
             paneKey: i === 0 ? PANE : PANE.slice(0, -12) + (i + 1).toString(16).padStart(12, '0'),
             source: 'claude',
@@ -171,6 +172,14 @@ async function setup(
     if (kind === 'desktop-spool' && starting) {
       options.admitted?.()
     }
+    if (options.throwOnce && !threw && event.hookEventName === 'SubagentStart') {
+      threw = true
+      appendFileSync(
+        transcript,
+        lines([{ ...oldKill, timestamp: new Date(Date.now()).toISOString() }])
+      )
+      throw new Error('test outward listener')
+    }
     if (event.hookEventName !== 'Stop') {
       return
     }
@@ -179,10 +188,6 @@ async function setup(
         expect(Reflect.get(desktop, 'server')).toBe(null)
       }
       beforeBind()
-    }
-    if (options.throwOnce && !threw) {
-      threw = true
-      throw new Error('test outward listener')
     }
   })
   const relay = new RelayAgentHookServer({
@@ -197,10 +202,6 @@ async function setup(
       desktop.ingestRemote(e, 'connection')
       if (kind === 'relay-spool' && e.hookEventName === 'Stop') {
         beforeBind()
-      }
-      if (options.throwOnce && !threw && e.hookEventName === 'Stop') {
-        threw = true
-        throw new Error('test outward forward')
       }
     }
   })
@@ -243,7 +244,7 @@ async function setup(
     }
   }
   if (!kind.endsWith('spool')) {
-    for (const h of hooks) {
+    for (const h of inputHooks) {
       await post(h)
     }
   }
@@ -308,15 +309,14 @@ it.each([
 it.each(['desktop-http', 'relay-http', 'desktop-spool', 'relay-spool'])(
   'retains accepted observation when %s fanout throws',
   async (kind) => {
-    const p = await setup(kind, 'before-start', { throwOnce: true })
+    const p = await setup(kind, 'accepted-before-bind', { throwOnce: true })
     expect(p.threw).toBe(true)
     expect(p.entries.size).toBe(1)
-    await appendFile(p.transcript, lines([{ ...p.oldKill, timestamp: new Date().toISOString() }]))
     await vi.waitFor(() => expect(p.row()?.subagents ?? []).toEqual([]), {
       timeout: 3000,
       interval: 30
     })
-    expect(p.row()?.workingMode).toBe('monitoring')
+    expect(p.row()?.state).toBe('working') // Unknown root remains live; no parent hook was supplied.
   }
 )
 
