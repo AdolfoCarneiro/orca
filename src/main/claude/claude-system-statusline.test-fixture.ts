@@ -2,9 +2,8 @@ import * as fs from 'node:fs/promises'
 import type * as syncFs from 'node:fs'
 import * as os from 'node:os'
 import type * as childProcess from 'node:child_process'
-import { promisify } from 'node:util'
 import { dirname, join } from 'node:path'
-import { afterEach, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, expect, vi } from 'vitest'
 import type { applyAgentStatusHooksEnabled as ApplyManagedHooks } from '../agent-hooks/managed-agent-hook-controls'
 const seam = vi.hoisted(
   (): {
@@ -32,19 +31,20 @@ const seam = vi.hoisted(
   })
 )
 vi.mock('node:child_process', async (original) => {
+  const { promisify } = await import('node:util')
   const actual = await original<typeof childProcess>()
   const originalAsync = promisify(actual.execFile)
-  const execFile = (...args: unknown[]) => {
+  const execFile = vi.fn<typeof actual.execFile>((...args) => {
     seam.probes++
-    return Reflect.apply(actual.execFile, undefined, args)
-  }
+    return actual.execFile(...args)
+  })
   Object.defineProperty(execFile, promisify.custom, {
-    value: (...args: unknown[]) => {
+    value: (...args: Parameters<typeof originalAsync>) => {
       seam.probes++
       if (seam.unavailableHost && (args[0] === 'ioreg' || String(args[0]).endsWith('reg.exe'))) {
         throw new Error('Host probe unavailable')
       }
-      return Reflect.apply(originalAsync, undefined, args)
+      return originalAsync(...args)
     }
   })
   return { ...actual, execFile }
@@ -75,89 +75,103 @@ vi.mock('../../cli/profile-state-location', () => ({
 }))
 vi.mock('node:fs/promises', async (original) => {
   const actual = await original<typeof fs>()
+  async function observe<T>(
+    method: string,
+    path: syncFs.PathLike | fs.FileHandle,
+    run: () => Promise<T>,
+    data?: string | NodeJS.ArrayBufferView
+  ) {
+    const name = String(path)
+    const key = `${method}:${name}`
+    seam.calls?.set(key, (seam.calls.get(key) ?? 0) + 1)
+    await seam.before?.(method, name)
+    if (seam.unavailableHost && name.startsWith('/var/tmp/orca-managed-hooks-')) {
+      throw new Error('Host token storage unavailable')
+    }
+    const result = await run()
+    if (
+      method === 'stat' &&
+      name === seam.zeroParent &&
+      typeof result === 'object' &&
+      result !== null
+    ) {
+      Reflect.set(result, 'dev', 0n)
+      Reflect.set(result, 'ino', 0n)
+    }
+    const payload = method === 'readFile' ? result : data
+    if (typeof payload === 'string' || Buffer.isBuffer(payload)) {
+      seam.bytes?.set(key, (seam.bytes.get(key) ?? 0) + Buffer.byteLength(payload))
+    }
+    await seam.after?.(method, name)
+    return result
+  }
   return {
     ...actual,
-    ...Object.fromEntries(
-      (
-        [
-          'readFile',
-          'realpath',
-          'stat',
-          'lstat',
-          'rename',
-          'rm',
-          'writeFile',
-          'readdir',
-          'link',
-          'copyFile',
-          'mkdir',
-          'chmod'
-        ] as const
-      ).map((method) => [
-        method,
-        async (...args: unknown[]) => {
-          const path = String(
-            method === 'rename' || method === 'link' || method === 'copyFile' ? args[1] : args[0]
-          )
-          seam.calls?.set(`${method}:${path}`, (seam.calls.get(`${method}:${path}`) ?? 0) + 1)
-          await seam.before?.(method, path)
-          if (seam.unavailableHost && path.startsWith('/var/tmp/orca-managed-hooks-')) {
-            throw new Error('Host token storage unavailable')
-          }
-          const result = await Reflect.apply(actual[method], undefined, args)
-          if (
-            method === 'stat' &&
-            path === seam.zeroParent &&
-            typeof result === 'object' &&
-            result !== null
-          ) {
-            Reflect.set(result, 'dev', 0n)
-            Reflect.set(result, 'ino', 0n)
-          }
-          const payload = method === 'readFile' ? result : method === 'writeFile' ? args[1] : null
-          if (typeof payload === 'string' || Buffer.isBuffer(payload)) {
-            seam.bytes?.set(
-              `${method}:${path}`,
-              (seam.bytes.get(`${method}:${path}`) ?? 0) + Buffer.byteLength(payload)
-            )
-          }
-          if (method === 'copyFile' && seam.bytes) {
-            seam.bytes.set(
-              `${method}:${path}`,
-              (seam.bytes.get(`${method}:${path}`) ?? 0) + (await actual.stat(String(args[0]))).size
-            )
-          }
-          await seam.after?.(method, path)
-          return result
+    readFile: (...args: Parameters<typeof actual.readFile>) =>
+      observe('readFile', args[0], () => actual.readFile(...args)),
+    realpath: (...args: Parameters<typeof actual.realpath>) =>
+      observe('realpath', args[0], () => actual.realpath(...args)),
+    stat: (...args: Parameters<typeof actual.stat>) =>
+      observe('stat', args[0], () => actual.stat(...args)),
+    lstat: (...args: Parameters<typeof actual.lstat>) =>
+      observe('lstat', args[0], () => actual.lstat(...args)),
+    rename: (...args: Parameters<typeof actual.rename>) =>
+      observe('rename', args[1], () => actual.rename(...args)),
+    rm: (...args: Parameters<typeof actual.rm>) => observe('rm', args[0], () => actual.rm(...args)),
+    writeFile: (...args: Parameters<typeof actual.writeFile>) =>
+      observe(
+        'writeFile',
+        args[0],
+        () => actual.writeFile(...args),
+        typeof args[1] === 'string' || Buffer.isBuffer(args[1]) ? args[1] : undefined
+      ),
+    readdir: (...args: Parameters<typeof actual.readdir>) =>
+      observe('readdir', args[0], () => actual.readdir(...args)),
+    link: (...args: Parameters<typeof actual.link>) =>
+      observe('link', args[1], () => actual.link(...args)),
+    copyFile: (...args: Parameters<typeof actual.copyFile>) =>
+      observe('copyFile', args[1], async () => {
+        const result = await actual.copyFile(...args)
+        const key = `copyFile:${String(args[1])}`
+        if (seam.bytes) {
+          seam.bytes.set(key, (seam.bytes.get(key) ?? 0) + (await actual.stat(args[0])).size)
         }
-      ])
-    )
+        return result
+      }),
+    mkdir: (...args: Parameters<typeof actual.mkdir>) =>
+      observe('mkdir', args[0], () => actual.mkdir(...args)),
+    chmod: (...args: Parameters<typeof actual.chmod>) =>
+      observe('chmod', args[0], () => actual.chmod(...args))
   }
 })
 vi.mock('node:fs', async (original) => {
   const actual = await original<typeof syncFs>()
+  function observe<T>(
+    method: string,
+    path: syncFs.PathOrFileDescriptor,
+    run: () => T,
+    data?: unknown
+  ) {
+    const key = `${method}:${String(path)}`
+    seam.calls?.set(key, (seam.calls.get(key) ?? 0) + 1)
+    const result = run()
+    seam.syncAfter?.(method, String(path))
+    const payload = method === 'readFileSync' ? result : data
+    if (typeof payload === 'string' || Buffer.isBuffer(payload)) {
+      seam.bytes?.set(key, (seam.bytes.get(key) ?? 0) + Buffer.byteLength(payload))
+    }
+    return result
+  }
   return {
     ...actual,
-    ...Object.fromEntries(
-      (['readFileSync', 'writeFileSync', 'copyFileSync', 'renameSync'] as const).map((method) => [
-        method,
-        (...args: unknown[]) => {
-          const path = String(
-            method === 'copyFileSync' || method === 'renameSync' ? args[1] : args[0]
-          )
-          const key = `${method}:${path}`
-          seam.calls?.set(key, (seam.calls.get(key) ?? 0) + 1)
-          const result = Reflect.apply(actual[method], undefined, args)
-          seam.syncAfter?.(method, path)
-          const payload =
-            method === 'readFileSync' ? result : method === 'writeFileSync' ? args[1] : null
-          if (typeof payload === 'string' || Buffer.isBuffer(payload)) {
-            seam.bytes?.set(key, (seam.bytes.get(key) ?? 0) + Buffer.byteLength(payload))
-          }
-          return result
-        }
-      ])
-    )
+    readFileSync: (...args: Parameters<typeof actual.readFileSync>) =>
+      observe('readFileSync', args[0], () => actual.readFileSync(...args)),
+    writeFileSync: (...args: Parameters<typeof actual.writeFileSync>) =>
+      observe('writeFileSync', args[0], () => actual.writeFileSync(...args), args[1]),
+    copyFileSync: (...args: Parameters<typeof actual.copyFileSync>) =>
+      observe('copyFileSync', args[1], () => actual.copyFileSync(...args)),
+    renameSync: (...args: Parameters<typeof actual.renameSync>) =>
+      observe('renameSync', args[1], () => actual.renameSync(...args))
   }
 })
 import { ClaudeHookService } from './hook-service'
@@ -178,7 +192,7 @@ let Service = ClaudeHookService
 const service = () => new Service()
 const file = (name: string) => join(seam.home, name, 'settings.json')
 const read = async (path: string) => JSON.parse(await fs.readFile(path, 'utf8'))
-const write = async (path: string, config: object) => {
+const write = async (path: string, config: Parameters<typeof getStatusLineSlotState>[0]) => {
   await fs.mkdir(dirname(path), { recursive: true })
   await fs.writeFile(path, JSON.stringify(config))
 }
@@ -246,4 +260,43 @@ export {
 export async function resetService() {
   vi.resetModules()
   Service = (await import('./hook-service')).ClaudeHookService
+}
+
+export async function pausedEdit(
+  boundary: (method: string, path: string) => boolean,
+  operation: () => ReturnType<typeof install>,
+  edit: () => Promise<void>
+) {
+  const entered = Promise.withResolvers<void>()
+  const released = Promise.withResolvers<void>()
+  let held = false
+  let expired = false
+  const emergency = setTimeout(() => {
+    expired = true
+    released.resolve()
+    entered.resolve()
+  }, 3000)
+  seam.before = async (method, path) => {
+    if (!held && boundary(method, path)) {
+      held = true
+      entered.resolve()
+      await released.promise
+    }
+  }
+  const pending = operation()
+  try {
+    await entered.promise
+    expect(held).toBe(true)
+    expect(expired).toBe(false)
+    await edit()
+    released.resolve()
+    const result = await pending
+    expect(expired).toBe(false)
+    return result
+  } finally {
+    released.resolve()
+    await pending
+    clearTimeout(emergency)
+    seam.before = null
+  }
 }

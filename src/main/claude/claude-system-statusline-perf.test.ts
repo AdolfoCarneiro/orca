@@ -1,6 +1,12 @@
 import { expect, it, vi } from 'vitest'
 import * as fs from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
+import { getManagedScriptPath, getStatusLineScriptPath } from './hook-settings'
+import {
+  getWindowsClaudeHookPayloadPath,
+  getWindowsClaudeHookExecutablePath
+} from './windows-hook-files'
+import { resolveBundledWindowsNativeHookExecutable } from '../agent-hooks/windows-native-hook-executable'
 import {
   seam,
   file,
@@ -51,7 +57,24 @@ it('measures current-only System work and exact index bytes at 100 and 1000 prod
       await fs.writeFile(join(seam.home, '.orca', `unrelated-${index}`), '')
     }
     const meta = await documentPath()
-    const measure = async (name: string, action: () => Promise<unknown>) => {
+    const dependencyRoot = join(seam.home, '.orca', 'agent-hooks')
+    const bundled =
+      process.platform === 'win32' ? resolveBundledWindowsNativeHookExecutable() : null
+    const dependency = (path: string) =>
+      path.startsWith(`${dependencyRoot}${sep}`) || path === bundled
+    const expected = new Set([getManagedScriptPath(), getStatusLineScriptPath()])
+    if (process.platform === 'win32') {
+      expected.add(getWindowsClaudeHookPayloadPath(getManagedScriptPath()))
+      if (bundled) {
+        expected.add(bundled)
+        expected.add(getWindowsClaudeHookExecutablePath(getManagedScriptPath()))
+      }
+    }
+    const measure = async (
+      name: string,
+      action: () => Promise<unknown>,
+      verifyDependencies = false
+    ) => {
       seam.calls = new Map()
       seam.bytes = new Map()
       seam.probes = 0
@@ -78,6 +101,15 @@ it('measures current-only System work and exact index bytes at 100 and 1000 prod
             sum + (key.startsWith(`${method}:`) && accepts(key.slice(method.length + 1)) ? n : 0),
           0
         )
+      const dependencyEntries = [...seam.calls].filter(
+        ([key]) => key.startsWith('readFileSync:') && dependency(key.slice('readFileSync:'.length))
+      )
+      if (verifyDependencies) {
+        expect(
+          new Set(dependencyEntries.map(([key]) => key.slice('readFileSync:'.length)))
+        ).toEqual(expected)
+        expect(dependencyEntries.every(([, n]) => n === 1)).toBe(true)
+      }
       const row = {
         population,
         nextAgentMs,
@@ -106,19 +138,18 @@ it('measures current-only System work and exact index bytes at 100 and 1000 prod
         serializedBytes: count('writeFile', (path) => path.startsWith(`${meta}.`), seam.bytes),
         indexBackupBytes: count('copyFile', (path) => path.startsWith(`${meta}.bak.`), seam.bytes),
         indexWrites: count('rename', (path) => path === meta),
-        settingsWrites: count('rename', (path) => path.endsWith('/settings.json')),
+        settingsWrites: count('rename', (path) => path === file(name)),
         copies: count('copyFile', () => true),
         renames: count('rename', () => true),
-        dependencyReads: count('readFileSync', (path) => path.includes('/agent-hooks/')),
-        dependencyBytes: count(
-          'readFileSync',
-          (path) => path.includes('/agent-hooks/'),
-          seam.bytes
-        ),
+        dependencyReads: count('readFileSync', dependency),
+        dependencyBytes: count('readFileSync', dependency, seam.bytes),
         dependencyCopies: count('copyFileSync', () => true),
         dependencyRenames: count('renameSync', () => true),
         unrelatedNames: count('readdir', (path) => path === join(seam.home, '.orca')),
-        lockListings: count('readdir', (path) => path.endsWith('/lock')),
+        lockListings: count(
+          'readdir',
+          (path) => path === join(dependencyRoot, 'claude-statusline', 'lock')
+        ),
         probes: seam.probes
       }
       seam.calls = seam.bytes = null
@@ -132,10 +163,10 @@ it('measures current-only System work and exact index bytes at 100 and 1000 prod
       return row
     }
     const unchanged = await fs.readFile(meta, 'utf8')
-    const m = await measure('r0000', () => install('r0000'))
+    const m = await measure('r0000', () => install('r0000'), true)
     expect(m.indexWrites).toBe(0)
     expect(m.settingsWrites).toBe(0)
-    expect(m.dependencyReads).toBe(2) // One event script preparation and one callback script verification.
+    expect(m.dependencyReads).toBe(expected.size) // Fixed native-host dependencies, each verified once.
     expect(m.dependencyCopies + m.dependencyRenames).toBe(0)
     expect(await fs.readFile(meta, 'utf8')).toBe(unchanged)
     await write(file('user'), { statusLine: { type: 'command', command: '/user/owned' } })
@@ -183,6 +214,8 @@ it('measures current-only System work and exact index bytes at 100 and 1000 prod
     console.log(
       'SL_CURRENT_PERF',
       JSON.stringify({
+        platform: process.platform,
+        dependencyPaths: [...expected],
         coldProbes,
         coldApplyMs,
         settingsPathBytes: Buffer.byteLength(file('r0000')),

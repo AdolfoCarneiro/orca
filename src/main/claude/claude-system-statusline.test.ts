@@ -18,7 +18,8 @@ import {
   applyAgentStatusHooksEnabled,
   main,
   slot,
-  resetService
+  resetService,
+  pausedEdit
 } from './claude-system-statusline.test-fixture'
 it('distinguishes unknown legacy C=E from modern deletion and preserves user and profile slots', async () => {
   const marker = join(seam.home, '.orca/agent-hooks/claude-statusline.installed')
@@ -531,29 +532,35 @@ it('detaches superseded P from shared preparation without poisoning live Q', asy
     queued = resolve
   })
   seam.after = async (method, path) => {
-    if (method === 'chmod' && path.endsWith('/claude-statusline/lock') && ++lockParents === 2) {
+    if (method === 'mkdir' && path === join(storage(), 'lock') && ++lockParents === 2) {
       queued()
     }
   }
   seam.before = async (method, path) => {
-    if (method === 'readdir' && path.endsWith('/claude-statusline/lock')) {
+    if (method === 'readdir' && path === join(storage(), 'lock')) {
       preparations++
       entered()
       await blocked
     }
   }
   const p = install('P')
-  await ready
-  const q = install('Q')
-  await joined
-  await new Promise((resolve) => setImmediate(resolve))
-  release()
-  const results = await Promise.all([p, q])
-  expect(results.map((entry) => entry.state)).toEqual(['error', 'installed'])
-  expect(preparations).toBe(1)
-  await expect(fs.readFile(file('P'))).rejects.toMatchObject({ code: 'ENOENT' })
-  expect((await read(file('Q'))).statusLine).toBeDefined()
-  seam.before = null
+  let q: ReturnType<typeof install> | undefined
+  try {
+    await ready
+    q = install('Q')
+    await joined
+    await new Promise((resolve) => setImmediate(resolve))
+    release()
+    const results = await Promise.all([p, q])
+    expect(results.map((entry) => entry.state)).toEqual(['error', 'installed'])
+    expect(preparations).toBe(1)
+    await expect(fs.readFile(file('P'))).rejects.toMatchObject({ code: 'ENOENT' })
+    expect((await read(file('Q'))).statusLine).toBeDefined()
+  } finally {
+    release()
+    await Promise.allSettled([p, q])
+    seam.before = seam.after = null
+  }
   expect((await install('P')).state).toBe('installed')
 })
 
@@ -682,3 +689,136 @@ it('joins an admitted receipt mutation through completion when canceled and neve
   expect((await remove('X')).state).toBe('not_installed')
   expect((await read(file('X'))).statusLine).toBeUndefined()
 })
+
+const userValues = {
+  model: 'opus',
+  permissions: { allow: ['Read'] },
+  statusLine: { type: 'command', command: '/user/owned-statusline' }
+}
+
+async function editCurrent(name: string, missing = false) {
+  const prior = missing ? {} : await read(file(name))
+  const edited = {
+    ...prior,
+    ...userValues,
+    hooks: {
+      ...prior.hooks,
+      Notification: [{ hooks: [{ type: 'command', command: '/user/notifier' }] }]
+    }
+  }
+  await write(file(name), edited)
+}
+
+function checkUserValues(actual: Record<string, unknown>) {
+  expect(actual).toMatchObject(userValues)
+  expect(actual.hooks).toMatchObject({
+    Notification: [{ hooks: [{ type: 'command', command: '/user/notifier' }] }]
+  })
+}
+
+it('control: fresh reread preserves a user edit during the initial optional metadata lookup', async () => {
+  await install('seed')
+  await write(file('X'), { model: 'sonnet' })
+  const meta = await documentPath()
+  const result = await pausedEdit(
+    (method, path) => method === 'readFile' && path === meta,
+    () => install('X'),
+    () => editCurrent('X')
+  )
+  const actual = await read(file('X'))
+  expect(result.state).toBe('installed')
+  expect(actual.hooks.SessionStart).toHaveLength(1)
+  checkUserValues(actual)
+})
+
+it('preserves a user edit while the own-retirement journal is being saved', async () => {
+  await install('X')
+  const before = await read(file('X'))
+  await write(file('X'), { ...before, model: 'sonnet' })
+  const meta = await documentPath()
+  const result = await pausedEdit(
+    (method, path) => method === 'rename' && path === meta,
+    () => install('X', { claudeVersion: '1.0.0' }),
+    () => editCurrent('X')
+  )
+  const actual = await read(file('X'))
+  expect(result.state).toBe('installed')
+  expect((await install('X')).state).toBe('installed')
+  checkUserValues(actual)
+})
+
+it('preserves a user-created config while a missing-file publication waits for optional metadata', async () => {
+  await install('seed')
+  const meta = await documentPath()
+  const result = await pausedEdit(
+    (method, path) => method === 'readFile' && path === meta,
+    () => install('X'),
+    () => editCurrent('X', true)
+  )
+  const actual = await read(file('X'))
+  expect(result.state).toBe('installed')
+  expect(actual.hooks.SessionStart).toHaveLength(1)
+  checkUserValues(actual)
+})
+
+it('preserves a completed user save during reset identity preparation', async () => {
+  await install('X')
+  const meta = await documentPath()
+  let reset = false
+  seam.after = async (method, path) => {
+    if (method === 'rename' && path === meta) {
+      reset = true
+    }
+  }
+  const result = await pausedEdit(
+    (method, path) => reset && method === 'stat' && path === dirname(file('X')),
+    () => remove('X'),
+    () => editCurrent('X')
+  )
+  expect(result.state).toBe('not_installed')
+  checkUserValues(await read(file('X')))
+  expect(
+    (await document()).destinations.some((entry: { path: string }) => entry.path === file('X'))
+  ).toBe(false)
+})
+
+it('honors a deletion completed during its own retirement journal, then retries without replay', async () => {
+  await install('X')
+  const meta = await documentPath()
+  const result = await pausedEdit(
+    (method, path) => method === 'rename' && path === meta,
+    () => install('X', { claudeVersion: '1.0.0' }),
+    () => erase('X')
+  )
+  expect(result.state).toBe('installed')
+  expect((await document()).destinations[0].phase).toBe('managed')
+  expect((await install('X')).state).toBe('installed')
+  expect((await read(file('X'))).statusLine).toBeUndefined()
+})
+
+it.each(['empty', 'invalid'] as const)(
+  'reclassifies fresh %s settings after missing-file evidence',
+  async (kind) => {
+    await install('seed')
+    const meta = await documentPath()
+    const bytes = kind === 'empty' ? '{"model":"opus"}' : '["not a settings object"]'
+    const result = await pausedEdit(
+      (method, path) => method === 'readFile' && path === meta,
+      () => install('X'),
+      async () => {
+        await fs.mkdir(dirname(file('X')), { recursive: true })
+        await fs.writeFile(file('X'), bytes)
+      }
+    )
+    if (kind === 'invalid') {
+      expect(result.state).toBe('error')
+      expect(await fs.readFile(file('X'), 'utf8')).toBe(bytes)
+      await write(file('X'), { model: 'opus' })
+      expect((await install('X')).state).toBe('installed')
+    } else {
+      expect(result.state).toBe('installed')
+    }
+    expect(await read(file('X'))).toMatchObject({ model: 'opus' })
+    expect((await read(file('X'))).statusLine).toBeDefined()
+  }
+)

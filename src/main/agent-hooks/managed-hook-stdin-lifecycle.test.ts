@@ -8,12 +8,119 @@ import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 import type * as osModule from 'node:os'
 import type * as NativeHookExecutableModule from './windows-native-hook-executable'
+import type * as OwnerIdentity from './managed-hook-owner-identity'
+import type * as LockRecords from './managed-hook-lock-records'
+import type * as ChildProcess from 'node:child_process'
 import { withClaudeSystemScope } from '../claude/statusline-ownership'
+
+const trace = vi.hoisted(
+  (): {
+    phases: { phase: string; started: number; elapsed?: number; error?: string }[]
+    probes: number
+    nativePlatform: NodeJS.Platform
+  } => ({ phases: [], probes: 0, nativePlatform: process.platform })
+)
+async function phase<T>(name: string, run: () => Promise<T>): Promise<T> {
+  const started = performance.now()
+  const row: (typeof trace.phases)[number] = { phase: name, started }
+  if (trace.phases.length < 64) {
+    trace.phases.push(row)
+  }
+  try {
+    return await run()
+  } catch (error) {
+    row.error = String(error)
+    throw error
+  } finally {
+    row.elapsed = performance.now() - started
+  }
+}
+vi.mock('./managed-hook-owner-identity', async (original) => {
+  const actual = await original<typeof OwnerIdentity>()
+  return {
+    ...actual,
+    readManagedHookHostIdentity: () => phase('host', () => actual.readManagedHookHostIdentity()),
+    readManagedHookProcessIdentity: (
+      ...args: Parameters<typeof actual.readManagedHookProcessIdentity>
+    ) =>
+      phase(args[0] === process.pid ? 'self' : 'other-owner', () =>
+        actual.readManagedHookProcessIdentity(...args)
+      )
+  }
+})
+vi.mock('./managed-hook-lock-records', async (original) => {
+  const actual = await original<typeof LockRecords>()
+  return {
+    ...actual,
+    cleanupManagedHookLockFiles: (...args: Parameters<typeof actual.cleanupManagedHookLockFiles>) =>
+      phase('shared-preparation-cleanup', () => actual.cleanupManagedHookLockFiles(...args))
+  }
+})
+vi.mock('node:child_process', async (original) => {
+  const { promisify } = await import('node:util')
+  const actual = await original<typeof ChildProcess>()
+  const asyncExec = promisify(actual.execFile)
+  const execFile = vi.fn<typeof actual.execFile>((...args) => {
+    trace.probes++
+    return actual.execFile(...args)
+  })
+  Object.defineProperty(execFile, promisify.custom, {
+    value: (...args: Parameters<typeof asyncExec>) => {
+      trace.probes++
+      return phase(`probe:${args[0].split(/[\\/]/).pop()}`, () => asyncExec(...args))
+    }
+  })
+  return { ...actual, execFile }
+})
+async function diagnosticInstall<T>(name: string, run: () => Promise<T>): Promise<T> {
+  const started = performance.now()
+  const probes = trace.probes
+  try {
+    const result = await run()
+    console.log(
+      'NATIVE_HOOK_INSTALL',
+      JSON.stringify({
+        name,
+        nativePlatform: trace.nativePlatform,
+        platform: process.platform,
+        elapsed: performance.now() - started,
+        probes: trace.probes - probes,
+        result,
+        phases: trace.phases.map((row) => ({
+          ...row,
+          pending: row.elapsed === undefined,
+          elapsed: row.elapsed ?? performance.now() - row.started
+        }))
+      })
+    )
+    return result
+  } catch (error) {
+    console.log(
+      'NATIVE_HOOK_INSTALL',
+      JSON.stringify({
+        name,
+        nativePlatform: trace.nativePlatform,
+        platform: process.platform,
+        elapsed: performance.now() - started,
+        probes: trace.probes - probes,
+        error: String(error),
+        phases: trace.phases.map((row) => ({
+          ...row,
+          pending: row.elapsed === undefined,
+          elapsed: row.elapsed ?? performance.now() - row.started
+        }))
+      })
+    )
+    throw error
+  }
+}
 
 let isolatedUserDataDir = ''
 let previousUserDataPath: string | undefined
 
 beforeEach(() => {
+  trace.phases = []
+  trace.probes = 0
   vi.stubEnv('GROK_HOME', undefined)
   vi.stubEnv('KIMI_CODE_HOME', undefined)
   vi.stubEnv('COPILOT_HOME', undefined)
@@ -271,7 +378,9 @@ async function generatePosixScripts(onlyAgent?: string): Promise<Map<string, str
 async function withPlatform<T>(platform: NodeJS.Platform, run: () => T | Promise<T>): Promise<T> {
   const original = Object.getOwnPropertyDescriptor(process, 'platform')
   // Capture real ownership before the generated-script platform override.
-  await withClaudeSystemScope(homedirMock(), AbortSignal.timeout(2000), async () => {})
+  await diagnosticInstall('real-ownership-before-platform-override', () =>
+    withClaudeSystemScope(homedirMock(), AbortSignal.timeout(2000), async () => {})
+  )
   Object.defineProperty(process, 'platform', { configurable: true, value: platform })
   try {
     return await run()
@@ -308,7 +417,10 @@ describe('Windows managed hook stdin structure', () => {
     try {
       await withPlatform('win32', async () => {
         for (const entry of LOCAL_INSTALLERS) {
-          expect((await entry.install()).state, `${entry.agent} install status`).toBe('installed')
+          const status = await diagnosticInstall(entry.agent, async () => await entry.install())
+          expect(status.state, `${entry.agent} install status: ${JSON.stringify(status)}`).toBe(
+            'installed'
+          )
         }
       })
       const hooksDir = join(home, '.orca', 'agent-hooks')
@@ -387,7 +499,10 @@ describe('Windows managed hook stdin structure', () => {
       try {
         const gitBash = findGitBash()
         for (const entry of LOCAL_INSTALLERS) {
-          expect((await entry.install()).state, `${entry.agent} install status`).toBe('installed')
+          const status = await diagnosticInstall(entry.agent, async () => await entry.install())
+          expect(status.state, `${entry.agent} install status: ${JSON.stringify(status)}`).toBe(
+            'installed'
+          )
         }
         const hooksDir = join(home, '.orca', 'agent-hooks')
         const mainScripts = readdirSync(hooksDir).filter(
@@ -513,7 +628,10 @@ describe('Windows managed hook stdin structure', () => {
       seedCmdAutoRunTarget(absentProfile)
       try {
         bundledHook.path = bundled ? buildWindowsNativeHookExecutable() : null
-        expect((await new ClaudeHookService().installSystem()).state).toBe('installed')
+        const status = await diagnosticInstall(`claude stdout ${form}`, () =>
+          new ClaudeHookService().installSystem()
+        )
+        expect(status.state, JSON.stringify(status)).toBe('installed')
         const settings = JSON.parse(
           readFileSync(join(home, '.claude', 'settings.json'), 'utf8')
         ) as { hooks: Record<string, { hooks: { command: string; args?: string[] }[] }[]> }

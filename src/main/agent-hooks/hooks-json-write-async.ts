@@ -24,6 +24,8 @@ export async function writeHooksJsonAsync(
   options?: {
     serialized?: string
     privateMode?: boolean
+    prepare?: (selectedPath: string) => Promise<void>
+    updateConfig?: (original: string | null) => Record<string, unknown> | null
     beforePublish?: (selectedPath: string) => Promise<void>
   }
 ): Promise<void> {
@@ -34,13 +36,21 @@ export async function writeHooksJsonAsync(
     throw error
   })
   const writePath = link?.isSymbolicLink() ? await realpath(configPath) : configPath
-  const serialized = options?.serialized ?? `${JSON.stringify(config, null, 2)}\n`
+  if (options?.updateConfig && options.prepare) {
+    await mkdir(dirname(writePath), { recursive: true })
+    await options.prepare?.(writePath)
+  }
   const original = await readFile(writePath, 'utf8').catch((error: unknown) => {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       return null
     }
     throw error
   })
+  const next = options?.updateConfig ? options.updateConfig(original) : config
+  if (next === null) {
+    return
+  }
+  const serialized = options?.serialized ?? `${JSON.stringify(next, null, 2)}\n`
   const beforePublish = async () => {
     if (!options?.beforePublish) {
       return
