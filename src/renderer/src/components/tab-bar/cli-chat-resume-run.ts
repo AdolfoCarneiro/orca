@@ -73,7 +73,7 @@ export async function runLegacyCliChatResume(
   conversationSwitchChanged()
   try {
     const captured = await captureSourceTerminal(source)
-    const ptyId = captured?.presentation.identity.ptyId
+    const ptyId = captured?.presentation?.identity.ptyId
     if (!captured || !ptyId || !isCurrent()) {
       throw stopUnknown()
     }

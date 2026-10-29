@@ -206,7 +206,12 @@ export function readOpenCodeTranscriptPage(args: {
                   ? 'completed'
                   : null
           if (state) {
-            lifecycle = { state, turnId: record.parentID, timestamp: time.completed }
+            lifecycle = {
+              state: state === 'failed' ? 'completed' : state,
+              ...(state === 'failed' ? { outcome: 'failure' as const } : {}),
+              turnId: record.parentID,
+              timestamp: time.completed
+            }
           }
         }
       }

@@ -1,3 +1,4 @@
+import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { AgentSessionRecord } from '../../../../shared/agent-session-record'
 import type { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-host'
 import type { z } from 'zod'
@@ -25,6 +26,12 @@ export async function executeStructuredSessionTerminalSwitch(
   execution: NonNullable<z.infer<typeof SwitchToTerminalParams>['execution']>,
   selectionCurrent: () => boolean
 ): Promise<AgentSessionSwitchResult> {
+  const agent = record.provider
+  if (!isTuiAgent(agent)) {
+    throw agentSessionRefusalError('structured_agent_session_unsupported', {
+      reason: 'hostUnsupported'
+    })
+  }
   const terminalExecution = SwitchToTerminalParams.parse(params).execution
   const sourceTabId = terminalExecution?.sourceTabId
   let workCurrent = () => false
@@ -77,7 +84,7 @@ export async function executeStructuredSessionTerminalSwitch(
   const terminal = await ctx.runtime.createSessionSwitchTerminal(record.location.workspaceId, {
     invocationId: execution.invocationId,
     sessionId,
-    agent: record.provider,
+    agent,
     source: prepared?.cliForkSource,
     commandOverride: terminalExecution?.commandOverride,
     options: record.options,

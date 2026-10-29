@@ -89,7 +89,12 @@ describe('getNativeChatSessionTransport — selection', () => {
 
   it('validates lifecycle metadata on runtime read responses', async () => {
     markRuntimeEnvironmentCompatible(ENV)
-    const lifecycle = { state: 'completed', turnId: 'turn-1', timestamp: 42 } as const
+    const lifecycle = {
+      state: 'completed',
+      outcome: 'failure',
+      turnId: 'turn-1',
+      timestamp: 42
+    } as const
     runtimeEnvironmentsCall
       .mockResolvedValueOnce(okEnvelope({ messages: [message('valid')], lifecycle }))
       .mockResolvedValueOnce(
@@ -107,6 +112,28 @@ describe('getNativeChatSessionTransport — selection', () => {
     await expect(transport.readSession('claude', 'sess-1')).resolves.toEqual({
       messages: [message('invalid')]
     })
+  })
+
+  it('carries known optional outcomes and omits unrecognized ones without dropping lifecycle', async () => {
+    markRuntimeEnvironmentCompatible(ENV)
+    const transport = getNativeChatSessionTransport(ENV)
+    const lifecycle = { state: 'completed', turnId: 'outcome-turn', timestamp: 42 }
+    for (const [received, expected] of [
+      ['success', 'success'],
+      ['cancellation', 'cancellation'],
+      ['superseded', 'superseded'],
+      ['future-verdict', undefined],
+      [null, undefined],
+      [7, undefined]
+    ] as const) {
+      runtimeEnvironmentsCall.mockResolvedValueOnce(
+        okEnvelope({ messages: [], lifecycle: { ...lifecycle, outcome: received } })
+      )
+      await expect(transport.readSession('codex', 'sess-1')).resolves.toEqual({
+        messages: [],
+        lifecycle: { ...lifecycle, ...(expected ? { outcome: expected } : {}) }
+      })
+    }
   })
 
   it('accepts interrupted lifecycle metadata from a remote runtime', async () => {
@@ -224,7 +251,12 @@ describe('runtime subscribe', () => {
     const { deliver } = stubSubscribe()
     const onFrame = vi.fn()
     const transport = getNativeChatSessionTransport(ENV)
-    const lifecycle = { state: 'completed', turnId: 'turn-1', timestamp: 42 } as const
+    const lifecycle = {
+      state: 'completed',
+      outcome: 'failure',
+      turnId: 'turn-1',
+      timestamp: 42
+    } as const
 
     transport.subscribe({ subscriptionId: 's-1', agent: 'claude', sessionId: 'sess-1' }, onFrame)
     await Promise.resolve()

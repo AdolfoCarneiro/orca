@@ -1,8 +1,13 @@
+import { randomUUID } from 'node:crypto'
 import type * as ProcessHost from '@orca/process-host'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { createStructuredAgentSessionLaunchIntent } from '../../../../renderer/src/lib/launch-structured-agent-session'
+import {
+  createStructuredAgentSessionId,
+  structuredAgentSessionCreateParams
+} from '../../../../shared/structured-agent-session-create'
+import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
 import {
   createRestTestRig,
   type RestTestRig
@@ -28,7 +33,6 @@ import { createTestParams } from '../../../native-chat/agent-session-wire/struct
 import { PI_RPC_AGENT } from '../../../pi/rpc-agent-definition'
 import { StructuredAgentRegistry } from '../../../native-chat/agent-session-wire/structured-agent-registry'
 
-vi.mock('@/store', () => ({ useAppStore: { getState: () => ({ settings: {} }) } }))
 vi.mock('../../structured-agent-shell-environment', () => ({
   resolveHostAgentBaseEnvironment: async () => ({}),
   refreshHostAgentBaseEnvironmentAfterMiss: async () => {}
@@ -221,22 +225,21 @@ it.each([
       providerSessionId: HOST_TEST_THREAD,
       cliSource: { workspaceId: WORKTREE_ID, paneKey: row.paneKey }
     }
-    const first = createStructuredAgentSessionLaunchIntent(
-      WORKTREE_ID,
-      'codex',
-      'local',
-      resumeFrom,
-      undefined,
-      false
-    )
-    const second = createStructuredAgentSessionLaunchIntent(
-      WORKTREE_ID,
-      'codex',
-      'local',
-      resumeFrom,
-      undefined,
-      false
-    )
+    const createIntent = () => {
+      const sessionId = createStructuredAgentSessionId('codex', randomUUID)
+      return {
+        sessionId,
+        params: structuredAgentSessionCreateParams({
+          sessionId,
+          worktree: `id:${WORKTREE_ID}`,
+          agent: 'codex',
+          resumeFrom,
+          randomUuid: randomUUID
+        })
+      }
+    }
+    const first = createIntent()
+    const second = createIntent()
     expect(first.sessionId).not.toBe(second.sessionId)
     let canonical = first.sessionId
     if (otherAccount) {
@@ -287,16 +290,9 @@ it.each([
           }
         }
       })
-    // Retained return still carries a fresh renderer-generated ID, never the known native owner.
+    // Retained return still carries a fresh generated ID, never the known native owner.
     const a = retained ? second : first
-    const b = createStructuredAgentSessionLaunchIntent(
-      WORKTREE_ID,
-      'codex',
-      'local',
-      resumeFrom,
-      undefined,
-      false
-    )
+    const b = createIntent()
     await expect(runtime.resolveStructuredAgentSessionCreateIntent(a.params)).rejects.toMatchObject(
       {
         refusal: {
@@ -432,7 +428,10 @@ it('uses registered Pi History IDs and isolates account and owning host for pref
         ...identity,
         accountHome: { ...identity.accountHome, path: join(rig.root, 'other-account') }
       },
-      { ...identity, location: { ...identity.location, executionHostId: 'runtime:other' } },
+      {
+        ...identity,
+        location: { ...identity.location, executionHostId: toRuntimeExecutionHostId('other') }
+      },
       { ...identity, location: { ...identity.location, wslDistro: 'Ubuntu' } }
     ].entries()) {
       expect(switchRetainedOwner(piRig.host, scoped, HOST_TEST_THREAD)).toBeNull()

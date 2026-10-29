@@ -26,6 +26,7 @@ function createTestDir(): string {
 }
 
 export function createMockSubprocess(dataOnSubscribe?: string): SubprocessHandle & {
+  forceKill: ReturnType<typeof vi.fn<SubprocessHandle['forceKill']>>
   write: ReturnType<typeof vi.fn<(data: string) => void>>
   pause: ReturnType<typeof vi.fn<() => void>>
   resume: ReturnType<typeof vi.fn<() => void>>

@@ -197,5 +197,12 @@ export function decodePiTurnLifecycle(
         : message.stopReason === 'stop' || message.stopReason === 'length'
           ? 'completed'
           : null
-  return state ? { state, turnId, timestamp } : null
+  return state
+    ? {
+        state: state === 'failed' ? 'completed' : state,
+        ...(state === 'failed' ? { outcome: 'failure' as const } : {}),
+        turnId,
+        timestamp
+      }
+    : null
 }

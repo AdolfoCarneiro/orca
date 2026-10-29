@@ -237,7 +237,8 @@ export function readOpenCode2TranscriptPage(
                   : null
           if (state) {
             lifecycle = {
-              state,
+              state: state === 'failed' ? 'completed' : state,
+              ...(state === 'failed' ? { outcome: 'failure' as const } : {}),
               turnId: '',
               timestamp: typeof row.time_created === 'number' ? row.time_created : null
             }

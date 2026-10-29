@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { getDefaultSettings } from '../../../../shared/constants'
 import type * as CliChatResumeSourceModule from '@/components/tab-bar/cli-chat-resume-source'
 import type * as CliChatResumeTerminalCapture from '@/components/tab-bar/cli-chat-resume-terminal-capture'
 import type { CliChatResumeSource } from '@/components/tab-bar/cli-chat-resume-source'
@@ -550,6 +551,8 @@ it.each(['unchanged', 'navigate', 'strict-old-runtime', 'stale-v2-runtime'] as c
       terminalLayoutsByTabId: {
         [source.id]: {
           root: { type: 'leaf', leafId: 'leaf' },
+          activeLeafId: 'leaf',
+          expandedLeafId: null,
           ptyIdsByLeafId: { leaf: 'source-pty' }
         }
       }
@@ -603,7 +606,11 @@ it.each(['unchanged', 'navigate', 'strict-old-runtime', 'stale-v2-runtime'] as c
       action === 'stale-v2-runtime' ? ['agent-session.structured.switch.v2:codex'] : []
     )
     useAppStore.setState((state) => ({
-      settings: { ...state.settings, experimentalNativeChat: true }
+      settings: {
+        ...getDefaultSettings('/home/test'),
+        ...state.settings,
+        experimentalNativeChat: true
+      }
     }))
     const running = fromCommon
       ? runConversationSwitch({

@@ -34,7 +34,12 @@ export async function readGrokTurnLifecycle(
                 ? 'interrupted'
                 : null
         if (state) {
-          latest = { ...latest, state, timestamp }
+          latest = {
+            turnId: latest.turnId,
+            state: state === 'failed' ? 'completed' : state,
+            timestamp,
+            ...(state === 'failed' ? { outcome: 'failure' as const } : {})
+          }
         }
       }
     }

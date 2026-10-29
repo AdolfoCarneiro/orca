@@ -10,8 +10,6 @@ import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
 import type { StructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-host'
 import { activeProviderContext } from '../../shared/agent-session-provider-context'
 import { OrcaRuntimeService } from './orca-runtime'
-import { chatAssigneeOwesWork } from './orchestration/chat-assignee'
-import { structuredWorkerOwesWork } from './structured-worker-custody'
 import { OrchestrationDb } from './orchestration/db'
 import { localOrchestrationCliCommand } from './orchestration/cli-command'
 import { formatMessagePointer } from './orchestration/formatter'
@@ -255,8 +253,7 @@ beforeEach(async () => {
     onRequestFailure: (failure) => runtime.onStructuredRequestFailureForErrorMail(failure),
     onSessionStatusChanged: (summary) => runtime.onStructuredSessionStatusForMail(summary),
     onSessionTabHidden: (sessionId) => runtime.onStructuredSessionTabHidden(sessionId),
-    hasOwedSwitchWork: (record) =>
-      structuredWorkerOwesWork(db, record) || chatAssigneeOwesWork(db, record.sessionId)
+    captureSessionSwitchStop: (sessionId) => runtime.captureSessionSwitchStop(sessionId)
   })
   dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
 })

@@ -111,6 +111,7 @@ export async function catchUpStructuredSessionAtRest(input: {
           kind: 'turn',
           turnId: turn,
           state: lifecycle.state,
+          ...(lifecycle.outcome ? { outcome: lifecycle.outcome } : {}),
           ...(lifecycle.timestamp === null ? {} : { completedAt: lifecycle.timestamp })
         },
         ownerFence: 0,

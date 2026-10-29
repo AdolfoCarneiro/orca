@@ -472,7 +472,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
 
     function createProbeAdapter(
       protocolVersion: number,
-      request: ReturnType<typeof vi.fn>
+      request: (...args: Parameters<DaemonClient['request']>) => Promise<unknown>
     ): DaemonPtyAdapter {
       const probeAdapter = new DaemonPtyAdapter({ socketPath, tokenPath, protocolVersion })
       // SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
@@ -681,7 +681,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
   describe('inspectProcess on pre-inspection daemon protocols', () => {
     function createInspectionAdapter(
       protocolVersion: number,
-      request: ReturnType<typeof vi.fn>
+      request: (...args: Parameters<DaemonClient['request']>) => Promise<unknown>
     ): DaemonPtyAdapter {
       const inspectionAdapter = new DaemonPtyAdapter({
         socketPath,

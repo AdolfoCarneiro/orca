@@ -87,9 +87,7 @@ export class DaemonTerminalAdmission {
     let routedSessionId = payload.sessionId
     let result: CreateOrAttachResult
     let spawnPreparation: PendingPtySpawnPreparation | null = null
-    let hostDisposition: PtyCreationDisposition = {
-      kind: 'no-fork'
-    }
+    const creation: { current: PtyCreationDisposition } = { current: { kind: 'no-fork' } }
     try {
       if (
         payload.agentSessionEnsure !== undefined &&
@@ -123,7 +121,7 @@ export class DaemonTerminalAdmission {
           : payload.historySeed !== undefined
             ? [payload.historySeed]
             : undefined
-      hostDisposition = { kind: 'unknown' }
+      creation.current = { kind: 'unknown' }
       result = await this.options.host.createOrAttach({
         sessionId: payload.sessionId,
         cols: payload.cols,
@@ -153,7 +151,7 @@ export class DaemonTerminalAdmission {
         },
         retainCanceledChild: Boolean(payload.switchExecution),
         onCreationDisposition: (disposition) => {
-          hostDisposition = disposition
+          creation.current = disposition
         },
         isCanceled: () =>
           spawnPreparation !== null && this.options.preparations.isCanceled(spawnPreparation),
@@ -192,6 +190,7 @@ export class DaemonTerminalAdmission {
         }
       }
     } finally {
+      const hostDisposition = creation.current
       if (spawnPreparation) {
         const preparation = spawnPreparation
         const settlement = preparation.settlement

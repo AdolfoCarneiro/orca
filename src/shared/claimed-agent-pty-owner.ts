@@ -276,7 +276,7 @@ export class ClaimedAgentPtyOwnerRegistry {
   }
 
   list(): AgentSessionOwnerBinding[] {
-    return [...this.live.values()].map(cloneOwner)
+    return [...this.live.values()].map(cloneAgentSessionOwner)
   }
 
   listForPty(ptyId: string): AgentSessionOwnerBinding[] {
@@ -287,7 +287,7 @@ export class ClaimedAgentPtyOwnerRegistry {
     return [...keys]
       .map((key) => this.live.get(key))
       .filter((owner): owner is LiveOwner => owner !== undefined)
-      .map(cloneOwner)
+      .map(cloneAgentSessionOwner)
   }
 
   find(claim: AgentSessionExecutionClaim): AgentSessionOwnerBinding | null {

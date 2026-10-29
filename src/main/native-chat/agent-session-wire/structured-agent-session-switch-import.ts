@@ -110,8 +110,9 @@ export async function catchUpSwitchedCliTranscript(input: {
     input.source.agent === 'codex'
       ? []
       : items.filter((item) => !covered.has(agentJournalItemKey(item.identity)))
+  const latest = prepared.latestTurn
   const ended =
-    prepared.latestTurn && prepared.latestTurn.state !== 'working' ? prepared.latestTurn : undefined
+    latest && latest.state !== 'working' ? { ...latest, state: latest.state } : undefined
   const turnId = interrupted ? input.stopped?.turnId : ended?.turnId
   if (turnId && userKey && !covered.has(userKey)) {
     additions.push({
@@ -128,6 +129,7 @@ export async function catchUpSwitchedCliTranscript(input: {
         turnId,
         userItemId: userKey,
         state: interrupted ? 'interrupted' : ended!.state,
+        ...(ended?.outcome ? { outcome: ended.outcome } : {}),
         ...(ended?.timestamp == null ? {} : { completedAt: ended.timestamp })
       }
     })
@@ -150,7 +152,7 @@ export async function catchUpSwitchedCliTranscript(input: {
               !current ||
               (item.body.kind === 'turn' &&
                 current.body.kind === 'turn' &&
-                current.body.state === 'working')
+                current.body.state === 'running')
             )
           })
           .map((item) => ({

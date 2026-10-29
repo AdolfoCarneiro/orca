@@ -4,6 +4,7 @@ import {
   isAgentSessionProviderHandleInNamespace
 } from '../../shared/agent-session-provider-handle-encoding'
 import {
+  AgentSessionPreSpawnError,
   launchPreparationFailure,
   type AgentSessionAcquisition,
   type StructuredAgentSessionAcquireInput

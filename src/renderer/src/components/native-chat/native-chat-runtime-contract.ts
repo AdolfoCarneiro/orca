@@ -3,6 +3,7 @@ import type {
   NativeChatReadSessionResult
 } from '../../../../preload/api-types'
 import type { NativeChatTurnLifecycle } from '../../../../shared/native-chat-types'
+import { AGENT_JOURNAL_TURN_OUTCOMES } from '../../../../shared/agent-turn-outcome'
 
 export const RUNTIME_NATIVE_CHAT_READ_ERROR = "Couldn't read agent chat from the remote runtime."
 
@@ -27,9 +28,11 @@ export function parseRuntimeNativeChatTurnLifecycle(
   ) {
     return undefined
   }
+  const outcome = AGENT_JOURNAL_TURN_OUTCOMES.find((known) => known === record.outcome)
   return {
     state: record.state,
     turnId: record.turnId.trim(),
+    ...(outcome ? { outcome } : {}),
     // Missing timestamps are valid; normalize them without dropping the lifecycle record.
     timestamp: record.timestamp ?? null
   }

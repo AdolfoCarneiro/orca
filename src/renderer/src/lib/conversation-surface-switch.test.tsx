@@ -390,6 +390,7 @@ it.each(['support', 'Stop'] as const)(
         worktreeId: 'workspace',
         launchAgent: 'codex',
         viewer: 'focus-in-workspace',
+        viewMode: 'terminal',
         viewerSelection: request.execution.viewerSelection
       })
       return { status: 'completed', sessionId: subject.sessionId, terminal: 'destination-terminal' }

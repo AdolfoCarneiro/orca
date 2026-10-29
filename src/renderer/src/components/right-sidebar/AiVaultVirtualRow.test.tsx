@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { getDefaultSettings } from '../../../../shared/constants'
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { Profiler } from 'react'
@@ -248,7 +249,11 @@ describe('AiVaultVirtualRow CLI surface actions', () => {
     'offers the ordinary CLI switch on an older host for a chat-owned %s row from both menus',
     async (agent) => {
       useAppStore.setState((state) => ({
-        settings: { ...state.settings, experimentalNativeChat: true }
+        settings: {
+          ...getDefaultSettings('/home/test'),
+          ...state.settings,
+          experimentalNativeChat: true
+        }
       }))
       setLocalRuntimeCapabilitiesForTests([])
       const session: AiVaultSession = { ...cliSession, agent, structuredSession: owner }
@@ -291,7 +296,11 @@ it.each([
   async ({ rows, hosts }) => {
     useAppStore.setState(useAppStore.getInitialState(), true)
     useAppStore.setState((state) => ({
-      settings: { ...state.settings, experimentalNativeChat: true }
+      settings: {
+        ...getDefaultSettings('/home/test'),
+        ...state.settings,
+        experimentalNativeChat: true
+      }
     }))
     setLocalRuntimeCapabilitiesForTests([])
     const getStatus = vi.fn()

@@ -1,3 +1,5 @@
+import { applyWebSessionTabsSnapshot } from './web-session-tabs-sync/snapshot-api'
+import { resetWebSessionTabsSnapshotFreshnessForTests } from './web-session-tabs-sync/tracking-lifecycle'
 import { createTestStore } from '../store/slices/store-test-helpers'
 import {
   captureConversationSwitchViewerSelection,
@@ -67,10 +69,18 @@ vi.mock('./web-session-tabs-sync/tracking-lifecycle', async (original) => {
         : mocks.acceptReplayedWebSessionTabsSnapshot(...args)
   }
 })
-vi.mock('./web-session-tabs-sync/snapshot-api', async (original) => ({
-  ...(await original<object>()),
-  applyWebSessionTabsSnapshot: mocks.applyWebSessionTabsSnapshot
-}))
+vi.mock('./web-session-tabs-sync/snapshot-api', async (original) => {
+  const actual = await original<typeof SnapshotApi>()
+  return {
+    ...actual,
+    applyWebSessionTabsSnapshot: (
+      ...args: Parameters<typeof actual.applyWebSessionTabsSnapshot>
+    ) =>
+      mocks.realStore
+        ? actual.applyWebSessionTabsSnapshot(...args)
+        : mocks.applyWebSessionTabsSnapshot(...args)
+  }
+})
 vi.mock('./web-session-tabs-sync/tracking-decisions', async (original) => {
   const actual = await original<typeof TrackingDecisions>()
   return {
@@ -147,11 +157,8 @@ function stubSelectableWorkspaceStore(selection: MutableSelection): void {
 afterEach(() => resetWebSessionCloseIntentForTests())
 
 describe('web-runtime-session terminal workspace routing', () => {
-  beforeEach(async () => {
-    const tracking = await vi.importActual<typeof TrackingLifecycle>(
-      './web-session-tabs-sync/tracking-lifecycle'
-    )
-    tracking.resetWebSessionTabsSnapshotFreshnessForTests()
+  beforeEach(() => {
+    resetWebSessionTabsSnapshotFreshnessForTests()
     mocks.realStore = false
     stubTerminalCreateEnvironment(mocks)
   })
@@ -337,12 +344,10 @@ describe('web-runtime-session terminal workspace routing', () => {
     'strict paired ordinary create/list/placement respects original caller selection: %s',
     async (action) => {
       mocks.realStore = true
-      const api = await vi.importActual<typeof SnapshotApi>('./web-session-tabs-sync/snapshot-api')
       const store = createTestStore()
       mocks.getState.mockImplementation(store.getState)
       mocks.setState.mockImplementation(store.setState)
       mocks.subscribe.mockImplementation(store.subscribe)
-      mocks.applyWebSessionTabsSnapshot.mockImplementation(api.applyWebSessionTabsSnapshot)
       store.setState({
         activeWorktreeId: WORKTREE_ID,
         activeWorkspaceExecutionHostId: RUNTIME_EXECUTION_HOST_ID
@@ -391,9 +396,7 @@ describe('web-runtime-session terminal workspace routing', () => {
           }
         ]
       })
-      store.setState((state) =>
-        api.applyWebSessionTabsSnapshot(state, snapshot(false), ENVIRONMENT_ID)
-      )
+      store.setState((state) => applyWebSessionTabsSnapshot(state, snapshot(false), ENVIRONMENT_ID))
       store.getState().activateTab(sourceId)
       const original = captureConversationSwitchViewerSelection()
       const created = Promise.withResolvers<void>()

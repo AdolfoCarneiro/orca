@@ -323,7 +323,10 @@ function registerSwitchDaemonComposition(
             return rig.host.trackSwitchPhysical(id, work, recover)
           }
         }
-        await time.deadline.wait(
+        await time.deadline.wait<
+          | Awaited<ReturnType<typeof runtime.createMobileSessionTerminal>>
+          | Awaited<ReturnType<typeof runtime.createTerminal>>
+        >(
           mobile
             ? runtime.createMobileSessionTerminal(`id:${WORKTREE_ID}`, {
                 command: 'cx',

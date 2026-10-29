@@ -1,3 +1,5 @@
+import { structuredAgentSessionFocusOwner } from '@/runtime/structured-agent-session-owner'
+import { CreateIntentParams } from '../../../shared/rpc-contract/structured-agent-session-params'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { structuredAgentSessionPayloadFingerprint } from '../../../shared/structured-agent-session-mutation'
 import { callStructuredAgentSession } from '@/runtime/structured-agent-session-client'
@@ -56,6 +58,51 @@ describe('structured agent session launch', () => {
       false
     )
     expect(peekWebSessionFocusIntent(owner, worktreeId)).toBeNull()
+  })
+
+  it('generates fresh CLI-switch intents accepted by the shared create contract', () => {
+    const worktreeId = 'switch-generated-workspace'
+    const resumeFrom = {
+      providerSessionId: 'saved-provider',
+      cliSource: { workspaceId: worktreeId, paneKey: 'source-tab:source-leaf' }
+    }
+    const create = () =>
+      createStructuredAgentSessionLaunchIntent(
+        worktreeId,
+        'codex',
+        'local',
+        resumeFrom,
+        undefined,
+        false
+      )
+    const first = create()
+    const second = create()
+    expect(first.sessionId).not.toBe(second.sessionId)
+    expect(first.params.envelope.clientOperationId).not.toBe(
+      second.params.envelope.clientOperationId
+    )
+    for (const intent of [first, second]) {
+      expect(intent.target).toEqual({ kind: 'local' })
+      expect(CreateIntentParams.parse(intent.params)).toEqual(intent.params)
+      expect(intent.params).toEqual({
+        worktree: `id:${worktreeId}`,
+        agent: 'codex',
+        resumeFrom,
+        envelope: {
+          sessionId: intent.sessionId,
+          clientOperationId: expect.stringMatching(/^\d{13}-[0-9a-f]{32}$/),
+          expectedRuntimeFence: null,
+          payloadFingerprint: structuredAgentSessionPayloadFingerprint({
+            method: 'agentSession.create',
+            sessionId: intent.sessionId,
+            fields: { worktree: `id:${worktreeId}`, agent: 'codex', resumeFrom }
+          })
+        }
+      })
+    }
+    expect(
+      peekWebSessionFocusIntent(structuredAgentSessionFocusOwner(first.target), worktreeId)
+    ).toBeNull()
   })
 
   // The chat opens before its host answers, so the create is the last thing that can say no.
