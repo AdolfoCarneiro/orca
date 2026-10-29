@@ -2,7 +2,7 @@
 export const UPDATER_FAILURE_COPY = {
   releaseNotReady: "A newer release isn't available for this device yet. Check again later.",
   updateServerUnreachable: "Couldn't reach the update server. Try again in a few minutes.",
-  channelUnsupportedPlatform: '{{channel}} builds are produced only for {{platforms}}.',
+  channelUnsupportedPlatform: '{{channel}} builds are produced only for macOS and Windows.',
   unsignedDevChannel:
     "{{channel}} builds are unsigned, and this signed build only installs updates signed by Orca's publisher. Download the installer from the release page and run it once — updates work normally from there, including back to Stable.",
   linuxPackageMissing:

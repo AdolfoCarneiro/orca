@@ -15,12 +15,10 @@ const COPY: Record<UpdaterFailureCode, (param: Param, count: CountParam) => stri
     translate('updates.failure.updateServerUnreachable', EN.updateServerUnreachable),
   channelUnsupportedPlatform: (param) => {
     const channel = param('channel')
-    const platforms = param('platforms')
-    return channel === null || platforms === null
+    return channel === null
       ? null
       : translate('updates.failure.channelUnsupportedPlatform', EN.channelUnsupportedPlatform, {
-          channel,
-          platforms
+          channel
         })
   },
   unsignedDevChannel: (param) => {

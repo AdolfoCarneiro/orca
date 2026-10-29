@@ -21161,7 +21161,7 @@
     "failure": {
       "releaseNotReady": "此设备暂时还无法获取更新的版本。请稍后再检查。",
       "updateServerUnreachable": "无法连接更新服务器。请几分钟后重试。",
-      "channelUnsupportedPlatform": "{{channel}} 构建仅针对 {{platforms}} 提供。",
+      "channelUnsupportedPlatform": "{{channel}} 构建仅针对 macOS 和 Windows 提供。",
       "unsignedDevChannel": "{{channel}} 构建未签名，而当前已签名的构建仅安装由 Orca 发布者签名的更新。请从版本发布页面下载安装程序并运行一次，之后更新即可正常进行，包括切回稳定版。",
       "linuxPackageMissing": "下载的安装包已不在更新缓存中。请重新下载更新，或从官方版本发布页面获取。",
       "linuxPackageNotRegular": "更新缓存中下载的安装包已不再是有效文件。请重新下载更新，或从官方版本发布页面获取。",

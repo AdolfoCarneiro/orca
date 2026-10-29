@@ -9,6 +9,7 @@ import { SettingsSegmentedControl, SettingsSubsectionHeader } from './SettingsFo
 import { Badge } from '../ui/badge'
 import { translate } from '@/i18n/i18n'
 import { updaterMessageText } from '@/lib/updater-message-copy'
+import { errorMessage } from '../../../../shared/error-message'
 import type { UpdaterCodedMessage } from '../../../../shared/updater-failure-copy'
 import { getShortcutPlatform } from '@/lib/shortcut-platform'
 import {
@@ -111,7 +112,7 @@ export function ReleaseChannelSection(): React.JSX.Element {
           return
         }
         setBuilds(null)
-        setLoadError({ message: String((error as Error)?.message ?? error) })
+        setLoadError({ message: errorMessage(error) })
       } finally {
         // Only the newest request may clear loading; old completions must not flash No builds.
         if (!isStale()) {

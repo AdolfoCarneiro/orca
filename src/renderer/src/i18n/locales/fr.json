@@ -21821,7 +21821,7 @@
     "failure": {
       "releaseNotReady": "Aucune version plus récente n'est encore disponible pour cet appareil. Vérifiez à nouveau plus tard.",
       "updateServerUnreachable": "Impossible de joindre le serveur de mise à jour. Réessayez dans quelques minutes.",
-      "channelUnsupportedPlatform": "Les versions {{channel}} sont produites uniquement pour {{platforms}}.",
+      "channelUnsupportedPlatform": "Les versions {{channel}} sont produites uniquement pour macOS et Windows.",
       "unsignedDevChannel": "Les versions {{channel}} ne sont pas signées, et cette version signée n'installe que les mises à jour signées par l'éditeur d'Orca. Téléchargez le programme d'installation depuis la page des versions et exécutez-le une fois. Les mises à jour fonctionneront ensuite normalement, y compris pour revenir à Stable.",
       "linuxPackageMissing": "Le package téléchargé n'est plus dans le cache des mises à jour. Téléchargez à nouveau la mise à jour ou récupérez-la sur la page officielle des versions.",
       "linuxPackageNotRegular": "Le package téléchargé n'est plus un fichier valide dans le cache des mises à jour. Téléchargez à nouveau la mise à jour ou récupérez-la sur la page officielle des versions.",

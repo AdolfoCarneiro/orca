@@ -1,6 +1,5 @@
 import { app } from 'electron'
 import {
-  DEV_CHANNEL_PLATFORM_LABEL,
   getVersionChannel,
   hasDedicatedReleaseRepo,
   isChannelSupportedOnPlatform,
@@ -99,8 +98,7 @@ export abstract class UpdaterBuildSelection extends UpdaterMenuChecks {
       this.sendStatus({
         state: 'error',
         ...updaterCodedMessage('channelUnsupportedPlatform', {
-          channel: RELEASE_CHANNEL_LABELS[channel],
-          platforms: DEV_CHANNEL_PLATFORM_LABEL
+          channel: RELEASE_CHANNEL_LABELS[channel]
         }),
         userInitiated: true
       })

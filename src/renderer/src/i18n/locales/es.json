@@ -21727,7 +21727,7 @@
     "failure": {
       "releaseNotReady": "Aún no hay una versión más reciente disponible para este dispositivo. Vuelve a comprobarlo más tarde.",
       "updateServerUnreachable": "No se pudo contactar con el servidor de actualizaciones. Vuelve a intentarlo en unos minutos.",
-      "channelUnsupportedPlatform": "Las versiones de {{channel}} se generan solo para {{platforms}}.",
+      "channelUnsupportedPlatform": "Las versiones de {{channel}} se generan solo para macOS y Windows.",
       "unsignedDevChannel": "Las versiones de {{channel}} no están firmadas y esta versión firmada solo instala actualizaciones firmadas por el editor de Orca. Descarga el instalador desde la página de versiones y ejecútalo una vez; después, las actualizaciones funcionarán con normalidad, incluso para volver a Stable.",
       "linuxPackageMissing": "El paquete descargado ya no está en la caché de actualizaciones. Descarga la actualización de nuevo u obtenla en la página oficial de versiones.",
       "linuxPackageNotRegular": "El paquete descargado ya no es un archivo válido en la caché de actualizaciones. Descarga la actualización de nuevo u obtenla en la página oficial de versiones.",

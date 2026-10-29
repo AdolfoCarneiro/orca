@@ -21161,7 +21161,7 @@
     "failure": {
       "releaseNotReady": "このデバイス向けの新しいリリースはまだ利用できません。後でもう一度確認してください。",
       "updateServerUnreachable": "更新サーバーに接続できませんでした。数分後にもう一度お試しください。",
-      "channelUnsupportedPlatform": "{{channel}} ビルドは {{platforms}} 向けにのみ提供されます。",
+      "channelUnsupportedPlatform": "{{channel}} ビルドは macOS と Windows 向けにのみ提供されます。",
       "unsignedDevChannel": "{{channel}} ビルドは未署名で、この署名済みビルドでは Orca の発行元が署名した更新のみをインストールできます。リリースページからインストーラーをダウンロードして一度実行してください。その後は Stable に戻す場合も含め、通常どおり更新できます。",
       "linuxPackageMissing": "ダウンロードしたパッケージが更新キャッシュにありません。更新を再ダウンロードするか、公式リリースページから入手してください。",
       "linuxPackageNotRegular": "更新キャッシュ内のダウンロード済みパッケージが有効なファイルではなくなっています。更新を再ダウンロードするか、公式リリースページから入手してください。",

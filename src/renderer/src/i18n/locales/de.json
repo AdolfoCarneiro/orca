@@ -21065,7 +21065,7 @@
     "failure": {
       "releaseNotReady": "Für dieses Gerät ist noch keine neuere Version verfügbar. Später erneut prüfen.",
       "updateServerUnreachable": "Der Update-Server konnte nicht erreicht werden. In einigen Minuten erneut versuchen.",
-      "channelUnsupportedPlatform": "{{channel}}-Builds werden nur für {{platforms}} erstellt.",
+      "channelUnsupportedPlatform": "{{channel}}-Builds werden nur für macOS und Windows erstellt.",
       "unsignedDevChannel": "{{channel}}-Builds sind nicht signiert. Dieser signierte Build installiert nur Updates, die vom Herausgeber von Orca signiert wurden. Das Installationsprogramm von der Release-Seite herunterladen und einmal ausführen – danach funktionieren Updates wie gewohnt, auch zurück zu Stable.",
       "linuxPackageMissing": "Das heruntergeladene Paket ist nicht mehr im Update-Cache vorhanden. Das Update erneut herunterladen oder von der offiziellen Release-Seite beziehen.",
       "linuxPackageNotRegular": "Das heruntergeladene Paket ist im Update-Cache keine gültige Datei mehr. Das Update erneut herunterladen oder von der offiziellen Release-Seite beziehen.",

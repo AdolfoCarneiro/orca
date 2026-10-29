@@ -21046,7 +21046,7 @@
     "failure": {
       "releaseNotReady": "Bu cihaz için daha yeni bir sürüm henüz kullanıma sunulmadı. Daha sonra tekrar kontrol edin.",
       "updateServerUnreachable": "Güncelleme sunucusuna ulaşılamadı. Birkaç dakika sonra tekrar deneyin.",
-      "channelUnsupportedPlatform": "{{channel}} sürümleri yalnızca {{platforms}} için üretilir.",
+      "channelUnsupportedPlatform": "{{channel}} sürümleri yalnızca macOS ve Windows için üretilir.",
       "unsignedDevChannel": "{{channel}} sürümleri imzasızdır ve bu imzalı sürüm yalnızca Orca'nın yayımcısının imzaladığı güncellemeleri yükler. Yükleyiciyi sürüm sayfasından indirip bir kez çalıştırın; bundan sonra Kararlı kanalına dönüş dahil güncellemeler normal şekilde çalışır.",
       "linuxPackageMissing": "İndirilen paket artık güncelleme önbelleğinde değil. Güncellemeyi yeniden indirin veya resmi sürüm sayfasından edinin.",
       "linuxPackageNotRegular": "İndirilen paket artık güncelleme önbelleğinde geçerli bir dosya değil. Güncellemeyi yeniden indirin veya resmi sürüm sayfasından edinin.",

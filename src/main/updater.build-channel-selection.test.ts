@@ -68,7 +68,7 @@ describe('updater', () => {
           state: 'error',
           message,
           messageCode: 'channelUnsupportedPlatform',
-          messageParams: { channel: expect.any(String), platforms: 'macOS and Windows' },
+          messageParams: { channel: expect.any(String) },
           userInitiated: true
         })
         expect(autoUpdaterMock.checkForUpdates).not.toHaveBeenCalled()
