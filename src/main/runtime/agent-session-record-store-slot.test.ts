@@ -101,12 +101,15 @@ it.each(['standalone', 'construction'] as const)(
     const { AgentSessionRecordStore } = await import('./agent-session-record-store')
     let database: JournalHostDatabase | undefined
     const realClose = JournalHostDatabase.prototype.close
-    const close = vi.spyOn(JournalHostDatabase.prototype, 'close').mockImplementationOnce(function (
-      this: JournalHostDatabase
-    ) {
-      database = this
-      return Promise.reject(new Error('close failed'))
+    const realOpen = JournalHostDatabase.open
+    vi.spyOn(JournalHostDatabase, 'open').mockImplementation((directory) => {
+      const opened = realOpen(directory)
+      database = opened
+      return opened
     })
+    const close = vi
+      .spyOn(JournalHostDatabase.prototype, 'close')
+      .mockRejectedValueOnce(new Error('close failed'))
     if (path === 'construction') {
       vi.spyOn(AgentSessionRecordStore, 'open').mockImplementationOnce(() => {
         throw new Error('construction failed')
@@ -118,8 +121,9 @@ it.each(['standalone', 'construction'] as const)(
     }
     expect(database?.isClosed).toBe(false)
     close.mockImplementation(realClose)
+    const retiring = database
     // A new admission must first finish retiring the old connection.
     await openAgentSessionRecordStoreOnce(location())
-    expect(database?.isClosed).toBe(true)
+    expect(retiring?.isClosed).toBe(true)
   }
 )

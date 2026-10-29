@@ -13,7 +13,9 @@ let host: JournalHostDatabase | undefined
 afterEach(async () => {
   vi.restoreAllMocks()
   await host?.close()
-  if (root) await rm(root, { recursive: true, force: true })
+  if (root) {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 async function open() {
   root = await mkdtemp(join(tmpdir(), 'orca-checkpoint-'))
@@ -36,10 +38,11 @@ it('moves checkpoints off the writer, retries a pinned idle tail, reclaims on re
   const reader = new Database(journalDatabasePath(root), { readonly: true })
   try {
     reader.exec('BEGIN; SELECT * FROM checkpoint_probe')
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 3; i++) {
       database.transaction((writer) =>
         writer.exec('INSERT INTO checkpoint_probe VALUES (zeroblob(200000))')
       )
+    }
     await new Promise((resolve) => setTimeout(resolve, 150))
     const pinned = db.prepare('PRAGMA wal_checkpoint(NOOP)').get()!
     expect(Number(pinned.log)).toBeGreaterThan(Number(pinned.checkpointed))
@@ -55,12 +58,12 @@ it('moves checkpoints off the writer, retries a pinned idle tail, reclaims on re
     database.transaction((writer) =>
       writer.exec('INSERT INTO checkpoint_probe VALUES (zeroblob(10))')
     )
-    expect((await stat(journalDatabasePath(root) + '-wal')).size).toBeLessThanOrEqual(65536)
+    expect((await stat(`${journalDatabasePath(root)}-wal`)).size).toBeLessThanOrEqual(65536)
   } finally {
     reader.close()
   }
   await database.close()
-  await expect(stat(journalDatabasePath(root) + '-wal')).rejects.toMatchObject({ code: 'ENOENT' })
+  await expect(stat(`${journalDatabasePath(root)}-wal`)).rejects.toMatchObject({ code: 'ENOENT' })
   host = JournalHostDatabase.open(root)
   expect(host.db.prepare('SELECT count(*) AS n FROM checkpoint_probe').get()?.n).toBe(5)
 })
@@ -77,7 +80,9 @@ it.each([false, true])(
     })
     const pragma = db.pragma.bind(db)
     vi.spyOn(db, 'pragma').mockImplementation((sql, options) => {
-      if (sql === 'wal_autocheckpoint = 1000') throw new Error('fallback failed')
+      if (sql === 'wal_autocheckpoint = 1000') {
+        throw new Error('fallback failed')
+      }
       return pragma(sql, options)
     })
     vi.spyOn(console, 'warn').mockImplementation(() => {

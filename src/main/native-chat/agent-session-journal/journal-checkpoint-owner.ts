@@ -50,7 +50,9 @@ export class JournalCheckpointOwner {
       this.exited = new Promise((resolve) => {
         worker.on('exit', () => {
           resolve()
-          if (!this.closing) this.fallback(new Error('checkpoint worker exited'))
+          if (!this.closing) {
+            this.fallback(new Error('checkpoint worker exited'))
+          }
         })
       })
       worker.on('message', (message: CheckpointResponse) => this.receive(message))
@@ -64,13 +66,17 @@ export class JournalCheckpointOwner {
 
   afterCommit(): void {
     try {
-      if (this.closing) return
+      if (this.closing) {
+        return
+      }
       if (this.stopped) {
         this.restore()
         return
       }
       this.dirty = true
-      if (!this.healthy || this.pending !== undefined) return
+      if (!this.healthy || this.pending !== undefined) {
+        return
+      }
       this.dirty = false
       this.pending = ++this.nextRequest
       this.worker?.postMessage({ type: 'check', id: this.pending })
@@ -97,7 +103,9 @@ export class JournalCheckpointOwner {
       this.acknowledgedClose = true
       return
     }
-    if (this.stopped || this.closing) return
+    if (this.stopped || this.closing) {
+      return
+    }
     try {
       if (message.type === 'ready') {
         this.writer.pragma('wal_autocheckpoint = 0')
@@ -113,7 +121,9 @@ export class JournalCheckpointOwner {
       ) {
         this.pending = undefined
         this.clearDeadline()
-        if (this.dirty) this.afterCommit()
+        if (this.dirty) {
+          this.afterCommit()
+        }
       }
     } catch (error) {
       this.fallback(error)
@@ -121,7 +131,9 @@ export class JournalCheckpointOwner {
   }
 
   private fallback(error: unknown): void {
-    if (this.closing) return
+    if (this.closing) {
+      return
+    }
     const first = !this.stopped
     this.stopped = true
     this.healthy = false
@@ -143,13 +155,17 @@ export class JournalCheckpointOwner {
   }
 
   private restore(): void {
-    if (!this.restoreNeeded) return
+    if (!this.restoreNeeded) {
+      return
+    }
     this.writer.pragma('wal_autocheckpoint = 1000')
     this.restoreNeeded = false
   }
 
   private warn(error: unknown): void {
-    if (this.warned) return
+    if (this.warned) {
+      return
+    }
     this.warned = true
     try {
       console.warn(

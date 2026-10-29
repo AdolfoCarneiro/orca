@@ -34,7 +34,9 @@ function setup(timeoutMs = 1000) {
 afterEach(async () => {
   vi.useRealTimers()
   await Promise.all(owners.splice(0).map((owner) => owner.close()))
-  for (const db of databases.splice(0)) db.close()
+  for (const db of databases.splice(0)) {
+    db.close()
+  }
   vi.restoreAllMocks()
 })
 
@@ -72,11 +74,14 @@ it.each(['init-error', 'error', 'exit', 'send', 'startup-timeout', 'check-timeou
         throw new Error('post failed')
       })
       owner.afterCommit()
-    } else if (failure === 'error' || failure === 'init-error')
+    } else if (failure === 'error' || failure === 'init-error') {
       worker.emit('error', new Error('checkpoint failed'))
-    else if (failure === 'exit') worker.emit('exit', 1)
-    else {
-      if (failure === 'check-timeout') owner.afterCommit()
+    } else if (failure === 'exit') {
+      worker.emit('exit', 1)
+    } else {
+      if (failure === 'check-timeout') {
+        owner.afterCommit()
+      }
       await vi.advanceTimersByTimeAsync(26)
     }
     expect(auto()).toBe(1000)

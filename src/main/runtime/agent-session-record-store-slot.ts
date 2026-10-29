@@ -34,7 +34,9 @@ const pendingDatabaseClose = new Set<JournalHostDatabase>()
 export async function closeAgentSessionRecordStoreDatabase(
   database?: JournalHostDatabase
 ): Promise<void> {
-  if (database) pendingDatabaseClose.add(database)
+  if (database) {
+    pendingDatabaseClose.add(database)
+  }
   for (const pending of pendingDatabaseClose) {
     await pending.close()
     pendingDatabaseClose.delete(pending)
