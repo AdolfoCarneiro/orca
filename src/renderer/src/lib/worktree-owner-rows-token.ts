@@ -3,7 +3,8 @@ import type { WorktreeOperationOwnerRecord } from './worktree-operation-route'
 type WorktreeOwnerRows = Record<string, readonly WorktreeOperationOwnerRecord[]>
 
 const ownerRowTokens = new WeakMap<WorktreeOwnerRows, object>()
-let lastOwnerRows: { rows: WorktreeOwnerRows; token: object } | null = null
+// Weak so a removed catalog isn't pinned when nothing tokenizes a newer map.
+let lastOwnerRows: { rows: WeakRef<WorktreeOwnerRows>; token: object } | null = null
 
 function sameOwner(a: WorktreeOperationOwnerRecord, b: WorktreeOperationOwnerRecord): boolean {
   // Every owner field, so a new one cannot be silently left out of the comparison.
@@ -55,9 +56,12 @@ export function worktreeOwnerRowsTokenOf(worktreesByRepo: WorktreeOwnerRows | un
   }
   let token = ownerRowTokens.get(worktreesByRepo)
   if (!token) {
+    const lastRows = lastOwnerRows?.rows.deref()
     token =
-      lastOwnerRows && sameOwnerRows(lastOwnerRows.rows, worktreesByRepo) ? lastOwnerRows.token : {}
-    lastOwnerRows = { rows: worktreesByRepo, token }
+      lastOwnerRows && lastRows && sameOwnerRows(lastRows, worktreesByRepo)
+        ? lastOwnerRows.token
+        : {}
+    lastOwnerRows = { rows: new WeakRef(worktreesByRepo), token }
     ownerRowTokens.set(worktreesByRepo, token)
   }
   return token
