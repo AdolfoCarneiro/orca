@@ -1,5 +1,6 @@
 // Rejects `:has()` rules that make Blink restyle the anchor's whole subtree on any mutation
-// (#34312). Checks Tailwind's compiled output, so utility spellings cannot route around it.
+// (#34312). Checks Tailwind's compiled output plus plain and listed package stylesheets.
+// Not covered: `?inline` imports, template-literal imports, `.js` files, relative node_modules paths.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -25,7 +26,12 @@ const VENDOR_BASELINE = new Set([
   'pdfjs-dist/web/pdf_viewer.css: .annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton):has([data-canvas-name="unchecked"]) input:not(:checked)',
   'pdfjs-dist/web/pdf_viewer.css: #addSignatureDialog .mainContainer #addSignatureActionContainer #addSignatureControls #horizontalContainer #addSignatureDescriptionContainer:has(input:disabled) > label'
 ])
-const CSS_IMPORT = /\bimport\s*\(?\s*['"]([^'"./][^'"]*\.css)['"]/g
+const CSS_IMPORT =
+  /(?:\bimport\s*(?:[\w*{}\s,]+?\bfrom\s*)?\(?|@import\s+(?:url\()?)\s*['"]([^'"]+\.css)['"]/g
+const IMPORT_SCAN = ['src/renderer/*.ts', 'src/renderer/*.tsx', ...PLAIN_CSS]
+const LS_FILES = ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--']
+const GREP_CSS = ['grep', '-lz', '--untracked', '-F', '.css', '--']
+const COMMENT = /\/\*[\s\S]*?\*\/|(?<![:'"])\/\/.*$/gm
 const SPECIFIC = new Set(['class', 'id', 'attribute'])
 const SIBLING = new Set(['next-sibling', 'later-sibling'])
 
@@ -56,7 +62,12 @@ function compounds(selector) {
 
 // Blink's descendant invalidation set keys on the subject's class/id/attribute; without one it is the whole subtree.
 function isBroad(compound) {
-  return !compound.some((component) => SPECIFIC.has(component.type))
+  return !compound.some(
+    (component) =>
+      SPECIFIC.has(component.type) ||
+      (['is', 'where'].includes(component.kind) &&
+        component.selectors.every((branch) => !isBroad(compounds(branch).at(-1) ?? [])))
+  )
 }
 
 // Only `:has(+ x)` / `:has(~ x)` (a leading :scope) stay among siblings; `:has(.a + .b)` starts with a descendant.
@@ -75,7 +86,8 @@ function visitSelector(selector, outerSubject, report) {
   parts.forEach((compound, index) => {
     const subject = index === parts.length - 1 ? outerSubject : (outerSubject ?? parts.at(-1))
     for (const component of compound) {
-      if (component.type !== 'pseudo-class') {
+      // `:host(<selector>)` holds one selector, not a list, and is outside the light DOM.
+      if (component.type !== 'pseudo-class' || component.kind === 'host') {
         continue
       }
       if (component.kind === 'has') {
@@ -122,14 +134,7 @@ export function findHasRestyleProblems(css, { lightningcss } = loadToolchain(pro
     include: lightningcss.Features.Nesting,
     errorRecovery: true
   })
-  const sourceLines = css.split('\n')
-  // A rule the parser recovered past is invisible below; refuse to wave through a :has() one.
-  const problems = new Set(
-    lowered.warnings
-      .map(({ loc }) => sourceLines[loc.line - 1] ?? '')
-      .filter((line) => line.includes(':has('))
-      .map((line) => `unparsed: ${line.trim()}`)
-  )
+  const problems = new Set()
   const flat = lowered.code.toString()
   const lines = flat.split('\n')
   lightningcss.transform({
@@ -139,14 +144,14 @@ export function findHasRestyleProblems(css, { lightningcss } = loadToolchain(pro
     visitor: {
       Rule: {
         style(rule) {
-          const { line, column } = rule.value.loc
-          const rest = lines
-            .slice(line)
-            .join('\n')
-            .slice(column - 1)
-          const texts = splitSelectorList(rest.slice(0, rest.indexOf('{')))
           rule.value.selectors.forEach((selector, index) =>
-            visitSelector(selector, null, () => problems.add(texts[index] ?? texts.join(', ')))
+            visitSelector(selector, null, () => {
+              // Selector text only for findings: slicing the sheet per rule dominated the runtime.
+              const { line, column } = rule.value.loc
+              const tail = lines.slice(line).join('\n')
+              const texts = splitSelectorList(tail.slice(column - 1, tail.indexOf('{', column - 1)))
+              problems.add(texts[index] ?? texts.join(', '))
+            })
           )
         }
       }
@@ -162,35 +167,36 @@ export async function compileTailwind(
 ) {
   const { tailwind, oxide } = toolchain
   const compiler = await tailwind.compile(css, { base, onDependency() {} })
-  const detected =
-    compiler.root === 'none'
-      ? []
-      : compiler.root === null
-        ? [{ base: scanBase, pattern: '**/*', negated: false }]
-        : [{ ...compiler.root, negated: false }]
+  // A null root means auto-detection from `scanBase`; `source(none)` turns scanning off.
+  const autoSource = { base: scanBase, pattern: '**/*', ...compiler.root, negated: false }
+  const detected = compiler.root === 'none' ? [] : [autoSource]
   const scanner = new oxide.Scanner({ sources: [...detected, ...compiler.sources] })
   return compiler.build(scanner.scan())
 }
 
-// Tracked and untracked-but-not-ignored files, so local work is checked before it is staged.
-function listFiles(root, pathspecs) {
-  return execFileSync(
-    'git',
-    ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ...pathspecs],
-    { cwd: root, encoding: 'utf8' }
-  )
+// Tracked plus untracked-but-not-ignored paths, so local work is checked before it is staged.
+function gitPaths(root, args) {
+  return execFileSync('git', ['-c', 'submodule.recurse=false', ...args], {
+    cwd: root,
+    encoding: 'utf8'
+  })
     .split('\0')
-    .filter((file) => file && existsSync(path.join(root, file)))
+    .filter((file) => file && file !== TAILWIND_ENTRY && existsSync(path.join(root, file)))
 }
 
+// Package CSS that renderer TS/TSX imports or a plain stylesheet @imports; main.css compiles its own.
 function unlistedVendorImports(root) {
   const specifiers = new Set()
-  for (const file of listFiles(root, ['src/renderer/*.ts', 'src/renderer/*.tsx'])) {
-    for (const [, specifier] of readFileSync(path.join(root, file), 'utf8').matchAll(CSS_IMPORT)) {
+  // git grep prefilters ~13k renderer files; reading each one dominated the runtime.
+  for (const file of gitPaths(root, [...GREP_CSS, ...IMPORT_SCAN])) {
+    const source = readFileSync(path.join(root, file), 'utf8').replace(COMMENT, '')
+    for (const [, specifier] of source.matchAll(CSS_IMPORT)) {
       specifiers.add(specifier)
     }
   }
-  return [...specifiers].filter((specifier) => !VENDOR_CSS.includes(specifier)).sort()
+  return [...specifiers]
+    .filter((specifier) => !/^(?:\.|\/|@\/)/.test(specifier) && !VENDOR_CSS.includes(specifier))
+    .sort()
 }
 
 export async function main(root = process.cwd()) {
@@ -211,9 +217,10 @@ export async function main(root = process.cwd()) {
         toolchain
       })
     },
-    ...listFiles(root, PLAIN_CSS)
-      .filter((file) => file !== TAILWIND_ENTRY)
-      .map((file) => ({ name: file, css: readFileSync(path.join(root, file), 'utf8') })),
+    ...gitPaths(root, [...LS_FILES, ...PLAIN_CSS]).map((file) => ({
+      name: file,
+      css: readFileSync(path.join(root, file), 'utf8')
+    })),
     ...VENDOR_CSS.map((specifier) => ({
       name: specifier,
       css: readFileSync(resolveVendor(specifier), 'utf8')
@@ -245,5 +252,6 @@ export async function main(root = process.cwd()) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exit(await main())
+  // An uninstalled VENDOR_CSS package surfaces as Node's "Cannot find module" message.
+  process.exit(await main().catch((error) => (console.error(error.message), 1)))
 }

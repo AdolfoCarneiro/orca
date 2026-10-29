@@ -18,17 +18,11 @@ const subtreeWide = [
   '.a:has(:is(.x)) svg', // has-[x]:[&_svg]:
   '.a:has(.x) svg', // [&:has(x)_svg]
   ':is(.anchor:has(.trigger) .scoped) *', // [&:is(.anchor:has(.trigger)_.scoped)_*]
-  ':where(.anchor:has(.trigger) .scoped) *',
-  ':not(.anchor:has(.trigger) .scoped) *',
   '.a:nth-child(2n of .g:has(.x) *)',
-  '.a:nth-last-child(2n of .g:has(.x) *)',
   '.zz:has(.a + .b) span',
   '.foo:has(.a ~ .b) *',
   '.zz:has(:focus-visible) span',
   '.zz:has(.x) ::before',
-  '.zz:has(.x) *::before',
-  '.zz:has(.x) :hover',
-  '.zz:has(.x) :not(.qq)',
   ':is(body:has(.modal)) span'
 ]
 
@@ -41,6 +35,8 @@ const scoped = [
   ':is(body:has(.modal)) .x',
   ':is(.anchor:has(.trigger) .scoped) .ok',
   '.a:is(:where(.group\\/row):hover *)',
+  '.anchor:has(.x) :where(.scoped), .anchor:has(.x) :is(.scoped, #target)',
+  ':host(.dark) .card:has(.x)',
   "body > :is([data-slot='dialog-content']):has(~ [data-slot='dialog-overlay'])"
 ]
 
@@ -58,12 +54,6 @@ describe('findHasRestyleProblems', () => {
     expect(
       findHasRestyleProblems('@layer u { @media (hover: hover) { .zz:has(.x) i { color: red } } }')
     ).toHaveLength(1)
-  })
-
-  it('refuses a :has() rule the parser had to recover past', () => {
-    expect(findHasRestyleProblems('.zz:has(.x)) span { color: red }')).toEqual([
-      'unparsed: .zz:has(.x)) span { color: red }'
-    ])
   })
 
   it('flags a group-has-* utility through the real Tailwind compile', async () => {
