@@ -19,6 +19,12 @@ export const ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY =
 /** A client that reports when the user opens or watches a finished worker's chat; any client without it keeps chat workers on manual release. */
 export const ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY =
   'orchestration.worker-chat-touch.v1' as const
+/** worker-start creates and binds a Run when its coordinator has none. */
+export const ORCHESTRATION_WORKER_START_IMPLICIT_RUN_RUNTIME_CAPABILITY =
+  'orchestration.worker-start-implicit-run.v1' as const
+/** A coordinator stays bound to every Run it created or used, not only the latest. */
+export const ORCHESTRATION_RETAINED_RUN_BINDINGS_RUNTIME_CAPABILITY =
+  'orchestration.retained-run-bindings.v1' as const
 export const ORCHESTRATION_FEDERATION_CONTROL_MAIL_PROTOCOL_VERSION = 2 as const
 export const ORCHESTRATION_FEDERATION_LIFECYCLE_SETTLEMENT_PROTOCOL_VERSION = 3 as const
 export const ORCHESTRATION_CONTRACT_VERSION = 1 as const
@@ -34,5 +40,7 @@ export const ORCHESTRATION_RUNTIME_CAPABILITIES = [
   ORCHESTRATION_FEDERATION_FLEET_SNAPSHOT_RUNTIME_CAPABILITY,
   ORCHESTRATION_FEDERATION_RELEASE_ARCHIVE_RUNTIME_CAPABILITY,
   ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY,
+  ORCHESTRATION_WORKER_START_IMPLICIT_RUN_RUNTIME_CAPABILITY,
+  ORCHESTRATION_RETAINED_RUN_BINDINGS_RUNTIME_CAPABILITY,
   ORCHESTRATION_CONTRACT_RUNTIME_CAPABILITY
 ] as const

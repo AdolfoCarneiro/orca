@@ -272,7 +272,9 @@
         },
         "OrchestrationPane": {
           "chatErrorEscalationKeywordChat": "chat",
-          "chatErrorEscalationKeywordError": "error"
+          "chatErrorEscalationKeywordError": "error",
+          "workerAutoReleaseKeywordClose": "close",
+          "workerAutoReleaseKeywordRelease": "release"
         },
         "OrchestrationSkillAgentCoverage": {
           "fullCoverage_one": "All 1 detected agent has the skill.",

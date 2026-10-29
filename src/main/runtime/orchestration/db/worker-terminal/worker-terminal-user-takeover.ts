@@ -1,6 +1,5 @@
 import { isEquivalentPaneKey } from '../pane-key-match'
 import type { OrchestrationDb } from '../orchestration-db'
-import { retainTerminalResourceInTransaction } from './worker-terminal-archive'
 
 const USER_CLAIMABLE_RESOURCE_SQL = `ownership_state = 'owned'
   AND release_state IN ('not_requested', 'retained', 'requested')
@@ -89,24 +88,6 @@ function takeOverForUser(
     return changed
   } catch (error) {
     database.db.exec('ROLLBACK')
-    throw error
-  }
-}
-
-/** The user's "Keep worker": the same durable retain worker-retain records, addressed by pane. */
-export function retainWorkerTerminalForUser(this: OrchestrationDb, paneKey: string): number {
-  this.db.exec('BEGIN IMMEDIATE')
-  try {
-    let changed = 0
-    for (const candidate of findUserClaimableResources(this, paneKey)) {
-      if (retainTerminalResourceInTransaction(this, candidate.id, candidate.owner_dispatch_id)) {
-        changed += 1
-      }
-    }
-    this.db.exec('COMMIT')
-    return changed
-  } catch (error) {
-    this.db.exec('ROLLBACK')
     throw error
   }
 }

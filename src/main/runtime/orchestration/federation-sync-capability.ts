@@ -61,6 +61,7 @@ export async function armHomeAutoReleaseForOlderHost(
   const worker = db.getWorkerDispatch(dispatchId)
   if (
     !federated ||
+    db.workerAutoReleaseEnabled?.() === false ||
     federated.home_auto_release_state !== null ||
     // Chat workers stay on manual release, as on hosts that release by themselves.
     !federated.remote_terminal_handle ||

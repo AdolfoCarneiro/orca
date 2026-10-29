@@ -29,6 +29,7 @@ import {
   getNestedWorkerDepthTitle
 } from './nested-worker-depth-copy'
 import { OrchestrationChatErrorSetting } from './OrchestrationChatErrorSetting'
+import { OrchestrationWorkerAutoReleaseSetting } from './OrchestrationWorkerAutoReleaseSetting'
 
 const EXAMPLE_ICONS = {
   handoff: ArrowRightLeft,
@@ -159,6 +160,12 @@ export function OrchestrationPane({
           onChange={(nestedWorkerMaxDepth) => {
             void updateSettings({ nestedWorkerMaxDepth })
           }}
+        />
+      ) : null}
+      {showLocalRuntimeSettings ? (
+        <OrchestrationWorkerAutoReleaseSetting
+          settings={settings}
+          updateSettings={updateSettings}
         />
       ) : null}
       {showLocalRuntimeSettings ? (

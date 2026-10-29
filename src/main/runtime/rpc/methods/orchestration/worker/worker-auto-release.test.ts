@@ -88,11 +88,6 @@ describe('orchestration worker automatic release', () => {
       'orchestration.workerRetain',
       (dispatchId: string) => ({ dispatch: dispatchId })
     ],
-    [
-      'Keep Worker Open action',
-      'orchestration.workerTerminalUserKeep',
-      () => ({ paneKey: h.workerPaneKey })
-    ],
     ['user input', 'orchestration.workerTerminalUserInput', () => ({ paneKey: h.workerPaneKey })]
   ] as const)(
     'keeps a terminal the %s claimed before the deadline',

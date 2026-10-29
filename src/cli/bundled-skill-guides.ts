@@ -2402,6 +2402,7 @@ const ORCHESTRATION_MARKDOWN = [
   "",
   "Finished workers close on their own unless the user opened them. To keep one",
   "for a follow-up, run `ORCA orchestration worker-retain --dispatch <dispatch_id> --json`.",
+  "If `worker-list` shows no `autoReleaseAt` for a finished worker, release it yourself.",
   "",
   "## Task spec",
   "",

@@ -32,6 +32,8 @@ class OrchestrationDbCore {
   workerTerminalAutoReleaseListener: (() => void) | undefined
   /** Whether a settling chat worker may arm too: every connected client must report touches. */
   chatWorkerAutoReleaseArmable: (() => boolean) | undefined
+  /** The user's auto-close switch; this runtime's choice also governs the remote workers it coordinates. */
+  workerAutoReleaseEnabled: (() => boolean) | undefined
 
   constructor(dbPath: (string & {}) | ':memory:') {
     this.db = new Database(dbPath)

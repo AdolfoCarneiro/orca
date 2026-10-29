@@ -279,7 +279,7 @@ export function settleWorkerReportInTransaction(
   if (params.outcome === 'succeeded') {
     this.promoteReadyTasks(params.taskId)
   }
-  if (reportingWorker) {
+  if (reportingWorker && this.workerAutoReleaseEnabled?.() !== false) {
     this.armWorkerTerminalAutoReleaseStatement(params.dispatchId)
   }
   recordAcceptedReportFact(this, params)

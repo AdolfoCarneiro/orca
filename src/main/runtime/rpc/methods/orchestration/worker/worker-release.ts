@@ -143,18 +143,6 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
     }
   }),
   defineMethod({
-    name: 'orchestration.workerTerminalUserKeep',
-    permission: 'workspace',
-    params: OrchestrationWorkerTerminalUserInputParams,
-    handler: (params, { runtime }) => {
-      const paneKey = resolveUserWorkerPaneKey(runtime, params)
-      const changed = paneKey
-        ? runtime.getOrchestrationDb().retainWorkerTerminalForUser(paneKey)
-        : 0
-      return { changed }
-    }
-  }),
-  defineMethod({
     name: 'orchestration.workerChatTouch',
     permission: 'workspace',
     params: OrchestrationWorkerTerminalUserInputParams,

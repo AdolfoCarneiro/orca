@@ -7800,6 +7800,10 @@
           "chatErrorEscalationNeedsChat": "Turn on Chat UI in Experimental settings to use it.",
           "chatErrorEscalationKeywordError": "error",
           "chatErrorEscalationKeywordChat": "chat",
+          "workerAutoReleaseTitle": "Auto-close finished workers",
+          "workerAutoReleaseDescription": "Closes a worker's terminal or chat about 2 minutes after it reports done. Workers you've typed into or opened stay open.",
+          "workerAutoReleaseKeywordClose": "close",
+          "workerAutoReleaseKeywordRelease": "release",
           "7bc082f4de": "Copy install command"
         },
         "OrchestrationSetupCard": {
@@ -18633,12 +18637,6 @@
           "copied": "Tab ID copied",
           "failed": "Could not copy tab ID",
           "copy": "Copy Tab ID"
-        },
-        "KeepWorkerMenuItem": {
-          "kept": "Worker kept open",
-          "nothingToKeep": "Nothing to keep for this terminal",
-          "failed": "Could not keep this worker open",
-          "keep": "Keep Worker Open"
         },
         "bulkClose": {
           "others": "Close other tabs?",

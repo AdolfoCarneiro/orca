@@ -204,6 +204,8 @@ export abstract class OrcaRuntimeWithAutomationOperations extends OrcaRuntimeWit
       this.connectedClientCapabilities().every((capabilities) =>
         capabilities.includes(ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY)
       )
+    db.workerAutoReleaseEnabled = () =>
+      this.store?.getSettings?.()?.orchestrationWorkerAutoReleaseEnabled !== false
   }
 
   private bindMailHandBack(db: OrchestrationDb): void {
