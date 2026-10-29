@@ -73,7 +73,12 @@ const target = { ok: true as const, repo: state.repos[0], cwd: '/fixture' }
 const terminal: AgentLaunchResult = {
   worktreeId: 'wt-1',
   outcome: { kind: 'terminal', handle: 'term-1', paneKey: 'tab-1:leaf-1' },
-  receipt: { mode: 'terminal', preferred: 'structured', reason: 'unsupported', detail: 'Fallback' },
+  receipt: {
+    mode: 'terminal',
+    preferred: 'structured',
+    reason: 'structured_unsupported_on_host',
+    detail: 'Fallback'
+  },
   prompt: { delivery: 'submit', outcome: 'handed-to-terminal' }
 }
 const chat: AgentLaunchResult = {

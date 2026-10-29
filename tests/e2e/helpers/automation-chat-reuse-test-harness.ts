@@ -72,10 +72,17 @@ export async function exerciseBusyChatReuse(
       chatSessionId: sessionId,
       workspaceId: saved.workspaceId,
       outputSnapshot: {
+        format: 'plain_text',
         content: 'Prior automation output',
         truncated: false,
         capturedAt: Date.now()
       }
+    })
+    expect(firstResult.outputSnapshot).toEqual({
+      format: 'plain_text',
+      content: 'Prior automation output',
+      truncated: false,
+      capturedAt: HOST_TEST_NOW
     })
     const previous = await writer.createRun(saved, Date.now() - 1, 'manual')
     await writer.updateRun({
