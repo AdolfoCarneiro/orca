@@ -359,7 +359,7 @@ describe('a live terminal insert that fails', () => {
   }
 })
 
-describe('a chat dictation that ends after switching away', () => {
+describe('a dictation that ends after switching between chat and terminal', () => {
   it('lands in the chat it started in, where its words were shown', async () => {
     seen.chat = { shown: true, scope: 'chat-a' }
     const rpc = createFakeRpcClient()
@@ -368,6 +368,16 @@ describe('a chat dictation that ends after switching away', () => {
     act(() => mounted.current().handleDictationToggle())
     await settle(rpc, 'ship it')
     expect(seen.chatWrites).toEqual([['chat-a', 'ship it']])
+    expect(seen.inputs).toEqual([])
+  })
+
+  it('lands in the chat that replaced the terminal it started in', async () => {
+    const rpc = createFakeRpcClient()
+    const mounted = await startRecording(rpc, { liveInput: false })
+    seen.chat = { shown: true, scope: 'chat-b' }
+    act(() => mounted.current().handleDictationToggle())
+    await settle(rpc, 'ship it')
+    expect(seen.chatWrites).toEqual([['chat-b', 'ship it']])
     expect(seen.inputs).toEqual([])
   })
 })

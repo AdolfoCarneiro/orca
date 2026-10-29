@@ -94,9 +94,8 @@ export function useMobileDictationDestination({
   return {
     target,
     captureDestination,
-    // Words land where their preview showed: the target captured at start, else the visible field.
-    landsInChat: (chatShown: boolean) =>
-      targetRef.current ? targetRef.current.field === 'chat' : chatShown,
+    // A chat dictation stays in its chat after a switch; a terminal's draft can't take words once a chat replaces it.
+    landsInChat: (chatShown: boolean) => chatShown || targetRef.current?.field === 'chat',
     insertInChat
   }
 }
