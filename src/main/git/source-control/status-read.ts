@@ -5,7 +5,7 @@ import type {
   GitUpstreamStatus
 } from '../../../shared/git-status-types'
 import { StatusPorcelainParser } from '../../../shared/git-status-porcelain-parser'
-import { resolveGitStatusLimit } from '../../../shared/git-status-limit'
+import { capGitStatusEntries, resolveGitStatusLimit } from '../../../shared/git-status-limit'
 import { stableInFlightKey } from '../../../shared/in-flight-promise-dedupe'
 import {
   beginGitStatusLineStatsCacheWrite,
@@ -199,6 +199,12 @@ async function runGetStatus(
     entries = await reconcileDriveCheckoutSuspects(worktreePath, entries, options)
   }
   await dropSharedSymlinkUntrackedEntries(worktreePath, entries, options)
+  const cappedStatus = capGitStatusEntries(entries, limit, {
+    didHitLimit,
+    statusLength: parser.statusLength
+  })
+  entries = cappedStatus.entries
+  didHitLimit = cappedStatus.didHitLimit === true
 
   if (statusSucceeded && !didHitLimit && shouldProbeEffectiveUpstreamStatus(branch, upstreamName)) {
     const branchName = getShortBranchName(branch)
@@ -267,7 +273,7 @@ async function runGetStatus(
     ...(options.includeIgnored ? { ignoredPaths: parser.ignoredPaths } : {}),
     ...(branchLineTotal ? { branchLineTotal } : {}),
     ...(branchLineTotalUnavailable ? { branchLineTotalUnavailable } : {}),
-    ...(didHitLimit ? { didHitLimit: true, statusLength: parser.statusLength } : {}),
+    ...(didHitLimit ? { didHitLimit: true, statusLength: cappedStatus.statusLength } : {}),
     ...(statusSucceeded
       ? {
           upstreamStatus:

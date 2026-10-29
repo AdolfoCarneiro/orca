@@ -125,4 +125,31 @@ describe('drive checkout suspect paths with real Git', () => {
     expect(await statusPaths()).toEqual([])
     expect(mocks.streamedArgs.some((args) => args.includes('core.checkStat=default'))).toBe(false)
   })
+
+  it.each([
+    { limit: 1, expectedCount: 1, capped: true },
+    { limit: 2, expectedCount: 2, capped: true },
+    { limit: 3, expectedCount: 3, capped: false },
+    { limit: 0, expectedCount: 3, capped: false }
+  ])(
+    'applies limit $limit after recovering watcher edits',
+    async ({ limit, expectedCount, capped }) => {
+      expect(await statusPaths()).toEqual([])
+      await rewriteKeepingMtime('a.txt', 'bbbb\n')
+      await rewriteKeepingMtime('b.txt', 'bbbb\n')
+      await writeFile(path.join(repo, 'untracked.txt'), 'new\n')
+      notifyLocalWatcherEvents(root, [
+        { type: 'update', path: path.join(repo, 'a.txt') },
+        { type: 'update', path: path.join(repo, 'b.txt') }
+      ])
+
+      const result = await getStatus(repo, { includeLineStats: false, limit })
+
+      expect(result.entries.map((entry) => `${entry.area}:${entry.path}`)).toEqual(
+        ['unstaged:a.txt', 'unstaged:b.txt', 'untracked:untracked.txt'].slice(0, expectedCount)
+      )
+      expect(result.didHitLimit === true).toBe(capped)
+      expect(result.statusLength).toBe(capped ? 3 : undefined)
+    }
+  )
 })
