@@ -38,6 +38,12 @@ function placeholders(value) {
 // Plural extraction splits every count-bearing key; one that only fills {{count}} stays singular in en.json.
 function collapseCountOnlyKeys(extracted, english) {
   for (const [key, value] of extracted) {
+    // Plural extraction fills a non-literal default with the base key; treat it as dynamic like other calls.
+    if (PLURAL_SUFFIX_RE.test(key) && value === key.replace(PLURAL_SUFFIX_RE, '')) {
+      extracted.set(key, '')
+    }
+  }
+  for (const [key, value] of extracted) {
     const base = key.endsWith('_other') ? key.slice(0, -'_other'.length) : null
     if (base && !english.has(key) && english.has(base) && extracted.get(`${base}_one`) === value) {
       extracted.delete(key)

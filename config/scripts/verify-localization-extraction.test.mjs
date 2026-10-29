@@ -67,6 +67,9 @@ describe('verify-localization-extraction', () => {
 
     expect(result.missingFromEnglish).toEqual([])
     expect(result.fallbackDrift).toEqual(['files_one'])
+
+    const dynamic = compareExtraction({ tasks_other: 'tasks' }, { tasks_other: '{{count}} tasks' })
+    expect(dynamic.dynamicDefaults).toEqual(['tasks_other'])
   })
 
   it('keeps plural variants and data-structure keys that extraction cannot see', () => {
