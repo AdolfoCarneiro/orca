@@ -431,10 +431,18 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
     let cached: Mounted | undefined
     let pair: ReturnType<typeof createBridgePortPair> | undefined
     const catalogRepos = [
-      { id: 'same', displayName: 'Local', path: '/local', badgeColor: '', addedAt: 0 },
+      {
+        id: 'same',
+        displayName: 'Local',
+        path: '/local',
+        badgeColor: '',
+        addedAt: 0,
+        upstream: { owner: 'org', repo: 'app' }
+      },
       {
         id: 'same',
         displayName: 'Server',
+        upstream: { owner: 'org', repo: 'app' },
         path: '/server',
         executionHostId: 'runtime:server' as const,
         badgeColor: '',
