@@ -83,16 +83,17 @@ export function useRichMarkdownMenuController({
   filteredSlashCommandsRef.current = filteredSlashCommands
   selectedCommandIndexRef.current = selectedCommandIndex
 
+  const docLinkQuery = docLinkMenu?.query
   const { docLinkRows, docLinkTotalMatches } = useMemo(() => {
-    if (!docLinkMenu || !markdownDocuments) {
+    if (docLinkQuery === undefined || !markdownDocuments) {
       return { docLinkRows: [] as DocLinkMenuRow[], docLinkTotalMatches: 0 }
     }
-    const matches = getMarkdownDocCompletionDocuments(markdownDocuments, docLinkMenu.query)
+    const matches = getMarkdownDocCompletionDocuments(markdownDocuments, docLinkQuery)
     const rows: DocLinkMenuRow[] = matches
       .slice(0, DOC_LINK_MENU_MAX_ROWS)
       .map((document) => ({ kind: 'document', document }))
     return { docLinkRows: rows, docLinkTotalMatches: matches.length }
-  }, [docLinkMenu, markdownDocuments])
+  }, [docLinkQuery, markdownDocuments])
   const selectedDocLinkIndex = resolveSelectedMenuIndex(
     docLinkSelection,
     docLinkMenu?.query ?? null,
