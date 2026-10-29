@@ -250,7 +250,10 @@ export function requestBrowserExtensionPopup(
     const key = popupRequestKey(profileId, extensionId)
     const settle = (error?: Error): void => {
       clearTimeout(timer)
-      pendingPopupRequests.get(key)?.delete(settle)
+      const pending = pendingPopupRequests.get(key)
+      if (pending?.delete(settle) && pending.size === 0) {
+        pendingPopupRequests.delete(key)
+      }
       if (error) {
         reject(error)
       } else {
@@ -297,8 +300,7 @@ export async function runBrowserExtensionToolbarAction(
   }
   grantBrowserExtensionActiveTab(extension, tabId)
   if (details.popup !== '') {
-    await requestBrowserExtensionPopup(sess, extension.id, tabId)
-    return
+    return await requestBrowserExtensionPopup(sess, extension.id, tabId)
   }
   emitActionClicked(sess, extension, tabId)
 }

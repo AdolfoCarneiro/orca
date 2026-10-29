@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-type FakeSession = { name: string }
+type FakeSession = { name: string; extensions: { getExtension: () => { id: string } } }
 type FakeContents = { id: number; session: FakeSession; isDestroyed: () => boolean }
 
 const mocks = vi.hoisted(() => {
@@ -22,10 +22,14 @@ vi.mock('electron', () => ({
   webContents: { fromId: (id: number) => mocks.contents.get(id) }
 }))
 vi.mock('../browser-manager', () => ({
-  browserManager: { getTabIdForWebContentsId: (id: number) => mocks.pageIds.get(id) ?? null }
+  browserManager: {
+    getTabIdForWebContentsId: (id: number) => mocks.pageIds.get(id) ?? null,
+    getGuestWebContentsId: (pageId: string) =>
+      [...mocks.pageIds].find(([, page]) => page === pageId)?.[0] ?? null
+  }
 }))
 vi.mock('./browser-extension-api-host', () => ({
-  getBrowserExtensionProfileIdForSession: () => 'profile',
+  getBrowserExtensionProfileIdForSession: (session: FakeSession) => session.name,
   emitBrowserExtensionEvent: (
     target: { session: unknown },
     _ns: string,
@@ -42,7 +46,10 @@ vi.mock('./browser-extension-action-registry', () => ({
 }))
 vi.mock('./browser-extension-action-state', () => ({}))
 vi.mock('./browser-extension-install-store', () => ({}))
-vi.mock('./browser-extension-popup-host', () => ({ getOpenBrowserExtensionPopup: () => null }))
+vi.mock('./browser-extension-popup-host', () => ({
+  getOpenBrowserExtensionPopup: () => null,
+  openBrowserExtensionPopup: vi.fn()
+}))
 vi.mock('./browser-extension-toolbar-pins', () => ({}))
 vi.mock('./browser-extension-window-model', () => ({
   getBrowserExtensionMainWindow: () => ({
@@ -51,6 +58,7 @@ vi.mock('./browser-extension-window-model', () => ({
 }))
 vi.mock('./browser-extension-tab-model', () => ({
   getActiveBrowserTabId: () => mocks.state.activeTabId,
+  recordActiveBrowserPage: vi.fn(),
   resolveBrowserExtensionTab: (id: number) =>
     mocks.tabIds.has(id) ? { contents: mocks.contents.get(id) } : null,
   describeBrowserExtensionTab: (_extension: unknown, entry: { contents: FakeContents }) => ({
@@ -58,11 +66,12 @@ vi.mock('./browser-extension-tab-model', () => ({
   })
 }))
 
-const { runBrowserExtensionToolbarAction } = await import('./browser-extension-toolbar')
+const toolbar = await import('./browser-extension-toolbar')
+const { runBrowserExtensionToolbarAction } = toolbar
 
-const profileA = { name: 'a' }
-const profileB = { name: 'b' }
 const extension = { id: 'e'.repeat(32) }
+const profileA = { name: 'a', extensions: { getExtension: () => extension } }
+const profileB = { name: 'b', extensions: { getExtension: () => extension } }
 
 function contents(id: number, session: FakeSession, isTab: boolean): FakeContents {
   const entry = { id, session, isDestroyed: () => false }
@@ -80,6 +89,36 @@ function run(invoking: FakeContents) {
   return runBrowserExtensionToolbarAction(contents, extension as Electron.Extension)
 }
 
+function request(session = profileA, extensionId = extension.id): Promise<void> {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: popup admission reads only session identity and its profile name.
+  return toolbar.requestBrowserExtensionPopup(
+    session as unknown as Electron.Session,
+    extensionId,
+    31
+  )
+}
+
+function activate(extensionId = extension.id): void {
+  expect(
+    toolbar.activateBrowserExtensionAction({
+      browserPageId: 'page-31',
+      extensionId,
+      anchor: { x: 0, y: 0, width: 20, height: 20 },
+      popupOnly: true
+    })
+  ).toEqual({ ok: true })
+}
+
+async function collect(): Promise<void> {
+  if (!('gc' in globalThis) || typeof globalThis.gc !== 'function') {
+    throw new Error('The test runner must enable --expose-gc')
+  }
+  for (let round = 0; round < 5; round += 1) {
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    globalThis.gc()
+  }
+}
+
 beforeEach(() => {
   mocks.contents.clear()
   mocks.tabIds.clear()
@@ -91,6 +130,84 @@ beforeEach(() => {
   // Orca's main window shows profile B's tab.
   contents(22, profileB, true)
   mocks.state.activeTabId = 22
+})
+
+afterEach(() => vi.useRealTimers())
+
+describe('popup request settlement', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    contents(31, profileA, true)
+    mocks.pageIds.set(31, 'page-31')
+    mocks.state.popup = 'popup.html'
+  })
+
+  it('releases the pending callback Set after the final timeout', async () => {
+    const NativeSet = globalThis.Set
+    const sets: WeakRef<object>[] = []
+    class ObservedSet<T> extends NativeSet<T> {
+      constructor(values?: Iterable<T> | null) {
+        super(values)
+        sets.push(new WeakRef(this))
+      }
+    }
+    let pending: Promise<void>
+    try {
+      globalThis.Set = ObservedSet
+      pending = request()
+    } finally {
+      globalThis.Set = NativeSet
+    }
+    const rejected = expect(pending).rejects.toThrow('Could not show the popup')
+    expect(sets).toHaveLength(1)
+    await collect()
+    expect(sets.filter((ref) => ref.deref() !== undefined)).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(3_000)
+    await rejected
+    await collect()
+    expect(sets.filter((ref) => ref.deref() !== undefined)).toHaveLength(0)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(toolbar.requestBrowserExtensionPopup).toBeTypeOf('function')
+  })
+
+  it('keeps a live sibling after timeout and permits another request after success', async () => {
+    const first = expect(request()).rejects.toThrow('Could not show the popup')
+    await vi.advanceTimersByTimeAsync(1_000)
+    const sibling = request()
+    await vi.advanceTimersByTimeAsync(2_000)
+    await first
+    expect(vi.getTimerCount()).toBe(1)
+    activate()
+    await sibling
+    expect(vi.getTimerCount()).toBe(0)
+    const successor = request()
+    activate()
+    await successor
+    expect(vi.getTimerCount()).toBe(0)
+    expect(mocks.sent).toHaveLength(3)
+  })
+
+  it('settles only the requested profile and extension', async () => {
+    mocks.pageIds.set(22, 'page-22')
+    const first = request()
+    const otherExtension = expect(request(profileA, 'f'.repeat(32))).rejects.toThrow(
+      'Could not show the popup'
+    )
+    const otherProfile = expect(
+      toolbar.requestBrowserExtensionPopup(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: popup admission reads only session identity and its profile name.
+        profileB as unknown as Electron.Session,
+        extension.id,
+        22
+      )
+    ).rejects.toThrow('Could not show the popup')
+    activate()
+    await first
+    expect(vi.getTimerCount()).toBe(2)
+    await vi.advanceTimersByTimeAsync(3_000)
+    await Promise.all([otherExtension, otherProfile])
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })
 
 describe('an extension action run from a keyboard shortcut', () => {
