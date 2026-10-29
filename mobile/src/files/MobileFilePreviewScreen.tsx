@@ -284,12 +284,8 @@ function MobileFilePreviewDocument({ route }: Props) {
     }
   }, [canSaveArtifact, client, draftContent, previewSource, savedContent])
 
-  const leave = useCallback(() => {
-    saveRevisionRef.current += 1
-    savingRef.current = false
-    setSaving(false)
-    router.back()
-  }, [router])
+  // Unmount retires pending saves; a refused back keeps the document and its save alive.
+  const leave = useCallback(() => router.back(), [router])
   const { confirmingDiscard, requestBack, stay, discard } = useMobileFilePreviewBack({
     hasUnsavedDraft: hasUnsavedTerminalArtifactDraft,
     leave
@@ -357,7 +353,11 @@ function MobileFilePreviewDocument({ route }: Props) {
       <ConfirmModal
         visible={confirmingDiscard}
         title="Discard changes?"
-        message="Unsaved edits will be lost."
+        message={
+          saving
+            ? 'The save in progress may not finish. Unsaved edits will be lost.'
+            : 'Unsaved edits will be lost.'
+        }
         confirmLabel="Discard"
         cancelLabel="Stay"
         destructive

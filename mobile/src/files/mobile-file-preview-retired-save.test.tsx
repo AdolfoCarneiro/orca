@@ -7,7 +7,8 @@ import type { MobileFilePreviewRouteState } from './mobile-file-preview-route'
 
 const transport = vi.hoisted(() => ({
   sendRequest: vi.fn<(method: string, params: unknown) => Promise<unknown>>(),
-  leave: () => {}
+  leave: () => {},
+  refuseBack: false
 }))
 vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator',
@@ -72,7 +73,11 @@ function deferred() {
 let renderer: ReactTestRenderer | null = null
 function Session({ target = route }: { target?: MobileFilePreviewRouteState }) {
   const [open, setOpen] = useState(true)
-  transport.leave = () => setOpen(false)
+  transport.leave = () => {
+    if (!transport.refuseBack) {
+      setOpen(false)
+    }
+  }
   return open ? createElement(MobileFilePreviewScreen, { route: target }) : null
 }
 function root() {
@@ -86,13 +91,19 @@ function labeled(label: string) {
     (node) => node.props.accessibilityLabel === label
   )!
 }
-async function discard() {
+function texts() {
+  return findAllByHostType(root(), 'Text').map((node) => node.props.children)
+}
+async function pressDiscard() {
   act(() => labeled('Back to files').props.onPress())
   const button = findAllByHostType(root(), 'Pressable').find((node) =>
     findAllByHostType(node, 'Text').some((label) => label.props.children === 'Discard')
   )
   expect(button).toBeDefined()
   await act(async () => button?.props.onPress())
+}
+async function discard() {
+  await pressDiscard()
   expect(findAllByHostType(root(), 'TextInput')).toHaveLength(0)
 }
 async function editAndSave() {
@@ -102,7 +113,10 @@ async function editAndSave() {
   act(() => findAllByHostType(root(), 'TextInput')[0].props.onChangeText('Discarded draft'))
   act(() => labeled('Save terminal artifact').props.onPress())
 }
-beforeEach(() => transport.sendRequest.mockReset())
+beforeEach(() => {
+  transport.sendRequest.mockReset()
+  transport.refuseBack = false
+})
 afterEach(() => {
   act(() => renderer?.unmount())
   renderer = null
@@ -249,5 +263,51 @@ describe('file saves after the preview document is discarded', () => {
       'files.readTerminalArtifact',
       'files.writeTerminalArtifact'
     ])
+  })
+
+  it('warns that Discard during a save cancels it and drops the newer edit', async () => {
+    const verification = deferred()
+    let reads = 0
+    transport.sendRequest.mockImplementation(async (method) =>
+      method === 'files.readTerminalArtifact'
+        ? ++reads === 1
+          ? text('Original')
+          : verification.promise
+        : accepted({ ok: true })
+    )
+    await editAndSave()
+    act(() => findAllByHostType(root(), 'TextInput')[0].props.onChangeText('Newer draft'))
+    act(() => labeled('Back to files').props.onPress())
+    expect(texts()).toContain('The save in progress may not finish. Unsaved edits will be lost.')
+    await discard()
+    await act(async () => verification.resolve(text('Original')))
+    expect(transport.sendRequest.mock.calls.map(([method]) => method)).toEqual([
+      'files.readTerminalArtifact',
+      'files.readTerminalArtifact'
+    ])
+  })
+
+  it('keeps the started save when navigation back is refused', async () => {
+    const verification = deferred()
+    let reads = 0
+    transport.sendRequest.mockImplementation(async (method) =>
+      method === 'files.readTerminalArtifact'
+        ? ++reads === 1
+          ? text('Original')
+          : verification.promise
+        : accepted({ ok: true })
+    )
+    transport.refuseBack = true
+    await editAndSave()
+    act(() => findAllByHostType(root(), 'TextInput')[0].props.onChangeText('Newer draft'))
+    await pressDiscard()
+    expect(labeled('Save terminal artifact').props.disabled).toBe(true)
+    await act(async () => verification.resolve(text('Original')))
+    expect(transport.sendRequest.mock.calls.at(-1)).toEqual([
+      'files.writeTerminalArtifact',
+      expect.objectContaining({ content: 'Discarded draft' })
+    ])
+    expect(findAllByHostType(root(), 'TextInput')[0].props.value).toBe('Newer draft')
+    expect(labeled('Save terminal artifact').props.disabled).toBe(false)
   })
 })
