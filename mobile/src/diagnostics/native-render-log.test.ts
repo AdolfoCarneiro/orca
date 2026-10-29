@@ -12,7 +12,7 @@ const context = {
   getState: () => 'disconnected' as const,
   getReconnectAttempt: () => 0,
   getLastConnectedAt: () => null,
-  getActivePath: () => undefined,
+  getActivePath: () => 'lan' as const,
   getPendingPath: () => null
 }
 const pairedHost: HostProfile = {

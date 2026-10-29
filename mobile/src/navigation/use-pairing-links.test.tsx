@@ -1,5 +1,5 @@
 import { createElement } from 'react'
-import { act, create } from 'react-test-renderer'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 const links = vi.hoisted(() => ({
@@ -23,18 +23,25 @@ beforeEach(() => {
   links.listeners.clear()
 })
 
-async function pairingRoot() {
+async function mountPairingRoot(): Promise<ReactTestRenderer> {
   const { usePairingLinks } = await import('./use-pairing-links')
-  return function Root() {
+  function Root() {
     usePairingLinks()
     return null
   }
+  const mounted: { tree?: ReactTestRenderer } = {}
+  await act(async () => {
+    mounted.tree = create(createElement(Root))
+  })
+  if (!mounted.tree) {
+    throw new Error('pairing root did not mount')
+  }
+  return mounted.tree
 }
 
 it('handles a cold link once and keeps warm links working after recovery remount', async () => {
   links.initial.mockResolvedValue('orca://pair?code=cold-code')
-  const Root = await pairingRoot()
-  const first = await act(async () => create(createElement(Root)))
+  const first = await mountPairingRoot()
   expect(links.replace).toHaveBeenCalledExactlyOnceWith({
     pathname: '/pair-confirm',
     params: { code: 'cold-code' }
@@ -42,7 +49,7 @@ it('handles a cold link once and keeps warm links working after recovery remount
   await act(async () => first.unmount())
   expect(links.listeners.size).toBe(0)
 
-  const recovered = await act(async () => create(createElement(Root)))
+  const recovered = await mountPairingRoot()
   expect(links.replace).toHaveBeenCalledTimes(1)
   expect(links.initial).toHaveBeenCalledTimes(1)
   await act(async () => {
@@ -65,10 +72,9 @@ it('does not redirect Home when a pending launch-link read completes after recov
         resolveUrl = resolve
       })
   )
-  const Root = await pairingRoot()
-  const first = await act(async () => create(createElement(Root)))
+  const first = await mountPairingRoot()
   await act(async () => first.unmount())
-  const recovered = await act(async () => create(createElement(Root)))
+  const recovered = await mountPairingRoot()
   await act(async () => resolveUrl('orca://pair?code=stale-code'))
   expect(links.replace).not.toHaveBeenCalled()
   await act(async () => recovered.unmount())

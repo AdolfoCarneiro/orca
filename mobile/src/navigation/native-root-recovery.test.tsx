@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from 'react'
-import { act, create } from 'react-test-renderer'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { expect, it, vi } from 'vitest'
+import { findAllByHostType } from '../test-support/react-test-renderer-host-nodes'
 
 const startup = vi.hoisted(() => ({
   fail: true,
@@ -103,24 +104,35 @@ it('recovery Home discards unread cold links and notification taps after a first
   expect(startup.readLink).not.toHaveBeenCalled()
   expect(startup.readNotification).not.toHaveBeenCalled()
 
-  const fallback = await act(async () =>
-    create(
+  const mounted: { fallback?: ReactTestRenderer; recovered?: ReactTestRenderer } = {}
+  await act(async () => {
+    mounted.fallback = create(
       createElement(ErrorBoundary, {
         error: new Error('first native render failed'),
         retry: async () => {}
       })
     )
+  })
+  const fallback = mounted.fallback
+  if (!fallback) {
+    throw new Error('native recovery fallback did not mount')
+  }
+  const home = findAllByHostType(fallback.root, 'Pressable').find((button) =>
+    findAllByHostType(button, 'Text').some((label) => label.props.children === 'Home')
   )
-  const home = fallback.root
-    .findAllByType('Pressable')
-    .find((button) => button.findAllByType('Text').some((label) => label.props.children === 'Home'))
   expect(home).toBeDefined()
   await act(async () => home?.props.onPress())
   expect(startup.replace).toHaveBeenCalledExactlyOnceWith('/')
   await act(async () => fallback.unmount())
 
   startup.fail = false
-  const recovered = await act(async () => create(createElement(RootLayout)))
+  await act(async () => {
+    mounted.recovered = create(createElement(RootLayout))
+  })
+  const recovered = mounted.recovered
+  if (!recovered) {
+    throw new Error('native root did not mount after recovery')
+  }
   expect(startup.openNotification).not.toHaveBeenCalled()
   expect(startup.readNotification).not.toHaveBeenCalled()
   expect(startup.readLink).not.toHaveBeenCalled()
