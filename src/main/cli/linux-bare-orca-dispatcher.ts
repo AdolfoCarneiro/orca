@@ -46,7 +46,7 @@ export type LinuxBareOrcaDispatcherResult = {
   target: string | null
 }
 
-// Team launchers invoke bare `orca`; headless managed terminals need this ahead of GNOME Orca.
+// Team launchers invoke bare `orca`, and a login shell can drop Orca's PATH entry ahead of it.
 // A regular file avoids the installer's legacy-symlink cleanup.
 export async function installLinuxBareOrcaDispatcher(
   options: LinuxBareOrcaDispatcherOptions
@@ -63,7 +63,7 @@ export async function installLinuxBareOrcaDispatcher(
 
   const installed = await publishDispatcher(
     dispatcherPath,
-    insertDispatcherMarker(buildBareOrcaCliScript(launcher))
+    insertDispatcherMarker(buildBareOrcaDispatcherScript(launcher))
   )
   return installed
     ? { state: 'installed', dispatcherPath, target: launcher }
@@ -72,6 +72,63 @@ export async function installLinuxBareOrcaDispatcher(
 
 export function buildBareOrcaCliScript(launcherPath: string): string {
   return `#!/usr/bin/env bash\nexec ${quotePosixShellDoubleQuotedApostrophe(launcherPath)} "$@"\n`
+}
+
+/**
+ * Orca's own children reach this app's CLI; anyone else gets the next `orca` on PATH (GNOME's
+ * screen reader shares the name), then this app, then a clear message once it is uninstalled.
+ */
+export function buildBareOrcaDispatcherScript(launcherPath: string): string {
+  return [
+    '#!/usr/bin/env bash',
+    `launcher=${quotePosixShellDoubleQuotedApostrophe(launcherPath)}`,
+    'if [ -n "${ORCA_CLI_BIN_DIR-}${ORCA_PANE_KEY-}${ORCA_USER_DATA_PATH-}" ] && [ -x "$launcher" ]; then',
+    '  exec "$launcher" "$@"',
+    'fi',
+    // One hop only: two dispatchers on PATH must not exec each other forever.
+    'if [ -z "${ORCA_BARE_DISPATCHER_HOP-}" ]; then',
+    '  IFS=: read -r -a path_dirs <<< "${PATH-}"',
+    '  for dir in "${path_dirs[@]}"; do',
+    '    candidate="$dir/orca"',
+    '    if [ -n "$dir" ] && [ -f "$candidate" ] && [ -x "$candidate" ] && ! [ "$candidate" -ef "${BASH_SOURCE[0]}" ]; then',
+    '      ORCA_BARE_DISPATCHER_HOP=1 exec "$candidate" "$@"',
+    '    fi',
+    '  done',
+    'fi',
+    'if [ -x "$launcher" ]; then',
+    '  exec "$launcher" "$@"',
+    'fi',
+    `printf 'orca: Orca is no longer installed at %s. Remove %s to stop this message.\\n' "$launcher" "\${BASH_SOURCE[0]}" >&2`,
+    'exit 127',
+    ''
+  ].join('\n')
+}
+
+/** Removes only Orca's own dispatcher; a user's `orca` at that path is left alone. */
+export async function removeLinuxBareOrcaDispatcher(homePath = homedir()): Promise<boolean> {
+  const dispatcherPath = join(homePath, '.local', 'bin', 'orca')
+  if (!(await isOwnedDispatcher(dispatcherPath))) {
+    return false
+  }
+  const displacedPath = join(
+    dirname(dispatcherPath),
+    `.orca-removed-dispatcher-${process.pid}-${randomUUID()}`
+  )
+  try {
+    await rename(dispatcherPath, displacedPath)
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) {
+      return false
+    }
+    throw error
+  }
+  if (await isOwnedDispatcher(displacedPath)) {
+    await unlink(displacedPath)
+    return true
+  }
+  // A foreign command replaced it between the check and the rename; put that one back.
+  await restoreDisplacedDispatcher(displacedPath, dispatcherPath)
+  return false
 }
 
 // AppImage resources live on an ephemeral FUSE mount; dispatch through a persistent copy.
