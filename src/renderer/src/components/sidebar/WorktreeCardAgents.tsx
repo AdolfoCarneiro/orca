@@ -32,6 +32,7 @@ import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structured-agent-session-tab-activation'
 import { activateRetainedAgentRow } from './activate-retained-agent-row'
 import { selectAgentRowsUnread } from './worktree-card-agent-ack-inputs'
+import { opensClaudeParentConversation } from '@/lib/claude-agent-row-view'
 
 export const SUPPRESS_WORKTREE_LIST_SCROLL_ADJUSTMENT_EVENT =
   'orca-suppress-worktree-list-scroll-adjustment'
@@ -335,6 +336,14 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
           agent={agent}
           showModel={showAgentModels}
           now={now}
+          parentConversationDescription={
+            opensClaudeParentConversation(agent)
+              ? translate(
+                  'auto.lib.claudeAgentRowView.openParentConversation',
+                  'Open parent conversation'
+                )
+              : undefined
+          }
           isUnvisited={unvisitedByPaneKey[agent.paneKey] ?? false}
           onActivate={
             agent.rowSource === 'retained' ? handleActivateRetainedAgent : handleActivateAgentTab

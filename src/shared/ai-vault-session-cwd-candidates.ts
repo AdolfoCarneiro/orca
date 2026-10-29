@@ -1,8 +1,8 @@
-import { sessionFileExecutionNamespace } from '../../../../shared/ai-vault-scope-cwd-match'
-import type { AiVaultSession } from '../../../../shared/ai-vault-types'
-import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
+import { sessionFileExecutionNamespace } from './ai-vault-scope-cwd-match'
+import type { AiVaultSession } from './ai-vault-types'
+import { normalizeRuntimePathForComparison } from './cross-platform-path'
 
-type ProjectCandidate = {
+type CwdCandidate = {
   normalizedPath: string
   ownsNormalizedCwd: (normalizedCwd: string, filePath?: string) => boolean
 }
@@ -19,7 +19,7 @@ export function aiVaultSessionProjectCwdKey(
 }
 
 /** Try cwd and host-reported symlink aliases, best match first. */
-export function matchAiVaultProjectCandidates<T extends ProjectCandidate>(
+export function matchAiVaultSessionCwdCandidates<T extends CwdCandidate>(
   session: Pick<AiVaultSession, 'cwdAliases' | 'filePath'>,
   cwd: string,
   candidates: readonly T[],

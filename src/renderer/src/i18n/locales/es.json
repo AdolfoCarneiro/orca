@@ -106,6 +106,26 @@
         "runAdministratorHelp": "Guía de administrador",
         "standardStatus": "Usuario estándar",
         "unknownAdministrator": "No se puede determinar"
+      },
+      "limit": {
+        "label": "Máximo de terminales en ejecución",
+        "description": "Limita las terminales en ejecución entre proyectos en este equipo.",
+        "system": "Límite de PTY del sistema: {{value}}",
+        "unknown": "No disponible",
+        "shared": "Compartido con otras aplicaciones de terminal. Es la capacidad total, no los espacios libres.",
+        "disconnected": "Este equipo está desconectado. Vuelve a conectarlo para ver o cambiar su límite de terminales.",
+        "unsupported": "El servicio de terminal de este equipo aún no permite cambiar este límite.",
+        "environment": "El entorno establece el límite de terminales de esta instancia de Orca. Elimina esa configuración en este equipo para editarlo aquí.",
+        "savedUnreadable": "No se pudo leer el límite de terminales guardado de este host. Se usa {{value}}. Introduce un valor y pulsa Intro para reemplazarlo.",
+        "failed": "No se pudo confirmar el límite de terminales. Inténtalo de nuevo.",
+        "retry": "Reintentar",
+        "unit": "terminales",
+        "search": {
+          "limit": "límite",
+          "maximum": "máximo",
+          "pty": "pty",
+          "capacity": "capacidad"
+        }
       }
     },
     "appearance": {
@@ -1356,10 +1376,7 @@
       },
       "claudeAgentRowView": {
         "subagentNavigationSetup": "Activa la navegación de subagentes de Claude en Ajustes → Agentes y luego inicia Claude 2.1.300+ en Orca. Comprueba que keybindings.json siga asignando Ctrl+Alt+G, H o V a command:orca-agent-view.",
-        "permissionPrompt": "Responde a la solicitud de permiso de Claude antes de cambiar de agente.",
-        "agentUnavailable": "Claude no puede abrir este agente. Es posible que ya no esté disponible.",
-        "closeDialog": "Claude no cambió de vista. Cierra cualquier diálogo abierto e inténtalo de nuevo.",
-        "hostUnavailable": "La navegación de subagentes no está disponible en este host. Actualiza Orca y reinicia Claude en este panel."
+        "permissionPrompt": "Responde a la solicitud de permiso de Claude antes de cambiar de agente."
       },
       "dropFailureReason": {
         "tooLarge": "Es demasiado grande para subirlo a este host.",
@@ -18707,7 +18724,7 @@
         "historyInOtherAccount": "El historial de este chat está en otra cuenta de Claude. Vuelva a esa cuenta para continuarlo.",
         "claudeAccountFolderMissing": "Falta la carpeta de la cuenta de Claude seleccionada. Vuelva a iniciar sesión en ella o elija otra cuenta.",
         "claudeAccountSetupFailed": "No se pudo configurar la cuenta de Claude seleccionada. Vuelva a intentarlo o elija otra cuenta.",
-        "agentCommandNotRunnable": "{{agent}}: el Comando en Ajustes → Agentes debe ser la ruta o el nombre de un programa que Orca pueda encontrar, sin argumentos ni variables. Cámbielo o restablézcalo con Reiniciar.",
+        "agentCommandNotRunnable": "El Comando de {{agent}} en Ajustes → Agentes debe empezar con un programa que Orca pueda encontrar. No se admiten variables, tuberías ni otra sintaxis de shell; usa el ajuste Entorno para las variables. Cámbialo o restablécelo.",
         "runtimeNotInstalled": "{{agent}} no está instalado en el equipo que ejecuta este chat. Instálelo desde el chat en una versión actual de Orca.",
         "fullAccessAsRoot": "{{agent}} no usará Acceso total mientras se ejecute como root. Elija otro permiso para {{agent}} en Configuración → Agentes para el equipo que ejecuta este chat y luego inicie un chat nuevo.",
         "launchPreparationFailed": "Orca no pudo preparar el inicio de {{agent}} en el equipo que ejecuta este chat.",
