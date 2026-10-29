@@ -23,12 +23,10 @@ export function useMobileDictationSilenceStop(
       return
     }
     // Wall clock, so a stalled audio stream still counts as silence.
-    let lastSpeechAt = Date.now()
+    const recordingAt = Date.now()
     let timer: ReturnType<typeof setTimeout>
     const check = () => {
-      if (meter.getSnapshot().isSpeaking) {
-        lastSpeechAt = Date.now()
-      }
+      const lastSpeechAt = Math.max(recordingAt, meter.lastSpeechAt())
       const remainingMs = lastSpeechAt + DICTATION_SILENCE_STOP_MS - Date.now()
       if (remainingMs > 0) {
         timer = setTimeout(check, remainingMs)
@@ -37,14 +35,6 @@ export function useMobileDictationSilenceStop(
       }
     }
     timer = setTimeout(check, DICTATION_SILENCE_STOP_MS)
-    const unsubscribe = meter.subscribe(() => {
-      if (meter.getSnapshot().isSpeaking) {
-        lastSpeechAt = Date.now()
-      }
-    })
-    return () => {
-      clearTimeout(timer)
-      unsubscribe()
-    }
+    return () => clearTimeout(timer)
   }, [meter, watching])
 }

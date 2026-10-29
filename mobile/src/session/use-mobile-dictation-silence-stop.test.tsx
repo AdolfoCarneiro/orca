@@ -48,12 +48,23 @@ describe('dictation silence stop', () => {
   it('stops a tap-mode recording a minute after the last speech, not before', () => {
     const { stop, showToast, play, unmount } = record('toggle')
     play(40, 200)
-    play(2, 12_000)
+    // Steady speech settles the meter, so its snapshot stops changing long before the speaker does.
+    play(30, 12_000)
     play(59, 200)
     expect(stop).not.toHaveBeenCalled()
     play(2, 200)
     expect(stop).toHaveBeenCalledTimes(1)
     expect(showToast).toHaveBeenCalledWith('Stopped after a minute of silence')
+    unmount()
+  })
+
+  it('counts a stalled audio stream as silence', () => {
+    const { stop, play, unmount } = record('toggle')
+    play(2, 12_000)
+    act(() => {
+      vi.advanceTimersByTime(61_000)
+    })
+    expect(stop).toHaveBeenCalledTimes(1)
     unmount()
   })
 
