@@ -16,6 +16,8 @@ import { reserveLocalForwardPort } from '../../ssh/system-transport/system-ssh-f
 import { OrcadManagedTunnelManager } from './orcad-managed-tunnel-manager'
 import { buildOnBindableLocalPort } from './orcad-managed-tunnel-local-port'
 import { setManagedOrcadPairingRepairedListener } from './orcad-managed-pairing-repaired-listener'
+import { ensureOrcadManagedTunnel } from './orcad-managed-tunnel'
+import { runtimeEnvironmentSetupFailure } from '../../../shared/runtime-environment-subscription-setup'
 
 function listen(port = 0): Promise<Server> {
   return new Promise((resolve, reject) => {
@@ -126,6 +128,44 @@ describe('managed tunnel on an unbindable saved local port', () => {
       )
     return { addForward, ensure, resolve, retired }
   }
+
+  it.each([false, true])(
+    'keeps ordinary local-port catches and only publishes the replacement result (observed=%s)',
+    async (observed) => {
+      const first = new Error('bind denied', { cause: 'EACCES' })
+      const final = new Error('replacement failed')
+      const ports: number[] = []
+      const ensure = vi
+        .spyOn(OrcadManagedTunnelManager.prototype, 'ensure')
+        .mockImplementation(async (environment, _resolve, _retry, observe) => {
+          ports.push(getRuntimeSshAccess(environment)!.localPort)
+          const error = ports.length === 1 ? first : final
+          observe?.(runtimeEnvironmentSetupFailure(error, 'managed-preparation'))
+          throw error
+        })
+      const observe = vi.fn()
+      const retired = vi.fn()
+      setManagedOrcadPairingRepairedListener(retired)
+      try {
+        await expect(
+          ensureOrcadManagedTunnel(userDataPath, 'environment-1', observed ? observe : undefined)
+        ).rejects.toBe(final)
+        expect(ports).toHaveLength(2)
+        expect(ports[0]).toBe(savedPort)
+        expect(ports[1]).not.toBe(savedPort)
+        expect(retired).toHaveBeenCalledExactlyOnceWith('environment-1')
+        if (observed) {
+          expect(observe).toHaveBeenCalledExactlyOnceWith(
+            runtimeEnvironmentSetupFailure(final, 'managed-preparation')
+          )
+        } else {
+          expect(observe).not.toHaveBeenCalled()
+        }
+      } finally {
+        ensure.mockRestore()
+      }
+    }
+  )
 
   it.each([
     ['held by another listener', undefined],

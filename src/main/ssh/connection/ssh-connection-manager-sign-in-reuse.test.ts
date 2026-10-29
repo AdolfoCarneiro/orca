@@ -3,6 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Store } from '../../persistence'
 import { SshConnectionStore } from './ssh-connection-store'
+import {
+  ManagedOrcadPairingRepairs,
+  liveManagedOrcadPairingRepairDeps
+} from '../../managed-server/lifecycle/orcad-managed-pairing-repair'
+import { buildWithPairingRepair } from '../../managed-server/lifecycle/orcad-managed-tunnel-pairing-recovery'
+import { OrcadManagedPairingRejectedError } from '../../managed-server/lifecycle/orcad-managed-tunnel-identity'
+import * as registry from '../targets/ssh-target-registry'
 import { OrcadManagedTunnelManager } from '../../managed-server/lifecycle/orcad-managed-tunnel-manager'
 import { createEnvironmentFromPairingOffer } from '../../../shared/runtime-environments'
 import { PAIRING_OFFER_VERSION } from '../../../shared/pairing'
@@ -121,64 +128,142 @@ describe('SshConnectionManager on a password host', () => {
     await pendingResult
   })
 
-  it('keeps concurrent decisions on the operation when the exact same Error is reused', async () => {
+  it('keeps default-started nested repair occurrences distinct through real SSH stop/exhaustion and reused Error', async () => {
     await manager.disconnect('target-1')
     vi.useFakeTimers()
-    const reused: Error & { code?: string } = new Error('untyped external startup failure')
-    const release = Promise.withResolvers<void>()
-    const cleaned = Promise.withResolvers<void>()
-    const originalClose = manager.disconnectConnection.bind(manager)
-    vi.spyOn(manager, 'disconnectConnection').mockImplementationOnce(async (...args) => {
-      await originalClose(...args)
-      cleaned.resolve()
-      await release.promise
+    const root = mkdtempSync(join(tmpdir(), 'orca-D2-repair-owner-'))
+    const targets = [1, 2].map((i) =>
+      createTarget({
+        id: `target-${i}`,
+        generation: 7,
+        orcadFence: { environmentId: `repair-${i}` }
+      })
+    )
+    const environments = targets.map((target, i) => ({
+      ...createEnvironmentFromPairingOffer({
+        id: `repair-${i + 1}`,
+        name: 'Repair',
+        now: 1,
+        connectionDependency: 'ssh-tunnel',
+        offer: {
+          v: PAIRING_OFFER_VERSION,
+          endpoint: 'ws://127.0.0.1:42000',
+          deviceToken: 'fixture',
+          publicKeyB64: 'fixture'
+        }
+      }),
+      orcadDeployment: {
+        sshTargetId: target.id,
+        sshTargetGeneration: 7,
+        localPort: 42000,
+        remotePort: 6768
+      }
+    }))
+    const targetStore = new SshConnectionStore(
+      new Store({ dataFile: join(root, 'state.json'), serializedState: '{}' })
+    )
+    vi.spyOn(targetStore, 'getTarget').mockImplementation(
+      (id) => targets.find((target) => target.id === id) ?? null
+    )
+    vi.spyOn(registry, 'getSshTargetRegistryStore').mockReturnValue(targetStore)
+    vi.spyOn(registry, 'getSshConnectionManager').mockReturnValue(manager)
+    const readReadiness = vi.fn(async () => null)
+    const repairs = new ManagedOrcadPairingRepairs({
+      ...liveManagedOrcadPairingRepairDeps(root),
+      resolve: (id) => environments.find((environment) => environment.id === id)!,
+      readReadiness
     })
-    ssh2Mock.connectSequence = [reused]
-    const firstObservation = vi.fn()
-    const firstCreated = nextSshClientCreation()
-    const first = manager.connect(createTarget(), undefined, firstObservation)
-    const firstResult = expect(first).rejects.toBe(reused)
-    await firstCreated
-    await vi.advanceTimersByTimeAsync(1)
-    await cleaned.promise
-    expect(firstObservation).not.toHaveBeenCalled()
-    reused.code = 'ECONNREFUSED'
-    ssh2Mock.connectSequence = Array.from({ length: 5 }, () => reused)
-    const secondObservation = vi.fn()
-    const secondCreated = nextSshClientCreation()
-    const second = manager.connect(createTarget({ id: 'target-2' }), undefined, secondObservation)
-    const secondResult = expect(second).rejects.toBe(reused)
-    await secondCreated
-    await vi.advanceTimersByTimeAsync(1)
-    for (let retry = 0; retry < 4; retry++) {
-      await advanceToNextSshClient(2_000)
+    try {
+      const reused: Error & { code?: string } = new Error('untyped external startup failure')
+      const release = Promise.withResolvers<void>()
+      const cleaned = Promise.withResolvers<void>()
+      const originalClose = manager.disconnectConnection.bind(manager)
+      vi.spyOn(manager, 'disconnectConnection').mockImplementationOnce(async (...args) => {
+        await originalClose(...args)
+        cleaned.resolve()
+        await release.promise
+      })
+      ssh2Mock.connectSequence = [reused]
+      const firstObservation = vi.fn()
+      const firstCreated = nextSshClientCreation()
+      const first = repairs.repair('repair-1', 1)
+      expect(repairs.repair('repair-1', 999)).toBe(first)
+      const firstResult = expect(first).rejects.toBe(reused)
+      await firstCreated
+      await vi.advanceTimersByTimeAsync(1)
+      await cleaned.promise
+      const firstRecovery = buildWithPairingRepair(
+        {
+          resolve: () => environments[0],
+          repairs,
+          ensure: async () => {
+            throw new Error('Repair must not reach ensure')
+          }
+        },
+        'repair-1',
+        async () => {
+          throw new OrcadManagedPairingRejectedError('sealed refusal')
+        },
+        firstObservation
+      )
+      const recoveredResult = expect(firstRecovery).rejects.toBe(reused)
+      expect(firstObservation).not.toHaveBeenCalled()
+      reused.code = 'ECONNREFUSED'
+      ssh2Mock.connectSequence = Array.from({ length: 5 }, () => reused)
+      const secondObservation = vi.fn()
+      const secondCreated = nextSshClientCreation()
+      const second = repairs.repair('repair-2', 1)
+      const secondObserved = repairs.repairObserved('repair-2', 1).then((outcome) => {
+        if (!outcome.ok) {
+          secondObservation(outcome.failure)
+        }
+        return outcome
+      })
+      const secondResult = expect(second).rejects.toBe(reused)
+      await secondCreated
+      await vi.advanceTimersByTimeAsync(1)
+      for (let retry = 0; retry < 4; retry++) {
+        await advanceToNextSshClient(2_000)
+      }
+      await secondResult
+      await secondObserved
+      expect(secondObservation).toHaveBeenCalledExactlyOnceWith({
+        error: reused,
+        fact: { kind: 'ssh', decision: 'exhausted-transient' }
+      })
+      release.resolve()
+      await firstResult
+      await recoveredResult
+      expect(firstObservation).toHaveBeenCalledExactlyOnceWith({
+        error: reused,
+        fact: { kind: 'ssh', decision: 'stopped' }
+      })
+      expect(manager.getConnection('target-1')).toBeUndefined()
+      expect(manager.getConnection('target-2')).toBeUndefined()
+      delete reused.code
+      ssh2Mock.connectSequence = [reused]
+      const sequentialObservation = vi.fn()
+      const sequentialCreated = nextSshClientCreation()
+      const sequential = repairs.repair('repair-1', 1)
+      expect(sequential).not.toBe(first)
+      const sequentialObserved = repairs.repairObserved('repair-1', 1).then((outcome) => {
+        if (!outcome.ok) {
+          sequentialObservation(outcome.failure)
+        }
+      })
+      const sequentialResult = expect(sequential).rejects.toBe(reused)
+      await sequentialCreated
+      await vi.advanceTimersByTimeAsync(1)
+      await sequentialResult
+      await sequentialObserved
+      expect(sequentialObservation).toHaveBeenCalledExactlyOnceWith({
+        error: reused,
+        fact: { kind: 'ssh', decision: 'stopped' }
+      })
+      expect(readReadiness).not.toHaveBeenCalled()
+    } finally {
+      rmSync(root, { recursive: true, force: true })
     }
-    await secondResult
-    expect(secondObservation).toHaveBeenCalledExactlyOnceWith({
-      error: reused,
-      fact: { kind: 'ssh', decision: 'exhausted-transient' }
-    })
-    release.resolve()
-    await firstResult
-    expect(firstObservation).toHaveBeenCalledExactlyOnceWith({
-      error: reused,
-      fact: { kind: 'ssh', decision: 'stopped' }
-    })
-    expect(manager.getConnection('target-1')).toBeUndefined()
-    expect(manager.getConnection('target-2')).toBeUndefined()
-    delete reused.code
-    ssh2Mock.connectSequence = [reused]
-    const sequentialObservation = vi.fn()
-    const sequentialCreated = nextSshClientCreation()
-    const sequential = manager.connect(createTarget(), undefined, sequentialObservation)
-    const sequentialResult = expect(sequential).rejects.toBe(reused)
-    await sequentialCreated
-    await vi.advanceTimersByTimeAsync(1)
-    await sequentialResult
-    expect(sequentialObservation).toHaveBeenCalledExactlyOnceWith({
-      error: reused,
-      fact: { kind: 'ssh', decision: 'stopped' }
-    })
   })
 
   it('carries the default-started shared build through its existing single joined retry', async () => {
