@@ -186,6 +186,53 @@ describe('orchestration RPC methods', () => {
       expect(await start()).toMatchObject({ run: { ...run, created: false } })
     })
 
+    it('puts overlapping first starts from an unbound coordinator in one Run', async () => {
+      setup(false)
+      mockCurrentWorkerStart()
+      // Hold both starts in preflight, then let the second finish first.
+      const preflights: (() => void)[] = []
+      vi.spyOn(runtime, 'showManagedTerminalWorkspace').mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            preflights.push(() => resolve({ id: 'repo::worktree' } as never))
+          )
+      )
+      const start = (spec: string) =>
+        call('orchestration.workerStart', { spec, from: 'term_coord', agent: 'codex' })
+
+      const first = start('Audit the parser')
+      const second = start('Audit the lexer')
+      await vi.waitFor(() => expect(preflights).toHaveLength(2))
+      preflights[1]()
+      const secondReceipt = await second
+      preflights[0]()
+      const firstReceipt = await first
+
+      expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toHaveLength(1)
+      expect(secondReceipt).toMatchObject({ run: { created: true } })
+      expect(firstReceipt).toMatchObject({
+        run: { id: (secondReceipt as { run: { id: string } }).run.id, created: false }
+      })
+    })
+
+    it.each([['not-json'], ['["task_elsewhere"]']])(
+      'creates no Run when an unbound coordinator passes deps %s',
+      async (deps) => {
+        setup(false)
+        mockCurrentWorkerStart()
+
+        await expect(
+          call('orchestration.workerStart', {
+            spec: 'Audit the parser',
+            from: 'term_coord',
+            agent: 'codex',
+            deps
+          })
+        ).rejects.toMatchObject({ code: expect.stringMatching(/invalid_argument|task_not_found/) })
+        expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toEqual([])
+      }
+    )
+
     it('creates no Run when an unbound coordinator names an existing Task', async () => {
       setup(false)
       mockCurrentWorkerStart()
@@ -197,6 +244,21 @@ describe('orchestration RPC methods', () => {
           agent: 'codex'
         })
       ).rejects.toMatchObject({ code: 'consumer_fenced' })
+      expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toEqual([])
+    })
+
+    it('creates no Run when an unbound coordinator start fails preflight', async () => {
+      setup(false)
+      mockCurrentWorkerStart()
+
+      await expect(
+        call('orchestration.workerStart', {
+          spec: 'Audit the parser',
+          from: 'term_coord',
+          agent: 'codex',
+          worktree: 'new-child'
+        })
+      ).rejects.toThrow('--name')
       expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toEqual([])
     })
 
@@ -222,7 +284,8 @@ describe('orchestration RPC methods', () => {
 
       expect(result).toMatchObject({
         state: 'ready',
-        next: expect.stringContaining('end your turn'),
+        // A recorded start receipt replays verbatim, so it never claims the fleet lets you stop.
+        next: expect.not.stringContaining('end your turn'),
         launch: {
           requested: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' },
           effective: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' }

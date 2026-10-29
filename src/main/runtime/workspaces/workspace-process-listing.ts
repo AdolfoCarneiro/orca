@@ -314,10 +314,6 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
 
   /** A chat worker whose request settled failed tells the Run that dispatched it. */
   onStructuredRequestFailureForErrorMail(failure: StructuredAgentSessionRequestFailure): void {
-    void escalateChatWorkerError(failure, {
-      enabled: () => this.isChatWorkerErrorEscalationEnabled(),
-      db: () => this.getOrchestrationDbIfAvailable(),
-      notify: (handle, messageType) => this.notifyMessageArrived(handle, messageType)
-    })
+    void escalateChatWorkerError(failure, this.workerTurnStopReportDeps)
   }
 }

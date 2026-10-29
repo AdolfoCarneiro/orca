@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import { projectWorkerListFleet } from './worker/worker-list-projection'
-import { chatAssigneeSessionId } from '../../../orchestration/chat-assignee'
-import { isStructuredWorkerHandle } from '../../../../../shared/structured-worker-handle'
 
-// A receipt carries `next` only where stopping is the right move; without it, act on the receipt.
+// Only an empty check sees the whole mailbox, so only it says to stop.
+const AWAIT_WAKE = "Orca wakes you when workers report; end your turn when you're done."
+const FINISH_MAILBOX = 'Finish the rest of your mail.'
+const MORE_MAIL = 'More mail is waiting: run check again.'
 const AWAIT_WORKER_REPORTS =
   'Orca wakes you when a worker reports. Once every worker you need is started, end your turn. Do not poll.'
 export const WORKER_DONE_RECORDED_NEXT = 'Recorded. End your turn.'
@@ -14,6 +15,11 @@ const ReadyWorkerStart = z.looseObject({
   workerOutcome: z.never().optional()
 })
 
+const TakenRunCheck = z.looseObject({
+  runId: z.string(),
+  deliveryAcknowledged: z.literal(true)
+})
+
 const EmptyRunCheck = z.looseObject({
   runId: z.string(),
   count: z.literal(0),
@@ -21,74 +27,42 @@ const EmptyRunCheck = z.looseObject({
   waitInterrupted: z.never().optional()
 })
 
-/** A worker that already reported left mail to act on, so only an unreported start says to stop. */
-export async function withWorkerStartNext(
-  runtime: OrcaRuntimeService,
-  runId: string,
-  receipt: unknown
-): Promise<unknown> {
+export function withWorkerStartNext(receipt: unknown): unknown {
   const ready = ReadyWorkerStart.safeParse(receipt)
-  return ready.success && (await awaitsWorkerReports(runtime, runId))
-    ? { ...ready.data, next: AWAIT_WORKER_REPORTS }
-    : receipt
+  return ready.success ? { ...ready.data, next: AWAIT_WAKE } : receipt
 }
 
 export async function withRunCheckNext(
   runtime: OrcaRuntimeService,
   result: unknown
 ): Promise<unknown> {
+  // A batch is capped, so a take that leaves unread mail behind is the one case that needs another check.
+  const taken = TakenRunCheck.safeParse(result)
+  if (taken.success) {
+    const leftBehind = runtime.getOrchestrationDb().getUnreadRunMailbox(taken.data.runId, 1)
+    return leftBehind.length > 0 ? { ...taken.data, next: MORE_MAIL } : result
+  }
   const empty = EmptyRunCheck.safeParse(result)
   return empty.success && (await awaitsWorkerReports(runtime, empty.data.runId))
     ? { ...empty.data, next: AWAIT_WORKER_REPORTS }
     : result
 }
 
-/** An answered question unblocks its worker, so the coordinator waits for that worker's report. */
-export async function withAnswerNext<T extends object>(
-  runtime: OrcaRuntimeService,
-  runId: string,
-  receipt: T
-): Promise<T & { next?: string }> {
-  return (await awaitsWorkerReports(runtime, runId))
-    ? { ...receipt, next: AWAIT_WORKER_REPORTS }
-    : receipt
+/** A question arrives in a batch the caller has not finished handling. */
+export function withAnswerNext<T extends object>(receipt: T): T & { next: string } {
+  return { ...receipt, next: FINISH_MAILBOX }
 }
 
-/** A worker still runs, worker-list owes no action, and every running worker's failure wakes the coordinator. */
+/** A worker still runs and worker-list owes no action: each running worker's stop or exit sends mail. */
 async function awaitsWorkerReports(runtime: OrcaRuntimeService, runId: string): Promise<boolean> {
-  const rows = runtime.getOrchestrationDb().listWorkerTerminalResources({ runId })
+  const db = runtime.getOrchestrationDb()
+  const rows = db.listWorkerTerminalResources({ runId })
   const { workers } = await projectWorkerListFleet(runtime, rows, {
     limit: rows.length,
     completeProjection: true
   })
-  const running = new Set(
-    workers.filter((worker) => worker.outcome === 'in_progress').map((worker) => worker.dispatchId)
-  )
   return (
-    running.size > 0 &&
-    workers.every((worker) => worker.nextAction.kind === 'none') &&
-    failuresSendMail(
-      runtime,
-      rows.filter((row) => running.has(row.dispatchId))
-    )
-  )
-}
-
-/** A remote exit sends no mail, and a chat failure sends it only while the user allows that. */
-function failuresSendMail(
-  runtime: OrcaRuntimeService,
-  rows: { dispatchId: string; agentTerminalHandle: string | null }[]
-): boolean {
-  const ids = rows.map((row) => row.dispatchId)
-  if (runtime.getOrchestrationDb().listFederatedDispatchesByIds(ids).length > 0) {
-    return false
-  }
-  return (
-    runtime.isChatWorkerErrorEscalationEnabled() ||
-    !rows.some(
-      (row) =>
-        chatAssigneeSessionId(row.agentTerminalHandle) ||
-        isStructuredWorkerHandle(row.agentTerminalHandle)
-    )
+    workers.some((worker) => worker.outcome === 'in_progress') &&
+    workers.every((worker) => worker.nextAction.kind === 'none')
   )
 }

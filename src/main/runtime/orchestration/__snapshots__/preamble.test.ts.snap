@@ -20,14 +20,6 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
   orca orchestration ask --from orca_session_id:WORKER --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000
   orca orchestration ask --from orca_session_id:WORKER --resume <message_id> --timeout-ms 600000
 
-  # Read coordinator mail. Nothing arrives unless you check: run this at each
-  # checkpoint (before a new file, after a test run) and once right before
-  # worker_done. Repeat until count is 0.
-  orca orchestration check --terminal orca_session_id:WORKER --json
-
-  # Older Orca only: if a batch lacks "deliveryAcknowledged": true, ack it.
-  orca orchestration check --terminal orca_session_id:WORKER --ack <delivery_id> --json
-
   # Blocked, and the coordinator must act before you can continue:
   orca orchestration send --from orca_session_id:WORKER --type escalation --subject "Blocked: <reason>" --body "<details>" --task-id task_SNAP --dispatch-id ctx_SNAP
 
@@ -74,14 +66,6 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
   # On a timeout, resume with the returned message ID; do not ask again.
   orca orchestration ask --from term_WORKER --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000
   orca orchestration ask --from term_WORKER --resume <message_id> --timeout-ms 600000
-
-  # Read coordinator mail. Nothing arrives unless you check: run this at each
-  # checkpoint (before a new file, after a test run) and once right before
-  # worker_done. Repeat until count is 0.
-  orca orchestration check --terminal term_WORKER --json
-
-  # Older Orca only: if a batch lacks "deliveryAcknowledged": true, ack it.
-  orca orchestration check --terminal term_WORKER --ack <delivery_id> --json
 
   # Blocked, and the coordinator must act before you can continue:
   orca orchestration send --from term_WORKER --type escalation --subject "Blocked: <reason>" --body "<details>" --task-id task_SNAP --dispatch-id ctx_SNAP

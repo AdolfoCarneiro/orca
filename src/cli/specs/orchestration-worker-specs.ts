@@ -107,7 +107,7 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
       'An inspectable output archive is preserved before the terminal closes, so worker-read still returns output afterwards.',
       'Never closes setup terminals, configured tabs, reused or pre-existing terminals, user-taken-over terminals, or unproven identities.',
       'Idempotent: repeating the call reports already_released. Only release_unknown exits 1; retained, release_pending, and already_released exit 0.',
-      'On a runtime that advertises orchestration.worker-auto-release.v1, an accepted worker_done already schedules this release about 2 minutes later (autoReleaseAt in worker-show and worker-list); call it only to release sooner or to clear a worker-retain. Chat workers are never released automatically.'
+      'On a runtime that advertises orchestration.worker-auto-release.v1, an accepted worker_done already schedules this release about 2 minutes later (autoReleaseAt in worker-show and worker-list); call it only to release sooner or to clear a worker-retain. Chat workers follow autoReleaseAt too; it is absent when a connected client cannot report chat touches.'
     ]
   },
   {

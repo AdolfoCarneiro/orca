@@ -26,7 +26,6 @@ import {
   persistWorkerSetupWaitOutcome
 } from './worker-setup-gate'
 import { failWorkerStartWithReceipt } from './worker-start-receipt'
-import { parseTaskDeps } from './task-deps-argument'
 import { assertExplicitWorkerUsable } from './explicit-worker-terminal-validation'
 import { resolveDispatchAssigneeParty } from '../../../../orchestration/orchestration-party'
 import { CHAT_WORKER_AUTHORITY, chatAssigneeOf, chatWorkerMode } from '../chat-assignee-admission'
@@ -41,7 +40,9 @@ export async function startLocalWorker(args: {
   params: WorkerStartInput
   runtime: OrcaRuntimeService
   db: OrchestrationDb
-  run: RunRow
+  /** Called only once effect-free validation passes, so a refused start binds no new Run. */
+  bindRun: () => RunRow
+  taskDeps: string[] | undefined
   coordinator: OrchestrationCallerIdentity | null
   callerSession?: OrchestrationSessionCaller
   existingTask?: TaskRow
@@ -51,7 +52,7 @@ export async function startLocalWorker(args: {
   /** Set when a worker starts its own helper; the helper reports to this Dispatch. */
   helperCreator?: DispatchContextRow
 }): Promise<unknown> {
-  const { runtime, db, run, coordinator, callerSession, existingTask, orchestrationMutation } = args
+  const { runtime, db, coordinator, callerSession, existingTask, orchestrationMutation } = args
   // `--terminal` names a party: a chat by its `/clear` root address, as its Dispatch does.
   const terminal = args.params.terminal && resolveDispatchAssigneeParty(args.params.terminal, db)
   const params = terminal ? { ...args.params, terminal: terminal.address } : args.params
@@ -150,6 +151,7 @@ export async function startLocalWorker(args: {
         : 'orchestration_default'
       : 'existing_worktree'
   }
+  const run = args.bindRun()
   const started = db.createStartingWorkerDispatch({
     creator: resolveDispatchCreator(runtime, params.from, callerSession),
     maxDepth: runtime.getNestedWorkerMaxDepth(),
@@ -157,7 +159,7 @@ export async function startLocalWorker(args: {
     taskId: existingTask?.id,
     taskSpec: params.spec,
     taskTitle: params.taskTitle,
-    taskDeps: parseTaskDeps(params.deps),
+    taskDeps: args.taskDeps,
     // A helper's Task sits under its creator's Task, so the Run's Task tree shows who started it.
     taskParentId: params.parent ?? args.helperCreator?.task_id,
     taskRunId: run.id,

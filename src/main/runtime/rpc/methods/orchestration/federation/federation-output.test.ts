@@ -151,6 +151,10 @@ describe('orchestration federated worker output', () => {
     return homeDb.createTask({ spec: 'Read Windows worker output', runId: run.id })
   }
 
+  function homeCall(id: string, method: string, params: Record<string, unknown>) {
+    return homeDispatcher.dispatch({ id, authToken: 'coordinator-token', method, params })
+  }
+
   function startRequest(taskId: string): RpcRequest {
     return {
       id: 'rpc_worker_start',
@@ -293,17 +297,12 @@ describe('orchestration federated worker output', () => {
   it('routes show and read by Dispatch without repeating the worker server', async () => {
     const dispatchId = await startRemoteWorker()
 
-    const shown = await homeDispatcher.dispatch({
-      id: 'rpc_remote_show',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerShow',
-      params: { dispatch: dispatchId }
+    const shown = await homeCall('rpc_remote_show', 'orchestration.workerShow', {
+      dispatch: dispatchId
     })
-    const read = await homeDispatcher.dispatch({
-      id: 'rpc_remote_read',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId, limit: 20 }
+    const read = await homeCall('rpc_remote_read', 'orchestration.workerRead', {
+      dispatch: dispatchId,
+      limit: 20
     })
 
     expect(shown).toMatchObject({
@@ -330,24 +329,17 @@ describe('orchestration federated worker output', () => {
     workerSupportsStructuredRead = false
     remoteCalls = []
 
-    const automatic = await homeDispatcher.dispatch({
-      id: 'rpc_remote_legacy_read',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId }
+    const automatic = await homeCall('rpc_remote_legacy_read', 'orchestration.workerRead', {
+      dispatch: dispatchId
     })
     const cursor = (automatic as { result: { cursor: string } }).result.cursor
-    const continued = await homeDispatcher.dispatch({
-      id: 'rpc_remote_legacy_continue',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId, cursor }
+    const continued = await homeCall('rpc_remote_legacy_continue', 'orchestration.workerRead', {
+      dispatch: dispatchId,
+      cursor
     })
-    const required = await homeDispatcher.dispatch({
-      id: 'rpc_remote_legacy_transcript',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId, source: 'transcript' }
+    const required = await homeCall('rpc_remote_legacy_transcript', 'orchestration.workerRead', {
+      dispatch: dispatchId,
+      source: 'transcript'
     })
 
     expect(automatic).toMatchObject({
@@ -405,11 +397,8 @@ describe('orchestration federated worker output', () => {
     })
 
     try {
-      const response = await homeDispatcher.dispatch({
-        id: 'rpc_remote_transcript_read',
-        authToken: 'coordinator-token',
-        method: 'orchestration.workerRead',
-        params: { dispatch: dispatchId }
+      const response = await homeCall('rpc_remote_transcript_read', 'orchestration.workerRead', {
+        dispatch: dispatchId
       })
 
       expect(response).toMatchObject({
@@ -438,11 +427,8 @@ describe('orchestration federated worker output', () => {
     const firstDispatchId = await startRemoteWorker()
     remoteCalls = []
 
-    const healthy = await homeDispatcher.dispatch({
-      id: 'rpc_remote_fleet',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerList',
-      params: { includeRemote: true }
+    const healthy = await homeCall('rpc_remote_fleet', 'orchestration.workerList', {
+      includeRemote: true
     })
 
     expect(
@@ -458,11 +444,8 @@ describe('orchestration federated worker output', () => {
     })
 
     workerFleetUnavailable = true
-    const unavailable = await homeDispatcher.dispatch({
-      id: 'rpc_remote_fleet_unavailable',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerList',
-      params: { includeRemote: true }
+    const unavailable = await homeCall('rpc_remote_fleet_unavailable', 'orchestration.workerList', {
+      includeRemote: true
     })
     expect(unavailable).toMatchObject({
       ok: true,
@@ -484,7 +467,7 @@ describe('orchestration federated worker output', () => {
     })
   })
 
-  it('never says to end the turn while a remote worker runs, since its silent exit sends no mail', async () => {
+  it('says to end the turn while a remote worker runs, since its stop or exit is relayed home', async () => {
     const taskId = createHomeTask().id
     const started = await homeDispatcher.dispatch(startRequest(taskId))
     const checked = await homeDispatcher.dispatch({
@@ -497,9 +480,10 @@ describe('orchestration federated worker output', () => {
     })
 
     expect(started).toMatchObject({ ok: true, result: { state: 'ready' } })
-    expect(checked).toMatchObject({ ok: true, result: { count: 0 } })
-    expect(started.ok && started.result).not.toHaveProperty('next')
-    expect(checked.ok && checked.result).not.toHaveProperty('next')
+    expect(checked).toMatchObject({
+      ok: true,
+      result: { count: 0, next: expect.stringContaining('end your turn') }
+    })
   })
 
   it('negotiates release on the execution host and never treats relay loss as exit', async () => {
@@ -564,12 +548,11 @@ describe('orchestration federated worker output', () => {
       stage: 'released',
       agent_terminal_handle: null
     })
-    const projected = await homeDispatcher.dispatch({
-      id: 'rpc_remote_release_projection',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerList',
-      params: {}
-    })
+    const projected = await homeCall(
+      'rpc_remote_release_projection',
+      'orchestration.workerList',
+      {}
+    )
     const projectedWorker = (
       projected as { result: { workers: { dispatchId: string; projection: unknown }[] } }
     ).result.workers.find((worker) => worker.dispatchId === dispatchId)
@@ -610,12 +593,11 @@ describe('orchestration federated worker output', () => {
       result: { state: 'released', archive: { source: 'terminal', status: 'captured' } }
     })
 
-    const afterRemoval = await homeDispatcher.dispatch({
-      id: 'rpc_remote_read_archive_after_removal',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId }
-    })
+    const afterRemoval = await homeCall(
+      'rpc_remote_read_archive_after_removal',
+      'orchestration.workerRead',
+      { dispatch: dispatchId }
+    )
     expect(afterRemoval).toMatchObject({
       ok: true,
       result: {
@@ -629,12 +611,11 @@ describe('orchestration federated worker output', () => {
     expect(JSON.stringify(afterRemoval)).not.toContain(capability)
 
     restartWorkerRuntime(true)
-    const afterRestart = await homeDispatcher.dispatch({
-      id: 'rpc_remote_read_archive_after_restart',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId }
-    })
+    const afterRestart = await homeCall(
+      'rpc_remote_read_archive_after_restart',
+      'orchestration.workerRead',
+      { dispatch: dispatchId }
+    )
     expect(afterRestart).toMatchObject({
       ok: true,
       result: {
@@ -725,17 +706,11 @@ describe('orchestration federated worker output', () => {
     workerSupportsStructuredRead = false
     const dispatchId = await startRemoteWorker()
     remoteCalls = []
-    const read = await homeDispatcher.dispatch({
-      id: 'rpc_old_peer_read',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId }
+    const read = await homeCall('rpc_old_peer_read', 'orchestration.workerRead', {
+      dispatch: dispatchId
     })
-    const fleet = await homeDispatcher.dispatch({
-      id: 'rpc_old_peer_fleet',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerList',
-      params: { includeRemote: true }
+    const fleet = await homeCall('rpc_old_peer_fleet', 'orchestration.workerList', {
+      includeRemote: true
     })
     const release = await homeDispatcher.dispatch({
       id: 'rpc_old_peer_release',
@@ -791,12 +766,7 @@ describe('orchestration federated worker output', () => {
     homeRuntime.stopOrchestrationFederationRelay()
     remoteCalls = []
 
-    await homeDispatcher.dispatch({
-      id: 'rpc_old_peer_cache_read',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId }
-    })
+    await homeCall('rpc_old_peer_cache_read', 'orchestration.workerRead', { dispatch: dispatchId })
     expect(remoteCalls).toContain('orchestration.federationReadOutput')
 
     const oldEpoch = homeDb.getFederatedDispatch(dispatchId)?.remote_runtime_epoch
@@ -813,17 +783,11 @@ describe('orchestration federated worker output', () => {
     expect(homeDb.getFederatedDispatch(dispatchId)?.remote_runtime_epoch).not.toBe(oldEpoch)
     remoteCalls = []
 
-    const read = await homeDispatcher.dispatch({
-      id: 'rpc_restarted_peer_read',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerRead',
-      params: { dispatch: dispatchId }
+    const read = await homeCall('rpc_restarted_peer_read', 'orchestration.workerRead', {
+      dispatch: dispatchId
     })
-    const fleet = await homeDispatcher.dispatch({
-      id: 'rpc_restarted_peer_fleet',
-      authToken: 'coordinator-token',
-      method: 'orchestration.workerList',
-      params: { includeRemote: true }
+    const fleet = await homeCall('rpc_restarted_peer_fleet', 'orchestration.workerList', {
+      includeRemote: true
     })
     expect(remoteCalls.filter((method) => method === 'status.get')).toHaveLength(0)
     const release = await homeDispatcher.dispatch({

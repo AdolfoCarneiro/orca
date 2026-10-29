@@ -76,14 +76,6 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
   ${cli} orchestration ask --from ${params.workerHandle} --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000
   ${cli} orchestration ask --from ${params.workerHandle} --resume <message_id> --timeout-ms 600000
 
-  # Read coordinator mail. Nothing arrives unless you check: run this at each
-  # checkpoint (before a new file, after a test run) and once right before
-  # worker_done. Repeat until count is 0.
-  ${cli} orchestration check --terminal ${params.workerHandle} --json
-
-  # Older Orca only: if a batch lacks "deliveryAcknowledged": true, ack it.
-  ${cli} orchestration check --terminal ${params.workerHandle} --ack <delivery_id> --json
-
   # Blocked, and the coordinator must act before you can continue:
   ${cli} orchestration send --from ${params.workerHandle} --type escalation --subject "Blocked: <reason>" --body "<details>" --task-id ${params.taskId} --dispatch-id ${params.dispatchId}
 

@@ -46,7 +46,6 @@ export abstract class OrcaRuntimeWithWorktreePsDependencies extends OrcaRuntimeW
   protected abstract assertStructuredChatAcquireAdmissible(
     record: AgentSessionRecord
   ): Promise<void>
-  abstract isChatWorkerErrorEscalationEnabled(): boolean
   abstract onStructuredSessionTabHidden(
     ...args: Parameters<OrcaRuntimeWithGetPtyRecordForPaneKey['onStructuredSessionTabHidden']>
   ): ReturnType<OrcaRuntimeWithGetPtyRecordForPaneKey['onStructuredSessionTabHidden']>

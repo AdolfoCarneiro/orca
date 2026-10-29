@@ -9,6 +9,7 @@ import {
 } from '../../orchestration-worker-start-mode'
 import { resolveOrchestrationCaller } from '../runs/run-scope'
 import { assertHelperStartScope, resolveWorkerStartRun } from './worker-start-authority'
+import { parseTaskDeps } from './task-deps-argument'
 import { WorkerStartParams } from '../../../../../../shared/rpc-contract/orchestration-worker-start-params'
 import {
   isWorkerStartTimeoutWithinTimerLimit,
@@ -53,7 +54,8 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
         // Before the Run resolves, so a refused spec cannot leave a new Run bound.
         await assertWorkerStartTaskSpecWithinPromptBudget(params.spec)
       }
-      const { run, runCreated, helperCreator } = resolveWorkerStartRun(runtime, {
+      const taskDeps = parseTaskDeps(params.deps)
+      const { bindRun, helperCreator } = resolveWorkerStartRun(runtime, {
         coordinator,
         from: params.from,
         callerSession: orchestrationCaller,
@@ -64,25 +66,23 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
               spec: params.spec,
               taskTitle: params.taskTitle
             }).taskTitle
-          : undefined
+          : undefined,
+        taskReferences: [...(params.parent ? [params.parent] : []), ...(taskDeps ?? [])]
       })
       // Name the Run in every receipt so a reused, stale binding is visible.
-      const withRun = (receipt: unknown): unknown =>
-        receipt && typeof receipt === 'object'
-          ? {
-              ...receipt,
-              run: {
-                id: run.id,
-                objective: run.objective,
-                created: runCreated
-              }
-            }
-          : receipt
+      const withRun = (receipt: unknown): unknown => {
+        if (!receipt || typeof receipt !== 'object') {
+          return receipt
+        }
+        const { run, created } = bindRun()
+        return { ...receipt, run: { id: run.id, objective: run.objective, created } }
+      }
       const existingTask = params.task ? db.getTask(params.task) : undefined
-      if (params.task && (!existingTask || existingTask.run_id !== run.id)) {
+      // --task excludes --spec, so this never creates a Run.
+      if (params.task && (!existingTask || existingTask.run_id !== bindRun().run.id)) {
         throw new OrchestrationError(
           'task_not_found',
-          `Task ${params.task} was not found in Run ${run.id}.`
+          `Task ${params.task} was not found in Run ${bindRun().run.id}.`
         )
       }
       if (helperCreator) {
@@ -104,15 +104,14 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
           params,
           runtime,
           db,
-          runId: run.id,
+          bindRunId: () => bindRun().run.id,
           task: existingTask,
+          taskDeps,
           orchestrationMutation,
           callerSession: orchestrationCaller
         })
         return withRun(
-          await withWorkerStartNext(
-            runtime,
-            run.id,
+          withWorkerStartNext(
             receipt && typeof receipt === 'object' ? { ...receipt, mode } : receipt
           )
         )
@@ -121,7 +120,8 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
         params: { ...params, timeoutMs: readinessTimeoutMs },
         runtime,
         db,
-        run,
+        bindRun: () => bindRun().run,
+        taskDeps,
         coordinator,
         callerSession: orchestrationCaller,
         existingTask,
@@ -129,7 +129,7 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
         mode,
         helperCreator
       })
-      return withRun(await withWorkerStartNext(runtime, run.id, receipt))
+      return withRun(withWorkerStartNext(receipt))
     }
   })
 ]
