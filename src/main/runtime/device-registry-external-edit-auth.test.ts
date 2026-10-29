@@ -118,6 +118,36 @@ describe('device registry auth checks see edits made on disk', () => {
     expect(readFileSync(registryPath(), 'utf8')).toBe('{ not json')
   })
 
+  it('never shows a pending offer that was removed on disk', () => {
+    const registry = new DeviceRegistry(dir)
+    const offer = registry.getOrCreatePendingDevice('phone', 'mobile')
+    expect(registry.getOrCreatePendingDevice('phone', 'mobile').deviceId).toBe(offer.deviceId)
+
+    removeOnDisk(offer.deviceId)
+    const fresh = registry.getOrCreatePendingDevice('phone', 'mobile')
+
+    expect(fresh.deviceId).not.toBe(offer.deviceId)
+    expect(registry.validateToken(offer.token)).toBeNull()
+    removeOnDisk(fresh.deviceId)
+    expect(registry.getPendingDevice('mobile')).toBeNull()
+  })
+
+  it('does not read its own quarantine as a delete when the write after it failed', () => {
+    const first = new DeviceRegistry(dir)
+    const phone = first.addDevice('phone', 'mobile')
+    first.updateLastSeen(phone.deviceId)
+    const rows: unknown[] = JSON.parse(readFileSync(registryPath(), 'utf8'))
+    writeFileSync(registryPath(), JSON.stringify([...rows, { deviceId: 'x', bogus: true }]))
+    const registry = new DeviceRegistry(dir)
+    vi.spyOn(secureFile, 'writeSecureJsonFile').mockImplementationOnce(() => {
+      throw new Error('disk full')
+    })
+
+    expect(() => registry.addDevice('desktop', 'runtime')).toThrow('disk full')
+
+    expect(registry.validateToken(phone.token)?.deviceId).toBe(phone.deviceId)
+  })
+
   it('accepts a device another writer added, with no save in between', () => {
     const registry = new DeviceRegistry(dir)
     registry.addDevice('desktop', 'runtime')

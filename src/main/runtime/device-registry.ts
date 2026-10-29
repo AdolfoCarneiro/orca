@@ -89,6 +89,8 @@ export class DeviceRegistry {
     pairingReach: RuntimePairingReach = 'network',
     grants: readonly RuntimeDeviceGrant[] = []
   ): TokenDeviceEntry {
+    // Never show a QR for an offer an admin removed on disk.
+    this.adoptExternalEdits()
     // Reuse only identical grants so re-advertisement cannot expand permissions.
     const existing = this.devices.find(
       (d): d is TokenDeviceEntry =>
@@ -156,6 +158,7 @@ export class DeviceRegistry {
   }
 
   getPendingDevice(scope: DeviceScope = 'mobile'): TokenDeviceEntry | null {
+    this.adoptExternalEdits()
     return (
       this.devices.find(
         (device): device is TokenDeviceEntry => isPendingTokenRow(device) && device.scope === scope

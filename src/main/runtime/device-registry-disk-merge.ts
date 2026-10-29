@@ -57,11 +57,11 @@ export class DeviceRegistryWriter {
 
   /**
    * `current` merged over the file when another writer changed it since this process last read it,
-   * else null. Costs one stat when unchanged. An unreadable or corrupt file proves nothing about
-   * removals, so it changes nothing.
+   * else null. Costs one stat when unchanged. An unreadable or corrupt file, or our own quarantine's
+   * absence, proves nothing about removals, so it changes nothing.
    */
   adoptExternalEdits(current: readonly DeviceEntry[]): DeviceEntry[] | null {
-    if (fileStamp(this.registryPath) === this.readStamp) {
+    if (this.quarantinedUntilWritten || fileStamp(this.registryPath) === this.readStamp) {
       return null
     }
     const disk = this.read()
