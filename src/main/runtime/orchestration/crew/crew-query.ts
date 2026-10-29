@@ -127,7 +127,7 @@ export function readCrewQuestions(db: OrchestrationDb, aliases: string[]) {
     .parse(
       db.db
         .prepare(`SELECT q.dispatch_id, m.body, m.created_at FROM question_threads q INDEXED BY idx_crew_pending_questions
-      JOIN messages m ON m.id = q.message_id
+      CROSS JOIN messages m ON m.id = q.message_id
       WHERE q.status = 'pending' AND m.to_handle IN (SELECT value FROM json_each(?)) ORDER BY m.sequence DESC
     `)
         .all(JSON.stringify(aliases))

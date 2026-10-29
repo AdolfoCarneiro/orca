@@ -370,3 +370,124 @@ it('selects peer maxima without losing bodies and uses indexed historical proven
   console.log('crew scoped query plans', plan)
   spy.mockRestore()
 })
+
+it('drives pending questions from metadata on real N/10N mailbox wakes and keeps answer/close semantics', async () => {
+  const receipts = []
+  for (const retainedMessages of [100, 1000]) {
+    const { db, deps, run, assign } = fixture()
+    const worker = assign('term_worker')
+    db.insertMessages(
+      Array.from({ length: retainedMessages }, (_, i) => ({
+        runId: run.id,
+        from: 'term_worker',
+        to: 'term_coord',
+        subject: 'Ordinary mail',
+        body: `mail-${i}`
+      }))
+    )
+    const prepare = db.db.prepare.bind(db.db)
+    const operations = { executions: 0, rows: 0, bytes: 0 }
+    const plans: string[][] = []
+    const spy = vi.spyOn(db.db, 'prepare').mockImplementation((sql) => {
+      const statement = prepare(sql)
+      if (!sql.includes('FROM question_threads q INDEXED BY idx_crew_pending_questions')) {
+        return statement
+      }
+      return {
+        all: (...args) => {
+          operations.executions++
+          const rows = statement.all(...args)
+          operations.rows += rows.length
+          operations.bytes += Buffer.byteLength(JSON.stringify(rows))
+          plans.push(
+            prepare(`EXPLAIN QUERY PLAN ${sql}`)
+              .all(...args)
+              .map((row) => String(row.detail))
+          )
+          return rows
+        },
+        get: (...args) => statement.get(...args),
+        run: (...args) => statement.run(...args),
+        iterate: (...args) => statement.iterate(...args),
+        setReadBigInts: (value) => statement.setReadBigInts(value)
+      }
+    })
+    const frames: OrchestrationCrewFrame[] = []
+    const model = new CrewReadModel(() => deps, db.crewChanges.subscribe)
+    const stop = subscribeCrew(
+      () => model.read('term_coord'),
+      model.subscribe,
+      (frame) => frames.push(frame)
+    )
+    try {
+      operations.executions = operations.rows = operations.bytes = 0
+      plans.length = 0
+      const publications = frames.filter((frame) => frame.type === 'complete').length
+      db.insertMessage({
+        from: 'term_peer',
+        to: 'term_outbound',
+        subject: 'Unrelated committed wake'
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(operations).toEqual({ executions: 1, rows: 0, bytes: 2 })
+      expect(frames.filter((frame) => frame.type === 'complete')).toHaveLength(publications)
+      // This is actual executed query planning plus returned work, not native VM/visit accounting.
+      expect(plans[0][0]).toContain('SCAN q USING INDEX idx_crew_pending_questions')
+      expect(
+        plans[0].some((detail) => detail.includes('SEARCH m') && detail.includes('(id=?)'))
+      ).toBe(true)
+      expect(plans[0].join(' ')).not.toContain('idx_inbox')
+      receipts.push({ retainedMessages, pending: 0, ...operations, plan: plans[0] })
+      const first = db.createQuestion({
+        runId: run.id,
+        dispatchId: worker.id,
+        askerHandle: 'term_worker',
+        question: 'First pending?',
+        to: 'term_coord'
+      })
+      const newest = db.createQuestion({
+        runId: run.id,
+        dispatchId: worker.id,
+        askerHandle: 'term_worker',
+        question: 'Latest pending?'
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(model.read('term_coord').sections.managing[0].pendingQuestion?.preview).toBe(
+        'Latest pending?'
+      )
+      expect(frames.filter((frame) => frame.type === 'complete')).toHaveLength(publications + 1)
+      db.answerQuestion({
+        messageId: newest.message.id,
+        runId: run.id,
+        body: 'Use B',
+        consumerGeneration: run.consumer_generation
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(model.read('term_coord').sections.managing[0].pendingQuestion?.preview).toBe(
+        'First pending?'
+      )
+      expect(db.getQuestion(first.message.id)?.status).toBe('pending')
+      db.completeDispatch(worker.id)
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(model.read('term_coord').sections.managing[0].pendingQuestion).toBeUndefined()
+      expect(db.getQuestion(first.message.id)?.status).toBe('closed')
+      stop()
+      operations.executions = 0
+      db.insertMessage({ from: 'term_peer', to: 'term_outbound', subject: 'After teardown' })
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(operations.executions).toBe(0)
+    } finally {
+      stop()
+      spy.mockRestore()
+    }
+  }
+  expect(receipts[1].executions).toBe(receipts[0].executions)
+  expect(receipts[1].rows).toBe(receipts[0].rows)
+  expect(receipts[1].bytes).toBe(receipts[0].bytes)
+  console.log('crew pending-question metadata contract', JSON.stringify(receipts))
+})
