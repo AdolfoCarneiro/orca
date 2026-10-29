@@ -42,6 +42,16 @@ export function createBrowserProfileListActions(
       forgetDefaultProfileUnless(hostId, (id) => profiles.some((profile) => profile.id === id))
     }
   }
+  const dropDeletedProfile = (hostId: ExecutionHostId, profileId: string): void => {
+    set((s) =>
+      profileListByHostUpdate(
+        s,
+        getBrowserProfilesForHost(s, hostId).filter((profile) => profile.id !== profileId),
+        hostId
+      )
+    )
+    forgetDefaultProfileUnless(hostId, (id) => id !== profileId)
+  }
   return {
     fetchBrowserSessionProfiles: async (requestedHostId) => {
       const hostId = requestedHostId ?? getBrowserSettingsHostId(get())
@@ -155,14 +165,7 @@ export function createBrowserProfileListActions(
             { timeoutMs: 15_000 }
           )
           if (result.deleted) {
-            set((s) =>
-              profileListByHostUpdate(
-                s,
-                getBrowserProfilesForHost(s, hostId).filter((profile) => profile.id !== profileId),
-                hostId
-              )
-            )
-            forgetDefaultProfileUnless(hostId, (id) => id !== profileId)
+            dropDeletedProfile(hostId, profileId)
           }
           return result.deleted
         } catch {
@@ -172,14 +175,7 @@ export function createBrowserProfileListActions(
       try {
         const ok = await window.api.browser.sessionDeleteProfile({ profileId })
         if (ok) {
-          set((s) =>
-            profileListByHostUpdate(
-              s,
-              getBrowserProfilesForHost(s, hostId).filter((profile) => profile.id !== profileId),
-              hostId
-            )
-          )
-          forgetDefaultProfileUnless(hostId, (id) => id !== profileId)
+          dropDeletedProfile(hostId, profileId)
         }
         return ok
       } catch {

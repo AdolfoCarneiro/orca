@@ -219,13 +219,12 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           })
           // Browser profiles can take a 15s runtime RPC and do not gate restoration. Start here without awaiting; the action handles its own failure.
           void timeRendererStartupStep('fetch-browser-session-profiles', () =>
-            Promise.all([
-              actions.fetchBrowserSessionProfiles(),
-              // Why: local and SSH tabs use this desktop's profiles even when Settings shows a paired server.
-              getBrowserSettingsHostId(useAppStore.getState()) !== LOCAL_EXECUTION_HOST_ID &&
-                actions.fetchBrowserSessionProfiles(LOCAL_EXECUTION_HOST_ID)
-            ])
+            actions.fetchBrowserSessionProfiles()
           ).catch(() => {})
+          // Why: local and SSH tabs use this desktop's profiles even when Settings shows a paired server.
+          if (getBrowserSettingsHostId(useAppStore.getState()) !== LOCAL_EXECUTION_HOST_ID) {
+            void actions.fetchBrowserSessionProfiles(LOCAL_EXECUTION_HOST_ID)
+          }
           const onboardingState = await onboardingPromise
           if (!cancelled) {
             onOnboardingLoadedRef.current(onboardingState)
