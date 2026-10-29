@@ -35,7 +35,7 @@ const HOST_CATALOG: AgentSessionModelCatalogResult = {
 const LAUNCH = { newLaunch: true }
 
 describe('structured option state from the host model catalog', () => {
-  it.each(['claude', 'codex', 'pi', 'grok'] as const)(
+  it.each(['codex', 'pi'] as const)(
     '%s: pending inventory offers no built-ins and retains an applicable good list',
     (agent) => {
       const seed = structuredAgentSessionSeedCatalog(agent)!

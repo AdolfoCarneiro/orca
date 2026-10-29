@@ -186,7 +186,11 @@ function SessionOptionPopover(props: {
     if (descriptor.id === 'effort') {
       setOpen(false)
     }
-    if (descriptor.kind.currentValue !== value) {
+    if (
+      descriptor.valueSource === 'unknown' ||
+      descriptor.valueSource === 'default' ||
+      descriptor.kind.currentValue !== value
+    ) {
       props.onSet(descriptor, value)
     }
   }

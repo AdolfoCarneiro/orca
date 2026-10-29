@@ -37,7 +37,6 @@ import {
   preloadHostModelCatalogSnapshots,
   resetHostModelCatalogSnapshotsForTests
 } from '@/runtime/host-model-catalog-snapshots'
-import { labelFromModelId } from '../../../../shared/model-id-label'
 import { useStructuredAgentSessionOptions } from './use-structured-agent-session-options'
 
 const LOCAL_TARGET = { kind: 'local' } as const
@@ -328,17 +327,20 @@ describe('a new chat picker’s first frame', () => {
     unmount()
   })
 
-  it.each(['claude', 'codex', 'grok'] as const)(
+  it.each([
+    ['claude', CLAUDE_LIST, 'Opus (1M context)'],
+    ['codex', CODEX_LIST, 'GPT 5.5'],
+    ['grok', GROK_LIST, 'Grok Build']
+  ] as const)(
     '%s: a cold account keeps the saved literal until its host label arrives',
-    async (agent) => {
+    async (agent, list, expectedLiteralLabel) => {
       const answer = deferred<AgentSessionModelCatalogResult>()
       catalogAnswers(() => answer.promise)
-      const list = agent === 'claude' ? CLAUDE_LIST : agent === 'codex' ? CODEX_LIST : GROK_LIST
       const first = list.models[0]!
       const { frames, unmount } = renderNewChat({ agent, seedOptions: { model: first.id } })
       expect(frames[0]).toEqual({
         model: first.id,
-        label: labelFromModelId(first.id),
+        label: expectedLiteralLabel,
         effort: null,
         usable: true
       })

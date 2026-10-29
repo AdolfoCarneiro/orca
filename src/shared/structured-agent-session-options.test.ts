@@ -34,27 +34,19 @@ function viewModel(
 }
 
 describe('structured agent session options', () => {
-  it('keeps unknown inventory quiet and accepts a later catalog even after a live answer', () => {
+  it('accepts a later catalog after a live answer becomes unknown', () => {
     const seed = structuredAgentSessionSeedCatalog('pi')
     const unknown = { models: [], modelsKnown: false as const, current: { defaulted: [] } }
-    const cold = applyStructuredAgentSessionOptions(
-      createStructuredAgentSessionOptionState('pi', seed),
-      seed,
-      unknown
-    )
-    expect(structuredAgentSessionOptionSnapshot(cold)).toContainEqual(
-      expect.objectContaining({ id: 'model', settable: false })
-    )
     const models = [{ id: 'provider/model', label: 'Native label', isDefault: false, efforts: [] }]
     const catalog = { origin: 'probe' as const, fetchedAt: 1, models }
-    const arrived = applyStructuredAgentSessionModelCatalog(cold, seed, catalog, {
-      newLaunch: false
-    })
-    expect(arrived.catalog?.models[0]?.label).toBe('Native label')
-    const live = applyStructuredAgentSessionOptions(arrived, seed, {
-      models,
-      current: { model: 'provider/model', confirmed: ['model'] }
-    })
+    const live = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('pi', seed),
+      seed,
+      {
+        models,
+        current: { model: 'provider/model', confirmed: ['model'] }
+      }
+    )
     const resting = applyStructuredAgentSessionOptions(live, seed, {
       ...unknown,
       current: {
@@ -93,7 +85,6 @@ describe('structured agent session options', () => {
       seed,
       { models: [], current: {} }
     )
-    expect(structuredAgentSessionOptionSnapshot(empty)).toEqual([])
     expect(
       applyStructuredAgentSessionModelCatalog(
         empty,

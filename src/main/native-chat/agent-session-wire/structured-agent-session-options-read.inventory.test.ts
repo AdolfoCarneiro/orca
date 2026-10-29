@@ -1,4 +1,10 @@
 import { expect, it } from 'vitest'
+import { structuredAgentSessionSeedCatalog } from '../../../shared/structured-agent-session-seed-catalog'
+import {
+  applyStructuredAgentSessionOptions,
+  createStructuredAgentSessionOptionState,
+  structuredAgentSessionOptionSnapshot
+} from '../../../shared/structured-agent-session-options'
 import type { AgentSessionModelCatalogResult } from '../../../shared/agent-session-wire'
 import type { StructuredAgentSessionLiveOptions } from './structured-agent-session-adapter'
 import type { StructuredAgentSessionMutationContext } from './structured-agent-session-host-mutations'
@@ -47,4 +53,31 @@ it('marks unknown resting inventory but preserves completed empty live and resti
   expect(completed).not.toHaveProperty('modelsKnown')
   live = { models: [], modelsKnown: false, current: {} }
   expect((await read()).modelsKnown).toBe(false)
+
+  live = undefined
+  const model = 'openai/gpt-future[1m]'
+  record.options = { model }
+  const native = {
+    id: 'openai/gpt-5.5',
+    label: 'Provider authored label',
+    isDefault: true,
+    efforts: []
+  }
+  inventory = { origin: 'probe', fetchedAt: 1, models: [native] }
+  const result = await read()
+  expect(result.current.model).toBe(model)
+  expect(result.models[0]).toBe(native)
+  const seed = structuredAgentSessionSeedCatalog('pi')
+  const state = applyStructuredAgentSessionOptions(
+    createStructuredAgentSessionOptionState('pi', seed),
+    seed,
+    result
+  )
+  expect(structuredAgentSessionOptionSnapshot(state)[0].kind).toMatchObject({
+    currentValue: model,
+    choices: [
+      { value: native.id, label: native.label },
+      { value: model, label: 'Openai GPT Future (1M context)', description: model }
+    ]
+  })
 })

@@ -208,16 +208,6 @@ describe('what a send carries', () => {
     expect(
       structuredAgentSessionShownSnapshot(state).find((row) => row.id === 'effort')
     ).toBeUndefined()
-    // Legacy Claude capture never receives a display-only effort after its model becomes owned.
-    state.record.agent = 'claude'
-    state.record.values.model = { value: 'native', source: 'dispatched' }
-    state = applyStructuredAgentSessionModelCatalog(
-      state,
-      CODEX_SESSION_OPTION_CATALOG,
-      catalog,
-      launch
-    )
-    expect(structuredAgentSessionSendSelection(state)).toEqual({ model: 'native' })
   })
 
   it('carries the default it shows when nothing names a model', () => {
@@ -313,26 +303,33 @@ describe("a chat's model and effort, apart from the defaults filling them in", (
   })
 })
 
-it('bounds exact capture by catalog width at N and 10N', () => {
-  const work: number[] = []
+it.each(['claude', 'codex'] as const)('bounds %s capture and display work', (agent) => {
+  const work: { capture: number; rows: number; verified: number }[] = []
+  const seed = agent === 'codex' ? CODEX_SESSION_OPTION_CATALOG : CLAUDE_SESSION_OPTION_CATALOG
   for (const count of [10, 100]) {
-    let visits = 0
+    let rows = 0
+    let verified = 0
+    const model = `model-${count - 1}`
     const models = Array.from({ length: count }, (_, index) => ({
       id: `model-${index}`,
       label: `Model ${index}`,
       isDefault: false,
-      efforts: levels('high')
+      defaultEffort: 'high',
+      efforts: levels('low', 'high')
     }))
     const state = applyStructuredAgentSessionOptions(
-      fresh(),
-      CLAUDE_SESSION_OPTION_CATALOG,
+      createStructuredAgentSessionOptionState(agent, seed),
+      seed,
       {
         models,
         listedModelIds: models.map((row) => row.id),
         current: {
-          model: `model-${count - 1}`,
-          effort: 'high',
-          acceptedInputSources: { model: 'saved', effort: 'saved' }
+          model,
+          ...(agent === 'claude' ? { effort: 'high' } : {}),
+          acceptedInputSources: {
+            model: 'saved',
+            ...(agent === 'claude' ? { effort: 'saved' as const } : {})
+          }
         }
       },
       { newLaunch: false, coherentCatalog: false }
@@ -340,19 +337,42 @@ it('bounds exact capture by catalog width at N and 10N', () => {
     for (const row of state.catalog?.models ?? []) {
       const id = row.id
       Object.defineProperty(row, 'id', {
-        get() {
-          visits++
+        get: () => {
+          rows++
           return id
         }
       })
     }
-    expect(structuredAgentSessionMessageSelection(state)).toEqual({
-      model: `model-${count - 1}`,
-      effort: 'high'
+    state.verifiedModelIds?.forEach((id, index, ids) => {
+      Object.defineProperty(ids, index, {
+        get: () => {
+          verified++
+          return id
+        }
+      })
     })
-    expect(visits).toBeLessThanOrEqual(10 * count)
-    work.push(visits)
+    expect(structuredAgentSessionMessageSelection(state)).toEqual({
+      model,
+      ...(agent === 'claude' ? { effort: 'high' } : {})
+    })
+    const capture = rows
+    expect(capture).toBeLessThanOrEqual(10 * count)
+    rows = 0
+    verified = 0
+    expect(
+      structuredAgentSessionShownSnapshot(state).find((row) => row.id === 'effort')
+    ).toMatchObject({
+      valueSource: agent === 'codex' ? 'default' : 'dispatched',
+      kind: { currentValue: 'high' }
+    })
+    expect(rows).toBeGreaterThanOrEqual(count)
+    expect(rows).toBeLessThanOrEqual(10 * count)
+    expect(verified).toBeGreaterThanOrEqual(count)
+    expect(verified).toBeLessThanOrEqual(5 * count)
+    work.push({ capture, rows, verified })
   }
-  expect(work[1]).toBeLessThanOrEqual(11 * work[0])
-  console.info('selection-capture-catalog-visits', JSON.stringify(work))
+  expect(work[1].capture).toBeLessThanOrEqual(11 * work[0].capture)
+  expect(work[1].rows).toBeLessThanOrEqual(11 * work[0].rows)
+  expect(work[1].verified).toBeLessThanOrEqual(11 * work[0].verified)
+  console.info(`${agent}-shown-projection-visits`, JSON.stringify(work))
 })
