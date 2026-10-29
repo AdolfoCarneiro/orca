@@ -1,13 +1,13 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { completeMerge } from './commit-changes'
 import { detectConflictOperation } from './git-conflict-operation'
-import { stageFile } from './staging'
+import { resolveConflict } from './staging'
 
-describe('delete/modify merge resolved through stage and completeMerge', () => {
+describe('delete/modify merge resolved through resolveConflict and completeMerge', () => {
   const tempPaths: string[] = []
 
   afterEach(() => {
@@ -46,7 +46,7 @@ describe('delete/modify merge resolved through stage and completeMerge', () => {
   it('keeps the incoming file and concludes the merge with Git’s message', async () => {
     const { repoPath, git } = createDeleteModifyConflict()
 
-    await stageFile(repoPath, 'gone.txt')
+    await resolveConflict(repoPath, 'gone.txt', 'keep_file')
     await expect(completeMerge(repoPath)).resolves.toEqual({ success: true })
 
     expect(git('log', '-1', '--format=%P').trim().split(' ')).toHaveLength(2)
@@ -55,14 +55,14 @@ describe('delete/modify merge resolved through stage and completeMerge', () => {
     await expect(detectConflictOperation(repoPath)).resolves.toBe('unknown')
   })
 
-  it('keeps the deletion by staging the removed worktree file', async () => {
+  it('keeps the deletion and removes the incoming copy Git left in the worktree', async () => {
     const { repoPath, git } = createDeleteModifyConflict()
 
-    rmSync(join(repoPath, 'gone.txt'))
-    await stageFile(repoPath, 'gone.txt')
+    await resolveConflict(repoPath, 'gone.txt', 'keep_deletion')
     await expect(completeMerge(repoPath)).resolves.toEqual({ success: true })
 
     expect(git('ls-tree', '--name-only', 'HEAD')).toBe('')
+    expect(existsSync(join(repoPath, 'gone.txt'))).toBe(false)
     expect(git('log', '-1', '--format=%P').trim().split(' ')).toHaveLength(2)
     await expect(detectConflictOperation(repoPath)).resolves.toBe('unknown')
   })

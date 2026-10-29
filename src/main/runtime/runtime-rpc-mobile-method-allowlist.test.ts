@@ -389,6 +389,18 @@ describe('OrcaRuntimeRpcServer', () => {
       params: { worktree: 'id:wt-1' }
     })
     await dispatch({
+      id: 'req_git_complete_merge',
+      method: 'git.completeMerge',
+      deviceToken: mobile.token,
+      params: { worktree: 'id:wt-1' }
+    })
+    await dispatch({
+      id: 'req_git_resolve_conflict',
+      method: 'git.resolveConflict',
+      deviceToken: mobile.token,
+      params: { worktree: 'id:wt-1', filePath: 'gone.txt', resolution: 'keep_deletion' }
+    })
+    await dispatch({
       id: 'req_git_abort_rebase',
       method: 'git.abortRebase',
       deviceToken: mobile.token,
@@ -582,6 +594,12 @@ describe('OrcaRuntimeRpcServer', () => {
     expect(replies).toContainEqual(expect.objectContaining({ id: 'req_git_bulk_stage', ok: true }))
     expect(replies).toContainEqual(expect.objectContaining({ id: 'req_git_abort_merge', ok: true }))
     expect(replies).toContainEqual(
+      expect.objectContaining({ id: 'req_git_complete_merge', ok: true })
+    )
+    expect(replies).toContainEqual(
+      expect.objectContaining({ id: 'req_git_resolve_conflict', ok: true })
+    )
+    expect(replies).toContainEqual(
       expect.objectContaining({ id: 'req_git_abort_rebase', ok: true })
     )
     expect(replies).toContainEqual(
@@ -637,6 +655,12 @@ describe('OrcaRuntimeRpcServer', () => {
       undefined
     )
     expect(mocks.abortRuntimeGitMerge).toHaveBeenCalledWith('id:wt-1')
+    expect(mocks.completeRuntimeGitMerge).toHaveBeenCalledWith('id:wt-1')
+    expect(mocks.resolveRuntimeGitConflict).toHaveBeenCalledWith(
+      'id:wt-1',
+      'gone.txt',
+      'keep_deletion'
+    )
     expect(mocks.abortRuntimeGitRebase).toHaveBeenCalledWith('id:wt-1')
     expect(mocks.bulkUnstageRuntimeGitPaths).toHaveBeenCalledWith('id:wt-1', ['c.ts'])
     expect(mocks.openMobileDiff).toHaveBeenCalledWith('id:wt-1', 'docs/readme.md', true, undefined)

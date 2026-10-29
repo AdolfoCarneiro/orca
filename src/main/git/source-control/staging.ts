@@ -4,6 +4,7 @@ import { gitExecFileAsync } from '../runner'
 import { invalidateGitReadCaches } from './git-read-cache-invalidation'
 import { literalPathspec } from './git-pathspec'
 import { encodeGitPathspecs } from '../../../shared/git-pathspec-stdin'
+import type { ConflictResolution } from '../../../shared/source-control-entry-actions'
 import {
   stageGitWorktreeScope,
   type GitStageWorktreeScope,
@@ -26,6 +27,28 @@ export async function stageFile(
       gitOptionsForWorktree(worktreePath, options)
     )
     await redoWriteForDriveCheckoutSuspects(worktreePath, [filePath], STAGE_WRITE, options)
+  } finally {
+    invalidateGitReadCaches()
+  }
+}
+
+/** Git's own resolution: add keeps the worktree file; rm records the deletion and removes any leftover copy. */
+export async function resolveConflict(
+  worktreePath: string,
+  filePath: string,
+  resolution: ConflictResolution,
+  options: GitRuntimeOptions = {}
+): Promise<void> {
+  if (resolution !== 'keep_deletion') {
+    await stageFile(worktreePath, filePath, options)
+    return
+  }
+  invalidateGitReadCaches()
+  try {
+    await gitExecFileAsync(
+      ['rm', '--force', '--quiet', '--', literalPathspec(filePath, worktreePath, options)],
+      gitOptionsForWorktree(worktreePath, options)
+    )
   } finally {
     invalidateGitReadCaches()
   }

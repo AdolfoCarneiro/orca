@@ -18969,6 +18969,9 @@
       },
       "runtimeGitSyncClient": {
         "completeMergeNeedsNewerHost": "Completing a merge needs a newer Orca on this host. Update Orca on that host."
+      },
+      "runtimeGitWorkingTreeClient": {
+        "resolveConflictNeedsNewerHost": "Resolving conflicts needs a newer Orca on this host. Update Orca on that host."
       }
     },
     "ssh": {
