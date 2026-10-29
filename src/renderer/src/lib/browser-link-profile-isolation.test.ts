@@ -126,27 +126,6 @@ describe.each(['repo', 'worktree'] as const)('%s browser profile isolation', (sc
   )
 })
 
-it('keeps the shared local default independent of the selected remote profile', async () => {
-  store.setState({
-    browserSessionHostIdOverride: 'runtime:remote',
-    settings: {
-      ...getDefaultSettings('/home/test'),
-      browserDefaultProfileIdByHostId: { 'runtime:remote': 'remote-only' }
-    }
-  })
-  const opened = await open('http')
-  if (opened.status !== 'opened') {
-    throw new Error('Expected local browser page')
-  }
-  expect(
-    store
-      .getState()
-      .browserTabsByWorktree[WORKSPACE]?.find(
-        (workspace) => workspace.id === opened.result.browserWorkspaceId
-      )
-  ).toMatchObject({ sessionProfileId: null, sessionPartition: 'persist:shared' })
-})
-
 it('holds a link in an isolated partition until its workspace profile is minted', async () => {
   let mintProfile: ((profile: BrowserSessionProfile) => void) | undefined
   mocks.ensureProfile.mockImplementation(

@@ -81,8 +81,7 @@ describe('openWorkspaceBrowserTab', () => {
     mocks.state = {
       ...ownerState(sshHost),
       createBrowserTab,
-      settings: { browserDefaultProfileIdByHostId: { local: 'local-profile' } },
-      browserSessionProfilesByHostId: {}
+      settings: { browserDefaultProfileIdByHostId: { local: 'local-profile' } }
     }
 
     expect(canOpenWorkspaceBrowserTabOnSsh(mocks.state as never, WORKSPACE_ID, 'ssh-target')).toBe(
@@ -118,8 +117,7 @@ describe('openWorkspaceBrowserTab', () => {
     const sshHost = toSshExecutionHostId('ssh-target')
     mocks.state = {
       ...ownerState(sshHost),
-      createBrowserTab,
-      browserSessionProfilesByHostId: {}
+      createBrowserTab
     }
 
     await openWorkspaceBrowserTab({
@@ -504,8 +502,7 @@ describe('openWorkspaceBrowserTab', () => {
     const createBrowserTab = createBrowserTabMock()
     mocks.state = {
       ...ownerState(LOCAL_EXECUTION_HOST_ID),
-      createBrowserTab,
-      browserSessionProfilesByHostId: {}
+      createBrowserTab
     }
 
     for (const url of ['http://localhost:3000/', 'http://localhost:5173/app']) {
@@ -524,8 +521,7 @@ describe('openWorkspaceBrowserTab', () => {
     mocks.state = {
       ...ownerState(sshHost, 'hub-a'),
       createBrowserTab,
-      settings: { browserDefaultProfileIdByHostId: { local: 'local-profile' } },
-      browserSessionProfilesByHostId: {}
+      settings: { browserDefaultProfileIdByHostId: { local: 'local-profile' } }
     }
     mocks.createRemote.mockResolvedValue(false)
 
@@ -693,8 +689,7 @@ describe('links from a managed server reached over SSH', () => {
         ['orcad-env', { status: { capabilities: [] }, checkedAt: 1 }]
       ]),
       settings,
-      createBrowserTab: createBrowserTabMock(),
-      browserSessionProfilesByHostId: {}
+      createBrowserTab: createBrowserTabMock()
     }
   }
   const sshDeployment = {

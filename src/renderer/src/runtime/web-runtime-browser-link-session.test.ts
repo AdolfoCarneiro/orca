@@ -71,13 +71,6 @@ beforeEach(() => {
           partition: 'persist:remote-default',
           label: 'Default',
           source: null
-        },
-        {
-          id: 'remote-profile',
-          scope: 'imported' as const,
-          partition: 'persist:remote-profile',
-          label: 'Remote',
-          source: null
         }
       ]
     }
