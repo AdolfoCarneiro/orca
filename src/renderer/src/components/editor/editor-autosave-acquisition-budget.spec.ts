@@ -2,20 +2,19 @@ import { expect, it, vi } from 'vitest'
 import type { StoreApi } from 'zustand/vanilla'
 import type { AppState } from '@/store'
 import { attachEditorAutosaveController } from './editor-autosave-controller'
-import {
-  stubEditorWindowWithDisk,
-  withLoadedBaselines
-} from './editor-autosave-controller-test-fixture'
 import * as dueRecords from './editor-autosave-due-records'
 
 export function registerEditorAutosaveAcquisitionBudgetTests(
-  createEditorStore: () => StoreApi<AppState>
+  createFixture: () => {
+    store: StoreApi<AppState>
+    disk: { files: Map<string, string>; fs: { writeFile: ReturnType<typeof vi.fn> } }
+    stampBaselines(): void
+  }
 ): void {
   it.each([5, 50])(
     'bounds first-acquisition autosave scans for %i restored drafts',
     async (count) => {
-      const disk = stubEditorWindowWithDisk()
-      const store = createEditorStore()
+      const { disk, store, stampBaselines } = createFixture()
       for (let index = 0; index < count; index += 1) {
         const filePath = `/repo/file-${index}.ts`
         disk.files.set(filePath, '')
@@ -29,7 +28,7 @@ export function registerEditorAutosaveAcquisitionBudgetTests(
         store.getState().setEditorDraft(filePath, `draft-${index}`)
         store.getState().markFileDirty(filePath, true)
       }
-      withLoadedBaselines(store, disk)
+      stampBaselines()
       store.setState({
         openFiles: store.getState().openFiles.map((file) => ({
           ...file,

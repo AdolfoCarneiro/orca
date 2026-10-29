@@ -20,7 +20,10 @@ import { getDefaultSettings } from '../../../../shared/constants'
 import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import { emptyTabLayoutState } from '../../store/slices/editor-slice-test-harness'
-import { withLoadedBaselines } from './editor-autosave-controller-test-fixture'
+import {
+  stubEditorWindowWithDisk,
+  withLoadedBaselines
+} from './editor-autosave-controller-test-fixture'
 import {
   makeFolderWorkspace,
   makeProjectGroup
@@ -693,7 +696,11 @@ describe('attachEditorAutosaveController', () => {
     }
   })
 
-  registerEditorAutosaveAcquisitionBudgetTests(createEditorStore)
+  registerEditorAutosaveAcquisitionBudgetTests(() => {
+    const disk = stubEditorWindowWithDisk()
+    const store = createEditorStore()
+    return { store, disk, stampBaselines: () => withLoadedBaselines(store, disk) }
+  })
 
   it('skips the open-file scan for unrelated store mutations', () => {
     const writeFile = vi.fn().mockResolvedValue(undefined)

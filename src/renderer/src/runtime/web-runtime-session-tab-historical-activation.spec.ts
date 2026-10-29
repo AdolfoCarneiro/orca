@@ -7,16 +7,18 @@ import {
 import { peekWebSessionFocusIntent } from './web-session-focus-intent'
 import { activateTerminalTabOnOwner } from '@/lib/terminal-tab-owner-activation'
 import type { LegacyRelayBridgedPane } from '../../../shared/legacy-relay-bridge-contract'
-import { ENVIRONMENT_ID, WORKTREE_ID } from './web-runtime-session-test-harness'
 import { stubRuntimeEnvironmentBridge } from './runtime-environment-bridge-fixture'
 import { createAutomationRunWorkspaceAction } from '../components/automations/automation-run-workspace-action'
 import { makeRun, makeWorktree } from '../components/automations/automations-page-fixtures'
 
-export function registerHistoricalSessionTabActivationTests(mocks: {
-  getState: ReturnType<typeof vi.fn>
-  subscribe: ReturnType<typeof vi.fn>
-  revealWorktree: ReturnType<typeof vi.fn>
-}): void {
+export function registerHistoricalSessionTabActivationTests(
+  mocks: {
+    getState: ReturnType<typeof vi.fn>
+    subscribe: ReturnType<typeof vi.fn>
+    revealWorktree: ReturnType<typeof vi.fn>
+  },
+  { ENVIRONMENT_ID, WORKTREE_ID }: { ENVIRONMENT_ID: string; WORKTREE_ID: string }
+): void {
   it('historical owner focus keeps a live legacy-relay pane without asking the server for a second shell', async () => {
     const runtimeCall = vi.fn()
     const listeners = new Set<(panes: LegacyRelayBridgedPane[]) => void>()

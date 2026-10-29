@@ -138,7 +138,7 @@ describe('web runtime session tab actions', () => {
     vi.clearAllMocks()
   })
 
-  registerHistoricalSessionTabActivationTests(mocks)
+  registerHistoricalSessionTabActivationTests(mocks, { ENVIRONMENT_ID, WORKTREE_ID })
 
   it('maps mirrored local browser unified ids for activate and close', async () => {
     const runtimeCall = vi

@@ -388,6 +388,7 @@ describe('useAutomationDispatchEvents setup launch', () => {
     state.folderWorkspaces = [
       {
         id: 'fw-local',
+        name: folderWorkspace.displayName,
         projectGroupId: 'group-local',
         folderPath: '/project',
         connectionId: null
@@ -420,6 +421,7 @@ describe('useAutomationDispatchEvents setup launch', () => {
     state.folderWorkspaces = [
       {
         id: 'fw-other',
+        name: folderWorkspace.displayName,
         projectGroupId: 'group-other',
         folderPath: '/srv/other',
         connectionId: 'ssh-other'
