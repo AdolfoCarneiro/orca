@@ -16,6 +16,7 @@ vi.mock('electron', () => ({ ipcMain: ipcMainMock }))
 function createMainWindow() {
   const webContents = Object.assign(new EventEmitter(), {
     isDestroyed: () => false,
+    isLoadingMainFrame: vi.fn(() => true),
     send: vi.fn()
   })
   const mainWindow = Object.assign(new EventEmitter(), {
@@ -75,6 +76,60 @@ describe('requestSessionTabCloseFromRenderer', () => {
     )
 
     await expect(pending).rejects.toThrow('session_tab_close_canceled')
+  })
+
+  it.each([1, 10])('preserves %s close requests during subframe loading', async (count) => {
+    vi.useFakeTimers()
+    const { requestSessionTabCloseFromRenderer } = await import('./session-tab-close-request-relay')
+    const { mainWindow, webContents } = createMainWindow()
+    const outcomes: string[] = []
+    const pending = Array.from({ length: count }, (_, index) =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the double implements all BrowserWindow members used by this relay.
+      requestSessionTabCloseFromRenderer(mainWindow as never, `tab-${index}`, 'wt-1').then(
+        () => outcomes.push('ack'),
+        (error: Error) => outcomes.push(error.message)
+      )
+    )
+
+    webContents.isLoadingMainFrame.mockReturnValue(false)
+    webContents.emit('did-start-loading')
+    webContents.emit('did-start-loading')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(outcomes).toEqual([])
+    expect(vi.getTimerCount()).toBe(count)
+    expect(webContents.listenerCount('did-start-loading')).toBe(1)
+
+    for (const [, request] of webContents.send.mock.calls) {
+      ipcEmitter.emit('ui:sessionTabCloseResponse', { sender: webContents }, request)
+    }
+    await Promise.all(pending)
+    expect(outcomes).toEqual(Array.from({ length: count }, () => 'ack'))
+    expect(vi.getTimerCount()).toBe(0)
+    expect(mainWindow.eventNames()).toEqual([])
+    expect(webContents.eventNames()).toEqual([])
+    expect(ipcEmitter.listenerCount('ui:sessionTabCloseResponse')).toBe(0)
+  })
+
+  it('still rejects on main-frame loading after ignoring subframe loading', async () => {
+    vi.useFakeTimers()
+    const { requestSessionTabCloseFromRenderer } = await import('./session-tab-close-request-relay')
+    const { mainWindow, webContents } = createMainWindow()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the double implements all BrowserWindow members used by this relay.
+    const pending = requestSessionTabCloseFromRenderer(mainWindow as never, 'tab-1', 'wt-1').then(
+      () => 'ack',
+      (error: Error) => error.message
+    )
+    webContents.isLoadingMainFrame.mockReturnValue(false)
+    webContents.emit('did-start-loading')
+    expect(vi.getTimerCount()).toBe(1)
+    webContents.isLoadingMainFrame.mockReturnValue(true)
+    webContents.emit('did-start-loading')
+    await expect(pending).resolves.toBe('renderer_unavailable')
+    expect(vi.getTimerCount()).toBe(0)
+    expect(mainWindow.eventNames()).toEqual([])
+    expect(webContents.eventNames()).toEqual([])
+    expect(ipcEmitter.listenerCount('ui:sessionTabCloseResponse')).toBe(0)
   })
 
   it('rejects and releases listeners when the target window closes', async () => {

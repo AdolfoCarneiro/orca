@@ -41,6 +41,11 @@ export async function requestSessionTabCloseFromRenderer(
       }
     }
     const onRendererUnavailable = (): void => finish(new Error('renderer_unavailable'))
+    const onLoading = (): void => {
+      if (webContents.isLoadingMainFrame()) {
+        onRendererUnavailable()
+      }
+    }
     const onResponse = (event: Electron.IpcMainEvent, response: SessionTabCloseResponse): void => {
       if (event.sender !== webContents || response.requestId !== requestId) {
         return
@@ -56,11 +61,8 @@ export async function requestSessionTabCloseFromRenderer(
     releaseListeners.push(
       addFanoutListener(ipcMain, 'ui:sessionTabCloseResponse', onResponse),
       addFanoutListener(mainWindow, 'closed', onRendererUnavailable),
-      addFanoutListeners(
-        webContents,
-        ['destroyed', 'render-process-gone', 'did-start-loading'],
-        onRendererUnavailable
-      )
+      addFanoutListener(webContents, 'did-start-loading', onLoading),
+      addFanoutListeners(webContents, ['destroyed', 'render-process-gone'], onRendererUnavailable)
     )
     const request: SessionTabCloseRequest = { requestId, tabId, worktreeId, expiresAt }
     try {
