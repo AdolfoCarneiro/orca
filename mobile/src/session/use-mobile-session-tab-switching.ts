@@ -13,6 +13,7 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
   const {
     worktreeId,
     client,
+    connState,
     sessionTabs,
     defaultTerminalHandlesToLiveInput,
     setActiveHandle,
@@ -176,13 +177,13 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
     ]
   )
   switchSessionTabRef.current = switchSessionTab
-  // Every displayed terminal or chat, tapped or selected for the user, until its host records the keep.
+  // Every displayed terminal or chat, tapped or selected for the user, until its host records the keep; reconnects retry.
   const keptSubjectRef = useRef<string | null>(null)
   const openTab = sessionTabs.find((tab) => tab.id === activeSessionTabId)
   useEffect(() => {
     const subject = openTab ? workerTouchSubjectOf(openTab) : null
     const key = subject && JSON.stringify([worktreeId, subject])
-    if (!client || !subject || keptSubjectRef.current === key) {
+    if (!client || connState !== 'connected' || !subject || keptSubjectRef.current === key) {
       return
     }
     void reportMobileWorkerTouch(client, subject).then((kept) => {
@@ -190,7 +191,7 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
         keptSubjectRef.current = key
       }
     })
-  }, [client, openTab, worktreeId])
+  }, [client, connState, openTab, worktreeId])
   return {
     switchTab,
     switchSessionTab

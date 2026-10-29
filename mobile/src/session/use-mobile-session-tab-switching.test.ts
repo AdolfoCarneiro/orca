@@ -10,6 +10,7 @@ import type { FileDocState, MarkdownDocState, MobileSessionTab } from './mobile-
 import { isCachedActiveDocumentRetap } from './mobile-session-active-document-retap'
 import { useMobileSessionTabSwitching } from './use-mobile-session-tab-switching'
 import type { RpcClient } from '../transport/rpc-client'
+import type { ConnectionState } from '../transport/types'
 
 const markdownTab: MobileSessionTab = {
   type: 'markdown',
@@ -47,6 +48,7 @@ function mountSwitching(args: {
   fileDocs?: Map<string, FileDocState>
   client?: Pick<RpcClient, 'sendRequest'>
   sessionTabs?: MobileSessionTab[]
+  connState?: ConnectionState
 }) {
   const readMarkdownTab = vi.fn()
   const readFileTab = vi.fn()
@@ -68,6 +70,7 @@ function mountSwitching(args: {
         activeSessionTabTypeRef: { current: null },
         activeHandleRef: { current: null },
         client: args.client ?? null,
+        connState: args.connState ?? 'connected',
         sessionTabs: args.sessionTabs ?? [],
         unsubscribeTerminal: vi.fn(),
         subscribeToTerminal: vi.fn(),
@@ -84,10 +87,14 @@ function mountSwitching(args: {
     switchTo: (tab: MobileSessionTab) => {
       performHookAction(() => switching?.switchSessionTab(tab))
     },
-    /** A snapshot that displays `tabId` without any tap. */
+    /** A snapshot that displays `tabId` without any tap; equal snapshots keep tab identity, as in production. */
     display: (tabId: string | null, sessionTabs: MobileSessionTab[]) => {
       args.activeSessionTabId = tabId
-      args.sessionTabs = sessionTabs.map((tab) => ({ ...tab }))
+      args.sessionTabs = sessionTabs
+      hook.update()
+    },
+    setConnState: (connState: ConnectionState) => {
+      args.connState = connState
       hook.update()
     },
     unmount: hook.unmount
@@ -185,7 +192,7 @@ describe('useMobileSessionTabSwitching active document retap', () => {
 })
 
 describe('useMobileSessionTabSwitching worker touch', () => {
-  it('reports a worker chat a snapshot selects, again until its host records the keep', async () => {
+  it('reports a worker chat a snapshot selects, again after each reconnect until its host records the keep', async () => {
     const replies = [{ changed: 0 }, { changed: 0, pending: true }, { changed: 1 }]
     const sendRequest = vi.fn<RpcClient['sendRequest']>(async () => ({
       id: 'rpc',
@@ -211,6 +218,7 @@ describe('useMobileSessionTabSwitching worker touch', () => {
       sendRequest.mock.calls
         .filter(([method]) => method === 'orchestration.workerChatTouch')
         .map(([, params]) => params)
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
     const harness = mountSwitching({
       activeSessionTabId: 'plain',
       client: { sendRequest },
@@ -219,9 +227,16 @@ describe('useMobileSessionTabSwitching worker touch', () => {
     try {
       await vi.waitFor(() => expect(touches()).toEqual([{ terminal: 'pty-plain' }]))
       // The plain terminal closes and the next snapshot falls back to the worker chat.
-      for (let snapshot = 0; snapshot < 3; snapshot++) {
-        harness.display('chat', [worker])
-        await new Promise((resolve) => setTimeout(resolve, 0))
+      const snapshot = [worker]
+      harness.display('chat', snapshot)
+      await settle()
+      harness.display('chat', snapshot)
+      await settle()
+      expect(touches()).toEqual([{ terminal: 'pty-plain' }, { sessionId: 's1' }])
+      for (let reconnect = 0; reconnect < 2; reconnect++) {
+        harness.setConnState('reconnecting')
+        harness.setConnState('connected')
+        await settle()
       }
       expect(touches()).toEqual([
         { terminal: 'pty-plain' },
