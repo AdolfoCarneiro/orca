@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView, useSafeAreaFrame } from 'react-native-safe-area-context'
 import { ChevronLeft, Save } from 'lucide-react-native'
+import { translate } from '../i18n/mobile-i18n'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useWorkspaceExecutionHost } from '../navigation/workspace-execution-host'
 import { useWorkspaceRouteHandoff } from '../navigation/workspace-route-handoff'
 import { getWorktreeLabel } from '../session/worktree-label'
@@ -51,6 +53,7 @@ export function MobileFilePreviewScreen({ route }: Props) {
 }
 
 function MobileFilePreviewDocument({ route }: Props) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   // Use the shared route handoff to keep this screen within the bundle asset budget.
   const router = useWorkspaceRouteHandoff()
@@ -58,7 +61,9 @@ function MobileFilePreviewDocument({ route }: Props) {
   const { client, state: connState } = useWorkspaceClient(previewParams?.hostId)
   const forceReconnect = useForceReconnect()
   const [preview, setPreview] = useState<MobileFilePreviewResult>(() =>
-    route.ok ? { status: 'loading', message: 'Loading preview...' } : previewError(route.message)
+    route.ok
+      ? { status: 'loading', message: t('files.filePreviewScreen.loading', 'Loading preview...') }
+      : previewError(route.message)
   )
   const [draftContent, setDraftContent] = useState('')
   const [savedContent, setSavedContent] = useState('')
@@ -120,7 +125,7 @@ function MobileFilePreviewDocument({ route }: Props) {
     const isCurrent = () =>
       revision === previewLoadRevisionRef.current && previewSourceKeyRef.current === loadSourceKey
     if (!previewParams || !loadSource || loadSourceKey !== routePreviewSourceKey) {
-      setPreview(previewError(route.ok ? 'Unable to load preview' : route.message))
+      setPreview(previewError(route.ok ? '' : route.message))
       return
     }
     const preserveDirtyDraft =
@@ -128,14 +133,21 @@ function MobileFilePreviewDocument({ route }: Props) {
       draftContentRef.current !== savedContentRef.current
     if (!client || connState !== 'connected') {
       if (preserveDirtyDraft) {
-        setSaveError('Waiting for desktop...')
+        setSaveError(translate('files.filePreviewScreen.waiting', 'Waiting for desktop...'))
         return
       }
-      setPreview({ status: 'waiting', message: 'Waiting for desktop...', reconnect: true })
+      setPreview({
+        status: 'waiting',
+        message: translate('files.filePreviewScreen.waiting', 'Waiting for desktop...'),
+        reconnect: true
+      })
       return
     }
     if (!preserveDirtyDraft) {
-      setPreview({ status: 'loading', message: 'Loading preview...' })
+      setPreview({
+        status: 'loading',
+        message: translate('files.filePreviewScreen.loading', 'Loading preview...')
+      })
     }
     setSaveError('')
     try {
@@ -176,12 +188,14 @@ function MobileFilePreviewDocument({ route }: Props) {
       if (!isCurrent()) {
         return
       }
-      const message = err instanceof Error ? err.message : 'Unable to load preview'
+      const message = err instanceof Error ? err.message : null
       if (preserveDirtyDraft) {
-        setSaveError(message)
+        setSaveError(
+          message ?? translate('files.filePreviewScreen.loadFailed', 'Unable to load preview')
+        )
         return
       }
-      setPreview(previewError(message))
+      setPreview(previewError(message ?? ''))
     }
   }, [client, connState, previewParams, previewSourceKey, route, routePreviewSourceKey])
 
@@ -215,7 +229,9 @@ function MobileFilePreviewDocument({ route }: Props) {
     previewParams?.worktreeName,
     previewParams?.worktreeId ?? ''
   )
-  const meta = previewParams ? `${worktreeLabel} - ${displayPath}` : 'Preview'
+  const meta = previewParams
+    ? `${worktreeLabel} - ${displayPath}`
+    : t('files.filePreviewScreen.title', 'Preview')
   const isEditableTerminalArtifact =
     previewSource?.source === 'terminalArtifact' &&
     isEditableMobileTerminalArtifactPreview(preview, previewSource.readOnly === true)
@@ -254,7 +270,10 @@ function MobileFilePreviewDocument({ route }: Props) {
         setSaveError(saveErrorMessageFromPreviewResult(result))
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to save file'
+      const message =
+        err instanceof Error
+          ? err.message
+          : translate('files.filePreviewScreen.saveFailed', 'Unable to save file')
       setSaveError(message)
     } finally {
       savingRef.current = false
@@ -277,13 +296,13 @@ function MobileFilePreviewDocument({ route }: Props) {
             onPress={requestBack}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Back to files"
+            accessibilityLabel={t('files.filePreviewScreen.backToFiles', 'Back to files')}
           >
             <ChevronLeft size={22} color={colors.textSecondary} strokeWidth={2.2} />
           </Pressable>
           <View style={styles.titleBlock}>
             <Text style={styles.title} numberOfLines={1}>
-              {title || 'Preview'}
+              {title || t('files.filePreviewScreen.title', 'Preview')}
             </Text>
             <Text style={styles.meta} numberOfLines={1}>
               {meta}
@@ -294,7 +313,10 @@ function MobileFilePreviewDocument({ route }: Props) {
               style={[styles.saveButton, (!canSaveArtifact || saving) && styles.saveButtonDisabled]}
               onPress={() => void saveArtifact()}
               disabled={!canSaveArtifact || saving}
-              accessibilityLabel="Save terminal artifact"
+              accessibilityLabel={t(
+                'files.filePreviewScreen.saveArtifact',
+                'Save terminal artifact'
+              )}
             >
               <Save size={18} color={colors.textPrimary} strokeWidth={2.2} />
             </Pressable>
@@ -306,7 +328,7 @@ function MobileFilePreviewDocument({ route }: Props) {
         client={client}
         worktreeId={previewSource?.source === 'worktree' ? previewSource.worktreeId : undefined}
         relativePath={displayPath}
-        title={title || 'File'}
+        title={title || t('files.filePreviewScreen.fileTitle', 'File')}
         editable={isEditableTerminalArtifact}
         draftContent={draftContent}
         saveError={saveError}
@@ -315,7 +337,11 @@ function MobileFilePreviewDocument({ route }: Props) {
         imageHeight={Math.max(240, height - 160)}
         onDraftChange={setDraftContent}
         onImageError={() =>
-          setPreview({ status: 'error', message: 'Unable to load preview', reconnect: false })
+          setPreview({
+            status: 'error',
+            message: t('files.filePreviewScreen.loadFailed', 'Unable to load preview'),
+            reconnect: false
+          })
         }
         onRetry={retry}
         onOpenFile={(pathText) => {
@@ -323,16 +349,22 @@ function MobileFilePreviewDocument({ route }: Props) {
           if (href) {
             router.push(href)
           } else {
-            Alert.alert('Unable to open file', 'Choose a file inside this workspace.')
+            Alert.alert(
+              t('files.filePreviewScreen.openFailed', 'Unable to open file'),
+              t(
+                'files.filePreviewScreen.chooseWorkspaceFile',
+                'Choose a file inside this workspace.'
+              )
+            )
           }
         }}
       />
       <ConfirmModal
         visible={confirmingDiscard}
-        title="Discard changes?"
-        message="Unsaved edits will be lost."
-        confirmLabel="Discard"
-        cancelLabel="Stay"
+        title={t('files.filePreviewScreen.discardTitle', 'Discard changes?')}
+        message={t('files.filePreviewScreen.discardMessage', 'Unsaved edits will be lost.')}
+        confirmLabel={t('files.filePreviewScreen.discard', 'Discard')}
+        cancelLabel={t('files.filePreviewScreen.stay', 'Stay')}
         destructive
         onConfirm={discard}
         onCancel={stay}
@@ -344,5 +376,5 @@ function MobileFilePreviewDocument({ route }: Props) {
 function saveErrorMessageFromPreviewResult(result: MobileFilePreviewResult): string {
   return result.status === 'error' || result.status === 'waiting'
     ? result.message
-    : 'Unable to save file'
+    : translate('files.filePreviewScreen.saveFailed', 'Unable to save file')
 }

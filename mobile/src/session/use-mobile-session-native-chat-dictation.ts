@@ -26,6 +26,7 @@ import { useMobileNativeChatSendError } from './native-chat/use-mobile-native-ch
 import { mobileNativeChatScopeKey } from './native-chat/mobile-native-chat-scope-key'
 import { isMobileNativeChatAgentConfirmed } from './native-chat/mobile-native-chat-eligibility'
 import { useMobileSendCompletionGeneration } from './use-mobile-send-completion-generation'
+import { nativeChatDictationCopy } from './mobile-session-native-chat-dictation-copy'
 import type { MobileSessionFeedbackCapabilitiesModel } from './use-mobile-session-feedback-capabilities'
 
 export function useMobileSessionNativeChatDictation(
@@ -128,8 +129,8 @@ export function useMobileSessionNativeChatDictation(
   const keepUndeliveredDictation = (text: string) => {
     triggerError()
     void clipboard.writeText(text).then(
-      () => showToast("Couldn't insert dictation, so it was copied to the clipboard"),
-      () => showToast("Couldn't insert dictation")
+      () => showToast(nativeChatDictationCopy.insertFailedCopied()),
+      () => showToast(nativeChatDictationCopy.insertFailed())
     )
   }
 
@@ -143,7 +144,7 @@ export function useMobileSessionNativeChatDictation(
       // Chat dictation is inserted locally; terminal mode retains live-input routing.
       if (destination.landsInChat(showNativeChatRef.current)) {
         if (destination.insertInChat(text)) {
-          showToast('Dictation inserted')
+          showToast(nativeChatDictationCopy.inserted())
         } else {
           keepUndeliveredDictation(text)
         }
@@ -163,7 +164,7 @@ export function useMobileSessionNativeChatDictation(
             (await flushPendingLiveInputBeforeExternalSend(insertHandle)) &&
             (await sendLiveTerminalInput(insertHandle, route.text))
           if (sent) {
-            showToast('Dictation inserted')
+            showToast(nativeChatDictationCopy.inserted())
           } else {
             keepUndeliveredDictation(route.text)
           }
@@ -173,7 +174,7 @@ export function useMobileSessionNativeChatDictation(
       // The draft written is the active terminal's; a selection read in another terminal only appends there.
       const anchor = routeContext?.handle === activeHandleRef.current ? routeContext.anchor : null
       setInput((current) => insertDictationText(current, route.text, anchor).text)
-      showToast('Dictation inserted')
+      showToast(nativeChatDictationCopy.inserted())
     },
     onError: (err) => {
       dictationRouteContextRef.current = null

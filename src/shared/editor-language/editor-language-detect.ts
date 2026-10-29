@@ -22,6 +22,8 @@ const EXT_TO_LANGUAGE: Record<string, string> = {
   '.cjs': 'javascript',
   '.json': 'json',
   '.jsonc': 'json',
+  // Excalidraw scenes are JSON documents; Source shows them as such.
+  '.excalidraw': 'json',
   // Dedicated jsonl coloring avoids whole-document JSON diagnostics flagging every record after the first.
   '.jsonl': 'jsonl',
   '.env': 'dotenv',

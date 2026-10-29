@@ -157,7 +157,7 @@ export function MobileSourceControlPanel({
   const actionSheetActions = useMobileSourceControlActionSheet(state, review)
   const primaryAction = useMemo(
     () => buildMobileSourceControlPrimaryAction({ ...primaryActionArgs, review }),
-    [primaryActionArgs, review]
+    [primaryActionArgs, review, t]
   )
   const isHostedRepo = prController.prSidebarIsGithubRepo
   const prSidebarKind = prController.prSidebarState.kind
