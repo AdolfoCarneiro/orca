@@ -424,12 +424,20 @@ it.each([
 ] as const)('protects shared/uncertain uses: %s', async (kind) => {
   const journal = await openJournal()
   const file = await storedGoalFile()
-  const identity = { provider: 'orca', clientMessageId: 'thread-goal:first' }
+  const identity: AgentJournalItemIdentity = {
+    provider: 'orca',
+    clientMessageId: 'thread-goal:first'
+  }
   const append = () =>
-    journal.appendClaimingAttachments(identity, { ...file.body, sentAs: 'goal' }, { fence: 1 })
+    journal.appendClaimingAttachments(
+      identity,
+      { ...file.body, sentAs: 'goal' },
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+    )
   if (kind === 'prior') {
     await journal.appendItem({ provider: 'orca', clientMessageId: 'prior' }, file.body, {
-      fence: 1
+      fence: 1,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
     })
   }
   await append()
@@ -445,7 +453,7 @@ it.each([
   if (kind === 'resolved') {
     await journal.appendResolvedItem(
       () => ({ identity: { provider: 'orca', clientMessageId: 'resolved' }, body: file.body }),
-      { fence: 1 }
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
   }
   if (kind === 'transition') {
@@ -456,7 +464,7 @@ it.each([
           identity: { provider: 'orca', clientMessageId: 'transition' },
           body: file.body
         }),
-        options: { fence: 1 }
+        options: { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
       }
     ])
   }
@@ -465,7 +473,12 @@ it.each([
       settlementId: 'accepted-input',
       fence: 1,
       mutations: [
-        { kind: 'item', identity: { provider: 'orca', clientMessageId: 'batch' }, body: file.body }
+        {
+          kind: 'item',
+          identity: { provider: 'orca', clientMessageId: 'batch' },
+          body: file.body,
+          turnScope: AGENT_JOURNAL_THREAD_SCOPE
+        }
       ]
     })
   }
@@ -489,7 +502,8 @@ it.each([
   }
   if (kind === 'host') {
     await journal.appendItem({ provider: 'orca', clientMessageId: 'ordinary' }, file.body, {
-      fence: 1
+      fence: 1,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
     })
   }
   if (kind === 'epoch' || kind === 'accepted-goal-import') {
@@ -509,12 +523,19 @@ it.each([
     await other.appendClaimingAttachments(
       { provider: 'orca', clientMessageId: 'ordinary' },
       file.body,
-      { fence: 1 }
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
   }
   if (kind === 'shared-refusal') {
-    const second = { provider: 'orca', clientMessageId: 'thread-goal:second' }
-    await journal.appendClaimingAttachments(second, { ...file.body, sentAs: 'goal' }, { fence: 1 })
+    const second: AgentJournalItemIdentity = {
+      provider: 'orca',
+      clientMessageId: 'thread-goal:second'
+    }
+    await journal.appendClaimingAttachments(
+      second,
+      { ...file.body, sentAs: 'goal' },
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+    )
     await journal.withdrawGoalObjective(identity, { fence: 1 })
     expect(
       database.db.prepare('SELECT upload_id FROM agent_session_attachment_claims').all()
@@ -551,8 +572,15 @@ it('keeps inverse and SQL synchronized across failed COMMIT and failed post-COMM
     }
   })
   const file = await storedGoalFile()
-  const identity = { provider: 'orca', clientMessageId: 'thread-goal:rollback' }
-  await journal.appendClaimingAttachments(identity, { ...file.body, sentAs: 'goal' }, { fence: 1 })
+  const identity: AgentJournalItemIdentity = {
+    provider: 'orca',
+    clientMessageId: 'thread-goal:rollback'
+  }
+  await journal.appendClaimingAttachments(
+    identity,
+    { ...file.body, sentAs: 'goal' },
+    { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+  )
   const database = openTestJournalHostDatabase(root ?? '')
   const transaction = database.transaction.bind(database)
   const spy = vi.spyOn(database, 'transaction')
@@ -575,10 +603,17 @@ it('keeps inverse and SQL synchronized across failed COMMIT and failed post-COMM
   ).toHaveLength(0)
   expect(journal.snapshot().items).toHaveLength(0)
   // Once an ordinary row commits, fallible downstream publication cannot restore delete permission.
-  await journal.appendClaimingAttachments(identity, { ...file.body, sentAs: 'goal' }, { fence: 1 })
+  await journal.appendClaimingAttachments(
+    identity,
+    { ...file.body, sentAs: 'goal' },
+    { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+  )
   failPublication = true
   await expect(
-    journal.appendItem({ provider: 'orca', clientMessageId: 'accepted' }, file.body, { fence: 1 })
+    journal.appendItem({ provider: 'orca', clientMessageId: 'accepted' }, file.body, {
+      fence: 1,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+    })
   ).rejects.toThrow('publication failed')
   failPublication = false
   await journal.withdrawGoalObjective(identity, { fence: 1 })
@@ -597,12 +632,16 @@ async function appendDurableAttachmentInput(
 ): Promise<unknown> {
   return kind === 'step'
     ? journal.appendSteps([
-        { kind: 'item', resolve: () => ({ identity, body }), options: { fence: 1 } }
+        {
+          kind: 'item',
+          resolve: () => ({ identity, body }),
+          options: { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+        }
       ])
     : journal.appendLifecycleBatch({
         settlementId,
         fence: 1,
-        mutations: [{ kind: 'item', identity, body }]
+        mutations: [{ kind: 'item', identity, body, turnScope: AGENT_JOURNAL_THREAD_SCOPE }]
       })
 }
 
@@ -672,7 +711,10 @@ it.each(['step', 'batch'] as const)(
         clientMessageId: `thread-goal:${phase}`
       }
       const body = { ...file.body, sentAs: 'goal' as const }
-      await journal.appendClaimingAttachments(identity, body, { fence: 1 })
+      await journal.appendClaimingAttachments(identity, body, {
+        fence: 1,
+        turnScope: AGENT_JOURNAL_THREAD_SCOPE
+      })
       const other: AgentJournalItemIdentity = {
         provider: 'orca',
         clientMessageId: `independent:${phase}`
