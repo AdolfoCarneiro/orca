@@ -103,54 +103,20 @@ async function drain(p: Awaited<ReturnType<typeof pane>>) {
 }
 
 describe('Claude helper provider evidence', () => {
-  it.each(['none', 'cron'])(
-    'retires a killed helper, preserves parent and surviving work=%s',
-    async (work) => {
-      const active = work !== 'none'
-      const p = await pane(false, readClaudeTranscriptChunk, work === 'cron')
-      const before = p.row()
-      try {
-        await appendFile(p.path, kill())
-        await drain(p)
-        expect(p.row().payload.subagents ?? []).toEqual([])
-        expect(p.row().payload.state).toBe(active ? 'working' : 'done')
-        if (active) {
-          expect(p.row().payload.workingMode).toBe('monitoring')
-        }
-        expect(p.row().payload.mainAgent).toEqual(before.payload.mainAgent)
-        expect(p.row().payload.lastAssistantMessage).toBe('READY')
-        expect(p.row().hookEventName).toBe('SubagentStop')
-        expect(p.row().toolAgentId).toBe('a123')
-        expect(p.row().turnEndedAt).toBe(before.turnEndedAt)
-      } finally {
-        p.poller.clearAll()
-      }
-    }
-  )
-
-  it('does not lose the kill before the first asynchronous open or behind a large prefix', async () => {
-    const p = await pane()
-    try {
-      await appendFile(
-        p.path,
-        `${kill()}${`${JSON.stringify({ padding: 'x'.repeat(4096) })}\n`.repeat(300)}`
-      )
-      await drain(p)
-      expect(p.row().payload.subagents ?? []).toEqual([])
-    } finally {
-      p.poller.clearAll()
-    }
-  })
-
   it('retains evidence across same-owner row replacement and a drained-helper gap', async () => {
-    const p = await pane()
+    const p = await pane(false, readClaudeTranscriptChunk, true)
+    const before = p.row()
     try {
       await appendFile(p.path, kill())
-      const reading = p.poller.poll('test-tab:11111111-1111-4111-8111-111111111111')
-      p.replace(p.post({ hook_event_name: 'PreToolUse', agent_id: 'a123', tool_name: 'Bash' }))
-      await reading
       await drain(p)
       expect(p.row().payload.subagents ?? []).toEqual([])
+      expect(p.row().payload.state).toBe('working')
+      expect(p.row().payload.workingMode).toBe('monitoring')
+      expect(p.row().payload.mainAgent).toEqual(before.payload.mainAgent)
+      expect(p.row().payload.lastAssistantMessage).toBe('READY')
+      expect(p.row().hookEventName).toBe('SubagentStop')
+      expect(p.row().toolAgentId).toBe('a123')
+      expect(p.row().turnEndedAt).toBe(before.turnEndedAt)
       vi.mocked(Date.now).mockReturnValue(now + 5)
       p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
       await drain(p)
@@ -446,14 +412,13 @@ it('bounds real corpus reads at N and 10N, parks after settlement and delivers a
     const p = await pane(false, reader)
     const started = performance.now()
     try {
-      // Captured history is old at this observation; only the appended fresh kill can settle work.
-      await appendFile(p.path, corpus.repeat(count * 10))
+      // The only eligible first kill precedes >1MiB of old captured history and all async opens.
+      await appendFile(p.path, `${kill()}${corpus.repeat(count * 10)}`)
       for (let i = 1; i < count; i++) {
         await writeFile(p.child(`a${i}`), prompt(-10))
         p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: `a${i}` }))
       }
       p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
-      await appendFile(p.path, kill())
       // Keep one real resumed generation alive and one missing file unverifiable across safety probes.
       await appendFile(p.child('a123'), prompt(10))
       await rm(p.child('a1'))

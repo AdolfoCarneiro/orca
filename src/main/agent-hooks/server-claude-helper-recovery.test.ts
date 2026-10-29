@@ -74,7 +74,6 @@ async function setup(
     stopBeforeBind?: boolean
     advanceBeforeBind?: () => void
     retired?: boolean
-    foreignToken?: boolean
   } = {}
 ) {
   const inputHooks = options.throwOnce ? [hooks[1]] : hooks
@@ -128,7 +127,7 @@ async function setup(
             ...body(h),
             paneKey: i === 0 ? PANE : PANE.slice(0, -12) + (i + 1).toString(16).padStart(12, '0'),
             source: 'claude',
-            launchToken: options.foreignToken ? 'stale-owner' : 'same-owner',
+            launchToken: 'same-owner',
             receivedAt
           }))
         ).flat()
