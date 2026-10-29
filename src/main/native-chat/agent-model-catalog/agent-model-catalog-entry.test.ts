@@ -40,11 +40,12 @@ describe('the effort menu of a model whose configured effort one listing lacks',
   })
 })
 
-const unknownChat = (at: number): AgentModelCatalogListing => ({
-  ...listing('live-session', at, []),
-  models: [
-    { id: 'openai/gpt-6', label: 'GPT-6', isDefault: false, efforts: [], effortsKnown: false }
-  ]
+const unknownChat = (
+  at: number,
+  efforts: ReturnType<typeof menu> = []
+): AgentModelCatalogListing => ({
+  ...listing('live-session', at, efforts),
+  models: [{ id: 'openai/gpt-6', label: 'GPT-6', isDefault: false, efforts, effortsKnown: false }]
 })
 
 describe('a model whose newer chat listing does not know its efforts', () => {
@@ -60,5 +61,41 @@ describe('a model whose newer chat listing does not know its efforts', () => {
 
   it('stays unknown when no listing knows its menu', () => {
     expect(model(unknownChat(1), unknownChat(2))).toMatchObject({ effortsKnown: false })
+  })
+
+  it.each(['probe', 'live-session'] as const)(
+    'keeps known %s menus, including empty, over suggestions in either freshness order',
+    (origin) => {
+      for (const efforts of [[], menu('low', 'high')]) {
+        for (const at of [1, 3]) {
+          const known = listing(origin, at, efforts)
+          const suggestions = {
+            ...unknownChat(2, menu('off', 'auto', 'xhigh')),
+            origin: origin === 'probe' ? ('live-session' as const) : ('probe' as const)
+          }
+          const merged = model(
+            origin === 'probe' ? known : suggestions,
+            origin === 'probe' ? suggestions : known
+          )
+          expect(merged?.efforts).toEqual(efforts)
+          expect(merged).not.toHaveProperty('effortsKnown')
+          expect(merged).not.toHaveProperty('defaultEffort')
+        }
+      }
+    }
+  )
+
+  it('keeps native suggestions unknown without a known model menu', () => {
+    const older = unknownChat(1, menu('low', 'high'))
+    const newer = unknownChat(2, menu('off', 'auto'))
+    for (const discovered of [null, { ...older, origin: 'probe' as const }]) {
+      const merged = agentModelCatalogEntry('omp', 'fp', discovered, newer, null)?.models[0]
+      expect(merged).toMatchObject({ efforts: menu('off', 'auto'), effortsKnown: false })
+      expect(merged).not.toHaveProperty('defaultEffort')
+    }
+    expect(model({ ...older, origin: 'probe' }, unknownChat(2))).toMatchObject({
+      efforts: menu('low', 'high'),
+      effortsKnown: false
+    })
   })
 })

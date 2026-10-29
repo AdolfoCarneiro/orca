@@ -4,9 +4,17 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OMP_SESSION_OPTION_CATALOG } from '../../../../shared/agent-session-option-catalog-omp'
+import { AcpStructuredOptions } from '../../../../main/acp/acp-structured-options'
+import { OMP_ACP_DIALECT } from '../../../../main/acp/acp-dialects/omp-dialect'
+import { NewSessionResponseSchema } from '../../../../main/acp/generated/acp-protocol.generated'
+import recordedOmpOptions from '../../../../main/acp/fixtures/omp-v17-windows-new-no-model.json'
+import { structuredAgentSessionOptionView } from '../../../../shared/structured-agent-session-option-view'
 import {
+  applyStructuredAgentSessionModelCatalog,
   applyStructuredAgentSessionOptions,
+  canSetStructuredAgentSessionOption,
   createStructuredAgentSessionOptionState,
+  structuredAgentSessionOptionPicks,
   structuredAgentSessionOptionSnapshot
 } from '../../../../shared/structured-agent-session-options'
 import type { SessionOptionDescriptor } from '../../../../shared/native-chat/input/native-chat-session-options'
@@ -560,6 +568,73 @@ describe('NativeChatSessionOptionPickers', () => {
     expect(screen.queryByText('Not reported')).toBeNull()
     expect(screen.queryByText('Default')).toBeNull()
   })
+
+  it.each(['new', 'loaded'] as const)(
+    'offers recorded OMP thinking choices for a non-running model in a %s chat without picking a default',
+    async (origin) => {
+      const options = new AcpStructuredOptions(OMP_ACP_DIALECT)
+      options.adoptSession(
+        {
+          ...NewSessionResponseSchema.parse(recordedOmpOptions),
+          models: {
+            currentModelId: 'running',
+            availableModels: [
+              { modelId: 'running', name: 'Running' },
+              { modelId: 'target', name: 'Target' }
+            ]
+          }
+        },
+        origin
+      )
+      const projected = options.read()
+      expect(projected.models[1]).toMatchObject({ effortsKnown: false })
+      expect(projected.models[1]).not.toHaveProperty('defaultEffort')
+      const state = applyStructuredAgentSessionModelCatalog(
+        createStructuredAgentSessionOptionState('omp'),
+        OMP_SESSION_OPTION_CATALOG,
+        { origin: 'probe', fetchedAt: 1, models: projected.models },
+        { newLaunch: origin === 'new' }
+      )
+      const view = structuredAgentSessionOptionView(state, undefined, { model: 'target' })
+      const snapshot = structuredAgentSessionOptionSnapshot(view)
+      expect(snapshot.find((entry) => entry.id === 'effort')).toMatchObject({
+        valueSource: 'unknown',
+        settable: true,
+        kind: {
+          type: 'select',
+          choices: [
+            { value: 'off', label: 'Off' },
+            expect.objectContaining({ value: 'auto', label: 'Auto' })
+          ]
+        }
+      })
+      expect(snapshot.find((entry) => entry.id === 'effort')?.kind).not.toHaveProperty(
+        'currentValue'
+      )
+      expect(view.record.values.effort).toBeUndefined()
+      expect(structuredAgentSessionOptionPicks(view, { model: 'target' })).toEqual([
+        { modelId: 'target', optionId: 'model', value: 'target' }
+      ])
+      const remembered = structuredAgentSessionOptionView(state, undefined, {
+        model: 'target',
+        effort: 'high'
+      })
+      expect(canSetStructuredAgentSessionOption(remembered, 'effort', 'high')).toBe(true)
+
+      const setOption = vi.fn().mockResolvedValue({ snapshot: [] })
+      render(
+        <NativeChatSessionOptionPickers
+          surface={{ ...surface, setOption }}
+          snapshot={snapshot}
+          isWorking={false}
+        />
+      )
+      fireEvent.click(pill('Model Target'))
+      expect(setOption).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('radio', { name: 'Auto' }))
+      await waitFor(() => expect(setOption).toHaveBeenCalledExactlyOnceWith('effort', 'auto'))
+    }
+  )
 
   it('makes the effort levels one tab stop, moves between them with the arrow keys, and sends the one picked', async () => {
     const setOption = vi.fn().mockResolvedValue({ snapshot: [] })

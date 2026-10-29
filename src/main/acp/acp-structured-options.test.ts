@@ -119,7 +119,19 @@ describe('ACP session options', () => {
       const { models, current } = options.read()
       // Current values supply an effort menu, never a catalog default.
       expect(models).toEqual([
-        { id: 'model-a', label: 'Model A', isDefault: false, efforts: [], effortsKnown: false },
+        {
+          id: 'model-a',
+          label: 'Model A',
+          isDefault: false,
+          efforts:
+            dialect === OMP_ACP_DIALECT
+              ? [
+                  { value: 'low', label: 'Low' },
+                  { value: 'high', label: 'High' }
+                ]
+              : [],
+          effortsKnown: false
+        },
         {
           id: 'model-b',
           label: 'Model B',
