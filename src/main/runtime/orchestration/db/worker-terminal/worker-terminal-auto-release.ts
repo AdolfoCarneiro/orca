@@ -120,7 +120,7 @@ export function armFederatedHomeAutoRelease(
   }
 }
 
-/** A retain, an explicit release or a finished attempt ends the home deadline for good. */
+/** A retain, an explicit release or the host's answer to an attempt ends the home deadline for good. */
 export function endFederatedHomeAutoRelease(this: OrchestrationDb, dispatchId: string): void {
   this.db
     .prepare(
@@ -131,6 +131,7 @@ export function endFederatedHomeAutoRelease(this: OrchestrationDb, dispatchId: s
     .run(dispatchId)
 }
 
+/** Claiming postpones the deadline instead of hiding it, so an attempt cut short by a crash or failure runs again. */
 export function claimDueFederatedHomeAutoReleases(this: OrchestrationDb, nowMs: number): string[] {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the SELECT names exactly this one column.
   const due = this.db
@@ -141,26 +142,27 @@ export function claimDueFederatedHomeAutoReleases(this: OrchestrationDb, nowMs: 
     .all(toSqliteUtcTimestamp(nowMs)) as { dispatch_id: string }[]
   const claim = this.db.prepare(
     `UPDATE federated_dispatches
-        SET home_auto_release_at = NULL, home_auto_release_state = 'releasing',
-            updated_at = datetime('now')
-      WHERE dispatch_id = ? AND home_auto_release_state = 'armed'`
+        SET home_auto_release_at = ?, updated_at = datetime('now')
+      WHERE dispatch_id = ? AND home_auto_release_state = 'armed' AND home_auto_release_at <= ?`
   )
-  return due.flatMap(({ dispatch_id }) => (claim.run(dispatch_id).changes > 0 ? [dispatch_id] : []))
+  const retryAt = toSqliteUtcTimestamp(nowMs + WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS)
+  return due.flatMap(({ dispatch_id }) =>
+    claim.run(retryAt, dispatch_id, toSqliteUtcTimestamp(nowMs)).changes > 0 ? [dispatch_id] : []
+  )
 }
 
-/** An unreachable host retries later, unless a retain or explicit release ended the deadline meanwhile. */
-export function retryFederatedHomeAutoRelease(
+export function isFederatedHomeAutoReleaseArmed(
   this: OrchestrationDb,
-  dispatchId: string,
-  nowMs = Date.now()
-): void {
-  this.db
-    .prepare(
-      `UPDATE federated_dispatches
-          SET home_auto_release_at = ?, home_auto_release_state = 'armed', updated_at = datetime('now')
-        WHERE dispatch_id = ? AND home_auto_release_state = 'releasing'`
-    )
-    .run(toSqliteUtcTimestamp(nowMs + WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS), dispatchId)
+  dispatchId: string
+): boolean {
+  return (
+    this.db
+      .prepare(
+        `SELECT 1 FROM federated_dispatches
+          WHERE dispatch_id = ? AND home_auto_release_state = 'armed'`
+      )
+      .get(dispatchId) !== undefined
+  )
 }
 
 export function nextWorkerTerminalAutoReleaseAtMs(this: OrchestrationDb): number | null {
@@ -195,7 +197,7 @@ export type WorkerTerminalAutoReleaseMethods = {
   armFederatedHomeAutoRelease: typeof armFederatedHomeAutoRelease
   endFederatedHomeAutoRelease: typeof endFederatedHomeAutoRelease
   claimDueFederatedHomeAutoReleases: typeof claimDueFederatedHomeAutoReleases
-  retryFederatedHomeAutoRelease: typeof retryFederatedHomeAutoRelease
+  isFederatedHomeAutoReleaseArmed: typeof isFederatedHomeAutoReleaseArmed
 }
 
 export function attachWorkerTerminalAutoRelease(ctor: { prototype: object }): void {
@@ -208,6 +210,6 @@ export function attachWorkerTerminalAutoRelease(ctor: { prototype: object }): vo
     armFederatedHomeAutoRelease,
     endFederatedHomeAutoRelease,
     claimDueFederatedHomeAutoReleases,
-    retryFederatedHomeAutoRelease
+    isFederatedHomeAutoReleaseArmed
   })
 }

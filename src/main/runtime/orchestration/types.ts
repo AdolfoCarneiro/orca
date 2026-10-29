@@ -197,7 +197,7 @@ export type FederatedDispatchRow = {
 }
 
 /** The home's own deadline for a host that cannot release settled workers by itself. */
-export type FederatedHomeAutoReleaseState = 'armed' | 'releasing' | 'ended'
+export type FederatedHomeAutoReleaseState = 'armed' | 'ended'
 
 export type RemoteDispatchAttachmentRow = {
   home_run_id: string

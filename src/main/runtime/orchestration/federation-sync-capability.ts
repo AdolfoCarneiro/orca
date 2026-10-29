@@ -72,15 +72,18 @@ export async function armHomeAutoReleaseForOlderHost(
   ) {
     return
   }
+  // An unanswered probe still arms: settlement is never revisited, and the deadline re-checks release support.
   const [hostReleases, releasable] = await Promise.all(
     [
       ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY,
       ORCHESTRATION_FEDERATION_RELEASE_ARCHIVE_RUNTIME_CAPABILITY
     ].map((capability) =>
-      resolveFederatedHostCapability(runtime, federated, pairingRevision, capability)
+      resolveFederatedHostCapability(runtime, federated, pairingRevision, capability).catch(
+        () => undefined
+      )
     )
   )
-  if (!hostReleases.supported && releasable.supported) {
+  if (!hostReleases?.supported && releasable?.supported !== false) {
     db.armFederatedHomeAutoRelease(dispatchId)
   }
 }

@@ -1,9 +1,8 @@
-import { ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY } from '../../../../../../shared/protocol-version'
 import type { WorkerTerminalReleaseRuntime } from '../../../../orchestration/worker-terminal-release-runtime'
 import { resolvePinnedFederatedServer } from '../worker/worker-observation'
-import { releaseFederatedWorker, resolveExecutionHostCapability } from './federated-worker-release'
+import { releaseFederatedWorker } from './federated-worker-release'
 
-/** The home's deadline for a host that predates automatic release; the host's retain and takeover still refuse it. */
+/** The home's deadline for a host that did not arm its own; the host's takeover and ownership checks still refuse it. */
 export async function releaseFederatedWorkerAtHomeDeadline(
   runtime: WorkerTerminalReleaseRuntime,
   dispatchId: string
@@ -13,29 +12,16 @@ export async function releaseFederatedWorkerAtHomeDeadline(
   if (!federated) {
     return
   }
-  try {
-    const args = {
-      runtime,
-      server: resolvePinnedFederatedServer(runtime, federated),
-      federated,
-      dispatchId,
-      requestId: `home_auto_release_${dispatchId}_${Date.now()}`
-    }
-    // A host upgraded since settlement owns its own deadline.
-    const hostReleases = await resolveExecutionHostCapability(
-      args,
-      ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY
-    )
-    if (
-      !hostReleases.supported &&
-      (await releaseFederatedWorker(args)).state === 'release_unknown'
-    ) {
-      db.retryFederatedHomeAutoRelease(dispatchId)
-      return
-    }
-  } catch (error) {
-    db.retryFederatedHomeAutoRelease(dispatchId)
-    throw error
+  // A thrown or unknown attempt keeps the deadline the claim postponed, so it runs again.
+  const receipt = await releaseFederatedWorker({
+    runtime,
+    server: resolvePinnedFederatedServer(runtime, federated),
+    federated,
+    dispatchId,
+    requestId: `home_auto_release_${dispatchId}_${Date.now()}`,
+    admit: () => db.isFederatedHomeAutoReleaseArmed(dispatchId)
+  })
+  if (receipt.state !== 'release_unknown') {
+    db.endFederatedHomeAutoRelease(dispatchId)
   }
-  db.endFederatedHomeAutoRelease(dispatchId)
 }

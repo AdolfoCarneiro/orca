@@ -4,13 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  ORCHESTRATION_CONTRACT_VERSION,
-  ORCHESTRATION_FEDERATION_FLEET_SNAPSHOT_RUNTIME_CAPABILITY,
-  ORCHESTRATION_FEDERATION_RELEASE_ARCHIVE_RUNTIME_CAPABILITY,
-  ORCHESTRATION_FEDERATION_STRUCTURED_READ_RUNTIME_CAPABILITY,
-  ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY
-} from '../../../../../../shared/protocol-version'
+import { ORCHESTRATION_CONTRACT_VERSION } from '../../../../../../shared/protocol-version'
 import { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationDb } from '../../../../orchestration/db'
 import type { OrchestrationEnvironmentTransport } from '../../../../orchestration/environment-transport'
@@ -19,6 +13,7 @@ import { RpcDispatcher } from '../../../dispatcher'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
 import { registerFederatedReleaseRecoveryScenarios } from './federation-release-recovery-scenarios.test-support'
 import { registerFederatedAutoReleaseScenarios } from './federation-auto-release-scenarios.test-support'
+import { olderPeerStatusResponse } from './federation-peer-capabilities.test-support'
 
 describe('orchestration federated worker output', () => {
   const databases: OrchestrationDb[] = []
@@ -70,30 +65,11 @@ describe('orchestration federated worker output', () => {
       call: async (_selector, method, params, _timeoutMs, envelope) => {
         remoteCalls.push(method)
         if (method === 'status.get') {
-          const status = workerRuntime.getStatus()
-          return {
-            id: 'status',
-            ok: true,
-            result: {
-              ...status,
-              capabilities: status.capabilities?.filter(
-                (capability) =>
-                  !(
-                    (!workerAdvertisesNewCapabilities &&
-                      [
-                        ORCHESTRATION_FEDERATION_STRUCTURED_READ_RUNTIME_CAPABILITY,
-                        ORCHESTRATION_FEDERATION_FLEET_SNAPSHOT_RUNTIME_CAPABILITY,
-                        ORCHESTRATION_FEDERATION_FLEET_SNAPSHOT_RUNTIME_CAPABILITY
-                      ].includes(capability as never)) ||
-                    ((!workerAdvertisesNewCapabilities || !workerAdvertisesDurableRelease) &&
-                      capability === ORCHESTRATION_FEDERATION_RELEASE_ARCHIVE_RUNTIME_CAPABILITY) ||
-                    (!workerAdvertisesAutoRelease &&
-                      capability === ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY)
-                  )
-              )
-            },
-            _meta: { runtimeId: workerRuntime.getRuntimeId() }
-          }
+          return olderPeerStatusResponse(workerRuntime, {
+            newCapabilities: workerAdvertisesNewCapabilities,
+            durableRelease: workerAdvertisesDurableRelease,
+            autoRelease: workerAdvertisesAutoRelease
+          })
         }
         if (method === 'orchestration.federationReadOutput' && !workerSupportsStructuredRead) {
           return {

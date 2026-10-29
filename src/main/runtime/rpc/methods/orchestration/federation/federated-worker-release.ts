@@ -108,7 +108,10 @@ export async function retainFederatedWorker(
 }
 
 export async function releaseFederatedWorker(
-  args: FederatedWorkerMutationArgs
+  args: FederatedWorkerMutationArgs & {
+    // Checked with no await before the send, so a retain made while capabilities resolved still wins.
+    admit?: () => boolean
+  }
 ): Promise<WorkerReleaseReceipt & { remoteOutput?: unknown }> {
   const cache = getOrchestrationPeerCapabilityCache(args.runtime)
   // Require advertised durable pre-close archives; method_not_found alone cannot promise that safety.
@@ -118,6 +121,15 @@ export async function releaseFederatedWorker(
   )
   if (!capability.supported) {
     return unsupported(args.dispatchId)
+  }
+  if (args.admit && !args.admit()) {
+    return {
+      dispatchId: args.dispatchId,
+      state: 'retained',
+      reason: 'user_requested',
+      processAction: 'none',
+      archive: null
+    }
   }
   let remote: RemoteReleaseReceipt
   try {
