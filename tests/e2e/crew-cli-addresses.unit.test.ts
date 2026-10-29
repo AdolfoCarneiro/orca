@@ -342,7 +342,7 @@ it('keeps crew as the only observer for title, settings and mirrored-name source
     for (const listener of settingsListeners) {
       listener(
         { tabAutoGenerateTitle: false },
-        { ...getDefaultSettings('/tmp'), ...store.getSettings() }
+        { ...getDefaultSettings('/tmp'), tabAutoGenerateTitle: false }
       )
     }
     session = {

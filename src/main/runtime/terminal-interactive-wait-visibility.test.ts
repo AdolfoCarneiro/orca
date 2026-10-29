@@ -555,13 +555,15 @@ describe('terminal wait ownership', () => {
     const deliver = vi.fn()
     const runtime = new OrcaRuntimeService()
     const key = runtime['getLeafKey'](leaf.tabId, leaf.leafId)
-    runtime['leaves'].set(key, leaf)
+    runtime['terminalIdentity'].replaceLeaves(new Map([...runtime['leaves'], [key, leaf]]))
+    leaf = runtime['leaves'].get(key)!
     runtime['deliverPendingMessagesForLeaf'] = deliver
     expect(runtime['checkDeliverySettledAndArmRecheck'](leaf)).toBe(false)
     expect(runtime['checkDeliverySettledAndArmRecheck'](leaf)).toBe(false)
     expect(vi.getTimerCount()).toBe(1)
     leaf = makeTuiIdleLeaf({ lastOutputAt: Date.now(), lastAgentStatus: 'idle' })
-    runtime['leaves'].set(key, leaf)
+    runtime['terminalIdentity'].replaceLeaves(new Map([...runtime['leaves'], [key, leaf]]))
+    leaf = runtime['leaves'].get(key)!
     await vi.advanceTimersByTimeAsync(3050)
     expect(deliver).toHaveBeenCalledOnce()
     expect(deliver).toHaveBeenCalledWith(leaf)
@@ -573,10 +575,10 @@ describe('terminal wait ownership', () => {
     const first = new OrcaRuntimeService()
     const second = new OrcaRuntimeService()
     const key = first['getLeafKey'](leaf.tabId, leaf.leafId)
-    first['leaves'].set(key, leaf)
-    second['leaves'].set(key, leaf)
-    first['checkDeliverySettledAndArmRecheck'](leaf)
-    second['checkDeliverySettledAndArmRecheck'](leaf)
+    first['terminalIdentity'].replaceLeaves(new Map([...first['leaves'], [key, leaf]]))
+    second['terminalIdentity'].replaceLeaves(new Map([...second['leaves'], [key, leaf]]))
+    first['checkDeliverySettledAndArmRecheck'](first['leaves'].get(key)!)
+    second['checkDeliverySettledAndArmRecheck'](second['leaves'].get(key)!)
     expect(vi.getTimerCount()).toBe(2)
     first['clearDeliveryRecheck'](key)
     expect(vi.getTimerCount()).toBe(1)
@@ -615,7 +617,7 @@ describe('terminal wait ownership', () => {
       cancelIdlePoll: null,
       abortCleanup: null
     }
-    runtime['handleByPtyId'].set('pty-1', waiter.handle)
+    runtime['terminalIdentity'].bindPty('pty-1', waiter.handle)
     runtime['terminalWaiters'].add(waiter)
     const verdict = vi.fn<OrcaRuntimeService['evaluateTuiIdleForPty']>(() => ({
       kind: 'ready-strong'
