@@ -12,7 +12,7 @@ export type WslChatHost = {
 }
 
 export async function writeChatFixtureFile(
-  host: WslChatHost,
+  host: Pick<WslChatHost, 'guest'>,
   path: string,
   content: string
 ): Promise<void> {
@@ -44,10 +44,15 @@ export type WslScriptedProviderInstall = WslGuestCli & {
   ackPath: string
 }
 
+/** Where the fixture keeps its scripts, scenario and reports in the guest's home. */
+export function wslChatFixtureRoot(home: string): string {
+  return `${home}/wsl chat fixture`
+}
+
 /** Install each wire fixture as its agent's command on the guest's login PATH, run by the guest's packaged runtime. */
 export async function installWslChatFixture(lane: WslChatHost) {
   const home = (await lane.guest('printf %s "$HOME"')).trim()
-  const root = `${home}/wsl chat fixture`
+  const root = wslChatFixtureRoot(home)
   const dirs = [
     `${root}/codex-home`,
     `${root}/grok-home`,
@@ -164,7 +169,7 @@ const PROVIDER_REPORT_TIMEOUT_MS = 30_000
 
 /** Scripted providers rewrite their report in place after each act, so one read can see a torn file or a stale one. */
 export async function waitForProviderReport<T>(
-  host: WslChatHost,
+  host: Pick<WslChatHost, 'guest'>,
   path: string,
   schema: z.ZodType<T>,
   settled: (report: T) => boolean,

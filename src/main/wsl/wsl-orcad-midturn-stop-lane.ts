@@ -1,0 +1,249 @@
+// verify-7 on real WSL: a distro stopped mid-reply stays down under the chat's polls, the chat's
+// Start boots it through the host service, and Continue finishes the cut turn.
+import { randomUUID } from 'node:crypto'
+import { expect, vi } from 'vitest'
+import { z } from 'zod'
+import { AGENT_SESSION_CONTINUE_INTERRUPTED_RUNTIME_CAPABILITY } from '../../shared/agent-session-continue-interrupted-capability'
+import type { AgentJournalRenderItem } from '../../shared/agent-session-journal-types'
+import { readAgentJournalTurn } from '../../shared/agent-session-turn-record'
+import type { AgentSessionHistoryResult } from '../../shared/agent-session-wire'
+import { latestNativeChatOrcaStopCut } from '../../shared/native-chat/native-chat-orca-stop-cut'
+import { quotePosixShell } from '../../shared/shell-argument-quoting'
+import type { WslHostStatus } from '../../shared/wsl-host-types'
+import { claudeSessionIdForOrcaSession } from '../claude/structured/claude-structured-session-id'
+import { hasOrcadTemplate } from '../orcad/orcad-artifact-materializer'
+import { packagedClaudeChatScenario } from '../orcad/orcad-structured-chat-scenario'
+import { wslDistroHolderKey } from './wsl-distro-holder-record'
+import { wslHostStoppedMessage } from './wsl-host-add-admission'
+import { wslHostConnectOptions } from './wsl-host-connect-request'
+import { createWslHostConnector } from './wsl-host-connector'
+import type { WslHostConnector } from './wsl-host-connector-contract'
+import { WslHostService } from './wsl-host-service'
+import { assistantText } from './wsl-orcad-chat-assistant-text'
+import { envelope } from './wsl-orcad-chat-envelope'
+import {
+  WslChatProviderReport,
+  waitForProviderReport,
+  writeChatFixtureFile,
+  type WslChatHost
+} from './wsl-orcad-chat-provider-fixture'
+
+/** Polls the running list (and the chat's runtime call) this long after the terminate returns. */
+const STAYS_STOPPED_MS = 30_000
+const POLL_MS = 5_000
+
+export type LaneWslHost = {
+  service: WslHostService
+  connector: WslHostConnector
+  /** Everything the service published, as the window's status listener receives it. */
+  published: WslHostStatus[]
+}
+
+/** The production service and connector, wired as wsl-host-handlers wires them minus Electron. */
+export function createLaneWslHost(userDataPath: string): LaneWslHost {
+  const published: WslHostStatus[] = []
+  const service = new WslHostService({
+    userDataPath: () => userDataPath,
+    isEnabled: () => true,
+    hasServerFiles: hasOrcadTemplate,
+    publish: (status) => {
+      published.push(status)
+      console.log(`[lane] host ${JSON.stringify(status)}`)
+    },
+    pairingChanged: () => {},
+    ready: () => {},
+    removed: () => {}
+  })
+  const refuse = (): Promise<never> => Promise.reject(new Error('The lane never removes a host'))
+  const connector = createWslHostConnector({
+    userDataPath,
+    onChange: service.handleConnectionChange.bind(service),
+    hasUserVisibleWork: (distro) => service.hasUserVisibleWork(distro),
+    isKnownDistro: (distro) => service.isKnownDistro(distro),
+    runtime: { call: refuse, census: refuse }
+  })
+  service.attach(connector)
+  return { service, connector, published }
+}
+
+export type MidTurnStopLane = Pick<WslChatHost, 'rpc' | 'guest'> & {
+  distro: string
+  environmentId: string
+  host: LaneWslHost
+  terminate(): Promise<void>
+  /** Holder keys of the distros `wsl --list --running` confirms. */
+  runningDistros(): Promise<string[]>
+}
+
+/** The provider's partial reply waits for an acknowledgement long enough to stop the distro under it. */
+function heldReplyScenario(providerId: string, ackPath: string) {
+  const scenario = packagedClaudeChatScenario(providerId, ackPath)
+  return {
+    ...scenario,
+    steps: scenario.steps.map((step) =>
+      step.awaitFile ? { awaitFile: { ...step.awaitFile, timeoutMs: 120_000 } } : step
+    )
+  }
+}
+
+export async function proveWslMidTurnStopAndContinue(
+  lane: MidTurnStopLane,
+  fixture: { root: string; worktree: string; cwd: string }
+) {
+  const { distro, environmentId, host } = lane
+  const sessionId = randomUUID()
+  const providerId = claudeSessionIdForOrcaSession(sessionId)
+  const ackPath = `${fixture.root}/midturn-partial-observed`
+  // agentDefaultEnv points the guest Claude at these.
+  const scenarioPath = `${fixture.root}/scenario.json`
+  const reportPath = `${fixture.root}/report.json`
+  const items = async (): Promise<AgentJournalRenderItem[]> =>
+    (
+      await lane.rpc<AgentSessionHistoryResult>('agentSession.history', {
+        sessionId,
+        direction: 'tail',
+        limit: 100
+      })
+    ).page.items
+  await lane.guest(`rm -f ${quotePosixShell(ackPath)} ${quotePosixShell(reportPath)}`)
+  await writeChatFixtureFile(
+    lane,
+    scenarioPath,
+    JSON.stringify(heldReplyScenario(providerId, ackPath))
+  )
+  const fields = { worktree: fixture.worktree, agent: 'claude' }
+  const created = z.object({ ok: z.literal(true), value: z.object({ fence: z.number() }) }).parse(
+    await lane.rpc('agentSession.create', {
+      ...fields,
+      envelope: envelope(sessionId, 'agentSession.create', fields, null)
+    })
+  )
+  const body = {
+    kind: 'message',
+    role: 'user',
+    blocks: [{ type: 'text', text: 'Reply slowly; the distro stops under you.' }]
+  }
+  expect(
+    await lane.rpc('agentSession.send', {
+      body,
+      envelope: envelope(sessionId, 'agentSession.send', { body }, created.value.fence)
+    })
+  ).toMatchObject({ ok: true })
+  await vi.waitFor(
+    async () => {
+      const rows = await items()
+      expect(rows.map(assistantText)).toContain('Packaged server ')
+      expect(rows.some((row) => readAgentJournalTurn(row.body)?.state === 'running')).toBe(true)
+    },
+    { timeout: 30_000, interval: 250 }
+  )
+
+  // Mid-reply, the distro stops under the open turn while the chat stays on screen.
+  host.service.setVisibleWork([environmentId])
+  const since = host.published.length
+  let started = performance.now()
+  await lane.terminate()
+  const terminatedAt = performance.now()
+  const stoppedMessage = wslHostStoppedMessage(distro)
+  await vi.waitFor(
+    () =>
+      expect(host.published.slice(since)).toContainEqual(
+        expect.objectContaining({ environmentId, state: 'distro-stopped' })
+      ),
+    { timeout: 30_000, interval: 100 }
+  )
+  const stopShownMs = Math.round(performance.now() - started)
+  // Nothing boots it: not liveness, not the chat's own runtime calls, not a running-list poll.
+  let polls = 0
+  for (;;) {
+    expect(
+      await lane.runningDistros(),
+      `${distro} rebooted ${polls * POLL_MS} ms in`
+    ).not.toContain(wslDistroHolderKey(distro))
+    await expect(host.service.ensureForRuntimeCall(environmentId)).rejects.toThrow(stoppedMessage)
+    polls += 1
+    if (performance.now() - terminatedAt >= STAYS_STOPPED_MS) {
+      break
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_MS))
+  }
+  const shown = (state: WslHostStatus['state']) =>
+    expect(host.service.getStatuses()).toContainEqual(
+      expect.objectContaining({ environmentId, state })
+    )
+  shown('distro-stopped')
+
+  // The chat's Start: the renderer's wslHosts.connect for this environment.
+  started = performance.now()
+  await host.service.connect(
+    environmentId,
+    wslHostConnectOptions({ withdrawPendingRemoval: false })
+  )
+  const startMs = Math.round(performance.now() - started)
+  expect(await lane.runningDistros()).toContain(wslDistroHolderKey(distro))
+  await vi.waitFor(() => shown('ready'), { timeout: 30_000, interval: 100 })
+  const status = z
+    .object({ capabilities: z.array(z.string()).optional() })
+    .parse(await lane.rpc('status.get'))
+  expect(status.capabilities).toContain(AGENT_SESSION_CONTINUE_INTERRUPTED_RUNTIME_CAPABILITY)
+  // What NativeChatInterruptedContinue offers: the latest turn, cut by Orca's stop.
+  const cut = await vi.waitFor(
+    async () => {
+      const rows = await items()
+      const found = latestNativeChatOrcaStopCut(rows, [])
+      if (!found) {
+        throw new Error(`No Continue offered yet: ${JSON.stringify(rows.map((row) => row.body))}`)
+      }
+      return { ...found, before: rows.map((row) => row.itemId) }
+    },
+    { timeout: 60_000, interval: 500 }
+  )
+
+  await writeChatFixtureFile(
+    lane,
+    scenarioPath,
+    JSON.stringify(packagedClaudeChatScenario(providerId, ackPath))
+  )
+  await lane.guest(`touch ${quotePosixShell(ackPath)}`)
+  const continued = z.object({ outcome: z.string() }).parse(
+    await lane.rpc('agentSession.continueInterrupted', {
+      sessionId,
+      turnItemId: cut.turnItemId
+    })
+  )
+  expect(['continued', 'pending']).toContain(continued.outcome)
+  await vi.waitFor(
+    async () => {
+      const rows = await items()
+      expect(rows.map(assistantText)).toContain('Packaged server reply.')
+      expect(
+        rows.some(
+          (row) =>
+            row.body?.kind === 'turn' &&
+            row.body.state === 'completed' &&
+            row.body.outcome === 'success' &&
+            !cut.before.includes(row.itemId)
+        )
+      ).toBe(true)
+    },
+    { timeout: 60_000, interval: 500 }
+  )
+  const resumedArgv = new RegExp(`--resume(?:=| )${providerId}`)
+  const resumed = await waitForProviderReport(
+    lane,
+    reportPath,
+    WslChatProviderReport,
+    (written) => resumedArgv.test(written.argv.join(' ')) && written.userMessages.length > 0,
+    'the continued turn'
+  )
+  expect(resumed.cwd).toBe(fixture.cwd)
+  await lane.rpc('agentSession.close', { sessionId })
+  return {
+    sessionId,
+    stopShownMs,
+    stayedStoppedPolls: polls,
+    startMs,
+    cause: cut.cause,
+    continued: continued.outcome
+  }
+}
