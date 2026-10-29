@@ -3,6 +3,7 @@ export const COMPUTER_ERROR_CODES = {
   app_blocked: 'app_blocked',
   window_not_found: 'window_not_found',
   window_not_focused: 'window_not_focused',
+  background_unavailable: 'background_unavailable',
   window_stale: 'window_stale',
   provider_incompatible: 'provider_incompatible',
   unsupported_capability: 'unsupported_capability',
@@ -13,6 +14,7 @@ export const COMPUTER_ERROR_CODES = {
   value_not_settable: 'value_not_settable',
   invalid_argument: 'invalid_argument',
   action_timeout: 'action_timeout',
+  verification_failed: 'verification_failed',
   screenshot_failed: 'screenshot_failed',
   accessibility_error: 'accessibility_error'
 } as const
@@ -89,6 +91,8 @@ export type ComputerActionMetadata = {
   fallbackReason?: string | null
   targetWindowId?: number | null
   targetWindowIndex?: number | null
+  // Absent from providers that predate background input (Linux, Windows, older macOS helpers).
+  delivery?: 'background' | 'foreground'
   verification?: ComputerActionVerification
 }
 
@@ -109,6 +113,8 @@ export type ComputerActionVerification =
         | 'readback_unsupported'
         | 'window_changed'
         | 'value_mismatch'
+        // The accessibility call succeeded but the window and the app's windows looked the same about a second later.
+        | 'suspected_noop'
       expected?: string | null
       actualPreview?: string | null
     }
@@ -163,6 +169,10 @@ export type ComputerProviderCapabilities = {
       dialogs: boolean
       dock: boolean
       menubar: boolean
+    }
+    // Absent from providers that predate background input.
+    input?: {
+      background: boolean
     }
   }
 }
