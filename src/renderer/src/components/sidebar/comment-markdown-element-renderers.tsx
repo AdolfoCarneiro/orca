@@ -15,6 +15,7 @@ import {
 import { ExpandableMarkdownImage } from './MarkdownImageLightbox'
 import { MarkdownGitHubCallout } from '@/components/markdown-github-callout'
 import { readGitHubCalloutKind } from '@/lib/remark-github-callouts'
+import { openAppHttpLinkFromAnchor } from '@/lib/app-http-link-open'
 
 export type CommentMarkdownLinkClickHandler = (
   event: React.MouseEvent<HTMLElement>,
@@ -55,7 +56,11 @@ function handleMarkdownAnchorClick(
   ) {
     event.preventDefault()
   }
-  onLinkClick?.(event, href)
+  if (onLinkClick) {
+    onLinkClick(event, href)
+  } else {
+    openAppHttpLinkFromAnchor(event)
+  }
 }
 
 function handleMarkdownAnchorAuxClick(

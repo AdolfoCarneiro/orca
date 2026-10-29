@@ -20,6 +20,7 @@ import { hasRemoteProviderRuntime } from '@/lib/provider-runtime-context'
 import { preventOutsideDismissWhenDirty } from '@/lib/outside-dismiss-guard'
 import { bitbucketConnectErrorText } from '@/lib/bitbucket-connect-error-copy'
 import { translate } from '@/i18n/i18n'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 const API_TOKEN_DOCS_URL = 'https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/'
 
@@ -351,7 +352,7 @@ export function BitbucketCredentialsDialog({
               <button
                 type="button"
                 className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
-                onClick={() => window.api.shell.openUrl(API_TOKEN_DOCS_URL)}
+                onClick={() => openAppHttpLink(API_TOKEN_DOCS_URL)}
               >
                 <ExternalLink className="size-3" />
                 {translate(

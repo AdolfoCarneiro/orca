@@ -17,6 +17,7 @@ import { translate } from '@/i18n/i18n'
 import { hasGitHubBackedProject, type PreflightIssue } from './landing-preflight-issues'
 import { useLandingPreflightRuntime } from './landing-preflight-runtime'
 import { useLandingOrcaStarState, type LandingStarState } from './landing-github-star-state'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 type ShortcutItem = {
   id: string
@@ -61,7 +62,7 @@ function GitHubStarButton({
       return
     }
     if (state === 'web-fallback') {
-      await window.api.shell.openUrl(ORCA_GITHUB_URL)
+      openAppHttpLink(ORCA_GITHUB_URL)
       return
     }
     if (state !== 'not-starred') {
@@ -191,7 +192,7 @@ function PreflightBanner({
             <p className="text-xs leading-snug text-muted-foreground">{issue.description}</p>
             <button
               className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline cursor-pointer"
-              onClick={() => window.api.shell.openUrl(issue.fixUrl)}
+              onClick={() => openAppHttpLink(issue.fixUrl)}
             >
               {issue.fixLabel}
               <ExternalLink className="size-3" />

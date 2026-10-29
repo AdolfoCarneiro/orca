@@ -10,20 +10,16 @@ import {
 import { getDefaultSettings } from '../../../../../shared/constants'
 import type { CreateHostedReviewResult } from '../../../../../shared/hosted-review'
 import { getDefaultSourceControlAiSettings } from '../../../../../shared/source-control-ai-settings'
-import type * as HttpLinkRouting from '@/lib/http-link-routing'
 import { useChecksPanelCreateReview } from './use-checks-panel-create-review'
 
-const { openHttpLink } = vi.hoisted(() => ({ openHttpLink: vi.fn() }))
-vi.mock('@/lib/http-link-routing', async (importOriginal) => ({
-  ...(await importOriginal<typeof HttpLinkRouting>()),
-  openHttpLink
-}))
+const { openAppHttpLink } = vi.hoisted(() => ({ openAppHttpLink: vi.fn() }))
+vi.mock('@/lib/app-http-link-open', () => ({ openAppHttpLink }))
 
 type CreateInput = Parameters<typeof useChecksPanelCreateReview>[0]
 
 afterEach(() => {
   cleanup()
-  openHttpLink.mockClear()
+  openAppHttpLink.mockClear()
   useAppStore.setState({ activeWorktreeId: null, pullRequestGenerationRecords: {} })
 })
 
@@ -319,7 +315,7 @@ describe('useChecksPanelCreateReview provider flow', () => {
       expect(input.createHostedReview).toHaveBeenCalledTimes(1)
       expect(input.updateWorktreeMeta).toHaveBeenCalledWith('worktree-1', expect.anything())
       expect(input.setRightSidebarTab).toHaveBeenCalledTimes(reveals ? 1 : 0)
-      expect(openHttpLink).toHaveBeenCalledTimes(reveals ? 1 : 0)
+      expect(openAppHttpLink).toHaveBeenCalledTimes(reveals ? 1 : 0)
     }
   )
 
@@ -394,7 +390,7 @@ describe('useChecksPanelCreateReview provider flow', () => {
       expect(input.createPrInFlightRef.current).toBeNull()
       expect(input.fetchGitLabDetails).not.toHaveBeenCalled()
       expect(input.setRightSidebarTab).not.toHaveBeenCalled()
-      expect(openHttpLink).not.toHaveBeenCalled()
+      expect(openAppHttpLink).not.toHaveBeenCalled()
     }
   )
 
@@ -414,8 +410,9 @@ describe('useChecksPanelCreateReview provider flow', () => {
     await act(async () => result.current.handleCreatePullRequest(false))
 
     expect(input.setRightSidebarTab).toHaveBeenCalledWith('checks')
-    expect(openHttpLink).toHaveBeenCalledWith('https://github.com/orca/app/pull/42', {
-      worktreeId: 'worktree-1'
-    })
+    expect(openAppHttpLink).toHaveBeenCalledWith(
+      'https://github.com/orca/app/pull/42',
+      'worktree-1'
+    )
   })
 })

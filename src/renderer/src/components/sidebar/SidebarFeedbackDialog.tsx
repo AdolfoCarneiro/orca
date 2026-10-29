@@ -24,6 +24,7 @@ import { FEEDBACK_PAYLOAD_TOO_LARGE_STATUS } from '../../../../shared/feedback-i
 import { SidebarFeedbackImageAttachments } from './SidebarFeedbackImageAttachments'
 import { useSidebarFeedbackEnvironmentPrefill } from './use-sidebar-feedback-environment-prefill'
 import { useSidebarFeedbackImages } from './use-sidebar-feedback-images'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 const GITHUB_ISSUES_URL = 'https://github.com/stablyai/orca/issues/'
 const DISCORD_URL = 'https://discord.gg/fzjDKHxv8Q'
@@ -40,7 +41,7 @@ type SidebarFeedbackDialogProps = {
 }
 
 function openExternalUrl(url: string): void {
-  void window.api.shell.openUrl(url)
+  openAppHttpLink(url)
 }
 
 function getSubmitIdentity(viewer: GitHubViewer | null, anonymous: boolean): SubmitIdentity {

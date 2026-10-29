@@ -59,6 +59,7 @@
     "check:repo-host-read-ratchet": "node config/scripts/check-repo-host-read-ratchet.mjs",
     "check:workspace-record-read-ratchet": "node config/scripts/check-workspace-record-read-ratchet.mjs",
     "check:worktree-id-composer-ratchet": "node config/scripts/check-worktree-id-composer-ratchet.mjs",
+    "check:direct-link-open-ratchet": "node config/scripts/check-direct-link-open-ratchet.mjs",
     "check:e2e-typecheck-ratchet": "node config/scripts/check-e2e-typecheck-ratchet.mjs",
     "check:runtime-electron-ratchet": "node config/scripts/check-runtime-electron-ratchet.mjs",
     "check:focus-read-ratchet": "node config/scripts/check-focus-read-ratchet.mjs",

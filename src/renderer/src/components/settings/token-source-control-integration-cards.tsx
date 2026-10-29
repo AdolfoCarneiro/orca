@@ -4,6 +4,7 @@ import { IntegrationCardDetails, IntegrationCardShell } from './integration-card
 import { usePreflightCardStatuses } from './source-control-preflight-card-status'
 import { translate } from '@/i18n/i18n'
 import { tokenProviderStatusLabel } from './token-source-control-status'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 export function AzureDevOpsIntegrationCard(): React.JSX.Element {
   const { statuses, unavailable, refresh } = usePreflightCardStatuses('azureDevOps')
@@ -102,7 +103,7 @@ export function AzureDevOpsIntegrationCard(): React.JSX.Element {
               variant="outline"
               size="sm"
               onClick={() =>
-                window.api.shell.openUrl(
+                openAppHttpLink(
                   status === 'not-configured'
                     ? 'https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate'
                     : 'https://learn.microsoft.com/en-us/rest/api/azure/devops/git/pull-requests/get-pull-requests'
@@ -215,9 +216,7 @@ export function GiteaIntegrationCard(): React.JSX.Element {
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                window.api.shell.openUrl('https://docs.gitea.com/next/development/api-usage')
-              }
+              onClick={() => openAppHttpLink('https://docs.gitea.com/next/development/api-usage')}
             >
               <ExternalLink className="size-3.5 mr-1.5" />
               {translate(

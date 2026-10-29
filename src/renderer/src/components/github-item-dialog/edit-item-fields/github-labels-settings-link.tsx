@@ -2,6 +2,7 @@ import React from 'react'
 import { ExternalLink, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 export function GitHubLabelsSettingsLink({
   url,
@@ -22,7 +23,7 @@ export function GitHubLabelsSettingsLink({
         type="button"
         onClick={() => {
           onOpen?.()
-          void window.api.shell.openUrl(url)
+          openAppHttpLink(url)
         }}
         className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       >

@@ -7,6 +7,7 @@ import type { GitHubProjectViewError } from '../../../../shared/github/project-r
 import type { GhAuthDiagnostic } from '../../../../shared/github/auth-types'
 import { translate } from '@/i18n/i18n'
 import { projectViewErrorMessage } from './project-view-error-copy'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 type AuthErrorKind = 'auth_required' | 'scope_missing'
 
@@ -79,7 +80,7 @@ function unsetEnvVarCommand(varName: string): { label: string; command: string }
 
 function openExternal(url: string): void {
   // Route through Electron’s shell IPC because window.open may not reach the default browser.
-  void window.api.shell.openUrl(url)
+  openAppHttpLink(url)
 }
 
 async function copyToClipboard(text: string): Promise<void> {

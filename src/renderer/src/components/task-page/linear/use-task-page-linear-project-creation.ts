@@ -5,6 +5,7 @@ import { linearCreateProject } from '@/runtime/runtime-linear-project-client'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { defaultScopeSource } from '@/lib/default-creation-host'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 export function useTaskPageLinearProjectCreation(model: TaskPageGitHubIssueCreationModel) {
   const {
     settings,
@@ -80,7 +81,7 @@ export function useTaskPageLinearProjectCreation(model: TaskPageGitHubIssueCreat
           action: result.project.url
             ? {
                 label: translate('auto.components.TaskPage.9c57663908', 'View'),
-                onClick: () => window.open(result.project.url, '_blank')
+                onClick: () => openAppHttpLink(result.project.url)
               }
             : undefined
         }

@@ -28,6 +28,7 @@ import {
   type UsageCredentialHost
 } from './usage-credential-host'
 import type { UsageHostSettingsModel } from './use-usage-host-settings'
+import { openAppHttpLinkFromAnchor } from '@/lib/app-http-link-open'
 
 const SEARCH_KEYWORDS = [
   'glm',
@@ -124,6 +125,7 @@ export function ZcodePlanAccountsSection({
           <a
             href={consoleUrl}
             target="_blank"
+            onClick={openAppHttpLinkFromAnchor}
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >

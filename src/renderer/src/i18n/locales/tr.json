@@ -11829,8 +11829,8 @@
           "managedOverSshHelp": "Bu masaüstü uygulaması bu sunucuyu SSH üzerinden günceller. Uzak Orca sunucuları bölümünde sunucunun satırındaki Güncelle seçeneğini kullanın."
         },
         "BrowserLinkRoutingSetting": {
-          "description": "http(s) bağlantılarını terminalden, markdown'dan ve düzenleyiciden Orca'nın yerleşik tarayıcısında açın. {{shortcut}} her zaman sistem tarayıcınızı kullanır.",
-          "descriptionBase": "http(s) bağlantılarını terminalden, markdown'dan ve düzenleyiciden Orca'nın yerleşik tarayıcısında açın."
+          "description": "Orca'nın her yerindeki http(s) bağlantılarını yerleşik tarayıcıda açın. Oturum açma sayfaları ve {{shortcut}} her zaman sistem tarayıcınızı kullanır.",
+          "descriptionBase": "Orca'nın her yerindeki http(s) bağlantılarını yerleşik tarayıcıda açın. Oturum açma sayfaları yine sistem tarayıcınızda açılır."
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "Web tarayıcınızda açmak için Shift tuşunu basılı tutun",

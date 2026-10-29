@@ -11223,8 +11223,8 @@
           "managedOverSshHelp": "이 데스크톱이 SSH로 이 서버를 업데이트합니다. 원격 Orca 서버의 해당 행에서 업데이트를 사용하세요."
         },
         "BrowserLinkRoutingSetting": {
-          "description": "터미널, Markdown, 편집기의 http(s) 링크를 Orca 내장 브라우저에서 엽니다. {{shortcut}}을(를) 누르면 항상 시스템 브라우저를 사용합니다.",
-          "descriptionBase": "터미널, Markdown, 편집기의 http(s) 링크를 Orca 내장 브라우저에서 엽니다."
+          "description": "Orca 어디에서든 http(s) 링크를 내장 브라우저에서 엽니다. 로그인 페이지와 {{shortcut}}은(는) 항상 시스템 브라우저를 사용합니다.",
+          "descriptionBase": "Orca 어디에서든 http(s) 링크를 내장 브라우저에서 엽니다. 로그인 페이지는 계속 시스템 브라우저에서 열립니다."
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "Shift를 누른 채 클릭하면 웹 브라우저에서 열기",

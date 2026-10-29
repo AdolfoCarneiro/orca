@@ -11506,8 +11506,8 @@
           "managedOverSshHelp": "Este escritorio actualiza este servidor por SSH. Usa Actualizar en su fila de Servidores remotos de Orca."
         },
         "BrowserLinkRoutingSetting": {
-          "description": "Abre los enlaces http(s) del terminal, Markdown y el editor en el navegador integrado de Orca. {{shortcut}} siempre usa el navegador del sistema.",
-          "descriptionBase": "Abre los enlaces http(s) del terminal, Markdown y el editor en el navegador integrado de Orca."
+          "description": "Abre los enlaces http(s) de cualquier parte de Orca en su navegador integrado. Las páginas de inicio de sesión y {{shortcut}} siempre usan el navegador del sistema.",
+          "descriptionBase": "Abre los enlaces http(s) de cualquier parte de Orca en su navegador integrado. Las páginas de inicio de sesión siguen abriéndose en el navegador del sistema."
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "Mantenga presionada la tecla Mayús para abrir en su navegador web",

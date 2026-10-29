@@ -4,6 +4,7 @@ import { getReleaseNotesUrlForVersion } from '../../../../../shared/release-chan
 import { Button } from '../../ui/button'
 import { Progress } from '../../ui/progress'
 import { translate } from '@/i18n/i18n'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 function isAnimatedGif(url: string | undefined): boolean {
   return typeof url === 'string' && url.toLowerCase().endsWith('.gif')
@@ -87,7 +88,7 @@ export function UpdateDownloadingContent({
           type="button"
           className="text-xs text-muted-foreground underline hover:text-foreground self-start"
           onClick={() =>
-            void window.api.shell.openUrl(
+            openAppHttpLink(
               release ? release.releaseNotesUrl : getReleaseNotesUrlForVersion(version)
             )
           }

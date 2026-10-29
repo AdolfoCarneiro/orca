@@ -11666,8 +11666,8 @@
           "managedOverSshHelp": "這臺電腦會透過 SSH 更新此伺服器。請在「遠端 Orca 伺服器」中，點選此伺服器所在列的「更新」。"
         },
         "BrowserLinkRoutingSetting": {
-          "description": "在 Orca 內建瀏覽器中開啟來自終端機、Markdown 和編輯器的 http(s) 連結。{{shortcut}} 始終使用系統瀏覽器。",
-          "descriptionBase": "在 Orca 內建瀏覽器中開啟來自終端機、Markdown 和編輯器的 http(s) 連結。"
+          "description": "在 Orca 內建瀏覽器中開啟 Orca 各處的 http(s) 連結。登入頁面和 {{shortcut}} 始終使用系統瀏覽器。",
+          "descriptionBase": "在 Orca 內建瀏覽器中開啟 Orca 各處的 http(s) 連結。登入頁面仍會在系統瀏覽器中開啟。"
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "按住 Shift 在系統瀏覽器中開啟",

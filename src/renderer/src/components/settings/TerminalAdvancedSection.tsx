@@ -20,6 +20,7 @@ import { matchesSettingsSearch } from './settings-search'
 import { getTerminalWindowsPowershellImplementationSearchEntry } from './terminal-windows-search'
 import { TerminalMacKeyboardSection } from './TerminalMacKeyboardSection'
 import { translate } from '@/i18n/i18n'
+import { openAppHttpLinkFromAnchor } from '@/lib/app-http-link-open'
 
 type TerminalAdvancedSectionProps = {
   settings: GlobalSettings
@@ -288,6 +289,7 @@ export function TerminalAdvancedSection({
                     <a
                       href="https://github.com/PowerShell/PowerShell/releases/latest"
                       target="_blank"
+                      onClick={openAppHttpLinkFromAnchor}
                       rel="noopener noreferrer"
                       className="underline hover:text-foreground"
                     >

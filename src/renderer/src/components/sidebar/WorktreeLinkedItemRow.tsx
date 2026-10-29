@@ -11,6 +11,7 @@ import {
   workspaceAttachmentProviderLabel
 } from './worktree-attachment-editing'
 import { getWorkspaceAttachmentSourceLabel } from './workspace-attachment-source-label'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 type Props = {
   item: WorkspaceAttachment
@@ -97,7 +98,7 @@ export function WorktreeLinkedItemRow({
                 variant="ghost"
                 size="icon-xs"
                 aria-label={translate('workspace.links.openItem', 'Open {{label}}', { label })}
-                onClick={() => void window.api.shell.openUrl(item.url ?? '')}
+                onClick={() => openAppHttpLink(item.url ?? '')}
               >
                 <ExternalLink className="size-3" />
               </Button>

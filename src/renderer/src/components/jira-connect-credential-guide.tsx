@@ -1,5 +1,6 @@
 import { Trans } from 'react-i18next'
 import { i18n, translate } from '@/i18n/i18n'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 export function JiraConnectCredentialGuide({
   isServer,
@@ -40,9 +41,7 @@ export function JiraConnectCredentialGuide({
                 type="button"
                 className="text-primary underline-offset-2 hover:underline"
                 onClick={() =>
-                  window.api.shell.openUrl(
-                    'https://id.atlassian.com/manage-profile/security/api-tokens'
-                  )
+                  openAppHttpLink('https://id.atlassian.com/manage-profile/security/api-tokens')
                 }
               />
             )

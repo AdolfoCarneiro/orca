@@ -12,6 +12,7 @@ import type {
   JiraMutationResult,
   JiraTransition
 } from '../../../shared/jira/jira-types'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 type Props = {
   issue: JiraIssue
@@ -178,11 +179,7 @@ export function JiraIssueTransitionControl({
               <Button variant="ghost" size="sm" onClick={reset} disabled={busy}>
                 {translate('jira.transitions.back', 'Back')}
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void window.api.shell.openUrl(issue.url)}
-              >
+              <Button variant="secondary" size="sm" onClick={() => openAppHttpLink(issue.url)}>
                 <ExternalLink className="size-3" />
                 {translate('auto.components.JiraIssueWorkspace.69da9a208c', 'Open in Jira')}
               </Button>
