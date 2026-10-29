@@ -1,3 +1,4 @@
+import { RichMarkdownImageClipboard } from './rich-markdown-image-clipboard'
 import { createMarkdownTokenizerStart } from './markdown-tokenizer-start'
 import type { AnyExtension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -97,6 +98,7 @@ export function createRichMarkdownExtensions({
       autolink: true,
       linkOnPaste: true
     }),
+    RichMarkdownImageClipboard,
     // Load local images through IPC/blob URLs so dev-server cross-origin restrictions cannot block file URLs.
     Image.extend({
       addStorage() {

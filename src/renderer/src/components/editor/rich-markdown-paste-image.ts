@@ -11,7 +11,7 @@ import {
   showRichMarkdownImageInsertionCanceled,
   showRichMarkdownImageInsertionProgress
 } from './rich-markdown-image-insertion-feedback'
-import { handleRichMarkdownBlobImagePaste } from './rich-markdown-blob-image-paste'
+import { handleRichMarkdownHtmlImagePaste } from './rich-markdown-html-image-paste'
 
 export type RichMarkdownImagePasteArgs = {
   editor: Editor | null
@@ -41,7 +41,7 @@ export function handleRichMarkdownImagePaste({
   slice
 }: RichMarkdownImagePasteArgs): boolean {
   if (!editor || !clipboardHasImage(event)) {
-    return handleRichMarkdownBlobImagePaste({
+    return handleRichMarkdownHtmlImagePaste({
       editor,
       event,
       filePath,
