@@ -12,7 +12,10 @@ vi.mock('../updater', () => ({ setupAutoUpdater: setupMock }))
 vi.mock('../updater/electron-updater-proxy-session', () => ({
   applyProxyToElectronUpdaterSession: vi.fn()
 }))
-vi.mock('../ipc/ui', () => ({ isTrustedUIRenderer: () => true }))
+vi.mock('../ipc/ui', () => ({
+  isTrustedUIRenderer: () => true,
+  getTrustedUIRendererWindow: () => null
+}))
 vi.mock('../startup/startup-diagnostics', () => ({ logStartupMilestone: vi.fn() }))
 
 import { setupHeadlessServeAutoUpdater } from './main-window-updater'
