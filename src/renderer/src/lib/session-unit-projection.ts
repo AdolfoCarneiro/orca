@@ -9,7 +9,8 @@ import {
 } from '../../../shared/session-change-set'
 import {
   selectIndexedSessionUnits,
-  indexedSessionOwners
+  indexedSessionOwners,
+  indexedSessionTerminalTabIds
 } from '../../../shared/session-unit-selection'
 import type { SessionUnitAddress } from '../../../shared/session-unit-index'
 
@@ -121,10 +122,8 @@ export class SessionUnitProjection extends SessionProjectionIndex {
     for (const owner of indexedSessionOwners(this.index, priorScope)) {
       owners.add(owner)
     }
-    for (const keys of priorScope.get('tabsByWorktree') ?? []) {
-      for (const id of this.index.ids('tabsByWorktree', keys, 'tab')) {
-        tabIds.add(id)
-      }
+    for (const id of indexedSessionTerminalTabIds(this.index, priorScope)) {
+      tabIds.add(id)
     }
     for (const replace of replacements) {
       replace()
@@ -136,10 +135,8 @@ export class SessionUnitProjection extends SessionProjectionIndex {
     for (const owner of indexedSessionOwners(this.index, scope)) {
       owners.add(owner)
     }
-    for (const key of scope.get('tabsByWorktree') ?? []) {
-      for (const id of this.index.ids('tabsByWorktree', key, 'tab')) {
-        tabIds.add(id)
-      }
+    for (const id of indexedSessionTerminalTabIds(this.index, scope)) {
+      tabIds.add(id)
     }
     const editorChanged = (
       [

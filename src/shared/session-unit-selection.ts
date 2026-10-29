@@ -142,3 +142,12 @@ export function indexedSessionOwners(index: SessionUnitIndex, selection: Session
   }
   return owners
 }
+
+export function* indexedSessionTerminalTabIds(
+  index: SessionUnitIndex,
+  selection: SessionUnitSelection
+): IterableIterator<string> {
+  for (const owner of selection.get('tabsByWorktree') ?? []) {
+    yield* index.ids('tabsByWorktree', owner, 'tab')
+  }
+}

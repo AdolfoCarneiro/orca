@@ -24,7 +24,7 @@
 1 src/renderer/src/lib/agent-hibernation-coordinator.ts
 4 src/renderer/src/lib/floating-workspace-terminal-actions.ts
 1 src/renderer/src/lib/pane-manager/client-hosted-browser-row-state.ts
-23 src/renderer/src/lib/session-projection-index.ts # session-save-cost: projection schema and source-field queries; no layout action
+22 src/renderer/src/lib/session-projection-index.ts # session-save-cost: projection schema and source-field queries; no layout action
 14 src/renderer/src/lib/session-source-fields.ts # session-save-cost: projection schema and source-field queries; no layout action
 7 src/renderer/src/lib/session-unit-projection.ts # session-save-cost: projection schema and source-field queries; no layout action
 4 src/renderer/src/lib/session-write-subscriber.ts
