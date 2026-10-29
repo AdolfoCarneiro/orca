@@ -215,3 +215,45 @@ it('moves focus into the composer when a paste is routed from elsewhere', async 
   expect(editor.view.dom.contains(document.activeElement)).toBe(true)
   hiddenTerminal.remove()
 })
+
+describe('a pasted run too long to lay out with kerning', () => {
+  const unkerned = (container: HTMLElement) =>
+    [...container.querySelectorAll<HTMLElement>('[style]')]
+      .filter((element) => element.style.fontKerning === 'none')
+      .map((element) => element.textContent)
+
+  it('turns kerning off on that run only and keeps the pasted text whole', () => {
+    const { input, container } = setup('short line')
+    const blob = 'x'.repeat(5000)
+    act(() => {
+      input.setSelectionRange(10, 10)
+      insertNativeChatPastedText(input, `\nsee ${blob} here`)
+    })
+    expect(unkerned(container)).toEqual([blob])
+    expect(input.value).toBe(`short line\nsee ${blob} here`)
+  })
+
+  it('keeps kerning on long prose and on many short Shift+Enter lines', () => {
+    const { editor, container } = setup('')
+    act(() => {
+      editor.commands.insertContent('a few words '.repeat(500))
+      for (let line = 0; line < 60; line++) {
+        editor.commands.insertContent('y'.repeat(70))
+        editor.commands.setHardBreak()
+      }
+    })
+    expect(unkerned(container)).toEqual([])
+  })
+
+  it('re-checks only the edited line: splitting a run restores its kerning', () => {
+    const blob = 'z'.repeat(400)
+    const { input, editor, container } = setup(`${blob}\n${blob}`)
+    expect(unkerned(container)).toEqual([blob, blob])
+    act(() => {
+      input.setSelectionRange(200, 200)
+      editor.commands.insertContent(' ')
+    })
+    expect(unkerned(container)).toEqual([blob])
+    expect(input.value).toBe(`${'z'.repeat(200)} ${'z'.repeat(200)}\n${blob}`)
+  })
+})
