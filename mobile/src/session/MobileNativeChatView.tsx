@@ -53,7 +53,6 @@ import {
 } from './native-chat/composer/MobileNativeChatComposer'
 import { MobileNativeChatPromptCard } from './native-chat/input/MobileNativeChatPromptCard'
 import type { MobileNativeChatMicProps } from './native-chat/composer/MobileNativeChatComposerMic'
-import type { MobileNativeChatDictationPreview } from './native-chat/composer/mobile-native-chat-draft-inputs'
 import {
   NO_COMPOSER_TRAY,
   type ComposerTrayProps
@@ -108,7 +107,6 @@ type ChatViewProps = {
   imagePreviewsByMessageId?: Record<string, string[]>
   composerScopeKey?: string | null
   draftKey: string | null
-  dictationPreview?: MobileNativeChatDictationPreview | null
   onComposerTextChange: (text: string) => void
   onAttachImage?: () => void
   attachments?: PendingNativeChatImage[]
@@ -176,7 +174,6 @@ export function MobileNativeChatView({
   imagePreviewsByMessageId,
   draftKey,
   composerScopeKey,
-  dictationPreview,
   onComposerTextChange,
   onAttachImage,
   attachments,
@@ -392,7 +389,6 @@ export function MobileNativeChatView({
       {trayContent}
       <MobileNativeChatDraftComposer
         draftScopeKey={composerScopeKey}
-        dictationPreview={dictationPreview}
         structured={structuredActivityUi ? structuredComposer : null}
         draftKey={draftKey}
         onChangeText={onComposerTextChange}

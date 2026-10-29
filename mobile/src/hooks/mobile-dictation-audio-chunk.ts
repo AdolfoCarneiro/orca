@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   MOBILE_DICTATION_CONNECTION_SLOW_ERROR_MESSAGE,
   MOBILE_DICTATION_PCM_SAMPLE_RATE
@@ -41,6 +42,13 @@ export class MobileDictationTranscriptSoFar {
     this.kept = null
     return kept?.dictationId === dictationId ? kept.text : ''
   }
+}
+
+// The text so far as React state, with the instance chunk replies write it through.
+export function useMobileDictationTranscriptSoFar() {
+  const [text, setText] = useState('')
+  const [kept] = useState(() => new MobileDictationTranscriptSoFar(setText))
+  return [text, setText, kept] as const
 }
 
 // A request refused or still waiting while the connection moved never reached the host; send it again on the new one, within the host's grace.

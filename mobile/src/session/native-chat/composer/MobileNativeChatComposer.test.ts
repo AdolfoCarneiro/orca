@@ -117,7 +117,7 @@ describe('MobileNativeChatComposer', () => {
 
   it('appends dictation until a selection is read, then replaces the selection it started on', async () => {
     const scope = 'dictation-ordinary'
-    setMobileNativeChatDraftText(scope, '/compact')
+    setMobileNativeChatDraftText(scope, 'Ok')
     function Registered() {
       const value = useMobileNativeChatDraft(scope)
       return createElement(MobileNativeChatComposer, {
@@ -133,34 +133,22 @@ describe('MobileNativeChatComposer', () => {
       renderer = create(createElement(Registered))
     })
     const input = () => findByHostType(renderer!.root, 'TextInput')
+    const say = (text: string) => act(() => captureMobileNativeChatTextDestination()!.insert(text))
+    const select = (start: number, end: number) =>
+      input().props.onSelectionChange({ nativeEvent: { selection: { start, end }, text: 'Ok hi' } })
     act(() => input().props.onFocus())
-    act(() => {
-      captureMobileNativeChatTextDestination()!.insert('hello')
-    })
-    expect(input().props.value).toBe('/compact hello')
-    act(() =>
-      input().props.onSelectionChange({
-        nativeEvent: {
-          selection: { start: 9, end: 14 },
-          text: '/compact hello'
-        }
-      })
-    )
+    say('hi')
+    expect(input().props.value).toBe('Ok hi')
+    act(() => select(3, 5))
     const destination = captureMobileNativeChatTextDestination()!
+    // A tap elsewhere while talking doesn't move where the words land.
     act(() => {
-      input().props.onSelectionChange({
-        nativeEvent: {
-          selection: { start: 0, end: 0 },
-          text: '/compact hello'
-        }
-      })
+      select(0, 0)
       destination.insert('there')
     })
-    expect(input().props.value).toBe('/compact there')
-    act(() => {
-      captureMobileNativeChatTextDestination()!.insert('now')
-    })
-    expect(input().props.value).toBe('/compact there now')
+    expect(input().props.value).toBe('Ok there')
+    say('now')
+    expect(input().props.value).toBe('Ok there now')
   })
 
   it('reports an accepted send without owning route-scoped draft cleanup', async () => {

@@ -115,7 +115,6 @@ export function MobileQueuedMessageComposer({
         onMicPress={context?.onMicPress}
         micActive={context?.micActive}
         micStarting={context?.micStarting}
-        dictationPreview={context?.dictationPreview}
         micProcessing={context?.micProcessing}
         dictationMode={context?.dictationMode}
         onMicPressIn={context?.onMicPressIn}
