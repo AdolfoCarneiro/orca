@@ -137,6 +137,35 @@ describe('startWslDriveUncConversion', () => {
     }
   )
 
+  const withDuplicate = (duplicate: string): PersistedState => {
+    const value = state()
+    value.repos.push(
+      {
+        id: 'windows-sub',
+        path: String.raw`C:\src\app\sub`,
+        displayName: 'sub',
+        badgeColor: '',
+        addedAt: 0
+      },
+      { id: 'repo-dup', path: duplicate, displayName: 'dup', badgeColor: '', addedAt: 0 }
+    )
+    return value
+  }
+
+  it('refuses when a duplicate inside the folder would move without its ids', async () => {
+    const run = deps({ readProfileState: async () => withDuplicate(`${UNC}\\sub`) })
+    expect(await startWslDriveUncConversion(run, REQUEST)).toMatchObject({
+      blockers: [{ kind: 'not-convertible', id: 'repo-dup', reason: 'duplicate-windows-project' }]
+    })
+    expect(run.pause).not.toHaveBeenCalled()
+  })
+
+  it('converts beside another spelling of the same folder', async () => {
+    const duplicate = String.raw`\\wsl$\Ubuntu\mnt\c\src\app`
+    const run = deps({ readProfileState: async () => withDuplicate(duplicate) })
+    expect(await startWslDriveUncConversion(run, REQUEST)).toMatchObject({ outcome: 'restarting' })
+  })
+
   it('refuses, pausing nothing, when the distro does not show /mnt/c as drive C:', async () => {
     for (const mounts of [null, [{ mountPoint: '/mnt/c', windowsRoot: null }]]) {
       const run = deps({ readDriveMounts: async () => mounts })

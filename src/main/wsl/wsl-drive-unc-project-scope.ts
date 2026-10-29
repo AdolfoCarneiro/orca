@@ -183,6 +183,34 @@ export function withNestedWslDriveUncProjects(
   return { repoIds: [...repoIds], folderWorkspaceIds: [...folderWorkspaceIds] }
 }
 
+/**
+ * Refused duplicates a conversion rewriting these folders would split: their paths would move
+ * while their ids stay. One spelling of a converting folder is that project, so it never splits.
+ */
+export function wslDriveUncDuplicatesSplitBy(
+  state: WslDriveUncScopeState,
+  scope: WslDriveUncScope,
+  distro: string,
+  rewriteRoots: readonly string[]
+): WslDriveUncScope['refused'] {
+  const roots = driveRoots(rewriteRoots, distro)
+  const splits = (paths: readonly string[]): boolean =>
+    driveRoots(paths, distro).some(
+      (path) => !roots.includes(path) && roots.some((root) => nests(path, root))
+    )
+  return scope.refused.filter((entry) => {
+    if (entry.reason !== 'duplicate-windows-project') {
+      return false
+    }
+    if (entry.kind === 'repo') {
+      const repo = state.repos.find(({ id }) => id === entry.id)
+      return repo !== undefined && splits(wslMoveRepoPaths(repo))
+    }
+    const folder = state.folderWorkspaces.find(({ id }) => id === entry.id)
+    return folder !== undefined && splits([folder.folderPath])
+  })
+}
+
 function driveRoots(paths: readonly string[], distro: string): string[] {
   return paths.flatMap((path) => {
     const drive = wslUncDrivePathToWindows(path, distro)
