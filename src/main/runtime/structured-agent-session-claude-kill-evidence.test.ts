@@ -67,7 +67,11 @@ it('preserves actual TRUE writer-close through published close, join, and a heal
   killEvidence()
   const database = JournalHostDatabase.open(fixture.directory)
   try {
-    const reopened = AgentSessionRecordStore.open({ journalDatabase: database, hostId: 'local' })
+    const reopened = AgentSessionRecordStore.open({
+      journalDatabase: database,
+      hostId: 'local',
+      legacySessionTabIds: []
+    })
     await reopened.reconcileOnRestart({
       probe: async () => ({ outcome: 'indeterminate', reason: 'no root event' }),
       now: Date.now()
