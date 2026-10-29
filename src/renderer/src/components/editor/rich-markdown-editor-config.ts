@@ -2,6 +2,7 @@ import type { Editor, UseEditorOptions } from '@tiptap/react'
 import type { EditorView } from '@tiptap/pm/view'
 import { handleRichMarkdownCut } from './rich-markdown-cut-handler'
 import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
+import { handleRichMarkdownImageDrop } from './rich-markdown-image-drop'
 import { encodeRawMarkdownHtmlForRichEditor } from './raw-markdown-html'
 import { normalizeEmptyListItems } from './rich-markdown-normalize'
 import { autoFocusRichEditor } from './rich-markdown-auto-focus'
@@ -192,6 +193,17 @@ export function createRichMarkdownEditorConfig(params: EditorConfigParams): UseE
           runtimeEnvironmentId,
           slice,
           view
+        }),
+      handleDrop: (view, event, slice, moved) =>
+        handleRichMarkdownImageDrop({
+          editor: editorRef.current,
+          view,
+          event,
+          slice,
+          moved,
+          filePath,
+          worktreeId,
+          runtimeEnvironmentId
         }),
       handleTextInput: (view, from, to, text) => {
         typedEmptyOrderedListMarkerRef.current = false

@@ -93,6 +93,8 @@ it.each(['read', 'import'])(
         started = Promise.withResolvers<void>()
         refs.push(await closePendingEditor(stage === 'import' ? started.promise : undefined))
       }
+      // Destroyed editors still have queued Tiptap creation callbacks.
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0))
       if (!globalThis.gc) {
         throw new Error('The test runner must enable --expose-gc')
       }

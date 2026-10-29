@@ -15,6 +15,7 @@ import type { RuntimeRpcRequest } from '@/runtime/runtime-file-client-test-harne
 import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
 import { setRichMarkdownImageResolverContext } from './rich-markdown-image-context'
 import { RichMarkdownImageClipboard } from './rich-markdown-image-clipboard'
+import { handleRichMarkdownImageDrop } from './rich-markdown-image-drop'
 
 vi.mock('@/store', () => ({
   useAppStore: {
@@ -74,7 +75,11 @@ function createEditor(content: string | JSONContent, filePath = '/source/note.md
       Markdown
     ],
     content,
-    ...(typeof content === 'string' ? { contentType: 'markdown' } : {})
+    ...(typeof content === 'string' ? { contentType: 'markdown' } : {}),
+    editorProps: {
+      handleDrop: (view, event, slice, moved) =>
+        handleRichMarkdownImageDrop({ editor, view, event, slice, moved, filePath, worktreeId: '' })
+    }
   })
   editors.push(editor)
   setRichMarkdownImageResolverContext(editor, { filePath })
@@ -98,6 +103,41 @@ function paste(editor: Editor, html: string, filePath = '/target/note.md'): void
   ) {
     expect(event.defaultPrevented).toBe(false)
     editor.view.dispatch(editor.state.tr.replaceSelection(slice).setMeta('uiEvent', 'paste'))
+  }
+}
+
+function serializeImage(editor: Editor): string {
+  let imagePosition = -1
+  editor.state.doc.descendants((node, position) => {
+    if (node.type.name === 'image') {
+      imagePosition = position
+    }
+  })
+  if (imagePosition < 0) {
+    throw new Error('Missing source image')
+  }
+  editor.commands.setNodeSelection(imagePosition)
+  return editor.view.serializeForClipboard(editor.state.selection.content()).dom.innerHTML
+}
+
+function drop(editor: Editor, html: string, position: number, copy = false): void {
+  editor.view.focus()
+  const dataTransfer = new DataTransfer()
+  dataTransfer.setData('text/html', html)
+  const event = new DragEvent('drop', { cancelable: true })
+  Object.defineProperties(event, {
+    dataTransfer: { value: dataTransfer },
+    clientX: { value: 50 },
+    clientY: { value: 50 },
+    ctrlKey: { value: copy },
+    altKey: { value: copy }
+  })
+  const coordinates = editor.view.posAtCoords
+  editor.view.posAtCoords = () => ({ pos: position, inside: -1 })
+  try {
+    editor.view.dispatchEvent(event)
+  } finally {
+    editor.view.posAtCoords = coordinates
   }
 }
 
@@ -249,90 +289,6 @@ it.each(['plain text', 'https://example.com/image.png', 'data:image/png;base64,e
   }
 )
 
-async function closeCopiedEditorsWhileReading(started: Promise<void>) {
-  const source = createEditor({
-    type: 'doc',
-    content: [
-      {
-        type: 'paragraph',
-        content: [
-          { type: 'text', text: 'x'.repeat(1024 * 1024) },
-          { type: 'image', attrs: { src: 'image.png' } }
-        ]
-      }
-    ]
-  })
-  let imagePosition = -1
-  source.state.doc.descendants((node, pos) => {
-    if (node.type.name === 'image') {
-      imagePosition = pos
-    }
-  })
-  if (imagePosition < 0) {
-    throw new Error('Missing source image')
-  }
-  source.commands.setNodeSelection(imagePosition)
-  const html = source.view.serializeForClipboard(source.state.selection.content()).dom.innerHTML
-  const target = createEditor(
-    {
-      type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'y'.repeat(1024 * 1024) }] }]
-    },
-    '/target/note.md'
-  )
-  const refs = [source, target].map((editor) => ({
-    editor: new WeakRef(editor),
-    document: new WeakRef(editor.state.doc),
-    dom: new WeakRef(editor.view.dom)
-  }))
-  paste(target, html)
-  await started
-  for (const owner of [source, target]) {
-    const dom = owner.view.dom.parentElement
-    owner.destroy()
-    dom?.remove()
-    editors.splice(editors.indexOf(owner), 1)
-  }
-  return refs
-}
-
-it('releases both closed editors while the original image read remains pending', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-  const held = Promise.withResolvers<{ isBinary: boolean; content: string; mimeType: string }>()
-  const started = Promise.withResolvers<void>()
-  read.mockImplementationOnce(() => {
-    started.resolve()
-    return held.promise
-  })
-  const refs = await closeCopiedEditorsWhileReading(started.promise)
-  vi.runOnlyPendingTimers()
-  try {
-    if (!globalThis.gc) {
-      throw new Error('The test runner must enable --expose-gc')
-    }
-    for (let turn = 0; turn < 3; turn++) {
-      await new Promise<void>((resolve) => setImmediate(resolve))
-      globalThis.gc()
-    }
-    expect(
-      refs.map((ref) => ({
-        editor: !!ref.editor.deref(),
-        document: !!ref.document.deref(),
-        dom: !!ref.dom.deref()
-      }))
-    ).toEqual([
-      { editor: false, document: false, dom: false },
-      { editor: false, document: false, dom: false }
-    ])
-    expect(save).not.toHaveBeenCalled()
-  } finally {
-    vi.useRealTimers()
-    held.resolve({ isBinary: true, content: btoa('late bytes'), mimeType: 'image/png' })
-    await new Promise<void>((resolve) => setImmediate(resolve))
-  }
-  expect(save).not.toHaveBeenCalled()
-})
-
 it('preserves native table-paste geometry and Undo when importing a copied image cell', async () => {
   const source = createEditor(
     '| ![image](image.png) | caption |\n| --- | --- |\n| first | second |'
@@ -368,3 +324,141 @@ it('preserves native table-paste geometry and Undo when importing a copied image
   expect(target.commands.undo()).toBe(true)
   expect(target.getJSON()).toEqual(before)
 })
+
+it.each([
+  ['paragraph', 'before after', '![image](image.png)'],
+  ['list', '- before\n- after', 'caption ![image](image.png)'],
+  ['table cell', '| before | after |\n| --- | --- |\n| one | two |', '![image](image.png)'],
+  ['table', 'before\n\nafter', '| ![image](image.png) | caption |\n| --- | --- |\n| one | two |']
+])('matches native %s drop fitting, selection and Undo', async (_kind, content, copied) => {
+  const source = createEditor(copied.startsWith('![') ? `before ${copied}` : copied)
+  const html = copied.startsWith('![') ? serializeImage(source) : serialize(source)
+  const target = createEditor(content, '/target/note.md')
+  const ordinary = createEditor(content, '/target/note.md')
+  let position = -1
+  target.state.doc.descendants((node, pos) => {
+    if (position < 0 && node.isText) {
+      position = pos + Math.min(3, node.nodeSize)
+    }
+  })
+  if (position < 0) {
+    throw new Error('Missing drop position')
+  }
+  const done = updated(target)
+  drop(target, html, position)
+  await done
+  await vi.waitFor(() => expect(target.getMarkdown()).toContain('copy-1.png'))
+  drop(
+    ordinary,
+    html
+      .replaceAll('src="image.png"', 'src="copy-1.png"')
+      .replace(/ data-orca-image-clipboard-origin="[^"]+"/g, ''),
+    position
+  )
+  expect(target.getJSON()).toEqual(ordinary.getJSON())
+  expect(target.state.selection.toJSON()).toEqual(ordinary.state.selection.toJSON())
+  expect(read).toHaveBeenCalledOnce()
+  expect(target.commands.undo()).toBe(ordinary.commands.undo())
+  expect(target.getJSON()).toEqual(ordinary.getJSON())
+})
+
+it.each([false, true])('keeps same-editor native drag behavior with copy=%s', (copy) => {
+  const editor = createEditor('before ![image](image.png) after')
+  let imagePosition = -1
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === 'image') {
+      imagePosition = pos
+    }
+  })
+  editor.commands.setNodeSelection(imagePosition)
+  const slice = editor.state.selection.content()
+  const html = editor.view.serializeForClipboard(slice).dom.innerHTML
+  editor.view.dragging = { slice, move: !copy }
+  drop(editor, html, editor.state.doc.content.size - 1, copy)
+  let count = 0
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === 'image') {
+      count++
+    }
+  })
+  expect(count).toBe(copy ? 2 : 1)
+  expect(read).not.toHaveBeenCalled()
+  expect(save).not.toHaveBeenCalled()
+  expect(editor.commands.undo()).toBe(true)
+  expect(editor.getMarkdown()).toBe('before ![image](image.png) after')
+})
+
+it('maps the actual drop position while preserving subsequent typing and its live caret', async () => {
+  const source = createEditor('before ![image](image.png)')
+  const html = serializeImage(source)
+  const target = createEditor('left right', '/target/note.md')
+  const held = Promise.withResolvers<void>()
+  const started = Promise.withResolvers<void>()
+  read.mockImplementationOnce(async (args) => {
+    started.resolve()
+    await held.promise
+    return readSourceFile(args)
+  })
+  drop(target, html, 6)
+  await started.promise
+  expect(target.state.selection.from).toBe(1)
+  target.commands.setTextSelection(target.state.doc.content.size - 1)
+  target.commands.insertContent(' typed')
+  const done = updated(target)
+  held.resolve()
+  await done
+  expect(target.getMarkdown()).toBe('left ![image](copy-1.png)right typed')
+  expect(target.state.selection.empty).toBe(true)
+  expect(target.state.selection.from).toBe(target.state.doc.content.size - 1)
+  expect(target.commands.undo()).toBe(true)
+  expect(target.getMarkdown()).toBe('left right typed')
+})
+
+it('keeps two delayed drops in request order when their reads settle in reverse', async () => {
+  const source = createEditor('before ![first](image.png)')
+  const first = serializeImage(source)
+  const second = serializeImage(createEditor('before ![second](second.png)'))
+  files.set('/source/second.png', btoa('second image bytes'))
+  const held = Promise.withResolvers<void>()
+  const started = Promise.withResolvers<void>()
+  read.mockImplementationOnce(async (args) => {
+    started.resolve()
+    await held.promise
+    return readSourceFile(args)
+  })
+  const target = createEditor('left right', '/target/note.md')
+  drop(target, first, 6)
+  await started.promise
+  const secondDone = updated(target)
+  drop(target, second, 6)
+  await secondDone
+  const firstDone = updated(target)
+  held.resolve()
+  await firstDone
+  expect(target.getMarkdown()).toBe('left ![first](copy-2.png)![second](copy-1.png)right')
+  expect(read).toHaveBeenCalledTimes(2)
+})
+
+it.each(['same folder', 'unknown metadata', 'substituted path'])(
+  'keeps ordinary drop behavior for %s without importing',
+  (kind) => {
+    const source = createEditor('caption ![image](image.png)')
+    let html = serialize(source)
+    if (kind === 'unknown metadata') {
+      html = html.replace(
+        /data-orca-image-clipboard-origin="[^"]+"/g,
+        'data-orca-image-clipboard-origin="unknown"'
+      )
+    } else if (kind === 'substituted path') {
+      html = html.replace('src="image.png"', 'src="other.png"')
+    }
+    const target = createEditor(
+      'before after',
+      kind === 'same folder' ? '/source/another.md' : '/target/note.md'
+    )
+    drop(target, html, 8)
+    expect(target.getMarkdown()).toContain(kind === 'substituted path' ? 'other.png' : 'image.png')
+    expect(read).not.toHaveBeenCalled()
+    expect(save).not.toHaveBeenCalled()
+  }
+)

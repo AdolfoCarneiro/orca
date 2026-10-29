@@ -13,6 +13,7 @@ export type RichMarkdownImageInsertionRange = {
   to: number
   requestOrder: number
   cellSelection?: CellSelection
+  selectionUnchanged?: boolean
 }
 
 export type RichMarkdownImageInsertionTarget = {
@@ -24,24 +25,35 @@ export type RichMarkdownImageInsertionTarget = {
 
 export function captureRichMarkdownImageInsertionTarget(
   editor: Editor,
-  { includeSingleCellSelection = false }: { includeSingleCellSelection?: boolean } = {}
+  {
+    includeSingleCellSelection = false,
+    position
+  }: { includeSingleCellSelection?: boolean; position?: number } = {}
 ): RichMarkdownImageInsertionTarget | null {
   if (editor.isDestroyed || !editor.view.dom.isConnected || !editor.isEditable) {
     return null
   }
+  if (
+    position !== undefined &&
+    (!Number.isInteger(position) || position < 0 || position > editor.state.doc.content.size)
+  ) {
+    return null
+  }
+  let selectionChanged = false
   let activeEditor: Editor | null = editor
   let targetDom: HTMLElement | null = editor.view.dom
   const contextVersion = getRichMarkdownImageResolverContextVersion(editor)
   const requestOrder = captureRichMarkdownClipboardInsertionOrder(editor)
   let cellSelection =
+    position === undefined &&
     editor.state.selection instanceof CellSelection &&
     (includeSingleCellSelection || editor.state.selection.ranges.length > 1)
       ? editor.state.selection
       : null
-  let ranges = editor.state.selection.ranges.map(({ $from, $to }) => ({
-    from: $from.pos,
-    to: $to.pos
-  }))
+  let ranges =
+    position === undefined
+      ? editor.state.selection.ranges.map(({ $from, $to }) => ({ from: $from.pos, to: $to.pos }))
+      : [{ from: position, to: position }]
   let document: ProseMirrorNode | null = editor.state.doc
   let active = true
   const controller = new AbortController()
@@ -74,6 +86,9 @@ export function captureRichMarkdownImageInsertionTarget(
       return
     }
     const transactions = [transaction, ...appendedTransactions]
+    if (position !== undefined) {
+      selectionChanged ||= transactions.some((next) => next.selectionSet)
+    }
     const nextDocument = appendedTransactions.at(-1)?.doc ?? transaction.doc
     if (nextDocument.eq(document)) {
       document = nextDocument
@@ -154,7 +169,12 @@ export function captureRichMarkdownImageInsertionTarget(
         targetDom.isConnected &&
         getRichMarkdownImageResolverContextVersion(owner) === contextVersion &&
         owner.state.doc.eq(document)
-        ? { ...ranges[0], requestOrder, ...(cellSelection ? { cellSelection } : {}) }
+        ? {
+            ...ranges[0],
+            requestOrder,
+            ...(cellSelection ? { cellSelection } : {}),
+            ...(position === undefined ? {} : { selectionUnchanged: !selectionChanged })
+          }
         : null
     }
   }

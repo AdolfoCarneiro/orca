@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import { Markdown } from '@tiptap/markdown'
 import { DOMParser } from '@tiptap/pm/model'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toast } from 'sonner'
 import type * as ImageBlobPng from '@/lib/image-blob-png'
 import type { RuntimeRpcRequest } from '@/runtime/runtime-file-client-test-harness'
@@ -25,6 +25,7 @@ import {
 } from '../../../../shared/protocol-version'
 import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
 import { RichMarkdownImageClipboard } from './rich-markdown-image-clipboard'
+import { handleRichMarkdownImageDrop } from './rich-markdown-image-drop'
 import { setRichMarkdownImageResolverContext } from './rich-markdown-image-context'
 
 const sshState = vi.hoisted(() => ({ generation: 1 }))
@@ -180,28 +181,7 @@ function copySource(owner: string | null = 'source'): string {
   source.destroy()
   return html
 }
-function paste(
-  target: Editor,
-  html: string,
-  owner: string | null = 'target',
-  filePath = '/repo/target/note.md'
-): void {
-  const container = document.createElement('div')
-  container.innerHTML = html
-  const clipboardData = new DataTransfer()
-  clipboardData.setData('text/html', html)
-  expect(
-    handleRichMarkdownPaste({
-      editor: target,
-      event: new ClipboardEvent('paste', { clipboardData, cancelable: true }),
-      filePath,
-      worktreeId: 'folder:notes',
-      runtimeEnvironmentId: owner,
-      slice: DOMParser.fromSchema(target.schema).parseSlice(container),
-      view: target.view
-    })
-  ).toBe(true)
-}
+
 function replaceOwner(owner: string): void {
   revisions.set(owner, 2)
   incarnations.set(owner, `${owner}-replacement`)
@@ -249,144 +229,188 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-it.each([
-  ['source', 'target'],
-  ['source', null],
-  [null, 'target'],
-  ['ssh-source', 'target'],
-  ['ssh-source', null]
-])('reads from %s and imports bytes through destination %s', async (sourceOwner, targetOwner) => {
-  const html = copySource(sourceOwner)
-  const target = createEditor(targetOwner, '/repo/target/note.md', '')
-  const done = new Promise<void>((resolve) => target.once('update', () => resolve()))
-  paste(target, html, targetOwner)
-  await done
-  const expected =
-    sourceOwner === 'ssh-source'
-      ? 'original SSH bytes'
-      : sourceOwner
-        ? 'original remote bytes'
-        : 'original local bytes'
-  const targetBytes = targetOwner
-    ? [...(files.get('target-original')?.values() ?? [])]
-    : [localFiles.get('/repo/target/copied.png')]
-  expect(targetBytes.map((bytes) => bytes?.toString())).toEqual([expected])
-  expect(target.getMarkdown()).not.toContain('(image.png)')
-  expect(toast.error).not.toHaveBeenCalled()
-})
-
-it('imports even when equal directory paths belong to different runtimes', async () => {
-  const html = copySource()
-  const target = createEditor('target', '/repo/source/another.md', '')
-  const done = new Promise<void>((resolve) => target.once('update', () => resolve()))
-  paste(target, html, 'target', '/repo/source/another.md')
-  await done
-  expect(
-    [...(files.get('target-original')?.values() ?? [])].map((bytes) => bytes.toString())
-  ).toEqual(['original remote bytes'])
-})
-
-it.each(['pairing', 'connection'] as const)(
-  'refuses source %s changes before any read',
-  async (kind) => {
-    const html = copySource()
-    if (kind === 'pairing') {
-      replaceOwner('source')
-    } else {
-      setRuntimeEnvironmentConnectionGenerationForTests('source', 1)
-    }
-    const target = createEditor('target', '/repo/target/note.md', 'unchanged')
-    paste(target, html)
-    expect(remoteCall).not.toHaveBeenCalled()
-    expect(target.getMarkdown()).toBe('unchanged')
-    expect(toast.error).toHaveBeenCalledOnce()
+describe.each(['paste', 'drop'] as const)('%s original-owner routing', (operation) => {
+  function transferSourceSelection(
+    target: Editor,
+    html: string,
+    owner: string | null = 'target',
+    filePath = '/repo/target/note.md'
+  ): void {
+    const container = document.createElement('div')
+    container.innerHTML = html
+    const clipboardData = new DataTransfer()
+    clipboardData.setData('text/html', html)
+    const slice = DOMParser.fromSchema(target.schema).parseSlice(container)
+    const coordinates = vi.spyOn(target.view, 'posAtCoords').mockReturnValue({ pos: 1, inside: -1 })
+    const dropEvent = new DragEvent('drop', { cancelable: true })
+    Object.defineProperties(dropEvent, {
+      dataTransfer: { value: clipboardData },
+      clientX: { value: 50 },
+      clientY: { value: 50 }
+    })
+    const handled =
+      operation === 'paste'
+        ? handleRichMarkdownPaste({
+            editor: target,
+            event: new ClipboardEvent('paste', { clipboardData, cancelable: true }),
+            filePath,
+            worktreeId: 'folder:notes',
+            runtimeEnvironmentId: owner,
+            slice,
+            view: target.view
+          })
+        : handleRichMarkdownImageDrop({
+            editor: target,
+            view: target.view,
+            event: dropEvent,
+            slice,
+            moved: false,
+            filePath,
+            worktreeId: 'folder:notes',
+            runtimeEnvironmentId: owner
+          })
+    coordinates.mockRestore()
+    expect(handled).toBe(true)
   }
-)
+  it.each([
+    ['source', 'target'],
+    ['source', null],
+    [null, 'target'],
+    ['ssh-source', 'target'],
+    ['ssh-source', null]
+  ])('reads from %s and imports bytes through destination %s', async (sourceOwner, targetOwner) => {
+    const html = copySource(sourceOwner)
+    const target = createEditor(targetOwner, '/repo/target/note.md', '')
+    const done = new Promise<void>((resolve) => target.once('update', () => resolve()))
+    transferSourceSelection(target, html, targetOwner)
+    await done
+    const expected =
+      sourceOwner === 'ssh-source'
+        ? 'original SSH bytes'
+        : sourceOwner
+          ? 'original remote bytes'
+          : 'original local bytes'
+    const targetBytes = targetOwner
+      ? [...(files.get('target-original')?.values() ?? [])]
+      : [localFiles.get('/repo/target/copied.png')]
+    expect(targetBytes.map((bytes) => bytes?.toString())).toEqual([expected])
+    expect(target.getMarkdown()).not.toContain('(image.png)')
+    expect(toast.error).not.toHaveBeenCalled()
+  })
 
-it.each([
-  ['source', 'pairing'],
-  ['source', 'connection'],
-  ['target', 'pairing'],
-  ['target', 'connection'],
-  ['target', 'close']
-])(
-  'rejects %s %s during an original source read without admitting destination writes',
-  async (owner, kind) => {
-    const started = Promise.withResolvers<void>()
-    const held = Promise.withResolvers<void>()
-    beforeRead = async () => {
-      started.resolve()
-      await held.promise
-    }
+  it('imports even when equal directory paths belong to different runtimes', async () => {
     const html = copySource()
-    const target = createEditor('target', '/repo/target/note.md', 'unchanged')
-    paste(target, html)
-    await started.promise
-    if (kind === 'pairing') {
-      replaceOwner(owner)
-    } else if (kind === 'connection') {
-      setRuntimeEnvironmentConnectionGenerationForTests(owner, 1)
-    } else {
-      target.destroy()
-    }
-    held.resolve()
-    await (kind !== 'close'
-      ? vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
-      : new Promise<void>((resolve) => setImmediate(resolve)))
+    const target = createEditor('target', '/repo/source/another.md', '')
+    const done = new Promise<void>((resolve) => target.once('update', () => resolve()))
+    transferSourceSelection(target, html, 'target', '/repo/source/another.md')
+    await done
     expect(
-      remoteCall.mock.calls
-        .map(([request]) => request.method)
-        .filter((method) => method !== 'status.get')
-    ).toEqual(['files.readPreview'])
-    expect(files.get('target-original')?.size).toBe(0)
-    expect(files.get('target-replacement')?.size ?? 0).toBe(0)
-    if (kind !== 'close') {
+      [...(files.get('target-original')?.values() ?? [])].map((bytes) => bytes.toString())
+    ).toEqual(['original remote bytes'])
+  })
+
+  it.each(['pairing', 'connection'] as const)(
+    'refuses source %s changes before any read',
+    async (kind) => {
+      const html = copySource()
+      if (kind === 'pairing') {
+        replaceOwner('source')
+      } else {
+        setRuntimeEnvironmentConnectionGenerationForTests('source', 1)
+      }
+      const target = createEditor('target', '/repo/target/note.md', 'unchanged')
+      transferSourceSelection(target, html)
+      expect(remoteCall).not.toHaveBeenCalled()
       expect(target.getMarkdown()).toBe('unchanged')
-    } else {
-      expect(toast.error).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledOnce()
     }
-  }
-)
+  )
 
-it('uses the existing compatibility refusal when an older destination lacks file-mutation ownership', async () => {
-  mutationCapable = false
-  const target = createEditor('target', '/repo/target/note.md', 'unchanged')
-  paste(target, copySource())
-  await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
-  expect(remoteCall.mock.calls.map(([request]) => request.method)).toEqual([
-    'status.get',
-    'files.readPreview',
-    'status.get'
-  ])
-  expect(files.get('target-original')?.size).toBe(0)
-  expect(target.getMarkdown()).toBe('unchanged')
-})
-
-it.each(['before paste', 'during read'])(
-  'rejects a direct SSH source reconnect %s',
-  async (phase) => {
-    const started = Promise.withResolvers<void>()
-    const held = Promise.withResolvers<void>()
-    const html = copySource('ssh-source')
-    const target = createEditor('target', '/repo/target/note.md', 'unchanged')
-    if (phase === 'before paste') {
-      sshState.generation = 2
-    } else {
+  it.each([
+    ['source', 'pairing'],
+    ['source', 'connection'],
+    ['target', 'pairing'],
+    ['target', 'connection'],
+    ['target', 'close']
+  ])(
+    'rejects %s %s during an original source read without admitting destination writes',
+    async (owner, kind) => {
+      const started = Promise.withResolvers<void>()
+      const held = Promise.withResolvers<void>()
       beforeRead = async () => {
         started.resolve()
         await held.promise
       }
-    }
-    paste(target, html)
-    if (phase === 'during read') {
+      const html = copySource()
+      const target = createEditor('target', '/repo/target/note.md', 'unchanged')
+      transferSourceSelection(target, html)
       await started.promise
-      sshState.generation = 2
+      if (kind === 'pairing') {
+        replaceOwner(owner)
+      } else if (kind === 'connection') {
+        setRuntimeEnvironmentConnectionGenerationForTests(owner, 1)
+      } else {
+        target.destroy()
+      }
       held.resolve()
+      await (kind !== 'close'
+        ? vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
+        : new Promise<void>((resolve) => setImmediate(resolve)))
+      expect(
+        remoteCall.mock.calls
+          .map(([request]) => request.method)
+          .filter((method) => method !== 'status.get')
+      ).toEqual(['files.readPreview'])
+      expect(files.get('target-original')?.size).toBe(0)
+      expect(files.get('target-replacement')?.size ?? 0).toBe(0)
+      if (kind !== 'close') {
+        expect(target.getMarkdown()).toBe('unchanged')
+      } else {
+        expect(toast.error).not.toHaveBeenCalled()
+      }
     }
+  )
+
+  it('uses the existing compatibility refusal when an older destination lacks file-mutation ownership', async () => {
+    mutationCapable = false
+    const target = createEditor('target', '/repo/target/note.md', 'unchanged')
+    transferSourceSelection(target, copySource())
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
-    expect(readLocal).toHaveBeenCalledTimes(phase === 'during read' ? 1 : 0)
-    expect(remoteCall).not.toHaveBeenCalled()
+    expect(remoteCall.mock.calls.map(([request]) => request.method)).toEqual([
+      'status.get',
+      'files.readPreview',
+      'status.get'
+    ])
     expect(files.get('target-original')?.size).toBe(0)
     expect(target.getMarkdown()).toBe('unchanged')
-  }
-)
+  })
+
+  it.each(['before paste', 'during read'])(
+    'rejects a direct SSH source reconnect %s',
+    async (phase) => {
+      const started = Promise.withResolvers<void>()
+      const held = Promise.withResolvers<void>()
+      const html = copySource('ssh-source')
+      const target = createEditor('target', '/repo/target/note.md', 'unchanged')
+      if (phase === 'before paste') {
+        sshState.generation = 2
+      } else {
+        beforeRead = async () => {
+          started.resolve()
+          await held.promise
+        }
+      }
+      transferSourceSelection(target, html)
+      if (phase === 'during read') {
+        await started.promise
+        sshState.generation = 2
+        held.resolve()
+      }
+      await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
+      expect(readLocal).toHaveBeenCalledTimes(phase === 'during read' ? 1 : 0)
+      expect(remoteCall).not.toHaveBeenCalled()
+      expect(files.get('target-original')?.size).toBe(0)
+      expect(target.getMarkdown()).toBe('unchanged')
+    }
+  )
+})
