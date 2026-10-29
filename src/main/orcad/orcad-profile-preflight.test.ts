@@ -339,6 +339,28 @@ describe('startup qualification on an unchanged host', () => {
     expect(fixture.recordQualification).not.toHaveBeenCalled()
   })
 
+  it('unlinks the marker only after an in-flight record has renamed it into place', async () => {
+    const order: string[] = []
+    const record = Promise.withResolvers<void>()
+    fixture.recordQualification.mockImplementation(async () => {
+      await record.promise
+      order.push('recorded')
+    })
+    fixture.discardQualification.mockImplementation(async () => {
+      order.push('discarded')
+    })
+    await preflightBundledOrcadStartup()
+
+    const confirming = confirmBundledOrcadStartupQualified()
+    const discarding = discardBundledOrcadStartupQualification()
+    await Promise.resolve()
+    expect(order).toEqual([])
+    record.resolve()
+    await Promise.all([confirming, discarding])
+
+    expect(order).toEqual(['recorded', 'discarded'])
+  })
+
   it('touches no marker on Windows or outside a managed slot when node-pty fails', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     await discardBundledOrcadStartupQualification()
