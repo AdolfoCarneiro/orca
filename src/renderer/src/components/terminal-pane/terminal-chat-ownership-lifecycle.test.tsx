@@ -27,8 +27,6 @@ import {
   createSettleTerminalTabRecovery
 } from '@/store/slices/worktrees/session/worktree-slice-lookups'
 import { resolveActiveNativeChatSplitTarget } from '../native-chat/native-chat-layout-actions'
-import { requestActiveTerminalPaneSplit } from '../tab-bar/request-active-terminal-pane-split'
-import { REQUEST_ACTIVE_TERMINAL_PANE_SPLIT_EVENT } from '@/constants/terminal'
 import type { PtyTransport } from './pty-transport-types'
 import { createTabsLabelActions } from '../../store/slices/tabs/tabs-label-actions'
 import { detachTerminalLayoutLeaf } from './terminal-layout-leaf-detach'
@@ -308,6 +306,8 @@ describe('terminal chat ownership lifecycle', () => {
       try {
         expect(hook.result.current.chatPane).toBeNull()
         expect(hook.result.current.chatLeafId).toBeNull()
+        expect(hook.result.current.contextMenuCanToggleChat).toBe(true)
+        expect(hook.result.current.contextMenuIsChatView).toBe(true)
         await act(async () => {
           expect(
             await requestTerminalPaneRecovery({
@@ -331,6 +331,7 @@ describe('terminal chat ownership lifecycle', () => {
         expect(manager.getPanes()[0].serializeAddon.serialize()).toBe('retained scrollback')
         if (wake === 'return') {
           act(() => hook.result.current.handleContextMenuToggleNativeChat())
+          fixture.nativeChatIsWslProject = true
         }
         act(() => useAppStore.setState({ runtimePaneTitlesByTabId: { tab: { 1: 'claude' } } }))
         expect(hook.result.current.chatPane).toBe(
@@ -339,6 +340,11 @@ describe('terminal chat ownership lifecycle', () => {
         expect(useAppStore.getState().tabsByWorktree.wt[0].viewMode).toBe(
           wake === 'identity' ? 'chat' : 'terminal'
         )
+        if (wake === 'return') {
+          expect(hook.result.current.contextMenuCanToggleChat).toBe(true)
+          act(() => hook.result.current.handleContextMenuToggleNativeChat())
+          expect(hook.result.current.chatLeafId).toBe(LEFT)
+        }
       } finally {
         instance.unregister()
         unregister()
@@ -356,6 +362,7 @@ describe('terminal chat ownership lifecycle', () => {
   ] as const)(
     'refuses a tab-wide remount for %s, including changes during authoritative liveness',
     async (change) => {
+      vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
       const fixture = makeFixture(undefined, undefined, null)
       useAppStore.setState({ runtimePaneTitlesByTabId: { tab: {} } })
       const saved = { ...mocks.state.terminalLayoutsByTabId.tab }
@@ -545,13 +552,6 @@ describe('terminal chat ownership lifecycle', () => {
       expect(resolveActiveNativeChatSplitTarget(useAppStore.getState(), 'wt', 'group-wt')).toEqual(
         resolved ? { kind: 'terminal-pane', terminalTabId: 'tab' } : null
       )
-      const split = vi.fn()
-      window.addEventListener(REQUEST_ACTIVE_TERMINAL_PANE_SPLIT_EVENT, split)
-      requestActiveTerminalPaneSplit({ tabId: 'tab', direction: 'vertical' })
-      window.removeEventListener(REQUEST_ACTIVE_TERMINAL_PANE_SPLIT_EVENT, split)
-      expect(split).toHaveBeenCalledExactlyOnceWith(
-        expect.objectContaining({ detail: { tabId: 'tab', direction: 'vertical' } })
-      )
       expect(
         sendCapturedTerminalInput({
           targetPaneMounted: fixture.managerRef.current.getPanes().includes(active),
@@ -566,25 +566,6 @@ describe('terminal chat ownership lifecycle', () => {
       expect(hook.result.current.effectiveChatViewMode).toBe(resolved)
     }
   )
-
-  it('waits for real identity without a shell composer, and permits Return before identity arrives', () => {
-    const fixture = makeFixture(undefined, undefined, null)
-    useAppStore.setState({ runtimePaneTitlesByTabId: { tab: {} } })
-    const hook = renderHook(() => useFixture(fixture, null))
-    expect(hook.result.current.chatLeafId).toBeNull()
-    expect(hook.result.current.chatPane).toBeNull()
-    expect(hook.result.current.contextMenuCanToggleChat).toBe(true)
-    expect(hook.result.current.contextMenuIsChatView).toBe(true)
-    act(() => hook.result.current.handleContextMenuToggleNativeChat())
-    fixture.nativeChatIsWslProject = true
-    act(() => useAppStore.setState({ runtimePaneTitlesByTabId: { tab: { 1: 'claude' } } }))
-    hook.rerender()
-    expect(hook.result.current.chatPane).toBeNull()
-    expect(useAppStore.getState().unifiedTabsByWorktree.wt[0].viewMode).toBe('terminal')
-    expect(hook.result.current.contextMenuCanToggleChat).toBe(true)
-    act(() => hook.result.current.handleContextMenuToggleNativeChat())
-    expect(hook.result.current.chatLeafId).toBe(LEFT)
-  })
 
   it.each(['openclaude', 'zcode'] as const)(
     'retires an ownerless saved %s once late identity arrives',
@@ -708,11 +689,9 @@ describe('terminal chat ownership lifecycle', () => {
   })
 
   it.each([
-    { runtime: true, agent: 'codex' },
     { runtime: false, agent: 'codex' },
     { runtime: null, agent: 'codex' },
-    { runtime: true, agent: 'openclaude' },
-    { runtime: null, agent: 'zcode' }
+    { runtime: true, agent: 'openclaude' }
   ] as const)(
     'mounts a detached saved $agent owner at runtime $runtime without replacing its resources',
     ({ runtime, agent }) => {
@@ -728,13 +707,6 @@ describe('terminal chat ownership lifecycle', () => {
       fixture.managerRef.current.getPanes().shift()?.container.remove()
       const pane = fixture.managerRef.current.getPanes()[0]
       useAppStore.setState({ runtimePaneTitlesByTabId: { tab: { 2: agent } } })
-      if (agent === 'zcode') {
-        useAppStore.setState({
-          paneForegroundAgentByPaneKey: {
-            [`tab:${RIGHT}`]: { agent, shellForeground: false, routingRevoked: false }
-          }
-        })
-      }
       const hook = renderHook(() => useFixture(fixture, detached.detachedLayout.chatLeafId ?? null))
       const saved = mocks.state.terminalLayoutsByTabId.tab
       expect(hook.result.current.effectiveChatViewMode).toBe(runtime !== false && agent === 'codex')

@@ -188,6 +188,7 @@ function startHost(): {
 function createPane() {
   const activeBuffer = { type: 'normal' as const, viewportY: 0, baseY: 0, cursorY: 0, cursorX: 0 }
   const container = new EventTarget() as HTMLElement
+  container.querySelector = () => null
   Object.defineProperty(container, 'dataset', { configurable: true, value: {} })
   const terminal = {
     cols: 120,
@@ -220,8 +221,8 @@ function createPane() {
   return { id: 1, leafId: LEAF_ID, stablePaneId: LEAF_ID, terminal, container }
 }
 
-function createManager() {
-  const panes = [{ id: 1, leafId: LEAF_ID }]
+function createManager(pane: ReturnType<typeof createPane>) {
+  const panes = [pane]
   return {
     setPaneGpuRendering: vi.fn(),
     markPaneHasComplexScriptOutput: vi.fn(),
@@ -290,6 +291,7 @@ describe('host-rejected paired-runtime input reaches a pane remount', () => {
     remountTerminalTabForRecovery.mockReturnValue(REMOUNTED)
     mockStoreState = {
       activeWorktreeId: 'wt-1',
+      unifiedTabsByWorktree: {},
       activeWorkspaceExecutionHostId: `runtime:${ENVIRONMENT_ID}`,
       tabsByWorktree: { 'wt-1': [{ id: 'tab-1', ptyId: REMOTE_PTY_ID }] },
       ptyIdsByTabId: { 'tab-1': [REMOTE_PTY_ID] },
@@ -412,23 +414,37 @@ describe('host-rejected paired-runtime input reaches a pane remount', () => {
 
       const pane = createPane()
       const deps = createDeps()
-      const binding = connectPanePty(pane as never, createManager() as never, deps as never)
-      await vi.waitFor(() => {
-        expect(deps.paneTransportsRef.current.get(1)?.getPtyId()).toBe(REMOTE_PTY_ID)
+      const { registerRuntimeTerminalTab } = await import('@/runtime/mounted-terminal-tab-registry')
+      const args = [pane as never, createManager(pane) as never, deps as never] as const
+      const unregister = registerRuntimeTerminalTab({
+        tabId: deps.tabId,
+        worktreeId: deps.worktreeId,
+        getManager: () => args[1],
+        getContainer: () => null,
+        getPtyIdForPane: (id) => deps.paneTransportsRef.current.get(id)?.getPtyId() ?? null,
+        getTabWideAgentHintLeafId: () => null
       })
+      let binding: ReturnType<typeof connectPanePty> | undefined
+      try {
+        binding = connectPanePty(...args)
+        await vi.waitFor(() => {
+          expect(deps.paneTransportsRef.current.get(1)?.getPtyId()).toBe(REMOTE_PTY_ID)
+        })
 
-      sendTerminalInput(pane, 'ls\r')
-      await vi.waitFor(() => expect(sendTerminal).toHaveBeenCalled())
-      await vi.waitFor(() => expect(hostOpcodes).toContain(TerminalStreamOpcode.WriteUnavailable))
-      await vi.waitFor(() =>
-        expect(remountTerminalTabForRecovery).toHaveBeenCalledWith(
-          'tab-1',
-          expect.objectContaining({ reason: 'input-rejected-by-host', trigger: 'automatic' })
+        sendTerminalInput(pane, 'ls\r')
+        await vi.waitFor(() => expect(sendTerminal).toHaveBeenCalled())
+        await vi.waitFor(() => expect(hostOpcodes).toContain(TerminalStreamOpcode.WriteUnavailable))
+        await vi.waitFor(() =>
+          expect(remountTerminalTabForRecovery).toHaveBeenCalledWith(
+            'tab-1',
+            expect.objectContaining({ reason: 'input-rejected-by-host', trigger: 'automatic' })
+          )
         )
-      )
-
-      binding.dispose()
-      _resetTerminalPaneRecoveryForTests()
+      } finally {
+        binding?.dispose()
+        unregister()
+        _resetTerminalPaneRecoveryForTests()
+      }
     })
   }
 })

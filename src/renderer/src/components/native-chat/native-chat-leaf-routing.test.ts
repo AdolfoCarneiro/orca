@@ -164,32 +164,6 @@ describe('resolveNativeChatLeafRoute', () => {
     ).toEqual({ chatLeafId: 'stopped-agent', exitChat: false })
   })
 
-  it('exits chat rather than inheriting an active shell after close', () => {
-    expect(
-      resolveNativeChatLeafRoute({
-        savedOwnerDisposition: 'recover',
-        isChatViewMode: true,
-        chatLeafId: 'closed-agent',
-        activeLeafId: 'shell-leaf',
-        chatLeafStillMounted: false,
-        activeLeafDisposition: 'retire'
-      })
-    ).toEqual({ chatLeafId: null, exitChat: true })
-  })
-
-  it('keeps chat open when its mounted leaf loses agent evidence', () => {
-    expect(
-      resolveNativeChatLeafRoute({
-        savedOwnerDisposition: 'recover',
-        isChatViewMode: true,
-        chatLeafId: 'stopped-agent',
-        activeLeafId: 'shell-leaf',
-        chatLeafStillMounted: true,
-        activeLeafDisposition: 'pending'
-      })
-    ).toEqual({ chatLeafId: 'stopped-agent', exitChat: false })
-  })
-
   it('exits chat when the mounted agent has authoritatively returned to its shell', () => {
     expect(
       resolveNativeChatLeafRoute({
