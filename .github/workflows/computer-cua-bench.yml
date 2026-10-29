@@ -1,0 +1,114 @@
+name: Computer-use cua-driver bench
+
+# Throwaway evidence: cua-driver 0.38.0 vs Orca's runtime.ps1 / runtime.py, background delivery and side effects.
+on:
+  push:
+    branches: ['bench/computer-cua-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: computer-cua-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CUA_TAG: cua-driver-rs-v0.38.0
+  CUA_DRIVER_RS_TELEMETRY_ENABLED: '0'
+  DO_NOT_TRACK: '1'
+  CUA_DRIVER_RS_UPDATE_CHECK: '0'
+  ELECTRON_VERSION: '43.8.1'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fixture, editor, electron]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install desktop, AT-SPI and apps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb openbox dbus-x11 at-spi2-core python3-gi \
+            gir1.2-atspi-2.0 gir1.2-gtk-3.0 python3-tk gedit xdotool xclip libnss3 libgbm1 libasound2t64
+      - name: Download and verify cua-driver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/cua-dl" "$RUNNER_TEMP/cua"
+          cd "$RUNNER_TEMP/cua-dl"
+          asset="cua-driver-rs-0.38.0-linux-x86_64-binary.tar.gz"
+          gh release download "$CUA_TAG" --repo trycua/cua --pattern checksums.txt --pattern "$asset"
+          grep " $asset\$" checksums.txt | sha256sum -c -
+          tar -xzf "$asset" -C "$RUNNER_TEMP/cua"
+          ls -la "$RUNNER_TEMP/cua"
+      - name: Install Electron
+        if: matrix.target == 'electron'
+        run: npm install --no-save --no-package-lock --prefix "$RUNNER_TEMP/electron" "electron@$ELECTRON_VERSION"
+      - name: Run bench
+        env:
+          ACCESSIBILITY_ENABLED: '1'
+        run: |
+          mkdir -p out
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" dbus-run-session -- bash -c \
+            "openbox >/tmp/openbox.log 2>&1 & sleep 2; python3 bench/computer-cua/bench.py --target ${{ matrix.target }} \
+              --cua '$RUNNER_TEMP/cua/cua-driver' --electron '$RUNNER_TEMP/electron/node_modules/electron/dist/electron' \
+              --out out/linux-${{ matrix.target }} --budget 780"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-linux-${{ matrix.target }}
+          path: out
+          if-no-files-found: warn
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fixture, editor, electron]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download and verify cua-driver
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $dl = Join-Path $env:RUNNER_TEMP 'cua-dl'; $dst = Join-Path $env:RUNNER_TEMP 'cua'
+          New-Item -ItemType Directory -Force $dl, $dst | Out-Null
+          $asset = 'cua-driver-rs-0.38.0-windows-x86_64-binary.zip'
+          gh release download $env:CUA_TAG --repo trycua/cua --pattern checksums.txt --pattern $asset --dir $dl
+          $expected = (Select-String -Path (Join-Path $dl 'checksums.txt') -Pattern " $([regex]::Escape($asset))$").Line.Split(' ')[0]
+          $actual = (Get-FileHash (Join-Path $dl $asset) -Algorithm SHA256).Hash.ToLower()
+          if ($expected -ne $actual) { throw "checksum mismatch: $expected vs $actual" }
+          Write-Host "sha256 ok $actual"
+          Expand-Archive (Join-Path $dl $asset) -DestinationPath $dst
+          Get-ChildItem $dst
+      - name: Install Electron
+        if: matrix.target == 'electron'
+        shell: pwsh
+        run: npm install --no-save --no-package-lock --prefix "$env:RUNNER_TEMP\electron" "electron@$env:ELECTRON_VERSION"
+      - name: Run bench
+        shell: pwsh
+        run: |
+          python bench/computer-cua/bench.py --target ${{ matrix.target }} --cua "$env:RUNNER_TEMP\cua\cua-driver.exe" `
+            --electron "$env:RUNNER_TEMP\electron\node_modules\electron\dist\electron.exe" `
+            --out out/windows-${{ matrix.target }} --budget 780
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-windows-${{ matrix.target }}
+          path: out
+          if-no-files-found: warn
