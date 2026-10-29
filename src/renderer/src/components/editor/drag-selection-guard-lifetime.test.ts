@@ -35,14 +35,18 @@ beforeEach(() => {
     if (type === 'selectionchange' && listener) {
       selectionListeners.add(listener)
     }
-    if (listener && options === true) terminalListeners.get(type)?.add(listener)
+    if (listener && options === true) {
+      terminalListeners.get(type)?.add(listener)
+    }
     add(type, listener, options)
   })
   vi.spyOn(document, 'removeEventListener').mockImplementation((type, listener, options) => {
     if (type === 'selectionchange' && listener) {
       selectionListeners.delete(listener)
     }
-    if (listener && options === true) terminalListeners.get(type)?.delete(listener)
+    if (listener && options === true) {
+      terminalListeners.get(type)?.delete(listener)
+    }
     remove(type, listener, options)
   })
 })
@@ -58,7 +62,9 @@ afterEach(async () => {
   }
   selectionListeners.clear()
   for (const [type, listeners] of terminalListeners) {
-    for (const listener of listeners) document.removeEventListener(type, listener, true)
+    for (const listener of listeners) {
+      document.removeEventListener(type, listener, true)
+    }
     listeners.clear()
   }
   for (const host of hosts.splice(0)) {

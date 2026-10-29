@@ -127,8 +127,9 @@ test('toolbar formatting consumes completed forward and backward native drags', 
         '.rich-markdown-editor'
       )?.editor
       const native = document.getSelection()
-      if (!instance || !native?.anchorNode || !native.focusNode)
+      if (!instance || !native?.anchorNode || !native.focusNode) {
         throw new Error('Expected editor/native selection')
+      }
       return (
         instance.state.selection.anchor ===
           instance.view.posAtDOM(native.anchorNode, native.anchorOffset) &&

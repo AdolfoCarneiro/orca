@@ -255,7 +255,9 @@ it('publishes a held native range on outside release and exposes its review-note
   const editor = live.editor
   const paragraph = view.container.querySelector('.rich-markdown-editor p:last-child')
   const text = paragraph?.querySelector('a')?.firstChild ?? paragraph?.firstChild
-  if (!editor || !paragraph || !text) throw new Error('Expected mounted editor text')
+  if (!editor || !paragraph || !text) {
+    throw new Error('Expected mounted editor text')
+  }
   vi.useFakeTimers()
   vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(10, 10, 100, 20))
   act(() => {

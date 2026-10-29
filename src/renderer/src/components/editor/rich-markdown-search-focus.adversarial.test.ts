@@ -115,12 +115,19 @@ describe('Find focus with editor-owned selection', () => {
         throw new Error('Expected native selection')
       }
       const restorations = vi.spyOn(native, 'setBaseAndExtent')
+      const nativeWrites = [
+        vi.spyOn(native, 'collapse'),
+        vi.spyOn(native, 'extend'),
+        vi.spyOn(native, 'addRange'),
+        vi.spyOn(native, 'removeAllRanges')
+      ]
       try {
         fireEvent.keyDown(active.view.dom, { key: 'Shift' })
         document.dispatchEvent(new Event('selectionchange'))
         vi.runAllTimers()
         expect(publications).not.toHaveBeenCalled()
         expect(restorations).not.toHaveBeenCalled()
+        expect(nativeWrites.map((write) => write.mock.calls.length)).toEqual([0, 0, 0, 0])
         expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
         const activeReads = reads.at(-1)
         if (activeReads === undefined) {
@@ -144,6 +151,7 @@ describe('Find focus with editor-owned selection', () => {
           }
           native.setBaseAndExtent(text, 7 + step, text, 2 + step)
           restorations.mockClear()
+          nativeWrites.forEach((write) => write.mockClear())
           publications.mockClear()
           reads.fill(0)
           if (boundary !== 'key') {
@@ -165,15 +173,25 @@ describe('Find focus with editor-owned selection', () => {
           vi.runAllTimers()
           expect(publications).toHaveBeenCalledOnce()
           expect(restorations).toHaveBeenCalledTimes(1)
+          expect(nativeWrites.map((write) => write.mock.calls.length)).toEqual([0, 0, 0, 0])
+          expect(
+            [restorations, ...nativeWrites].reduce(
+              (total, write) => total + write.mock.calls.length,
+              0
+            )
+          ).toBe(1)
           expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
           const settledReads = reads.at(-1)
-          if (settledReads === undefined) throw new Error('Expected settled owner mapping count')
+          if (settledReads === undefined) {
+            throw new Error('Expected settled owner mapping count')
+          }
           expect(settledReads).toBeLessThanOrEqual(30 * paragraphs)
         }
       } finally {
         measuredViews.forEach(({ restore }) => restore())
         surfaces.forEach(({ editor }) => editor.destroy())
         restorations.mockRestore()
+        nativeWrites.forEach((write) => write.mockRestore())
       }
       await Promise.resolve()
       const counts = mappings.map((mapping) => mapping.mock.calls.length)
@@ -198,7 +216,9 @@ describe('Find focus with editor-owned selection', () => {
           : '<p>lower caret</p>'
       )
       const text = editor.view.dom.querySelector('p')?.firstChild
-      if (!text) throw new Error('Expected native text')
+      if (!text) {
+        throw new Error('Expected native text')
+      }
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Inspect the pinned engine's actual tracker/observer; never replace its done or delayed writer.
       const engine = editor.view as Editor['view'] & {
         input: {
@@ -220,14 +240,18 @@ describe('Find focus with editor-owned selection', () => {
           shiftKey: true
         })
         const tracker = engine.input.mouseDown
-        if (!tracker) throw new Error('Expected real native engine tracker')
+        if (!tracker) {
+          throw new Error('Expected real native engine tracker')
+        }
         expect(tracker.allowDefault).toBe(true)
         const done = vi.spyOn(tracker, 'done')
         const mappings = vi.spyOn(editor.view, 'posAtDOM')
         fireEvent.mouseMove(document, { buttons: 1 })
         expect(mappings).not.toHaveBeenCalled()
         const native = document.getSelection()
-        if (!native) throw new Error('Expected native selection')
+        if (!native) {
+          throw new Error('Expected native selection')
+        }
         native.setBaseAndExtent(text, anchor, text, head)
         document.dispatchEvent(new Event('selectionchange'))
         expect(editor.state.selection.empty).toBe(true)
@@ -249,10 +273,13 @@ describe('Find focus with editor-owned selection', () => {
         expect(restore).toHaveBeenCalledOnce()
         expect(editor.state.selection.anchor).toBe(editor.view.posAtDOM(text, anchor))
         expect(editor.state.selection.head).toBe(editor.view.posAtDOM(text, head))
-        const immediateWrites = writes.map((write) => write.mock.calls.length)
+        // Equivalent text endpoints allow one restoration; immediate and delayed engine writers must do nothing.
         document.dispatchEvent(new Event('selectionchange'))
         vi.runAllTimers()
-        expect(writes.map((write) => write.mock.calls.length)).toEqual(immediateWrites)
+        expect(writes.map((write) => write.mock.calls.length)).toEqual([0, 0, 0, 0])
+        expect(
+          [restore, ...writes].reduce((total, write) => total + write.mock.calls.length, 0)
+        ).toBe(1)
         expect(restore).toHaveBeenCalledOnce()
         expect(publications).toHaveBeenCalledOnce()
         expect(native.anchorNode).toBe(text)
@@ -268,17 +295,24 @@ describe('Find focus with editor-owned selection', () => {
           shiftKey: true
         })
         const teardownTracker = engine.input.mouseDown
-        if (!teardownTracker) throw new Error('Expected teardown gesture tracker')
+        if (!teardownTracker) {
+          throw new Error('Expected teardown gesture tracker')
+        }
         native.setBaseAndExtent(text, head, text, anchor)
         document.dispatchEvent(new Event('selectionchange'))
+        restore.mockClear()
+        writes.forEach((write) => write.mockClear())
         fireEvent.mouseUp(document, { button: 0 })
         expect(teardownTracker.delayedSelectionSync).toBe(true)
         editor.destroy()
-        const settledWrites = writes.map((write) => write.mock.calls.length)
         document.dispatchEvent(new MouseEvent('mouseup', { button: 0 }))
         document.dispatchEvent(new MouseEvent('mousemove', { buttons: 0 }))
         vi.runAllTimers()
-        expect(writes.map((write) => write.mock.calls.length)).toEqual(settledWrites)
+        expect(writes.map((write) => write.mock.calls.length)).toEqual([0, 0, 0, 0])
+        expect(restore).toHaveBeenCalledOnce()
+        expect(
+          [restore, ...writes].reduce((total, write) => total + write.mock.calls.length, 0)
+        ).toBe(1)
       } finally {
         editor.destroy()
       }
@@ -307,8 +341,9 @@ describe('Find focus with editor-owned selection', () => {
       ])
       const text = editor.view.dom.querySelector('p')?.firstChild
       const control = editor.view.dom.querySelector('section input')
-      if (!text || !(control instanceof HTMLInputElement))
+      if (!text || !(control instanceof HTMLInputElement)) {
         throw new Error('Expected text and stopped control')
+      }
       try {
         editor.view.focus()
         vi.spyOn(editor.view, 'posAtCoords').mockReturnValue({ pos: 1, inside: -1 })
@@ -333,7 +368,9 @@ describe('Find focus with editor-owned selection', () => {
         // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Observe the pinned engine flush boundary without replacing it.
         const engine = editor.view as Editor['view'] & { domObserver: { forceFlush(): void } }
         const flushes = vi.spyOn(engine.domObserver, 'forceFlush')
-        if (owner === 'return-before-release') editor.view.focus()
+        if (owner === 'return-before-release') {
+          editor.view.focus()
+        }
         fireEvent.mouseUp(document, { button: 0 })
         if (owner !== 'return-before-release') {
           expect(mappings).not.toHaveBeenCalled()

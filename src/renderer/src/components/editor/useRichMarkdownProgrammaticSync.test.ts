@@ -167,7 +167,9 @@ describe('useRichMarkdownProgrammaticSync stale pending edit', () => {
           editor.commands.setTextSelection({ from: 1, to: 2 })
         }
         const text = editor.view.dom.querySelector('p')?.firstChild
-        if (!text) throw new Error('Expected native source text')
+        if (!text) {
+          throw new Error('Expected native source text')
+        }
         const holdNotification = (event: Event) => event.stopImmediatePropagation()
         document.addEventListener('selectionchange', holdNotification, true)
         try {
