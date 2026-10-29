@@ -1,3 +1,4 @@
+import { projectSelectedSourceControlActionLaunch } from '../../../../shared/source-control-action-launch-preferences'
 import {
   ensureAgentLaunchPreferences,
   readAgentLaunchPreferencesForWorktree
@@ -35,9 +36,9 @@ export function useSourceControlAgentActionStart({
   selectedAgent,
   commandInput,
   trimmedCommandInput,
-  agentArgs,
   agentArgsApply,
   recipe,
+  prepareRecipe,
   saveLaunchRecipe,
   saveTargetValue,
   actionId,
@@ -105,6 +106,7 @@ export function useSourceControlAgentActionStart({
       attemptRef.current = attempt
       setIsStarting(true)
       try {
+        const submitted = prepareRecipe ? prepareRecipe(selectedAgent) : recipe
         const targetFor = (state: AppState) =>
           worktreeId
             ? detectionTargetForWorktree(state, worktreeId)
@@ -177,7 +179,12 @@ export function useSourceControlAgentActionStart({
             agentLaunchPreferences: currentPreferences,
             selectedAgent,
             commandInput,
-            agentArgs: agentArgsApply ? agentArgs : undefined,
+            agentArgs: agentArgsApply
+              ? projectSelectedSourceControlActionLaunch(submitted, selectedAgent, {
+                  renderedPrompt: commandInput,
+                  settings: current.settings
+                }).agentArgs
+              : undefined,
             detectedAgents: agentArgsApply
               ? [...(inventory.ids ?? [])]
               : agentsOfferedForLaunch(current, workspace, inventory.ids),
@@ -204,7 +211,7 @@ export function useSourceControlAgentActionStart({
           selectedAgent,
           trimmedCommandInput,
           launchChoice,
-          recipe,
+          recipe: submitted,
           saveTargetValue: saveLaunchRecipe ? saveTargetValue : 'none',
           actionId,
           repoId,
@@ -248,13 +255,13 @@ export function useSourceControlAgentActionStart({
     [
       actionId,
       agentLaunchPreferences,
-      agentArgs,
       agentArgsApply,
       commandInput,
       connectionId,
       isRemote,
       launchChoice,
       recipe,
+      prepareRecipe,
       connectionUnavailable,
       groupId,
       launchSource,

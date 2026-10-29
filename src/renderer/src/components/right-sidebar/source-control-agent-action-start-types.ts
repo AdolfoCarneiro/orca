@@ -1,3 +1,4 @@
+import type { SelectedSourceControlActionRecipe } from '../../../../shared/source-control-action-selection'
 import type { AgentLaunchPreferences } from '@/components/settings/use-host-agent-launch-preferences'
 import type { RuntimeGitContext } from '@/runtime/runtime-git-client-context'
 import type { LaunchSource } from '../../../../shared/telemetry-events'
@@ -19,10 +20,10 @@ export type UseSourceControlAgentActionStartArgs = {
   selectedAgent: TuiAgent | null
   commandInput: string
   trimmedCommandInput: string
-  agentArgs?: string
   /** False when the launch would be structured native chat, which reads no CLI arguments. */
   agentArgsApply: boolean
-  recipe: SourceControlActionRecipe
+  prepareRecipe?: (agent: TuiAgent) => SelectedSourceControlActionRecipe
+  recipe: SelectedSourceControlActionRecipe
   saveLaunchRecipe: boolean
   saveTargetValue: string
   actionId: SourceControlLaunchActionId

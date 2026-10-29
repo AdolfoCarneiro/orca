@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, render, cleanup, fireEvent } from '@testing-library/react'
 import '../../__fixtures__/settings-persistence-test-fixture'
 import React from 'react'
-import type { TuiAgent } from '../../../../../../shared/tui-agent'
 import { normalizeRepoSourceControlAiOverrides } from '../../../../../../shared/source-control-ai-repo-settings'
 import type { RepoSourceControlAiOverrides } from '../../../../../../shared/source-control-ai-types'
 import { setSourceControlActionAgentDefault } from '../../../../../../shared/source-control-ai-actions'
@@ -31,6 +30,7 @@ import { clearHostAgentMenuSettingsForTests } from '../../use-host-agent-launch-
 import { mutateHostAgentLaunchSettings } from '../../agent-launch-settings-transport'
 import { getRuntimeAgentInventoryKey } from '@/store/slices/runtime-agent-inventory-key'
 import { resetHostStructuredAgentsForTests } from '@/runtime/host-structured-agents'
+import { getLocalAgentPreflightContext } from '@/lib/local-preflight-context'
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('@/runtime/runtime-rpc-client', () => ({
   callRuntimeRpc: rpc,
@@ -185,10 +185,10 @@ describe('RepositorySourceControlAiActionRows', () => {
       expect(ensure).toHaveBeenCalledTimes(2)
       expect(detectAgents).toHaveBeenCalledTimes(1)
       for (const card of cards) {
-        expect(card.textContent).not.toContain('Model')
+        expect(card.textContent).toContain('Model')
         expect(card.textContent).toContain('Permissions')
         expect(card.textContent).toContain('Ask')
-        expect(card.querySelector('button[aria-label="saved"]')).toBeNull()
+        expect(card.querySelector('button[aria-label="saved"]')).not.toBeNull()
         const controls = Array.from(
           card.querySelectorAll<HTMLButtonElement>(
             'button[role="combobox"].min-w-0, button[aria-haspopup="menu"]'
@@ -209,8 +209,8 @@ describe('RepositorySourceControlAiActionRows', () => {
         )
         expect(controls.length).toBeGreaterThan(0)
         expect(controls.every((control) => !control.disabled)).toBe(true)
-        expect(card.textContent).not.toContain('Model')
-        expect(card.textContent).not.toContain('Effort')
+        expect(card.textContent).toContain('Model')
+        expect(card.textContent?.includes('Reasoning effort')).toBe(agent === 'codex')
         expect(card.textContent).toContain('Permissions')
         expect(
           card.querySelector<HTMLTextAreaElement>('textarea[aria-label="Arguments"]')?.value
@@ -268,7 +268,7 @@ describe('dropRepoLegacyInstructionForAction', () => {
 })
 
 it.each(['', '--model raw'])(
-  'a repository surface edit saves the complete target and keeps its arguments (%s)',
+  'a repository agent/surface edit keeps its owned Arguments group without pinning global choices (%s)',
   (agentArgs) => {
     const settings = useAppStore.getState().settings!
     const launchPreferences = {
@@ -293,16 +293,17 @@ it.each(['', '--model raw'])(
     expect(edited.actionOverrides?.fixChecks).toMatchObject({
       agentId: 'codex',
       agentArgs,
-      launchPreferences,
       surface: 'terminal'
     })
+    expect(edited.actionOverrides?.fixChecks?.launchPreferences).toBeUndefined()
     const payload = toSourceControlAiRepoUpdate(edited).sourceControlAi
     const replay = resolveSourceControlActionRecipe({
       settings: sourceSettings,
       repo: { sourceControlAi: payload ?? undefined },
       actionId: 'fixChecks'
     })
-    expect(replay).toMatchObject({ agentArgs, surface: 'terminal', launchPreferences })
+    expect(replay).toMatchObject({ agentArgs, surface: 'terminal' })
+    expect(replay.launchPreferences).toBeUndefined()
     expect(replay.launchPreferencesYieldToAgentArgs).toBeUndefined()
     const changedAgent = withRepoAiActionAgent(edited, sourceSettings, 'fixChecks', 'claude', {
       surface: 'chat'
@@ -312,12 +313,18 @@ it.each(['', '--model raw'])(
 )
 
 it('keeps default and missing-agent editors disabled only until the host inventory settles', async () => {
+  useAppStore.getState().clearLocalDetectedAgents()
   const settings = useAppStore.getState().settings!
   useAppStore.setState({
-    settings: { ...settings, experimentalNativeChat: false },
-    detectedAgentIds: null,
-    ensureDetectedAgents: vi.fn(() => new Promise<TuiAgent[]>(() => {}))
+    settings: { ...settings, experimentalNativeChat: false }
   })
+  type DetectAgents = Window['api']['preflight']['detectAgents']
+  const reply = Promise.withResolvers<Awaited<ReturnType<DetectAgents>>>()
+  const detected: Awaited<ReturnType<DetectAgents>> = ['claude']
+  const detectAgents = vi.spyOn(window.api.preflight, 'detectAgents').mockReturnValue(reply.promise)
+  const expectedContext = getLocalAgentPreflightContext(useAppStore.getState())
+  const originalEnsure = useAppStore.getState().ensureDetectedAgents
+  const ensure = vi.spyOn(useAppStore.getState(), 'ensureDetectedAgents')
   const onPick = vi.fn()
   const picker = (agent: 'codex' | null) =>
     React.createElement(
@@ -325,18 +332,79 @@ it('keeps default and missing-agent editors disabled only until the host invento
       null,
       React.createElement(SourceControlActionAgentPicker, { agent, onPick })
     )
-  const view = render(picker(null))
-  expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(true)
-  view.rerender(picker('codex'))
-  expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(true)
-  await act(async () => useAppStore.setState({ detectedAgentIds: ['claude'] }))
-  expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(false)
-  expect(onPick).not.toHaveBeenCalled()
-  fireEvent.click(view.getByRole('combobox'))
-  const available = view.getAllByRole('option').find((row) => row.textContent?.includes('Claude'))
-  expect(available).toBeDefined()
-  fireEvent.click(available!)
-  expect(onPick).toHaveBeenCalledWith('claude', {})
+  let view: ReturnType<typeof render> | undefined
+  try {
+    expect(useAppStore.getState().detectedAgentIds).toBeNull()
+    view = render(picker(null))
+    expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(true)
+    view.rerender(picker('codex'))
+    expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(true)
+    expect(ensure).toHaveBeenCalledExactlyOnceWith(undefined)
+    expect(detectAgents).toHaveBeenCalledExactlyOnceWith({ ...expectedContext, enabledOnly: true })
+    expect(useAppStore.getState().readLocalAgentInventory()).toEqual({
+      ids: null,
+      state: 'pending'
+    })
+    await act(async () => {
+      reply.resolve(detected)
+      const completed = await Promise.all(
+        ensure.mock.results.map((result) => {
+          if (result.type !== 'return') {
+            throw new Error('Expected the real inventory owner to return its settlement promise')
+          }
+          return result.value
+        })
+      )
+      expect(completed).toEqual([['claude']])
+    })
+    expect(useAppStore.getState().readLocalAgentInventory()).toEqual({
+      ids: ['claude'],
+      state: 'successful'
+    })
+    expect(useAppStore.getState().detectedAgentIds).toEqual(['claude'])
+    expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(false)
+    expect(onPick).not.toHaveBeenCalled()
+    fireEvent.click(view.getByRole('combobox'))
+    const available = view.getAllByRole('option').find((row) => row.textContent?.includes('Claude'))
+    expect(available).toBeDefined()
+    fireEvent.click(available!)
+    expect(onPick).toHaveBeenCalledWith('claude', {})
+  } finally {
+    try {
+      await act(async () => {
+        try {
+          if (view) {
+            view.unmount()
+          } else {
+            cleanup()
+          }
+        } finally {
+          reply.resolve(detected)
+          const drained = await Promise.allSettled(
+            ensure.mock.results.flatMap((result) =>
+              result.type === 'return' ? [result.value] : []
+            )
+          )
+          expect(drained).toEqual([{ status: 'fulfilled', value: ['claude'] }])
+          expect(ensure.mock.results.map((result) => result.type)).toEqual(['return'])
+        }
+      })
+    } finally {
+      try {
+        useAppStore.getState().clearLocalDetectedAgents()
+      } finally {
+        try {
+          detectAgents.mockRestore()
+        } finally {
+          try {
+            ensure.mockRestore()
+          } finally {
+            useAppStore.setState({ ensureDetectedAgents: originalEnsure })
+          }
+        }
+      }
+    }
+  }
 })
 
 it.each([1, 10])(
@@ -431,7 +499,9 @@ it.each([1, 10])(
       fireEvent.click(view.getByRole('menuitemradio', { name: /^Ask/ }))
       expect(edit).toHaveBeenCalledWith(
         'fixCommitFailure',
-        expect.objectContaining({ agentId: 'codex' })
+        expect.objectContaining({ agentId: 'codex' }),
+        undefined,
+        null
       )
       expect(gets()).toHaveLength(1)
       view.rerender(tree(1))

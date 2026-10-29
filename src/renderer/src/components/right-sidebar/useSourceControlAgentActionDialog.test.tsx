@@ -1,24 +1,36 @@
-import { resetRendererAppPlatformCacheForTests } from '@/lib/renderer-app-platform'
-import type { Repo } from '../../../../shared/repo-types'
-import { projectAgentLaunchSettings } from '../../../../shared/agent-launch-settings'
-import { makeWorktree, TEST_REPO } from '@/store/slices/worktrees-slice-test-fixtures'
-import { getRuntimeAgentInventoryKey } from '@/store/slices/runtime-agent-inventory-key'
+// @vitest-environment happy-dom
+
+import {
+  commitSourceControlActionArguments,
+  editSourceControlActionArguments
+} from '../../../../shared/source-control-action-selection'
+import {
+  captureSourceControlActionSelection,
+  resolveSourceControlActionRecipe
+} from '../../../../shared/source-control-ai-operation-policy'
+import { projectSourceControlActionLaunch } from '../../../../shared/source-control-action-launch-preferences'
+import { structuredLaunchRequestedOptions } from '../../../../shared/native-chat/input/native-chat-session-option-defaults'
+import { liftActionPermissionArgs } from '../../../../shared/source-control-action-permission-lift'
 import { clearHostAgentMenuSettingsForTests } from '../settings/use-host-agent-launch-preferences'
 import type { SourceControlActionRecipe } from '../../../../shared/source-control-ai-actions'
-import { AGENT_LAUNCH_SURFACE_RUNTIME_CAPABILITY as SURFACE } from '../../../../shared/agent-launch-runtime-capability'
-// @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { getDefaultSettings } from '../../../../shared/constants'
-import {
-  STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY as CLIENT,
-  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY as CHAT
-} from '../../../../shared/protocol-version'
 import { useAppStore } from '@/store'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
-import { SourceControlAgentActionDialog } from './SourceControlAgentActionDialog'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { useSourceControlAgentActionDialog } from './useSourceControlAgentActionDialog'
+import {
+  exerciseSourceControlDialogHostIdentity,
+  exerciseColdFailedSourceControlDialogStart,
+  exerciseSourceControlDialogRecoveryRefusal
+} from './source-control-action-dialog-start-admission.test-fixture'
+import {
+  mountSourceDialog,
+  freshDialogRecipe,
+  pickDialogSaveTarget,
+  submittedActionStartupPlan,
+  renderDialog,
+  pickDialogAgent,
+  type SaveAction
+} from './source-control-action-dialog.test-fixture'
 
 const initialState = useAppStore.getState()
 afterEach(() => {
@@ -27,36 +39,6 @@ afterEach(() => {
   useAppStore.setState(initialState, true)
   setLocalRuntimeCapabilitiesForTests(null)
 })
-
-function renderDialog(chat: boolean, capable = true, initialRecipe?: SourceControlActionRecipe) {
-  const settings = { ...getDefaultSettings('/tmp/pr-3'), defaultTuiAgent: 'claude' as const }
-  const launchPreferences = { agentId: 'codex' as const, model: 'chosen' }
-  settings.sourceControlAi!.actions = { resolveConflicts: { agentId: null, launchPreferences } }
-  useAppStore.setState({
-    settings: { ...settings, experimentalNativeChat: chat },
-    detectedAgentIds: ['claude', 'codex'],
-    localDetectedAgentIdsByContext: { host: ['claude', 'codex'] }
-  })
-  setLocalRuntimeCapabilitiesForTests([CHAT, CLIENT, ...(capable ? [SURFACE] : [])])
-  const onStart = vi.fn().mockResolvedValue(true)
-  const onSaveAgentDefault = vi.fn()
-  const view = renderHook(() =>
-    useSourceControlAgentActionDialog({
-      open: true,
-      initialRecipe,
-      onOpenChange: () => {},
-      actionId: 'resolveConflicts',
-      title: '',
-      description: '',
-      baseCommandInput: 'fix',
-      launchSource: 'source_control_recovery',
-      savedAgentId: null,
-      onStart,
-      onSaveAgentDefault
-    })
-  )
-  return { ...view, onStart, onSaveAgentDefault, launchPreferences }
-}
 
 it('starts and saves a live pick from the unified picker, keeping the agent-bound model', async () => {
   const { result, onStart, onSaveAgentDefault, launchPreferences } = renderDialog(true)
@@ -149,267 +131,594 @@ vi.mock('@/runtime/runtime-rpc-client', () => ({
 it.each(['codex', null] as const)(
   'uses the offered host identity for delivery and scope, preserving authored %s',
   async (agentId) => {
-    const reply = Promise.withResolvers<{
-      settings: ReturnType<typeof projectAgentLaunchSettings>
-    }>()
-    hostRpc.mockReturnValue(reply.promise)
-    const settings = {
-      ...getDefaultSettings('/tmp/host-action'),
-      defaultTuiAgent: 'opencode' as const,
-      disabledTuiAgents: ['codex' as const],
-      experimentalNativeChat: false
-    }
-    const recipe = {
-      agentId,
-      surface: 'terminal' as const,
-      agentArgs: '--model chosen',
-      launchPreferences: { agentId: 'codex' as const, model: 'chosen' }
-    }
-    const repo: Repo = {
-      ...TEST_REPO,
-      executionHostId: 'runtime:alpha',
-      sourceControlAi: {
-        actionOverrides: {
-          resolveConflicts: {
-            agentId: 'codex' as const,
-            launchPreferences: recipe.launchPreferences
-          }
-        }
-      }
-    }
-    useAppStore.setState({
-      settings,
-      repos: [repo],
-      worktreesByRepo: {
-        [repo.id]: [makeWorktree({ id: 'wt', repoId: repo.id, hostId: 'runtime:alpha' })]
-      },
-      runtimeDetectedAgentIds: {
-        [getRuntimeAgentInventoryKey('alpha', 'wt')]: ['claude', 'codex', 'opencode']
-      },
-      ensureRuntimeDetectedAgents: vi.fn().mockResolvedValue(['claude', 'codex', 'opencode']),
-      refreshRuntimeDetectedAgents: vi.fn().mockResolvedValue(['claude', 'codex', 'opencode'])
-    })
-    const onStart = vi.fn().mockResolvedValue(true)
-    const onSaveAgentDefault = vi.fn()
-    const view = renderHook(() =>
-      useSourceControlAgentActionDialog({
-        open: true,
-        initialRecipe: recipe,
-        onOpenChange: vi.fn(),
-        actionId: 'resolveConflicts',
-        title: '',
-        description: '',
-        baseCommandInput: 'fix',
-        launchSource: 'source_control_recovery',
-        worktreeId: 'wt',
-        repoId: repo.id,
-        connectionId: null,
-        onStart,
-        onSaveAgentDefault
-      })
-    )
-    expect(view.result.current.canStart).toBe(false)
-    expect(view.result.current.saveTargetValue).toBe('repo')
-    act(() => view.result.current.onSaveAgentDefaultChange('global'))
-    await act(async () =>
-      reply.resolve({
-        settings: projectAgentLaunchSettings({
-          defaultTuiAgent: 'codex',
-          disabledTuiAgents: ['opencode', 'claude']
-        })
-      })
-    )
-    expect(view.result.current.surfaceRows.model).toMatchObject({
-      state: 'settled',
-      rows: [{ agent: 'codex', kind: 'terminal' }]
-    })
-    expect(view.result.current.selectedAgent).toBe('codex')
-    expect(view.result.current.canStart).toBe(true)
-    expect(view.result.current.saveTargetValue).toBe('global')
-    expect(view.result.current.agentScopeNote).toBeNull()
-    await act(() => view.result.current.handleStart())
-    expect(onStart).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agent: 'codex',
-        agentArgs: '--dangerously-bypass-approvals-and-sandbox --model chosen',
-        sessionOptions: { model: 'chosen' },
-        agentLaunchPreferences: {
-          defaultTuiAgent: 'codex',
-          disabledTuiAgents: ['opencode', 'claude']
-        }
-      })
-    )
-    expect(onSaveAgentDefault).toHaveBeenCalledWith(
-      { type: 'global' },
-      'resolveConflicts',
-      expect.objectContaining({ agentId, agentArgs: '--model chosen' })
-    )
-    expect(useAppStore.getState().settings).toBe(settings)
+    await exerciseSourceControlDialogHostIdentity(agentId, hostRpc)
   }
 )
 
 it('offers an unset cold-failed command in the actual dialog, saves it and starts through the real validator', async () => {
-  const settings = {
-    ...getDefaultSettings('/tmp'),
-    defaultTuiAgent: 'blank' as const,
-    experimentalNativeChat: false
-  }
-  useAppStore.setState({
-    settings,
-    repos: [TEST_REPO],
-    worktreesByRepo: { [TEST_REPO.id]: [makeWorktree({ id: 'cold', repoId: TEST_REPO.id })] }
-  })
-  useAppStore.getState().clearLocalDetectedAgents()
-  Object.assign(window, {
-    api: {
-      ...window.api,
-      preflight: { detectAgents: vi.fn().mockRejectedValue(new Error('capture failed')) }
-    }
-  })
-  setLocalRuntimeCapabilitiesForTests([])
-  await useAppStore.getState().ensureDetectedAgents('cold')
-  const onStart = vi.fn().mockResolvedValue(true),
-    onSaveAgentDefault = vi.fn()
-  const props = {
-    open: true,
-    onOpenChange: vi.fn(),
-    actionId: 'fixChecks' as const,
-    title: 'Fix checks',
-    description: '',
-    baseCommandInput: 'repair checks',
-    worktreeId: 'cold',
-    repoId: TEST_REPO.id,
-    connectionId: null,
-    savedAgentId: null,
-    initialRecipe: { agentId: null, agentArgs: '--verbose', commandInputTemplate: '{basePrompt}' },
-    launchSource: 'task_page' as const,
-    onStart,
-    onSaveAgentDefault
-  }
-  const view = render(
-    <TooltipProvider>
-      <SourceControlAgentActionDialog {...props} />
-    </TooltipProvider>
-  )
-  await waitFor(() => expect(view.getByRole('combobox').hasAttribute('disabled')).toBe(false))
-  expect(view.getByRole('combobox').textContent).toContain('Select an Agent')
-  fireEvent.click(view.getByRole('combobox'))
-  const row = view.getAllByRole('option').find((option) => option.textContent?.startsWith('Claude'))
-  if (!row) {
-    throw new Error('Missing dialog configuration command')
-  }
-  fireEvent.click(row)
-  await act(async () => fireEvent.click(view.getByRole('button', { name: 'Save & start agent' })))
-  expect(onStart).toHaveBeenCalledWith(
-    expect.objectContaining({
-      agent: 'claude',
-      commandInput: 'repair checks',
-      agentArgs: '--dangerously-skip-permissions --verbose'
-    })
-  )
-  expect(onSaveAgentDefault).toHaveBeenCalledWith(
-    expect.anything(),
-    'fixChecks',
-    expect.objectContaining({ agentId: 'claude', agentArgs: '--verbose' })
-  )
-  expect(useAppStore.getState().readLocalAgentInventory('cold')).toEqual({
-    ids: null,
-    state: 'failed'
-  })
-  view.unmount()
-  onStart.mockClear()
-  const reentry = renderHook(() =>
-    useSourceControlAgentActionDialog({
-      ...props,
-      initialRecipe: { ...props.initialRecipe, agentId: 'claude' }
-    })
-  )
-  await waitFor(() => expect(reentry.result.current.canStart).toBe(true))
-  act(() => useAppStore.setState({ settings: { ...settings, disabledTuiAgents: ['claude'] } }))
-  await act(() => reentry.result.current.handleStart())
-  expect(onStart).not.toHaveBeenCalled()
+  await exerciseColdFailedSourceControlDialogStart()
 })
 
 it.each(['disabled', 'retargeted', 'draft-edited'] as const)(
   'refuses a cold saved dialog intent made %s during recovery before saving or dispatch',
   async (change) => {
-    resetRendererAppPlatformCacheForTests()
-    const recovery = Promise.withResolvers<{ inFlight: boolean }>()
-    const mutationInFlight = vi.fn(() => recovery.promise)
-    Object.assign(window, {
-      api: {
-        ...window.api,
-        platform: { get: () => ({ platform: 'win32' }) },
-        git: { mutationInFlight },
-        preflight: { detectAgents: vi.fn().mockRejectedValue(new Error('cold failed')) }
+    await exerciseSourceControlDialogRecoveryRefusal(change)
+  }
+)
+
+it.each([
+  { saved: 'claude' as const, model: 'opus', terminal: true },
+  { saved: null, model: undefined, terminal: false }
+])(
+  'keeps captured choices through actual same-agent picker dispatch, complete Save, Start and reopen (%s)',
+  async ({ saved, model, terminal }) => {
+    const global: SourceControlActionRecipe = {
+      agentId: 'claude',
+      agentArgs: '--verbose',
+      launchPreferences: {
+        agentId: 'claude',
+        ...(model ? { model } : {}),
+        options: { effort: 'high' }
+      }
+    }
+    const own: SourceControlActionRecipe = {
+      agentId: saved,
+      launchPreferences: { agentId: 'claude', permissionMode: 'ask' }
+    }
+    const f = mountSourceDialog(global, own)
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Save & start agent' }).hasAttribute('disabled')
+      ).toBe(false)
+    )
+    await pickDialogAgent('Claude', terminal)
+    if (terminal) {
+      expect(
+        screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value
+      ).toBe('--verbose')
+    } else {
+      expect(screen.queryByRole('textbox', { name: 'Extra CLI arguments' })).toBeNull()
+    }
+    expect(screen.getByText(/High/).textContent).toContain('High')
+    if (model) {
+      expect(screen.getByText(/High/).textContent).toContain('Opus')
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Save & start agent' }))
+    await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+    const options = { ...(model ? { model } : {}), effort: 'high', permissionMode: 'ask' }
+    expect(f.onStart).toHaveBeenCalledWith(
+      expect.objectContaining({ agent: 'claude', agentArgs: '--verbose', sessionOptions: options })
+    )
+    expect(f.persist).toHaveBeenCalledOnce()
+    const savedRecipe = f.persist.mock.calls[0][2]
+    expect(savedRecipe.launchPreferences).toEqual({
+      agentId: 'claude',
+      permissionMode: 'ask',
+      modelSelection: {
+        base: 'default',
+        ...(model ? { model: { agentId: 'claude', value: model } } : {}),
+        options: { effort: { agentId: 'claude', value: 'high' } }
       }
     })
-    const settings = {
-      ...getDefaultSettings('/tmp'),
-      experimentalNativeChat: false,
-      localWindowsRuntimeDefault: { kind: 'wsl' as const, distro: 'Ubuntu' }
+    expect(
+      projectSourceControlActionLaunch(freshDialogRecipe(f.repo.id), 'claude', {
+        basePrompt: 'fix'
+      })
+    ).toMatchObject({ agentArgs: '--verbose', sessionOptions: options })
+    f.view.unmount()
+    const reopened = f.mount()
+    expect(screen.getByText(/High/).textContent).toContain('High')
+    reopened.unmount()
+  }
+)
+
+it('distinguishes masked eligibility from owning reset and uses the captured parent through Save/Start', async () => {
+  const global: SourceControlActionRecipe = {
+    agentId: 'codex',
+    agentArgs: '',
+    launchPreferences: {
+      agentId: 'codex',
+      permissionMode: 'own',
+      modelSelection: {
+        base: 'default',
+        model: { agentId: 'codex', value: 'o3' }
+      }
     }
-    useAppStore.getState().clearLocalDetectedAgents()
-    useAppStore.setState({
-      settings,
-      repos: [TEST_REPO],
-      worktreesByRepo: { [TEST_REPO.id]: [makeWorktree({ id: 'recovery', repoId: TEST_REPO.id })] }
+  }
+  const own: SourceControlActionRecipe = {
+    agentId: 'claude',
+    launchPreferences: {
+      agentId: 'claude',
+      permissionMode: 'ask',
+      modelSelection: {
+        base: 'inherit',
+        model: { agentId: 'claude', value: 'opus' }
+      }
+    }
+  }
+  const f = mountSourceDialog(global, own)
+  const captured = resolveSourceControlActionRecipe({
+    settings: useAppStore.getState().settings,
+    repo: f.repo,
+    actionId: 'resolveConflicts'
+  })
+  expect(
+    projectSourceControlActionLaunch(captured, 'codex', {
+      basePrompt: 'fix'
+    }).sessionOptions
+  ).toBeUndefined()
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Save & start agent' }).hasAttribute('disabled')
+    ).toBe(false)
+  )
+  act(() =>
+    useAppStore.setState((state) => ({
+      settings: {
+        ...state.settings!,
+        sourceControlAi: {
+          ...state.settings!.sourceControlAi!,
+          actions: {
+            resolveConflicts: { ...global, launchPreferences: { agentId: 'codex', model: 'later' } }
+          }
+        }
+      }
+    }))
+  )
+  await pickDialogAgent('Codex', true)
+  expect(screen.getByText(/Model from Settings: o3/)).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: 'Save & start agent' }))
+  await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+  expect(f.onStart).toHaveBeenCalledWith(
+    expect.objectContaining({ agent: 'codex', agentArgs: '', sessionOptions: { model: 'o3' } })
+  )
+  expect(f.persist.mock.calls[0][2]).toMatchObject({
+    agentId: 'codex',
+    agentArgs: '',
+    launchPreferences: {
+      agentId: 'codex',
+      modelSelection: {
+        base: 'default',
+        model: { agentId: 'codex', value: 'o3' }
+      }
+    }
+  })
+  expect(f.persist.mock.calls[0][2].launchPreferences).toEqual({
+    agentId: 'codex',
+    modelSelection: { base: 'default', model: { agentId: 'codex', value: 'o3' } }
+  })
+  expect(f.persist.mock.calls[0][2]).not.toHaveProperty('resolvedChoiceSources')
+  expect(
+    projectSourceControlActionLaunch(freshDialogRecipe(f.repo.id), 'codex', { basePrompt: 'fix' })
+      .sessionOptions
+  ).toEqual({ model: 'o3' })
+  await pickDialogAgent('Claude', false)
+  await pickDialogAgent('Codex', true)
+  expect(screen.queryByText(/Opus/)).toBeNull()
+  f.view.unmount()
+  const reopened = f.mount()
+  expect(screen.getByText(/Model from Settings: o3/)).toBeDefined()
+  reopened.unmount()
+  useAppStore.setState((state) => ({
+    repos: state.repos.map((row) =>
+      row.id === f.repo.id
+        ? {
+            ...row,
+            sourceControlAi: { actionOverrides: { resolveConflicts: { agentId: 'codex' } } }
+          }
+        : row
+    )
+  }))
+  const fresh = f.mount()
+  expect(screen.getByText(/Model from Settings: later/)).toBeDefined()
+  fresh.unmount()
+})
+
+it('retains newly eligible literal syntax, demotes obsolete syntax once and does not restore it after switching back', async () => {
+  const global = liftActionPermissionArgs<SourceControlActionRecipe>({
+    agentId: 'claude' as const,
+    agentArgs: '--model opus --effort high --verbose'
+  })
+  const f = mountSourceDialog(global, {
+    agentId: 'codex',
+    launchPreferences: { agentId: 'codex', permissionMode: 'ask' }
+  })
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Save & start agent' }).hasAttribute('disabled')
+    ).toBe(false)
+  )
+  await pickDialogAgent('Claude', true)
+  expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value).toBe(
+    '--verbose'
+  )
+  expect(screen.getByText(/Opus/).textContent).toContain('High')
+  fireEvent.click(screen.getByRole('button', { name: 'Save & start agent' }))
+  await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+  expect(f.onStart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      agent: 'claude',
+      agentArgs: '--verbose',
+      sessionOptions: { model: 'opus', effort: 'high' }
     })
-    setLocalRuntimeCapabilitiesForTests([])
-    await useAppStore.getState().ensureDetectedAgents('recovery')
-    const onStart = vi.fn().mockResolvedValue(true),
-      onSaveAgentDefault = vi.fn()
-    const f = renderHook(() =>
-      useSourceControlAgentActionDialog({
-        open: true,
-        onOpenChange: vi.fn(),
-        actionId: 'fixChecks',
-        title: '',
-        description: '',
-        baseCommandInput: 'fix',
-        launchSource: 'task_page',
-        initialRecipe: {
-          agentId: 'claude',
-          agentArgs: '--verbose',
-          commandInputTemplate: '{basePrompt}'
-        },
-        repoId: TEST_REPO.id,
-        worktreeId: 'recovery',
-        connectionId: null,
-        onStart,
-        onSaveAgentDefault,
-        recoveryContext: {
-          target: { kind: 'local' },
-          worktreeId: 'recovery',
-          worktreePath: '/repo'
+  )
+  const saved = f.persist.mock.calls[0][2]
+  expect(saved.argumentChoices).toEqual(global.argumentChoices)
+  expect(saved.launchPreferences).toBeUndefined()
+  await pickDialogAgent('Codex', true)
+  const text = screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' })
+  expect(text.value).toBe('--model opus  --effort high --verbose')
+  await pickDialogAgent('Claude', true)
+  expect(screen.queryByText(/Model from Settings/)).toBeNull()
+  expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value).toBe(
+    '--model opus  --effort high --verbose'
+  )
+})
+
+it('keeps an owned empty-Args default barrier and submitted choices across failed Save, newer edits and Discard', async () => {
+  const done = Promise.withResolvers<void>()
+  const save = vi.fn<SaveAction>(() => done.promise)
+  const f = mountSourceDialog(
+    { agentId: 'codex', launchPreferences: { agentId: 'codex', model: 'o3' } },
+    {
+      agentId: 'claude',
+      agentArgs: '',
+      launchPreferences: {
+        agentId: 'claude',
+        modelSelection: { base: 'inherit', model: { agentId: 'claude', value: null } }
+      }
+    },
+    save
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Save & start agent' }).hasAttribute('disabled')
+    ).toBe(false)
+  )
+  await pickDialogAgent('Codex', true)
+  expect(screen.queryByText(/Model from Settings/)).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Save & start agent' }))
+  await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+  expect(f.onStart.mock.calls[0][0]).toMatchObject({
+    agent: 'codex',
+    agentArgs: '',
+    commandInput: 'fix'
+  })
+  expect(f.onStart.mock.calls[0][0].sessionOptions).toBeUndefined()
+  fireEvent.change(screen.getByRole('textbox', { name: 'Extra CLI arguments' }), {
+    target: { value: '--newer' }
+  })
+  await act(async () => done.reject(new Error('write failed')))
+  expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value).toBe(
+    '--newer'
+  )
+  expect(save.mock.calls[0][2].agentArgs).toBe('')
+  expect(f.onStart).toHaveBeenCalledOnce()
+  expect(useAppStore.getState().repos[0].sourceControlAi).toEqual(f.repo.sourceControlAi)
+  expect(freshDialogRecipe(f.repo.id).agentId).toBe('claude')
+  f.view.unmount()
+  const fresh = f.mount()
+  await pickDialogAgent('Claude', true)
+  expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value).toBe(
+    ''
+  )
+  fresh.unmount()
+})
+
+it.each([
+  { agent: 'claude', pair: false, save: false, native: false, scope: 'global' },
+  { agent: 'claude', pair: true, save: true, native: false, scope: 'repo' },
+  { agent: 'claude', pair: false, save: true, native: false, scope: 'global' },
+  { agent: 'claude', pair: true, save: true, native: true, scope: 'repo' },
+  { agent: 'codex', pair: true, save: false, native: true, scope: 'repo' },
+  { agent: 'codex', pair: true, save: false, native: true, scope: 'repo', foreignDocument: true },
+  { agent: 'claude', pair: true, save: false, native: true, scope: 'repo', defaultGroup: true },
+  { agent: 'claude', pair: false, save: false, native: true, scope: 'repo', defaultGroup: true },
+  { agent: 'claude', pair: false, save: true, native: false, scope: 'repo', typedDefault: true },
+  { agent: 'claude', pair: false, save: true, native: true, scope: 'repo', typedDefault: true }
+] as const)(
+  'commits edited $agent literals once through Start/save=$save/native=$native/$scope and fresh reopen',
+  async (row) => {
+    const { agent, pair, save, native, scope } = row
+    const original =
+      agent === 'claude'
+        ? `--model opus ${pair || save || 'defaultGroup' in row ? '--effort high ' : ''}--verbose`
+        : '-m gpt-5.4 -c model_reasoning_effort=high --verbose'
+    const replacement =
+      agent === 'claude'
+        ? `--model sonnet ${pair ? '--effort low ' : ''}--verbose`
+        : '-m gpt-5.5 -c model_reasoning_effort=low --verbose'
+    const global = liftActionPermissionArgs<SourceControlActionRecipe>({
+      agentId: 'foreignDocument' in row ? 'claude' : agent,
+      surface: 'terminal',
+      agentArgs: 'foreignDocument' in row ? '--model opus --effort high --verbose' : original
+    })
+    const f = mountSourceDialog(
+      'typedDefault' in row
+        ? {
+            ...global,
+            argumentChoices: undefined,
+            launchPreferences: {
+              agentId: agent,
+              modelSelection: {
+                base: 'default',
+                model: { agentId: agent, value: 'opus' },
+                options: { effort: { agentId: agent, value: 'high' } }
+              }
+            }
+          }
+        : global,
+      {
+        agentId: agent,
+        surface: 'terminal',
+        ...('defaultGroup' in row || 'typedDefault' in row
+          ? {
+              launchPreferences: { agentId: agent, modelSelection: { base: 'default' as const } }
+            }
+          : {})
+      },
+      undefined,
+      undefined,
+      scope
+    )
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', {
+            name: /^(Save & start agent|Start agent)$/
+          })
+          .hasAttribute('disabled')
+      ).toBe(false)
+    )
+    if ('typedDefault' in row) {
+      const state = useAppStore.getState()
+      const captured = captureSourceControlActionSelection({
+        settings: state.settings,
+        repo: state.repos[0],
+        actionId: 'resolveConflicts'
+      })
+      const committed = commitSourceControlActionArguments(
+        editSourceControlActionArguments(captured, replacement),
+        agent
+      )
+      expect(committed.selection.source).toEqual(captured.source)
+      expect(committed.selection.source).toMatchObject({
+        scope: 'repo',
+        ownsArgs: false,
+        authoredPreferences: { agentId: agent, modelSelection: { base: 'default' } },
+        parentPreferences: {
+          modelSelection: { model: { value: 'opus' }, options: { effort: { value: 'high' } } }
         }
       })
-    )
-    await waitFor(() => expect(f.result.current.canStart).toBe(true))
-    let started = Promise.resolve()
-    act(() => {
-      started = f.result.current.handleStart()
-    })
-    await waitFor(() => expect(mutationInFlight).toHaveBeenCalledOnce())
-    if (change === 'draft-edited') {
-      act(() => f.result.current.onAgentArgsChange('--changed'))
-    } else {
-      act(() =>
-        useAppStore.setState({
-          settings:
-            change === 'disabled'
-              ? { ...settings, disabledTuiAgents: ['claude'] }
-              : { ...settings, localWindowsRuntimeDefault: { kind: 'wsl', distro: 'Debian' } }
-        })
-      )
+      expect(committed.recipe.resolvedChoiceSources).toMatchObject({
+        model: { base: 'default' },
+        literalKeys: ['model'],
+        permission: captured.source.authoredPreferences
+      })
     }
-    await act(async () => {
-      recovery.resolve({ inFlight: false })
-      await started
+    fireEvent.change(screen.getByRole('textbox', { name: 'Extra CLI arguments' }), {
+      target: { value: replacement }
     })
-    expect(onStart).not.toHaveBeenCalled()
-    expect(onSaveAgentDefault).not.toHaveBeenCalled()
-    f.unmount()
-    resetRendererAppPlatformCacheForTests()
+    if (native) {
+      await pickDialogAgent(agent === 'claude' ? 'Claude' : 'Codex', false)
+      expect(screen.queryByRole('textbox', { name: 'Extra CLI arguments' })).toBeNull()
+    }
+    if (save && scope === 'repo') {
+      await pickDialogSaveTarget('This repository')
+    }
+    if (!save) {
+      fireEvent.click(screen.getByRole('checkbox'))
+    }
+    // No blur: submission itself must settle the pending edit.
+    fireEvent.click(
+      screen.getByRole('button', { name: save ? 'Save & start agent' : 'Start agent' })
+    )
+    await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+    const options = {
+      model: agent === 'claude' ? 'sonnet' : 'gpt-5.5',
+      ...(pair ? { effort: 'low' } : {})
+    }
+    const submitted = f.onStart.mock.calls[0][0]
+    const residual =
+      'foreignDocument' in row
+        ? '--model opus  --effort high --verbose'
+        : 'defaultGroup' in row && !pair
+          ? '--effort high --verbose'
+          : '--verbose'
+    expect(submitted).toMatchObject({ agent, agentArgs: residual, sessionOptions: options })
+    expect(submitted.sessionOptions).toEqual(options)
+    const plan = submittedActionStartupPlan(submitted)
+    expect(plan?.launchCommand).toBe(
+      agent === 'claude'
+        ? `claude ${'defaultGroup' in row && !pair ? "'--effort' 'high' " : ''}'--verbose' '--model' 'sonnet'${pair ? " '--effort' 'low'" : ''} 'fix'`
+        : `codex ${'foreignDocument' in row ? "'--effort' 'high' " : ''}'--verbose' '-m' 'gpt-5.5' '-c' 'model_reasoning_effort=low' 'fix'`
+    )
+    if (native) {
+      expect(submitted.launchChoice?.requestedSurface).toBe('chat')
+      expect(
+        structuredLaunchRequestedOptions({
+          explicit: submitted.sessionOptions,
+          seed: { model: 'remembered', effort: 'high' },
+          held: {}
+        })
+      ).toEqual(options)
+      expect(
+        structuredLaunchRequestedOptions({
+          explicit: submitted.sessionOptions,
+          seed: { effort: 'high' },
+          held: { effort: 'medium' }
+        })
+      ).toEqual({ ...options, effort: 'medium' })
+    }
+    expect(f.persist).toHaveBeenCalledTimes(save ? 1 : 0)
+    if (save) {
+      const saved = f.persist.mock.calls[0][2]
+      expect(saved.agentArgs).toBe('--verbose')
+      expect(saved.argumentChoices?.nodes.map((node) => node.text)).toEqual([
+        '--model sonnet',
+        ...(pair ? ['--effort low'] : [])
+      ])
+      expect(saved).not.toHaveProperty('resolvedChoiceSources')
+      const state = useAppStore.getState()
+      const fresh = resolveSourceControlActionRecipe({
+        settings: state.settings,
+        repo: scope === 'repo' ? state.repos[0] : undefined,
+        actionId: 'resolveConflicts'
+      })
+      expect(projectSourceControlActionLaunch(fresh, agent, { basePrompt: 'fix' })).toMatchObject({
+        agentArgs: '--verbose',
+        sessionOptions: options
+      })
+      f.view.unmount()
+      const reopened = f.mount()
+      if (native) {
+        await waitFor(() =>
+          expect(screen.queryByRole('textbox', { name: 'Extra CLI arguments' })).toBeNull()
+        )
+      } else {
+        expect(
+          screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value
+        ).toBe('--verbose')
+      }
+      reopened.unmount()
+    }
+  }
+)
+
+it.each([
+  { edit: undefined, raw: '--model sonnet --verbose' },
+  { edit: '--unrelated', raw: '--unrelated' },
+  { edit: '', raw: '' }
+])('preserves untouched conflict or untouched nodes for residual $edit', async ({ edit, raw }) => {
+  const global = liftActionPermissionArgs<SourceControlActionRecipe>({
+    agentId: 'claude',
+    surface: 'terminal',
+    agentArgs: '--model opus --effort high --verbose'
+  })
+  const f = mountSourceDialog(
+    { ...global, agentArgs: edit === undefined ? raw : global.agentArgs },
+    {}
+  )
+  await waitFor(() => expect(screen.getByRole('checkbox')).toBeDefined())
+  if (edit !== undefined) {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Extra CLI arguments' }), {
+      target: { value: edit }
+    })
+  }
+  fireEvent.click(screen.getByRole('checkbox'))
+  fireEvent.click(screen.getByRole('button', { name: 'Start agent' }))
+  await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+  expect(f.onStart.mock.calls[0][0]).toMatchObject({
+    agentArgs: raw,
+    sessionOptions: { model: 'opus', effort: 'high' }
+  })
+  expect(f.persist).not.toHaveBeenCalled()
+})
+
+it('replaces the selected captured parent key without flattening sparse ownership or permission', async () => {
+  const f = mountSourceDialog(
+    {
+      agentId: 'claude',
+      surface: 'terminal',
+      agentArgs: '--verbose',
+      launchPreferences: { agentId: 'claude', model: 'opus', options: { effort: 'high' } }
+    },
+    {
+      launchPreferences: {
+        agentId: 'claude',
+        permissionMode: 'ask',
+        modelSelection: {
+          base: 'inherit',
+          options: { fastMode: { agentId: 'codex', value: 'true' } }
+        }
+      }
+    }
+  )
+  await waitFor(() => expect(screen.getByRole('checkbox')).toBeDefined())
+  act(() =>
+    useAppStore.setState((state) => ({
+      settings: {
+        ...state.settings!,
+        sourceControlAi: {
+          ...state.settings!.sourceControlAi!,
+          actions: {
+            resolveConflicts: {
+              agentId: 'claude',
+              launchPreferences: { agentId: 'claude', model: 'later' }
+            }
+          }
+        }
+      }
+    }))
+  )
+  fireEvent.change(screen.getByRole('textbox', { name: 'Extra CLI arguments' }), {
+    target: { value: '--model sonnet --verbose' }
+  })
+  fireEvent.click(screen.getByRole('checkbox'))
+  fireEvent.click(screen.getByRole('button', { name: 'Start agent' }))
+  await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+  expect(f.onStart.mock.calls[0][0]).toMatchObject({
+    agentArgs: '--verbose',
+    sessionOptions: { model: 'sonnet', permissionMode: 'ask' }
+  })
+  expect(f.persist).not.toHaveBeenCalled()
+})
+
+it('settles pending replacement in its old grammar before a genuine agent demotion', async () => {
+  const f = mountSourceDialog(
+    liftActionPermissionArgs<SourceControlActionRecipe>({
+      agentId: 'claude',
+      surface: 'terminal',
+      agentArgs: '--model opus --effort high --verbose'
+    }),
+    {}
+  )
+  await waitFor(() =>
+    expect(screen.getByRole('textbox', { name: 'Extra CLI arguments' })).toBeDefined()
+  )
+  fireEvent.change(screen.getByRole('textbox', { name: 'Extra CLI arguments' }), {
+    target: { value: '--model sonnet --verbose' }
+  })
+  await pickDialogAgent('Codex', true)
+  expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Extra CLI arguments' }).value).toBe(
+    '--model sonnet --verbose'
+  )
+  await pickDialogAgent('Claude', true)
+  fireEvent.click(screen.getByRole('checkbox'))
+  fireEvent.click(screen.getByRole('button', { name: 'Start agent' }))
+  await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+  expect(f.onStart.mock.calls[0][0].sessionOptions).toBeUndefined()
+  expect(f.onStart.mock.calls[0][0].agentArgs).toBe('--model sonnet --verbose')
+})
+
+it.each([
+  { raw: 'acceptEdits', permission: 'accept-edits', residual: '--verbose' },
+  { raw: 'plan', permission: 'ask', residual: '--permission-mode plan --verbose' }
+] as const)(
+  'keeps independent effort and separately selected permission for raw $raw',
+  async ({ raw, permission, residual }) => {
+    const f = mountSourceDialog(
+      {
+        agentId: 'claude',
+        surface: 'terminal',
+        agentArgs: '--verbose',
+        launchPreferences: { agentId: 'claude', options: { effort: 'high' }, permissionMode: 'ask' }
+      },
+      {}
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'Extra CLI arguments' })).toBeDefined()
+    )
+    fireEvent.change(screen.getByRole('textbox', { name: 'Extra CLI arguments' }), {
+      target: { value: `--model sonnet --permission-mode ${raw} --verbose` }
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: 'Start agent' }))
+    await waitFor(() => expect(f.onStart).toHaveBeenCalledOnce())
+    expect(f.onStart.mock.calls[0][0]).toMatchObject({
+      agentArgs: residual,
+      sessionOptions: { model: 'sonnet', effort: 'high', permissionMode: permission }
+    })
+    expect(f.persist).not.toHaveBeenCalled()
   }
 )

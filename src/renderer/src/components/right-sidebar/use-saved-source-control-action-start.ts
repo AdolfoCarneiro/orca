@@ -1,4 +1,8 @@
 import {
+  selectSourceControlActionRecipe,
+  type CurrentActionSelection
+} from '../../../../shared/source-control-action-selection'
+import {
   AgentLaunchChoiceCancelled,
   acquireAgentLaunchChoices
 } from '@/lib/host-chat-program-acquisition'
@@ -23,7 +27,7 @@ import {
 import { agentsOfferedForLaunch } from '@/lib/host-chat-program'
 import { resolveSourceControlActionRecipe } from '../../../../shared/source-control-ai'
 import { isTuiAgent } from '../../../../shared/tui-agent-config'
-import { projectSourceControlActionLaunch } from '../../../../shared/source-control-action-launch-preferences'
+import { projectSelectedSourceControlActionLaunch } from '../../../../shared/source-control-action-launch-preferences'
 import { sourceControlLaunchAppliesAgentArgs } from './source-control-launch-agent-args-applicability'
 import { buildSourceControlAgentDeliveryPlan } from './buildSourceControlAgentDeliveryPlan'
 import {
@@ -34,8 +38,9 @@ import {
 /** Primary events own saved starts; opening an editor never authorizes execution. */
 type SavedStartArgs = Omit<
   RunSourceControlAgentActionStartArgs,
-  'selectedAgent' | 'trimmedCommandInput' | 'saveTargetValue'
+  'selectedAgent' | 'trimmedCommandInput' | 'saveTargetValue' | 'recipe'
 > & {
+  selection: CurrentActionSelection
   basePrompt: string
   connectionId?: string | null
   onFallback: () => void
@@ -62,7 +67,8 @@ export function useSavedSourceControlActionStart() {
       }
       signal?.throwIfAborted()
       const store = useAppStore.getState()
-      const { recipe, worktreeId } = args
+      const { worktreeId } = args
+      const recipe = selectSourceControlActionRecipe(args.selection)
       const agent = recipe.agentId
       if (!isTuiAgent(agent) || !worktreeId) {
         onFallback()
@@ -92,7 +98,7 @@ export function useSavedSourceControlActionStart() {
         onFallback()
         return
       }
-      const projection = projectSourceControlActionLaunch(recipe, agent, {
+      const projection = projectSelectedSourceControlActionLaunch(recipe, agent, {
         basePrompt: args.basePrompt,
         settings: current.settings
       })
@@ -136,7 +142,7 @@ export function useSavedSourceControlActionStart() {
         }
         const inventory = readAgentInventoryForTarget(state, target)
         const preferences = readAgentLaunchPreferencesForWorktree(state, worktreeId)
-        const currentProjection = projectSourceControlActionLaunch(recipe, agent, {
+        const currentProjection = projectSelectedSourceControlActionLaunch(recipe, agent, {
           basePrompt: args.basePrompt,
           settings: state.settings
         })
@@ -179,6 +185,7 @@ export function useSavedSourceControlActionStart() {
       }
       const launched = await runSourceControlAgentActionStart({
         ...args,
+        recipe,
         agentLaunchPreferences,
         selectedAgent: agent,
         trimmedCommandInput: projection.commandInput,
