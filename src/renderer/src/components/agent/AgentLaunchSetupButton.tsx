@@ -7,6 +7,9 @@ import { translate } from '@/i18n/i18n'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
 import type { AgentPickerDraft, AgentPickerEntry } from '../../../../shared/agent-launch-picker'
 
+// The menu and its popovers unmount on dismissal; authored setups live for this app session.
+const sessionDrafts = new Map<string, AgentPickerDraft>()
+
 function setupKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
@@ -44,6 +47,7 @@ export function AgentLaunchSetupButton({
   onOpenChange?: (open: boolean) => void
   onUse: (draft: AgentPickerDraft) => void
 }) {
+  const draftKey = JSON.stringify([entry.ownerKey, entry.agent, initial])
   const [localOpen, setOpen] = useState(false)
   const open = controlledOpen ?? localOpen
   const closeFocus = useRef({ open, restore: true })
@@ -136,7 +140,7 @@ export function AgentLaunchSetupButton({
         aria-label={translate('agentPicker.configure', 'Configure {{agent}}', {
           agent: entry.label
         })}
-        className="flex w-110 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) flex-col"
+        className="flex w-104 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) flex-col"
         onClick={(event) => event.stopPropagation()}
         // Hovering another menu row moves focus there; only a click outside or Escape closes the panel.
         onFocusOutside={(event) => event.preventDefault()}
@@ -148,11 +152,13 @@ export function AgentLaunchSetupButton({
       >
         <div className="min-h-0 overflow-y-auto scrollbar-sleek">
           <AgentLaunchSetupPanel
-            key={`${entry.ownerKey}:${entry.agent}`}
+            key={draftKey}
             entry={entry}
-            initial={initial}
+            initial={sessionDrafts.get(draftKey) ?? initial}
             disabled={disabled}
+            onDraftChange={(draft) => sessionDrafts.set(draftKey, draft)}
             onUse={(draft) => {
+              sessionDrafts.set(draftKey, draft)
               onUse(draft)
               changeOpen(false)
             }}

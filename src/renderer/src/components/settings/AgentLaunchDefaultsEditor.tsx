@@ -125,7 +125,8 @@ export function AgentDefaultArgsInput({
       return
     }
     const measure = (): void => {
-      input.style.textIndent = `calc(${chip.getBoundingClientRect().width}px + var(--spacing) * 2)`
+      // Popover transforms change viewport geometry, but text-indent needs layout pixels.
+      input.style.textIndent = `calc(${chip.offsetWidth}px + var(--spacing) * 2)`
     }
     measure()
     const observer = new ResizeObserver(measure)
@@ -235,7 +236,7 @@ export function AgentDefaultArgsInput({
                   )
             }
             spellCheck={false}
-            className="block min-h-5 [field-sizing:content]"
+            className="block min-h-5 max-w-full [field-sizing:content] [overflow-wrap:anywhere]"
           />
         </div>
         {(argsOverride !== defaultArgs ||

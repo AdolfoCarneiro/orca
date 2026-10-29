@@ -42,14 +42,20 @@ export function AgentLaunchSetupPanel({
   entry,
   initial,
   disabled,
+  onDraftChange,
   onUse
 }: {
   entry: AgentPickerEntry
   initial?: AgentPickerDraft
   disabled?: boolean
+  onDraftChange?: (draft: AgentPickerDraft) => void
   onUse: (draft: AgentPickerDraft) => void
 }) {
-  const [draft, setDraft] = useState(() => initial ?? agentPickerDraft(entry))
+  const [draft, updateDraft] = useState(() => initial ?? agentPickerDraft(entry))
+  const setDraft = (next: AgentPickerDraft) => {
+    updateDraft(next)
+    onDraftChange?.(next)
+  }
   const [modelQuery, setModelQuery] = useState('')
   const [legacy, setLegacy] = useState(false)
   const [argumentsOpen, setArgumentsOpen] = useState(entry.defaultSurface === 'terminal')
@@ -264,7 +270,7 @@ export function AgentLaunchSetupPanel({
           </CommandGroup>
         </CommandList>
       </Command>
-      <div className="grid gap-2.5 border-t border-border px-3 pt-2.5 pb-1">
+      <div className="grid min-w-0 grid-cols-1 gap-2.5 border-t border-border px-3 pt-2.5 pb-1">
         {renderOptions(
           optionRows.filter((row) => row.id !== 'fastMode' && row.id !== 'serviceTier')
         )}

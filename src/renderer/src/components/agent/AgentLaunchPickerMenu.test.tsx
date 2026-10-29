@@ -36,6 +36,7 @@ const entry: AgentPickerEntry = {
 }
 let root: Root
 let host: HTMLDivElement
+let owner = 0
 const launch = vi.fn()
 function show(value: AgentPickerEntry, others: AgentPickerEntry[] = []) {
   const entries = [value, ...others]
@@ -68,6 +69,7 @@ function show(value: AgentPickerEntry, others: AgentPickerEntry[] = []) {
   )
 }
 beforeEach(() => {
+  entry.ownerKey = `menu-test-${owner++}`
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   launch.mockClear()
   host = document.createElement('div')
@@ -122,7 +124,7 @@ it.each([
     const menu = new DOMRect(menuLeft, 80, menuWidth, 240)
     const row = new DOMRect(menuLeft + 5, 128, menuWidth - 10, 32)
     const trigger = new DOMRect(menuLeft + menuWidth - 32, 132, 24, 24)
-    const panel = new DOMRect(0, 0, 440, 480)
+    const panel = new DOMRect(0, 0, 416, 480)
     function geometry(element: Element): DOMRect {
       if (
         element.matches('[data-slot="popover-content"]') ||
@@ -227,6 +229,7 @@ it.each([
       document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!.click()
     )
     const content = document.querySelector<HTMLElement>('[data-slot="popover-content"]')!
+    expect(content.classList.contains('w-104')).toBe(true)
     await waitFor(() => {
       expect(content.dataset.side).toBe(side)
       const transform = content.parentElement!.style.transform.match(
@@ -596,7 +599,7 @@ it('closes Configure with Escape without dispatch and returns focus to its trigg
   await waitFor(() => expect(document.activeElement).toBe(configure))
 })
 
-it('unmounts the setup draft on close/reopen and resets an open draft when its owner is replaced', () => {
+it('retains the setup draft on close/reopen and resets an open draft when its owner is replaced', () => {
   const own = {
     ...entry,
     ownerKey: 'pair7/runtime1',
@@ -621,7 +624,7 @@ it('unmounts the setup draft on close/reopen and resets an open draft when its o
   fireEvent.keyDown(document.querySelector('textarea')!, { key: 'Escape' })
   expect(document.querySelector('textarea')).toBeNull()
   fireEvent.click(configure())
-  expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('--add-dir docs')
+  expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('--add-dir src')
   fireEvent.change(document.querySelector('textarea')!, {
     target: { value: '--add-dir old-owner' }
   })
@@ -633,4 +636,102 @@ it('unmounts the setup draft on close/reopen and resets an open draft when its o
   expect(launch).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ choices: {}, arguments: undefined })
   )
+})
+
+it('retains the whole row draft after outside dismissal, menu remount and launch', async () => {
+  const own: AgentPickerEntry = {
+    ...entry,
+    agent: 'claude',
+    label: 'Claude',
+    ownerKey: 'retained-claude',
+    defaultSurface: 'terminal',
+    rows: [{ agent: 'claude', kind: 'cli' }],
+    arguments: '--add-dir docs',
+    terminal: { model: 'opus', permissionMode: 'ask' },
+    catalog: {
+      origin: 'probe',
+      fetchedAt: 1,
+      models: ['opus', 'sonnet'].map((id) => ({
+        id,
+        label: id,
+        supportsFastMode: true,
+        efforts: [
+          { value: 'low', label: 'Low' },
+          { value: 'high', label: 'High' }
+        ]
+      }))
+    }
+  }
+  const showButton = (value = own) =>
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <AgentLaunchSetupButton entry={value} onUse={launch} />
+        </TooltipProvider>
+      )
+    )
+  showButton()
+  const user = userEvent.setup()
+  const configure = () =>
+    document.querySelector<HTMLButtonElement>('button[aria-label="Configure Claude"]')!
+  await user.click(configure())
+  await user.click(
+    [...document.querySelectorAll<HTMLElement>('[cmdk-item]')].find(
+      (item) => item.textContent === 'sonnet'
+    )!
+  )
+  await user.click(getByRole(document.body, 'radio', { name: 'High' }))
+  await user.click(
+    document.querySelector<HTMLButtonElement>('button[aria-label="Claude permissions"]')!
+  )
+  await user.click(
+    [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find((item) =>
+      item.textContent?.startsWith('Full access')
+    )!
+  )
+  await user.click(getByRole(document.body, 'switch'))
+  const token = 'fdsafjdkslafjkdls;ajfkld;sjaklfd;'.repeat(40)
+  fireEvent.change(document.querySelector('textarea')!, { target: { value: token } })
+  const argumentsText = document.querySelector<HTMLTextAreaElement>('textarea')!.value
+  expect(argumentsText).toContain(token)
+  const assertDraft = () => {
+    expect(document.querySelector('[cmdk-item][data-current="true"]')?.textContent).toBe('sonnet')
+    expect(getByRole(document.body, 'radio', { name: 'High' }).getAttribute('data-state')).toBe(
+      'on'
+    )
+    expect(
+      document.querySelector('button[aria-label="Claude permissions"]')?.textContent
+    ).toContain('Full access')
+    expect(getByRole(document.body, 'switch').getAttribute('aria-checked')).toBe('true')
+    expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe(argumentsText)
+    expect(
+      document.querySelector('button[aria-label="Remove --dangerously-skip-permissions"]')
+    ).not.toBeNull()
+    expect(document.querySelector('button[aria-label*="Remove --settings"]')).not.toBeNull()
+  }
+  assertDraft()
+  await user.click(document.body)
+  await waitFor(() => expect(document.querySelector('textarea')).toBeNull())
+  act(() => root.render(null))
+  showButton()
+  await user.click(configure())
+  assertDraft()
+  await user.click(getByRole(document.body, 'button', { name: 'Launch terminal' }))
+  expect(launch).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      surface: 'terminal',
+      choices: expect.objectContaining({
+        model: 'sonnet',
+        options: expect.objectContaining({ effort: 'high' })
+      }),
+      arguments: expect.stringContaining(token)
+    })
+  )
+  act(() => root.render(null))
+  showButton()
+  await user.click(configure())
+  assertDraft()
+  showButton({ ...own, ownerKey: 'replacement-claude' })
+  expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('--add-dir docs')
+  expect(getByRole(document.body, 'switch').getAttribute('aria-checked')).toBe('false')
 })
