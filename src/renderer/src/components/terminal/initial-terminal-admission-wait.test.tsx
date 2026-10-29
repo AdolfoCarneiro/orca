@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import type { AppState } from '@/store/types'
 import type { StructuredAgentLaunchSettlement } from '@/lib/structured-agent-launch-settlement'
 
@@ -86,7 +86,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | undefined
 
 let main: TabsDrawnFromMain
-let warnings: ReturnType<typeof vi.spyOn<typeof console, 'warn'>>
+let warnings: MockInstance<typeof console.warn>
 const owned: {
   launch: NonNullable<ReturnType<typeof beginStructuredAgentSessionProvisionalLaunch>>
   done: boolean

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import type * as LaunchErrors from '@/lib/structured-agent-session-launch-errors'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import type { RuntimeMobileSessionTabsResult } from '../../../shared/runtime-session-contracts'
 import type { Tab, TabGroup, TabGroupLayoutNode } from '../../../shared/tab-types'
 import type { AgentSessionStatusSummary } from '../../../shared/agent-session-wire'
@@ -197,7 +197,7 @@ function published(...sessionIds: string[]): RuntimeMobileSessionTabsResult[] {
 }
 
 let main: TabsDrawnFromMain | null = null
-let warnings: ReturnType<typeof vi.spyOn<typeof console, 'warn'>>
+let warnings: MockInstance<typeof console.warn>
 
 // Frame-drawn split workspace: each side needs a terminal because main drops empty groups.
 async function seedSplit(): Promise<void> {

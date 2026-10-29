@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 
 import type { AppState } from '@/store/types'
+import type { GlobalSettings } from '../../../shared/global-settings-types'
+import { createGlobalSettingsFixture } from '../../../shared/global-settings-test-fixture'
 import type { launchAgentInNewTab } from './launch-agent-in-new-tab'
 import {
   createTestStore,
@@ -23,7 +25,7 @@ import {
 } from './agent-session/launch/structured-agent-session-launch-registry'
 import { resetStructuredAgentLaunchPersistenceForTests } from './agent-session/launch/structured-agent-session-launch-persistence'
 import type * as LaunchErrors from '@/lib/structured-agent-session-launch-errors'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 const mockCreateTab = vi.hoisted(() => vi.fn())
 const mockSetTabViewMode = vi.hoisted(() => vi.fn())
@@ -45,6 +47,20 @@ const mockRetryStructuredAgentSessionLaunchIntent = vi.hoisted(() =>
 )
 const STRUCTURED_HOST_CAPABILITIES = ['agent-session.structured.v1']
 let hostCapabilities: readonly string[] | null = STRUCTURED_HOST_CAPABILITIES
+
+function launchScenarioSettings(overrides: Partial<GlobalSettings> = {}): GlobalSettings {
+  return createGlobalSettingsFixture({
+    agentCmdOverrides: {},
+    agentDefaultArgs: {},
+    agentDefaultEnv: {},
+    activeRuntimeEnvironmentId: null,
+    experimentalNativeChat: true,
+    nativeChatSessionOptions: undefined,
+    agentPermissionDefault: undefined,
+    agentPermissionOverrides: undefined,
+    ...overrides
+  })
+}
 
 function structuredLaunchIntent(worktreeId: string, sessionId = 'codex-session-1') {
   return {
@@ -166,7 +182,7 @@ vi.mock('@/runtime/structured-agent-session-client', () => ({
 }))
 
 let main: TabsDrawnFromMain
-let warnings: ReturnType<typeof vi.spyOn<typeof console, 'warn'>>
+let warnings: MockInstance<typeof console.warn>
 const owned: ReturnType<typeof launchAgentInNewTab>[] = []
 const lateCreates: (() => void)[] = []
 // No initial chat mode proves availability rejection preceded terminal-tab adoption.
@@ -187,15 +203,7 @@ describe('structured chat adoption guard on the launch path', () => {
     seedStore(owner.store, {
       activeRepoId: 'repo-1',
       activeWorktreeId: 'wt-1',
-      settings: {
-        ...state().settings,
-        agentCmdOverrides: {},
-        agentDefaultArgs: {},
-        agentDefaultEnv: {},
-        activeRuntimeEnvironmentId: null,
-        experimentalNativeChat: true,
-        nativeChatSessionOptions: undefined
-      },
+      settings: launchScenarioSettings(),
       projects: [
         {
           id: 'repo-1',
@@ -389,12 +397,11 @@ describe('structured chat adoption guard on the launch path', () => {
 
   it('takes the structured path when a Codex model and effort are already saved', async () => {
     owner.store!.setState({
-      settings: {
-        ...state().settings,
+      settings: launchScenarioSettings({
         nativeChatSessionOptions: {
           codex: { model: 'gpt-5.6-sol', valuesByModel: { 'gpt-5.6-sol': { effort: 'medium' } } }
         }
-      }
+      })
     })
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
@@ -500,7 +507,7 @@ describe('structured chat adoption guard on the launch path', () => {
 
   // Recheck persisted opt-in against current default view; the hidden toggle can remain enabled under Terminal chat.
   it('ignores a stale structured opt-in while the default view is Terminal chat', async () => {
-    owner.store!.setState({ settings: { ...state().settings, experimentalNativeChat: false } })
+    owner.store!.setState({ settings: launchScenarioSettings({ experimentalNativeChat: false }) })
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
     const result = launchAgentInNewTab({
