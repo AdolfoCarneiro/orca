@@ -1,15 +1,10 @@
 import type { EditorView } from '@tiptap/pm/view'
-import { CellSelection } from '@tiptap/pm/tables'
 
 export function focusRichMarkdownEditorFromSearch(
   event: MouseEvent,
-  view: Pick<EditorView, 'dom' | 'focus' | 'state'> | null
+  view: Pick<EditorView, 'dom' | 'focus'> | null
 ): void {
-  if (
-    !view ||
-    event.button !== 0 ||
-    (event.defaultPrevented && !(view.state.selection instanceof CellSelection))
-  ) {
+  if (!view || event.button !== 0 || event.defaultPrevented) {
     return
   }
 
@@ -34,11 +29,6 @@ export function focusRichMarkdownEditorFromSearch(
     return
   }
 
-  if (event.shiftKey || event.defaultPrevented) {
-    // Shift extends the current selection; handled cell selection has no browser default.
-    view.focus()
-  } else {
-    // Native focus preserves the browser's upcoming click or drag selection.
-    editorDom.focus({ preventScroll: true })
-  }
+  // Restore the anchor before ProseMirror starts a native gesture that can defer selection sync.
+  view.focus()
 }
