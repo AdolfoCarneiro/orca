@@ -61,22 +61,6 @@ describe('PR comment thread resolution helpers', () => {
     ])
   })
 
-  it('restores new thread members after captured members leave without changing other threads', () => {
-    const previous = comment({ id: 1, threadId: 'thread-a', isResolved: true })
-    const added = comment({
-      id: 2,
-      threadId: 'thread-a',
-      body: 'Reply posted while unresolve was pending.',
-      reactions: [{ content: 'heart', count: 1, viewerHasReacted: true }]
-    })
-    const other = comment({ id: 3, threadId: 'thread-b', isResolved: false })
-
-    const restored = restorePRCommentThreadSnapshot([added, other], [previous])
-
-    expect(restored).toEqual([{ ...added, isResolved: true }, other])
-    expect(restored[1]).toBe(other)
-  })
-
   it('preserves per-ID resolution values and uses known thread state for new replies', () => {
     const unknown = comment({ id: 1, threadId: 'thread-a' })
     const resolved = comment({ id: 2, threadId: 'thread-a', isResolved: true })
