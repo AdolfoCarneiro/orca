@@ -13,6 +13,7 @@ import {
   agentJournalSubmissionKey
 } from '../../../shared/agent-session-journal-item-key'
 import { agentSessionSendBodyFingerprint } from '../../../shared/structured-agent-session-send-mutation'
+import { SQLITE_TABLE_DISPOSITIONS } from '../../../shared/wsl-move/wsl-move-storage-dispositions'
 import {
   applyJournalRow,
   createJournalReducerState,
@@ -74,6 +75,20 @@ afterEach(async () => {
   await journals.closeAll()
   vi.restoreAllMocks()
   await rm(root, { recursive: true, force: true })
+})
+
+it('classifies checkpoint tables as local-only WSL storage', () => {
+  for (const table of ['journal_state', 'journal_items', 'journal_rows', 'journal_sessions']) {
+    expect(
+      database.db
+        .prepare("SELECT name FROM sqlite_schema WHERE type = 'table' AND name = ?")
+        .get(table)
+    ).toEqual({ name: table })
+    expect(SQLITE_TABLE_DISPOSITIONS[`agent-session-journal.${table}`]).toMatchObject({
+      disposition: 'not-applicable',
+      item: 52
+    })
+  }
 })
 
 function write(rows: readonly JournalRow[]): JournalReducerState {
