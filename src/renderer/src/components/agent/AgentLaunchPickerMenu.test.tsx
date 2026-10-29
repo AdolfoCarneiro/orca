@@ -82,15 +82,45 @@ afterEach(() => {
 })
 
 it.each([
-  { menuLeft: 700, side: 'left' },
-  { menuLeft: 20, side: 'right' }
+  { menuLeft: 700, menuWidth: 280, viewport: 1000, height: 800, side: 'left' },
+  { menuLeft: 20, menuWidth: 280, viewport: 1000, height: 800, side: 'right' },
+  { menuLeft: 300, menuWidth: 288, viewport: 700, height: 800, side: 'left' },
+  { menuLeft: 156, menuWidth: 288, viewport: 600, height: 800, side: 'bottom' },
+  { menuLeft: 156, menuWidth: 288, viewport: 600, height: 600, side: 'bottom' }
 ])(
-  'places setup beside the whole menu at x=$menuLeft, flipping $side',
-  async ({ menuLeft, side }) => {
+  'contains setup in a $viewport viewport at x=$menuLeft, preferring $side',
+  async ({ menuLeft, menuWidth, viewport, height, side }) => {
+    const hydrated: AgentPickerEntry = {
+      ...entry,
+      arguments: '--add-dir docs',
+      terminal: { model: 'astra', permissionMode: 'ask' },
+      structured: { model: 'astra', permissionMode: 'ask' }
+    }
+    show(hydrated)
+    let viewportWidth = viewport
+    let placementReads = 0
+    const observers = new Set<ResizeObserverFixture>()
+    class ResizeObserverFixture implements ResizeObserver {
+      targets = new Set<Element>()
+      constructor(readonly callback: ResizeObserverCallback) {
+        observers.add(this)
+      }
+      observe(target: Element) {
+        this.targets.add(target)
+      }
+      unobserve(target: Element) {
+        this.targets.delete(target)
+      }
+      disconnect() {
+        this.targets.clear()
+        observers.delete(this)
+      }
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverFixture)
     // Supply missing browser layout only; the real Popover/Popper computes collision and placement.
-    const menu = new DOMRect(menuLeft, 80, 280, 240)
-    const row = new DOMRect(menuLeft + 5, 128, 270, 32)
-    const trigger = new DOMRect(menuLeft + 248, 132, 24, 24)
+    const menu = new DOMRect(menuLeft, 80, menuWidth, 240)
+    const row = new DOMRect(menuLeft + 5, 128, menuWidth - 10, 32)
+    const trigger = new DOMRect(menuLeft + menuWidth - 32, 132, 24, 24)
     const panel = new DOMRect(0, 0, 384, 480)
     function geometry(element: Element): DOMRect {
       if (
@@ -98,13 +128,39 @@ it.each([
         (element.hasAttribute('data-radix-popper-content-wrapper') &&
           element.querySelector('[data-slot="popover-content"]'))
       ) {
-        return panel
+        const content = element.matches('[data-slot="popover-content"]')
+          ? element
+          : element.querySelector('[data-slot="popover-content"]')!
+        const wrapper = content.parentElement!
+        const available = Number.parseFloat(
+          wrapper.style.getPropertyValue('--radix-popper-available-width')
+        )
+        const capped = content.classList.contains('max-w-(--radix-popover-content-available-width)')
+        const minimum = content.classList.contains('min-w-64') ? 256 : 0
+        const availableHeight = Number.parseFloat(
+          wrapper.style.getPropertyValue('--radix-popper-available-height')
+        )
+        const cappedHeight = content.classList.contains(
+          'max-h-(--radix-popover-content-available-height)'
+        )
+        return new DOMRect(
+          0,
+          0,
+          Math.max(
+            minimum,
+            Math.min(panel.width, capped && Number.isFinite(available) ? available : panel.width)
+          ),
+          Math.min(
+            panel.height,
+            cappedHeight && Number.isFinite(availableHeight) ? availableHeight : panel.height
+          )
+        )
       }
       if (element.matches('[role="menuitem"]')) {
-        return row
+        return element.isConnected ? row : new DOMRect()
       }
       if (element.matches('[data-slot="popover-trigger"]')) {
-        return trigger
+        return element.isConnected ? trigger : new DOMRect()
       }
       if (
         element.matches('[role="menu"]') ||
@@ -113,7 +169,7 @@ it.each([
         return menu
       }
       if (element === document.documentElement || element === document.body) {
-        return new DOMRect(0, 0, 1000, 800)
+        return new DOMRect(0, 0, viewportWidth, height)
       }
       return new DOMRect()
     }
@@ -132,8 +188,36 @@ it.each([
     ) {
       return geometry(this).height
     })
-    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000)
-    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(800)
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockImplementation(() => viewportWidth)
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(height)
+    const computeStyle = window.getComputedStyle.bind(window)
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
+      const style = computeStyle(element, pseudo)
+      if (!element.matches('[data-slot="popover-content"]')) {
+        return style
+      }
+      // happy-dom has no Tailwind layout; resolve only the consumer's sizing rules and CSS alias.
+      return new Proxy(style, {
+        get(target, property) {
+          if (property === 'minWidth' && element.classList.contains('min-w-64')) {
+            return '256px'
+          }
+          if (property === 'getPropertyValue') {
+            return (name: string) => {
+              if (name === '--radix-popover-content-available-width') {
+                placementReads++
+                return element.parentElement!.style.getPropertyValue(
+                  '--radix-popper-available-width'
+                )
+              }
+              return target.getPropertyValue(name)
+            }
+          }
+          const value = Reflect.get(target, property, target)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      })
+    })
     act(() =>
       document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!.click()
     )
@@ -147,15 +231,112 @@ it.each([
       const x = Number(transform![1])
       const y = Number(transform![2])
       expect(x).toBeGreaterThanOrEqual(0)
-      expect(x + panel.width).toBeLessThanOrEqual(1000)
+      const width = content.offsetWidth
+      expect(x + width).toBeLessThanOrEqual(viewport)
       expect(y).toBeGreaterThanOrEqual(0)
-      expect(y + panel.height).toBeLessThanOrEqual(800)
+      expect(y + content.offsetHeight).toBeLessThanOrEqual(height)
       if (side === 'left') {
-        expect(x + panel.width).toBeLessThanOrEqual(menu.left)
-      } else {
+        expect(x + width).toBeLessThanOrEqual(menu.left)
+      } else if (side === 'right') {
         expect(x).toBeGreaterThanOrEqual(menu.right)
+      } else {
+        expect(y).toBeGreaterThanOrEqual(row.bottom)
+      }
+      if (viewport === 700) {
+        expect(width).toBe(299)
+      }
+      if (viewport === 600) {
+        expect(width).toBe(panel.width)
       }
     })
+    await waitFor(() => expect(placementReads).toBe(1))
+    const originalTransform = content.parentElement!.style.transform
+    fireEvent.click(content.querySelector('button[aria-label="Toggle Arguments"]')!)
+    fireEvent.change(content.querySelector('textarea')!, { target: { value: '--add-dir src' } })
+    fireEvent.keyDown(content.querySelector('button[aria-label="Codex permissions"]')!, {
+      key: 'ArrowDown'
+    })
+    fireEvent.click(
+      [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find((item) =>
+        item.textContent?.startsWith('Full access')
+      )!
+    )
+    expect(content.querySelector('button[aria-label="Codex permissions"]')?.textContent).toContain(
+      'Full access'
+    )
+    show({ ...hydrated })
+    expect(document.querySelector('[role="menuitem"]')?.isConnected).toBe(true)
+    await waitFor(() => {
+      expect(content.parentElement!.style.transform).toBe(originalTransform)
+      expect(content.parentElement!.style.getPropertyValue('--radix-popper-anchor-width')).toBe(
+        `${row.width}px`
+      )
+      expect(content.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('--add-dir src')
+    })
+    expect(placementReads).toBe(1)
+    if (viewport <= 700) {
+      process.stdout.write(
+        `${JSON.stringify({ metric: 'picker-contained-layout', viewport, height, menuLeft, side: content.dataset.side, transform: content.parentElement!.style.transform, width: content.offsetWidth, contentHeight: content.offsetHeight, availableWidth: content.parentElement!.style.getPropertyValue('--radix-popper-available-width'), placementReads })}\n`
+      )
+    }
+    function externalResize(width: number, menuX = menu.x) {
+      act(() => {
+        viewportWidth = width
+        menu.x = menuX
+        row.x = menuX + 5
+        trigger.x = menuX + menuWidth - 32
+        fireEvent(window, new Event('resize'))
+        for (const observer of observers) {
+          if (
+            [...observer.targets].some(
+              (target) => target === document.documentElement || target.matches('[role="menuitem"]')
+            )
+          ) {
+            observer.callback([], observer)
+          }
+        }
+      })
+    }
+    if (viewport === 700 || (viewport === 600 && height === 800)) {
+      externalResize(600, 156)
+      await waitFor(() => {
+        expect(placementReads).toBe(2)
+        expect(content.dataset.side).toBe('bottom')
+        const position = content.parentElement!.style.transform.match(/translate\(([-\d.]+)px,/)
+        expect(position).not.toBeNull()
+        expect(Number(position![1])).toBeGreaterThanOrEqual(0)
+        expect(Number(position![1]) + content.offsetWidth).toBeLessThanOrEqual(viewportWidth)
+      })
+      externalResize(1000)
+      await waitFor(() => {
+        expect(placementReads).toBe(3)
+        expect(content.dataset.side).toBe('right')
+      })
+      // A panel's own resize must not restart the placement decision.
+      act(() => {
+        for (const observer of observers) {
+          if (observer.targets.has(content) || observer.targets.has(content.parentElement!)) {
+            observer.callback([], observer)
+          }
+        }
+      })
+      await waitFor(() => {
+        expect(placementReads).toBe(3)
+        expect(content.dataset.side).toBe('right')
+      })
+      fireEvent.keyDown(content, { key: 'Escape' })
+      expect(document.querySelector('[data-slot="popover-content"]')).toBeNull()
+      expect(
+        [...observers].some((observer) => observer.targets.has(document.documentElement))
+      ).toBe(false)
+      fireEvent.click(document.querySelector('button[aria-label="Configure Codex"]')!)
+      await waitFor(() =>
+        expect(
+          document.querySelector<HTMLElement>('[data-slot="popover-content"]')?.dataset.side
+        ).toBe('right')
+      )
+      await waitFor(() => expect(placementReads).toBe(4))
+    }
     expect(launch).not.toHaveBeenCalled()
   }
 )

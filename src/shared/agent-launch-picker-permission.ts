@@ -18,12 +18,12 @@ export function agentPickerArgumentPermission(entry: AgentPickerEntry, draft: Ag
   if (text === undefined) {
     return undefined
   }
-  if (!agentArgsSetPermission(entry.agent, text)) {
-    return undefined
-  }
   const parsed = tokenizeStartupCommand(text, 'posix')
   if (!parsed.ok) {
     return { flag: text, value: text, remainingArguments: text, opaque: true }
+  }
+  if (!agentArgsSetPermission(entry.agent, text)) {
+    return undefined
   }
   const analysis = analyzeAgentChoiceArgs(entry.agent, text)
   const { roles, carrierIndices } = analyzeAgentChoiceWords(entry.agent, parsed.tokens)

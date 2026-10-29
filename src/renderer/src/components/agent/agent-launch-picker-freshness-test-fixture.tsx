@@ -67,6 +67,11 @@ export async function exerciseAgentPickerFreshness({
   const search = () =>
     view.container.querySelector<HTMLInputElement>('input[aria-label="Search models"]')!
   const choice = () => view.container.querySelector('[cmdk-item][data-current="true"]')?.textContent
+  const effortControls = () => [
+    ...view.container.querySelectorAll<HTMLButtonElement>(
+      '[data-option-id="effort"] [role="radio"]'
+    )
+  ]
   const effort = () =>
     view.container.querySelector('[data-option-id="effort"] [data-state="on"]')?.textContent
   const launch = () => {
@@ -82,6 +87,8 @@ export async function exerciseAgentPickerFreshness({
     expect(choice()).toContain('Opus')
     expect(effort()).toBe('Low')
     expect(search().disabled).toBe(false)
+    expect(effortControls().length).toBeGreaterThan(0)
+    expect(effortControls().every((control) => !control.disabled)).toBe(true)
     expect(current.entry?.structured).toMatchObject({
       model: seed()?.model,
       options: { effort: 'low' }
@@ -132,6 +139,8 @@ export async function exerciseAgentPickerFreshness({
       expect(current.entry?.structured.model).toBeUndefined()
       expect(search().disabled).toBe(true)
       expect(choice()).toBeUndefined()
+      expect(effortControls().length).toBeGreaterThan(0)
+      expect(effortControls().every((control) => control.disabled)).toBe(true)
       launch()
     }
     view.unmount()

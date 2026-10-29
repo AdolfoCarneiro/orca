@@ -149,59 +149,61 @@ function AgentPickerMenuRow({
   const configured = useRef<AgentPickerDraft | undefined>(undefined)
   const unavailable = entry.rows.find((row) => row.kind === 'chat-unavailable')
   return (
-    <DropdownMenuItem
-      ref={item}
-      variant="launch"
-      disabled={disabled || !entry.surfaces.length}
-      onSelect={() => {
-        const draft = configured.current ?? initial
-        configured.current = undefined
-        const surface = draft?.surface ?? entry.defaultSurface
-        const row = draft
-          ? pickerLaunchRow(entry, surface)
-          : (entry.rows.find((row) =>
-              surface === 'chat'
-                ? row.kind === 'chat'
-                : row.kind === 'terminal' || row.kind === 'cli'
-            ) ?? pickerLaunchRow(entry, surface))
-        if (draft) {
-          runLaunch(row, draft, entry)
-        } else {
-          runLaunch(row, undefined)
+    <AgentLaunchSetupButton
+      entry={entry}
+      initial={initial}
+      disabled={disabled}
+      onOpenChange={(next) => {
+        if (next) {
+          onSelectAgent?.(entry.agent)
         }
       }}
-      onKeyDown={(event) => {
-        if (event.key === 'ArrowRight') {
-          event.preventDefault()
-          item.current?.querySelector<HTMLButtonElement>('button')?.focus()
-        }
+      onUse={(draft) => {
+        configured.current = draft
+        item.current?.click()
       }}
-      onPointerMove={keepSetupFocus}
-      onPointerLeave={keepSetupFocus}
-    >
-      <AgentIcon agent={entry.agent} size={14} />
-      <span className="flex-1">{label}</span>
-      {shortcut ? <DropdownMenuShortcut>{shortcut}</DropdownMenuShortcut> : null}
-      {unavailable?.kind === 'chat-unavailable' && !entry.surfaces.includes('chat') ? (
-        <span className="text-xs text-muted-foreground">
-          {chatUnavailableLabel(unavailable.reason)}
-        </span>
-      ) : null}
-      <AgentLaunchSetupButton
-        anchorRef={item}
-        entry={entry}
-        initial={initial}
-        disabled={disabled}
-        onOpenChange={(next) => {
-          if (next) {
-            onSelectAgent?.(entry.agent)
-          }
-        }}
-        onUse={(draft) => {
-          configured.current = draft
-          item.current?.click()
-        }}
-      />
-    </DropdownMenuItem>
+      renderAnchor={(trigger) => (
+        <DropdownMenuItem
+          ref={item}
+          variant="launch"
+          disabled={disabled || !entry.surfaces.length}
+          onSelect={() => {
+            const draft = configured.current ?? initial
+            configured.current = undefined
+            const surface = draft?.surface ?? entry.defaultSurface
+            const row = draft
+              ? pickerLaunchRow(entry, surface)
+              : (entry.rows.find((row) =>
+                  surface === 'chat'
+                    ? row.kind === 'chat'
+                    : row.kind === 'terminal' || row.kind === 'cli'
+                ) ?? pickerLaunchRow(entry, surface))
+            if (draft) {
+              runLaunch(row, draft, entry)
+            } else {
+              runLaunch(row, undefined)
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowRight') {
+              event.preventDefault()
+              item.current?.querySelector<HTMLButtonElement>('button')?.focus()
+            }
+          }}
+          onPointerMove={keepSetupFocus}
+          onPointerLeave={keepSetupFocus}
+        >
+          <AgentIcon agent={entry.agent} size={14} />
+          <span className="flex-1">{label}</span>
+          {shortcut ? <DropdownMenuShortcut>{shortcut}</DropdownMenuShortcut> : null}
+          {unavailable?.kind === 'chat-unavailable' && !entry.surfaces.includes('chat') ? (
+            <span className="text-xs text-muted-foreground">
+              {chatUnavailableLabel(unavailable.reason)}
+            </span>
+          ) : null}
+          {trigger}
+        </DropdownMenuItem>
+      )}
+    />
   )
 }

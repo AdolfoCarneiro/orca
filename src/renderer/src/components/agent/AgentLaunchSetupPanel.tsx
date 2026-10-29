@@ -105,6 +105,11 @@ export function AgentLaunchSetupPanel({
         settable: false
       }
     }
+    const valueKnown =
+      current !== undefined ||
+      (option.id === 'serviceTier' &&
+        entry.catalog.origin !== 'unknown' &&
+        Boolean(liveModel?.serviceTiers?.length))
     return {
       id: option.id,
       label: option.label,
@@ -120,12 +125,12 @@ export function AgentLaunchSetupPanel({
                   : option.kind.choices,
               currentValue: current
             },
-      valueSource: current === undefined ? 'unknown' : 'default',
+      valueSource: valueKnown ? 'default' : 'unknown',
       transport: 'agent-session',
       settable:
         !disabled &&
         !defaultsPending &&
-        (option.kind.type === 'select' ? option.kind.choices.length > 0 : current !== undefined) &&
+        valueKnown &&
         (!(option.id === 'fastMode' || option.id === 'serviceTier') ||
           !entry.surfaces.includes('terminal') ||
           argumentsKnown)
