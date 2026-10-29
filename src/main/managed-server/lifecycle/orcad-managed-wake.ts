@@ -50,6 +50,10 @@ export function wakeExpectedOrcadUnderOneFence(
   expectActive: string
 ): Promise<OrcadManagedWake | { outcome: 'replan' }> {
   return serializedWake(options, async (host) => {
+    // An earlier wake's dropped fence is reclaimed only by the full wake, which knows its token.
+    if (interruptedWakes.has(host)) {
+      return { outcome: 'fenced' }
+    }
     // Record ownership before acquisition, as the wake does: a dropped reply leaves a fence only it can reclaim.
     const token = randomUUID()
     interruptedWakes.set(host, token)

@@ -17,7 +17,7 @@ vi.mock('../install/remote-install-lock', async (importOriginal) => ({
 
 import { execCommand } from '../../ssh/remote-exec/remote-exec-command'
 import { acquireInstallLock, RemoteInstallLockBusyError } from '../install/remote-install-lock'
-import { wakeExpectedOrcadUnderOneFence } from './orcad-managed-wake'
+import { wakeExpectedOrcadUnderOneFence, wakeStoppedManagedOrcad } from './orcad-managed-wake'
 import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import type { OrcadHostTransport } from '../../ssh/orcad-host-transport'
 import { FakeOrcadHost, NEW, OLD } from '../activation/orcad-activation-host-test-harness'
@@ -137,5 +137,29 @@ describe('wakeExpectedOrcadUnderOneFence', () => {
     await expect(wakeExpectedOrcadUnderOneFence(slot, OLD)).rejects.toThrow('permission denied')
     expect(host.fence).toBe(false)
     expect(launches()).toEqual([])
+  })
+
+  it.each([
+    ['a full wake', () => wakeStoppedManagedOrcad(slot)],
+    ['a one-fence wake', () => wakeExpectedOrcadUnderOneFence(slot, OLD)]
+  ])('leaves the fence %s dropped to the full wake that can reclaim it', async (_, dropped) => {
+    host = stoppedHost()
+    const lost = Object.assign(new Error('connection lost'), { sshChannelCloseConfirmed: false })
+    vi.mocked(execCommand).mockImplementation(async (_conn, command) => {
+      if (command.includes('nohup')) {
+        throw lost
+      }
+      return host.exec(command)
+    })
+    await expect(dropped()).rejects.toBe(lost)
+    const owner = host.wakeOwner
+    expect(host.fence).toBe(true)
+    vi.mocked(execCommand).mockImplementation(async (_conn, command) => host.exec(command))
+
+    // Its token stays the dropped wake's, so the full wake still proves the fence its own.
+    expect(await wakeExpectedOrcadUnderOneFence(slot, OLD)).toEqual({ outcome: 'fenced' })
+    expect(host.wakeOwner).toBe(owner)
+    expect(await wakeStoppedManagedOrcad(slot)).toMatchObject({ outcome: 'started' })
+    expect(host.fence).toBe(false)
   })
 })
