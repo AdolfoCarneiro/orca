@@ -21,6 +21,8 @@ const TTYS004 = (16 << 24) | 4
 // 2026-09-03T16:02:01Z, a single-digit day so lstart pads it.
 const START = Date.UTC(2026, 8, 3, 16, 2, 1) / 1000
 const BUDGET = { timeoutMs: 1000 }
+// After any request, so mocked reads always count as fresh.
+const FRESH_READ_STARTED_AT_MS = Date.UTC(2100, 0, 1)
 
 function row(overrides: Partial<LibprocProcessRow>): LibprocProcessRow {
   return {
@@ -89,7 +91,7 @@ const TABLE = [
 ]
 
 function tableFor(query: LibprocQuery, table = TABLE): LibprocTableRead {
-  return { startedAtMs: Date.now(), rows: rowsFor(query, table) }
+  return { startedAtMs: FRESH_READ_STARTED_AT_MS, rows: rowsFor(query, table) }
 }
 
 function rowsFor(
@@ -266,7 +268,7 @@ describe('runPsInProcess', () => {
     const stale = new Promise<LibprocTableRead>((resolve) => {
       finishStale = resolve
     })
-    const startedBefore = Date.now() - 5_000
+    const startedBefore = 0
     const readProcessTable = vi
       .fn<(query: LibprocQuery) => Promise<LibprocTableRead>>()
       .mockReturnValueOnce(stale)

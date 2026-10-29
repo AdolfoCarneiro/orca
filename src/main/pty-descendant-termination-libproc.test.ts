@@ -8,6 +8,9 @@ import {
 import { captureDescendantSnapshot, killWithDescendantSweep } from './pty-descendant-termination'
 
 const START = Date.UTC(2026, 8, 3, 16, 2, 1) / 1000
+// Fixed read start times on either side of any request: one long before, one after.
+const ABANDONED_READ_STARTED_AT_MS = 0
+const FRESH_READ_STARTED_AT_MS = Date.UTC(2100, 0, 1)
 
 function row(pid: number, ppid: number): LibprocProcessRow {
   return {
@@ -39,7 +42,7 @@ describe('descendant teardown over the in-process process table', () => {
       .mockReturnValueOnce(abandoned)
       // Since that read began, descendant 200 exited and an unrelated process took its pid.
       .mockImplementation(async () => ({
-        startedAtMs: Date.now(),
+        startedAtMs: FRESH_READ_STARTED_AT_MS,
         rows: [row(1, 0), row(100, 1), row(200, 1)]
       }))
     setLibprocAddonForTests({
@@ -47,7 +50,6 @@ describe('descendant teardown over the in-process process table', () => {
       processCwd: () => null,
       processPath: () => null
     })
-    const abandonedAtMs = Date.now()
     expect(await captureDescendantSnapshot(100, { timeoutMs: 10 })).toBeNull()
 
     const sendSignal = vi.fn()
@@ -57,7 +59,10 @@ describe('descendant teardown over the in-process process table', () => {
       timeoutMs: 1_000,
       graceMs: 60_000
     })
-    finishAbandoned({ startedAtMs: abandonedAtMs, rows: [row(1, 0), row(100, 1), row(200, 100)] })
+    finishAbandoned({
+      startedAtMs: ABANDONED_READ_STARTED_AT_MS,
+      rows: [row(1, 0), row(100, 1), row(200, 100)]
+    })
     await teardown
 
     expect(killRoot).toHaveBeenCalledOnce()
