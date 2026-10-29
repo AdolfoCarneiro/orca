@@ -122,7 +122,7 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): string[]
         offset += 1
       }
     }
-    const assignment = line.slice(offset).match(/^([a-z][a-z0-9-]*)\s*=\s*(.*)$/i)
+    const assignment = line.slice(offset).match(/^([a-z][a-z0-9-]*)[ \t\r]*=[ \t\r]*(.*)$/i)
     if (!assignment) {
       continue
     }
@@ -223,7 +223,7 @@ function parseConfigValue(firstLine: string, lines: Iterator<string>): string | 
     if (!quoted && (char === '#' || char === ';')) {
       break
     }
-    if (!quoted && /[ \t\r\v\f]/.test(char)) {
+    if (!quoted && /[ \t\r]/.test(char)) {
       if (!value) {
         continue
       }

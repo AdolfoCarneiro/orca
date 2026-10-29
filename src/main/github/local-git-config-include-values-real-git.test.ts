@@ -41,6 +41,31 @@ type IncludePathCase = {
 
 const cases: IncludePathCase[] = [
   { name: 'unquoted', includedPath: 'includes/team.cfg', value: 'includes/team.cfg' },
+  ...[
+    { name: 'vertical tab', char: '\v', posixOnly: true },
+    { name: 'form feed', char: '\f', posixOnly: true },
+    { name: 'nonbreaking space', char: '\u00a0' },
+    { name: 'ideographic space', char: '\u3000' }
+  ].flatMap(({ name, char, posixOnly }) => [
+    {
+      name: `native whitespace leading ${name}`,
+      includedPath: `${char}team.cfg`,
+      value: `${char}team.cfg`,
+      posixOnly
+    },
+    {
+      name: `native whitespace trailing ${name}`,
+      includedPath: `team.cfg${char}`,
+      value: `team.cfg${char}# comment`,
+      posixOnly
+    },
+    {
+      name: `native whitespace quoted ${name}`,
+      includedPath: `${char}team.cfg${char}`,
+      value: `"${char}team.cfg${char}"`,
+      posixOnly
+    }
+  ]),
   {
     name: 'quoted spaces',
     includedPath: 'includes/team cfg',
