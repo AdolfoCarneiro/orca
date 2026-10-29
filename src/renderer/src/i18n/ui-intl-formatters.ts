@@ -1,4 +1,5 @@
 import { getIntlLocale } from './i18n'
+import { supportedIntlLocale } from './intl-locale-support'
 
 type CachedFormatter<T> = { locale: string; formatter: T }
 
@@ -10,9 +11,11 @@ const collators = new WeakMap<object, CachedFormatter<Intl.Collator>>()
 function cachedFormatter<T>(
   cache: WeakMap<object, CachedFormatter<T>>,
   options: object,
+  intl: { supportedLocalesOf(locale: string): string[] },
   create: (locale: string) => T
 ): T {
-  const locale = getIntlLocale()
+  // getIntlLocale checks DateTimeFormat support; an unsupported collator/number tag would use the OS locale.
+  const locale = supportedIntlLocale(getIntlLocale(), intl)
   const cached = cache.get(options)
   if (cached?.locale === locale) {
     return cached.formatter
@@ -26,14 +29,25 @@ export function uiDateTimeFormat(options: Intl.DateTimeFormatOptions): Intl.Date
   return cachedFormatter(
     dateTimeFormats,
     options,
+    Intl.DateTimeFormat,
     (locale) => new Intl.DateTimeFormat(locale, options)
   )
 }
 
 export function uiNumberFormat(options: Intl.NumberFormatOptions): Intl.NumberFormat {
-  return cachedFormatter(numberFormats, options, (locale) => new Intl.NumberFormat(locale, options))
+  return cachedFormatter(
+    numberFormats,
+    options,
+    Intl.NumberFormat,
+    (locale) => new Intl.NumberFormat(locale, options)
+  )
 }
 
 export function uiCollator(options: Intl.CollatorOptions): Intl.Collator {
-  return cachedFormatter(collators, options, (locale) => new Intl.Collator(locale, options))
+  return cachedFormatter(
+    collators,
+    options,
+    Intl.Collator,
+    (locale) => new Intl.Collator(locale, options)
+  )
 }
