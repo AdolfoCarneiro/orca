@@ -19,6 +19,13 @@ it('uses the issue page total for a simultaneous or later production count', asy
   expect(api.restSearches).toBe(0)
 })
 
+it('serves a later matching count without another request', async () => {
+  api.reportedCount = 2748
+  await listWorkItems('fixture/repo', 24, 'is:issue')
+  expect(await countWorkItems('fixture/repo', 'is:issue')).toBe(2748)
+  expect(api.graphqlCalls).toBe(1)
+})
+
 it('removes count-only aliases before applying the existing batch limit', async () => {
   const pairs = Array.from({ length: 25 }, (_, index) => {
     const search = `repo:fixture/repo-${index} is:issue`
