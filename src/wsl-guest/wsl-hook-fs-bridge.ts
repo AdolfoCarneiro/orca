@@ -1,8 +1,4 @@
-// Guest-side fs bridge for the WSL agent-hook relay. Exposes the handful of
-// home-scoped file operations the shared remote hook installers need, as
-// JSON-RPC request handlers over the relay's stdio channel — so the host
-// installs hook configs/scripts into the distro without per-file wsl.exe
-// spawns (load-sensitive, see docs/agent-status-over-wsl.md).
+// Install hook files through guest stdio RPCs instead of spawning wsl.exe per file.
 import { resolveSystemClaudeHookTarget } from '../main/claude/claude-hook-target'
 import { promises as fs } from 'node:fs'
 import { posix } from 'node:path'

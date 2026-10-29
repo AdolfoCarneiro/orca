@@ -1,6 +1,6 @@
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
-import { getLinearPriorityLabel } from '@/components/task-page-localized-options'
+import { getLinearPriorityLabel } from '@/components/task-page/task-page-localized-options'
 import type {
   LinearOrderBy,
   LinearGroupBy,
@@ -52,7 +52,9 @@ export function getLinearIssueGroup(
   if (groupBy === 'assignee') {
     return {
       key: `assignee:${issue.assignee?.id ?? 'unassigned'}`,
-      label: issue.assignee?.displayName ?? 'Unassigned'
+      label:
+        issue.assignee?.displayName ??
+        translate('auto.components.TaskPage.groupUnassigned', 'Unassigned')
     }
   }
   if (groupBy === 'priority') {

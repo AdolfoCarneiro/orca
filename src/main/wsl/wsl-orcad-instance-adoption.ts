@@ -1,11 +1,4 @@
-/**
- * An orcad still serving in a distro that its activation record does not name (a Remove that
- * failed partway, say) is adopted, never killed: only it holds the data root's instance lock, so
- * launching the recorded slot would fail, and stopping it would need a terminal census C4 has no
- * channel to take. Adoption is proven first: the instance lock, the slot's readiness and the slot's
- * installed build must all name the same process. Then the record and pid file are rewritten under
- * the activation fence. A different version is then handled by the usual update gate.
- */
+/** Adopt serving unrecorded orcad under the activation fence only when lock, readiness and installed build identify the same process. Never kill it without census; launching another loses the instance lock. Normal update admission handles version changes. */
 import {
   ORCAD_LOCK_FILE_NAME,
   parseOrcadInstanceLockRecord,
@@ -42,6 +35,7 @@ import {
 import { quotePosixShell } from '../../shared/shell-argument-quoting'
 import { joinRemotePath } from '../ssh/ssh-remote-platform'
 import { readWslGuestIdentity, wslGuestOrcadIncarnation } from './wsl-guest-process-identity'
+import type { WslOrcadInstanceLockRead } from './wsl-orcad-connect-state-snapshot'
 
 const LOCK_RECORD_MAX_BYTES = 64 * 1024
 const UNRECORDED_ORCAD_CODE = 'wsl_orcad_unrecorded_instance_unverifiable'
@@ -60,15 +54,19 @@ export class WslOrcadUnrecordedInstanceError extends Error {
 
 type LockHolder = { pid: number; version: string }
 
-async function readLiveLockHolder(slot: OrcadSlotOptions): Promise<LockHolder | null> {
+async function readLiveLockHolder(
+  slot: OrcadSlotOptions,
+  preRead?: WslOrcadInstanceLockRead
+): Promise<LockHolder | null> {
   const lockPath = joinRemotePath(slot.host, slot.userDataDir, ORCAD_LOCK_FILE_NAME)
-  const read = await readBoundedOrcadRemoteRecord(slot, lockPath, LOCK_RECORD_MAX_BYTES)
+  const read =
+    preRead ?? (await readBoundedOrcadRemoteRecord(slot, lockPath, LOCK_RECORD_MAX_BYTES))
   const lock = read.state === 'present' ? parseOrcadInstanceLockRecord(read.raw) : null
-  // A desktop holder is not an orcad; an absent or garbled lock names nobody to adopt.
+  // Desktop-role or malformed locks identify no orcad to adopt.
   if (!lock || lock.role === 'desktop') {
     return null
   }
-  // Not live is never adopted; the launch's own instance lock then decides, on the host.
+  // Adopt only proven-live holders; otherwise let the host's instance lock arbitrate launch.
   return (await lockHolderLiveness(slot, lock)) === 'live'
     ? { pid: lock.pid, version: lock.version }
     : null
@@ -90,11 +88,11 @@ async function lockHolderLiveness(
   if (!incarnation) {
     return 'exited'
   }
-  // Why lowercased: the guest's boot id is read lowercased, and a writer may record it otherwise.
+  // Compare boot IDs case-insensitively because readers normalize them.
   const recorded = lock.bootId ? { ...lock, bootId: lock.bootId.toLowerCase() } : lock
   const verdict = compareOrcadProcessIdentity(lock.pid, recorded, {
     incarnation: () => incarnation,
-    // The guest's wall clock jumps after a host sleep, so it is not read.
+    // Ignore wall-clock starts: guest clocks jump after host sleep.
     startedAtMs: () => null,
     platform: 'linux'
   })
@@ -153,21 +151,20 @@ function adoptedRecord(
     previous: record.active ?? record.previous,
     ...(record.active && activeAppVersion ? { previousAppVersion: activeAppVersion } : {}),
     activatedAt: now.toISOString(),
-    // Its prelaunch snapshot belonged to another activation; rollback must not restore it here.
+    // Prelaunch snapshot belongs to another activation; rollback must not restore it.
     snapshot: null
   }
 }
 
-/**
- * Adopts the orcad holding the instance lock when the record or its slot's pid file does not
- * name it. Anything unprovable refuses: a launch would only lose the instance lock to it.
- */
+/** Adopt lock owners missing from record/pid file only with proof; otherwise refuse rather than launch into an occupied instance lock. */
 export async function adoptUnrecordedWslOrcad(
   slot: OrcadSlotOptions,
   record: OrcadActivationRecord,
-  now: () => Date = () => new Date()
+  now: () => Date = () => new Date(),
+  /** This connect's snapshot of the lock; the fenced re-check below always reads the host. */
+  preReadLock?: WslOrcadInstanceLockRead
 ): Promise<WslOrcadAdoption> {
-  const holder = await readLiveLockHolder(slot)
+  const holder = await readLiveLockHolder(slot, preReadLock)
   if (!holder) {
     return { outcome: 'none' }
   }

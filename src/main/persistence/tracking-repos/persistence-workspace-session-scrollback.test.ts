@@ -12,6 +12,7 @@ import {
   createStore,
   dataFile,
   makeRepo,
+  readPersistedState,
   readPersistedStateJson,
   testState,
   workspaceRepos,
@@ -316,12 +317,7 @@ describe('Store', () => {
     })
 
     expect(existsSync(join(testState.dir, 'terminal-scrollback', `${ref}.bin`))).toBe(false)
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The preceding Store save produced the PersistedState snapshot read by this test.
-    const stillPublished = JSON.parse(readPersistedStateJson(dataFile())) as {
-      workspaceSession: {
-        terminalLayoutsByTabId: Record<string, { scrollbackRefsByLeafId?: Record<string, string> }>
-      }
-    }
+    const stillPublished = readPersistedState(dataFile())
     expect(
       stillPublished.workspaceSession.terminalLayoutsByTabId['remote-tab']
         ?.scrollbackRefsByLeafId?.[TEST_LEAF_2]
@@ -407,6 +403,12 @@ describe('Store', () => {
     expect(buffer).toHaveLength(TERMINAL_SCROLLBACK_REPLAY_BYTE_LIMIT)
     expect(buffer?.startsWith('stale-prefix')).toBe(false)
     expect(buffer?.endsWith('tail')).toBe(true)
+    expect(store.hasTerminalScrollbackSnapshot(ref)).toBe(true)
+    expect(store.hasTerminalScrollbackSnapshot('v1-11111111111111111111111111111111')).toBe(false)
+    await expect(store.readTerminalScrollbackSnapshotAsync(ref)).resolves.toBe(buffer)
+    await expect(store.statTerminalScrollbackSnapshotSize(ref)).resolves.toBe(
+      TERMINAL_SCROLLBACK_REPLAY_BYTE_LIMIT + 'stale-prefix-tail'.length
+    )
   })
 
   it('strips legacy local terminal scrollback buffers when loading workspace session', async () => {

@@ -138,7 +138,8 @@ describe('connectPanePty pre-connect input', () => {
     binding.dispose()
   })
 
-  it('keeps holding a deferred split’s keys even when it has startup work, as before', async () => {
+  // Why: held split keys flushed at bind would land ahead of the startup command.
+  it('does not hold a deferred split’s keys in the transport when it has startup work', async () => {
     transportFactoryQueue.push(createMockTransport('pty-1'))
 
     const binding = connectPlainPane({
@@ -146,7 +147,7 @@ describe('connectPanePty pre-connect input', () => {
       cwdPromise: new Promise<string>(() => {})
     })
 
-    expect(createdTransportOptions[0]?.bufferInputUntilConnect).toBe(true)
+    expect(createdTransportOptions[0]?.bufferInputUntilConnect).toBeUndefined()
     binding.dispose()
   })
 
@@ -219,7 +220,8 @@ describe('connectPanePty pre-connect input', () => {
     binding.dispose()
   })
 
-  it('keeps releasing a deferred split’s held keys as before when startup work appears', async () => {
+  // Why: a split's held keys flushed ahead of a resume would run in the shell before it.
+  it('stops releasing a deferred split’s held keys once startup work appears', async () => {
     transportFactoryQueue.push(createMockTransport())
 
     const binding = connectPlainPane({ cwdPromise: new Promise<string>(() => {}) })
@@ -231,7 +233,55 @@ describe('connectPanePty pre-connect input', () => {
       worktreeId: 'wt-1'
     }
 
-    expect(typeof release === 'function' && release()).toBe(true)
+    expect(typeof release === 'function' && release()).toBe(false)
+    binding.dispose()
+  })
+
+  it('keeps a deferred split holding keys under the layout-owner build, as before', async () => {
+    layoutOwner.isMain = true
+    transportFactoryQueue.push(createMockTransport())
+
+    const binding = connectPlainPane({ cwdPromise: new Promise<string>(() => {}) })
+
+    expect(createdTransportOptions[0]?.bufferInputUntilConnect).toBe(true)
+    binding.dispose()
+  })
+
+  it('keeps a brand-new pane’s typing for the terminal it creates, but not a restored pane’s', async () => {
+    transportFactoryQueue.push(createMockTransport(), createMockTransport())
+    mockStoreState.terminalLayoutsByTabId = {}
+
+    const fresh = connectPlainPane()
+    const restored = connectPlainPane({
+      restoredLeafId: leafIdForPane(1),
+      restoredPtyIdByLeafId: { [leafIdForPane(1)]: 'remote:env-1@@terminal-1' }
+    })
+
+    const keepFresh = createdTransportOptions[0]?.keepTypeAheadForNewTerminal
+    const keepRestored = createdTransportOptions[1]?.keepTypeAheadForNewTerminal
+    expect(typeof keepFresh === 'function' && keepFresh()).toBe(true)
+    expect(typeof keepRestored === 'function' && keepRestored()).toBe(false)
+    fresh.dispose()
+    restored.dispose()
+  })
+
+  // Why: a cleared binding can still replay saved history into the pane.
+  it('stops keeping a new pane’s typing once replayed history shows in it', async () => {
+    transportFactoryQueue.push(createMockTransport())
+    mockStoreState.terminalLayoutsByTabId = {}
+    const pane = createPane(1)
+    const connectArgs = [pane, createManager(1), buildPaneConnectionDeps(() => mockStoreState)]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the shared pane fixtures implement the members connectPanePty touches.
+    const binding = connectPanePty(...(connectArgs as unknown as Parameters<typeof connectPanePty>))
+    const keep = createdTransportOptions[0]?.keepTypeAheadForNewTerminal
+    expect(typeof keep === 'function' && keep()).toBe(true)
+
+    // The fresh create's own prompt and leaf binding count only before it starts, never at bind.
+    pane.terminal.buffer.active.baseY = 12
+    expect(typeof keep === 'function' && keep('connect')).toBe(false)
+    expect(typeof keep === 'function' && keep('bind')).toBe(true)
+    // Replayed history (checked at bind too) is covered through the real restore path in
+    // pty-connection-remote-new-terminal-typeahead.test.ts.
     binding.dispose()
   })
 

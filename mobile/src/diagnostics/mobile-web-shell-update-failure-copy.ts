@@ -7,8 +7,9 @@ import type {
   MobileWebShellUpdateFailureWall
 } from '../mobile-web-shell/mobile-web-shell-update-failure'
 import { formatTimeAgo } from '../worktree/agent-row-display'
+import { translate } from '../i18n/mobile-i18n'
 
-/** Each phrase restates the recorded code and nothing more: this row claims only what was written. */
+// Describe only the recorded code; this row has no further evidence about the failure.
 const REASON_COPY: Record<MobileWebShellUpdateFailureReason, string> = {
   'no-connection': 'not connected to the host',
   'connection-lost': 'the connection dropped',
@@ -72,18 +73,25 @@ function outcomeCopy(failure: MobileWebShellUpdateFailure): string {
   }
 }
 
-/** "Last update from Host 1 failed 12m ago: asset checksum mismatch (generation 3f2a…)." plus what
- *  the shell showed instead. */
 export function formatUpdateFailure(
   failure: MobileWebShellUpdateFailure,
   hostName: string,
   now: number
 ): string {
-  const ago = formatTimeAgo(failure.at, now)
-  const when = ago === 'just now' ? ago : `${ago} ago`
   const reason =
     failure.hostCode === null ? REASON_COPY[failure.reason] : HOST_CODE_COPY[failure.hostCode]
   const offered =
     failure.offeredBuildId === null ? '' : ` (generation ${generation(failure.offeredBuildId)})`
-  return `Last update from ${hostName} failed ${when}: ${reason}${offered}. ${outcomeCopy(failure)}`
+  const options = { hostName, reason, offered, outcome: outcomeCopy(failure) }
+  return now - failure.at < 60_000
+    ? translate(
+        'diagnostics.webShellUpdateFailureCopy.failedJustNow',
+        'Last update from {{hostName}} failed just now: {{reason}}{{offered}}. {{outcome}}',
+        options
+      )
+    : translate(
+        'diagnostics.webShellUpdateFailureCopy.failedAgo',
+        'Last update from {{hostName}} failed {{time}} ago: {{reason}}{{offered}}. {{outcome}}',
+        { ...options, time: formatTimeAgo(failure.at, now) }
+      )
 }

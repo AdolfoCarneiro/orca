@@ -41,6 +41,11 @@ type InstallOptions = ManagedHookInvocation & {
   agents?: readonly AgentHookTarget[]
 }
 
+type ApplyOptions = InstallOptions & {
+  /** Off means skip, never remove: another Orca's panes run on these same user-global entries. */
+  keepSharedEntries?: boolean
+}
+
 type RemoveOptions = ManagedHookInvocation & {
   agents?: readonly AgentHookTarget[]
 }
@@ -250,10 +255,12 @@ export async function getManagedAgentHookStatuses(
 export async function applyAgentStatusHooksEnabled(
   enabled: boolean,
   settings: ManagedHookSettings = null,
-  options: InstallOptions = {}
+  options: ApplyOptions = {}
 ): Promise<AgentHookInstallStatus[]> {
   if (!enabled) {
-    return await removeManagedAgentHooks(options)
+    return options.keepSharedEntries
+      ? getManagedAgentHookStatuses(options)
+      : await removeManagedAgentHooks(options)
   }
   const disabled = normalizeDisabledTuiAgents(settings?.disabledTuiAgents)
     .filter(isManagedAgentHookTarget)
@@ -262,7 +269,7 @@ export async function applyAgentStatusHooksEnabled(
   const disabledToRemove = options.shouldContinue
     ? disabled.filter((agent) => !options.shouldContinue?.(agent))
     : disabled
-  if (disabledToRemove.length === 0) {
+  if (disabledToRemove.length === 0 || options.keepSharedEntries) {
     return installed
   }
   const removed = new Map(

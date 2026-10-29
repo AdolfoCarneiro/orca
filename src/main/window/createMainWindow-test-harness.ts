@@ -16,9 +16,9 @@ export const attachRouteGuestMock: MainWindowSpy = vi.fn(() => false)
 export const retireRouteRendererMock: MainWindowSpy = vi.fn()
 export const attachClientPageRendererMock: MainWindowSpy = vi.fn()
 export const retireClientPageRendererMock: MainWindowSpy = vi.fn()
-export const buildFromTemplateMock: Mock<(...args: unknown[]) => { popup: MainWindowSpy }> = vi.fn(
-  () => ({ popup: menuPopupMock })
-)
+export const buildFromTemplateMock: Mock<
+  (...args: unknown[]) => { popup: MainWindowSpy; closePopup: MainWindowSpy }
+> = vi.fn(() => ({ popup: menuPopupMock, closePopup: vi.fn() }))
 export const notificationMock: Mock<(...args: unknown[]) => { show: MainWindowSpy }> = vi.fn(
   function () {
     return { show: notificationShowMock }
@@ -70,8 +70,7 @@ export type BrowserManagerModuleMock = {
   }
 }
 
-// Why: vi.mock factories are hoisted per test file, so each file calls these builders instead of
-// re-declaring the shared electron surface.
+// vi.mock factories are hoisted per suite; builders reuse the Electron surface without duplicating it.
 export function electronModuleMock(): ElectronModuleMock {
   return {
     app: appMock,

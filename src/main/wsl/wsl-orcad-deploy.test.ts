@@ -7,6 +7,8 @@ import {
   type OrcadActivationRecord
 } from '../managed-server/activation/orcad-activation-record'
 import { getRemoteHostPlatform } from '../ssh/ssh-remote-platform'
+import { OrcadActiveReadinessError } from '../ssh/orcad-active-readiness'
+import { WslDistroNotRunningError } from './wsl-orcad-connection-errors'
 import type { WslDistroHolder } from './wsl-distro-holder'
 import type { WslOrcadHostTarget } from './wsl-orcad-host-target'
 
@@ -30,7 +32,8 @@ vi.mock('../managed-server/activation/orcad-activation-transaction-store', () =>
   readOrcadActivationTransaction: mocks.transaction
 }))
 vi.mock('../managed-server/activation/orcad-activation-record-store', () => ({
-  readOrcadActivationRecord: mocks.readRecord
+  readOrcadActivationRecord: mocks.readRecord,
+  orcadActivationPath: (_host: unknown, home: string) => `${home}/.orca-remote/orcad-active.json`
 }))
 vi.mock('../managed-server/install/remote-versioned-install', async (importOriginal) => ({
   ...(await importOriginal<typeof RemoteVersionedInstall>()),
@@ -56,6 +59,7 @@ vi.mock('../orcad/orcad-artifact-materializer', () => ({
 }))
 vi.mock('../ssh/orcad-remote-deploy', () => ({ deployOrcad: mocks.deploy }))
 vi.mock('../managed-server/lifecycle/orcad-managed-version-gc', () => ({
+  provenLiveDaemonVersion: () => null,
   pruneManagedOrcadVersions: mocks.prune
 }))
 vi.mock('../managed-server/lifecycle/orcad-managed-wake', () => ({
@@ -66,7 +70,7 @@ vi.mock('../managed-server/lifecycle/orcad-managed-runtime-context', async (impo
   probeManagedOrcadReadiness: mocks.probe
 }))
 
-import { deployAndLaunchWslOrcad, isWsl1KernelRelease } from './wsl-orcad-deploy'
+import { deployAndLaunchWslOrcad } from './wsl-orcad-deploy'
 import { resetOrcadUpdateFailuresForTests } from '../managed-server/lifecycle/orcad-managed-update-failure-memory'
 
 beforeEach(() => resetOrcadUpdateFailuresForTests())
@@ -91,6 +95,7 @@ function holder(): WslDistroHolder {
     }),
     adoptHolders: vi.fn(),
     release: vi.fn(),
+    releaseAll: vi.fn(),
     holderState: vi.fn()
   }
 }
@@ -104,11 +109,12 @@ function transport(target: WslOrcadHostTarget): OrcadHostTransport {
 
 function launch(kernel = '5.15.167.4-microsoft-standard-WSL2', options = {}) {
   mocks.exec.mockImplementation(async (_conn: unknown, command: string) => {
-    if (command === 'uname -r') {
+    if (command.includes('uname -r')) {
       mocks.steps.push('uname')
-      return `${kernel}\n`
+      return `__ORCA_WSL_KERNEL__ ${kernel}\n__ORCA_WSL_HOME__ /home/u\n\n__ORCA_REMOTE_PLATFORM__ Linux x86_64\n\n__ORCA_WSL_LIBC__\nldd (GNU libc) 2.39\n`
     }
-    return '4242\n'
+    const end = '\n__ORCA_WSL_CONNECT_STATE_END__\n'
+    return command.includes(end.trim()) ? `ABSENT${end}ABSENT${end}ABSENT${end}OPEN\n` : '4242\n'
   })
   return deployAndLaunchWslOrcad('Ubuntu-24.04', {
     holder: holder(),
@@ -188,6 +194,21 @@ describe('deployAndLaunchWslOrcad', () => {
     )
   })
 
+  it('hands its one connect-state read to recovery, adoption and deploy as hints', async () => {
+    const resolve = mocks.resolveContext.getMockImplementation()
+    mocks.resolveContext.mockImplementationOnce(async (target, connection, signal, h, known) => {
+      const context = await resolve?.(target, connection, signal, h, known)
+      const at = { conn: connection, host, remoteHome: '/home/u', userDataDir: '/home/u/.orca' }
+      return { ...context, activationRecord: await known.readActivationRecord(at) }
+    })
+    await launch()
+    const idle = { transactionAbsent: true, fenceOpen: true }
+    expect(mocks.recover).toHaveBeenCalledWith(expect.anything(), expect.objectContaining(idle))
+    expect(mocks.adopt.mock.calls[0][3]).toEqual({ state: 'absent' })
+    const record = emptyOrcadActivationRecord()
+    expect(mocks.deploy.mock.calls[0][0].preRead).toEqual({ record, fenceOpen: true })
+  })
+
   it('applies the SSH census and downgrade admission to the first deploy', async () => {
     await launch()
     const options = mocks.deploy.mock.calls[0][0]
@@ -198,6 +219,7 @@ describe('deployAndLaunchWslOrcad', () => {
       target: 'linux-x64-glibc',
       recordedNodeRuntimeProbe: true
     })
+    expect(options.preRead).toBeUndefined()
     const newer = { ...emptyOrcadActivationRecord(), active: '2.0.0+cd', activeAppVersion: '2.0.0' }
     expect(options.admitRecord(newer, '1.5.0+ab')).toBe(
       "Orca 2.0.0 last ran this host's server, newer than this Orca (1.5.0). Update Orca to start it."
@@ -206,7 +228,25 @@ describe('deployAndLaunchWslOrcad', () => {
 
   it('refuses a WSL 1 distro before holding it or touching its files', async () => {
     await expect(launch('4.4.0-19041-Microsoft')).rejects.toMatchObject({
-      name: 'OrcadHostUnsupportedError'
+      name: 'OrcadHostUnsupportedError',
+      message: expect.stringContaining('wsl --set-version Ubuntu-24.04 2')
+    })
+    expect(mocks.steps).toEqual(['uname'])
+  })
+
+  it('tells an unregistered distro how to find the installed ones, before holding anything', async () => {
+    mocks.exec.mockImplementation(async () => {
+      mocks.steps.push('uname')
+      throw new Error(
+        'Command "uname -r" failed (exit 1): There is no distribution with the supplied name.\n' +
+          'Error code: Wsl/Service/WSL_E_DISTRO_NOT_FOUND'
+      )
+    })
+    await expect(
+      deployAndLaunchWslOrcad('Gone', { holder: holder(), createTransport: transport })
+    ).rejects.toMatchObject({
+      name: 'OrcadHostUnsupportedError',
+      message: expect.stringContaining('wsl --list --verbose')
     })
     expect(mocks.steps).toEqual(['uname'])
   })
@@ -230,7 +270,36 @@ describe('deployAndLaunchWslOrcad', () => {
     expect(mocks.wake).toHaveBeenCalledTimes(1)
   })
 
-  // Real host (awin): a Remove that failed partway left orcad serving; the record named nothing.
+  it('does not wake again when a no-boot connect finds the distro stopped meanwhile', async () => {
+    mocks.deploy.mockResolvedValueOnce({ outcome: 'already-active', fullVersion: '1.5.0+ab' })
+    mocks.wake.mockResolvedValueOnce({ outcome: 'serving' })
+    mocks.probe.mockRejectedValueOnce(new OrcadActiveReadinessError('exited', 'process has exited'))
+    const requireRunning = vi.fn(async () => false)
+    await expect(launch(undefined, { requireRunning })).rejects.toBeInstanceOf(
+      WslDistroNotRunningError
+    )
+    expect(requireRunning).toHaveBeenCalledOnce()
+    expect(mocks.wake).toHaveBeenCalledTimes(1)
+  })
+
+  // Real host (win-lowspec, cold systemd distro): the orcad the wake saw serving exited before the probe.
+  it('starts the slot again when the orcad the wake saw serving exits before the probe', async () => {
+    mocks.deploy.mockResolvedValueOnce({ outcome: 'already-active', fullVersion: '1.5.0+ab' })
+    mocks.wake.mockResolvedValueOnce({ outcome: 'serving' })
+    mocks.wake.mockResolvedValueOnce({ outcome: 'started', readiness: READINESS })
+    mocks.probe.mockRejectedValueOnce(new OrcadActiveReadinessError('exited', 'process has exited'))
+    await expect(launch()).resolves.toMatchObject({ outcome: 'ready', port: 6790 })
+    expect(mocks.wake).toHaveBeenCalledTimes(2)
+
+    mocks.deploy.mockResolvedValueOnce({ outcome: 'already-active', fullVersion: '1.5.0+ab' })
+    mocks.wake.mockResolvedValueOnce({ outcome: 'serving' })
+    const refused = new OrcadActiveReadinessError('rejected', 'wrong build')
+    mocks.probe.mockRejectedValueOnce(refused)
+    await expect(launch()).rejects.toBe(refused)
+    expect(mocks.wake).toHaveBeenCalledTimes(3)
+  })
+
+  // Reproduce failed Remove leaving serving orcad absent from the activation record.
   it('deploys over an adopted unrecorded orcad under the SSH terminal gate, never a fresh launch', async () => {
     const adoptedRecord = {
       ...emptyOrcadActivationRecord(),
@@ -382,7 +451,7 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
       "cat '/home/u/.orca-remote/orcad-1.4.0+aa/.orcad-pid' 2>/dev/null || true",
       expect.anything()
     )
-    // The installed candidate is what a later Force activates; nothing may collect it.
+    // Keep the installed candidate for later explicit Force activation.
     expect(mocks.prune).not.toHaveBeenCalled()
     expect(mocks.probe).not.toHaveBeenCalled()
   })
@@ -516,7 +585,6 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
         outcome: 'ready',
         fullVersion: '1.4.0+aa',
         readiness: INCUMBENT_READINESS,
-        // Force stays offered: it is the one explicit retry.
         deferredUpdate: {
           candidateVersion: '1.5.0+ab',
           code: 'orcad_activation_policy_refused',
@@ -600,7 +668,6 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
         }
       })
       expect(mocks.deploy).toHaveBeenCalledTimes(1)
-      // Force is the explicit retry.
       await launch(undefined, { intent: 'force' })
       expect(mocks.deploy).toHaveBeenCalledTimes(2)
     })
@@ -631,7 +698,7 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
         deferredUpdate: { code: 'orcad_update_terminals_running', forceable: true }
       })
       expect(mocks.adoptRunning).not.toHaveBeenCalled()
-      // Update is not Force: the deploy still gates on the terminals the incumbent counted.
+      // Update still gates on incumbent terminals; only Force bypasses them.
       expect(mocks.deploy.mock.calls[1][0]).toMatchObject({ force: false, census: LIVE })
       const { admitRecord } = mocks.deploy.mock.calls[1][0]
       expect(admitRecord({ ...activeOld, rolledBackFrom: '1.5.0+ab' }, '1.5.0+ab')).toBeNull()
@@ -645,7 +712,7 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
         code: 'orcad_candidate_readiness_rejected',
         reason: rejected.reason
       })
-      // Nor when the host could not be read: that proves no restore.
+      // Unreadable host state proves no rollback restoration.
       mocks.deploy.mockResolvedValueOnce(rejected)
       mocks.transaction.mockRejectedValueOnce(new Error('wsl.exe did not answer'))
       await expect(launch(undefined, { intent: 'update' })).resolves.toMatchObject({
@@ -750,7 +817,7 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
     })
 
     it('leaves a host stopped after a rollback for Force, not the build it rolled back from', async () => {
-      // No bundle of `previous` is on this desktop, so nothing here could restart it.
+      // Desktop lacks the previous bundle and cannot restart it.
       const stopped = {
         ...emptyOrcadActivationRecord(),
         previous: '1.4.0+aa',
@@ -786,15 +853,5 @@ describe('deployAndLaunchWslOrcad across an app update (E1)', () => {
     await launch()
     expect(mocks.incumbent).not.toHaveBeenCalled()
     expect(mocks.deploy.mock.calls[0][0].census.liveSessions).toBeNull()
-  })
-})
-
-describe('isWsl1KernelRelease', () => {
-  it('tells the WSL 1 syscall layer from a WSL 2 kernel, stock or custom', () => {
-    expect(isWsl1KernelRelease('4.4.0-19041-Microsoft')).toBe(true)
-    expect(isWsl1KernelRelease('4.4.0-22621-Microsoft\n')).toBe(true)
-    expect(isWsl1KernelRelease('5.15.167.4-microsoft-standard-WSL2')).toBe(false)
-    expect(isWsl1KernelRelease('6.6.36.6-microsoft-standard-WSL2+')).toBe(false)
-    expect(isWsl1KernelRelease('6.10.0-custom')).toBe(false)
   })
 })

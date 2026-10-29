@@ -1,3 +1,4 @@
+import type { BlockedWslDistro } from '../wsl/wsl-unc-access-gate'
 import { spawnSync } from 'node:child_process'
 import {
   existsSync,
@@ -13,11 +14,17 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { build } from 'esbuild'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { JSONC_PARSER_ESM_ALIAS } from '../../../config/build-plugins/jsonc-parser-esm'
 import type { ClaudeManagedAccount } from '../../shared/managed-account-types'
 import type { WslSpec } from '../wsl/wsl-runner'
 import type * as WslPaths from '../../shared/wsl-paths'
 
-const guest = vi.hoisted(() => ({ home: '' }))
+const guest = vi.hoisted(
+  (): { home: string; failure: { code: number; stdout: string } | null } => ({
+    home: '',
+    failure: null
+  })
+)
 // Emulate the guest with local POSIX paths and /bin/sh.
 vi.mock('../../shared/wsl-paths', async (original) => ({
   ...(await original<typeof WslPaths>()),
@@ -27,8 +34,17 @@ vi.mock('../wsl', () => ({
   getWslHomeAsync: async (distro: string) => `\\\\wsl.localhost\\${distro}${guest.home}`,
   listRunningWslDistrosAsync: async () => ['Ubuntu']
 }))
+const gate = vi.hoisted(() => ({
+  blocked: vi.fn(
+    async (_path: string, _distro?: string | null): Promise<BlockedWslDistro | null> => null
+  )
+}))
+vi.mock('../wsl/wsl-unc-access-gate', () => ({ blockedWslDistroForPath: gate.blocked }))
 vi.mock('../wsl/wsl-runner', () => ({
   runWslProcess: async (spec: WslSpec) => {
+    if (guest.failure) {
+      return { ...guest.failure, stderr: '', timedOut: false }
+    }
     const result = spawnSync('/bin/sh', ['-c', spec.script ?? '', 'sh', ...(spec.args ?? [])], {
       encoding: 'utf8'
     })
@@ -49,7 +65,10 @@ import { wslClaudeProfile } from './claude-profile-wsl-paths'
 // Guest emulation runs POSIX scripts and the Linux Node bundle.
 const posixHost = process.platform !== 'win32'
 const roots: string[] = []
-afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })))
+afterEach(() => {
+  guest.failure = null
+  roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true }))
+})
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'claude-wsl-router-'))
@@ -96,6 +115,23 @@ function fixture() {
 }
 
 describe.skipIf(!posixHost)('ClaudeWslProfileRouter', () => {
+  it('names why a silent guest command failed instead of a bare "command failed"', async () => {
+    const f = fixture()
+    guest.failure = { code: 0xffffffff, stdout: 'Wsl/Service/0x80072747\r\n' }
+    await expect(f.router.publish('Ubuntu')).rejects.toThrow(
+      'WSL Ubuntu: wsl.exe: Wsl/Service/0x80072747'
+    )
+    guest.failure = { code: 3, stdout: '' }
+    await expect(f.router.publish('Ubuntu')).rejects.toThrow('WSL Ubuntu: exited with code 3')
+  })
+
+  it('never publishes at startup to a distro a list still names while it stops (E9)', async () => {
+    const f = fixture()
+    gate.blocked.mockResolvedValueOnce({ distro: 'Ubuntu', state: 'stopped' })
+    expect(await f.router.runningDistros()).toEqual([])
+    expect(gate.blocked).toHaveBeenCalledWith('', 'Ubuntu')
+  })
+
   it('publishes and launches the saved account across distro casing without changing guest spelling', async () => {
     const f = fixture()
     await f.router.publish('ubuntu')
@@ -375,6 +411,7 @@ it.skipIf(!posixHost)(
       entryPoints: [resolve('src/main/claude-accounts/claude-profile-wsl-entry.ts')],
       outfile: helper,
       bundle: true,
+      alias: JSONC_PARSER_ESM_ALIAS,
       platform: 'node',
       format: 'cjs',
       logLevel: 'silent'

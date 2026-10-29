@@ -1,6 +1,9 @@
-import { Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
+import { Platform, Switch, Text, TextInput, View } from 'react-native'
 import type { MobileComposerSource } from '../tasks/use-mobile-composer-source'
 import { colors, radii, spacing } from '../theme/mobile-theme'
+import { themedStyleSheet } from '../theme/themed-styles'
+import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { TEXT_INPUT_FONT_SIZE } from '../platform/text-input-font-size'
 
 type Props = {
@@ -8,22 +11,27 @@ type Props = {
   selectedRepoIsGit: boolean
 }
 
-// The Advanced-section source controls: the editable Name appears once a source
-// pill is shown (the field itself is no longer the name input); the branch-name
-// override and reuse toggle mirror the desktop composer's advanced branch fields.
+// Show editable Name after source pill; branch override/reuse follow desktop’s advanced composer fields.
 export function SmartWorkspaceAdvancedFields({ composer, selectedRepoIsGit }: Props) {
+  useMobileColorScheme()
+  const t = useMobileTranslation()
   const selection = composer.smartNameSelection
   const showBranchOverride = selectedRepoIsGit && (!selection || selection.kind === 'branch')
   return (
     <>
       {selection ? (
         <View style={styles.field}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>
+            {t('components.smartWorkspaceAdvancedFields.name', 'Name')}
+          </Text>
           <TextInput
             style={styles.input}
             value={composer.name}
             onChangeText={composer.setName}
-            placeholder="Workspace name"
+            placeholder={t(
+              'components.smartWorkspaceAdvancedFields.workspaceName',
+              'Workspace name'
+            )}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -33,12 +41,17 @@ export function SmartWorkspaceAdvancedFields({ composer, selectedRepoIsGit }: Pr
 
       {showBranchOverride ? (
         <View style={styles.field}>
-          <Text style={styles.label}>Branch name</Text>
+          <Text style={styles.label}>
+            {t('components.smartWorkspaceAdvancedFields.branchName', 'Branch name')}
+          </Text>
           <TextInput
             style={styles.input}
             value={composer.branchNameOverride ?? ''}
             onChangeText={composer.handleBranchNameOverrideChange}
-            placeholder="Derived from name"
+            placeholder={t(
+              'components.smartWorkspaceAdvancedFields.derivedFromName',
+              'Derived from name'
+            )}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -50,7 +63,13 @@ export function SmartWorkspaceAdvancedFields({ composer, selectedRepoIsGit }: Pr
         <View style={styles.field}>
           <View style={styles.reuseRow}>
             <Text style={styles.reuseLabel} numberOfLines={1}>
-              Reuse branch “{composer.reuseEligibleBranch}”
+              {t(
+                'components.smartWorkspaceAdvancedFields.reuseBranch',
+                'Reuse branch “{{branch}}”',
+                {
+                  branch: composer.reuseEligibleBranch
+                }
+              )}
             </Text>
             <Switch
               value={composer.reuseSelectedBranch}
@@ -66,7 +85,7 @@ export function SmartWorkspaceAdvancedFields({ composer, selectedRepoIsGit }: Pr
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyleSheet(() => ({
   field: {
     marginBottom: spacing.md
   },
@@ -100,4 +119,4 @@ const styles = StyleSheet.create({
   reuseSwitch: {
     transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }]
   }
-})
+}))
