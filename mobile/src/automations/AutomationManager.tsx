@@ -61,7 +61,7 @@ export function AutomationManager(props: {
     },
     catalog.isCurrentSnapshot
   )
-  const setupConsent = useAutomationSetupConsent(props.client)
+  const setupConsent = useAutomationSetupConsent(props.client, props.executionHost)
   const disabled = !catalog.connected || catalog.busy
   const row =
     view.kind === 'detail'

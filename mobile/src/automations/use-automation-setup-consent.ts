@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { parseExecutionHostId, type ExecutionHostId } from '../../../src/shared/execution-host'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ComponentProps } from 'react'
 import type { PersistedTrustedOrcaHooks } from '../../../src/shared/orca-yaml-hook-types'
 import type { SetupHookTrustDrawer, SetupTrustPrompt } from '../components/SetupHookTrustDrawer'
@@ -11,21 +12,32 @@ import type { AutomationTargets } from './automation-target-inventory'
 type Consent = {
   prompt: SetupTrustPrompt
   client: RpcClient
+  executionHost?: ExecutionHostId
   trust: PersistedTrustedOrcaHooks
   current: () => boolean
   resolve: (decision: 'run' | 'skip' | null) => void
   reject: (failure: unknown) => void
 }
 
-export function useAutomationSetupConsent(client: RpcClient | null) {
+export function useAutomationSetupConsent(
+  client: RpcClient | null,
+  executionHost?: ExecutionHostId
+) {
+  const authority = useRef({ client, executionHost })
+  useLayoutEffect(() => {
+    authority.current = { client, executionHost }
+  }, [client, executionHost])
   const pending = useRef<Consent | null>(null)
   const approving = useRef(false)
-  const [prompt, setPrompt] = useState<SetupTrustPrompt | null>(null)
+  const [confirmation, setConfirmation] = useState<Pick<
+    Consent,
+    'prompt' | 'executionHost'
+  > | null>(null)
   const [busy, setBusy] = useState(false)
   const finish = useCallback((decision: 'run' | 'skip' | null) => {
     const consent = pending.current
     pending.current = null
-    setPrompt(null)
+    setConfirmation(null)
     consent?.resolve(decision)
   }, [])
   useEffect(() => {
@@ -34,7 +46,7 @@ export function useAutomationSetupConsent(client: RpcClient | null) {
       stop?.()
       finish(null)
     }
-  }, [client, finish])
+  }, [client, executionHost, finish])
   async function approve(alwaysTrust: boolean) {
     const consent = pending.current
     if (!consent || approving.current) {
@@ -46,20 +58,22 @@ export function useAutomationSetupConsent(client: RpcClient | null) {
     approving.current = true
     setBusy(true)
     try {
-      await persistSetupHookTrustApproval({
-        client: consent.client,
-        trust: consent.trust,
-        repoId: consent.prompt.repoId,
-        contentHash: consent.prompt.contentHash,
-        alwaysTrust
-      })
+      if (parseExecutionHostId(consent.executionHost)?.kind !== 'runtime') {
+        await persistSetupHookTrustApproval({
+          client: consent.client,
+          trust: consent.trust,
+          repoId: consent.prompt.repoId,
+          contentHash: consent.prompt.contentHash,
+          alwaysTrust
+        })
+      }
       if (pending.current === consent) {
         finish(consent.current() ? 'run' : null)
       }
     } catch (failure) {
       if (pending.current === consent) {
         pending.current = null
-        setPrompt(null)
+        setConfirmation(null)
         consent.reject(failure)
       }
     } finally {
@@ -68,8 +82,9 @@ export function useAutomationSetupConsent(client: RpcClient | null) {
     }
   }
   const drawer: ComponentProps<typeof SetupHookTrustDrawer> = {
-    prompt,
-    visible: prompt !== null,
+    prompt: confirmation?.prompt ?? null,
+    visible: confirmation !== null,
+    allowAlwaysTrust: parseExecutionHostId(confirmation?.executionHost)?.kind !== 'runtime',
     busy,
     onRunOnce: () => void approve(false),
     onAlwaysTrust: () => void approve(true),
@@ -92,21 +107,35 @@ export function useAutomationSetupConsent(client: RpcClient | null) {
       targets: AutomationTargets,
       current: () => boolean,
       original?: AutomationDraft
-    ) =>
-      prepareAutomationSetup({
+    ) => {
+      const sameAuthority = () =>
+        current() &&
+        authority.current.client === port &&
+        authority.current.executionHost === executionHost
+      return prepareAutomationSetup({
         client: port,
+        executionHost,
         draft,
         original,
         targets,
-        current,
+        current: sameAuthority,
         confirm: (prompt, trust) =>
           new Promise((resolve, reject) => {
-            if (!current()) {
+            if (!sameAuthority()) {
               return resolve(null)
             }
-            pending.current = { prompt, trust, client: port, current, resolve, reject }
-            setPrompt(prompt)
+            pending.current = {
+              prompt,
+              trust,
+              client: port,
+              executionHost,
+              current: sameAuthority,
+              resolve,
+              reject
+            }
+            setConfirmation({ prompt, executionHost })
           })
       })
+    }
   }
 }

@@ -1,9 +1,18 @@
+import { MOBILE_RPC_METHOD_ROUTES } from '../../../src/main/runtime/runtime-rpc/runtime-rpc-mobile-method-routing'
+import { scopeRpcClientToExecutionHost } from '../transport/execution-host-scoped-rpc-client'
 import { SetupHookTrustDrawer } from '../components/SetupHookTrustDrawer'
 import { createElement } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
-import { expect, it, type vi } from 'vitest'
-import { AUTOMATION_EXTRA_AGENT_ARGS_RUNTIME_CAPABILITY } from '../../../src/shared/automation-runtime-capabilities'
-import type { MobileAutomation, MobileAutomationRow } from './automation-reply-schema'
+import { expect, it, vi } from 'vitest'
+import {
+  AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY,
+  AUTOMATION_EXTRA_AGENT_ARGS_RUNTIME_CAPABILITY
+} from '../../../src/shared/automation-runtime-capabilities'
+import {
+  automationSchema,
+  type MobileAutomation,
+  type MobileAutomationRow
+} from './automation-reply-schema'
 import type { AutomationTargets } from './automation-target-inventory'
 import { AutomationManager } from './AutomationManager'
 import { AutomationList } from './AutomationList'
@@ -18,6 +27,7 @@ import type { RpcClient } from '../transport/rpc-client'
 import { TEXT_INPUT_FONT_SIZE } from '../platform/text-input-font-size'
 import {
   automationClient,
+  automationRepo,
   automationTargets,
   savedAutomation,
   savedRun,
@@ -99,6 +109,132 @@ export function registerAutomationPresentationTests({
         .findAllByType(AutomationButton)
         .some((node) => node.props.label === 'New automation')
     ).toBe(true)
+  })
+
+  it('confirms a server script without reading or granting the paired desktop trust', async () => {
+    const executionHost = 'runtime:server' as const
+    const targets = automationTargets()
+    const setup = { ...targets.setups[0]!, path: '/server/repo' }
+    inventory.targets.mockResolvedValue({ ...targets, setups: [setup] })
+    const desktop = {
+      repo: automationRepo(),
+      ui: { trustedOrcaHooks: { [setup.repoId]: { all: { approvedAt: 1 } } } }
+    }
+    const desktopBefore = JSON.stringify(desktop)
+    const desktopRequests: string[] = []
+    const port = automationClient(() => ({}))
+    let created: MobileAutomation | null = null
+    const send = vi.fn<RpcClient['sendRequest']>(async (method, params, options) => {
+      let result: unknown
+      if (MOBILE_RPC_METHOD_ROUTES.get(method) === 'paired-desktop') {
+        desktopRequests.push(method)
+        if (method === 'ui.get') {
+          result = { ui: desktop.ui }
+        } else if (method === 'ui.set') {
+          Object.assign(desktop.ui, params)
+          result = { ui: desktop.ui }
+        } else {
+          throw new Error(`Unexpected desktop request: ${method}`)
+        }
+      } else {
+        expect(MOBILE_RPC_METHOD_ROUTES.get(method)).toBe('execution-host')
+        expect(options?.envelope?.executionHost).toBe(executionHost)
+        if (method === 'status.get') {
+          result = { capabilities: [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY] }
+        } else if (method === 'automation.list') {
+          result = {
+            automations: created ? [created] : [],
+            items: created ? [{ automationId: created.id, selector: { kind: 'self' } }] : []
+          }
+        } else if (method === 'repo.list') {
+          result = { repos: [automationRepo(setup)] }
+        } else if (method === 'repo.hooks') {
+          result = {
+            source: 'orca.yaml',
+            setupRunPolicy: 'run-by-default',
+            setupConfig: { command: 'server script B' },
+            setupTrust: { contentHash: 'server-hash-B', scriptContent: 'server script B' }
+          }
+        } else if (method === 'automation.create') {
+          created = automationSchema.parse({
+            ...savedAutomation(),
+            ...(params && typeof params === 'object' ? params : {}),
+            id: 'server-created',
+            workspaceId: null
+          })
+          result = { automation: created }
+        } else if (method === 'automation.runs') {
+          result = { runs: [] }
+        } else {
+          throw new Error(`Unexpected server request: ${method}`)
+        }
+      }
+      return { id: 'reply', ok: true, result }
+    })
+    const client = scopeRpcClientToExecutionHost(
+      { ...port.client, sendRequest: send },
+      executionHost
+    )
+    await act(async () => {
+      setTree(
+        create(createElement(AutomationManager, { client, hostId: 'desktop', executionHost }))
+      )
+    })
+    await press('New automation')
+    await act(async () => {
+      for (const [label, value] of [
+        ['Name', 'Server review'],
+        ['Instructions', 'Review on server']
+      ]) {
+        root()
+          .findAllByType(AutomationField)
+          .find((node) => node.props.label === label)!
+          .props.onChange(value)
+      }
+    })
+    await press('Continue')
+    await press('Continue')
+    await press('Create automation')
+    expect(send.mock.calls.filter(([method]) => method === 'automation.create')).toEqual([])
+    const drawer = root().findByType(SetupHookTrustDrawer)
+    expect(drawer.props).toMatchObject({
+      visible: true,
+      allowAlwaysTrust: false,
+      prompt: {
+        repoId: setup.repoId,
+        contentHash: 'server-hash-B',
+        scriptContent: 'server script B'
+      }
+    })
+    expect(
+      root().findAll(
+        (node) => String(node.type) === 'Text' && node.props.children === 'Always trust and run'
+      )
+    ).toHaveLength(0)
+    expect(desktopRequests).toEqual([])
+    await act(async () => {
+      drawer.props.onRunOnce()
+    })
+    const creates = send.mock.calls.filter(([method]) => method === 'automation.create')
+    expect(creates).toHaveLength(1)
+    expect(creates[0]?.[1]).toMatchObject({
+      repo: `id:${setup.repoId}`,
+      setupDecision: 'run',
+      creationKey: expect.any(String),
+      runContext: {
+        hostId: 'local',
+        repoId: setup.repoId,
+        path: setup.path,
+        projectHostSetupId: setup.id
+      },
+      destination: { selector: { kind: 'self' } }
+    })
+    expect(creates[0]?.[2]).toMatchObject({
+      failWhenDisconnected: true,
+      envelope: { executionHost }
+    })
+    expect(desktopRequests).toEqual([])
+    expect(JSON.stringify(desktop)).toBe(desktopBefore)
   })
 
   const metadata = (label: string) =>

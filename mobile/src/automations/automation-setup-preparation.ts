@@ -1,3 +1,4 @@
+import { parseExecutionHostId, type ExecutionHostId } from '../../../src/shared/execution-host'
 import { findAutomationRepo } from '../../../src/shared/automation-repo-target'
 import { getAutomationSetupDefaultDecision } from '../../../src/shared/automation-setup-decision'
 import type { PersistedTrustedOrcaHooks } from '../../../src/shared/orca-yaml-hook-types'
@@ -24,6 +25,7 @@ import {
 
 export async function prepareAutomationSetup(args: {
   client: RpcClient
+  executionHost?: ExecutionHostId
   draft: AutomationDraft
   original?: AutomationDraft
   targets: AutomationTargets
@@ -99,19 +101,21 @@ export async function prepareAutomationSetup(args: {
     return { ...draft, setupDecision: decision ?? 'inherit' }
   }
   let trust: PersistedTrustedOrcaHooks = {}
-  try {
-    const reply = newWorkspaceUiStateRead.interpret(await newWorkspaceUiStateRead.request(client))
-    if (reply.accepted) {
-      trust = reply.value?.trustedOrcaHooks ?? {}
+  if (parseExecutionHostId(args.executionHost)?.kind !== 'runtime') {
+    try {
+      const reply = newWorkspaceUiStateRead.interpret(await newWorkspaceUiStateRead.request(client))
+      if (reply.accepted) {
+        trust = reply.value?.trustedOrcaHooks ?? {}
+      }
+    } catch {
+      // An unreadable approval record grants no trust.
     }
-  } catch {
-    // An unreadable approval record grants no trust.
-  }
-  if (!current()) {
-    return null
-  }
-  if (isSetupHookTrusted(trust, repos, setup.repoId, setupTrust.contentHash)) {
-    return { ...draft, setupDecision: 'run' }
+    if (!current()) {
+      return null
+    }
+    if (isSetupHookTrusted(trust, repos, setup.repoId, setupTrust.contentHash)) {
+      return { ...draft, setupDecision: 'run' }
+    }
   }
   const approved = await args.confirm(
     {
