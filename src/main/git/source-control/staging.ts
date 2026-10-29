@@ -4,7 +4,11 @@ import { gitExecFileAsync } from '../runner'
 import { invalidateGitReadCaches } from './git-read-cache-invalidation'
 import { gitReportedPath, literalPathspec } from './git-pathspec'
 import { encodeGitPathspecs } from '../../../shared/git-pathspec-stdin'
-import type { ConflictResolution } from '../../../shared/source-control-entry-actions'
+import {
+  getConflictResolutions,
+  type ConflictResolution
+} from '../../../shared/source-control-entry-actions'
+import { parseUnmergedEntry } from '../../../shared/git-status-conflict-entries'
 import {
   stageGitWorktreeScope,
   type GitStageWorktreeScope,
@@ -50,18 +54,18 @@ export function resolveConflict(
     )
     // Exact path only: a directory pathspec would match its conflicts and then stage the whole directory.
     const reportedPath = gitReportedPath(filePath, worktreePath, options)
-    const unmerged = stdout
+    const record = stdout
       .split('\0')
-      .find(
-        (record) =>
-          record.startsWith('u ') && record.split(' ').slice(10).join(' ') === reportedPath
-      )
-    if (!unmerged) {
+      .find((line) => line.startsWith('u ') && line.split(' ').slice(10).join(' ') === reportedPath)
+    const entry = record ? await parseUnmergedEntry(worktreePath, record) : null
+    if (!entry) {
       throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
     }
-    // Worktree mode 000000: git add would stage a deletion, the opposite of keeping the file.
-    if (resolution !== 'keep_deletion' && unmerged.split(' ')[6] === '000000') {
-      throw new Error(`${filePath} is no longer on disk. Refresh to see its current state.`)
+    // The UI's own rule on the live conflict: e.g. no git rm for a both-modified file, no add of a vanished one.
+    if (!getConflictResolutions(entry).includes(resolution)) {
+      throw new Error(
+        `${filePath} has changed since this list loaded. Refresh to see its current state.`
+      )
     }
     if (resolution !== 'keep_deletion') {
       await stageFile(worktreePath, filePath, options)

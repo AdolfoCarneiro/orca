@@ -92,9 +92,30 @@ describe('delete/modify merge resolved through resolveConflict and completeMerge
     rmSync(join(repoPath, 'gone.txt'))
 
     await expect(resolveConflict(repoPath, 'gone.txt', 'keep_file')).rejects.toThrow(
-      'no longer on disk'
+      'has changed since this list loaded'
     )
     expect(git('status', '--porcelain')).toBe('DU gone.txt\n')
+  })
+
+  it('refuses to delete a both-modified file, keeping the edits in progress', async () => {
+    const { repoPath, git } = createDeleteModifyConflict()
+    git('merge', '--abort')
+    writeFileSync(join(repoPath, 'both.txt'), 'base\n')
+    git('add', 'both.txt')
+    git('commit', '--quiet', '-m', 'add both')
+    git('checkout', '--quiet', '-b', 'other')
+    writeFileSync(join(repoPath, 'both.txt'), 'other\n')
+    git('commit', '--quiet', '-am', 'other edit')
+    git('checkout', '--quiet', 'main')
+    writeFileSync(join(repoPath, 'both.txt'), 'main\n')
+    git('commit', '--quiet', '-am', 'main edit')
+    expect(() => git('merge', 'other')).toThrow()
+    writeFileSync(join(repoPath, 'both.txt'), 'half merged\n')
+
+    await expect(resolveConflict(repoPath, 'both.txt', 'keep_deletion')).rejects.toThrow(
+      'has changed since this list loaded'
+    )
+    expect(git('status', '--porcelain', '--', 'both.txt')).toBe('UU both.txt\n')
   })
 
   it('refuses without a merge in progress instead of committing staged changes', async () => {
