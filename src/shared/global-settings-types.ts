@@ -378,11 +378,11 @@ export type GlobalSettings = GlobalSettingsBase & {
   geminiCliOAuthEnabled: boolean
   /** Per-agent CLI command overrides. A missing key means use the catalog default binary name. */
   agentCmdOverrides: Partial<Record<TuiAgent, string>>
-  /** Custom CODEX_HOME for Codex session-history discovery (defaults to ~/.codex).
-   *  History-only: does not change which account/config/hooks Orca uses. */
   /** Off keeps each Codex home's history to itself: Orca links no sessions between accounts or
    *  into ~/.codex, and removes nothing already linked (#24511). Absent means on (#10770). */
   codexShareHistoryAcrossAccounts?: boolean
+  /** Custom CODEX_HOME for Codex session-history discovery (defaults to ~/.codex).
+   *  History-only: does not change which account/config/hooks Orca uses. */
   codexSessionSourceHome?: {
     /** Absolute host path; empty/undefined falls back to ~/.codex. */
     host?: string

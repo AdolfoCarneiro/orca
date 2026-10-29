@@ -2,6 +2,7 @@ import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source
 import { startSystemCodexSessionBridgeInBackground } from '../codex/codex-session-bridge'
 import { startCodexAccountSessionBridgeInBackground } from '../codex/codex-account-session-bridge'
 import { isCodexHistorySharedAcrossAccounts } from './codex-history-sharing'
+import { parseWslUncPath } from '../../shared/wsl-paths'
 import {
   getSystemCodexHomePath,
   resolveOrcaManagedCodexHomePath,
@@ -80,17 +81,23 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
 
   // Real-home launches see managed-account history too, or switching back to system default hides it (#25000).
   private startSystemDefaultSessionBridgeForLaunch(): void {
+    const settings = this.store.getSettings()
     const sourceCodexHomePaths = this.getManagedHostAccountHomesForSessionDiscovery()
+    const targetCodexHomePath =
+      resolveHostCodexSessionSourceHome(settings) ?? getSystemCodexHomePath()
     if (
       sourceCodexHomePaths.length === 0 ||
-      !isCodexHistorySharedAcrossAccounts(this.store.getSettings())
+      !isCodexHistorySharedAcrossAccounts(settings) ||
+      // A history source inside a distro would boot it over 9P; the WSL lane owns those homes.
+      parseWslUncPath(targetCodexHomePath)
     ) {
       return
     }
+    // The user's own ~/.codex gets hardlinks or nothing: a symlink there dangles once an account goes.
     void startCodexAccountSessionBridgeInBackground({
-      targetCodexHomePath:
-        resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath(),
-      sourceCodexHomePaths
+      targetCodexHomePath,
+      sourceCodexHomePaths,
+      hardlinkOnly: true
     })
   }
 

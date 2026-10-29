@@ -154,8 +154,39 @@ describe('CodexRuntimeHomeService', () => {
       expect(service.prepareForCodexLaunch()).toBeNull()
       expect(accountBridge).toHaveBeenCalledWith({
         targetCodexHomePath: getSystemCodexHomePath(),
-        sourceCodexHomePaths: [managedHomePath]
+        sourceCodexHomePaths: [managedHomePath],
+        hardlinkOnly: true
       })
+    } finally {
+      vi.doUnmock('../codex/codex-account-session-bridge')
+    }
+  })
+
+  it('leaves a history source inside a WSL distro to the WSL lane', async () => {
+    const accountBridge = vi.fn(async () => {})
+    vi.doMock('../codex/codex-account-session-bridge', () => ({
+      startCodexAccountSessionBridgeInBackground: accountBridge
+    }))
+    const managedHomePath = createManagedAuth(
+      testState.userDataDir,
+      'account-1',
+      createCodexAuthJson('user@example.com', 'acct-1', 'refresh-1')
+    )
+    const store = createStore(
+      createSettings({
+        realHomeRoutable: true,
+        codexManagedAccounts: [
+          createCodexAccountRecord('account-1', 'user@example.com', 'acct-1', managedHomePath)
+        ],
+        codexSessionSourceHome: { host: '\\\\wsl.localhost\\Ubuntu\\home\\me\\.codex' }
+      })
+    )
+    try {
+      const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+      const service = new CodexRuntimeHomeService(store as never)
+
+      expect(service.prepareForCodexLaunch()).toBeNull()
+      expect(accountBridge).not.toHaveBeenCalled()
     } finally {
       vi.doUnmock('../codex/codex-account-session-bridge')
     }
