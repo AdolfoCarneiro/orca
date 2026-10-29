@@ -1,0 +1,768 @@
+{
+  "accounts": {
+    "screen": {
+      "agentLogin": "에이전트 자체 로그인 사용",
+      "connecting": "호스트에 연결 중…",
+      "connectingTo": "{{name}}에 연결 중…",
+      "default": "시스템 기본값",
+      "hostNotFound": "호스트를 찾을 수 없습니다.",
+      "invalidSnapshot": "호스트에서 받은 계정 스냅샷이 유효하지 않습니다.",
+      "loadingAccounts": "계정 로드 중…",
+      "manageAccountsHint": "데스크톱의 설정 → 계정에서 계정을 추가하거나 다시 인증하세요.",
+      "refreshAccounts": "계정 새로고침",
+      "sessionWindow": "5시간",
+      "switchFailed": "계정을 전환하지 못했습니다.",
+      "title": "계정",
+      "useReset": "초기화권 사용",
+      "weeklyWindow": "7일"
+    }
+  },
+  "agentHistory": {
+    "panel": {
+      "all": "모두",
+      "emptyScope": "이 범위에는 이전 에이전트 세션이 없습니다.",
+      "loadFailed": "로드 실패",
+      "missingResumeId": "이 세션에는 재개 ID가 없습니다.",
+      "noSearchResults": "검색 조건에 맞는 세션이 없습니다.",
+      "noSessions": "에이전트 세션 없음",
+      "placeholder": "세션 검색, repo:, path:",
+      "project": "프로젝트",
+      "refreshSessions": "에이전트 세션 새로고침",
+      "resumeFailed": "세션을 재개하지 못했습니다.",
+      "sessionQueued": "에이전트 세션이 대기열에 추가되었습니다.",
+      "skipped_one": "대화 기록 {{count}}개 건너뜀",
+      "skipped_other": "대화 기록 {{count}}개 건너뜀",
+      "title": "Agent 세션 기록",
+      "unavailable": "에이전트 세션 기록 사용 불가",
+      "unknownHostPlatform": "호스트 플랫폼을 확인할 수 없습니다.",
+      "updateHost": "에이전트 세션 기록을 보려면 이 호스트의 Orca를 업데이트하세요.",
+      "waitingForHost": "호스트 대기 중…",
+      "workspace": "워크스페이스"
+    },
+    "resumeTarget": {
+      "differentHost": "이 세션은 다른 호스트에 속합니다. 재개하려면 같은 호스트의 워크스페이스를 여세요.",
+      "openWorkspace": "세션을 재개하기 전에 워크스페이스를 여세요.",
+      "runtimeUnavailable": "런타임에서 호스팅되는 워크스페이스에서는 기록에서 세션을 재개할 수 없습니다."
+    },
+    "sessionCard": {
+      "untitledSession": "제목 없는 세션"
+    },
+    "sessionHistoryList": {
+      "assistantRole": "어시스턴트",
+      "currentWorktree": "현재 워크트리",
+      "messages_one": "메시지 {{count}}개",
+      "messages_other": "메시지 {{count}}개",
+      "resumeSession": "에이전트 세션 재개",
+      "userRole": "사용자"
+    },
+    "useAgentHistoryState": {
+      "hostUnreachable": "호스트에 연결할 수 없습니다.",
+      "loadFailed": "에이전트 세션을 불러올 수 없습니다.",
+      "waitingForHost": "호스트 대기 중…"
+    },
+    "worktreeNavigationActions": {
+      "agentSessionHistory": "Agent 세션 기록",
+      "sourceControl": "소스 제어"
+    }
+  },
+  "app": {
+    "mobileOnboarding": {
+      "notificationSettingsFailed": "알림 설정을 업데이트하지 못했습니다. 다시 시도하세요.",
+      "progress": "온보딩 진행 상황",
+      "saveChoiceFailed": "선택 사항을 저장하지 못했습니다. 다시 시도하세요.",
+      "stepProgress": "{{total}}단계 중 {{step}}단계"
+    },
+    "notifications": {
+      "description": "앱을 닫아도 에이전트 알림을 받을 수 있습니다. 알림은 Orca의 푸시 서비스와 Apple 또는 Google을 통해 전달됩니다."
+    },
+    "pair": {
+      "backToHome": "홈으로 돌아가기",
+      "missingCode": "페어링 코드가 없습니다."
+    },
+    "pairConfirm": {
+      "backToHome": "홈으로 돌아가기",
+      "connectTimedOut": "{{seconds}}초 내에 연결하지 못했습니다. 어느 단계에서 멈췄는지 아래 로그를 확인하세요.",
+      "connecting": "연결 중…",
+      "description": "데스크톱의 페어링 링크를 열었습니다. 확인하면 이 데스크톱이 호스트 목록에 추가됩니다.",
+      "pairButton": "페어링",
+      "pairingFailed": "페어링 실패: {{error}}",
+      "pairingLog": "페어링 로그",
+      "title": "이 데스크톱과 페어링하시겠습니까?"
+    },
+    "pairScan": {
+      "cameraDisabledDescription": "설정에서 카메라 접근을 허용하거나 페어링 코드를 붙여넣으세요.",
+      "cameraDisabledTitle": "카메라 접근 비활성화",
+      "cameraPermissionDescription": "데스크톱의 Orca에 표시된 QR 코드를 스캔하거나 페어링 코드를 붙여넣으세요.",
+      "connectTimedOut": "{{seconds}}초 내에 연결하지 못했습니다. 어느 단계에서 멈췄는지 아래 로그를 확인하세요.",
+      "connecting": "연결 중…",
+      "invalidPairingCode": "유효한 페어링 코드가 아닙니다. 컴퓨터에서 코드를 복사해 다시 붙여넣으세요.",
+      "invalidQrCode": "유효한 Orca QR 코드가 아닙니다.",
+      "openDesktopStep": "컴퓨터에서 Orca를 실행하세요",
+      "openMobileSettingsStep": "설정 → 모바일로 이동하세요",
+      "openSettings": "설정 열기",
+      "pairingFailed": "페어링 실패: {{error}}",
+      "pairingLog": "페어링 로그",
+      "pasteCodeMessage": "컴퓨터의 QR 코드 아래에 표시된 코드를 복사하세요.",
+      "pasteCodePlaceholder": "orca://pair?code=... 또는 코드 붙여넣기",
+      "pasteCodeTitle": "페어링 코드 붙여넣기",
+      "pasteInstead": "대신 코드 붙여넣기",
+      "pastePairingCode": "또는 페어링 코드 붙여넣기",
+      "scanCodeStep": "QR 코드를 스캔하세요",
+      "title": "데스크톱과 페어링",
+      "tryAgain": "다시 시도"
+    },
+    "terminalSettings": {
+      "autocomplete": "자동 완성 및 자동 수정",
+      "autocompleteOff": "꺼짐",
+      "autocompleteOn": "켜짐",
+      "defaultText": "기본 (100%)",
+      "keepPhoneSize": "휴대폰 크기로 유지(기본값)",
+      "keyboardInputDescription": "자동 완성, 자동 수정, 맞춤법 제안은 버퍼 방식의 명령어 입력에만 적용됩니다. 키보드 위의 이중 화살표 버튼을 눌러 실시간 입력에서 전환한 다음, 명령어를 수정하고 '보내기'를 누르세요. 명령어, 플래그, 경로가 자동으로 바뀌지 않도록 기본적으로 꺼져 있습니다.",
+      "keyboardInputHeading": "키보드 입력",
+      "largeText": "크게 (125%)",
+      "largerText": "더 크게 (150%)",
+      "largestText": "가장 크게 (200%)",
+      "leaveAppDescription": "휴대폰에서 터미널을 사용하는 동안 Orca는 화면에 맞게 터미널을 축소합니다. 앱을 닫거나 다른 앱으로 전환할 때, 대화형 CLI 도구의 화면 배치가 바뀌지 않도록 휴대폰 크기를 유지할지 데스크톱 크기로 되돌릴지 설정합니다. 데스크톱 배너의 '복원'을 눌러 언제든 직접 크기를 조정할 수 있습니다.",
+      "leaveAppHeading": "앱을 벗어날 때",
+      "noPairedDesktops": "아직 페어링된 데스크톱이 없습니다. 터미널 동작을 설정하려면 데스크톱을 페어링하세요.",
+      "restoreAfterMinutes_one": "{{count}}분 후",
+      "restoreAfterMinutes_other": "{{count}}분 후",
+      "restoreAfterSeconds_one": "{{count}}초 후",
+      "restoreAfterSeconds_other": "{{count}}초 후",
+      "restoreHost": "{{name}} 복원",
+      "smallerText": "작게 (75%)",
+      "smallestText": "가장 작게 (50%)",
+      "textSize": "텍스트 크기",
+      "textSizeDescription": "터미널 텍스트 크기를 조절합니다. 크기를 줄이면 좌우 여백을 두고 더 많은 열이 표시되고, 크기를 키우면 표시되는 열이 줄어듭니다. 옆으로 드래그하면 가로로 이동할 수 있습니다. 터미널에서 두 손가락을 오므리거나 벌려 확대·축소해도 이 설정이 바뀝니다. 기기별 화면 표시에만 적용되며 데스크톱 터미널은 바뀌지 않습니다.",
+      "textSizeHeading": "텍스트 크기",
+      "textSizePickerTitle": "터미널 텍스트 크기",
+      "title": "터미널"
+    }
+  },
+  "common": {
+    "back": "뒤로",
+    "cancel": "취소",
+    "continue": "계속",
+    "copied": "복사됨",
+    "delete": "삭제",
+    "ok": "확인",
+    "remove": "제거",
+    "retry": "다시 시도",
+    "save": "저장",
+    "settings": "설정",
+    "unknown": "알 수 없음"
+  },
+  "connection": {
+    "connectionHealth": {
+      "checkConnection": "연결 상태를 확인하세요.",
+      "connectFailed": "연결할 수 없음",
+      "connected": "연결됨",
+      "connecting": "연결 중…",
+      "connectingViaRelay": "Relay를 통해 연결 중…",
+      "desktopUnreachable": "데스크톱에 연결할 수 없음",
+      "disconnected": "연결 끊김",
+      "hostFallback": "호스트",
+      "hostOffline": "{{host}} 오프라인",
+      "hostOfflineDetail": "컴퓨터가 절전 모드가 아닌지, Orca가 실행 중인지, 로그인되어 있는지 확인하세요.",
+      "labelWithHint": "{{label}} — {{hint}}",
+      "pairingInvalid": "페어링이 유효하지 않습니다. 데스크톱과 다시 페어링하세요.",
+      "rePairDetail": "데스크톱과 다시 페어링하세요.",
+      "reconnecting": "다시 연결 중…",
+      "relayAccessExpired": "{{host}}의 Relay 접근 권한 만료",
+      "relayConnectFailed": "Relay를 통해 연결할 수 없음",
+      "relayUnreachable": "Relay에 연결할 수 없음",
+      "signInDetail": "다시 연결하려면 데스크톱에서 Orca에 로그인하세요.",
+      "signInRequired": "{{host}}에서 로그인 필요",
+      "tailscaleHint": "Tailscale 확인"
+    },
+    "connectionPathLabel": {
+      "directLan": "직접 연결 · LAN",
+      "directTailscale": "직접 연결 · Tailscale",
+      "directViaLan": "LAN으로 직접 연결",
+      "directViaTailscale": "Tailscale로 직접 연결"
+    },
+    "hostEndpoint": {
+      "addressRequired": "호스트 주소를 입력하세요.",
+      "hostnameRequired": "호스트 이름이 없습니다.",
+      "invalidAddress": "유효한 주소가 아닙니다.",
+      "invalidHostname": "유효한 호스트 이름이 아닙니다.",
+      "invalidPort": "포트는 1–65535 사이여야 합니다.",
+      "invalidScheme": "ws://, wss:// 또는 host:port 형식을 사용하세요.",
+      "pathOrQueryNotAllowed": "호스트 주소에는 경로나 쿼리를 포함할 수 없습니다."
+    },
+    "pairConfirmState": {
+      "invalidCode": "유효한 페어링 코드가 아닙니다.",
+      "missingCode": "페어링 코드가 없습니다."
+    },
+    "rpcClientStreamRegistry": {
+      "endedBeforeReady": "스트리밍 요청이 준비되기 전에 종료되었습니다.",
+      "interrupted": "연결이 중단되었습니다"
+    },
+    "rpcClientTerminalBinaryFrame": {
+      "unsupportedFrame": "지원하지 않는 터미널 스트림 프레임입니다(opcode {{opcode}})."
+    }
+  },
+  "diagnostics": {
+    "connectionDiagnosticsView": {
+      "authFailed": "인증 실패",
+      "connected": "연결됨",
+      "connecting": "연결 중",
+      "copyReport": "보고서 복사",
+      "diagnosisHeading": "추정 원인",
+      "disconnected": "연결 끊김",
+      "handshaking": "핸드셰이크 중",
+      "noEvents": "아직 연결 이벤트가 없습니다. 앱이 이 호스트에 연결을 시도하면 이벤트가 표시됩니다.",
+      "noHosts": "페어링된 호스트가 없습니다.",
+      "privacyHint": "호스트 이름, 엔드포인트, 버전, 연결 상태, 이벤트를 포함하되 민감한 정보를 가리고 크기를 제한한 보고서를 전송합니다. 터미널 내용이나 인증 정보는 절대 포함하지 않습니다.",
+      "reconnecting": "재연결 중",
+      "retrySending": "다시 보내기",
+      "sendDiagnostics": "Orca에 진단 정보 보내기",
+      "sending": "전송 중…",
+      "sent": "진단 정보를 보냈습니다",
+      "stateWithAttempt": "{{state}} · {{attempts}}번째 시도",
+      "title": "네트워크 진단"
+    },
+    "mobileWebBundleProbeRow": {
+      "assets": "에셋",
+      "build": "빌드",
+      "bundle": "번들",
+      "bytes": "바이트",
+      "connecting": "연결 중…",
+      "elapsed": "경과 시간",
+      "elapsedMilliseconds": "{{elapsedMs}}밀리초",
+      "fetchBundle": "모바일 웹 번들 가져오기",
+      "fetching": "번들 가져오는 중…",
+      "host": "호스트",
+      "unknownHost": "알 수 없는 호스트"
+    },
+    "mobileWebShellUpdateFailureRow": {
+      "title": "워크스페이스 업데이트"
+    },
+    "troubleshootCommonIssues": {
+      "allowNotifications": "시스템 설정에서 Orca 알림이 허용되어 있고 집중 모드나 방해 금지 모드가 꺼져 있는지 확인하세요.",
+      "checkTailnet": "데스크톱이 절전 모드가 아니며 tailnet에 연결된 상태로 표시되는지 확인하세요.",
+      "desktopTitle": "데스크톱 앱이 실행되지 않음",
+      "disableVpn": "해당 VPN을 끄거나 분할 터널링 / \"LAN 허용\"을 켜세요.",
+      "firewallTitle": "방화벽에서 포트 6768 차단",
+      "keepTailscaleOn": "100.x.x.x나 *.ts.net 같은 호스트 주소는 Tailscale을 통해 연결되므로 Tailscale을 켜 두세요.",
+      "macosFirewall": "macOS: 시스템 설정 → 네트워크 → 방화벽에서 Orca를 허용하세요.",
+      "notificationNetwork": "모바일 데이터나 다른 Wi-Fi 네트워크를 사용해 보세요. 전환 후 알림이 도착한다면 기존 네트워크에서 알림 전달이 지연되고 있을 수 있습니다.",
+      "notificationsTitle": "푸시 알림",
+      "openDesktop": "연결을 받으려면 데스크톱에서 Orca가 실행 중이어야 합니다.",
+      "pairAfterUpdate": "업데이트 후에는 QR 코드로 다시 페어링해야 할 수 있습니다.",
+      "reconnectWifi": "두 기기에서 WiFi를 다시 연결해 보세요.",
+      "restartBothApps": "시간 초과가 계속되면 두 앱을 모두 다시 시작하세요.",
+      "restartDesktop": "Orca를 다시 시작해 보세요. 앱 실행 시 모바일 연동 서버가 시작됩니다.",
+      "restartTailscale": "iOS/Android에서 별도 알림 없이 터널이 멈출 수 있습니다. Tailscale 앱에서 Tailscale을 껐다가 다시 켜세요.",
+      "restrictedNetwork": "회사나 학교 네트워크는 P2P를 차단할 수 있습니다. 개인용 핫스팟을 사용해 보세요.",
+      "retryHost": "호스트 목록으로 돌아가 호스트를 탭하여 다시 시도하세요.",
+      "sameNetwork": "두 기기는 같은 LAN에 연결되어 있어야 합니다(Tailscale로 연결한 경우 제외).",
+      "sameSubnet": "이더넷과 WiFi는 같은 서브넷을 사용해야 합니다.",
+      "tailscaleTitle": "Tailscale 호스트에 연결할 수 없음",
+      "timeoutTitle": "연결 시간 초과",
+      "updateTailscale": "Tailscale 앱을 업데이트하세요. 최근 버전에는 재연결 버그 수정 사항이 포함되어 있습니다.",
+      "vpnRouting": "Tailscale 이외의 VPN은 로컬 트래픽을 원격 서버로 우회시킬 수 있습니다.",
+      "vpnTitle": "다른 VPN의 간섭",
+      "wifiSignal": "휴대폰의 WiFi 신호 강도를 확인하세요.",
+      "wifiTitle": "서로 다른 WiFi 네트워크",
+      "windowsFirewall": "Windows: Defender 방화벽 → 앱 허용에서 개인 네트워크에 대해 Orca를 허용하세요."
+    },
+    "troubleshootView": {
+      "commonIssues": "일반적인 문제",
+      "runAgain": "다시 실행",
+      "runDiagnostics": "진단 실행",
+      "running": "실행 중…",
+      "title": "문제 해결",
+      "viewNetworkDiagnostics": "네트워크 진단 보기"
+    },
+    "useTroubleshootDiagnostics": {
+      "connected": "연결됨",
+      "hostDataFailed": "호스트 데이터를 읽지 못했습니다.",
+      "hostTestFailed": "테스트하지 못했습니다.",
+      "hosts": "호스트",
+      "internet": "인터넷",
+      "noConnection": "연결 안 됨",
+      "noPairedHosts": "없음 — QR 코드를 스캔해 페어링하세요.",
+      "pairedCount": "{{count}}개 페어링됨",
+      "pairedHosts": "페어링된 호스트",
+      "platform": "플랫폼",
+      "reachable": "{{endpoint}}에 연결 가능",
+      "unexpectedResponse": "예상치 못한 응답"
+    },
+    "webShellUpdateFailureCopy": {
+      "failedAgo": "{{hostName}}에서 최신 업데이트를 받는 데 {{time}} 전에 실패했습니다: {{reason}}{{offered}}. {{outcome}}",
+      "failedJustNow": "{{hostName}}에서 최신 업데이트를 받는 데 방금 실패했습니다: {{reason}}{{offered}}. {{outcome}}"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "alreadyActive": "컴퓨터나 다른 휴대폰에서 이미 받아쓰기를 사용 중입니다.",
+      "cloudModelNeedsKey": "OpenAI 키 필요",
+      "deleteFailed": "모델을 삭제하지 못했습니다.",
+      "desktopUpdateRequired": "모바일 음성 설정을 사용하려면 페어링된 데스크톱의 Orca 앱을 업데이트하세요.",
+      "downloadFailed": "다운로드를 시작하지 못했습니다.",
+      "loadFailed": "받아쓰기 모델을 로드하지 못했습니다.",
+      "repairRequired": "받아쓰기를 사용하려면 이 휴대폰을 컴퓨터와 다시 페어링하세요.",
+      "serverUpdateRequired": "음성 받아쓰기를 사용하려면 이 서버의 Orca를 업데이트하세요.",
+      "sessionLost": "받아쓰기 중 컴퓨터와의 연결이 끊어졌습니다. 다시 시도하세요.",
+      "updateFailed": "받아쓰기 설정을 업데이트하지 못했습니다."
+    }
+  },
+  "home": {
+    "accountUsageCards": {
+      "sectionHeading": "계정 사용량",
+      "sessionWindow": "5시간",
+      "systemDefault": "시스템 기본값",
+      "weeklyWindow": "7일"
+    },
+    "appUpdateCard": {
+      "dismissAccessibilityLabel": "Orca {{version}} 업데이트 알림 닫기",
+      "title": "Orca {{version}} 업데이트 가능",
+      "updateAccessibilityLabel": "Orca {{version}} 업데이트가 있습니다. 탭하여 업데이트하세요.",
+      "updateHint": "탭하여 업데이트하세요"
+    },
+    "emptyState": {
+      "connectedDescription": "데스크톱이 여기에 표시됩니다. 모든 데이터는 종단 간 암호화로 보호됩니다.",
+      "connectedTitle": "연결 완료",
+      "description": "컴퓨터의 Orca와 페어링하여 에이전트 상태를 확인하고, 원하는 터미널에 접속하고, 휴대폰으로 작업을 진행하세요.",
+      "openDesktopDescription": "설정 → 모바일에서 페어링 QR 코드를 생성하세요.",
+      "openDesktopTitle": "Orca 데스크톱 앱 열기",
+      "pairDesktop": "데스크탑 페어링",
+      "scanCodeDescription": "위의 버튼을 탭해 스캐너를 여세요. 데스크톱 화면의 QR 코드에 카메라를 맞추세요.",
+      "scanCodeTitle": "코드 스캔",
+      "stepsHeading": "사용 방법",
+      "title": "데스크톱을 연결하세요"
+    },
+    "listFooter": {
+      "hostPickerTitle": "작업을 열 호스트",
+      "resumeHeading": "재개",
+      "tasksHeading": "작업",
+      "automationsHeading": "자동화",
+      "automationsHostPickerTitle": "자동화를 열 호스트"
+    },
+    "listHeader": {
+      "agentTime": "Agent 시간",
+      "agentsSpawned": "시작된 Agents",
+      "daysHours": "{{days}}일 {{hours}}시간",
+      "desktopsHeading": "데스크탑",
+      "hoursMinutes": "{{hours}}시간 {{minutes}}분",
+      "minutes": "{{minutes}}분",
+      "prsCreated": "생성된 PR",
+      "title": "다시 오신 것을 환영합니다"
+    },
+    "screen": {
+      "pairingCheckFailed": "페어링 확인 실패",
+      "removeHostFailed": "호스트 제거 실패",
+      "removeHostMessage": "\"{{name}}\"을(를) 제거하시겠습니까? 나중에 다시 페어링할 수 있습니다.",
+      "removeHostTitle": "호스트 제거",
+      "tryAgain": "다시 시도하세요."
+    },
+    "tasksCard": {
+      "noSources": "연결된 작업 소스 없음",
+      "openProviderTasks": "{{provider}} 작업 열기",
+      "title": "작업"
+    }
+  },
+  "hooks": {
+    "dictationDesktopStart": {
+      "recordingFailed": "마이크 녹음을 시작하지 못했습니다."
+    },
+    "useMobileDictation": {
+      "inputClosed": "이 세션에서 더 이상 입력을 받지 않아 음성 받아쓰기가 중단되었습니다. 다시 시도하세요.",
+      "microphoneInitFailed": "마이크를 초기화하지 못했습니다.",
+      "microphoneInterrupted": "마이크 사용이 중단되어 음성 받아쓰기가 멈췄습니다. 다시 시도하세요.",
+      "microphonePermissionDenied": "마이크 권한이 거부되었습니다.",
+      "noSpeech": "음성이 감지되지 않았습니다."
+    }
+  },
+  "host": {
+    "edit": {
+      "address": "주소",
+      "addressHint": "IP, host:port 또는 ws:// / wss:// 형식을 사용할 수 있습니다. 포트가 없는 wss:// URL은 443을 사용합니다. 스킴과 포트 없이 주소만 입력하면 현재 포트(또는 6768)를 유지합니다.",
+      "connectionPreview": "{{endpoint}}에 연결",
+      "goBack": "돌아가기",
+      "help": "표시 이름이나 연결 주소를 변경하세요. 이름을 비워 두면 데스크톱에서 보내는 이름을 사용합니다. 주소를 수정하면 이 휴대폰이 연결하는 주소만 바뀌며 다시 페어링하지 않습니다. 같은 데스크톱에 다른 IP로 연결할 때 사용하세요(예: 홈 LAN과 Tailscale 간 전환).",
+      "hostNamePlaceholder": "호스트 이름",
+      "hostRemoved": "이 호스트는 이 휴대폰에서 제거되었습니다.",
+      "loadFailed": "호스트 정보를 불러오지 못했습니다.",
+      "missingHost": "호스트가 없습니다.",
+      "name": "이름",
+      "saveFailed": "호스트를 저장하지 못했습니다.",
+      "saveHost": "호스트 저장",
+      "title": "호스트 편집"
+    }
+  },
+  "hostScreen": {
+    "hostListActionSheetActions": {
+      "connect": "연결",
+      "disconnect": "연결 해제",
+      "editHost": "호스트 편집",
+      "networkDiagnostics": "네트워크 진단",
+      "reconnect": "다시 연결"
+    },
+    "hostPendingCreationRow": {
+      "creatingWorkspace": "워크스페이스 만드는 중…"
+    },
+    "hostRailActions": {
+      "accounts": "계정",
+      "closeSearch": "검색 닫기",
+      "floatingWorkspace": "플로팅 워크스페이스",
+      "newWorkspace": "새로운 워크스페이스",
+      "searchWorkspaces": "워크스페이스 검색",
+      "tasks": "작업",
+      "automations": "자동화"
+    },
+    "hostScreenHeader": {
+      "accounts": "계정",
+      "activeFilters_one": "워크스페이스 옵션 (필터 {{count}}개 활성화됨)",
+      "activeFilters_other": "워크스페이스 옵션 (필터 {{count}}개 활성화됨)",
+      "backToHosts": "호스트 목록으로 돌아가기",
+      "closeSearch": "검색 닫기",
+      "floatingWorkspace": "플로팅 워크스페이스",
+      "hideSidebar": "사이드바 숨기기",
+      "reconnect": "다시 연결",
+      "searchWorkspaces": "워크스페이스 검색",
+      "tasks": "작업",
+      "workspaceOptions": "워크스페이스 옵션"
+    },
+    "hostScreenOverlays": {
+      "deleteConfirmMessage": "\"{{name}}\" ({{branch}})을(를) 삭제하시겠습니까?",
+      "deleteWorktree": "작업 트리 삭제",
+      "pin": "고정",
+      "primaryWorktreeDeleteHint": "기본 작업 트리는 삭제할 수 없습니다. 대신 프로젝트를 제거하세요.",
+      "removeHost": "호스트 제거",
+      "removeHostMessage": "\"{{name}}\"을(를) 제거하시겠습니까? 나중에 다시 페어링할 수 있습니다.",
+      "sleep": "슬립",
+      "unpin": "고정 해제"
+    },
+    "hostWorkspaceList": {
+      "searchPlaceholder": "워크스페이스 검색…",
+      "searchWorkspaces": "워크스페이스 검색"
+    },
+    "workspaceDetailsSheet": {
+      "checksFailing": "체크: 실패",
+      "checksPassing": "체크: 통과",
+      "checksPending": "체크: 대기 중",
+      "closed": "닫힘",
+      "createdByAutomation": "자동화가 생성함",
+      "createdByNamedAutomation": "자동화 “{{name}}”이(가) 생성함",
+      "createdFromCli": "Orca CLI에서 생성됨",
+      "draft": "초안",
+      "merged": "병합됨",
+      "openLink": "{{label}} 열기",
+      "openLinkWithTitle": "{{label}}, {{title}} 열기",
+      "prOpen": "열림"
+    },
+    "workspaceOptionControls": {
+      "agentActivity": "에이전트 활동",
+      "agentActivityLayout": "에이전트 활동 레이아웃",
+      "agentActivitySort": "Agent 활동",
+      "agentActivitySortDescription": "주의가 필요한 에이전트를 우선 표시한 뒤 최근 활동순으로 정렬합니다.",
+      "agentStatuses": "에이전트 상태",
+      "allHosts": "모든 호스트",
+      "allProjects": "모든 프로젝트",
+      "automation": "자동화",
+      "branchFolderPath": "브랜치 / 폴더 경로",
+      "branchName": "브랜치 이름",
+      "compact": "콤팩트",
+      "detailed": "상세",
+      "fullList": "전체 목록",
+      "githubIssues": "GitHub 이슈",
+      "githubTicket": "GitHub 티켓",
+      "host": "호스트",
+      "hover": "호버",
+      "jiraIssue": "Jira 이슈",
+      "jiraIssues": "Jira 이슈",
+      "linearIssue": "Linear 이슈",
+      "linearIssues": "Linear 이슈",
+      "manual": "수동",
+      "manualProjectOrderDescription": "프로젝트를 드래그하여 정렬하세요.",
+      "manualWorkspaceOrderDescription": "워크스페이스를 드래그하여 각 그룹 내에서 정렬하세요.",
+      "name": "이름",
+      "none": "없음",
+      "notes": "메모",
+      "ports": "포트",
+      "pr": "PR",
+      "prMrLink": "PR/MR 링크",
+      "project": "프로젝트",
+      "recent": "최근",
+      "recentProjectOrderDescription": "가장 최근의 워크스페이스 활동",
+      "searchProjects": "프로젝트 검색",
+      "searchProjectsPlaceholder": "프로젝트 검색…",
+      "selectedCount": "{{total}}개 중 {{count}}개",
+      "status": "상태"
+    },
+    "workspaceOptionsSheet": {
+      "backToOptions": "워크스페이스 옵션으로 돌아가기",
+      "cardDisplay": "카드 표시",
+      "cardLayout": "카드 레이아웃",
+      "clearFilters": "필터 지우기",
+      "exceptDefaultBranch": "기본 브랜치는 제외",
+      "filters": "필터",
+      "groupBy": "그룹화 기준",
+      "hideAutomationCreated": "자동화로 생성된 워크스페이스 숨기기",
+      "hideCliCreated": "CLI로 생성된 워크스페이스 숨기기",
+      "hideDefaultBranch": "기본 브랜치 숨기기",
+      "hideDetachedHead": "분리된 HEAD 숨기기",
+      "hideOtherClientWorkspaces": "다른 클라이언트 워크스페이스 숨기기",
+      "hideSleeping": "슬립 중인 항목 숨기기",
+      "hosts": "호스트",
+      "localLinux": "로컬 Linux",
+      "localMac": "로컬 Mac",
+      "localWindows": "로컬 Windows",
+      "projectOrder": "프로젝트 순서",
+      "projects": "프로젝트",
+      "savingToDesktop": "데스크톱에 저장 중",
+      "show": "표시",
+      "showProperties": "속성 표시",
+      "sortBy": "정렬 기준",
+      "syncedAcrossDevices": "기기 간 동기화됨",
+      "thisComputer": "이 컴퓨터",
+      "waitingForDesktop": "아직 데스크톱 응답을 기다리는 중",
+      "workspaceOptions": "워크스페이스 옵션"
+    }
+  },
+  "navigation": {
+    "hostStackScreens": {
+      "accounts": "계정",
+      "agentSessionHistory": "에이전트 세션 기록",
+      "changes": "변경 사항",
+      "editHost": "호스트 편집",
+      "host": "호스트",
+      "pullRequest": "PR",
+      "sourceControl": "소스 제어",
+      "tasks": "작업",
+      "terminal": "터미널",
+      "workspace": "워크스페이스",
+      "automations": "자동화"
+    }
+  },
+  "notifications": {
+    "notificationDeliverySection": {
+      "footer": "알림 유형은 페어링된 각 데스크톱의 알림 설정을 따릅니다. 이 앱을 7일 동안 사용하지 않으면 알림이 일시 중지됩니다. 다시 받으려면 앱을 열고 다시 연결하세요.",
+      "onlyWhenAway": "데스크톱을 사용하지 않을 때만",
+      "onlyWhenAwayHint": "키보드나 마우스를 3분간 사용하지 않거나 데스크톱이 잠겨 있을 때 알림을 보냅니다.",
+      "sound": "알림음",
+      "suppressWhileFocused": "보고 있는 동안 알림 끄기",
+      "suppressWhileFocusedHint": "이 휴대폰에서 열어 둔 워크스페이스의 알림을 받지 않습니다."
+    }
+  },
+  "onboarding": {
+    "notificationOnboardingPreview": {
+      "claudeNeedsInput": "Claude 입력 필요",
+      "codexFinished": "Codex 작업 완료",
+      "now": "지금",
+      "testsPassing": "테스트를 통과했습니다.",
+      "waitingOnYou": "응답을 기다리고 있습니다."
+    },
+    "onboardingPage": {
+      "enableAgentNotifications": "에이전트 알림 켜기",
+      "enableNotifications": "알림 켜기",
+      "keepTerminal": "터미널 유지",
+      "notNow": "나중에",
+      "notificationsDescription": "앱을 사용하지 않아도 에이전트가 작업을 마치거나 대기 중이면 이 휴대폰으로 알림을 받습니다.",
+      "notificationsDisclosure": "데스크톱을 3분 동안 사용하지 않으면 Orca 푸시 서비스를 통해 알림이 전달됩니다. 언제든지 설정에서 변경할 수 있습니다.",
+      "notificationsTitle": "에이전트의 요청을 놓치지 마세요",
+      "openInChatUi": "채팅 UI에서 세션 열기",
+      "openInTerminal": "터미널에서 세션 열기",
+      "sessionViewDescription": "지원되는 에이전트 세션을 이 기기에서 터미널로 열지, 채팅 UI로 열지 선택하세요. 세션 탭을 길게 눌러 보기를 전환하거나, 나중에 설정에서 기본값을 변경할 수 있습니다.",
+      "sessionViewTitle": "세션을 어떻게 열까요?",
+      "skipNotifications": "지금은 알림 설정 건너뛰기",
+      "useChatUi": "채팅 UI 사용"
+    }
+  },
+  "settings": {
+    "aboutScreen": {
+      "openLinkFailed": "링크를 열지 못했습니다. 다시 시도하세요.",
+      "socialProfile": "Orca X 프로필",
+      "sourceCode": "Orca 소스 코드",
+      "tagline": "100배의 성과를 내는 개발자를 위한 오픈 소스 에이전트 IDE",
+      "title": "정보",
+      "website": "Orca 웹사이트"
+    },
+    "appUpdateSettingsRows": {
+      "checkFailed": "확인 실패",
+      "checkUpdates": "업데이트 확인",
+      "checkUpdatesStatus": "업데이트 확인, {{status}}",
+      "checking": "확인 중…",
+      "installedVersion": "버전 {{version}}",
+      "lastCheckedDays_one": "마지막 확인: {{count}}일 전",
+      "lastCheckedDays_other": "마지막 확인: {{count}}일 전",
+      "lastCheckedHours_one": "마지막 확인: {{count}}시간 전",
+      "lastCheckedHours_other": "마지막 확인: {{count}}시간 전",
+      "lastCheckedJustNow": "마지막 확인: 방금",
+      "lastCheckedMinutes_one": "마지막 확인: {{count}}분 전",
+      "lastCheckedMinutes_other": "마지막 확인: {{count}}분 전",
+      "neverChecked": "확인한 적 없음",
+      "upToDate": "최신 상태",
+      "update": "업데이트",
+      "updateToVersion": "Orca {{version}} 버전으로 업데이트"
+    },
+    "appearance": {
+      "language": {
+        "description": "시스템을 선택하면 이 기기의 언어를 따릅니다. 권한 요청은 항상 기기 언어로 표시됩니다.",
+        "heading": "언어",
+        "systemWithCurrent": "시스템 ({{language}})"
+      },
+      "theme": {
+        "dark": "다크",
+        "description": "시스템을 선택하면 이 기기의 라이트 또는 다크 모드 설정을 따릅니다.",
+        "heading": "테마",
+        "light": "라이트",
+        "system": "시스템"
+      },
+      "title": "모양"
+    },
+    "browserSettingsScreen": {
+      "desktopBrowser": "데스크톱 Orca 브라우저",
+      "desktopBrowserDescription": "페어링된 데스크톱에서 스트리밍되는 브라우저로 엽니다.",
+      "linksDescription": "터미널 출력의 HTTP(S) 링크를 탭했을 때 열 브라우저를 선택하세요.",
+      "linksHeading": "링크",
+      "loadFailed": "브라우저 설정을 불러오지 못했습니다. 다시 시도하세요.",
+      "openTerminalLinks": "터미널 링크 열기",
+      "phoneBrowser": "휴대폰 브라우저",
+      "phoneBrowserDescription": "이 휴대폰의 Safari, Chrome 또는 다른 브라우저에서 엽니다.",
+      "saveFailed": "브라우저 설정을 저장하지 못했습니다. 다시 시도하세요.",
+      "title": "브라우저"
+    },
+    "menuItems": {
+      "about": "정보",
+      "appearance": "모양",
+      "browser": "브라우저",
+      "chatUi": "채팅 UI",
+      "notifications": "알림",
+      "terminal": "터미널",
+      "troubleshooting": "문제 해결",
+      "voice": "음성"
+    },
+    "menuScreen": {
+      "privacyPolicy": "개인정보 처리방침",
+      "support": "지원"
+    },
+    "nativeChatSettingsScreen": {
+      "defaultViewDescription": "지원되는 에이전트 세션(Claude, Codex 및 기타 채팅 지원 에이전트)을 이 기기에서 여는 방식을 선택하세요. 터미널은 CLI를 그대로 표시하며, 채팅 UI는 데스크톱 앱과 같은 채팅 인터페이스를 표시합니다. 각 세션의 보기 방식은 길게 눌러 여는 메뉴에서 개별적으로 전환할 수 있습니다.",
+      "defaultViewHeading": "기본 보기",
+      "off": "꺼짐",
+      "on": "켜짐",
+      "openInChatUi": "채팅 UI로 세션 열기",
+      "title": "채팅 UI"
+    },
+    "nativeNotificationDeliverySettings": {
+      "loadFailed": "알림 전송 설정을 불러오지 못했습니다. 다시 시도하려면 이 화면을 다시 여세요.",
+      "saveFailed": "알림 전송 설정을 저장하지 못했습니다. 다시 시도하세요.",
+      "updateDesktopHint": "이 휴대폰에서 알림을 받으려면 업데이트된 데스크톱을 페어링하세요."
+    },
+    "notificationDisplayTest": {
+      "accepted": "Orca 푸시 서비스에서 요청을 접수했습니다. 알림이 도착했는지 확인하세요.",
+      "connectDesktop": "데스크톱에 연결한 후 다시 시도하세요.",
+      "description": "Orca 푸시 서비스를 통해 테스트 알림을 보내세요.",
+      "desktopUnreachable": "데스크톱에 연결하지 못했습니다. 다시 시도하세요.",
+      "loadFailed": "페어링된 데스크톱 목록을 불러오지 못했습니다.",
+      "pairDesktop": "데스크톱을 페어링한 후 다시 시도하세요.",
+      "pushServiceFailed": "Orca 푸시 서비스를 통해 전송하지 못했습니다. 다시 시도하세요.",
+      "rateLimited": "알림이 너무 많습니다. 나중에 다시 시도하세요.",
+      "reconnectPhone": "이 휴대폰을 알림 수신 기기로 등록하려면 다시 연결하세요.",
+      "sendButton": "테스트 알림 보내기",
+      "sendFailed": "테스트 푸시 알림을 전송하지 못했습니다.",
+      "sending": "전송 중…",
+      "troubleReceivingAlerts": "알림 수신에 문제가 있나요?",
+      "troubleshooting": "문제 해결",
+      "updateDesktop": "이 테스트를 실행하려면 데스크톱을 업데이트하세요."
+    },
+    "notificationSettingsScreen": {
+      "description": "에이전트가 입력을 요청하거나 작업을 완료하면 이 기기에서 알림을 받으세요.",
+      "enableNotifications": "알림 활성화",
+      "loadFailed": "알림 설정을 불러오지 못했습니다. 다시 시도하세요.",
+      "notificationsBlocked": "시스템 설정에서 알림이 비활성화되어 있습니다.",
+      "openSettings": "설정 열기",
+      "openSettingsFailed": "시스템 설정을 열지 못했습니다. 다시 시도하세요.",
+      "saveFailed": "알림 설정을 저장하지 못했습니다. 다시 시도하세요.",
+      "title": "알림"
+    },
+    "pendingCredentialCleanupCard": {
+      "cleanupUnconfirmed_one": "이 기기의 자격 증명 {{count}}개가 정리되었는지 확인하지 못했습니다.",
+      "cleanupUnconfirmed_other": "이 기기의 자격 증명 {{count}}개가 정리되었는지 확인하지 못했습니다.",
+      "retryCleanup": "페어링 자격 증명 삭제 다시 시도",
+      "retryFailed": "정리 완료 여부를 아직 확인하지 못했습니다. 나중에 다시 시도하세요.",
+      "statusCheckFailed": "이 기기의 정리 상태를 확인하지 못했습니다. 안전을 위해 다시 시도하세요.",
+      "title": "페어링 자격 증명 정리"
+    },
+    "uiLanguageSettingsSection": {
+      "pseudoLanguage": "가상 언어 (en-XA)"
+    },
+    "voiceSettingsScreen": {
+      "connectDesktop": "음성 설정을 관리하려면 데스크톱에 연결하세요.",
+      "deleteFailed": "삭제 실패",
+      "dictationDescription": "데스크톱에서 포커스가 있는 창에 음성으로 텍스트를 입력합니다.",
+      "dictationHeading": "받아쓰기",
+      "dictationMode": "받아쓰기 모드",
+      "dictationModeDescription": "토글: 한 번 누르면 받아쓰기를 시작하고, 다시 누르면 중지합니다. 길게 누르기: 누르고 있는 동안 받아쓰기합니다.",
+      "downloadFailed": "다운로드 실패",
+      "enableDictation": "음성 받아쓰기 활성화",
+      "holdMode": "길게 누르기",
+      "loadFailed": "음성 설정을 불러오지 못했습니다.",
+      "loadFailedMessage": "음성 설정을 불러오지 못했습니다.",
+      "noneSelected": "선택 안 됨",
+      "selectModelFailed": "모델을 선택하지 못했습니다.",
+      "speechModel": "음성 모델",
+      "speechModelHeading": "음성 모델",
+      "title": "음성",
+      "toggleMode": "토글",
+      "updateFailed": "업데이트하지 못했습니다."
+    }
+  },
+  "webShell": {
+    "shellStateScreen": {
+      "checkingHost": "호스트 확인 중",
+      "connectToDownload": "최신 앱을 다운로드하려면 이 호스트에 연결하세요.",
+      "documentLoadFailed": "다운로드한 앱을 열지 못했습니다.",
+      "downloadFailed": "이 호스트에서 최신 앱을 다운로드하지 못했습니다.",
+      "hostProfileUnreadable": "기기에서 이 호스트 정보를 읽지 못했습니다. 다시 시도하세요.",
+      "isolationUnavailable": "이 기기의 WebView 버전이 너무 오래되어 워크스페이스를 안전하게 열 수 없습니다.",
+      "openingWorkspace": "워크스페이스 여는 중",
+      "renderProcessGone": "워크스페이스가 응답하지 않습니다.",
+      "statusUnreadable": "이 호스트의 상태를 읽지 못했습니다. 뒤로 돌아가 다시 열어 보세요.",
+      "tryAgain": "다시 시도"
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "blocked": "차단됨",
+      "days_one": "{{count}}일",
+      "days_other": "{{count}}일",
+      "done": "완료",
+      "failed": "실패",
+      "hours_one": "{{count}}시간",
+      "hours_other": "{{count}}시간",
+      "idle": "유휴",
+      "interrupted": "중단됨",
+      "justNow": "방금",
+      "minutes_one": "{{count}}분",
+      "minutes_other": "{{count}}분",
+      "monitoring": "백그라운드 작업 모니터링 중",
+      "stopping": "중지하는 중…",
+      "unconfirmed": "확인하지 못함",
+      "unverifiable": "최근 업데이트 없음",
+      "waiting": "입력 대기 중",
+      "working": "작업 중"
+    },
+    "hostWorkspaceListStates": {
+      "checkHost": "컴퓨터가 절전 모드가 아니며 Orca가 실행 중인지 확인하세요.",
+      "empty": "워크스페이스가 없습니다.",
+      "loadFailed": "이 호스트에서 워크스페이스를 불러오지 못했습니다.",
+      "noFilterMatches": "필터에 맞는 워크스페이스가 없습니다.",
+      "noMatches": "일치하는 워크스페이스가 없습니다.",
+      "reopen": "업데이트하려면 다시 여세요",
+      "reopenDetail": "이 페이지는 아직 이 호스트의 워크스페이스 목록 형식을 지원하지 않습니다.",
+      "retrying": "worktree.ps가 실패했습니다({{error}}). 자동으로 다시 시도합니다."
+    },
+    "workspaceListSections": {
+      "all": "모두",
+      "closed": "닫힘",
+      "done": "완료",
+      "inProgress": "진행중",
+      "inReview": "리뷰 중",
+      "pinned": "고정됨"
+    }
+  }
+}

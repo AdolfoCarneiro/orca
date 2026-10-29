@@ -4,7 +4,7 @@ import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 import { themedStyleSheet } from '../theme/themed-styles'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import {
-  CLOUD_MODEL_NEEDS_KEY,
+  cloudModelNeedsKey,
   dictationModelRowAction,
   isModelInFlight,
   type MobileSpeechModel,
@@ -75,7 +75,7 @@ export function VoiceModelList({
                 <Text style={styles.modelMeta}>{modelMeta(model)}</Text>
               </View>
               {action === 'needs-api-key' ? (
-                <Text style={styles.modelStateText}>{CLOUD_MODEL_NEEDS_KEY}</Text>
+                <Text style={styles.modelStateText}>{cloudModelNeedsKey()}</Text>
               ) : action === 'in-use' || action === 'use' ? (
                 <View style={styles.readyActions}>
                   {action === 'in-use' ? (

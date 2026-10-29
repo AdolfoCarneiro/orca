@@ -1,0 +1,768 @@
+{
+  "accounts": {
+    "screen": {
+      "agentLogin": "Ajanın kendi oturum açma bilgilerini kullan",
+      "connecting": "Sunucuya bağlanılıyor…",
+      "connectingTo": "{{name}} ile bağlantı kuruluyor…",
+      "default": "Sistem varsayılanı",
+      "hostNotFound": "Sunucu bulunamadı",
+      "invalidSnapshot": "Sunucudan gelen hesap anlık görüntüsü geçersiz",
+      "loadingAccounts": "Hesaplar yükleniyor…",
+      "manageAccountsHint": "Masaüstünde Ayarlar → Hesaplar bölümünden hesap ekleyin veya hesaplarınızda yeniden oturum açın.",
+      "refreshAccounts": "Hesapları yenile",
+      "sessionWindow": "5 sa",
+      "switchFailed": "Hesap değiştirilemedi",
+      "title": "Hesaplar",
+      "useReset": "Sıfırlama hakkını kullan",
+      "weeklyWindow": "7g"
+    }
+  },
+  "agentHistory": {
+    "panel": {
+      "all": "Tümü",
+      "emptyScope": "Bu kapsamda geçmiş ajan oturumu yok.",
+      "loadFailed": "Yüklenemedi",
+      "missingResumeId": "Bu oturumun devam ettirme kimliği eksik.",
+      "noSearchResults": "Aramanızla eşleşen oturum yok.",
+      "noSessions": "Ajan oturumu yok",
+      "placeholder": "Oturumlarda ara, repo:, path:",
+      "project": "Proje",
+      "refreshSessions": "Ajan oturumlarını yenile",
+      "resumeFailed": "Oturuma devam edilemedi.",
+      "sessionQueued": "Ajan oturumu sıraya alındı.",
+      "skipped_one": "{{count}} transkript atlandı",
+      "skipped_other": "{{count}} transkript atlandı",
+      "title": "Ajan Oturum Geçmişi",
+      "unavailable": "Ajan Oturum Geçmişi Kullanılamıyor",
+      "unknownHostPlatform": "Sunucunun platformu belirlenemedi.",
+      "updateHost": "Ajan oturum geçmişine göz atmak için bu sunucudaki Orca'yı güncelleyin.",
+      "waitingForHost": "Sunucu bekleniyor…",
+      "workspace": "Çalışma Alanı"
+    },
+    "resumeTarget": {
+      "differentHost": "Bu oturum farklı bir sunucuya ait. Devam ettirmek için aynı sunucuda bir çalışma alanı açın.",
+      "openWorkspace": "Bir oturuma devam etmeden önce bir çalışma alanı açın.",
+      "runtimeUnavailable": "Çalışma zamanı ortamında barındırılan çalışma alanlarında geçmiş oturumlara devam edilemez."
+    },
+    "sessionCard": {
+      "untitledSession": "Başlıksız oturum"
+    },
+    "sessionHistoryList": {
+      "assistantRole": "asistan",
+      "currentWorktree": "mevcut worktree",
+      "messages_one": "{{count}} mesaj",
+      "messages_other": "{{count}} mesaj",
+      "resumeSession": "Ajan oturumuna devam et",
+      "userRole": "kullanıcı"
+    },
+    "useAgentHistoryState": {
+      "hostUnreachable": "Sunucuya ulaşılamadı",
+      "loadFailed": "Ajan oturumları yüklenemedi",
+      "waitingForHost": "Sunucu bekleniyor…"
+    },
+    "worktreeNavigationActions": {
+      "agentSessionHistory": "Ajan Oturum Geçmişi",
+      "sourceControl": "Kaynak Kontrolü"
+    }
+  },
+  "app": {
+    "mobileOnboarding": {
+      "notificationSettingsFailed": "Bildirim ayarları güncellenemedi. Tekrar deneyin.",
+      "progress": "Başlangıç adımlarındaki ilerleme",
+      "saveChoiceFailed": "Seçiminiz kaydedilemedi. Tekrar deneyin.",
+      "stepProgress": "{{total}} adımın {{step}}. adımı"
+    },
+    "notifications": {
+      "description": "Uygulama kapalıyken bile ajan uyarıları alın. Uyarılar Orca'nın anlık bildirim hizmeti ve Apple veya Google üzerinden iletilir."
+    },
+    "pair": {
+      "backToHome": "Ana ekrana dön",
+      "missingCode": "Eşleştirme kodu eksik"
+    },
+    "pairConfirm": {
+      "backToHome": "Ana ekrana dön",
+      "connectTimedOut": "{{seconds}} saniye içinde bağlantı kurulamadı — işlemin nerede takıldığını görmek için aşağıdaki günlüğe bakın",
+      "connecting": "Bağlanılıyor…",
+      "description": "Masaüstünüzden bir eşleştirme bağlantısı açtınız. Bu masaüstünü sunucu listenize eklemek için onaylayın.",
+      "pairButton": "Eşleştir",
+      "pairingFailed": "Eşleştirme yapılamadı: {{error}}",
+      "pairingLog": "Eşleştirme günlüğü",
+      "title": "Bu masaüstüyle eşleştirilsin mi?"
+    },
+    "pairScan": {
+      "cameraDisabledDescription": "Ayarlar bölümünde kamera erişimini etkinleştirin veya eşleştirme kodunu yapıştırın.",
+      "cameraDisabledTitle": "Kamera Erişimi Devre Dışı",
+      "cameraPermissionDescription": "Masaüstünüzdeki Orca'da gösterilen QR kodunu tarayın veya eşleştirme kodunu yapıştırın.",
+      "connectTimedOut": "{{seconds}} saniye içinde bağlantı kurulamadı — işlemin nerede takıldığını görmek için aşağıdaki günlüğe bakın",
+      "connecting": "Bağlanılıyor…",
+      "invalidPairingCode": "Geçerli bir eşleştirme kodu değil — bilgisayarınızdan kopyalayıp yeniden yapıştırın",
+      "invalidQrCode": "Geçerli bir Orca QR kodu değil",
+      "openDesktopStep": "Bilgisayarınızda Orca'yı açın",
+      "openMobileSettingsStep": "Ayarlar → Mobil bölümüne gidin",
+      "openSettings": "Ayarları Aç",
+      "pairingFailed": "Eşleştirme yapılamadı: {{error}}",
+      "pairingLog": "Eşleştirme günlüğü",
+      "pasteCodeMessage": "Bilgisayarınızda QR kodunun altında gösterilen kodu kopyalayın.",
+      "pasteCodePlaceholder": "orca://pair?code=... veya kodu yapıştırın",
+      "pasteCodeTitle": "Eşleştirme kodunu yapıştır",
+      "pasteInstead": "Bunun yerine kod yapıştır",
+      "pastePairingCode": "Veya eşleştirme kodunu yapıştır",
+      "scanCodeStep": "QR kodunu tarayın",
+      "title": "Masaüstüyle eşleştir",
+      "tryAgain": "Tekrar Dene"
+    },
+    "terminalSettings": {
+      "autocomplete": "Otomatik tamamlama ve düzeltme",
+      "autocompleteOff": "Kapalı",
+      "autocompleteOn": "Açık",
+      "defaultText": "Varsayılan (%100)",
+      "keepPhoneSize": "Telefon boyutunda tut (varsayılan)",
+      "keyboardInputDescription": "Otomatik tamamlama, otomatik düzeltme ve yazım önerileri yalnızca arabelleğe alınan komut girişinde geçerlidir. Canlı girişten arabellekli girişe geçmek için klavyenin üzerindeki çift oklu düğmeyi kullanın; ardından Gönder düğmesine dokunmadan önce komutunuzu düzenleyin. Komutların, bayrakların veya yolların değiştirilmesini önlemek için varsayılan olarak kapalıdır.",
+      "keyboardInputHeading": "KLAVYE GİRİŞİ",
+      "largeText": "Büyük (%125)",
+      "largerText": "Daha büyük (%150)",
+      "largestText": "En Büyük (%200)",
+      "leaveAppDescription": "Telefonunuzda terminal kullanırken Orca, terminali ekranınıza sığacak şekilde küçültür. Uygulamayı kapattığınızda veya başka bir uygulamaya geçtiğinizde bu ayar, terminalin telefon boyutunda kalmasını (etkileşimli CLI araçlarının düzeninin değişmemesi için) ya da masaüstü boyutuna geri dönmesini belirler. Boyutu elle değiştirmek için masaüstündeki bildirim çubuğunda Geri yükle seçeneğini her zaman kullanabilirsiniz.",
+      "leaveAppHeading": "UYGULAMADAN AYRILDIĞINIZDA",
+      "noPairedDesktops": "Henüz eşleştirilmiş masaüstü yok. Terminal davranışını ayarlamak için bir masaüstü eşleştirin.",
+      "restoreAfterMinutes_one": "{{count}} dakika sonra",
+      "restoreAfterMinutes_other": "{{count}} dakika sonra",
+      "restoreAfterSeconds_one": "{{count}} sn sonra",
+      "restoreAfterSeconds_other": "{{count}} sn sonra",
+      "restoreHost": "{{name}} için geri yükleme",
+      "smallerText": "Daha küçük (%75)",
+      "smallestText": "En küçük (%50)",
+      "textSize": "Metin boyutu",
+      "textSizeDescription": "Terminal metninin boyutunu ayarlayın. Küçük boyutlarda, kenarlarda boşluk kalacak şekilde daha fazla sütun sığar; büyük boyutlarda daha az sütun görünür — yatay kaydırmak için yana sürükleyin. Terminalde iki parmakla yakınlaştırma da yapabilirsiniz; bu işlem bu ayarı günceller. Yalnızca bu cihazdaki görünümü etkiler; masaüstü terminalini değiştirmez.",
+      "textSizeHeading": "METİN BOYUTU",
+      "textSizePickerTitle": "Terminal metin boyutu",
+      "title": "Terminal"
+    }
+  },
+  "common": {
+    "back": "Geri",
+    "cancel": "İptal",
+    "continue": "Devam Et",
+    "copied": "Kopyalandı",
+    "delete": "Sil",
+    "ok": "Tamam",
+    "remove": "Kaldır",
+    "retry": "Yeniden dene",
+    "save": "Kaydet",
+    "settings": "Ayarlar",
+    "unknown": "Bilinmiyor"
+  },
+  "connection": {
+    "connectionHealth": {
+      "checkConnection": "Bağlantınızı kontrol edin",
+      "connectFailed": "Bağlanılamadı",
+      "connected": "Bağlı",
+      "connecting": "Bağlanılıyor…",
+      "connectingViaRelay": "Relay üzerinden bağlanılıyor…",
+      "desktopUnreachable": "Bilgisayara ulaşılamadı",
+      "disconnected": "Bağlantı kesildi",
+      "hostFallback": "Ana Makine",
+      "hostOffline": "{{host}} çevrimdışı",
+      "hostOfflineDetail": "Bilgisayarınızın uyanık, Orca'nın çalışır durumda ve oturumunuzun açık olduğunu kontrol edin",
+      "labelWithHint": "{{label}} — {{hint}}",
+      "pairingInvalid": "Eşleştirme geçersiz — bilgisayarınızla yeniden eşleştirin",
+      "rePairDetail": "Bilgisayarınızla yeniden eşleştirin",
+      "reconnecting": "Yeniden bağlanılıyor…",
+      "relayAccessExpired": "{{host}} için Relay erişiminin süresi doldu",
+      "relayConnectFailed": "Relay üzerinden bağlanılamadı",
+      "relayUnreachable": "Relay'e ulaşılamadı",
+      "signInDetail": "Yeniden bağlanmak için bilgisayarınızda Orca'da oturum açın",
+      "signInRequired": "{{host}} üzerinde oturum açılması gerekiyor",
+      "tailscaleHint": "Tailscale'i kontrol edin"
+    },
+    "connectionPathLabel": {
+      "directLan": "Doğrudan · LAN",
+      "directTailscale": "Doğrudan · Tailscale",
+      "directViaLan": "LAN üzerinden doğrudan",
+      "directViaTailscale": "Tailscale üzerinden doğrudan"
+    },
+    "hostEndpoint": {
+      "addressRequired": "Bir ana makine adresi girin.",
+      "hostnameRequired": "Ana makine adı eksik.",
+      "invalidAddress": "Geçerli bir adres değil.",
+      "invalidHostname": "Geçerli bir ana makine adı değil.",
+      "invalidPort": "Port 1–65535 aralığında olmalıdır.",
+      "invalidScheme": "ws:// veya wss:// (ya da host:port) kullanın.",
+      "pathOrQueryNotAllowed": "Ana makine adresi yol veya sorgu içermemelidir."
+    },
+    "pairConfirmState": {
+      "invalidCode": "Geçerli bir eşleştirme kodu değil",
+      "missingCode": "Eşleştirme kodu eksik"
+    },
+    "rpcClientStreamRegistry": {
+      "endedBeforeReady": "Akış isteği hazır olmadan sona erdi.",
+      "interrupted": "Bağlantı kesildi"
+    },
+    "rpcClientTerminalBinaryFrame": {
+      "unsupportedFrame": "Desteklenmeyen terminal akışı çerçevesi (opcode {{opcode}})."
+    }
+  },
+  "diagnostics": {
+    "connectionDiagnosticsView": {
+      "authFailed": "kimlik doğrulanamadı",
+      "connected": "bağlı",
+      "connecting": "bağlanılıyor",
+      "copyReport": "Raporu kopyala",
+      "diagnosisHeading": "Olası neden",
+      "disconnected": "bağlantı kesildi",
+      "handshaking": "el sıkışması yapılıyor",
+      "noEvents": "Henüz bağlantı olayı yok. Uygulama bu sunucuya bağlanmaya çalıştıkça olaylar görünür.",
+      "noHosts": "Eşleştirilmiş sunucu yok.",
+      "privacyHint": "Sunucu adını, uç noktayı, sürümleri, bağlantı durumunu ve olayları içeren, hassas bilgileri çıkarılmış ve boyutu sınırlı bir rapor gönderir. Terminal içeriklerini veya kimlik bilgilerini asla göndermez.",
+      "reconnecting": "yeniden bağlanılıyor",
+      "retrySending": "Göndermeyi yeniden dene",
+      "sendDiagnostics": "Tanılama bilgilerini Orca'ya gönder",
+      "sending": "Gönderiliyor…",
+      "sent": "Tanılama bilgileri gönderildi",
+      "stateWithAttempt": "{{state}} · {{attempts}}. deneme",
+      "title": "Ağ tanılaması"
+    },
+    "mobileWebBundleProbeRow": {
+      "assets": "Varlıklar",
+      "build": "Derleme",
+      "bundle": "Paket",
+      "bytes": "Bayt",
+      "connecting": "Bağlanıyor…",
+      "elapsed": "Geçen Süre",
+      "elapsedMilliseconds": "{{elapsedMs}} ms",
+      "fetchBundle": "Mobil web paketini getir",
+      "fetching": "Paket getiriliyor…",
+      "host": "Sunucu",
+      "unknownHost": "bilinmeyen sunucu"
+    },
+    "mobileWebShellUpdateFailureRow": {
+      "title": "Çalışma alanı güncellemeleri"
+    },
+    "troubleshootCommonIssues": {
+      "allowNotifications": "Sistem ayarlarında Orca bildirimlerine izin verildiğini ve Focus veya Do Not Disturb modunun kapalı olduğunu kontrol edin.",
+      "checkTailnet": "Bilgisayarınızın uyku modunda olmadığını ve tailnet ağınızda bağlı göründüğünü kontrol edin.",
+      "desktopTitle": "Masaüstü Uygulaması Çalışmıyor",
+      "disableVpn": "Bu VPN'i devre dışı bırakın veya bölünmüş tünellemeyi / \"Allow LAN\" seçeneğini etkinleştirin.",
+      "firewallTitle": "Güvenlik Duvarı 6768 Portunu Engelliyor",
+      "keepTailscaleOn": "100.x.x.x veya *.ts.net gibi sunucu adreslerine Tailscale üzerinden bağlanılır — Tailscale'i AÇIK tutun.",
+      "macosFirewall": "macOS: System Settings → Network → Firewall — Orca'ya izin verin.",
+      "notificationNetwork": "Hücresel bağlantıyı veya başka bir Wi-Fi ağını deneyin. Ağ değiştirdikten sonra bildirimler geliyorsa ağınız iletimi geciktiriyor olabilir.",
+      "notificationsTitle": "Anlık Bildirimler",
+      "openDesktop": "Bağlantıları kabul edebilmesi için bilgisayarınızda Orca açık olmalıdır.",
+      "pairAfterUpdate": "Güncellemeden sonra QR koduyla yeniden eşleştirme yapmanız gerekebilir.",
+      "reconnectWifi": "Her iki cihazda da WiFi ağına yeniden bağlanmayı deneyin.",
+      "restartBothApps": "Zaman aşımı devam ederse her iki uygulamayı da yeniden başlatın.",
+      "restartDesktop": "Orca'yı yeniden başlatmayı deneyin — mobil bağlantı sunucusu uygulama açıldığında başlar.",
+      "restartTailscale": "iOS/Android'de tünel bağlantısı fark edilmeden takılabilir: Tailscale uygulamasında Tailscale'i kapatıp yeniden açın.",
+      "restrictedNetwork": "Kurum/okul ağları P2P bağlantılarını engelleyebilir — kişisel erişim noktasını deneyin.",
+      "retryHost": "Sunucu listesine dönün ve yeniden denemek için sunucunuza dokunun.",
+      "sameNetwork": "Her iki cihaz da aynı LAN üzerinde olmalıdır (Tailscale üzerinden bağlı değillerse).",
+      "sameSubnet": "Ethernet ve WiFi aynı alt ağda olmalıdır.",
+      "tailscaleTitle": "Tailscale Sunucusuna Ulaşılamıyor",
+      "timeoutTitle": "Bağlantı Zaman Aşımı",
+      "updateTailscale": "Tailscale uygulamasını güncelleyin — son sürümler yeniden bağlanma hatalarını giderir.",
+      "vpnRouting": "Tailscale dışındaki VPN'ler yerel trafiği uzak bir sunucu üzerinden yönlendirebilir.",
+      "vpnTitle": "Diğer VPN'lerden Kaynaklanan Sorunlar",
+      "wifiSignal": "Telefonunuzdaki WiFi sinyal gücünü kontrol edin.",
+      "wifiTitle": "Farklı WiFi Ağları",
+      "windowsFirewall": "Windows: Defender Firewall → Allow app — Orca'yı Private ağlarda etkinleştirin."
+    },
+    "troubleshootView": {
+      "commonIssues": "Yaygın sorunlar",
+      "runAgain": "Yeniden çalıştır",
+      "runDiagnostics": "Tanılamayı çalıştır",
+      "running": "Çalıştırılıyor…",
+      "title": "Sorun Giderme",
+      "viewNetworkDiagnostics": "Ağ tanılamasını görüntüle"
+    },
+    "useTroubleshootDiagnostics": {
+      "connected": "Bağlı",
+      "hostDataFailed": "Sunucu verileri okunamadı",
+      "hostTestFailed": "Test edilemedi",
+      "hosts": "Sunucular",
+      "internet": "İnternet",
+      "noConnection": "Bağlantı yok",
+      "noPairedHosts": "Yok — eşleştirmek için bir QR kodu tarayın",
+      "pairedCount": "{{count}} sunucu eşleştirildi",
+      "pairedHosts": "Eşleştirilmiş sunucular",
+      "platform": "Platform",
+      "reachable": "{{endpoint}} adresinden erişilebiliyor",
+      "unexpectedResponse": "Beklenmeyen yanıt"
+    },
+    "webShellUpdateFailureCopy": {
+      "failedAgo": "{{hostName}} üzerinden yapılan son güncelleme {{time}} önce tamamlanamadı: {{reason}}{{offered}}. {{outcome}}",
+      "failedJustNow": "{{hostName}} üzerinden yapılan son güncelleme az önce tamamlanamadı: {{reason}}{{offered}}. {{outcome}}"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "alreadyActive": "Dikte şu anda bilgisayarda veya başka bir telefonda kullanılıyor.",
+      "cloudModelNeedsKey": "OpenAI anahtarı gerekli",
+      "deleteFailed": "Model silinemedi",
+      "desktopUpdateRequired": "Mobil ses ayarlarını kullanmak için eşleştirilmiş bilgisayardaki Orca uygulamasını güncelleyin.",
+      "downloadFailed": "İndirme başlatılamadı",
+      "loadFailed": "Dikte modelleri yüklenemedi",
+      "repairRequired": "Dikteyi kullanmak için bu telefonu bilgisayarla yeniden eşleştirin.",
+      "serverUpdateRequired": "Sesli dikteyi kullanmak için bu sunucudaki Orca'yı güncelleyin.",
+      "sessionLost": "Diktenin bilgisayarla bağlantısı kesildi. Yeniden deneyin.",
+      "updateFailed": "Dikte ayarları güncellenemedi"
+    }
+  },
+  "home": {
+    "accountUsageCards": {
+      "sectionHeading": "Hesap kullanımı",
+      "sessionWindow": "5 sa",
+      "systemDefault": "Sistem varsayılanı",
+      "weeklyWindow": "7g"
+    },
+    "appUpdateCard": {
+      "dismissAccessibilityLabel": "Orca {{version}} güncellemesini gizle",
+      "title": "Orca {{version}} sürümü mevcut",
+      "updateAccessibilityLabel": "Orca {{version}} sürümü mevcut, güncellemek için dokunun",
+      "updateHint": "Güncellemek için dokunun"
+    },
+    "emptyState": {
+      "connectedDescription": "Masaüstünüz burada görünecek. Her şey uçtan uca şifrelenir.",
+      "connectedTitle": "Bağlandınız",
+      "description": "Ajanlarınızı takip etmek, istediğiniz terminale erişmek ve işlerinizi telefonunuzdan yönetmek için bilgisayarınızdaki Orca ile eşleştirin.",
+      "openDesktopDescription": "Ayarlar → Mobil bölümüne gidin ve eşleştirme için bir QR kodu oluşturun.",
+      "openDesktopTitle": "Orca masaüstü uygulamasını açın",
+      "pairDesktop": "Masaüstünü Eşleştir",
+      "scanCodeDescription": "Tarayıcıyı açmak için yukarıdaki düğmeye dokunun. Kamerayı ekranınızdaki QR koduna doğrultun.",
+      "scanCodeTitle": "Kodu tarayın",
+      "stepsHeading": "Nasıl çalışır",
+      "title": "Masaüstünüzü bağlayın"
+    },
+    "listFooter": {
+      "hostPickerTitle": "Görevlerin Açılacağı Sunucu",
+      "resumeHeading": "Devam et",
+      "tasksHeading": "Görevler",
+      "automationsHeading": "Otomasyonlar",
+      "automationsHostPickerTitle": "Otomasyonları aç"
+    },
+    "listHeader": {
+      "agentTime": "Ajan süresi",
+      "agentsSpawned": "Başlatılan ajanlar",
+      "daysHours": "{{days}} g {{hours}} sa",
+      "desktopsHeading": "Masaüstleri",
+      "hoursMinutes": "{{hours}} sa {{minutes}} dk",
+      "minutes": "{{minutes}} dk",
+      "prsCreated": "Oluşturulan PR'lar",
+      "title": "Tekrar hoş geldiniz"
+    },
+    "screen": {
+      "pairingCheckFailed": "Eşleştirme kontrol edilemedi",
+      "removeHostFailed": "Sunucu kaldırılamadı",
+      "removeHostMessage": "“{{name}}” kaldırılsın mı? Daha sonra yeniden eşleştirebilirsiniz.",
+      "removeHostTitle": "Sunucuyu Kaldır",
+      "tryAgain": "Lütfen tekrar deneyin."
+    },
+    "tasksCard": {
+      "noSources": "Bağlı görev kaynağı yok",
+      "openProviderTasks": "{{provider}} görevlerini aç",
+      "title": "Görevler"
+    }
+  },
+  "hooks": {
+    "dictationDesktopStart": {
+      "recordingFailed": "Mikrofon kaydı başlatılamadı"
+    },
+    "useMobileDictation": {
+      "inputClosed": "Bu oturum artık girdi kabul etmediği için sesli dikte durdu. Tekrar deneyin.",
+      "microphoneInitFailed": "Mikrofon başlatılamadı",
+      "microphoneInterrupted": "Mikrofon kesintisi nedeniyle sesli dikte durdu. Tekrar deneyin.",
+      "microphonePermissionDenied": "Mikrofon izni reddedildi",
+      "noSpeech": "Konuşma algılanmadı."
+    }
+  },
+  "host": {
+    "edit": {
+      "address": "Adres",
+      "addressHint": "IP, host:port veya ws:// / wss:// kabul edilir. Bağlantı noktası belirtilmeyen wss:// URL'lerinde 443 kullanılır. Yalnızca adres girilirse mevcut bağlantı noktası (veya 6768) korunur.",
+      "connectionPreview": "Bağlanılacak adres: {{endpoint}}",
+      "goBack": "Geri git",
+      "help": "Görünen adı veya bağlantı adresini değiştirin. Masaüstünün bildirdiği adı kullanmak için ad alanını boş bırakın. Adres değişikliği yalnızca bu telefonun bağlandığı yeri değiştirir; yeniden eşleştirme yapmaz. Aynı masaüstüne farklı bir IP adresinden erişilebildiğinde bunu kullanın (örneğin evdeki LAN veya Tailscale üzerinden).",
+      "hostNamePlaceholder": "Sunucu adı",
+      "hostRemoved": "Bu sunucu bu telefondan kaldırıldı.",
+      "loadFailed": "Sunucu yüklenemedi.",
+      "missingHost": "Sunucu bilgisi eksik.",
+      "name": "Ad",
+      "saveFailed": "Sunucu kaydedilemedi.",
+      "saveHost": "Sunucuyu kaydet",
+      "title": "Sunucuyu düzenle"
+    }
+  },
+  "hostScreen": {
+    "hostListActionSheetActions": {
+      "connect": "Bağlan",
+      "disconnect": "Bağlantıyı kes",
+      "editHost": "Sunucuyu düzenle",
+      "networkDiagnostics": "Ağ tanılama",
+      "reconnect": "Yeniden bağlan"
+    },
+    "hostPendingCreationRow": {
+      "creatingWorkspace": "Çalışma alanı oluşturuluyor…"
+    },
+    "hostRailActions": {
+      "accounts": "Hesaplar",
+      "closeSearch": "Aramayı kapat",
+      "floatingWorkspace": "Yüzen Çalışma Alanı",
+      "newWorkspace": "Yeni çalışma alanı",
+      "searchWorkspaces": "Çalışma alanlarını ara",
+      "tasks": "Görevler",
+      "automations": "Otomasyonlar"
+    },
+    "hostScreenHeader": {
+      "accounts": "Hesaplar",
+      "activeFilters_one": "Çalışma alanı seçenekleri ({{count}} filtre etkin)",
+      "activeFilters_other": "Çalışma alanı seçenekleri ({{count}} filtre etkin)",
+      "backToHosts": "Sunuculara dön",
+      "closeSearch": "Aramayı kapat",
+      "floatingWorkspace": "Yüzen Çalışma Alanı",
+      "hideSidebar": "Kenar çubuğunu gizle",
+      "reconnect": "Yeniden bağlan",
+      "searchWorkspaces": "Çalışma alanlarını ara",
+      "tasks": "Görevler",
+      "workspaceOptions": "Çalışma alanı seçenekleri"
+    },
+    "hostScreenOverlays": {
+      "deleteConfirmMessage": "“{{name}}” ({{branch}}) silinsin mi?",
+      "deleteWorktree": "Worktree'yi Sil",
+      "pin": "Sabitle",
+      "primaryWorktreeDeleteHint": "Birincil worktree, silinemez. Bunun yerine projeyi kaldırın.",
+      "removeHost": "Sunucuyu Kaldır",
+      "removeHostMessage": "“{{name}}” kaldırılsın mı? Daha sonra yeniden eşleştirebilirsiniz.",
+      "sleep": "Uyut",
+      "unpin": "Sabitlemeyi Kaldır"
+    },
+    "hostWorkspaceList": {
+      "searchPlaceholder": "Çalışma alanlarını ara…",
+      "searchWorkspaces": "Çalışma alanlarını ara"
+    },
+    "workspaceDetailsSheet": {
+      "checksFailing": "Kontroller: Başarısız",
+      "checksPassing": "Kontroller: Başarılı",
+      "checksPending": "Kontroller: Beklemede",
+      "closed": "Kapalı",
+      "createdByAutomation": "Otomasyon tarafından oluşturuldu",
+      "createdByNamedAutomation": "“{{name}}” otomasyonu tarafından oluşturuldu",
+      "createdFromCli": "Orca CLI ile oluşturuldu",
+      "draft": "Taslak",
+      "merged": "Merge edildi",
+      "openLink": "{{label}} bağlantısını aç",
+      "openLinkWithTitle": "{{label}} bağlantısını aç: {{title}}",
+      "prOpen": "Açık"
+    },
+    "workspaceOptionControls": {
+      "agentActivity": "Ajan etkinliği",
+      "agentActivityLayout": "Ajan etkinliği düzeni",
+      "agentActivitySort": "Ajan Etkinliği",
+      "agentActivitySortDescription": "Önce ilgilenilmesi gereken ajanlar, ardından en son etkinlik.",
+      "agentStatuses": "Ajan durumları",
+      "allHosts": "Tüm ana makineler",
+      "allProjects": "Tüm projeler",
+      "automation": "Otomasyon",
+      "branchFolderPath": "Branch / klasör yolu",
+      "branchName": "Branch adı",
+      "compact": "Kompakt",
+      "detailed": "Ayrıntılı",
+      "fullList": "Tam liste",
+      "githubIssues": "GitHub sorunları",
+      "githubTicket": "GitHub sorunu",
+      "host": "Ana Makine",
+      "hover": "Üzerine gelme",
+      "jiraIssue": "Jira sorunu",
+      "jiraIssues": "Jira sorunları",
+      "linearIssue": "Linear sorunu",
+      "linearIssues": "Linear sorunları",
+      "manual": "Manuel",
+      "manualProjectOrderDescription": "Projeleri düzenlemek için sürükleyin",
+      "manualWorkspaceOrderDescription": "Çalışma alanlarını her grup içinde düzenlemek için sürükleyin.",
+      "name": "Ad",
+      "none": "Yok",
+      "notes": "Notlar",
+      "ports": "Portlar",
+      "pr": "PR",
+      "prMrLink": "PR/MR bağlantısı",
+      "project": "Proje",
+      "recent": "Son",
+      "recentProjectOrderDescription": "En son çalışma alanı etkinliği",
+      "searchProjects": "Proje ara",
+      "searchProjectsPlaceholder": "Proje ara…",
+      "selectedCount": "{{total}} öğeden {{count}}",
+      "status": "Durum"
+    },
+    "workspaceOptionsSheet": {
+      "backToOptions": "Çalışma alanı seçenekleri bölümüne dön",
+      "cardDisplay": "Kart görünümü",
+      "cardLayout": "Kart düzeni",
+      "clearFilters": "Filtreleri temizle",
+      "exceptDefaultBranch": "Varsayılan branch hariç",
+      "filters": "Filtreler",
+      "groupBy": "Gruplama ölçütü",
+      "hideAutomationCreated": "Otomasyonla oluşturulanları gizle",
+      "hideCliCreated": "CLI ile oluşturulanları gizle",
+      "hideDefaultBranch": "Varsayılan branch'i gizle",
+      "hideDetachedHead": "Detached HEAD durumundakileri gizle",
+      "hideOtherClientWorkspaces": "Diğer istemcilerin çalışma alanlarını gizle",
+      "hideSleeping": "Uyuyanları gizle",
+      "hosts": "Ana Makineler",
+      "localLinux": "Yerel Linux",
+      "localMac": "Yerel Mac",
+      "localWindows": "Yerel Windows",
+      "projectOrder": "Proje sırası",
+      "projects": "Projeler",
+      "savingToDesktop": "Bilgisayara kaydediliyor",
+      "show": "Göster",
+      "showProperties": "Özellikleri göster",
+      "sortBy": "Sıralama ölçütü",
+      "syncedAcrossDevices": "Cihazlarınız arasında eşitlenir",
+      "thisComputer": "Bu bilgisayar",
+      "waitingForDesktop": "Bilgisayardan hâlâ yanıt bekleniyor",
+      "workspaceOptions": "Çalışma alanı seçenekleri"
+    }
+  },
+  "navigation": {
+    "hostStackScreens": {
+      "accounts": "Hesaplar",
+      "agentSessionHistory": "Ajan Oturum Geçmişi",
+      "changes": "Değişiklikler",
+      "editHost": "Sunucuyu düzenle",
+      "host": "Sunucu",
+      "pullRequest": "Pull Request",
+      "sourceControl": "Kaynak Kontrolü",
+      "tasks": "Görevler",
+      "terminal": "Terminal",
+      "workspace": "Çalışma Alanı",
+      "automations": "Otomasyonlar"
+    }
+  },
+  "notifications": {
+    "notificationDeliverySection": {
+      "footer": "Uyarı türleri, eşleştirilen her bilgisayarın bildirim ayarlarına göre belirlenir. Bu uygulama 7 gün kullanılmazsa bildirimler duraklatılır; sürdürmek için uygulamayı açıp yeniden bağlanın.",
+      "onlyWhenAway": "Yalnızca bilgisayardan uzaktayken",
+      "onlyWhenAwayHint": "3 dakika boyunca klavye veya fare etkinliği olmadığında ya da bilgisayar kilitliyken.",
+      "sound": "Bildirim sesi",
+      "suppressWhileFocused": "Görüntülerken bildirim gönderme",
+      "suppressWhileFocusedHint": "Bu telefonda açık olan çalışma alanı için bildirim gönderilmez."
+    }
+  },
+  "onboarding": {
+    "notificationOnboardingPreview": {
+      "claudeNeedsInput": "Claude girdi bekliyor",
+      "codexFinished": "Codex işi tamamladı",
+      "now": "şimdi",
+      "testsPassing": "Testler geçiyor.",
+      "waitingOnYou": "Sizden yanıt bekleniyor."
+    },
+    "onboardingPage": {
+      "enableAgentNotifications": "Ajan bildirimlerini etkinleştir",
+      "enableNotifications": "Bildirimleri etkinleştir",
+      "keepTerminal": "Terminalle devam et",
+      "notNow": "Şimdi değil",
+      "notificationsDescription": "Uygulamayı kullanmasanız bile bir ajan işini bitirdiğinde veya beklediğinde bu telefonda bildirim alın.",
+      "notificationsDisclosure": "Bilgisayarınız 3 dakika boşta kaldıktan sonra Orca'nın anlık bildirim hizmeti üzerinden iletilir. Bunu Ayarlar bölümünden istediğiniz zaman değiştirebilirsiniz.",
+      "notificationsTitle": "Bir ajanın size ihtiyacı olduğunda haberdar olun",
+      "openInChatUi": "Oturumları Sohbet Arayüzü ile aç",
+      "openInTerminal": "Oturumları terminalde aç",
+      "sessionViewDescription": "Bu cihazda desteklenen ajan oturumlarının terminalde mi yoksa Sohbet Arayüzü ile mi açılacağını seçin. Görünümünü değiştirmek için oturum sekmesine uzun basın veya varsayılanı daha sonra Ayarlar bölümünden değiştirin.",
+      "sessionViewTitle": "Oturumlar nasıl açılsın?",
+      "skipNotifications": "Bildirimleri şimdilik atla",
+      "useChatUi": "Sohbet Arayüzünü kullan"
+    }
+  },
+  "settings": {
+    "aboutScreen": {
+      "openLinkFailed": "Bağlantı açılamadı. Yeniden deneyin.",
+      "socialProfile": "X'te Orca",
+      "sourceCode": "Orca kaynak kodu",
+      "tagline": "100 kat daha üretken geliştiriciler için açık kaynaklı ajan IDE'si",
+      "title": "Hakkında",
+      "website": "Orca web sitesi"
+    },
+    "appUpdateSettingsRows": {
+      "checkFailed": "Kontrol edilemedi",
+      "checkUpdates": "Güncellemeleri denetle",
+      "checkUpdatesStatus": "Güncellemeleri denetle, {{status}}",
+      "checking": "Kontrol ediliyor…",
+      "installedVersion": "Sürüm {{version}}",
+      "lastCheckedDays_one": "Son kontrol: {{count}} gün önce",
+      "lastCheckedDays_other": "Son kontrol: {{count}} gün önce",
+      "lastCheckedHours_one": "Son kontrol: {{count}} sa önce",
+      "lastCheckedHours_other": "Son kontrol: {{count}} sa önce",
+      "lastCheckedJustNow": "Son kontrol: az önce",
+      "lastCheckedMinutes_one": "Son kontrol: {{count}} dk önce",
+      "lastCheckedMinutes_other": "Son kontrol: {{count}} dk önce",
+      "neverChecked": "Hiçbir zaman",
+      "upToDate": "Güncel",
+      "update": "Güncelle",
+      "updateToVersion": "Orca {{version}} sürümüne güncelle"
+    },
+    "appearance": {
+      "language": {
+        "description": "Sistem seçeneği bu cihazın dilini kullanır. İzin istekleri her zaman cihazın dilinde gösterilir.",
+        "heading": "DİL",
+        "systemWithCurrent": "Sistem ({{language}})"
+      },
+      "theme": {
+        "dark": "Koyu",
+        "description": "Sistem seçeneği bu cihazın açık veya koyu tema ayarını kullanır.",
+        "heading": "TEMA",
+        "light": "Açık",
+        "system": "Sistem"
+      },
+      "title": "Görünüm"
+    },
+    "browserSettingsScreen": {
+      "desktopBrowser": "Masaüstündeki Orca tarayıcısı",
+      "desktopBrowserDescription": "Eşleştirdiğiniz masaüstü bilgisayardan aktarılan tarayıcıda açın.",
+      "linksDescription": "Terminal çıktısında dokunduğunuz HTTP(S) bağlantılarının nerede açılacağını seçin.",
+      "linksHeading": "BAĞLANTILAR",
+      "loadFailed": "Tarayıcı tercihleri yüklenemedi. Yeniden deneyin.",
+      "openTerminalLinks": "Terminal bağlantılarını aç",
+      "phoneBrowser": "Telefon tarayıcısı",
+      "phoneBrowserDescription": "Bu telefondaki Safari, Chrome veya başka bir tarayıcıda açın.",
+      "saveFailed": "Tarayıcı tercihleri kaydedilemedi. Yeniden deneyin.",
+      "title": "Tarayıcı"
+    },
+    "menuItems": {
+      "about": "Hakkında",
+      "appearance": "Görünüm",
+      "browser": "Tarayıcı",
+      "chatUi": "Sohbet Arayüzü",
+      "notifications": "Bildirimler",
+      "terminal": "Terminal",
+      "troubleshooting": "Sorun Giderme",
+      "voice": "Ses"
+    },
+    "menuScreen": {
+      "privacyPolicy": "Gizlilik Politikası",
+      "support": "Destek"
+    },
+    "nativeChatSettingsScreen": {
+      "defaultViewDescription": "Desteklenen ajan oturumlarının (Claude, Codex ve sohbet destekli diğer ajanlar) bu cihazda nasıl açılacağını seçin. Terminal, CLI'yi olduğu gibi gösterir; Sohbet Arayüzü ise masaüstü uygulamasındaki gibi bir sohbet arayüzü sunar. Her oturumun görünümünü, oturuma uzun basınca açılan menüden ayrıca değiştirebilirsiniz.",
+      "defaultViewHeading": "VARSAYILAN GÖRÜNÜM",
+      "off": "Kapalı",
+      "on": "Açık",
+      "openInChatUi": "Oturumları Sohbet Arayüzü ile aç",
+      "title": "Sohbet Arayüzü"
+    },
+    "nativeNotificationDeliverySettings": {
+      "loadFailed": "İletim ayarları yüklenemedi. Yeniden denemek için bu ekranı tekrar açın.",
+      "saveFailed": "İletim ayarları kaydedilemedi. Yeniden deneyin.",
+      "updateDesktopHint": "Bu telefonda bildirim almak için güncel bir masaüstü uygulamasıyla eşleştirin."
+    },
+    "notificationDisplayTest": {
+      "accepted": "Orca'nın anlık bildirim hizmeti tarafından kabul edildi. Bildirimin gelip gelmediğini kontrol edin.",
+      "connectDesktop": "Bir masaüstü bilgisayara bağlanın ve yeniden deneyin.",
+      "description": "Orca'nın anlık bildirim hizmeti üzerinden bir test bildirimi gönderin.",
+      "desktopUnreachable": "Masaüstü bilgisayara ulaşılamadı. Yeniden deneyin.",
+      "loadFailed": "Eşleştirilmiş masaüstü bilgisayarlar yüklenemedi.",
+      "pairDesktop": "Bir masaüstü bilgisayarla eşleştirin ve yeniden deneyin.",
+      "pushServiceFailed": "Orca'nın anlık bildirim hizmeti üzerinden gönderilemedi. Yeniden deneyin.",
+      "rateLimited": "Çok fazla bildirim gönderildi. Daha sonra yeniden deneyin.",
+      "reconnectPhone": "Bu telefonu bildirimler için kaydetmek üzere yeniden bağlanın.",
+      "sendButton": "Test bildirimi gönder",
+      "sendFailed": "Anlık bildirim testi gönderilemedi.",
+      "sending": "Gönderiliyor…",
+      "troubleReceivingAlerts": "Bildirim almakta sorun mu yaşıyorsunuz?",
+      "troubleshooting": "Sorun Giderme",
+      "updateDesktop": "Bu testi çalıştırmak için masaüstü uygulamanızı güncelleyin."
+    },
+    "notificationSettingsScreen": {
+      "description": "Bir ajan sizden yanıt beklediğinde veya bir görevi tamamladığında bu cihazda bildirim alın.",
+      "enableNotifications": "Bildirimleri etkinleştir",
+      "loadFailed": "Bildirim ayarları yüklenemedi. Yeniden deneyin.",
+      "notificationsBlocked": "Sistem ayarlarında bildirimler devre dışı.",
+      "openSettings": "Ayarları Aç",
+      "openSettingsFailed": "Sistem ayarları açılamadı. Yeniden deneyin.",
+      "saveFailed": "Bildirim ayarları kaydedilemedi. Yeniden deneyin.",
+      "title": "Bildirimler"
+    },
+    "pendingCredentialCleanupCard": {
+      "cleanupUnconfirmed_one": "Bu cihazdaki {{count}} kimlik bilgisinin temizlendiği doğrulanamadı.",
+      "cleanupUnconfirmed_other": "Bu cihazdaki {{count}} kimlik bilgisinin temizlendiği doğrulanamadı.",
+      "retryCleanup": "Eşleştirme kimlik bilgilerini temizlemeyi yeniden dene",
+      "retryFailed": "Temizleme işlemi hâlâ doğrulanamadı. Daha sonra yeniden deneyin.",
+      "statusCheckFailed": "Bu cihazdaki temizleme işleminin durumu kontrol edilemedi. Önlem olarak yeniden deneyin.",
+      "title": "Eşleştirme kimlik bilgilerini temizleme"
+    },
+    "uiLanguageSettingsSection": {
+      "pseudoLanguage": "Sözde dil (en-XA)"
+    },
+    "voiceSettingsScreen": {
+      "connectDesktop": "Ses ayarlarını yönetmek için bir masaüstüne bağlanın.",
+      "deleteFailed": "Silinemedi",
+      "dictationDescription": "Masaüstünüzde odaktaki herhangi bir bölmeye metin dikte edin.",
+      "dictationHeading": "DİKTE",
+      "dictationMode": "Dikte Modu",
+      "dictationModeDescription": "Aç/kapat: başlatmak için bir kez, durdurmak için tekrar basın. Basılı tut: basılı tuttuğunuz sürece dikte edin.",
+      "downloadFailed": "İndirme tamamlanamadı",
+      "enableDictation": "Sesli Dikteyi Etkinleştir",
+      "holdMode": "Basılı Tut",
+      "loadFailed": "Ses ayarları yüklenemedi",
+      "loadFailedMessage": "Ses ayarları yüklenemedi.",
+      "noneSelected": "Seçim yok",
+      "selectModelFailed": "Model seçilemedi",
+      "speechModel": "Konuşma Modeli",
+      "speechModelHeading": "KONUŞMA MODELİ",
+      "title": "Ses",
+      "toggleMode": "Aç/kapat",
+      "updateFailed": "Güncellenemedi"
+    }
+  },
+  "webShell": {
+    "shellStateScreen": {
+      "checkingHost": "Sunucu kontrol ediliyor",
+      "connectToDownload": "Uygulamanın son sürümünü indirmek için bu sunucuya bağlanın",
+      "documentLoadFailed": "İndirilen uygulama açılamadı.",
+      "downloadFailed": "Uygulamanın son sürümü bu sunucudan indirilemedi.",
+      "hostProfileUnreadable": "Bu sunucunun bilgileri cihazınızda okunamadı. Tekrar deneyin.",
+      "isolationUnavailable": "Bu cihazın WebView sürümü, çalışma alanını güvenle açmak için çok eski.",
+      "openingWorkspace": "Çalışma alanı açılıyor",
+      "renderProcessGone": "Çalışma alanı yanıt vermeyi durdurdu.",
+      "statusUnreadable": "Bu sunucunun durumu okunamadı. Geri dönüp yeniden açın.",
+      "tryAgain": "Tekrar dene"
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "blocked": "Engellendi",
+      "days_one": "{{count}}g",
+      "days_other": "{{count}}g",
+      "done": "Tamamlandı",
+      "failed": "Başarısız",
+      "hours_one": "{{count}}sa",
+      "hours_other": "{{count}}sa",
+      "idle": "Boşta",
+      "interrupted": "Kesildi",
+      "justNow": "az önce",
+      "minutes_one": "{{count}}dk",
+      "minutes_other": "{{count}}dk",
+      "monitoring": "Arka plan görevlerini izliyor",
+      "stopping": "Durduruluyor…",
+      "unconfirmed": "Doğrulanamadı",
+      "unverifiable": "Yakın zamanda güncelleme yok",
+      "waiting": "Girdi bekleniyor",
+      "working": "Çalışıyor"
+    },
+    "hostWorkspaceListStates": {
+      "checkHost": "Bilgisayarınızın uyanık ve Orca'nın çalışır durumda olduğunu kontrol edin",
+      "empty": "Çalışma alanı yok",
+      "loadFailed": "Bu ana makineden çalışma alanları yüklenemedi",
+      "noFilterMatches": "Filtrelerle eşleşen çalışma alanı yok",
+      "noMatches": "Eşleşen çalışma alanı yok",
+      "reopen": "Güncellemek için yeniden açın",
+      "reopenDetail": "Bu ana bilgisayar, çalışma alanlarını bu sayfanın henüz tanımadığı bir biçimde listeliyor.",
+      "retrying": "worktree.ps tamamlanamadı ({{error}}) — otomatik olarak yeniden deneniyor"
+    },
+    "workspaceListSections": {
+      "all": "Tümü",
+      "closed": "Kapalı",
+      "done": "Tamamlandı",
+      "inProgress": "Devam ediyor",
+      "inReview": "İncelemede",
+      "pinned": "Sabitlenenler"
+    }
+  }
+}

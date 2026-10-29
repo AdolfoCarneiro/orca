@@ -1,0 +1,792 @@
+{
+  "accounts": {
+    "screen": {
+      "agentLogin": "Использовать учётную запись самого агента",
+      "connecting": "Подключение к серверу…",
+      "connectingTo": "Подключение к {{name}}…",
+      "default": "Как в системе",
+      "hostNotFound": "Сервер не найден",
+      "invalidSnapshot": "Некорректные данные учётных записей от сервера",
+      "loadingAccounts": "Загрузка учётных записей…",
+      "manageAccountsHint": "Для добавления учётных записей или повторного входа откройте «Настройки → Учётные записи» в приложении на компьютере.",
+      "refreshAccounts": "Обновить учётные записи",
+      "sessionWindow": "5 ч",
+      "switchFailed": "Не удалось переключить учётную запись",
+      "title": "Учётные записи",
+      "useReset": "Сбросить лимиты",
+      "weeklyWindow": "7 дн."
+    }
+  },
+  "agentHistory": {
+    "panel": {
+      "all": "Все",
+      "emptyScope": "В выбранной области нет предыдущих сессий агентов.",
+      "loadFailed": "Не удалось загрузить",
+      "missingResumeId": "У этой сессии нет идентификатора для продолжения.",
+      "noSearchResults": "По вашему запросу сессий не найдено.",
+      "noSessions": "Нет сессий агентов",
+      "placeholder": "Поиск сессий, repo:, path:",
+      "project": "Проект",
+      "refreshSessions": "Обновить список сессий агентов",
+      "resumeFailed": "Не удалось продолжить сессию.",
+      "sessionQueued": "Сессия агента добавлена в очередь.",
+      "skipped_few": "Пропущено историй: {{count}}",
+      "skipped_many": "Пропущено историй: {{count}}",
+      "skipped_one": "Пропущено историй: {{count}}",
+      "skipped_other": "Пропущено историй: {{count}}",
+      "title": "История сессий агентов",
+      "unavailable": "История сессий агентов недоступна",
+      "unknownHostPlatform": "Не удалось определить платформу сервера.",
+      "updateHost": "Обновите Orca на этом сервере, чтобы просматривать историю сессий агентов.",
+      "waitingForHost": "Ожидание сервера…",
+      "workspace": "Рабочее пространство"
+    },
+    "resumeTarget": {
+      "differentHost": "Эта сессия принадлежит другому серверу. Откройте рабочее пространство на том же сервере, чтобы продолжить её.",
+      "openWorkspace": "Откройте рабочее пространство, прежде чем продолжить сессию.",
+      "runtimeUnavailable": "Для рабочих пространств в среде выполнения продолжение сессий из истории недоступно."
+    },
+    "sessionCard": {
+      "untitledSession": "Сессия без названия"
+    },
+    "sessionHistoryList": {
+      "assistantRole": "ассистент",
+      "currentWorktree": "текущее рабочее дерево",
+      "messages_few": "{{count}} сообщения",
+      "messages_many": "{{count}} сообщений",
+      "messages_one": "{{count}} сообщение",
+      "messages_other": "{{count}} сообщения",
+      "resumeSession": "Продолжить сессию агента",
+      "userRole": "пользователь"
+    },
+    "useAgentHistoryState": {
+      "hostUnreachable": "Не удалось связаться с сервером",
+      "loadFailed": "Не удалось загрузить сессии агентов",
+      "waitingForHost": "Ожидание сервера…"
+    },
+    "worktreeNavigationActions": {
+      "agentSessionHistory": "История сессий агентов",
+      "sourceControl": "Управление версиями"
+    }
+  },
+  "app": {
+    "mobileOnboarding": {
+      "notificationSettingsFailed": "Не удалось обновить настройки уведомлений. Повторите попытку.",
+      "progress": "Ход первоначальной настройки",
+      "saveChoiceFailed": "Не удалось сохранить ваш выбор. Повторите попытку.",
+      "stepProgress": "Шаг {{step}} из {{total}}"
+    },
+    "notifications": {
+      "description": "Получайте уведомления от агентов, даже когда приложение закрыто. Они доставляются через сервис push-уведомлений Orca и службы Apple или Google."
+    },
+    "pair": {
+      "backToHome": "На главный экран",
+      "missingCode": "Отсутствует код сопряжения"
+    },
+    "pairConfirm": {
+      "backToHome": "На главный экран",
+      "connectTimedOut": "Не удалось подключиться за {{seconds}} с — посмотрите в журнале ниже, на каком этапе остановилось подключение",
+      "connecting": "Подключение…",
+      "description": "Вы открыли ссылку сопряжения, полученную с компьютера. Подтвердите, чтобы добавить его в список серверов.",
+      "pairButton": "Выполнить сопряжение",
+      "pairingFailed": "Не удалось выполнить сопряжение: {{error}}",
+      "pairingLog": "Журнал сопряжения",
+      "title": "Выполнить сопряжение с этим компьютером?"
+    },
+    "pairScan": {
+      "cameraDisabledDescription": "Разрешите доступ к камере в настройках или вставьте код сопряжения.",
+      "cameraDisabledTitle": "Доступ к камере отключён",
+      "cameraPermissionDescription": "Отсканируйте QR-код в Orca на компьютере или вставьте код сопряжения.",
+      "connectTimedOut": "Не удалось подключиться за {{seconds}} с — посмотрите в журнале ниже, на каком этапе остановилось подключение",
+      "connecting": "Подключение…",
+      "invalidPairingCode": "Неверный код сопряжения — скопируйте его с компьютера и вставьте ещё раз",
+      "invalidQrCode": "Неверный QR-код Orca",
+      "openDesktopStep": "Откройте Orca на компьютере",
+      "openMobileSettingsStep": "Перейдите в «Настройки → Мобильный доступ»",
+      "openSettings": "Открыть настройки",
+      "pairingFailed": "Не удалось выполнить сопряжение: {{error}}",
+      "pairingLog": "Журнал сопряжения",
+      "pasteCodeMessage": "Скопируйте код, показанный под QR-кодом на компьютере.",
+      "pasteCodePlaceholder": "orca://pair?code=... или вставьте код",
+      "pasteCodeTitle": "Вставить код сопряжения",
+      "pasteInstead": "Вставить код",
+      "pastePairingCode": "Или вставить код сопряжения",
+      "scanCodeStep": "Отсканируйте QR-код",
+      "title": "Сопряжение с компьютером",
+      "tryAgain": "Повторить попытку"
+    },
+    "terminalSettings": {
+      "autocomplete": "Автодополнение и автоисправление",
+      "autocompleteOff": "Выключено",
+      "autocompleteOn": "Включено",
+      "defaultText": "По умолчанию (100%)",
+      "keepPhoneSize": "Сохранять размер для телефона (по умолчанию)",
+      "keyboardInputDescription": "Автодополнение, автоисправление и орфографические подсказки работают только в режиме ввода команд с предварительным редактированием. Нажмите кнопку с двойной стрелкой над клавиатурой, чтобы переключиться из режима прямого ввода, затем отредактируйте команду и нажмите «Отправить». По умолчанию эти функции отключены, чтобы не изменять команды, флаги и пути.",
+      "keyboardInputHeading": "ВВОД С КЛАВИАТУРЫ",
+      "largeText": "Крупный (125%)",
+      "largerText": "Очень крупный (150%)",
+      "largestText": "Самый крупный (200%)",
+      "leaveAppDescription": "Когда вы используете терминал на телефоне, Orca уменьшает его до размеров экрана. Эта настройка определяет, что произойдёт при закрытии приложения или переходе в другое: терминал сохранит размер для телефона (чтобы интерфейс интерактивных CLI-инструментов не перестраивался) или вернётся к размеру для компьютера. Восстановить размер вручную можно в любой момент кнопкой «Восстановить» на баннере в приложении на компьютере.",
+      "leaveAppHeading": "ПРИ ВЫХОДЕ ИЗ ПРИЛОЖЕНИЯ",
+      "noPairedDesktops": "Пока нет сопряжённых компьютеров. Выполните сопряжение с компьютером, чтобы настроить поведение терминала.",
+      "restoreAfterMinutes_few": "Через {{count}} минуты",
+      "restoreAfterMinutes_many": "Через {{count}} минут",
+      "restoreAfterMinutes_one": "Через {{count}} минуту",
+      "restoreAfterMinutes_other": "Через {{count}} минуты",
+      "restoreAfterSeconds_few": "Через {{count}} с",
+      "restoreAfterSeconds_many": "Через {{count}} с",
+      "restoreAfterSeconds_one": "Через {{count}} с",
+      "restoreAfterSeconds_other": "Через {{count}} с",
+      "restoreHost": "Восстановление размера: {{name}}",
+      "smallerText": "Уменьшенный (75%)",
+      "smallestText": "Минимальный (50%)",
+      "textSize": "Размер текста",
+      "textSizeDescription": "Изменяйте размер текста в терминале. При мелком тексте помещается больше столбцов и остаются поля по бокам; при крупном — столбцов меньше. Для прокрутки по горизонтали проведите пальцем в сторону. Размер также можно менять жестом сведения или разведения пальцев в самом терминале — значение этой настройки обновится. Настройка влияет только на отображение на этом устройстве и не меняет терминал на компьютере.",
+      "textSizeHeading": "РАЗМЕР ТЕКСТА",
+      "textSizePickerTitle": "Размер текста терминала",
+      "title": "Терминал"
+    }
+  },
+  "common": {
+    "back": "Назад",
+    "cancel": "Отмена",
+    "continue": "Продолжить",
+    "copied": "Скопировано",
+    "delete": "Удалить",
+    "ok": "ОК",
+    "remove": "Удалить",
+    "retry": "Повторить",
+    "save": "Сохранить",
+    "settings": "Настройки",
+    "unknown": "Неизвестно"
+  },
+  "connection": {
+    "connectionHealth": {
+      "checkConnection": "Проверьте подключение",
+      "connectFailed": "Не удаётся подключиться",
+      "connected": "Подключён",
+      "connecting": "Подключение…",
+      "connectingViaRelay": "Подключение через Relay…",
+      "desktopUnreachable": "Не удаётся связаться с компьютером",
+      "disconnected": "Нет подключения",
+      "hostFallback": "Сервер",
+      "hostOffline": "{{host}} не в сети",
+      "hostOfflineDetail": "Убедитесь, что компьютер не спит, Orca запущена и вы вошли в учётную запись",
+      "labelWithHint": "{{label}} — {{hint}}",
+      "pairingInvalid": "Сопряжение недействительно — повторите сопряжение с компьютером",
+      "rePairDetail": "Повторно выполните сопряжение с компьютером",
+      "reconnecting": "Повторное подключение…",
+      "relayAccessExpired": "Истёк срок доступа к Relay для {{host}}",
+      "relayConnectFailed": "Не удаётся подключиться через Relay",
+      "relayUnreachable": "Не удаётся связаться с Relay",
+      "signInDetail": "Войдите в Orca на компьютере, чтобы подключиться снова",
+      "signInRequired": "Требуется вход на {{host}}",
+      "tailscaleHint": "проверьте Tailscale"
+    },
+    "connectionPathLabel": {
+      "directLan": "Напрямую · LAN",
+      "directTailscale": "Напрямую · Tailscale",
+      "directViaLan": "Напрямую через LAN",
+      "directViaTailscale": "Напрямую через Tailscale"
+    },
+    "hostEndpoint": {
+      "addressRequired": "Введите адрес сервера.",
+      "hostnameRequired": "Не указано имя сервера.",
+      "invalidAddress": "Некорректный адрес.",
+      "invalidHostname": "Некорректное имя сервера.",
+      "invalidPort": "Номер порта должен быть в диапазоне 1–65535.",
+      "invalidScheme": "Используйте ws:// или wss:// (либо host:port).",
+      "pathOrQueryNotAllowed": "Адрес сервера не должен содержать путь или параметры запроса."
+    },
+    "pairConfirmState": {
+      "invalidCode": "Некорректный код сопряжения",
+      "missingCode": "Не указан код сопряжения"
+    },
+    "rpcClientStreamRegistry": {
+      "endedBeforeReady": "Потоковый запрос завершился до перехода в состояние готовности.",
+      "interrupted": "Подключение прервано"
+    },
+    "rpcClientTerminalBinaryFrame": {
+      "unsupportedFrame": "Неподдерживаемый кадр потока терминала (код операции {{opcode}})."
+    }
+  },
+  "diagnostics": {
+    "connectionDiagnosticsView": {
+      "authFailed": "ошибка аутентификации",
+      "connected": "подключён",
+      "connecting": "подключение",
+      "copyReport": "Скопировать отчёт",
+      "diagnosisHeading": "Возможная причина",
+      "disconnected": "отключён",
+      "handshaking": "согласование соединения",
+      "noEvents": "Событий соединения пока нет. Они появятся, когда приложение начнёт подключаться к этому серверу.",
+      "noHosts": "Сопряжённых серверов нет.",
+      "privacyHint": "Отправляется отчёт ограниченного размера, из которого удалены конфиденциальные данные. Он содержит имя сервера, адрес подключения, версии, состояние соединения и события. Содержимое терминала и учётные данные никогда не отправляются.",
+      "reconnecting": "повторное подключение",
+      "retrySending": "Повторить отправку",
+      "sendDiagnostics": "Отправить диагностику в Orca",
+      "sending": "Отправка…",
+      "sent": "Диагностика отправлена",
+      "stateWithAttempt": "{{state}} · попытка {{attempts}}",
+      "title": "Диагностика сети"
+    },
+    "mobileWebBundleProbeRow": {
+      "assets": "Ресурсы",
+      "build": "Сборка",
+      "bundle": "Пакет",
+      "bytes": "Байты",
+      "connecting": "Подключение…",
+      "elapsed": "Затраченное время",
+      "elapsedMilliseconds": "{{elapsedMs}} мс",
+      "fetchBundle": "Загрузить пакет мобильной веб-версии",
+      "fetching": "Загрузка пакета…",
+      "host": "Сервер",
+      "unknownHost": "неизвестный сервер"
+    },
+    "mobileWebShellUpdateFailureRow": {
+      "title": "Обновления рабочих пространств"
+    },
+    "troubleshootCommonIssues": {
+      "allowNotifications": "Проверьте, что уведомления Orca разрешены в системных настройках, а режимы «Фокусирование» и «Не беспокоить» выключены.",
+      "checkTailnet": "Убедитесь, что компьютер не спит и отображается как подключённый в вашей сети tailnet.",
+      "desktopTitle": "Приложение на компьютере не запущено",
+      "disableVpn": "Отключите этот VPN или включите раздельное туннелирование / «Разрешить LAN».",
+      "firewallTitle": "Брандмауэр блокирует порт 6768",
+      "keepTailscaleOn": "Адреса серверов вида 100.x.x.x или *.ts.net доступны через Tailscale — оставьте его ВКЛЮЧЁННЫМ.",
+      "macosFirewall": "macOS: Системные настройки → Сеть → Брандмауэр — разрешите подключения для Orca.",
+      "notificationNetwork": "Переключитесь на мобильную сеть или другую сеть Wi-Fi. Если уведомления начнут приходить, возможно, ваша сеть задерживает их доставку.",
+      "notificationsTitle": "Пуш-уведомления",
+      "openDesktop": "Чтобы принимать подключения, Orca должна быть запущена на компьютере.",
+      "pairAfterUpdate": "После обновления может потребоваться повторное сопряжение по QR-коду.",
+      "reconnectWifi": "Попробуйте заново подключить оба устройства к WiFi.",
+      "restartBothApps": "Если время ожидания истекает снова, перезапустите оба приложения.",
+      "restartDesktop": "Попробуйте перезапустить Orca — сервер для мобильного приложения запускается вместе с ней.",
+      "restartTailscale": "В iOS/Android туннель может незаметно зависнуть: откройте приложение Tailscale, выключите подключение и снова включите его.",
+      "restrictedNetwork": "В корпоративных и учебных сетях могут блокироваться P2P-подключения — попробуйте подключиться через свою точку доступа.",
+      "retryHost": "Вернитесь к списку серверов и нажмите на свой сервер, чтобы повторить попытку.",
+      "sameNetwork": "Оба устройства должны быть в одной локальной сети (LAN), если они не подключены через Tailscale.",
+      "sameSubnet": "Подключения Ethernet и WiFi должны быть в одной подсети.",
+      "tailscaleTitle": "Сервер недоступен через Tailscale",
+      "timeoutTitle": "Время ожидания подключения истекло",
+      "updateTailscale": "Обновите приложение Tailscale — в последних версиях исправлены ошибки повторного подключения.",
+      "vpnRouting": "VPN, кроме Tailscale, могут направлять локальный трафик через удалённый сервер.",
+      "vpnTitle": "Конфликт с другим VPN",
+      "wifiSignal": "Проверьте уровень сигнала WiFi на телефоне.",
+      "wifiTitle": "Разные сети WiFi",
+      "windowsFirewall": "Windows: Брандмауэр Защитника Windows → Разрешение взаимодействия с приложением — разрешите Orca для частных сетей."
+    },
+    "troubleshootView": {
+      "commonIssues": "Частые неполадки",
+      "runAgain": "Запустить снова",
+      "runDiagnostics": "Запустить диагностику",
+      "running": "Выполняется…",
+      "title": "Устранение неполадок",
+      "viewNetworkDiagnostics": "Открыть диагностику сети"
+    },
+    "useTroubleshootDiagnostics": {
+      "connected": "Подключено",
+      "hostDataFailed": "Не удалось прочитать данные серверов",
+      "hostTestFailed": "Не удалось проверить",
+      "hosts": "Серверы",
+      "internet": "Интернет",
+      "noConnection": "Нет подключения",
+      "noPairedHosts": "Нет — отсканируйте QR-код для сопряжения",
+      "pairedCount": "Сопряжено: {{count}}",
+      "pairedHosts": "Сопряжённые серверы",
+      "platform": "Платформа",
+      "reachable": "Доступен по адресу {{endpoint}}",
+      "unexpectedResponse": "Неожиданный ответ"
+    },
+    "webShellUpdateFailureCopy": {
+      "failedAgo": "Последнее обновление с сервера {{hostName}} завершилось с ошибкой {{time}} назад: {{reason}}{{offered}}. {{outcome}}",
+      "failedJustNow": "Последнее обновление с сервера {{hostName}} только что завершилось с ошибкой: {{reason}}{{offered}}. {{outcome}}"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "alreadyActive": "Диктовка уже используется на компьютере или другом телефоне.",
+      "cloudModelNeedsKey": "Нужен ключ OpenAI",
+      "deleteFailed": "Не удалось удалить модель",
+      "desktopUpdateRequired": "Чтобы использовать настройки диктовки на телефоне, обновите Orca на сопряжённом компьютере.",
+      "downloadFailed": "Не удалось начать загрузку",
+      "loadFailed": "Не удалось загрузить модели для диктовки",
+      "repairRequired": "Повторите сопряжение этого телефона с компьютером, чтобы использовать диктовку.",
+      "serverUpdateRequired": "Обновите Orca на этом сервере, чтобы использовать диктовку.",
+      "sessionLost": "Во время диктовки потеряно соединение с компьютером. Попробуйте ещё раз.",
+      "updateFailed": "Не удалось обновить настройки диктовки"
+    }
+  },
+  "home": {
+    "accountUsageCards": {
+      "sectionHeading": "Использование учётной записи",
+      "sessionWindow": "5 ч",
+      "systemDefault": "Как в системе",
+      "weeklyWindow": "7 дн."
+    },
+    "appUpdateCard": {
+      "dismissAccessibilityLabel": "Скрыть уведомление об обновлении Orca {{version}}",
+      "title": "Доступна Orca {{version}}",
+      "updateAccessibilityLabel": "Доступна Orca {{version}}. Нажмите, чтобы обновить",
+      "updateHint": "Нажмите, чтобы обновить"
+    },
+    "emptyState": {
+      "connectedDescription": "Здесь появится ваш компьютер. Все данные защищены сквозным шифрованием.",
+      "connectedTitle": "Вы подключены",
+      "description": "Подключитесь к Orca на компьютере, чтобы следить за агентами, открывать любой терминал и управлять работой с телефона.",
+      "openDesktopDescription": "Откройте «Настройки» → «Мобильный доступ» и создайте QR-код для сопряжения.",
+      "openDesktopTitle": "Откройте Orca на компьютере",
+      "pairDesktop": "Подключить компьютер",
+      "scanCodeDescription": "Нажмите кнопку выше, чтобы открыть сканер. Наведите камеру на QR-код на экране компьютера.",
+      "scanCodeTitle": "Отсканируйте код",
+      "stepsHeading": "Как это работает",
+      "title": "Подключите компьютер"
+    },
+    "listFooter": {
+      "hostPickerTitle": "Открыть задачи на сервере",
+      "resumeHeading": "Продолжить",
+      "tasksHeading": "Задачи",
+      "automationsHeading": "Автоматизации",
+      "automationsHostPickerTitle": "Открыть автоматизации на"
+    },
+    "listHeader": {
+      "agentTime": "Время агентов",
+      "agentsSpawned": "Запущено агентов",
+      "daysHours": "{{days}} дн. {{hours}} ч",
+      "desktopsHeading": "Компьютеры",
+      "hoursMinutes": "{{hours}} ч {{minutes}} мин",
+      "minutes": "{{minutes}} мин",
+      "prsCreated": "Создано PR",
+      "title": "С возвращением"
+    },
+    "screen": {
+      "pairingCheckFailed": "Не удалось проверить сопряжение",
+      "removeHostFailed": "Не удалось удалить сервер",
+      "removeHostMessage": "Удалить «{{name}}»? Позже его можно подключить снова.",
+      "removeHostTitle": "Удалить сервер",
+      "tryAgain": "Попробуйте ещё раз."
+    },
+    "tasksCard": {
+      "noSources": "Источники задач не подключены",
+      "openProviderTasks": "Открыть задачи {{provider}}",
+      "title": "Задачи"
+    }
+  },
+  "hooks": {
+    "dictationDesktopStart": {
+      "recordingFailed": "Не удалось начать запись с микрофона"
+    },
+    "useMobileDictation": {
+      "inputClosed": "Диктовка остановлена: эта сессия больше не принимает ввод. Попробуйте ещё раз.",
+      "microphoneInitFailed": "Не удалось инициализировать микрофон",
+      "microphoneInterrupted": "Диктовка остановлена из-за прерывания работы микрофона. Попробуйте ещё раз.",
+      "microphonePermissionDenied": "Доступ к микрофону запрещён",
+      "noSpeech": "Речь не обнаружена."
+    }
+  },
+  "host": {
+    "edit": {
+      "address": "Адрес",
+      "addressHint": "Допустимы IP, host:port или ws:// / wss://. Для URL вида wss:// без порта используется порт 443. Если указать только адрес, сохранится текущий порт (или 6768).",
+      "connectionPreview": "Подключение к {{endpoint}}",
+      "goBack": "Назад",
+      "help": "Измените отображаемое название или адрес подключения. Оставьте название пустым, чтобы использовать имя, полученное от компьютера. Изменение адреса меняет только адрес подключения телефона — повторное сопряжение не выполняется. Это удобно, если тот же компьютер доступен по другому IP (например, в домашней сети или через Tailscale).",
+      "hostNamePlaceholder": "Название сервера",
+      "hostRemoved": "Этот сервер удалён из списка на этом телефоне.",
+      "loadFailed": "Не удалось загрузить данные сервера.",
+      "missingHost": "Не указан сервер.",
+      "name": "Название",
+      "saveFailed": "Не удалось сохранить данные сервера.",
+      "saveHost": "Сохранить сервер",
+      "title": "Изменить сервер"
+    }
+  },
+  "hostScreen": {
+    "hostListActionSheetActions": {
+      "connect": "Подключиться",
+      "disconnect": "Отключить",
+      "editHost": "Изменить сервер",
+      "networkDiagnostics": "Диагностика сети",
+      "reconnect": "Подключиться снова"
+    },
+    "hostPendingCreationRow": {
+      "creatingWorkspace": "Создание рабочего пространства…"
+    },
+    "hostRailActions": {
+      "accounts": "Учётные записи",
+      "closeSearch": "Закрыть поиск",
+      "floatingWorkspace": "Плавающее рабочее пространство",
+      "newWorkspace": "Новое рабочее пространство",
+      "searchWorkspaces": "Поиск рабочих пространств",
+      "tasks": "Задачи",
+      "automations": "Автоматизации"
+    },
+    "hostScreenHeader": {
+      "accounts": "Учётные записи",
+      "activeFilters_few": "Параметры рабочих пространств (активны {{count}} фильтра)",
+      "activeFilters_many": "Параметры рабочих пространств (активно {{count}} фильтров)",
+      "activeFilters_one": "Параметры рабочих пространств (активен {{count}} фильтр)",
+      "activeFilters_other": "Параметры рабочих пространств (активно {{count}} фильтра)",
+      "backToHosts": "Назад к серверам",
+      "closeSearch": "Закрыть поиск",
+      "floatingWorkspace": "Плавающее рабочее пространство",
+      "hideSidebar": "Скрыть боковую панель",
+      "reconnect": "Подключиться снова",
+      "searchWorkspaces": "Поиск рабочих пространств",
+      "tasks": "Задачи",
+      "workspaceOptions": "Параметры рабочих пространств"
+    },
+    "hostScreenOverlays": {
+      "deleteConfirmMessage": "Удалить «{{name}}» ({{branch}})?",
+      "deleteWorktree": "Удалить рабочее дерево",
+      "pin": "Закрепить",
+      "primaryWorktreeDeleteHint": "Основное рабочее дерево нельзя удалить. Вместо этого уберите проект.",
+      "removeHost": "Удалить сервер",
+      "removeHostMessage": "Удалить «{{name}}»? Позже его можно подключить снова.",
+      "sleep": "Перевести в сон",
+      "unpin": "Открепить"
+    },
+    "hostWorkspaceList": {
+      "searchPlaceholder": "Поиск рабочих пространств…",
+      "searchWorkspaces": "Поиск рабочих пространств"
+    },
+    "workspaceDetailsSheet": {
+      "checksFailing": "Проверки: не пройдены",
+      "checksPassing": "Проверки: пройдены",
+      "checksPending": "Проверки: в ожидании",
+      "closed": "Закрыт",
+      "createdByAutomation": "Создано автоматизацией",
+      "createdByNamedAutomation": "Создано автоматизацией «{{name}}»",
+      "createdFromCli": "Создано через Orca CLI",
+      "draft": "Черновик",
+      "merged": "Слит",
+      "openLink": "Открыть {{label}}",
+      "openLinkWithTitle": "Открыть {{label}}, {{title}}",
+      "prOpen": "Открыт"
+    },
+    "workspaceOptionControls": {
+      "agentActivity": "Активность агентов",
+      "agentActivityLayout": "Вид активности агентов",
+      "agentActivitySort": "Активность агентов",
+      "agentActivitySortDescription": "Сначала агенты, требующие внимания, затем по недавней активности.",
+      "agentStatuses": "Статусы агентов",
+      "allHosts": "Все серверы",
+      "allProjects": "Все проекты",
+      "automation": "Автоматизация",
+      "branchFolderPath": "Ветка / путь папки",
+      "branchName": "Название ветки",
+      "compact": "Компактно",
+      "detailed": "Подробно",
+      "fullList": "Полный список",
+      "githubIssues": "Задачи GitHub",
+      "githubTicket": "Задача GitHub",
+      "host": "Сервер",
+      "hover": "При наведении",
+      "jiraIssue": "Задача Jira",
+      "jiraIssues": "Задачи Jira",
+      "linearIssue": "Задача Linear",
+      "linearIssues": "Задачи Linear",
+      "manual": "Вручную",
+      "manualProjectOrderDescription": "Перетаскивайте проекты, чтобы менять их порядок",
+      "manualWorkspaceOrderDescription": "Перетаскивайте рабочие пространства, чтобы менять их порядок в каждой группе.",
+      "name": "Название",
+      "none": "Нет",
+      "notes": "Заметки",
+      "ports": "Порты",
+      "pr": "PR",
+      "prMrLink": "Ссылка на PR/MR",
+      "project": "Проект",
+      "recent": "Недавние",
+      "recentProjectOrderDescription": "Недавняя активность рабочих пространств",
+      "searchProjects": "Поиск проектов",
+      "searchProjectsPlaceholder": "Поиск проектов…",
+      "selectedCount": "{{count}} из {{total}}",
+      "status": "Статус"
+    },
+    "workspaceOptionsSheet": {
+      "backToOptions": "Вернуться к параметрам рабочих пространств",
+      "cardDisplay": "Отображение карточек",
+      "cardLayout": "Вид карточек",
+      "clearFilters": "Сбросить фильтры",
+      "exceptDefaultBranch": "Кроме основной ветки",
+      "filters": "Фильтры",
+      "groupBy": "Группировать по",
+      "hideAutomationCreated": "Скрыть созданные автоматизацией",
+      "hideCliCreated": "Скрыть созданные через CLI",
+      "hideDefaultBranch": "Скрыть основную ветку",
+      "hideDetachedHead": "Скрыть с отсоединённым HEAD",
+      "hideOtherClientWorkspaces": "Скрыть рабочие пространства других клиентов",
+      "hideSleeping": "Скрыть спящие рабочие пространства",
+      "hosts": "Серверы",
+      "localLinux": "Локальный ПК с Linux",
+      "localMac": "Локальный Mac",
+      "localWindows": "Локальный ПК с Windows",
+      "projectOrder": "Порядок проектов",
+      "projects": "Проекты",
+      "savingToDesktop": "Сохранение на компьютере",
+      "show": "Показать",
+      "showProperties": "Показывать свойства",
+      "sortBy": "Сортировать по",
+      "syncedAcrossDevices": "Синхронизация между вашими устройствами",
+      "thisComputer": "Этот компьютер",
+      "waitingForDesktop": "Всё ещё ждём ответа компьютера",
+      "workspaceOptions": "Параметры рабочих пространств"
+    }
+  },
+  "navigation": {
+    "hostStackScreens": {
+      "accounts": "Учётные записи",
+      "agentSessionHistory": "История сессий агентов",
+      "changes": "Изменения",
+      "editHost": "Изменить сервер",
+      "host": "Сервер",
+      "pullRequest": "Пул-реквест",
+      "sourceControl": "Управление версиями",
+      "tasks": "Задачи",
+      "terminal": "Терминал",
+      "workspace": "Рабочее пространство",
+      "automations": "Автоматизации"
+    }
+  },
+  "notifications": {
+    "notificationDeliverySection": {
+      "footer": "Типы уведомлений зависят от настроек уведомлений на каждом сопряжённом компьютере. Если не пользоваться приложением 7 дней, уведомления приостанавливаются. Чтобы возобновить их, откройте приложение и подключитесь снова.",
+      "onlyWhenAway": "Только когда вы не за компьютером",
+      "onlyWhenAwayHint": "Если клавиатура и мышь не используются 3 минуты или компьютер заблокирован.",
+      "sound": "Звук уведомлений",
+      "suppressWhileFocused": "Не уведомлять при просмотре",
+      "suppressWhileFocusedHint": "Не уведомлять о рабочем пространстве, открытом на этом телефоне."
+    }
+  },
+  "onboarding": {
+    "notificationOnboardingPreview": {
+      "claudeNeedsInput": "Claude ждёт ответа",
+      "codexFinished": "Codex завершил работу",
+      "now": "сейчас",
+      "testsPassing": "Тесты проходят успешно.",
+      "waitingOnYou": "Ожидает ваших действий."
+    },
+    "onboardingPage": {
+      "enableAgentNotifications": "Включить уведомления агентов",
+      "enableNotifications": "Включить уведомления",
+      "keepTerminal": "Оставить терминал",
+      "notNow": "Не сейчас",
+      "notificationsDescription": "Получайте уведомления на этом телефоне, когда агент завершает работу или ждёт ваших действий, даже если вы не пользуетесь приложением.",
+      "notificationsDisclosure": "Уведомления доставляются через сервис push-уведомлений Orca после 3 минут бездействия на компьютере. Это можно в любой момент изменить в настройках.",
+      "notificationsTitle": "Узнавайте, когда агенту нужна ваша помощь",
+      "openInChatUi": "Открывать сессии в интерфейсе чата",
+      "openInTerminal": "Открывать сессии в терминале",
+      "sessionViewDescription": "Выберите, где на этом устройстве открывать поддерживаемые сессии агентов: в терминале или интерфейсе чата. Чтобы сменить режим просмотра, нажмите и удерживайте вкладку сессии. Режим по умолчанию можно позже изменить в настройках.",
+      "sessionViewTitle": "Как открывать сессии?",
+      "skipNotifications": "Пока не включать уведомления",
+      "useChatUi": "Использовать чат"
+    }
+  },
+  "settings": {
+    "aboutScreen": {
+      "openLinkFailed": "Не удалось открыть ссылку. Повторите попытку.",
+      "socialProfile": "Orca в X",
+      "sourceCode": "Исходный код Orca",
+      "tagline": "IDE с открытым кодом и агентами: разработка в 100 раз быстрее",
+      "title": "О приложении",
+      "website": "Сайт Orca"
+    },
+    "appUpdateSettingsRows": {
+      "checkFailed": "Не удалось проверить",
+      "checkUpdates": "Проверить обновления",
+      "checkUpdatesStatus": "Проверить обновления, {{status}}",
+      "checking": "Проверка…",
+      "installedVersion": "Версия {{version}}",
+      "lastCheckedDays_few": "Проверено {{count}} дн. назад",
+      "lastCheckedDays_many": "Проверено {{count}} дн. назад",
+      "lastCheckedDays_one": "Проверено {{count}} дн. назад",
+      "lastCheckedDays_other": "Проверено {{count}} дн. назад",
+      "lastCheckedHours_few": "Проверено {{count}} ч назад",
+      "lastCheckedHours_many": "Проверено {{count}} ч назад",
+      "lastCheckedHours_one": "Проверено {{count}} ч назад",
+      "lastCheckedHours_other": "Проверено {{count}} ч назад",
+      "lastCheckedJustNow": "Проверено только что",
+      "lastCheckedMinutes_few": "Проверено {{count}} мин назад",
+      "lastCheckedMinutes_many": "Проверено {{count}} мин назад",
+      "lastCheckedMinutes_one": "Проверено {{count}} мин назад",
+      "lastCheckedMinutes_other": "Проверено {{count}} мин назад",
+      "neverChecked": "Никогда",
+      "upToDate": "Обновлений нет",
+      "update": "Обновить",
+      "updateToVersion": "Обновить Orca до {{version}}"
+    },
+    "appearance": {
+      "language": {
+        "description": "При выборе «Как в системе» используется язык устройства. Запросы разрешений всегда отображаются на языке устройства.",
+        "heading": "ЯЗЫК",
+        "systemWithCurrent": "Как в системе ({{language}})"
+      },
+      "theme": {
+        "dark": "Тёмная",
+        "description": "При выборе «Системная» используется светлая или тёмная тема устройства.",
+        "heading": "ТЕМА",
+        "light": "Светлая",
+        "system": "Системная"
+      },
+      "title": "Внешний вид"
+    },
+    "browserSettingsScreen": {
+      "desktopBrowser": "Браузер Orca на компьютере",
+      "desktopBrowserDescription": "Открывать в браузере сопряжённого компьютера с трансляцией на телефон.",
+      "linksDescription": "Выберите, где открывать HTTP(S)-ссылки при нажатии на них в выводе терминала.",
+      "linksHeading": "ССЫЛКИ",
+      "loadFailed": "Не удалось загрузить настройки браузера. Повторите попытку.",
+      "openTerminalLinks": "Открывать ссылки из терминала",
+      "phoneBrowser": "Браузер телефона",
+      "phoneBrowserDescription": "Открывать в Safari, Chrome или другом браузере на этом телефоне.",
+      "saveFailed": "Не удалось сохранить настройки браузера. Повторите попытку.",
+      "title": "Браузер"
+    },
+    "menuItems": {
+      "about": "О приложении",
+      "appearance": "Внешний вид",
+      "browser": "Браузер",
+      "chatUi": "Интерфейс чата",
+      "notifications": "Уведомления",
+      "terminal": "Терминал",
+      "troubleshooting": "Устранение неполадок",
+      "voice": "Голос"
+    },
+    "menuScreen": {
+      "privacyPolicy": "Политика конфиденциальности",
+      "support": "Поддержка"
+    },
+    "nativeChatSettingsScreen": {
+      "defaultViewDescription": "Выберите, как на этом устройстве открываются сессии поддерживаемых агентов (Claude, Codex и других агентов с поддержкой чата). В терминале отображается CLI в исходном виде, а в интерфейсе чата — чат, как в приложении для компьютера. Режим отдельной сессии можно изменить через меню, которое открывается долгим нажатием.",
+      "defaultViewHeading": "ВИД ПО УМОЛЧАНИЮ",
+      "off": "Выключено",
+      "on": "Включено",
+      "openInChatUi": "Открывать сессии в интерфейсе чата",
+      "title": "Интерфейс чата"
+    },
+    "nativeNotificationDeliverySettings": {
+      "loadFailed": "Не удалось загрузить настройки доставки уведомлений. Откройте этот экран заново, чтобы повторить попытку.",
+      "saveFailed": "Не удалось сохранить настройки доставки уведомлений. Повторите попытку.",
+      "updateDesktopHint": "Чтобы получать уведомления на этом телефоне, выполните сопряжение с компьютером, на котором установлена обновлённая версия Orca."
+    },
+    "notificationDisplayTest": {
+      "accepted": "Служба push-уведомлений Orca приняла запрос. Проверьте, пришло ли уведомление.",
+      "connectDesktop": "Подключитесь к компьютеру и повторите попытку.",
+      "description": "Отправьте тестовое уведомление через службу push-уведомлений Orca.",
+      "desktopUnreachable": "Не удалось связаться с компьютером. Повторите попытку.",
+      "loadFailed": "Не удалось загрузить список сопряжённых компьютеров.",
+      "pairDesktop": "Выполните сопряжение с компьютером и повторите попытку.",
+      "pushServiceFailed": "Не удалось отправить через службу push-уведомлений Orca. Повторите попытку.",
+      "rateLimited": "Слишком много уведомлений. Повторите попытку позже.",
+      "reconnectPhone": "Подключитесь заново, чтобы зарегистрировать этот телефон для получения уведомлений.",
+      "sendButton": "Отправить тестовое уведомление",
+      "sendFailed": "Не удалось отправить тестовое push-уведомление.",
+      "sending": "Отправка…",
+      "troubleReceivingAlerts": "Не приходят уведомления?",
+      "troubleshooting": "Устранение неполадок",
+      "updateDesktop": "Обновите Orca на компьютере, чтобы выполнить эту проверку."
+    },
+    "notificationSettingsScreen": {
+      "description": "Получайте уведомления на этом устройстве, когда агенту нужен ваш ответ или он завершает задачу.",
+      "enableNotifications": "Включить уведомления",
+      "loadFailed": "Не удалось загрузить настройки уведомлений. Повторите попытку.",
+      "notificationsBlocked": "Уведомления отключены в системных настройках.",
+      "openSettings": "Открыть настройки",
+      "openSettingsFailed": "Не удалось открыть системные настройки. Повторите попытку.",
+      "saveFailed": "Не удалось сохранить настройки уведомлений. Повторите попытку.",
+      "title": "Уведомления"
+    },
+    "pendingCredentialCleanupCard": {
+      "cleanupUnconfirmed_few": "Не удалось подтвердить удаление {{count}} наборов учётных данных с этого устройства.",
+      "cleanupUnconfirmed_many": "Не удалось подтвердить удаление {{count}} наборов учётных данных с этого устройства.",
+      "cleanupUnconfirmed_one": "Не удалось подтвердить удаление {{count}} набора учётных данных с этого устройства.",
+      "cleanupUnconfirmed_other": "Не удалось подтвердить удаление {{count}} набора учётных данных с этого устройства.",
+      "retryCleanup": "Повторить удаление учётных данных сопряжения",
+      "retryFailed": "Подтвердить удаление по-прежнему не удалось. Повторите попытку позже.",
+      "statusCheckFailed": "Не удалось проверить, удалены ли учётные данные с этого устройства. На всякий случай повторите попытку.",
+      "title": "Удаление учётных данных сопряжения"
+    },
+    "uiLanguageSettingsSection": {
+      "pseudoLanguage": "Псевдоязык (en-XA)"
+    },
+    "voiceSettingsScreen": {
+      "connectDesktop": "Подключитесь к компьютеру, чтобы управлять настройками голоса.",
+      "deleteFailed": "Не удалось удалить",
+      "dictationDescription": "Диктуйте текст в любую активную панель на компьютере.",
+      "dictationHeading": "ДИКТОВКА",
+      "dictationMode": "Режим диктовки",
+      "dictationModeDescription": "Переключение: нажмите один раз, чтобы начать, ещё раз — чтобы остановить. Удержание: диктуйте, пока удерживаете кнопку.",
+      "downloadFailed": "Не удалось скачать",
+      "enableDictation": "Включить голосовую диктовку",
+      "holdMode": "Удержание",
+      "loadFailed": "Не удалось загрузить настройки голоса",
+      "loadFailedMessage": "Не удалось загрузить настройки голоса.",
+      "noneSelected": "Не выбрана",
+      "selectModelFailed": "Не удалось выбрать модель",
+      "speechModel": "Речевая модель",
+      "speechModelHeading": "РЕЧЕВАЯ МОДЕЛЬ",
+      "title": "Голос",
+      "toggleMode": "Переключение",
+      "updateFailed": "Не удалось обновить"
+    }
+  },
+  "webShell": {
+    "shellStateScreen": {
+      "checkingHost": "Проверка сервера",
+      "connectToDownload": "Подключитесь к этому серверу, чтобы скачать последнюю версию приложения",
+      "documentLoadFailed": "Не удалось открыть скачанное приложение.",
+      "downloadFailed": "Не удалось скачать последнюю версию приложения с этого сервера.",
+      "hostProfileUnreadable": "Не удалось прочитать данные этого сервера на вашем устройстве. Попробуйте ещё раз.",
+      "isolationUnavailable": "WebView на этом устройстве слишком стар для безопасного открытия рабочего пространства.",
+      "openingWorkspace": "Открытие рабочего пространства",
+      "renderProcessGone": "Рабочее пространство перестало отвечать.",
+      "statusUnreadable": "Не удалось прочитать статус этого сервера. Вернитесь назад и откройте его снова.",
+      "tryAgain": "Повторить попытку"
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "blocked": "Заблокирован",
+      "days_few": "{{count}} д",
+      "days_many": "{{count}} д",
+      "days_one": "{{count}} д",
+      "days_other": "{{count}} д",
+      "done": "Готово",
+      "failed": "Ошибка",
+      "hours_few": "{{count}} ч",
+      "hours_many": "{{count}} ч",
+      "hours_one": "{{count}} ч",
+      "hours_other": "{{count}} ч",
+      "idle": "В ожидании",
+      "interrupted": "Прервано",
+      "justNow": "только что",
+      "minutes_few": "{{count}} мин",
+      "minutes_many": "{{count}} мин",
+      "minutes_one": "{{count}} мин",
+      "minutes_other": "{{count}} мин",
+      "monitoring": "Наблюдает за фоновыми задачами",
+      "stopping": "Останавливается…",
+      "unconfirmed": "Не удалось подтвердить",
+      "unverifiable": "Давно не было обновлений",
+      "waiting": "Ожидает ввода",
+      "working": "В работе"
+    },
+    "hostWorkspaceListStates": {
+      "checkHost": "Убедитесь, что компьютер не спит и Orca запущена",
+      "empty": "Нет рабочих пространств",
+      "loadFailed": "Не удалось загрузить рабочие пространства с этого сервера",
+      "noFilterMatches": "Нет рабочих пространств, соответствующих фильтрам",
+      "noMatches": "Подходящие рабочие пространства не найдены",
+      "reopen": "Откройте заново для обновления",
+      "reopenDetail": "Этот сервер возвращает список рабочих пространств в формате, который эта страница пока не поддерживает.",
+      "retrying": "Сбой worktree.ps ({{error}}) — автоматическая повторная попытка"
+    },
+    "workspaceListSections": {
+      "all": "Все",
+      "closed": "Закрыто",
+      "done": "Готово",
+      "inProgress": "В работе",
+      "inReview": "На проверке",
+      "pinned": "Закреплено"
+    }
+  }
+}

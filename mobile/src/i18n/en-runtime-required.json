@@ -1,0 +1,57 @@
+{
+  "agentHistory": {
+    "panel": {
+      "skipped_one": "{{count}} transcript skipped",
+      "skipped_other": "{{count}} transcripts skipped"
+    },
+    "sessionHistoryList": {
+      "messages_one": "{{count}} message",
+      "messages_other": "{{count}} messages"
+    }
+  },
+  "app": {
+    "terminalSettings": {
+      "restoreAfterMinutes_one": "After {{count}} minute",
+      "restoreAfterMinutes_other": "After {{count}} minutes",
+      "restoreAfterSeconds_one": "After {{count}}s",
+      "restoreAfterSeconds_other": "After {{count}}s"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "alreadyActive": "Dictation is already in use on the computer or another phone.",
+      "repairRequired": "Re-pair this phone with the computer to use dictation.",
+      "sessionLost": "Dictation lost its connection to the computer. Try again."
+    }
+  },
+  "hostScreen": {
+    "hostScreenHeader": {
+      "activeFilters_one": "Workspace options ({{count}} filter active)",
+      "activeFilters_other": "Workspace options ({{count}} filters active)"
+    }
+  },
+  "settings": {
+    "appUpdateSettingsRows": {
+      "lastCheckedDays_one": "Last checked {{count}}d ago",
+      "lastCheckedDays_other": "Last checked {{count}}d ago",
+      "lastCheckedHours_one": "Last checked {{count}}h ago",
+      "lastCheckedHours_other": "Last checked {{count}}h ago",
+      "lastCheckedMinutes_one": "Last checked {{count}}m ago",
+      "lastCheckedMinutes_other": "Last checked {{count}}m ago"
+    },
+    "pendingCredentialCleanupCard": {
+      "cleanupUnconfirmed_one": "Couldn't confirm cleanup for {{count}} credential on this device.",
+      "cleanupUnconfirmed_other": "Couldn't confirm cleanup for {{count}} credentials on this device."
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "days_one": "{{count}}d",
+      "days_other": "{{count}}d",
+      "hours_one": "{{count}}h",
+      "hours_other": "{{count}}h",
+      "minutes_one": "{{count}}m",
+      "minutes_other": "{{count}}m"
+    }
+  }
+}

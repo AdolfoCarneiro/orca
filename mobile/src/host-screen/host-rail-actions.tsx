@@ -13,6 +13,8 @@ import { themedStyleSheet } from '../theme/themed-styles'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { colors, spacing } from '../theme/mobile-theme'
 import type { HostScreenController } from './use-host-screen-controller'
+import type { Translate } from '../i18n/mobile-i18n'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 
 type HostListAction = {
   id: 'accounts' | 'tasks' | 'automations' | 'search' | 'floating' | 'new'
@@ -23,28 +25,28 @@ type HostListAction = {
 }
 
 // One list for the sidebar's toolbar row and the side rail, so both offer the same actions.
-export function hostListActions(controller: HostScreenController): HostListAction[] {
+export function hostListActions(controller: HostScreenController, t: Translate): HostListAction[] {
   const { actions, connState, floatingWorkspaceEnabled, hostId, state } = controller
   const offline = connState !== 'connected'
   const hostPath = `/h/${encodeURIComponent(hostId)}`
   return [
     {
       id: 'accounts',
-      label: 'Accounts',
+      label: t('hostScreen.hostRailActions.accounts', 'Accounts'),
       icon: UserCircle,
       onPress: () => actions.navigateFromHostList(`${hostPath}/accounts`),
       disabled: offline
     },
     {
       id: 'tasks',
-      label: 'Tasks',
+      label: t('hostScreen.hostRailActions.tasks', 'Tasks'),
       icon: List,
       onPress: () => actions.navigateFromHostList(`${hostPath}/tasks`),
       disabled: offline
     },
     {
       id: 'automations',
-      label: 'Automations',
+      label: t('hostScreen.hostRailActions.automations', 'Automations'),
       icon: CalendarClock,
       onPress: () => actions.navigateFromHostList(`${hostPath}/automations`),
       disabled: offline
@@ -53,7 +55,7 @@ export function hostListActions(controller: HostScreenController): HostListActio
       ? [
           {
             id: 'floating' as const,
-            label: 'Floating Workspace',
+            label: t('hostScreen.hostRailActions.floatingWorkspace', 'Floating Workspace'),
             icon: SquareTerminal,
             onPress: actions.openFloatingWorkspace,
             disabled: offline
@@ -62,14 +64,16 @@ export function hostListActions(controller: HostScreenController): HostListActio
       : []),
     {
       id: 'new',
-      label: 'New workspace',
+      label: t('hostScreen.hostRailActions.newWorkspace', 'New workspace'),
       icon: Plus,
       onPress: actions.openNewWorktreeModal,
       disabled: offline
     },
     {
       id: 'search',
-      label: state.showSearch ? 'Close search' : 'Search workspaces',
+      label: state.showSearch
+        ? t('hostScreen.hostRailActions.closeSearch', 'Close search')
+        : t('hostScreen.hostRailActions.searchWorkspaces', 'Search workspaces'),
       icon: state.showSearch ? X : Search,
       onPress: () => state.setShowSearch((shown) => !shown),
       disabled: false
@@ -109,8 +113,9 @@ export function HostRailActions({
   controller: HostScreenController
   placement: 'split' | 'cover'
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
-  const all = hostListActions(controller)
+  const all = hostListActions(controller, t)
   if (placement === 'cover') {
     return (
       <View style={styles.coverRail}>

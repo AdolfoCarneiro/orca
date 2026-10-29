@@ -8,7 +8,10 @@ import { getRuntimeFileReadScope } from '@/runtime/runtime-file-routing'
 import { readEditorCsvFileContent } from './csv/csv-file-content'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { requireRuntimeTargetForFileOwner } from '@/lib/file-owner-runtime-target'
-import { findWorkspaceFileRoute } from '@/lib/runtime-workspace-file-route'
+import {
+  findWorkspaceFileRoute,
+  type RuntimeWorkspaceFileRoute
+} from '@/lib/runtime-workspace-file-route'
 import {
   LOCAL_EXECUTION_HOST_ID,
   toRuntimeExecutionHostId,
@@ -25,7 +28,6 @@ import {
   restoredOwnerMigrationErrorMessage
 } from './migrate-restored-editor-file-owner'
 import { findRestoredEditorWorkspaceRuntimeOwner } from './restored-editor-workspace-runtime-owner'
-import type { RuntimeWorkspaceFileRoute } from '@/lib/runtime-workspace-file-route'
 import { editorTabFileAccess, isClientLocalReadOnlyTab } from '@/lib/local-file-access'
 import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-worktree'
 import { grantRestoredHostFile } from './restored-host-file-grant'
@@ -41,10 +43,6 @@ import {
   acquireEditorFileOperation,
   isSameEditorFileOperationIdentity
 } from '@/lib/editor-file-operation-owner'
-
-function inFlightReadKey(connectionId: string | undefined, filePath: string): string {
-  return `${connectionId ?? ''}::${filePath}`
-}
 
 export function useEditorPanelFileContentLoader({
   fileLoadRetryAttemptsRef,
@@ -62,8 +60,7 @@ export function useEditorPanelFileContentLoader({
       relativePath?: string,
       options?: EditorPanelContentLoadOptions
     ): Promise<void> => {
-      const generation = fileReadGenerationCounterRef.current + 1
-      fileReadGenerationCounterRef.current = generation
+      const generation = ++fileReadGenerationCounterRef.current
       fileReadGenerationRef.current[id] = generation
       outstandingFileReadsRef.current[id] = generation
       let readConnectionId: string | undefined
@@ -119,10 +116,8 @@ export function useEditorPanelFileContentLoader({
         const readOwnerEnvironmentId =
           readTarget.kind === 'environment' ? readTarget.environmentId : undefined
         readConnectionId = connectionId
-        let readWorktreeId = worktreeId
         let readGrantId = restoredOpenFile?.terminalArtifactGrantId
         let readGrantPairing: number | undefined
-        let readRelativePath = restoredOpenFile?.relativePath ?? relativePath
         // Re-owning re-keys the tab, which starts a fresh load under the new owner.
         const reownRestoredFile = async (
           route: RuntimeWorkspaceFileRoute,
@@ -131,6 +126,9 @@ export function useEditorPanelFileContentLoader({
           const migration = await migrateRestoredEditorFileOwner(id, route, runtimeEnvironmentId)
           if (!migration.ok) {
             throw new Error(restoredOwnerMigrationErrorMessage(migration.reason))
+          }
+          if (fileReadGenerationRef.current[id] !== generation) {
+            return
           }
           fileReadGenerationRef.current[id] = ++fileReadGenerationCounterRef.current
           setFileContents((prev) => {
@@ -198,7 +196,7 @@ export function useEditorPanelFileContentLoader({
                   : undefined
               const restored = await grantRestoredHostFile(
                 readTarget,
-                readWorktreeId,
+                worktreeId,
                 filePath,
                 readGrantPairing
               )
@@ -233,14 +231,15 @@ export function useEditorPanelFileContentLoader({
           !restoredOpenFile?.isDirty &&
           (!/\.(csv|tsv)$/i.test(filePath) || useAppStore.getState().editorDrafts[id] === undefined)
         // Keep file authorization and editable drafts isolated between concurrent reads.
-        const key = `${inFlightReadKey(readScope, filePath)}::${JSON.stringify(acquisition?.file.operationProvenance)}::${access?.kind ?? ''}${allowPagedPreview ? '' : '::editable'}${options?.wakeWslDistro ? '::wake' : ''}`
+        const readPathKey = `${readScope ?? ''}::${filePath}`
+        const key = `${readPathKey}::${JSON.stringify(acquisition?.file.operationProvenance)}::${access?.kind ?? ''}${allowPagedPreview ? '' : '::editable'}${options?.wakeWslDistro ? '::wake' : ''}`
         const result = await readEditorPanelFileContent(key, options, () =>
           readEditorCsvFileContent(
             {
               target: readTarget,
               filePath,
-              relativePath: readRelativePath,
-              worktreeId: readWorktreeId,
+              relativePath: restoredOpenFile?.relativePath ?? relativePath,
+              worktreeId,
               connectionId: readConnectionId,
               expectedExternalSshTargetId: restoredOpenFile?.externalSshTargetId,
               includeLocalLogMetadata: isLiveTailLogTab,

@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import type { AccountsSnapshot } from '../components/AccountUsage'
 import { MobileHomeQuickActions } from '../components/MobileHomeQuickActions'
 import { PickerModal } from '../components/PickerModal'
@@ -28,6 +29,7 @@ export function MobileHomeListFooter(props: {
   onOpenAutomations: (hostId: string) => void
   onPairDesktop: () => void
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const tasksHostPicker = useConnectedHostPicker(props.connectedHosts)
   const automationsHostPicker = useConnectedHostPicker(props.connectedHosts)
@@ -51,23 +53,31 @@ export function MobileHomeListFooter(props: {
     <View>
       {props.resumeCard ? (
         <>
-          <Text style={styles.sectionHeading}>Resume</Text>
+          <Text style={styles.sectionHeading}>{t('home.listFooter.resumeHeading', 'Resume')}</Text>
           <MobileHomeResumeCard card={props.resumeCard} onOpen={props.onOpenResume} />
         </>
       ) : null}
-      <Text style={styles.sectionHeading}>Tasks</Text>
+      <Text style={styles.sectionHeading}>{t('home.listFooter.tasksHeading', 'Tasks')}</Text>
       <MobileHomeTasksCard
         enabled={props.connectedHosts.length > 0}
         providers={providers}
         onOpen={openTasks}
       />
-      <PickerModal title="Open Tasks On" {...tasksHostPicker.pickerProps} />
-      <Text style={styles.sectionHeading}>Automations</Text>
+      <PickerModal
+        title={t('home.listFooter.hostPickerTitle', 'Open Tasks On')}
+        {...tasksHostPicker.pickerProps}
+      />
+      <Text style={styles.sectionHeading}>
+        {t('home.listFooter.automationsHeading', 'Automations')}
+      </Text>
       <MobileHomeAutomationsCard
         enabled={props.connectedHosts.length > 0}
         onOpen={() => automationsHostPicker.pickHost(props.onOpenAutomations)}
       />
-      <PickerModal title="Open Automations On" {...automationsHostPicker.pickerProps} />
+      <PickerModal
+        title={t('home.listFooter.automationsHostPickerTitle', 'Open Automations On')}
+        {...automationsHostPicker.pickerProps}
+      />
       <MobileHomeQuickActions
         connectedHosts={props.connectedHosts}
         onPairDesktop={props.onPairDesktop}

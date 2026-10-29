@@ -32,6 +32,11 @@ const { refresh, deliver } = vi.hoisted(() => ({
   }))
 }))
 vi.mock('./agent-launch-terminal-prompt', () => ({ deliverTerminalAgentLaunchPrompt: deliver }))
+// These ownership cases use a running distro; the stopped-distro contract is separate.
+vi.mock('../../../wsl/wsl-background-exec-gate', () => ({
+  assertWslDistroRunningForExec: async () => {},
+  runAsWslExecUserAct: async (_distro: unknown, act: () => Promise<unknown>) => act()
+}))
 vi.mock('../../../preflight/workspace-agent-detection', async (original) => ({
   ...(await original<typeof WorkspaceAgentDetection>()),
   refreshAgentsOnHost: refresh
@@ -361,7 +366,10 @@ describe('qualified discovery at the runtime RPC boundary', () => {
         params
       })
     expect(await call()).toMatchObject({ ok: true, result: ['codex'] })
-    expect(detectInstalledAgentsWithShellPathHydrationMock).toHaveBeenLastCalledWith(undefined)
+    expect(detectInstalledAgentsWithShellPathHydrationMock).toHaveBeenLastCalledWith(
+      undefined,
+      undefined
+    )
     folders.splice(1, 1)
     expect(await call()).toMatchObject({ ok: false })
     folders.push(folder, { ...folder })

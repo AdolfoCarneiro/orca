@@ -1,0 +1,768 @@
+{
+  "settings": {
+    "appearance": {
+      "theme": {
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark",
+        "heading": "THEME",
+        "description": "System follows this device’s light or dark setting."
+      },
+      "title": "Appearance",
+      "language": {
+        "systemWithCurrent": "System ({{language}})",
+        "heading": "LANGUAGE",
+        "description": "System follows this device’s language. Permission prompts always use the device language."
+      }
+    },
+    "aboutScreen": {
+      "title": "About",
+      "tagline": "Open-source agent IDE for 100x builders",
+      "website": "Orca website",
+      "sourceCode": "Orca source code",
+      "socialProfile": "Orca on X",
+      "openLinkFailed": "Could not open the link. Try again."
+    },
+    "appUpdateSettingsRows": {
+      "checking": "Checking…",
+      "upToDate": "Up to date",
+      "checkFailed": "Couldn't check",
+      "neverChecked": "Never",
+      "lastCheckedJustNow": "Last checked just now",
+      "lastCheckedMinutes_one": "Last checked {{count}}m ago",
+      "lastCheckedMinutes_other": "Last checked {{count}}m ago",
+      "lastCheckedHours_one": "Last checked {{count}}h ago",
+      "lastCheckedHours_other": "Last checked {{count}}h ago",
+      "lastCheckedDays_one": "Last checked {{count}}d ago",
+      "lastCheckedDays_other": "Last checked {{count}}d ago",
+      "updateToVersion": "Update to Orca {{version}}",
+      "update": "Update",
+      "installedVersion": "Version {{version}}",
+      "checkUpdatesStatus": "Check for updates, {{status}}",
+      "checkUpdates": "Check for updates"
+    },
+    "browserSettingsScreen": {
+      "desktopBrowser": "Orca browser on desktop",
+      "desktopBrowserDescription": "Open in the streamed browser from your paired desktop.",
+      "phoneBrowser": "Phone browser",
+      "phoneBrowserDescription": "Open in Safari, Chrome, or another browser on this phone.",
+      "title": "Browser",
+      "linksHeading": "LINKS",
+      "linksDescription": "Choose where HTTP(S) links tapped in terminal output open.",
+      "loadFailed": "Could not load browser preferences. Try again.",
+      "saveFailed": "Could not save browser preferences. Try again.",
+      "openTerminalLinks": "Open terminal links"
+    },
+    "menuItems": {
+      "appearance": "Appearance",
+      "terminal": "Terminal",
+      "chatUi": "Chat UI",
+      "browser": "Browser",
+      "voice": "Voice",
+      "notifications": "Notifications",
+      "troubleshooting": "Troubleshooting",
+      "about": "About"
+    },
+    "nativeChatSettingsScreen": {
+      "title": "Chat UI",
+      "defaultViewHeading": "DEFAULT VIEW",
+      "defaultViewDescription": "Choose how supported agent sessions (Claude, Codex, and other chat-capable agents) open on this device. Terminal shows the raw CLI; Chat UI shows a chat interface like the desktop app. You can still switch any individual session from its long-press menu.",
+      "openInChatUi": "Open sessions in Chat UI",
+      "on": "On",
+      "off": "Off"
+    },
+    "nativeNotificationDeliverySettings": {
+      "loadFailed": "Could not load delivery settings. Reopen this screen to retry.",
+      "saveFailed": "Could not save delivery settings. Try again.",
+      "updateDesktopHint": "Pair an updated desktop to receive notifications on this phone."
+    },
+    "notificationDisplayTest": {
+      "loadFailed": "Could not load paired desktops.",
+      "pairDesktop": "Pair a desktop and try again.",
+      "connectDesktop": "Connect a desktop and try again.",
+      "updateDesktop": "Update your desktop to run this test.",
+      "desktopUnreachable": "Could not reach the desktop. Try again.",
+      "accepted": "Accepted by Orca’s push service. Check for the notification.",
+      "reconnectPhone": "Reconnect to register this phone for notifications.",
+      "rateLimited": "Too many notifications. Try again later.",
+      "pushServiceFailed": "Could not send through Orca’s push service. Try again.",
+      "sendFailed": "Could not send push test.",
+      "troubleReceivingAlerts": "Having trouble receiving alerts?",
+      "description": "Send a test through Orca’s push service.",
+      "sending": "Sending…",
+      "sendButton": "Send test notification",
+      "troubleshooting": "Troubleshooting"
+    },
+    "notificationSettingsScreen": {
+      "loadFailed": "Could not load notification settings. Try again.",
+      "saveFailed": "Could not save notification settings. Try again.",
+      "notificationsBlocked": "Notifications are disabled in system settings.",
+      "description": "Get notified on this device when an agent needs your input or finishes a task.",
+      "title": "Notifications",
+      "enableNotifications": "Enable notifications",
+      "openSettingsFailed": "Could not open system settings. Try again.",
+      "openSettings": "Open Settings"
+    },
+    "pendingCredentialCleanupCard": {
+      "title": "Pairing credential cleanup",
+      "retryFailed": "Cleanup still couldn't be confirmed. Try again later.",
+      "cleanupUnconfirmed_one": "Couldn't confirm cleanup for {{count}} credential on this device.",
+      "cleanupUnconfirmed_other": "Couldn't confirm cleanup for {{count}} credentials on this device.",
+      "statusCheckFailed": "Couldn't check cleanup status on this device. Retry to be safe.",
+      "retryCleanup": "Retry clearing pairing credentials"
+    },
+    "menuScreen": {
+      "privacyPolicy": "Privacy Policy",
+      "support": "Support"
+    },
+    "uiLanguageSettingsSection": {
+      "pseudoLanguage": "Pseudo (en-XA)"
+    },
+    "voiceSettingsScreen": {
+      "toggleMode": "Toggle",
+      "holdMode": "Hold",
+      "loadFailed": "Failed to load voice settings",
+      "updateFailed": "Could not update",
+      "selectModelFailed": "Could not select model",
+      "downloadFailed": "Download failed",
+      "deleteFailed": "Delete failed",
+      "noneSelected": "None selected",
+      "title": "Voice",
+      "connectDesktop": "Connect to a desktop to manage voice settings.",
+      "loadFailedMessage": "Failed to load voice settings.",
+      "dictationHeading": "DICTATION",
+      "enableDictation": "Enable Voice Dictation",
+      "dictationDescription": "Dictate text into any focused pane on your desktop.",
+      "dictationMode": "Dictation Mode",
+      "dictationModeDescription": "Toggle: press once to start, again to stop. Hold: dictate while held.",
+      "speechModelHeading": "SPEECH MODEL",
+      "speechModel": "Speech Model"
+    }
+  },
+  "common": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "ok": "OK",
+    "retry": "Retry",
+    "copied": "Copied",
+    "remove": "Remove",
+    "settings": "Settings",
+    "delete": "Delete",
+    "unknown": "Unknown"
+  },
+  "host": {
+    "edit": {
+      "missingHost": "Missing host.",
+      "hostRemoved": "This host was removed from this phone.",
+      "loadFailed": "Failed to load host.",
+      "saveFailed": "Failed to save host.",
+      "title": "Edit host",
+      "saveHost": "Save host",
+      "goBack": "Go back",
+      "help": "Change the display name or connection address. Leave the name empty to use the name the desktop reports. Address edits only switch where this phone connects — they do not re-pair. Use this when the same desktop is reachable at a different IP (for example home LAN vs Tailscale).",
+      "name": "Name",
+      "hostNamePlaceholder": "Host name",
+      "address": "Address",
+      "addressHint": "Accepts IP, host:port, or ws:// / wss://. A wss:// URL without a port uses 443. Bare addresses keep the current port (or 6768).",
+      "connectionPreview": "Connects to {{endpoint}}"
+    }
+  },
+  "app": {
+    "mobileOnboarding": {
+      "saveChoiceFailed": "Your choice could not be saved. Try again.",
+      "notificationSettingsFailed": "Notification settings could not be updated. Try again.",
+      "progress": "Onboarding progress",
+      "stepProgress": "Step {{step}} of {{total}}"
+    },
+    "notifications": {
+      "description": "Get agent alerts even when the app is closed. Delivered through Orca’s push service and Apple or Google."
+    },
+    "pairConfirm": {
+      "connectTimedOut": "Couldn't connect within {{seconds}}s — see log below for where it stalled",
+      "pairingFailed": "Pairing failed: {{error}}",
+      "title": "Pair with this desktop?",
+      "description": "You opened a pairing link from your desktop. Confirm to add it to your hosts.",
+      "pairButton": "Pair",
+      "connecting": "Connecting…",
+      "pairingLog": "Pairing log",
+      "backToHome": "Back to home"
+    },
+    "pairScan": {
+      "invalidQrCode": "Not a valid Orca QR code",
+      "invalidPairingCode": "Not a valid pairing code — copy it from your computer and paste again",
+      "connectTimedOut": "Couldn't connect within {{seconds}}s — see log below for where it stalled",
+      "pairingFailed": "Pairing failed: {{error}}",
+      "title": "Pair with desktop",
+      "cameraDisabledTitle": "Camera Access Disabled",
+      "cameraPermissionDescription": "Scan the QR code from Orca on your desktop, or paste the pairing code instead.",
+      "cameraDisabledDescription": "Enable camera access in Settings, or paste the pairing code instead.",
+      "openSettings": "Open Settings",
+      "pasteInstead": "Paste code instead",
+      "pasteCodeTitle": "Paste pairing code",
+      "pasteCodeMessage": "Copy the code shown under the QR on your computer.",
+      "pasteCodePlaceholder": "orca://pair?code=... or paste the code",
+      "openDesktopStep": "Open Orca on your computer",
+      "openMobileSettingsStep": "Go to Settings → Mobile",
+      "scanCodeStep": "Scan the QR code",
+      "pastePairingCode": "Or paste pairing code",
+      "connecting": "Connecting…",
+      "pairingLog": "Pairing log",
+      "tryAgain": "Try Again"
+    },
+    "pair": {
+      "missingCode": "Missing pairing code",
+      "backToHome": "Back to home"
+    },
+    "terminalSettings": {
+      "smallestText": "Smallest (50%)",
+      "smallerText": "Smaller (75%)",
+      "defaultText": "Default (100%)",
+      "largeText": "Large (125%)",
+      "largerText": "Larger (150%)",
+      "largestText": "Largest (200%)",
+      "restoreAfterMinutes_one": "After {{count}} minute",
+      "restoreAfterMinutes_other": "After {{count}} minutes",
+      "keepPhoneSize": "Keep at phone size (default)",
+      "restoreAfterSeconds_one": "After {{count}}s",
+      "restoreAfterSeconds_other": "After {{count}}s",
+      "title": "Terminal",
+      "leaveAppHeading": "WHEN YOU LEAVE THE APP",
+      "leaveAppDescription": "While you're using a terminal on your phone, Orca shrinks it to fit your screen. When you close the app or switch away, this controls whether it stays at phone size (so interactive CLI tools don't reflow) or resizes back to your desktop. You can always use Restore on the desktop banner to resize manually.",
+      "noPairedDesktops": "No paired desktops yet. Pair one to control terminal behavior.",
+      "textSizeHeading": "TEXT SIZE",
+      "textSizeDescription": "Scale the terminal text. Smaller sizes fit more columns with side margins; larger sizes show fewer columns — drag sideways to pan. You can also pinch to zoom in the terminal itself, which updates this setting. Per-device display only; doesn't change the desktop terminal.",
+      "textSize": "Text size",
+      "keyboardInputHeading": "KEYBOARD INPUT",
+      "keyboardInputDescription": "Autocomplete, autocorrect, and spelling suggestions apply only to buffered command input. Use the double-chevron button above the keyboard to switch from live input, then edit your command before tapping Send. Off by default to avoid rewriting commands, flags, or paths.",
+      "autocomplete": "Autocomplete & autocorrect",
+      "autocompleteOn": "On",
+      "autocompleteOff": "Off",
+      "restoreHost": "Restore {{name}}",
+      "textSizePickerTitle": "Terminal text size"
+    }
+  },
+  "accounts": {
+    "screen": {
+      "invalidSnapshot": "Invalid accounts snapshot from host",
+      "hostNotFound": "Host not found",
+      "switchFailed": "Could not switch account",
+      "default": "System default",
+      "agentLogin": "Use the agent's own login",
+      "sessionWindow": "5h",
+      "weeklyWindow": "7d",
+      "title": "Accounts",
+      "refreshAccounts": "Refresh accounts",
+      "connectingTo": "Connecting to {{name}}…",
+      "connecting": "Connecting to host…",
+      "loadingAccounts": "Loading accounts…",
+      "manageAccountsHint": "Add or re-authenticate accounts from desktop Settings → Accounts.",
+      "useReset": "Use reset"
+    }
+  },
+  "agentHistory": {
+    "sessionHistoryList": {
+      "messages_one": "{{count}} message",
+      "messages_other": "{{count}} messages",
+      "currentWorktree": "current worktree",
+      "resumeSession": "Resume agent session",
+      "userRole": "user",
+      "assistantRole": "assistant"
+    },
+    "panel": {
+      "workspace": "Workspace",
+      "project": "Project",
+      "all": "All",
+      "waitingForHost": "Waiting for host...",
+      "missingResumeId": "This session is missing a resume id.",
+      "unknownHostPlatform": "Unable to determine host platform.",
+      "sessionQueued": "Agent session queued.",
+      "resumeFailed": "Failed to resume session.",
+      "title": "Agent Session History",
+      "refreshSessions": "Refresh agent sessions",
+      "unavailable": "Agent Session History Unavailable",
+      "updateHost": "Update Orca on this host to browse agent session history.",
+      "loadFailed": "Unable to Load",
+      "placeholder": "Search sessions, repo:, path:",
+      "skipped_one": "{{count}} transcript skipped",
+      "skipped_other": "{{count}} transcripts skipped",
+      "noSessions": "No agent sessions",
+      "noSearchResults": "No sessions match your search.",
+      "emptyScope": "No past agent sessions in this scope."
+    },
+    "resumeTarget": {
+      "runtimeUnavailable": "Resume from history is not available in runtime-hosted workspaces.",
+      "differentHost": "This session belongs to a different host. Open a workspace on the same host to resume it.",
+      "openWorkspace": "Open a workspace before resuming a session."
+    },
+    "sessionCard": {
+      "untitledSession": "Untitled session"
+    },
+    "useAgentHistoryState": {
+      "waitingForHost": "Waiting for host…",
+      "hostUnreachable": "Unable to reach host",
+      "loadFailed": "Unable to load agent sessions"
+    },
+    "worktreeNavigationActions": {
+      "sourceControl": "Source Control",
+      "agentSessionHistory": "Agent Session History"
+    }
+  },
+  "diagnostics": {
+    "connectionDiagnosticsView": {
+      "connecting": "connecting",
+      "handshaking": "handshaking",
+      "connected": "connected",
+      "disconnected": "disconnected",
+      "reconnecting": "reconnecting",
+      "authFailed": "auth-failed",
+      "title": "Network diagnostics",
+      "stateWithAttempt": "{{state}} · attempt {{attempts}}",
+      "copyReport": "Copy report",
+      "diagnosisHeading": "What this suggests",
+      "privacyHint": "Sends a size-limited redacted report including host name, endpoint, versions, connection state, and events—never terminal contents or credentials.",
+      "sending": "Sending…",
+      "sent": "Diagnostics sent",
+      "retrySending": "Retry sending",
+      "sendDiagnostics": "Send diagnostics to Orca",
+      "noEvents": "No connection events yet. Events appear as the app dials this host.",
+      "noHosts": "No paired hosts."
+    },
+    "mobileWebBundleProbeRow": {
+      "fetchBundle": "Fetch mobile web bundle",
+      "connecting": "Connecting…",
+      "fetching": "Fetching bundle…",
+      "bundle": "Bundle",
+      "host": "Host",
+      "build": "Build",
+      "assets": "Assets",
+      "bytes": "Bytes",
+      "elapsed": "Elapsed",
+      "elapsedMilliseconds": "{{elapsedMs}} ms",
+      "unknownHost": "unknown host"
+    },
+    "mobileWebShellUpdateFailureRow": {
+      "title": "Workspace updates"
+    },
+    "troubleshootCommonIssues": {
+      "notificationsTitle": "Push Notifications",
+      "allowNotifications": "Check that system settings allow Orca notifications and that Focus or Do Not Disturb is off.",
+      "notificationNetwork": "Try cellular or another Wi-Fi network. If alerts arrive after switching, your network may be delaying delivery.",
+      "wifiTitle": "Different WiFi Networks",
+      "sameNetwork": "Both devices must be on the same LAN (unless connected through Tailscale).",
+      "sameSubnet": "Ethernet and WiFi must share the same subnet.",
+      "reconnectWifi": "Try reconnecting WiFi on both devices.",
+      "firewallTitle": "Firewall Blocking Port 6768",
+      "macosFirewall": "macOS: System Settings → Network → Firewall — allow Orca.",
+      "windowsFirewall": "Windows: Defender Firewall → Allow app — enable Orca for Private networks.",
+      "restrictedNetwork": "Corporate/school networks may block P2P — try a personal hotspot.",
+      "desktopTitle": "Desktop App Not Running",
+      "openDesktop": "Orca must be open on your desktop to accept connections.",
+      "restartDesktop": "Try restarting Orca — the companion server starts on launch.",
+      "pairAfterUpdate": "After an update, you may need to re-pair via QR code.",
+      "timeoutTitle": "Connection Timeout",
+      "wifiSignal": "Check WiFi signal strength on your phone.",
+      "retryHost": "Go back to the host list and tap your host to retry.",
+      "restartBothApps": "Restart both apps if timeouts persist.",
+      "tailscaleTitle": "Tailscale Host Unreachable",
+      "keepTailscaleOn": "Host addresses like 100.x.x.x or *.ts.net connect through Tailscale — keep it ON.",
+      "restartTailscale": "iOS/Android can silently wedge the tunnel: toggle Tailscale off and back on in the Tailscale app.",
+      "checkTailnet": "Check the desktop is awake and shows as connected in your tailnet.",
+      "updateTailscale": "Update the Tailscale app — recent releases fix reconnect bugs.",
+      "vpnTitle": "Other VPN Interference",
+      "vpnRouting": "Non-Tailscale VPNs can route local traffic through a remote server.",
+      "disableVpn": "Disable that VPN or enable split tunneling / \"Allow LAN\"."
+    },
+    "troubleshootView": {
+      "title": "Troubleshooting",
+      "running": "Running…",
+      "runAgain": "Run again",
+      "runDiagnostics": "Run diagnostics",
+      "viewNetworkDiagnostics": "View network diagnostics",
+      "commonIssues": "Common issues"
+    },
+    "useTroubleshootDiagnostics": {
+      "pairedHosts": "Paired hosts",
+      "pairedCount": "{{count}} paired",
+      "noPairedHosts": "None — scan a QR to pair",
+      "hostDataFailed": "Could not read host data",
+      "internet": "Internet",
+      "connected": "Connected",
+      "unexpectedResponse": "Unexpected response",
+      "noConnection": "No connection",
+      "reachable": "Reachable at {{endpoint}}",
+      "hosts": "Hosts",
+      "hostTestFailed": "Could not test",
+      "platform": "Platform"
+    },
+    "webShellUpdateFailureCopy": {
+      "failedJustNow": "Last update from {{hostName}} failed just now: {{reason}}{{offered}}. {{outcome}}",
+      "failedAgo": "Last update from {{hostName}} failed {{time}} ago: {{reason}}{{offered}}. {{outcome}}"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "serverUpdateRequired": "Update Orca on this server to use voice dictation.",
+      "alreadyActive": "Dictation is already in use on the computer or another phone.",
+      "repairRequired": "Re-pair this phone with the computer to use dictation.",
+      "sessionLost": "Dictation lost its connection to the computer. Try again.",
+      "desktopUpdateRequired": "Update the paired desktop Orca app to use mobile voice settings.",
+      "loadFailed": "Failed to load dictation models",
+      "downloadFailed": "Failed to start download",
+      "deleteFailed": "Failed to delete model",
+      "updateFailed": "Failed to update dictation settings",
+      "cloudModelNeedsKey": "Needs an OpenAI key"
+    }
+  },
+  "home": {
+    "appUpdateCard": {
+      "title": "Orca {{version}} is available",
+      "updateAccessibilityLabel": "Orca {{version}} is available, tap to update",
+      "updateHint": "Tap to update",
+      "dismissAccessibilityLabel": "Dismiss Orca {{version}} update"
+    },
+    "accountUsageCards": {
+      "sectionHeading": "Account usage",
+      "systemDefault": "System default",
+      "sessionWindow": "5h",
+      "weeklyWindow": "7d"
+    },
+    "emptyState": {
+      "openDesktopTitle": "Open Orca desktop",
+      "openDesktopDescription": "Go to Settings → Mobile and generate a pairing QR code.",
+      "scanCodeTitle": "Scan the code",
+      "scanCodeDescription": "Tap the button above to open the scanner. Point at the QR code on your screen.",
+      "connectedTitle": "You're connected",
+      "connectedDescription": "Your desktop will appear here. Everything is encrypted end-to-end.",
+      "title": "Connect your desktop",
+      "description": "Pair with Orca on your computer to check on your agents, jump into any terminal, and drive work from your phone.",
+      "pairDesktop": "Pair Desktop",
+      "stepsHeading": "How it works"
+    },
+    "listFooter": {
+      "resumeHeading": "Resume",
+      "tasksHeading": "Tasks",
+      "hostPickerTitle": "Open Tasks On",
+      "automationsHeading": "Automations",
+      "automationsHostPickerTitle": "Open Automations On"
+    },
+    "listHeader": {
+      "daysHours": "{{days}}d {{hours}}h",
+      "hoursMinutes": "{{hours}}h {{minutes}}m",
+      "minutes": "{{minutes}}m",
+      "title": "Welcome back",
+      "agentsSpawned": "Agents spawned",
+      "agentTime": "Agent time",
+      "prsCreated": "PRs created",
+      "desktopsHeading": "Desktops"
+    },
+    "screen": {
+      "pairingCheckFailed": "Could not check pairing",
+      "tryAgain": "Please try again.",
+      "removeHostFailed": "Could not remove host",
+      "removeHostTitle": "Remove Host",
+      "removeHostMessage": "Remove \"{{name}}\"? You can re-pair later."
+    },
+    "tasksCard": {
+      "title": "Tasks",
+      "noSources": "No task sources connected",
+      "openProviderTasks": "Open {{provider}} tasks"
+    }
+  },
+  "hooks": {
+    "dictationDesktopStart": {
+      "recordingFailed": "Failed to start microphone recording"
+    },
+    "useMobileDictation": {
+      "microphonePermissionDenied": "Microphone permission denied",
+      "microphoneInitFailed": "Failed to initialize microphone",
+      "noSpeech": "No speech detected.",
+      "microphoneInterrupted": "Voice dictation stopped because the microphone was interrupted. Try again.",
+      "inputClosed": "Voice dictation stopped because this session is no longer accepting input. Try again."
+    }
+  },
+  "hostScreen": {
+    "hostListActionSheetActions": {
+      "reconnect": "Reconnect",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "networkDiagnostics": "Network diagnostics",
+      "editHost": "Edit host"
+    },
+    "hostPendingCreationRow": {
+      "creatingWorkspace": "Creating workspace…"
+    },
+    "hostRailActions": {
+      "accounts": "Accounts",
+      "tasks": "Tasks",
+      "floatingWorkspace": "Floating Workspace",
+      "newWorkspace": "New workspace",
+      "closeSearch": "Close search",
+      "searchWorkspaces": "Search workspaces",
+      "automations": "Automations"
+    },
+    "hostScreenHeader": {
+      "workspaceOptions": "Workspace options",
+      "activeFilters_one": "Workspace options ({{count}} filter active)",
+      "activeFilters_other": "Workspace options ({{count}} filters active)",
+      "backToHosts": "Back to hosts",
+      "reconnect": "Reconnect",
+      "floatingWorkspace": "Floating Workspace",
+      "hideSidebar": "Hide sidebar",
+      "accounts": "Accounts",
+      "tasks": "Tasks",
+      "closeSearch": "Close search",
+      "searchWorkspaces": "Search workspaces"
+    },
+    "hostScreenOverlays": {
+      "deleteWorktree": "Delete Worktree",
+      "deleteConfirmMessage": "Delete \"{{name}}\" ({{branch}})?",
+      "sleep": "Sleep",
+      "unpin": "Unpin",
+      "pin": "Pin",
+      "primaryWorktreeDeleteHint": "Primary worktree — can't be deleted. Remove the project instead.",
+      "removeHost": "Remove Host",
+      "removeHostMessage": "Remove \"{{name}}\"? You can re-pair later."
+    },
+    "hostWorkspaceList": {
+      "searchPlaceholder": "Search workspaces…",
+      "searchWorkspaces": "Search workspaces"
+    },
+    "workspaceDetailsSheet": {
+      "merged": "Merged",
+      "closed": "Closed",
+      "draft": "Draft",
+      "checksPassing": "Checks: Passing",
+      "checksFailing": "Checks: Failing",
+      "checksPending": "Checks: Pending",
+      "createdFromCli": "Created from Orca CLI",
+      "createdByNamedAutomation": "Created by automation “{{name}}”",
+      "createdByAutomation": "Created by automation",
+      "openLinkWithTitle": "Open {{label}}, {{title}}",
+      "openLink": "Open {{label}}",
+      "prOpen": "Open"
+    },
+    "workspaceOptionControls": {
+      "none": "None",
+      "status": "Status",
+      "pr": "PR",
+      "project": "Project",
+      "name": "Name",
+      "agentActivitySort": "Agent Activity",
+      "recent": "Recent",
+      "manual": "Manual",
+      "agentActivitySortDescription": "Agents that need attention, then most recent activity.",
+      "manualWorkspaceOrderDescription": "Drag workspaces to arrange them within each group.",
+      "manualProjectOrderDescription": "Drag projects to arrange them",
+      "recentProjectOrderDescription": "Most recent workspace activity",
+      "detailed": "Detailed",
+      "compact": "Compact",
+      "fullList": "Full list",
+      "githubTicket": "GitHub ticket",
+      "linearIssue": "Linear issue",
+      "jiraIssue": "Jira issue",
+      "prMrLink": "PR/MR link",
+      "automation": "Automation",
+      "notes": "Notes",
+      "ports": "Ports",
+      "agentActivity": "Agent activity",
+      "host": "Host",
+      "githubIssues": "GitHub issues",
+      "linearIssues": "Linear issues",
+      "jiraIssues": "Jira issues",
+      "agentStatuses": "Agent statuses",
+      "branchFolderPath": "Branch / folder path",
+      "branchName": "Branch name",
+      "selectedCount": "{{count}} of {{total}}",
+      "allHosts": "All hosts",
+      "allProjects": "All projects",
+      "searchProjectsPlaceholder": "Search projects…",
+      "searchProjects": "Search projects",
+      "hover": "Hover",
+      "agentActivityLayout": "Agent activity layout"
+    },
+    "workspaceOptionsSheet": {
+      "hosts": "Hosts",
+      "projects": "Projects",
+      "groupBy": "Group by",
+      "sortBy": "Sort by",
+      "projectOrder": "Project order",
+      "cardLayout": "Card layout",
+      "showProperties": "Show properties",
+      "cardDisplay": "Card display",
+      "hideSleeping": "Hide sleeping",
+      "exceptDefaultBranch": "Except default branch",
+      "hideDefaultBranch": "Hide default branch",
+      "hideAutomationCreated": "Hide automation-created",
+      "hideCliCreated": "Hide CLI-created",
+      "hideOtherClientWorkspaces": "Hide other-client workspaces",
+      "hideDetachedHead": "Hide detached HEAD",
+      "show": "Show",
+      "filters": "Filters",
+      "localMac": "Local Mac",
+      "localWindows": "Local Windows",
+      "localLinux": "Local Linux",
+      "thisComputer": "This computer",
+      "waitingForDesktop": "Still waiting for the desktop",
+      "savingToDesktop": "Saving to the desktop",
+      "backToOptions": "Back to Workspace options",
+      "workspaceOptions": "Workspace options",
+      "syncedAcrossDevices": "Synced across your devices",
+      "clearFilters": "Clear filters"
+    }
+  },
+  "webShell": {
+    "shellStateScreen": {
+      "isolationUnavailable": "This device's WebView is too old to open the workspace safely.",
+      "downloadFailed": "The latest app could not be downloaded from this host.",
+      "hostProfileUnreadable": "Could not read this host on your device. Try again.",
+      "statusUnreadable": "Could not read this host's status. Go back and reopen it.",
+      "renderProcessGone": "The workspace stopped responding.",
+      "documentLoadFailed": "The downloaded app could not be opened.",
+      "tryAgain": "Try again",
+      "connectToDownload": "Connect to this host to download the latest app",
+      "openingWorkspace": "Opening workspace",
+      "checkingHost": "Checking host"
+    }
+  },
+  "navigation": {
+    "hostStackScreens": {
+      "host": "Host",
+      "editHost": "Edit host",
+      "accounts": "Accounts",
+      "tasks": "Tasks",
+      "terminal": "Terminal",
+      "sourceControl": "Source Control",
+      "agentSessionHistory": "Agent Session History",
+      "changes": "Changes",
+      "pullRequest": "Pull Request",
+      "workspace": "Workspace",
+      "automations": "Automations"
+    }
+  },
+  "notifications": {
+    "notificationDeliverySection": {
+      "onlyWhenAway": "Only when away from desktop",
+      "onlyWhenAwayHint": "After 3 minutes without keyboard or mouse activity, or when locked.",
+      "sound": "Notification sound",
+      "suppressWhileFocused": "Suppress while focused",
+      "suppressWhileFocusedHint": "Skip alerts for the workspace open on this phone.",
+      "footer": "Alert types follow each paired desktop’s notification settings. Notifications pause after 7 days without using this app; open it and reconnect to resume."
+    }
+  },
+  "onboarding": {
+    "onboardingPage": {
+      "sessionViewTitle": "How should sessions open?",
+      "notificationsTitle": "Don’t miss when an agent needs you",
+      "sessionViewDescription": "Choose whether supported agent sessions open in the terminal or Chat UI on this device. Press and hold a session tab to switch its view, or change the default later in Settings.",
+      "notificationsDescription": "Get a notification on this phone when an agent finishes or is waiting — even if you aren’t using the app.",
+      "notificationsDisclosure": "Delivered through Orca’s push service after your desktop has been idle for 3 minutes. Change this anytime in Settings.",
+      "useChatUi": "Use Chat UI",
+      "openInChatUi": "Open sessions in Chat UI",
+      "keepTerminal": "Keep terminal",
+      "openInTerminal": "Open sessions in the terminal",
+      "enableNotifications": "Enable notifications",
+      "enableAgentNotifications": "Enable agent notifications",
+      "notNow": "Not now",
+      "skipNotifications": "Skip notifications for now"
+    },
+    "notificationOnboardingPreview": {
+      "codexFinished": "Codex finished",
+      "testsPassing": "Tests are passing.",
+      "claudeNeedsInput": "Claude needs input",
+      "waitingOnYou": "Waiting on you.",
+      "now": "now"
+    }
+  },
+  "connection": {
+    "connectionHealth": {
+      "signInRequired": "Sign-in required on {{host}}",
+      "signInDetail": "Sign in to Orca on your desktop to reconnect",
+      "hostOffline": "{{host}} is offline",
+      "hostOfflineDetail": "Check it's awake, Orca is running, and you're signed in",
+      "relayAccessExpired": "Relay access expired for {{host}}",
+      "rePairDetail": "Re-pair with your desktop",
+      "relayUnreachable": "Can't reach Relay",
+      "checkConnection": "Check your connection",
+      "tailscaleHint": "check Tailscale",
+      "hostFallback": "Host",
+      "pairingInvalid": "Pairing invalid — re-pair with your desktop",
+      "connected": "Connected",
+      "relayConnectFailed": "Can't connect via Relay",
+      "connectingViaRelay": "Connecting via Relay…",
+      "disconnected": "Disconnected",
+      "desktopUnreachable": "Can't reach desktop",
+      "connectFailed": "Can't connect",
+      "reconnecting": "Reconnecting…",
+      "connecting": "Connecting…",
+      "labelWithHint": "{{label}} — {{hint}}"
+    },
+    "hostEndpoint": {
+      "addressRequired": "Enter a host address.",
+      "invalidPort": "Port must be 1–65535.",
+      "invalidScheme": "Use ws:// or wss:// (or host:port).",
+      "invalidAddress": "Not a valid address.",
+      "pathOrQueryNotAllowed": "Host must not include a path or query.",
+      "invalidHostname": "Not a valid hostname.",
+      "hostnameRequired": "Missing hostname."
+    },
+    "connectionPathLabel": {
+      "directTailscale": "Direct · Tailscale",
+      "directLan": "Direct · LAN",
+      "directViaTailscale": "Direct via Tailscale",
+      "directViaLan": "Direct via LAN"
+    },
+    "pairConfirmState": {
+      "missingCode": "Missing pairing code",
+      "invalidCode": "Not a valid pairing code"
+    },
+    "rpcClientStreamRegistry": {
+      "interrupted": "Connection interrupted",
+      "endedBeforeReady": "Streaming request ended before it was ready."
+    },
+    "rpcClientTerminalBinaryFrame": {
+      "unsupportedFrame": "Unsupported terminal stream frame (opcode {{opcode}})."
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "working": "Working",
+      "monitoring": "Monitoring background tasks",
+      "blocked": "Blocked",
+      "waiting": "Waiting for input",
+      "interrupted": "Interrupted",
+      "failed": "Failed",
+      "unconfirmed": "Couldn’t confirm",
+      "idle": "Idle",
+      "unverifiable": "No recent update",
+      "stopping": "Stopping…",
+      "justNow": "just now",
+      "minutes_one": "{{count}}m",
+      "minutes_other": "{{count}}m",
+      "hours_one": "{{count}}h",
+      "hours_other": "{{count}}h",
+      "days_one": "{{count}}d",
+      "days_other": "{{count}}d",
+      "done": "Done"
+    },
+    "hostWorkspaceListStates": {
+      "checkHost": "Check that your computer is awake and Orca is running",
+      "loadFailed": "Could not load workspaces from this host",
+      "retrying": "worktree.ps failed ({{error}}) — retrying automatically",
+      "noMatches": "No matching workspaces",
+      "noFilterMatches": "No workspaces match filters",
+      "empty": "No workspaces",
+      "reopen": "Reopen to update",
+      "reopenDetail": "This host lists workspaces in a way this page does not know yet."
+    },
+    "workspaceListSections": {
+      "pinned": "Pinned",
+      "all": "All",
+      "inReview": "In review",
+      "inProgress": "In progress",
+      "closed": "Closed",
+      "done": "Done"
+    }
+  }
+}

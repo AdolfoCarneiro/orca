@@ -19645,6 +19645,7 @@
       "useHereHostKeptForPeers": "{{project}} は {{distro}} ホストに移動しました。そのホストは別の Orca のために動作中です。ここで再び使うには、ホストを追加し直してください。",
       "useHereHostUnreachable": "{{distro}} ホストが応答しないため、Orca はこのプロジェクトのホスト側のコピーを停止できず、そのAgentがまだ実行中の可能性があります。設定でホストに接続するか削除してから、もう一度お試しください。",
       "useHereHostStillRunning": "{{distro}} ホスト上のこのプロジェクトのコピーでまだターミナルが実行中のため、Agentが二重に動く可能性があります。少し待ってからもう一度お試しください。",
+      "useHereHostTerminalsAsleep": "{{distro}} ホスト上のターミナルはスリープしました。プロジェクトを開くと再開します。",
       "useHereFailed": "このプロジェクトをこのコンピューターに戻せませんでした。",
       "useHereHostRemovalPending": "{{distro}} ホストはまだ削除中のため、Orca はそのままにしています。設定で削除を完了してから、もう一度お試しください。",
       "useHereHostAutomations": "Orca は {{distro}} ホスト上のこのプロジェクトのオートメーションをオフにできなかったため、二重に実行される可能性があります。設定でホストに接続してから、もう一度お試しください。",

@@ -219,6 +219,7 @@
       "useHereHostKeptForPeers": "{{project}} foi movido para o host {{distro}}, que continua em execução para outro Orca. Adicione o host novamente para usá-lo aqui de novo.",
       "useHereHostUnreachable": "O host {{distro}} não está respondendo, então o Orca não consegue parar a cópia deste projeto lá, e os agentes dele ainda podem estar em execução. Conecte o host em Configurações, ou remova-o, e tente novamente.",
       "useHereHostStillRunning": "A cópia deste projeto no host {{distro}} ainda tem terminais em execução, então os agentes dele podem ser executados duas vezes. Aguarde um momento e tente novamente.",
+      "useHereHostTerminalsAsleep": "Os terminais dele no host {{distro}} foram colocados em repouso. Abra o projeto para retomá-los.",
       "useHereFailed": "Não foi possível trazer este projeto de volta para este computador.",
       "useHereHostRemovalPending": "O host {{distro}} ainda está sendo removido, então o Orca não mexe nele. Conclua a remoção em Configurações e tente novamente.",
       "useHereHostAutomations": "O Orca não conseguiu desativar as automações deste projeto no host {{distro}}, então elas podem ser executadas duas vezes. Conecte o host em Configurações e tente novamente.",

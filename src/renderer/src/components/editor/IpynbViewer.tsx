@@ -100,7 +100,7 @@ export default function IpynbViewer({
     flushSourceDrafts,
     applyContent
   })
-  useIpynbScrollRestoration(rootRef, scrollCacheKey, content)
+  useIpynbScrollRestoration(rootRef, scrollCacheKey, parsed.notebook !== null)
   const saveShortcut = useShortcutKeyDetails('editor.save')
   const fontSize = computeEditorFontSize(13, editorFontZoomLevel)
 
@@ -234,6 +234,9 @@ export default function IpynbViewer({
                 </div>
                 <div className="min-w-0 flex-1">
                   <IpynbCellSource
+                    modelKey={
+                      cell.id === null ? null : JSON.stringify([fileId, scrollCacheKey, cell.id])
+                    }
                     cell={cell}
                     source={source}
                     active={editingCellKey === cellKey}
