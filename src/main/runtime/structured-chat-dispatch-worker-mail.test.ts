@@ -296,6 +296,7 @@ it.each(['immediate preamble', 'idle task', 'person send'] as const)(
     await vi.waitFor(() => expect(coordinator.turns).toHaveLength(1), WAIT)
     const snapshot = await host.journalSnapshot(COORDINATOR)
     const submission = snapshot.submissions.find((row) => row.queuedMessageId === creationId)
+    expect(submission).toBeDefined()
     expect(submission?.clientMessageId).not.toBe(creationId)
     expect(turnText(coordinator.turns[0]!)).toContain('hit an error')
     await call('orchestration.send', {
