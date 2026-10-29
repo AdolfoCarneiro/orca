@@ -162,10 +162,10 @@ describe('runtime repo.baseRefDefault for a stopped WSL distro (E9)', () => {
     }
   })
 
-  it("returns unknown without touching the stopped distro's UNC path", async () => {
+  it('returns unknown, naming the refusing distro, without touching its UNC path', async () => {
     const queries = new RuntimeRepositoryRefQueries({ resolveRepo: async () => makeRepo() })
 
-    await expect(queries.getDefault('id:repo-1')).resolves.toEqual(UNKNOWN)
+    await expect(queries.getDefault('id:repo-1')).resolves.toEqual(REFUSED)
     expect(mocks.getBaseRefDefault).not.toHaveBeenCalled()
   })
 
