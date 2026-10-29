@@ -5690,6 +5690,7 @@
         },
         "AutoRenameFailedDialog": {
           "dismissError": "Dismiss error",
+          "dismissing": "Dismissing…",
           "aed1623b1e": "Close",
           "eab8b45238": "Copy error",
           "a23b22d16f": "Copied",

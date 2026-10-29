@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNativeChatNamingFailure } from '../tab-bar/use-native-chat-naming-failure'
@@ -8,6 +8,7 @@ import { NameGenerationFailedDialog, AutoRenameFailedDialog } from './AutoRename
 import { useAppStore } from '@/store'
 import { toast } from 'sonner'
 import type { AppState } from '@/store/types'
+import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
@@ -41,6 +42,26 @@ const getBranchRenameFailureOutput =
   vi.fn<(args: { worktreeId: string }) => Promise<string | null>>()
 const writeClipboardText = vi.fn<(text: string) => Promise<void>>()
 const updateWorktreeMeta = vi.fn<AppState['updateWorktreeMeta']>()
+const realUpdateWorktreeMeta = useAppStore.getState().updateWorktreeMeta
+const updateMeta = vi.fn<() => Promise<void>>()
+
+function WorkspaceFailure() {
+  const worktree = useAppStore((s) => s.worktreesByRepo.repo1?.[0])
+  const [open, setOpen] = useState(true)
+  return worktree?.firstAgentMessageRenameError ? (
+    <>
+      <span>rename failed</span>
+      <AutoRenameFailedDialog
+        open={open}
+        onOpenChange={setOpen}
+        worktreeId={worktree.id}
+        executionHostId="local"
+        worktreeName={worktree.displayName}
+        error={worktree.firstAgentMessageRenameError}
+      />
+    </>
+  ) : null
+}
 
 let container: HTMLDivElement
 let root: Root
@@ -49,7 +70,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   useAppStore.setState({ updateWorktreeMeta })
   ;(window as unknown as { api: unknown }).api = {
-    worktrees: { getBranchRenameFailureOutput },
+    worktrees: { getBranchRenameFailureOutput, updateMeta },
     nativeChat: { getConversationNameFailureOutput: getBranchRenameFailureOutput },
     ui: { writeClipboardText }
   }
@@ -98,7 +119,7 @@ describe('AutoRenameFailedDialog dismissal', () => {
 
     await act(async () => {
       const dismiss = Array.from(document.querySelectorAll('button')).find(
-        (button) => button.textContent === 'Dismiss error'
+        (button) => button.getAttribute('aria-label') === 'Dismiss error'
       )
       dismiss?.click()
     })
@@ -111,20 +132,49 @@ describe('AutoRenameFailedDialog dismissal', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('reports a failed dismissal and leaves the dialog available to retry', async () => {
-    getBranchRenameFailureOutput.mockResolvedValue(null)
-    updateWorktreeMeta.mockResolvedValue({ ok: false, error: 'Server disconnected' })
-    await renderDialog()
-    const dismiss = Array.from(document.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Dismiss error'
-    )
-    await act(async () => dismiss?.click())
+  it.each([true, false])(
+    'keeps the real store error visible until its save succeeds (%s)',
+    async (succeeds) => {
+      getBranchRenameFailureOutput.mockResolvedValue(null)
+      const worktree = makeWorktree({
+        id: 'repo1::/path/wt1',
+        repoId: 'repo1',
+        firstAgentMessageRenameError: EXCERPT_ERROR
+      })
+      const save = Promise.withResolvers<void>()
+      updateMeta.mockReturnValue(save.promise)
+      useAppStore.setState({
+        updateWorktreeMeta: realUpdateWorktreeMeta,
+        worktreesByRepo: { repo1: [worktree] },
+        fetchWorktrees: vi.fn().mockResolvedValue(false)
+      })
+      await act(async () => root.render(<WorkspaceFailure />))
+      const dismiss = Array.from(document.querySelectorAll('button')).find(
+        (button) => button.getAttribute('aria-label') === 'Dismiss error'
+      )
+      await act(async () => dismiss?.click())
+      expect(dismiss?.disabled).toBe(true)
+      expect(document.querySelector('[role="dialog"]')?.textContent).toContain(EXCERPT_ERROR)
+      expect(container.textContent).toContain('rename failed')
 
-    expect(toast.error).toHaveBeenCalledWith('Server disconnected')
-    expect(onOpenChange).not.toHaveBeenCalled()
-    expect(dismiss?.disabled).toBe(false)
-    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(EXCERPT_ERROR)
-  })
+      await act(async () =>
+        succeeds ? save.resolve() : save.reject(new Error('Server disconnected'))
+      )
+
+      if (succeeds) {
+        expect(document.querySelector('[role="dialog"]')).toBeNull()
+        expect(container.textContent).not.toContain('rename failed')
+        expect(
+          useAppStore.getState().worktreesByRepo.repo1[0]?.firstAgentMessageRenameError
+        ).toBeNull()
+      } else {
+        expect(toast.error).toHaveBeenCalledWith('Server disconnected')
+        expect(dismiss?.disabled).toBe(false)
+        expect(document.querySelector('[role="dialog"]')?.textContent).toContain(EXCERPT_ERROR)
+        expect(container.textContent).toContain('rename failed')
+      }
+    }
+  )
 })
 
 describe('AutoRenameFailedDialog full output', () => {

@@ -13,6 +13,7 @@ import { i18n, translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { toast } from 'sonner'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
+import { cn } from '@/lib/utils'
 
 type AutoRenameFailedDialogProps = {
   open: boolean
@@ -33,6 +34,14 @@ export function AutoRenameFailedDialog({
 }: AutoRenameFailedDialogProps): React.JSX.Element {
   const updateWorktreeMeta = useAppStore((s) => s.updateWorktreeMeta)
   const [dismissing, setDismissing] = useState(false)
+  const dismissLabel = translate(
+    'auto.components.sidebar.AutoRenameFailedDialog.dismissError',
+    'Dismiss error'
+  )
+  const dismissingLabel = translate(
+    'auto.components.sidebar.AutoRenameFailedDialog.dismissing',
+    'Dismissing…'
+  )
   const handleDismiss = async () => {
     setDismissing(true)
     try {
@@ -82,12 +91,28 @@ export function AutoRenameFailedDialog({
           variant="ghost"
           size="sm"
           disabled={dismissing}
+          aria-busy={dismissing}
+          aria-label={dismissing ? dismissingLabel : dismissLabel}
           onClick={handleDismiss}
         >
-          {translate(
-            'auto.components.sidebar.AutoRenameFailedDialog.dismissError',
-            'Dismiss error'
-          )}
+          <span className="grid" aria-hidden="true">
+            <span
+              className={cn(
+                'col-start-1 row-start-1 transition-opacity duration-0',
+                dismissing ? 'opacity-0 delay-200' : 'opacity-100'
+              )}
+            >
+              {dismissLabel}
+            </span>
+            <span
+              className={cn(
+                'col-start-1 row-start-1 transition-opacity duration-0',
+                dismissing ? 'opacity-100 delay-200' : 'opacity-0'
+              )}
+            >
+              {dismissingLabel}
+            </span>
+          </span>
         </Button>
       }
     />
