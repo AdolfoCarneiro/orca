@@ -515,18 +515,20 @@ describe('in-flight structured session close', () => {
       })
       const applyServerFrame = (snapshot: RuntimeMobileSessionTabsResult): void =>
         useAppStore.setState((state) =>
-          sessionTestEdit(state, (edit) =>
-            applyWebSessionTabsSnapshotsToEdit(
-              edit,
-              state,
-              [
-                suppressCancelledStructuredSessionTabs(snapshot, {
-                  kind: 'environment',
-                  environmentId: SERVER
-                })
-              ],
-              SERVER
-            )
+          sessionTestEdit(
+            state,
+            (edit) =>
+              applyWebSessionTabsSnapshotsToEdit(
+                edit,
+                state,
+                [
+                  suppressCancelledStructuredSessionTabs(snapshot, {
+                    kind: 'environment',
+                    environmentId: SERVER
+                  })
+                ],
+                SERVER
+              ) ?? {}
           )
         )
       const strip = (): string[] =>
