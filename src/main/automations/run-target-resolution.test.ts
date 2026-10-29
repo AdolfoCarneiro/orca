@@ -211,7 +211,8 @@ describe('resolveAutomationRunTarget projectId drift', () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: 'Repository for the selected automation host is no longer available.'
+      error: 'Project path for the selected automation host has changed.',
+      errorCode: 'projectPathChanged'
     })
   })
 })

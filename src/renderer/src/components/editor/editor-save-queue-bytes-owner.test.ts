@@ -26,6 +26,13 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
   return { promise, resolve }
 }
 
+const loadInitialEditorBytes: (
+  fileId: string,
+  saved: Parameters<typeof loadEditorBytes>[1],
+  savedSha256: string,
+  editsAtRead: undefined
+) => void = loadEditorBytes
+
 const WORKTREE_ID = 'repo-1::/repo'
 const draft = { bytes: new Uint8Array([2, 3]), fileType: 'xlsx' }
 
@@ -59,7 +66,7 @@ describe('binary editor save acquired owner at the final replace boundary', () =
       { suppressActiveRuntimeFallback: true }
     )
     const bytes = new Uint8Array([1])
-    loadEditorBytes(fileId, { bytes, fileType: 'xlsx' }, await sha256Hex(bytes))
+    loadInitialEditorBytes(fileId, { bytes, fileType: 'xlsx' }, await sha256Hex(bytes), undefined)
     setEditorBytesDraft(fileId, draft)
     queue = createEditorSaveQueue(useAppStore)
     started = deferred()

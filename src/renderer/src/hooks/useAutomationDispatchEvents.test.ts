@@ -1,4 +1,5 @@
 import type * as ReactModule from 'react'
+import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AUTOMATIONS_CHANGED_EVENT } from '@/lib/automations-changed-window-event'
 import { countUnchangedObserverHistoryReads } from './automation-dispatch-observer-test-probe'
@@ -50,12 +51,9 @@ const state = {
   activeTabId: 'tab-active',
   activeTabType: 'terminal' as const,
   repos: [{ id: 'repo-1', connectionId: null, executionHostId: null, path: '/repo' }] as TestRepo[],
-  folderWorkspaces: [] as {
-    id: string
-    projectGroupId: string
-    folderPath: string
-    connectionId: string | null
-  }[],
+  folderWorkspaces: new Array<
+    Pick<FolderWorkspace, 'id' | 'name' | 'projectGroupId' | 'folderPath' | 'connectionId'>
+  >(),
   projectGroups: [] as {
     id: string
     connectionId: string | null

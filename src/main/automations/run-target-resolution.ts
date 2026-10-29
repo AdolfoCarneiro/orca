@@ -187,7 +187,10 @@ export function resolveAutomationRunTarget(
     return { ok: false, ...automationRunFailure('targetSetupMismatch') }
   }
 
-  const repo = findAutomationRepo(store.getRepos(), context.repoId, context)
+  const repo = findAutomationRepo(store.getRepos(), context.repoId, {
+    hostId: context.hostId,
+    path: setup.path
+  })
   if (!repo) {
     return { ok: false, ...automationRunFailure('repoUnavailable') }
   }
