@@ -15,6 +15,8 @@ __orca_ready_marker=""
 __orca_has_feature ready && __orca_ready_marker=1
 unset _orca_shell_features
 unset -f __orca_has_feature
+# ble.sh cannot be loaded yet, so any attach state here was inherited.
+unset _ble_attached _ble_decode_bind_state
 [[ -f /etc/profile ]] && source /etc/profile
 if [[ -f "$HOME/.bash_profile" ]]; then
   source "$HOME/.bash_profile"
@@ -107,13 +109,16 @@ __orca_osc133_epilogue() {
   # Readline renders PS1 after entering raw mode; prompt hooks still run in cooked mode.
   if [[ -n "$__orca_ready_marker" ]]; then
     # Attached ble.sh (0.3+) discards Bash's own prompt output and owns the TTY, so print directly.
-    # Require its functions here so an inherited variable cannot select this cooked-mode path.
-    if [[ -n "\${_ble_attached-}" ]] && declare -F ble-attach >/dev/null; then
-      printf "\\033]777;orca-shell-ready\\007"
+    if [[ -n "\${_ble_attached-}" ]]; then
+      # Its first render runs this before the key decoder attaches; wait for a later prompt.
+      if [[ "\${_ble_decode_bind_state:-none}" != none ]]; then
+        printf "\\033]777;orca-shell-ready\\007"
+        __orca_ready_marker=""
+      fi
     else
       PS1="\${PS1-}"'\\[\\e]777;orca-shell-ready\\a\\]'
+      __orca_ready_marker=""
     fi
-    __orca_ready_marker=""
   fi
 }
 ${BASH_PROMPT_COMMAND_COMPOSITION_BLOCK}
