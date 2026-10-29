@@ -140,6 +140,36 @@ export function createRuntimeImportSessionGuard(
   }
 }
 
+export async function createRuntimeFileImportSession(
+  target: RuntimeFileMutationTarget,
+  assertCallerCurrent?: () => void
+): Promise<RuntimeFileImportSession> {
+  const expectedEnvironmentPairingRevision = captureRuntimeEnvironmentRequestRevision(
+    target.environmentId
+  )
+  const expectedEnvironmentConnectionGeneration = getRuntimeEnvironmentConnectionGeneration(
+    target.environmentId
+  )
+  const expectedEnvironmentRuntimeId = await assertRuntimeFileMutationCapability(
+    target,
+    expectedEnvironmentPairingRevision
+  )
+  const assertCurrent = createRuntimeImportSessionGuard(
+    target.environmentId,
+    expectedEnvironmentPairingRevision,
+    expectedEnvironmentConnectionGeneration,
+    assertCallerCurrent
+  )
+  assertCurrent()
+  return {
+    target,
+    expectedEnvironmentPairingRevision,
+    expectedEnvironmentConnectionGeneration,
+    expectedEnvironmentRuntimeId,
+    assertCurrent
+  }
+}
+
 export function callRuntimeFileImportMutation<TResult>(
   session: RuntimeFileImportSession,
   method: string,

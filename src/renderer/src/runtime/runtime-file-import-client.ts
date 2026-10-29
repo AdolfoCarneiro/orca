@@ -1,16 +1,12 @@
 import { joinPath } from '@/lib/path'
 import type { ImportItemResult } from '../../../shared/filesystem-import-result-types'
 import { deconflictCopyName } from '../../../shared/import-copy-name'
-import { getRuntimeEnvironmentConnectionGeneration } from '@/store/slices/runtime-status'
 import type { RuntimeFileOperationArgs } from './runtime-file-client-types'
-import { captureRuntimeEnvironmentRequestRevision } from './runtime-environment-revision'
 import { runtimePathExists } from './runtime-file-metadata-client'
 import {
-  assertRuntimeFileMutationCapability,
   callRuntimeFileImportMutation,
-  createRuntimeImportSessionGuard
+  createRuntimeFileImportSession
 } from './runtime-file-mutation-rpc'
-import type { RuntimeFileImportSession } from './runtime-file-mutation-rpc'
 import {
   getRemoteFileArgs,
   joinRuntimeRelativePath,
@@ -56,30 +52,7 @@ export async function importExternalPathsToRuntime(
     throw new Error('Destination is outside the active runtime worktree')
   }
 
-  const expectedEnvironmentPairingRevision = captureRuntimeEnvironmentRequestRevision(
-    target.environmentId
-  )
-  const expectedEnvironmentConnectionGeneration = getRuntimeEnvironmentConnectionGeneration(
-    target.environmentId
-  )
-  const expectedEnvironmentRuntimeId = await assertRuntimeFileMutationCapability(
-    target,
-    expectedEnvironmentPairingRevision
-  )
-  const assertImportSessionCurrent = createRuntimeImportSessionGuard(
-    target.environmentId,
-    expectedEnvironmentPairingRevision,
-    expectedEnvironmentConnectionGeneration,
-    options?.assertCurrent
-  )
-  const importSession: RuntimeFileImportSession = {
-    target,
-    expectedEnvironmentPairingRevision,
-    expectedEnvironmentConnectionGeneration,
-    expectedEnvironmentRuntimeId,
-    assertCurrent: assertImportSessionCurrent
-  }
-  importSession.assertCurrent()
+  const importSession = await createRuntimeFileImportSession(target, options?.assertCurrent)
   const staged = await window.api.fs.stageExternalPathsForRuntimeUpload({
     sourcePaths,
     nameExtensionlessImages: options?.nameExtensionlessImages

@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import type { Slice } from '@tiptap/pm/model'
 import { toast } from 'sonner'
 import { getConnectionId } from '@/lib/connection-context'
 import { useAppStore } from '@/store'
@@ -7,6 +8,7 @@ import { extractIpcErrorMessage } from './rich-markdown-ipc-error-message'
 import { insertRichMarkdownImageFromPath } from './rich-markdown-image-insert'
 import { captureRichMarkdownImageInsertionTarget } from './rich-markdown-image-insertion-target'
 import { showRichMarkdownImageInsertionCanceled } from './rich-markdown-image-insertion-feedback'
+import { handleRichMarkdownBlobImagePaste } from './rich-markdown-blob-image-paste'
 
 export type RichMarkdownImagePasteArgs = {
   editor: Editor | null
@@ -14,6 +16,7 @@ export type RichMarkdownImagePasteArgs = {
   filePath: string
   worktreeId: string | null
   runtimeEnvironmentId?: string | null
+  slice?: Slice
 }
 
 export function clipboardHasImage(event: ClipboardEvent): boolean {
@@ -31,10 +34,18 @@ export function handleRichMarkdownImagePaste({
   event,
   filePath,
   worktreeId,
-  runtimeEnvironmentId
+  runtimeEnvironmentId,
+  slice
 }: RichMarkdownImagePasteArgs): boolean {
   if (!editor || !clipboardHasImage(event)) {
-    return false
+    return handleRichMarkdownBlobImagePaste({
+      editor,
+      event,
+      filePath,
+      worktreeId,
+      runtimeEnvironmentId,
+      slice
+    })
   }
 
   event.preventDefault()

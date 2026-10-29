@@ -32,7 +32,8 @@ export function handleRichMarkdownPaste({
       event,
       filePath,
       worktreeId,
-      runtimeEnvironmentId
+      runtimeEnvironmentId,
+      ...(slice ? { slice } : {})
     })
   ) {
     return true

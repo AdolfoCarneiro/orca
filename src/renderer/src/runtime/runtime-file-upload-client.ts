@@ -26,12 +26,12 @@ export type RuntimeUploadSource = {
   expected: StagedRuntimeUploadFileIdentity
 }
 
-/** Stream one staged file to a temp path, then commit it; the temp path is always cleaned up. */
+/** Upload to a temporary sibling before committing without clobbering the destination. */
 export async function uploadRuntimeFileWithoutClobber(
   session: RuntimeFileImportSession,
   worktreeId: string,
   relativePath: string,
-  source: RuntimeUploadSource,
+  source: RuntimeUploadSource | { contentBase64: string },
   expectedSshConnectionGeneration?: number,
   expectedSshTargetId?: string,
   expectedExecutionHostId?: 'local' | `ssh:${string}`
@@ -39,21 +39,45 @@ export async function uploadRuntimeFileWithoutClobber(
   const tempRelativePath = makeRuntimeUploadTempPath(relativePath)
   try {
     session.assertCurrent()
-    // Main owns file/socket handles and streams slices; renderer never loads the whole body.
     try {
-      await window.api.fs.uploadExternalFileToRuntime({
-        environmentId: session.target.environmentId,
-        sourceRootPath: source.sourceRootPath,
-        entryRelativePath: source.entryRelativePath,
-        expected: source.expected,
-        worktree: toRuntimeWorktreeSelector(worktreeId),
-        relativePath: tempRelativePath,
-        expectedSshTargetId,
-        expectedSshConnectionGeneration,
-        expectedExecutionHostId,
-        expectedEnvironmentPairingRevision: session.expectedEnvironmentPairingRevision,
-        expectedEnvironmentRuntimeId: session.expectedEnvironmentRuntimeId
-      })
+      if ('contentBase64' in source) {
+        const chunkChars = 512 * 1024
+        for (
+          let offset = 0;
+          offset < Math.max(1, source.contentBase64.length);
+          offset += chunkChars
+        ) {
+          await callRuntimeFileImportMutation(
+            session,
+            'files.writeBase64Chunk',
+            {
+              worktree: toRuntimeWorktreeSelector(worktreeId),
+              relativePath: tempRelativePath,
+              contentBase64: source.contentBase64.slice(offset, offset + chunkChars),
+              append: offset > 0,
+              expectedSshTargetId,
+              expectedSshConnectionGeneration,
+              expectedExecutionHostId
+            },
+            30_000
+          )
+        }
+      } else {
+        // Main streams staged files without the renderer reading their bytes.
+        await window.api.fs.uploadExternalFileToRuntime({
+          environmentId: session.target.environmentId,
+          sourceRootPath: source.sourceRootPath,
+          entryRelativePath: source.entryRelativePath,
+          expected: source.expected,
+          worktree: toRuntimeWorktreeSelector(worktreeId),
+          relativePath: tempRelativePath,
+          expectedSshTargetId,
+          expectedSshConnectionGeneration,
+          expectedExecutionHostId,
+          expectedEnvironmentPairingRevision: session.expectedEnvironmentPairingRevision,
+          expectedEnvironmentRuntimeId: session.expectedEnvironmentRuntimeId
+        })
+      }
     } catch (error) {
       // Import results expose this text directly; remove Electron’s remote-method wrapper.
       throw new Error(extractIpcErrorMessage(error, 'Upload failed'))

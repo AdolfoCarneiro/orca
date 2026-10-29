@@ -16,13 +16,15 @@ export type RichMarkdownImageInsertionRange = {
 }
 
 export type RichMarkdownImageInsertionTarget = {
+  signal: AbortSignal
   getEditor: () => Editor | null
   getRange: () => RichMarkdownImageInsertionRange | null
   dispose: () => void
 }
 
 export function captureRichMarkdownImageInsertionTarget(
-  editor: Editor
+  editor: Editor,
+  { includeSingleCellSelection = false }: { includeSingleCellSelection?: boolean } = {}
 ): RichMarkdownImageInsertionTarget | null {
   if (editor.isDestroyed || !editor.view.dom.isConnected || !editor.isEditable) {
     return null
@@ -32,7 +34,8 @@ export function captureRichMarkdownImageInsertionTarget(
   const contextVersion = getRichMarkdownImageResolverContextVersion(editor)
   const requestOrder = captureRichMarkdownClipboardInsertionOrder(editor)
   let cellSelection =
-    editor.state.selection instanceof CellSelection && editor.state.selection.ranges.length > 1
+    editor.state.selection instanceof CellSelection &&
+    (includeSingleCellSelection || editor.state.selection.ranges.length > 1)
       ? editor.state.selection
       : null
   let ranges = editor.state.selection.ranges.map(({ $from, $to }) => ({
@@ -41,6 +44,7 @@ export function captureRichMarkdownImageInsertionTarget(
   }))
   let document: ProseMirrorNode | null = editor.state.doc
   let active = true
+  const controller = new AbortController()
 
   const dispose = (): void => {
     if (!active) {
@@ -55,6 +59,8 @@ export function captureRichMarkdownImageInsertionTarget(
     ranges = []
     owner?.off('transaction', mapTransactions)
     owner?.off('destroy', dispose)
+    // Error reasons can retain the editor's destruction stack.
+    controller.abort('Image insertion target is no longer available.')
   }
 
   const mapTransactions = ({
@@ -133,6 +139,7 @@ export function captureRichMarkdownImageInsertionTarget(
   editor.on('destroy', dispose)
 
   return {
+    signal: controller.signal,
     dispose,
     getEditor: () => activeEditor,
     getRange: () => {
