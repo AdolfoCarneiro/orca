@@ -20751,7 +20751,8 @@
         "stackCreationUnconfirmed": "La pull request a peut-être été créée. Réessayez pour terminer l'enregistrement dans la stack.",
         "stackRegistrationUnavailable": "La pull request a été créée, mais les stacks GitHub ne sont pas disponibles pour ce dépôt.",
         "stackRegistrationFailed": "La pull request a été créée, mais GitHub n'a pas pu l'ajouter à la stack. Réessayez pour terminer l'enregistrement dans la stack."
-      }
+      },
+      "baseHeadTitleRequired": "la branche de base, la branche source et le titre sont requis."
     },
     "thinking": {
       "off": "Désactivé",
@@ -21201,7 +21202,12 @@
       "waiting": "Ouvrez cette page sur cet appareil et connectez-vous. Le compte est enregistré sur {{host}}.",
       "verifying": "Finalisation de la connexion sur {{host}}…",
       "cancelFailed": "Impossible de joindre le serveur pour annuler pour l'instant.",
-      "enterCode": "Entrez ce code sur cette page :"
+      "enterCode": "Entrez ce code sur cette page :",
+      "errors": {
+        "ownerSilent": "L’appareil à l’origine de cette connexion ne répond plus.",
+        "superseded": "Un changement de compte sur cet hôte a interrompu la connexion. Relancez-la.",
+        "failed": "Échec de la connexion. Réessayez."
+      }
     },
     "remoteScopeAccountsAddHere": "Affichage des comptes gérés par {{value0}}. Les nouveaux comptes s'y connectent ; vous terminez dans le navigateur de cet appareil."
   },
@@ -22193,6 +22199,26 @@
       "compatible": "Le client et le serveur d’exécution sont compatibles.",
       "clientTooOld": "Ce client Orca est trop ancien pour le serveur sélectionné. Mettez Orca à jour sur cette machine. Protocole du client : {{clientProtocol}} ; le serveur exige le protocole client {{requiredProtocol}}.",
       "serverTooOld": "Le serveur Orca sélectionné est trop ancien pour ce client. Mettez Orca à jour sur le serveur. Protocole du serveur : {{serverProtocol}} ; le client exige le protocole serveur {{requiredProtocol}}."
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "Code d’appairage invalide. Une URL orca://pair?... ou des données d’appairage brutes sont attendues.",
+      "selfPairingCode": "Ce code d’appairage concerne cette instance même d’Orca. Générez plutôt le code sur l’autre ordinateur.",
+      "managedDeployment": "Orca exécute ce serveur pour vous sur un hôte SSH ; son appairage ne peut être ni remplacé ni supprimé ici. Pour le mettre hors service, exécutez `orca environment stop --environment <name> --yes` ou utilisez Paramètres > Orca sur vos hôtes SSH ; si l’hôte n’existe plus, exécutez `orca environment forget --environment <name> --yes`.",
+      "sshAccessChangePending": "La modification de l’accès SSH de ce serveur n’a pas abouti. Réessayez ou annulez-la dans Paramètres > Serveurs Orca distants > Accès SSH aux serveurs appairés avant de remplacer son appairage ou de le supprimer.",
+      "sshAccessLinked": "Dissociez l’accès SSH de ce serveur dans Paramètres > Serveurs Orca distants > Accès SSH aux serveurs appairés avant de remplacer son appairage ou de le supprimer.",
+      "alreadyPairedCloudWorkspace": "Ce serveur est déjà appairé sous le nom « {{name}} ». Il appartient à un espace de travail cloud, qui l’appaire à nouveau à chaque reprise.",
+      "alreadyPairedCloudIdentity": "Ce serveur est déjà appairé sous le nom « {{name}} ». Le serveur de l’espace de travail cloud réutilise l’identité de ce serveur ; il n’a donc pas été enregistré.",
+      "alreadyPairedWslHost": "Ce serveur est déjà appairé sous le nom « {{name}} ». Orca le gère comme un hôte WSL ; son appairage ne peut donc pas être remplacé ici.",
+      "alreadyPairedManagedDeployment": "Ce serveur est déjà appairé sous le nom « {{name}} ». Orca exécute ce serveur pour vous sur un hôte SSH ; son appairage ne peut être ni remplacé ni supprimé ici. Pour le mettre hors service, exécutez `orca environment stop --environment <name> --yes` ou utilisez Paramètres > Orca sur vos hôtes SSH ; si l’hôte n’existe plus, exécutez `orca environment forget --environment <name> --yes`.",
+      "alreadyPairedSshAccessChangePending": "Ce serveur est déjà appairé sous le nom « {{name}} ». La modification de l’accès SSH de ce serveur n’a pas abouti. Réessayez ou annulez-la dans Paramètres > Serveurs Orca distants > Accès SSH aux serveurs appairés avant de remplacer son appairage ou de le supprimer.",
+      "alreadyPairedSshAccessLinked": "Ce serveur est déjà appairé sous le nom « {{name}} ». Dissociez l’accès SSH de ce serveur dans Paramètres > Serveurs Orca distants > Accès SSH aux serveurs appairés avant de remplacer son appairage ou de le supprimer.",
+      "alreadyPairedAddAgain": "Ce serveur est déjà appairé sous le nom « {{name}} ». Pour mettre à jour sa connexion, ajoutez-le à nouveau dans Paramètres > Serveurs Orca distants.",
+      "alreadyPairedUnreadable": "Ce serveur est déjà appairé sous le nom « {{name}} », mais cette version d’Orca ne peut pas lire ses paramètres enregistrés.",
+      "nameTaken": "Un serveur nommé « {{name}} » existe déjà.",
+      "idNeedsNewerOrca": "Un serveur avec cet identifiant existe déjà dans un format qui nécessite une version plus récente d’Orca.",
+      "hostSaveFailed": "Orca a vérifié l’hôte, mais n’a pas pu l’enregistrer. Vérifiez le stockage local des paramètres, puis réessayez.",
+      "repairSaveFailed": "Orca a vérifié le serveur, mais n’a pas pu enregistrer le nouvel appairage. Vérifiez le stockage local des paramètres, puis réessayez.",
+      "repairCloudWorkspace": "Ce serveur appartient à un espace de travail cloud, qui l’appaire à nouveau à chaque reprise."
     }
   },
   "native": {
@@ -22636,6 +22662,13 @@
         "mrSourceBranchMissing": "La MR !{{number}} n'a pas de branche source.",
         "forkHeadUnresolved": "Impossible de résoudre la tête de la MR !{{number}} issue d'un fork après récupération."
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Identifiants Bitbucket invalides",
+      "accessTokenRequired": "Saisissez un token d’accès.",
+      "emailAndApiTokenRequired": "Saisissez une adresse e-mail et un token API.",
+      "rejected": "Bitbucket a rejeté ces identifiants. Vérifiez l’adresse e-mail et le token, puis réessayez.",
+      "unreachable": "Impossible de joindre Bitbucket. Vérifiez votre connexion ou l’URL de base de l’API, puis réessayez."
     }
   },
   "featureWall": {

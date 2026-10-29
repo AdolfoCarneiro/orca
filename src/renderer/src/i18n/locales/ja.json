@@ -20183,7 +20183,8 @@
         "stackCreationUnconfirmed": "PR の作成が完了している可能性があります。再試行してスタックへの登録を完了してください。",
         "stackRegistrationUnavailable": "PR は作成されましたが、このリポジトリでは GitHub スタックを利用できません。",
         "stackRegistrationFailed": "PR は作成されましたが、GitHub がスタックに追加できませんでした。再試行してスタックへの登録を完了してください。"
-      }
+      },
+      "baseHeadTitleRequired": "ベースブランチ、ヘッドブランチ、タイトルは必須です。"
     },
     "model": {
       "auto": "自動",
@@ -20612,7 +20613,12 @@
       "verifying": "{{host}} でサインインを完了しています…",
       "cancelFailed": "キャンセルするためのサーバーにまだ接続できませんでした。",
       "starting": "{{host}} にサインインを開始しています…",
-      "waiting": "このデバイスでこのページを開いてサインインしてください。アカウントは {{host}} に保存されます。"
+      "waiting": "このデバイスでこのページを開いてサインインしてください。アカウントは {{host}} に保存されます。",
+      "errors": {
+        "ownerSilent": "このサインインを開始したデバイスが応答しなくなりました。",
+        "superseded": "このホスト上でアカウントが変更されたため、サインインが中止されました。やり直してください。",
+        "failed": "サインインに失敗しました。もう一度お試しください。"
+      }
     },
     "remoteScopeAccountsAddHere": "{{value0}} によって管理されているアカウントを表示しています。新規アカウントはそこにサインインします。このデバイスのブラウザで完了します。"
   },
@@ -21586,6 +21592,26 @@
       "compatible": "ランタイムのクライアントとサーバーは互換性があります。",
       "clientTooOld": "この Orca クライアントは古すぎるため、選択したサーバーに接続できません。このマシンの Orca を更新してください。クライアントのプロトコルは {{clientProtocol}}、サーバーが要求するクライアントのプロトコルは {{requiredProtocol}} です。",
       "serverTooOld": "選択した Orca サーバーは古すぎるため、このクライアントと互換性がありません。サーバーの Orca を更新してください。サーバーのプロトコルは {{serverProtocol}}、クライアントが要求するサーバーのプロトコルは {{requiredProtocol}} です。"
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "ペアリングコードが無効です。orca://pair?... 形式の URL または生のペアリングデータが必要です。",
+      "selfPairingCode": "このペアリングコードは、この Orca 自身のものです。もう一方のコンピューターでコードを生成してください。",
+      "managedDeployment": "Orca が SSH ホスト上でこのサーバーを実行しているため、ここではペアリングを置き換えたり解除したりできません。廃止するには `orca environment stop --environment <name> --yes` を実行するか、設定 > SSH ホスト上の Orca を使用してください。ホストが存在しない場合は `orca environment forget --environment <name> --yes` を実行してください。",
+      "sshAccessChangePending": "このサーバーの SSH アクセスの変更が完了しませんでした。ペアリングの置き換えやサーバーの削除を行う前に、設定 > リモート Orca サーバー > ペアリング済みサーバーの SSH アクセスで再試行するかキャンセルしてください。",
+      "sshAccessLinked": "設定 > リモート Orca サーバー > ペアリング済みサーバーの SSH アクセスでこのサーバーの SSH アクセスのリンクを解除してから、ペアリングを置き換えるかサーバーを削除してください。",
+      "alreadyPairedCloudWorkspace": "このサーバーはすでに「{{name}}」としてペアリングされています。クラウドワークスペースに属しており、ワークスペースの再開時に再びペアリングされます。",
+      "alreadyPairedCloudIdentity": "このサーバーはすでに「{{name}}」としてペアリングされています。クラウドワークスペースのサーバーがそのサーバーの識別情報を再利用しているため、保存されませんでした。",
+      "alreadyPairedWslHost": "このサーバーはすでに「{{name}}」としてペアリングされています。Orca が WSL ホストとして管理しているため、ここではペアリングを置き換えられません。",
+      "alreadyPairedManagedDeployment": "このサーバーはすでに「{{name}}」としてペアリングされています。Orca が SSH ホスト上でこのサーバーを実行しているため、ここではペアリングを置き換えたり解除したりできません。廃止するには `orca environment stop --environment <name> --yes` を実行するか、設定 > SSH ホスト上の Orca を使用してください。ホストが存在しない場合は `orca environment forget --environment <name> --yes` を実行してください。",
+      "alreadyPairedSshAccessChangePending": "このサーバーはすでに「{{name}}」としてペアリングされています。このサーバーの SSH アクセスの変更が完了しませんでした。ペアリングの置き換えやサーバーの削除を行う前に、設定 > リモート Orca サーバー > ペアリング済みサーバーの SSH アクセスで再試行するかキャンセルしてください。",
+      "alreadyPairedSshAccessLinked": "このサーバーはすでに「{{name}}」としてペアリングされています。設定 > リモート Orca サーバー > ペアリング済みサーバーの SSH アクセスでこのサーバーの SSH アクセスのリンクを解除してから、ペアリングを置き換えるかサーバーを削除してください。",
+      "alreadyPairedAddAgain": "このサーバーはすでに「{{name}}」としてペアリングされています。接続情報を更新するには、設定 > リモート Orca サーバーで再度追加してください。",
+      "alreadyPairedUnreadable": "このサーバーはすでに「{{name}}」としてペアリングされていますが、このバージョンの Orca では保存済みの設定を読み取れません。",
+      "nameTaken": "「{{name}}」という名前のサーバーはすでに存在します。",
+      "idNeedsNewerOrca": "この ID のサーバーは、新しいバージョンの Orca が必要な形式ですでに存在します。",
+      "hostSaveFailed": "Orca はホストを検証しましたが、保存できませんでした。ローカル設定の保存先を確認し、もう一度お試しください。",
+      "repairSaveFailed": "Orca はサーバーを検証しましたが、新しいペアリングを保存できませんでした。ローカル設定の保存先を確認し、もう一度お試しください。",
+      "repairCloudWorkspace": "このサーバーはクラウドワークスペースに属しており、ワークスペースの再開時に再びペアリングされます。"
     }
   },
   "native": {
@@ -22020,6 +22046,13 @@
         "mrSourceBranchMissing": "MR !{{number}} にソースブランチがありません。",
         "forkHeadUnresolved": "フェッチ後にフォークの MR !{{number}} のヘッドを解決できませんでした。"
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Bitbucket の認証情報が無効です",
+      "accessTokenRequired": "アクセストークンを入力してください。",
+      "emailAndApiTokenRequired": "メールアドレスと APIトークンの両方を入力してください。",
+      "rejected": "Bitbucket が認証情報を拒否しました。メールアドレスとトークンを確認して、もう一度お試しください。",
+      "unreachable": "Bitbucket に接続できませんでした。接続状況または API ベース URL を確認して、もう一度お試しください。"
     }
   },
   "featureWall": {

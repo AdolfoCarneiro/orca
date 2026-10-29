@@ -20189,7 +20189,8 @@
         "stackCreationUnconfirmed": "Der Pull Request wurde möglicherweise bereits erstellt. Erneut versuchen, um die Stack-Registrierung abzuschließen.",
         "stackRegistrationUnavailable": "Der Pull Request wurde erstellt, aber GitHub-Stacks sind für dieses Repository nicht verfügbar.",
         "stackRegistrationFailed": "Der Pull Request wurde erstellt, aber GitHub konnte ihn nicht zum Stack hinzufügen. Erneut versuchen, um die Stack-Registrierung abzuschließen."
-      }
+      },
+      "baseHeadTitleRequired": "Basis-Branch, Quell-Branch und Titel sind erforderlich."
     },
     "model": {
       "auto": "Automatisch",
@@ -20770,7 +20771,12 @@
       "enterCode": "Diesen Code auf der Seite eingeben:",
       "copyCode": "Code kopieren",
       "cancelFailed": "Der Server konnte zum Abbrechen bisher nicht erreicht werden.",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "errors": {
+        "ownerSilent": "Das Gerät, auf dem diese Anmeldung gestartet wurde, antwortet nicht mehr.",
+        "superseded": "Eine Kontoänderung auf diesem Host hat die Anmeldung abgebrochen. Die Anmeldung erneut starten.",
+        "failed": "Anmeldung fehlgeschlagen. Erneut versuchen."
+      }
     },
     "remoteScopeAccountsAddHere": "Angezeigt werden Konten, die von {{value0}} verwaltet werden. Neue Konten werden dort angemeldet; der Abschluss erfolgt im Browser dieses Geräts."
   },
@@ -21771,6 +21777,26 @@
       "mixed": "Gemischt",
       "repair": "Erneute Kopplung erforderlich",
       "update": "Update erforderlich"
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "Ungültiger Kopplungscode. Eine URL im Format orca://pair?... oder reine Kopplungsdaten erwartet.",
+      "selfPairingCode": "Dieser Kopplungscode gehört zu dieser Orca-Instanz selbst. Den Code stattdessen auf dem anderen Computer erzeugen.",
+      "managedDeployment": "Orca betreibt diesen Server für dich auf einem SSH-Host; seine Kopplung kann hier nicht ersetzt oder entfernt werden. Zur Stilllegung `orca environment stop --environment <name> --yes` ausführen oder Einstellungen > Orca auf SSH-Hosts verwenden; falls der Host nicht mehr vorhanden ist, `orca environment forget --environment <name> --yes` ausführen.",
+      "sshAccessChangePending": "Die Änderung des SSH-Zugriffs für diesen Server wurde nicht abgeschlossen. Unter Einstellungen > Entfernte Orca-Server > SSH-Zugriff für gekoppelte Server erneut versuchen oder abbrechen, bevor die Kopplung ersetzt oder der Server entfernt wird.",
+      "sshAccessLinked": "Die Verknüpfung des SSH-Zugriffs für diesen Server unter Einstellungen > Entfernte Orca-Server > SSH-Zugriff für gekoppelte Server aufheben, bevor die Kopplung ersetzt oder der Server entfernt wird.",
+      "alreadyPairedCloudWorkspace": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Er gehört zu einem Cloud-Arbeitsbereich, der ihn beim Fortsetzen erneut koppelt.",
+      "alreadyPairedCloudIdentity": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Der Server des Cloud-Arbeitsbereichs verwendet die Identität dieses Servers erneut und wurde daher nicht gespeichert.",
+      "alreadyPairedWslHost": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Orca verwaltet ihn als WSL-Host, daher kann seine Kopplung hier nicht ersetzt werden.",
+      "alreadyPairedManagedDeployment": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Orca betreibt diesen Server für dich auf einem SSH-Host; seine Kopplung kann hier nicht ersetzt oder entfernt werden. Zur Stilllegung `orca environment stop --environment <name> --yes` ausführen oder Einstellungen > Orca auf SSH-Hosts verwenden; falls der Host nicht mehr vorhanden ist, `orca environment forget --environment <name> --yes` ausführen.",
+      "alreadyPairedSshAccessChangePending": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Die Änderung des SSH-Zugriffs für diesen Server wurde nicht abgeschlossen. Unter Einstellungen > Entfernte Orca-Server > SSH-Zugriff für gekoppelte Server erneut versuchen oder abbrechen, bevor die Kopplung ersetzt oder der Server entfernt wird.",
+      "alreadyPairedSshAccessLinked": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Die Verknüpfung des SSH-Zugriffs für diesen Server unter Einstellungen > Entfernte Orca-Server > SSH-Zugriff für gekoppelte Server aufheben, bevor die Kopplung ersetzt oder der Server entfernt wird.",
+      "alreadyPairedAddAgain": "Dieser Server ist bereits als „{{name}}“ gekoppelt. Zum Aktualisieren seiner Verbindung unter Einstellungen > Entfernte Orca-Server erneut hinzufügen.",
+      "alreadyPairedUnreadable": "Dieser Server ist bereits als „{{name}}“ gekoppelt, dessen gespeicherte Einstellungen diese Orca-Version nicht lesen kann.",
+      "nameTaken": "Ein Server namens „{{name}}“ ist bereits vorhanden.",
+      "idNeedsNewerOrca": "Ein Server mit dieser ID ist bereits in einem Format vorhanden, das eine neuere Orca-Version erfordert.",
+      "hostSaveFailed": "Orca hat den Host überprüft, konnte ihn aber nicht speichern. Den lokalen Einstellungsspeicher prüfen und erneut versuchen.",
+      "repairSaveFailed": "Orca hat den Server überprüft, konnte die neue Kopplung aber nicht speichern. Den lokalen Einstellungsspeicher prüfen und erneut versuchen.",
+      "repairCloudWorkspace": "Dieser Server gehört zu einem Cloud-Arbeitsbereich, der ihn beim Fortsetzen erneut koppelt."
     }
   },
   "taskProviders": {
@@ -22019,6 +22045,13 @@
         "mrSourceBranchMissing": "MR !{{number}} hat keinen Quell-Branch.",
         "forkHeadUnresolved": "Der Head von Fork-MR !{{number}} konnte nach dem Fetch nicht aufgelöst werden."
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Ungültige Bitbucket-Zugangsdaten",
+      "accessTokenRequired": "Einen Zugriffstoken eingeben.",
+      "emailAndApiTokenRequired": "E-Mail-Adresse und API-Token eingeben.",
+      "rejected": "Bitbucket hat diese Zugangsdaten abgelehnt. E-Mail-Adresse und Token prüfen und erneut versuchen.",
+      "unreachable": "Bitbucket konnte nicht erreicht werden. Verbindung oder API-Basis-URL prüfen und erneut versuchen."
     }
   },
   "featureWall": {

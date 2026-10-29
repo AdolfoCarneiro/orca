@@ -20183,7 +20183,8 @@
         "stackCreationUnconfirmed": "PR 可能已创建成功。请重试以完成堆栈注册。",
         "stackRegistrationUnavailable": "PR 已创建，但此仓库不支持 GitHub 堆栈。",
         "stackRegistrationFailed": "PR 已创建，但 GitHub 无法将其添加到堆栈。请重试以完成堆栈注册。"
-      }
+      },
+      "baseHeadTitleRequired": "必须提供基础分支、源分支和标题。"
     },
     "model": {
       "auto": "自动",
@@ -20612,7 +20613,12 @@
       "pasteCodeHelp": "登录后，页面会显示一段代码。请将其粘贴到此处。",
       "waiting": "在此设备上打开此页面并登录。帐户保存在 {{host}} 上。",
       "enterCode": "在该页面输入此代码：",
-      "cancelFailed": "暂时无法连接到服务器以取消操作。"
+      "cancelFailed": "暂时无法连接到服务器以取消操作。",
+      "errors": {
+        "ownerSilent": "发起此次登录的设备已停止响应。",
+        "superseded": "此主机上的账户变更中断了登录。请重新开始。",
+        "failed": "登录失败。请重试。"
+      }
     },
     "remoteScopeAccountsAddHere": "当前显示由 {{value0}} 管理的账户。新账户将在那里登录，您需要在此设备的浏览器中完成操作。"
   },
@@ -21586,6 +21592,26 @@
       "compatible": "运行时客户端与服务器兼容。",
       "clientTooOld": "此 Orca 客户端版本过旧，无法连接所选服务器。请更新本机上的 Orca。客户端协议版本为 {{clientProtocol}}，服务器要求的客户端协议版本为 {{requiredProtocol}}。",
       "serverTooOld": "所选 Orca 服务器版本过旧，无法与此客户端兼容。请更新服务器上的 Orca。服务器协议版本为 {{serverProtocol}}，客户端要求的服务器协议版本为 {{requiredProtocol}}。"
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "配对码无效。需要 orca://pair?... URL 或原始配对数据。",
+      "selfPairingCode": "这是当前 Orca 的配对码。请改在另一台计算机上生成配对码。",
+      "managedDeployment": "Orca 为你在 SSH 主机上运行此服务器；无法在此替换或移除其配对。要停用它，请运行 `orca environment stop --environment <name> --yes`，或前往设置 > SSH 主机上的 Orca；如果主机已不存在，请运行 `orca environment forget --environment <name> --yes`。",
+      "sshAccessChangePending": "此服务器的 SSH 访问更改未完成。替换配对或移除此服务器之前，请在设置 > 远程 Orca 服务器 > 已配对服务器的 SSH 访问下重试或取消更改。",
+      "sshAccessLinked": "替换配对或移除此服务器之前，请在设置 > 远程 Orca 服务器 > 已配对服务器的 SSH 访问下解除此服务器的 SSH 访问关联。",
+      "alreadyPairedCloudWorkspace": "此服务器已作为“{{name}}”配对。它属于一个云工作区，该工作区恢复运行时会再次与其配对。",
+      "alreadyPairedCloudIdentity": "此服务器已作为“{{name}}”配对。云工作区的服务器复用了该服务器的身份，因此未保存。",
+      "alreadyPairedWslHost": "此服务器已作为“{{name}}”配对。Orca 将其作为 WSL 主机管理，因此无法在此替换其配对。",
+      "alreadyPairedManagedDeployment": "此服务器已作为“{{name}}”配对。Orca 为你在 SSH 主机上运行此服务器；无法在此替换或移除其配对。要停用它，请运行 `orca environment stop --environment <name> --yes`，或前往设置 > SSH 主机上的 Orca；如果主机已不存在，请运行 `orca environment forget --environment <name> --yes`。",
+      "alreadyPairedSshAccessChangePending": "此服务器已作为“{{name}}”配对。此服务器的 SSH 访问更改未完成。替换配对或移除此服务器之前，请在设置 > 远程 Orca 服务器 > 已配对服务器的 SSH 访问下重试或取消更改。",
+      "alreadyPairedSshAccessLinked": "此服务器已作为“{{name}}”配对。替换配对或移除此服务器之前，请在设置 > 远程 Orca 服务器 > 已配对服务器的 SSH 访问下解除此服务器的 SSH 访问关联。",
+      "alreadyPairedAddAgain": "此服务器已作为“{{name}}”配对。要更新其连接，请在设置 > 远程 Orca 服务器下重新添加。",
+      "alreadyPairedUnreadable": "此服务器已作为“{{name}}”配对，但此版本的 Orca 无法读取其已保存的设置。",
+      "nameTaken": "名为“{{name}}”的服务器已存在。",
+      "idNeedsNewerOrca": "具有此 ID 的服务器已存在，其格式需要更新版本的 Orca。",
+      "hostSaveFailed": "Orca 已验证主机，但无法保存。请检查本地设置存储并重试。",
+      "repairSaveFailed": "Orca 已验证服务器，但无法保存新的配对。请检查本地设置存储并重试。",
+      "repairCloudWorkspace": "此服务器属于一个云工作区，该工作区恢复运行时会再次与其配对。"
     }
   },
   "native": {
@@ -22020,6 +22046,13 @@
         "mrSourceBranchMissing": "MR !{{number}} 没有源分支。",
         "forkHeadUnresolved": "获取后，无法解析来自 fork 的 MR !{{number}} 的头部引用。"
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Bitbucket 凭据无效",
+      "accessTokenRequired": "请输入访问令牌。",
+      "emailAndApiTokenRequired": "请输入电子邮件地址和 API 令牌。",
+      "rejected": "Bitbucket 拒绝了这些凭据。请检查电子邮件地址和令牌，然后重试。",
+      "unreachable": "无法连接到 Bitbucket。请检查网络连接或 API 基础 URL，然后重试。"
     }
   },
   "featureWall": {

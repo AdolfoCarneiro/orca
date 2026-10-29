@@ -86,7 +86,8 @@
         "stackCreationUnconfirmed": "A criação do pull request pode ter sido concluída. Tente novamente para concluir o registro na pilha.",
         "stackRegistrationUnavailable": "O pull request foi criado, mas as pilhas do GitHub não estão disponíveis para este repositório.",
         "stackRegistrationFailed": "O pull request foi criado, mas o GitHub não conseguiu adicioná-lo à pilha. Tente novamente para concluir o registro na pilha."
-      }
+      },
+      "baseHeadTitleRequired": "a branch base, a branch head e o título são obrigatórios."
     },
     "actionSaveFailed": "Não foi possível salvar esta ação. Tente salvá-la novamente em Configurações.",
     "model": {
@@ -21183,7 +21184,12 @@
       "enterCode": "Insira este código nessa página:",
       "copyCode": "Copiar código",
       "cancelFailed": "Ainda não foi possível contatar o servidor para cancelar.",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "errors": {
+        "ownerSilent": "O dispositivo que iniciou este login parou de responder.",
+        "superseded": "Uma alteração de conta neste host interrompeu o login. Inicie novamente.",
+        "failed": "Falha no login. Tente novamente."
+      }
     },
     "remoteScopeAccountsAddHere": "Mostrando contas gerenciadas por {{value0}}. Novas contas são conectadas lá; você conclui no navegador deste dispositivo."
   },
@@ -22006,6 +22012,26 @@
       "compatible": "O cliente e o servidor do ambiente de execução são compatíveis.",
       "clientTooOld": "Este cliente Orca é antigo demais para o servidor selecionado. Atualize o Orca nesta máquina. Protocolo do cliente: {{clientProtocol}}; o servidor exige o protocolo de cliente {{requiredProtocol}}.",
       "serverTooOld": "O servidor Orca selecionado é antigo demais para este cliente. Atualize o Orca no servidor. Protocolo do servidor: {{serverProtocol}}; o cliente exige o protocolo de servidor {{requiredProtocol}}."
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "Código de pareamento inválido. Era esperada uma URL orca://pair?... ou dados de pareamento sem URL.",
+      "selfPairingCode": "Este código de pareamento é desta própria instância do Orca. Gere o código no outro computador.",
+      "managedDeployment": "O Orca executa este servidor para você em um host SSH; o pareamento não pode ser substituído nem removido aqui. Para desativá-lo, execute `orca environment stop --environment <name> --yes` ou use Configurações > Orca nos seus hosts SSH; se o host não existir mais, execute `orca environment forget --environment <name> --yes`.",
+      "sshAccessChangePending": "A alteração do acesso SSH deste servidor não foi concluída. Tente novamente ou cancele em Configurações > Servidores Orca Remotos > Acesso SSH para servidores pareados antes de substituir o pareamento ou remover o servidor.",
+      "sshAccessLinked": "Desvincule o acesso SSH deste servidor em Configurações > Servidores Orca Remotos > Acesso SSH para servidores pareados antes de substituir o pareamento ou removê-lo.",
+      "alreadyPairedCloudWorkspace": "Este servidor já está pareado como \"{{name}}\". Ele pertence a um espaço de trabalho na nuvem, que o pareia novamente ao ser retomado.",
+      "alreadyPairedCloudIdentity": "Este servidor já está pareado como \"{{name}}\". O servidor do espaço de trabalho na nuvem reutiliza a identidade desse servidor, por isso não foi salvo.",
+      "alreadyPairedWslHost": "Este servidor já está pareado como \"{{name}}\". O Orca o gerencia como um host WSL, por isso o pareamento não pode ser substituído aqui.",
+      "alreadyPairedManagedDeployment": "Este servidor já está pareado como \"{{name}}\". O Orca executa este servidor para você em um host SSH; o pareamento não pode ser substituído nem removido aqui. Para desativá-lo, execute `orca environment stop --environment <name> --yes` ou use Configurações > Orca nos seus hosts SSH; se o host não existir mais, execute `orca environment forget --environment <name> --yes`.",
+      "alreadyPairedSshAccessChangePending": "Este servidor já está pareado como \"{{name}}\". A alteração do acesso SSH deste servidor não foi concluída. Tente novamente ou cancele em Configurações > Servidores Orca Remotos > Acesso SSH para servidores pareados antes de substituir o pareamento ou remover o servidor.",
+      "alreadyPairedSshAccessLinked": "Este servidor já está pareado como \"{{name}}\". Desvincule o acesso SSH deste servidor em Configurações > Servidores Orca Remotos > Acesso SSH para servidores pareados antes de substituir o pareamento ou removê-lo.",
+      "alreadyPairedAddAgain": "Este servidor já está pareado como \"{{name}}\". Para atualizar a conexão, adicione-o novamente em Configurações > Servidores Orca Remotos.",
+      "alreadyPairedUnreadable": "Este servidor já está pareado como \"{{name}}\", mas esta versão do Orca não consegue ler as configurações salvas.",
+      "nameTaken": "Já existe um servidor chamado \"{{name}}\".",
+      "idNeedsNewerOrca": "Já existe um servidor com este ID em um formato que exige uma versão mais recente do Orca.",
+      "hostSaveFailed": "O Orca verificou o host, mas não conseguiu salvá-lo. Verifique o armazenamento local de configurações e tente novamente.",
+      "repairSaveFailed": "O Orca verificou o servidor, mas não conseguiu salvar o novo pareamento. Verifique o armazenamento local de configurações e tente novamente.",
+      "repairCloudWorkspace": "Este servidor pertence a um espaço de trabalho na nuvem, que o pareia novamente ao ser retomado."
     }
   },
   "native": {
@@ -22449,6 +22475,13 @@
         "mrSourceBranchMissing": "O MR !{{number}} não tem uma branch de origem.",
         "forkHeadUnresolved": "Não foi possível resolver o head do MR !{{number}} de um fork após o fetch."
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Credenciais inválidas do Bitbucket",
+      "accessTokenRequired": "Digite um token de acesso.",
+      "emailAndApiTokenRequired": "Digite um e-mail e um token de API.",
+      "rejected": "O Bitbucket rejeitou estas credenciais. Verifique o e-mail e o token e tente novamente.",
+      "unreachable": "Não foi possível acessar o Bitbucket. Verifique sua conexão ou a URL base da API e tente novamente."
     }
   },
   "featureWall": {

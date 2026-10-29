@@ -19904,7 +19904,8 @@
         "stackCreationUnconfirmed": "PR 可能已建立完成。請重試以完成堆疊註冊。",
         "stackRegistrationUnavailable": "PR 已建立，但此存放庫無法使用 GitHub 堆疊。",
         "stackRegistrationFailed": "PR 已建立，但 GitHub 無法將其加入堆疊。請重試以完成堆疊註冊。"
-      }
+      },
+      "baseHeadTitleRequired": "必須提供基底分支、來源分支和標題。"
     },
     "model": {
       "auto": "自動",
@@ -20478,7 +20479,12 @@
       "enterCode": "請在該頁面輸入此代碼：",
       "copyCode": "複製代碼",
       "cancelFailed": "暫時無法連線至伺服器以取消操作。",
-      "cancel": "取消"
+      "cancel": "取消",
+      "errors": {
+        "ownerSilent": "發起這次登入的裝置已停止回應。",
+        "superseded": "此主機上的帳戶變更中斷了登入。請重新開始。",
+        "failed": "登入失敗。請再試一次。"
+      }
     },
     "remoteScopeAccountsAddHere": "目前顯示由 {{value0}} 管理的帳戶。新帳戶會在該處登入；請在此裝置的瀏覽器中完成登入。"
   },
@@ -21317,6 +21323,26 @@
       "mixed": "混合",
       "repair": "需要重新配對",
       "update": "需要更新"
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "配對碼無效。需要 orca://pair?... URL 或原始配對資料。",
+      "selfPairingCode": "此配對碼是給目前這個 Orca 用的。請改在另一臺電腦上產生配對碼。",
+      "managedDeployment": "Orca 會在 SSH 主機上為你執行此伺服器；無法在此取代或移除其配對。若要停用，請執行 `orca environment stop --environment <name> --yes`，或使用設定 > SSH 主機上的 Orca；若主機已不存在，請執行 `orca environment forget --environment <name> --yes`。",
+      "sshAccessChangePending": "此伺服器的 SSH 存取變更未完成。取代配對或移除此伺服器前，請在設定 > 遠端 Orca 伺服器 > 已配對伺服器的 SSH 存取中重試或取消變更。",
+      "sshAccessLinked": "取代配對或移除此伺服器前，請在設定 > 遠端 Orca 伺服器 > 已配對伺服器的 SSH 存取中解除此伺服器的 SSH 存取連結。",
+      "alreadyPairedCloudWorkspace": "此伺服器已配對為「{{name}}」。它屬於雲端工作區，該工作區恢復執行時會再次與其配對。",
+      "alreadyPairedCloudIdentity": "此伺服器已配對為「{{name}}」。雲端工作區的伺服器重複使用了該伺服器的身分，因此未儲存。",
+      "alreadyPairedWslHost": "此伺服器已配對為「{{name}}」。Orca 將其作為 WSL 主機管理，因此無法在此取代其配對。",
+      "alreadyPairedManagedDeployment": "此伺服器已配對為「{{name}}」。Orca 會在 SSH 主機上為你執行此伺服器；無法在此取代或移除其配對。若要停用，請執行 `orca environment stop --environment <name> --yes`，或使用設定 > SSH 主機上的 Orca；若主機已不存在，請執行 `orca environment forget --environment <name> --yes`。",
+      "alreadyPairedSshAccessChangePending": "此伺服器已配對為「{{name}}」。此伺服器的 SSH 存取變更未完成。取代配對或移除此伺服器前，請在設定 > 遠端 Orca 伺服器 > 已配對伺服器的 SSH 存取中重試或取消變更。",
+      "alreadyPairedSshAccessLinked": "此伺服器已配對為「{{name}}」。取代配對或移除此伺服器前，請在設定 > 遠端 Orca 伺服器 > 已配對伺服器的 SSH 存取中解除此伺服器的 SSH 存取連結。",
+      "alreadyPairedAddAgain": "此伺服器已配對為「{{name}}」。若要更新其連線，請在設定 > 遠端 Orca 伺服器中重新新增。",
+      "alreadyPairedUnreadable": "此伺服器已配對為「{{name}}」，但此版本的 Orca 無法讀取其已儲存的設定。",
+      "nameTaken": "名為「{{name}}」的伺服器已存在。",
+      "idNeedsNewerOrca": "具有此 ID 的伺服器已存在，其格式需要較新版本的 Orca。",
+      "hostSaveFailed": "Orca 已驗證主機，但無法儲存。請檢查本機設定儲存區後再試一次。",
+      "repairSaveFailed": "Orca 已驗證伺服器，但無法儲存新的配對。請檢查本機設定儲存區後再試一次。",
+      "repairCloudWorkspace": "此伺服器屬於雲端工作區，該工作區恢復執行時會再次與其配對。"
     }
   },
   "taskProviders": {
@@ -21721,6 +21747,13 @@
         "mrSourceBranchMissing": "MR !{{number}} 沒有來源分支。",
         "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 MR !{{number}} 的頂端參照。"
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Bitbucket 憑證無效",
+      "accessTokenRequired": "請輸入存取權杖。",
+      "emailAndApiTokenRequired": "請同時輸入電子郵件地址和 API 權杖。",
+      "rejected": "Bitbucket 拒絕了這些憑證。請檢查電子郵件地址和權杖後再試一次。",
+      "unreachable": "無法連線至 Bitbucket。請檢查網路連線或 API 基礎 URL 後再試一次。"
     }
   },
   "featureWall": {

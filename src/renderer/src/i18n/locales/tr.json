@@ -20170,7 +20170,8 @@
         "stackCreationUnconfirmed": "Pull request oluşturulmuş olabilir. Yığın kaydını tamamlamak için yeniden deneyin.",
         "stackRegistrationUnavailable": "Pull request oluşturuldu, ancak bu repository için GitHub yığınları kullanılamıyor.",
         "stackRegistrationFailed": "Pull request oluşturuldu, ancak GitHub bunu yığına ekleyemedi. Yığın kaydını tamamlamak için yeniden deneyin."
-      }
+      },
+      "baseHeadTitleRequired": "temel branch, head branch ve başlık gereklidir."
     },
     "model": {
       "auto": "Otomatik",
@@ -20751,7 +20752,12 @@
       "enterCode": "Bu kodu o sayfaya girin:",
       "copyCode": "Kodu kopyala",
       "cancelFailed": "İptal etmek için sunucuya henüz ulaşılamadı.",
-      "cancel": "İptal"
+      "cancel": "İptal",
+      "errors": {
+        "ownerSilent": "Bu oturum açma işlemini başlatan cihaz yanıt vermeyi bıraktı.",
+        "superseded": "Bu sunucudaki bir hesap değişikliği oturum açma işlemini durdurdu. Yeniden başlatın.",
+        "failed": "Oturum açılamadı. Yeniden deneyin."
+      }
     },
     "remoteScopeAccountsAddHere": "{{value0}} tarafından yönetilen hesaplar gösteriliyor. Yeni hesaplar için oturum orada açılır; işlemi bu cihazın tarayıcısında tamamlarsınız."
   },
@@ -21596,6 +21602,26 @@
       "mixed": "Karma",
       "repair": "Yeniden eşleştirme gerekiyor",
       "update": "Güncelleme gerekiyor"
+    },
+    "remoteServerPairingErrors": {
+      "invalidPairingCode": "Geçersiz eşleştirme kodu. orca://pair?... biçiminde bir URL veya salt eşleştirme verisi bekleniyor.",
+      "selfPairingCode": "Bu eşleştirme kodu bu Orca örneğinin kendisi içindir. Kodu diğer bilgisayarda oluşturun.",
+      "managedDeployment": "Orca bu sunucuyu sizin için bir SSH sunucusunda çalıştırır; eşleştirmesi burada değiştirilemez veya kaldırılamaz. Hizmetten çıkarmak için `orca environment stop --environment <name> --yes` komutunu çalıştırın ya da Ayarlar > SSH sunucularınızda Orca bölümünü kullanın; SSH sunucusu artık yoksa `orca environment forget --environment <name> --yes` komutunu çalıştırın.",
+      "sshAccessChangePending": "Bu sunucunun SSH erişimi değişikliği tamamlanamadı. Eşleştirmesini değiştirmeden veya sunucuyu kaldırmadan önce Ayarlar > Uzak Orca Sunucuları > Eşleştirilmiş sunucular için SSH erişimi bölümünden yeniden deneyin veya iptal edin.",
+      "sshAccessLinked": "Eşleştirmesini değiştirmeden veya sunucuyu kaldırmadan önce Ayarlar > Uzak Orca Sunucuları > Eşleştirilmiş sunucular için SSH erişimi bölümünden bu sunucunun SSH erişimi bağlantısını kaldırın.",
+      "alreadyPairedCloudWorkspace": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Devam ettirildiğinde sunucuyu yeniden eşleştiren bir bulut çalışma alanına ait.",
+      "alreadyPairedCloudIdentity": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Bulut çalışma alanının sunucusu bu sunucunun kimliğini yeniden kullandığı için kaydedilmedi.",
+      "alreadyPairedWslHost": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Orca bu sunucuyu bir WSL ana makinesi olarak yönetir; bu nedenle eşleştirmesi burada değiştirilemez.",
+      "alreadyPairedManagedDeployment": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Orca bu sunucuyu sizin için bir SSH sunucusunda çalıştırır; eşleştirmesi burada değiştirilemez veya kaldırılamaz. Hizmetten çıkarmak için `orca environment stop --environment <name> --yes` komutunu çalıştırın ya da Ayarlar > SSH sunucularınızda Orca bölümünü kullanın; SSH sunucusu artık yoksa `orca environment forget --environment <name> --yes` komutunu çalıştırın.",
+      "alreadyPairedSshAccessChangePending": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Bu sunucunun SSH erişimi değişikliği tamamlanamadı. Eşleştirmesini değiştirmeden veya sunucuyu kaldırmadan önce Ayarlar > Uzak Orca Sunucuları > Eşleştirilmiş sunucular için SSH erişimi bölümünden yeniden deneyin veya iptal edin.",
+      "alreadyPairedSshAccessLinked": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Eşleştirmesini değiştirmeden veya sunucuyu kaldırmadan önce Ayarlar > Uzak Orca Sunucuları > Eşleştirilmiş sunucular için SSH erişimi bölümünden bu sunucunun SSH erişimi bağlantısını kaldırın.",
+      "alreadyPairedAddAgain": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş. Bağlantısını güncellemek için Ayarlar > Uzak Orca Sunucuları bölümünden yeniden ekleyin.",
+      "alreadyPairedUnreadable": "Bu sunucu zaten \"{{name}}\" olarak eşleştirilmiş, ancak sunucunun kayıtlı ayarları Orca'nın bu sürümünde okunamıyor.",
+      "nameTaken": "\"{{name}}\" adlı bir sunucu zaten var.",
+      "idNeedsNewerOrca": "Bu kimliğe sahip bir sunucu, Orca'nın daha yeni bir sürümünü gerektiren bir biçimde zaten var.",
+      "hostSaveFailed": "Orca sunucuyu doğruladı ancak sunucu kaydedilemedi. Yerel ayar depolamasını kontrol edip yeniden deneyin.",
+      "repairSaveFailed": "Orca sunucuyu doğruladı ancak yeni eşleştirme kaydedilemedi. Yerel ayar depolamasını kontrol edip yeniden deneyin.",
+      "repairCloudWorkspace": "Bu sunucu, devam ettirildiğinde onu yeniden eşleştiren bir bulut çalışma alanına ait."
     }
   },
   "taskProviders": {
@@ -22000,6 +22026,13 @@
         "mrSourceBranchMissing": "MR !{{number}} için kaynak branch yok.",
         "forkHeadUnresolved": "Getirme işleminden sonra fork MR !{{number}} için head çözümlenemedi."
       }
+    },
+    "bitbucketConnect": {
+      "invalidInput": "Geçersiz Bitbucket kimlik bilgileri",
+      "accessTokenRequired": "Bir erişim belirteci girin.",
+      "emailAndApiTokenRequired": "Hem e-posta adresini hem de API belirtecini girin.",
+      "rejected": "Bitbucket bu kimlik bilgilerini reddetti. E-posta adresini ve belirteci kontrol edip yeniden deneyin.",
+      "unreachable": "Bitbucket'a ulaşılamadı. Bağlantınızı veya API temel URL'sini kontrol edip yeniden deneyin."
     }
   },
   "featureWall": {
