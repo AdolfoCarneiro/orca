@@ -7846,7 +7846,8 @@
           "issueCommandDescription": "필요하면 기본 명령을 재정의할 수 있습니다. 연결된 이슈 또는 PR의 URL에는 <artifactUrl>{{artifact_url}}</artifactUrl> 변수를 사용하세요.",
           "issueCommandSharedDefault": "비워 두면 <yaml>orca.yaml</yaml>에 지정된 저장소 기본값을 사용합니다.",
           "issueCommandOptionalDefault": "비워 두면 <yaml>orca.yaml</yaml>에 지정된 저장소 기본값이 있는 경우 사용합니다.",
-          "commandSourceDescription": "<yaml>orca.yaml</yaml>의 명령과 로컬 명령이 모두 있으면 실행할 명령을 선택하세요."
+          "commandSourceDescription": "<yaml>orca.yaml</yaml>의 명령과 로컬 명령이 모두 있으면 실행할 명령을 선택하세요.",
+          "issueCommandWslStopped": "WSL 배포판 {{distro}}이(가) 중지되었습니다. 이 명령을 보거나 편집하려면 해당 배포판에서 터미널을 여세요."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "{{value0}} repo 색상 사용",

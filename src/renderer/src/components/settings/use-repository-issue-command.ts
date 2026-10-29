@@ -38,7 +38,10 @@ export function useRepositoryIssueCommand({
 
   useEffect(() => {
     let cancelled = false
-    let stopWaiting: (() => void) | null = null
+    let inFlight = false
+    let refused: string | null = null
+    // Running signals that land while a read is in flight would otherwise be missed.
+    let ranDuringRead = new Set<string>()
     updateIssueCommandDraft('')
     setHasSharedIssueCommand(false)
     setIssueCommandSaveError(null)
@@ -46,28 +49,24 @@ export function useRepositoryIssueCommand({
     setIssueCommandStoppedDistro(null)
     contentUnknownRef.current = true
     const load = (): void => {
+      inFlight = true
+      ranDuringRead = new Set()
       void readRuntimeIssueCommand(selectedHostId, repoId)
         .then((result) => {
+          inFlight = false
           if (cancelled) {
             return
           }
           if (result.status === 'error') {
-            const stopped = result.refusedWslDistro ?? null
+            refused = result.refusedWslDistro?.toLowerCase() ?? null
             setIssueCommandReadOnly(true)
-            setIssueCommandStoppedDistro(stopped)
-            const onDistroRunning = window.api.preflight?.onWslDistroRunning
-            if (stopped && typeof onDistroRunning === 'function') {
-              // Main signals once the distro runs; read the real command then.
-              stopWaiting = onDistroRunning((distro) => {
-                if (distro.toLowerCase() === stopped.toLowerCase()) {
-                  stopWaiting?.()
-                  stopWaiting = null
-                  load()
-                }
-              })
+            setIssueCommandStoppedDistro(result.refusedWslDistro ?? null)
+            if (refused && ranDuringRead.has(refused)) {
+              load()
             }
             return
           }
+          refused = null
           const localContent = result.localContent ?? ''
           contentUnknownRef.current = false
           setIssueCommandReadOnly(false)
@@ -77,6 +76,7 @@ export function useRepositoryIssueCommand({
           lastCommittedIssueCommandRef.current = localContent
         })
         .catch(() => {
+          inFlight = false
           if (cancelled) {
             return
           }
@@ -87,6 +87,20 @@ export function useRepositoryIssueCommand({
           lastCommittedIssueCommandRef.current = ''
         })
     }
+    // Subscribed before the read (#35812's pattern): main signals once a refusing distro runs.
+    const onDistroRunning = window.api.preflight?.onWslDistroRunning
+    const stopWaiting =
+      typeof onDistroRunning === 'function'
+        ? onDistroRunning((distro) => {
+            const key = distro.toLowerCase()
+            if (inFlight) {
+              ranDuringRead.add(key)
+            } else if (key === refused) {
+              refused = null
+              load()
+            }
+          })
+        : null
     load()
 
     return () => {

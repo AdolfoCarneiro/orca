@@ -8130,7 +8130,8 @@
           "issueCommandDescription": "Anulación opcional. Usa <artifactUrl>{{artifact_url}}</artifactUrl> para la URL del Issue o PR vinculado.",
           "issueCommandSharedDefault": "Déjalo en blanco para usar el valor predeterminado del repositorio desde <yaml>orca.yaml</yaml>.",
           "issueCommandOptionalDefault": "Déjalo en blanco para usar el valor predeterminado del repositorio desde <yaml>orca.yaml</yaml>, si existe.",
-          "commandSourceDescription": "Cuando existen tanto <yaml>orca.yaml</yaml> como comandos locales, elige cuáles se ejecutan."
+          "commandSourceDescription": "Cuando existen tanto <yaml>orca.yaml</yaml> como comandos locales, elige cuáles se ejecutan.",
+          "issueCommandWslStopped": "La distribución de WSL {{distro}} está detenida. Abre una terminal en ella para ver o editar este comando."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "Usar {{value0}} como color del repositorio",

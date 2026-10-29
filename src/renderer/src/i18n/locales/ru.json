@@ -8731,7 +8731,8 @@
           "issueCommandDescription": "Необязательное переопределение. Используйте <artifactUrl>{{artifact_url}}</artifactUrl> для URL связанной задачи или PR.",
           "issueCommandSharedDefault": "Оставьте пустым, чтобы использовать настройки репозитория из <yaml>orca.yaml</yaml>.",
           "issueCommandOptionalDefault": "Оставьте пустым, чтобы использовать настройки репозитория из <yaml>orca.yaml</yaml>, если они заданы.",
-          "commandSourceDescription": "Если есть и <yaml>orca.yaml</yaml>, и локальные команды, выберите, что запускать."
+          "commandSourceDescription": "Если есть и <yaml>orca.yaml</yaml>, и локальные команды, выберите, что запускать.",
+          "issueCommandWslStopped": "Дистрибутив WSL {{distro}} остановлен. Откройте в нём терминал, чтобы просмотреть или изменить эту команду."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "Использовать цвет репозитория {{value0}}",

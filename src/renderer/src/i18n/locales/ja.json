@@ -7883,7 +7883,8 @@
           "issueCommandDescription": "任意の上書きです。リンクされた Issue または PR の URL には <artifactUrl>{{artifact_url}}</artifactUrl> を使用します。",
           "issueCommandSharedDefault": "空欄のままにすると、<yaml>orca.yaml</yaml> のリポジトリのデフォルトを使用します。",
           "issueCommandOptionalDefault": "空欄のままにすると、<yaml>orca.yaml</yaml> にリポジトリのデフォルトがあればそれを使用します。",
-          "commandSourceDescription": "<yaml>orca.yaml</yaml> とローカルの両方にコマンドがある場合は、どちらを実行するかを選択します。"
+          "commandSourceDescription": "<yaml>orca.yaml</yaml> とローカルの両方にコマンドがある場合は、どちらを実行するかを選択します。",
+          "issueCommandWslStopped": "WSL ディストリビューション {{distro}} は停止しています。このコマンドを表示または編集するには、そこでターミナルを開いてください。"
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "{{value0}} リポジトリカラーを使用する",

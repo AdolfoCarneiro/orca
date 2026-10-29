@@ -4641,7 +4641,8 @@
           "issueCommandDescription": "Substituição opcional. Use <artifactUrl>{{artifact_url}}</artifactUrl> para a URL da issue ou do PR vinculado.",
           "issueCommandSharedDefault": "Deixe em branco para usar o padrão do repositório de <yaml>orca.yaml</yaml>.",
           "issueCommandOptionalDefault": "Deixe em branco para usar o padrão do repositório de <yaml>orca.yaml</yaml>, quando existir.",
-          "commandSourceDescription": "Quando houver comandos em <yaml>orca.yaml</yaml> e comandos locais, escolha quais executar."
+          "commandSourceDescription": "Quando houver comandos em <yaml>orca.yaml</yaml> e comandos locais, escolha quais executar.",
+          "issueCommandWslStopped": "A distribuição WSL {{distro}} está parada. Abra um terminal nela para ver ou editar este comando."
         },
         "RepositoryPane": {
           "15a99d9b9f": "Caminhos relativos são resolvidos a partir da raiz deste projeto.",

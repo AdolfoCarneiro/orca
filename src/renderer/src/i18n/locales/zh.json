@@ -7846,7 +7846,8 @@
           "issueCommandDescription": "可选覆盖。使用 <artifactUrl>{{artifact_url}}</artifactUrl> 表示关联议题或 PR 的 URL。",
           "issueCommandSharedDefault": "留空则使用 <yaml>orca.yaml</yaml> 中的仓库默认值。",
           "issueCommandOptionalDefault": "留空则使用 <yaml>orca.yaml</yaml> 中的仓库默认值（如果有）。",
-          "commandSourceDescription": "当 <yaml>orca.yaml</yaml> 和本地命令同时存在时，选择要运行哪些命令。"
+          "commandSourceDescription": "当 <yaml>orca.yaml</yaml> 和本地命令同时存在时，选择要运行哪些命令。",
+          "issueCommandWslStopped": "WSL 发行版 {{distro}} 已停止。请在其中打开终端以查看或编辑此命令。"
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "使用 {{value0}} 仓库颜色",

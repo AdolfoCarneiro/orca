@@ -8358,7 +8358,8 @@
           "issueCommandDescription": "Remplacement facultatif. Utilisez <artifactUrl>{{artifact_url}}</artifactUrl> pour l'URL de l'issue ou de la pull request liée.",
           "issueCommandSharedDefault": "Laissez vide pour utiliser la valeur par défaut du dépôt définie dans <yaml>orca.yaml</yaml>.",
           "issueCommandOptionalDefault": "Laissez vide pour utiliser la valeur par défaut du dépôt définie dans <yaml>orca.yaml</yaml>, s'il en existe une.",
-          "commandSourceDescription": "Lorsque <yaml>orca.yaml</yaml> et des commandes locales existent tous les deux, choisissez celles qui s'exécutent."
+          "commandSourceDescription": "Lorsque <yaml>orca.yaml</yaml> et des commandes locales existent tous les deux, choisissez celles qui s'exécutent.",
+          "issueCommandWslStopped": "La distribution WSL {{distro}} est arrêtée. Ouvrez-y un terminal pour afficher ou modifier cette commande."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "Utiliser la couleur de dépôt {{value0}}",

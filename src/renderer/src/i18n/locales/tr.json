@@ -8425,7 +8425,8 @@
           "issueCommandDescription": "İsteğe bağlı geçersiz kılma. Bağlı sorunun veya PR'ın URL'si için <artifactUrl>{{artifact_url}}</artifactUrl> kullanın.",
           "issueCommandSharedDefault": "<yaml>orca.yaml</yaml> dosyasındaki repo varsayılanını kullanmak için boş bırakın.",
           "issueCommandOptionalDefault": "Varsa <yaml>orca.yaml</yaml> dosyasındaki repo varsayılanını kullanmak için boş bırakın.",
-          "commandSourceDescription": "Hem <yaml>orca.yaml</yaml> hem de yerel komutlar varsa hangilerinin çalışacağını seçin."
+          "commandSourceDescription": "Hem <yaml>orca.yaml</yaml> hem de yerel komutlar varsa hangilerinin çalışacağını seçin.",
+          "issueCommandWslStopped": "WSL dağıtımı {{distro}} durduruldu. Bu komutu görmek veya düzenlemek için içinde bir terminal açın."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "{{value0}} reposunun rengini kullan",

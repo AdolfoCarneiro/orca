@@ -33,6 +33,12 @@ const READ = {
   source: 'local' as const
 }
 
+function emitDistroRunning(distro: string): void {
+  for (const listener of distroRunningListeners) {
+    listener(distro)
+  }
+}
+
 function render() {
   return renderHook(() =>
     useRepositoryIssueCommand({
@@ -81,22 +87,42 @@ describe('issue command editor while its WSL distro is stopped (E9)', () => {
   it('reads the real command once the distro runs, then saves edits as a user act', async () => {
     client.read.mockResolvedValueOnce(REFUSED).mockResolvedValueOnce(READ)
     const hook = render()
-    await vi.waitFor(() => expect(distroRunningListeners.size).toBe(1))
+    await vi.waitFor(() => expect(hook.result.current.issueCommandStoppedDistro).toBe('Ubuntu'))
 
-    act(() => {
-      for (const listener of distroRunningListeners) {
-        listener('ubuntu')
-      }
-    })
+    act(() => emitDistroRunning('ubuntu'))
 
     await vi.waitFor(() => expect(hook.result.current.issueCommandDraft).toBe('my private command'))
     expect(hook.result.current.issueCommandReadOnly).toBe(false)
     expect(hook.result.current.issueCommandStoppedDistro).toBeNull()
-    expect(distroRunningListeners.size).toBe(0)
+    expect(client.read).toHaveBeenCalledTimes(2)
 
     act(() => hook.result.current.setIssueCommandDraft('edited'))
     await act(async () => hook.result.current.commitIssueCommand())
     expect(client.write).toHaveBeenCalledWith('local', 'repo-1', 'edited', { wakeWslDistro: true })
+  })
+
+  it('re-reads when the distro started while the refused read was still in flight', async () => {
+    let answer: (value: typeof REFUSED) => void = () => {}
+    client.read
+      .mockReturnValueOnce(new Promise((resolve) => (answer = resolve)))
+      .mockResolvedValueOnce(READ)
+    const hook = render()
+
+    act(() => emitDistroRunning('Ubuntu'))
+    await act(async () => answer(REFUSED))
+
+    await vi.waitFor(() => expect(hook.result.current.issueCommandDraft).toBe('my private command'))
+    expect(client.read).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores other distros', async () => {
+    client.read.mockResolvedValue(REFUSED)
+    const hook = render()
+    await vi.waitFor(() => expect(hook.result.current.issueCommandStoppedDistro).toBe('Ubuntu'))
+
+    act(() => emitDistroRunning('Debian'))
+
+    expect(client.read).toHaveBeenCalledTimes(1)
   })
 
   it('stops waiting for the distro when the editor unmounts', async () => {
