@@ -118,19 +118,21 @@ export function AgentLaunchSetupButton({
         sticky="always"
         align="start"
         sideOffset={6}
-        className="w-96 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) overflow-y-auto scrollbar-sleek"
+        className="flex w-96 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) flex-col"
         onClick={(event) => event.stopPropagation()}
       >
-        <AgentLaunchSetupPanel
-          key={`${entry.ownerKey}:${entry.agent}`}
-          entry={entry}
-          initial={initial}
-          disabled={disabled}
-          onUse={(draft) => {
-            onUse(draft)
-            changeOpen(false)
-          }}
-        />
+        <div className="min-h-0 overflow-y-auto scrollbar-sleek">
+          <AgentLaunchSetupPanel
+            key={`${entry.ownerKey}:${entry.agent}`}
+            entry={entry}
+            initial={initial}
+            disabled={disabled}
+            onUse={(draft) => {
+              onUse(draft)
+              changeOpen(false)
+            }}
+          />
+        </div>
       </PopoverContent>
     </Popover>
   )
