@@ -149,7 +149,7 @@ describe('forward history SQL read budget', () => {
     expect(unlimited.ok && unlimited.rows).toHaveLength(6)
   })
 
-  it('reports a sequence gap when the next page reaches it', async () => {
+  it('advances forward pages across retired row sequences', async () => {
     const journal = await seedJournal(6)
     const { db } = openTestJournalHostDatabase(root!)
     deleteTestJournalRow(db, identity.sessionId, 4)
@@ -170,7 +170,7 @@ describe('forward history SQL read budget', () => {
         cursor: first.page.window.nextCursor,
         limit: 2
       })
-    ).toMatchObject({ ok: false, reset: 'journal_gap' })
+    ).toMatchObject({ ok: true, page: { hasNewer: true, window: { nextCursor: { sequence: 6 } } } })
   })
 
   it.each(['{', '{"v":9999}'])(

@@ -1,6 +1,7 @@
 // Pace closed-chat replay between pages; live chats checkpoint through their own write queue.
 
 import type { JournalHostDatabase } from './journal-host-database'
+import { compactJournalSession, reclaimJournalPages } from './journal-compaction'
 import { startJournalRowFold } from './journal-open'
 import { createJournalReducerState } from './journal-reducer'
 import { readJournalRowsAfter } from './journal-row-table'
@@ -24,7 +25,9 @@ export type JournalStateBackfillRun = {
 const PAGE_ROWS = 32
 const SLICE_MS = 25
 
-export async function backfillJournalState(run: JournalStateBackfillRun): Promise<void> {
+export async function backfillJournalState(
+  run: JournalStateBackfillRun
+): Promise<{ deleted: number } | null> {
   const now = run.now ?? Date.now
   const rest =
     run.rest ??
@@ -44,20 +47,17 @@ export async function backfillJournalState(run: JournalStateBackfillRun): Promis
   }
   const database = current()
   if (!database) {
-    return
+    return null
   }
   sweepJournalSavedState(database)
   const sessions = database.db
     .prepare(`SELECT s.session_id, s.epoch,
       (SELECT MAX(r.seq) FROM journal_rows r
         WHERE r.session_id = s.session_id AND r.epoch = s.epoch) AS last_seq
-    FROM journal_sessions s
-    LEFT JOIN journal_state c ON c.session_id = s.session_id AND c.epoch = s.epoch
-    WHERE c.through_seq IS NULL OR c.through_seq < (
-      SELECT MAX(r.seq) FROM journal_rows r
-        WHERE r.session_id = s.session_id AND r.epoch = s.epoch
-    ) ORDER BY s.session_id`)
+    FROM journal_sessions s ORDER BY s.session_id`)
     .all()
+  let deleted = 0
+  let failed = false
   for (const session of sessions) {
     const { session_id: sessionId, epoch, last_seq: lastSequence } = session
     if (
@@ -69,24 +69,22 @@ export async function backfillJournalState(run: JournalStateBackfillRun): Promis
     }
     try {
       if (!(await pace())) {
-        return
+        return null
       }
-      if (await run.checkpointOpen(sessionId)) {
-        continue
-      }
+      const checkpointed = await run.checkpointOpen(sessionId)
       const opened = current()
       if (!opened) {
-        return
+        return null
       }
       const state =
         readJournalSavedState(opened.db, sessionId, epoch) ??
         createJournalReducerState(sessionId, epoch)
       const fold = startJournalRowFold({ sessionId, epoch }, state)
       let afterSequence = state.lastSequence === 0 ? Number.MIN_SAFE_INTEGER : state.lastSequence
-      while (afterSequence < lastSequence) {
+      while (!checkpointed && afterSequence < lastSequence) {
         const next = await pace()
         if (!next) {
-          return
+          return null
         }
         const page = readJournalRowsAfter(
           next.db,
@@ -113,9 +111,14 @@ export async function backfillJournalState(run: JournalStateBackfillRun): Promis
       const loaded = fold.finish()
       const target = await pace()
       if (!target) {
-        return
+        return null
       }
-      if (!loaded.damage && !loaded.newer && loaded.state.lastSequence === lastSequence) {
+      if (
+        !checkpointed &&
+        !loaded.damage &&
+        !loaded.newer &&
+        loaded.state.lastSequence === lastSequence
+      ) {
         // Opening meanwhile is safe: publication can only advance the same immutable prefix.
         if (!(await run.checkpointOpen(sessionId))) {
           await new JournalWriteQueue(sessionId).serialize(() =>
@@ -124,9 +127,25 @@ export async function backfillJournalState(run: JournalStateBackfillRun): Promis
         }
       }
     } catch (error) {
+      failed = true
       logJournalCheckpointFailure(sessionId, error)
     }
+    const target = await pace()
+    if (!target) {
+      return null
+    }
+    const through = target.db
+      .prepare('SELECT through_seq FROM journal_state WHERE session_id = ? AND epoch = ?')
+      .get(sessionId, epoch)?.through_seq
+    failed ||= typeof through !== 'number' || through < lastSequence
+    // Deletion failures escape the checkpoint catch and still get the scheduler's later wake.
+    const removed = await compactJournalSession(target, sessionId, epoch, pace)
+    if (removed === null) {
+      return null
+    }
+    deleted += removed
   }
+  return (await reclaimJournalPages(pace)) && !failed ? { deleted } : null
 }
 
 export function startJournalStateBackfill(

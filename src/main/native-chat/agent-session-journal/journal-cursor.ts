@@ -40,21 +40,6 @@ export function resolveJournalResume(
   return { ok: true, afterSequence: cursor.sequence }
 }
 
-/** Gaps invalidate replay; never render a partial timeline. */
-export function findSequenceGap(
-  sequences: readonly number[],
-  expectedFirst: number
-): { gapAt: number } | null {
-  let expected = expectedFirst
-  for (const sequence of sequences) {
-    if (sequence !== expected) {
-      return { gapAt: expected }
-    }
-    expected += 1
-  }
-  return null
-}
-
 export function readJournalSince(
   source: {
     state: { epoch: string; lastSequence: number; oldestSequence: number }

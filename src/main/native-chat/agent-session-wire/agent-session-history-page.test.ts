@@ -480,8 +480,12 @@ describe('projectJournalBatch', () => {
     expect(tail.page.items.map((entry) => entry.body)).toEqual([body('one'), body('two')])
   })
 
-  it('reports a hole in the row sequence as journal_gap', async () => {
-    await appendItems(3)
+  it('projects the same items across omitted superseded rows', async () => {
+    await appendItems(1)
+    await journal.appendItem(item(1), body('revised'), {
+      fence: 1,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+    })
     const since = journal.readSince({ epoch: journal.epoch, sequence: 0 })
     if (!since.ok) {
       throw new Error(`expected rows, got reset ${since.reset}`)
@@ -489,7 +493,9 @@ describe('projectJournalBatch', () => {
     const withHole = since.rows.filter((row) => row.seq !== since.rows[1]?.seq)
     expect(
       projectJournalBatch({ rows: withHole, snapshot: journal.snapshot(), afterSequence: 0 })
-    ).toEqual({ ok: false, reset: 'journal_gap' })
+    ).toEqual(
+      projectJournalBatch({ rows: since.rows, snapshot: journal.snapshot(), afterSequence: 0 })
+    )
   })
 
   it('publishes touched items at their current reduced state, not as a delta', async () => {

@@ -330,7 +330,7 @@ it('keeps newer checkpoints across stale publishes and failures and clears them 
   expect(database.db.prepare('SELECT 1 FROM journal_items').get()).toBeUndefined()
 })
 
-it('backfills a closed chat without changing rows and sweeps retired epochs', async () => {
+it('backfills and compacts a closed chat and sweeps retired epochs', async () => {
   const rows: JournalRow[] = [
     { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }
   ]
@@ -343,8 +343,7 @@ it('backfills a closed chat without changing rows and sweeps retired epochs', as
       body: text(`revision ${index}`)
     })
   }
-  write(rows)
-  const before = liveTestJournalRows(database.db, identity.sessionId)
+  const before = write(rows)
   let clock = 0
   const rest = vi.fn(async () => {})
   await backfillJournalState({
@@ -357,9 +356,11 @@ it('backfills a closed chat without changing rows and sweeps retired epochs', as
   expect(rest).toHaveBeenCalled()
   expectSameState(
     requireState(readJournalSavedState(database.db, identity.sessionId, epoch)),
-    requireState(replayJournal(database.db, identity.sessionId)?.state)
+    before
   )
-  expect(liveTestJournalRows(database.db, identity.sessionId)).toStrictEqual(before)
+  expect(liveTestJournalRows(database.db, identity.sessionId).map((row) => row.seq)).toEqual([
+    1, 2, 71
+  ])
   // An older writer can switch epochs without knowing about checkpoints.
   publishTestJournalEpoch(database.db, identity.sessionId, 'older-writer-epoch')
   sweepJournalSavedState(database)

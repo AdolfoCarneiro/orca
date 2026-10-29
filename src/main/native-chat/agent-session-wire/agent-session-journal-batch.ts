@@ -9,7 +9,6 @@ import type {
 } from '../../../shared/agent-session-journal-types'
 import type { AgentSessionJournalBatch } from '../../../shared/agent-session-wire'
 import { isStructuredAgentSessionStopNote } from './structured-agent-session-command-turn'
-import { findSequenceGap } from '../agent-session-journal/journal-cursor'
 import {
   isJournalStopOrResumeRow,
   type JournalRow
@@ -17,7 +16,6 @@ import {
 
 export type JournalBatchProjection =
   | { ok: true; batch: AgentSessionJournalBatch }
-  /** Reload on gaps instead of rendering partial history. */
   | { ok: false; reset: 'journal_gap' }
 
 export function projectJournalBatch(input: {
@@ -26,13 +24,7 @@ export function projectJournalBatch(input: {
   afterSequence: number
   canonicalItemId?: (itemId: string) => string
 }): JournalBatchProjection {
-  const gap = findSequenceGap(
-    input.rows.map((row) => row.seq),
-    input.afterSequence + 1
-  )
-  if (gap) {
-    return { ok: false, reset: 'journal_gap' }
-  }
+  // Superseded prefix rows may be absent; retained current touches project from the snapshot.
   const aliases = submissionAliases(input.snapshot.submissions)
   const touchedItemIds = new Set<string>()
   const touchedClientMessageIds = new Set<string>()
