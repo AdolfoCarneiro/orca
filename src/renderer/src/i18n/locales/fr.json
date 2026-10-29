@@ -619,6 +619,30 @@
         "conflictingOverrides": "Des raccourcis personnalisés en conflit ont été ignorés : {{actions}}.",
         "readFailed": "Impossible de lire le fichier de raccourcis clavier : {{reason}}"
       }
+    },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "L’URL du proxy est trop longue.",
+        "invalid": "Saisissez une URL de proxy valide.",
+        "unsupportedProtocol": "Utilisez une URL de proxy http, https, socks, socks4 ou socks5.",
+        "missingHost": "L’URL du proxy doit inclure un hôte."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "Précision maximale pour 25 langues européennes. Ponctuation, majuscules et minuscules, et horodatage par mot.",
+        "parakeetV2": "Anglais uniquement. Plus rapide que v3 avec une précision similaire. Ponctuation, majuscules et minuscules.",
+        "zipformerBilingual": "Chinois + anglais avec alternance de langues. Streaming en temps réel à faible latence.",
+        "paraformerBilingual": "Chinois (mandarin + dialectes) + anglais. Performant avec les accents et les variantes régionales du chinois.",
+        "zipformerStreamingEn": "Anglais uniquement. Modèle léger de 20 millions de paramètres, bon équilibre entre vitesse et taille.",
+        "zipformerStreamingZh": "Chinois uniquement. Modèle ultraléger de 14 millions de paramètres, idéal pour les appareils aux ressources limitées.",
+        "zipformerStreamingKo": "Coréen uniquement. Streaming en temps réel à faible latence.",
+        "parakeetJa": "Japonais uniquement. Entraîné sur plus de 35 000 heures de parole naturelle. Ponctuation incluse.",
+        "whisperTiny": "Plus de 90 langues. Moins précis que Parakeet, mais offre la plus large couverture linguistique.",
+        "senseVoice": "Chinois, anglais, japonais, coréen et cantonais avec détection automatique de la langue.",
+        "gpt4oMiniTranscribe": "Transcription dans le cloud avec une grande précision et un faible coût. Nécessite une clé API OpenAI.",
+        "gpt4oTranscribe": "Transcription dans le cloud avec une précision supérieure. Nécessite une clé API OpenAI."
+      }
     }
   },
   "menu": {
@@ -19729,6 +19753,27 @@
         "noLiveTerminal": "Aucun terminal actif n'est disponible.",
         "commandCanceled": "La commande de Chat UI a été annulée, car la zone de saisie a été fermée.",
         "commandRejected": "Le terminal n'a pas accepté la commande."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "Cette option ne peut être définie qu’au démarrage de la session.",
+        "modelRejected": "Claude a conservé le modèle actuel.",
+        "modelUnverified": "Impossible de vérifier le changement de modèle ; ouvrez le terminal pour le vérifier.",
+        "unknownOption": "Option de session inconnue : {{id}}",
+        "agentPickerOnly": "Cette option doit être modifiée dans le sélecteur d’agents.",
+        "toggleBaselineUnknown": "La valeur actuelle est inconnue ; utilisez plutôt l’action « Basculer ».",
+        "afterStartOnly": "Cette option n’est disponible qu’après le démarrage de la session.",
+        "valueRequired": "Cette option nécessite une valeur.",
+        "toggleValueKnown": "Cette option a une valeur connue ; choisissez « Activé » ou « Désactivé »."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "Décrivez l’objectif après /goal.",
+        "commandUnavailable": "/{{name}} n’est pas disponible dans les sessions de chat. Utilisez le menu des commandes / pour voir les commandes disponibles.",
+        "commandTakesNoArguments": "Utilisez /{{name}} sans arguments.",
+        "commandUnsupportedByHost": "/{{name}} n’est pas pris en charge par cet hôte de chat.",
+        "modelPickerFailed": "Impossible d’ouvrir le sélecteur de modèle.",
+        "effortPickerFailed": "Impossible d’ouvrir le sélecteur d’effort.",
+        "modelApplyFailed": "Impossible d’appliquer le modèle {{value}}.",
+        "effortApplyFailed": "Impossible d’appliquer l’effort {{value}}."
       }
     },
     "tab": {
@@ -22454,6 +22499,22 @@
         "error": "La configuration du projet a échoué sur l’hôte sélectionné pour l’automatisation.",
         "unsupported": "L’hôte sélectionné pour l’automatisation ne prend pas en charge ce projet."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "Les arguments supplémentaires ne doivent pas dépasser 4 Ko.",
+        "controlCharacters": "Les arguments supplémentaires ne peuvent pas contenir de caractères de contrôle ni de sauts de ligne.",
+        "invalid": "Les arguments supplémentaires sont invalides : {{detail}}",
+        "shellSyntax": "{{text}} utilise une syntaxe shell interdite dans les arguments supplémentaires.",
+        "terminator": "« -- » n’est pas autorisé dans les arguments supplémentaires.",
+        "notAnOption": "« {{token}} » n’est pas une option. Les arguments supplémentaires de {{agent}} acceptent uniquement : {{allowed}}.",
+        "optionNotAllowed": "« {{option}} » n’est pas autorisé dans les arguments supplémentaires de {{agent}}. Options autorisées : {{allowed}}.",
+        "missingValue": "« {{option}} » nécessite une valeur.",
+        "valueNotAllowed": "« {{option}} {{value}} » n’est pas autorisé. Les arguments supplémentaires de {{agent}} acceptent uniquement « {{option}} {{prefix}}<level> ».",
+        "modelRepeated": "Les arguments supplémentaires définissent le modèle plusieurs fois.",
+        "effortRepeated": "Les arguments supplémentaires définissent l’effort plusieurs fois."
+      },
+      "hostUpdateRequired": "Mettez à jour Orca sur cet hôte pour utiliser des arguments supplémentaires."
     }
   },
   "codeHost": {
@@ -22623,6 +22684,12 @@
       "tile12": {
         "title": "PDF, images, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Environnement Codex",
+      "packageManager": "gestionnaire de packages"
     }
   },
   "ephemeralVm": {

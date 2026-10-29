@@ -437,6 +437,30 @@
         "conflictingOverrides": "Se ignoraron los atajos personalizados en conflicto: {{actions}}.",
         "readFailed": "No se pudo leer el archivo de combinaciones de teclas: {{reason}}"
       }
+    },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "La URL de proxy es demasiado larga.",
+        "invalid": "Introduce una URL de proxy válida.",
+        "unsupportedProtocol": "Usa una URL de proxy http, https, socks, socks4 o socks5.",
+        "missingHost": "La URL de proxy debe incluir un host."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "Máxima precisión para 25 idiomas europeos. Puntuación, mayúsculas y minúsculas y marcas de tiempo por palabra.",
+        "parakeetV2": "Solo inglés. Más rápido que v3 con una precisión similar. Puntuación y mayúsculas y minúsculas.",
+        "zipformerBilingual": "Chino + inglés con alternancia de idiomas. Streaming en tiempo real de baja latencia.",
+        "paraformerBilingual": "Chino (mandarín + dialectos) + inglés. Buen rendimiento con acentos y variantes regionales del chino.",
+        "zipformerStreamingEn": "Solo inglés. Modelo ligero de 20 millones de parámetros, con buen equilibrio entre velocidad y tamaño.",
+        "zipformerStreamingZh": "Solo chino. Modelo ultraligero de 14 millones de parámetros, ideal para dispositivos con pocos recursos.",
+        "zipformerStreamingKo": "Solo coreano. Streaming en tiempo real de baja latencia.",
+        "parakeetJa": "Solo japonés. Entrenado con más de 35 000 horas de habla natural. Incluye puntuación.",
+        "whisperTiny": "Más de 90 idiomas. Menor precisión que Parakeet, pero con la mayor cobertura de idiomas.",
+        "senseVoice": "Chino, inglés, japonés, coreano y cantonés con detección automática de idioma.",
+        "gpt4oMiniTranscribe": "Transcripción en la nube con alta precisión y bajo coste. Requiere una clave API de OpenAI.",
+        "gpt4oTranscribe": "Transcripción en la nube con mayor precisión. Requiere una clave API de OpenAI."
+      }
     }
   },
   "menu": {
@@ -19547,6 +19571,27 @@
         "noLiveTerminal": "No hay ningún terminal activo disponible.",
         "commandCanceled": "Se canceló el comando de Chat UI porque se cerró el editor de mensajes.",
         "commandRejected": "El terminal no aceptó el comando."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "Esta opción solo se puede configurar al iniciar la sesión.",
+        "modelRejected": "Claude mantuvo el modelo actual.",
+        "modelUnverified": "No se pudo verificar el cambio de modelo; abre la terminal para comprobarlo.",
+        "unknownOption": "Opción de sesión desconocida: {{id}}",
+        "agentPickerOnly": "Esta opción debe cambiarse en el selector del agente.",
+        "toggleBaselineUnknown": "Se desconoce el valor actual; usa la acción «Alternar».",
+        "afterStartOnly": "Esta opción solo está disponible después de iniciar la sesión.",
+        "valueRequired": "Esta opción requiere un valor.",
+        "toggleValueKnown": "Esta opción tiene un valor conocido; elige «Activado» o «Desactivado»."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "Describe el objetivo después de /goal.",
+        "commandUnavailable": "/{{name}} no está disponible en las sesiones de chat. Usa el menú de comandos / para ver los comandos disponibles.",
+        "commandTakesNoArguments": "Usa /{{name}} sin argumentos.",
+        "commandUnsupportedByHost": "Este host de chat no admite /{{name}}.",
+        "modelPickerFailed": "No se pudo abrir el selector de modelo.",
+        "effortPickerFailed": "No se pudo abrir el selector de esfuerzo.",
+        "modelApplyFailed": "No se pudo aplicar el modelo {{value}}.",
+        "effortApplyFailed": "No se pudo aplicar el esfuerzo {{value}}."
       }
     },
     "tab": {
@@ -22454,6 +22499,22 @@
         "error": "La configuración del proyecto falló en el host seleccionado para la automatización.",
         "unsupported": "El host seleccionado para la automatización no admite este proyecto."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "Los argumentos adicionales no pueden superar los 4 KB.",
+        "controlCharacters": "Los argumentos adicionales no pueden contener caracteres de control ni saltos de línea.",
+        "invalid": "Los argumentos adicionales no son válidos: {{detail}}",
+        "shellSyntax": "{{text}} usa sintaxis de shell no permitida en los argumentos adicionales.",
+        "terminator": "No se permite «--» en los argumentos adicionales.",
+        "notAnOption": "«{{token}}» no es una opción. Los argumentos adicionales de {{agent}} solo aceptan: {{allowed}}.",
+        "optionNotAllowed": "No se permite «{{option}}» en los argumentos adicionales de {{agent}}. Opciones permitidas: {{allowed}}.",
+        "missingValue": "«{{option}}» necesita un valor.",
+        "valueNotAllowed": "No se permite «{{option}} {{value}}». Los argumentos adicionales de {{agent}} solo aceptan «{{option}} {{prefix}}<level>».",
+        "modelRepeated": "Los argumentos adicionales establecen el modelo más de una vez.",
+        "effortRepeated": "Los argumentos adicionales establecen el esfuerzo más de una vez."
+      },
+      "hostUpdateRequired": "Actualiza Orca en este host para usar argumentos adicionales."
     }
   },
   "codeHost": {
@@ -22623,6 +22684,12 @@
       "tile12": {
         "title": "PDF, imágenes, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Entorno de Codex",
+      "packageManager": "gestor de paquetes"
     }
   },
   "ephemeralVm": {

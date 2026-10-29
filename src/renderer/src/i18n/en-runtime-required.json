@@ -137,6 +137,9 @@
           "uncheckedHostCount_one": "External automation managers on {{count}} host could not be checked.",
           "uncheckedHostCount_other": "External automation managers on {{count}} hosts could not be checked."
         },
+        "extraAgentArgs": {
+          "unsupported": "Extra arguments aren't supported for this agent yet."
+        },
         "runHistory": {
           "occurrencesCount_one": "{{count}} time",
           "occurrencesCount_other": "{{count}} times",
@@ -1189,6 +1192,22 @@
     }
   },
   "automations": {
+    "extraAgentArgs": {
+      "errors": {
+        "controlCharacters": "Extra arguments cannot contain control characters or line breaks.",
+        "effortRepeated": "Extra arguments set the effort more than once.",
+        "invalid": "Extra arguments are invalid: {{detail}}",
+        "missingValue": "\"{{option}}\" needs a value.",
+        "modelRepeated": "Extra arguments set the model more than once.",
+        "notAnOption": "\"{{token}}\" isn't an option. Extra arguments for {{agent}} accept only: {{allowed}}.",
+        "optionNotAllowed": "\"{{option}}\" isn't allowed in extra arguments for {{agent}}. Allowed: {{allowed}}.",
+        "shellSyntax": "{{text}} uses shell syntax that extra arguments don't allow.",
+        "terminator": "\"--\" isn't allowed in extra arguments.",
+        "tooLarge": "Extra arguments must be 4 KB or less.",
+        "valueNotAllowed": "\"{{option}} {{value}}\" isn't allowed. {{agent}} extra arguments accept only \"{{option}} {{prefix}}<level>\"."
+      },
+      "hostUpdateRequired": "Update Orca on this host to use extra arguments."
+    },
     "runFailures": {
       "agentNeverStarted": "Automation agent never started after the prompt was submitted.",
       "agentNoCompletion": "Automation agent did not report completion.",
@@ -1384,6 +1403,16 @@
       "composer": {
         "placeholder": "Ask anything, @ to mention files, / for commands"
       },
+      "composerErrors": {
+        "commandTakesNoArguments": "Use /{{name}} without arguments.",
+        "commandUnavailable": "/{{name}} is not available in chat sessions. Use the slash menu to see available commands.",
+        "commandUnsupportedByHost": "/{{name}} is not supported by this chat host.",
+        "effortApplyFailed": "Could not apply effort {{value}}.",
+        "effortPickerFailed": "Could not open the effort picker.",
+        "goalObjectiveMissing": "Describe the goal after /goal.",
+        "modelApplyFailed": "Could not apply model {{value}}.",
+        "modelPickerFailed": "Could not open the model picker."
+      },
       "failureWords": {
         "accountSwitchInProgress": "{{agent}}'s setup is changing on this host. Try again after it finishes.",
         "agentCommandNotRunnable": "{{agent}}'s Command in Settings → Agents must be a program path or name Orca can find, with no arguments or variables. Change it or reset it.",
@@ -1537,6 +1566,17 @@
         "resolved": "Resolved",
         "resolver": "Answered on {{device}}",
         "unavailable": "Selected answer unavailable"
+      },
+      "sessionOptionErrors": {
+        "afterStartOnly": "This option is only available after the session starts.",
+        "agentPickerOnly": "This option must be changed in the agent picker.",
+        "modelRejected": "Claude kept the current model.",
+        "modelUnverified": "Could not verify the model change; open the terminal to check.",
+        "startOnly": "This option can only be set when the session starts.",
+        "toggleBaselineUnknown": "Current value is unknown; use the Toggle action instead.",
+        "toggleValueKnown": "This option has a known value; choose On or Off instead.",
+        "unknownOption": "Unknown session option: {{id}}",
+        "valueRequired": "This option requires a value."
       },
       "state": {
         "empty": {
@@ -1884,6 +1924,14 @@
     "mcp": {
       "serverCount_one": "{{count}} server",
       "serverCount_other": "{{count}} servers"
+    },
+    "network": {
+      "proxyUrlErrors": {
+        "invalid": "Enter a valid proxy URL.",
+        "missingHost": "Proxy URL must include a host.",
+        "tooLong": "Proxy URL is too long.",
+        "unsupportedProtocol": "Use an http, https, socks, socks4, or socks5 proxy URL."
+      }
     },
     "shortcuts": {
       "diagnostics": {
