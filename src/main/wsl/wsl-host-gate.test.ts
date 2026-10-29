@@ -12,7 +12,11 @@ import {
   wslHostsWindowArguments,
   WSL_HOSTS_GATED_OFF_MESSAGE
 } from './wsl-host-gate'
-import { isWslHostsServing } from '../../shared/wsl-host-internal-gate'
+import {
+  ignoreInheritedWslHostsGateState,
+  isWslHostsServing,
+  WSL_HOSTS_GATE_STATE_ENV
+} from '../../shared/wsl-host-internal-gate'
 
 const wslHost = {
   orcadDeployment: { kind: 'wsl' as const, distro: 'Ubuntu', localPort: 41000, remotePort: 6768 }
@@ -159,6 +163,50 @@ describe('WSL hosts gate', () => {
 
       expect(isGatedOffWslHost(sshHost)).toBe(false)
       expect(() => assertWslHostReachable(sshHost)).not.toThrow()
+    })
+  })
+
+  describe('publishing the resolved state to child processes', () => {
+    it.each([
+      ['open', '1', facts(false, false), undefined],
+      ['serve-only', undefined, facts(true, false), undefined],
+      ['closed', undefined, facts(false, false), undefined],
+      ['closed', '1', facts(false, false), 'block' as const],
+      ['serve-only', '1', facts(false, true), 'block' as const]
+    ])('publishes %s', (state, gateEnv, saved, policy) => {
+      vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', gateEnv)
+      configureWslHostsGate({ ...saved, ...(policy ? { policy: () => policy } : {}) })
+
+      expect(process.env[WSL_HOSTS_GATE_STATE_ENV]).toBe(state)
+    })
+
+    // A relaunch or the updater's installer inherits the parent's value; main must recompute.
+    it.each([
+      ['closed', '1', 'open', true],
+      ['open', undefined, 'closed', false]
+    ])(
+      'ignores a stale inherited %s and overwrites it',
+      (inherited, gateEnv, recomputed, serving) => {
+        vi.stubEnv(WSL_HOSTS_GATE_STATE_ENV, inherited)
+        vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', gateEnv)
+        ignoreInheritedWslHostsGateState()
+        expect(isWslHostsServing(process.env)).toBe(gateEnv === '1')
+
+        configureWslHostsGate(facts(false, false))
+
+        expect(wslHostsGateState()).toBe(recomputed)
+        expect(process.env[WSL_HOSTS_GATE_STATE_ENV]).toBe(recomputed)
+        expect(wslHostsServing()).toBe(serving)
+        expect(isWslHostsServing(process.env)).toBe(serving)
+      }
+    )
+
+    it('withdraws it on reset', () => {
+      vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', '1')
+      configureWslHostsGate(facts(false, false))
+      resetWslHostsGateForTests()
+
+      expect(process.env[WSL_HOSTS_GATE_STATE_ENV]).toBeUndefined()
     })
   })
 })

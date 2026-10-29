@@ -4,6 +4,7 @@ import {
   isWslHostsInternalGateOpen,
   noteWslHostsPolicyBlocked,
   noteWslHostsServeOnly,
+  publishWslHostsGateState,
   resolveWslHostsGateState,
   type WslHostsGateState
 } from '../../shared/wsl-host-internal-gate'
@@ -58,22 +59,23 @@ export function configureWslHostsGate(facts: {
   policy?: () => WslHostsPolicyState
 }): void {
   notePolicy(readPolicy(facts.policy))
-  if (wslHostsGateOpen()) {
-    promoted = null
-    noteWslHostsServeOnly(false)
-    return
-  }
-  promoted = {
-    hasSavedWslHost: readFact(facts.hasSavedWslHost),
-    hasWslMoveCutover: readFact(facts.hasWslMoveCutover)
-  }
-  noteWslHostsServeOnly(wslHostsGateState() === 'serve-only')
+  promoted = wslHostsGateOpen()
+    ? null
+    : {
+        hasSavedWslHost: readFact(facts.hasSavedWslHost),
+        hasWslMoveCutover: readFact(facts.hasWslMoveCutover)
+      }
+  const state = wslHostsGateState()
+  noteWslHostsServeOnly(state === 'serve-only')
+  // Children inherit ORCA_INTERNAL_WSL_HOSTS even when a block closed it; this tells them the truth.
+  publishWslHostsGateState(process.env, state)
 }
 
 export function resetWslHostsGateForTests(): void {
   promoted = null
   noteWslHostsServeOnly(false)
   notePolicy(null)
+  publishWslHostsGateState(process.env, null)
 }
 
 export function wslHostsGateState(): WslHostsGateState {
