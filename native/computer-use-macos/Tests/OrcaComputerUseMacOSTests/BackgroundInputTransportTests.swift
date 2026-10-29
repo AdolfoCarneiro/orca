@@ -29,12 +29,16 @@ final class BackgroundInputTransportTests: XCTestCase {
     }
 
     func testTypedTextRidesTheKeyDownOnly() throws {
-        let events = try BackgroundInputTransport.textEvents("hé")
-        XCTAssertEqual(events.map { $0.type }, [.keyDown, .keyUp, .keyDown, .keyUp])
-        XCTAssertEqual([events[0], events[2]].map(unicodeString), ["h", "é"])
-        // Why: an unset string reads back as the layout's translation of key code 0, never the typed character.
-        XCTAssertNotEqual(unicodeString(events[1]), "h")
-        XCTAssertNotEqual(unicodeString(events[3]), "é")
+        let bareKeyUp = try XCTUnwrap(CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false))
+        for (text, characters) in [("hé", ["h", "é"]), ("🚀e\u{301}👩‍💻", ["🚀", "e\u{301}", "👩‍💻"])] {
+            let events = try BackgroundInputTransport.textEvents(text)
+            XCTAssertEqual(events.map { $0.type }, characters.flatMap { _ in [CGEventType.keyDown, .keyUp] })
+            XCTAssertEqual(events.filter { $0.type == .keyDown }.map(unicodeString), characters)
+            // Why: an unset payload reads back as the keyboard layout's translation of key code 0.
+            for event in events where event.type == .keyUp {
+                XCTAssertEqual(unicodeString(event), unicodeString(bareKeyUp))
+            }
+        }
     }
 
     private func windowLocation(of event: CGEvent) throws -> CGPoint {

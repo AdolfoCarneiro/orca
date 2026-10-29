@@ -183,10 +183,10 @@ public enum BackgroundInputTransport {
     /// Unicode text as key events; the string rides the key-down only, or Electron inserts it twice (#17942).
     public static func textEvents(_ text: String) throws -> [CGEvent] {
         var events: [CGEvent] = []
-        for unit in text.utf16 {
-            var char = unit
+        for character in text {
+            var units = Array(String(character).utf16)
             let down = try keyEvent(0, down: true, flags: [])
-            down.keyboardSetUnicodeString(stringLength: 1, unicodeString: &char)
+            down.keyboardSetUnicodeString(stringLength: units.count, unicodeString: &units)
             events.append(down)
             events.append(try keyEvent(0, down: false, flags: []))
         }
