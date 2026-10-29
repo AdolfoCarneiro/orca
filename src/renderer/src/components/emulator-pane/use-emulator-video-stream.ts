@@ -43,6 +43,7 @@ export function useEmulatorVideoStream(
   const onSizeRef = useRef(onSize)
   onSizeRef.current = onSize
 
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- cleanup() clears the first-frame timeout.
   useEffect(() => {
     const api = (window as { api?: { emulator?: EmulatorVideoApi } }).api?.emulator
     if (!enabled || !deviceId) {
