@@ -7,7 +7,13 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { emptyCrew, type OrchestrationCrewRow } from '../../../../shared/orchestration-crew'
 import { OrchestrationCrewPanel } from './OrchestrationCrewPanel'
 
-const rig = vi.hoisted(() => ({ snapshot: {}, open: vi.fn(), copy: vi.fn(), success: vi.fn() }))
+const rig = vi.hoisted(() => ({
+  snapshot: {},
+  open: vi.fn(),
+  copy: vi.fn(),
+  success: vi.fn(),
+  mention: vi.fn()
+}))
 vi.mock('../native-chat/use-orchestration-crew', () => ({
   useOrchestrationCrew: () => rig.snapshot
 }))
@@ -40,9 +46,14 @@ function mount(row = worker) {
     configurable: true,
     value: { ui: { writeTerminalClipboardText: rig.copy } }
   })
-  render(
+  return render(
     <TooltipProvider>
-      <OrchestrationCrewPanel target={host} party="term_coordinator" />
+      <OrchestrationCrewPanel
+        target={host}
+        party="term_coordinator"
+        canMention={false}
+        mention={rig.mention}
+      />
     </TooltipProvider>
   )
 }
@@ -51,36 +62,61 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-it('keeps keyboard/body disclosure, chevron, Open, Copy, Escape and collapse independent', async () => {
+it('keeps disabled/enabled mentions, keyboard disclosure, Open, Copy, Escape and collapse independent', async () => {
   const user = userEvent.setup()
-  mount()
+  const view = mount()
   const tab = screen.getByRole('button', { name: 'Show crew: 1 workers' })
   tab.focus()
   await user.keyboard('{Enter}')
   expect(screen.getByRole('button', { name: 'Collapse crew panel' })).toHaveFocus()
   const body = screen.getByRole('button', { name: /Worker codex Check the result/ })
-  expect(body).toHaveAttribute('aria-expanded', 'false')
-  body.focus()
+  const chevron = screen.getByRole('button', { name: "Show Worker's task and latest message" })
+  expect(body).toBeDisabled()
+  expect(body).not.toHaveAttribute('aria-expanded')
+  expect(screen.getByRole('button', { name: 'Mention all' })).toBeDisabled()
+  await user.click(body)
+  expect(rig.mention).not.toHaveBeenCalled()
+  expect(chevron).toHaveAttribute('aria-expanded', 'false')
+  chevron.focus()
   await user.keyboard(' ')
-  expect(body).toHaveAttribute('aria-expanded', 'true')
+  expect(chevron).toHaveAttribute('aria-expanded', 'true')
   expect(screen.getByText('The result is ready.')).toBeInTheDocument()
   expect(rig.open).not.toHaveBeenCalled()
   expect(rig.copy).not.toHaveBeenCalled()
-  await user.click(screen.getByRole('button', { name: "Show Worker's task and latest message" }))
-  expect(body).toHaveAttribute('aria-expanded', 'false')
+  await user.click(chevron)
+  expect(chevron).toHaveAttribute('aria-expanded', 'false')
+  view.rerender(
+    <TooltipProvider>
+      <OrchestrationCrewPanel
+        target={host}
+        party="term_coordinator"
+        canMention
+        mention={rig.mention}
+      />
+    </TooltipProvider>
+  )
+  expect(body).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'Mention all' })).toBeEnabled()
+  body.focus()
+  await user.keyboard(' ')
+  expect(rig.mention).toHaveBeenCalledExactlyOnceWith([worker])
+  expect(chevron).toHaveAttribute('aria-expanded', 'false')
+  await user.click(chevron)
   await user.click(body)
-  expect(body).toHaveAttribute('aria-expanded', 'true')
+  expect(rig.mention).toHaveBeenCalledTimes(2)
+  expect(rig.mention).toHaveBeenLastCalledWith([worker])
+  expect(chevron).toHaveAttribute('aria-expanded', 'true')
   const open = screen.getByRole('button', { name: 'Open Worker' })
   open.focus()
   await user.keyboard('{Enter}')
   expect(rig.open).toHaveBeenCalledExactlyOnceWith(worker, host)
-  expect(body).toHaveAttribute('aria-expanded', 'true')
+  expect(chevron).toHaveAttribute('aria-expanded', 'true')
   await user.click(screen.getByRole('button', { name: 'More for Worker' }))
   await user.click(screen.getByRole('menuitem', { name: 'Copy address' }))
   expect(rig.copy).toHaveBeenCalledExactlyOnceWith('dispatch:d1')
   expect(rig.success).toHaveBeenCalledExactlyOnceWith("Copied Worker's address")
   expect(rig.open).toHaveBeenCalledOnce()
-  expect(body).toHaveAttribute('aria-expanded', 'true')
+  expect(chevron).toHaveAttribute('aria-expanded', 'true')
   await user.click(screen.getByRole('button', { name: 'More for Worker' }))
   const menuOpen = screen.getByRole('menuitem', { name: 'Open its chat' })
   menuOpen.focus()
@@ -88,7 +124,7 @@ it('keeps keyboard/body disclosure, chevron, Open, Copy, Escape and collapse ind
   expect(rig.open).toHaveBeenCalledTimes(2)
   expect(rig.open).toHaveBeenLastCalledWith(worker, host)
   await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
-  expect(body).toHaveAttribute('aria-expanded', 'true')
+  expect(chevron).toHaveAttribute('aria-expanded', 'true')
   screen.getByRole('button', { name: 'Collapse crew panel' }).focus()
   expect(await screen.findByRole('tooltip')).toHaveTextContent('Collapse crew panel')
   await user.keyboard('{Escape}')
@@ -135,7 +171,12 @@ it('keeps the stable first manager label, names every manager in the tooltip and
   }
   render(
     <TooltipProvider delayDuration={0}>
-      <OrchestrationCrewPanel target={host} party="term_worker" />
+      <OrchestrationCrewPanel
+        target={host}
+        party="term_worker"
+        canMention={false}
+        mention={rig.mention}
+      />
     </TooltipProvider>
   )
   const tab = screen.getByRole('button', { name: 'Show crew: Managed by First manager' })
@@ -162,7 +203,12 @@ it('shows one collapsed avatar and question per party with reverse-role relation
     }
     render(
       <TooltipProvider delayDuration={0}>
-        <OrchestrationCrewPanel target={host} party="term_coordinator" />
+        <OrchestrationCrewPanel
+          target={host}
+          party="term_coordinator"
+          canMention={false}
+          mention={rig.mention}
+        />
       </TooltipProvider>
     )
     const tab = screen.getByRole('button', { name: 'Show crew: 2 workers' })

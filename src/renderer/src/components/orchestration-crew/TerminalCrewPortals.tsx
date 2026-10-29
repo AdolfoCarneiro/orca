@@ -12,12 +12,23 @@ import { insertTerminalCrewMention } from '../terminal-pane/terminal-crew-mentio
 import { useTerminalCrewIdentity } from './use-terminal-crew-identity'
 import { OrchestrationCrewPanel } from './OrchestrationCrewPanel'
 
+type CrewPaneController = Pick<
+  TerminalPaneController,
+  | 'tabId'
+  | 'worktreeId'
+  | 'managerRef'
+  | 'paneTransportsRef'
+  | 'managedPanes'
+  | 'effectiveChatViewMode'
+  | 'chatPane'
+>
+
 function TerminalCrewPortal({
   pane,
   controller
 }: {
   pane: ManagedPane
-  controller: TerminalPaneController
+  controller: CrewPaneController
 }) {
   const { tabId, worktreeId, managerRef, paneTransportsRef } = controller
   const paneKey = makePaneKey(tabId, pane.leafId)
@@ -70,7 +81,7 @@ function TerminalCrewPortal({
     `crew-${pane.id}`
   )
 }
-export function TerminalCrewPortals({ controller }: { controller: TerminalPaneController }) {
+export function TerminalCrewPortals({ controller }: { controller: CrewPaneController }) {
   return (
     <>
       {controller.managedPanes.map((pane) =>

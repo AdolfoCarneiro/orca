@@ -2,6 +2,7 @@
 import { claudeDispatchMessageContent } from '../../../../main/claude/claude-structured-dispatch-content'
 import { turnInputFor } from '../../../../main/codex/codex-structured-message-options'
 import type { CodexTurnHost } from '../../../../main/codex/codex-structured-turn-start'
+import { createCodexDispatchEchoes } from '../../../../main/codex/codex-structured-dispatch-echo'
 import { preparePiRpcPrompt } from '../../../../main/pi/rpc-prompt'
 import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 import {
@@ -18,6 +19,7 @@ import { emptyCrew, type OrchestrationCrewRow } from '../../../../shared/orchest
 import { openOrchestrationCrewAgent } from '@/lib/open-agent-message-sender'
 import { createRef, useRef, useState } from 'react'
 import { act, cleanup, render, renderHook, within, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
 import type { PtyTransport } from '../terminal-pane/pty-transport-types'
@@ -267,8 +269,14 @@ it('serializes before structured queue admission, PTY writes and goal submission
     throw new Error('send slot not admitted')
   }
   expect(await claudeDispatchMessageContent(entry.body)).toEqual([{ type: 'text', text: wire }])
-  // SAFETY: a text-only body with no skills never reads the turn host; the production adapter consumes only its captured blocks.
-  expect(turnInputFor({} as CodexTurnHost, entry.body)).toEqual([{ type: 'text', text: wire }])
+  const codexHost: CodexTurnHost = {
+    connection: { request: vi.fn<CodexTurnHost['connection']['request']>() },
+    threadId: 'captured-thread',
+    options: new Map(),
+    dispatchEchoes: createCodexDispatchEchoes(),
+    turnOpenWaits: { wait: vi.fn<CodexTurnHost['turnOpenWaits']['wait']>() }
+  }
+  expect(turnInputFor(codexHost, entry.body)).toEqual([{ type: 'text', text: wire }])
   expect((await preparePiRpcPrompt(entry.body)).message).toBe(wire)
   const goalTransport = transport()
   goalTransport.threadGoal = { setObjective: vi.fn(async () => true) }
@@ -337,7 +345,8 @@ it('writes only revalidated split bytes, sanitizing controls without Enter and s
   expect(sendInputAccepted).toHaveBeenCalledTimes(2)
 })
 
-it('hides unknown hosts, starts collapsed and separates mention, navigation and disclosure hit targets', () => {
+it('hides unknown hosts and keeps mentions, navigation, disclosure and pane Escape focus independent', async () => {
+  const user = userEvent.setup()
   const mention = vi.fn()
   const row: OrchestrationCrewRow = {
     partyKey: 'host+worker',
@@ -355,19 +364,19 @@ it('hides unknown hosts, starts collapsed and separates mention, navigation and 
     canMention: true,
     mention
   }
-  const view = render(
+  const panel = (snapshot: ReturnType<typeof emptyCrew>) => (
     <TooltipProvider>
-      <CrewPanelContent {...props} snapshot={emptyCrew('unknown')} />
+      <div data-native-chat-root>
+        <CrewPanelContent {...props} snapshot={snapshot} />
+        <textarea aria-label="Continue composing" />
+      </div>
     </TooltipProvider>
   )
+  const view = render(panel(emptyCrew('unknown')))
   expect(view.container.querySelector('[data-orchestration-crew]')).toBeNull()
   const snapshot = emptyCrew('ok')
   snapshot.sections.managing.push(row)
-  view.rerender(
-    <TooltipProvider>
-      <CrewPanelContent {...props} snapshot={snapshot} />
-    </TooltipProvider>
-  )
+  view.rerender(panel(snapshot))
   expect(view.queryByRole('complementary')).toBeNull()
   fireEvent.click(view.getByRole('button', { name: 'Show crew: 1 workers' }))
   expect(view.getByText('Choose A or B?')).toBeTruthy()
@@ -379,7 +388,15 @@ it('hides unknown hosts, starts collapsed and separates mention, navigation and 
   fireEvent.click(view.getByRole('button', { name: "Show Worker's task and latest message" }))
   expect(view.queryByText('Choose A or B?')).toBeNull()
   expect(mention).not.toHaveBeenCalled()
-  fireEvent.keyDown(view.getByRole('complementary'), { key: 'Escape' })
+  const collapse = view.getByRole('button', { name: 'Collapse crew panel' })
+  act(() => collapse.focus())
+  expect((await view.findByRole('tooltip')).textContent).toBe('Collapse crew panel')
+  await user.keyboard('{Escape}')
+  expect(view.queryByRole('tooltip')).toBeNull()
+  expect(view.queryByRole('complementary')).not.toBeNull()
+  const composer = view.getByRole('textbox', { name: 'Continue composing' })
+  act(() => composer.focus())
+  await user.keyboard('{Escape}')
   expect(view.queryByRole('complementary')).toBeNull()
   expect(document.activeElement).toBe(view.getByRole('button', { name: 'Show crew: 1 workers' }))
 })

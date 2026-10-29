@@ -196,14 +196,14 @@ export function CrewPanelContent({
             {sections.map(([title, rows]) =>
               rows.length > 0 ? (
                 <section key={title} aria-label={title}>
-                  <div className="flex items-center gap-1.5 px-3 pb-1 pt-3 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <span>{title}</span>
-                    <span>{rows.length}</span>
+                  <div className="flex items-center gap-1.5 px-3 pb-1 pt-3 text-2xs font-semibold text-muted-foreground">
+                    <span className="uppercase tracking-wider">{title}</span>
+                    <span className="tracking-wider">{rows.length}</span>
                     {title === 'Managing' ? (
                       <Button
                         variant="ghost"
                         size="xs"
-                        className="ml-auto normal-case tracking-normal"
+                        className="ml-auto"
                         disabled={!canMention || !rows.some(runningWorker)}
                         onClick={() => mention(rows.filter(runningWorker))}
                       >
