@@ -1,5 +1,6 @@
 // Each session owns its fold and queue; all statements use the host's shared database connection.
 
+import { saveJournalState, logJournalCheckpointFailure } from './journal-saved-state'
 import type { AgentJournalDispatchRejection } from '../../../shared/agent-session-failure-words'
 import { randomUUID } from 'node:crypto'
 import { createJournalPublicReader } from './journal-public-read'
@@ -86,6 +87,8 @@ export class AgentSessionJournal {
   private readonly submissionWriter: JournalSubmissionWriter
   private readonly stepWriter: JournalStepWriter
   private readonly restore: () => Promise<void>
+  private checkpointTimer: ReturnType<typeof setTimeout> | null = null
+  private closing: Promise<void> | null = null
   /** Queued cards never count as owed work. */
   readonly queuedMessages: JournalQueuedMessages
   readonly stopMarks: JournalCollaborators['stopMarks']
@@ -110,11 +113,15 @@ export class AgentSessionJournal {
       cursor: this.cursor,
       adopt: (loaded) => {
         this.adoptLoadedJournal(loaded)
+        this.scheduleCheckpoint()
         this.onCommitted?.()
       },
-      commit: (rows, savedAt) => {
+      commit: (rows, savedAt, streamed) => {
         for (const row of rows) {
           applyJournalRow(this.state, row, savedAt)
+        }
+        if (!streamed) {
+          this.scheduleCheckpoint()
         }
         this.onCommitted?.(rows)
       },
@@ -161,13 +168,45 @@ export class AgentSessionJournal {
   async open(): Promise<void> {
     await this.restore()
     this.openedThrough = this.cursor()
+    this.scheduleCheckpoint()
   }
 
   /** Refuse future writes and drain admitted ones; the host retains database ownership. */
   close(): Promise<void> {
+    if (this.closing) {
+      return this.closing
+    }
     this.queuedMessages.editLeases.dispose()
+    if (this.checkpointTimer) {
+      clearTimeout(this.checkpointTimer)
+      this.checkpointTimer = null
+    }
+    // Admit the final checkpoint behind every admitted write, then close admission.
+    this.closing = this.checkpoint()
     this.queue.markClosed()
-    return this.queue.drain()
+    return this.closing
+  }
+
+  checkpoint(): Promise<void> {
+    return this.queue
+      .serialize(() => {
+        saveJournalState(this.database, this.state)
+      })
+      .catch((error) => logJournalCheckpointFailure(this.identity.sessionId, error))
+  }
+
+  private scheduleCheckpoint(): void {
+    if (this.closing) {
+      return
+    }
+    if (this.checkpointTimer) {
+      clearTimeout(this.checkpointTimer)
+    }
+    this.checkpointTimer = setTimeout(() => {
+      this.checkpointTimer = null
+      void this.checkpoint()
+    }, 1_000)
+    this.checkpointTimer.unref?.()
   }
 
   /** One nonthrowing listener; undefined rows mean adopted history, an empty array means metadata. */

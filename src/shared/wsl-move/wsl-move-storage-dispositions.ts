@@ -160,10 +160,12 @@ export const SQLITE_TABLE_DISPOSITIONS: Record<string, WslMoveFieldDisposition> 
         'agent_session_attachment_claims',
         'agent_session_attachment_sweeps',
         'journal_imports',
+        'journal_items',
         'journal_repairs',
         'journal_rows',
         'journal_sessions',
         'journal_set_aside',
+        'journal_state',
         'queued_messages'
       ],
       notApplicableDisposition(

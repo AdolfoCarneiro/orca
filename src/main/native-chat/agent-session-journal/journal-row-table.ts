@@ -55,9 +55,10 @@ const EPOCH_ROW_PAGE_SIZE = 128
 export function* iterateJournalEpochRows(
   db: Database.Database,
   sessionId: string,
-  epoch: string
+  epoch: string,
+  afterSequence = Number.MIN_SAFE_INTEGER
 ): Generator<JournalStoredRow> {
-  let afterSeq = Number.MIN_SAFE_INTEGER
+  let afterSeq = afterSequence
   for (;;) {
     const page = readJournalRowsAfter(db, sessionId, epoch, afterSeq, EPOCH_ROW_PAGE_SIZE)
     yield* page

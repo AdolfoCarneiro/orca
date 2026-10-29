@@ -2,6 +2,7 @@
 
 import { resolve } from 'node:path'
 import { JournalHostDatabase } from './journal-host-database'
+import { clearJournalSavedState } from './journal-saved-state'
 import { replayJournal, type JournalLoad } from './journal-open'
 import { serializeJournalRow, type JournalRow } from './journal-row-schema'
 import {
@@ -141,15 +142,31 @@ export function updateTestJournalRowJson(
   seq: number,
   rowJson: string
 ): void {
+  invalidateEditedJournalPrefix(db, sessionId, seq)
   db.prepare(
     'UPDATE journal_rows SET row_json = ? WHERE session_id = ? AND epoch = ? AND seq = ?'
   ).run(rowJson, sessionId, liveEpoch(db, sessionId), seq)
 }
 
 export function deleteTestJournalRow(db: Database.Database, sessionId: string, seq: number): void {
+  invalidateEditedJournalPrefix(db, sessionId, seq)
   db.prepare('DELETE FROM journal_rows WHERE session_id = ? AND epoch = ? AND seq = ?').run(
     sessionId,
     liveEpoch(db, sessionId),
     seq
   )
+}
+
+/** Fixture history edits need a fresh replay of their edited prefix, rather than its older checkpoint. */
+function invalidateEditedJournalPrefix(
+  db: Database.Database,
+  sessionId: string,
+  seq: number
+): void {
+  const saved = db
+    .prepare('SELECT through_seq FROM journal_state WHERE session_id = ?')
+    .get(sessionId)
+  if (typeof saved?.through_seq === 'number' && seq <= saved.through_seq) {
+    clearJournalSavedState(db, sessionId)
+  }
 }

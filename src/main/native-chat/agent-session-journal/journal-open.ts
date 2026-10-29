@@ -1,5 +1,6 @@
 // Replay live epochs without rewriting history; damage/newer rows fail load and remain on disk.
 
+import { readJournalSavedState } from './journal-saved-state'
 import type Database from '../../sqlite/sync-database'
 import {
   applyJournalRow,
@@ -33,8 +34,29 @@ export function replayJournal(db: Database.Database, sessionId: string): Journal
   if (epoch === null) {
     return null
   }
-  const fold = startJournalRowFold({ sessionId, epoch })
-  for (const entry of iterateJournalEpochRows(db, sessionId, epoch)) {
+  return foldJournalFromState(db, createJournalReducerState(sessionId, epoch))
+}
+
+/** The saved prefix is authoritative; only the contiguous tail is replayed. */
+export function restoreJournal(db: Database.Database, sessionId: string): JournalLoad | null {
+  const epoch = readJournalSessionEpoch(db, sessionId)
+  if (epoch === null) {
+    return null
+  }
+  const state =
+    readJournalSavedState(db, sessionId, epoch) ?? createJournalReducerState(sessionId, epoch)
+  return foldJournalFromState(db, state)
+}
+
+function foldJournalFromState(db: Database.Database, state: JournalReducerState): JournalLoad {
+  const { sessionId, epoch, lastSequence } = state
+  const fold = startJournalRowFold({ sessionId, epoch }, state)
+  for (const entry of iterateJournalEpochRows(
+    db,
+    sessionId,
+    epoch,
+    lastSequence === 0 ? Number.MIN_SAFE_INTEGER : lastSequence
+  )) {
     if (!fold.add(entry)) {
       break
     }
@@ -42,14 +64,16 @@ export function replayJournal(db: Database.Database, sessionId: string): Journal
   return fold.finish()
 }
 
-export function startJournalRowFold(input: { sessionId: string; epoch: string }): {
+export function startJournalRowFold(
+  input: { sessionId: string; epoch: string },
+  state = createJournalReducerState(input.sessionId, input.epoch)
+): {
   add: (entry: { seq: number; rowJson: string; ts?: number }) => boolean
   finish: () => JournalLoad
 } {
-  const state = createJournalReducerState(input.sessionId, input.epoch)
-  let expectedSequence = FIRST_JOURNAL_SEQUENCE
+  let expectedSequence = state.lastSequence + 1
   let damage: JournalDamage | null = null
-  let anchored = false
+  let anchored = state.lastSequence > 0
   let newer: { sequence: number } | null = null
   let empty = true
 

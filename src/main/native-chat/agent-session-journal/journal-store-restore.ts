@@ -1,6 +1,6 @@
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
 import type { JournalEpochController } from './journal-epoch-controller'
-import { replayJournal } from './journal-open'
+import { restoreJournal } from './journal-open'
 import { journalOpenRefusalError } from './journal-open-failure'
 import type { JournalStoreHost } from './journal-store-collaborators'
 import { openJournalStoreState } from './journal-store-open'
@@ -21,7 +21,7 @@ export async function restoreJournalStore(
   }
   return openJournalStoreState({
     sessionId: host.identity.sessionId,
-    replay: () => replayJournal(database.db, host.identity.sessionId),
+    replay: () => restoreJournal(database.db, host.identity.sessionId),
     start: () => collaborators.epochController.start('session_created', 0),
     adopt: host.adopt,
     // Recovery revisions must not count as new provider output.

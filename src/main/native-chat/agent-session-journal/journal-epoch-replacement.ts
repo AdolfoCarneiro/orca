@@ -1,3 +1,4 @@
+import { clearJournalSavedState } from './journal-saved-state'
 import {
   journalItemEchoFields,
   journalItemEchoRestatement,
@@ -193,6 +194,7 @@ export function replaceJournalEpoch(input: {
   const receipt = input.receipt?.({ epoch, sequence: state.lastSequence })
   const claimsCommitted: (() => void)[] = []
   input.database.transaction((db) => {
+    clearJournalSavedState(db, sessionId)
     const retired = readJournalSessionEpoch(db, sessionId)
     if (retired !== null) {
       deleteJournalEpochRows(db, sessionId, retired)

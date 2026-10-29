@@ -37,7 +37,7 @@ export type JournalStoreHost = {
   readOnly: () => boolean
   cursor: () => AgentJournalCursor
   adopt: (loaded: JournalLoad) => void
-  commit: (rows: readonly JournalRow[], savedAt: number) => void
+  commit: (rows: readonly JournalRow[], savedAt: number, streamed?: boolean) => void
   journal: () => AgentSessionJournal
   enqueue: JournalRowWriter['enqueue']
 }

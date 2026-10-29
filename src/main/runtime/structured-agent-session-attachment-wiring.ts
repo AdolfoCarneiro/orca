@@ -1,5 +1,6 @@
 // Keep chat attachment storage/sweeps beside the journal; its database owns upload claims the sweeps honor.
 
+import { startJournalStateBackfill } from '../native-chat/agent-session-journal/journal-state-backfill'
 import { mkdirSync } from 'node:fs'
 import { AgentSessionAttachmentStore } from '../native-chat/agent-session-attachments/agent-session-attachment-store'
 import {
@@ -19,14 +20,27 @@ const FIRST_SWEEP_DELAY_MS = 60 * 1000
 const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000
 
 let sweeper: AgentSessionAttachmentSweeper | null = null
+let journalBackfill: { stop: () => void } | null = null
 
 export function installAgentSessionAttachments(deps: {
   stateDirectory: string
   store: Pick<AgentSessionRecordStore, 'getRecord' | 'isSessionUnreadable'>
   journalDatabase: Pick<JournalHostDatabase, 'readOnly' | 'isClosed' | 'db'>
+  journalBackfill?: {
+    database: JournalHostDatabase
+    checkpointOpen: (sessionId: string) => Promise<boolean>
+  }
   logger: StructuredAgentSessionLogger
 }): void {
   stopAgentSessionAttachments()
+  if (deps.journalBackfill) {
+    const { database, checkpointOpen } = deps.journalBackfill
+    journalBackfill = startJournalStateBackfill(
+      { database: () => database, checkpointOpen },
+      (error) =>
+        deps.logger.warn('chat state backfill failed', { scope: 'journal-state-backfill', error })
+    )
+  }
   const root = agentSessionAttachmentStoreRoot(deps.stateDirectory)
   // Before any Claude starts: Claude drops an added directory that does not exist yet, for good.
   try {
@@ -65,6 +79,8 @@ export function installAgentSessionAttachments(deps: {
 }
 
 export function stopAgentSessionAttachments(): void {
+  journalBackfill?.stop()
+  journalBackfill = null
   sweeper?.stop()
   sweeper = null
   setAgentSessionAttachmentStore(null)

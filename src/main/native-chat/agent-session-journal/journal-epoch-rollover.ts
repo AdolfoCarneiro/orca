@@ -1,5 +1,6 @@
 // Delete and replace epochs atomically; retaining superseded rows would grow history without bound.
 
+import { clearJournalSavedState } from './journal-saved-state'
 import { journalRowSchemaVersion } from '../../../shared/agent-session-journal-types'
 import type { AgentSessionJournalIdentity } from '../../../shared/agent-session-journal-types'
 import { agentSessionJournalProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
@@ -52,6 +53,7 @@ export function publishNewEpoch(input: {
     }
   }
   input.database.transaction((db) => {
+    clearJournalSavedState(db, sessionId)
     const retired = readJournalSessionEpoch(db, sessionId)
     if (retired !== null) {
       deleteJournalEpochRows(db, sessionId, retired)

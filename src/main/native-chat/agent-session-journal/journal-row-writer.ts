@@ -47,7 +47,7 @@ export type JournalRowWriterDeps = {
   readOnly: () => boolean
   highestFence: () => number
   nextSequence: () => number
-  commit: (rows: readonly JournalRow[], savedAt: number) => void
+  commit: (rows: readonly JournalRow[], savedAt: number, streamed?: boolean) => void
   /** Streamed-text-only revisions may skip per-commit fsync; settlement makes them durable. */
   streamedTextRevision?: (row: JournalRow) => boolean
 }
@@ -65,16 +65,14 @@ export class JournalRowWriter {
       const row = build(this.deps.nextSequence(), savedAt)
       assertJournalFence(row.fence, this.deps.highestFence())
       const receipt = typeof prepareReceipt === 'function' ? prepareReceipt([row]) : prepareReceipt
-      this.deps.database().transaction(
-        (db) => {
-          insertJournalRow(db, this.deps.sessionId, row, savedAt)
-          receipt?.write(db, row)
-        },
-        !receipt && this.streamed([row])
-      )
+      const streamed = !receipt && this.streamed([row])
+      this.deps.database().transaction((db) => {
+        insertJournalRow(db, this.deps.sessionId, row, savedAt)
+        receipt?.write(db, row)
+      }, streamed)
       // Adopt durable sequence state before fallible work: nonthrowing receipt ledger, then fold.
       receipt?.committed()
-      this.deps.commit([row], savedAt)
+      this.deps.commit([row], savedAt, streamed)
       return row
     })
   }
@@ -105,17 +103,15 @@ export class JournalRowWriter {
       assertJournalFence(row.fence, this.deps.highestFence())
     }
     const receipt = typeof prepareReceipt === 'function' ? prepareReceipt(rows) : prepareReceipt
-    this.deps.database().transaction(
-      (db) => {
-        for (const row of rows) {
-          insertJournalRow(db, this.deps.sessionId, row, ts)
-        }
-        receipt?.write(db, receiptRow?.(rows))
-      },
-      !receipt && this.streamed(rows)
-    )
+    const streamed = !receipt && this.streamed(rows)
+    this.deps.database().transaction((db) => {
+      for (const row of rows) {
+        insertJournalRow(db, this.deps.sessionId, row, ts)
+      }
+      receipt?.write(db, receiptRow?.(rows))
+    }, streamed)
     receipt?.committed()
-    this.deps.commit(rows, ts)
+    this.deps.commit(rows, ts, streamed)
     return rows
   }
 
