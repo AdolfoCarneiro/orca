@@ -3,11 +3,11 @@ import {
   isSubagentGroupBlock,
   type NativeChatMessage
 } from '../../../../../src/shared/native-chat-types'
-import { nativeChatReasoningDisclosureKey } from '../../../../../src/shared/native-chat-reasoning-row'
+import { nativeChatReasoningDisclosureKey } from '../../../../../src/shared/native-chat/transcript/native-chat-reasoning-row'
 import {
   nativeChatLiveLine,
   type NativeChatLiveLine
-} from '../../../../../src/shared/native-chat-live-line'
+} from '../../../../../src/shared/native-chat/transcript/native-chat-live-line'
 import type {
   NativeChatSettledTurns,
   NativeChatTurnStatus

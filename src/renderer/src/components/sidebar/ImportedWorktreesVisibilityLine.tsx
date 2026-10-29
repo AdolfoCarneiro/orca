@@ -102,7 +102,7 @@ export default function ImportedWorktreesVisibilityLine({
     hiddenCount === 1
       ? translate(
           'auto.components.sidebar.ImportedWorktreesVisibilityLine.keepHiddenAriaLabel_one',
-          'Keep 1 discovered worktree hidden for {{repo}}; recover from the project menu',
+          'Keep {{count}} discovered worktree hidden for {{repo}}; recover from the project menu',
           { count: hiddenCount, repo: repoScopeLabel }
         )
       : translate(
@@ -120,7 +120,7 @@ export default function ImportedWorktreesVisibilityLine({
       ? hiddenCount === 1
         ? translate(
             'auto.components.sidebar.ImportedWorktreesVisibilityLine.hidingInRepo_one',
-            'Hiding 1 discovered worktree in {{repo}}',
+            'Hiding {{count}} discovered worktree in {{repo}}',
             { count: hiddenCount, repo: repoScopeLabel }
           )
         : translate(
@@ -131,7 +131,7 @@ export default function ImportedWorktreesVisibilityLine({
       : hiddenCount === 1
         ? translate(
             'auto.components.sidebar.ImportedWorktreesVisibilityLine.hiding_one',
-            'Hiding 1 discovered worktree',
+            'Hiding {{count}} discovered worktree',
             { count: hiddenCount }
           )
         : translate(
@@ -312,11 +312,17 @@ export default function ImportedWorktreesVisibilityLine({
           ))}
           {remainingGroupCount > 0 ? (
             <div className="py-1 pl-7 pr-2 text-[11px] leading-4 text-muted-foreground">
-              + {remainingGroupCount}{' '}
-              {translate(
-                'auto.components.sidebar.ImportedWorktreesVisibilityLine.b2bc47c080',
-                'more locations'
-              )}
+              {remainingGroupCount === 1
+                ? translate(
+                    'auto.components.sidebar.ImportedWorktreesVisibilityLine.moreLocations_one',
+                    '+ {{count}} more location',
+                    { count: remainingGroupCount }
+                  )
+                : translate(
+                    'auto.components.sidebar.ImportedWorktreesVisibilityLine.moreLocations_other',
+                    '+ {{count}} more locations',
+                    { count: remainingGroupCount }
+                  )}
             </div>
           ) : null}
           <div className="grid gap-1 px-1.5 pb-1 pt-1">
