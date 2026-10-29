@@ -3,6 +3,7 @@ import { useAppStore } from '../store'
 import { discoverSessionSources } from './session-source-discovery'
 import { SessionUnitProjection } from './session-unit-projection'
 import { SessionUnitWriter } from './session-unit-writer'
+import { createTerminalTabOwnerIndex } from '../store/slices/terminal-tab-owner-index'
 import { buildWorkspaceSessionPatch } from './workspace-session-patch'
 import { SESSION_RELEVANT_FIELDS } from './workspace-session'
 import {
@@ -45,6 +46,34 @@ function fixture() {
 }
 
 describe('keyed session persistence', () => {
+  it('routes duplicate tab owners like the native owner index through reorder, removal and reinsert', () => {
+    let state = fixture()
+    const a = [{ ...state.tabsByWorktree['repo::/a'][0], id: 'duplicate' }]
+    const b = [{ ...state.tabsByWorktree['other::/b'][0], id: 'duplicate' }]
+    state = {
+      ...state,
+      tabsByWorktree: { 'repo::/a': a, 'other::/b': b },
+      terminalLayoutsByTabId: {
+        duplicate: { root: null, activeLeafId: null, expandedLeafId: null }
+      }
+    }
+    const projection = new SessionUnitProjection(state)
+    const oracle = createTerminalTabOwnerIndex()
+    expect(projection.full(state).terminalOwners?.get('duplicate')).toBe(
+      oracle.getOwner(state.tabsByWorktree, 'duplicate')
+    )
+    for (const buckets of [
+      { 'repo::/a': a, 'other::/b': [...b, b[0]] },
+      { 'other::/b': b, 'repo::/a': a },
+      { 'other::/b': b },
+      { 'other::/b': b, 'repo::/a': a }
+    ]) {
+      const next = { ...state, tabsByWorktree: buckets }
+      const update = projection.update(next, discoverSessionSources(state, next))
+      expect(update.terminalOwners?.get('duplicate')).toBe(oracle.getOwner(buckets, 'duplicate'))
+      state = next
+    }
+  })
   it('projects a named owner without reading another owner, retaining frozen prior rows', () => {
     const prior = fixture()
     const projection = new SessionUnitProjection(prior)

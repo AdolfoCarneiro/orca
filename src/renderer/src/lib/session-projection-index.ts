@@ -44,6 +44,7 @@ export type SessionProjectionUpdate = {
   keys: ReadonlyMap<SessionMapField, ReadonlySet<string>>
   workspaces: ReadonlySet<string>
   connections?: ReadonlyMap<string, boolean>
+  terminalOwners?: ReadonlyMap<string, string>
   full: boolean
   routing?: HostSessionRouting
   routingChanged?: boolean
@@ -82,6 +83,22 @@ export class SessionProjectionIndex {
       this.remoteConnectionByTab.delete(tabId)
     }
   }
+  protected terminalOwners(keys: ReadonlyMap<SessionMapField, ReadonlySet<string>>) {
+    const owners = new Map<string, string>()
+    for (const field of [
+      'terminalLayoutsByTabId',
+      'localOnlyScrollbackByTabId',
+      'remoteSessionIdsByTabId'
+    ] as const) {
+      for (const id of keys.get(field) ?? []) {
+        const owner = this.index.terminalOwner(id)
+        if (owner !== undefined) {
+          owners.set(id, owner)
+        }
+      }
+    }
+    return owners
+  }
   protected rawSession(state: AppState): WorkspaceSessionState {
     const session: WorkspaceSessionState = {
       activeRepoId: state.activeRepoId,
@@ -108,6 +125,7 @@ export class SessionProjectionIndex {
     return {
       patch,
       keys,
+      terminalOwners: this.terminalOwners(keys),
       workspaces: new Set([
         ...Object.keys(state.tabsByWorktree),
         ...(patch.activeWorktreeIdsOnShutdown ?? [])

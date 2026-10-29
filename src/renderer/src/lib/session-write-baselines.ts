@@ -18,7 +18,6 @@ import {
   type HostPersistenceState
 } from './workspace-session-host-persistence'
 import type { SessionProjectionUpdate } from './session-unit-projection'
-import { createTerminalTabOwnerIndex } from '../store/slices/terminal-tab-owner-index'
 export type Unit = { field: SessionMapField; key: string; value: unknown; host: ExecutionHostId }
 export const unitId = (field: string, key: string): string => JSON.stringify([field, key])
 export const same = (left: unknown, right: unknown): boolean =>
@@ -44,8 +43,6 @@ export class SessionWriteBaselines {
   protected routing: ReturnType<typeof buildHostSessionRouting> | undefined
   protected routingState: HostPersistenceState | undefined
   protected epoch = 0
-  protected readonly tabOwners = createTerminalTabOwnerIndex()
-  protected terminalBuckets: WorkspaceSessionState['tabsByWorktree'] = {}
   constructor(
     private readonly api: Pick<WorkspaceSessionApi['session'], 'patch' | 'getWithGeneration'>
   ) {}
@@ -121,27 +118,12 @@ export class SessionWriteBaselines {
     }
     const routing = update.routing ?? this.routing ?? buildHostSessionRouting(state)
     const epoch = this.epoch
-    const tabs = new Map<string, string>()
-    const nextBuckets = state.tabsByWorktree ?? this.terminalBuckets
-    this.terminalBuckets = nextBuckets
-    for (const field of [
-      'terminalLayoutsByTabId',
-      'localOnlyScrollbackByTabId',
-      'remoteSessionIdsByTabId'
-    ] as const) {
-      for (const id of update.keys.get(field) ?? []) {
-        const owner = this.tabOwners.getOwner(nextBuckets, id)
-        if (owner) {
-          tabs.set(id, owner)
-        }
-      }
-    }
     // SAFETY: the splitter reads only present fields; a projection patch is a partial session.
     const slices = splitWorkspaceSessionByHost(
       update.patch as WorkspaceSessionState,
       routing.hostIdByWorktreeId,
       {
-        worktreeIdByTabId: tabs,
+        worktreeIdByTabId: update.terminalOwners,
         emptyContainerHostIds: update.full ? fullyOwnedSessionHostIds(state) : []
       }
     )

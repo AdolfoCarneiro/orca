@@ -62,7 +62,8 @@ export class SessionFieldReader extends SessionReaderState {
       // SAFETY: the keys are the declared admission policy fields.
       const name = field as keyof typeof SESSION_FIELD_POLICY
       const policy = SESSION_FIELD_POLICY[name]
-      const value = this.resolve(name).value
+      const transition = this.transitions.get(name)
+      const value = transition ? this.shape(name, transition).value : this.prior[name]
       if (value !== undefined) {
         continue
       }
@@ -98,11 +99,17 @@ export class SessionFieldReader extends SessionReaderState {
     const transition = this.transition(field)
     if (value.present && transition.base.value === undefined) {
       transition.base = { present: true, value: {} }
+      transition.intent = { kind: 'entries', present: true }
     }
     transition.entries ??= new Map()
-    transition.entries.set(key, value)
+    const base = transition.base.value
+    const basePresent = base !== undefined && Object.hasOwn(base, key)
+    if (basePresent === value.present && Reflect.get(base ?? {}, key) === value.value) {
+      transition.entries.delete(key)
+    } else {
+      transition.entries.set(key, value)
+    }
     transition.count += Number(value.present) - Number(current.present)
-    transition.intent = { kind: 'entries', present: transition.base.present }
     transition.resolved = undefined
     const keys = this.changed.get(field) ?? new Set<string>()
     keys.add(key)

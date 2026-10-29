@@ -255,6 +255,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
     return {
       patch,
       keys,
+      terminalOwners: this.terminalOwners(keys),
       workspaces: owners,
       connections,
       full: false,

@@ -53,7 +53,14 @@ export class SessionReaderState {
     if (!isSessionMapField(field)) {
       return transition.base
     }
-    const present = sessionFieldIsPresent(field, transition.intent!, transition.count)
+    const intent = transition.intent!
+    const present = sessionFieldIsPresent(
+      field,
+      intent.kind === 'unmentioned' && transition.entries?.size
+        ? { kind: 'entries', present: transition.base.present }
+        : intent,
+      transition.count
+    )
     if (!present) {
       return { present: false, value: undefined }
     }

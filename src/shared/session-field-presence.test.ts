@@ -1,5 +1,6 @@
 import type { SessionEntry } from './session-unit-reader'
 import { describe, expect, it } from 'vitest'
+import { observeSessionRecordCopies } from './session-record-edit'
 import { getDefaultWorkspaceSession } from './constants'
 import { SESSION_MAP_FIELDS } from './session-change-set'
 import { SessionUnitIndex } from './session-unit-index'
@@ -33,6 +34,57 @@ function freeze(value: WorkspaceSessionState): WorkspaceSessionState {
 }
 
 const shapes = ['absent', 'undefined', 'empty', 'populated'] as const
+
+class CoalescingReader extends SessionUnitReader {
+  checkRetainedEntries(): void {
+    for (const transition of this.transitions.values()) {
+      for (const [key, entry] of transition.entries ?? []) {
+        const base = transition.base.value ?? {}
+        expect(
+          Object.hasOwn(base, key) === entry.present && Reflect.get(base, key) === entry.value
+        ).toBe(false)
+      }
+    }
+  }
+}
+
+it('coalesces base-relative entries against native operations without discarded admission spreads', () => {
+  for (const field of SESSION_MAP_FIELDS) {
+    const prior = freeze(root(field, 'populated'))
+    const reader = new CoalescingReader(prior, new SessionUnitIndex(prior))
+    const base = Reflect.get(prior[field]!, 'selected')
+    let model = { ...prior }
+    for (const value of [undefined, base, 'changed', base]) {
+      const next = { ...model[field] }
+      if (value === undefined) {
+        Reflect.deleteProperty(next, 'selected')
+      } else {
+        Object.assign(next, { selected: value })
+      }
+      model = { ...model, [field]: next }
+      reader.write(
+        field,
+        'selected',
+        value === undefined
+          ? { present: false, value: undefined }
+          : // SAFETY: the policy matrix uses opaque entries of the same domain as root().
+            { present: true, value: value as SessionEntry<typeof field> }
+      )
+      reader.checkRetainedEntries()
+    }
+    let copies = 0
+    const stop = observeSessionRecordCopies(() => copies++)
+    try {
+      reader.admitFields()
+      expect(copies).toBe(0)
+      expect(reader.snapshot()).toStrictEqual(model)
+      expect(reader.snapshot()[field]).toBe(prior[field])
+      expect(copies).toBe(0)
+    } finally {
+      stop()
+    }
+  }
+})
 
 describe('scope-aware map field presence', () => {
   for (const field of SESSION_MAP_FIELDS) {
