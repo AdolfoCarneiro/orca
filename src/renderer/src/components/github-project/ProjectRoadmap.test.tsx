@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import ProjectRoadmap from './ProjectRoadmap'
-import { i18n, setRendererPluginLanguagePacks, setRendererUiLanguage } from '@/i18n/i18n'
+import { i18n, loadRendererUiLanguage, setRendererPluginLanguagePacks } from '@/i18n/i18n'
 import { DEFAULT_LOCALE } from '@/i18n/supported-languages'
 import { pluginLanguageResourceId } from '../../../../shared/plugins/plugin-language-pack-artifact'
 import type {
@@ -102,7 +102,7 @@ afterEach(async () => {
   vi.useRealTimers()
   window.localStorage.clear()
   setRendererPluginLanguagePacks([])
-  await setRendererUiLanguage(DEFAULT_LOCALE)
+  await i18n.changeLanguage(await loadRendererUiLanguage(DEFAULT_LOCALE))
 })
 
 describe('ProjectRoadmap', () => {
@@ -121,7 +121,7 @@ describe('ProjectRoadmap', () => {
         catalog: { common: { cancel: 'Cancelar' } }
       }
     ])
-    await setRendererUiLanguage(packId)
+    await i18n.changeLanguage(await loadRendererUiLanguage(packId))
     expect(i18n.resolvedLanguage).toBe(resourceLanguage)
 
     render(

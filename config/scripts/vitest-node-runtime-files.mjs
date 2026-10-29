@@ -27,6 +27,7 @@ const NODE_RUNTIME_INCLUDE = [
   'src/main/ai-vault/session-scanner-scope-walk.test.ts',
   // Electron main bridges streams with Node's implementation.
   'src/main/host/electron-http-client.test.ts',
+  'src/main/browser/extensions/browser-extension-native-host-process-backpressure.test.ts',
   'src/main/daemon/daemon-init-provider-installation.test.ts',
   'src/main/orcad/orcad-daemon-teardown-linux.test.ts',
   'src/renderer/src/components/terminal-pane/pty-input-write-queue.test.ts',
@@ -120,6 +121,7 @@ const NODE_RUNTIME_INCLUDE = [
   // Reconciliation loads the real native Parcel watcher; Bun can abort on Linux ARM.
   'src/main/plugins/plugin-service-reconciliation.test.ts',
   'src/main/usage/usage-scan-worker-event-loop.test.ts',
+  'src/main/ipc/command-path-directory-worker.test.ts',
   // Asserts Node's spawn-failure close signal and that a dead worker closes its children's pipes.
   'src/main/worker-thread-child-process/worker-thread-child-process.test.ts',
   'src/main/git/command-runner/worker-exec-file.test.ts',

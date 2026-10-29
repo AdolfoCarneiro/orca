@@ -127,6 +127,7 @@ function Probe() {
   } as never)
   const activeHandleRef = useRef('terminal')
   const dictationRouteContextRef = useRef(null)
+  const commandFieldAnchorRef = useRef(null)
   const deviceTokenRef = useRef('device')
   const scope = {
     ...screen,
@@ -139,6 +140,7 @@ function Probe() {
     activeSessionTab: null,
     activeHandleRef,
     dictationRouteContextRef,
+    commandFieldAnchorRef,
     deviceTokenRef,
     flushPendingLiveInputBeforeExternalSend: async () => true,
     canSend: env.connected,

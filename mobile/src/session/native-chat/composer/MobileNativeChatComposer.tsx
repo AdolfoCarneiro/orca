@@ -1,15 +1,12 @@
 import { getNativeChatAgentProfile } from '../../../../../src/shared/native-chat-agent-profiles'
 import {
   recordMobileNativeChatSkillPick,
-  setMobileNativeChatDraftText,
   useMobileNativeChatDraft
 } from './mobile-native-chat-draft-store'
-import { appendBufferedDictation } from '../../../terminal/terminal-live-dictation-routing'
+import { useMobileNativeChatComposerDictation } from './use-mobile-native-chat-composer-dictation'
 import {
   focusMobileNativeChatTextDestination,
-  mobileNativeChatDraftDestination,
-  pruneMobileNativeChatDraftSkills,
-  registerMobileNativeChatTextDestination
+  pruneMobileNativeChatDraftSkills
 } from './mobile-native-chat-draft-inputs'
 import type { NativeChatSkillDiscoverySnapshot } from '../../../../../src/shared/native-chat/input/native-chat-picker-items'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -54,7 +51,8 @@ export type MobileNativeChatStructuredComposer = {
 }
 
 type Props = MobileNativeChatMicProps & {
-  insertDictation?: (text: string) => boolean | void
+  // Applies dictation's edit to the draft this composer shows; false when it can no longer take it.
+  insertDictation?: (insert: (draft: string) => string) => boolean | void
   draftScopeKey?: string | null
   editSession?: { cancel: () => void; refuseCommand: (text: string) => boolean; locked: boolean }
   onPickSkill?: (skill: { name: string; path: string }) => void
@@ -123,21 +121,6 @@ export function MobileNativeChatComposer({
   onNeedSkills,
   stop = null
 }: Props): React.JSX.Element {
-  useEffect(() => {
-    if (!draftScopeKey) {
-      return
-    }
-    const destination = mobileNativeChatDraftDestination(draftScopeKey)
-    return registerMobileNativeChatTextDestination(draftScopeKey, (text) => {
-      if (!destination.active) {
-        return false
-      }
-      if (insertDictation) {
-        return insertDictation(text)
-      }
-      setMobileNativeChatDraftText(destination, (before) => appendBufferedDictation(before, text))
-    })
-  }, [draftScopeKey, insertDictation])
   useMobileColorScheme()
   const fallbackInputRef = useRef<TextInput>(null)
   const fieldRef = inputRef ?? fallbackInputRef
@@ -181,6 +164,12 @@ export function MobileNativeChatComposer({
     onNeedSkills,
     onSlashMenuOpen: structured?.onSlashMenuOpen,
     focusField: () => fieldRef.current?.focus()
+  })
+  const dictation = useMobileNativeChatComposerDictation({
+    draftScopeKey,
+    value,
+    insertDictation,
+    placeCaret: menu.placeCaret
   })
   const sendingRef = useRef(false)
   const mountedRef = useRef(true)
@@ -290,7 +279,11 @@ export function MobileNativeChatComposer({
             onBlur={() => setFocused(false)}
             // Controlled only transiently right after an autocomplete insert.
             selection={menu.pendingSelection ?? undefined}
-            onSelectionChange={(e) => menu.onSelectionChange(e.nativeEvent.selection)}
+            dictationPreview={dictation.preview}
+            onSelectionChange={(e) => {
+              dictation.readSelection(e)
+              menu.onSelectionChange(e.nativeEvent.selection)
+            }}
             placeholder={placeholder}
             placeholderTextColor={colors.textMuted}
             selectionColor={colors.accentBlue}
