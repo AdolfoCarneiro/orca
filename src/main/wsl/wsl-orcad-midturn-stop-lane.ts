@@ -95,7 +95,9 @@ function heldReplyScenario(providerId: string, ackPath: string) {
 }
 
 /** Streamed assistant text, as the open chat sees it; history keeps only settled rows. */
-async function watchAssistantText(lane: MidTurnStopLane, sessionId: string) {
+type Watch = { close(): void }
+
+async function watchAssistantText(lane: MidTurnStopLane, sessionId: string, opened: Watch[]) {
   const text: string[] = []
   const errors: Error[] = []
   const subscription = await subscribeRemoteRuntimeRequest<AgentSessionSubscribeEvent>(
@@ -124,12 +126,40 @@ async function watchAssistantText(lane: MidTurnStopLane, sessionId: string) {
     },
     { clientCapabilities: ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES }
   )
-  return { text, errors, close: () => subscription.close() }
+  let closed = false
+  const watch = {
+    text,
+    errors,
+    close: () => {
+      if (!closed) {
+        closed = true
+        subscription.close()
+      }
+    }
+  }
+  opened.push(watch)
+  return watch
 }
+
+type MidTurnFixture = { root: string; worktree: string; cwd: string }
 
 export async function proveWslMidTurnStopAndContinue(
   lane: MidTurnStopLane,
-  fixture: { root: string; worktree: string; cwd: string }
+  fixture: MidTurnFixture
+) {
+  // A failed wait must not leave a stream open until the step times out.
+  const opened: Watch[] = []
+  try {
+    return await stopMidTurnThenContinue(lane, fixture, opened)
+  } finally {
+    opened.forEach((watch) => watch.close())
+  }
+}
+
+async function stopMidTurnThenContinue(
+  lane: MidTurnStopLane,
+  fixture: MidTurnFixture,
+  opened: Watch[]
 ) {
   const { distro, environmentId, host } = lane
   const sessionId = randomUUID()
@@ -159,7 +189,7 @@ export async function proveWslMidTurnStopAndContinue(
       envelope: envelope(sessionId, 'agentSession.create', fields, null)
     })
   )
-  const held = await watchAssistantText(lane, sessionId)
+  const held = await watchAssistantText(lane, sessionId, opened)
   const body = {
     kind: 'message',
     role: 'user',
@@ -250,7 +280,7 @@ export async function proveWslMidTurnStopAndContinue(
     JSON.stringify(packagedClaudeChatScenario(providerId, ackPath))
   )
   await lane.guest(`touch ${quotePosixShell(ackPath)}`)
-  const resumedWatch = await watchAssistantText(lane, sessionId)
+  const resumedWatch = await watchAssistantText(lane, sessionId, opened)
   const continued = z.object({ outcome: z.string() }).parse(
     await lane.rpc('agentSession.continueInterrupted', {
       sessionId,
@@ -284,7 +314,6 @@ export async function proveWslMidTurnStopAndContinue(
     'the continued turn'
   )
   expect(resumed.cwd).toBe(fixture.cwd)
-  resumedWatch.close()
   await lane.rpc('agentSession.close', { sessionId })
   return {
     sessionId,
