@@ -1,3 +1,4 @@
+import { throwIfSignalAborted } from '../../shared/abort-signal-reason'
 import { MAX_FILE_RANGE_READ_BYTES } from '../../shared/file-range-read'
 import type { RemoteFilePreviewAddress } from '../../shared/remote-file-preview-address'
 import type { RuntimeFileReadChunkResult } from '../../shared/runtime-file-contracts'
@@ -117,6 +118,8 @@ export async function readRemotePreviewChunk(
 
 const MAX_CHUNK_READ_VERDICTS = 64
 const chunkReadVerdicts = new Set<string>()
+const chunkReadProbes = new Map<string, Set<AbortController>>()
+const chunkReadConfirmed = new DOMException('Range reads are supported.', 'AbortError')
 
 /**
  * Hosts from v1.4.5 answer files.stat but only v1.4.111 and later answer files.readChunk, and no
@@ -127,22 +130,54 @@ export async function assertRemoteChunkReadsSupported(
   signal: AbortSignal
 ): Promise<void> {
   const revision = address.expectedEnvironmentPairingRevision
-  const key = JSON.stringify([address.environmentId, revision])
-  if (revision !== undefined && chunkReadVerdicts.has(key)) {
-    return
-  }
-  await readRemotePreviewChunk(address, 0, 1, signal)
   // Why: an unpinned verdict would outlive a re-pair under the same environment id.
   if (revision === undefined) {
+    await readRemotePreviewChunk(address, 0, 1, signal)
     return
   }
-  if (chunkReadVerdicts.size >= MAX_CHUNK_READ_VERDICTS) {
+  const key = JSON.stringify([address.environmentId, revision])
+  if (chunkReadVerdicts.has(key)) {
+    return
+  }
+  throwIfSignalAborted(signal)
+  let probes = chunkReadProbes.get(key)
+  if (!probes) {
+    probes = new Set()
+    chunkReadProbes.set(key, probes)
+  }
+  const controller = new AbortController()
+  probes.add(controller)
+  try {
+    await readRemotePreviewChunk(address, 0, 1, AbortSignal.any([signal, controller.signal]))
+  } catch (error) {
+    throwIfSignalAborted(signal)
+    if (error !== chunkReadConfirmed) {
+      throw error
+    }
+    return
+  } finally {
+    probes.delete(controller)
+    if (probes.size === 0 && chunkReadProbes.get(key) === probes) {
+      chunkReadProbes.delete(key)
+    }
+  }
+  throwIfSignalAborted(signal)
+  if (controller.signal.aborted) {
+    return
+  }
+  if (!chunkReadVerdicts.has(key) && chunkReadVerdicts.size >= MAX_CHUNK_READ_VERDICTS) {
     const oldest = chunkReadVerdicts.values().next().value
     if (oldest !== undefined) {
       chunkReadVerdicts.delete(oldest)
     }
   }
   chunkReadVerdicts.add(key)
+  if (chunkReadProbes.get(key) === probes) {
+    chunkReadProbes.delete(key)
+  }
+  for (const probe of probes) {
+    probe.abort(chunkReadConfirmed)
+  }
 }
 
 /** `length` bytes from `offset` (clipped to `size`), in chunks the host accepts; fewer at EOF. */
