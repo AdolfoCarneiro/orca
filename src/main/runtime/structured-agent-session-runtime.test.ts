@@ -80,7 +80,7 @@ describe('structured agent-session store presence', () => {
   }
 
   it('reports a profile whose database holds no chat absent', async () => {
-    ;(await openProfileDatabase()).close()
+    await (await openProfileDatabase()).close()
 
     expect(hasPersistedStructuredAgentSessionStore(profile)).toBe(false)
   })
@@ -90,7 +90,7 @@ describe('structured agent-session store presence', () => {
     database.db
       .prepare('INSERT INTO agent_session_records (session_id, record_json) VALUES (?, ?)')
       .run('session-1', '{}')
-    database.close()
+    await database.close()
 
     expect(hasPersistedStructuredAgentSessionStore(profile)).toBe(true)
   })

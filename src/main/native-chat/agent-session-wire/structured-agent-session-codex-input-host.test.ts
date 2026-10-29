@@ -162,7 +162,7 @@ afterEach(async () => {
   vi.restoreAllMocks()
   await adapter.closeAll()
   await host.flushAllStreamedEvents()
-  closeTestJournalHostDatabase(root)
+  await closeTestJournalHostDatabase(root)
   Object.defineProperty(process, 'platform', { configurable: true, value: platform })
   await rm(root, { recursive: true, force: true })
 })
@@ -772,7 +772,7 @@ async function assertInputRecoveredAfterSnapshot(id: string): Promise<void> {
   } finally {
     await restarted.flushAllStreamedEvents()
     await restartedAdapter.closeAll()
-    closeTestJournalHostDatabase(snapshotRoot)
+    await closeTestJournalHostDatabase(snapshotRoot)
   }
 }
 

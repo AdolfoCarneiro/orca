@@ -25,8 +25,8 @@ import { restoreStructuredAgentSessionsOnRestart } from './structured-agent-sess
 import { recordingStructuredAgentSessionLogger } from './structured-agent-session-logger-test-support'
 
 const stateDirectory = mkdtempSync(join(tmpdir(), 'orca-restart-restore-'))
-afterAll(() => {
-  closeTestJournalHostDatabases()
+afterAll(async () => {
+  await closeTestJournalHostDatabases()
   rmSync(stateDirectory, { recursive: true, force: true })
 })
 

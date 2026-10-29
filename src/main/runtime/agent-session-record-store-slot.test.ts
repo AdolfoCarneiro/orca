@@ -94,3 +94,32 @@ describe('the record store slot', () => {
     })
   })
 })
+
+it.each(['standalone', 'construction'] as const)(
+  'retains failed %s database closure for retry',
+  async (path) => {
+    const { AgentSessionRecordStore } = await import('./agent-session-record-store')
+    let database: JournalHostDatabase | undefined
+    const realClose = JournalHostDatabase.prototype.close
+    const close = vi.spyOn(JournalHostDatabase.prototype, 'close').mockImplementationOnce(function (
+      this: JournalHostDatabase
+    ) {
+      database = this
+      return Promise.reject(new Error('close failed'))
+    })
+    if (path === 'construction') {
+      vi.spyOn(AgentSessionRecordStore, 'open').mockImplementationOnce(() => {
+        throw new Error('construction failed')
+      })
+      await expect(openAgentSessionRecordStoreOnce(location())).rejects.toThrow('close failed')
+    } else {
+      await openAgentSessionRecordStoreOnce(location())
+      await expect(stopStructuredAgentSessionRuntime()).rejects.toThrow('close failed')
+    }
+    expect(database?.isClosed).toBe(false)
+    close.mockImplementation(realClose)
+    // A new admission must first finish retiring the old connection.
+    await openAgentSessionRecordStoreOnce(location())
+    expect(database?.isClosed).toBe(true)
+  }
+)

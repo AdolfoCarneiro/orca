@@ -76,7 +76,7 @@ afterEach(async () => {
   fault.path = ''
   fault.sync = false
   store.clearInFlightForTests()
-  closeTestJournalHostDatabases()
+  await closeTestJournalHostDatabases()
   await rm(stateDirectory, { recursive: true, force: true })
 })
 

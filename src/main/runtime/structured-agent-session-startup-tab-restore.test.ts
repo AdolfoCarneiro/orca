@@ -69,7 +69,7 @@ beforeEach(async () => {
 afterEach(async () => {
   Object.assign(writes, { failing: false, grants: Infinity, refused: 0 })
   await stopStructuredAgentSessionRuntime().catch(() => undefined)
-  closeTestJournalHostDatabases()
+  await closeTestJournalHostDatabases()
   vi.restoreAllMocks()
   await rm(root, { recursive: true, force: true })
 })
@@ -153,7 +153,7 @@ async function seedProfile(
     })
     await journal.close()
   }
-  closeTestJournalHostDatabase(root)
+  await closeTestJournalHostDatabase(root)
   if (options.newer) {
     await seedTestAgentSessionStoreFromNewerBuild(root)
   }

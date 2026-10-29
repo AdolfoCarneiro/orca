@@ -194,7 +194,7 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks()
   await host?.flushAllStreamedEvents()
-  closeTestJournalHostDatabases()
+  await closeTestJournalHostDatabases()
   await rm(root, { recursive: true, force: true })
 })
 

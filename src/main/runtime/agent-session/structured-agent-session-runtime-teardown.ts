@@ -59,7 +59,7 @@ export async function tearDownRuntime(
   }
   if (failures.length === 0) {
     // Close only after all sinks drain and conversations settle.
-    installed.journalDatabase.close()
+    await installed.journalDatabase.close()
     return
   }
   if (failures.length === 1) {
