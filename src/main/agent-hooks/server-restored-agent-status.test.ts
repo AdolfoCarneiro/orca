@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AgentHookServer, _internals } from './server'
-import { PANE } from './server.test-fixtures'
+import { GOOD_PANE as REMOTE_PANE, PANE } from './server.test-fixtures'
 
 describe('restored agent status', () => {
   let userDataPath: string
@@ -27,14 +27,25 @@ describe('restored agent status', () => {
       connectionId: null,
       payload: { state: 'done', prompt: 'review', agentType: 'codex' }
     })
+    // A remote host's row cannot be checked against a local process.
+    before.ingestTerminalStatus({
+      paneKey: REMOTE_PANE,
+      tabId: 'tab-good',
+      worktreeId: 'wt-1',
+      connectionId: 'ssh-1',
+      payload: { state: 'done', prompt: 'review', agentType: 'codex' }
+    })
     before.flushStatusPersistSync()
     before.stop()
 
     const after = new AgentHookServer()
     await after.start({ env: 'production', userDataPath })
     try {
-      expect(await after.readRestoredAgentStatus(PANE)).toBe('done')
-      expect(await after.readRestoredAgentStatus('tab-2:leaf-2')).toBeNull()
+      expect(await after.readRestoredAgentStatus(PANE)).toMatchObject({ state: 'done' })
+      expect(after.getStatusSnapshot().map((row) => row.paneKey)).toContain(REMOTE_PANE)
+      expect(await after.readRestoredAgentStatus(REMOTE_PANE)).toBeNull()
+      after.setStatusHooksEnabled(false)
+      expect(await after.readRestoredAgentStatus(PANE)).toBeNull()
     } finally {
       after.stop()
     }

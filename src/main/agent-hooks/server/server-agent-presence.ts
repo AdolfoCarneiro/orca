@@ -1,5 +1,8 @@
 import { cliWriterTopology, type CliWriterObservation } from './cli-writer-observation'
-import type { AgentStatusIpcPayload, AgentStatusState } from '../../../shared/agent-status-types'
+import type {
+  AgentStatusIpcPayload,
+  ParsedAgentStatusPayload
+} from '../../../shared/agent-status-types'
 import {
   ClaudeSessionContinuationTracker,
   resolvePaneClaudeContinuation
@@ -189,10 +192,13 @@ export abstract class AgentHookServerAgentPresence extends AgentHookServerLifecy
 
   /** The last report of this pane's local agent, restored from disk or replayed from the offline
    *  spool. A report naming its process counts only while that process runs. */
-  async readRestoredAgentStatus(paneKey: string): Promise<AgentStatusState | null> {
+  async readRestoredAgentStatus(
+    paneKey: string
+  ): Promise<Pick<ParsedAgentStatusPayload, 'state' | 'mainAgent' | 'sessionBoundary'> | null> {
     if (!this.statusHooksEnabled) {
       return null
     }
+    const generation = this.statusHookGeneration
     await this.initializeStatusHookOwner()
     const resolved = this.resolvePaneKeyAlias(paneKey)
     const row = this.state.lastStatusByPaneKey.get(resolved)
@@ -202,7 +208,10 @@ export abstract class AgentHookServerAgentPresence extends AgentHookServerLifecy
     if (row.agentPresence?.process && (await this.checkAgentPresence(resolved)) !== 'live') {
       return null
     }
-    // The probe awaited: a newer report decides instead.
-    return this.state.lastStatusByPaneKey.get(resolved) === row ? row.payload.state : null
+    // Each await may have seen hooks turned off or a newer report replace this one.
+    return this.statusHookGeneration === generation &&
+      this.state.lastStatusByPaneKey.get(resolved) === row
+      ? row.payload
+      : null
   }
 }

@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { settledWriteStub } from '../providers/settled-pty-write-stub'
 import { seedTerminalRestoreRecordsFromSpawnResult } from '../ipc/pty/pane/agent-session-owners'
 import { agentHookServer } from '../agent-hooks/server'
-import type { AgentStatusState } from '../../shared/agent-status-types'
 import { OrcaRuntimeService } from './orca-runtime-test-mocks.spec'
 import {
   InMemoryOrchestrationMessages,
@@ -12,9 +11,20 @@ import {
   syncSinglePty
 } from './orca-runtime-test-fixtures.spec'
 
-async function reattachQuietCoordinator(foreground: string, reported: AgentStatusState) {
-  vi.spyOn(agentHookServer, 'readRestoredAgentStatus').mockResolvedValue(reported)
+type RestoredReport = Awaited<ReturnType<typeof agentHookServer.readRestoredAgentStatus>>
+
+async function reattachQuietCoordinator(
+  report: RestoredReport,
+  {
+    foreground = 'codex',
+    screen
+  }: {
+    foreground?: string
+    screen?: string
+  } = {}
+) {
   const runtime = new OrcaRuntimeService(store)
+  vi.spyOn(agentHookServer, 'readRestoredAgentStatus').mockResolvedValue(report)
   const db = new InMemoryOrchestrationMessages()
   const write = vi.fn().mockReturnValue(true)
   setInMemoryOrchestrationMessages(runtime, db)
@@ -27,7 +37,10 @@ async function reattachQuietCoordinator(foreground: string, reported: AgentStatu
   syncSinglePty(runtime)
   const [terminal] = (await runtime.listTerminals()).terminals
   bindSinglePtyRun(db, terminal.handle)
-  // The restarted runtime has seen nothing live from the surviving session.
+  if (screen) {
+    runtime.onPtyData('pty-1', screen, Date.now())
+  }
+  // The restarted runtime has seen no status from the surviving session.
   seedTerminalRestoreRecordsFromSpawnResult(runtime, { id: 'pty-1', isReattach: true })
   await vi.advanceTimersByTimeAsync(0)
   const message = db.insertMessage({ from: 'worker', to: terminal.handle, subject: 'worker_done' })
@@ -35,7 +48,10 @@ async function reattachQuietCoordinator(foreground: string, reported: AgentStatu
   // Past the readiness quiet window, so a refusal here is the gate's, not the clock's.
   await vi.advanceTimersByTimeAsync(5_000)
   db.close()
-  return { write, message }
+  const woken = write.mock.calls.some(([, data]) =>
+    String(data).includes('You have 1 orchestration message')
+  )
+  return { woken, message }
 }
 
 describe('restart wake for a quiet coordinator', () => {
@@ -46,25 +62,38 @@ describe('restart wake for a quiet coordinator', () => {
 
   it('wakes a surviving agent whose last report says its turn ended', async () => {
     vi.useFakeTimers()
-    const { write, message } = await reattachQuietCoordinator('codex', 'done')
-    expect(write).toHaveBeenCalledWith(
-      'pty-1',
-      expect.stringContaining('You have 1 orchestration message')
-    )
+    const { woken, message } = await reattachQuietCoordinator({ state: 'done' })
+    expect(woken).toBe(true)
     expect(message.delivered_at).toEqual(expect.any(String))
   })
 
-  it('holds mail while the last report says a permission prompt is open', async () => {
+  it("reads the lead's own ended turn under still-running background work", async () => {
     vi.useFakeTimers()
-    const { write, message } = await reattachQuietCoordinator('codex', 'waiting')
-    expect(write).not.toHaveBeenCalled()
-    expect(message.delivered_at).toBeNull()
+    const { woken } = await reattachQuietCoordinator({
+      state: 'working',
+      mainAgent: { state: 'done', stateStartedAt: 1 }
+    })
+    expect(woken).toBe(true)
   })
 
-  it('holds mail when a shell, not the reporting agent, holds the terminal', async () => {
+  it.each([
+    ['a permission prompt is open', { state: 'waiting' } as const, {}],
+    [
+      'a shell, not the reporting agent, holds the terminal',
+      { state: 'done' } as const,
+      {
+        foreground: 'zsh'
+      }
+    ],
+    [
+      'text typed before the restart is still unsent',
+      { state: 'done' } as const,
+      { screen: `${'─'.repeat(40)}\r\n❯ please refactor the auth` }
+    ]
+  ])('holds mail when %s', async (_case, report, options) => {
     vi.useFakeTimers()
-    const { write, message } = await reattachQuietCoordinator('zsh', 'done')
-    expect(write).not.toHaveBeenCalled()
+    const { woken, message } = await reattachQuietCoordinator(report, options)
+    expect(woken).toBe(false)
     expect(message.delivered_at).toBeNull()
   })
 })
