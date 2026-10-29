@@ -106,6 +106,19 @@ describe('a runtime start in a folder workspace on a stopped WSL distro (E9)', (
     expect(statsInUserAct[0]).toBe(true)
   })
 
+  it('checks the folder as the user act for an explicit agent-session ensure', async () => {
+    await makeRuntime()
+      .ensureAgentSession({
+        kind: 'explicit',
+        worktree: `id:${TEST_FOLDER_WORKSPACE_KEY}`,
+        agent: 'claude',
+        providerSession: { key: 'session_id', id: 'provider-session-1' }
+      })
+      // Later launch steps are out of scope; only the folder check's act is under test.
+      .catch(() => undefined)
+    expect(statsInUserAct[0]).toBe(true)
+  })
+
   it('holds background work with Start, naming the distro, without touching the folder', async () => {
     await expect(
       makeRuntime().resolveTerminalWorkspaceLaunchScope(`id:${TEST_FOLDER_WORKSPACE_KEY}`)
