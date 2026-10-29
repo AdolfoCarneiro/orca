@@ -548,7 +548,7 @@ describe('STA-4604 worker PTY exit escalation reaches the coordinator', () => {
     warn.mockRestore()
   })
 
-  it('relays a paired-server worker exit to the Run home', async () => {
+  it('relays a paired-server worker exit to the Run home even while its ask is waiting', async () => {
     const { runtime, workerHandle } = makeRuntimeWithTwoPanes()
     const db = new OrchestrationDb(':memory:')
     try {
@@ -578,9 +578,13 @@ describe('STA-4604 worker PTY exit escalation reaches the coordinator', () => {
       db.markRemoteAttachmentReady('ctx_remote')
       const relay = vi.spyOn(db, 'enqueueFederationRelay')
       runtime.setOrchestrationDb(db)
+      const abort = new AbortController()
+      // The process is gone, so a blocked `ask` can never report the exit itself.
+      void runtime.waitForMessage('dispatch:ctx_remote', { signal: abort.signal })
 
       runtime.onPtyExit(WORKER_PTY_ID, 137)
       await settle()
+      abort.abort()
 
       expect(relay).toHaveBeenCalledTimes(1)
       const [{ dispatchId, direction, kind, payload }] = relay.mock.calls[0]
