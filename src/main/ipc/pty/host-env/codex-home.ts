@@ -1,3 +1,6 @@
+import type { CodexPreparedHome } from '../../../codex/codex-launch-home'
+import type { CodexPaneHomeObservation } from '../../../codex/codex-pane-account-registry-types'
+import { observeCodexPaneHome } from '../../../codex/codex-pane-account-registry'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import {
@@ -202,11 +205,64 @@ export function recordCodexPaneAccountForSpawn(args: {
   launchCodexHomePath: string | null
   target: CodexAccountSelectionTarget
   settings: GlobalSettings | undefined
+  preparedHome?: CodexPreparedHome
+  incarnationId?: string
+  registration?: object
 }): void {
   if (!args.ptyId || !args.isDaemonHostSpawn || args.isReattach) {
     return
   }
-  const record = args.settings
+  const prepared = args.preparedHome
+  const actualHome = prepared?.home ?? prepared?.loginHome
+  const record =
+    args.target.runtime === 'host' && args.incarnationId && prepared
+      ? prepared.accountId !== undefined &&
+        actualHome &&
+        codexHomeSelectionsEqual(args.launchCodexHomePath ?? prepared.loginHome, actualHome)
+        ? {
+            selectionKey: prepared.selectionKey,
+            accountId: prepared.accountId,
+            homeRoute:
+              prepared.accountId === null
+                ? prepared.disposition === 'direct'
+                  ? ('real-home' as const)
+                  : ('shared-home' as const)
+                : ('account-home' as const),
+            launchProvenance: { homePath: actualHome, incarnationId: args.incarnationId }
+          }
+        : null
+      : resolveLegacyCodexSpawnAccount(args)
+  if (!record) {
+    forgetCodexPaneAccount(args.ptyId)
+    return
+  }
+  // A new admitted birth always replaces any predecessor address, even when it cannot be replayed.
+  observeCodexPaneHome(args.ptyId, null)
+  // Legacy replacement attribution stays on its existing classification path until its policy is settled.
+  if (
+    prepared &&
+    actualHome &&
+    args.registration &&
+    record.selectionKey === 'host' &&
+    codexHomeSelectionsEqual(args.launchCodexHomePath ?? prepared.loginHome, actualHome) &&
+    (args.incarnationId || (prepared.disposition === 'direct' && prepared.accountId === null))
+  ) {
+    const observation: CodexPaneHomeObservation = {
+      actualHome,
+      frozenOrigin: { ...record },
+      registration: args.registration,
+      incarnationId: args.incarnationId
+    }
+    observeCodexPaneHome(args.ptyId, observation)
+  }
+  recordCodexPaneAccount(args.ptyId, record)
+}
+
+/** Preserve the existing legacy classification; its replacement/restart policy remains unselected. */
+function resolveLegacyCodexSpawnAccount(
+  args: Parameters<typeof recordCodexPaneAccountForSpawn>[0]
+) {
+  return args.settings
     ? resolveCodexPaneLaunchAccount({
         pinnedByResume: args.pinnedByResume,
         launchCodexHomePath: args.launchCodexHomePath,
@@ -215,11 +271,6 @@ export function recordCodexPaneAccountForSpawn(args: {
         target: args.target
       })
     : null
-  if (!record) {
-    forgetCodexPaneAccount(args.ptyId)
-    return
-  }
-  recordCodexPaneAccount(args.ptyId, record)
 }
 
 export function snapshotCodexPaneHomeRoutes(

@@ -33,14 +33,6 @@ export function publishCommittedPtySpawn(input: PtySpawnCommitInput): PtySpawnOu
   const { state } = input
   const { deps, args, result } = state
   const runtime = deps.runtime
-  runtime?.noteTerminalSpawnCommit?.(
-    { ...result, spawnRequestedAt: state.spawnRequestedAt },
-    input.expectedSourceBinding
-  )
-  input.spawnTiming?.log(result.id, {
-    daemon: state.isDaemonHostSpawn,
-    reattach: result.isReattach ?? false
-  })
   recordCodexPaneAccountForSpawn({
     ptyId: result.id,
     isDaemonHostSpawn: state.isDaemonHostSpawn,
@@ -48,7 +40,23 @@ export function publishCommittedPtySpawn(input: PtySpawnCommitInput): PtySpawnOu
     pinnedByResume: state.codexResumeHomeSelected,
     launchCodexHomePath: state.selectedCodexHomePath,
     target: state.codexSelectionTarget,
-    settings: deps.getSettings?.()
+    preparedHome: state.preparedCodexHome,
+    incarnationId: result.incarnationId,
+    registration: state.pendingRegistrationClaim ?? result,
+    settings:
+      state.preparedCodexHome &&
+      result.incarnationId &&
+      state.codexSelectionTarget.runtime === 'host'
+        ? undefined
+        : deps.getSettings?.()
+  })
+  runtime?.noteTerminalSpawnCommit?.(
+    { ...result, spawnRequestedAt: state.spawnRequestedAt },
+    input.expectedSourceBinding
+  )
+  input.spawnTiming?.log(result.id, {
+    daemon: state.isDaemonHostSpawn,
+    reattach: result.isReattach ?? false
   })
   if (input.hiddenDelivery === 'renderer-scoped' && input.initiallyHidden) {
     markRendererScopedHiddenAtCommit(state)

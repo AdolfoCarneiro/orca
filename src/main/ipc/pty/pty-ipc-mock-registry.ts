@@ -204,6 +204,7 @@ export const migrationUnsupportedPtyModuleMock = () => ({
 })
 
 export const codexPaneAccountRegistryModuleMock = () => ({
+  observeCodexPaneHome: vi.fn(),
   recordCodexPaneAccount: recordCodexPaneAccountMock,
   forgetCodexPaneAccount: forgetCodexPaneAccountMock,
   getCodexPaneAccount: getCodexPaneAccountMock

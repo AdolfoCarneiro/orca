@@ -1,7 +1,7 @@
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { getSelectedCodexAccountIdForTarget } from '../codex-accounts/runtime-selection'
 import {
-  forgetCodexPaneAccount,
+  dismissCodexPaneAccount,
   listRecordedCodexPaneAccounts
 } from './codex-pane-account-registry'
 
@@ -37,7 +37,7 @@ export function listStaleCodexPanes(args: {
 /** Persist dismissal so keeping an old account does not prompt again after restart. */
 export function forgetStaleCodexPanes(ptyIds: readonly string[]): void {
   for (const ptyId of ptyIds) {
-    forgetCodexPaneAccount(ptyId)
+    dismissCodexPaneAccount(ptyId)
   }
 }
 

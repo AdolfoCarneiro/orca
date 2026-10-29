@@ -1,3 +1,4 @@
+import type { CodexPreparedHome } from '../../../codex/codex-launch-home'
 import type { PtySpawnSizeSeed } from '../spawn-options-assembly'
 import type { StartupCwdFallback } from '../../../../shared/startup-cwd-fallback'
 import type { PtyRegistrationClaim } from '../../../runtime/runtime-terminal-state-records'
@@ -90,6 +91,7 @@ export type PtyIpcSpawnState = {
   resumeAdmission: ResumeSpawnAdmission | null
   launchCommand: string | undefined
   env: Record<string, string> | undefined
+  preparedCodexHome?: CodexPreparedHome
   selectedCodexHomePath: string | null
   spawnEnv: Record<string, string> | undefined
   spawnOptions: PtySpawnOptions

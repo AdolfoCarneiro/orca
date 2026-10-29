@@ -1,14 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CodexPaneAccountRecord } from './codex-pane-account-registry-types'
+import type {
+  CodexPaneAccountRecord,
+  CodexPaneHomeObservation
+} from './codex-pane-account-registry-types'
 
 const mocks = vi.hoisted(() => ({
-  getCodexPaneAccount: vi.fn<(ptyId: string) => CodexPaneAccountRecord | null>(),
+  getObservedCodexPaneHome: vi.fn<(ptyId: string) => CodexPaneHomeObservation | null>(),
   probeCodexSharedServer: vi.fn<(home: string) => Promise<'live' | 'absent' | 'unknown'>>(),
   getProcessTableSnapshot: vi.fn(),
   readWindowsProcessTable: vi.fn()
 }))
 vi.mock('./codex-pane-account-registry', () => ({
-  getCodexPaneAccount: mocks.getCodexPaneAccount
+  getObservedCodexPaneHome: mocks.getObservedCodexPaneHome,
+  isCurrentCodexPaneObservation: (_id: string, observed: CodexPaneHomeObservation) =>
+    mocks.getObservedCodexPaneHome('pty') === observed
 }))
 vi.mock('./codex-shared-server-probe', () => ({
   probeCodexSharedServer: mocks.probeCodexSharedServer
@@ -88,30 +93,38 @@ describe('findPaneCodex', () => {
 describe('resolveCodexPaneHome', () => {
   it.each([
     [{ selectionKey: 'host', accountId: null, homeRoute: 'real-home' }, '/home/me/.codex'],
-    [{ selectionKey: 'host', accountId: null, homeRoute: 'shared-home' }, null],
+    [{ selectionKey: 'host', accountId: null, homeRoute: 'shared-home' }, '/home/me/.codex'],
     [{ selectionKey: 'host', accountId: 'acct', homeRoute: 'account-home' }, null],
     [{ selectionKey: 'wsl:Ubuntu', accountId: null, homeRoute: 'real-home' }, null],
-    [{ selectionKey: 'host', accountId: null }, null]
+    [{ selectionKey: 'host', accountId: null }, '/home/me/.codex']
   ] satisfies [CodexPaneAccountRecord, string | null][])(
     'resolves %o to %s',
     (record, expected) => {
-      mocks.getCodexPaneAccount.mockReturnValue(record)
+      mocks.getObservedCodexPaneHome.mockReturnValue({
+        actualHome: '/home/me/.codex',
+        frozenOrigin: record,
+        registration: {}
+      })
       expect(resolveCodexPaneHome('pty')).toBe(expected)
     }
   )
 
   it('names no home for a pane with no launch record', () => {
-    mocks.getCodexPaneAccount.mockReturnValue(null)
+    mocks.getObservedCodexPaneHome.mockReturnValue(null)
     expect(resolveCodexPaneHome('pty')).toBeNull()
   })
 })
 
 describe('findPaneCodexOnSharedServer', () => {
   beforeEach(() => {
-    mocks.getCodexPaneAccount.mockReturnValue({
-      selectionKey: 'host',
-      accountId: null,
-      homeRoute: 'real-home'
+    mocks.getObservedCodexPaneHome.mockReturnValue({
+      actualHome: '/home/me/.codex',
+      registration: {},
+      frozenOrigin: {
+        selectionKey: 'host',
+        accountId: null,
+        homeRoute: 'real-home'
+      }
     })
     mocks.probeCodexSharedServer.mockResolvedValue('live')
     const rows = [row(SHELL, 1, '-bash'), row(101, SHELL, 'codex')]
@@ -149,7 +162,7 @@ describe('findPaneCodexOnSharedServer', () => {
   })
 
   it('finds none when the pane home cannot be named, without reading processes', async () => {
-    mocks.getCodexPaneAccount.mockReturnValue(null)
+    mocks.getObservedCodexPaneHome.mockReturnValue(null)
     await expect(findPaneCodexOnSharedServer('pty', SHELL)).resolves.toBeNull()
     expect(mocks.getProcessTableSnapshot).not.toHaveBeenCalled()
     expect(mocks.readWindowsProcessTable).not.toHaveBeenCalled()

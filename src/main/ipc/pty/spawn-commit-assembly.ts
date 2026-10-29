@@ -1,3 +1,4 @@
+import type { CodexPreparedHome } from '../../codex/codex-launch-home'
 import type { PtySpawnSizeSeed } from './spawn-options-assembly'
 import { isValidTerminalTabId } from '../../../shared/terminal-tab-id'
 import type { AgentSessionClaimedSpawnResult } from '../../../shared/agent-session-host-authority'
@@ -62,6 +63,7 @@ export type PtySpawnCommitState = {
   isDaemonHostSpawn: boolean
   codexResumeHomeSelected: boolean
   codexResumeUnavailable?: boolean
+  preparedCodexHome?: CodexPreparedHome
   selectedCodexHomePath: string | null
   codexSelectionTarget: CodexAccountSelectionTarget
   codexHomeLaunchStartedAt: Date | undefined

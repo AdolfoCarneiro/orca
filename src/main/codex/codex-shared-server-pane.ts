@@ -9,8 +9,11 @@ import {
 import { getProcessTableSnapshot } from '../../shared/process-table-snapshot-reader'
 import { readWindowsProcessTable } from '../windows/windows-process-table'
 import { fishArgsSkipConfig } from '../fish-xdg-data-dirs-handoff'
-import { getSystemCodexHomePath } from './codex-home-paths'
-import { getCodexPaneAccount } from './codex-pane-account-registry'
+import {
+  getObservedCodexPaneHome,
+  isCurrentCodexPaneObservation
+} from './codex-pane-account-registry'
+import type { CodexPaneHomeObservation } from './codex-pane-account-registry-types'
 import { probeCodexSharedServer } from './codex-shared-server-probe'
 
 type CommandRow = ProcessIdentityRow & { command: string; name?: string }
@@ -60,37 +63,35 @@ export function findPaneCodex(
 
 /** Launch-time home only; later shell exports are not observed. */
 export function resolveCodexPaneHome(ptyId: string): string | null {
-  const record = getCodexPaneAccount(ptyId)
-  if (record?.selectionKey !== 'host') {
-    return null
-  }
-  switch (record.homeRoute) {
-    // Custom CODEX_HOME uses the mirror; real-home always means the system home.
-    case 'real-home':
-      return getSystemCodexHomePath()
-    // Only probe real-home panes; fallback or untracked homes could target the wrong server.
-    case 'shared-home':
-    case 'account-home':
-    case 'wsl-home':
-    case undefined:
-      return null
-  }
+  const observed = getObservedCodexPaneHome(ptyId)
+  return observed?.frozenOrigin.selectionKey === 'host' && observed.frozenOrigin.accountId === null
+    ? observed.actualHome
+    : null
 }
 
 export async function findPaneCodexOnSharedServer(
   ptyId: string,
-  rootPid: number
+  rootPid: number,
+  observation: CodexPaneHomeObservation | null = getObservedCodexPaneHome(ptyId),
+  isCurrent = () => observation !== null && isCurrentCodexPaneObservation(ptyId, observation)
 ): Promise<PaneCodexProcess | null> {
-  const codexHome = resolveCodexPaneHome(ptyId)
-  if (!codexHome) {
+  const codexHome =
+    observation?.frozenOrigin.selectionKey === 'host' && observation.frozenOrigin.accountId === null
+      ? observation.actualHome
+      : null
+  if (!codexHome || !isCurrent()) {
     return null
   }
   const rows: readonly CommandRow[] =
     process.platform === 'win32' ? await readWindowsProcessTable() : await getProcessTableSnapshot()
+  if (!isCurrent()) {
+    return null
+  }
   const codex = findPaneCodex(rows, rootPid)
   return codex &&
     codexCommandLineJoinsSharedServer(codex.command) &&
-    (await probeCodexSharedServer(codexHome)) === 'live'
+    (await probeCodexSharedServer(codexHome)) === 'live' &&
+    isCurrent()
     ? codex
     : null
 }

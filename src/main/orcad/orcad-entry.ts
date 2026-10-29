@@ -155,11 +155,6 @@ async function startOrcadRuntime(
 
   // Reconcile, daemon and runtime all consume this environment.
   await loginEnvironment
-  startOrcadManagedAgentHooks(
-    profileStore,
-    (enabled) => agentHookServer.setStatusHooksEnabled(enabled),
-    registerCleanup
-  )
 
   // Install the daemon provider before PTY handlers can route their first call.
   await startOrcadDaemon()
@@ -181,6 +176,12 @@ async function startOrcadRuntime(
     registerCleanup,
     clientCodexHomes: codexAccountHomes
   })
+  startOrcadManagedAgentHooks(
+    profileStore,
+    (enabled) => agentHookServer.setStatusHooksEnabled(enabled),
+    registerCleanup,
+    accountLaunch?.reconcileRetainedCodexHooks
+  )
 
   const { orcadAiVaultSessionSources, installOrcadSessionSearchService } =
     await import('./orcad-session-search')

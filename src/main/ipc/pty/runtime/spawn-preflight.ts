@@ -155,6 +155,7 @@ export async function prepareRuntimePtySpawn(
   ctx.codexResumeArgvDropped = hostEnv.codexResumeLaunch.droppedResumeArgv
   ctx.codexResumeUnavailable = hostEnv.codexResumeLaunch.notifyResumeUnavailable
   ctx.env = hostEnv.env
+  ctx.preparedCodexHome = hostEnv.preparedCodexHome
   ctx.selectedCodexHomePath = hostEnv.selectedCodexHomePath
   ctx.codexResumeHomeSelected = hostEnv.codexResumeHomeSelected
   ctx.skipCodexHomeEnv = hostEnv.skipCodexHomeEnv

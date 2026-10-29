@@ -40,6 +40,7 @@ type OrcadAccountServices = {
     ) => Promise<AiVaultPrepareSessionResumeResult>
   }
   listCodexSessionHomes: () => string[]
+  reconcileRetainedCodexHooks: (isCurrent: () => boolean) => Promise<boolean>
   attachToRuntime: (
     runtime: Pick<
       OrcaRuntimeService,
@@ -110,6 +111,8 @@ export function createOrcadAccountServices(args: {
           preparePinnedLaunchHome: (home) => resumeLaunch.prepareCodexPinnedLaunchHome(home)
         })
     },
+    reconcileRetainedCodexHooks: (isCurrent) =>
+      codexRuntimeHome.reconcileRetainedHostCodexHooks([], isCurrent),
     listCodexSessionHomes: () => codexRuntimeHome.getHostCodexHomePathsForSessionDiscovery(),
     attachToRuntime: (runtime) => {
       runtime.setAccountServices({

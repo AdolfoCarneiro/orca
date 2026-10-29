@@ -34,10 +34,11 @@ export async function resolveCodexSharedServerBinary(codexHome: string): Promise
 async function runCodex(
   codexHome: string,
   args: readonly string[],
-  timeoutMs: number
+  timeoutMs: number,
+  isCurrent: () => boolean
 ): Promise<string | null> {
   const program = await resolveCodexSharedServerBinary(codexHome)
-  if (!program) {
+  if (!program || !isCurrent()) {
     return null
   }
   try {
@@ -49,7 +50,7 @@ async function runCodex(
       timeoutMs,
       maxOutputBytes: MAX_OUTPUT_BYTES
     })
-    return result.code === 0 && !result.timedOut ? result.stdout : null
+    return isCurrent() && result.code === 0 && !result.timedOut ? result.stdout : null
   } catch {
     return null
   }
@@ -67,17 +68,26 @@ export function readFeatureEnabled(stdout: string, key: string): boolean | null 
   return null
 }
 
-export async function disableCodexSharedServerAutoStart(codexHome: string): Promise<boolean> {
-  if ((await runCodex(codexHome, CODEX_DISABLE_SHARED_SERVER_ARGS, COMMAND_TIMEOUT_MS)) === null) {
+export async function disableCodexSharedServerAutoStart(
+  codexHome: string,
+  isCurrent = () => true
+): Promise<boolean> {
+  if (
+    (await runCodex(codexHome, CODEX_DISABLE_SHARED_SERVER_ARGS, COMMAND_TIMEOUT_MS, isCurrent)) ===
+    null
+  ) {
     return false
   }
   // Managed config can keep the feature enabled after a successful write.
-  const list = await runCodex(codexHome, ['features', 'list'], COMMAND_TIMEOUT_MS)
+  const list = await runCodex(codexHome, ['features', 'list'], COMMAND_TIMEOUT_MS, isCurrent)
   return list !== null && readFeatureEnabled(list, CODEX_SHARED_SERVER_FEATURE_KEY) === false
 }
 
-export async function stopCodexSharedServer(codexHome: string): Promise<boolean> {
+export async function stopCodexSharedServer(
+  codexHome: string,
+  isCurrent = () => true
+): Promise<boolean> {
   // A successful stop command alone does not prove the server is gone.
-  await runCodex(codexHome, CODEX_STOP_SHARED_SERVER_ARGS, STOP_TIMEOUT_MS)
-  return (await probeCodexSharedServer(codexHome)) === 'absent'
+  await runCodex(codexHome, CODEX_STOP_SHARED_SERVER_ARGS, STOP_TIMEOUT_MS, isCurrent)
+  return isCurrent() && (await probeCodexSharedServer(codexHome)) === 'absent' && isCurrent()
 }

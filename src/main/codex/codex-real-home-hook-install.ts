@@ -71,16 +71,16 @@ export async function reconcileCodexHookEntriesInHome(
   home: CodexHookHome,
   args: ReconcileArgs,
   options: { pristineBackup: boolean } = { pristineBackup: false }
-): Promise<void> {
+): Promise<'settled' | 'unavailable'> {
   try {
-    await runExclusivelyForCodexTrustConfig(home.tomlPath, async () => {
+    return await runExclusivelyForCodexTrustConfig(home.tomlPath, async () => {
       for (let pass = 0; pass < MAX_PASSES; pass += 1) {
         if (!args.isEnabled()) {
-          return
+          return 'settled' as const
         }
         try {
           if (reconcilePass(home, args, options.pristineBackup) === 'settled') {
-            return
+            return 'settled' as const
           }
         } catch (error) {
           // Retry from the user's latest save.
@@ -96,6 +96,7 @@ export async function reconcileCodexHookEntriesInHome(
       `[codex-real-home-hooks] could not reconcile Orca entries in ${home.homePath}:`,
       error
     )
+    return 'unavailable'
   }
 }
 
@@ -230,10 +231,14 @@ function findStaleOrcaApprovals(
 /** Opt-out must move shifted user approvals when removing Orca entries. */
 export async function removeRealHomeCodexHookForOptOut(
   codexHashes: readonly CodexHookHashes[],
-  home: CodexHookHome = getRealHomeCodexHookHome()
+  home: CodexHookHome = getRealHomeCodexHookHome(),
+  isCurrent = () => true
 ): Promise<'removed' | 'unavailable'> {
   try {
     return await runExclusivelyForCodexTrustConfig(home.tomlPath, async () => {
+      if (!isCurrent()) {
+        return 'removed'
+      }
       const lane = sweepRealHomeCodexHook(home)
       // Unreadable hooks may still need their approvals and ownership ledger; retry cleanup later.
       if (lane === 'removed') {

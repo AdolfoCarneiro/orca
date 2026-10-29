@@ -14,14 +14,11 @@ import {
   hasRecordedManagedHostCodexPane,
   isCodexPaneHomeRouteProvenAwayFromSharedHome,
   reconcileCodexPaneAccountsWithLivePtys,
+  captureCodexPaneAccountInventory,
   type CodexPaneHomeRoute
 } from '../codex/codex-pane-account-registry'
-import { reconcileRetainedCodexHookHomes } from '../codex/retained-codex-hook-state'
-import { codexHookService } from '../codex/hook-service'
-import {
-  isAgentStatusHooksEnabled,
-  isAgentStatusHooksEnabledForAgent
-} from '../agent-hooks/managed-agent-hook-controls'
+import { scheduleCodexHookReconcile } from '../codex/codex-hook-reconcile'
+import { isAgentStatusHooksEnabled } from '../agent-hooks/managed-agent-hook-controls'
 import { agentHookServer } from '../agent-hooks/server'
 import { createLocalTmuxManagedPtyResolver } from '../agent-hooks/local-tmux-managed-pty'
 import {
@@ -138,23 +135,17 @@ export function startTerminalRuntimeStartupServices(): WindowsDesktopStartupServ
       await restartLocalTerminalsAfterElevation(signal)
       // Retained shells keep their launch-time Codex home despite routing changes.
       const hasRetainedManagedHostPane = hasRecordedManagedHostCodexPane()
+      const sampledCodexAccounts = captureCodexPaneAccountInventory()
       if (
         state.codexRuntimeHome &&
-        (hasRetainedManagedHostPane || hasAnyRecordedLegacyWslCodexPane())
+        (Object.keys(sampledCodexAccounts.entries).length > 0 || hasAnyRecordedLegacyWslCodexPane())
       ) {
         const livePtyIds = await listLiveDaemonPtyIds()
         if (livePtyIds) {
-          reconcileCodexPaneAccountsWithLivePtys(livePtyIds)
-          const settings = state.store?.getSettings()
+          reconcileCodexPaneAccountsWithLivePtys(livePtyIds, sampledCodexAccounts)
           // #16441: retained homes may each need an app-server grant; awaiting N sessions delays first paint, while shells cannot invoke Codex before provider readiness.
           if (hasRetainedManagedHostPane) {
-            void reconcileRetainedCodexHookHomes({
-              hookService: codexHookService,
-              hooksEnabled: isAgentStatusHooksEnabledForAgent(settings, 'codex'),
-              runtimeHomePaths: state.codexRuntimeHome.getRetainedHostCodexHookHomePaths(livePtyIds)
-            }).catch((error) =>
-              console.warn('[codex-hook-service] retained Codex home reconcile failed:', error)
-            )
+            scheduleCodexHookReconcile(true)
           }
         }
       }

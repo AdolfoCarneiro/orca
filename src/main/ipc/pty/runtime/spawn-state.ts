@@ -1,3 +1,4 @@
+import type { CodexPreparedHome } from '../../../codex/codex-launch-home'
 import type { PtySpawnSizeSeed } from '../spawn-options-assembly'
 import type { PtySpawnOutcome } from '../spawn-outcome'
 import type { PtyRegistrationClaim } from '../../../runtime/runtime-terminal-state-records'
@@ -75,6 +76,7 @@ export type RuntimePtySpawnState = {
     | undefined
   env: Record<string, string> | undefined
   requestedAgentTeamsPath: string | undefined
+  preparedCodexHome?: CodexPreparedHome
   selectedCodexHomePath: string | null
   codexResumeHomeSelected: boolean
   agentResumeUnavailable: boolean

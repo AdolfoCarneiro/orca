@@ -1,10 +1,8 @@
 import type {
-  CodexPaneAccountRecord,
+  CodexPaneAccountEntry,
   CodexPaneAccountRegistryFile
 } from './codex-pane-account-registry-types'
 
-// Bound crash-leaked disk records and pending mutations during file outages.
-const MAX_TRACKED_PANES = 2000
 const RETRY_DELAYS_MS = [100, 1_000, 5_000, 30_000] as const
 
 type MutationStoreDependencies = {
@@ -13,23 +11,16 @@ type MutationStoreDependencies = {
 }
 
 export class CodexPaneAccountRegistryMutations {
-  private readonly pending = new Map<string, CodexPaneAccountRecord | null>()
+  private readonly pending = new Map<string, CodexPaneAccountEntry | null>()
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private retryAttempt = 0
   private needsPersistence = false
 
   constructor(private readonly dependencies: MutationStoreDependencies) {}
 
-  record(ptyId: string, record: CodexPaneAccountRecord | null): void {
+  record(ptyId: string, record: CodexPaneAccountEntry | null): void {
     this.pending.delete(ptyId)
     this.pending.set(ptyId, record)
-    if (this.pending.size > MAX_TRACKED_PANES) {
-      const oldestPtyId = this.pending.keys().next().value
-      if (typeof oldestPtyId === 'string') {
-        this.pending.delete(oldestPtyId)
-        console.warn('[codex-pane-accounts] Dropped oldest pending registry mutation at capacity')
-      }
-    }
     this.flush()
   }
 
@@ -47,7 +38,6 @@ export class CodexPaneAccountRegistryMutations {
     for (const [ptyId, record] of this.pending) {
       changed = applyMutation(registry, ptyId, record) || changed
     }
-    trimRegistry(registry)
     if ((changed || this.needsPersistence) && !this.dependencies.write(registry)) {
       this.needsPersistence = true
       this.scheduleRetry()
@@ -90,13 +80,16 @@ export class CodexPaneAccountRegistryMutations {
   }
 
   private scheduleRetry(): void {
-    if (this.retryTimer || this.retryAttempt >= RETRY_DELAYS_MS.length) {
+    if (this.retryTimer) {
       return
     }
-    this.retryTimer = setTimeout(() => {
-      this.retryTimer = null
-      this.flush()
-    }, RETRY_DELAYS_MS[this.retryAttempt])
+    this.retryTimer = setTimeout(
+      () => {
+        this.retryTimer = null
+        this.flush()
+      },
+      RETRY_DELAYS_MS[Math.min(this.retryAttempt, RETRY_DELAYS_MS.length - 1)]
+    )
     this.retryAttempt += 1
     this.retryTimer.unref?.()
   }
@@ -113,7 +106,7 @@ export class CodexPaneAccountRegistryMutations {
 function applyMutation(
   registry: CodexPaneAccountRegistryFile,
   ptyId: string,
-  record: CodexPaneAccountRecord | null
+  record: CodexPaneAccountEntry | null
 ): boolean {
   if (!record) {
     if (!(ptyId in registry.panes)) {
@@ -131,22 +124,15 @@ function applyMutation(
 }
 
 function recordsEqual(
-  left: CodexPaneAccountRecord | undefined,
-  right: CodexPaneAccountRecord
+  left: CodexPaneAccountEntry | undefined,
+  right: CodexPaneAccountEntry
 ): boolean {
   return (
-    left?.selectionKey === right.selectionKey &&
+    left !== undefined &&
+    left.selectionKey === right.selectionKey &&
     left.accountId === right.accountId &&
-    left.homeRoute === right.homeRoute
+    left.homeRoute === right.homeRoute &&
+    left.launchProvenance?.homePath === right.launchProvenance?.homePath &&
+    left.launchProvenance?.incarnationId === right.launchProvenance?.incarnationId
   )
-}
-
-function trimRegistry(registry: CodexPaneAccountRegistryFile): void {
-  const trackedPtyIds = Object.keys(registry.panes)
-  if (trackedPtyIds.length <= MAX_TRACKED_PANES) {
-    return
-  }
-  for (const staleId of trackedPtyIds.slice(0, trackedPtyIds.length - MAX_TRACKED_PANES)) {
-    delete registry.panes[staleId]
-  }
 }

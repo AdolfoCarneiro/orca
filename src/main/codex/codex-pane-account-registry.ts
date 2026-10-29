@@ -2,11 +2,13 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node
 import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
 import { dirname, join } from 'node:path'
 import { getOrcaUserDataPath } from './codex-home-paths'
+import { parseRegistry, isPaneAccountRecord } from './codex-pane-account-registry-types'
 import { CodexPaneAccountRegistryMutations } from './codex-pane-account-registry-mutations'
 import type {
   CodexPaneAccountRecord,
   CodexPaneAccountRegistryFile,
-  CodexPaneHomeRoute
+  CodexPaneHomeRoute,
+  CodexPaneHomeObservation
 } from './codex-pane-account-registry-types'
 
 export type {
@@ -95,56 +97,6 @@ function isAuthoritativeRegistry(parsed: unknown): boolean {
   )
 }
 
-function parseRegistry(parsed: unknown): CodexPaneAccountRegistryFile {
-  const empty: CodexPaneAccountRegistryFile = { version: 2, panes: {} }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return empty
-  }
-  const panes = (parsed as Partial<CodexPaneAccountRegistryFile>).panes
-  if (!panes || typeof panes !== 'object' || Array.isArray(panes)) {
-    return empty
-  }
-  if ((parsed as Partial<CodexPaneAccountRegistryFile>).legacyWslAttributionUnknown === true) {
-    empty.legacyWslAttributionUnknown = true
-  }
-  for (const [ptyId, record] of Object.entries(panes)) {
-    if (isPaneAccountRecord(record)) {
-      const homeRoute = readPaneHomeRoute(record.homeRoute)
-      empty.panes[ptyId] = {
-        selectionKey: record.selectionKey,
-        accountId: record.accountId,
-        ...(homeRoute ? { homeRoute } : {})
-      }
-    }
-  }
-  return empty
-}
-
-function isPaneAccountRecord(value: unknown): value is CodexPaneAccountRecord {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return false
-  }
-  const record = value as Partial<CodexPaneAccountRecord>
-  return (
-    (record.selectionKey === 'host' ||
-      (typeof record.selectionKey === 'string' && /^wsl:.+/.test(record.selectionKey))) &&
-    (record.accountId === null || typeof record.accountId === 'string')
-  )
-}
-
-// Older builds called shared-home panes with pane-local CODEX_HOME 'custom-home'.
-function readPaneHomeRoute(value: unknown): CodexPaneHomeRoute | undefined {
-  if (value === 'custom-home') {
-    return 'shared-home'
-  }
-  return value === 'real-home' ||
-    value === 'shared-home' ||
-    value === 'account-home' ||
-    value === 'wsl-home'
-    ? value
-    : undefined
-}
-
 function writeRegistry(registry: CodexPaneAccountRegistryFile): boolean {
   const registryPath = getRegistryPath()
   const temporaryPath = `${registryPath}.${process.pid}.tmp`
@@ -178,11 +130,74 @@ export function recordCodexPaneAccount(ptyId: string, record: CodexPaneAccountRe
 }
 
 export function forgetCodexPaneAccount(ptyId: string): void {
+  observations.delete(ptyId)
   recordCodexPaneAccount(ptyId, null)
 }
 
+const observations = new Map<string, CodexPaneHomeObservation>()
+
+export function observeCodexPaneHome(
+  ptyId: string,
+  observation: CodexPaneHomeObservation | null
+): void {
+  if (observation) {
+    observations.set(ptyId, observation)
+  } else {
+    observations.delete(ptyId)
+  }
+}
+
+export function getObservedCodexPaneHome(ptyId: string): CodexPaneHomeObservation | null {
+  return observations.get(ptyId) ?? null
+}
+
+export function isCurrentCodexPaneObservation(
+  ptyId: string,
+  observation: CodexPaneHomeObservation
+): boolean {
+  return observations.get(ptyId) === observation
+}
+
+/** A saved receipt is qualified only by the current owning provider's actual incarnation. */
+export function restoreCodexPaneHome(
+  ptyId: string,
+  incarnationId: string | undefined
+): CodexPaneHomeObservation | null {
+  const live = observations.get(ptyId)
+  if (live) {
+    return live.incarnationId === incarnationId ? live : null
+  }
+  const entry = readRegistry().panes[ptyId]
+  const provenance = entry?.launchProvenance
+  if (!provenance || provenance.incarnationId !== incarnationId) {
+    return null
+  }
+  const observation = {
+    actualHome: provenance.homePath,
+    incarnationId,
+    registration: {},
+    frozenOrigin: { ...entry, selectionKey: entry.selectionKey ?? 'host' }
+  }
+  observations.set(ptyId, observation)
+  return observation
+}
+
+export function dismissCodexPaneAccount(ptyId: string): void {
+  const entry = readRegistry().panes[ptyId]
+  if (!entry) {
+    return
+  }
+  if (!entry.launchProvenance) {
+    mutations.record(ptyId, null)
+    return
+  }
+  const { selectionKey: _noticeLane, ...address } = entry
+  mutations.record(ptyId, address)
+}
+
 export function getCodexPaneAccount(ptyId: string): CodexPaneAccountRecord | null {
-  return readRegistry().panes[ptyId] ?? null
+  const entry = readRegistry().panes[ptyId]
+  return entry?.selectionKey ? { ...entry, selectionKey: entry.selectionKey } : null
 }
 
 export function isCodexPaneHomeRouteProvenAwayFromSharedHome(
@@ -197,7 +212,7 @@ export function listRecordedCodexPaneLanes(ptyIds: readonly string[]): Record<st
   const lanesByPtyId: Record<string, string> = {}
   for (const ptyId of ptyIds) {
     const record = registry.panes[ptyId]
-    if (record) {
+    if (record?.selectionKey) {
       lanesByPtyId[ptyId] = record.selectionKey
     }
   }
@@ -212,8 +227,8 @@ export function listRecordedCodexPaneAccounts(
   const records = new Map<string, CodexPaneAccountRecord>()
   for (const ptyId of ptyIds) {
     const record = registry.panes[ptyId]
-    if (record) {
-      records.set(ptyId, record)
+    if (record?.selectionKey) {
+      records.set(ptyId, { ...record, selectionKey: record.selectionKey })
     }
   }
   return records
@@ -233,7 +248,7 @@ export function hasRecordedLegacyWslCodexPane(selectionKey: string): boolean {
     Boolean(registry.legacyWslAttributionUnknown) ||
     Object.values(registry.panes).some(
       (record) =>
-        (wslSelectionKeysMatch(record.selectionKey, selectionKey) ||
+        (wslSelectionKeysMatch(record.selectionKey ?? '', selectionKey) ||
           record.selectionKey === 'wsl:__default__') &&
         (record.homeRoute === undefined || record.homeRoute === 'wsl-home')
     )
@@ -254,7 +269,7 @@ export function hasAnyRecordedLegacyWslCodexPane(): boolean {
     Boolean(registry.legacyWslAttributionUnknown) ||
     Object.values(registry.panes).some(
       (record) =>
-        record.selectionKey.startsWith('wsl:') &&
+        record.selectionKey?.startsWith('wsl:') &&
         (record.homeRoute === undefined || record.homeRoute === 'wsl-home')
     )
   )
@@ -270,36 +285,42 @@ export function hasRecordedManagedHostCodexPane(): boolean {
   )
 }
 
-/** livePtyIds must be authoritative daemon inventory. */
-export function reconcileCodexPaneAccountsWithLivePtys(livePtyIds: readonly string[]): void {
-  // Never persist an empty stand-in over a registry we could not read.
-  mutations.flush()
+/** Capture before an asynchronous authoritative census; a later birth must survive its result. */
+export function captureCodexPaneAccountInventory() {
+  return { entries: { ...readRegistry().panes }, observations: new Map(observations) }
+}
+
+/** livePtyIds must cover the entire sampled local daemon population, never a partial reply. */
+export function reconcileCodexPaneAccountsWithLivePtys(
+  livePtyIds: readonly string[],
+  sampled = captureCodexPaneAccountInventory()
+): void {
+  const live = new Set(livePtyIds)
   const registry = readRegistryOrNull()
-  if (!registry) {
-    return
-  }
-  const livePtyIdSet = new Set(livePtyIds)
-  let changed = false
-  if (
-    registry.legacyWslAttributionUnknown &&
-    livePtyIds.every((ptyId) => ptyId in registry.panes)
-  ) {
-    delete registry.legacyWslAttributionUnknown
-    changed = true
-  }
-  for (const ptyId of Object.keys(registry.panes)) {
-    if (!livePtyIdSet.has(ptyId)) {
-      delete registry.panes[ptyId]
-      changed = true
+  for (const [id, entry] of Object.entries(sampled.entries)) {
+    if (
+      !live.has(id) &&
+      registry?.panes[id] === entry &&
+      observations.get(id) === sampled.observations.get(id)
+    ) {
+      forgetCodexPaneAccount(id)
     }
   }
-  mutations.persistReconciliation(registry, changed)
+  if (registry?.legacyWslAttributionUnknown && livePtyIds.every((id) => id in registry.panes)) {
+    delete registry.legacyWslAttributionUnknown
+    mutations.persistReconciliation(registry, true)
+  }
 }
 
 export const _internals = {
-  resetCache: (): void => {
+  resetProcess: (): void => {
+    observations.clear()
     cachedRegistry = null
     cachedRegistryIsAuthoritative = true
     mutations.reset()
+  },
+  resetCache: (): void => {
+    cachedRegistry = null
+    cachedRegistryIsAuthoritative = true
   }
 }

@@ -41,6 +41,7 @@ export async function assemblePtyIpcSpawnCodexEnv(ctx: PtyIpcSpawnState): Promis
   ctx.launchCommand = hostEnv.launchCommand
   ctx.baseEnv = hostEnv.baseEnv
   ctx.env = hostEnv.env
+  ctx.preparedCodexHome = hostEnv.preparedCodexHome
   ctx.selectedCodexHomePath = hostEnv.selectedCodexHomePath
   ctx.codexResumeHomeSelected = hostEnv.codexResumeHomeSelected
   ctx.skipCodexHomeEnv = hostEnv.skipCodexHomeEnv

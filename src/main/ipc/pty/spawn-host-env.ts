@@ -1,4 +1,7 @@
-import type { CodexHomePreparationOperation } from '../../codex/codex-launch-home'
+import type {
+  CodexHomePreparationOperation,
+  CodexPreparedHome
+} from '../../codex/codex-launch-home'
 import { getClaudeAgentViewService } from '../../claude/agent-view-service'
 import type { AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
 import { getAppEnvironment } from '../../../shared/app-environment'
@@ -58,6 +61,7 @@ export type PtySpawnHostEnv = {
   baseEnv: Record<string, string> | undefined
   env: Record<string, string> | undefined
   selectedCodexHomePath: string | null
+  preparedCodexHome?: CodexPreparedHome
   codexResumeHomeSelected: boolean
   skipCodexHomeEnv: boolean
   stripInheritedOrcaCodexHome: boolean
@@ -176,6 +180,7 @@ export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise
     baseEnv,
     env: baseEnv,
     selectedCodexHomePath,
+    preparedCodexHome: operation.current ? { ...operation.current } : undefined,
     codexResumeHomeSelected: Boolean(
       codexResumeHome && codexHomePathsEqual(selectedCodexHomePath, codexResumeHome.codexHomePath)
     ),

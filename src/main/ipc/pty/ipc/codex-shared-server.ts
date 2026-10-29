@@ -1,3 +1,9 @@
+import {
+  getObservedCodexPaneHome,
+  restoreCodexPaneHome,
+  isCurrentCodexPaneObservation
+} from '../../../codex/codex-pane-account-registry'
+import type { CodexPaneHomeObservation } from '../../../codex/codex-pane-account-registry-types'
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import { getPtyIpc } from '../pty-host-bindings'
 import { parseAppSshPtyId } from '../../../providers/ssh-pty-id'
@@ -15,7 +21,7 @@ import {
   CODEX_NO_DAEMON_SHELL_LAUNCH_DAEMON_PROTOCOL_VERSION
 } from '../../../daemon/daemon-protocol-version'
 import type { CodexSharedServerStatus } from '../../../../shared/codex-shared-server-command'
-import { ptyOwnership } from '../provider/ownership-state'
+import { ptyOwnership, ptyIncarnationById } from '../provider/ownership-state'
 import { getProviderForPty, hasPtyProviderForInspection } from '../provider/registry'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 
@@ -30,7 +36,7 @@ const CODEX_SHELL_FUNCTION_PROTOCOL_BY_SHELL: ReadonlyMap<string, number> = new 
 
 type Deps = { getLocalPtyProviderStartupPromise: () => Promise<void> | undefined }
 
-async function findLocalPaneRootPid(deps: Deps, id: unknown): Promise<number | null> {
+async function findLocalPaneRootPid(deps: Deps, id: unknown) {
   // WSL/SSH Codex state belongs to the execution host.
   if (
     typeof id !== 'string' ||
@@ -40,27 +46,59 @@ async function findLocalPaneRootPid(deps: Deps, id: unknown): Promise<number | n
   ) {
     return null
   }
+  const captured = getObservedCodexPaneHome(id)
   // Restored daemon IDs are not owned by the pre-swap provider.
   await deps.getLocalPtyProviderStartupPromise()
   if (!hasPtyProviderForInspection(id)) {
     return null
   }
-  const session = (await getProviderForPty(id).listProcesses()).find(
-    (candidate) => candidate.id === id
-  )
-  return session?.rootProcessId !== undefined && !session.wslDistro ? session.rootProcessId : null
+  const provider = getProviderForPty(id)
+  const session = (await provider.listProcesses()).find((candidate) => candidate.id === id)
+  if (
+    !session ||
+    session.rootProcessId === undefined ||
+    session.wslDistro ||
+    getProviderForPty(id) !== provider ||
+    getObservedCodexPaneHome(id) !== captured
+  ) {
+    return null
+  }
+  const observation = restoreCodexPaneHome(id, session.incarnationId)
+  if (!observation) {
+    return null
+  }
+  const isCurrent = () => {
+    try {
+      return (
+        (ptyOwnership.get(id) ?? LOCAL_EXECUTION_HOST_ID) === LOCAL_EXECUTION_HOST_ID &&
+        getProviderForPty(id) === provider &&
+        isCurrentCodexPaneObservation(id, observation) &&
+        (!ptyIncarnationById.has(id) || ptyIncarnationById.get(id) === observation.incarnationId)
+      )
+    } catch {
+      return false
+    }
+  }
+  return isCurrent() ? { rootPid: session.rootProcessId, observation, isCurrent } : null
 }
 
 function handleLocalPane<T>(
   deps: Deps,
   channel: string,
-  run: (id: string, rootPid: number) => Promise<T>,
+  run: (
+    id: string,
+    rootPid: number,
+    observation: CodexPaneHomeObservation,
+    isCurrent: () => boolean
+  ) => Promise<T>,
   refused: T
 ): void {
   getPtyIpc().handle(channel, async (_event, args: { id: string }): Promise<T> => {
     try {
-      const rootPid = await findLocalPaneRootPid(deps, args?.id)
-      return rootPid === null ? refused : await run(args.id, rootPid)
+      const target = await findLocalPaneRootPid(deps, args?.id)
+      return target === null
+        ? refused
+        : await run(args.id, target.rootPid, target.observation, target.isCurrent)
     } catch {
       return refused
     }
@@ -69,9 +107,11 @@ function handleLocalPane<T>(
 
 async function readPaneSharedServerStatus(
   id: string,
-  rootPid: number
+  rootPid: number,
+  observation: CodexPaneHomeObservation,
+  isCurrent: () => boolean
 ): Promise<CodexSharedServerStatus> {
-  const codex = await findPaneCodexOnSharedServer(id, rootPid)
+  const codex = await findPaneCodexOnSharedServer(id, rootPid, observation, isCurrent)
   if (!codex) {
     return { joined: false }
   }
@@ -85,10 +125,15 @@ async function readPaneSharedServerStatus(
 }
 
 /** Runs a fix command against the pane's own CODEX_HOME, never a guessed one. */
-function runForPaneHome(fix: (codexHome: string) => Promise<boolean>) {
-  return async (id: string): Promise<boolean> => {
+function runForPaneHome(fix: (codexHome: string, isCurrent: () => boolean) => Promise<boolean>) {
+  return async (
+    id: string,
+    _rootPid: number,
+    _observation: CodexPaneHomeObservation,
+    isCurrent: () => boolean
+  ): Promise<boolean> => {
     const codexHome = resolveCodexPaneHome(id)
-    return codexHome ? await fix(codexHome) : false
+    return codexHome && isCurrent() ? await fix(codexHome, isCurrent) : false
   }
 }
 

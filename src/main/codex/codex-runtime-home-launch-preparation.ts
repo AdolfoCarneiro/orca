@@ -13,7 +13,7 @@ import type { GlobalSettings } from '../../shared/global-settings-types'
 import { codexHookService } from './hook-service'
 import { getDefaultWslDistro } from '../wsl'
 import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
-import { reconcileCodexHooksForLaunch } from './codex-hook-reconcile'
+import { reconcileCodexHooksForLaunch, scheduleCodexHookReconcile } from './codex-hook-reconcile'
 import { grantCodexSandboxReadOnManagedHome } from './codex-windows-sandbox-read-grant'
 import { getOrcaUserDataPath, getSystemCodexHomePath } from './codex-home-paths'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
@@ -92,14 +92,19 @@ export function createCodexRuntimeHomeLaunchPreparation(deps: {
         }
         await grantCodexSandboxReadOnManagedHome(runtimeHomePath, mayMaintain)
         if (mayMaintain()) {
-          await reconcileCodexAccountHomeHook(
+          const settlement = await reconcileCodexAccountHomeHook(
             runtimeHomePath,
             () => mayMaintain() && isAgentStatusHooksEnabledForAgent(deps.getSettings(), 'codex'),
-            launchesCodex
+            launchesCodex,
+            mayMaintain
           )
+          if (settlement === 'unavailable') {
+            scheduleCodexHookReconcile(true)
+          }
         }
       } catch (error) {
         console.warn('[codex-hook-service] failed to prepare account hooks before launch', error)
+        scheduleCodexHookReconcile(true)
       }
       return runtimeHomePath
     }

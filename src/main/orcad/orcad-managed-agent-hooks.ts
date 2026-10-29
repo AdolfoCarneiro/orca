@@ -1,6 +1,6 @@
 import { getClaudeAgentViewService } from '../claude/agent-view-service'
 import { getAppEnvironment } from '../../shared/app-environment'
-import { startCodexHooks } from '../codex/codex-hook-reconcile'
+import { startCodexHooks, stopCodexHooks } from '../codex/codex-hook-reconcile'
 import { adoptLoginShellAgentHomes } from '../agent-hooks/agent-home-login-shell'
 import { hydrateAgentCliShellPath } from '../agent-hooks/local-agent-cli-presence'
 import {
@@ -16,7 +16,8 @@ import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
 export function startOrcadManagedAgentHooks(
   store: Pick<ProfilePreferences, 'getSettings' | 'onSettingsChanged'>,
   setStatusHooksEnabled: (enabled: boolean) => void,
-  registerCleanup: (cleanup: OrcadRuntimeCleanup) => void
+  registerCleanup: (cleanup: OrcadRuntimeCleanup) => void,
+  reconcileRetainedHomes?: (isCurrent: () => boolean) => Promise<boolean>
 ): void {
   let stopping = false
   const agentView = getClaudeAgentViewService()
@@ -29,6 +30,7 @@ export function startOrcadManagedAgentHooks(
   })
   registerCleanup(() => {
     stopping = true
+    stopCodexHooks()
     removeSettingsListener()
   })
   const getSettings = () => store.getSettings()
@@ -36,6 +38,7 @@ export function startOrcadManagedAgentHooks(
   startCodexHooks({
     pathReady: shouldHydrateShellPath ? hydrateAgentCliShellPath() : Promise.resolve(),
     isEnabled: () => isAgentStatusHooksEnabledForAgent(getSettings(), 'codex'),
+    reconcileRetainedHomes,
     resolveLaunchHome: () => null
   })
   void adoptLoginShellAgentHomes().then(() =>

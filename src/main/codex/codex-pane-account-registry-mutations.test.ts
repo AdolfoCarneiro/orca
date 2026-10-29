@@ -48,7 +48,7 @@ describe('CodexPaneAccountRegistryMutations', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('bounds automatic retries but keeps the pending mutation for a later read', async () => {
+  it('keeps one capped-delay retry until quiet IO recovers', async () => {
     let readable = false
     let persisted = JSON.stringify({ version: 2, panes: { existing: EXISTING } })
     const read = vi.fn(() => (readable ? parseRegistry(persisted) : null))
@@ -61,11 +61,12 @@ describe('CodexPaneAccountRegistryMutations', () => {
     mutations.record('spawned', SPAWNED)
     await vi.advanceTimersByTimeAsync(120_000)
 
-    expect(read).toHaveBeenCalledTimes(5)
-    expect(vi.getTimerCount()).toBe(0)
+    expect(read.mock.calls.length).toBeGreaterThan(5)
+    expect(vi.getTimerCount()).toBe(1)
 
     readable = true
-    mutations.flush()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(vi.getTimerCount()).toBe(0)
     expect(parseRegistry(persisted).panes.spawned).toEqual(SPAWNED)
   })
 
@@ -92,4 +93,68 @@ describe('CodexPaneAccountRegistryMutations', () => {
     expect(write).toHaveBeenCalledTimes(2)
     expect(vi.getTimerCount()).toBe(0)
   })
+})
+
+describe('whole birth projection durability', () => {
+  it('retains more than 2000 latest mutations and replaces provenance atomically', () => {
+    let readable = false
+    let disk = JSON.stringify({ version: 2, panes: {} })
+    const mutations = new CodexPaneAccountRegistryMutations({
+      read: () => (readable ? parseRegistry(disk) : null),
+      write: (registry) => {
+        disk = JSON.stringify(registry)
+        return true
+      }
+    })
+    for (let i = 0; i < 2001; i++) {
+      mutations.record(String(i), {
+        ...SPAWNED,
+        launchProvenance: { homePath: '/actual/O', incarnationId: `birth-${i}` }
+      })
+    }
+    readable = true
+    mutations.flush()
+    expect(Object.keys(parseRegistry(disk).panes)).toHaveLength(2001)
+    mutations.record('0', {
+      ...EXISTING,
+      launchProvenance: { homePath: '/replacement/O', incarnationId: 'next' }
+    })
+    expect(parseRegistry(disk).panes['0']).toEqual({
+      ...EXISTING,
+      launchProvenance: { homePath: '/replacement/O', incarnationId: 'next' }
+    })
+    mutations.record('0', EXISTING)
+    expect(parseRegistry(disk).panes['0']).toEqual(EXISTING)
+    mutations.reset()
+  })
+})
+
+it('measures full-row writes at N/10N without hiding sequential full-file cost', () => {
+  const counts = []
+  for (const population of [8, 80]) {
+    const registry: CodexPaneAccountRegistryFile = { version: 2, panes: {} }
+    let writes = 0,
+      bytes = 0
+    const mutations = new CodexPaneAccountRegistryMutations({
+      read: () => registry,
+      write: (value) => {
+        writes++
+        bytes += Buffer.byteLength(JSON.stringify(value))
+        return true
+      }
+    })
+    for (let i = 0; i < population; i++) {
+      mutations.record(String(i), {
+        ...SPAWNED,
+        launchProvenance: { homePath: '/actual/O', incarnationId: `birth-${i}` }
+      })
+    }
+    expect(Object.keys(registry.panes)).toHaveLength(population)
+    expect(writes).toBe(population)
+    counts.push({ population, writes, bytes })
+    mutations.reset()
+  }
+  expect(counts[1].bytes).toBeGreaterThan(counts[0].bytes * 10)
+  expect(counts[1].bytes).toBeLessThan(counts[0].bytes * 110)
+  console.warn('registry-production-N10N', JSON.stringify(counts))
 })

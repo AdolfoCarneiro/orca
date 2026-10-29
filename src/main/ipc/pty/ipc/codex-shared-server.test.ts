@@ -1,3 +1,4 @@
+import { _internals, observeCodexPaneHome } from '../../../codex/codex-pane-account-registry'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Handler = (event: unknown, args: { id: string }) => Promise<unknown>
@@ -34,8 +35,10 @@ vi.mock('../../../daemon/daemon-provider-routing', () => ({
 }))
 vi.mock('../provider/registry', () => ({
   hasPtyProviderForInspection: mocks.hasProvider,
-  getProviderForPty: () => ({ listProcesses: () => Promise.resolve(mocks.sessions) })
+  getProviderForPty: () => provider
 }))
+
+const provider = { listProcesses: () => Promise.resolve(mocks.sessions) }
 
 import { toAppSshPtyId } from '../../../providers/ssh-pty-id'
 import { ptyOwnership } from '../provider/ownership-state'
@@ -57,6 +60,12 @@ function invoke(channel: string, id: string): Promise<unknown> {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  _internals.resetProcess()
+  observeCodexPaneHome('local-1', {
+    actualHome: '/home/me/.codex',
+    frozenOrigin: { selectionKey: 'host', accountId: null },
+    registration: {}
+  })
   mocks.handlers.clear()
   ptyOwnership.clear()
   mocks.sessions = [{ id: 'local-1', rootProcessId: 100 }]
@@ -109,8 +118,8 @@ describe('Codex shared-server IPC', () => {
     await invoke('pty:disableCodexSharedServerAutoStart', 'local-1')
     await invoke('pty:stopCodexSharedServer', 'local-1')
     expect(mocks.resolveCodexPaneHome).toHaveBeenCalledWith('local-1')
-    expect(mocks.disable).toHaveBeenCalledWith('/home/me/.codex')
-    expect(mocks.stop).toHaveBeenCalledWith('/home/me/.codex')
+    expect(mocks.disable).toHaveBeenCalledWith('/home/me/.codex', expect.any(Function))
+    expect(mocks.stop).toHaveBeenCalledWith('/home/me/.codex', expect.any(Function))
   })
 
   const refusals: [string, string, () => void][] = [

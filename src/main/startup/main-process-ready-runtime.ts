@@ -12,7 +12,7 @@ import { startPreGoneCrashSampling } from '../crash-reporting/process-gone-diagn
 import { recordProcessGoneCrash } from './main-window-lifecycle-flags'
 import { handleGpuChildCrash } from './gpu-lifecycle'
 import { isGpuFallbackCrashCandidate } from '../crash-reporting/gpu-crash-fallback-decision'
-import { startCodexHooks } from '../codex/codex-hook-reconcile'
+import { startCodexHooks, stopCodexHooks } from '../codex/codex-hook-reconcile'
 import { hydrateAgentCliShellPath } from '../agent-hooks/local-agent-cli-presence'
 import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
 import { reconcileStartupManagedAgentHooks } from '../agent-hooks/managed-agent-hook-startup'
@@ -105,9 +105,13 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
   nativeTheme.themeSource = store.getSettings().theme ?? 'system'
   // Wait for shell PATH before probing Codex; start reconciliation early so first launch can share it.
+  app.once('will-quit', stopCodexHooks)
   startCodexHooks({
     pathReady: app.isPackaged ? hydrateAgentCliShellPath() : Promise.resolve(),
     isEnabled: () => isAgentStatusHooksEnabledForAgent(store.getSettings(), 'codex'),
+    reconcileRetainedHomes: (isCurrent) =>
+      state.codexRuntimeHome?.reconcileRetainedHostCodexHooks([], isCurrent) ??
+      Promise.resolve(false),
     resolveLaunchHome: () => {
       if (!state.codexRuntimeHome) {
         throw new Error('Codex runtime home service is not initialized')

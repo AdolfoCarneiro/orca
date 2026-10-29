@@ -1,8 +1,12 @@
-import { codexAccountOverlayHomes, discoverCodexStoreHomes } from '../codex/codex-launch-home'
+import {
+  collectRetainedCodexHookTargets,
+  reconcileRetainedCodexHookHomes
+} from '../codex/retained-codex-hook-state'
+import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
+import { discoverCodexStoreHomes } from '../codex/codex-launch-home'
 import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source-home'
-import { dirname, join, posix as pathPosix } from 'node:path'
+import { posix as pathPosix } from 'node:path'
 import { parseWslUncPath, toLinuxPath, toWindowsWslUncPath } from '../../shared/wsl-paths'
-import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { getDefaultWslDistro, getWslHome } from '../wsl'
 import { isWslDistroRunning } from '../wsl-background-distro-gate'
 import {
@@ -18,10 +22,7 @@ import {
   type CodexAccountSelectionTarget
 } from './runtime-selection'
 import { hasCustomCodexHomeOverrideForLaunch } from '../codex/codex-real-home-path'
-import {
-  hasRecordedLegacySharedCodexPane,
-  getCodexPaneAccount
-} from '../codex/codex-pane-account-registry'
+import { hasRecordedLegacySharedCodexPane } from '../codex/codex-pane-account-registry'
 import { ManagedCodexHomeTemporarilyUnavailableError } from './host-codex-managed-home-ownership'
 import { syncLegacySharedCodexConfigForRetainedPanes } from './legacy-shared-config-compatibility'
 import type { CodexManagedAccount } from '../../shared/managed-account-types'
@@ -88,42 +89,35 @@ export abstract class CodexRuntimeHomeRouting extends CodexRuntimeHomeManagedHom
   }
 
   getRetainedHostCodexHookHomePaths(ptyIds: readonly string[]): string[] {
-    const settings = this.store.getSettings()
-    const homes = new Map<string, string>()
-    const families = new Set<string>()
-    for (const ptyId of ptyIds) {
-      const record = getCodexPaneAccount(ptyId)
-      if (!record || record.selectionKey !== 'host') {
-        continue
+    return this.getRetainedHostCodexHookTargets(ptyIds).map((target) => target.homePath)
+  }
+
+  private getRetainedHostCodexHookTargets(ptyIds: readonly string[]) {
+    return collectRetainedCodexHookTargets({
+      systemHome: getSystemCodexHomePath(),
+      legacyHome: resolveOrcaManagedCodexHomePath(),
+      accountsRoot: this.getManagedAccountsRoot(),
+      ptyIds,
+      getSettings: () => this.store.getSettings(),
+      resolveTrustedHome: (account) => {
+        const resolved = this.resolveSelfContainedManagedHome(account)
+        if (resolved.kind === 'indeterminate') {
+          throw new ManagedCodexHomeTemporarilyUnavailableError()
+        }
+        return resolved.kind === 'owned' ? resolved.homePath : null
       }
-      if (record.homeRoute === undefined || record.homeRoute === 'shared-home') {
-        const homePath = this.getRuntimeHomePath()
-        homes.set(normalizeRuntimePathForComparison(homePath), homePath)
-        families.add(getSystemCodexHomePath())
-        families.add(join(this.getManagedAccountsRoot(), 'system'))
-        continue
-      }
-      if (record.homeRoute !== 'account-home' || !record.accountId) {
-        continue
-      }
-      const account = settings.codexManagedAccounts.find(
-        (candidate) => candidate.id === record.accountId
-      )
-      if (!account || this.getWslManagedHomePath(account)) {
-        continue
-      }
-      const homePath = this.getTrustedSelfContainedManagedHomePath(account)
-      if (homePath) {
-        homes.set(normalizeRuntimePathForComparison(homePath), homePath)
-        families.add(dirname(homePath))
-      }
-    }
-    for (const family of families) {
-      for (const actor of codexAccountOverlayHomes(family)) {
-        homes.set(normalizeRuntimePathForComparison(actor), actor)
-      }
-    }
-    return [...homes.values()]
+    })
+  }
+
+  async reconcileRetainedHostCodexHooks(
+    ptyIds: readonly string[] = [],
+    isCurrent = () => true
+  ): Promise<boolean> {
+    return reconcileRetainedCodexHookHomes({
+      targets: this.getRetainedHostCodexHookTargets(ptyIds),
+      isCurrent,
+      isEnabled: () => isAgentStatusHooksEnabledForAgent(this.store.getSettings(), 'codex')
+    })
   }
 
   // Custom CODEX_HOME overrides keep system-default launches on the mirror for legacy cleanup.

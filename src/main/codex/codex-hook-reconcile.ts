@@ -10,11 +10,13 @@ import { reconcileRealHomeCodexHookEntries } from './codex-real-home-hook-instal
 
 type ReconcileConfig = {
   isEnabled: () => boolean
+  reconcileRetainedHomes?: (isCurrent: () => boolean) => Promise<boolean>
   /** Next native pane's CODEX_HOME; null for ~/.codex, throws while unknown. */
   resolveLaunchHome: () => string | null
 }
 
 type ReconcileRequest = {
+  retainedHomes?: boolean
   /** Only app start or explicit enablement may replace older builds' entries. */
   convertOlderForms?: boolean
   /** Force ~/.codex for launches such as resumes that bypass the selected home. */
@@ -25,6 +27,9 @@ type ReconcileRequest = {
 let config: ReconcileConfig | null = null
 let running: Promise<void> | null = null
 let rerun = false
+let retainedRequested = false
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+let retryDelay = 100
 // Retain conversion requests while hooks are off or another home is selected.
 let convertRequested = false
 // Consume launch requests on the next run; their launch proceeds even if reconciliation cannot.
@@ -38,6 +43,10 @@ export function startCodexHooks({
   pathReady: hydrating,
   ...appConfig
 }: ReconcileConfig & { pathReady: Promise<unknown> }): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+  }
+  retryTimer = null
   const pathReady = hydrating.catch(() => {})
   startCodexHookHashLookup(pathReady)
   config = appConfig
@@ -53,20 +62,25 @@ export function reconcileCodexHooks(request: ReconcileRequest = {}): Promise<voi
 }
 
 function reconcileAfter(ready: Promise<unknown>, request: ReconcileRequest): Promise<void> {
+  retainedRequested ||= request.retainedHomes ?? !request.realHomeLaunch
   convertRequested ||= request.convertOlderForms === true
   realHomeLaunchRequested ||= request.realHomeLaunch === true
   if (running) {
     rerun = true
     return running
   }
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+  }
+  retryTimer = null
   running = ready.then(runUntilSettled)
   return running
 }
 
-export function scheduleCodexHookReconcile(): void {
+export function scheduleCodexHookReconcile(retainedHomes = false): void {
   // One run already reads after the spawn; coalesce calls from its multiple env builders.
-  if (config && !running) {
-    void reconcileCodexHooks()
+  if (config && !retryTimer && (!running || retainedHomes)) {
+    void reconcileCodexHooks({ retainedHomes })
   }
 }
 
@@ -105,12 +119,23 @@ function resolveHome(current: ReconcileConfig | null): CodexHookHomeChoice {
 async function runUntilSettled(): Promise<void> {
   for (;;) {
     rerun = false
+    const maintainRetained = retainedRequested
+    retainedRequested = false
     const realHomeLaunch = realHomeLaunchRequested
     realHomeLaunchRequested = false
     try {
+      const current = config
       await reconcileOnce(realHomeLaunch)
+      if (maintainRetained && current && config === current) {
+        if ((await current.reconcileRetainedHomes?.(() => config === current)) === false) {
+          scheduleRetry()
+        } else {
+          retryDelay = 100
+        }
+      }
     } catch (error) {
       console.warn('[codex-hook-reconcile] Codex hook reconcile failed:', error)
+      scheduleRetry()
     }
     // Clear running without yielding so new requests cannot join a finished run.
     if (!rerun) {
@@ -118,6 +143,18 @@ async function runUntilSettled(): Promise<void> {
       return
     }
   }
+}
+
+function scheduleRetry(): void {
+  if (!config || retryTimer) {
+    return
+  }
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    void reconcileCodexHooks({ retainedHomes: true })
+  }, retryDelay)
+  retryDelay = Math.min(retryDelay * 2, 30_000)
+  retryTimer.unref?.()
 }
 
 async function reconcileOnce(realHomeLaunch: boolean): Promise<void> {
@@ -129,7 +166,7 @@ async function reconcileOnce(realHomeLaunch: boolean): Promise<void> {
   const live = await withTimeout<CodexHookAnswer | null>(lookup, ANSWER_WAIT_MS, null)
   if (!live) {
     // Replace stopgap approvals once Codex's answer arrives.
-    void lookup.then(() => reconcileCodexHooks({ realHomeLaunch }))
+    void lookup.then(() => reconcileCodexHooks({ realHomeLaunch, retainedHomes: true }))
   }
   // Reuse Codex's saved answer so a slow startup probe does not disturb existing hooks.
   const answer = live && live.kind !== 'pending' ? live : readKnownCodexHookAnswer()
@@ -140,16 +177,32 @@ async function reconcileOnce(realHomeLaunch: boolean): Promise<void> {
   convertRequested = false
   await reconcileRealHomeCodexHookEntries({
     hashes: answer?.kind === 'hashes' ? answer.hashes : null,
-    isEnabled: () => current.isEnabled(),
+    isEnabled: () => config === current && current.isEnabled(),
     convertOlderForms
   })
 }
 
+export function stopCodexHooks(): void {
+  config = null
+  rerun = false
+  retainedRequested = false
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+  }
+  retryTimer = null
+}
+
 export const _internals = {
   resetForTesting(): void {
+    if (retryTimer) {
+      clearTimeout(retryTimer)
+    }
+    retryTimer = null
+    retryDelay = 100
     config = null
     running = null
     rerun = false
+    retainedRequested = false
     convertRequested = false
     realHomeLaunchRequested = false
   },

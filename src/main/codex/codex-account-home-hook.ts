@@ -14,22 +14,31 @@ import {
 export async function reconcileCodexAccountHomeHook(
   homePath: string,
   isEnabled: () => boolean,
-  launchesCodex: boolean
-): Promise<void> {
+  launchesCodex: boolean,
+  isCurrent = () => true
+): Promise<'settled' | 'unavailable'> {
+  if (!isCurrent()) {
+    return 'settled'
+  }
   const home = getInPlaceCodexHookHome(homePath)
   if (!isEnabled()) {
-    await removeRealHomeCodexHookForOptOut(readEveryKnownCodexHookHashes(), home)
-    return
+    return (await removeRealHomeCodexHookForOptOut(
+      readEveryKnownCodexHookHashes(),
+      home,
+      isCurrent
+    )) === 'removed'
+      ? 'settled'
+      : 'unavailable'
   }
   const answer =
     (await resolveCodexHookAnswerForLaunch(launchesCodex ? CODEX_HOOK_LAUNCH_WAIT_MS : 0)) ??
     readKnownCodexHookAnswer()
   if (answer?.kind === 'refused' || (answer?.kind === 'pending' && answer.codexMissing)) {
-    return
+    return 'unavailable'
   }
-  await reconcileCodexHookEntriesInHome(home, {
+  return reconcileCodexHookEntriesInHome(home, {
     hashes: answer?.kind === 'hashes' ? answer.hashes : null,
-    isEnabled,
+    isEnabled: () => isCurrent() && isEnabled(),
     convertOlderForms: false
   })
 }

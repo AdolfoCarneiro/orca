@@ -128,3 +128,36 @@ describe('reconcileCodexAccountHomeHook', () => {
     expect(readFileSync(tomlPath(), 'utf-8')).toBe(toml)
   })
 })
+
+it.each([true, false])(
+  'a queued hook write rechecks current ownership before enable=%s',
+  async (enabled) => {
+    const { runExclusivelyForCodexTrustConfig } =
+      await import('./codex-trust-config-mutation-queue')
+    let release!: () => void
+    const predecessor = runExclusivelyForCodexTrustConfig(
+      tomlPath(),
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        })
+    )
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+    const beforeHooks = readFileSync(hooksJsonPath(), 'utf8'),
+      beforeConfig = readFileSync(tomlPath(), 'utf8')
+    let current = true
+    const pending = reconcileCodexAccountHomeHook(
+      accountHome,
+      () => enabled,
+      false,
+      () => current
+    )
+    await Promise.resolve()
+    current = false
+    release()
+    await predecessor
+    expect(await pending).toBe('settled')
+    expect(readFileSync(hooksJsonPath(), 'utf8')).toBe(beforeHooks)
+    expect(readFileSync(tomlPath(), 'utf8')).toBe(beforeConfig)
+  }
+)

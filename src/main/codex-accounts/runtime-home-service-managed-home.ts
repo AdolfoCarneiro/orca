@@ -12,6 +12,7 @@ import {
 } from '../codex/codex-session-source-home'
 import { parseWslUncPath } from '../../shared/wsl-paths'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
+import { canonicalCodexHome, codexLoginHome } from '../codex/codex-launch-home'
 import { normalizeCodexRuntimeSelection } from './runtime-selection'
 import {
   resolveHostCodexManagedHomeVerdict,
@@ -102,11 +103,24 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
       return null
     }
     const perAccountHome = resolved.homePath
-    if (
-      unavailableManagedHomePath &&
-      normalizeRuntimePathForComparison(unavailableManagedHomePath) ===
-        normalizeRuntimePathForComparison(perAccountHome)
-    ) {
+    let unavailableSelectedHome = false
+    if (unavailableManagedHomePath) {
+      try {
+        unavailableSelectedHome =
+          normalizeRuntimePathForComparison(
+            canonicalCodexHome(
+              codexLoginHome(
+                unavailableManagedHomePath,
+                getSystemCodexHomePath(),
+                this.getManagedAccountsRoot()
+              )
+            )
+          ) === normalizeRuntimePathForComparison(canonicalCodexHome(perAccountHome))
+      } catch {
+        throw new ManagedCodexHomeTemporarilyUnavailableError()
+      }
+    }
+    if (unavailableSelectedHome) {
       const absence = this.credentialAbsenceGrace.assess(join(perAccountHome, 'auth.json'))
       if (absence.state !== 'present' && absence.durable) {
         this.clearSelfContainedManagedSelection(account, 'credential remained unavailable')

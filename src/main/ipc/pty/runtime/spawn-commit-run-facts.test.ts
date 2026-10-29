@@ -1,4 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import {
+  _internals,
+  getObservedCodexPaneHome,
+  getCodexPaneAccount
+} from '../../../codex/codex-pane-account-registry'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { OrcaRuntimeWithRuntimeId } from '../../../runtime/construction/runtime-identity-state'
 import { TerminalIntentionalStops } from '../../../runtime/terminal-intentional-stops'
@@ -54,6 +62,18 @@ async function commit(
   await commitRuntimePtySpawn(ctx)
   return facts.read(PTY_ID, INCARNATION_ID)
 }
+
+let receiptRoot: string
+beforeEach(() => {
+  receiptRoot = mkdtempSync(join(tmpdir(), 'orca-runtime-receipt-'))
+  vi.stubEnv('ORCA_USER_DATA_PATH', receiptRoot)
+  _internals.resetProcess()
+})
+afterEach(() => {
+  _internals.resetProcess()
+  vi.unstubAllEnvs()
+  rmSync(receiptRoot, { recursive: true, force: true })
+})
 
 describe('runtime spawn commit: run facts', () => {
   afterEach(() => {
@@ -192,4 +212,36 @@ describe('runtime spawn commit: run facts', () => {
     expect(facts.read(PTY_ID, INCARNATION_ID).freshSpawn).toBe(false)
     expect(stops.claimExit(PTY_ID, INCARNATION_ID)).toEqual(['reversible'])
   })
+})
+
+it('runtime commit freezes the final recovery preparation before later settings and never rebirths a reattach', async () => {
+  _internals.resetProcess()
+  const actualHome = '/fixture/final-O'
+  const prepare = (ctx: ReturnType<typeof createRuntimePtySpawnState>) => {
+    ctx.isDaemonHostSpawn = true
+    ctx.selectedCodexHomePath = actualHome
+    ctx.preparedCodexHome = {
+      home: actualHome,
+      loginHome: '/fixture/A-H',
+      store: '/fixture/X',
+      family: '/fixture/A',
+      disposition: 'layered',
+      selectionKey: 'host',
+      accountId: 'A'
+    }
+    ctx.deps.getSettings = () => ({ activeCodexManagedAccountId: 'B' }) as never
+  }
+  await commit({}, undefined, undefined, prepare)
+  expect(getCodexPaneAccount(PTY_ID)).toMatchObject({
+    accountId: 'A',
+    launchProvenance: { homePath: actualHome, incarnationId: INCARNATION_ID }
+  })
+  const observed = getObservedCodexPaneHome(PTY_ID)
+  await commit({ isReattach: true }, undefined, undefined, (ctx) => {
+    prepare(ctx)
+    ctx.selectedCodexHomePath = '/requested-B-O'
+  })
+  expect(getObservedCodexPaneHome(PTY_ID)).toBe(observed)
+  expect(observed?.actualHome).toBe(actualHome)
+  _internals.resetProcess()
 })

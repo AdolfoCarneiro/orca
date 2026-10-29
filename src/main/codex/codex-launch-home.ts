@@ -163,7 +163,7 @@ export function discoverCodexStoreHomes(
   return [...new Set(homes)]
 }
 
-type CodexPreparedHome = {
+export type CodexPreparedHome = {
   selectionKey: string
   accountId: string | null | undefined
   loginHome: string
