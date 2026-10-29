@@ -40,6 +40,21 @@ export type CombinedDiffViewLease = {
 
 const memoryByViewKey = new Map<string, CombinedDiffViewMemory>()
 const mountedLeases = new Set<CombinedDiffViewLease>()
+// Path changes replace the sections array; content-only invalidation preserves its membership.
+const pathsBySections = new WeakMap<DiffSection[], ReadonlySet<string>>()
+
+function sectionsContainPath(sections: DiffSection[], path: string): boolean {
+  let paths = pathsBySections.get(sections)
+  if (!paths) {
+    const indexed = new Set<string>()
+    for (const section of sections) {
+      indexed.add(section.path)
+    }
+    paths = indexed
+    pathsBySections.set(sections, paths)
+  }
+  return paths.has(path)
+}
 
 function isMountedViewKey(viewKey: string): boolean {
   for (const lease of mountedLeases) {
@@ -169,6 +184,10 @@ function invalidateCleanSections(
   if (!changed) {
     return view
   }
+  const paths = pathsBySections.get(view.sections)
+  if (paths) {
+    pathsBySections.set(sections, paths)
+  }
   return {
     ...view,
     sections,
@@ -193,7 +212,8 @@ function invalidateCachedViews(
 
 export function forgetCombinedDiffViewsShowingPath(relativePath: string): void {
   invalidateCachedViews(
-    () => true,
+    (memory) =>
+      memory.view !== undefined && sectionsContainPath(memory.view.sections, relativePath),
     (section) => section.path === relativePath
   )
 }
