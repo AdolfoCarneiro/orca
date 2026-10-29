@@ -1,7 +1,9 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeMetadata } from '../../shared/runtime-bootstrap'
-import { formatCliError, reportCliError } from '../cli-error'
+import { formatCliError } from '../cli-error'
+import { main } from '../index'
+import recordedCodexDenial from './fixtures/codex-0.165.0-linux-connect-denied.json'
 import { RuntimeClient } from './client'
 import { launchOrcaApp } from './launch'
 import { getCliStatus, getOfflineRuntimeAdmission } from './status'
@@ -13,7 +15,11 @@ const { connect, tryReadMetadata } = vi.hoisted(() => ({
   tryReadMetadata: vi.fn()
 }))
 vi.mock('node:net', () => ({ createConnection: connect }))
-vi.mock('./metadata', () => ({ tryReadMetadata, readMetadata: tryReadMetadata }))
+vi.mock('./metadata', () => ({
+  tryReadMetadata,
+  readMetadata: tryReadMetadata,
+  getDefaultUserDataPath: () => '/test'
+}))
 vi.mock('./launch', () => ({ launchOrcaApp: vi.fn() }))
 vi.mock('./runtime-remote-pairing', () => ({ resolveRemoteConnection: () => null }))
 
@@ -51,7 +57,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-// Node emits 'error' then 'close' for a refused or denied connect.
+// Synthetic Node error/events; recorded CLI output supplies only the errno for the replay below.
 function failConnect(code: string): void {
   socket.emit('error', Object.assign(new Error(`connect ${code} /private-runtime.sock`), { code }))
   socket.emit('close')
@@ -87,7 +93,7 @@ describe('runtime access denied', () => {
     expect(human).not.toContain('private-runtime')
   })
 
-  it('names the Codex sandbox only when CODEX_SANDBOX is set', async () => {
+  it('names the Codex sandbox only when synthetic CODEX_SANDBOX is set', async () => {
     vi.stubEnv('CODEX_SANDBOX', 'seatbelt')
     const human = formatCliError(await deniedRequest('EPERM'))
 
@@ -117,21 +123,26 @@ describe('runtime access denied', () => {
     }
   )
 
-  it('reports status --json as an ok:false envelope with the recovery data', async () => {
-    const pending = getCliStatus('/test')
-    failConnect('EPERM')
-    const error = await pending.catch((failure: unknown) => failure)
+  it('preserves recorded Codex Linux denial and recovery advice through status --json', async () => {
+    vi.stubEnv('ORCA_PAIRING_CODE', '')
+    vi.stubEnv('ORCA_ENVIRONMENT', '')
+    vi.stubEnv('ORCA_REMOTE_PAIRING', '')
+    mockKill(recordedCodexDenial.provenance.publishedPidProbeSystemCode)
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const priorExitCode = process.exitCode
+    try {
+      const pending = main(['status', '--json'], '/test')
+      await vi.waitFor(() => expect(connect).toHaveBeenCalledOnce())
+      failConnect(recordedCodexDenial.response.error.data.systemCode)
+      await pending
 
-    reportCliError(error, true, { commandPath: ['status'] })
-
-    expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({
-      ok: false,
-      error: {
-        code: 'runtime_access_denied',
-        data: { systemCode: 'EPERM', nextSteps: expect.any(Array) }
-      }
-    })
+      expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toEqual(recordedCodexDenial.response)
+      expect(process.exitCode).toBe(recordedCodexDenial.exitCode)
+      expect(process.kill).not.toHaveBeenCalled()
+      expect(launchOrcaApp).not.toHaveBeenCalled()
+    } finally {
+      process.exitCode = priorExitCode
+    }
   })
 })
 
