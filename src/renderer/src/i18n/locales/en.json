@@ -14733,11 +14733,6 @@
           "e59a252eca": "Regenerate code",
           "d0b52871ce": "Your phones are paired.",
           "051978a785": "Your phone is paired.",
-          "channel": {
-            "group": "Release channel",
-            "preview": "Preview",
-            "stable": "Stable"
-          },
           "pairingQrError": "This pairing code couldn’t be rendered as a QR code. Copy it into Orca Mobile instead.",
           "noRelayCode": "No pairing code available",
           "noPairingCode": "No pairing code available",
@@ -14784,14 +14779,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Newest features, updated daily."
-              },
-              "stable": {
-                "tagline": "The public release, updated weekly."
-              },
               "downloadApk": "Download APK",
-              "openTestFlight": "Open TestFlight",
               "openAppStore": "Open App Store"
             }
           }

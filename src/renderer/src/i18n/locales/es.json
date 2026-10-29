@@ -14360,11 +14360,6 @@
           "e59a252eca": "Regenerar código",
           "d0b52871ce": "Tus teléfonos están emparejados.",
           "051978a785": "Tu teléfono está emparejado.",
-          "channel": {
-            "group": "Canal de versión",
-            "preview": "Vista previa",
-            "stable": "Estable"
-          },
           "pairingQrError": "Este código de emparejamiento no se pudo representar como código QR. Cópialo en Orca Mobile.",
           "directAddressDisclosure": "También usar una ruta local más rápida",
           "directAddressHint": "Opcional. Elige la dirección Wi‑Fi o Tailscale que el teléfono usará cuando esté cerca — suele ser más rápido que Relay. Relay sigue funcionando cuando estás fuera.",
@@ -14411,14 +14406,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Las funciones más recientes, actualizadas a diario."
-              },
-              "stable": {
-                "tagline": "La versión pública, actualizada semanalmente."
-              },
               "downloadApk": "Descargar APK",
-              "openTestFlight": "Abrir TestFlight",
               "openAppStore": "Abrir App Store"
             }
           }

@@ -14694,11 +14694,6 @@
           "e59a252eca": "Code erneut generieren",
           "d0b52871ce": "Die Smartphones sind gekoppelt.",
           "051978a785": "Das Smartphone ist gekoppelt.",
-          "channel": {
-            "group": "Veröffentlichungskanal",
-            "preview": "Vorschau",
-            "stable": "Stabil"
-          },
           "pairingQrError": "Dieser Kopplungscode konnte nicht als QR-Code dargestellt werden. Stattdessen in Orca Mobile kopieren.",
           "noRelayCode": "Kein Kopplungscode verfügbar",
           "noPairingCode": "Kein Kopplungscode verfügbar",
@@ -14745,14 +14740,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Neueste Funktionen, täglich aktualisiert."
-              },
-              "stable": {
-                "tagline": "Die öffentliche Version, wöchentlich aktualisiert."
-              },
               "downloadApk": "APK herunterladen",
-              "openTestFlight": "TestFlight öffnen",
               "openAppStore": "App Store öffnen"
             }
           }

@@ -14537,11 +14537,6 @@
           "e59a252eca": "Kodu yeniden oluştur",
           "d0b52871ce": "Telefonlarınız eşleştirildi.",
           "051978a785": "Telefonunuz eşleştirildi.",
-          "channel": {
-            "group": "Sürüm kanalı",
-            "preview": "Önizleme",
-            "stable": "Kararlı"
-          },
           "pairingQrError": "Bu eşleştirme kodu QR koduna dönüştürülemedi. Bunun yerine kodu Orca Mobile'a kopyalayın.",
           "noRelayCode": "Kullanılabilir eşleştirme kodu yok",
           "noPairingCode": "Kullanılabilir eşleştirme kodu yok",
@@ -14588,14 +14583,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "En yeni özellikler, günlük güncellenir."
-              },
-              "stable": {
-                "tagline": "Genel sürüm, haftalık güncellenir."
-              },
               "downloadApk": "APK indir",
-              "openTestFlight": "TestFlight'ı aç",
               "openAppStore": "App Store'u aç"
             }
           }

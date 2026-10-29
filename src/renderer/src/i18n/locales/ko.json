@@ -14199,11 +14199,6 @@
           "e59a252eca": "코드 재생성",
           "d0b52871ce": "휴대전화가 페어링되었습니다.",
           "051978a785": "휴대전화가 페어링되었습니다.",
-          "channel": {
-            "group": "릴리스 채널",
-            "preview": "미리 보기",
-            "stable": "안정 버전"
-          },
           "pairingQrError": "이 페어링 코드를 QR 코드로 표시할 수 없습니다. 대신 Orca Mobile에 복사하세요.",
           "directAddressDisclosure": "더 빠른 로컬 경로도 사용",
           "directAddressHint": "선택 사항. 근처에 있을 때(같은 Wi‑Fi 또는 Tailscale) 휴대폰이 사용할 주소를 고르세요. 보통 Relay보다 빠릅니다. 외부에 있을 때는 여전히 Relay를 사용합니다.",
@@ -14250,14 +14245,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "최신 기능, 매일 업데이트."
-              },
-              "stable": {
-                "tagline": "정식 출시 버전, 매주 업데이트."
-              },
               "downloadApk": "APK 다운로드",
-              "openTestFlight": "TestFlight 열기",
               "openAppStore": "App Store 열기"
             }
           }

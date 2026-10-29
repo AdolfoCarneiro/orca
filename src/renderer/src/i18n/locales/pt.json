@@ -15620,11 +15620,6 @@
           "e59a252eca": "Gerar novo código",
           "d0b52871ce": "Seus celulares estão pareados.",
           "051978a785": "Seu celular está pareado.",
-          "channel": {
-            "group": "Canal de lançamento",
-            "preview": "Preview",
-            "stable": "Estável"
-          },
           "pairingQrError": "Este código de pareamento não pôde ser renderizado como um código QR. Copie-o no Orca Mobile em vez disso.",
           "noRelayCode": "Nenhum código de pareamento disponível",
           "noPairingCode": "Nenhum código de pareamento disponível",
@@ -15716,14 +15711,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Recursos mais novos, atualizados diariamente."
-              },
-              "stable": {
-                "tagline": "O lançamento público, atualizado semanalmente."
-              },
               "downloadApk": "Baixar APK",
-              "openTestFlight": "Abrir TestFlight",
               "openAppStore": "Abrir App Store"
             }
           }

@@ -14546,11 +14546,6 @@
           "e59a252eca": "Régénérer le code",
           "d0b52871ce": "Vos téléphones sont appairés.",
           "051978a785": "Votre téléphone est appairé.",
-          "channel": {
-            "group": "Canal de release",
-            "preview": "Aperçu",
-            "stable": "Stable"
-          },
           "pairingQrError": "Ce code d'appairage n'a pas pu être rendu sous forme de QR code. Copiez-le plutôt dans Orca Mobile.",
           "noRelayCode": "Aucun code d'appairage disponible",
           "noPairingCode": "Aucun code d'appairage disponible",
@@ -14597,14 +14592,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Fonctionnalités les plus récentes, mises à jour chaque jour."
-              },
-              "stable": {
-                "tagline": "La version publique, mise à jour chaque semaine."
-              },
               "downloadApk": "Télécharger l'APK",
-              "openTestFlight": "Ouvrir TestFlight",
               "openAppStore": "Ouvrir l'App Store"
             }
           }

@@ -14199,11 +14199,6 @@
           "e59a252eca": "コードを再生成する",
           "d0b52871ce": "スマートフォンはペアリングされています。",
           "051978a785": "スマートフォンはペアリングされています。",
-          "channel": {
-            "group": "リリースチャンネル",
-            "preview": "プレビュー",
-            "stable": "安定版"
-          },
           "pairingQrError": "このペアリングコードを QR コードとして表示できませんでした。代わりに Orca Mobile にコピーしてください。",
           "directAddressDisclosure": "より速いローカル経路も使う",
           "directAddressHint": "任意。近く（同じ Wi‑Fi または Tailscale）にいるときにスマホが使うアドレスを選びます。通常は Relay より高速です。外出中は引き続き Relay が使われます。",
@@ -14250,14 +14245,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "最新機能を毎日更新。"
-              },
-              "stable": {
-                "tagline": "一般公開版、毎週更新。"
-              },
               "downloadApk": "APK をダウンロード",
-              "openTestFlight": "TestFlight を開く",
               "openAppStore": "App Store を開く"
             }
           }

@@ -14517,11 +14517,6 @@
           "e59a252eca": "重新產生配對碼",
           "d0b52871ce": "您的手機已配對。",
           "051978a785": "您的手機已配對。",
-          "channel": {
-            "group": "發布管道",
-            "preview": "預覽版",
-            "stable": "穩定版"
-          },
           "pairingQrError": "無法將此配對碼呈現為 QR Code。請改為將其複製到 Orca Mobile。",
           "noRelayCode": "沒有可用的配對碼",
           "noPairingCode": "沒有可用的配對碼",
@@ -14568,14 +14563,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "最新功能，每日更新。"
-              },
-              "stable": {
-                "tagline": "公開發布版，每週更新。"
-              },
               "downloadApk": "下載 APK",
-              "openTestFlight": "開啟 TestFlight",
               "openAppStore": "開啟 App Store"
             }
           }
