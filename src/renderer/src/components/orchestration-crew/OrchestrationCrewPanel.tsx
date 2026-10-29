@@ -17,8 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { AgentIcon } from '@/lib/agent-catalog'
-import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type {
   OrchestrationCrewRow,
   OrchestrationCrewSnapshot
@@ -27,35 +25,16 @@ import type { RuntimeClientTarget } from '../../../../shared/runtime-client-targ
 import { useOrchestrationCrew } from '../native-chat/use-orchestration-crew'
 import { openOrchestrationCrewAgent } from '@/lib/open-agent-message-sender'
 import { cn } from '@/lib/utils'
+import { translate } from '@/i18n/i18n'
 import { hasVisibleOverlay } from '@/lib/visible-overlay'
 import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
-import { CrewRowDetails, CrewRowTime as Time } from './CrewRowDetails'
+import {
+  CrewRowDetails,
+  CrewRowTime as Time,
+  CrewRowAvatar as Avatar,
+  CrewRowStatusDot as Dot
+} from './CrewRowDetails'
 
-function Avatar({ row }: { row: OrchestrationCrewRow }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground"
-    >
-      <AgentIcon agent={isTuiAgent(row.agentKind) ? row.agentKind : null} />
-    </span>
-  )
-}
-function Dot({ row }: { row: OrchestrationCrewRow }) {
-  return (
-    <span
-      aria-label={row.status}
-      className={cn(
-        'inline-block size-1.5 shrink-0 rounded-full',
-        row.pendingQuestion || row.status === 'waiting' || row.status === 'blocked'
-          ? 'bg-status-warning'
-          : row.status === 'working'
-            ? 'bg-status-success'
-            : 'bg-muted-foreground'
-      )}
-    />
-  )
-}
 function IconButton({
   label,
   children,
@@ -152,18 +131,28 @@ export function CrewPanelContent({
   })
   const pending = new Set(all.filter((row) => row.pendingQuestion).map((row) => row.partyKey)).size
   const label = managing.length
-    ? `${managing.length} workers`
+    ? translate('components.orchestrationCrew.workers', '{{total}} workers', {
+        total: managing.length
+      })
     : managedBy.length
-      ? `Managed by ${managedBy[0].label}`
-      : `Talking with ${talkingWith[0].label}`
+      ? translate('components.orchestrationCrew.managedByNames', 'Managed by {{names}}', {
+          names: managedBy[0].label
+        })
+      : translate('components.orchestrationCrew.talkingWithNames', 'Talking with {{names}}', {
+          names: talkingWith[0].label
+        })
   const changeOpen = (value: boolean) => {
     restore.current = true
     setOpen(value)
   }
   const sections = [
-    ['Managed by', managedBy],
-    ['Managing', managing],
-    ['Talking with', talkingWith]
+    ['Managed by', translate('components.orchestrationCrew.managedBy', 'Managed by'), managedBy],
+    ['Managing', translate('components.orchestrationCrew.managing', 'Managing'), managing],
+    [
+      'Talking with',
+      translate('components.orchestrationCrew.talkingWith', 'Talking with'),
+      talkingWith
+    ]
   ] as const
   return (
     <div
@@ -180,26 +169,26 @@ export function CrewPanelContent({
     >
       {open ? (
         <aside
-          aria-label="Agent crew"
+          aria-label={translate('components.orchestrationCrew.label', 'Agent crew')}
           className="flex h-full w-80 max-w-full flex-col border-l border-border bg-card text-card-foreground shadow-xs"
         >
           <div className="flex h-9 shrink-0 items-center justify-end border-b border-border px-2">
             <IconButton
               ref={collapse}
-              label="Collapse crew panel"
+              label={translate('components.orchestrationCrew.collapse', 'Collapse crew panel')}
               onClick={() => changeOpen(false)}
             >
               <PanelRightClose />
             </IconButton>
           </div>
           <div className="scrollbar-sleek min-h-0 flex-1 overflow-y-auto">
-            {sections.map(([title, rows]) =>
+            {sections.map(([key, title, rows]) =>
               rows.length > 0 ? (
-                <section key={title} aria-label={title}>
+                <section key={key} aria-label={title}>
                   <div className="flex items-center gap-1.5 px-3 pb-1 pt-3 text-2xs font-semibold text-muted-foreground">
                     <span className="uppercase tracking-wider">{title}</span>
                     <span className="tracking-wider">{rows.length}</span>
-                    {title === 'Managing' ? (
+                    {key === 'Managing' ? (
                       <Button
                         variant="ghost"
                         size="xs"
@@ -233,7 +222,9 @@ export function CrewPanelContent({
               variant="outline"
               size="xs"
               className="absolute right-0 top-2 max-w-80"
-              aria-label={`Show crew: ${label}`}
+              aria-label={translate('components.orchestrationCrew.show', 'Show crew: {{label}}', {
+                label
+              })}
               aria-expanded={false}
               onClick={() => changeOpen(true)}
             >
@@ -256,14 +247,22 @@ export function CrewPanelContent({
                       <span className="text-status-warning">{pending}</span>
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent>{pending} waiting for you</TooltipContent>
+                  <TooltipContent>
+                    {translate(
+                      'components.orchestrationCrew.pending',
+                      '{{pending}} waiting for you',
+                      { pending }
+                    )}
+                  </TooltipContent>
                 </Tooltip>
               ) : null}
             </Button>
           </TooltipTrigger>
           {managedBy.length > 0 ? (
             <TooltipContent>
-              Managed by {managedBy.map((row) => row.label).join(', ')}
+              {translate('components.orchestrationCrew.managedByNames', 'Managed by {{names}}', {
+                names: managedBy.map((row) => row.label).join(', ')
+              })}
             </TooltipContent>
           ) : null}
         </Tooltip>
@@ -319,20 +318,34 @@ function CrewRowView({
                 row.pendingQuestion ? 'text-status-warning' : 'text-muted-foreground'
               )}
             >
-              {row.pendingQuestion ? 'Waiting for you · ' : ''}
-              {row.task?.title ?? 'No shared task'}
+              {row.pendingQuestion
+                ? translate('components.orchestrationCrew.waitingPrefix', 'Waiting for you · ')
+                : ''}
+              {row.task?.title ??
+                translate('components.orchestrationCrew.noTask', 'No shared task')}
             </span>
           </span>
         </Button>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <Time at={row.pendingQuestion?.at ?? row.latest?.at} />
           <div className="flex">
-            <IconButton label={`Open ${row.label}`} onClick={open}>
+            <IconButton
+              label={translate('components.orchestrationCrew.open', 'Open {{name}}', {
+                name: row.label
+              })}
+              onClick={open}
+            >
               <ExternalLink />
             </IconButton>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-xs" aria-label={`More for ${row.label}`}>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={translate('components.orchestrationCrew.more', 'More for {{name}}', {
+                    name: row.label
+                  })}
+                >
                   <MoreHorizontal />
                 </Button>
               </DropdownMenuTrigger>
@@ -340,23 +353,37 @@ function CrewRowView({
                 <DropdownMenuItem disabled={!canMention || !row.sendAddress} onSelect={mention}>
                   Mention in message
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={open}>Open its chat</DropdownMenuItem>
+                <DropdownMenuItem onSelect={open}>
+                  {translate('components.orchestrationCrew.openChat', 'Open its chat')}
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={!row.sendAddress}
                   onSelect={() => {
                     if (row.sendAddress) {
                       void window.api.ui
                         .writeTerminalClipboardText(row.sendAddress)
-                        .then(() => toast.success(`Copied ${row.label}'s address`))
+                        .then(() =>
+                          toast.success(
+                            translate(
+                              'components.orchestrationCrew.copiedAddress',
+                              "Copied {{name}}'s address",
+                              { name: row.label }
+                            )
+                          )
+                        )
                     }
                   }}
                 >
-                  Copy address
+                  {translate('components.orchestrationCrew.copyAddress', 'Copy address')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <IconButton
-              label={`Show ${row.label}'s task and latest message`}
+              label={translate(
+                'components.orchestrationCrew.showDetails',
+                "Show {{name}}'s task and latest message",
+                { name: row.label }
+              )}
               aria-expanded={expanded}
               onClick={() => setDisclosure({ question, expanded: !expanded })}
             >

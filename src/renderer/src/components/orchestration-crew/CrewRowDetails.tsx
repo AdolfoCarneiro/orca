@@ -1,6 +1,35 @@
 import { Badge } from '@/components/ui/badge'
+import { translate } from '@/i18n/i18n'
+import { AgentIcon } from '@/lib/agent-catalog'
+import { cn } from '@/lib/utils'
+import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { OrchestrationCrewRow } from '../../../../shared/orchestration-crew'
 
+export function CrewRowAvatar({ row }: { row: OrchestrationCrewRow }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground"
+    >
+      <AgentIcon agent={isTuiAgent(row.agentKind) ? row.agentKind : null} />
+    </span>
+  )
+}
+export function CrewRowStatusDot({ row }: { row: OrchestrationCrewRow }) {
+  return (
+    <span
+      aria-label={row.status}
+      className={cn(
+        'inline-block size-1.5 shrink-0 rounded-full',
+        row.pendingQuestion || row.status === 'waiting' || row.status === 'blocked'
+          ? 'bg-status-warning'
+          : row.status === 'working'
+            ? 'bg-status-success'
+            : 'bg-muted-foreground'
+      )}
+    />
+  )
+}
 export function CrewRowTime({ at }: { at?: string }) {
   if (!at) {
     return null
@@ -16,7 +45,9 @@ export function CrewRowTime({ at }: { at?: string }) {
 export function CrewRowDetails({ row }: { row: OrchestrationCrewRow }) {
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 px-3 pb-3 text-xs">
-      <dt className="text-muted-foreground">Task</dt>
+      <dt className="text-muted-foreground">
+        {translate('components.orchestrationCrew.task', 'Task')}
+      </dt>
       <dd>
         {row.task ? (
           <>
@@ -26,27 +57,35 @@ export function CrewRowDetails({ row }: { row: OrchestrationCrewRow }) {
             {row.task.title}
           </>
         ) : (
-          'No shared task'
+          translate('components.orchestrationCrew.noTask', 'No shared task')
         )}
       </dd>
       {row.progress ? (
         <>
-          <dt className="text-muted-foreground">Progress</dt>
+          <dt className="text-muted-foreground">
+            {translate('components.orchestrationCrew.progress', 'Progress')}
+          </dt>
           <dd>{row.progress}</dd>
         </>
       ) : null}
       {row.pendingQuestion ? (
         <>
-          <dt className="text-status-warning">Asks you</dt>
+          <dt className="text-status-warning">
+            {translate('components.orchestrationCrew.asksYou', 'Asks you')}
+          </dt>
           <dd className="whitespace-pre-wrap break-words">{row.pendingQuestion.preview}</dd>
         </>
       ) : row.latest ? (
         <>
-          <dt className="text-muted-foreground">Latest</dt>
+          <dt className="text-muted-foreground">
+            {translate('components.orchestrationCrew.latest', 'Latest')}
+          </dt>
           <dd className="min-w-0">
             <span className="text-2xs text-muted-foreground">
-              {row.latest.direction === 'to' ? 'To' : 'From'} {row.label} ·{' '}
-              <CrewRowTime at={row.latest.at} />
+              {row.latest.direction === 'to'
+                ? translate('components.orchestrationCrew.to', 'To')
+                : translate('components.orchestrationCrew.from', 'From')}{' '}
+              {row.label} · <CrewRowTime at={row.latest.at} />
             </span>
             <blockquote className="mt-1 whitespace-pre-wrap break-words border-l border-border pl-2">
               {row.latest.preview}
