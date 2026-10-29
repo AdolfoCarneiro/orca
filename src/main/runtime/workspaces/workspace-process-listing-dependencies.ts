@@ -1,3 +1,6 @@
+import { resolveTuiAgentLaunchEnv } from '../../../shared/tui-agent-launch-defaults'
+import type { GlobalSettings } from '../../../shared/global-settings-types'
+import type { StructuredAgentId } from '../../../shared/agent-session-provider-handle'
 import type { RuntimeWorkspaceCatalog } from './workspace-catalog'
 import type { OrcaRuntimeWithRefreshPtyWorktreeRecordsFromController } from '../terminal/lifecycle/pty-worktree-refresh'
 import type { RuntimeAccountController } from '../runtime-account-controller'
@@ -10,6 +13,17 @@ import { escalateChatWorkerError } from '../orchestration/chat-worker-error-esca
 import type { StructuredAgentSessionRequestFailure } from '../../native-chat/agent-session-wire/structured-agent-session-request-failures'
 
 export abstract class OrcaRuntimeWithWorktreePsDependencies extends OrcaRuntimeWithStartTuiIdleVisibleReadProbe {
+  /** Apply the host-owning desktop's account overlay to configured agent environment. */
+  protected structuredAgentLaunchEnv(
+    agent: StructuredAgentId,
+    settings: Pick<GlobalSettings, 'agentDefaultEnv'>
+  ) {
+    return {
+      ...resolveTuiAgentLaunchEnv(agent, settings),
+      ...this.accounts.hostLaunchEnvFor(agent)
+    }
+  }
+
   protected abstract listResolvedWorktreeSnapshot(
     ...args: Parameters<RuntimeWorkspaceCatalog['listResolvedWorktreeSnapshot']>
   ): ReturnType<RuntimeWorkspaceCatalog['listResolvedWorktreeSnapshot']>
