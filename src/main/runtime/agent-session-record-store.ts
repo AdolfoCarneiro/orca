@@ -3,6 +3,7 @@ import { createAgentSessionConversationReceipts } from './agent-session-conversa
 import { pinAgentSessionRecordLaunchDirectory } from './agent-session-record-launch-directory'
 import {
   agentSessionOperationKey,
+  findAgentSessionGlobalOperationRow,
   type AgentSessionOperationDecision,
   type AgentSessionOperationRow
 } from '../../shared/agent-session-operation-ledger'
@@ -221,6 +222,9 @@ export class AgentSessionRecordStore extends AgentSessionRecordPublication {
 
   listOperationRows = (): AgentSessionOperationRow[] => [...this.state.operations.values()]
 
+  getGlobalOperationRow = (operationId: string): AgentSessionOperationRow | null =>
+    findAgentSessionGlobalOperationRow(this.state.operations, operationId, Date.now()) ?? null
+
   getOperationRow = (callerKey: string, operationId: string): AgentSessionOperationRow | null =>
     this.state.operations.get(agentSessionOperationKey(callerKey, operationId)) ?? null
 
@@ -301,9 +305,7 @@ export class AgentSessionRecordStore extends AgentSessionRecordPublication {
     this.transact((draft) => admitAgentSessionOperationInto(draft, args))
 
   /** Global send ids survive caller reconnect/identity changes. */
-  admitGlobalOperation = (
-    args: AgentSessionOperationAdmission
-  ): Promise<AgentSessionOperationDecision> =>
+  admitGlobalOperation = (args: AgentSessionOperationAdmission) =>
     this.transact((draft) => admitAgentSessionGlobalOperationInto(draft, args))
 
   admitMutationOperation = (args: AgentSessionMutationOperationAdmission) =>
@@ -322,9 +324,8 @@ export class AgentSessionRecordStore extends AgentSessionRecordPublication {
     claimAfter: ClaimAfterAdmission
   ) => this.transact((draft) => admitAndClaimAgentSessionOperationInto(draft, args, claimAfter))
 
-  recordOperationOutcome = (
-    args: Parameters<typeof settleAgentSessionOperationInto>[1]
-  ): Promise<void> => this.transact((draft) => settleAgentSessionOperationInto(draft, args))
+  recordOperationOutcome = (args: Parameters<typeof settleAgentSessionOperationInto>[1]) =>
+    this.transact((draft) => settleAgentSessionOperationInto(draft, args))
 
   /** Commit settlement with the journal write; new submissions also clear Sleep in that draft. */
   operationOutcomeReceipt = (args: Parameters<typeof agentSessionOperationOutcomeReceipt>[1]) =>

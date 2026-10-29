@@ -6,7 +6,6 @@ import type { StructuredMailboxPointerHost } from './structured-mail-creation-co
 export class MailHistorySources {
   private owner: object | undefined
   private unsubscribe: (() => void) | undefined
-  private readonly sources = new Map<string, string>()
   constructor(
     private readonly deps: {
       getDb: () => OrchestrationDb | null
@@ -14,21 +13,10 @@ export class MailHistorySources {
     },
     private readonly nominate: (mailbox: string, ids: readonly string[]) => void
   ) {}
-  record(id: string, runId: string): void {
-    this.sources.set(id, JSON.stringify([runId, id]))
-  }
-  forget(id: string): void {
-    const key = this.sources.get(id)
-    if (key) {
-      this.deps.host.forgetHistorySource?.(key)
-      this.sources.delete(id)
-    }
-  }
   reset(): void {
     this.unsubscribe?.()
     this.unsubscribe = undefined
     this.owner = undefined
-    this.sources.clear()
   }
   observe(db: OrchestrationDb, owner: object): void {
     if (this.owner === owner) {

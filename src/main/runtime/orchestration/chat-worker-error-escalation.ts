@@ -12,7 +12,6 @@ import { canonicalOrcaSessionId } from './canonical-orca-session-id'
 import { chatRequestError, isSenderOwnRejection } from './chat-worker-error-words'
 import type { OrchestrationDb } from './db'
 import type { DispatchContextRow } from './types'
-import { runMailCreationProof, UNBOUND_MAIL_CREATION } from './db/messages/mail-creation-proof'
 import { escalateWorkerFailure } from './worker-failure-escalation'
 
 export type ChatWorkerErrorEscalationDeps = {
@@ -132,10 +131,6 @@ export async function escalateChatWorkerError(
         dispatch,
         {
           id: escalationId(dispatch.id, request),
-          creationProof: () =>
-            runMailCreationProof(db, dispatch.run_id) ??
-            (request.creationBirth?.valid() ? UNBOUND_MAIL_CREATION : null),
-          created: () => request.creationBirth?.consume(),
           from,
           describe: (task) => ({
             subject: `Agent hit an error: ${text.length > 120 ? `${text.slice(0, 119)}…` : text}`,
@@ -164,7 +159,5 @@ export async function escalateChatWorkerError(
     }
   } catch (error) {
     console.warn('[orchestration] chat worker error escalation failed', request.sessionId, error)
-  } finally {
-    request.creationBirth?.consume()
   }
 }

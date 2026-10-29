@@ -75,7 +75,6 @@ describe('structured mailbox pointer host', () => {
     expect(host.readCreation('op1', record.sessionId)).toBe('accepted')
     expect(read).toHaveBeenCalledWith({ kind: 'global' }, 'op1')
     expect(host.readCreation('op1', 'unrelated')).toBe('accepted')
-    expect(host.readCreation('op1', 'unrelated', true)).toBe('unknown')
     receipt = {
       status: 'accepted',
       method: 'agentSession.send',

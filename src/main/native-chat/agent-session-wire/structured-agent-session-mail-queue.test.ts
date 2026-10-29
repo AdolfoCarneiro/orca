@@ -590,14 +590,13 @@ it('retains routed old IDs and a same-ID mutation across awaited acceptance and 
   ).toBe(0)
 })
 
-it('qualifies a real automatic queued request in an old Run through its stable error observer, then creates one attributed full report turn', async () => {
+it('delivers a real automatic queued request failure in an old Run through its stable observer and one whole report turn', async () => {
   const working = await rig.workingSend()
   const run = db.createRun({
     objective: 'preexisting Run',
     coordinatorHandle: 'coordinator',
     coordinatorPaneKey: null
   })
-  db.db.prepare('UPDATE runs SET mail_creation_domain = NULL WHERE id = ?').run(run.id)
   const identity = structuredWorkerIdentities.register({
     handle: 'structworker_queue-birth',
     sessionId: SESSION,
@@ -661,7 +660,7 @@ it('qualifies a real automatic queued request in an old Run through its stable e
       turnScope: AGENT_JOURNAL_THREAD_SCOPE
     })
     await readCaptured.promise
-    // A later terminal publication cannot retire the capability held by the real ordered read.
+    // The ordered failure read retains its captured outcome through later publications.
     await journal().appendItem(
       turn,
       { ...failureBody, outcome: 'success' },
@@ -686,7 +685,7 @@ it('qualifies a real automatic queued request in an old Run through its stable e
     }
     const message = db.getMessageById(saved.id)!
     expect(message.from_handle).toBe(identity.handle)
-    expect(message.creation_proof).not.toBeNull()
+    expect(message).not.toHaveProperty('creation_proof')
     const id = await card(message.id)
     await eventually(async () =>
       expect(await rig.handoff(id)).toMatchObject({ source: { kind: 'agent' } })

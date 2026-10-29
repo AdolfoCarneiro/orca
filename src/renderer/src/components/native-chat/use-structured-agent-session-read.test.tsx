@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { memo } from 'react'
+import * as queueReducer from '../../../../shared/structured-agent-session-reducer'
 import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -676,7 +677,7 @@ describe('useStructuredAgentSessionRead stream failures', () => {
 describe('mounted queue publication consumers', () => {
   afterEach(cleanup)
   it.each([100, 1000])(
-    'keeps token and other-host frames out of N=%i queue consumers',
+    'measures parent/reducer and memo-child work for two desktop owners with N=%i cards and other-host controls',
     async (count) => {
       resetStructuredAgentSessionReadOwnersForTests()
       vi.clearAllMocks()
@@ -695,6 +696,8 @@ describe('mounted queue publication consumers', () => {
       } as const
       const targetFor = (id: string) => (id === 'queue-a' ? targets['queue-a'] : targets['queue-b'])
       const renders = new Map<string, number>()
+      const parents = new Map<string, number>()
+      const reduce = vi.spyOn(queueReducer, 'reduceStructuredAgentSession')
       const Queue = memo(
         ({
           sessionId,
@@ -714,6 +717,7 @@ describe('mounted queue publication consumers', () => {
         }
       )
       function Reader({ sessionId }: { sessionId: string }) {
+        parents.set(sessionId, (parents.get(sessionId) ?? 0) + 1)
         const { state } = useStructuredAgentSessionRead({
           sessionId,
           target: targetFor(sessionId),
@@ -762,7 +766,10 @@ describe('mounted queue publication consumers', () => {
         )
       }
       renders.clear()
+      const work: unknown[] = []
       for (const sessionId of ['queue-a', 'queue-b']) {
+        parents.clear()
+        reduce.mockClear()
         await act(async () =>
           emits.get(sessionId)?.({
             ...frame(sessionId, 502),
@@ -776,7 +783,17 @@ describe('mounted queue publication consumers', () => {
           ).toBe('token-only')
         )
         expect([...renders.values()].reduce((a, b) => a + b, 0)).toBe(0)
+        const other = sessionId === 'queue-a' ? 'queue-b' : 'queue-a'
+        expect(parents.get(other) ?? 0).toBe(0)
+        expect(parents.get(sessionId)).toBeGreaterThan(0)
+        expect(reduce).toHaveBeenCalled()
+        work.push({
+          sessionId,
+          parents: Object.fromEntries(parents),
+          reductions: reduce.mock.calls.length
+        })
       }
+      parents.clear()
       await act(async () =>
         emits.get('queue-a')?.({
           ...frame('queue-a', 503),
@@ -789,6 +806,18 @@ describe('mounted queue publication consumers', () => {
       )
       expect(renders.get('queue-a')).toBe(1)
       expect(renders.get('queue-b') ?? 0).toBe(0)
+      expect(parents.get('queue-b') ?? 0).toBe(0)
+      console.info(
+        'desktop-queue-consumer-work',
+        JSON.stringify({
+          count,
+          owners: 2,
+          tokenFrames: work,
+          changedParents: Object.fromEntries(parents),
+          changedChildren: Object.fromEntries(renders)
+        })
+      )
+      reduce.mockRestore()
       view.unmount()
       resetStructuredAgentSessionReadOwnersForTests()
     }

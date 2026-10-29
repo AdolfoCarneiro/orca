@@ -22,6 +22,7 @@ vi.mock('../../../src/shared/agent-session-visible-failures', async (importOrigi
   }
 })
 import {
+  measurePhoneQueueConsumerFrames,
   CAPABLE,
   LEGACY,
   SESSION_ID,
@@ -67,22 +68,32 @@ describe('mobile structured queued messages', () => {
   }
 
   const queueRender = vi.fn()
-  const QueueObserver = memo(({ cards, pause }: { cards: unknown; pause: unknown }) => {
-    queueRender(cards, pause)
-    return null
-  })
+  const parentRender = vi.fn()
+  const QueueObserver = memo(
+    ({ cards, pause, scope }: { cards: unknown; pause: unknown; scope: string }) => {
+      queueRender(scope, cards, pause)
+      return null
+    }
+  )
 
   function Harness({
     hostSupport,
-    sessionId = SESSION_ID
+    sessionId = SESSION_ID,
+    transport = client,
+    sourceIdentity = 'host-a\0workspace-a',
+    observe
   }: {
     hostSupport: StructuredAgentSessionHostSupport
     sessionId?: string
+    transport?: RpcClient
+    sourceIdentity?: string
+    observe?: (value: ReturnType<typeof useMobileStructuredAgentSession>) => void
   }) {
-    hook = useMobileStructuredAgentSession({
-      client,
+    parentRender(sourceIdentity)
+    const value = useMobileStructuredAgentSession({
+      client: transport,
       sessionId,
-      sourceIdentity: 'host-a\0workspace-a',
+      sourceIdentity,
       enabled: true,
       connected: true,
       agent: 'claude',
@@ -90,7 +101,16 @@ describe('mobile structured queued messages', () => {
       appendComposerText: appendText,
       onSendError
     })
-    return createElement(QueueObserver, { cards: hook.queued.cards, pause: hook.queued.pause })
+    if (observe) {
+      observe(value)
+    } else {
+      hook = value
+    }
+    return createElement(QueueObserver, {
+      cards: value.queued.cards,
+      pause: value.queued.pause,
+      scope: sourceIdentity
+    })
   }
 
   async function mountSession(
@@ -151,23 +171,43 @@ describe('mobile structured queued messages', () => {
   })
 
   it.each([100, 1000])(
-    'does not render the mounted N=%i queue consumer for token-only frames',
+    'measures reducer/parent/projection/child work for two phone hosts with N=%i cards',
     async (count) => {
       const cards = Array.from({ length: count }, (_, position) =>
         queuedDraft({ messageId: `report-${position}`, position })
       )
       await mountSession(CAPABLE, snapshotEvent({ queuedMessages: cards }))
-      await act(async () => {})
-      queueRender.mockClear()
-      await act(async () =>
-        listener?.({ ...batchEvent(), activity: { turnId: 'working', text: 'token' } })
-      )
-      await act(async () => {})
-      expect(hook?.queued.cards).toHaveLength(count)
-      expect(queueRender).not.toHaveBeenCalled()
-      await act(async () => listener?.(batchEvent(cards.slice(1))))
-      await vi.waitFor(() => expect(hook?.queued.cards).toHaveLength(count - 1))
-      expect(queueRender).toHaveBeenCalledTimes(1)
+      let otherListener: ((value: unknown) => void) | undefined
+      const otherClient: RpcClient = {
+        ...client,
+        subscribe: vi.fn((_method, _params, onData) => {
+          otherListener = onData
+          return vi.fn()
+        })
+      }
+      let other: ReactTestRenderer | undefined
+      await act(async () => {
+        other = create(
+          createElement(Harness, {
+            hostSupport: CAPABLE,
+            transport: otherClient,
+            sourceIdentity: 'host-b\0workspace-b',
+            observe: () => {}
+          })
+        )
+      })
+      await vi.waitFor(() => expect(otherListener).toEqual(expect.any(Function)))
+      await act(async () => otherListener?.(snapshotEvent({ queuedMessages: cards })))
+      await measurePhoneQueueConsumerFrames({
+        count,
+        cards,
+        queueRender,
+        parentRender,
+        own: (event) => listener?.(event),
+        other: (event) => otherListener?.(event),
+        currentCards: () => hook?.queued.cards
+      })
+      await act(async () => other?.unmount())
     }
   )
 

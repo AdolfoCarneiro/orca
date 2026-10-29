@@ -234,11 +234,7 @@ describe('orchestration federation control mail', () => {
     expect(repeated).toMatchObject({ ok: true, result: { imported: 0 } })
     expect(workerDb.getUnreadMessages(`dispatch:${dispatchId}`)).toHaveLength(1)
     expect(observations).toEqual([{ transaction: false, cursor: 1 }])
-    // Supplied attachment/Run IDs do not certify an opaque home-effect history.
-    expect(
-      workerDb.db.prepare('SELECT creation_proof FROM messages WHERE id = ?').get('relay-control')
-        ?.creation_proof
-    ).toBeNull()
+    expect(workerDb.getMessageById('relay-control')).not.toHaveProperty('creation_proof')
     notified.mockRestore()
   })
 

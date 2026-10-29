@@ -5,7 +5,7 @@ import type { OrchestrationDb, MessageRow } from './db'
 import type { OrchestrationCliCommand } from './cli-command'
 import type { SenderNameResolver } from './agent-message-sender'
 import type { OrchestrationMessageWaiter } from './mailbox-pointer-eligibility'
-import type { MailCreationAuthority } from '../../native-chat/agent-session-journal/mail-creation-authority'
+import type { MailCreationOperation } from './structured-mail-operation-identity'
 import type { MailCreationHistory } from './structured-mail-creation-history'
 import type { MailAdmission } from './structured-mail-source-discovery'
 export type StructuredPointerTarget = { sessionId: string; dispatchId: string | null }
@@ -13,15 +13,10 @@ export type StructuredPointerSendOutcome = {
   kind: 'queued' | 'unattached' | 'held' | 'capacity' | 'retry'
 }
 export type StructuredMailboxPointerHost = {
-  readCreation: (
-    operationId: string,
-    sessionId: string,
-    legacy?: true
-  ) => 'accepted' | 'absent' | 'unknown'
-  readHistory: (sessionId: string, sourceKey?: string) => MailCreationHistory
+  readCreation: (operationId: string, sessionId: string) => 'accepted' | 'absent' | 'unknown'
+  selectCreation?: (source: Pick<MessageRow, 'run_id' | 'id'>) => MailCreationOperation
+  readHistory: (sessionId: string) => MailCreationHistory
   observeHistory?: (listener: (members: ReadonlySet<string>) => void) => (() => void) | undefined
-  forgetHistorySource?: (key: string) => void
-  creationAuthority?: () => MailCreationAuthority | null
   admission: (sessionId: string) => MailAdmission | null
   currentFence: (sessionId: string) => number | null
   send: (input: {

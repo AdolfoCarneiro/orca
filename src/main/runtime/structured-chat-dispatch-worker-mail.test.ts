@@ -1,3 +1,10 @@
+import { createHash } from 'node:crypto'
+import { z } from 'zod'
+import { createRootDispatch } from './orchestration/db/root-dispatch-test-fixture'
+import { dispatchTaskSource } from './orchestration/dispatch-task-source'
+import { ordinaryMailCreationId } from './orchestration/structured-mailbox-pointer-delivery'
+import { sendStructuredWorkerPreamble } from './rpc/methods/orchestration-structured-worker-session'
+import { sendChatTask } from './rpc/methods/orchestration/chat-task-delivery'
 import './rpc/unused-default-rpc-methods.test-fixture'
 // Ordinary creation ends source delivery even when the provider later dies.
 
@@ -215,3 +222,84 @@ it('actual typed timeout and aborted checks release hidden mail without another 
   expect(db.getMessageById(source.id)).toMatchObject({ read: 0, delivered_at: expect.any(String) })
   await settleTurn(PEER_CHAT, 0, 'completed')
 })
+
+it.each(['immediate preamble', 'idle task', 'person send'] as const)(
+  'real %s failure in a carried Run enters the ordinary report queue and completes its whole turn',
+  async (creator) => {
+    const coordinator = await openChat(COORDINATOR)
+    const worker = await openChat(PEER_CHAT)
+    const { runId, taskId } = await coordinatorRunAndTask()
+    db.db.exec('ALTER TABLE runs ADD COLUMN mail_creation_domain TEXT')
+    expect(
+      db.db.prepare('SELECT mail_creation_domain FROM runs WHERE id = ?').get(runId)
+        ?.mail_creation_domain
+    ).toBeNull()
+    const dispatch = createRootDispatch(db, taskId, WORKER)
+    expect(
+      db.db
+        .prepare('PRAGMA table_info(dispatch_contexts)')
+        .all()
+        .some((column) => column.name === 'mail_creation_domain')
+    ).toBe(false)
+    // The host failure feed reaches the runtime handler; this rig scripts its provider and host installer.
+    vi.spyOn(runtime, 'isChatWorkerErrorEscalationEnabled').mockReturnValue(true)
+    const from = dispatchTaskSource({ db, dispatch, from: `run:${runId}`, senderName: () => null })
+    if (creator === 'immediate preamble') {
+      expect(
+        await sendStructuredWorkerPreamble({
+          host,
+          sessionId: PEER_CHAT,
+          dispatchId: dispatch.id,
+          preamble: 'Immediate actual worker preamble',
+          from
+        })
+      ).toMatch(/accepted|pending/)
+    } else if (creator === 'idle task') {
+      expect(
+        await sendChatTask({ db, dispatch, from, preamble: 'Actual idle deterministic task' })
+      ).toMatch(/accepted|pending/)
+    } else {
+      expect(
+        await sendUserMessage(PEER_CHAT, 'A real person nonce in a new chat-assignee Dispatch')
+      ).toMatchObject({ ok: true })
+    }
+    await vi.waitFor(() => expect(worker.turns).toHaveLength(1), WAIT)
+    await settleTurn(PEER_CHAT, 0, 'failed')
+    const find = () => db.getUnreadRunMailbox(runId).filter((row) => row.type === 'escalation')
+    await vi.waitFor(() => expect(find()).toHaveLength(1), WAIT)
+    const source = find()[0]!
+    const payload = z
+      .object({ requestId: z.string(), dispatchId: z.literal(dispatch.id) })
+      .parse(JSON.parse(source.payload!))
+    expect(source.id).toBe(
+      `msg_chaterr_${createHash('sha256')
+        .update(JSON.stringify([dispatch.id, PEER_CHAT, 'turn', payload.requestId]))
+        .digest('hex')
+        .slice(0, 24)}`
+    )
+    expect(source.from_handle).toBe(WORKER)
+    await vi.waitFor(() => expect(db.getMessageById(source.id)?.delivered_at).not.toBeNull(), WAIT)
+    expect(db.getMessageById(source.id)?.read).toBe(0)
+    const creationId = ordinaryMailCreationId(source)
+    expect(host.deps.store.readCommandReceipt({ kind: 'global' }, creationId)).toMatchObject({
+      verdict: 'readable',
+      receipt: { status: 'accepted', result: { kind: 'queued-draft', messageId: creationId } }
+    })
+    await vi.waitFor(() => expect(coordinator.turns).toHaveLength(1), WAIT)
+    const snapshot = await host.journalSnapshot(COORDINATOR)
+    const submission = snapshot.submissions.find((row) => row.queuedMessageId === creationId)
+    expect(submission?.clientMessageId).not.toBe(creationId)
+    expect(turnText(coordinator.turns[0]!)).toContain('hit an error')
+    await call('orchestration.send', {
+      from: 'worker',
+      to: `run:${runId}`,
+      subject: 'next oldest report after failed worker'
+    })
+    await observationClock.observe(100)
+    expect(coordinator.turns).toHaveLength(1)
+    await settleTurn(COORDINATOR, 0, 'completed')
+    await vi.waitFor(() => expect(coordinator.turns).toHaveLength(2), WAIT)
+    await settleTurn(COORDINATOR, 1, 'completed')
+    expect(find()).toHaveLength(1)
+  }
+)

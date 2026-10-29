@@ -3,7 +3,6 @@ import { generateId } from '../generated-id'
 import { exposeMessageTimestamps } from '../utc-timestamp'
 import type { OrchestrationDb } from '../orchestration-db'
 import { runLifecycleWriteTransaction } from '../lifecycle-write-transaction-runner'
-import { UNBOUND_MAIL_CREATION } from './mail-creation-proof'
 import { UNBOUND_RUN_ID } from '../contract-constants'
 
 const MESSAGE_INSERT_SAVEPOINT = 'message_insert_batch'
@@ -23,8 +22,6 @@ export type MessageInsert = {
   runId?: string
   deliveryContract?: MessageDeliveryContract
   orderingOrigin?: 'local' | 'imported'
-  /** Internal, qualified by the authenticated home import owner only. */
-  creationProof?: string | null
 }
 
 export function insertMessage(this: OrchestrationDb, msg: MessageInsert): MessageRow {
@@ -44,9 +41,9 @@ export function insertMessage(this: OrchestrationDb, msg: MessageInsert): Messag
   const stmt = this.db.prepare(`
     INSERT INTO messages (
       id, run_id, delivery_contract, from_handle, to_handle, subject, body,
-      type, priority, thread_id, payload, sender_pane_key, ordering_origin, creation_proof
+      type, priority, thread_id, payload, sender_pane_key, ordering_origin
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     id,
@@ -61,8 +58,7 @@ export function insertMessage(this: OrchestrationDb, msg: MessageInsert): Messag
     msg.threadId ?? null,
     msg.payload ?? null,
     msg.senderPaneKey ?? null,
-    msg.orderingOrigin ?? 'local',
-    msg.id === undefined ? UNBOUND_MAIL_CREATION : (msg.creationProof ?? null)
+    msg.orderingOrigin ?? 'local'
   )
   const inserted = exposeMessageTimestamps(
     this.db.prepare('SELECT * FROM messages WHERE id = ?').get(id) as MessageRow

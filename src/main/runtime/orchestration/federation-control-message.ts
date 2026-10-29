@@ -1,4 +1,3 @@
-import { homeImportCreationProof } from './db/messages/mail-creation-proof'
 import { MESSAGE_TYPES, type MessagePriority, type MessageType } from './types'
 import type { OrchestrationDb } from './db'
 import { OrchestrationError } from './orchestration-error'
@@ -92,7 +91,6 @@ export function importFederatedControlMessage(
   db.insertMessage({
     id: params.messageId,
     orderingOrigin: 'imported',
-    creationProof: homeImportCreationProof(db, attachment.home_run_id, params.dispatchId),
     runId: attachment.home_run_id,
     from: message.from,
     to: recipient,

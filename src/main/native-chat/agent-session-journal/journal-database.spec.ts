@@ -1,4 +1,3 @@
-import { readMailCreationAuthority } from './mail-creation-authority'
 import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -69,60 +68,34 @@ export function registerJournalDatabaseTests(): void {
   })
 
   describe('the host journal database open', () => {
-    it('retains authority across reopen and rotates on actual receipt loss, rollback-safe cascades and missing enforcement', () => {
+    it('retires only obsolete coverage triggers on writable open and preserves inert saved data', () => {
       let database = openJournalDatabase(dbPath).db
-      const authority = readMailCreationAuthority(database)
-      expect(authority).not.toBeNull()
-      const insert = () => {
-        database
-          .prepare("INSERT OR IGNORE INTO agent_session_records VALUES ('source-record', '{}')")
-          .run()
-        database
-          .prepare(`INSERT INTO agent_session_command_receipts
-          (operation_id,session_id,caller_key,method,fingerprint,status,result_json,accepted_at)
-          VALUES ('report','source-record','trusted-local:orchestration:ordinary-mail','agentSession.send','fp','accepted','{"kind":"queued-draft","messageId":"report"}',1)`)
-          .run()
-      }
-      insert()
-      expect(readMailCreationAuthority(database)).toEqual(authority)
-      database.exec('BEGIN IMMEDIATE')
-      database.prepare("DELETE FROM agent_session_records WHERE session_id = 'source-record'").run()
-      expect(readMailCreationAuthority(database)?.coverageToken).not.toBe(authority?.coverageToken)
-      database.exec('ROLLBACK')
-      expect(readMailCreationAuthority(database)).toEqual(authority)
-      database
-        .prepare(
-          "UPDATE agent_session_command_receipts SET result_json = '{}' WHERE operation_id = 'report'"
-        )
-        .run()
-      const updated = readMailCreationAuthority(database)
-      expect(updated?.coverageToken).not.toBe(authority?.coverageToken)
-      database.prepare("DELETE FROM agent_session_records WHERE session_id = 'source-record'").run()
-      const deleted = readMailCreationAuthority(database)
-      expect(deleted?.coverageToken).not.toBe(updated?.coverageToken)
+      expect(
+        database.prepare("SELECT 1 FROM sqlite_master WHERE name = 'mail_creation_authority'").get()
+      ).toBeUndefined()
+      database.exec(`CREATE TABLE mail_creation_authority (singleton INTEGER PRIMARY KEY, opaque_future_token TEXT);
+        INSERT INTO mail_creation_authority VALUES (1, 'untouched');
+        CREATE TRIGGER mail_creation_receipt_replace AFTER INSERT ON agent_session_command_receipts BEGIN SELECT 1; END;
+        CREATE TRIGGER mail_creation_receipt_delete AFTER DELETE ON agent_session_command_receipts BEGIN SELECT 1; END;
+        CREATE TRIGGER mail_creation_receipt_update AFTER UPDATE ON agent_session_command_receipts BEGIN SELECT 1; END;
+        CREATE TRIGGER unrelated_user_trigger AFTER INSERT ON agent_session_records BEGIN SELECT 1; END;`)
       database.close()
       database = openJournalDatabase(dbPath).db
-      expect(readMailCreationAuthority(database)).toEqual(deleted)
-      database.exec('DROP TRIGGER mail_creation_receipt_delete')
-      expect(readMailCreationAuthority(database)).toBeNull()
-      database.close()
-      database = openJournalDatabase(dbPath).db
-      expect(readMailCreationAuthority(database)?.storeId).toBe(authority?.storeId)
-      expect(readMailCreationAuthority(database)?.coverageToken).not.toBe(deleted?.coverageToken)
-      database.exec(
-        'ALTER TABLE mail_creation_authority RENAME COLUMN coverage_token TO opaque_future_token'
-      )
-      database.close()
-      database = openJournalDatabase(dbPath).db
-      expect(readMailCreationAuthority(database)).toBeNull()
-      insert()
       expect(
         database
           .prepare(
-            "SELECT status FROM agent_session_command_receipts WHERE operation_id = 'report'"
+            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'mail_creation_receipt_%'"
           )
-          .get()?.status
-      ).toBe('accepted')
+          .all()
+      ).toEqual([])
+      expect(
+        database.prepare('SELECT opaque_future_token FROM mail_creation_authority').get()
+      ).toEqual({ opaque_future_token: 'untouched' })
+      expect(
+        database
+          .prepare("SELECT name FROM sqlite_master WHERE name = 'unrelated_user_trigger'")
+          .get()
+      ).toBeDefined()
       database.close()
     })
 

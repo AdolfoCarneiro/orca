@@ -2,7 +2,6 @@ import Database from '../../../sqlite/sync-database'
 import { ensureMailSourceOrder } from './messages/mail-source-order'
 import { attachOrchestrationDbMethods } from './attach-orchestration-db-methods'
 import { MailSourceMutations } from './messages/mail-source-mutations'
-import { ensureMailCreationProofColumns } from './messages/mail-creation-proof'
 import type { MailHandBack } from './messages/helper-mailbox-hand-back'
 import { hardenOrchestrationDatabaseFiles } from './database-file-permissions'
 import { backfillFederatedStubHomeRuns } from './federation/federated-stub-home-run-backfill'
@@ -43,7 +42,6 @@ class OrchestrationDbCore {
     const removedWorkCaptureWasIntact = isRemovedWorkCaptureIntact(this.db)
     migrate.call(this as unknown as OrchestrationDb)
     ensureMailSourceOrder(this.db)
-    ensureMailCreationProofColumns(this.db)
     createRunCoordinatorAddressTriggers(this.db)
     backfillFederatedStubHomeRuns(this.db)
     // After every open step that creates Runs, before any step that deletes work.

@@ -7,10 +7,8 @@ import {
   type AgentSessionSendResult,
   type AgentSessionWireRefusal
 } from '../../../shared/agent-session-wire'
-import {
-  allocateQueuedSubmission,
-  retireSubmissionBirth
-} from './structured-agent-session-request-birth'
+import { randomUUID } from 'node:crypto'
+import { createStructuredAgentSessionOperationId } from '../../../shared/structured-agent-session-mutation'
 import { queuedSendAnswer } from './structured-agent-session-queued-send-answer'
 import { structuredAgentSessionSendBlock } from './structured-agent-session-send-preparation'
 import { queuedMessagesPublishedBytesRefusal } from './structured-agent-session-queued-published-bytes'
@@ -271,7 +269,7 @@ export class StructuredAgentSessionQueuedMessageDrain {
       return
     }
     // Fresh submission IDs link drafts through queuedMessageId, never equality.
-    const submissionId = allocateQueuedSubmission(journal)
+    const submissionId = createStructuredAgentSessionOperationId(randomUUID)
     try {
       await journal.appendSubmission(
         {
@@ -289,7 +287,6 @@ export class StructuredAgentSessionQueuedMessageDrain {
         this.deps.submissionReceipt?.(sessionId)
       )
     } catch (error) {
-      retireSubmissionBirth(journal, submissionId)
       if (error instanceof QueuedMessageNotConsumableError) {
         return
       }

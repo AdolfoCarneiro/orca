@@ -133,7 +133,6 @@ async function renderChatMail(mailbox: string): Promise<string> {
       readCreation: () => 'absent',
       readHistory: () => ({ members: new Set(), opaque: true }),
       admission: () => ({ owner: db, generation: 'parity', queuedBytes: 0 }),
-      creationAuthority: () => ({ storeId: 'parity', coverageToken: 'retained-parity-coverage' }),
       currentFence: () => 1,
       send: async (input) => {
         for (const block of input.body.blocks) {

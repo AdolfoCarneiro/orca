@@ -1,6 +1,5 @@
 import { structuredMailBody } from './structured-mail-source'
 import { mailSourceIncarnation } from './db/messages/mail-source-order'
-import { parseMailCreationProof, sameMailAuthority } from './db/messages/mail-creation-proof'
 import { readSourceCreation } from './structured-mail-creation-history'
 import {
   messageTypeHasOrchestrationWaiter,
@@ -70,17 +69,13 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
       retire(source.id)
       return
     }
-    if (receipt === 'unknown') {
-      defer('unknown')
-      deps.onRetain?.({
-        mailboxHandle: mailbox,
-        sessionId: interest.target.sessionId,
-        reason: 'original creation domain unknown'
-      })
-      return
-    }
     if (source.read !== 0) {
       retire(source.id)
+      return
+    }
+    if (receipt === 'unknown') {
+      defer('retry')
+      deps.scheduleRetry?.(mailbox)
       return
     }
     if (checkOwns(source) || source.pointer_enter_pending !== 0) {
@@ -97,13 +92,13 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
       retire(source.id)
       return
     }
-    const operationId = ordinaryMailCreationId(source)
-    const proofValue = interest.db.db
-      .prepare('SELECT creation_proof FROM messages WHERE id = ?')
-      .get(source.id)?.creation_proof
-    source.creation_proof = typeof proofValue === 'string' ? proofValue : null
-    input.capture?.()
-    const bound = parseMailCreationProof(source.creation_proof)
+    const selection = deps.host.selectCreation?.(source)
+    const operationId = selection?.operationId ?? ordinaryMailCreationId(source)
+    if (selection && selection.state !== 'absent') {
+      defer('retry')
+      deps.scheduleRetry?.(mailbox)
+      return
+    }
     defer('retry')
     const body = structuredMailBody({
       ...deps,
@@ -147,11 +142,9 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
           latest.delivery_contract !== 'current_delivery' ||
           latest.pointer_enter_pending !== 0 ||
           checkOwns(latest) ||
-          deps.host.readCreation(operationId, interest.target.sessionId) !== 'absent' ||
-          latest.creation_proof !== JSON.stringify(bound) ||
-          !bound ||
-          bound.authority === 'unbound' ||
-          !sameMailAuthority(bound.authority, deps.host.creationAuthority?.() ?? null)
+          (selection
+            ? JSON.stringify(deps.host.selectCreation?.(source)) !== JSON.stringify(selection)
+            : deps.host.readCreation(operationId, interest.target.sessionId) !== 'absent')
         ) {
           throw new MailSourceSuperseded()
         }
@@ -207,10 +200,7 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
       return
     }
     // A reply can fail after the ordinary receipt committed; recover that exact effect first.
-    if (
-      deps.host.readCreation(ordinaryMailCreationId(source), interest.target.sessionId) ===
-      'accepted'
-    ) {
+    if (readSourceCreation(deps.host, interest, source) === 'accepted') {
       defer('stamp')
       try {
         interest.db.markAsDelivered([source.id], mailbox)

@@ -33,7 +33,6 @@ function harness(realReceipts = false) {
   const waiters = new Set<OrchestrationMessageWaiter>()
   const owner = {}
   const host: StructuredMailboxPointerHost = {
-    creationAuthority: () => ({ storeId: 'test-store', coverageToken: 'retained-test-coverage' }),
     admission: () => ({ owner, generation: '1', queuedBytes: capacity ? 0 : 1000 }),
     readHistory: () => ({ members: new Set(), opaque: true }),
     readCreation: vi.fn((id) => {

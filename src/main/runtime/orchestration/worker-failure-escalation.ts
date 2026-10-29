@@ -12,8 +12,6 @@ export type WorkerFailureEscalation = {
   payload: Record<string, unknown>
   /** Stable when one failure can be reported more than once; an existing id is not sent again. */
   id?: string
-  creationProof?: () => string | null
-  created?: () => void
 }
 
 /** Escalate terminal/chat failures through one coordinator-mail path; mail failure must never break worker failure handling. */
@@ -50,7 +48,7 @@ export function escalateWorkerFailure(
       title ? `"${title}" (${dispatch.task_id})` : dispatch.task_id
     )
     const message = db.insertMessage({
-      ...(escalation.id ? { id: escalation.id, creationProof: escalation.creationProof?.() } : {}),
+      ...(escalation.id ? { id: escalation.id } : {}),
       from: escalation.from,
       to,
       subject,
@@ -60,7 +58,6 @@ export function escalateWorkerFailure(
       payload: JSON.stringify(escalation.payload),
       runId: dispatch.run_id
     })
-    escalation.created?.()
     notify(message.to_handle, message.type)
     return message
   } catch (error) {

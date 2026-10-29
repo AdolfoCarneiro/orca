@@ -1,4 +1,10 @@
-import { parseJournalRow } from '../../native-chat/agent-session-journal/journal-row-schema'
+import type Database from '../../sqlite/sync-database'
+import {
+  MailOriginalLocator,
+  originalReference as pair,
+  originalCoordinate as coordinate
+} from './structured-mail-original-locator'
+import { commandReceiptSchema } from '../../native-chat/agent-session-journal/command-receipt-schema'
 import type { StructuredAgentSessionHost } from '../../native-chat/agent-session-wire/structured-agent-session-host'
 import {
   conversationRecordReader,
@@ -7,276 +13,286 @@ import {
 import {
   observeMailHistoryChanges,
   flushMailHistoryChanges,
-  beginMailHistoryInventory,
-  observeMailHistoryReference
+  disposeMailHistoryChanges,
+  cancelMailHistoryRetry,
+  type MailHistoryChange
 } from './structured-mail-history-revision'
 export type MailCreationHistory = { members: ReadonlySet<string>; opaque: boolean }
-export const mailMemberKey = (runId: string, id: string): string => JSON.stringify([runId, id])
+export { mailMemberKey } from './structured-mail-original-locator'
+type Evidence = { sessionId: string; operationId: string; refs: string[]; members: Set<string> }
+const same = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
+  a.size === b.size && [...a].every((k) => b.has(k))
 
-type Domain = Map<string, MailCreationHistory>
+/** One cold original locator per DB generation; hot changes visit only actual references. */
 class OriginalMailHistory {
-  private readonly domains = new Map<string, Domain>()
-  private readonly members = new Set<string>()
-  private readonly dependents = new Map<string, Set<string>>()
+  private readonly locator = new MailOriginalLocator()
+  private readonly originals = this.locator.originals
+  private readonly drafts = this.locator.drafts
+  private readonly evidence = new Map<string, Evidence>()
+  private readonly references = new Map<string, Set<string>>()
+  private readonly sessions = new Map<string, Set<string>>()
   private readonly roots = new Map<string, Set<string>>()
   private readonly lineages = new Map<string, readonly string[]>()
-  private initialized = false
-  private readonly registered = new Set<string>()
+  private readonly counts = new Map<string, number>()
+  private readonly members = new Set<string>()
+  private readonly wake = new Set<string>()
   private readonly listeners = new Set<(members: ReadonlySet<string>) => void>()
-  private unsubscribeChanges: (() => void) | undefined
-  constructor(private readonly host: StructuredAgentSessionHost) {}
-  private readonly changed = (
-    changes: readonly { sessionId: string; operationId: string | null }[]
-  ) => {
-    const wake = new Set<string>()
-    const expanded = changes.flatMap((change) =>
-      change.operationId === null
-        ? [...new Set([change.sessionId, ...(this.roots.get(change.sessionId) ?? [])])].map(
-            (sessionId) => ({ sessionId, operationId: null })
-          )
-        : [change]
-    )
-    const full = new Set(
-      expanded.filter((change) => change.operationId === null).map((change) => change.sessionId)
-    )
-    const affected = new Map(
-      expanded
-        .filter((change) => change.operationId === null || !full.has(change.sessionId))
-        .map((change) => [JSON.stringify([change.sessionId, change.operationId]), change])
-    )
-    for (const change of affected.values()) {
-      const prior = this.domains.get(change.sessionId)
-      const before = this.domainMembers(prior)
-      if (change.operationId === null || !prior) {
-        this.domains.set(change.sessionId, this.readDomain(change.sessionId))
-      } else {
-        prior.delete(change.operationId)
-        for (const [id, evidence] of this.readDomain(change.sessionId, change.operationId)) {
-          prior.set(id, evidence)
-        }
+  private initialized = false
+  private stopCapture: (() => void) | undefined
+  private readonly db: Database.Database
+  constructor(private readonly host: StructuredAgentSessionHost) {
+    this.db = host.deps.journalDatabase.db
+    host.deps.journalDatabase.onClose(() => this.dispose())
+  }
+  private initialize(): void {
+    if (this.initialized) {
+      return
+    }
+    if (!this.host.deps.journalDatabase.readOnly) {
+      this.stopCapture = observeMailHistoryChanges(this.db, this.changed)
+    }
+    // Capture precedes this synchronous committed census; no producer can interleave an await.
+    for (const row of this.db
+      .prepare(
+        'SELECT session_id, epoch, seq, row_json FROM journal_rows ORDER BY session_id, epoch, seq'
+      )
+      .iterate()) {
+      if (
+        typeof row.session_id === 'string' &&
+        typeof row.epoch === 'string' &&
+        typeof row.seq === 'number'
+      ) {
+        this.locator.readOriginal(row.session_id, coordinate(row.epoch, row.seq), row.row_json)
       }
-      const after = this.domainMembers(this.domains.get(change.sessionId))
-      const changed = JSON.stringify(before) !== JSON.stringify(after)
-      if (changed) {
-        for (const key of [
-          ...before.members,
-          ...after.members,
-          ...(this.dependents.get(change.sessionId) ?? [])
-        ]) {
-          wake.add(key)
+    }
+    for (const row of this.db
+      .prepare(`SELECT DISTINCT session_id, operation_id FROM agent_session_command_receipts
+      WHERE caller_key LIKE 'trusted-local:orchestration:%' AND method = 'agentSession.send'`)
+      .iterate()) {
+      if (typeof row.session_id === 'string' && typeof row.operation_id === 'string') {
+        this.updateOperation(row.session_id, row.operation_id)
+      }
+    }
+    this.initialized = true
+    flushMailHistoryChanges(this.db)
+    this.wake.clear()
+  }
+  private here(session: string): boolean {
+    for (const id of this.lineages.get(session) ?? []) {
+      this.roots.get(id)?.delete(session)
+    }
+    const lineage = resolveLineageRunningSession(
+      conversationRecordReader(this.host.deps.store),
+      session
+    )
+    this.lineages.set(session, lineage.lineage)
+    for (const id of lineage.lineage) {
+      const roots = this.roots.get(id) ?? new Set<string>()
+      roots.add(session)
+      this.roots.set(id, roots)
+    }
+    return lineage.kind === 'here'
+  }
+  private updateOperation(sessionId: string, operationId: string): void {
+    const key = pair(sessionId, operationId)
+    const prior = this.evidence.get(key)
+    const refs = new Set<string>()
+    const members = new Set<string>()
+    const rows = this.db
+      .prepare(`SELECT caller_key FROM agent_session_command_receipts
+      WHERE operation_id = ? AND session_id = ? AND method = 'agentSession.send'
+      AND caller_key LIKE 'trusted-local:orchestration:%'`)
+      .all(operationId, sessionId)
+    const local = rows.length ? this.here(sessionId) : false
+    for (const row of rows) {
+      if (typeof row.caller_key !== 'string') {
+        continue
+      }
+      const read = this.host.deps.store.readCommandReceipt(
+        { kind: 'caller', callerKey: row.caller_key },
+        operationId
+      )
+      if (read.verdict !== 'readable') {
+        continue
+      }
+      const validated = commandReceiptSchema.safeParse(read.receipt)
+      if (!validated.success || validated.data.status !== 'accepted') {
+        continue
+      }
+      const result = validated.data.result
+      const reference =
+        result.kind === 'queued-draft'
+          ? pair(sessionId, result.messageId)
+          : result.kind === 'journal-row'
+            ? pair(sessionId, coordinate(result.epoch, result.sequence))
+            : null
+      if (!reference) {
+        continue
+      }
+      refs.add(reference)
+      const candidates = result.kind === 'queued-draft' ? this.drafts.get(reference) : [reference]
+      for (const candidate of candidates ?? []) {
+        if (local) {
+          for (const member of this.originals.get(candidate)?.members ?? []) {
+            members.add(member)
+          }
         }
       }
     }
-    if (wake.size) {
-      this.rebuildMembers()
-      for (const listener of this.listeners) {
-        listener(wake)
+    // The selected evidence is small; an unrelated task never copies the retained member population.
+    if (prior && same(prior.members, members) && same(new Set(prior.refs), refs)) {
+      return
+    }
+    for (const ref of prior?.refs ?? []) {
+      const operations = this.references.get(ref)
+      operations?.delete(key)
+      if (!operations?.size) {
+        this.references.delete(ref)
+      }
+    }
+    for (const ref of refs) {
+      const operations = this.references.get(ref) ?? new Set<string>()
+      operations.add(key)
+      this.references.set(ref, operations)
+    }
+    for (const member of prior?.members ?? []) {
+      if (!members.has(member)) {
+        const count = (this.counts.get(member) ?? 1) - 1
+        if (count) {
+          this.counts.set(member, count)
+        } else {
+          this.counts.delete(member)
+          this.members.delete(member)
+        }
+        this.wake.add(member)
+      }
+    }
+    for (const member of members) {
+      if (!prior?.members.has(member)) {
+        this.counts.set(member, (this.counts.get(member) ?? 0) + 1)
+        this.members.add(member)
+        this.wake.add(member)
+      }
+    }
+    const operations = this.sessions.get(sessionId) ?? new Set<string>()
+    if (rows.length) {
+      operations.add(key)
+      this.sessions.set(sessionId, operations)
+      this.evidence.set(key, { sessionId, operationId, refs: [...refs], members })
+    } else {
+      operations.delete(key)
+      this.evidence.delete(key)
+      if (!operations.size) {
+        this.sessions.delete(sessionId)
+        for (const id of this.lineages.get(sessionId) ?? []) {
+          const roots = this.roots.get(id)
+          roots?.delete(sessionId)
+          if (!roots?.size) {
+            this.roots.delete(id)
+          }
+        }
+        this.lineages.delete(sessionId)
       }
     }
   }
-  private rebuildMembers(): void {
-    this.members.clear()
-    for (const domain of this.domains.values()) {
-      for (const key of this.domainMembers(domain).members) {
-        this.members.add(key)
+  private readonly changed = (changes: readonly MailHistoryChange[]): void => {
+    const selected = new Map<string, { sessionId: string; operationId: string }>()
+    const nominate = (key: string) => {
+      const value = this.evidence.get(key)
+      if (value) {
+        selected.set(key, value)
       }
     }
+    for (const change of changes) {
+      if (change.kind === 'receipt') {
+        selected.set(pair(change.sessionId, change.key), {
+          sessionId: change.sessionId,
+          operationId: change.key
+        })
+      } else if (change.kind === 'row') {
+        const key = pair(change.sessionId, change.key)
+        const old = this.originals.get(key)
+        for (const id of this.references.get(key) ?? []) {
+          nominate(id)
+        }
+        for (const id of old?.draft ? (this.references.get(old.draft) ?? []) : []) {
+          nominate(id)
+        }
+        const [epoch, seq]: unknown[] = JSON.parse(change.key)
+        if (typeof epoch !== 'string' || typeof seq !== 'number') {
+          continue
+        }
+        const row = this.db
+          .prepare(
+            'SELECT row_json FROM journal_rows WHERE session_id = ? AND epoch = ? AND seq = ?'
+          )
+          .get(change.sessionId, epoch, seq)
+        this.locator.readOriginal(change.sessionId, change.key, row?.row_json)
+        const next = this.originals.get(key)
+        for (const id of next?.draft ? (this.references.get(next.draft) ?? []) : []) {
+          nominate(id)
+        }
+      } else {
+        const roots = new Set([change.sessionId, ...(this.roots.get(change.sessionId) ?? [])])
+        for (const root of roots) {
+          for (const key of this.sessions.get(root) ?? []) {
+            nominate(key)
+          }
+        }
+      }
+    }
+    for (const op of selected.values()) {
+      this.updateOperation(op.sessionId, op.operationId)
+    }
+    for (const listener of this.listeners) {
+      listener(this.wake)
+    }
+    this.wake.clear()
+  }
+  read(): MailCreationHistory {
+    this.initialize()
+    flushMailHistoryChanges(this.db)
+    return { members: this.members, opaque: true }
   }
   observe(listener: (members: ReadonlySet<string>) => void): () => void {
-    this.unsubscribeChanges ??= observeMailHistoryChanges(
-      this.host.deps.journalDatabase.db,
-      this.changed
-    )
+    this.initialize()
     this.listeners.add(listener)
     return () => {
       this.listeners.delete(listener)
       if (!this.listeners.size) {
-        this.unsubscribeChanges?.()
-        this.unsubscribeChanges = undefined
-        this.dependents.clear()
-        this.registered.clear()
+        cancelMailHistoryRetry(this.db)
       }
     }
   }
-  forget(key: string): void {
-    this.registered.delete(key)
-    for (const ids of this.dependents.values()) {
-      ids.delete(key)
+  private dispose(): void {
+    this.stopCapture?.()
+    disposeMailHistoryChanges(this.db)
+    for (const map of [
+      this.originals,
+      this.drafts,
+      this.evidence,
+      this.references,
+      this.sessions,
+      this.roots,
+      this.lineages,
+      this.counts
+    ]) {
+      map.clear()
     }
-  }
-  read(key?: string): MailCreationHistory {
-    const temporary = this.unsubscribeChanges
-      ? undefined
-      : observeMailHistoryChanges(this.host.deps.journalDatabase.db, this.changed)
-    try {
-      flushMailHistoryChanges(this.host.deps.journalDatabase.db)
-    } finally {
-      temporary?.()
-    }
-    if (!this.initialized) {
-      for (const record of this.host.deps.store.listConversations()) {
-        if (!this.domains.has(record.sessionId)) {
-          this.domains.set(record.sessionId, this.readDomain(record.sessionId))
-        }
-      }
-      this.initialized = true
-      this.rebuildMembers()
-    }
-    if (key && !this.registered.has(key)) {
-      this.registered.add(key)
-      for (const [sessionId, domain] of this.domains) {
-        if (domain.size) {
-          const sources = this.dependents.get(sessionId) ?? new Set<string>()
-          this.dependents.set(sessionId, sources)
-          sources.add(key)
-        }
-      }
-    }
-    return { members: this.members, opaque: true }
-  }
-  private domainMembers(domain?: Domain): { members: string[]; opaque: boolean } {
-    const members = new Set<string>()
-    let opaque = false
-    for (const evidence of domain?.values() ?? []) {
-      for (const member of evidence.members) {
-        members.add(member)
-      }
-      opaque ||= evidence.opaque
-    }
-    return { members: [...members].sort(), opaque }
-  }
-  private readDomain(sessionId: string, operationId?: string): Domain {
-    const { store, journalDatabase } = this.host.deps
-    const db = journalDatabase.db
-    const domain: Domain = new Map()
-    if (!operationId) {
-      beginMailHistoryInventory(db, sessionId)
-    }
-    const local = resolveLineageRunningSession(conversationRecordReader(store), sessionId)
-    for (const record of this.lineages.get(sessionId) ?? []) {
-      const roots = this.roots.get(record)
-      roots?.delete(sessionId)
-      if (!roots?.size) {
-        this.roots.delete(record)
-      }
-    }
-    this.lineages.set(sessionId, local.lineage)
-    for (const record of local.lineage) {
-      const roots = this.roots.get(record) ?? new Set<string>()
-      this.roots.set(record, roots)
-      roots.add(sessionId)
-    }
-    const receipts = db
-      .prepare(`SELECT operation_id FROM agent_session_command_receipts
-      WHERE session_id = ? AND method = 'agentSession.send'
-      AND caller_key LIKE 'trusted-local:orchestration:%'
-      AND caller_key != 'trusted-local:orchestration:ordinary-mail'
-      ${operationId ? 'AND operation_id = ?' : ''}`)
-      .all(...(operationId ? [sessionId, operationId] : [sessionId]))
-    const drafts = new Map<string, string>()
-    const addBody = (id: string, json: unknown) => {
-      const parsed = typeof json === 'string' ? parseJournalRow(json) : null
-      const row = parsed?.ok ? parsed.row : null
-      const body =
-        row?.kind === 'submission'
-          ? row.body
-          : row?.kind === 'queue' && row.change.op === 'queued'
-            ? row.change.body
-            : null
-      const mail = body?.from?.orchestration
-      if (body && (!mail || mail.message !== 'mail-notice')) {
-        return
-      }
-      domain.set(id, {
-        members: new Set(
-          local.kind === 'here'
-            ? (mail?.messages.map((member) => mailMemberKey(member.runId, member.messageId)) ?? [])
-            : []
-        ),
-        opaque: !mail || mail.messages.length === 0 || local.kind !== 'here'
-      })
-    }
-    for (const saved of receipts) {
-      if (typeof saved.operation_id !== 'string') {
-        continue
-      }
-      const id = saved.operation_id
-      const read = store.readCommandReceipt({ kind: 'global' }, id)
-      if (read.verdict !== 'readable') {
-        domain.set(id, { members: new Set(), opaque: true })
-        continue
-      }
-      if (read.receipt.status !== 'accepted') {
-        continue
-      }
-      const result = read.receipt.result
-      observeMailHistoryReference(db, sessionId, result)
-      if (result.kind === 'queued-draft') {
-        drafts.set(result.messageId, id)
-      } else if (result.kind === 'journal-row') {
-        addBody(
-          id,
-          db
-            .prepare(`SELECT row_json FROM journal_rows
-          WHERE session_id = ? AND epoch = ? AND seq = ?`)
-            .get(sessionId, result.epoch, result.sequence)?.row_json
-        )
-      } else {
-        domain.set(id, { members: new Set(), opaque: true })
-      }
-    }
-    if (drafts.size) {
-      const rows = db
-        .prepare(`SELECT row_json FROM journal_rows WHERE session_id = ?
-        AND json_valid(row_json) AND json_extract(row_json, '$.kind') = 'queue'
-        AND json_extract(row_json, '$.change.op') = 'queued'
-        AND json_extract(row_json, '$.change.queuedAt.epoch') = epoch
-        AND json_extract(row_json, '$.change.queuedAt.sequence') + 1 = seq
-        ORDER BY epoch, seq`)
-        .iterate(sessionId)
-      for (const row of rows) {
-        const parsed = typeof row.row_json === 'string' ? parseJournalRow(row.row_json) : null
-        if (parsed?.ok && parsed.row.kind === 'queue') {
-          const id = drafts.get(parsed.row.messageId)
-          if (id) {
-            addBody(id, row.row_json)
-            drafts.delete(parsed.row.messageId)
-          }
-        }
-      }
-      for (const id of drafts.values()) {
-        domain.set(id, { members: new Set(), opaque: true })
-      }
-    }
-    return domain
+    this.members.clear()
+    this.wake.clear()
+    this.listeners.clear()
+    this.initialized = false
+    histories.delete(this.db)
   }
 }
-const histories = new WeakMap<StructuredAgentSessionHost, OriginalMailHistory>()
-function originalHistory(host: StructuredAgentSessionHost): OriginalMailHistory {
-  let history = histories.get(host)
+const histories = new WeakMap<Database.Database, OriginalMailHistory>()
+export function originalMailHistory(host: StructuredAgentSessionHost): OriginalMailHistory {
+  const db = host.deps.journalDatabase.db
+  let history = histories.get(db)
   if (!history) {
     history = new OriginalMailHistory(host)
-    histories.set(host, history)
+    histories.set(db, history)
   }
   return history
-}
-export function observeMailCreationHistory(
-  host: StructuredAgentSessionHost,
-  listener: (members: ReadonlySet<string>) => void
-): () => void {
-  return originalHistory(host).observe(listener)
-}
-export function forgetMailCreationHistorySource(
-  host: StructuredAgentSessionHost,
-  key: string
-): void {
-  histories.get(host)?.forget(key)
-}
-/** Retained original membership proves acceptance; mutable current card content never proves absence. */
-export function readMailCreationHistory(
-  host: StructuredAgentSessionHost,
-  _sessionId: string,
-  key?: string
-): MailCreationHistory {
-  return originalHistory(host).read(key)
 }

@@ -1,9 +1,8 @@
-import { readMailCreationAuthority } from '../../native-chat/agent-session-journal/mail-creation-authority'
+import { MAIL_CALLER, selectMailCreationOperation } from './structured-mail-operation-identity'
 import { queuedMessagesPublishedBytes } from '../../native-chat/agent-session-wire/structured-agent-session-queued-published-bytes'
 import {
   readMailCreationHistory,
-  observeMailCreationHistory,
-  forgetMailCreationHistorySource
+  observeMailCreationHistory
 } from './structured-mail-creation-history'
 import {
   conversationRecordReader,
@@ -14,15 +13,9 @@ import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-w
 import type { StructuredMailboxPointerHost } from './structured-mailbox-pointer-delivery'
 import { sendAgentTurn } from './send-agent-turn'
 
-const MAIL_CALLER = 'trusted-local:orchestration:ordinary-mail'
-
 /** One internal seam for ordinary command acceptance; no provider-consumption acknowledgement. */
 export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHost {
-  const readCreation: StructuredMailboxPointerHost['readCreation'] = (
-    operationId,
-    _sessionId,
-    legacy
-  ) => {
+  const readCreation: StructuredMailboxPointerHost['readCreation'] = (operationId, _sessionId) => {
     const host = getStructuredAgentSessionHost()
     if (!host) {
       return 'unknown'
@@ -39,13 +32,11 @@ export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHo
       conversationRecordReader(host.deps.store),
       receipt.sessionId
     )
-    const validCaller = legacy
-      ? receipt.callerKey.startsWith('trusted-local:orchestration:')
-      : receipt.callerKey === MAIL_CALLER
+    const validCaller = receipt.callerKey === MAIL_CALLER
     const created =
       receipt.status === 'accepted' &&
-      ((receipt.result.kind === 'queued-draft' && receipt.result.messageId === operationId) ||
-        (legacy && receipt.result.kind === 'journal-row'))
+      receipt.result.kind === 'queued-draft' &&
+      receipt.result.messageId === operationId
     return target.kind === 'here' &&
       validCaller &&
       receipt.method === 'agentSession.send' &&
@@ -55,25 +46,20 @@ export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHo
   }
   return {
     readCreation,
-    creationAuthority: () => {
+    selectCreation: (source) => {
       const host = getStructuredAgentSessionHost()
-      return host ? readMailCreationAuthority(host.deps.journalDatabase.db) : null
+      if (!host) {
+        return { operationId: '', state: 'unknown', evidence: '' }
+      }
+      return selectMailCreationOperation(host, source)
     },
     observeHistory: (listener) => {
       const host = getStructuredAgentSessionHost()
       return host && observeMailCreationHistory(host, listener)
     },
-    forgetHistorySource: (key) => {
+    readHistory: (sessionId) => {
       const host = getStructuredAgentSessionHost()
-      if (host) {
-        forgetMailCreationHistorySource(host, key)
-      }
-    },
-    readHistory: (sessionId, key) => {
-      const host = getStructuredAgentSessionHost()
-      return host
-        ? readMailCreationHistory(host, sessionId, key)
-        : { members: new Set(), opaque: true }
+      return host ? readMailCreationHistory(host, sessionId) : { members: new Set(), opaque: true }
     },
     admission: (sessionId) => {
       const host = getStructuredAgentSessionHost()
@@ -93,8 +79,7 @@ export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHo
           record.sessionId,
           record.location,
           record.lease.runtimeFence,
-          journal?.epoch,
-          readMailCreationAuthority(host.deps.journalDatabase.db)
+          journal?.epoch
         ]),
         queuedBytes: journal ? queuedMessagesPublishedBytes(journal) : 0
       }
@@ -105,13 +90,6 @@ export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHo
       const host = getStructuredAgentSessionHost()
       if (!host) {
         return { kind: 'unattached' }
-      }
-      const prior = readCreation(input.operationId, input.sessionId)
-      if (prior === 'accepted') {
-        return { kind: 'queued' }
-      }
-      if (prior !== 'absent') {
-        return { kind: 'held' }
       }
       const outcome = await sendAgentTurn({
         kind: 'structured-session',

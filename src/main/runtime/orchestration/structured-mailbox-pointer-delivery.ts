@@ -53,7 +53,6 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
                 this.interests.get(mailbox)?.deferred.delete(mutation.id)
               }
             }
-            this.history.forget(mutation.id)
             continue
           }
           const classified =
@@ -119,7 +118,6 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
             source,
             current: () => this.current(mailbox, interest),
             offer: (current, capture, retire) => {
-              this.history.record(source.id, source.run_id)
               return offerMailSource({
                 mailbox,
                 interest,
@@ -295,7 +293,6 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
   }
 
   private retire(interest: Interest, id: string): void {
-    this.history.forget(id)
     interest.deferred.delete(id)
     interest.dirty.delete(id)
   }

@@ -1,4 +1,3 @@
-import { readMailCreationAuthority } from './mail-creation-authority'
 import { journalHasConversationHistory } from './journal-conversation-history'
 // Each session owns its fold and queue; all statements use the host's shared database connection.
 
@@ -74,7 +73,6 @@ export { AgentSessionJournalError } from './journal-write-guards'
 
 export class AgentSessionJournal {
   readonly handleId = randomUUID()
-  requestBirthAuthority = () => readMailCreationAuthority(this.database.db)
   private readonly identity: AgentSessionJournalIdentity
   private readonly database: JournalHostDatabase
   private readonly now: () => number

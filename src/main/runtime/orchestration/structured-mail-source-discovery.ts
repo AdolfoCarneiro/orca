@@ -12,13 +12,12 @@ export const sourceIdentity = z.object({
   delivered_at: z.string().nullable(),
   pointer_enter_pending: z.number(),
   delivery_contract: z.string(),
-  ordering_origin: z.enum(['local', 'imported']).nullable(),
-  creation_proof: z.string().nullable()
+  ordering_origin: z.enum(['local', 'imported']).nullable()
 })
 export type SourceIdentity = z.infer<typeof sourceIdentity>
 export const SOURCE_COLUMNS = `id, run_id, sequence, type, to_handle, read, delivered_at,
-  pointer_enter_pending, delivery_contract, ordering_origin, creation_proof`
-export type Debt = 'capacity' | 'check' | 'unknown' | 'stable' | 'retry' | 'stamp'
+  pointer_enter_pending, delivery_contract, ordering_origin`
+export type Debt = 'capacity' | 'check' | 'stable' | 'retry' | 'stamp'
 export const sourceState = (source: SourceIdentity): string =>
   JSON.stringify([
     source.run_id,
@@ -28,7 +27,6 @@ export const sourceState = (source: SourceIdentity): string =>
     source.delivered_at,
     source.pointer_enter_pending,
     source.delivery_contract,
-    source.creation_proof,
     source.ordering_origin
   ])
 export class MailDebts extends Map<
@@ -163,7 +161,6 @@ export async function discoverMailSources(input: {
     if (interest.authorityChanged) {
       interest.authorityChanged = false
       select('stable')
-      select('unknown')
       select('retry')
       select('check')
     }

@@ -16,7 +16,6 @@ const columns = [
   'delivered_at',
   'pointer_enter_pending',
   'delivery_contract',
-  'creation_proof',
   'ordering_origin'
 ]
 const contentChanged = ['subject', 'body', 'payload', 'from_handle']
