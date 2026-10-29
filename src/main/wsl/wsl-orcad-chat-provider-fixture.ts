@@ -183,23 +183,40 @@ const PROVIDER_REPORT_TIMEOUT_MS = 30_000
  * Every report any launch of the scripted Claude wrote, oldest first. A launch after the one under
  * test (model discovery after a restart) overwrites the single report file, so read the log.
  */
+async function readProviderReportLog(
+  host: Pick<WslChatHost, 'guest'>,
+  logPath: string
+): Promise<string[]> {
+  return (await host.guest(`cat ${quotePosixShell(logPath)} 2>/dev/null || true`))
+    .split('\n')
+    .filter(Boolean)
+}
+
+/** Lines already logged, so a later wait can skip launches from before an action. */
+export async function providerReportLogLength(
+  host: Pick<WslChatHost, 'guest'>,
+  logPath: string
+): Promise<number> {
+  return (await readProviderReportLog(host, logPath)).length
+}
+
 export async function waitForProviderReportInLog<T>(
   host: Pick<WslChatHost, 'guest'>,
   logPath: string,
   schema: z.ZodType<T>,
   settled: (report: T) => boolean,
-  awaiting: string
+  awaiting: string,
+  afterLine = 0
 ): Promise<T> {
-  let lastLine = ''
+  let seen: string[] = []
   try {
     return await vi.waitFor(
       async () => {
-        const lines = (await host.guest(`cat ${quotePosixShell(logPath)} 2>/dev/null || true`))
-          .split('\n')
-          .filter(Boolean)
-        lastLine = lines.at(-1) ?? ''
+        const lines = await readProviderReportLog(host, logPath)
+        seen = lines.map((line, index) => `${index}: ${summarizeReportLine(line)}`)
         // A line being appended can be torn; skip what does not parse.
         const found = lines
+          .slice(afterLine)
           .map((line) => schema.safeParse(safeJson(line)))
           .find((parsed) => parsed.success && settled(parsed.data))
         if (!found?.success) {
@@ -211,10 +228,20 @@ export async function waitForProviderReportInLog<T>(
     )
   } catch (error) {
     throw new Error(
-      `Provider report log ${logPath} did not show ${awaiting} within ${PROVIDER_REPORT_TIMEOUT_MS} ms; last line ${JSON.stringify(lastLine.slice(-600))}`,
+      `Provider report log ${logPath} did not show ${awaiting} within ${PROVIDER_REPORT_TIMEOUT_MS} ms; launches logged:\n${seen.join('\n')}`,
       { cause: error }
     )
   }
+}
+
+// Each launch's argv and user-message count; env is noise when telling launches apart.
+function summarizeReportLine(line: string): string {
+  const parsed = z
+    .object({ argv: z.array(z.string()), userMessages: z.array(z.unknown()) })
+    .safeParse(safeJson(line))
+  return parsed.success
+    ? `${parsed.data.userMessages.length} user message(s): ${parsed.data.argv.join(' ')}`
+    : `unparsed: ${line.slice(0, 200)}`
 }
 
 function safeJson(line: string): unknown {

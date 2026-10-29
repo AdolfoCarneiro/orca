@@ -29,6 +29,7 @@ import { assistantText } from './wsl-orcad-chat-assistant-text'
 import { envelope } from './wsl-orcad-chat-envelope'
 import {
   WslChatProviderReport,
+  providerReportLogLength,
   waitForProviderReportInLog,
   writeChatFixtureFile,
   type WslChatHost
@@ -281,6 +282,8 @@ async function stopMidTurnThenContinue(
   )
   await lane.guest(`touch ${quotePosixShell(ackPath)}`)
   const resumedWatch = await watchAssistantText(lane, sessionId, opened)
+  // The held turn's own launch logged the same session id; only a later launch is the Continue.
+  const loggedBeforeContinue = await providerReportLogLength(lane, reportLogPath)
   const continued = z.object({ outcome: z.string() }).parse(
     await lane.rpc('agentSession.continueInterrupted', {
       sessionId,
@@ -305,14 +308,17 @@ async function stopMidTurnThenContinue(
     },
     { timeout: 60_000, interval: 500 }
   )
-  const resumedArgv = new RegExp(`--resume(?:=| )${providerId}`)
+  // The held turn's stream frames leave no transcript head, so Continue may relaunch the same
+  // provider session with --session-id rather than --resume; either is the continued turn.
+  const resumedArgv = new RegExp(`--(?:resume|session-id)(?:=| )${providerId}`)
   // The restarted server's model discovery relaunches the same CLI after the turn, so the log.
   const resumed = await waitForProviderReportInLog(
     lane,
     reportLogPath,
     WslChatProviderReport,
     (written) => resumedArgv.test(written.argv.join(' ')) && written.userMessages.length > 0,
-    'the continued turn'
+    `the continued turn after line ${loggedBeforeContinue}`,
+    loggedBeforeContinue
   )
   expect(resumed.cwd).toBe(fixture.cwd)
   await lane.rpc('agentSession.close', { sessionId })
