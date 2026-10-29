@@ -32,6 +32,17 @@ describe('textGenerationErrorText', () => {
     ).toEqual({ success: false, error: errors.noStagedChanges, errorCode: 'noStagedChanges' })
   })
 
+  it('localizes a coded Kimi diagnosis and keeps its CLI options verbatim', async () => {
+    i18n.addResourceBundle('es', 'translation', es)
+    await i18n.changeLanguage('es')
+    const failed = textGenerationFailure('kimiConflictingOptions', {
+      options: '--prompt with --auto'
+    })
+    expect(textGenerationErrorText(failed)).toBe(
+      errors.kimiConflictingOptions.replace('{{options}}', '--prompt with --auto')
+    )
+  })
+
   it('shows the host English for uncoded, unknown, or incomplete failures', async () => {
     i18n.addResourceBundle('es', 'translation', es)
     await i18n.changeLanguage('es')
