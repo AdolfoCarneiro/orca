@@ -4,9 +4,10 @@ import type {
   RuntimeMobileSessionTabsSnapshot,
   RuntimeMobileSessionTerminalTab
 } from '../../../../shared/runtime-types'
-import type {
-  OwnedMobileTerminalCreateOptions,
-  OwnedMobileTerminalDispatchRecipe
+import {
+  pruneOwnedMobileTerminalDispatchRecipes,
+  type OwnedMobileTerminalCreateOptions,
+  type OwnedMobileTerminalDispatchRecipe
 } from './mobile-terminal-create'
 import { randomUUID } from 'node:crypto'
 import { copySleepingAgentLaunchConfig } from '../../runtime-agent-launch-resolution'
@@ -26,8 +27,6 @@ import {
 
 export type { OwnedMobileTerminalCreateOptions } from './mobile-terminal-create'
 
-const OWNED_MOBILE_DISPATCH_RECIPE_TTL_MS = 15 * 60_000
-
 export abstract class OrcaRuntimeWithCreateRuntimeOwnedMobileSessionTerminal extends OrcaRuntimeWithResolveMobileSessionTerminalCommand {
   protected abstract getPtyManualTitle(
     ...args: Parameters<PtyTerminalSummaryMethods['getPtyManualTitle']>
@@ -35,22 +34,13 @@ export abstract class OrcaRuntimeWithCreateRuntimeOwnedMobileSessionTerminal ext
 
   private readonly ownedMobileDispatchRecipes = new Map<string, OwnedMobileTerminalDispatchRecipe>()
 
-  private pruneOwnedMobileDispatchRecipes(): void {
-    const now = Date.now()
-    for (const [handle, recipe] of this.ownedMobileDispatchRecipes) {
-      if (now - recipe.recordedAt >= OWNED_MOBILE_DISPATCH_RECIPE_TTL_MS) {
-        this.ownedMobileDispatchRecipes.delete(handle)
-      }
-    }
-  }
-
   protected async createRuntimeOwnedMobileSessionTerminal(
     worktreeId: string,
     activate: boolean,
     afterTabId?: string,
     opts: OwnedMobileTerminalCreateOptions = {}
   ): Promise<RuntimeMobileSessionCreateTerminalResult> {
-    this.pruneOwnedMobileDispatchRecipes()
+    pruneOwnedMobileTerminalDispatchRecipes(this.ownedMobileDispatchRecipes)
     const workspace = await this.resolveTerminalWorkspaceLaunchScope(`id:${worktreeId}`)
     const cwd = this.resolveWorkspaceTerminalStartupCwd(workspace, opts.cwd)
     // Why: an SSH sessionId means reattach; only synthesize local serve ids so SSH fresh terminals still call pty.spawn.
@@ -228,6 +218,9 @@ export abstract class OrcaRuntimeWithCreateRuntimeOwnedMobileSessionTerminal ext
     activate = activate && (opts.switchExecution?.selectionCurrent?.() ?? true)
     const tab: RuntimeMobileSessionTerminalTab = {
       type: 'terminal',
+      ...(opts.switchExecution?.openPlacement
+        ? { openPlacement: { ...opts.switchExecution.openPlacement, activate } }
+        : {}),
       id: `${parentTabId}::${leafId}`,
       parentTabId,
       leafId,
@@ -287,6 +280,9 @@ export abstract class OrcaRuntimeWithCreateRuntimeOwnedMobileSessionTerminal ext
     }
     // Store adds retirement proofs; emit that snapshot because version-deduping subscribers would miss proofs from a pre-store frame.
     const stored = this.storeMobileSessionSnapshot(worktreeId, next)
+    if (opts.switchExecution?.openPlacement) {
+      this.markPaneLiveTitlesDirty()
+    }
     const result = this.toMobileSessionTabsResult(stored)
     const changeSequence = ++this.mobileSessionTabsChangeSequence
     for (const subscription of this.mobileSessionTabListeners) {

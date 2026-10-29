@@ -15,7 +15,7 @@ function createAdapter(
     tokenPath: '/tmp/orca-steady-state-compat.token',
     protocolVersion
   })
-  // SAFETY: replace only external RPC answers; preserve the actual client lifetime.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: replace only external RPC answers; preserve the actual client lifetime.
   ;(adapter as unknown as ClientInternals).client.request = request
   return adapter
 }

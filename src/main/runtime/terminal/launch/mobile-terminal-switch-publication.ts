@@ -91,10 +91,13 @@ export async function createPublishedSwitchTerminal(args: {
           ? opts.switchExecution!.viewer
           : ('none' as const),
       viewerSelection: opts.switchExecution!.viewerSelection,
-      placement: {
+      placement: opts.switchExecution!.openPlacement?.placement ?? {
         afterTabId: opts.switchExecution!.afterTabId ?? afterDesktopTabId,
         groupId: opts.targetGroupId
       },
+      ...(opts.switchExecution!.openPlacement
+        ? { openPlacement: opts.switchExecution!.openPlacement }
+        : {}),
       operationId: opts.clientMutationId
     }
     const mainPublication =

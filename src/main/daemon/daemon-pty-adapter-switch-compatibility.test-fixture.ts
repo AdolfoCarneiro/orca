@@ -85,7 +85,7 @@ export function registerDaemonSwitchCompatibilityTests(fixture: {
                 (stale && frame.type === 'cancelCreateOrAttach'))
             ) {
               receiverObserved = true
-              // SAFETY: modify only this fixture's actual authenticated response bytes.
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: modify only this fixture's actual authenticated response bytes.
               const peers = (fixture.server as unknown as { connections: DaemonClientConnections })
                 .connections
               const peer = [...peers.values()].at(-1)?.controlSocket
@@ -154,7 +154,7 @@ export function registerDaemonSwitchCompatibilityTests(fixture: {
             throw new Error('known old anchor lost its ordinary settlement owner')
           }
           await tracked
-          // SAFETY: inspect only the owned fixture receiver's retained handoff state.
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect only the owned fixture receiver's retained handoff state.
           const receiver = fixture.server as unknown as {
             preparations: { hasOwedOutcomes(): boolean }
           }

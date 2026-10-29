@@ -51,7 +51,7 @@ export function installSwitchSocketFaults(
         if (boundary === 'legacy-never-created') {
           return true
         }
-        // SAFETY: retain/drop only the owned original ordinary response bytes; sockets and sibling stay live.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: retain/drop only the owned original ordinary response bytes; sockets and sibling stay live.
         const peers = (server as unknown as { connections: DaemonClientConnections }).connections
         const peer = [...peers.values()].at(-1)?.controlSocket
         if (!peer) {
@@ -84,7 +84,7 @@ export function installSwitchSocketFaults(
         boundary === 'stale-daemon-token' &&
         frame.payload?.switchExecution?.phase === 'prepare'
       ) {
-        // SAFETY: the fixture owns both authenticated sockets; simulate old development response bytes only.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture owns both authenticated sockets; simulate old development response bytes only.
         const peers = (server as unknown as { connections: DaemonClientConnections }).connections
         const peer = [...peers.values()].at(-1)?.controlSocket
         if (!peer) {
@@ -105,7 +105,7 @@ export function installSwitchSocketFaults(
           wire.receiverDelay = 720_001
         }
         if (outage) {
-          // SAFETY: this fixture owns both ends of this authenticated transport.
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture owns both ends of this authenticated transport.
           const peers = (server as unknown as { connections: DaemonClientConnections }).connections
           const peer = [...peers.values()].at(-1)?.controlSocket
           if (!peer) {

@@ -81,35 +81,41 @@ export function buildMirroredAgentTabs(
   const assignedIds = new Set<string>()
   const replacementTabs = new Map<string, Tab>()
   const replacementIds = new Set<string>()
+  const currentAgentTabs = new Map<string, { tabs: Tab[]; nextAvailable: number }>()
+  for (const tab of currentUnifiedTabs) {
+    if (tab.contentType === 'agent-session') {
+      const indexed = currentAgentTabs.get(tab.entityId) ?? { tabs: [], nextAvailable: 0 }
+      indexed.tabs.push(tab)
+      currentAgentTabs.set(tab.entityId, indexed)
+    }
+  }
+  const firstUnreplaced = (sessionId: string): Tab | undefined => {
+    const indexed = currentAgentTabs.get(sessionId)
+    if (!indexed) {
+      return undefined
+    }
+    // Exclusions only grow during this apply; retain original candidate order, including duplicates.
+    while (
+      indexed.nextAvailable < indexed.tabs.length &&
+      replacementIds.has(indexed.tabs[indexed.nextAvailable]!.id)
+    ) {
+      indexed.nextAvailable++
+    }
+    return indexed.tabs[indexed.nextAvailable]
+  }
   for (const tab of agentTabs) {
     if (!tab.replacesSessionId) {
       continue
     }
     const existing =
-      currentUnifiedTabs.find(
-        (candidate) =>
-          candidate.contentType === 'agent-session' && candidate.entityId === tab.sessionId
-      ) ??
-      currentUnifiedTabs.find(
-        (candidate) =>
-          !replacementIds.has(candidate.id) &&
-          candidate.contentType === 'agent-session' &&
-          candidate.entityId === tab.replacesSessionId
-      )
+      currentAgentTabs.get(tab.sessionId)?.tabs[0] ?? firstUnreplaced(tab.replacesSessionId)
     if (existing) {
       replacementTabs.set(tab.sessionId, existing)
       replacementIds.add(existing.id)
     }
   }
   return agentTabs.map((tab, index) => {
-    const existing =
-      replacementTabs.get(tab.sessionId) ??
-      currentUnifiedTabs.find(
-        (candidate) =>
-          !replacementIds.has(candidate.id) &&
-          candidate.contentType === 'agent-session' &&
-          candidate.entityId === tab.sessionId
-      )
+    const existing = replacementTabs.get(tab.sessionId) ?? firstUnreplaced(tab.sessionId)
     const launch = readStructuredAgentLaunchRecord(tab.sessionId)
     const address =
       executionHostId === 'local' &&

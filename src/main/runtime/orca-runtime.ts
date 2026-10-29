@@ -1,3 +1,4 @@
+import { withPublishedSessionTabOpenPlacements } from './session-tabs/session-tab-open-placement'
 import { parsePaneKey } from '../../shared/stable-pane-id'
 import { noteAgentLaunchPaneAccepted } from '../agent-launch/agent-launch-pane-attachment'
 import { conversationRecordReader } from './orchestration/structured-session-lineage'
@@ -243,6 +244,11 @@ class OrcaRuntimeService extends OrcaRuntimeSidebarBase {
     store: () => this.store,
     homeHostId: (key) => this.tryGetWorkspaceSessionHostIdForWorktree(key),
     liveTitle: (ptyId) => this.getTrackedDisplayTitleForPty(ptyId) || null,
+    withOpenPlacements: (layout) =>
+      withPublishedSessionTabOpenPlacements(
+        layout,
+        this.mobileSessionTabsByWorktree.get(layout.worktreeId)
+      ),
     ...this.paneFactSources()
   })
 

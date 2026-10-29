@@ -2,6 +2,7 @@
 
 import type { AgentLaunchPlacement, AgentLaunchPlacementReceipt } from './agent-launch-intent'
 import type { TuiAgent } from './tui-agent'
+import type { SessionTabOpenPlacement } from './session-tab-placement'
 
 /**
  * Whose screen moves, decided on the host from who called. Mirrors the browser-tab split between
@@ -28,6 +29,7 @@ export type AgentLaunchTabPublishRequest = {
   launchAgent: TuiAgent
   viewMode: 'terminal' | 'chat'
   placement?: AgentLaunchPlacement
+  openPlacement?: SessionTabOpenPlacement
   viewer: AgentLaunchTabViewerRule
   /** Original caller navigation, compared by the addressed viewer at its final selection writer. */
   viewerSelection?: string

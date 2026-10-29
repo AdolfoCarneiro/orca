@@ -156,7 +156,7 @@ export function registerDaemonCreationFailureTests(fixture: DaemonCreationFailur
           throw new Error('known preparation lost its ordinary owner')
         }
         await owner.work
-        // SAFETY: inspect only this fixture receiver's actual outcome owner.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect only this fixture receiver's actual outcome owner.
         const receiver = fixture.server as unknown as {
           preparations: { hasOwedOutcomes(): boolean }
           connections: DaemonClientConnections
@@ -196,6 +196,7 @@ export function registerDaemonCreationFailureTests(fixture: DaemonCreationFailur
       30_000,
       abort.signal
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect only the fixture receiver pending cancellation registrations.
     const daemon = fixture.server as unknown as {
       preparations: { pending: Map<string, Set<{ canceled: boolean }>> }
     }
@@ -222,6 +223,7 @@ export function registerDaemonCreationFailureTests(fixture: DaemonCreationFailur
       abort.signal
     )
     await fixture.spawnStarted
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect only the fixture receiver pending map after its real spawn admission.
     const daemon = fixture.server as unknown as DaemonServerInternals
     await vi.waitFor(() => expect(daemon.preparations.pending.get('shared-session')?.size).toBe(2))
 

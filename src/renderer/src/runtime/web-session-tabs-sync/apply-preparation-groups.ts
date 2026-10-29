@@ -9,6 +9,7 @@ import { peekWebSessionTerminalPlacementGroup } from '../web-session-terminal-pl
 import { reconcileClientOwnedTabPlacement } from '../web-session-client-owned-tab-placement'
 import { buildMirroredHostGroups, retainClientPlacedMirroredTabs } from './layout-groups'
 import { sanitizeRecentTabIds, pushRecentTabId } from './state-equality-core'
+import { insertOpenPlacementTab } from '../../lib/session-tab-open-placement-order'
 
 export function prepareWebSessionTabsSnapshotGroups(
   base: ReturnType<typeof prepareWebSessionTabsSnapshotUnified>
@@ -38,6 +39,36 @@ export function prepareWebSessionTabsSnapshotGroups(
     reservedEmptyPreviewFallbackTabId
   } = base
   const currentGroups = state.groupsByWorktree[worktreeId] ?? []
+  const currentGroupIds = new Set<string | undefined>(currentGroups.map((group) => group.id))
+  const currentTabsById = new Map<
+    string | undefined,
+    (typeof state.unifiedTabsByWorktree)[string][number]
+  >()
+  for (const tab of state.unifiedTabsByWorktree[worktreeId] ?? []) {
+    if (!currentTabsById.has(tab.id)) {
+      currentTabsById.set(tab.id, tab)
+    }
+  }
+  const openPlacementByTabId = new Map(
+    base.openPlacements.flatMap((entry) => {
+      const tabId = hostToLocalTabId.get(entry.hostTabId)
+      if (!tabId) {
+        return []
+      }
+      const anchor = currentTabsById.get(entry.placement.afterTabId)
+      return [
+        [
+          tabId,
+          {
+            ...entry.placement,
+            groupId: currentGroupIds.has(entry.placement.groupId)
+              ? entry.placement.groupId
+              : (anchor?.groupId ?? entry.placement.groupId)
+          }
+        ] as const
+      ]
+    })
+  )
   const clientGroupIdByLocalTabId = new Map(
     mirroredBrowserTabs.flatMap((entry) =>
       entry.clientGroupId ? [[entry.unifiedTab.id, entry.clientGroupId]] : []
@@ -97,13 +128,18 @@ export function prepareWebSessionTabsSnapshotGroups(
       .filter((tab) => !knownGroupTabIds.has(tab.id))
       .map((tab) => ({
         tabId: tab.id,
-        groupId: clientGroupIdByLocalTabId.get(tab.id) ?? tab.groupId
+        groupId:
+          openPlacementByTabId.get(tab.id)?.groupId ??
+          clientGroupIdByLocalTabId.get(tab.id) ??
+          tab.groupId,
+        openPlacement: openPlacementByTabId.get(tab.id)
       }))
     return reconcileClientOwnedTabPlacement({
       currentGroups,
       worktreeId,
       validUnifiedTabIds,
       adoptedTabs,
+      tabs: nextUnifiedTabs,
       placementMoves,
       rekeyedTabIds,
       intentTabId: honorSnapshotActiveFocus ? (intentUnifiedTabId ?? null) : null,
@@ -213,7 +249,15 @@ export function prepareWebSessionTabsSnapshotGroups(
     for (const tabId of hostOrMirroredOrder) {
       push(tabId)
     }
-    return next
+    const currentIds = new Set(current)
+    let placed = next
+    for (const [tabId, placement] of openPlacementByTabId) {
+      if (currentIds.has(tabId) || !validTabBarIds.has(tabId)) {
+        continue
+      }
+      placed = insertOpenPlacementTab(placed, nextUnifiedTabs ?? [], tabId, placement)
+    }
+    return placed
   })()
   return {
     ...base,

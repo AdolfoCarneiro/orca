@@ -164,6 +164,7 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
       // Courtesy completion reveals must not undo user navigation; explicit notification clicks may reveal before async activation updates the active ID.
       if (
         !userInitiated &&
+        viewerSelection === undefined &&
         tab?.contentType === 'agent-session' &&
         store.activeWorktreeId !== worktreeId
       ) {

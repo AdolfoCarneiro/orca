@@ -34,6 +34,7 @@ import {
   isTerminalRowRetiredByHost
 } from './host-retired-terminal-rows'
 import { hostSnapshotAffirmsWorktreeContents } from '../host-session-snapshot-authority'
+import { prepareSnapshotOpenPlacements } from './open-placement'
 
 export function prepareWebSessionTabsSnapshotBase(
   state: WebSessionTabsSyncState,
@@ -44,6 +45,7 @@ export function prepareWebSessionTabsSnapshotBase(
   batchContext: WebSessionTabsBatchContext | undefined,
   options: WebSessionTabsSnapshotApplyOptions | undefined
 ) {
+  const openPlacements = prepareSnapshotOpenPlacements(state, rawSnapshot, environmentId, now)
   const snapshotHostTabId = (tab: RuntimeMobileSessionTabsResult['tabs'][number]): string =>
     tab.type === 'terminal' ? tab.parentTabId : tab.id
   reconcileWebSessionCloseIntents(
@@ -219,6 +221,7 @@ export function prepareWebSessionTabsSnapshotBase(
     now,
     batchContext,
     options,
+    openPlacements,
     focusIntent,
     matchingFocusIntentTab,
     callerFocusIntentTab,

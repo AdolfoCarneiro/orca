@@ -1,3 +1,5 @@
+import { registerSessionTabIpcBridge } from '@/hooks/ipc-events/session-tab-ipc-bridge'
+import * as structuredSessionClient from '@/runtime/structured-agent-session-client'
 import { captureConversationSwitchViewerSelection } from './conversation-switch-selection'
 import type { AppState } from '@/store/types'
 import {
@@ -229,6 +231,69 @@ describe('placement', () => {
     expect(order()).toEqual([following.id, source.id, TAB_ID])
     await Promise.resolve()
     expect(retain).toHaveBeenCalledOnce()
+  })
+
+  it('keeps actual IPC-captured source use protected without sending obsolete execution receipts', async () => {
+    const source = store.getState().createUnifiedTab(WT, 'agent-session', {
+      id: 'ipc-source',
+      entityId: 'ipc-conversation',
+      agentSessionAgent: 'codex'
+    })
+    const originalUi = window.api.ui
+    let receive: Parameters<typeof originalUi.onSessionTabCloseRequest>[0] | undefined
+    const respond = vi.fn<typeof originalUi.respondSessionTabClose>()
+    const rpc = vi
+      .spyOn(structuredSessionClient, 'callStructuredAgentSession')
+      .mockRejectedValue(new Error('obsolete receipt must not dispatch'))
+    const unsubs: (() => void)[] = []
+    window.api.ui = {
+      ...originalUi,
+      onCloseSessionTab: () => () => {},
+      onMoveSessionTab: () => () => {},
+      onSessionTabCloseRequest: (callback) => {
+        receive = callback
+        return () => {}
+      },
+      respondSessionTabClose: respond
+    }
+    try {
+      registerSessionTabIpcBridge(unsubs)
+      const projection = {
+        invocationId: 'ipc-switch',
+        generation: 'ipc-generation',
+        sessionId: source.entityId,
+        tabId: source.id,
+        phase: 'prepare' as const
+      }
+      receive!({
+        requestId: 'prepare',
+        tabId: source.id,
+        worktreeId: WT,
+        switchProjection: projection
+      })
+      expect(respond).toHaveBeenCalledWith({ requestId: 'prepare', switchApplied: true })
+      store.getState().activateTab(source.id)
+      await Promise.resolve()
+      const usedSource = store.getState().getActiveTab(WT)
+      receive!({
+        requestId: 'retire',
+        tabId: source.id,
+        worktreeId: WT,
+        switchProjection: { ...projection, phase: 'retire' }
+      })
+      expect(respond).toHaveBeenLastCalledWith({ requestId: 'retire', switchApplied: false })
+      expect(store.getState().getActiveTab(WT)?.id).toBe(source.id)
+      expect(store.getState().unifiedTabsByWorktree[WT]).toContainEqual(usedSource)
+      for (const unsubscribe of unsubs) {
+        unsubscribe()
+      }
+      await Promise.resolve()
+      expect(rpc).not.toHaveBeenCalled()
+    } finally {
+      disposeSwitchProjections()
+      window.api.ui = originalUi
+      rpc.mockRestore()
+    }
   })
 
   it('releases retirement on actual use or rollback without clearing a newer close', () => {

@@ -81,6 +81,7 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
         viewMode: request.viewMode,
         ...(placement?.groupId ? { groupId: placement.groupId } : {}),
         ...(placement?.afterTabId ? { afterTabId: placement.afterTabId } : {}),
+        ...(placement?.index !== undefined ? { index: placement.index } : {}),
         creation: { launchAgent: request.launchAgent }
       },
       {
@@ -94,6 +95,30 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
           : {}),
         onApplied: () => {
           withdrawalRoot = this.launchWithdrawalIdentity(worktreeId, tabId)
+          if (request.openPlacement) {
+            this.hydrateHeadlessMobileSessionTabsFromWorkspaceSession(worktreeId, {
+              allowAttachedWindow: true,
+              force: true
+            })
+            const snapshot = this.mobileSessionTabsByWorktree.get(worktreeId)
+            if (snapshot) {
+              this.storeMobileSessionSnapshot(worktreeId, {
+                ...snapshot,
+                tabs: snapshot.tabs.map((tab) =>
+                  tab.type === 'terminal' && tab.parentTabId === tabId && tab.leafId === leafId
+                    ? {
+                        ...tab,
+                        openPlacement: {
+                          ...request.openPlacement,
+                          activate: request.openPlacement.activate && (selectionCurrent?.() ?? true)
+                        }
+                      }
+                    : tab
+                )
+              })
+              this.markPaneLiveTitlesDirty()
+            }
+          }
         }
       }
     ).then((reply) => {

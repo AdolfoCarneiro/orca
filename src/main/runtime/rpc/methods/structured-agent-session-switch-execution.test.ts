@@ -225,6 +225,7 @@ it.each(['single', 'split', 'split-during-stop'] as const)(
         sessionId: id,
         execution: {
           invocationId: 'from-pane',
+          viewerSelection: 'source-viewer',
           source: {
             terminal: source.handle,
             expectedIncarnationId: incarnationId,
@@ -270,7 +271,17 @@ it.each(['single', 'split', 'split-during-stop'] as const)(
       'agent-session:later-tab'
     ])
     expect(group?.activeTabId).toBe(destination)
-    expect((await runtime.listMobileSessionTabs(`id:${WORKTREE_ID}`)).activeTabId).toBe(destination)
+    const published = await runtime.listMobileSessionTabs(`id:${WORKTREE_ID}`)
+    expect(published.activeTabId).toBe(destination)
+    expect(published.tabs.find((tab) => tab.id === destination)).toMatchObject({
+      openPlacement: {
+        invocationId: 'from-pane',
+        generation: expect.any(String),
+        viewerSelection: 'source-viewer',
+        placement: { afterTabId: TAB_ID, index: 0 },
+        source: source.presentation.identity
+      }
+    })
     const layout = session().terminalLayoutsByTabId[TAB_ID]
     if (split) {
       expect(layout?.ptyIdsByLeafId?.[LEAF_B]).toBe(PTY_B)

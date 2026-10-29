@@ -1,3 +1,4 @@
+import type { RpcContext } from '../core'
 import type { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-host'
 
 import { agentSessionRefusalError } from '../../../../shared/agent-session-wire-refusals'
@@ -56,4 +57,28 @@ export function switchRetainedOwner(
       )
     })?.sessionId ?? null
   )
+}
+
+/** Translate only an unconfirmed exact terminal capture into the existing ownership refusal. */
+export function captureStructuredSwitchTerminalSource(
+  runtime: RpcContext['runtime'],
+  host: StructuredAgentSessionHost,
+  sessionId: string,
+  direction: 'chat' | 'terminal',
+  ...source: Parameters<RpcContext['runtime']['captureTerminalSwitchClose']>
+) {
+  try {
+    return runtime.captureTerminalSwitchClose(...source)
+  } catch {
+    host.deps.logger.warn('switch source owner was not confirmed', {
+      scope: 'session-switch',
+      sessionId,
+      direction,
+      source: 'terminal',
+      exactIncarnation: false
+    })
+    throw agentSessionRefusalError('agent_session_ownership_unknown', {
+      reason: 'ownerUnproven'
+    })
+  }
 }

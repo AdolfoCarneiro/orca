@@ -10,6 +10,7 @@ import { singlePaneLayoutSnapshot } from '../slices/terminal-helpers'
 import { isTerminalLeafId } from '../../../../shared/stable-pane-id'
 import {
   buildOrphanTerminalCleanupPatch,
+  removeOrphanTerminalsFromGroups,
   getOrphanTerminalIds
 } from '../slices/terminal-orphan-helpers'
 import {
@@ -20,6 +21,7 @@ import {
   updateGroup
 } from '../slices/tab-group-state'
 import { dedupeTabOrder } from '../../../../shared/workspace-layout/tab-order'
+import { insertOpenPlacementTab } from '../../lib/session-tab-open-placement-order'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { emptySplitGroup, insertSplitGroup } from '../slices/tabs/tabs-group-actions'
 import { ownsGlobalSelection } from '../global-selection-owner'
@@ -179,30 +181,7 @@ export function createTerminalTabCreationActions(
           'terminal'
         )
         const groupsForWorktree = groupsByWorktree[worktreeId] ?? []
-        const cleanedGroups =
-          orphanTerminalIds.size === 0
-            ? groupsForWorktree
-            : groupsForWorktree.map((entry) => {
-                // Why: repair every group before adding the new tab, or inactive/background creation can revive stale focus.
-                const tabOrder = dedupeTabOrder(entry.tabOrder).filter(
-                  (tabId) => !orphanTerminalIds.has(tabId)
-                )
-                const recentTabIds = sanitizeRecentTabIds(entry.recentTabIds, tabOrder)
-                const replacedActiveTabId = Boolean(
-                  entry.activeTabId && orphanTerminalIds.has(entry.activeTabId)
-                )
-                const fallbackActiveTabId = recentTabIds.at(-1) ?? tabOrder[0] ?? null
-                const activeTabId = replacedActiveTabId ? fallbackActiveTabId : entry.activeTabId
-                return {
-                  ...entry,
-                  activeTabId,
-                  tabOrder,
-                  recentTabIds:
-                    replacedActiveTabId && activeTabId
-                      ? pushRecentTabId(recentTabIds, activeTabId)
-                      : recentTabIds
-                }
-              })
+        const cleanedGroups = removeOrphanTerminalsFromGroups(groupsForWorktree, orphanTerminalIds)
         const cleanedTargetGroup = cleanedGroups.find((entry) => entry.id === group.id) ?? group
         const cleanedGroupOrder = dedupeTabOrder(cleanedTargetGroup.tabOrder).filter(
           (tabId) => !orphanTerminalIds.has(tabId)
@@ -224,7 +203,15 @@ export function createTerminalTabCreationActions(
           // Why: omit for non-agent tabs so they keep the implicit 'terminal' view mode.
           ...(options?.viewMode ? { viewMode: options.viewMode } : {})
         }
-        const nextGroupOrder = dedupeTabOrder([...cleanedGroupOrder, unifiedTab.id])
+        const nextGroupOrder =
+          options?.placement && !existingTerminalTab
+            ? insertOpenPlacementTab(
+                cleanedGroupOrder,
+                [...existingUnifiedTabs, unifiedTab],
+                unifiedTab.id,
+                options.placement
+              )
+            : dedupeTabOrder([...cleanedGroupOrder, unifiedTab.id])
         const nextRecent = shouldActivate
           ? pushRecentTabId(sanitizeRecentTabIds(group.recentTabIds, nextGroupOrder), unifiedTab.id)
           : sanitizeRecentTabIds(cleanedTargetGroup.recentTabIds, nextGroupOrder)

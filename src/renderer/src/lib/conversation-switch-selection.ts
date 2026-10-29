@@ -3,8 +3,20 @@ import { useAppStore } from '@/store'
 import { resolveWebSessionVisibleTabId } from '@/runtime/web-session-focus-intent'
 
 /** Presentation freshness only; the execution host retains all process authority. */
-export function captureConversationSwitchViewerSelection(): string {
-  const state = useAppStore.getState()
+type ViewerState = Parameters<typeof resolveWebSessionVisibleTabId>[0] &
+  Partial<
+    Pick<
+      ReturnType<typeof useAppStore.getState>,
+      | 'activeWorkspaceExecutionHostId'
+      | 'activeView'
+      | 'worktreeNavHistory'
+      | 'worktreeNavHistoryIndex'
+    >
+  >
+
+export function captureConversationSwitchViewerSelection(
+  state: ViewerState = useAppStore.getState()
+): string {
   const workspaceId = state.activeWorktreeId ?? ''
   return structuredAgentSessionDomainFingerprint({
     domain: 'conversation-switch-viewer',
@@ -21,6 +33,9 @@ export function captureConversationSwitchViewerSelection(): string {
   })
 }
 
-export function conversationSwitchViewerSelectionCurrent(selection?: string): boolean {
-  return selection === undefined || selection === captureConversationSwitchViewerSelection()
+export function conversationSwitchViewerSelectionCurrent(
+  selection?: string,
+  state?: ViewerState
+): boolean {
+  return selection === undefined || selection === captureConversationSwitchViewerSelection(state)
 }

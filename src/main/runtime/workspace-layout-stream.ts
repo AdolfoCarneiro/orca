@@ -17,7 +17,7 @@ import type {
   WorkspaceLayoutStreamEvent
 } from '../../shared/workspace-layout/workspace-layout-stream-frames'
 import type { RuntimeStore } from './runtime-store-contract'
-import { withLiveTitles } from './published-pane-live-titles'
+import { paneLiveTitlesOf, withLiveTitles } from './published-pane-live-titles'
 import { paneStartFactsOf, withPaneStartFacts, type PaneFactSources } from './pane-start-statuses'
 import {
   workspaceLayoutFrameObserver,
@@ -79,6 +79,7 @@ export class WorkspaceLayoutStream {
       store: () => StreamStore | null
       homeHostId: (key: string) => ExecutionHostId | null
       liveTitle: (ptyId: string) => string | null
+      withOpenPlacements?: (layout: PublishedWorkspaceLayout) => PublishedWorkspaceLayout
     }
   ) {
     this.projection = new WorkspaceLayoutProjection(deps)
@@ -230,14 +231,6 @@ export class WorkspaceLayoutStream {
     }
   }
 
-  private liveTitlesOf(layout: PublishedWorkspaceLayout): (string | null)[] {
-    return layout.tabs.flatMap((tab) =>
-      (tab.terminal?.panes ?? []).map((pane) =>
-        pane.ptyId ? this.deps.liveTitle(pane.ptyId) : null
-      )
-    )
-  }
-
   private reconcile(reproject: boolean): void {
     const next = reproject ? this.projection.project() : this.projection.published
     const removed: string[] = []
@@ -250,16 +243,21 @@ export class WorkspaceLayoutStream {
     const shown = new Map<string, Shown>()
     const changed: string[] = []
     for (const [key, { layout, json }] of next) {
-      const titles = this.liveTitlesOf(layout)
+      const titles = paneLiveTitlesOf(layout, this.deps)
       // Switch point: a pane's start facts are live state, laid over as its title is.
       const starts = ORCA_LAYOUT_OWNER_IS_MAIN ? paneStartFactsOf(layout, this.deps) : null
-      const liveTitles = JSON.stringify(starts ? [titles, starts] : titles)
+      const placed = this.deps.withOpenPlacements?.(layout) ?? layout
+      const liveTitles = JSON.stringify([
+        titles,
+        starts,
+        placed.tabs.map((tab) => tab.openPlacement)
+      ])
       const previous = before.get(key)
       if (previous?.json === json && previous.liveTitles === liveTitles) {
         shown.set(key, previous)
         continue
       }
-      const shownLayout = withLiveTitles(layout, titles)
+      const shownLayout = withLiveTitles(placed, titles)
       const laid = starts ? withPaneStartFacts(shownLayout, starts) : shownLayout
       shown.set(key, { json, liveTitles, layout: laid })
       changed.push(key)
@@ -311,7 +309,8 @@ export class WorkspaceLayoutStream {
   private freshLayouts(): Map<string, PublishedWorkspaceLayout> {
     const fresh = new Map<string, PublishedWorkspaceLayout>()
     for (const [key, { layout }] of this.projection.projectFresh()) {
-      const titled = withLiveTitles(layout, this.liveTitlesOf(layout))
+      const placed = this.deps.withOpenPlacements?.(layout) ?? layout
+      const titled = withLiveTitles(placed, paneLiveTitlesOf(layout, this.deps))
       const starts = ORCA_LAYOUT_OWNER_IS_MAIN ? paneStartFactsOf(layout, this.deps) : null
       fresh.set(key, starts ? withPaneStartFacts(titled, starts) : titled)
     }

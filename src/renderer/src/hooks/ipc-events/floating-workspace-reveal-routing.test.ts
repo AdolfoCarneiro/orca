@@ -314,3 +314,45 @@ it.each(['unchanged', 'navigate'] as const)(
     expect(testStore().getState().getTab(destination.id)?.entityId).toBe('canonical-C')
   }
 )
+
+it.each(['unchanged', 'navigate', 'courtesy'] as const)(
+  'uses original viewer authority for cross-workspace native focus: %s',
+  (action) => {
+    const { emit } = setup()
+    const state = testStore().getState()
+    const source = state.createUnifiedTab(MAIN, 'agent-session', { entityId: 'visible-source' })
+    state.activateTab(source.id)
+    const destinationWorktree = 'repo1::/repo1/other'
+    const viewerSelection = captureConversationSwitchViewerSelection()
+    // The advisory focus can precede adoption; ordinary membership must still be usable later.
+    emit('onFocusEditorTab', {
+      tabId: 'future-chat',
+      worktreeId: destinationWorktree,
+      viewerSelection
+    })
+    expect(testStore().getState().activeWorktreeId).toBe(MAIN)
+    const destination = state.createUnifiedTab(destinationWorktree, 'agent-session', {
+      id: 'future-chat',
+      entityId: 'canonical-cross-workspace',
+      activate: false
+    })
+    if (action === 'navigate') {
+      state.createUnifiedTab(MAIN, 'agent-session', { entityId: 'newer-view' })
+    }
+    emit('onFocusEditorTab', {
+      tabId: destination.id,
+      worktreeId: destinationWorktree,
+      ...(action === 'courtesy' ? {} : { viewerSelection })
+    })
+    expect(testStore().getState().activeWorktreeId).toBe(
+      action === 'unchanged' ? destinationWorktree : MAIN
+    )
+    expect(testStore().getState().getTab(destination.id)?.entityId).toBe(
+      'canonical-cross-workspace'
+    )
+    if (action === 'unchanged') {
+      expect(testStore().getState().getActiveTab(destinationWorktree)?.id).toBe(destination.id)
+      expect(testStore().getState().activeTabType).toBe('agent-session')
+    }
+  }
+)

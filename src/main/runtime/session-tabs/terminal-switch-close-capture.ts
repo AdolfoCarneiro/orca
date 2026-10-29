@@ -70,7 +70,14 @@ export abstract class OrcaRuntimeWithTerminalSwitchCloseCapture extends OrcaRunt
     }
     return {
       source,
-      placement: () => readPlacement() ?? originalPlacement,
+      placement: () =>
+        matchesTerminalSurfaceCapture(
+          originalPresentation,
+          this.getWorkspaceSessionHostIdsForTab(source.worktreeId, source.tabId),
+          (hostId) => this.store?.getWorkspaceSession?.(hostId)
+        )
+          ? (readPlacement() ?? originalPlacement)
+          : undefined,
       stop: async () => {
         const stop = await this.stopExplicitlyClosedTabPtys(
           [addressedPty],

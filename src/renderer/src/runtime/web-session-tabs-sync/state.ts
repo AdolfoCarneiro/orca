@@ -228,6 +228,16 @@ export type WebSessionTabsSyncState = Pick<
   Partial<
     Pick<
       AppState,
+      | 'activeWorkspaceExecutionHostId'
+      | 'activeWorkspaceKey'
+      | 'activePendingCreationId'
+      | 'activeView'
+      | 'worktreeNavHistory'
+      | 'worktreeNavHistoryIndex'
+      | 'isNavigatingHistory'
+      | 'terminalPtyIncarnationsByPaneKey'
+      | 'closedTerminalTabTombstonesByTabId'
+      | 'pairedTerminalTabCloseIntentsByEnvironment'
       | 'acknowledgedAgentsByPaneKey'
       | 'activityClearedAtByPaneKey'
       | 'agentLaunchConfigByPaneKey'

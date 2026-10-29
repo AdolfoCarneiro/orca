@@ -53,7 +53,7 @@ export async function verifySwitchOutcomeOutage(fixture: OutageFixture) {
   if (!noFork && !nativeFailed) {
     // Real loss before the held creation returns; no receiver outcome can reach this observer.
     wire.connectionUnavailable = true
-    // SAFETY: exact fixture connection only.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: exact fixture connection only.
     const peers = (server as unknown as { connections: DaemonClientConnections }).connections
     // The adapter is the second authenticated pair; preserve the unrelated sibling.
     const sockets = [...peers.values()]
@@ -63,10 +63,10 @@ export async function verifySwitchOutcomeOutage(fixture: OutageFixture) {
     release.resolve()
   }
   expect(await outcome).toMatchObject({ ok: false })
-  // SAFETY: inspect the exact receiver owner, never write its disposition or resolve its work.
-  const retained = (
-    server as unknown as { preparations: { retained: Map<string, { outcome?: string }> } }
-  ).preparations.retained
+  const retained =
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect the exact receiver owner without changing disposition or resolving work.
+    (server as unknown as { preparations: { retained: Map<string, { outcome?: string }> } })
+      .preparations.retained
   await vi.waitFor(() =>
     expect([...retained.values()]).toMatchObject([{ outcome: terminalOutcome }])
   )
@@ -146,11 +146,12 @@ export async function verifySwitchFinalDelivery(fixture: FinalDeliveryFixture) {
     await vi.waitFor(() => expect(tabIds()).toEqual([TAB_ID]))
   }
   if (boundary === 'gc-outage' || boundary === 'native-gc-outage') {
-    // SAFETY: only inspect the actual fixture owners; GC debt cannot hold the already delivered send.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only inspect the actual fixture owners; GC debt cannot hold the already delivered send.
     const local = adapter as unknown as {
       switchReleaseCleanup: Map<string, unknown>
       switchReleaseDrain?: Promise<void>
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect the actual fixture receiver retention map without mutating its ownership.
     const receiver = server as unknown as { preparations: { retained: Map<string, unknown> } }
     expect(local.switchReleaseCleanup.size).toBe(1)
     expect(receiver.preparations.retained.size).toBe(1)

@@ -109,7 +109,7 @@ export abstract class OrcaRuntimeWithStructuredSessionSwitchProjection extends O
             this.notifier?.closeSessionTab?.(tabId, worktreeId, { ...projection, phase: 'prepare' })
           ).catch(() => false)
         : undefined
-    return async () => {
+    const retire = async () => {
       const host = getStructuredAgentSessionHost()
       if (!host || !tabId) {
         return false
@@ -170,6 +170,14 @@ export abstract class OrcaRuntimeWithStructuredSessionSwitchProjection extends O
       host.notifySessionTabHidden(sessionId)
       return true
     }
+    return Object.assign(retire, {
+      placement: () => {
+        const current = read()
+        return current
+          ? { groupId: current.group, afterTabId: current.tab.id, index: current.before.length }
+          : undefined
+      }
+    })
   }
 
   abstract applyLayoutCommand(

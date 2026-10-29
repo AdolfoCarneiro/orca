@@ -27,6 +27,19 @@ export type OwnedMobileTerminalDispatchRecipe = {
   recordedAt: number
 }
 
+const OWNED_MOBILE_DISPATCH_RECIPE_TTL_MS = 15 * 60_000
+
+export function pruneOwnedMobileTerminalDispatchRecipes(
+  recipes: Map<string, OwnedMobileTerminalDispatchRecipe>
+): void {
+  const now = Date.now()
+  for (const [handle, recipe] of recipes) {
+    if (now - recipe.recordedAt >= OWNED_MOBILE_DISPATCH_RECIPE_TTL_MS) {
+      recipes.delete(handle)
+    }
+  }
+}
+
 export type OwnedMobileTerminalCreateOptions = {
   command?: string
   shellOverride?: string

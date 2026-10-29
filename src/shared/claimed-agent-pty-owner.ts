@@ -13,6 +13,7 @@ import {
   buildClaimedAgentPtyOwnerIndex,
   cloneAgentSessionClaim,
   cloneAgentSessionOwner,
+  cloneAgentSessionOwnerBinding,
   cloneAgentSessionSurface,
   prepareRegisteredAgentSessionOwner,
   reconcileClaimedAgentPtyOwnerSnapshot,
@@ -79,7 +80,7 @@ export class ClaimedAgentPtyOwnerRegistry {
       args.onJoin?.(reserved.creation)
       const result = await reserved.promise
       args.check?.()
-      return { disposition: 'adopted', owner: cloneAgentSessionOwner(result.owner as LiveOwner) }
+      return { disposition: 'adopted', owner: cloneAgentSessionOwnerBinding(result.owner) }
     }
 
     args.check?.()

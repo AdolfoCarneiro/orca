@@ -1,18 +1,14 @@
 import { withSelectedChatTab } from '../agent-session/agent-session-tab-layout'
 import type { OrcaRuntimeWithScheduleMobileSessionTabsChanged as ScheduleMobileSessionTabsChangedMethods } from './session-tabs-change-publication'
-import { defaultAgentChatLabel } from '../../../shared/agent-session/agent-session-chat-label'
 import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/structured-agent-session-registry'
 import { collectSavedStructuredAgentSessionIds } from '../saved-structured-agent-session-restoration'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 import { seedStructuredAgentSessionTabIndex } from '../agent-session/structured-agent-session-tab-index-seed'
 import { restoredChatTabChanges } from './restored-chat-tab-changes'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
-import type {
-  RuntimeMobileSessionAgentTab,
-  RuntimeMobileSessionTabsSnapshot
-} from '../../../shared/runtime-types'
-import { getHeadlessMobileSessionGroupId } from '../mobile-session-layout-projection'
 import type { StructuredAgentId } from '../../../shared/agent-session-provider-handle'
+import type { SessionTabOpenPlacement } from '../../../shared/session-tab-placement'
+import { projectStructuredSessionTab } from './structured-session-tab-projection'
 import { OrcaRuntimeWithStructuredSessionLaunchRuntime } from './structured-session-launch-runtime'
 
 export type AgentLaunchScope = Parameters<
@@ -127,9 +123,14 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
     /** Where the creating paired client opens the chat. */
     /** A ChatTabPlacement, typed in place: this file is at its line limit. */
     placement?: { groupId?: string; afterTabId?: string; index?: number }
+    openPlacement?: SessionTabOpenPlacement
   }): Promise<void> {
     const host = getStructuredAgentSessionHost()
     input.check?.()
+    // First membership includes placement, even while visibility or the durable queue is awaited.
+    if (input.openPlacement) {
+      this.projectStructuredAgentSessionTab({ ...input, activate: false, notify: false })
+    }
     if (input.check && host) {
       await host.deps.store.setSessionTabVisibility(input.sessionId, true, input.tabId, input.check)
     } else if (typeof host?.setSessionTabVisibility === 'function') {
@@ -168,7 +169,11 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
     }
     input.check?.()
     const activate = input.activate && (input.selectionCurrent?.() ?? true)
-    this.projectStructuredAgentSessionTab({ ...input, activate })
+    this.projectStructuredAgentSessionTab({
+      ...input,
+      activate,
+      ...(input.openPlacement ? { openPlacement: { ...input.openPlacement, activate } } : {})
+    })
     if (activate) {
       input.check?.()
       if (!this.getAvailableAuthoritativeWindow()) {
@@ -204,85 +209,19 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
     agent: StructuredAgentId
     activate: boolean
     notify?: boolean
+    openPlacement?: SessionTabOpenPlacement
   }): void {
-    const existing = this.mobileSessionTabsByWorktree.get(input.workspaceId)
-    const id = `agent-session:${input.sessionId}`
-    if (existing?.tabs.some((tab) => tab.id === id)) {
-      // Background republish does not write/emit; healing missing client mirrors needs activate or explicit republish.
-      if (!input.activate) {
-        return
-      }
-      const priorGroups = existing.tabGroups ?? []
-      const groupId =
-        priorGroups.find((group) => group.tabOrder.includes(id))?.id ??
-        (priorGroups.some((group) => group.id === existing.activeGroupId)
-          ? existing.activeGroupId
-          : priorGroups[0]?.id)
-      const snapshot: RuntimeMobileSessionTabsSnapshot = {
-        ...existing,
-        snapshotVersion: existing.snapshotVersion + 1,
-        activeGroupId: groupId ?? existing.activeGroupId,
-        activeTabId: id,
-        activeTabType: 'agent-session',
-        tabGroups: priorGroups.map((group) =>
-          group.id === groupId ? { ...group, activeTabId: id } : group
-        ),
-        tabs: existing.tabs.map((tab) => ({ ...tab, isActive: tab.id === id }))
-      }
-      const stored = this.storeMobileSessionSnapshot(input.workspaceId, snapshot)
-      if (input.notify !== false) {
-        this.emitMobileSessionTabsSnapshot(stored)
-      }
+    const next = projectStructuredSessionTab(
+      this.mobileSessionTabsByWorktree.get(input.workspaceId),
+      input
+    )
+    if (!next) {
       return
     }
-    const tab: RuntimeMobileSessionAgentTab = {
-      type: 'agent-session',
-      id,
-      title: defaultAgentChatLabel(input.agent),
-      sessionId: input.sessionId,
-      agent: input.agent,
-      isActive: input.activate
+    const stored = this.storeMobileSessionSnapshot(input.workspaceId, next)
+    if (input.openPlacement) {
+      this.markPaneLiveTitlesDirty()
     }
-    const tabs = [...(existing?.tabs ?? [])].map((candidate) => ({
-      ...candidate,
-      isActive: input.activate ? false : candidate.isActive
-    }))
-    tabs.push(tab)
-    const priorGroups = existing?.tabGroups ?? [
-      {
-        id: getHeadlessMobileSessionGroupId(input.workspaceId),
-        activeTabId: existing?.activeTabId ?? null,
-        tabOrder: []
-      }
-    ]
-    // Why: the window can list the chat before main restores its row; keep the place it gave it.
-    const listingGroupId = priorGroups.find((group) => group.tabOrder.includes(id))?.id
-    const groupId =
-      listingGroupId ??
-      (priorGroups.some((group) => group.id === existing?.activeGroupId)
-        ? existing!.activeGroupId!
-        : priorGroups[0]!.id)
-    const tabGroups = priorGroups.map((group) =>
-      group.id === groupId
-        ? {
-            ...group,
-            activeTabId: input.activate ? id : group.activeTabId,
-            tabOrder: listingGroupId ? group.tabOrder : [...group.tabOrder, id]
-          }
-        : group
-    )
-    const snapshot: RuntimeMobileSessionTabsSnapshot = {
-      worktree: input.workspaceId,
-      publicationEpoch: existing?.publicationEpoch ?? `structured:${Date.now().toString(36)}`,
-      snapshotVersion: (existing?.snapshotVersion ?? 0) + 1,
-      activeGroupId: input.activate ? groupId : (existing?.activeGroupId ?? groupId),
-      activeTabId: input.activate ? id : (existing?.activeTabId ?? null),
-      activeTabType: input.activate ? 'agent-session' : (existing?.activeTabType ?? null),
-      tabGroups,
-      ...(existing?.tabGroupLayout ? { tabGroupLayout: existing.tabGroupLayout } : {}),
-      tabs
-    }
-    const stored = this.storeMobileSessionSnapshot(input.workspaceId, snapshot)
     if (input.notify !== false) {
       this.emitMobileSessionTabsSnapshot(stored)
     }

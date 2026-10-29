@@ -1,12 +1,10 @@
 import { randomUUID } from 'node:crypto'
+import { preserveSessionTabOpenPlacements } from '../session-tabs/session-tab-open-placement'
 import { preserveTerminalRetirementProofs } from '../mobile-session-terminal-retirement-proof'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { startedMainTerminalSurfaces } from '../terminal/surface/main-terminal-surfaces'
 import { mainBindsUnendedTerminal } from '../terminal/surface/main-pane-verdict'
-import {
-  headlessMobileSnapshotContentUnchanged,
-  mobileSnapshotIdentityUnchanged
-} from '../mobile-session-snapshot-equality'
+import { unchangedMainSessionSnapshotRebuild } from '../mobile-session-snapshot-equality'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import { isTuiAgent } from '../../../shared/tui-agent-config'
 import type { RuntimeStore } from '../runtime-store-contract'
@@ -116,18 +114,14 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
     snapshot: RuntimeMobileSessionTabsSnapshot
   ): RuntimeMobileSessionTabsSnapshot {
     const existing = this.mobileSessionTabsByWorktree.get(worktreeId)
+    snapshot = preserveSessionTabOpenPlacements(snapshot, existing)
     if (snapshot.switchProjections === undefined && existing?.switchProjections) {
       snapshot = { ...snapshot, switchProjections: existing.switchProjections }
     }
     if (ORCA_LAYOUT_OWNER_IS_MAIN) {
       const merged = startedMainTerminalSurfaces(this)?.withMainOrder(snapshot) ?? snapshot
       // Main-order-only rebuilds are no-ops unless occupant/publication/retirement evidence changed.
-      if (
-        existing &&
-        mobileSnapshotIdentityUnchanged(existing, snapshot) &&
-        headlessMobileSnapshotContentUnchanged(existing, merged) &&
-        !headlessMobileSnapshotContentUnchanged(snapshot, merged)
-      ) {
+      if (unchangedMainSessionSnapshotRebuild(existing, snapshot, merged)) {
         return existing
       }
       snapshot = merged

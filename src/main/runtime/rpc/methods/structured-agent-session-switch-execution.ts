@@ -26,7 +26,11 @@ import {
   prepareStructuredAgentSessionCreateForWorktree,
   commitStructuredAgentSessionCreate
 } from './structured-agent-session-create'
-import { recordWorkspace, switchRetainedOwner } from './structured-agent-session-switch-source'
+import {
+  captureStructuredSwitchTerminalSource,
+  recordWorkspace,
+  switchRetainedOwner
+} from './structured-agent-session-switch-source'
 import { executeStructuredSessionTerminalSwitch } from './structured-agent-session-switch-terminal-execution'
 import { agentLaunchMovesHostWindow } from './agent-launch-tab-publication'
 import { interruptWorkingAgent } from '../../terminal-agent-interrupt'
@@ -75,26 +79,15 @@ export async function executeStructuredSessionSwitch(
         deadline.check()
         const source = 'source' in execution ? execution.source : undefined
         const close = source
-          ? (() => {
-              try {
-                return ctx.runtime.captureTerminalSwitchClose(
-                  source.terminal,
-                  source.expectedIncarnationId,
-                  source.originalPresentation
-                )
-              } catch {
-                host.deps.logger.warn('switch source owner was not confirmed', {
-                  scope: 'session-switch',
-                  sessionId,
-                  direction,
-                  source: 'terminal',
-                  exactIncarnation: false
-                })
-                throw agentSessionRefusalError('agent_session_ownership_unknown', {
-                  reason: 'ownerUnproven'
-                })
-              }
-            })()
+          ? captureStructuredSwitchTerminalSource(
+              ctx.runtime,
+              host,
+              sessionId,
+              direction,
+              source.terminal,
+              source.expectedIncarnationId,
+              source.originalPresentation
+            )
           : undefined
         const paneKey = close ? `${close.source.tabId}:${close.source.leafId}` : undefined
         const row = paneKey ? ctx.runtime.agentTransitions.latestRow(paneKey) : null
@@ -243,6 +236,7 @@ export async function executeStructuredSessionSwitch(
         if (!revealed.readable && revealed.openRefusal) {
           throw new AgentSessionRefusalError(revealed.openRefusal)
         }
+        const placement = (close ? close.placement() : create?.tabPlacement) ?? {}
         await ctx.runtime.publishStructuredAgentSessionTab({
           ...revealed,
           activate: true,
@@ -250,7 +244,15 @@ export async function executeStructuredSessionSwitch(
           selectionCurrent,
           viewerSelection: execution.viewerSelection,
           focusWindow: agentLaunchMovesHostWindow(ctx),
-          placement: close?.placement() ?? create?.tabPlacement
+          placement,
+          openPlacement: {
+            invocationId: execution.invocationId,
+            generation: host.switchGeneration(sessionId)!,
+            placement,
+            activate: true,
+            viewerSelection: execution.viewerSelection,
+            ...(close ? { source: close.source } : {})
+          }
         })
         deadline.check()
         if (close) {

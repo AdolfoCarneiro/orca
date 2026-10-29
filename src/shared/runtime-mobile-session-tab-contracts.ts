@@ -1,3 +1,4 @@
+import type { SessionTabOpenPlacement } from './session-tab-placement'
 import type { AgentStatusEntry } from './agent-status-types'
 import type { BrowserCertificateFailure, BrowserLoadError } from './browser-workspace-types'
 import type { RuntimeBrowserPlacement } from './runtime-browser-placement'
@@ -7,6 +8,7 @@ import type { TuiAgent } from './tui-agent'
 import type { StructuredAgentId } from './agent-session-provider-handle'
 
 export type RuntimeMobileSessionTerminalTab = {
+  openPlacement?: SessionTabOpenPlacement
   type: 'terminal'
   id: string
   title: string
@@ -103,6 +105,7 @@ export type RuntimeMobileSessionBrowserTab = {
 }
 
 export type RuntimeMobileSessionAgentTab = {
+  openPlacement?: SessionTabOpenPlacement
   type: 'agent-session'
   id: string
   title: string

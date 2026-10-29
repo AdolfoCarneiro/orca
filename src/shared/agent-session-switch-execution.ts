@@ -1,3 +1,4 @@
+import type { SessionTabOpenPlacement } from './session-tab-placement'
 import type { AgentSessionWireRefusal } from './agent-session-wire'
 import { agentSessionRefusalError } from './agent-session-wire-refusals'
 import { waitForPromiseWithSignal } from './abort-signal-reason'
@@ -91,6 +92,7 @@ export type AgentSessionSwitchDeadline = ReturnType<typeof agentSessionSwitchDea
 /** In-process authority; never serialize the callbacks as a transport permit. */
 export type AgentSessionSwitchAuthority = {
   invocationId: string
+  openPlacement?: SessionTabOpenPlacement
   /** View freshness is independent of process authority. */
   selectionCurrent?: () => boolean
   check: () => void

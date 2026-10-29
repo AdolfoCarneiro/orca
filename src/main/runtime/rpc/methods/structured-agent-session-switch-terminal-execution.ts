@@ -81,6 +81,10 @@ export async function executeStructuredSessionTerminalSwitch(
     })
   }
   deadline.check()
+  const placement = retire.placement() ?? {
+    afterTabId: sourceTabId,
+    groupId: terminalExecution?.groupId
+  }
   const terminal = await ctx.runtime.createSessionSwitchTerminal(record.location.workspaceId, {
     invocationId: execution.invocationId,
     sessionId,
@@ -92,6 +96,13 @@ export async function executeStructuredSessionTerminalSwitch(
     groupId: terminalExecution?.groupId,
     execution: {
       invocationId: execution.invocationId,
+      openPlacement: {
+        invocationId: execution.invocationId,
+        generation: host.switchGeneration(sessionId)!,
+        placement,
+        activate: true,
+        viewerSelection: execution.viewerSelection
+      },
       signal: deadline.signal,
       trackPhysical: (work, recover) => host.trackSwitchPhysical(sessionId, work, recover),
       remaining: deadline.remaining,

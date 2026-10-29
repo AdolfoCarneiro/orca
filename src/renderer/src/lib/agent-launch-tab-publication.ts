@@ -14,6 +14,7 @@ import { resolveUnifiedTabCreatePlacement } from '../store/slices/tabs/tabs-crea
 import { insertUnifiedTabAfterAnchor } from './unified-tab-anchor-insertion'
 import { rememberAgentLaunchPanePrompt } from './agent-launch-pane-prompt'
 import { selectFolderWorkspaces } from '@/store/workspace-record-selectors'
+import { openPlacementSourceCurrent } from '@/runtime/web-session-tabs-sync/open-placement'
 
 /** Publish under host-reserved IDs before the agent exists so PTY routing names this pane and retries reuse its tab; the pane’s spawn waits in main and attaches to the host’s process. */
 
@@ -94,12 +95,18 @@ export function publishAgentLaunchTab(
     return { tabId, created: false, placement: { groupId } }
   }
 
+  const openPlacement =
+    request.openPlacement && openPlacementSourceCurrent(store, worktreeId, request.openPlacement)
+      ? request.openPlacement
+      : undefined
+  const requestedPlacement = request.openPlacement ? openPlacement?.placement : request.placement
+  const viewerSelection = openPlacement?.viewerSelection ?? request.viewerSelection
   const placement = resolveUnifiedTabCreatePlacement({
     groups: store.groupsByWorktree[worktreeId] ?? [],
     tabs: store.unifiedTabsByWorktree[worktreeId] ?? [],
     activeGroupId: store.activeGroupIdByWorktree[worktreeId],
-    targetGroupId: request.placement?.groupId,
-    afterTabId: request.placement?.afterTabId,
+    targetGroupId: requestedPlacement?.groupId,
+    afterTabId: requestedPlacement?.afterTabId,
     lookupWorktrees: () =>
       [
         ...(store.allWorktrees?.() ?? []),
@@ -108,21 +115,25 @@ export function publishAgentLaunchTab(
   })
   const focuses =
     (request.viewer === 'focus-window' || request.viewer === 'focus-in-workspace') &&
-    conversationSwitchViewerSelectionCurrent(request.viewerSelection)
+    (!request.openPlacement || openPlacement?.activate === true) &&
+    conversationSwitchViewerSelectionCurrent(viewerSelection)
   const tab = store.createTab(worktreeId, placement.groupId, undefined, {
     id: tabId,
     initialLeafId: leafId,
     agentLaunchPane: launchPaneFor(request),
     launchAgent: request.launchAgent,
     viewMode: request.viewMode,
-    ...(focuses && request.viewerSelection === undefined
+    ...(openPlacement
+      ? { placement: { ...openPlacement.placement, afterTabId: placement.anchorTabId } }
+      : {}),
+    ...(focuses && viewerSelection === undefined
       ? {}
       : { activate: false, recordInteraction: false })
   })
   if (request.prompt) {
     rememberAgentLaunchPanePrompt(tabId, request.prompt)
   }
-  if (placement.anchorTabId) {
+  if (placement.anchorTabId && !request.openPlacement) {
     const unifiedTabId = useAppStore
       .getState()
       .unifiedTabsByWorktree[worktreeId]?.find((item) => item.entityId === tab.id)?.id
@@ -130,7 +141,11 @@ export function publishAgentLaunchTab(
       insertUnifiedTabAfterAnchor(worktreeId, unifiedTabId, placement.anchorTabId)
     }
   }
-  presentAgentLaunchTab(request.viewer, worktreeId, tab.id, leafId, request.viewerSelection)
+  if (focuses) {
+    presentAgentLaunchTab(request.viewer, worktreeId, tab.id, leafId, viewerSelection)
+  } else if (!request.openPlacement) {
+    presentAgentLaunchTab(request.viewer, worktreeId, tab.id, leafId, viewerSelection)
+  }
   const landed = landedGroupId(worktreeId, tab.id) ?? placement.groupId ?? ''
   const fallback = placementFallback(request, landed, placement.anchorTabId !== undefined)
   return {

@@ -510,7 +510,7 @@ function registerSwitchDaemonComposition(
             boundary === 'recovery-failed' ||
             boundary === 'recovery-used'
           ) {
-            // SAFETY: read this fixture server's connection registry only to break its exact external socket.
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: read this fixture server's connection registry only to break its exact external socket.
             const connections = (server as unknown as { connections: DaemonClientConnections })
               .connections
             const client = connections.values().next().value
@@ -527,6 +527,7 @@ function registerSwitchDaemonComposition(
             }
           } else if (boundary === 'lost-reply' || boundary === 'missing-result') {
             // Drop only this commit's external response bytes; the authenticated socket stays usable.
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture owns this server's exact response socket and retained commit lookup.
             const daemon = server as unknown as {
               connections: DaemonClientConnections
               preparations: { pending: Map<string, Set<{ requestId: string }>> }

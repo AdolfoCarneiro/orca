@@ -183,6 +183,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       const checkpoint = vi.fn(async () => 'committed' as const)
       const appendIncrements = vi.fn(async () => 'ok' as const)
       const dispose = vi.fn(async () => {})
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: replace only the owned history fixture dependencies with their typed stubs.
       const internals = historyAdapter as unknown as {
         client: { request: typeof request; disconnect: () => void }
         historyManager: {

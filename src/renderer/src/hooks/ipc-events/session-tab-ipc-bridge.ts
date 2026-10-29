@@ -1,4 +1,3 @@
-import { callStructuredAgentSession } from '@/runtime/structured-agent-session-client'
 import {
   disposeSwitchProjections,
   captureSwitchProjection,
@@ -66,23 +65,7 @@ export function registerSessionTabIpcBridge(unsubs: (() => void)[]): void {
               return state
             }
             if (switchProjection.phase === 'prepare') {
-              captureSwitchProjection(state, worktreeId, switchProjection, (converged) => {
-                void callStructuredAgentSession(
-                  { kind: 'local' },
-                  'agentSession.switchToTerminal',
-                  {
-                    sessionId: switchProjection.sessionId,
-                    execution: {
-                      invocationId: switchProjection.invocationId,
-                      receipt: {
-                        generation: switchProjection.generation,
-                        shown: true,
-                        ...(converged ? { converged: true } : { retained: true })
-                      }
-                    }
-                  }
-                ).catch(() => {})
-              })
+              captureSwitchProjection(state, worktreeId, switchProjection, () => {})
               switchApplied = true
               return state
             }

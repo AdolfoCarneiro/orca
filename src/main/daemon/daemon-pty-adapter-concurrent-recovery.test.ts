@@ -138,7 +138,7 @@ it.skipIf(process.platform === 'win32')(
         spawnSubprocess: replacementSpawn
       })
       await replacement.start()
-      // SAFETY: this is the exact owned fixture server's authenticated connection registry.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this is the exact owned fixture server's authenticated connection registry.
       const connections = (original as unknown as { connections: DaemonClientConnections })
         .connections
       connections.values().next().value?.controlSocket.destroy()

@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WORKTREE_ID, setupMainOwnedWorkspace } from '../main-owned-workspace-runtime-fixture'
 import { publishAgentLaunchTabEarly } from '../rpc/methods/agent-launch-tab-publication'
+import type { PublishedTab } from '../../../shared/workspace-layout/workspace-layout-published'
 
 // Layout-owner build, no window: an agent launch's early tab in a workspace main owns is written by
 // main, a retry finds it, and a withdrawn launch pane is taken back by main.
@@ -200,4 +201,59 @@ describe('conditional launch withdrawal at the durable writer', () => {
       store.getWorkspaceSession().tabsByWorktree[worktreeId].some((row) => row.id === NEW_TAB)
     ).toBe(false)
   })
+})
+
+it('uses a captured index through ordinary launch publication when its source already retired', async () => {
+  const { fixture } = launchHost()
+  const published: Pick<PublishedTab, 'id' | 'openPlacement'>[] = []
+  const subscription = fixture.runtime.subscribeWorkspaceLayouts((event) => {
+    if (event.type === 'workspace') {
+      published.push(...event.layout.tabs)
+    }
+    if (event.type === 'records') {
+      for (const change of event.workspaces) {
+        if (change.change === 'layout') {
+          published.push(...change.layout.tabs)
+        }
+        if (change.change === 'records') {
+          published.push(...(change.tabs?.set ?? []))
+        }
+      }
+    }
+  })
+  const request = {
+    worktreeId: WORKTREE_ID,
+    tabId: NEW_TAB,
+    leafId: NEW_LEAF,
+    launchAgent: 'codex' as const,
+    viewMode: 'terminal' as const,
+    viewer: 'none' as const,
+    placement: { afterTabId: 'naturally-retired-source', index: 0 },
+    openPlacement: {
+      invocationId: 'captured-open',
+      generation: 'captured-generation',
+      placement: { afterTabId: 'naturally-retired-source', index: 0 },
+      activate: false,
+      viewerSelection: 'original-viewer'
+    }
+  }
+  await fixture.runtime.publishAgentLaunchTabInMainLayout(request)
+  const result = await fixture.runtime.listMobileSessionTabs(`id:${WORKTREE_ID}`)
+  const group = fixture
+    .session()
+    .tabGroups?.[WORKTREE_ID]?.find((row) => row.tabOrder.includes(NEW_TAB))
+  expect(group?.tabOrder[0]).toBe(NEW_TAB)
+  const row = result.tabs.find((tab) => tab.type === 'terminal' && tab.parentTabId === NEW_TAB)
+  expect(row).toMatchObject({ openPlacement: request.openPlacement })
+  expect(published.find((tab) => tab.id === NEW_TAB)).toMatchObject({
+    openPlacement: request.openPlacement
+  })
+  expect(JSON.stringify(fixture.session())).not.toContain('openPlacement')
+  fixture.runtime.hydrateHeadlessMobileSessionTabsFromWorkspaceSession(WORKTREE_ID, { force: true })
+  expect(
+    (await fixture.runtime.listMobileSessionTabs(`id:${WORKTREE_ID}`)).tabs.find(
+      (tab) => tab.id === row?.id
+    )
+  ).toMatchObject({ openPlacement: request.openPlacement })
+  subscription.unsubscribe()
 })

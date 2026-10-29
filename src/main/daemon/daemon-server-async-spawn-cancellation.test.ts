@@ -108,12 +108,12 @@ describe('daemon async spawn cancellation', () => {
       let releaseReplyDropped = false
       let originalReply: (() => void) | undefined
       let lateReply: (() => void) | undefined
-      // SAFETY: inspect only this fixture's receiver and adapter ownership maps.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: inspect only this fixture's receiver and adapter ownership maps.
       const receiver = server as unknown as {
         preparations: { retained: Map<string, unknown> }
         connections: DaemonClientConnections
       }
-      // SAFETY: read-only assertions on the actual local owners, never resolve/remove them from a test.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: read-only assertions on the actual local owners, never resolve/remove them from a test.
       const local = adapter as unknown as {
         switchReleaseCleanup: Map<string, unknown>
         switchReleaseDrain?: Promise<void>
@@ -317,11 +317,12 @@ describe('daemon async spawn cancellation', () => {
           if (!successor) {
             throw new Error('successor missing')
           }
-          // SAFETY: actual successor transport/outcome maps, never mutate them.
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: actual successor transport/outcome maps, never mutate them.
           const replacement = server as unknown as {
             preparations: { retained: Map<string, unknown> }
             connections: DaemonClientConnections
           }
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: read only the successor adapter cleanup maps; tests never settle or delete physical ownership.
           const cleanup = successor as unknown as {
             switchReleaseCleanup: Map<string, unknown>
             switchReleaseDrain?: Promise<void>

@@ -475,7 +475,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       request: (...args: Parameters<DaemonClient['request']>) => Promise<unknown>
     ): DaemonPtyAdapter {
       const probeAdapter = new DaemonPtyAdapter({ socketPath, tokenPath, protocolVersion })
-      // SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
       const client = (probeAdapter as unknown as { client: DaemonClient }).client
       vi.spyOn(client, 'request').mockImplementation(request)
       return probeAdapter
@@ -688,7 +688,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
         tokenPath,
         protocolVersion
       })
-      // SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
       const client = (inspectionAdapter as unknown as { client: DaemonClient }).client
       vi.spyOn(client, 'request').mockImplementation(request)
       return inspectionAdapter
