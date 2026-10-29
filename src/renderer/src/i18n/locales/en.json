@@ -21007,29 +21007,18 @@
     }
   },
   "agentPicker": {
-    "chatOnly": "Chat only",
     "search": "Search agents and setups…",
     "configure": "Configure {{agent}}",
-    "chat": "Chat",
-    "terminal": "Terminal",
     "model": "Model",
-    "agentDefault": "Agent default",
-    "default": "Default",
-    "on": "On",
-    "off": "Off",
-    "permissions": "Permissions",
-    "agentsDefaults": "Agents defaults",
     "arguments": "Arguments",
     "argumentsHint": "Applies only to CLI launches.",
-    "resetArguments": "Reset to default",
     "openChat": "Open chat",
     "openTerminal": "Open terminal",
-    "permission": {
-      "own": "Use agent configuration",
-      "ask": "Ask",
-      "accept-edits": "Accept edits",
-      "auto": "Approve for me",
-      "full-access": "Full access"
-    }
+    "setByArguments": "Set by your Arguments",
+    "searchModels": "Search models",
+    "noModels": "No models match your search.",
+    "backModels": "Back to current models",
+    "legacyModels": "Legacy models",
+    "toggleArguments": "Toggle Arguments"
   }
 }

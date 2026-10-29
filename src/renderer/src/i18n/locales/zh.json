@@ -20776,29 +20776,12 @@
     }
   },
   "agentPicker": {
-    "chatOnly": "仅聊天",
     "search": "搜索智能体和配置…",
     "configure": "配置 {{agent}}",
-    "chat": "聊天",
-    "terminal": "终端",
     "model": "模型",
-    "agentDefault": "智能体默认值",
-    "default": "默认",
-    "on": "开启",
-    "off": "关闭",
-    "permissions": "权限",
-    "agentsDefaults": "智能体设置默认值",
     "arguments": "参数",
     "argumentsHint": "仅适用于 CLI 启动。",
-    "resetArguments": "恢复默认值",
     "openChat": "打开聊天",
-    "openTerminal": "打开终端",
-    "permission": {
-      "own": "使用智能体配置",
-      "ask": "询问",
-      "accept-edits": "接受编辑",
-      "auto": "为我批准",
-      "full-access": "完全访问"
-    }
+    "openTerminal": "打开终端"
   }
 }

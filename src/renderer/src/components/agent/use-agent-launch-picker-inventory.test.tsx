@@ -52,7 +52,7 @@ vi.mock('@/runtime/structured-agent-session-client', () => ({
 function model(
   host = 'alpha',
   agents: picker.AgentPickerEntry['agent'][] = ['codex']
-): NewTabAgentMenuModel {
+): Extract<NewTabAgentMenuModel, { state: 'settled' }> {
   return {
     state: 'settled',
     rows: agents.map((agent) => ({ agent, kind: 'chat', executionHostId: `runtime:${host}` })),
@@ -419,9 +419,13 @@ it('updates terminal availability when detection changes while the Chat rows sta
   if (menu.state !== 'settled') {
     throw new Error('settled fixture')
   }
-  const hook = renderHook(({ value }) => useAgentLaunchPickerInventory('wt', value, true), {
-    initialProps: { value: { ...menu, detection: { ...menu.detection, detectedIds: [] } } }
-  })
+  const hook = renderHook(
+    ({ value }: { value: Extract<NewTabAgentMenuModel, { state: 'settled' }> }) =>
+      useAgentLaunchPickerInventory('wt', value, true),
+    {
+      initialProps: { value: { ...menu, detection: { ...menu.detection, detectedIds: [] } } }
+    }
+  )
   await act(async () => {})
   expect(hook.result.current[0].surfaces).toEqual(['chat'])
   hook.rerender({ value: menu })

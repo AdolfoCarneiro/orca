@@ -16,6 +16,7 @@ import {
 } from '../../../../shared/agent-launch-picker'
 
 import { entry, host, root, onUse } from './agent-launch-setup-panel-test-fixture'
+import { fetchCodexModelCatalogListing } from '../../lib/codex-model-catalog-reader-test-fixture'
 
 function observeSettingsWork() {
   let depth = 0
@@ -189,8 +190,6 @@ it('bounds effective-settings work for direct analysis, collapsed Chat render an
 it('bounds catalog projection independently of raw model operands and retains Codex tier and Cursor composition through the real editor', async () => {
   const { default: capture } =
     await import('../../../../shared/fixtures/agent-picker-cli-recordings.json')
-  const { fetchCodexModelCatalogListing } =
-    await import('../../../../main/codex/codex-structured-model-catalog')
   const listing = await fetchCodexModelCatalogListing({
     connection: { request: vi.fn().mockResolvedValue(capture.modelList) }
   })

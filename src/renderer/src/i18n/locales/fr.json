@@ -20782,29 +20782,12 @@
     }
   },
   "agentPicker": {
-    "chatOnly": "Chat uniquement",
     "search": "Rechercher des agents et des configurations…",
     "configure": "Configurer {{agent}}",
-    "chat": "Chat",
-    "terminal": "Terminal",
     "model": "Modèle",
-    "agentDefault": "Valeur par défaut de l’agent",
-    "default": "Par défaut",
-    "on": "Activé",
-    "off": "Désactivé",
-    "permissions": "Autorisations",
-    "agentsDefaults": "Valeurs par défaut des agents",
     "arguments": "Arguments",
     "argumentsHint": "S’applique uniquement aux lancements CLI.",
-    "resetArguments": "Rétablir la valeur par défaut",
     "openChat": "Ouvrir un chat",
-    "openTerminal": "Ouvrir un terminal",
-    "permission": {
-      "own": "Utiliser la configuration de l’agent",
-      "ask": "Demander",
-      "accept-edits": "Accepter les modifications",
-      "auto": "Approuver pour moi",
-      "full-access": "Accès complet"
-    }
+    "openTerminal": "Ouvrir un terminal"
   }
 }

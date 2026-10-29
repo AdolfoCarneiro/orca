@@ -31,6 +31,7 @@ import {
 
 import { buildNewTabAgentMenuRows } from '../../../shared/agent-launch-picker-rows'
 import type { ExecutionHostId } from '../../../shared/execution-host'
+import { fetchCodexModelCatalogListing } from './codex-model-catalog-reader-test-fixture'
 
 vi.mock('@/hooks/useShortcutLabel', () => ({ useOptionalShortcutLabel: () => null }))
 afterEach(() => {
@@ -211,7 +212,7 @@ describe('picker window launch contract', () => {
                         isRefreshing: false,
                         detectionFailed: false,
                         needsServerUpdate: false,
-                        refresh: async () => ['claude']
+                        refresh: async (): Promise<AgentPickerEntry['agent'][]> => ['claude']
                       }
                     }
                   })
@@ -290,7 +291,8 @@ it.each(['claude', 'codex'] as const)(
     const { agentPickerDraft, agentPickerLaunchInputs } =
       await import('../../../shared/agent-launch-picker')
     const { editAgentPickerSpeed } = await import('../../../shared/agent-launch-picker-arguments')
-    const options = agent === 'claude' ? { fastMode: 'false' } : { serviceTier: 'default' }
+    const options: Record<string, string> =
+      agent === 'claude' ? { fastMode: 'false' } : { serviceTier: 'default' }
     const entry = {
       agent,
       label: agent,
@@ -510,8 +512,6 @@ it.each(['claude', 'codex'] as const)(
 it('passes the recorded Codex catalog tier and approval/sandbox policy through the common reader, picker and real compiler', async () => {
   const { default: capture } =
     await import('../../../shared/fixtures/agent-picker-cli-recordings.json')
-  const { fetchCodexModelCatalogListing } =
-    await import('../../../main/codex/codex-structured-model-catalog')
   const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
   const listing = await fetchCodexModelCatalogListing({
     connection: { request: vi.fn().mockResolvedValue(capture.modelList) }

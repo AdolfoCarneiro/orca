@@ -20776,29 +20776,12 @@
     }
   },
   "agentPicker": {
-    "chatOnly": "채팅 전용",
     "search": "에이전트 및 설정 검색…",
     "configure": "{{agent}} 설정",
-    "chat": "채팅",
-    "terminal": "터미널",
     "model": "모델",
-    "agentDefault": "에이전트 기본값",
-    "default": "기본값",
-    "on": "켜기",
-    "off": "끄기",
-    "permissions": "권한",
-    "agentsDefaults": "에이전트 설정 기본값",
     "arguments": "인수",
     "argumentsHint": "CLI 실행에만 적용됩니다.",
-    "resetArguments": "기본값으로 재설정",
     "openChat": "채팅 열기",
-    "openTerminal": "터미널 열기",
-    "permission": {
-      "own": "에이전트 설정 사용",
-      "ask": "묻기",
-      "accept-edits": "편집 허용",
-      "auto": "대신 승인",
-      "full-access": "전체 액세스"
-    }
+    "openTerminal": "터미널 열기"
   }
 }

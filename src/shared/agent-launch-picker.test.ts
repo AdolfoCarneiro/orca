@@ -503,7 +503,7 @@ it('keeps offered host Chat independent of preference through the actual row bui
     const [result] = agentPickerEntriesFromRows(
       rows,
       scenario.detected,
-      () => ({}),
+      () => ({ terminal: {}, structured: {} }),
       (agent) => agent
     )
     expect(result.surfaces).toEqual(scenario.surfaces)
@@ -522,7 +522,7 @@ it('keeps offered host Chat independent of preference through the actual row bui
       const [result] = agentPickerEntriesFromRows(
         rows,
         detected,
-        () => ({}),
+        () => ({ terminal: {}, structured: {} }),
         (agent) => agent
       )
       expect(result.rows.some((row) => row.kind === 'chat-unavailable')).toBe(true)

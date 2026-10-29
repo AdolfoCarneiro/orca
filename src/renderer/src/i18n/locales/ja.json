@@ -20776,29 +20776,12 @@
     }
   },
   "agentPicker": {
-    "chatOnly": "チャットのみ",
-    "search": "エージェントと設定を検索…",
+    "search": "Agent と設定を検索…",
     "configure": "{{agent}} を設定",
-    "chat": "チャット",
-    "terminal": "ターミナル",
     "model": "モデル",
-    "agentDefault": "エージェントのデフォルト",
-    "default": "デフォルト",
-    "on": "オン",
-    "off": "オフ",
-    "permissions": "権限",
-    "agentsDefaults": "エージェント設定のデフォルト",
     "arguments": "引数",
     "argumentsHint": "CLI での起動にのみ適用されます。",
-    "resetArguments": "デフォルトに戻す",
     "openChat": "チャットを開く",
-    "openTerminal": "ターミナルを開く",
-    "permission": {
-      "own": "エージェントの設定を使用",
-      "ask": "確認する",
-      "accept-edits": "編集を許可",
-      "auto": "自動承認",
-      "full-access": "フルアクセス"
-    }
+    "openTerminal": "ターミナルを開く"
   }
 }

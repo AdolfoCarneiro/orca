@@ -23,14 +23,18 @@ it('shows a raw Arguments value in the shared Permissions menu; removing its chi
     host.querySelector<HTMLButtonElement>('button[aria-label$=" permissions"]')
   expect(permission()?.disabled).toBe(false)
   expect(permission()?.textContent).toContain('plan')
-  expect(host.querySelector('textarea[aria-label="Arguments"]')?.value).toBe('--add-dir docs')
+  expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Arguments"]')?.value).toBe(
+    '--add-dir docs'
+  )
   act(() =>
     host
       .querySelector<HTMLButtonElement>('button[aria-label="Remove --permission-mode plan"]')
       ?.click()
   )
   expect(permission()?.disabled).toBe(false)
-  expect(host.querySelector('textarea[aria-label="Arguments"]')?.value).toBe('--add-dir docs')
+  expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Arguments"]')?.value).toBe(
+    '--add-dir docs'
+  )
   act(() =>
     [...host.querySelectorAll('button')]
       .find((button) => button.textContent === 'Open terminal')
