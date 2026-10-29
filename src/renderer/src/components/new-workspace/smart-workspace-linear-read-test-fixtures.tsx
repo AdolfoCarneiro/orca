@@ -85,22 +85,23 @@ vi.mock('../../../../main/linear/client', async (original) => {
           ]
   }
 })
-vi.mock('../../../../main/linear/linear-sdk', () => ({
-  loadLinearSdk: () => ({
-    AuthenticationLinearError: detailTransport.AuthError,
-    LinearClient: class {
-      client: { rawRequest: (...args: unknown[]) => Promise<unknown> }
-      apiKey: string
-      constructor({ apiKey }: { apiKey: string }) {
-        this.apiKey = apiKey
-        this.client = { rawRequest: (...args) => detailTransport.search(...args, apiKey) }
-      }
-      issue(id: string) {
-        return detailTransport.issue(id, this.apiKey)
-      }
+vi.mock('../../../../main/linear/linear-sdk', () => {
+  class LinearClient {
+    client: { rawRequest: (...args: unknown[]) => Promise<unknown> }
+    apiKey: string
+    constructor({ apiKey }: { apiKey: string }) {
+      this.apiKey = apiKey
+      this.client = { rawRequest: (...args) => detailTransport.search(...args, apiKey) }
     }
-  })
-}))
+    issue(id: string) {
+      return detailTransport.issue(id, this.apiKey)
+    }
+  }
+  return {
+    loadLinearSdk: () => ({ AuthenticationLinearError: detailTransport.AuthError, LinearClient }),
+    createLinearClient: (options: { apiKey: string }) => new LinearClient(options)
+  }
+})
 vi.mock('../../../../main/linear/linear-workspace-registry', () => ({
   getWorkspaceState: () => ({
     workspaces: detailTransport.workspaces.map((id) => ({

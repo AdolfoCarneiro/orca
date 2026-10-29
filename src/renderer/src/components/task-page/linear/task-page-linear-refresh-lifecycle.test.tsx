@@ -1,4 +1,3 @@
-import { registerLinearIssueConsumer } from '@/store/slices/linear/linear-issue-publication'
 // @vitest-environment happy-dom
 import {
   reads,
@@ -11,7 +10,10 @@ import {
   loadingHook,
   source
 } from './task-page-linear-refresh-test-fixtures'
-import { pendingLinearIssueWrites } from '@/store/slices/linear/linear-issue-publication'
+import {
+  pendingLinearIssueWrites,
+  registerLinearIssueConsumer
+} from '@/store/slices/linear/linear-issue-publication'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
 import { defaultScopeSource } from '@/lib/default-creation-host'

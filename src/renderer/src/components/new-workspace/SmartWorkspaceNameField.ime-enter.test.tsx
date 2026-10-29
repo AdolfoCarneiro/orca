@@ -1,3 +1,4 @@
+import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
 import { linearIssueReadFixture } from '@/store/slices/linear-slice-test-harness'
 // @vitest-environment happy-dom
 
@@ -20,6 +21,7 @@ vi.mock('@/store', () => {
     getCachedWorkItems: vi.fn(() => null),
     linearStatus: { connected: false },
     linearStatusChecked: false,
+    linearStatusContextKey: '',
     listLinearIssues: vi.fn(),
     preflightStatus: null,
     preflightStatusChecked: false,
@@ -90,6 +92,7 @@ beforeEach(() => {
   useAppStore.setState({
     linearStatus: { connected: false, viewer: null },
     linearStatusChecked: false,
+    linearStatusContextKey: getProviderRuntimeContextKey(null),
     fetchLinearIssue: vi.fn(() => linearIssueReadFixture(async () => null)),
     listLinearIssues: vi.fn(() => linearIssueReadFixture(async () => ({ items: [] }))),
     searchLinearIssues: vi.fn(() => linearIssueReadFixture(async () => []))

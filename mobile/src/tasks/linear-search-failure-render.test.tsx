@@ -1,33 +1,17 @@
-// @vitest-environment happy-dom
 import { useEffect, useRef, useState } from 'react'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { useMobileTasksTaskListLoading } from './use-mobile-tasks-task-list-loading'
 import { MobileTasksLegacySurface } from './MobileTasksLegacySurface'
 import type { ProviderLoadActionsModel } from './use-mobile-tasks-provider-load-actions'
 import type { ConnectionPresentationModel } from './use-mobile-tasks-connection-presentation'
-import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SmartWorkspaceSourceDrawer } from '../components/SmartWorkspaceSourceDrawer'
 import { useMobileComposerSource } from './use-mobile-composer-source'
-import { searchIssues } from '../../../src/main/linear/linear-issue-lookups'
 import { credentialDecryptionMessage } from '../../../src/shared/integration-credential-errors'
-import { LINEAR_METHODS } from '../../../src/main/runtime/rpc/methods/linear'
-import { mapDispatcherError } from '../../../src/main/runtime/rpc/dispatcher-error-response'
-import { successResponse } from '../../../src/main/runtime/rpc/errors'
-import type { RpcContext } from '../../../src/main/runtime/rpc/core'
 import type { RpcClient } from '../transport/rpc-client'
+import { createFakeRpcClient } from '../mobile-web-shell/bridge-host-test-fakes'
 
-const provider = vi.hoisted(() => ({ request: vi.fn() }))
-vi.mock('../../../src/main/linear/client', () => ({
-  getClients: () => [
-    { workspace: { id: 'w' }, client: { client: { rawRequest: provider.request } } }
-  ],
-  isAuthError: (error: unknown) => error instanceof Error && error.message.startsWith('401')
-}))
-vi.mock('../../../src/main/linear/linear-token-store', () => ({ clearToken: vi.fn() }))
-vi.mock('../../../src/main/linear/linear-request-concurrency', () => ({
-  acquire: async () => {},
-  release: () => {}
-}))
+const rpc = vi.hoisted(() => ({ message: '' }))
 vi.mock('react-native', async () => {
   const { createElement } = await import('react')
   const View = ({ children }: { children?: React.ReactNode }) =>
@@ -50,27 +34,28 @@ vi.mock('../components/BottomDrawer', () => ({
 vi.mock('../components/SmartSourceModeIcon', () => ({ SmartSourceModeIcon: () => null }))
 vi.mock('../components/SmartWorkspaceSourceRow', () => ({ SmartWorkspaceSourceRow: () => null }))
 
-const searchMethod = LINEAR_METHODS.find((method) => method.name === 'linear.searchIssues')!
-// SAFETY: only linear.searchIssues is dispatched; the production handler uses this runtime method alone.
-// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
-const context = { runtime: { linearSearchIssues: searchIssues } } as unknown as RpcContext
-// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
-const client = {
-  sendRequest: async (_method: string, params: unknown) => {
-    const request = { id: '1', authToken: '', method: searchMethod.name, params }
-    const meta = { runtimeId: 'r' }
-    try {
-      return successResponse(
-        request.id,
-        meta,
-        await searchMethod.handler(searchMethod.params.parse(params), context)
-      )
-    } catch (error) {
-      return mapDispatcherError(request, meta, error)
-    }
+// Server-side SDK → handler → error-envelope cases run in the desktop Linear auth suite.
+// This RN consumer uses that envelope shape, including raw messages from older servers.
+const client: RpcClient = {
+  ...createFakeRpcClient(),
+  sendRequest: async (method) => {
+    expect(method).toBe('linear.searchIssues')
+    return { id: '1', ok: false, error: { code: 'runtime_error', message: rpc.message } }
   }
-  // SAFETY: the mounted search flow uses only sendRequest; no connection methods are called.
-} as unknown as RpcClient
+}
+let rendered: ReactTestRenderer
+const text = () => JSON.stringify(rendered.toJSON())
+async function mount(element: React.ReactElement) {
+  await act(async () => {
+    rendered = create(element)
+  })
+}
+async function expectText(value: string) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200)
+  })
+  expect(text()).toContain(value)
+}
 const availability = {
   textOnly: false,
   tasksSupported: true,
@@ -99,28 +84,28 @@ function Picker() {
     />
   )
 }
+beforeEach(() => vi.useFakeTimers())
 afterEach(() => {
-  cleanup()
+  act(() => rendered?.unmount())
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 it.each([
   ['401 private provider diagnostic', 'Unable to load Linear issues. Try again.'],
   ['429: GraphQL request failed private diagnostic', 'Unable to load Linear issues. Try again.'],
   [credentialDecryptionMessage('Linear'), credentialDecryptionMessage('Linear')]
-])('renders the real provider rejection safely: %s', async (raw, visible) => {
-  provider.request.mockRejectedValue(new Error(raw))
-  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-  render(<Picker />)
-  fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
-  await waitFor(() => expect(screen.queryByText(visible)).not.toBeNull())
+])('renders the server failure envelope safely: %s', async (raw, visible) => {
+  rpc.message = raw
+  await mount(<Picker />)
+  await act(async () => {
+    rendered.root
+      .findAllByType('button')
+      .find((button) => button.children.includes('Linear'))!
+      .props.onClick()
+  })
+  await expectText(visible)
   if (raw !== visible) {
-    expect(screen.queryByText(raw)).toBeNull()
-  }
-  if (!raw.startsWith('401')) {
-    expect(warn).toHaveBeenCalledWith(
-      '[linear] searchIssues failed:',
-      expect.objectContaining({ message: raw })
-    )
+    expect(text()).not.toContain(raw)
   }
 })
 
@@ -244,19 +229,10 @@ function Tasks() {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
   return <MobileTasksLegacySurface model={actions as unknown as ConnectionPresentationModel} />
 }
-it('shipping phone Tasks renders the safe real main/RPC search failure', async () => {
+it('shipping phone Tasks renders the safe server search failure', async () => {
   const raw = '429: GraphQL request failed private phone Tasks diagnostic'
-  provider.request.mockRejectedValue(new Error(raw))
-  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-  render(<Tasks />)
-  await waitFor(() =>
-    expect(screen.getByText('Unable to load Linear issues. Try again.')).toBeTruthy()
-  )
-  expect(screen.queryByText(raw)).toBeNull()
-  if (!raw.startsWith('401')) {
-    expect(warn).toHaveBeenCalledWith(
-      '[linear] searchIssues failed:',
-      expect.objectContaining({ message: raw })
-    )
-  }
+  rpc.message = raw
+  await mount(<Tasks />)
+  await expectText('Unable to load Linear issues. Try again.')
+  expect(text()).not.toContain(raw)
 })

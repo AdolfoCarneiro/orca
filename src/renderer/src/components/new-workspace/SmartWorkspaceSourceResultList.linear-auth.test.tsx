@@ -46,19 +46,23 @@ function installMainRpc(
   )
 }
 
-it.each(['sdk-auth', 'credential'] as const)(
-  'real main/RPC/renderer classifies %s safely and refreshes concrete default status',
+it.each(['sdk-auth', 'credential', 'generic'] as const)(
+  'real main/RPC/renderer classifies %s safely with scoped account follow-up',
   async (kind) => {
     prepareDefaultPicker({ connected: true, viewer: null, selectedWorkspaceId: 'workspace-1' })
     detailTransport.clear.mockReset()
     const raw =
       kind === 'sdk-auth'
         ? '401 private authentication diagnostic'
-        : credentialDecryptionMessage('Linear')
+        : kind === 'credential'
+          ? credentialDecryptionMessage('Linear')
+          : '429 private provider diagnostic'
     detailTransport.accountFixture = true
     detailTransport.workspaces = ['workspace-1']
     detailTransport.credential.message = kind === 'credential' ? raw : undefined
-    detailTransport.search.mockRejectedValue(new detailTransport.AuthError(raw))
+    detailTransport.search.mockRejectedValue(
+      kind === 'sdk-auth' ? new detailTransport.AuthError(raw) : new Error(raw)
+    )
     const oldStatus = Promise.withResolvers<ReturnType<typeof getStatus>>()
     const captured = getStatus()
     let first = kind === 'sdk-auth'
@@ -81,7 +85,7 @@ it.each(['sdk-auth', 'credential'] as const)(
         screen.getAllByText('Unable to read saved Linear login. Reconnect it in Settings.')
       ).toHaveLength(1)
       expect(detailTransport.clear).not.toHaveBeenCalled()
-    } else {
+    } else if (kind === 'sdk-auth') {
       await waitFor(() => expect(pickerStore.getState().linearStatus.connected).toBe(false))
       await waitFor(() =>
         expect(screen.getByText('Start typing to create a name or find a source.')).toBeTruthy()
@@ -89,6 +93,17 @@ it.each(['sdk-auth', 'credential'] as const)(
       expect(screen.queryByText('Reconnect Linear')).toBeNull()
       expect(screen.queryByText(raw)).toBeNull()
       expect(detailTransport.clear).toHaveBeenCalledWith('workspace-1')
+    } else {
+      await waitFor(() =>
+        expect(screen.getByText('Unable to load Linear issues. Try again.')).toBeTruthy()
+      )
+      expect(screen.queryByText(raw)).toBeNull()
+      expect(pickerStore.getState().linearStatus.connected).toBe(true)
+      expect(detailTransport.clear).not.toHaveBeenCalled()
+      expect(warn).toHaveBeenCalledWith(
+        '[linear] searchIssues failed:',
+        expect.objectContaining({ message: raw })
+      )
     }
     if (kind === 'sdk-auth') {
       await act(async () => {
@@ -97,11 +112,20 @@ it.each(['sdk-auth', 'credential'] as const)(
       })
       expect(pickerStore.getState().linearStatus.connected).toBe(false)
     }
-    expect(mocks.statusReads.mock.calls.length).toBeGreaterThan(before)
+    if (kind === 'generic') {
+      expect(mocks.statusReads.mock.calls.length).toBe(before)
+    } else {
+      expect(mocks.statusReads.mock.calls.length).toBeGreaterThan(before)
+    }
     expect(warn).toHaveBeenCalledWith(
       '[linear] issue read failed:',
       expect.objectContaining({
-        message: kind === 'credential' ? raw : 'Linear authentication expired for this workspace.'
+        message:
+          kind === 'credential'
+            ? raw
+            : kind === 'sdk-auth'
+              ? 'Linear authentication expired for this workspace.'
+              : 'Unable to load Linear issues. Try again.'
       })
     )
     mounted.unmount()
