@@ -36,6 +36,16 @@ Use the fresh state returned by each action for the next element index. Element 
 
 In `--json` output, read the accessibility tree and action indexes from `result.snapshot.treeText`; `elementCount` is only a count and must not be used to infer indexes.
 
+## Reading State Cheaply
+
+Action results send only what changed since the last state you received for that window. `result.snapshot.treeDiff` marks a diff, and `treeText` then lists `~` changed and `+` added element lines, `-` removed indexes as ranges, or "No change in the accessibility tree", followed by the focused element. Elements not listed keep the index and text from the last tree you read; a changed line also covers an element that moved. Without `treeDiff`, `treeText` is the whole tree: after a window change, when most of the tree changed, or from an older Orca. On macOS an element keeps its index across reads while it exists. Pass `--full-tree` to an action when you need the whole tree back.
+
+In a large window, look for one control with `get-app-state --query <text>`: it prints only elements whose line contains the text (case-insensitive), with their ancestors. `--max-elements <n>` caps how many elements are printed. Both only narrow the output; indexes are the same as in the full tree.
+
+```text
+ORCA computer get-app-state --app com.apple.finder --query Downloads --json
+```
+
 ## App Selectors
 
 Prefer bundle IDs from `list-apps`; names are acceptable when unambiguous. Use `pid:<number>` only when bundle ID or name matching is ambiguous.
