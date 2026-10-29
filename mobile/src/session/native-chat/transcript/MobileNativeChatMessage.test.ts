@@ -698,11 +698,18 @@ it('bounds phone row recognition at N and 10N during unchanged and one-row updat
   recognize.mockRestore()
 })
 
-it('uses exact raw identity for phone actions across prose and code without interpreting filenames', async () => {
+it('renders each original phone message through the shipping Markdown renderer with separate lexical actions', async () => {
+  const actual = await vi.importActual<typeof import('../../../components/MobileMarkdown')>(
+    '../../../components/MobileMarkdown'
+  )
+  const adapter = await import('../../../components/MobileMarkdown')
+  const references =
+    await import('../../../../../src/shared/native-chat-text-attachment-references')
+  const recognize = vi.spyOn(references, 'nativeChatTextAttachmentPaths')
   const { formatNativeChatFileReference } =
     await import('../../../../../src/shared/agent-image-paste')
-  const prefix = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/'
-  const paths = [
+  const path = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/report.txt'
+  const names = [
     '_notes_.txt',
     'a&copy;.txt',
     'a©.txt',
@@ -711,60 +718,10 @@ it('uses exact raw identity for phone actions across prose and code without inte
     '[a](b).txt',
     "space @ apostrophe'.txt",
     '日本語.txt'
-  ].map((name) => prefix + name)
-  const content =
-    'see' +
-    paths.map(formatNativeChatFileReference).join(' ') +
-    '\n\n```text\n' +
-    formatNativeChatFileReference(paths[0]!) +
-    '\n```'
-  const onOpenFile = vi.fn()
-  let tree: ReactTestRenderer
-  act(() => {
-    tree = create(
-      createElement(MobileNativeChatMessage, {
-        message: userMessage([{ type: 'text', text: content }]),
-        structuredActivityUi: true,
-        onOpenFile
-      })
-    )
-  })
-  try {
-    expect(findAllByHostType(tree!.root, 'MobileMarkdown')[0]!.props.content).toBe(content)
-    const actions = tree!.root.findAll(
-      (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
-    )
-    act(() => actions.forEach((action) => action.props.onPress()))
-    expect(onOpenFile.mock.calls.map(([path]) => path)).toEqual(paths)
-    onOpenFile.mockClear()
-    act(() =>
-      tree!.update(
-        createElement(MobileNativeChatMessage, {
-          message: userMessage([{ type: 'text', text: content }]),
-          structuredActivityUi: false,
-          onOpenFile
-        })
-      )
-    )
-    expect(
-      tree!.root.findAll(
-        (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
-      )
-    ).toHaveLength(0)
-    expect(findAllByHostType(tree!.root, 'MobileMarkdown')[0]!.props.content).toBe(content)
-    expect(onOpenFile).not.toHaveBeenCalled()
-  } finally {
-    act(() => tree!.unmount())
-  }
-})
-
-it('renders each original phone message through the shipping Markdown renderer with separate lexical actions', async () => {
-  const actual = await vi.importActual<typeof import('../../../components/MobileMarkdown')>(
-    '../../../components/MobileMarkdown'
-  )
-  const adapter = await import('../../../components/MobileMarkdown')
-  const path = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/report.txt'
+  ]
+  const exact = names.map((name) => path.replace('report.txt', name))
   const cases: [string, string[]][] = [
+    ['see' + exact.map(formatNativeChatFileReference).join(' '), exact],
     [`\`\`\`text\n@${path}\nKEEP\n\`\`\`\n\nOUTSIDE`, [path]],
     [`\` @${path} \``, [path]],
     [`    @${path}\n`, [path]],
@@ -816,6 +773,25 @@ it('renders each original phone message through the shipping Markdown renderer w
         )
         act(() => actions.forEach((action) => action.props.onPress()))
         expect(onOpenFile.mock.calls.map(([path]) => path)).toEqual(paths)
+        recognize.mockClear()
+        act(() =>
+          row!.update(
+            createElement(MobileNativeChatMessage, {
+              message: userMessage([{ type: 'text', text: content }]),
+              structuredActivityUi: false,
+              onOpenFile
+            })
+          )
+        )
+        expect(hostContent(row!.root.findAllByType(adapter.MobileMarkdown)[0]!)).toEqual(
+          hostContent(direct!.root)
+        )
+        expect(
+          row!.root.findAll(
+            (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
+          )
+        ).toHaveLength(0)
+        expect(recognize).not.toHaveBeenCalled()
       } finally {
         act(() => {
           row!.unmount()
@@ -825,5 +801,6 @@ it('renders each original phone message through the shipping Markdown renderer w
     }
   } finally {
     markdownImplementation.current = undefined
+    recognize.mockRestore()
   }
 })
