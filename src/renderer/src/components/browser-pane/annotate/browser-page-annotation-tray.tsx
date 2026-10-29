@@ -35,6 +35,7 @@ import { preventAgentSendTargetOutsideDismiss } from './prevent-agent-send-targe
 import { browserAnnotationMatchesPageUrl } from './browser-annotation-page-url'
 import { useBrowserAnnotationImages } from './use-browser-annotation-images'
 import { BrowserAnnotationImageStrip } from './browser-annotation-image-strip'
+import type { BrowserPageAnnotationTrayProps } from '../describe-page/browser-page-types'
 
 export function BrowserPageAnnotationTray({
   browserAnnotations,
@@ -53,29 +54,7 @@ export function BrowserPageAnnotationTray({
   handleClearBrowserAnnotations,
   handleDeleteBrowserAnnotation,
   handleUpdateBrowserAnnotation
-}: {
-  browserAnnotations: BrowserPageAnnotation[]
-  currentUrl?: string
-  annotationTraySendOpen: boolean
-  handleAnnotationTraySendOpenChange: (open: boolean) => void
-  worktreeId: string
-  activeGroupId: string | undefined
-  browserAnnotationsPrompt: string
-  includePageDetails: boolean
-  handleIncludePageDetailsChange: (include: boolean) => void
-  handleBrowserAnnotationsSentToAgent: () => void
-  handleBrowserAnnotationsHandedOff: (delivered: Promise<unknown>) => void
-  handleCopyBrowserAnnotations: () => void
-  browserAnnotationsCopied: boolean
-  handleClearBrowserAnnotations: () => void
-  handleDeleteBrowserAnnotation: (annotationId: string) => void
-  handleUpdateBrowserAnnotation: (
-    annotationId: string,
-    comment: string,
-    intent: BrowserAnnotationIntent,
-    imagePaths: string[]
-  ) => void
-}): React.JSX.Element {
+}: BrowserPageAnnotationTrayProps): React.JSX.Element {
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null)
   const [editComment, setEditComment] = useState('')
   const [editIntent, setEditIntent] = useState<BrowserAnnotationIntent>('change')

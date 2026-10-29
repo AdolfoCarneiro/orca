@@ -3,6 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import type {
   BrowserAnnotationIntent,
   BrowserGrabPayload,
+  BrowserPageAnnotation,
   GrabIntent
 } from '../../../../../shared/browser-grab-types'
 import type { BrowserContextMenuRequestedEvent } from '../../../../../shared/browser-guest-events'
@@ -99,6 +100,30 @@ export type BrowserPageFailLoadEvent = {
   errorDescription?: string
   validatedURL?: string
   isMainFrame?: boolean
+}
+
+export type BrowserPageAnnotationTrayProps = {
+  browserAnnotations: BrowserPageAnnotation[]
+  currentUrl?: string
+  annotationTraySendOpen: boolean
+  handleAnnotationTraySendOpenChange: (open: boolean) => void
+  worktreeId: string
+  activeGroupId: string | undefined
+  browserAnnotationsPrompt: string
+  includePageDetails: boolean
+  handleIncludePageDetailsChange: (include: boolean) => void
+  handleBrowserAnnotationsSentToAgent: () => void
+  handleBrowserAnnotationsHandedOff: (delivered: Promise<unknown>) => void
+  handleCopyBrowserAnnotations: () => void
+  browserAnnotationsCopied: boolean
+  handleClearBrowserAnnotations: () => void
+  handleDeleteBrowserAnnotation: (annotationId: string) => void
+  handleUpdateBrowserAnnotation: (
+    annotationId: string,
+    comment: string,
+    intent: BrowserAnnotationIntent,
+    imagePaths: string[]
+  ) => void
 }
 
 export type ClientHostedBrowserPagePaneProps = {
