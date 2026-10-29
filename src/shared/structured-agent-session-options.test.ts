@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { OMP_SESSION_OPTION_CATALOG } from './agent-session-option-catalog-omp'
+import { structuredAgentSessionSeedCatalog } from './structured-agent-session-seed-catalog'
 import {
   CODEX_SESSION_OPTION_CATALOG,
   CLAUDE_SESSION_OPTION_CATALOG
@@ -33,6 +34,80 @@ function viewModel(
 }
 
 describe('structured agent session options', () => {
+  it('keeps unknown inventory quiet and accepts a later catalog even after a live answer', () => {
+    const seed = structuredAgentSessionSeedCatalog('pi')
+    const unknown = { models: [], modelsKnown: false as const, current: { defaulted: [] } }
+    const cold = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('pi', seed),
+      seed,
+      unknown
+    )
+    expect(structuredAgentSessionOptionSnapshot(cold)).toContainEqual(
+      expect.objectContaining({ id: 'model', settable: false })
+    )
+    const models = [{ id: 'provider/model', label: 'Native label', isDefault: false, efforts: [] }]
+    const catalog = { origin: 'probe' as const, fetchedAt: 1, models }
+    const arrived = applyStructuredAgentSessionModelCatalog(cold, seed, catalog, {
+      newLaunch: false
+    })
+    expect(arrived.catalog?.models[0]?.label).toBe('Native label')
+    const live = applyStructuredAgentSessionOptions(arrived, seed, {
+      models,
+      current: { model: 'provider/model', confirmed: ['model'] }
+    })
+    const resting = applyStructuredAgentSessionOptions(live, seed, {
+      ...unknown,
+      current: {
+        model: 'provider/model',
+        effort: 'high',
+        permissionMode: 'ask',
+        acceptedInputSources: { model: 'saved', effort: 'saved' },
+        defaulted: []
+      }
+    })
+    expect(resting.catalog).toBe(live.catalog)
+    expect(resting.permissionMode).toBe('ask')
+    expect(structuredAgentSessionMessageSelection(resting)).toEqual({
+      model: 'provider/model',
+      effort: 'high'
+    })
+    const refreshed = applyStructuredAgentSessionModelCatalog(
+      resting,
+      seed,
+      {
+        ...catalog,
+        models: [...models, { ...models[0]!, id: 'provider/new' }]
+      },
+      { newLaunch: false }
+    )
+    expect(refreshed.catalog?.models.map(({ id }) => id)).toEqual([
+      'provider/model',
+      'provider/new'
+    ])
+  })
+
+  it('keeps old-host empty answers authoritative when the knowledge marker is absent', () => {
+    const seed = structuredAgentSessionSeedCatalog('pi')
+    const empty = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('pi', seed),
+      seed,
+      { models: [], current: {} }
+    )
+    expect(structuredAgentSessionOptionSnapshot(empty)).toEqual([])
+    expect(
+      applyStructuredAgentSessionModelCatalog(
+        empty,
+        seed,
+        {
+          origin: 'probe',
+          fetchedAt: 1,
+          models: [{ id: 'later', label: 'Later', isDefault: false, efforts: [] }]
+        },
+        { newLaunch: false }
+      ).catalog?.models
+    ).toEqual([])
+  })
+
   it('keeps a missing model out of the picker and adopts a later report', () => {
     const state = applyStructuredAgentSessionOptions(
       createStructuredAgentSessionOptionState('omp'),

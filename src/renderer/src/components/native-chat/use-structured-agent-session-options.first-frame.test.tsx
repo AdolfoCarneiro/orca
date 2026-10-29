@@ -153,6 +153,54 @@ describe('a new chat picker’s first frame', () => {
     resetHostModelCatalogSnapshotsForTests()
   })
 
+  it('holds the placeholder after unknown options and renders discovery before its recovery reread answers', async () => {
+    const catalog = deferred<AgentSessionModelCatalogResult>()
+    let reads = 0
+    mocks.call.mockImplementation((_target: unknown, method: string) =>
+      method === 'agentSession.options'
+        ? ++reads === 1
+          ? Promise.resolve({ models: [], modelsKnown: false, current: { defaulted: [] } })
+          : new Promise(() => {})
+        : method === 'agentSession.modelCatalog'
+          ? catalog.promise
+          : new Promise(() => {})
+    )
+    const view = renderHook(() =>
+      useStructuredAgentSessionOptions({
+        agent: 'pi',
+        sessionId: 'cold-pi',
+        target: LOCAL_TARGET,
+        transportEnabled: true,
+        isVisible: true,
+        providerVisible: true,
+        fence: 1,
+        turnId: null,
+        unloadedTurnRevisions: undefined,
+        mutate: vi.fn()
+      })
+    )
+    const model = () => view.result.current.optionSnapshot.find(({ id }) => id === 'model')
+    await waitFor(() =>
+      expect(view.result.current.sendSource.optionStateRef.current.optionsAnswerPresent).toBe(true)
+    )
+    expect(model()).toMatchObject({ settable: false })
+    await act(async () => catalog.resolve(listed([{ id: 'provider/model', label: 'Pi model' }])))
+    await waitFor(() =>
+      expect(model()).toMatchObject({
+        kind: {
+          choices: expect.arrayContaining([
+            expect.objectContaining({ value: 'provider/model', label: 'Pi model' })
+          ])
+        }
+      })
+    )
+    expect(reads).toBeGreaterThan(1)
+    expect(
+      view.result.current.sendSource.optionStateRef.current.record.values.model
+    ).toBeUndefined()
+    view.unmount()
+  })
+
   it('shows the unlisted action model rather than a saved or listed replacement on every pending frame', async () => {
     catalogAnswers(() => Promise.resolve(CLAUDE_LIST))
     await preloadHostModelCatalogSnapshots(LOCAL_TARGET, ['claude'])
