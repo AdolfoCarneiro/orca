@@ -19,7 +19,8 @@ function digest(bytes: Uint8Array): string {
 
 function createLiveFrameRoute(
   format: BrowserScreencastFormat,
-  onFrame: BrowserScreencastOptions['onFrame']
+  onFrame: BrowserScreencastOptions['onFrame'],
+  overrides: Partial<BrowserScreencastOptions> = {}
 ) {
   const acknowledgements: number[] = []
   const dbg: Debugger = Object.assign(createMockScreencastWebContents().debugger, {
@@ -40,11 +41,13 @@ function createLiveFrameRoute(
     maxHeight: 1200,
     everyNthFrame: 2,
     minFrameIntervalMs: 0,
-    onFrame
+    onFrame,
+    ...overrides
   }
   const isClosed = () => false
   const isStopping = () => false
   const pacer = createBrowserScreencastFramePacer({ dbg, options, isClosed, isStopping })
+  const observeGuestViewSize = vi.fn(() => false)
   const handler = createBrowserScreencastMessageHandler({
     dbg,
     options,
@@ -55,12 +58,13 @@ function createLiveFrameRoute(
     scheduleNavigationFrameCapture: () => {},
     clearNavigationCaptureTimer: () => {},
     bumpSnapshotGeneration: () => {},
-    observeGuestViewSize: () => false,
+    observeGuestViewSize,
     setDialogOpen: () => {}
   })
   return {
     pacer,
     acknowledgements,
+    observeGuestViewSize,
     emit: (data: string, sessionId: number) =>
       handler({}, 'Page.screencastFrame', { data, sessionId, metadata: { timestamp: 123.5 } })
   }
@@ -73,6 +77,92 @@ async function settleAcknowledgements(): Promise<void> {
 }
 
 describe('live screencast image allocation', () => {
+  it('observes size and acknowledges backlogged frames without decoding their images', async () => {
+    const bytes = readFileSync(resolve('resources/tray/orca-menu-barTemplate.png'))
+    const data = bytes.toString('base64')
+    const wires: Uint8Array[] = []
+    let backlogged = false
+    const route = createLiveFrameRoute(
+      'png',
+      (wire) => {
+        wires.push(wire)
+        return true
+      },
+      {
+        isFrameDeliveryBacklogged: () => backlogged
+      }
+    )
+    const from = vi.spyOn(Buffer, 'from')
+    try {
+      route.emit(data, 1)
+      backlogged = true
+      for (let id = 2; id <= 100; id++) {
+        route.emit(data, id)
+      }
+      await settleAcknowledgements()
+      expect(
+        from.mock.calls.filter((call: readonly unknown[]) => call[1] === 'base64')
+      ).toHaveLength(1)
+      expect(wires).toHaveLength(1)
+      expect(route.observeGuestViewSize).toHaveBeenCalledTimes(100)
+      expect(route.acknowledgements).toEqual(Array.from({ length: 100 }, (_, i) => i + 1))
+      backlogged = false
+      route.emit(data, 101)
+      await settleAcknowledgements()
+      expect(wires.map((wire) => decodeBrowserScreencastFrame(wire)?.seq)).toEqual([0, 1])
+      expect(digest(decodeBrowserScreencastFrame(wires[1])?.image ?? new Uint8Array())).toBe(
+        digest(bytes)
+      )
+      expect(route.acknowledgements.at(-1)).toBe(101)
+    } finally {
+      from.mockRestore()
+      route.pacer.clearPending(true)
+    }
+  })
+
+  it('keeps the mobile ACK interval when a skipped frame outlives backlog recovery', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1000)
+    let backlogged = false
+    const wires: Uint8Array[] = []
+    const route = createLiveFrameRoute(
+      'jpeg',
+      (wire) => {
+        wires.push(wire)
+        return true
+      },
+      {
+        minFrameIntervalMs: 100,
+        isFrameDeliveryBacklogged: () => backlogged
+      }
+    )
+    try {
+      const data = Buffer.from('live-image').toString('base64')
+      route.emit(data, 1)
+      await settleAcknowledgements()
+      backlogged = true
+      await vi.advanceTimersByTimeAsync(40)
+      route.emit(data, 2)
+      expect(route.acknowledgements).toEqual([1])
+      backlogged = false
+      await vi.advanceTimersByTimeAsync(59)
+      expect(route.acknowledgements).toEqual([1])
+      await vi.advanceTimersByTimeAsync(1)
+      expect(route.acknowledgements).toEqual([1, 2])
+      expect(wires).toHaveLength(1)
+      route.emit(data, 3)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(route.acknowledgements).toEqual([1, 2, 3])
+      expect(wires.map((wire) => decodeBrowserScreencastFrame(wire)?.seq)).toEqual([0, 1])
+      expect(Buffer.from(decodeBrowserScreencastFrame(wires[1])?.image ?? []).toString()).toBe(
+        'live-image'
+      )
+    } finally {
+      route.pacer.clearPending(true)
+      vi.useRealTimers()
+    }
+  })
+
   it('replays captured PNG and JPEG bytes without copying the decoded image again', async () => {
     const fixtures = [
       {

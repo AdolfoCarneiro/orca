@@ -1,6 +1,9 @@
 import type { ActiveBrowserScreencastSubscriber } from './browser/browser-screencast-contracts'
 import { recordScreencastSubscriberSend } from './browser-screencast-ghost-subscriber-eviction'
-import { sendRemoteBrowserScreencastFrame } from './remote-browser-screencast-frame-admission'
+import {
+  sendRemoteBrowserScreencastFrame,
+  type ScreencastFrameSendOutcome
+} from './remote-browser-screencast-frame-admission'
 
 // Match the frame pacer's backpressure retry interval.
 export const SCREENCAST_PENDING_FRAME_RETRY_MS = 50
@@ -9,7 +12,7 @@ export const SCREENCAST_PENDING_FRAME_RETRY_MS = 50
 export function deliverScreencastSubscriberFrame(
   subscriber: ActiveBrowserScreencastSubscriber,
   bytes: Uint8Array<ArrayBufferLike>
-): void {
+): ScreencastFrameSendOutcome {
   const outcome = sendRemoteBrowserScreencastFrame(subscriber.sendBinary, bytes)
   subscriber.pendingFrame = outcome === 'handled' ? null : bytes
   // Backlog proves an active socket, not a ghost.
@@ -19,6 +22,8 @@ export function deliverScreencastSubscriberFrame(
   if (outcome !== 'handled') {
     schedulePendingFrameRetry(subscriber)
   }
+  subscriber.onFrameSend?.(bytes, outcome)
+  return outcome
 }
 
 export function cancelScreencastSubscriberFrameRetry(
@@ -42,11 +47,13 @@ function schedulePendingFrameRetry(subscriber: ActiveBrowserScreencastSubscriber
       return
     }
     // Count ghost refusals only on produced frames, never retries.
-    if (sendRemoteBrowserScreencastFrame(subscriber.sendBinary, bytes) === 'handled') {
+    const outcome = sendRemoteBrowserScreencastFrame(subscriber.sendBinary, bytes)
+    if (outcome === 'handled') {
       subscriber.pendingFrame = null
       subscriber.delivery = recordScreencastSubscriberSend(subscriber.delivery, true)
     } else {
       schedulePendingFrameRetry(subscriber)
     }
+    subscriber.onFrameSend?.(bytes, outcome)
   }, SCREENCAST_PENDING_FRAME_RETRY_MS)
 }

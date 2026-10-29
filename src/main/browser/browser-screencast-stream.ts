@@ -203,6 +203,7 @@ export async function startBrowserScreencast(
   }
 
   return {
+    requestFrame: snapshotCapture.scheduleNavigationFrameCapture,
     settleDialog: (accept: boolean, promptText?: string) => {
       if (!dialogOpen) {
         return Promise.resolve(false)

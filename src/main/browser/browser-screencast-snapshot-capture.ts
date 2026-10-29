@@ -47,7 +47,7 @@ export function createBrowserScreencastSnapshotCapture(
   }
 
   const scheduleNavigationFrameCapture = (): void => {
-    if (isClosed() || isStopping()) {
+    if (isClosed() || isStopping() || options.isFrameDeliveryBacklogged?.()) {
       return
     }
     clearNavigationCaptureTimer()
@@ -69,12 +69,17 @@ export function createBrowserScreencastSnapshotCapture(
     if (isSnapshotStale(initialOnly, generation)) {
       return
     }
+    const frameDeliveryGeneration = options.getFrameDeliveryGeneration?.()
+    const isStale = (): boolean =>
+      isSnapshotStale(initialOnly, generation) ||
+      options.isFrameDeliveryBacklogged?.() === true ||
+      options.getFrameDeliveryGeneration?.() !== frameDeliveryGeneration
     try {
       const viewportWidth = positiveInteger(options.viewportWidth)
       const viewportHeight = positiveInteger(options.viewportHeight)
       let image: Uint8Array | null = null
       await applyDeviceMetricsOverride()
-      if (isSnapshotStale(initialOnly, generation)) {
+      if (isStale()) {
         return
       }
       if (viewportWidth && viewportHeight && typeof webContents.capturePage === 'function') {
@@ -85,6 +90,9 @@ export function createBrowserScreencastSnapshotCapture(
             SNAPSHOT_CAPTURE_TIMEOUT_MS,
             null
           )
+          if (isStale()) {
+            return
+          }
           if (nativeImage) {
             const capture = scaleSnapshotToFit(nativeImage, options)
             const buffer =
@@ -96,6 +104,9 @@ export function createBrowserScreencastSnapshotCapture(
         } catch {
           image = null
         }
+      }
+      if (isStale()) {
+        return
       }
       if (!image) {
         const result = await sendDebuggerCommand(dbg, 'Page.captureScreenshot', {
@@ -115,7 +126,7 @@ export function createBrowserScreencastSnapshotCapture(
             : {}),
           captureBeyondViewport: false
         })
-        if (isSnapshotStale(initialOnly, generation)) {
+        if (isStale()) {
           return
         }
         const payload =
@@ -126,7 +137,7 @@ export function createBrowserScreencastSnapshotCapture(
         }
         image = new Uint8Array(Buffer.from(data, 'base64'))
       }
-      if (isSnapshotStale(initialOnly, generation)) {
+      if (isStale()) {
         return
       }
       const imageSize = readBrowserScreencastImageSize(image, options.format)

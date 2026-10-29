@@ -59,6 +59,9 @@ export function createBrowserScreencastFramePacer(
       return false
     }
     lastFrameSentAt = Date.now()
+    if ('skipDelivery' in frame) {
+      return true
+    }
     const accepted = options.onFrame(
       encodeBrowserScreencastFrame({
         opcode: BrowserScreencastOpcode.Frame,

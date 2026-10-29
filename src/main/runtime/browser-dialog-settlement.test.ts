@@ -20,6 +20,9 @@ function streamingPage(session: BrowserScreencastSession): ActiveBrowserScreenca
     stopping: false,
     subscribers: new Map(),
     viewportOwnerSubscriptionId: null,
+    backloggedFrame: null,
+    frameDeliveryGeneration: 0,
+    pendingFrameRefresh: false,
     appliedBudget: {
       quality: 72,
       maxWidth: 768,

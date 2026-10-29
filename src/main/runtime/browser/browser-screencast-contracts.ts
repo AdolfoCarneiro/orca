@@ -6,6 +6,7 @@ import type {
 } from '../../browser/browser-screencast-stream-types'
 import type { ScreencastSubscriberDeliveryState } from '../browser-screencast-ghost-subscriber-eviction'
 import type { RpcBinarySender } from '../rpc/rpc-binary-sender'
+import type { ScreencastFrameSendOutcome } from '../remote-browser-screencast-frame-admission'
 import type { BrowserCommandTargetParams } from './browser-command-contracts'
 
 export type BrowserScreencastParams = {
@@ -25,7 +26,7 @@ export type BrowserScreencastStartResult = {
   subscriptionId: string
   ready: Extract<BrowserScreencastResult, { type: 'ready' }>
   // Shared-page budget/dialog ownership must not leak through subscriber handles.
-  session: Omit<BrowserScreencastSession, 'updateFrameBudget' | 'settleDialog'>
+  session: Omit<BrowserScreencastSession, 'updateFrameBudget' | 'settleDialog' | 'requestFrame'>
   // Replay the joining snapshot once the caller's pre-ready gate opens.
   flushPendingFrame: () => void
 }
@@ -39,6 +40,7 @@ export type ActiveBrowserScreencastSubscriber = {
   budget: BrowserScreencastFrameBudget
   pendingFrame: Uint8Array<ArrayBufferLike> | null
   pendingFrameRetry: ReturnType<typeof setTimeout> | null
+  onFrameSend?: (bytes: Uint8Array<ArrayBufferLike>, outcome: ScreencastFrameSendOutcome) => void
   // Device identity survives reconnects; connection ids cannot replace stale subscriptions.
   pairedDeviceId?: string
   delivery: ScreencastSubscriberDeliveryState
@@ -52,4 +54,7 @@ export type ActiveBrowserScreencastPage = {
   subscribers: Map<string, ActiveBrowserScreencastSubscriber>
   viewportOwnerSubscriptionId: string | null
   appliedBudget: BrowserScreencastFrameBudget
+  backloggedFrame: Uint8Array<ArrayBufferLike> | null
+  frameDeliveryGeneration: number
+  pendingFrameRefresh: boolean
 }

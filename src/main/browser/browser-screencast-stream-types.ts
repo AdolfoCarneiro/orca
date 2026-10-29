@@ -14,6 +14,8 @@ export type BrowserScreencastOptions = {
   mobile?: boolean
   everyNthFrame: number
   minFrameIntervalMs: number
+  isFrameDeliveryBacklogged?: () => boolean
+  getFrameDeliveryGeneration?: () => number
   onFrame: (bytes: Uint8Array<ArrayBufferLike>) => boolean | void
   onEvent?: (event: BrowserScreencastEvent) => void
   onError?: (message: string) => void
@@ -34,6 +36,7 @@ export type BrowserScreencastSession = {
   done: Promise<void>
   updateViewport: (viewport: BrowserScreencastViewport) => Promise<void>
   updateFrameBudget: (budget: BrowserScreencastFrameBudget) => Promise<void>
+  requestFrame?: () => void
   /** Answers on the reporting CDP session; returns false if no dialog is open. */
   settleDialog: (accept: boolean, promptText?: string) => Promise<boolean>
 }
@@ -42,11 +45,13 @@ export type BrowserScreencastEvent =
   | { type: 'dialog'; dialogType: string; message: string }
   | { type: 'dialogClosed' }
 
-export type PendingScreencastFrame = {
-  metadata: BrowserScreencastFrameMetadata
-  image: Uint8Array
-  sessionId?: number
-}
+export type PendingScreencastFrame =
+  | {
+      metadata: BrowserScreencastFrameMetadata
+      image: Uint8Array
+      sessionId?: number
+    }
+  | { skipDelivery: true; sessionId: number }
 
 export type ScreencastImageSize = {
   width: number

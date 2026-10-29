@@ -96,6 +96,10 @@ export function createBrowserScreencastMessageHandler(
         ackScreencastFrame(sessionId)
         return
       }
+      if (options.isFrameDeliveryBacklogged?.()) {
+        queueFrame({ skipDelivery: true, sessionId })
+        return
+      }
       const decoded = Buffer.from(data, 'base64')
       const image =
         decoded.buffer.byteLength === decoded.byteLength ? decoded : new Uint8Array(decoded)

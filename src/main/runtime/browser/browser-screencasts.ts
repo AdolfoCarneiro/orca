@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { startBrowserScreencast } from '../../browser/browser-screencast-stream'
 import { rendererPublicationThrottle } from '../../window/renderer-publication-throttle'
 import { mintBrowserScreencastSubscriptionId } from '../browser-screencast-subscription-id'
+import { createScreencastFrameBacklogObserver } from './browser-screencast-frame-backlog'
 import {
   cancelScreencastSubscriberFrameRetry,
   deliverScreencastSubscriberFrame
@@ -87,7 +88,10 @@ export class RuntimeBrowserScreencasts {
         stopping: false,
         subscribers,
         viewportOwnerSubscriptionId: null,
-        appliedBudget: budget
+        appliedBudget: budget,
+        backloggedFrame: null,
+        frameDeliveryGeneration: 0,
+        pendingFrameRefresh: false
       }
       // Hidden host compositors stop producing guest frames when throttled.
       const win = this.host.getAvailableAuthoritativeWindow()
@@ -98,10 +102,15 @@ export class RuntimeBrowserScreencasts {
         format: params.format,
         ...budget,
         ...viewport,
+        isFrameDeliveryBacklogged: () => pendingRecord.backloggedFrame !== null,
+        getFrameDeliveryGeneration: () => pendingRecord.frameDeliveryGeneration,
         onFrame: (bytes) => {
           const ghosts: string[] = []
+          let backloggedSubscribers = 0
           for (const [subscriptionId, subscriber] of pendingRecord.subscribers) {
-            deliverScreencastSubscriberFrame(subscriber, bytes)
+            if (deliverScreencastSubscriberFrame(subscriber, bytes) === 'backlogged') {
+              backloggedSubscribers += 1
+            }
             if (screencastSubscriberIsGhost(subscriber.delivery)) {
               ghosts.push(subscriptionId)
             }
@@ -112,6 +121,14 @@ export class RuntimeBrowserScreencasts {
               this.leaveScreencastSubscriber(pendingRecord, subscriptionId, pendingRecord.session)
             }
           }
+          const allBacklogged =
+            pendingRecord.subscribers.size > 0 &&
+            backloggedSubscribers === pendingRecord.subscribers.size
+          if (allBacklogged !== (pendingRecord.backloggedFrame !== null)) {
+            pendingRecord.frameDeliveryGeneration += 1
+          }
+          pendingRecord.backloggedFrame = allBacklogged ? bytes : null
+          pendingRecord.pendingFrameRefresh = false
           return true
         },
         onEvent: (event) => {
@@ -136,6 +153,10 @@ export class RuntimeBrowserScreencasts {
       void record.started
         .then((session) => {
           record.session = session
+          if (record.pendingFrameRefresh && !record.stopping) {
+            record.pendingFrameRefresh = false
+            session.requestFrame?.()
+          }
           return session.done
         })
         .finally(() => {
@@ -149,6 +170,8 @@ export class RuntimeBrowserScreencasts {
             subscriber.resolveDone()
           }
           pendingRecord.subscribers.clear()
+          pendingRecord.backloggedFrame = null
+          pendingRecord.pendingFrameRefresh = false
         })
         .catch(() => {})
     }
@@ -159,8 +182,9 @@ export class RuntimeBrowserScreencasts {
       resolveDone: resolveSubscriberDone,
       viewport,
       budget,
-      pendingFrame: null,
+      pendingFrame: active.backloggedFrame,
       pendingFrameRetry: null,
+      onFrameSend: createScreencastFrameBacklogObserver(active, subscriptionId),
       pairedDeviceId: stream.pairedDeviceId,
       delivery: INITIAL_SCREENCAST_SUBSCRIBER_DELIVERY
     })
@@ -228,7 +252,12 @@ export class RuntimeBrowserScreencasts {
   private leaveScreencastSubscriber(
     active: Pick<
       ActiveBrowserScreencastPage,
-      'subscribers' | 'viewportOwnerSubscriptionId' | 'stopping' | 'appliedBudget'
+      | 'subscribers'
+      | 'viewportOwnerSubscriptionId'
+      | 'stopping'
+      | 'appliedBudget'
+      | 'backloggedFrame'
+      | 'pendingFrameRefresh'
     >,
     subscriptionId: string,
     session: BrowserScreencastSession
@@ -251,6 +280,8 @@ export class RuntimeBrowserScreencasts {
     }
     if (active.subscribers.size === 0) {
       active.stopping = true
+      active.backloggedFrame = null
+      active.pendingFrameRefresh = false
       session.stop()
       return
     }

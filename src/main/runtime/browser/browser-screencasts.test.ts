@@ -9,6 +9,7 @@ import {
   createStreamedGuest
 } from '../single-page-browser-commands-host-test-double'
 import { RuntimeBrowserCommands } from './browser-commands'
+import type { RpcBinarySender } from '../rpc/rpc-binary-sender'
 
 const { webContentsFromId, startBrowserScreencast } = vi.hoisted(() => ({
   webContentsFromId: vi.fn(),
@@ -34,7 +35,8 @@ function createSession() {
     done,
     updateViewport: async () => {},
     updateFrameBudget: async () => {},
-    settleDialog: async () => false
+    settleDialog: async () => false,
+    requestFrame: vi.fn()
   }
 }
 
@@ -227,6 +229,97 @@ describe('screencast ownership', () => {
         session.stop()
         await session.done
       }
+    }
+  )
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('retries encoded backlog bytes and requests a fresh surface once transport drains', async () => {
+    vi.useFakeTimers()
+    const session = createSession()
+    startBrowserScreencast.mockResolvedValue(session)
+    const commands = new RuntimeBrowserCommands(createSinglePageBrowserCommandsHost())
+    let blocked = true
+    const send = vi.fn<RpcBinarySender>(() => (blocked ? 'backlogged' : true))
+    const stream = await commands.browserScreencast(params, { sendBinary: send })
+    const options = startBrowserScreencast.mock.calls[0][1]
+    const bytes = new Uint8Array([1, 2, 3])
+    options.onFrame(bytes)
+    expect(options.isFrameDeliveryBacklogged?.()).toBe(true)
+    await vi.advanceTimersByTimeAsync(50)
+    expect(session.requestFrame).not.toHaveBeenCalled()
+    blocked = false
+    await vi.advanceTimersByTimeAsync(50)
+    expect(send.mock.calls.map((call) => call[0])).toEqual([bytes, bytes, bytes])
+    expect(send.mock.calls.every((call) => call[0] === bytes)).toBe(true)
+    expect(options.isFrameDeliveryBacklogged?.()).toBe(false)
+    expect(session.requestFrame).toHaveBeenCalledOnce()
+    await vi.advanceTimersByTimeAsync(100)
+    expect(send).toHaveBeenCalledTimes(3)
+    stream.session.stop()
+    await stream.session.done
+    await vi.advanceTimersByTimeAsync(0)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('lets a healthy newcomer reopen a static blocked stream after its ready gate opens', async () => {
+    vi.useFakeTimers()
+    const session = createSession()
+    startBrowserScreencast.mockResolvedValue(session)
+    const commands = new RuntimeBrowserCommands(createSinglePageBrowserCommandsHost())
+    const first = await commands.browserScreencast(params, { sendBinary: () => 'backlogged' })
+    const options = startBrowserScreencast.mock.calls[0][1]
+    const bytes = new Uint8Array([4, 5, 6])
+    options.onFrame(bytes)
+    const send = vi.fn(() => true)
+    const newcomer = await commands.browserScreencast(params, { sendBinary: send })
+    expect(send).not.toHaveBeenCalled()
+    expect(session.requestFrame).not.toHaveBeenCalled()
+    newcomer.flushPendingFrame()
+    expect(send).toHaveBeenCalledWith(bytes, { dropWhenBacklogged: true })
+    expect(options.isFrameDeliveryBacklogged?.()).toBe(false)
+    expect(session.requestFrame).toHaveBeenCalledOnce()
+    first.session.stop()
+    newcomer.session.stop()
+    await Promise.all([first.session.done, newcomer.session.done])
+    await vi.advanceTimersByTimeAsync(0)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it.each([false, true])(
+    'settles deferred startup refresh with newer produced frame=%s',
+    async (newerFrame) => {
+      vi.useFakeTimers()
+      const session = createSession()
+      let finishStart!: (value: BrowserScreencastSession) => void
+      startBrowserScreencast.mockReturnValue(
+        new Promise<BrowserScreencastSession>((resolve) => {
+          finishStart = resolve
+        })
+      )
+      const commands = new RuntimeBrowserCommands(createSinglePageBrowserCommandsHost())
+      let blocked = true
+      const send = vi.fn<RpcBinarySender>(() => (blocked ? 'backlogged' : true))
+      const joining = commands.browserScreencast(params, { sendBinary: send })
+      await vi.waitFor(() => expect(startBrowserScreencast).toHaveBeenCalledOnce())
+      const options = startBrowserScreencast.mock.calls[0][1]
+      options.onFrame(new Uint8Array([1]))
+      blocked = false
+      await vi.advanceTimersByTimeAsync(50)
+      expect(session.requestFrame).not.toHaveBeenCalled()
+      if (newerFrame) {
+        options.onFrame(new Uint8Array([2]))
+      }
+      finishStart(session)
+      const stream = await joining
+      expect(session.requestFrame).toHaveBeenCalledTimes(newerFrame ? 0 : 1)
+      expect(send.mock.calls.at(-1)?.[0]).toEqual(new Uint8Array([newerFrame ? 2 : 1]))
+      stream.session.stop()
+      await stream.session.done
+      await vi.advanceTimersByTimeAsync(0)
+      expect(vi.getTimerCount()).toBe(0)
     }
   )
 
