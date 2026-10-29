@@ -129,7 +129,11 @@ describe('scope-aware map field presence', () => {
   it('selected omission keeps orphan own-undefined entries without enumerating unrelated content', () => {
     const prior = freeze({
       ...getDefaultWorkspaceSession(),
-      terminalPtyIncarnationsByPaneKey: { selected: 'value', orphan: undefined }
+      terminalPtyIncarnationsByPaneKey: {
+        selected: 'value',
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this legacy ingress case intentionally includes an invalid own-undefined entry.
+        orphan: undefined as never
+      }
     })
     const index = new SessionUnitIndex(prior)
     expect(index.size('terminalPtyIncarnationsByPaneKey')).toBe(2)
@@ -236,12 +240,13 @@ describe('resolved field transitions against independent native values', () => {
         reader.write(field, 'next', { present: true, value: entry })
         model = { ...model, [field]: { next: value } }
         compare()
-        reader.write(field, 'ownUndefined', { present: true, value: undefined })
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the matrix intentionally exercises an invalid own-undefined entry from legacy ingress.
+        reader.write(field, 'ownUndefined', { present: true, value: undefined as never })
         model = { ...model, [field]: { ...model[field], ownUndefined: undefined } }
         compare()
         reader.write(field, 'next', { present: false, value: undefined })
         const next = { ...model[field] }
-        delete next.next
+        Reflect.deleteProperty(next, 'next')
         model = { ...model, [field]: next }
         compare()
         reader.write(field, 'ownUndefined', { present: false, value: undefined })
