@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type {
   WorkspaceSpaceAnalysis,
   WorkspaceSpaceScanProgress,
@@ -91,7 +91,7 @@ function isWorkspaceSpaceScanCancelled(error: unknown): boolean {
   return message.includes('workspace space scan cancelled') || message.includes('was cancelled')
 }
 
-export const createWorkspaceSpaceSlice: StateCreator<AppState, [], [], WorkspaceSpaceSlice> = (
+export const createWorkspaceSpaceSlice: SessionStateCreator<AppState, WorkspaceSpaceSlice> = (
   set,
   get
 ) => ({

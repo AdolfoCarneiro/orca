@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type {
   CreateHostedReviewResult,
   CreateStackedHostedReviewResult,
@@ -61,7 +61,7 @@ export type HostedReviewSlice = {
   ) => Promise<HostedReviewInfo | null>
 }
 
-export const createHostedReviewSlice: StateCreator<AppState, [], [], HostedReviewSlice> = (
+export const createHostedReviewSlice: SessionStateCreator<AppState, HostedReviewSlice> = (
   set,
   get
 ) => ({

@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { isDecorativeAgentTitleFrameChange } from '../../../../shared/agent-decorative-title-signature'
 import { scheduleRuntimeGraphSync } from '@/runtime/sync-runtime-graph'
 import { classifyTitleActivity } from '@/lib/pane-agent-evidence'
@@ -64,7 +65,8 @@ export function createTerminalTabPresentationActions(
           return s
         }
         const ownerTabs = tabs.map((tab) => (tab.id === tabId ? { ...tab, aiVaultTitle } : tab))
-        const nextTabsByWorktree = { ...s.tabsByWorktree, [ownerWorktreeId]: ownerTabs }
+        const edit = editSessionSource(s).set('tabsByWorktree', ownerWorktreeId, ownerTabs)
+        const nextTabsByWorktree = edit.read('tabsByWorktree')
         const unifiedTabs = s.unifiedTabsByWorktree[ownerWorktreeId] ?? []
         const nextUnifiedTabs = unifiedTabs.map((tab) =>
           tab.contentType === 'terminal' && tab.entityId === tabId ? { ...tab, aiVaultTitle } : tab
@@ -73,13 +75,7 @@ export function createTerminalTabPresentationActions(
           ownerWorktreeId
         ])
         scheduleRuntimeGraphSync()
-        return {
-          tabsByWorktree: nextTabsByWorktree,
-          unifiedTabsByWorktree: {
-            ...s.unifiedTabsByWorktree,
-            [ownerWorktreeId]: nextUnifiedTabs
-          }
-        }
+        return edit.set('unifiedTabsByWorktree', ownerWorktreeId, nextUnifiedTabs).finish()
       })
     },
     setGeneratedTabTitleFromAgentPrompt: (paneKey, prompt, options) => {
@@ -139,7 +135,7 @@ export function createTerminalTabPresentationActions(
         const nextTabs = [...tabs]
         nextTabs[tabIndex] = tabWithoutLaunchAgent
         scheduleRuntimeGraphSync()
-        return { tabsByWorktree: { ...s.tabsByWorktree, [ownerWorktreeId]: nextTabs } }
+        return editSessionSource(s).set('tabsByWorktree', ownerWorktreeId, nextTabs).finish({})
       })
     },
     setRuntimePaneTitle: (tabId, paneId, title) => {

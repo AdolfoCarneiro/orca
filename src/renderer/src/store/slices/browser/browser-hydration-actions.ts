@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/constants'
 import { folderWorkspaceKey } from '../../../../../shared/workspace-scope'
 import type { BrowserSlice, BrowserSliceGet, BrowserSliceSet } from './browser-slice-contract'
@@ -91,12 +92,9 @@ export function createBrowserHydrationActions(
                 sessionProfileId: profileId,
                 sessionPartition: sessionPartition ?? null
               }
-              return {
-                browserTabsByWorktree: {
-                  ...s.browserTabsByWorktree,
-                  [worktreeId]: updatedTabs
-                }
-              }
+              return editSessionSource(s)
+                .set('browserTabsByWorktree', worktreeId, updatedTabs)
+                .finish({})
             }
           }
           return s

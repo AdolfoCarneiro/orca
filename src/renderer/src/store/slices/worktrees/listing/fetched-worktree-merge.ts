@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { appliedWorktreeCatalogVersionPatch } from './worktree-catalog-version-state'
 import type { AppState } from '../../../types'
 import type { WorktreeSlice } from '../../worktree-helpers'
@@ -137,7 +137,7 @@ export function preserveConcurrentDisplayName<T extends Worktree>(
 }
 
 export function mergeFetchedWorktrees(
-  set: Parameters<StateCreator<AppState, [], [], WorktreeSlice>>[0],
+  set: Parameters<SessionStateCreator<AppState, WorktreeSlice>>[0],
   get: () => AppState,
   args: FencedWorktreeMergeArgs
 ): WorktreeListingMergeOutcome {

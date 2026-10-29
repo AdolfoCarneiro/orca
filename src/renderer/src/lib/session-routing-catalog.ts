@@ -9,7 +9,7 @@ import {
   type HostSessionRouting
 } from './workspace-session-host-persistence'
 import { normalizeWorkspaceSessionKeyToWorktreeId } from './workspace-session-host-contention'
-import { groupSessionCatalog, type SessionSourceDiscovery } from './session-source-discovery'
+import { groupSessionCatalog, type SessionSourceDiscovery } from './session-source-fields'
 
 type WorktreeRows = AppState['worktreesByRepo'][string]
 

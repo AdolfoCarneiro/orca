@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { toast } from 'sonner'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -31,8 +31,8 @@ import { readWslHostWindowsDriveRefusal } from '../../../../shared/wsl-host-wind
 import { showWslHostWindowsDriveRefusal } from '@/lib/wsl-host-windows-drive-refusal-toast'
 
 export function createRepoAddActions(
-  set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0],
+  get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'addRepoPath' | 'addRepo' | 'addNonGitFolder'> {
   return {
     addRepoPath: async (path, kind = 'git', options) => {

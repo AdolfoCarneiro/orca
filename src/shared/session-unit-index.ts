@@ -22,6 +22,7 @@ type Contribution = SessionUnitAddress & {
   references: Map<SessionReferenceKind, Set<string>>
   terminalOccurrences: Map<string, number>
   scrollbackOccurrences: Map<string, number>
+  sourceFiles?: readonly unknown[]
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -86,6 +87,9 @@ export class SessionUnitIndex {
       references: new Map(),
       terminalOccurrences: new Map(),
       scrollbackOccurrences: new Map()
+    }
+    if (field === 'openFilesByWorktree' && Array.isArray(value)) {
+      unit.sourceFiles = value
     }
     const add = (kind: SessionReferenceKind, id: unknown): void => {
       if (typeof id !== 'string' || !id) {
@@ -225,6 +229,10 @@ export class SessionUnitIndex {
 
   ids(field: SessionMapField, key: string, kind: SessionReferenceKind): ReadonlySet<string> {
     return this.units.get(field)?.get(key)?.references.get(kind) ?? new Set()
+  }
+
+  fileOccurrences(owner: string): readonly unknown[] {
+    return this.units.get('openFilesByWorktree')?.get(owner)?.sourceFiles ?? []
   }
 
   keys(field: SessionMapField): IterableIterator<string> {

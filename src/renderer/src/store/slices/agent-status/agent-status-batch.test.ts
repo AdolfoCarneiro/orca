@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStatusEntry } from '../../../../../shared/agent-status-types'
 import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../../shared/agent-status-freshness'
@@ -43,12 +44,14 @@ function seedBatchStore() {
     agentType: 'pi',
     startedAt: BASE_TIME - 200
   }
-  store.setState({
-    tabsByWorktree: { 'wt-1': [tab] },
-    retainedAgentsByPaneKey: { [FIRST_PANE]: retained },
-    retentionSuppressedPaneKeys: { [FIRST_PANE]: true },
-    refreshGitHubForWorktreeIfStale: vi.fn().mockResolvedValue(undefined)
-  } as Partial<AppState>)
+  store.setState(
+    replaceSessionSourceFields({
+      tabsByWorktree: { 'wt-1': [tab] },
+      retainedAgentsByPaneKey: { [FIRST_PANE]: retained },
+      retentionSuppressedPaneKeys: { [FIRST_PANE]: true },
+      refreshGitHubForWorktreeIfStale: vi.fn().mockResolvedValue(undefined)
+    } as Partial<AppState>)
+  )
   return store
 }
 
@@ -146,12 +149,16 @@ describe('setAgentStatuses', () => {
         }
       }
     })
-    sequentialStore.setState({
-      setGeneratedTabTitleFromAgentPrompt: sequentialTitleGeneration
-    } as Partial<AppState>)
-    batchStore.setState({
-      setGeneratedTabTitlesFromAgentPrompts: batchTitleGenerationBulk
-    } as Partial<AppState>)
+    sequentialStore.setState(
+      replaceSessionSourceFields({
+        setGeneratedTabTitleFromAgentPrompt: sequentialTitleGeneration
+      } as Partial<AppState>)
+    )
+    batchStore.setState(
+      replaceSessionSourceFields({
+        setGeneratedTabTitlesFromAgentPrompts: batchTitleGenerationBulk
+      } as Partial<AppState>)
+    )
     const updates = makeUpdates()
 
     for (const update of updates) {
@@ -245,11 +252,13 @@ describe('setAgentStatuses', () => {
         return [worktreeId, [makeUnifiedTab({ id: `tab-${index}`, worktreeId, groupId: 'g' })]]
       })
     )
-    store.setState({
-      settings: { ...store.getState().settings, tabAutoGenerateTitle: true },
-      tabsByWorktree
-    } as Partial<AppState>)
-    store.setState({ unifiedTabsByWorktree })
+    store.setState(
+      replaceSessionSourceFields({
+        settings: { ...store.getState().settings, tabAutoGenerateTitle: true },
+        tabsByWorktree
+      } as Partial<AppState>)
+    )
+    store.setState(replaceSessionSourceFields({ unifiedTabsByWorktree }))
     const updates: AgentStatusBatchUpdate[] = Array.from({ length: paneCount }, (_, index) => ({
       paneKey: `tab-${index}:11111111-1111-4111-8111-111111111111`,
       payload: {
@@ -407,7 +416,9 @@ describe('setAgentStatuses', () => {
         ]
       })
     )
-    store.setState({ agentStatusByPaneKey: entries } as Partial<AppState>)
+    store.setState(
+      replaceSessionSourceFields({ agentStatusByPaneKey: entries } as Partial<AppState>)
+    )
     let publications = 0
     const unsubscribe = store.subscribe(() => {
       publications += 1
@@ -447,7 +458,9 @@ describe('setAgentStatuses', () => {
         timing: { updatedAt: BASE_TIME, stateStartedAt: BASE_TIME }
       })
       // Nested slice actions write real store; replacing it with the folded snapshot would revert those writes.
-      store.setState({ worktreesByRepo: { 'repo-late': [] } } as Partial<AppState>)
+      store.setState(
+        replaceSessionSourceFields({ worktreesByRepo: { 'repo-late': [] } } as Partial<AppState>)
+      )
       return applied
     })
 

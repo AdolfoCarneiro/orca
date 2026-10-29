@@ -8,9 +8,10 @@ import {
 } from '../../../shared/session-change-set'
 import type { SessionUnitAddress } from '../../../shared/session-unit-index'
 
-import { groupSessionFiles, type SessionSourceDiscovery } from './session-source-discovery'
+import type { SessionSourceDiscovery } from './session-source-fields'
+import type { OpenFile } from '../store/slices/editor'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
-import { SESSION_ROUTING_FIELDS } from './session-source-discovery'
+import { SESSION_ROUTING_FIELDS } from './session-source-fields'
 
 import {
   SessionProjectionIndex,
@@ -157,12 +158,12 @@ export class SessionUnitProjection extends SessionProjectionIndex {
         'activeTabTypeByWorktree'
       ] as const
     ).some((field) => changed.has(field))
-    const selectedFiles = editorChanged
-      ? (discovery.filesByOwner ?? groupSessionFiles(state.openFiles, owners))
-      : undefined
     const sparse = {
       ...state,
-      openFiles: [...owners].flatMap((id) => selectedFiles?.get(id) ?? []),
+      // SAFETY: this projection builds its index from renderer OpenFile occurrence sequences.
+      openFiles: editorChanged
+        ? [...owners].flatMap((id) => this.index.fileOccurrences(id) as OpenFile[])
+        : [],
       repos: this.catalog.repoRows([...owners].map(getRepoIdFromWorktreeId)),
       worktreesByRepo: {}
     } satisfies AppState

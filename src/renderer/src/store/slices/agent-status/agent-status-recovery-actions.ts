@@ -1,4 +1,4 @@
-import type { SleepingAgentSessionRecord } from '../../../../../shared/agent-session-resume'
+import { editSessionSource } from '@/store/session-source-edits'
 import type { AgentStatusSlice } from './agent-status-slice-contract'
 import type { AgentStatusRuntime } from './agent-status-runtime'
 import { collectSleepingAgentSessionRecordsForWorktree } from './agent-status-recovery-collection'
@@ -27,35 +27,32 @@ export function createAgentStatusRecoveryActions(
           paneKeys,
           captureMode: 'manual-worktree-sleep'
         })
-        const replaced = removeSleepingRecordsReplacedByManualWorktreeSleep(
-          s.sleepingAgentSessionsByPaneKey,
+        const edit = editSessionSource(s)
+        let changed = removeSleepingRecordsReplacedByManualWorktreeSleep(
+          edit,
           worktreeId,
           paneKeys,
           records
         )
-        let next = { ...replaced.records }
-        let changed = replaced.changed
         for (const record of Object.values(records)) {
-          if (next[record.paneKey] !== record) {
-            next[record.paneKey] = record
+          if (edit.read('sleepingAgentSessionsByPaneKey')[record.paneKey] !== record) {
+            edit.set('sleepingAgentSessionsByPaneKey', record.paneKey, record)
             changed = true
           }
         }
-        return changed ? { sleepingAgentSessionsByPaneKey: next } : s
+        return changed ? edit.finish() : s
       })
     },
 
     captureAllSleepingAgentSessions: (mode) => {
       set((s) => {
         const capturedAt = Date.now()
-        const next: Record<string, SleepingAgentSessionRecord> = {
-          ...s.sleepingAgentSessionsByPaneKey
-        }
+        const edit = editSessionSource(s)
         let changed = false
         for (const entry of Object.values(s.agentStatusByPaneKey)) {
           const record = capturedResumeRecord({
             entry,
-            existing: next[entry.paneKey],
+            existing: edit.read('sleepingAgentSessionsByPaneKey')[entry.paneKey],
             mode,
             capturedAt,
             worktreeIdOf: () => entry.worktreeId ?? findAgentPaneWorktreeId(s, entry.paneKey),
@@ -63,11 +60,11 @@ export function createAgentStatusRecoveryActions(
             launchConfigOf: () => getLaunchConfigForEntry(s, entry)
           })
           if (record) {
-            next[record.paneKey] = record
+            edit.set('sleepingAgentSessionsByPaneKey', record.paneKey, record)
             changed = true
           }
         }
-        return changed ? { sleepingAgentSessionsByPaneKey: next } : s
+        return changed ? edit.finish() : s
       })
     },
 
@@ -77,12 +74,9 @@ export function createAgentStatusRecoveryActions(
       set((s) =>
         s.sleepingAgentSessionsByPaneKey[record.paneKey]
           ? s
-          : {
-              sleepingAgentSessionsByPaneKey: {
-                ...s.sleepingAgentSessionsByPaneKey,
-                [record.paneKey]: record
-              }
-            }
+          : editSessionSource(s)
+              .set('sleepingAgentSessionsByPaneKey', record.paneKey, record)
+              .finish({})
       )
     },
     clearSleepingAgentSessionsByPaneKey,
@@ -90,14 +84,13 @@ export function createAgentStatusRecoveryActions(
     clearSleepingAgentSessionsByWorktree: (worktreeId) => {
       set((s) => {
         let changed = false
-        const next: Record<string, SleepingAgentSessionRecord> = {}
+        const edit = editSessionSource(s)
         const removed: string[] = []
         for (const [paneKey, record] of Object.entries(s.sleepingAgentSessionsByPaneKey)) {
           if (record.worktreeId === worktreeId) {
             changed = true
             removed.push(paneKey)
-          } else {
-            next[paneKey] = record
+            edit.remove('sleepingAgentSessionsByPaneKey', paneKey)
           }
         }
         if (!changed) {
@@ -108,26 +101,22 @@ export function createAgentStatusRecoveryActions(
         for (const paneKey of removed) {
           delete nextLaunch[paneKey]
         }
-        return {
-          sleepingAgentSessionsByPaneKey: next,
-          ...(nextLaunch !== s.agentLaunchConfigByPaneKey
-            ? { agentLaunchConfigByPaneKey: nextLaunch }
-            : {})
-        }
+        return edit.finish({
+          agentLaunchConfigByPaneKey: nextLaunch
+        })
       })
     },
 
     pruneSleepingAgentSessions: (validWorktreeIds) => {
       set((s) => {
         let changed = false
-        const next: Record<string, SleepingAgentSessionRecord> = {}
+        const edit = editSessionSource(s)
         const removed: string[] = []
         for (const [paneKey, record] of Object.entries(s.sleepingAgentSessionsByPaneKey)) {
           if (!validWorktreeIds.has(record.worktreeId)) {
             changed = true
             removed.push(paneKey)
-          } else {
-            next[paneKey] = record
+            edit.remove('sleepingAgentSessionsByPaneKey', paneKey)
           }
         }
         if (!changed) {
@@ -138,12 +127,9 @@ export function createAgentStatusRecoveryActions(
         for (const paneKey of removed) {
           delete nextLaunch[paneKey]
         }
-        return {
-          sleepingAgentSessionsByPaneKey: next,
-          ...(nextLaunch !== s.agentLaunchConfigByPaneKey
-            ? { agentLaunchConfigByPaneKey: nextLaunch }
-            : {})
-        }
+        return edit.finish({
+          agentLaunchConfigByPaneKey: nextLaunch
+        })
       })
     }
   }

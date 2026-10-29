@@ -1,14 +1,19 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../types'
 import type { AgentStatusBatchTransaction, AgentStatusBatchUpdate } from './agent-status-contract'
 import type { AgentStatusSlice } from './agent-status-slice-contract'
 import type { GeneratedTabTitleUpdate } from '../terminal-tab-title-batch'
 import { createFreshnessScheduler } from './agent-status-freshness-scheduler'
+import { SessionSourceReceipts } from '@/lib/session-source-receipts'
+import {
+  editSessionSource,
+  SESSION_SOURCE_RECEIPT,
+  type SessionSourceUpdate,
+  type SessionSourceSnapshot
+} from '../../session-source-edits'
+import type { SessionSourceDiscovery } from '@/lib/session-source-fields'
 
-export type AgentStatusStateUpdate =
-  | AppState
-  | Partial<AppState>
-  | ((state: AppState) => AppState | Partial<AppState>)
+export type AgentStatusStateUpdate = SessionSourceUpdate<AppState>
 
 export type AgentStatusRuntime = {
   get: () => AppState
@@ -24,8 +29,8 @@ export type AgentStatusRuntime = {
 }
 
 export function createAgentStatusRuntime(
-  storeSet: Parameters<StateCreator<AppState>>[0],
-  storeGet: Parameters<StateCreator<AppState>>[1],
+  storeSet: Parameters<SessionStateCreator<AppState>>[0],
+  storeGet: Parameters<SessionStateCreator<AppState>>[1],
   getActions: () => Pick<
     AgentStatusSlice,
     'setAgentStatus' | 'recordAgentProviderSession' | 'setAgentProgramStatus'
@@ -33,6 +38,7 @@ export function createAgentStatusRuntime(
 ): AgentStatusRuntime {
   let batchedAgentStatusState: AppState | null = null
   let batchedAgentStatusTouchedKeys: Set<keyof AppState> | null = null
+  let batchedSourceReceipts: SessionSourceReceipts | null = null
   // Staged in-place mutations cannot signal changes by identity; count every accepted write.
   let batchedAgentStatusRevision = 0
   let batchedAgentStatusEffects: (() => void)[] | null = null
@@ -47,11 +53,20 @@ export function createAgentStatusRuntime(
       storeSet(update, false)
       return
     }
-    const nextState = typeof update === 'function' ? update(staged) : update
+    // SAFETY: the private staged root is the updater's captured state; the snapshot brand is compile-only.
+    const nextState =
+      typeof update === 'function' ? update(staged as SessionSourceSnapshot<AppState>) : update
     if (Object.is(nextState, staged)) {
       return
     }
     batchedAgentStatusRevision += 1
+    // SAFETY: the source boundary owns this symbol; only typed writes attach its receipt.
+    const receipt = Reflect.get(nextState, SESSION_SOURCE_RECEIPT) as
+      | SessionSourceDiscovery
+      | undefined
+    if (receipt) {
+      batchedSourceReceipts?.add(receipt)
+    }
     const touched = batchedAgentStatusTouchedKeys
     if (touched) {
       for (const key of Object.keys(nextState)) {
@@ -137,6 +152,7 @@ export function createAgentStatusRuntime(
     const revisionAtStart = batchedAgentStatusRevision
     batchedAgentStatusState = { ...initialState }
     batchedAgentStatusTouchedKeys = touchedKeys
+    batchedSourceReceipts = new SessionSourceReceipts()
     batchedAgentStatusEffects = []
     batchedGeneratedTabTitleUpdates = []
     try {
@@ -146,13 +162,19 @@ export function createAgentStatusRuntime(
       const generatedTabTitleUpdates = batchedGeneratedTabTitleUpdates
       const freshnessRequested = batchedAgentStatusFreshnessRequested
       const hasStagedWrites = batchedAgentStatusRevision !== revisionAtStart
+      const sourceReceipt = batchedSourceReceipts.take(initialState, nextState)
       batchedAgentStatusState = null
       batchedAgentStatusTouchedKeys = null
+      batchedSourceReceipts = null
       batchedAgentStatusEffects = null
       batchedGeneratedTabTitleUpdates = null
       batchedAgentStatusFreshnessRequested = false
       if (hasStagedWrites) {
-        storeSet(buildAgentStatusBatchPatch(initialState, nextState, touchedKeys), false)
+        const patch = {
+          ...buildAgentStatusBatchPatch(initialState, nextState, touchedKeys),
+          [SESSION_SOURCE_RECEIPT]: sourceReceipt
+        }
+        storeSet(patch, false)
       }
       if (generatedTabTitleUpdates.length > 0) {
         storeGet().setGeneratedTabTitlesFromAgentPrompts(generatedTabTitleUpdates)
@@ -167,6 +189,7 @@ export function createAgentStatusRuntime(
     } finally {
       batchedAgentStatusState = null
       batchedAgentStatusTouchedKeys = null
+      batchedSourceReceipts = null
       batchedAgentStatusEffects = null
       batchedGeneratedTabTitleUpdates = null
       batchedAgentStatusFreshnessRequested = false
@@ -191,19 +214,18 @@ export function createAgentStatusRuntime(
     }
     const uniquePaneKeys = new Set(paneKeys)
     set((s) => {
-      let nextSleeping = s.sleepingAgentSessionsByPaneKey
+      const edit = editSessionSource(s)
+      let changed = false
       for (const paneKey of uniquePaneKeys) {
-        if (paneKey in nextSleeping) {
-          if (nextSleeping === s.sleepingAgentSessionsByPaneKey) {
-            nextSleeping = { ...nextSleeping }
-          }
-          delete nextSleeping[paneKey]
+        if (paneKey in s.sleepingAgentSessionsByPaneKey) {
+          edit.remove('sleepingAgentSessionsByPaneKey', paneKey)
+          changed = true
         }
       }
-      if (nextSleeping === s.sleepingAgentSessionsByPaneKey) {
+      if (!changed) {
         return s
       }
-      return { sleepingAgentSessionsByPaneKey: nextSleeping }
+      return edit.finish()
     })
   }
 

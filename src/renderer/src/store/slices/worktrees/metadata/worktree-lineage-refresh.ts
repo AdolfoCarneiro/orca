@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
 import type {
   WorkspaceLineage,
@@ -192,7 +192,7 @@ export function projectLocalWorktreeLineageUpdate(
 }
 
 export function applyWorktreeLineageUpdate(
-  set: Parameters<StateCreator<AppState>>[0],
+  set: Parameters<SessionStateCreator<AppState>>[0],
   worktreeId: string,
   result: WorktreeLineageUpdateResult
 ): void {
@@ -228,7 +228,7 @@ export function applyWorktreeLineageUpdate(
 }
 
 export function applyHostLineageRefresh(
-  set: Parameters<StateCreator<AppState>>[0],
+  set: Parameters<SessionStateCreator<AppState>>[0],
   hostId: ExecutionHostId,
   lineage: {
     worktreeLineageById: Readonly<Record<string, WorktreeLineage>>
@@ -261,7 +261,7 @@ export function applyHostLineageRefresh(
 
 export async function refreshWorktreeLineageForTarget(
   target: RuntimeClientTarget,
-  set: Parameters<StateCreator<AppState>>[0],
+  set: Parameters<SessionStateCreator<AppState>>[0],
   getState: () => Pick<AppState, 'worktreeLineageById' | 'workspaceLineageByChildKey'>,
   options: BackgroundRuntimeRefreshOptions = {}
 ): Promise<void> {

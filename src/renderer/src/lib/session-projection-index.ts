@@ -9,7 +9,7 @@ import type {
   WorkspaceSessionPatch,
   WorkspaceSessionState
 } from '../../../shared/workspace-session-state-types'
-import { groupSessionFiles, type SessionSourceField } from './session-source-discovery'
+import { groupSessionFiles, type SessionSourceField } from './session-source-fields'
 
 import { parseAppSshPtyId } from '../../../shared/ssh-pty-id'
 export const SOURCE_MAPS = {

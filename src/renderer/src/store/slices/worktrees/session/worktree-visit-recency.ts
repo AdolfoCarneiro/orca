@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { runAsAutomaticDeselection } from '@/store/active-worktree-deselection-intent'
 import type { WorktreeSlice } from '../../worktree-helpers'
 import type { WorktreeSliceGet, WorktreeSliceSet } from '../listing/worktree-slice-types'
@@ -35,12 +36,7 @@ export function createMarkWorktreeVisited(
       if (!(now > prev)) {
         return s
       }
-      return {
-        lastVisitedAtByWorktreeId: {
-          ...s.lastVisitedAtByWorktreeId,
-          [visitKey]: now
-        }
-      }
+      return editSessionSource(s).set('lastVisitedAtByWorktreeId', visitKey, now).finish({})
     })
   }
 }
@@ -138,12 +134,7 @@ export function createSeedActiveWorktreeLastVisitedIfMissing(
       if (getWorktreeVisitTimestamp(s.lastVisitedAtByWorktreeId, { id, hostId }) != null) {
         return s
       }
-      return {
-        lastVisitedAtByWorktreeId: {
-          ...s.lastVisitedAtByWorktreeId,
-          [key]: Date.now()
-        }
-      }
+      return editSessionSource(s).set('lastVisitedAtByWorktreeId', key, Date.now()).finish({})
     })
   }
 }

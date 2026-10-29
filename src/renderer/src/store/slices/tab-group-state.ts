@@ -3,6 +3,8 @@ import type { WorkspaceSessionState } from '../../../../shared/workspace-session
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { workspaceRootGroupId } from '../../../../shared/workspace-layout/workspace-layout-minted-ids'
+import { editSessionSource } from '../session-source-edits'
+import type { AppState } from '../types'
 
 export function findTabAndWorktree(
   tabsByWorktree: Record<string, Tab[]>,
@@ -217,10 +219,11 @@ export function dedupeEditorTabsWithinGroups(tabs: Tab[]): {
 
 /** Patch one tab; return null if absent so callers can return {} to Zustand. */
 export function patchTab(
-  tabsByWorktree: Record<string, Tab[]>,
+  state: Pick<AppState, 'unifiedTabsByWorktree'>,
   tabId: string,
   patch: Partial<Tab>
-): { unifiedTabsByWorktree: Record<string, Tab[]> } | null {
+) {
+  const tabsByWorktree = state.unifiedTabsByWorktree
   const found = findTabAndWorktree(tabsByWorktree, tabId)
   if (!found) {
     return null
@@ -233,10 +236,11 @@ export function patchTab(
   }
   const { worktreeId } = found
   const tabs = tabsByWorktree[worktreeId] ?? []
-  return {
-    unifiedTabsByWorktree: {
-      ...tabsByWorktree,
-      [worktreeId]: tabs.map((t) => (t.id === tabId ? { ...t, ...patch } : t))
-    }
-  }
+  return editSessionSource(state)
+    .set(
+      'unifiedTabsByWorktree',
+      worktreeId,
+      tabs.map((t) => (t.id === tabId ? { ...t, ...patch } : t))
+    )
+    .finish()
 }

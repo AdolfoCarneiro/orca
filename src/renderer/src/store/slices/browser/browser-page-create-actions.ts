@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type {
   BrowserSlice,
   BrowserSliceGet,
@@ -66,30 +67,29 @@ export function createBrowserPageCreateActions(
             !page.docLocation &&
             (page.url === 'about:blank' || page.url === ORCA_BROWSER_BLANK_URL)
 
-          return {
-            browserPagesByWorkspace: {
-              ...s.browserPagesByWorkspace,
-              [workspaceId]: nextPages
-            },
-            browserTabsByWorktree: {
-              ...s.browserTabsByWorktree,
-              [current.worktreeId]: (s.browserTabsByWorktree[current.worktreeId] ?? []).map(
-                (tab) => (tab.id === workspaceId ? nextWorkspace : tab)
+          return editSessionSource(s)
+            .set('browserPagesByWorkspace', workspaceId, nextPages)
+            .set(
+              'browserTabsByWorktree',
+              current.worktreeId,
+              (s.browserTabsByWorktree[current.worktreeId] ?? []).map((tab) =>
+                tab.id === workspaceId ? nextWorkspace : tab
               )
-            },
-            pendingAddressBarFocusByPageId: shouldFocusAddressBar
-              ? {
-                  ...s.pendingAddressBarFocusByPageId,
-                  [page.id]: true
-                }
-              : s.pendingAddressBarFocusByPageId,
-            pendingAddressBarFocusByTabId: shouldFocusAddressBar
-              ? {
-                  ...s.pendingAddressBarFocusByTabId,
-                  [page.id]: true
-                }
-              : s.pendingAddressBarFocusByTabId
-          }
+            )
+            .finish({
+              pendingAddressBarFocusByPageId: shouldFocusAddressBar
+                ? {
+                    ...s.pendingAddressBarFocusByPageId,
+                    [page.id]: true
+                  }
+                : s.pendingAddressBarFocusByPageId,
+              pendingAddressBarFocusByTabId: shouldFocusAddressBar
+                ? {
+                    ...s.pendingAddressBarFocusByTabId,
+                    [page.id]: true
+                  }
+                : s.pendingAddressBarFocusByTabId
+            })
         })
 
         const nextWorkspace = findWorkspace(get().browserTabsByWorktree, workspaceId)

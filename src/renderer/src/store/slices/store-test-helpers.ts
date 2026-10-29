@@ -55,6 +55,7 @@ import { createWorkspaceAttentionSlice } from './workspace-attention/workspace-a
 import '@/i18n/i18n'
 import { withEditorBufferRecords } from '../editor-buffer-record-lifecycle'
 import { makeWorktree, TEST_REPO } from './worktrees-slice-test-fixtures'
+import { replaceSessionSourceFields } from '../session-source-write-boundary'
 export { makeWorktree, TEST_REPO } from './worktrees-slice-test-fixtures'
 export {
   makeTab,
@@ -129,10 +130,12 @@ export function seedStore(
   state: Partial<AppState>
 ): void {
   // Centralize fixture to keep cascade suites within max-lines limits without suppressing growth checks.
-  store.setState({
-    repos: [{ ...TEST_REPO, executionHostId: 'local' }],
-    ...state
-  })
+  store.setState(
+    replaceSessionSourceFields({
+      repos: [{ ...TEST_REPO, executionHostId: 'local' }],
+      ...state
+    })
+  )
 }
 
 export function makeRuntimeOwnedWorktree(

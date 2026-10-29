@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import type { EditorSlice } from '../types/editor-slice'
 import { isEditorTabContentType } from '../tabs/editor-tab-content-type'
@@ -156,29 +157,45 @@ export function createOpenFileMutations(
 
     // Why: never touches readOnly, which also guards transcripts and keeps dirty drafts out of sessions.
     setTerminalArtifactGrant: (fileId, grantId) =>
-      set((s) => ({
-        openFiles: s.openFiles.map((f) =>
-          f.id === fileId && f.terminalArtifactGrantId !== grantId
-            ? { ...f, terminalArtifactGrantId: grantId }
-            : f
+      set((s) => {
+        const sourceEdit = editSessionSource(s)
+        sourceEdit.files(
+          s.openFiles.map((f) =>
+            sourceEdit.file(
+              f,
+              f.id === fileId && f.terminalArtifactGrantId !== grantId
+                ? { ...f, terminalArtifactGrantId: grantId }
+                : f
+            )
+          )
         )
-      })),
+        return sourceEdit.finish({})
+      }),
 
     clearSelfMoveEcho: (fileId) =>
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const file = s.openFiles.find((f) => f.id === fileId)
         if (!file?.pendingSelfMoveEcho) {
           return s
         }
-        return {
-          openFiles: s.openFiles.map((f) =>
-            f.id === fileId ? { ...f, pendingSelfMoveEcho: undefined } : f
+        sourceEdit.files(
+          s.openFiles.map((f) =>
+            sourceEdit.file(f, f.id === fileId ? { ...f, pendingSelfMoveEcho: undefined } : f)
           )
-        }
+        )
+        return sourceEdit.finish({})
       }),
     clearUntitled: (fileId) =>
-      set((s) => ({
-        openFiles: s.openFiles.map((f) => (f.id === fileId ? { ...f, isUntitled: undefined } : f))
-      }))
+      set((s) => {
+        const sourceEdit = editSessionSource(s)
+        sourceEdit.files(
+          s.openFiles.map((f) =>
+            sourceEdit.file(f, f.id === fileId ? { ...f, isUntitled: undefined } : f)
+          )
+        )
+        return sourceEdit.finish({})
+      })
   }
 }

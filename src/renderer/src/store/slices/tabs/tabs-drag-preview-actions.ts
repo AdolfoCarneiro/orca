@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { AppState } from '../../types'
 import type { TabsSlice, TabsSliceSet } from './tabs-slice-contract'
 
@@ -193,14 +194,15 @@ export function createTabsDragPreviewActions(
         if (!sourceGroup || sourceGroup.activeTabId === preDragActiveTabId) {
           return state
         }
-        return {
-          groupsByWorktree: {
-            ...state.groupsByWorktree,
-            [worktreeId]: groups.map((group) =>
+        return editSessionSource(state)
+          .set(
+            'groupsByWorktree',
+            worktreeId,
+            groups.map((group) =>
               group.id === sourceGroupId ? { ...group, activeTabId: preDragActiveTabId } : group
             )
-          }
-        }
+          )
+          .finish({})
       })
     }
   }

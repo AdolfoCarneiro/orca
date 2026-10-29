@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { BrowserSlice, BrowserSliceGet, BrowserSliceSet } from './browser-slice-contract'
 import type { AppState } from '../../types'
 import { ORCA_BROWSER_BLANK_URL } from '../../../../../shared/constants'
@@ -198,18 +199,16 @@ export function createBrowserPageStateActions(
             : entry
         )
         const nextWorkspace = mirrorWorkspaceFromActivePage(workspace, nextPages)
-        return {
-          browserPagesByWorkspace: {
-            ...s.browserPagesByWorkspace,
-            [workspace.id]: nextPages
-          },
-          browserTabsByWorktree: {
-            ...s.browserTabsByWorktree,
-            [workspace.worktreeId]: (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map(
-              (tab) => (tab.id === workspace.id ? nextWorkspace : tab)
+        return editSessionSource(s)
+          .set('browserPagesByWorkspace', workspace.id, nextPages)
+          .set(
+            'browserTabsByWorktree',
+            workspace.worktreeId,
+            (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map((tab) =>
+              tab.id === workspace.id ? nextWorkspace : tab
             )
-          }
-        }
+          )
+          .finish({})
       })
       get().setBrowserPageCertificateFailure(pageId, null)
     }

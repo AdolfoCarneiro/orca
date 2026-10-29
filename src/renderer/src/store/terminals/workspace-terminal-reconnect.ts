@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { buildByIdIndex, buildWorktreeByIdIndex } from '../slices/worktree-by-id-index'
 import { getRepoIdFromWorktreeId } from '../../../../shared/worktree/id'
@@ -23,12 +24,13 @@ export function createWorkspaceTerminalReconnectActions(
       } = get()
       const ids = pendingReconnectWorktreeIds ?? []
       if (ids.length === 0) {
-        set({
-          workspaceSessionReady: true,
-          pendingReconnectWorktreeIds: [],
-          pendingReconnectTabByWorktree: {},
-          pendingReconnectPtyIdByTabId: {}
-        })
+        set((sourceState) =>
+          editSessionSource(sourceState).replace('pendingReconnectPtyIdByTabId', {}).finish({
+            workspaceSessionReady: true,
+            pendingReconnectWorktreeIds: [],
+            pendingReconnectTabByWorktree: {}
+          })
+        )
         return
       }
       // Why: defer daemon attachment for real dimensions; eager 80×24 flushes garble output.

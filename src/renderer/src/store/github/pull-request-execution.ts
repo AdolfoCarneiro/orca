@@ -1,5 +1,5 @@
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { CLEARED_HOSTED_REVIEW_SELECTION_UPDATES } from '../../../../shared/worktree/hosted-review-links'
-import type { StateCreator } from 'zustand'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import type { AppState } from '../types'
 import type { RuntimeFocusSettings } from '../../../../shared/github/github-cache-key'
@@ -34,8 +34,8 @@ import {
   shouldClearDivergedLinkedMergedPR
 } from '../../../../shared/github/linked-pr-staleness'
 export function startPullRequestLookup(args: {
-  set: Parameters<StateCreator<AppState>>[0]
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0]
+  get: Parameters<SessionStateCreator<AppState>>[1]
   repoPath: string
   branch: string
   options: Parameters<GitHubSlice['fetchPRForBranch']>[2]

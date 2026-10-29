@@ -3,10 +3,13 @@ import { useAppStore } from '../store'
 import type { AppState } from '../store/types'
 import { createSessionUnitSubscriber } from './session-unit-subscriber'
 import { SessionUnitWriter } from './session-unit-writer'
+import { createStore } from 'zustand/vanilla'
+import { withSessionSourceWrites } from '../store/session-source-write-boundary'
+import { editSessionSource } from '../store/session-source-edits'
 import type { WorkspaceSessionPatch } from '../../../shared/workspace-session-state-types'
 
 function storeFixture() {
-  let current = {
+  const initial = {
     ...useAppStore.getState(),
     workspaceSessionReady: true,
     hydrationSucceeded: true,
@@ -17,20 +20,22 @@ function storeFixture() {
     tabsByWorktree: {},
     terminalLayoutsByTabId: {}
   }
-  let listener: ((state: AppState) => void) | undefined
-  return {
-    getState: () => current,
-    subscribe: (callback: (state: AppState) => void) => {
-      listener = callback
-      return () => {
-        listener = undefined
-      }
-    },
+  const store = createStore<AppState>()(withSessionSourceWrites(() => initial, true))
+  return Object.assign(store, {
     edit: (value: Record<string, number>) => {
-      current = { ...current, lastVisitedAtByWorktreeId: value }
-      listener?.(current)
+      const current = store.getState()
+      const edit = editSessionSource(current)
+      for (const key of Object.keys(current.lastVisitedAtByWorktreeId)) {
+        if (!Object.hasOwn(value, key)) {
+          edit.remove('lastVisitedAtByWorktreeId', key)
+        }
+      }
+      for (const [key, timestamp] of Object.entries(value)) {
+        edit.set('lastVisitedAtByWorktreeId', key, timestamp)
+      }
+      store.setState(edit.finish({ sortEpoch: current.sortEpoch + 1 }))
     }
-  }
+  })
 }
 
 afterEach(() => vi.useRealTimers())

@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { RepoSlice } from '../repos/repo-state'
 import { createRepoCatalogActions } from '../repos/repo-catalog-actions'
@@ -17,7 +17,7 @@ import { createProjectUpdateActions } from '../projects/project-update'
 import { createRepoUpdateActions } from '../repos/repo-update'
 import { createRepoOrderingActions } from '../repos/repo-ordering'
 
-export const createRepoSlice: StateCreator<AppState, [], [], RepoSlice> = (set, get) => {
+export const createRepoSlice: SessionStateCreator<AppState, RepoSlice> = (set, get) => {
   const repoCatalogActions = createRepoCatalogActions(set, get)
   const runtimeRepoCatalogActions = createRuntimeRepoCatalogActions(set, get)
   const allHostRepoCatalogActions = createAllHostRepoCatalogActions(set, get)

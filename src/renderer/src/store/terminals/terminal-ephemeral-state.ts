@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { isClaudeAgent } from '@/lib/agent-status'
 import { recordTerminalInputActivity } from '@/lib/terminal-input-activity-coalescing'
 import { classifyTitleActivity } from '@/lib/pane-agent-evidence'
@@ -32,12 +33,9 @@ export function createTerminalEphemeralActions(
         if (s.defaultTerminalTabsAppliedByWorktreeId[worktreeId]) {
           return s
         }
-        return {
-          defaultTerminalTabsAppliedByWorktreeId: {
-            ...s.defaultTerminalTabsAppliedByWorktreeId,
-            [worktreeId]: true
-          }
-        }
+        return editSessionSource(s)
+          .set('defaultTerminalTabsAppliedByWorktreeId', worktreeId, true)
+          .finish({})
       }),
     setHydrationSucceeded: (value) => {
       set({ hydrationSucceeded: value })

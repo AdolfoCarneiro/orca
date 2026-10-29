@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
 import type { WorktreeSlice } from '../../worktree-helpers'
 import {
@@ -278,7 +278,7 @@ export function sanitizeHostedReviewLinksForBranchClears<
 }
 
 export function applyHostedReviewLinkClear(
-  set: Parameters<StateCreator<AppState, [], [], WorktreeSlice>>[0],
+  set: Parameters<SessionStateCreator<AppState, WorktreeSlice>>[0],
   worktreeId: string,
   copy: WorktreeCopyClear
 ): void {

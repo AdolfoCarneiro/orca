@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { GRAB_BUDGET } from '../../../../../shared/browser-grab-types'
 import type {
   BrowserSlice,
@@ -29,12 +30,9 @@ export function createBrowserPageMetadataActions(
 > {
   return {
     setRemoteBrowserPageHandle: (pageId, handle) => {
-      set((s) => ({
-        remoteBrowserPageHandlesByPageId: {
-          ...s.remoteBrowserPageHandlesByPageId,
-          [pageId]: handle
-        }
-      }))
+      set((s) =>
+        editSessionSource(s).set('remoteBrowserPageHandlesByPageId', pageId, handle).finish({})
+      )
     },
 
     removeRemoteBrowserPageHandle: (pageId, remotePageId) => {
@@ -68,12 +66,9 @@ export function createBrowserPageMetadataActions(
         const nextPages = (s.browserPagesByWorkspace[workspace.id] ?? []).map((entry) =>
           entry.id === pageId ? { ...entry, viewportPresetId } : entry
         )
-        return {
-          browserPagesByWorkspace: {
-            ...s.browserPagesByWorkspace,
-            [workspace.id]: nextPages
-          }
-        }
+        return editSessionSource(s)
+          .set('browserPagesByWorkspace', workspace.id, nextPages)
+          .finish({})
       }),
 
     addBrowserPageAnnotation: (annotation) =>

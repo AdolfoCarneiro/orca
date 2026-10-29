@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
 import type { WorktreeSlice } from '../../worktree-helpers'
 import type { DetectedWorktreeListResult } from '../../../../../../shared/worktree/types'
@@ -71,7 +71,7 @@ const inflightKnownSshWorktreeFetches = new Map<
 
 // Deduplicate fallback reads/merges like authoritative scans; concurrent refresh triggers otherwise repeat the same repo/host IPC.
 export async function fetchKnownSshWorktreesForRepo(
-  set: Parameters<StateCreator<AppState, [], [], WorktreeSlice>>[0],
+  set: Parameters<SessionStateCreator<AppState, WorktreeSlice>>[0],
   repoId: string,
   executionHostId: SshExecutionHostId
 ): Promise<DetectedWorktreeListResult | null> {
@@ -88,7 +88,7 @@ export async function fetchKnownSshWorktreesForRepo(
 }
 
 export async function runKnownSshWorktreeFetch(
-  set: Parameters<StateCreator<AppState, [], [], WorktreeSlice>>[0],
+  set: Parameters<SessionStateCreator<AppState, WorktreeSlice>>[0],
   repoId: string,
   executionHostId: SshExecutionHostId
 ): Promise<DetectedWorktreeListResult | null> {

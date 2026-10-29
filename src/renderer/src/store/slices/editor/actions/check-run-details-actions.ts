@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import type { EditorSlice } from '../types/editor-slice'
 import { translate } from '@/i18n/i18n'
@@ -43,6 +44,8 @@ export function createCheckRunDetailsActions(
         | { previous: OpenCheckRunDetailsState | undefined; next: OpenCheckRunDetailsState }
         | undefined
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const existing = s.openFiles.find((f) => f.id === id)
         if (existing) {
           const existingDetails = existing.checkRunDetails
@@ -57,23 +60,25 @@ export function createCheckRunDetailsActions(
               next: checkRunDetails
             }
           }
-          return {
-            openFiles: s.openFiles.map((f) =>
-              f.id === id
-                ? {
-                    ...f,
-                    mode: 'check-details' as const,
-                    relativePath: label,
-                    language: 'plaintext',
-                    checkRunDetails: incomingIsStale ? existingDetails : checkRunDetails
-                  }
-                : f
-            ),
-            activeFileId: id,
-            activeTabType: 'editor',
-            activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-            activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' }
-          }
+          sourceEdit.files(
+            s.openFiles.map((f) =>
+              sourceEdit.file(
+                f,
+                f.id === id
+                  ? {
+                      ...f,
+                      mode: 'check-details' as const,
+                      relativePath: label,
+                      language: 'plaintext',
+                      checkRunDetails: incomingIsStale ? existingDetails : checkRunDetails
+                    }
+                  : f
+              )
+            )
+          )
+          sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+          sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+          return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
         }
 
         accepted = { previous: undefined, next: checkRunDetails }
@@ -88,13 +93,12 @@ export function createCheckRunDetailsActions(
           checkRunDetails
         }
 
-        return {
-          openFiles: [...s.openFiles, newFile],
-          activeFileId: id,
-          activeTabType: 'editor',
-          activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-          activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' }
-        }
+        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
+        openFiles.push(sourceEdit.file(undefined, newFile))
+        sourceEdit.files(openFiles)
+        sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+        sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+        return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
       })
       if (accepted) {
         const { previous, next } = accepted
@@ -113,6 +117,8 @@ export function createCheckRunDetailsActions(
         | { previous: OpenCheckRunDetailsState; next: OpenCheckRunDetailsState }
         | undefined
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const existing = s.openFiles.find((f) => f.id === id)
         if (existing?.mode !== 'check-details' || !existing.checkRunDetails) {
           return s
@@ -155,11 +161,12 @@ export function createCheckRunDetailsActions(
           return s
         }
         accepted = { previous: current, next: nextCheckRunDetails }
-        return {
-          openFiles: s.openFiles.map((f) =>
-            f.id === id ? { ...f, checkRunDetails: nextCheckRunDetails } : f
+        sourceEdit.files(
+          s.openFiles.map((f) =>
+            sourceEdit.file(f, f.id === id ? { ...f, checkRunDetails: nextCheckRunDetails } : f)
           )
-        }
+        )
+        return sourceEdit.finish({})
       })
       if (accepted) {
         const { previous, next } = accepted

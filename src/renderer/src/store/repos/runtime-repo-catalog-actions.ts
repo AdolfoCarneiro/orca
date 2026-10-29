@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -23,8 +23,8 @@ import { mergeFetchedHostProjectCatalog } from '../../../../shared/project-compa
 import { scheduleSafeAutoForkSync } from './safe-auto-fork-sync'
 
 export function createRuntimeRepoCatalogActions(
-  set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0],
+  get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'fetchRuntimeEnvironmentRepos'> {
   return {
     fetchRuntimeEnvironmentRepos: async (environmentId) => {

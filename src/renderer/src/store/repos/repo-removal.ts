@@ -1,6 +1,6 @@
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { runEnclosingWorktreeRemoval } from '@/store/active-worktree-deselection-intent'
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
-import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import { getRepoIdFromWorktreeId } from '../../../../shared/worktree/id'
 import { getWorktreeIdFromVisitKey, getWorktreeVisitKey } from '@/lib/worktree-visit-recency'
@@ -89,8 +89,8 @@ export function countOpenRepoTerminalTabs(
 }
 
 export function createRepoRemovalActions(
-  set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0],
+  get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'removeProject'> {
   const actions: Pick<RepoSlice, 'removeProject'> = {
     removeProject: async (projectId, options) => {

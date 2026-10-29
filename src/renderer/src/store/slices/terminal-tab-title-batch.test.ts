@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import { describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
@@ -148,7 +149,7 @@ describe('terminal tab title batches', () => {
       }
     })
     adoptTerminalTabOwnerMetadataOnlyBuckets(currentTabsByWorktree, observedTabsByWorktree, [])
-    store.setState({ tabsByWorktree: observedTabsByWorktree })
+    store.setState(replaceSessionSourceFields({ tabsByWorktree: observedTabsByWorktree }))
     outerKeyVisits = 0
     bucketVisits = 0
 

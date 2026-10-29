@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type {
   BrowserSlice,
   BrowserSliceGet,
@@ -200,14 +201,15 @@ export function createBrowserPageConversionActions(
           },
           pages
         )
-        return {
-          browserTabsByWorktree: {
-            ...s.browserTabsByWorktree,
-            [workspace.worktreeId]: (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map(
-              (tab) => (tab.id === workspaceId ? nextWorkspace : tab)
+        return editSessionSource(s)
+          .set(
+            'browserTabsByWorktree',
+            workspace.worktreeId,
+            (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map((tab) =>
+              tab.id === workspaceId ? nextWorkspace : tab
             )
-          }
-        }
+          )
+          .finish({})
       })
 
       // Why: switching the active page changes which guest webContents the CDP bridge targets for agent commands.

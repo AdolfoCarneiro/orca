@@ -13,6 +13,8 @@ import {
 } from '../../../shared/session-change-set'
 import type { AppState } from '../store/types'
 import { getDefaultWorkspaceSession } from '../../../shared/constants'
+import { editSessionSource, SESSION_SOURCE_RECEIPT } from '../store/session-source-edits'
+import { makeOpenFile } from '../store/slices/store-session-test-harness'
 import type { WorkspaceSessionPatch } from '../../../shared/workspace-session-state-types'
 
 function fixture() {
@@ -46,6 +48,24 @@ function fixture() {
 }
 
 describe('keyed session persistence', () => {
+  it('projects draft-only edits from retained ordered occurrences without reading openFiles', () => {
+    const file = makeOpenFile({ id: 'shared', worktreeId: 'repo::/a', isDirty: true })
+    const twin = { ...file, worktreeId: 'other::/b' }
+    const before = { ...fixture(), openFiles: [file, file, twin], editorDrafts: {} }
+    const projection = new SessionUnitProjection(before)
+    const write = editSessionSource(before).set('editorDrafts', 'shared', 'new draft').finish()
+    const native = { ...before, ...write }
+    const expected = buildWorkspaceSessionPatch(native, ['editorDrafts'])
+    const openFiles = new Proxy(native.openFiles, {
+      get: () => {
+        throw new Error('unrelated file traversal')
+      }
+    })
+    const update = projection.update({ ...native, openFiles }, write[SESSION_SOURCE_RECEIPT])
+    expect(update.full).toBe(false)
+    expect(update.patch.openFilesByWorktree).toEqual(expected.openFilesByWorktree)
+    expect(update.patch.openFilesByWorktree?.['repo::/a']).toHaveLength(2)
+  })
   it('routes duplicate tab owners like the native owner index through reorder, removal and reinsert', () => {
     let state = fixture()
     const a = [{ ...state.tabsByWorktree['repo::/a'][0], id: 'duplicate' }]

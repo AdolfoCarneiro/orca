@@ -1,4 +1,5 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
+import { editSessionSource } from '@/store/session-source-edits'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
 import { applyManualRepoOrder } from '../../../../shared/manual-repo-order'
@@ -35,8 +36,8 @@ import { mergeFetchedHostProjectCatalog } from '../../../../shared/project-compa
 import { scheduleSafeAutoForkSync } from './safe-auto-fork-sync'
 
 export function createAllHostRepoCatalogActions(
-  set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0],
+  get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'fetchReposForAllHosts'> {
   return {
     fetchReposForAllHosts: async (options) => {
@@ -117,16 +118,19 @@ export function createAllHostRepoCatalogActions(
         set((s) => {
           const validRepoIds = new Set(s.repos.map((repo) => repo.id))
           const validRepoHostIdentities = new Set(s.repos.map(getRepoHostIdentity))
-          return {
-            activeRepoId:
-              s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
-            filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
-            setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
-              s.setupScriptPromptDismissedRepoIds,
-              validRepoHostIdentities
-            ),
-            trustedOrcaHooks: filterTrustedOrcaHooksToValidRepos(s.trustedOrcaHooks, validRepoIds)
-          }
+          return editSessionSource(s)
+            .scalar(
+              'activeRepoId',
+              s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null
+            )
+            .finish({
+              filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
+              setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
+                s.setupScriptPromptDismissedRepoIds,
+                validRepoHostIdentities
+              ),
+              trustedOrcaHooks: filterTrustedOrcaHooksToValidRepos(s.trustedOrcaHooks, validRepoIds)
+            })
         })
       }
 

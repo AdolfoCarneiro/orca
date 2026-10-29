@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { WorktreeSlice } from '../../worktree-helpers'
 import type { WorktreeSliceGet, WorktreeSliceSet } from '../listing/worktree-slice-types'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../../shared/constants'
@@ -117,7 +118,7 @@ export function createSettleTerminalTabRecovery(
       }
       const nextTabs = s.tabsByWorktree[worktreeId].slice()
       nextTabs[index] = { ...tab, recovery }
-      return { tabsByWorktree: { ...s.tabsByWorktree, [worktreeId]: nextTabs } }
+      return editSessionSource(s).set('tabsByWorktree', worktreeId, nextTabs).finish({})
     })
   }
 }

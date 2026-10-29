@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { toast } from 'sonner'
 import type { AppState } from '../types'
 import type { SparsePreset } from '../../../../shared/worktree/create-types'
@@ -73,7 +73,7 @@ export function omitSparsePresetsForRepos(
   return result
 }
 
-export const createSparsePresetsSlice: StateCreator<AppState, [], [], SparsePresetsSlice> = (
+export const createSparsePresetsSlice: SessionStateCreator<AppState, SparsePresetsSlice> = (
   set,
   get
 ) => ({

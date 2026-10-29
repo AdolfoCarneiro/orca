@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
 import type { ProjectGroup } from '../../../../shared/project-group-types'
@@ -233,8 +233,8 @@ export async function reconcileFailedFolderWorkspaceUpdate(args: {
   ownerHostId: ExecutionHostId
   ticket: FolderWorkspaceUpdateTicket<FolderWorkspaceUpdateField>
   coordinator: FolderWorkspaceUpdateCoordinatorInstance
-  set: Parameters<StateCreator<AppState>>[0]
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0]
+  get: Parameters<SessionStateCreator<AppState>>[1]
 }): Promise<void> {
   try {
     const catalog = await fetchFolderWorkspaceCatalogForTarget(

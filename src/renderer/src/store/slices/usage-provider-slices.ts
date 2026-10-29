@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type {
   ClaudeUsageRange,
   ClaudeUsageScope,
@@ -135,7 +135,7 @@ function createUsageProviderSlice<
   T extends UsageProviderTypes<string, string, UsageSnapshot>
 >(
   config: UsageProviderConfig<Prefix, Name, T>
-): StateCreator<AppState, [], [], ProviderUsageSlice<Prefix, Name, T>> {
+): SessionStateCreator<AppState, ProviderUsageSlice<Prefix, Name, T>> {
   return (set, get) => {
     const update = (patch: Partial<UsageData<T>>): void =>
       set(createUsagePatch(config.prefix, patch))

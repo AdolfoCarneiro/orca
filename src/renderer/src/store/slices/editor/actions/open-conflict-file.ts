@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import type { EditorSlice } from '../types/editor-slice'
 import { joinPath } from '@/lib/path'
@@ -22,6 +23,8 @@ export function createOpenConflictFile(
       let editorItemTargetGroupId = options?.targetGroupId
       let openedConflictFile = true
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const id = absolutePath
         const conflict = toOpenConflictMetadata(entry)
         const targetGroupId =
@@ -43,32 +46,37 @@ export function createOpenConflictFile(
 
         if (existing) {
           const updatedPreview = isPreview ? existing.isPreview : false
-          return {
-            openFiles: s.openFiles.map((f) =>
-              f.id === id
-                ? {
-                    ...f,
-                    mode: 'edit' as const,
-                    language,
-                    relativePath: entry.path,
-                    filePath: absolutePath,
-                    conflict,
-                    diffSource: undefined,
-                    skippedConflicts: undefined,
-                    conflictReview: undefined,
-                    isPreview: updatedPreview
-                  }
-                : f
-            ),
+          sourceEdit.files(
+            s.openFiles.map((f) =>
+              sourceEdit.file(
+                f,
+                f.id === id
+                  ? {
+                      ...f,
+                      mode: 'edit' as const,
+                      language,
+                      relativePath: entry.path,
+                      filePath: absolutePath,
+                      conflict,
+                      diffSource: undefined,
+                      skippedConflicts: undefined,
+                      conflictReview: undefined,
+                      isPreview: updatedPreview
+                    }
+                  : f
+              )
+            )
+          )
+          sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+          sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+          return sourceEdit.finish({
             activeFileId: id,
             activeTabType: 'editor',
-            activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-            activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' },
             trackedConflictPathsByWorktree:
               nextTracked === s.trackedConflictPathsByWorktree[worktreeId]
                 ? s.trackedConflictPathsByWorktree
                 : { ...s.trackedConflictPathsByWorktree, [worktreeId]: nextTracked }
-          }
+          })
         }
 
         const newFile: OpenFile = {
@@ -106,17 +114,19 @@ export function createOpenConflictFile(
           }
         }
 
-        return {
-          openFiles: [...s.openFiles, newFile],
+        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
+        openFiles.push(sourceEdit.file(undefined, newFile))
+        sourceEdit.files(openFiles)
+        sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+        sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+        return sourceEdit.finish({
           activeFileId: id,
           activeTabType: 'editor',
-          activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-          activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' },
           trackedConflictPathsByWorktree:
             nextTracked === s.trackedConflictPathsByWorktree[worktreeId]
               ? s.trackedConflictPathsByWorktree
               : { ...s.trackedConflictPathsByWorktree, [worktreeId]: nextTracked }
-        }
+        })
       })
       // Why: no conflict metadata means no OpenFile was added, so a workspace tab would point at nothing.
       if (!openedConflictFile) {

@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
@@ -10,7 +10,7 @@ import { createEmptyLocalDetectedAgentState } from './local-detected-agent-store
 import { readLocalAgentInventoryOutcome } from './local-agent-inventory-outcome'
 import type { LocalDetectedAgentState } from './local-detected-agent-store-state'
 
-type LocalDetectedAgentStateCreator = StateCreator<AppState, [], [], LocalDetectedAgentState>
+type LocalDetectedAgentStateCreator = SessionStateCreator<AppState, LocalDetectedAgentState>
 
 export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (set, get) => {
   const detectPromises = new Map<string, Promise<TuiAgent[]>>()

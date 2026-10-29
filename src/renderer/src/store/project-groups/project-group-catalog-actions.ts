@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import { runtimeTargetForOwnerEnvironment } from '../../runtime/runtime-client-target'
 import type { FetchedProjectGroupCatalog } from './project-group-catalog'
@@ -16,8 +16,8 @@ import {
 } from './project-group-catalog'
 
 export function createProjectGroupCatalogActions(
-  set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0],
+  get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'fetchProjectGroups' | 'fetchProjectGroupsForAllHosts'> {
   const applyCatalog = (catalog: FetchedProjectGroupCatalog, fence: HostCatalogFence): void => {
     if (!isHostCatalogFenceCurrent(get, fence)) {

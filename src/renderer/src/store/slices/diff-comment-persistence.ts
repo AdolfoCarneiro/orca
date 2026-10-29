@@ -1,4 +1,5 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
+import { editSessionSource } from '@/store/session-source-edits'
 import type { AppState } from '../types'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
 import type { Worktree } from '../../../../shared/worktree/types'
@@ -90,7 +91,7 @@ function persistQueueKey(
 // Why: queued work reads the latest list at dequeue time, and the returned promise settles for THIS write.
 // Why: this promise rejects only after this write's rollback has been applied — callers must not roll back themselves.
 export function enqueueDiffCommentPersist(
-  set: Parameters<StateCreator<AppState>>[0],
+  set: Parameters<SessionStateCreator<AppState>>[0],
   worktreeId: string,
   get: () => AppState,
   mutation: DiffCommentMutation
@@ -194,7 +195,7 @@ export function enqueueDiffCommentPersist(
 
 // Why: derive the next list inside the `set` updater so concurrent writes can't clobber each other via a stale closure.
 export function mutateDiffComments(
-  set: Parameters<StateCreator<AppState>>[0],
+  set: Parameters<SessionStateCreator<AppState>>[0],
   worktreeId: string,
   mutate: (existing: DiffComment[]) => DiffComment[] | null,
   commentIds?: Iterable<string>
@@ -246,7 +247,7 @@ export function mutateDiffComments(
     const nextList: Worktree[] = repoList.map((w) =>
       found.worktrees.includes(w) ? { ...w, diffComments: computed } : w
     )
-    return { worktreesByRepo: { ...s.worktreesByRepo, [repoId]: nextList } }
+    return editSessionSource(s).set('worktreesByRepo', repoId, nextList).finish({})
   })
   if (next === null) {
     return null
@@ -256,7 +257,7 @@ export function mutateDiffComments(
 
 // Why: on IPC-write failure, roll back optimistic state so the renderer matches disk (identity-guarded below).
 function rollback(
-  set: Parameters<StateCreator<AppState>>[0],
+  set: Parameters<SessionStateCreator<AppState>>[0],
   worktreeId: string,
   previous: DiffComment[] | undefined,
   { next: expectedCurrent, folderExecutionHostId }: DiffCommentMutation
@@ -290,6 +291,6 @@ function rollback(
     const nextList: Worktree[] = repoList.map((w) =>
       targets.includes(w) ? { ...w, diffComments: previous } : w
     )
-    return { worktreesByRepo: { ...s.worktreesByRepo, [repoId]: nextList } }
+    return editSessionSource(s).set('worktreesByRepo', repoId, nextList).finish({})
   })
 }

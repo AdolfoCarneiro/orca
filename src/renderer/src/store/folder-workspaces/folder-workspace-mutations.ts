@@ -1,6 +1,6 @@
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { assertWorkspaceAttachmentWriteCapability } from '../../runtime/runtime-workspace-attachment-capabilities'
 import { getWorkspaceAttachments } from '../../../../shared/workspace-attachments'
-import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
 import { WORKTREE_LINKED_WORK_ITEM_CONTEXT_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
@@ -42,7 +42,7 @@ export type FolderWorkspaceUpdateField = keyof FolderWorkspaceUpdates
 export type FolderWorkspaceUpdateCoordinatorInstance =
   FolderWorkspaceUpdateCoordinator<FolderWorkspaceUpdateField>
 
-export type RepoSliceGet = Parameters<StateCreator<AppState>>[1]
+export type RepoSliceGet = Parameters<SessionStateCreator<AppState>>[1]
 
 export const folderWorkspaceUpdateCoordinators = new WeakMap<
   RepoSliceGet,
@@ -62,8 +62,8 @@ export function getFolderWorkspaceUpdateCoordinator(
 }
 
 export function createFolderWorkspaceMutationActions(
-  set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  set: Parameters<SessionStateCreator<AppState>>[0],
+  get: Parameters<SessionStateCreator<AppState>>[1]
 ): Pick<RepoSlice, 'createFolderWorkspace' | 'updateFolderWorkspace' | 'deleteFolderWorkspace'> {
   return {
     createFolderWorkspace: async (args, options) => {

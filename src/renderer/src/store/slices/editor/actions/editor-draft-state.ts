@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { AppState } from '../../../types'
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import {
@@ -39,17 +40,18 @@ export type EditorDraftState = {
 function clearEditorDraftsOf<TState extends Pick<AppState, 'editorDrafts'> & EditorBufferViewIndex>(
   s: TState,
   fileIds: readonly string[]
-): TState | Pick<AppState, 'editorDrafts'> {
-  let next = s.editorDrafts
+) {
+  const edit = editSessionSource<Pick<AppState, 'editorDrafts'>>(s)
+  let changed = false
   for (const fileId of fileIds) {
     for (const id of [fileId, ...editorBufferSiblingViewIds(s, fileId)]) {
-      if (id in next) {
-        next = next === s.editorDrafts ? { ...next } : next
-        delete next[id]
+      if (id in s.editorDrafts) {
+        edit.remove('editorDrafts', id)
+        changed = true
       }
     }
   }
-  return next === s.editorDrafts ? s : { editorDrafts: next }
+  return changed ? edit.finish() : s
 }
 
 export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorDraftState {
@@ -57,17 +59,23 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
     editorDrafts: {},
     setCsvPreviewOnly: (fileId, enabled) =>
       set((state) => {
+        const sourceEdit = editSessionSource(state)
+
         const file = state.openFiles.find((candidate) => candidate.id === fileId)
         if (!file || Boolean(file.csvPreviewOnly) === enabled) {
           return state
         }
-        return {
-          openFiles: state.openFiles.map((candidate) =>
-            candidate.id === fileId
-              ? { ...candidate, csvPreviewOnly: enabled || undefined }
-              : candidate
+        sourceEdit.files(
+          state.openFiles.map((candidate) =>
+            sourceEdit.file(
+              candidate,
+              candidate.id === fileId
+                ? { ...candidate, csvPreviewOnly: enabled || undefined }
+                : candidate
+            )
           )
-        }
+        )
+        return sourceEdit.finish({})
       }),
     setEditorDraft: (fileId, content) =>
       set((s) => {
@@ -80,11 +88,11 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
         if (file?.readOnly === true || file?.csvPreviewOnly === true) {
           return s
         }
-        const next = { ...s.editorDrafts }
+        const edit = editSessionSource(s)
         for (const id of viewIds) {
-          next[id] = content
+          edit.set('editorDrafts', id, content)
         }
-        return { editorDrafts: next }
+        return edit.finish()
       }),
     clearEditorDraft: (fileId) => set((s) => clearEditorDraftsOf(s, [fileId])),
     clearEditorDrafts: (fileIds) => set((s) => clearEditorDraftsOf(s, fileIds)),
@@ -135,11 +143,9 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
           if (!(fileId in s.markdownFrontmatterVisible)) {
             return s
           }
-          const next = { ...s.markdownFrontmatterVisible }
-          delete next[fileId]
-          return { markdownFrontmatterVisible: next }
+          return editSessionSource(s).remove('markdownFrontmatterVisible', fileId).finish()
         }
-        return { markdownFrontmatterVisible: { ...s.markdownFrontmatterVisible, [fileId]: false } }
+        return editSessionSource(s).set('markdownFrontmatterVisible', fileId, false).finish({})
       }),
 
     markdownTableOfContentsVisible: {},

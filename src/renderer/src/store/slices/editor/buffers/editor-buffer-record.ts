@@ -6,6 +6,7 @@ import {
   type EditorBufferViewIndex
 } from './editor-buffer-views'
 import type { EditorBufferKeepRequest, EditorBufferKeptRecords } from './editor-buffer-kept'
+import { editSessionSource, type SessionSourceWrite } from '@/store/session-source-edits'
 
 /** Record owns buffer state under file identity (or private tab ID); OpenFile mirrors update atomically for existing readers. */
 export type EditorBufferRecord = Pick<
@@ -64,13 +65,15 @@ export function writeEditorBuffer(
   fileId: string,
   patch: Partial<EditorBufferRecord>,
   tabPatch?: Partial<OpenFile>
-): EditorBufferWrite {
+): EditorBufferWrite & SessionSourceWrite<EditorBufferWrite> {
+  const edit = editSessionSource<EditorBufferWrite>(state)
   const recordId = editorBufferIdOfView(state, fileId)
   const viewIds = new Set(editorBufferViewIds(state, recordId))
   viewIds.add(fileId)
   let editorBuffers = state.editorBuffers
   const openFiles = state.openFiles.map((file) => {
     if (!viewIds.has(file.id)) {
+      edit.file(file, file)
       return file
     }
     if (editorBuffers === state.editorBuffers) {
@@ -79,9 +82,12 @@ export function writeEditorBuffer(
         [recordId]: { ...(editorBuffers[recordId] ?? editorBufferRecordFromFile(file)), ...patch }
       }
     }
-    return file.id === fileId ? { ...file, ...tabPatch, ...patch } : { ...file, ...patch }
+    return edit.file(
+      file,
+      file.id === fileId ? { ...file, ...tabPatch, ...patch } : { ...file, ...patch }
+    )
   })
-  return { openFiles, editorBuffers }
+  return { ...edit.files(openFiles).finish({ editorBuffers }), openFiles, editorBuffers }
 }
 
 /** Writes `patch` through the file's record; returns `state` itself when the record already holds it. */
@@ -89,7 +95,7 @@ export function updateEditorBuffer<TState extends EditorBufferState>(
   state: TState,
   fileId: string,
   patch: Partial<EditorBufferRecord>
-): TState | EditorBufferWrite {
+): TState | (EditorBufferWrite & SessionSourceWrite<EditorBufferWrite>) {
   const file = state.openFiles.find((candidate) => candidate.id === fileId)
   if (!file) {
     return state

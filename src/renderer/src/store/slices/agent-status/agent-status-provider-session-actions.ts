@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { AgentStatusSlice } from './agent-status-slice-contract'
 import type { AgentStatusRuntime } from './agent-status-runtime'
 import type {
@@ -147,26 +148,23 @@ export function createAgentStatusProviderSessionActions(
             nextLaunchConfigs = { ...nextLaunchConfigs }
             delete nextLaunchConfigs[paneKey]
           }
-          return {
-            agentStatusByPaneKey: nextLive,
-            retainedAgentsByPaneKey: nextRetained,
-            sleepingAgentSessionsByPaneKey: {
-              ...s.sleepingAgentSessionsByPaneKey,
-              [paneKey]: record
-            },
-            agentLaunchConfigByPaneKey: nextLaunchConfigs,
-            acknowledgedAgentsByPaneKey: removePaneKeys(
-              s.acknowledgedAgentsByPaneKey,
-              retiredPaneKeys
-            ),
-            // Pane survives, so preserve cutoff/manual-unread against heartbeat history replay; retirement owns cleanup.
-            unreadAgentCompletionPanes: removePaneKeys(
-              s.unreadAgentCompletionPanes,
-              retiredPaneKeys
-            ),
-            agentStatusEpoch: removedLiveStatus ? s.agentStatusEpoch + 1 : s.agentStatusEpoch,
-            sortEpoch: removedLiveStatus ? s.sortEpoch + 1 : s.sortEpoch
-          }
+          return editSessionSource(s)
+            .set('sleepingAgentSessionsByPaneKey', paneKey, record)
+            .finish({
+              agentStatusByPaneKey: nextLive,
+              retainedAgentsByPaneKey: nextRetained,
+              agentLaunchConfigByPaneKey: nextLaunchConfigs,
+              acknowledgedAgentsByPaneKey: removePaneKeys(
+                s.acknowledgedAgentsByPaneKey,
+                retiredPaneKeys
+              ),
+              unreadAgentCompletionPanes: removePaneKeys(
+                s.unreadAgentCompletionPanes,
+                retiredPaneKeys
+              ),
+              agentStatusEpoch: removedLiveStatus ? s.agentStatusEpoch + 1 : s.agentStatusEpoch,
+              sortEpoch: removedLiveStatus ? s.sortEpoch + 1 : s.sortEpoch
+            })
         })
       )
       if (removedLiveStatus) {

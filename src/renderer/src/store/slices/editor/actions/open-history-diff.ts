@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import type { EditorSlice } from '../types/editor-slice'
 import { joinPath } from '@/lib/path'
@@ -24,6 +25,8 @@ export function createOpenHistoryDiff(
       const isPreview = resolveEditorPreviewIntent(get(), options?.preview)
       let editorItemTargetGroupId = options?.targetGroupId
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const targetGroupId =
           resolveEditorOpenTargetGroupId(s, worktreeId, options?.targetGroupId) ?? undefined
         editorItemTargetGroupId = targetGroupId
@@ -47,13 +50,12 @@ export function createOpenHistoryDiff(
             isPreview: updatedPreview,
             runtimeEnvironmentId
           })
-          return {
-            openFiles: s.openFiles.map((f) => (f.id === id ? reopenedDiff : f)),
-            activeFileId: id,
-            activeTabType: 'editor',
-            activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-            activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' }
-          }
+          sourceEdit.files(
+            s.openFiles.map((f) => sourceEdit.file(f, f.id === id ? reopenedDiff : f))
+          )
+          sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+          sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+          return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
         }
         const newFile: OpenFile = {
           id,
@@ -90,13 +92,12 @@ export function createOpenHistoryDiff(
             }
           }
         }
-        return {
-          openFiles: [...s.openFiles, newFile],
-          activeFileId: id,
-          activeTabType: 'editor',
-          activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-          activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' }
-        }
+        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
+        openFiles.push(sourceEdit.file(undefined, newFile))
+        sourceEdit.files(openFiles)
+        sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+        sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+        return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
       })
       void openWorkspaceEditorItem(
         get(),
@@ -115,6 +116,8 @@ export function createOpenHistoryDiff(
       const isPreview = resolveEditorPreviewIntent(get(), options?.preview)
       let editorItemTargetGroupId = options?.targetGroupId
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const targetGroupId =
           resolveEditorOpenTargetGroupId(s, worktreeId, options?.targetGroupId) ?? undefined
         editorItemTargetGroupId = targetGroupId
@@ -138,13 +141,12 @@ export function createOpenHistoryDiff(
             isPreview: updatedPreview,
             runtimeEnvironmentId
           })
-          return {
-            openFiles: s.openFiles.map((f) => (f.id === id ? reopenedDiff : f)),
-            activeFileId: id,
-            activeTabType: 'editor',
-            activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-            activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' }
-          }
+          sourceEdit.files(
+            s.openFiles.map((f) => sourceEdit.file(f, f.id === id ? reopenedDiff : f))
+          )
+          sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+          sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+          return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
         }
         const newFile: OpenFile = {
           id,
@@ -181,13 +183,12 @@ export function createOpenHistoryDiff(
             }
           }
         }
-        return {
-          openFiles: [...s.openFiles, newFile],
-          activeFileId: id,
-          activeTabType: 'editor',
-          activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-          activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' }
-        }
+        const openFiles = s.openFiles.map((row) => sourceEdit.file(row, row))
+        openFiles.push(sourceEdit.file(undefined, newFile))
+        sourceEdit.files(openFiles)
+        sourceEdit.set('activeFileIdByWorktree', worktreeId, id)
+        sourceEdit.set('activeTabTypeByWorktree', worktreeId, 'editor')
+        return sourceEdit.finish({ activeFileId: id, activeTabType: 'editor' })
       })
       void openWorkspaceEditorItem(
         get(),
