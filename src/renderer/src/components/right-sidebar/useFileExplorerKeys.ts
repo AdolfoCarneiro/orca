@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import type React from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -68,7 +68,9 @@ export function useFileExplorerKeys(opts: {
   const selectedNodeRef = useRef(opts.selectedNode)
   selectedNodeRef.current = opts.selectedNode
   const pathOwnerRef = useRef(opts.pathOwner)
-  pathOwnerRef.current = opts.pathOwner
+  useLayoutEffect(() => {
+    pathOwnerRef.current = opts.pathOwner
+  }, [opts.pathOwner])
   const startRenameRef = useRef(opts.startRename)
   startRenameRef.current = opts.startRename
   const requestDeleteRef = useRef(opts.requestDelete)

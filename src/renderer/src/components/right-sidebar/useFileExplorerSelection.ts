@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type React from 'react'
 import type { TreeNode } from './file-explorer-types'
 import type { FileExplorerRowProjection } from './file-explorer-row-projection'
@@ -40,7 +40,9 @@ export function useFileExplorerSelection(
   const pathOwnerRef = useRef(pathOwner)
   selectionStateRef.current = selectionState
   rowProjectionRef.current = rowProjection
-  pathOwnerRef.current = pathOwner
+  useLayoutEffect(() => {
+    pathOwnerRef.current = pathOwner
+  }, [pathOwner])
 
   const setSingleSelectedPath = useCallback((value: React.SetStateAction<string | null>) => {
     setSelectionState((prev) => {
