@@ -135,6 +135,8 @@ export class DeviceRegistry {
     parent: DeviceEntry,
     phones: readonly DelegatedPhone[]
   ): DelegatedMobileDeviceEntry[] {
+    // Plan over the file as it is: an unchanged child removed on disk would skip the save's merge.
+    this.adoptExternalEdits()
     const { nextDevices, entries } = planDelegatedMobileDevices(this.devices, parent, phones)
     if (nextDevices !== this.devices) {
       this.devices = this.save(nextDevices)
