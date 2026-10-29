@@ -4,6 +4,11 @@ import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { runCoalescedProbe, type CoalescedProbes } from '../git/coalesced-probe'
 import type { GitHubRepoContext } from './github-repository-identity'
 import { resolveLocalGitConfigPaths } from './local-git-config-paths'
+import {
+  readLocalGitConfigSignatures,
+  type IncludedGitConfigPath,
+  type LocalGitConfigNode
+} from './local-git-config-traversal'
 
 // A dead mount can stall stat before the bounded Git probe; missing signatures use shorter cache lifetimes.
 const CONFIG_SIGNATURE_DEADLINE_MS = 2_000
@@ -17,7 +22,7 @@ export async function readLocalGitConfigSignature(
     // Remote runtimes have separate cache keys; this signature covers host filesystem config only.
     return undefined
   }
-  // Deadline only the caller: keep the in-flight read shared so a hung mount cannot accumulate more reads.
+  // Keep timed-out reads shared while their started filesystem work settles.
   return withConfigSignatureDeadline(
     runCoalescedProbe(localGitConfigSignatureInFlight, context.repoPath, () =>
       readUncachedLocalGitConfigSignature(context.repoPath)
@@ -51,68 +56,33 @@ export function __resetLocalGitConfigSignatureCacheForTests(): void {
 }
 
 async function readUncachedLocalGitConfigSignature(repoPath: string): Promise<string | undefined> {
+  const deadlineAt = Date.now() + CONFIG_SIGNATURE_DEADLINE_MS
   const configPaths = await resolveLocalGitConfigPaths(repoPath)
   if (!configPaths) {
     return undefined
   }
-  const signatures = await Promise.all([
-    readConfigPathSignatures(configPaths.commonConfigPath),
-    readConfigPathSignatures(configPaths.worktreeConfigPath)
-  ])
-  return signatures.flat().sort().join('\0')
+  const signatures = await readLocalGitConfigSignatures(
+    [configPaths.commonConfigPath, configPaths.worktreeConfigPath],
+    deadlineAt,
+    readLocalGitConfigNode
+  )
+  return signatures?.sort().join('\0')
 }
 
-const LITERAL_CONFIG_PATH_MODE = 1
-const LEGACY_CONFIG_PATH_MODE = 2
-const ALL_CONFIG_PATH_MODES = LITERAL_CONFIG_PATH_MODE | LEGACY_CONFIG_PATH_MODE
-
-type IncludedGitConfigPath = { current: string; legacy?: string }
-type LocalGitConfigNode = { signature: string; includedPaths: IncludedGitConfigPath[] }
-
-async function readConfigPathSignatures(
+async function readLocalGitConfigNode(
   configPath: string,
-  visited = new Map<string, number>(),
-  modes = ALL_CONFIG_PATH_MODES,
-  reads = new Map<string, Promise<LocalGitConfigNode>>()
-): Promise<string[]> {
-  const previousModes = visited.get(configPath) ?? 0
-  const remainingModes = modes & ~previousModes
-  if (!remainingModes) {
-    return []
-  }
-  visited.set(configPath, previousModes | remainingModes)
-  let pending = reads.get(configPath)
-  if (!pending) {
-    pending = readLocalGitConfigNode(configPath)
-    reads.set(configPath, pending)
-  }
-  const node = await pending
-  const included: Promise<string[]>[] = []
-  for (const path of node.includedPaths) {
-    if (path.legacy === undefined) {
-      included.push(readConfigPathSignatures(path.current, visited, remainingModes, reads))
-    } else {
-      if (remainingModes & LITERAL_CONFIG_PATH_MODE) {
-        included.push(
-          readConfigPathSignatures(path.current, visited, LITERAL_CONFIG_PATH_MODE, reads)
-        )
-      }
-      if (remainingModes & LEGACY_CONFIG_PATH_MODE) {
-        included.push(
-          readConfigPathSignatures(path.legacy, visited, LEGACY_CONFIG_PATH_MODE, reads)
-        )
-      }
-    }
-  }
-  const signatures = (await Promise.all(included)).flat()
-  return previousModes === 0 ? [node.signature, ...signatures] : signatures
-}
-
-async function readLocalGitConfigNode(configPath: string): Promise<LocalGitConfigNode> {
+  isActive: () => boolean = () => true
+): Promise<LocalGitConfigNode> {
   const signature = await readConfigPathSignature(configPath)
+  if (!isActive()) {
+    return { signature, includedPaths: [] }
+  }
   try {
     const configText = await readFile(configPath, 'utf8')
-    return { signature, includedPaths: parseIncludedConfigPaths(configText, dirname(configPath)) }
+    return {
+      signature,
+      includedPaths: isActive() ? parseIncludedConfigPaths(configText, dirname(configPath)) : []
+    }
   } catch {
     return { signature, includedPaths: [] }
   }
