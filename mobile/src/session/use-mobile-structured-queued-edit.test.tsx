@@ -15,6 +15,7 @@ import {
   updateMobileNativeChatDraftInputs
 } from './native-chat/composer/mobile-native-chat-draft-inputs'
 import {
+  closeMobileNativeChatTabDraft,
   setMobileNativeChatDraftText,
   useMobileNativeChatDraft,
   resetMobileNativeChatDraftStoreForTests
@@ -35,6 +36,10 @@ import {
   withText,
   readOrHoldReply
 } from './mobile-queued-edit-hook.test-fixture'
+import { insertDictationText } from '../dictation/mobile-dictation-text-insertion'
+
+// What the composer hands the editor for words said into a field that was never focused.
+const spoken = (text: string) => (draft: string) => insertDictationText(draft, text, null).text
 
 describe('mobile in-place queued Edit', () => {
   const {
@@ -156,10 +161,37 @@ describe('mobile in-place queued Edit', () => {
         )
       }
       act(() => setMobileNativeChatDraftText('original-bottom', 'bottom'))
-      act(() => expect(insert('later')).toBe(!cancel))
+      act(() => expect(insert(spoken('later'))).toBe(!cancel))
       expect(state.bottomText).toBe(cancel ? 'bottom' : 'bottom later')
     }
   )
+
+  it('does not revive a closed tab when its dirty queued editor hands back late', async () => {
+    const message = queuedDraft({ messageId: 'closed-origin' })
+    await mount(message)
+    act(() => state.hook!.queued.editor!.cancel())
+    await act(async () =>
+      state.renderer!.update(createElement(Harness, { composerScopeKey: 'original-bottom' }))
+    )
+    await act(async () => {
+      await state.hook!.queued.edit!(message.messageId)
+    })
+    const origin = mobileNativeChatDraftDestination('original-bottom')
+    act(() => {
+      state.hook!.queued.editor!.change('late dirty edit')
+      closeMobileNativeChatTabDraft('original-bottom')
+    })
+    await act(async () =>
+      state.renderer!.update(
+        createElement(Harness, { sessionId: 'elsewhere', composerScopeKey: 'elsewhere' })
+      )
+    )
+    expect(origin.active).toBe(false)
+    expect(state.bottomText).toBe('')
+    expect(append).not.toHaveBeenCalled()
+    expect(notice).not.toHaveBeenCalled()
+    expect(readMobileNativeChatDraftInputs('original-bottom').images).toEqual([])
+  })
 
   it('holds and renews a card while typing, sends only its edited text, and cancels in place', async () => {
     const message = queuedDraft({
@@ -313,7 +345,7 @@ describe('mobile in-place queued Edit', () => {
         saving = state.hook!.queued.editor!.save()
       })
       act(() => {
-        expect(insert('speech')).toBe(true)
+        expect(insert(spoken('speech'))).toBe(true)
       })
       await act(async () => {
         reply!(mutationOk({ status, messageId: message.messageId }))
@@ -323,7 +355,7 @@ describe('mobile in-place queued Edit', () => {
         expect(state.bottomText).toBe('')
         expect(state.hook!.queued.editor!.text).toBe('submitted speech')
         act(() => {
-          expect(insert('later')).toBe(true)
+          expect(insert(spoken('later'))).toBe(true)
         })
         expect(state.bottomText).toBe('')
         expect(state.hook!.queued.editor!.text).toBe('submitted speech later')

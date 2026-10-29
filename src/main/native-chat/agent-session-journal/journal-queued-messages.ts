@@ -1,8 +1,7 @@
 import { journalInputAttemptEnded, type JournalInputWork } from './journal-input-obligations'
-// The queue's one view and its writes. A card is folded from the chat's own rows
-// (`journal-queue-fold.ts`), so every change to one is a journal row on the journal's own lane,
-// committed with whatever else the action writes: the queue keeps no second copy to fall behind.
-// Drafts are NEVER owed work: nothing here feeds working status, teardown, or the idle sweep.
+import { journalQueueAdoptionPlan } from './journal-queue-adoption-plan'
+import { journalAttachmentClaimReceipt } from './journal-submission-hook'
+// Fold cards from journal rows, without a second mutable copy. Drafts never count as active work.
 
 import type { AgentJournalMessageItem } from '../../../shared/agent-session-journal-types'
 import type {
@@ -11,11 +10,7 @@ import type {
   AgentSessionQueuedMessageUpdateResult
 } from '../../../shared/agent-session-wire'
 import type { AgentSessionExecutionOptions } from '../../../shared/agent-session-execution-options'
-import {
-  journalQueueRowBuilder,
-  type JournalQueueCardChange,
-  type JournalQueueRow
-} from './journal-queue-events'
+import type { JournalQueueCardChange, JournalQueueRow } from './journal-queue-events'
 import { LegacyQueuedCards } from './journal-queue-import'
 import { queueNeedsReopen } from './journal-queue-retention'
 import { composeJournalOperationReceipts, type JournalOperationReceipt } from './journal-row-writer'
@@ -95,10 +90,9 @@ export class JournalQueuedMessages {
     receipt?: JournalOperationReceipt
   ): Promise<QueuedMessageRow> {
     const { messageId, body } = input
-    const claims: JournalOperationReceipt = {
-      write: (db) => this.deps.claimAttachments(db, body, input.requireAttachments === true),
-      committed: () => {}
-    }
+    const claims = journalAttachmentClaimReceipt((db) =>
+      this.deps.claimAttachments(db, body, input.requireAttachments === true)
+    )
     return this.write(
       () => {
         // Existing IDs are duplicate admission of the same accepted card, never new queue work.
@@ -130,14 +124,10 @@ export class JournalQueuedMessages {
   /** Edits invalidate old leases; require only newly referenced uploads so swept images cannot block text fixes. */
   update(input: QueuedMessageUpdate): Promise<AgentSessionQueuedMessageUpdateResult> {
     let edit: { body: AgentJournalMessageItem; previous: AgentJournalMessageItem } | undefined
-    const receipt: JournalOperationReceipt = {
-      write: (db) => {
-        if (edit) {
-          this.deps.claimAttachments(db, edit.body, true, edit.previous)
-        }
-      },
-      committed: () => this.editLeases.retire(input.messageId)
-    }
+    const receipt = journalAttachmentClaimReceipt(
+      (db) => (edit ? this.deps.claimAttachments(db, edit.body, true, edit.previous) : undefined),
+      () => this.editLeases.retire(input.messageId)
+    )
     return this.write<AgentSessionQueuedMessageUpdateResult>(() => {
       edit = undefined
       const card = this.get(input.messageId)
@@ -202,28 +192,7 @@ export class JournalQueuedMessages {
 
   /** Adopt each selected legacy witness with its action; deletion is optional cleanup after commit. */
   plan(changes: readonly JournalQueueCardChange[]): JournalQueuePlan {
-    const rows: JournalQueuePlan['rows'] = []
-    const adopted: string[] = []
-    for (const { messageId, change } of changes) {
-      const source = this.get(messageId)?.recovers
-      if (source) {
-        rows.push(...this.legacy.witnessRows(source, adopted))
-      }
-      const own = this.deps.state().queue.cards.has(messageId) || adopted.includes(messageId)
-      const adoption = own ? null : this.legacy.adoption(messageId)
-      if (adoption) {
-        rows.push(journalQueueRowBuilder(this.deps.state, messageId, adoption))
-        adopted.push(messageId)
-      }
-      if (change) {
-        rows.push(journalQueueRowBuilder(this.deps.state, messageId, change))
-      }
-    }
-    return { rows, receipt: { write: () => {}, committed: () => this.legacy.cleanup(adopted) } }
-  }
-
-  proofWitness(clientMessageId: string): JournalQueuePlan['rows'] {
-    return this.legacy.witnessRows(clientMessageId)
+    return journalQueueAdoptionPlan(this.deps, this.legacy, changes)
   }
 
   /** Validate the acted-on card on the lane; automatic drain must still own the next queued card. */
@@ -249,7 +218,11 @@ export class JournalQueuedMessages {
     throw new QueuedMessageNotConsumableError(input.messageId, input.expect)
   }
 
-  /** The bulk move of an earlier build's cards, once per open (`LegacyQueuedCards.importAtOpen`). */
+  proofWitness(clientMessageId: string): JournalQueuePlan {
+    const witness = this.legacy.witness(clientMessageId)
+    return this.plan(witness ? [{ messageId: witness.messageId }] : [])
+  }
+
   importAtOpen(): Promise<void> {
     return this.legacy.importAtOpen()
   }

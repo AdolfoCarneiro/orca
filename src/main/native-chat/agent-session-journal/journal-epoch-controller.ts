@@ -15,6 +15,7 @@ import { rewindJournalContext } from './journal-context-rewind'
 export class JournalEpochController {
   constructor(
     private readonly deps: {
+      inputReceipt: Parameters<typeof rewindJournalContext>[0]['inputReceipt']
       identity: AgentSessionJournalIdentity
       now: () => number
       mintEpoch: () => string
@@ -54,6 +55,7 @@ export class JournalEpochController {
       fence,
       items,
       receipt,
+      inputReceipt: this.deps.inputReceipt,
       boundary: { reason, providerHandle }
     })
   }

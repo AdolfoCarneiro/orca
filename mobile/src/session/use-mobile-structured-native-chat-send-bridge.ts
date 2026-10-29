@@ -60,7 +60,7 @@ export function useMobileStructuredNativeChatSendBridge(args: {
       // A lost result returns the person's text immediately, even if a later receipt lands.
       if (outcome === 'rejected' || outcome === 'unknown') {
         restoreRejectedDraft(origin, text)
-        restoreMobileNativeChatPickedSkills(origin.draftKey, skills)
+        restoreMobileNativeChatPickedSkills(origin.draftDestination, skills)
       }
       return outcome
     },

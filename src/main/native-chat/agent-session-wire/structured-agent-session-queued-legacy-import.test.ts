@@ -1,3 +1,8 @@
+import { randomUUID } from 'node:crypto'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { agentSessionAttachmentStoreRoot } from '../agent-session-attachments/agent-session-attachment-references'
+import { markUnclaimedUploadForSweep } from '../agent-session-attachments/agent-session-attachment-claims'
 import { appendTestJournalQueueRow } from '../agent-session-journal/journal-host-database-test-support'
 // An earlier build kept queued cards in their own table. They move into the chat's journal: the
 // queue reads each the same before and after, each action moves only its own card, and the bulk
@@ -450,6 +455,93 @@ it.each([false, true])(
     }
     warned.mockRestore()
     await journal.close()
+  }
+)
+
+it.each(['proof', 'withdraw'] as const)(
+  'protects the legacy witness upload through %s while cleanup fails',
+  async (action) => {
+    const session = `witness-upload-${action}`
+    const upload = randomUUID()
+    const directory = join(agentSessionAttachmentStoreRoot(rig.root), upload)
+    await mkdir(directory, { recursive: true })
+    const path = join(directory, 'original.png')
+    await writeFile(path, 'stored image')
+    const body: AgentJournalMessageItem = {
+      ...message('original'),
+      blocks: [
+        { type: 'text', text: 'original' },
+        { type: 'image-ref', path }
+      ]
+    }
+    let journal = journalFor(session)
+    await journal.open()
+    await handOff(journal, 'U', 'Q', 'original', 'cancelled', 0, true, { body, options: {} })
+    await journal.close()
+    seedLegacy(session, [['Q', 'waiting', 'original']])
+    db()
+      .prepare('UPDATE queued_messages SET body_json = ?, fingerprint = ? WHERE session_id = ?')
+      .run(JSON.stringify(body), agentSessionSendBodyFingerprint(session, body), session)
+    db().prepare('DELETE FROM agent_session_attachment_claims WHERE session_id = ?').run(session)
+    db().exec(`CREATE TEMP TRIGGER fail_witness_cleanup BEFORE DELETE ON queued_messages
+      BEGIN SELECT RAISE(ABORT, 'cleanup unavailable'); END`)
+    const warned = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    journal = journalFor(session)
+    await journal.open()
+    const goal = { provider: 'orca' as const, clientMessageId: 'live-goal' }
+    await journal.appendClaimingAttachments(
+      goal,
+      { ...body, sentAs: 'goal' },
+      {
+        fence: 0,
+        turnScope: AGENT_JOURNAL_THREAD_SCOPE
+      }
+    )
+    if (action === 'proof') {
+      await journal.acceptLate({
+        clientMessageId: 'U',
+        state: 'accepted',
+        fence: 0,
+        providerIdentity: {
+          provider: 'codex',
+          threadId: 'thread',
+          turnId: 'late-upload',
+          ordinal: 0
+        }
+      })
+    } else {
+      appendTestJournalQueueRow(db(), journal, 'recovery:U', {
+        op: 'queued',
+        body,
+        recovers: 'U',
+        position: 0,
+        queuedAt: journal.cursor(),
+        returned: { reason: 'prior-build uncertainty', rejection: { kind: 'unconfirmed' } }
+      })
+      await journal.queuedMessages.withdraw(['recovery:U'])
+      expect(journal.queuedMessages.get('recovery:U')?.state).toBe('withdrawn')
+    }
+    await journal.withdrawGoalObjective(goal, { fence: 0 })
+    expect(journal.queuedMessages.get('Q')?.state).toBe('dispatched')
+    expect(legacyIds(session)).toEqual(['Q'])
+    expect(
+      db()
+        .prepare('SELECT upload_id FROM agent_session_attachment_claims WHERE session_id = ?')
+        .all(session)
+    ).toEqual([{ upload_id: upload }])
+    expect(markUnclaimedUploadForSweep(db(), upload, 1)).toBe(false)
+    await journal.close()
+    journal = journalFor(session)
+    await journal.open()
+    expect(journal.queuedMessages.get('Q')?.state).toBe('dispatched')
+    if (action === 'proof') {
+      expect(journal.submission('U')?.dispatchState).toBe('accepted')
+    } else {
+      expect(journal.queuedMessages.get('recovery:U')?.state).toBe('withdrawn')
+    }
+    await journal.close()
+    db().exec('DROP TRIGGER fail_witness_cleanup')
+    warned.mockRestore()
   }
 )
 

@@ -113,6 +113,7 @@ export const STRUCTURED_AGENT_SESSION_METHODS = [
   }),
   defineMethod({
     name: 'agentSession.create',
+    requires: ['accounts'],
     permission: 'workspace',
     params: CreateParams,
     handler: ORCA_LAYOUT_OWNER_IS_MAIN

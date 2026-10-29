@@ -30,6 +30,10 @@ export async function rewindJournalContext(input: {
   boundary?: Pick<JournalEpochRow, 'reason' | 'providerHandle'>
   fence: number
   items: readonly JournalReplacementItem[]
+  inputReceipt: (
+    rows: readonly JournalRow[],
+    receipt?: JournalOperationReceipt
+  ) => JournalOperationReceipt | undefined
   receipt?: (cursor: AgentJournalCursor) => JournalOperationReceipt
 }): Promise<AgentJournalCursor> {
   let receipt: JournalOperationReceipt | undefined
@@ -130,14 +134,7 @@ export async function rewindJournalContext(input: {
       })
       return plan
     },
-    {
-      write: (db) => {
-        receipt?.write(db)
-      },
-      committed: () => {
-        receipt?.committed()
-      }
-    }
+    (rows) => input.inputReceipt(rows, receipt)
   )
   const last = rows.at(-1)!
   return { epoch: last.epoch, sequence: last.seq }

@@ -13,7 +13,6 @@ type UseNativeChatComposerHandleArgs = Parameters<typeof useNativeChatTypedInser
   Omit<UseNativeChatComposerPasteArgs, 'insertTypedText'> & {
     /** Intake only: captured with the paste action, never consulted during settlement. */
     resend?: NativeChatComposerHandle['resend']
-    pastesInline: () => boolean
     /** A structured chat's editor while it shows this scope, where a long paste saved as a file lands. */
     pastedTextEditor: (() => NativeChatComposerInput | null) | null
   }
@@ -34,7 +33,6 @@ export function useNativeChatComposerHandle(
     })
 
   const insertPastedTextOrFile = useNativeChatPastedTextFile({
-    pastesInline: args.pastesInline,
     scopeKey: args.attachmentScopeKey ?? '',
     // Without a draft scope there is no draft for a pending paste to settle in.
     scopeEditor: args.attachmentScopeKey ? args.pastedTextEditor : null,

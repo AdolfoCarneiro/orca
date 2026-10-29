@@ -36,6 +36,7 @@ export class JournalSubmissionWriter {
   ): Promise<AgentJournalCursor> {
     const { claimAttachments, identity, queuedMessages, rowWriter, state } = this.deps
     const submission = journalSubmissionRowBuilder(state, identity, input, consume)
+    let claimsCommitted: (() => void) | void
     let card: JournalQueuePlan | undefined
     return rowWriter
       .enqueueRows(
@@ -56,10 +57,15 @@ export class JournalSubmissionWriter {
           write: (db, row) => {
             card?.receipt.write(db)
             // New client sends require stored uploads; queued cards already claimed theirs.
-            claimAttachments(db, input.body, input.origin === 'client' && !consume)
+            claimsCommitted = claimAttachments(
+              db,
+              input.body,
+              input.origin === 'client' && !consume
+            )
             receipt?.write(db, row)
           },
           committed: () => {
+            claimsCommitted?.()
             card?.receipt.committed()
             receipt?.committed()
           }
@@ -98,13 +104,19 @@ export class JournalSubmissionWriter {
   /** Resolve late receipts on the write lane; settled sends append nothing. */
   async acceptLate(input: Extract<ResolveDispatchInput, { state: 'accepted' }>): Promise<void> {
     const { rowWriter, state } = this.deps
-    await rowWriter.enqueueRows(() =>
-      journalDispatchRowApplies(state().submissions.get(input.clientMessageId))
-        ? [
-            ...this.deps.queuedMessages.proofWitness(input.clientMessageId),
-            journalDispatchRowBuilder(state, input)
-          ]
-        : []
+    let witness: JournalQueuePlan | undefined
+    await rowWriter.enqueueRows(
+      () => {
+        if (!journalDispatchRowApplies(state().submissions.get(input.clientMessageId))) {
+          return []
+        }
+        witness = this.deps.queuedMessages.proofWitness(input.clientMessageId)
+        return [...witness.rows, journalDispatchRowBuilder(state, input)]
+      },
+      {
+        write: (db) => witness?.receipt.write(db),
+        committed: () => witness?.receipt.committed()
+      }
     )
   }
 }

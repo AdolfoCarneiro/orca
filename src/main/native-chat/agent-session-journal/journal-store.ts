@@ -40,18 +40,13 @@ import {
 import { journalTombstoneRowBuilder } from './journal-row-builders'
 import type {
   AgentSessionJournalOptions,
-  JournalAppendResult,
-  JournalItemAppendOptions,
   JournalItemLinkageVisitor,
   JournalLifecycleBatchInput,
   JournalPlannedLifecycleBatchInput,
   JournalReadSince,
-  JournalSubmissionConsume,
-  JournalSubmissionInput,
-  JournalTombstoneInput,
-  ResolveDispatchInput
+  JournalTombstoneInput
 } from './journal-store-contracts'
-import type { JournalQueuedMessages, JournalQueuePlan } from './journal-queued-messages'
+import type { JournalQueuedMessages } from './journal-queued-messages'
 import {
   journalQueueResumeRowBuilder,
   journalQueueReopenRowBuilder,
@@ -65,11 +60,6 @@ import { JournalWriteQueue } from './journal-write-queue'
 import { journalItemExecutionFence, journalItemProvenance } from './journal-item-provenance'
 import { createJournalStoreCollaborators } from './journal-store-collaborators'
 import type { JournalItemAppender } from './journal-item-appender'
-import type { JournalLifecycleBatchAppender } from './journal-lifecycle-batch-appender'
-import type { JournalStepWriter } from './journal-step-writer'
-import type { JournalStopMarks } from './journal-stop-marks'
-import type { JournalContextController } from './journal-context-controller'
-import type { JournalStopAcceptor } from './journal-stop-acceptance'
 import {
   journalContextCursor,
   journalContextReceipt,
@@ -79,7 +69,10 @@ import { journalThreadGoalSource, type JournalThreadGoalSource } from './journal
 
 export { AgentSessionJournalError } from './journal-write-guards'
 
+type JournalCollaborators = ReturnType<typeof createJournalStoreCollaborators>
+
 export class AgentSessionJournal {
+  private readonly goalAttachments: JournalCollaborators['goalAttachments']
   private readonly identity: AgentSessionJournalIdentity
   private readonly database: JournalHostDatabase
   private readonly now: () => number
@@ -94,15 +87,15 @@ export class AgentSessionJournal {
   private readonly rowWriter: JournalRowWriter
   private readonly epochController: JournalEpochController
   private readonly itemAppender: JournalItemAppender
-  private readonly lifecycleBatchAppender: JournalLifecycleBatchAppender
+  private readonly lifecycleBatchAppender: JournalCollaborators['lifecycleBatchAppender']
   private readonly submissionWriter: JournalSubmissionWriter
-  private readonly stepWriter: JournalStepWriter
+  private readonly stepWriter: JournalCollaborators['stepWriter']
   private readonly restore: () => Promise<void>
   /** Queued cards never count as owed work. */
   readonly queuedMessages: JournalQueuedMessages
-  readonly stopMarks: JournalStopMarks
-  readonly stops: JournalStopAcceptor
-  readonly context: JournalContextController
+  readonly stopMarks: JournalCollaborators['stopMarks']
+  readonly stops: JournalCollaborators['stops']
+  readonly context: JournalCollaborators['context']
 
   constructor(options: AgentSessionJournalOptions) {
     this.identity = options.identity
@@ -136,6 +129,7 @@ export class AgentSessionJournal {
     })
     this.rowWriter = collaborators.rowWriter
     this.epochController = collaborators.epochController
+    this.goalAttachments = collaborators.goalAttachments
     this.itemAppender = collaborators.itemAppender
     this.lifecycleBatchAppender = collaborators.lifecycleBatchAppender
     this.submissionWriter = collaborators.submissionWriter
@@ -284,14 +278,10 @@ export class AgentSessionJournal {
   }
 
   /** Assign revisions here so callers cannot publish reducer-stale upserts. */
-  appendItem(
-    identity: AgentJournalItemIdentity,
-    body: AgentJournalItemBody,
-    options: JournalItemAppendOptions,
-    receipt?: JournalOperationReceipt
-  ): Promise<JournalAppendResult> {
-    return this.itemAppender.append(identity, body, options, receipt)
-  }
+  appendItem: JournalItemAppender['append'] = (...args) => this.itemAppender.append(...args)
+
+  appendClaimingAttachments: JournalItemAppender['appendClaimingAttachments'] = (...args) =>
+    this.itemAppender.appendClaimingAttachments(...args)
 
   /** Resolve on the write lane; null appends nothing. */
   appendResolvedItem: JournalItemAppender['appendResolved'] = (resolve, options) =>
@@ -299,10 +289,29 @@ export class AgentSessionJournal {
 
   appendTombstone(
     identity: AgentJournalItemIdentity,
-    { fence }: JournalTombstoneInput
+    { fence }: JournalTombstoneInput,
+    receipt?: JournalOperationReceipt
   ): Promise<AgentJournalCursor> {
     const itemId = agentJournalItemKey(identity)
-    return this.rowWriter.append(journalTombstoneRowBuilder(() => this.state, itemId, fence))
+    return this.rowWriter.append(
+      journalTombstoneRowBuilder(() => this.state, itemId, fence),
+      receipt
+    )
+  }
+
+  withdrawGoalObjective(
+    identity: AgentJournalItemIdentity,
+    options: JournalTombstoneInput
+  ): Promise<AgentJournalCursor> {
+    return this.appendTombstone(
+      identity,
+      options,
+      this.goalAttachments.withdraw(agentJournalItemKey(identity))
+    )
+  }
+
+  keepGoalAttachments(identity: AgentJournalItemIdentity): Promise<void> {
+    return this.queue.serialize(() => this.goalAttachments.keep(agentJournalItemKey(identity)))
   }
 
   appendStopEvent(event: Omit<JournalStopEvent, 'at'>, fence: number): Promise<AgentJournalCursor> {
@@ -335,22 +344,14 @@ export class AgentSessionJournal {
   appendPlannedLifecycleBatch = (input: JournalPlannedLifecycleBatchInput) =>
     this.lifecycleBatchAppender.appendPlanned(input)
 
-  appendSteps: JournalStepWriter['append'] = (steps) => this.stepWriter.append(steps)
+  appendSteps: JournalCollaborators['stepWriter']['append'] = (steps) =>
+    this.stepWriter.append(steps)
 
-  appendSubmission(
-    input: JournalSubmissionInput,
-    consume?: JournalSubmissionConsume,
-    receipt?: JournalOperationReceipt
-  ): Promise<AgentJournalCursor> {
-    return this.submissionWriter.append(input, consume, receipt)
-  }
+  appendSubmission: JournalSubmissionWriter['append'] = (...args) =>
+    this.submissionWriter.append(...args)
 
-  resolveDispatch(
-    input: ResolveDispatchInput,
-    cards?: () => JournalQueuePlan
-  ): Promise<AgentJournalCursor> {
-    return this.submissionWriter.resolveDispatch(input, cards)
-  }
+  resolveDispatch: JournalSubmissionWriter['resolveDispatch'] = (...args) =>
+    this.submissionWriter.resolveDispatch(...args)
 
   acceptLate: JournalSubmissionWriter['acceptLate'] = (i) => this.submissionWriter.acceptLate(i)
 

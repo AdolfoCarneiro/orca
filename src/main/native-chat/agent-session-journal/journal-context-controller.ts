@@ -15,6 +15,7 @@ export class JournalContextController {
       state: () => JournalReducerState
       writer: JournalRowWriter
       cards: JournalQueuedMessages
+      inputReceipt: Parameters<typeof rewindJournalContext>[0]['inputReceipt']
     }
   ) {}
 
