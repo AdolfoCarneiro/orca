@@ -6,7 +6,10 @@ import {
   splitDraftForDictation,
   type MobileDictationAnchor
 } from '../../../dictation/mobile-dictation-text-insertion'
-import { registerMobileNativeChatTextDestination } from './mobile-native-chat-draft-inputs'
+import {
+  mobileNativeChatDraftDestination,
+  registerMobileNativeChatTextDestination
+} from './mobile-native-chat-draft-inputs'
 import { MobileNativeChatDictationPreviewContext } from './mobile-native-chat-dictation-preview-context'
 import { setMobileNativeChatDraftText } from './mobile-native-chat-draft-store'
 
@@ -34,15 +37,20 @@ export function useMobileNativeChatComposerDictation({
     if (!draftScopeKey) {
       return
     }
+    const destination = mobileNativeChatDraftDestination(draftScopeKey)
     const write =
       insertDictation ??
-      ((insert: (draft: string) => string) => setMobileNativeChatDraftText(draftScopeKey, insert))
+      ((insert: (draft: string) => string) => setMobileNativeChatDraftText(destination, insert))
     return registerMobileNativeChatTextDestination(draftScopeKey, () => {
       const anchor = selectionRef.current
       return {
         scope: draftScopeKey,
         anchor,
         insert: (text) => {
+          // A retired tab's late dictation must not revive its draft.
+          if (!destination.active) {
+            return false
+          }
           const landed = { caret: 0, text: '' }
           const inserted = write((draft) => {
             const next = insertDictationText(draft, text, anchor)

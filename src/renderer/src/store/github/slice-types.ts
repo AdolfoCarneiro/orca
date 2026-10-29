@@ -47,6 +47,8 @@ export type GitHubSlice = {
   issueCache: Record<string, CacheEntry<IssueInfo>>
   checksCache: Record<string, CacheEntry<PRCheckDetail[]>>
   commentsCache: Record<string, CacheEntry<PRComment[]>>
+  /** Resolve/unresolve requests in flight: comments cacheKey + threadId -> threadId. */
+  reviewThreadResolutionsInFlight: Record<string, string>
   prRefreshSequences: Record<string, number>
   prRefreshStates: Record<string, PRRefreshState>
   prVisibleRefreshGeneration: number

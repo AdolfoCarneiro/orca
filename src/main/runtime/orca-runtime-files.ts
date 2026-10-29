@@ -34,6 +34,7 @@ export class RuntimeFileCommands {
   readonly createFileExplorerDir: RuntimeFileMutations['createFileExplorerDir']
   readonly createFileExplorerDirNoClobber: RuntimeFileMutations['createFileExplorerDirNoClobber']
   readonly commitFileExplorerUpload: RuntimeFileMutations['commitFileExplorerUpload']
+  readonly replaceFileExplorerFileWithUpload: RuntimeFileMutations['replaceFileExplorerFileWithUpload']
   readonly renameFileExplorerPath: RuntimeFileMutations['renameFileExplorerPath']
   readonly copyFileExplorerPath: RuntimeFileMutations['copyFileExplorerPath']
   readonly deleteFileExplorerPath: RuntimeFileMutations['deleteFileExplorerPath']
@@ -77,6 +78,9 @@ export class RuntimeFileCommands {
       this.mutations
     )
     this.commitFileExplorerUpload = this.mutations.commitFileExplorerUpload.bind(this.mutations)
+    this.replaceFileExplorerFileWithUpload = this.mutations.replaceFileExplorerFileWithUpload.bind(
+      this.mutations
+    )
     this.renameFileExplorerPath = this.mutations.renameFileExplorerPath.bind(this.mutations)
     this.copyFileExplorerPath = this.mutations.copyFileExplorerPath.bind(this.mutations)
     this.deleteFileExplorerPath = this.mutations.deleteFileExplorerPath.bind(this.mutations)

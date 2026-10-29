@@ -9,7 +9,7 @@ import {
   UI_LANGUAGE_SPANISH
 } from '../../../shared/ui-language'
 import { i18n, loadRendererUiLanguage, setRendererPluginLanguagePacks, translate } from './i18n'
-import { pluginLanguageResourceId } from '../../../shared/plugins/plugin-language-pack-artifact'
+import { pluginLanguageResourceId } from '../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 
 // Every changeLanguage caller must transparently load real non-English translations before its promise settles.
 
@@ -143,14 +143,15 @@ describe('renderer i18n lazy locale loading', () => {
   })
 
   it('loads an isolated catalog contributed by an enabled plugin', async () => {
-    const id = 'plugin:orca-samples.portuguese/pt-BR' as const
+    const id = 'plugin:samples.portuguese/pt-BR' as const
     setRendererPluginLanguagePacks([
       {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
-        pluginKey: 'orca-samples.portuguese',
+        pluginKey: 'samples.portuguese',
         locale: 'pt-BR',
-        catalog: { menu: { file: 'Arquivo Orca' } }
+        catalog: { menu: { file: 'Arquivo Orca' } },
+        coverage: 100
       }
     ])
 

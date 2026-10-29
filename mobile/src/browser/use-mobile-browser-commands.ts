@@ -1,11 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  type Dispatch,
-  type SetStateAction
-} from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
+import { translate } from '../i18n/mobile-i18n'
 import type { RpcClient } from '../transport/rpc-client'
 import { isRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 import type { BrowserScreencastFrameMetadata } from '../transport/browser-screencast-protocol'
@@ -208,12 +203,16 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
       return
     }
     if (result !== null) {
-      onToast('Sent')
+      onToast(translate('browser.useBrowserCommands.sent', 'Sent'))
       return
     }
     setKeyboardValue((current) => text + current)
     if (unconfirmed) {
-      onToast('Delivery unconfirmed — check page before retrying')
+      const warning = translate(
+        'browser.useBrowserCommands.deliveryUnconfirmed',
+        'Delivery unconfirmed — check page before retrying'
+      )
+      onToast(warning)
     }
   }, [onToast, sendBrowserRequest])
 
@@ -241,6 +240,10 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
         async (rpc, page, options) => command.interpret(await command.request(rpc, page, options)),
         { suppressError: true, timeoutMs: 5_000 }
       )
+      const error = translate(
+        'browser.useBrowserCommands.dialogAnswerFailed',
+        'That answer did not reach the page.'
+      )
       // Refusal/timeout leaves page blocked, so retain card with error explanation.
       setDialog((current) =>
         current === null || current.pending !== token
@@ -248,7 +251,7 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
           : {
               ...current,
               pending: undefined,
-              ...(result === null ? { error: 'That answer did not reach the page.' } : {})
+              ...(result === null ? { error } : {})
             }
       )
     },
