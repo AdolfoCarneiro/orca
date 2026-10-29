@@ -4,9 +4,18 @@ import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 
 type FeatureTipCopy = Pick<FeatureTip, 'eyebrow' | 'title' | 'description' | 'ctaLabel'>
 
-// The native chat upgrade dialog renders its own translated copy.
 const getFeatureTipCopyById = createLocalizedCatalog(
   (): Partial<Record<FeatureTipId, FeatureTipCopy>> => ({
+    // The dialog renders each variant's body and buttons itself.
+    'chat-ui-here': {
+      eyebrow: translate('featureTips.eyebrowNew', 'New'),
+      title: translate('featureTips.chatUiHere.title', 'Chat UI is here'),
+      description: translate(
+        'featureTips.chatUiHere.offIntro',
+        'Agents can now open as a chat, with rich messages, visuals, images and file links.'
+      ),
+      ctaLabel: translate('featureTips.chatUiHere.cta', 'Use Chat UI')
+    },
     'agent-session-search': {
       eyebrow: translate('featureTips.eyebrowNew', 'New'),
       title: translate('featureTips.sessionSearch.title', 'Search every agent session'),

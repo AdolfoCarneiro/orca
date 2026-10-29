@@ -34,6 +34,11 @@ export function buildNativeChatProviderUpdate(
   }
 }
 
+/** Chat for every agent Orca knows, the roster the one-time load step carries. */
+export function everyAgentChatChoices(): Record<string, boolean> {
+  return Object.fromEntries(Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, true]))
+}
+
 /**
  * The choices that keep what a profile's launches opened while Chat UI was experimental. With the
  * switch on, agents without a saved choice opened as chats, so they keep chat. With it off, every
@@ -51,10 +56,5 @@ export function carriedNativeChatProviderChoices(
       }
     }
   }
-  return chatUiOn
-    ? {
-        ...Object.fromEntries(Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, true])),
-        ...saved
-      }
-    : saved
+  return chatUiOn ? { ...everyAgentChatChoices(), ...saved } : saved
 }

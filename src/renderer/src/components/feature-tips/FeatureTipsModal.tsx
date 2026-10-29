@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'sonner'
 import { getDefaultVoiceSettings } from '../../../../shared/constants'
+import { everyAgentChatChoices } from '../../../../shared/native-chat/native-chat-providers'
 import {
   ORCHESTRATION_ENABLED_STORAGE_KEY,
   ORCHESTRATION_SETUP_DISMISSED_STORAGE_KEY,
   notifyOrchestrationSetupStateChanged
 } from '@/lib/orchestration-setup-state'
 import { useAppStore } from '@/store'
+import { ChatUiHereTipDialog } from './ChatUiHereTipDialog'
 import { CliSetupTipDialog } from './CliSetupTipDialog'
 import { CmdJPaletteTipDialog } from './CmdJPaletteTipDialog'
 import { installCliFromFeatureTip } from './feature-tip-cli-install-action'
 import { getFeatureTipForModal } from './feature-tip-modal-state'
 import {
   getOrcaCliFeatureTipTelemetrySource,
+  trackChatUiFeatureTipAction,
   trackCmdJPaletteFeatureTipAcknowledged,
   trackOrcaCliFeatureTipSetupClicked,
   trackOrcaCliFeatureTipSetupResult
@@ -31,8 +34,10 @@ export default function FeatureTipsModal(): JSX.Element | null {
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
   const settings = useAppStore((s) => s.settings)
   const updateSettings = useAppStore((s) => s.updateSettings)
+  const updateSettingsOrThrow = useAppStore((s) => s.updateSettingsOrThrow)
   const seenTipIds = useAppStore((s) => s.featureTipsSeenIds)
   const featureInteractions = useAppStore((s) => s.featureInteractions)
+  const chatUiLaunchTipVariant = useAppStore((s) => s.chatUiLaunchTipVariant) ?? 'none'
   const markFeatureTipsSeen = useAppStore((s) => s.markFeatureTipsSeen)
   const modalData = useAppStore((s) => s.modalData)
   const showAiVaultSearch = useAppStore((s) => s.showAiVaultSearch)
@@ -47,6 +52,7 @@ export default function FeatureTipsModal(): JSX.Element | null {
     modalData,
     seenTipIds,
     featureInteractions,
+    chatUiLaunchTipVariant,
     settings,
     webClient: isWebClientLocation()
   })
@@ -66,6 +72,9 @@ export default function FeatureTipsModal(): JSX.Element | null {
 
   const handleOpenChange = (open: boolean): void => {
     if (!open) {
+      if (currentTip?.id === 'chat-ui-here') {
+        trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'dismissed')
+      }
       setupRequestIdRef.current += 1
       markCurrentTipSeen()
       setSkillTerminalOpen(false)
@@ -109,6 +118,14 @@ export default function FeatureTipsModal(): JSX.Element | null {
     openSettingsPage()
   }
 
+  const openAgentSettings = (): void => {
+    trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'open_settings')
+    markCurrentTipSeen()
+    closeModal()
+    openSettingsTarget({ pane: 'agents', repoId: null })
+    openSettingsPage()
+  }
+
   const enableOrchestrationSkillSetup = (): void => {
     localStorage.setItem(ORCHESTRATION_ENABLED_STORAGE_KEY, '1')
     localStorage.removeItem(ORCHESTRATION_SETUP_DISMISSED_STORAGE_KEY)
@@ -122,6 +139,27 @@ export default function FeatureTipsModal(): JSX.Element | null {
 
     markFeatureTipsSeen([currentTip.id])
     switch (currentTip.action) {
+      case 'use-chat-ui': {
+        closeModal()
+        if (chatUiLaunchTipVariant !== 'chat-ui-off') {
+          trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'dismissed')
+          break
+        }
+        trackChatUiFeatureTipAction(chatUiLaunchTipVariant, 'use_chat_ui')
+        try {
+          await updateSettingsOrThrow({
+            nativeChatProviders: { ...settings?.nativeChatProviders, ...everyAgentChatChoices() }
+          })
+        } catch {
+          toast.error(
+            translate(
+              'featureTips.chatUiHere.saveFailed',
+              'Could not turn on Chat UI. Choose Chat in Settings → Agents.'
+            )
+          )
+        }
+        break
+      }
       case 'learn-cmd-j-palette': {
         trackCmdJPaletteFeatureTipAcknowledged(
           getOrcaCliFeatureTipTelemetrySource(modalData.source)
@@ -259,6 +297,22 @@ export default function FeatureTipsModal(): JSX.Element | null {
         onOpenChange={handleOpenChange}
         onPrimaryAction={() => void handlePrimaryAction()}
         onSkip={handleSkip}
+      />
+    )
+  }
+
+  if (currentTip.action === 'use-chat-ui') {
+    if (chatUiLaunchTipVariant === 'none') {
+      return null
+    }
+    return (
+      <ChatUiHereTipDialog
+        open={isOpen}
+        tip={currentTip}
+        variant={chatUiLaunchTipVariant}
+        onOpenChange={handleOpenChange}
+        onPrimaryAction={() => void handlePrimaryAction()}
+        onSettingsClick={openAgentSettings}
       />
     )
   }

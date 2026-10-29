@@ -20617,7 +20617,18 @@
       "title": "Ve a un worktree con <shortcut>",
       "description": "Busca worktrees, cambia de pestaña, ajusta la configuración o crea un worktree, todo sin dejar el teclado."
     },
-    "gotIt": "Entendido"
+    "gotIt": "Entendido",
+    "chatUiHere": {
+      "title": "Llega la interfaz de chat",
+      "offIntro": "Los agentes ya pueden abrirse como un chat, con mensajes enriquecidos, elementos visuales, imágenes y enlaces a archivos.",
+      "offTerminal": "¿Prefieres el terminal? Sigue teniendo soporte completo y no deja de mejorar. Tus agentes seguirán abriéndose allí hasta que elijas Chat.",
+      "onIntro": "La interfaz de chat ya no es experimental y ahora forma parte de Orca. Tus agentes siguen abriéndose como chats, con mensajes enriquecidos, elementos visuales, imágenes y enlaces a archivos.",
+      "onTerminal": "El terminal también sigue teniendo soporte completo. Puedes volver a cambiar cualquier agente cuando quieras.",
+      "changeInSettings": "Cámbialo cuando quieras en <link>Configuración → Agentes</link>.",
+      "stayInTerminal": "Seguir en el terminal",
+      "cta": "Usar la interfaz de chat",
+      "saveFailed": "No se pudo activar la interfaz de chat. Elige Chat en Configuración → Agentes."
+    }
   },
   "fileExplorer": {
     "root": {
