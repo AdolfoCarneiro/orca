@@ -5,7 +5,8 @@ import type { GitHubRepoExecOptions } from '../../github-api-repository'
 import {
   requestWorkItemSearch,
   workItemSearchScope,
-  WORK_ITEM_SEARCH_CACHE_MS
+  WORK_ITEM_SEARCH_CACHE_MS,
+  type WorkItemSearchType
 } from './work-item-search-batch'
 
 type PageInfo = { endCursor: string | null; hasNextPage: boolean }
@@ -43,6 +44,7 @@ export async function searchWorkItemCount(
 
 export async function searchWorkItemPage<T>(args: {
   search: string
+  searchType?: WorkItemSearchType
   nodeSelection: string
   limit: number
   page: number
@@ -61,7 +63,11 @@ export async function searchWorkItemPage<T>(args: {
     throw new Error('Only the first 1000 search results are available (HTTP 422)')
   }
   const search = `${args.search} sort:created-desc`
-  const scope = JSON.stringify([workItemSearchScope(options, environment), search])
+  const scope = JSON.stringify([
+    workItemSearchScope(options, environment),
+    args.searchType ?? 'ISSUE',
+    search
+  ])
   let position = 0
   let after: string | undefined
   if (!noCache) {
@@ -92,6 +98,7 @@ export async function searchWorkItemPage<T>(args: {
     const first = Math.min(100, offset - position)
     const { value: skipped, at } = await requestWorkItemSearch<SearchConnection<never>>({
       search,
+      searchType: args.searchType,
       first,
       after,
       selection: 'issueCount pageInfo { endCursor hasNextPage }',
@@ -114,6 +121,7 @@ export async function searchWorkItemPage<T>(args: {
   }
   const { value: result, at } = await requestWorkItemSearch<SearchConnection<T>>({
     search,
+    searchType: args.searchType,
     first: offset - position + limit,
     after,
     selection: `issueCount pageInfo { endCursor hasNextPage } nodes { ${args.nodeSelection} }`,

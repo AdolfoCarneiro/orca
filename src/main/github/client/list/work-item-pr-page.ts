@@ -10,7 +10,7 @@ import { searchWorkItemPage, usesGraphqlWorkItemSearch } from './work-item-searc
 const PR_NODE_SELECTION = `__typename ... on PullRequest {
   number title state url updatedAt isDraft headRefName baseRefName headRefOid
   headRepositoryOwner { login }
-  author { login avatarUrl ... on User { name } }
+  author { __typename login avatarUrl ... on User { name } }
   labels(first: 100) { nodes { name } pageInfo { hasNextPage } }
   reviewRequests(first: 100) {
     nodes { requestedReviewer {
@@ -24,6 +24,7 @@ const PR_NODE_SELECTION = `__typename ... on PullRequest {
   }
 }`
 const actorSchema = z.object({
+  __typename: z.string().optional(),
   login: z.string(),
   avatarUrl: z.string(),
   name: z.string().nullish()
@@ -81,6 +82,7 @@ export async function listPullRequestWorkItemPage(args: {
     try {
       const nodes = await searchWorkItemPage({
         search: `( ${prSearch} ) repo:${args.ownerRepo.owner}/${args.ownerRepo.repo} type:pr`,
+        searchType: 'ISSUE_ADVANCED',
         nodeSelection: PR_NODE_SELECTION,
         limit: args.limit,
         page: args.page,
@@ -95,6 +97,10 @@ export async function listPullRequestWorkItemPage(args: {
           mapPullRequestWorkItem(
             {
               ...node,
+              author:
+                node.author?.__typename === 'Bot'
+                  ? { ...node.author, login: `app/${node.author.login}` }
+                  : node.author,
               labels: node.labels.nodes,
               reviewRequests: node.reviewRequests.nodes
             },

@@ -20,8 +20,10 @@ const envelopeSchema = z.object({
     .optional()
 })
 type Envelope = z.infer<typeof envelopeSchema>
+export type WorkItemSearchType = 'ISSUE' | 'ISSUE_ADVANCED'
 type SearchRequest = {
   search: string
+  searchType?: WorkItemSearchType
   first: number
   after?: string
   selection: string
@@ -54,6 +56,7 @@ export function requestWorkItemSearch<T>(request: SearchRequest): Promise<Search
   const scope = workItemSearchScope(request.options, environment)
   const key = JSON.stringify([
     scope,
+    request.searchType ?? 'ISSUE',
     request.search,
     request.first,
     request.after,
@@ -109,7 +112,7 @@ function flushSearches(key: string): void {
 
 function searchSelection(request: SearchRequest, index: number): string {
   const after = request.after ? `, after: ${JSON.stringify(request.after)}` : ''
-  return `r${index}: search(type: ISSUE, query: ${JSON.stringify(request.search)}, first: ${request.first}${after}) { ${request.selection} }`
+  return `r${index}: search(type: ${request.searchType ?? 'ISSUE'}, query: ${JSON.stringify(request.search)}, first: ${request.first}${after}) { ${request.selection} }`
 }
 
 async function executeSearches(batch: PendingSearch[]): Promise<void> {

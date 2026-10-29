@@ -3,6 +3,7 @@ import { api, capture, sourceContext } from './work-item-search-test-harness'
 import { parseTaskQuery } from '../../shared/task-query'
 import { listPullRequestWorkItemPage } from './client/list/work-item-pr-page'
 import { listWorkItems } from './client/list/list-work-items'
+import { searchWorkItemPage } from './client/list/work-item-search-page'
 
 const ownerRepo = { owner: 'fixture', repo: 'repo', host: 'github.com' }
 function rows() {
@@ -201,4 +202,41 @@ it('combines a cold short prefix with the requested PR page', async () => {
   expect((await page(2))[0].number).toBe(9976)
   expect(api.graphqlCalls).toBe(1)
   expect(api.calls[0].args.join(' ')).toContain('first: 48')
+})
+
+it('uses advanced search for the grouped PR query and preserves CLI bot author display', async () => {
+  api.specialNodes = rows()
+  api.specialNodes[0].author = {
+    __typename: 'Bot',
+    login: 'dependabot',
+    avatarUrl: 'https://example.test/bot'
+  }
+  expect((await page(1))[0].author).toBe('app/dependabot')
+  expect(api.calls[0].args.join(' ')).toContain('search(type: ISSUE_ADVANCED,')
+})
+
+it('isolates search response coalescing, content and cursor identity by search type', async () => {
+  api.specialNodes = rows()
+  const args = {
+    search: 'repo:fixture/search-type-isolation is:open',
+    nodeSelection: '__typename ... on PullRequest { number }',
+    limit: 24,
+    page: 1,
+    options: {}
+  }
+  await Promise.all([
+    searchWorkItemPage({ ...args, searchType: 'ISSUE' }),
+    searchWorkItemPage({ ...args, searchType: 'ISSUE_ADVANCED' })
+  ])
+  expect(api.graphqlFields).toBe(2)
+  await searchWorkItemPage({ ...args, searchType: 'ISSUE' })
+  await searchWorkItemPage({ ...args, searchType: 'ISSUE_ADVANCED' })
+  expect(api.graphqlFields).toBe(2)
+
+  const cold = { ...args, search: 'repo:fixture/cursor-type-isolation is:open' }
+  await searchWorkItemPage({ ...cold, searchType: 'ISSUE' })
+  expect(await searchWorkItemPage({ ...cold, page: 2, searchType: 'ISSUE_ADVANCED' })).toHaveLength(
+    24
+  )
+  expect(api.calls.at(-1)?.args.join(' ')).toContain('first: 48')
 })
