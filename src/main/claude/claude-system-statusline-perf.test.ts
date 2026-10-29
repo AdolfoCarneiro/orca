@@ -15,6 +15,7 @@ import {
   applyAgentStatusHooksEnabled
 } from './claude-system-statusline.test-fixture'
 
+// Real production acquires and serializes 100/1000 physical records before measuring the bounded invocation work.
 it('measures current-only System work and exact index bytes at 100 and 1000 production-acquired owners', async () => {
   const base = seam.home
   const rows: Record<string, number>[] = []
@@ -202,5 +203,4 @@ it('measures current-only System work and exact index bytes at 100 and 1000 prod
     expect(rows[1][key]).toBeLessThanOrEqual(10 * rows[0][key] + 2048)
   }
   seam.home = base
-  // Real production acquires and serializes 100/1000 physical records before measuring the bounded invocation work.
 }, 60_000)
