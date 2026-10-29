@@ -3,7 +3,7 @@ import { readHostStructuredAgents } from '@/runtime/host-structured-agents'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
-import { isNativeChatProviderDisplayedOn } from '../../../../shared/native-chat/native-chat-providers'
+import { nativeChatPreferenceFor } from '../../../../shared/structured-native-chat-launch-route'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import { translate } from '@/i18n/i18n'
@@ -90,21 +90,8 @@ function ProviderDetail(props: {
       ? CHAT_HOST
       : null
   )
-  const state =
-    runtime.kind === 'active' && runtime.snapshot.kind === 'known' ? runtime.snapshot.state : null
-  const on = isNativeChatProviderDisplayedOn(props.settings, props.agent, [
-    ...(props.installed ?? []),
-    ...(state?.source ? [props.agent] : [])
-  ])
-  const unsettled =
-    !on &&
-    props.settings.nativeChatProviders?.[props.agent] === undefined &&
-    (props.installed === null ||
-      runtime.kind === 'pending' ||
-      (runtime.kind === 'active' && runtime.snapshot.kind !== 'known'))
-  const control = unsettled ? (
-    <div className="h-5 w-9 shrink-0 rounded-full bg-muted/50 animate-pulse" aria-hidden="true" />
-  ) : (
+  const on = nativeChatPreferenceFor(props.settings, props.agent)
+  const control = (
     <SettingsSwitch
       checked={on}
       disabled={!props.enabledInAgents}

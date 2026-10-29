@@ -14,8 +14,7 @@ import {
   rpcContext,
   runtimeStub,
   setAgentLaunchRecordStore,
-  type AgentLaunchRuntimeStub,
-  TERMINAL_PREFERENCE
+  type AgentLaunchRuntimeStub
 } from './agent-launch.test-fixture'
 
 const createStructuredSession = vi.hoisted(() => vi.fn())
@@ -73,7 +72,7 @@ beforeEach(() => {
 
 describe('a paired client launching into an existing workspace', () => {
   it("selects the new terminal as that client's tab only", async () => {
-    const runtime = selectionRuntime({ settings: TERMINAL_PREFERENCE, terminalPaneKey: PANE_KEY })
+    const runtime = selectionRuntime({ settings: {}, terminalPaneKey: PANE_KEY })
 
     await launch(EXISTING_LAUNCH, runtime)
 
@@ -99,7 +98,7 @@ describe('a paired client launching into an existing workspace', () => {
   })
 
   // Prompt delivery can take a minute; caller navigation must not wait.
-  it.each([['terminal', TERMINAL_PREFERENCE, deliverTerminalPrompt]] as const)(
+  it.each([['terminal', {}, deliverTerminalPrompt]] as const)(
     'selects the new %s for the caller before its prompt is delivered',
     async (_surface, settings, deliver) => {
       const runtime = selectionRuntime({ settings, terminalPaneKey: PANE_KEY })
@@ -117,7 +116,7 @@ describe('a paired client launching into an existing workspace', () => {
   )
 
   it('still reports the launch when selecting its tab fails', async () => {
-    const runtime = selectionRuntime({ settings: TERMINAL_PREFERENCE, terminalPaneKey: PANE_KEY })
+    const runtime = selectionRuntime({ settings: {}, terminalPaneKey: PANE_KEY })
     runtime.selectCreatedMobileSessionTabForClient.mockImplementationOnce(() => {
       throw new Error('selection store unavailable')
     })
@@ -132,7 +131,7 @@ describe('a paired client launching into an existing workspace', () => {
   // Headless hosts have no window to reveal, but the caller still mirrors the tab.
   it('does not pass on the host’s own reveal warning, since the caller shows the tab itself', async () => {
     const runtime = selectionRuntime({
-      settings: TERMINAL_PREFERENCE,
+      settings: {},
       terminalPaneKey: PANE_KEY,
       terminalWarning: REVEAL_WARNING
     })
@@ -145,7 +144,7 @@ describe('a paired client launching into an existing workspace', () => {
 
   it('still tells a caller that shows the tab itself that its folder was gone', async () => {
     const runtime = selectionRuntime({
-      settings: TERMINAL_PREFERENCE,
+      settings: {},
       terminalPaneKey: PANE_KEY,
       terminalWarning: REVEAL_WARNING,
       terminalStartupCwdFallback: true
@@ -184,7 +183,7 @@ describe('a paired client launching into an existing workspace', () => {
   )
 
   it('focuses a paired terminal only for the caller', async () => {
-    const runtime = selectionRuntime({ settings: TERMINAL_PREFERENCE, terminalPaneKey: PANE_KEY })
+    const runtime = selectionRuntime({ settings: {}, terminalPaneKey: PANE_KEY })
     await launch({ ...EXISTING_LAUNCH, presentation: 'focused' }, runtime)
     expect(runtime.createTerminal).toHaveBeenCalledWith(
       'id:wt-7',
@@ -194,7 +193,7 @@ describe('a paired client launching into an existing workspace', () => {
   })
 
   it('selects nothing when the runtime reported no pane for the terminal', async () => {
-    const runtime = selectionRuntime({ settings: TERMINAL_PREFERENCE })
+    const runtime = selectionRuntime({ settings: {} })
 
     await launch(EXISTING_LAUNCH, runtime)
 
@@ -213,10 +212,7 @@ describe('launches that keep the host-wide behaviour', () => {
   })
 
   it('an in-process caller still hears that the host could not reveal the tab', async () => {
-    const runtime = selectionRuntime({
-      settings: TERMINAL_PREFERENCE,
-      terminalWarning: REVEAL_WARNING
-    })
+    const runtime = selectionRuntime({ settings: {}, terminalWarning: REVEAL_WARNING })
 
     const result = await launch(EXISTING_LAUNCH, runtime, {})
 
@@ -267,11 +263,11 @@ describe('a replayed launch', () => {
       ...EXISTING_LAUNCH,
       operationId: OPERATION_ID
     })
-    const first = selectionRuntime({ settings: TERMINAL_PREFERENCE, terminalPaneKey: PANE_KEY })
+    const first = selectionRuntime({ settings: {}, terminalPaneKey: PANE_KEY })
     await AGENT_LAUNCH_REPLAY.handler(params, rpcContext(first, CAPABLE_CLIENT))
     expect(first.selectCreatedMobileSessionTabForClient).toHaveBeenCalledOnce()
 
-    const replay = selectionRuntime({ settings: TERMINAL_PREFERENCE, terminalPaneKey: PANE_KEY })
+    const replay = selectionRuntime({ settings: {}, terminalPaneKey: PANE_KEY })
     await AGENT_LAUNCH_REPLAY.handler(params, rpcContext(replay, CAPABLE_CLIENT))
 
     expect(replay.createTerminal).not.toHaveBeenCalled()

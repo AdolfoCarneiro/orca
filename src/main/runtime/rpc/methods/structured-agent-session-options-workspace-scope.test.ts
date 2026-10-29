@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import '../unused-default-rpc-methods.test-fixture'
 // At-rest repo config can determine model: clients accepting omission get repo defaults; others keep account model and the remaining catalog, never refusal.
 
@@ -145,7 +146,9 @@ beforeEach(async () => {
   vi.spyOn(runtime, 'getClientSettings').mockImplementation(
     () =>
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the RPC gate reads only this one setting.
-      ({}) as ReturnType<OrcaRuntimeService['getClientSettings']>
+      ({ nativeChatProviders: EVERY_AGENT_CHAT }) as ReturnType<
+        OrcaRuntimeService['getClientSettings']
+      >
   )
   dispatcher = new RpcDispatcher({ runtime, methods: STRUCTURED_AGENT_SESSION_METHODS })
 })

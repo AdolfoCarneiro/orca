@@ -137,7 +137,7 @@ function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: strin
 }
 
 beforeEach(() => {
-  mocks.state.settings.nativeChatProviders = {}
+  mocks.state.settings.nativeChatProviders = { claude: true, codex: true }
   mocks.state.runtimePaneTitlesByTabId.tab = { 1: 'codex', 2: 'codex' }
   mocks.state.setTabViewMode('tab', 'chat')
   mocks.state.setTabLayout('tab', {

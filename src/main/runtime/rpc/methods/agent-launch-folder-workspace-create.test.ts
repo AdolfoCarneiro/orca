@@ -13,8 +13,7 @@ import {
   rpcContext,
   runtimeStub,
   setAgentLaunchRecordStore,
-  type AgentLaunchRuntimeStub,
-  TERMINAL_PREFERENCE
+  type AgentLaunchRuntimeStub
 } from './agent-launch.test-fixture'
 
 const createStructuredSession = vi.fn(async (_args: Record<string, unknown>) => ({
@@ -61,7 +60,7 @@ beforeEach(() => {
 
 describe('agent.launch creating a folder workspace', () => {
   it('creates the workspace, then starts a terminal agent in it', async () => {
-    const runtime = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const runtime = folderRuntime({ settings: {} })
 
     const result = await launch(FOLDER_LAUNCH, runtime)
 
@@ -193,9 +192,9 @@ describe('a replayed folder launch', () => {
   }
 
   it('answers a retry from the record without creating a second workspace', async () => {
-    await replay(folderRuntime({ settings: TERMINAL_PREFERENCE }))
+    await replay(folderRuntime({ settings: {} }))
 
-    const retry = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const retry = folderRuntime({ settings: {} })
     const result = await replay(retry)
 
     expect(retry.createFolderWorkspace).not.toHaveBeenCalled()
@@ -204,7 +203,7 @@ describe('a replayed folder launch', () => {
   })
 
   it('records a create refused before anything was stored as failed, and replays that', async () => {
-    const first = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const first = folderRuntime({ settings: {} })
     first.createFolderWorkspace.mockRejectedValueOnce(
       new FolderWorkspaceCreateRefusedError(PATH_UNAVAILABLE)
     )
@@ -212,7 +211,7 @@ describe('a replayed folder launch', () => {
     await expect(replay(first)).rejects.toThrow(PATH_UNAVAILABLE)
     expect(outcome()).toMatchObject({ status: 'failed', code: PATH_UNAVAILABLE })
 
-    const retry = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const retry = folderRuntime({ settings: {} })
     await expect(replay(retry)).rejects.toThrow(PATH_UNAVAILABLE)
     expect(retry.createFolderWorkspace).not.toHaveBeenCalled()
   })
@@ -223,20 +222,20 @@ describe('a replayed folder launch', () => {
     ['drops a path no filesystem accepts', `/srv/${'n'.repeat(5000)}`, false]
   ])('%s when it replays a refused create', async (_case, path, keepsPath) => {
     const refusal = `folder_workspace_path_missing:${path}`
-    const first = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const first = folderRuntime({ settings: {} })
     first.createFolderWorkspace.mockRejectedValueOnce(
       new FolderWorkspaceCreateRefusedError(refusal)
     )
     await expect(replay(first)).rejects.toMatchObject({ message: refusal })
 
     const replayed = keepsPath ? refusal : 'folder_workspace_path_missing'
-    await expect(replay(folderRuntime({ settings: TERMINAL_PREFERENCE }))).rejects.toMatchObject({
+    await expect(replay(folderRuntime({ settings: {} }))).rejects.toMatchObject({
       message: replayed
     })
   })
 
   it('stays unknown when the failure came after the workspace was created', async () => {
-    const first = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const first = folderRuntime({ settings: {} })
     // Only a typed create refusal proves no effects; identical untyped error text does not.
     first.showTerminalWorkspaceLaunchScope.mockRejectedValueOnce(new Error(PATH_UNAVAILABLE))
 
@@ -244,7 +243,7 @@ describe('a replayed folder launch', () => {
     expect(first.createFolderWorkspace).toHaveBeenCalledOnce()
     expect(outcome()?.status).not.toBe('failed')
 
-    const retry = folderRuntime({ settings: TERMINAL_PREFERENCE })
+    const retry = folderRuntime({ settings: {} })
     await expect(replay(retry)).rejects.toThrow('agent_session_operation_unknown')
     expect(retry.createFolderWorkspace).not.toHaveBeenCalled()
   })

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 
 const mockIsWebRuntimeSessionActive = vi.fn(() => false)
 const mockCreateWebRuntimeAgentSessionTerminal = vi.fn()
@@ -10,10 +9,6 @@ function queuedStartups() {
 }
 const mockPasteDraftWhenAgentReady = vi.fn()
 
-// Every agent set to CLI: these launches open terminals.
-const TERMINAL_CHOICES = Object.fromEntries(
-  Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
-)
 const store = {
   activeRepoId: 'repo-1',
   activeWorktreeId: 'wt-1',
@@ -27,7 +22,6 @@ const store = {
     agentDefaultArgs: Record<string, string>
     agentDefaultEnv: Record<string, Record<string, string>>
     activeRuntimeEnvironmentId: string | null
-    nativeChatProviders?: Record<string, boolean>
     terminalWindowsShell?: string
   },
   projects: [
@@ -136,8 +130,7 @@ describe('launchAgentInNewTab Windows shell quoting', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null,
-      nativeChatProviders: TERMINAL_CHOICES
+      activeRuntimeEnvironmentId: null
     }
     store.projects = [
       {

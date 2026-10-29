@@ -66,6 +66,15 @@ async function expectToolbarCopyChordArmsGrab(page: Page, browserTabId: string):
   await expect(grabBanner(page, browserTabId)).toBeVisible()
 }
 
+async function enableNativeChat(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const nextSettings = await window.api.settings.set({
+      nativeChatProviders: { claude: true, codex: true }
+    })
+    window.__store?.setState({ settings: nextSettings })
+  })
+}
+
 function claudeTranscript(sessionId: string, reply: string): string {
   const rows = [
     { type: 'user', text: 'Explain the split shortcut fix.' },
@@ -99,6 +108,7 @@ async function openNativeChatTranscript(
     `${sessionId}.jsonl`
   )
   writeFileSync(transcriptPath, claudeTranscript(sessionId, args.reply))
+  await enableNativeChat(page)
   await page.evaluate(
     ({ paneKey, worktreeId, transcriptSessionId, transcriptFile }) => {
       const state = window.__store?.getState()

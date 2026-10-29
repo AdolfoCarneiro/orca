@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../shared/native-chat/every-agent-chat.test-fixture'
 import './orca-runtime-test-lifecycle.spec'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -126,7 +127,8 @@ it('routes old-client chat tab renames to the owning record with or without an a
       const runtime = attached ? desktop.runtime : new OrcaRuntimeService(null)
       vi.spyOn(runtime, 'ensureStructuredAgentSessionHost').mockResolvedValue(undefined)
       vi.spyOn(runtime, 'getClientSettings').mockReturnValue({
-        ...desktop.runtime.getClientSettings()
+        ...desktop.runtime.getClientSettings(),
+        nativeChatProviders: EVERY_AGENT_CHAT
       })
       const snapshot: RuntimeMobileSessionTabsSnapshot = {
         worktree: TEST_WORKTREE_ID,

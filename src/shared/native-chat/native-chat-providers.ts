@@ -1,6 +1,5 @@
-// Persist explicit choices only; launches route unchosen agents to chat and Settings enables installed non-built-ins.
+// Persist explicit choices only; an agent without a saved chat choice opens as its CLI.
 
-import { isAgentSessionHandleProvider } from '../agent-session-provider-handle'
 import type { GlobalSettings } from '../global-settings-types'
 import type { TuiAgent } from '../tui-agent'
 import { isTuiAgent, TUI_AGENT_CONFIG } from '../tui-agent-config'
@@ -22,18 +21,6 @@ export function normalizeNativeChatProviderChoices(value: unknown): NativeChatPr
   return choices
 }
 
-/** The switch's displayed value, independent of launch feasibility. */
-export function isNativeChatProviderDisplayedOn(
-  settings: Partial<NativeChatProviderSettings> | null | undefined,
-  agent: TuiAgent,
-  installedHere: readonly TuiAgent[] | null
-): boolean {
-  return (
-    settings?.nativeChatProviders?.[agent] ??
-    (isAgentSessionHandleProvider(agent) || installedHere?.includes(agent) === true)
-  )
-}
-
 export function buildNativeChatProviderUpdate(
   settings: Partial<NativeChatProviderSettings> | null | undefined,
   agent: TuiAgent,
@@ -48,16 +35,26 @@ export function buildNativeChatProviderUpdate(
 }
 
 /**
- * CLI for every agent known now and every agent the profile already chose for. Keeps launches on
- * the terminal for a profile whose Chat UI was off when it left Experimental; the old switch masked
- * saved chat choices, so those turn CLI too.
+ * The choices that keep what a profile's launches opened while Chat UI was experimental. With the
+ * switch on, agents without a saved choice opened as chats, so they keep chat. With it off, every
+ * launch opened its CLI, and the switch masked saved chat choices, so those turn CLI.
  */
-export function terminalNativeChatProviderChoices(savedChoices: unknown): Record<string, false> {
-  const saved =
-    savedChoices && typeof savedChoices === 'object' && !Array.isArray(savedChoices)
-      ? Object.keys(savedChoices)
-      : []
-  return Object.fromEntries(
-    [...new Set([...Object.keys(TUI_AGENT_CONFIG), ...saved])].map((agent) => [agent, false])
-  )
+export function carriedNativeChatProviderChoices(
+  savedChoices: unknown,
+  chatUiOn: boolean
+): Record<string, boolean> {
+  const saved: Record<string, boolean> = {}
+  if (savedChoices && typeof savedChoices === 'object' && !Array.isArray(savedChoices)) {
+    for (const [agent, on] of Object.entries(savedChoices)) {
+      if (typeof on === 'boolean') {
+        saved[agent] = chatUiOn && on
+      }
+    }
+  }
+  return chatUiOn
+    ? {
+        ...Object.fromEntries(Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, true])),
+        ...saved
+      }
+    : saved
 }

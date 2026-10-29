@@ -14,11 +14,10 @@ import type {
   AgentLaunchTabPublishRequest
 } from '../../../../shared/agent-launch-tab-publication'
 
-export const STRUCTURED_PREFERENCE = {}
-/** Every agent set to CLI, so default launches open terminals. */
-export const TERMINAL_PREFERENCE = {
+/** Every agent set to chat, so default launches open chats. */
+export const STRUCTURED_PREFERENCE = {
   nativeChatProviders: Object.fromEntries(
-    Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
+    Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, true])
   )
 }
 

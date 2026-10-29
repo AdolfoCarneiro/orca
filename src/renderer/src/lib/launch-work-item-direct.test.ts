@@ -712,7 +712,7 @@ describe('launchWorkItemDirect', () => {
     mocks.store.settings = {
       defaultTuiAgent: 'claude',
       disabledTuiAgents: ['codex'],
-      nativeChatProviders: { claude: false, codex: false }
+      agentCmdOverrides: {}
     }
 
     await expect(
@@ -836,7 +836,7 @@ describe('launchWorkItemDirect', () => {
     vi.spyOn(localCapabilities, 'readLocalRuntimeCapabilitiesOrUnknown').mockReturnValue(
       RUNTIME_CAPABILITIES
     )
-    mocks.store.settings = { disabledTuiAgents: ['codex'] }
+    mocks.store.settings = { nativeChatProviders: { codex: true }, disabledTuiAgents: ['codex'] }
     vi.mocked(beginDirectWorkItemStructuredLaunch).mockReturnValueOnce({
       completed: true,
       structuredLaunch: true,

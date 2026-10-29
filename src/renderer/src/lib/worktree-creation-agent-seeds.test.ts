@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { resetHookCommandDelayedDeliveryForTests } from './hook-command-delayed-delivery'
@@ -90,7 +91,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   useAppStore.setState({
     settings: {
-      ...initialSettings
+      ...initialSettings,
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
   })
 })

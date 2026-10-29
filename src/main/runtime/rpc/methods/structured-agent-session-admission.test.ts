@@ -32,12 +32,10 @@ afterEach(() => {
 })
 
 const SETTING_OFF = {
-  requireStore: () => ({
-    getSettings: () => ({ nativeChatProviders: { claude: false, codex: false } })
-  })
+  requireStore: () => ({ getSettings: () => ({}) })
 }
 const SETTING_ON = {
-  requireStore: () => ({ getSettings: () => ({}) })
+  requireStore: () => ({ getSettings: () => ({ nativeChatProviders: { codex: true } }) })
 }
 // A client that picks each launch's mode itself, as the desktop does.
 const MODE_CHOOSING_CLIENT = {
@@ -163,13 +161,13 @@ describe('a client that leaves the launch mode to the host', () => {
   })
 
   it("is answered by the workspace when the host's choice for that agent is chat", async () => {
-    for (const settings of [{}, { nativeChatProviders: { claude: false, codex: true } }]) {
-      const response = await call(CREATE_SUPPORT.method, CREATE_SUPPORT.params, RELEASED_PHONE, {
-        requireStore: () => ({ getSettings: () => settings })
+    const response = await call(CREATE_SUPPORT.method, CREATE_SUPPORT.params, RELEASED_PHONE, {
+      requireStore: () => ({
+        getSettings: () => ({ nativeChatProviders: { claude: false, codex: true } })
       })
+    })
 
-      expect(response).toMatchObject({ ok: true })
-    }
+    expect(response).toMatchObject({ ok: true })
   })
 
   it('reads an unreadable settings store as off', async () => {

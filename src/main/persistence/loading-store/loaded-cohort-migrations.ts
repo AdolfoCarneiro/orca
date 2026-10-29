@@ -4,7 +4,7 @@ import {
   parseChatUiLaunchTipAudience,
   type ChatUiLaunchTipAudience
 } from '../../../shared/native-chat/chat-ui-launch-tip-audience'
-import { terminalNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
+import { carriedNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
 import { savedChatUiWithTerminalDefaultView } from '../applying-settings/terminal-settings-migrations'
 
 import type { StoreRuntimeState } from './store-runtime-state'
@@ -51,13 +51,11 @@ export class LoadedCohortMigrationOperations {
     // Opt-ins saved with new tabs opening in the terminal were kept on the terminal, so they count as off.
     const chatUiOn =
       settings?.experimentalNativeChat === true && !savedChatUiWithTerminalDefaultView(settings)
-    return chatUiOn
-      ? { version: 1, membership: 'excluded', basis: 'chat-ui-on' }
-      : { version: 1, membership: 'eligible', basis: 'chat-ui-off' }
+    return { version: 1, membership: 'eligible', basis: chatUiOn ? 'chat-ui-on' : 'chat-ui-off' }
   }
 
   /** Runs with the audience capture that first records the profile, so it applies once and in the same save. */
-  keepChatUiOffLaunchesOnTerminal(
+  carryChatUiChoices(
     state: PersistedState,
     savedProfile: unknown,
     audience: ChatUiLaunchTipAudience
@@ -65,19 +63,20 @@ export class LoadedCohortMigrationOperations {
     if (
       !isRecord(savedProfile) ||
       savedProfile.chatUiLaunchTipAudience !== undefined ||
-      audience.basis !== 'chat-ui-off'
+      (audience.basis !== 'chat-ui-on' && audience.basis !== 'chat-ui-off')
     ) {
       return state
     }
     const saved = isRecord(savedProfile.settings) ? savedProfile.settings : undefined
-    this.runtime.loadNeedsSave = true
-    return {
-      ...state,
-      settings: {
-        ...state.settings,
-        nativeChatProviders: terminalNativeChatProviderChoices(saved?.nativeChatProviders)
-      }
+    const choices = carriedNativeChatProviderChoices(
+      saved?.nativeChatProviders,
+      audience.basis === 'chat-ui-on'
+    )
+    if (Object.keys(choices).length === 0) {
+      return state
     }
+    this.runtime.loadNeedsSave = true
+    return { ...state, settings: { ...state.settings, nativeChatProviders: choices } }
   }
 
   migrateTelemetry(state: PersistedState, fileExistedOnLoad: boolean): PersistedState {

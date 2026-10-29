@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../shared/native-chat/every-agent-chat.test-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import { executeAgentLaunch, type AgentLaunchExecution } from './agent-launch-executor'
 import { AgentLaunchStructuredSessionRefusedError } from './agent-launch-surface-factories'
@@ -6,7 +7,9 @@ import type { AgentLaunchIntent, AgentLaunchResult } from '../../shared/agent-la
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../shared/constants'
 import { readCreatedWorkspaceLaunch } from './agent-launch-created-workspace'
 
-const STRUCTURED_PREFERENCE = {}
+const STRUCTURED_PREFERENCE = {
+  nativeChatProviders: EVERY_AGENT_CHAT
+}
 
 function harness(options: {
   settings?: Record<string, unknown> | null
@@ -770,7 +773,7 @@ describe('the surface is published as the launch stands, before its prompt is de
   }
 
   it('records a prompt still owed as unconfirmed, then delivers it', async () => {
-    const { launch, published } = publishing({ settings: null, lineCarriesPrompt: false })
+    const { launch, published } = publishing({ settings: {}, lineCarriesPrompt: false })
 
     const result = await launch.run(PROMPTED_EXISTING)
 
@@ -787,7 +790,7 @@ describe('the surface is published as the launch stands, before its prompt is de
   })
 
   it('records a draft as not delivered, since the host never delivers one', async () => {
-    const { launch, published } = publishing({ settings: null, lineCarriesPrompt: false })
+    const { launch, published } = publishing({ settings: {}, lineCarriesPrompt: false })
 
     const result = await launch.run({
       ...PROMPTED_EXISTING,
@@ -799,7 +802,7 @@ describe('the surface is published as the launch stands, before its prompt is de
   })
 
   it('records a prompt the launch command carried as already handed over', async () => {
-    const { launch, published } = publishing({ settings: null, lineCarriesPrompt: true })
+    const { launch, published } = publishing({ settings: {}, lineCarriesPrompt: true })
 
     const result = await launch.run(PROMPTED_EXISTING)
 
@@ -822,7 +825,7 @@ describe('the surface is published as the launch stands, before its prompt is de
 describe('a new local worktree whose startup terminal did not come up', () => {
   it('opens its agent in the view a local workspace allows, as an existing one would', async () => {
     const h = harness({
-      settings: {}
+      settings: { nativeChatProviders: EVERY_AGENT_CHAT }
     })
     h.createWorktree.mockImplementationOnce(async () => ({
       worktreeId: 'wt-new',
@@ -843,7 +846,7 @@ describe('explicit chat settlement uses resolved facts and launch effects', () =
     'settles root and custom cwd after %s without losing launch inputs',
     async (kind) => {
       for (const cwd of ['.', '/repo/task', 'packages/api']) {
-        const h = harness({ settings: null })
+        const h = harness({ settings: {} })
         const result = await h.run({
           agent: 'claude',
           surface: 'chat',

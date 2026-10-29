@@ -9,6 +9,15 @@ import { waitForActivePaneHookDescriptor, waitForActiveTerminalManager } from '.
 
 const LONG_PROMPT_LINES = 80
 
+async function enableNativeChatSetting(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const nextSettings = await window.api.settings.set({
+      nativeChatProviders: { claude: true, codex: true }
+    })
+    window.__store?.setState({ settings: nextSettings })
+  })
+}
+
 async function seedClaudeProviderSession(
   page: Page,
   args: { paneKey: string; worktreeId: string; sessionId: string; transcriptPath: string }
@@ -100,6 +109,7 @@ async function openChat(page: Page, turns: readonly string[]): Promise<void> {
       .join('')
   )
 
+  await enableNativeChatSetting(page)
   await seedClaudeProviderSession(page, {
     paneKey: descriptor.paneKey,
     worktreeId: descriptor.worktreeId,

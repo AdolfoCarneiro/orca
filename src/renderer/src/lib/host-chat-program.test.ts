@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { getDefaultSourceControlAiSettings } from '../../../shared/source-control-ai-settings'
 import { afterEach, assert, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
@@ -45,7 +46,7 @@ beforeEach(() => {
   rpc.subscribe.mockReset().mockResolvedValue({ unsubscribe: vi.fn() })
   setLocalRuntimeCapabilitiesForTests(CAPS)
   useAppStore.setState({
-    settings: { ...getDefaultSettings('/tmp') },
+    settings: { ...getDefaultSettings('/tmp'), nativeChatProviders: EVERY_AGENT_CHAT },
     runtimeStatusByEnvironmentId: new Map([['B', status()]])
   })
 })
@@ -120,7 +121,7 @@ it('adapts only absent publication on older hosts and shares the saved Checks ga
   setLocalRuntimeCapabilitiesForTests([CHAT, CATALOG, INSTALL])
   const local = { kind: 'git-worktree' } as const
   const settings = getDefaultSettings('/tmp')
-  settings.nativeChatProviders = {}
+  settings.nativeChatProviders = EVERY_AGENT_CHAT
   settings.sourceControlAi = getDefaultSourceControlAiSettings()
   settings.sourceControlAi.actions = { fixChecks: { agentId: 'antigravity' } }
   useAppStore.setState({ settings, ensureDetectedAgents: async () => [] })

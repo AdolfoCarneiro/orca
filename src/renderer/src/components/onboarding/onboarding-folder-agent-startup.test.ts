@@ -50,7 +50,7 @@ describe('buildOnboardingFolderAgentStartup', () => {
       const startup = buildStartup({
         ...getDefaultSettings('/tmp/orca-workspaces'),
         defaultTuiAgent: 'codex',
-        nativeChatProviders: chat ? {} : { claude: false, codex: false },
+        nativeChatProviders: chat ? { claude: true, codex: true } : {},
         nativeChatSessionOptions: {
           codex: {
             model: 'gpt-5.2-codex',

@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import '../unused-default-rpc-methods.test-fixture'
 /** Drive chat tab pointers through real disk records, structured host, runtime and RPC; fake only the provider. */
 
@@ -190,7 +191,7 @@ beforeEach(async () => {
   runtime = new OrcaRuntimeService()
   vi.spyOn(runtime, 'getClientSettings').mockReturnValue(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the structured-chat policy reads only this one setting on these paths.
-    {} as ReturnType<OrcaRuntimeService['getClientSettings']>
+    { nativeChatProviders: EVERY_AGENT_CHAT } as ReturnType<OrcaRuntimeService['getClientSettings']>
   )
   dispatcher = new RpcDispatcher({
     runtime,

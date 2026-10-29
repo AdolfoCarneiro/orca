@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { STRUCTURED_AGENT_SESSION_RESUME_HISTORY_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
@@ -41,7 +42,9 @@ function resumeInChat(session: AiVaultSession = codexSession) {
     resumeState: { blocked: true, worktreeId: null, usesSessionWorktree: false },
     activeWorkspaceId: PAIRED_WORKSPACE,
     targetState: { folderWorkspaces: [], projectGroups: [], repos: [], worktreesByRepo: {} },
-    settings: {}
+    settings: {
+      nativeChatProviders: EVERY_AGENT_CHAT
+    }
   })
 }
 

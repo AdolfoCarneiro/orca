@@ -8,8 +8,7 @@ import {
   methodNamed,
   rpcContext,
   runtimeStub,
-  type AgentLaunchRuntimeStub as RuntimeStub,
-  TERMINAL_PREFERENCE
+  type AgentLaunchRuntimeStub as RuntimeStub
 } from './agent-launch.test-fixture'
 
 vi.mock('./structured-agent-session-create', () => ({
@@ -28,7 +27,7 @@ const LEAF_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 const PANE_KEY = `${TAB_ID}:${LEAF_ID}`
 
 /** Settings with no structured preference, so every launch here settles as a terminal. */
-const TERMINAL_ONLY = TERMINAL_PREFERENCE
+const TERMINAL_ONLY = {}
 
 async function launch(params: unknown, runtime: RuntimeStub, context: Partial<RpcContext> = {}) {
   const parsed = AGENT_LAUNCH.params.safeParse(params)

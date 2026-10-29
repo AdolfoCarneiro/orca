@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 
 vi.mock('electron', () => ({
   app: { getPath: () => testState.dir },
@@ -30,15 +30,11 @@ async function reopen(): Promise<ReturnType<typeof createStore>> {
   return createStore()
 }
 
-const EVERY_AGENT_CLI = Object.fromEntries(
-  Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
-)
-
 describe('Chat UI launch tip audience', () => {
   it.each([
     ['saved before the Chat UI switch existed', {}, 'eligible', 'chat-ui-off'],
     ['Chat UI off', { experimentalNativeChat: false }, 'eligible', 'chat-ui-off'],
-    ['Chat UI on', { experimentalNativeChat: true }, 'excluded', 'chat-ui-on'],
+    ['Chat UI on', { experimentalNativeChat: true }, 'eligible', 'chat-ui-on'],
     [
       'Chat UI on with new tabs opening in the terminal',
       { experimentalNativeChat: true, openAgentTabsInChatByDefault: false },
@@ -91,34 +87,40 @@ describe('Chat UI launch tip audience', () => {
   })
 })
 
-describe('keeping Chat UI off profiles on the terminal', () => {
+describe('carrying what launches opened while Chat UI was experimental', () => {
   it.each([
-    ['saved before the Chat UI switch existed', {}],
+    ['saved before the Chat UI switch existed', {}, undefined],
+    ['Chat UI off', { experimentalNativeChat: false }, undefined],
+    ['Chat UI on', { experimentalNativeChat: true }, EVERY_AGENT_CHAT],
     [
-      'Chat UI off, overwriting chat choices the switch masked',
-      { experimentalNativeChat: false, nativeChatProviders: { claude: true } }
+      'Chat UI off, turning chat choices the switch masked to CLI',
+      { experimentalNativeChat: false, nativeChatProviders: { claude: true, codex: false } },
+      { claude: false, codex: false }
     ],
     [
       'Chat UI on with new tabs opening in the terminal',
-      { experimentalNativeChat: true, openAgentTabsInChatByDefault: false }
+      {
+        experimentalNativeChat: true,
+        openAgentTabsInChatByDefault: false,
+        nativeChatProviders: { codex: true }
+      },
+      { codex: false }
+    ],
+    [
+      'Chat UI on, keeping an explicit CLI choice',
+      { experimentalNativeChat: true, nativeChatProviders: { claude: false, 'acme-agent': true } },
+      { ...EVERY_AGENT_CHAT, claude: false, 'acme-agent': true }
     ]
-  ])('sets every agent to CLI for a profile %s, once', async (_, settings) => {
+  ])('saves the choices of a profile %s, once', async (_, settings, carried) => {
     writeDataFile({ settings })
     const store = createStore()
-    expect(store.getSettings().nativeChatProviders).toEqual(EVERY_AGENT_CLI)
+    expect(store.getSettings().nativeChatProviders).toEqual(carried)
     store.flush()
-    expect(readDataFile()).toHaveProperty('settings.nativeChatProviders', EVERY_AGENT_CLI)
 
-    // A later chat choice survives the next load.
-    store.updateSettings({ nativeChatProviders: { ...EVERY_AGENT_CLI, claude: true } })
+    // A later choice survives the next load.
+    store.updateSettings({ nativeChatProviders: { gemini: true } })
     store.flush()
-    expect((await reopen()).getSettings().nativeChatProviders?.claude).toBe(true)
-  })
-
-  it('keeps the saved choices of a profile that had Chat UI on', () => {
-    const nativeChatProviders = { claude: false, codex: true }
-    writeDataFile({ settings: { experimentalNativeChat: true, nativeChatProviders } })
-    expect(createStore().getSettings().nativeChatProviders).toEqual(nativeChatProviders)
+    expect((await reopen()).getSettings().nativeChatProviders).toEqual({ gemini: true })
   })
 
   it('writes no choices for a brand new profile', () => {
@@ -126,10 +128,11 @@ describe('keeping Chat UI off profiles on the terminal', () => {
   })
 
   it('writes no choices when the audience record already exists, even malformed', () => {
+    const nativeChatProviders = { claude: true }
     writeDataFile({
-      settings: { experimentalNativeChat: false },
+      settings: { experimentalNativeChat: false, nativeChatProviders },
       chatUiLaunchTipAudience: { membership: 'eligible' }
     })
-    expect(createStore().getSettings().nativeChatProviders).toBeUndefined()
+    expect(createStore().getSettings().nativeChatProviders).toEqual(nativeChatProviders)
   })
 })

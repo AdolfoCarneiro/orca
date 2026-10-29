@@ -746,7 +746,7 @@ describe('staged background worktree creation', () => {
     ['mirrorable local Grok', 'grok', 'https://github.com/o/r/issues/12', 'terminal'],
     ['multi-line Claude', 'claude', 'note\nhttps://github.com/o/r/issues/12', 'terminal']
   ] as const)('passes %s draft mode to backend startup', async (_label, agent, draft, viewMode) => {
-    store.settings.nativeChatProviders = {}
+    store.settings.nativeChatProviders = { claude: true, codex: true }
     store.repos = [{ id: 'repo-1', connectionId: null }]
     continueBackgroundWorktreeCreation(
       'creation-1',

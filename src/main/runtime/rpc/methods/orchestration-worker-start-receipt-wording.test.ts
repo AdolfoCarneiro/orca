@@ -1,5 +1,6 @@
 /** Pin full fallback sentences and orchestration vocabulary; substring or mocked-CLI assertions missed corrupted wording. */
 
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { describe, expect, it } from 'vitest'
 import {
   decideWorkerStartMode,
@@ -7,7 +8,9 @@ import {
   type WorkerStartModeReceipt
 } from './orchestration-worker-start-mode'
 
-const STRUCTURED_PREFERENCE = {} as const
+const STRUCTURED_PREFERENCE = {
+  nativeChatProviders: EVERY_AGENT_CHAT
+} as const
 
 function structuredReceipt(): WorkerStartModeReceipt {
   const receipt = decideWorkerStartMode({

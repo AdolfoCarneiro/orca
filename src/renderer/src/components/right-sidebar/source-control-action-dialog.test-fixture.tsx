@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { terminalSessionOptionInputs } from '../../../../shared/tui-agent-launch-command'
 import { buildAgentStartupPlan } from '../../../../shared/tui-agent-startup'
 import { resolveSourceControlActionRecipe } from '../../../../shared/source-control-ai-operation-policy'
@@ -65,6 +66,7 @@ export function mountSourceDialog(
   const settings = {
     ...getDefaultSettings('/tmp/fc1-action'),
     defaultTuiAgent: 'claude' as const,
+    nativeChatProviders: EVERY_AGENT_CHAT,
     agentPermissionDefault: 'own' as const
   }
   settings.sourceControlAi!.actions = { resolveConflicts: global }
@@ -149,7 +151,7 @@ export function renderDialog(
   )!.launchPreferences!
   settings.sourceControlAi!.actions = { resolveConflicts: { agentId: null, launchPreferences } }
   useAppStore.setState({
-    settings: { ...settings, nativeChatProviders: chat ? {} : { claude: false, codex: false } },
+    settings: { ...settings, nativeChatProviders: chat ? EVERY_AGENT_CHAT : {} },
     detectedAgentIds: ['claude', 'codex'],
     localDetectedAgentIdsByContext: { host: ['claude', 'codex'] }
   })

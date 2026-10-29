@@ -111,13 +111,13 @@ describe('Chat settings page', () => {
     fireEvent.click(claude)
     await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
     fireEvent.click(grok)
-    fireEvent.click(claude)
+    // Installing an agent never turns its switch on; only a saved choice does.
     state.localDetectedAgentIdsByContext = { host: ['grok'] }
     rerender(element())
-    expect(grok.getAttribute('aria-checked')).toBe('true')
+    expect(grok.getAttribute('aria-checked')).toBe('false')
     finish()
-    await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(3))
-    expect(latest.nativeChatProviders).toEqual({ claude: false, grok: true })
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(2))
+    expect(latest.nativeChatProviders).toEqual({ claude: true, grok: true })
   })
 
   it('retains the unsaved naming draft when search no longer matches Chat', () => {

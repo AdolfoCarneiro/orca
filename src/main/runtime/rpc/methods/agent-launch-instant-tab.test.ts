@@ -34,8 +34,7 @@ import {
   rpcContext,
   runtimeStub,
   setAgentLaunchRecordStore,
-  type AgentLaunchRuntimeStubOptions,
-  TERMINAL_PREFERENCE
+  type AgentLaunchRuntimeStubOptions
 } from './agent-launch.test-fixture'
 import {
   WORKTREE_ID as MAIN_WORKTREE_ID,
@@ -59,7 +58,7 @@ const AGENT_LAUNCH_REPLAY = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launchRepla
 const TAB_ID = '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'
 const LEAF_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 const PANE_KEY = `${TAB_ID}:${LEAF_ID}`
-const TERMINAL_ONLY = TERMINAL_PREFERENCE
+const TERMINAL_ONLY = {}
 const LAUNCH = { agent: 'claude', target: { kind: 'existing', worktree: 'id:wt-7' } }
 const CLI: Partial<RpcContext> = {}
 const DESKTOP: Partial<RpcContext> = {
@@ -825,7 +824,7 @@ describe.each(['window', 'main'] as const)('the %s owning the layout', (owner) =
   })
 
   describe('the view the tab opens in', () => {
-    const TERMINAL_VIEW = { nativeChatProviders: { claude: false } }
+    const TERMINAL_VIEW = {}
 
     it('keeps a terminal launch in the same view for the shown tab and spawn', async () => {
       const runtime = hostWithWindow({ settings: TERMINAL_VIEW })
@@ -845,8 +844,8 @@ describe.each(['window', 'main'] as const)('the %s owning the layout', (owner) =
       expect(terminalOptions(runtime)).toMatchObject({ viewMode: 'terminal' })
     })
 
-    it('publishes a terminal fallback in terminal view for an agent without a chat', async () => {
-      const runtime = hostWithWindow({ settings: {} })
+    it('publishes a terminal fallback in terminal view while Chat UI is on', async () => {
+      const runtime = hostWithWindow({ settings: STRUCTURED_PREFERENCE })
 
       await replayLaunch(runtime, { agent: 'gemini' }, CLI)
 

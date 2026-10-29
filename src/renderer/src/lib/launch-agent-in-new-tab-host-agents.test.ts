@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
@@ -11,7 +12,9 @@ const REGISTERED: RuntimeCapability[] = [
   STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
   STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
 ]
-const SETTINGS = {}
+const SETTINGS = {
+  nativeChatProviders: EVERY_AGENT_CHAT
+}
 
 const mocks = vi.hoisted(() => {
   const state: { current: Record<string, unknown> } = { current: {} }
@@ -185,11 +188,7 @@ describe('a new tab whose chat route waits on the host agent list', () => {
       plan: { route: 'structured-native-chat' }
     })
     expect(
-      routeNewTabLaunch(
-        storeWithSettings({ ...SETTINGS, nativeChatProviders: { opencode: false } }),
-        args,
-        request
-      )
+      routeNewTabLaunch(storeWithSettings({ ...SETTINGS, nativeChatProviders: {} }), args, request)
     ).toMatchObject({ plan: { route: 'terminal-tui' } })
   })
 })

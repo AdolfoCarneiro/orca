@@ -15,6 +15,7 @@ async function openChat(page: Page, claudeCommand: string) {
   const worktreeId = await waitForActiveWorktree(page)
   await page.evaluate(async (command) => {
     await window.__store?.getState().updateSettings({
+      nativeChatProviders: { claude: true, codex: true },
       defaultTuiAgent: 'claude',
       agentCmdOverrides: { claude: command }
     })

@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import * as fileOperations from 'node:fs/promises'
 import { readFile, rm } from 'node:fs/promises'
 import * as contextSnapshots from '../../../native-chat/agent-session-context-snapshots'
@@ -97,7 +98,9 @@ beforeEach(async () => {
   vi.spyOn(runtime, 'getClientSettings').mockImplementation(
     () =>
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the RPC gate reads only this one setting.
-      ({}) as ReturnType<OrcaRuntimeService['getClientSettings']>
+      ({ nativeChatProviders: EVERY_AGENT_CHAT }) as ReturnType<
+        OrcaRuntimeService['getClientSettings']
+      >
   )
   dispatcher = new RpcDispatcher({ runtime, methods: STRUCTURED_AGENT_SESSION_METHODS })
 })

@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import { toAppSshPtyId } from '../../../shared/ssh-pty-id'
@@ -40,7 +41,7 @@ const store = {
     agentDefaultEnv: Record<string, Record<string, string>>
     activeRuntimeEnvironmentId: string | null
     terminalWindowsShell?: string
-    nativeChatProviders?: Record<string, boolean>
+    nativeChatProviders?: Readonly<Record<string, boolean>>
     nativeChatSessionOptions?: Record<
       string,
       { model?: string; valuesByModel?: Record<string, Record<string, string | boolean>> }
@@ -249,7 +250,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null
+      activeRuntimeEnvironmentId: null,
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
@@ -285,7 +287,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null
+      activeRuntimeEnvironmentId: null,
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
@@ -315,7 +318,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null
+      activeRuntimeEnvironmentId: null,
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     store.repos = [{ id: 'repo-1', connectionId: 'ssh-target-1', path: '/repo' }]
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
@@ -334,7 +338,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null
+      activeRuntimeEnvironmentId: null,
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
@@ -362,7 +367,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null
+      activeRuntimeEnvironmentId: null,
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
@@ -404,7 +410,7 @@ describe('launchAgentInNewTab', () => {
       agentDefaultArgs: { codex: '--profile team' },
       agentDefaultEnv: {},
       activeRuntimeEnvironmentId: null,
-      nativeChatProviders: { claude: false, codex: false },
+      nativeChatProviders: {},
       nativeChatSessionOptions: {
         codex: {
           model: 'gpt-5.2-codex',
@@ -436,6 +442,7 @@ describe('launchAgentInNewTab', () => {
       agentDefaultArgs: {},
       agentDefaultEnv: {},
       activeRuntimeEnvironmentId: null,
+      nativeChatProviders: EVERY_AGENT_CHAT,
       nativeChatSessionOptions: {
         codex: {
           model: 'gpt-5.2-codex',
@@ -475,6 +482,7 @@ describe('launchAgentInNewTab', () => {
       agentDefaultArgs: {},
       agentDefaultEnv: {},
       activeRuntimeEnvironmentId: 'web-runtime',
+      nativeChatProviders: EVERY_AGENT_CHAT,
       nativeChatSessionOptions: {
         claude: {
           model: 'opus',
@@ -518,7 +526,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: 'web-runtime'
+      activeRuntimeEnvironmentId: 'web-runtime',
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     // The client stamps a server's rows on arrival; focus alone never names the owner.
     Object.assign(store.repos[0], { executionHostId: 'runtime:web-runtime' })
@@ -541,7 +550,8 @@ describe('launchAgentInNewTab', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: 'web-runtime'
+      activeRuntimeEnvironmentId: 'web-runtime',
+      nativeChatProviders: EVERY_AGENT_CHAT
     }
     // The client stamps a server's rows on arrival; focus alone never names the owner.
     Object.assign(store.repos[0], { executionHostId: 'runtime:web-runtime' })

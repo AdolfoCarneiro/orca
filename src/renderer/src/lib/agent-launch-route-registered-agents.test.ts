@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import {
   STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
@@ -46,7 +47,9 @@ const LISTS_GROK = {
     { agent: 'grok', capabilities: {} }
   ]
 }
-const SETTINGS = {}
+const SETTINGS = {
+  nativeChatProviders: EVERY_AGENT_CHAT
+}
 const LOCAL: ProspectiveWorkspace = { kind: 'git-worktree', repoId: 'repo-1' }
 const PAIRED: ProspectiveWorkspace = { kind: 'git-worktree', runtimeEnvironmentId: 'env-1' }
 

@@ -38,6 +38,7 @@ test.describe('native chat on a WSL host', () => {
     // The HUB is the distro's orcad: its settings are the host's, so the chat runs its stub.
     await hub.evaluate(async (command) => {
       await window.__store?.getState().updateSettings({
+        nativeChatProviders: { claude: true, codex: true },
         agentCmdOverrides: { claude: command }
       })
     }, buildFakeAgentCommandOverride(claudeStub.command))
@@ -57,6 +58,7 @@ test.describe('native chat on a WSL host', () => {
         const settings = await window.api.settings.set({ experimentalWslHosts: true })
         window.__store?.setState({ settings })
         await window.__store?.getState().updateSettings({
+          nativeChatProviders: { claude: true, codex: true },
           defaultTuiAgent: 'claude'
         })
       })
@@ -175,6 +177,7 @@ test.describe('native chat on a WSL host', () => {
     await waitForSessionReady(hub)
     await hub.evaluate(async (command) => {
       await window.__store?.getState().updateSettings({
+        nativeChatProviders: { claude: true, codex: true },
         agentCmdOverrides: { claude: command }
       })
     }, buildFakeAgentCommandOverride(claudeStub.command))
@@ -193,6 +196,7 @@ test.describe('native chat on a WSL host', () => {
         const settings = await window.api.settings.set({ experimentalWslHosts: true })
         window.__store?.setState({ settings })
         await window.__store?.getState().updateSettings({
+          nativeChatProviders: { claude: true, codex: true },
           defaultTuiAgent: 'claude'
         })
       })
@@ -263,6 +267,7 @@ test.describe('native chat on a WSL host', () => {
     await waitForSessionReady(hub)
     await hub.evaluate(async (command) => {
       await window.__store?.getState().updateSettings({
+        nativeChatProviders: { claude: true, codex: true },
         agentCmdOverrides: { claude: command }
       })
     }, buildFakeAgentCommandOverride(claudeStub.command))
@@ -289,6 +294,7 @@ test.describe('native chat on a WSL host', () => {
         const settings = await window.api.settings.set({ experimentalWslHosts: true })
         window.__store?.setState({ settings })
         await window.__store?.getState().updateSettings({
+          nativeChatProviders: { claude: true, codex: true },
           defaultTuiAgent: 'claude'
         })
       })

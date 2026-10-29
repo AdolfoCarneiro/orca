@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 
 const mockCreateTab = vi.fn()
 function queuedStartups() {
@@ -22,10 +21,6 @@ type StoreWorktree = {
   displayName: string
 }
 
-// Every agent set to CLI: these launches open terminals.
-const TERMINAL_CHOICES = Object.fromEntries(
-  Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
-)
 const store = {
   activeRepoId: 'repo-1',
   activeWorktreeId: 'wt-1',
@@ -33,8 +28,7 @@ const store = {
     agentCmdOverrides: {} as Record<string, string>,
     agentDefaultArgs: {} as Record<string, string>,
     agentDefaultEnv: {} as Record<string, Record<string, string>>,
-    activeRuntimeEnvironmentId: null as string | null,
-    nativeChatProviders: TERMINAL_CHOICES
+    activeRuntimeEnvironmentId: null as string | null
   },
   projects: [{ id: 'repo-1', localWindowsRuntimePreference: { kind: 'inherit-global' as const } }],
   repos: [] as StoreRepo[],
@@ -127,8 +121,7 @@ describe('launchAgentInNewTab execution host resolution', () => {
       agentCmdOverrides: {},
       agentDefaultArgs: {},
       agentDefaultEnv: {},
-      activeRuntimeEnvironmentId: null,
-      nativeChatProviders: TERMINAL_CHOICES
+      activeRuntimeEnvironmentId: null
     }
     store.tabsByWorktree = { 'wt-1': [{ id: 'tab-1' }] }
     store.openFiles = []

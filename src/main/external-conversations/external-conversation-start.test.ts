@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../shared/native-chat/every-agent-chat.test-fixture'
 import { expect, it, vi } from 'vitest'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { runtimeConversationLauncher } from './external-conversation-start'
@@ -16,7 +17,7 @@ it('starts the requested connector agent in a background terminal even with chat
       path: '/repo/task',
       connectionId: null
     })),
-    requireStore: () => ({ getSettings: () => ({}) }),
+    requireStore: () => ({ getSettings: () => ({ nativeChatProviders: EVERY_AGENT_CHAT }) }),
     getStructuredAgentSessionCreateSupport: vi.fn(async () => ({ supported: true })),
     createTerminal
   } as unknown as OrcaRuntimeService

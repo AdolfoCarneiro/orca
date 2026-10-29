@@ -18,8 +18,7 @@ import {
   rpcContext,
   runtimeStub,
   setAgentLaunchRecordStore,
-  type AgentLaunchRuntimeStub as RuntimeStub,
-  TERMINAL_PREFERENCE
+  type AgentLaunchRuntimeStub as RuntimeStub
 } from './agent-launch.test-fixture'
 
 vi.mock('./structured-agent-session-create', () => ({
@@ -38,7 +37,7 @@ const LEAF_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 const PANE_KEY = `${TAB_ID}:${LEAF_ID}`
 
 /** No structured preference, so every launch here settles as a terminal unless it says otherwise. */
-const TERMINAL_ONLY = TERMINAL_PREFERENCE
+const TERMINAL_ONLY = {}
 
 const EXISTING_LAUNCH = { agent: 'claude', target: { kind: 'existing', worktree: 'id:wt-7' } }
 const CREATE_LAUNCH = {

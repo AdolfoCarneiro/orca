@@ -74,9 +74,10 @@ beforeEach(() => {
 afterEach(resetHostStructuredAgentsForTests)
 
 it.each([
-  ['chat on', 'claude', undefined, false],
+  ['chat on', 'claude', { claude: true }, false],
+  ['no saved choice', 'claude', undefined, true],
   ['provider off', 'claude', { claude: false }, true],
-  ['no chat support', 'goose', undefined, true]
+  ['no chat support', 'goose', { goose: true }, true]
 ] as const)('%s: shows Arguments only for the CLI', (_name, agent, providers, visible) => {
   configure({ nativeChatProviders: providers })
   render(<Row agent={agent} />)
@@ -84,8 +85,8 @@ it.each([
   expect(screen.getByText('Command template')).toBeDefined()
 })
 
-it('hides an unresolved launch even set to CLI, but always shows text action Arguments', () => {
-  configure({ nativeChatProviders: { claude: false, codex: false } })
+it('hides an unresolved launch even with chat off, but always shows text action Arguments', () => {
+  configure({ nativeChatProviders: {} })
   useAppStore.setState({ localDetectedAgentIdsByContext: {} })
   const view = render(<Row />)
   expect(screen.queryByRole('textbox', { name: 'Arguments' })).toBeNull()
@@ -94,12 +95,12 @@ it('hides an unresolved launch even set to CLI, but always shows text action Arg
 })
 
 it('keeps the draft while Arguments hide and renders the model and effort beside Permissions', () => {
-  configure({ nativeChatProviders: { claude: false, codex: false } })
+  configure({ nativeChatProviders: {} })
   render(<Row />)
   fireEvent.change(screen.getByRole('textbox', { name: 'Arguments' }), {
     target: { value: '--draft' }
   })
-  act(() => configure({ nativeChatProviders: {} }))
+  act(() => configure({ nativeChatProviders: { claude: true } }))
   expect(screen.queryByRole('textbox', { name: 'Arguments' })).toBeNull()
   expect(screen.getByRole('button', { name: 'Claude permissions' }).textContent).toContain(
     'Full access'
@@ -107,7 +108,7 @@ it('keeps the draft while Arguments hide and renders the model and effort beside
   expect(screen.getByRole('button', { name: 'Claude permissions' }).getAttribute('data-size')).toBe(
     'sm'
   )
-  act(() => configure({ nativeChatProviders: { claude: false, codex: false } }))
+  act(() => configure({ nativeChatProviders: {} }))
   expect(screen.getByRole('textbox', { name: 'Arguments' })).toHaveProperty('value', '--draft')
   expect(
     screen.getByRole('button', { name: /Remove --dangerously-skip-permissions/ })
@@ -133,14 +134,14 @@ it('reacts to the real host registry when another agent gains chat support', asy
 it('honors an explicit future surface only after an agent resolves', () => {
   const input = {
     agent: 'claude',
-    settings: {},
+    settings: { nativeChatProviders: { claude: true } },
     chatAgents: ['claude']
   } as const
   expect(shouldShowSourceControlActionArguments({ ...input, launchKind: 'terminal' })).toBe(true)
   expect(
     shouldShowSourceControlActionArguments({
       ...input,
-      settings: { nativeChatProviders: { claude: false, codex: false } },
+      settings: { nativeChatProviders: {} },
       launchKind: 'chat'
     })
   ).toBe(false)
@@ -152,7 +153,7 @@ it('honors an explicit future surface only after an agent resolves', () => {
 it.each(['', null, '--verbose', undefined])(
   'repository Args %s uses the shared controls, source and wrapping layout',
   (agentArgs) => {
-    configure({ nativeChatProviders: { claude: false, codex: false } })
+    configure({ nativeChatProviders: {} })
     useAppStore.setState({
       repos: [{ id: 'repo', path: '/repo', displayName: 'repo', badgeColor: '', addedAt: 0 }]
     })
@@ -233,12 +234,12 @@ it.each(['', null, '--verbose', undefined])(
     expect(Boolean(controls.queryByRole('button', { name: 'Remove --model sonnet' }))).toBe(
       agentArgs === undefined
     )
-    act(() => configure({ nativeChatProviders: {} }))
+    act(() => configure({ nativeChatProviders: { claude: true } }))
     expect(controls.queryByRole('textbox', { name: 'Arguments' })).toBeNull()
     expect(
       controls.getByRole('combobox', { name: agentArgs === undefined ? 'Sonnet' : 'Agent default' })
     ).toBeDefined()
-    act(() => configure({ nativeChatProviders: { claude: false, codex: false } }))
+    act(() => configure({ nativeChatProviders: {} }))
     expect(controls.getByRole('textbox', { name: 'Arguments' })).toHaveProperty(
       'value',
       agentArgs ?? ''

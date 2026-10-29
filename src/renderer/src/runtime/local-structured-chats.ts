@@ -1,9 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import {
-  nativeChatPreferenceFor,
-  type NativeChatDefaultSettings
-} from '../../../shared/structured-native-chat-launch-route'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
+import type { NativeChatDefaultSettings } from '../../../shared/structured-native-chat-launch-route'
 import { isWebClientLocation } from '@/lib/web-client-location'
 import { useAppStore } from '@/store'
 import { restoreLocalStructuredSessionTabsOnce } from './local-structured-session-tabs-sync/inventory-refresh'
@@ -72,13 +68,11 @@ export function useLocalStructuredAgentSessionsHeld(): boolean {
 
 type StructuredChatSettings = NativeChatDefaultSettings | null
 
-const KNOWN_AGENTS = Object.keys(TUI_AGENT_CONFIG)
-
-/** New launches may open as chats unless every known agent is saved as CLI. */
+/** New launches may open as chats only for agents saved as chat. */
 export function newAgentLaunchesMayOpenChats(
   settings: StructuredChatSettings | undefined
 ): boolean {
-  return KNOWN_AGENTS.some((agent) => nativeChatPreferenceFor(settings, agent))
+  return Object.values(settings?.nativeChatProviders ?? {}).some((on) => on === true)
 }
 
 function chatsInUse(launchesChats: boolean, holds: boolean): boolean {

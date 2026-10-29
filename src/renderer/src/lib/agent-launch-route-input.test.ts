@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 import {
@@ -56,6 +57,7 @@ const structuredFeasibleFor = (appStore: AgentLaunchRouteStore, args: AgentLaunc
   structuredAgentSessionLaunchFeasible(appStore, { ...args, settings: STRUCTURED_SETTINGS })
 
 const STRUCTURED_SETTINGS = {
+  nativeChatProviders: EVERY_AGENT_CHAT,
   agentCmdOverrides: {},
   agentDefaultArgs: {},
   agentDefaultEnv: {}
@@ -289,7 +291,7 @@ describe('buildAgentLaunchRouteInput', () => {
   })
 
   // Grok reads its transcript off local disk, so it is the agent the readability answer routes on.
-  const NATIVE_CHAT_SETTINGS = {}
+  const NATIVE_CHAT_SETTINGS = { nativeChatProviders: EVERY_AGENT_CHAT }
   const UNLANDED_WORKSPACE = {
     kind: 'git-worktree',
     worktreeId: 'repo-1::/repo/wt-1',

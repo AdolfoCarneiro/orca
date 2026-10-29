@@ -1,5 +1,5 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { getDefaultSettings } from '../../../shared/constants'
 import { useAppStore } from '@/store'
@@ -35,6 +35,7 @@ function seedSettings(settings: Partial<GlobalSettings>): void {
     detectedAgentIds: ['claude', 'codex'],
     settings: {
       ...getDefaultSettings('/tmp'),
+      nativeChatProviders: EVERY_AGENT_CHAT,
       defaultTuiAgent: 'codex',
       disabledTuiAgents: [],
       ...settings
@@ -93,11 +94,7 @@ describe('agent detection for the default chat', () => {
     useAppStore.setState({ remoteDetectedAgentIds: { 'conn-1': [] } })
     expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(false)
 
-    seedSettings({
-      nativeChatProviders: Object.fromEntries(
-        Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
-      )
-    })
+    seedSettings({ nativeChatProviders: {} })
     useAppStore.setState({ remoteDetectedAgentIds: {} })
     expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(false)
   })

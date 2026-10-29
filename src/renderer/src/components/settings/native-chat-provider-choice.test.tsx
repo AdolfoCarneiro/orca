@@ -36,7 +36,7 @@ describe('default agent chat or CLI', () => {
     const updateSettings = renderDefault(
       createGlobalSettingsFixture({
         defaultTuiAgent: 'claude',
-        nativeChatProviders: { codex: false }
+        nativeChatProviders: { codex: false, claude: true }
       })
     )
     const group = screen.getByRole('radiogroup', { name: 'Open Claude as' })
@@ -47,5 +47,11 @@ describe('default agent chat or CLI', () => {
         nativeChatProviders: { codex: false, claude: false }
       })
     )
+  })
+
+  it('reads an agent without a saved choice as CLI', () => {
+    renderDefault(createGlobalSettingsFixture({ defaultTuiAgent: 'claude' }))
+    const group = screen.getByRole('radiogroup', { name: 'Open Claude as' })
+    expect(group.querySelector('[aria-checked="true"]')?.textContent).toBe('CLI')
   })
 })

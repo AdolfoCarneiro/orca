@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import type * as LaunchErrors from '@/lib/structured-agent-session-launch-errors'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -83,6 +84,7 @@ const store = {
     agentDefaultArgs: {},
     agentDefaultEnv: {},
     activeRuntimeEnvironmentId: null,
+    nativeChatProviders: EVERY_AGENT_CHAT,
     nativeChatSessionOptions: undefined as
       | Record<
           string,
@@ -277,7 +279,7 @@ describe('structured chat adoption guard on the launch path', () => {
     ])
     mockCreateSupport.mockResolvedValue({ supported: true })
     hostCapabilities = STRUCTURED_HOST_CAPABILITIES
-    store.settings.nativeChatProviders = {}
+    store.settings.nativeChatProviders = EVERY_AGENT_CHAT
     store.settings.nativeChatSessionOptions = undefined
   })
 
@@ -439,7 +441,7 @@ describe('structured chat adoption guard on the launch path', () => {
 
   // Recheck persisted opt-in against current default view; the hidden toggle can remain enabled under Terminal chat.
   it('ignores a stale structured opt-in while the default view is Terminal chat', async () => {
-    store.settings.nativeChatProviders = { claude: false, codex: false }
+    store.settings.nativeChatProviders = {}
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
     const result = launchAgentInNewTab({

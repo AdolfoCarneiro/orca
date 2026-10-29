@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import '../unused-default-rpc-methods.test-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import type { OrcaRuntimeService } from '../../orca-runtime'
@@ -24,7 +25,7 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve, reject }
 }
 
-function makeHost() {
+function makeHost(options: { structuredChat?: boolean } = {}) {
   const registry = new RuntimeSubscriptionRegistry()
   const stopListening = vi.fn()
   const tabListeners: ((snapshot: RuntimeMobileSessionTabsResult, sequence: number) => void)[] = []
@@ -35,7 +36,9 @@ function makeHost() {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the session tab methods reach only these members; a missing one throws and fails the test.
   const runtime = {
     getRuntimeId: () => 'test-runtime',
-    getClientSettings: () => ({}),
+    getClientSettings: () => ({
+      nativeChatProviders: options.structuredChat === true ? EVERY_AGENT_CHAT : {}
+    }),
     restoreStructuredAgentSessionTabs: restore,
     listMobileSessionTabs,
     supportsAuthoritativeSessionTabsInventory: () => false,
@@ -102,7 +105,7 @@ describe('session.tabs.subscribe registers when the request arrives', () => {
   ])(
     'an unsubscribe ($unsubscribe) during the $stage await ends the stream and leaves nothing',
     async ({ stage, unsubscribe }) => {
-      const host = makeHost()
+      const host = makeHost({ structuredChat: true })
       const gate = deferred<void>()
       const listing = deferred<RuntimeMobileSessionTabsResult>()
       if (stage === 'restore') {
@@ -320,7 +323,7 @@ describe('session.tabs.subscribeAll registers before restoring structured tabs',
         host.runtime.cleanupSubscriptionsForConnection(CONNECTION)
     }
   ])('a $release during the restore leaves no stream behind', async ({ act }) => {
-    const host = makeHost()
+    const host = makeHost({ structuredChat: true })
     const gate = deferred<void>()
     host.restore.mockReturnValueOnce(gate.promise)
     const messages: Frame[] = []

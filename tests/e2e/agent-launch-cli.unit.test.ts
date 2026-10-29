@@ -14,8 +14,7 @@ import {
   methodNamed,
   rpcContext,
   runtimeStub,
-  setAgentLaunchRecordStore,
-  TERMINAL_PREFERENCE
+  setAgentLaunchRecordStore
 } from '../../src/main/runtime/rpc/methods/agent-launch.test-fixture'
 
 const chatCreate = vi.hoisted(() => vi.fn())
@@ -112,7 +111,7 @@ describe('CLI launch through host surface creation and replay admission', () => 
   })
 
   it('passes local terminal focus to the runtime', async () => {
-    const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
+    const runtime = runtimeStub({ settings: {} })
     await callAgentLaunch(
       hostClient(runtime),
       { agent: 'codex' },
@@ -189,7 +188,7 @@ describe('CLI launch through host surface creation and replay admission', () => 
   it.each([existing, create])(
     'rejects empty recovery IDs after a lost terminal reply and preserves valid replay: %j',
     async (target) => {
-      const runtime = runtimeStub({ settings: TERMINAL_PREFERENCE })
+      const runtime = runtimeStub({ settings: {} })
       const argv = ['--agent', 'codex', '--prompt', 'Fix the repo\nThen test']
       const launch = readCliAgentLaunch(parseArgs(argv).flags, 'codex', {
         createsWorktree: target.kind === 'create-worktree'

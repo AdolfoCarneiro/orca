@@ -1,5 +1,6 @@
 /** workerStart follows the user's launch preference without a mode flag; unsupported structured mode falls back rather than refusing routine dispatch. */
 
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OrcaRuntimeService } from '../../orca-runtime'
 import { OrchestrationDb } from '../../orchestration/db'
@@ -38,6 +39,7 @@ vi.mock('./orchestration-structured-worker-session', async (importOriginal) => (
 }))
 
 const STRUCTURED_DEFAULT = {
+  nativeChatProviders: EVERY_AGENT_CHAT,
   agentCmdOverrides: {},
   agentDefaultArgs: {},
   agentDefaultEnv: {}
@@ -168,7 +170,7 @@ describe('worker-start honours the settings default', () => {
   })
 
   it('starts a terminal agent worker when it is not', async () => {
-    const result = await startWorker({ nativeChatProviders: { claude: false, codex: false } })
+    const result = await startWorker({})
 
     expect(result).toMatchObject({
       state: 'ready',

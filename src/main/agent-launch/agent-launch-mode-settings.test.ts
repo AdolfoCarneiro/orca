@@ -24,7 +24,7 @@ describe('host launch preference ownership', () => {
     expect(mode.mode).toBe('terminal')
   })
 
-  it('keeps an unchosen provider on without discovering installed agents', () => {
+  it('opens an agent without a saved choice as its CLI, saving nothing', () => {
     const saved = {}
     const runtime = { requireStore: () => ({ getSettings: () => saved }) }
     expect(
@@ -32,7 +32,7 @@ describe('host launch preference ownership', () => {
         placement: { agent: 'grok' },
         settings: readAgentLaunchModeSettings(runtime)
       }).mode
-    ).toBe('structured')
+    ).toBe('terminal')
     expect(saved).not.toHaveProperty('nativeChatProviders')
   })
 

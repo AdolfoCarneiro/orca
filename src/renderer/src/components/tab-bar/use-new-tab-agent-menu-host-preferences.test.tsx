@@ -90,7 +90,7 @@ beforeEach(() => {
       ...getDefaultSettings('/home/me'),
       defaultTuiAgent: 'opencode',
       disabledTuiAgents: ['codex'],
-      nativeChatProviders: { claude: false, codex: false }
+      nativeChatProviders: {}
     },
     runtimeStatusByEnvironmentId: new Map([
       ['alpha', status()],
@@ -134,7 +134,7 @@ it.each(['wt', 'folder:f1'])(
 
 it('filters chat and CLI rows with host preferences while keeping the desktop chat presentation', async () => {
   useAppStore.setState((state) => ({
-    settings: { ...state.settings!, nativeChatProviders: {} }
+    settings: { ...state.settings!, nativeChatProviders: { claude: true, codex: true } }
   }))
   const hook = renderHook(() =>
     useNewTabAgentMenuRows('folder:f1', true, { kind: 'runtime', environmentId: 'alpha' })

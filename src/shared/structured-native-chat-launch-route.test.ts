@@ -117,20 +117,19 @@ describe('agents beyond Claude and Codex', () => {
 })
 
 describe('per-agent Chat | CLI preference', () => {
-  it('reads a host-registered agent id the same way as a built-in agent', () => {
-    expect(nativeChatPreferenceFor({}, 'acme-agent')).toBe(true)
-    expect(nativeChatPreferenceFor({ nativeChatProviders: { claude: false } }, 'acme-agent')).toBe(
-      true
-    )
+  it('opens only an agent saved as chat as a chat, host-registered ids included', () => {
     expect(
-      nativeChatPreferenceFor({ nativeChatProviders: { 'acme-agent': false } }, 'acme-agent')
-    ).toBe(false)
-    // Inherited object keys are not saved choices.
-    expect(nativeChatPreferenceFor({ nativeChatProviders: {} }, 'constructor')).toBe(true)
-  })
-
-  it('never picks chat from settings it could not read', () => {
+      nativeChatPreferenceFor({ nativeChatProviders: { 'acme-agent': true } }, 'acme-agent')
+    ).toBe(true)
+    expect(nativeChatPreferenceFor({}, 'claude')).toBe(false)
+    expect(nativeChatPreferenceFor({ nativeChatProviders: { claude: true } }, 'acme-agent')).toBe(
+      false
+    )
+    expect(nativeChatPreferenceFor({ nativeChatProviders: { claude: false } }, 'claude')).toBe(
+      false
+    )
     expect(nativeChatPreferenceFor(null, 'claude')).toBe(false)
-    expect(nativeChatPreferenceFor(undefined, 'acme-agent')).toBe(false)
+    // Inherited object keys are not saved choices.
+    expect(nativeChatPreferenceFor({ nativeChatProviders: {} }, 'constructor')).toBe(false)
   })
 })

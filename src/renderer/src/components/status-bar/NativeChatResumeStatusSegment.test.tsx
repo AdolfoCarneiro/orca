@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { resetLocalStructuredChatsForTests } from '@/runtime/local-structured-chats'
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -16,12 +17,6 @@ import {
   localNativeChatRestartStore
 } from '../native-chat-resume-on-restart-store'
 import { NativeChatResumeStatusSegment } from './NativeChatResumeStatusSegment'
-import { TUI_AGENT_CONFIG } from '../../../../shared/tui-agent-config'
-
-// Every agent set to CLI: no new launch opens a chat on this machine.
-const EVERY_AGENT_CLI = Object.fromEntries(
-  Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
-)
 
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('@/runtime/structured-agent-session-client', () => ({
@@ -79,7 +74,7 @@ describe('NativeChatResumeStatusSegment', () => {
     consumeNativeChatResumeOnRestartDialogRequest()
     useAppStore.setState({
       ...useAppStore.getInitialState(),
-      settings: { ...getDefaultSettings('') }
+      settings: { ...getDefaultSettings(''), nativeChatProviders: EVERY_AGENT_CHAT }
     })
   })
 
@@ -190,7 +185,7 @@ describe('NativeChatResumeStatusSegment', () => {
   it('hides when no chat exists and the setting is off, or the host offers nothing', async () => {
     rpc.mockResolvedValue({ sessions: candidates })
     useAppStore.setState({
-      settings: { ...getDefaultSettings(''), nativeChatProviders: EVERY_AGENT_CLI }
+      settings: { ...getDefaultSettings(''), nativeChatProviders: {} }
     })
     await mount()
     expect(screen.queryByRole('button')).toBeNull()
@@ -199,7 +194,7 @@ describe('NativeChatResumeStatusSegment', () => {
     cleanup()
     rpc.mockResolvedValue({ sessions: [] })
     useAppStore.setState({
-      settings: { ...getDefaultSettings('') }
+      settings: { ...getDefaultSettings(''), nativeChatProviders: EVERY_AGENT_CHAT }
     })
     await mount()
     expect(screen.queryByRole('button')).toBeNull()
@@ -209,7 +204,7 @@ describe('NativeChatResumeStatusSegment', () => {
   it('offers to continue the chats this machine holds while the setting is off', async () => {
     rpc.mockResolvedValue({ sessions: candidates })
     useAppStore.setState({
-      settings: { ...getDefaultSettings(''), nativeChatProviders: EVERY_AGENT_CLI }
+      settings: { ...getDefaultSettings(''), nativeChatProviders: {} }
     })
     stageLocalHost(true)
     await mount()
@@ -222,7 +217,7 @@ describe('NativeChatResumeStatusSegment', () => {
   it("does not ask this machine for an offer over a paired server's chats", async () => {
     rpc.mockResolvedValue({ sessions: candidates })
     useAppStore.setState({
-      settings: { ...getDefaultSettings(''), nativeChatProviders: EVERY_AGENT_CLI },
+      settings: { ...getDefaultSettings(''), nativeChatProviders: {} },
       unifiedTabsByWorktree: {
         'wt-1': [
           {

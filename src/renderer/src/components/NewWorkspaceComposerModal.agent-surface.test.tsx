@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { useRef } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -78,6 +79,7 @@ beforeEach(() => {
     modalData: {},
     settings: {
       ...getDefaultSettings('/test'),
+      nativeChatProviders: EVERY_AGENT_CHAT,
       defaultTuiAgent: 'claude'
     }
   })
@@ -143,6 +145,7 @@ it('submits the untouched refusal-aware OpenCode CLI instead of the registered c
     useAppStore.setState({
       settings: {
         ...getDefaultSettings('/test'),
+        nativeChatProviders: EVERY_AGENT_CHAT,
         defaultTuiAgent: 'opencode'
       }
     })

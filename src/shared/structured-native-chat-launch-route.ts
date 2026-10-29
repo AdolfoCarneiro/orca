@@ -52,16 +52,12 @@ export type StructuredNativeChatSupportInput = {
   hostStructuredAgents?: readonly string[]
 }
 
-/** The per-agent Chat | CLI choice; an agent without a saved choice opens as chat, unknown settings as a terminal. */
+/** The per-agent Chat | CLI choice; an agent without a saved chat choice opens as its CLI. */
 export function nativeChatPreferenceFor(
   settings: NativeChatDefaultSettings | null | undefined,
   agent: string
 ): boolean {
-  if (!settings) {
-    return false
-  }
-  const choice = settings.nativeChatProviders?.[agent]
-  return typeof choice === 'boolean' ? choice : true
+  return settings?.nativeChatProviders?.[agent] === true
 }
 
 function clientChoosesStructuredLaunches(capabilities: readonly string[] | undefined): boolean {

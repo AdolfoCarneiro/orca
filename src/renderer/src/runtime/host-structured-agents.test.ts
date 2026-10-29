@@ -13,7 +13,7 @@ type StoreState = {
   ensureNativeDetectedAgents: () => Promise<string[]>
 }
 
-const ON = {}
+const ON = { nativeChatProviders: { claude: true } }
 
 const mocks = vi.hoisted(() => {
   const state: StoreState = {
@@ -40,7 +40,7 @@ vi.mock('./local-runtime-capabilities', () => ({
 }))
 vi.mock('./local-structured-chats', () => {
   const launchesChats = (settings: StoreState['settings']): boolean =>
-    settings !== null && settings.nativeChatProviders?.claude !== false
+    Object.values(settings?.nativeChatProviders ?? {}).includes(true)
   return {
     newAgentLaunchesMayOpenChats: launchesChats,
     localStructuredChatsInUse: async (settings: StoreState['settings']) => launchesChats(settings)

@@ -22,13 +22,12 @@ afterEach(() => {
   cleanup()
   useAppStore.setState(initial, true)
 })
-it('reserves the switch footprint through unknown and failed reads, then shows managed/external installed and saved false', () => {
+it('shows an agent without a saved choice as CLI through every install read, and a saved chat choice as on', () => {
   useAppStore.setState({ localDetectedAgentIdsByContext: { host: [] } })
   const settings = getDefaultSettings('/tmp')
   const surface = () => <NativeChatProvidersSetting settings={settings} updateSettings={vi.fn()} />
   const view = render(surface())
-  expect(view.queryByRole('switch')).toBeNull()
-  expect(view.container.querySelector('.h-5.w-9')).not.toBeNull()
+  expect(view.getByRole('switch').getAttribute('aria-checked')).toBe('false')
   const active = {
     kind: 'active',
     subject: { target: { kind: 'local' }, runtimeId: null, agent: 'grok' },
@@ -36,7 +35,7 @@ it('reserves the switch footprint through unknown and failed reads, then shows m
   } as const
   observation.current = { ...active, snapshot: { kind: 'readFailed' } }
   view.rerender(surface())
-  expect(view.queryByRole('switch')).toBeNull()
+  expect(view.getByRole('switch').getAttribute('aria-checked')).toBe('false')
   const installed = {
     agent: 'grok',
     revision: 1,
@@ -52,11 +51,11 @@ it('reserves the switch footprint through unknown and failed reads, then shows m
       snapshot: { kind: 'known', state: { ...installed, source } }
     }
     view.rerender(surface())
-    expect(view.getByRole('switch').getAttribute('aria-checked')).toBe('true')
+    expect(view.getByRole('switch').getAttribute('aria-checked')).toBe('false')
     const icon = view.getByRole('switch').parentElement?.firstElementChild
     expect(icon?.classList.contains('size-7')).toBe(true)
   }
-  settings.nativeChatProviders = { grok: false }
+  settings.nativeChatProviders = { grok: true }
   view.rerender(surface())
-  expect(view.getByRole('switch').getAttribute('aria-checked')).toBe('false')
+  expect(view.getByRole('switch').getAttribute('aria-checked')).toBe('true')
 })

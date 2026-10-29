@@ -1,5 +1,13 @@
 import type { Page } from '@stablyai/playwright-test'
 
+export async function enableNativeChatSetting(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await window.__store
+      ?.getState()
+      .updateSettings({ nativeChatProviders: { claude: true, codex: true } })
+  })
+}
+
 export async function seedClaudeProviderSession(
   page: Page,
   args: { paneKey: string; worktreeId: string; sessionId: string; transcriptPath: string }

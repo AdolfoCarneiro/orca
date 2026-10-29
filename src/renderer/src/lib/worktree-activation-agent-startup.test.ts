@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import { ensureWorktreeHasInitialTerminal } from './worktree-initial-terminal-seeding'
 import {
@@ -33,7 +34,9 @@ describe('ensureWorktreeHasInitialTerminal', () => {
 
   it('opens new agent workspace terminals in native chat when configured', () => {
     const store = createMockStore({
-      settings: {}
+      settings: {
+        nativeChatProviders: EVERY_AGENT_CHAT
+      }
     })
 
     ensureWorktreeHasInitialTerminal(
@@ -64,7 +67,9 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     ['unsupported-separator', 'Review this\u2028https://github.com/o/r/issues/12', {}]
   ])('opens a %s draft startup payload accordingly', (_label, draftPrompt, expectedViewMode) => {
     const store = createMockStore({
-      settings: {}
+      settings: {
+        nativeChatProviders: EVERY_AGENT_CHAT
+      }
     })
 
     ensureWorktreeHasInitialTerminal(
@@ -96,7 +101,9 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     'keeps a %s argv-prefill draft in the terminal',
     (_label, launchDraftText, expectedViewMode) => {
       const store = createMockStore({
-        settings: {}
+        settings: {
+          nativeChatProviders: EVERY_AGENT_CHAT
+        }
       })
 
       ensureWorktreeHasInitialTerminal(
@@ -124,7 +131,9 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     const createTab = vi.fn(() => ({ id: `tab-${++createdIndex}` }))
     const store = createMockStore({
       createTab,
-      settings: {}
+      settings: {
+        nativeChatProviders: EVERY_AGENT_CHAT
+      }
     })
 
     ensureWorktreeHasInitialTerminal(
@@ -155,7 +164,9 @@ describe('ensureWorktreeHasInitialTerminal', () => {
       const createTab = vi.fn(() => ({ id: `tab-${++createdIndex}` }))
       const store = createMockStore({
         createTab,
-        settings: {}
+        settings: {
+          nativeChatProviders: EVERY_AGENT_CHAT
+        }
       })
 
       ensureWorktreeHasInitialTerminal(

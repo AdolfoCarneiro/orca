@@ -1,6 +1,6 @@
 import { isAgentChatPermissionMode } from '../../../../shared/agent-chat-permission-mode'
 import { normalizeNativeChatAppearanceSettings } from '../../../../shared/native-chat/native-chat-appearance-settings'
-import { terminalNativeChatProviderChoices } from '../../../../shared/native-chat/native-chat-providers'
+import { carriedNativeChatProviderChoices } from '../../../../shared/native-chat/native-chat-providers'
 import { normalizeAutoRenameBranchFromWorkDefaultOn } from '../../../../shared/auto-rename-branch-from-work-settings'
 import {
   getDefaultSettings,
@@ -155,7 +155,7 @@ export function migrateStoredWebSettings(
   void _retiredChatUi
   return {
     ...current,
-    ...keepChatUiOffLaunchesOnTerminal(stored),
+    ...carryChatUiChoices(stored),
     ...migrateBrowserSavedAgentPermission(stored),
     ...normalizeAutoRenameBranchFromWorkDefaultOn(stored),
     ...normalizeTerminalCursorStyleDefault(stored),
@@ -167,11 +167,16 @@ export function migrateStoredWebSettings(
 
 type RetiredWebSettings = { experimentalNativeChat?: unknown }
 
-/** A browser profile saved with Chat UI off keeps its launches on the terminal; dropping the key marks this done. */
-function keepChatUiOffLaunchesOnTerminal(stored: Partial<GlobalSettings> & RetiredWebSettings) {
-  return Object.hasOwn(stored, 'experimentalNativeChat') && stored.experimentalNativeChat !== true
-    ? { nativeChatProviders: terminalNativeChatProviderChoices(stored.nativeChatProviders) }
-    : {}
+/** A browser profile saved while Chat UI was experimental keeps what its launches opened; dropping the key marks this done. */
+function carryChatUiChoices(stored: Partial<GlobalSettings> & RetiredWebSettings) {
+  if (!Object.hasOwn(stored, 'experimentalNativeChat')) {
+    return {}
+  }
+  const choices = carriedNativeChatProviderChoices(
+    stored.nativeChatProviders,
+    stored.experimentalNativeChat === true
+  )
+  return Object.keys(choices).length > 0 ? { nativeChatProviders: choices } : {}
 }
 
 /** Move legacy browser-saved permission flags so stored defaults cannot duplicate them; missing keys used the shipped default. */

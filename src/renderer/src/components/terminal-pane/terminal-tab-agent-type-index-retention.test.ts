@@ -1,3 +1,4 @@
+import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import { selectLiveTabAgentPanes } from '../../lib/tab-agent-status-index'
@@ -49,7 +50,10 @@ describe('terminal tab agent type source lifetime', () => {
         select(state.agentStatusByPaneKey, 'tab-1')
       })
       selectLiveTabAgentPanes(statuses, 'tab-1')
-      selectTabBar({ agentStatusByPaneKey: statuses })
+      selectTabBar({
+        agentStatusByPaneKey: statuses,
+        settings: { nativeChatProviders: EVERY_AGENT_CHAT }
+      })
 
       // Parking removes pane subscribers while the retained tab strip still observes removals.
       unsubscribe()
@@ -57,7 +61,10 @@ describe('terminal tab agent type source lifetime', () => {
       const current = store.getState().agentStatusByPaneKey
       expect(current).toEqual({})
       selectLiveTabAgentPanes(current, 'tab-1')
-      selectTabBar({ agentStatusByPaneKey: current })
+      selectTabBar({
+        agentStatusByPaneKey: current,
+        settings: { nativeChatProviders: EVERY_AGENT_CHAT }
+      })
       return new WeakRef(statuses)
     }
 

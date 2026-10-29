@@ -239,7 +239,7 @@ describe('profile state Store authority factory', () => {
   it.each([
     [
       { experimentalNativeChat: true, openAgentTabsInChatByDefault: true },
-      'excluded',
+      'eligible',
       'chat-ui-on'
     ],
     [
@@ -256,7 +256,7 @@ describe('profile state Store authority factory', () => {
       const first = createProfileStateStore({ ...options })
 
       // Later choices must not alter the recorded audience.
-      first.store.updateSettings({ nativeChatProviders: { claude: membership === 'excluded' } })
+      first.store.updateSettings({ nativeChatProviders: { claude: basis === 'chat-ui-off' } })
       first.store.flushOrThrow()
       rmSync(options.dataFile)
       const restarted = createProfileStateStore({ ...options })

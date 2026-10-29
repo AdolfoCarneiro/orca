@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { installBrowserGlobals } from './web-preload-api-test-harness'
 
 const SETTINGS_KEY = 'orca.web.settings.v1'
@@ -25,15 +25,13 @@ describe('web Chat UI launch migration', () => {
     vi.unstubAllGlobals()
   })
 
-  it('keeps every agent on the terminal for a browser profile saved with Chat UI off, once', async () => {
+  it('turns chat choices the switch masked to CLI for a browser profile saved with Chat UI off, once', async () => {
     const { settings, saved, globals } = await loadSettings({
       experimentalNativeChat: false,
-      nativeChatProviders: { claude: true }
+      nativeChatProviders: { claude: true, codex: false }
     })
 
-    expect(settings.nativeChatProviders).toEqual(
-      Object.fromEntries(Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false]))
-    )
+    expect(settings.nativeChatProviders).toEqual({ claude: false, codex: false })
     expect(saved).not.toHaveProperty('experimentalNativeChat')
     expect(saved.nativeChatProviders).toEqual(settings.nativeChatProviders)
 
@@ -48,13 +46,13 @@ describe('web Chat UI launch migration', () => {
     expect((await globals.window.api.settings.get()).nativeChatProviders).toEqual({ claude: true })
   })
 
-  it('drops the switch without writing choices for a browser profile saved with Chat UI on', async () => {
+  it('keeps agents without a choice on chat for a browser profile saved with Chat UI on', async () => {
     const { settings, saved } = await loadSettings({
       experimentalNativeChat: true,
       nativeChatProviders: { codex: false }
     })
 
-    expect(settings.nativeChatProviders).toEqual({ codex: false })
+    expect(settings.nativeChatProviders).toEqual({ ...EVERY_AGENT_CHAT, codex: false })
     expect(saved).not.toHaveProperty('experimentalNativeChat')
   })
 

@@ -59,16 +59,19 @@ describe('ACP agents in the runtime registrations', () => {
   })
 
   it.each(['omp', 'opencode2'])(
-    'opens %s as a structured chat unless it is set to CLI',
+    'opens %s as a structured chat only when it is set to chat',
     (agent) => {
       const placement = { agent, workspaceKind: 'git-worktree' } as const
-      expect(decideAgentLaunchMode({ placement, settings: {} }).mode).toBe('structured')
       expect(
-        decideAgentLaunchMode({
-          placement,
-          settings: { nativeChatProviders: { [agent]: false } }
+        decideAgentLaunchMode({ placement, settings: { nativeChatProviders: { [agent]: true } } })
+          .mode
+      ).toBe('structured')
+      for (const settings of [{}, { nativeChatProviders: { [agent]: false } }]) {
+        expect(decideAgentLaunchMode({ placement, settings })).toMatchObject({
+          mode: 'terminal',
+          reason: 'user_default'
         })
-      ).toMatchObject({ mode: 'terminal', reason: 'user_default' })
+      }
     }
   )
 

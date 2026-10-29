@@ -8,20 +8,14 @@ vi.mock('./local-structured-session-tabs-sync/inventory-refresh', () => ({
   restoreLocalStructuredSessionTabsOnce: vi.fn(async () => undefined)
 }))
 
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 import { restoreLocalStructuredSessionTabsOnce } from './local-structured-session-tabs-sync/inventory-refresh'
 import {
   resetLocalStructuredChatsForTests,
   restoreLocalStructuredChatsAtStartup
 } from './local-structured-chats'
 
-// Every known agent set to CLI: no new launch can open a chat.
-const SETTING_OFF = {
-  nativeChatProviders: Object.fromEntries(
-    Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false])
-  )
-}
-const SETTING_ON = {}
+const SETTING_OFF = {}
+const SETTING_ON = { nativeChatProviders: { claude: true } }
 
 beforeEach(() => {
   vi.clearAllMocks()

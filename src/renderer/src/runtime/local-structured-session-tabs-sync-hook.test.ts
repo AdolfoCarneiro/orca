@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -18,13 +19,13 @@ vi.mock('@/lib/web-client-location', () => ({ isWebClientLocation: () => mocks.i
 import { useAppStore } from '../store'
 import { useLocalStructuredSessionTabsSync } from './local-structured-session-tabs-sync'
 import { resetLocalStructuredChatsForTests } from './local-structured-chats'
-import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 
-// Off: every known agent is set to CLI, so no new launch opens a chat.
 function setStructuredChat(enabled: boolean): void {
-  const cli = Object.fromEntries(Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, false]))
   useAppStore.setState({
-    settings: { ...useAppStore.getState().settings!, nativeChatProviders: enabled ? {} : cli }
+    settings: {
+      ...useAppStore.getState().settings!,
+      nativeChatProviders: enabled ? EVERY_AGENT_CHAT : {}
+    }
   })
 }
 
