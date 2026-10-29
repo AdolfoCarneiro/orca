@@ -79,9 +79,17 @@ async function tryLanguagePack(pluginKey: string): Promise<void> {
     (entry) => entry.pluginKey === pluginKey && isUsablePluginLanguagePack(entry)
   )
   if (!pack) {
+    toast.info(
+      translate(
+        'auto.components.settings.pluginTryAction.incompleteLanguage',
+        'This language pack is too incomplete to switch to.'
+      )
+    )
     return
   }
-  switchToPluginLanguage(pack)
+  if (!(await switchToPluginLanguage(pack))) {
+    return
+  }
   toast.success(
     translate('auto.components.settings.pluginThemeApply.nowUsing', 'Now using {{value0}}', {
       value0: languageDisplayName(pack.locale)

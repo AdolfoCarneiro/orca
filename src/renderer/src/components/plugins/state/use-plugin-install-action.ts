@@ -158,7 +158,10 @@ export function usePluginInstallAction({
         if (themed && (await applyPluginThemesNow(pluginKey).catch(() => false))) {
           return
         }
-        const tryIt = pluginTryAction(pluginKey, preview.manifest)
+        // Why: only a plugin that is on by now has anything to try; recipes still wait for review.
+        const on =
+          execution === 'data' || (approve && preview.manifest.contributes.vmRecipes.length === 0)
+        const tryIt = on ? pluginTryAction(pluginKey, preview.manifest) : null
         toast.success(
           translate(
             'auto.components.settings.pluginInstallAction.installed',

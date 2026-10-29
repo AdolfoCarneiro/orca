@@ -70,8 +70,10 @@ test('Try it opens a highlighted sample and a new drawing', async ({}, testInfo)
     await expect(page.locator('[data-tab-id]').filter({ hasText: 'untitled.gleam' })).toBeVisible()
     // The plugin grammar paints the sample in more than one token class.
     await expect
-      .poll(() => editorTokenClasses(page, 'pub fn main'), { timeout: 15_000 })
-      .not.toHaveLength(1)
+      .poll(async () => (await editorTokenClasses(page, 'pub fn main')).length, {
+        timeout: 15_000
+      })
+      .toBeGreaterThan(1)
 
     await openPluginPage(app, page, EXCALIDRAW_PLUGIN_KEY, 'Excalidraw')
     await page

@@ -13224,6 +13224,9 @@
         },
         "PluginContributionActionNewFile": {
           "create": "Create"
+        },
+        "pluginTryAction": {
+          "incompleteLanguage": "This language pack is too incomplete to switch to."
         }
       },
       "right": {
