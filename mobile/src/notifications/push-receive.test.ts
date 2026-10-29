@@ -340,3 +340,56 @@ it('silences only the viewed workspace on its own host, desktop or server', asyn
   await expect(present('runtime:env-1')).resolves.toBe(false)
   await expect(present()).resolves.toBe(true)
 })
+
+describe('admitted pushes during delayed route publication', () => {
+  it.each([hostFingerprint, otherHostFingerprint])(
+    'presents the winning admitted copy after either sender is removed (%s)',
+    async (removed) => {
+      vi.mocked(loadHostCatalog).mockResolvedValue(
+        removed === hostFingerprint
+          ? ([{ id: 'host-2', publicKeyB64: otherPublicKeyB64 }] as HostCatalogEntry[])
+          : hosts
+      )
+      const data = apnsData({
+        hostFingerprint: removed,
+        origin: otherHostFingerprint,
+        notificationId: 'prompt',
+        notificationSeq: 1,
+        notificationEpoch: 'epoch'
+      })
+      expect(
+        await canPresentForegroundPush({ hostFingerprint: removed, origin: otherHostFingerprint })
+      ).toBe(true)
+      expect(
+        (await foregroundNotificationBehavior({ request: { content: { data } } })).shouldShowBanner
+      ).toBe(true)
+      storage.set('orca:pushServiceNotificationsEnabled', 'false')
+      expect(
+        await canPresentForegroundPush({ hostFingerprint: removed, origin: otherHostFingerprint })
+      ).toBe(false)
+    }
+  )
+
+  it('clears sender-relative workspace fields for cold and warm tap resolution, with home as the final fallback', () => {
+    const admitted = apnsData({
+      hostFingerprint,
+      origin: otherHostFingerprint,
+      worktreeId: 'A-workspace',
+      paneKey: 'A-pane',
+      executionHost: 'runtime:A-environment'
+    })
+    const originOnly = [{ id: 'host-2', publicKeyB64: otherPublicKeyB64 }]
+    for (const remote of [true, false]) {
+      const data = pushNotificationRouteData(admitted, originOnly, remote)
+      expect(data).toEqual({ hostId: 'host-2' })
+      expect(getNotificationNavigationTarget(data)).toEqual({
+        hostId: 'host-2',
+        sessionTarget: null
+      })
+      expect(
+        getNotificationNavigationTarget(pushNotificationRouteData(admitted, [], remote))
+      ).toEqual({ home: true })
+    }
+    expect(pushNotificationRouteData(apnsData({ hostFingerprint }), [], true)).toBeNull()
+  })
+})

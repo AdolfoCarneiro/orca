@@ -13,11 +13,13 @@ function readNonEmptyString(value: unknown): string | null {
 }
 
 // Host-only taps need no stack coordination; sessionTarget identifies deep workspace destinations.
-export type NotificationNavigationTarget = Readonly<{
-  hostId: string
-  sessionTarget: HostStackRouteTarget | null
-  credentialRecovery?: 'retry' | 're-pair'
-}>
+export type NotificationNavigationTarget =
+  | Readonly<{ home: true; hostId?: never; sessionTarget?: never; credentialRecovery?: never }>
+  | Readonly<{
+      hostId: string
+      sessionTarget: HostStackRouteTarget | null
+      credentialRecovery?: 'retry' | 're-pair'
+    }>
 
 export function notificationCredentialRecoveryRoute(
   target: NotificationNavigationTarget
@@ -37,6 +39,9 @@ export function getNotificationNavigationTarget(
   }
 
   const record = data as Record<string, unknown>
+  if (record.home === true) {
+    return { home: true }
+  }
   const hostId = readNonEmptyString(record.hostId)
   if (!hostId) {
     return null

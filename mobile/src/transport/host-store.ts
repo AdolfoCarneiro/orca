@@ -1,3 +1,4 @@
+import { refreshPushRoutes } from '../notifications/push-route-declaration'
 import type { MobileRelayEndpoint } from '../../../src/shared/mobile-relay-credential-contract'
 import { HostProfileSchema } from './types'
 import type { HostCatalogEntry, HostProfile, StoredHostProfile } from './types'
@@ -101,6 +102,7 @@ const deleteUnpairedHostCredentials = createUnpairedHostCredentialDeletion({
   hasStoredHost: async (hostId) =>
     (await readStoredHostProfilesForMutation()).some(({ id }) => id === hostId),
   onDeleted: (hostId) => {
+    refreshPushRoutes()
     tokenCache.delete(hostId)
     hostListLoads.dropSharedHostListLoad()
   }
@@ -236,6 +238,7 @@ export async function savePairedHost(host: HostProfile): Promise<void> {
     await removeMobileRelayHostRoutings(overlayRemovalIds)
     hostListLoads.dropSharedHostListLoad()
   }
+  refreshPushRoutes()
   for (const duplicateHostId of duplicateHostIds) {
     try {
       await scheduleUnpairedHostCredentialCleanup(duplicateHostId)
@@ -263,6 +266,7 @@ export async function removeHost(hostId: string): Promise<void> {
     }
     throw error
   }
+  refreshPushRoutes()
   tokenCache.delete(hostId)
   try {
     await removeMobileRelayHostRouting(hostId)

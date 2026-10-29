@@ -13,6 +13,10 @@ export function useOpenNotificationRoute(): (target: NotificationNavigationTarge
 
   return useCallback(
     (target) => {
+      if ('home' in target) {
+        router.push('/')
+        return
+      }
       const recoveryRoute = notificationCredentialRecoveryRoute(target)
       if (recoveryRoute) {
         router.push(recoveryRoute)

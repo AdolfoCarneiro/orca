@@ -1,3 +1,4 @@
+import { refreshPushRoutes, stopPushRoutePublication } from './push-route-declaration'
 import { ensureDesktopNotificationChannel } from './desktop-notification-channel'
 import { AppState } from 'react-native'
 import { startMobilePushLeaseRenewal } from './mobile-push-lease-renewal'
@@ -7,14 +8,10 @@ import {
   saveNotificationDeliveryPreferences,
   type NotificationDeliveryPreferences
 } from './notification-delivery-preferences'
-import type {
-  MobilePushFilter,
-  MobilePushRegisterInput
-} from '../../../src/shared/mobile-push-contract'
 import { NOTIFICATIONS_REMOTE_PUSH_RUNTIME_CAPABILITY } from '../../../src/shared/protocol-version'
 import type { RpcOperationSender } from '../transport/rpc-operation-sender'
 import { startRuntimeCapabilityProbe } from '../transport/runtime-capability-probe'
-import { pushRouteRegister, pushRouteUnregister } from './mobile-push-registration-operations'
+import { sendRegister, pushRouteUnregister } from './mobile-push-registration-operations'
 import {
   loadPushNotificationsEnabled,
   loadRemotePushHostRegistrations,
@@ -35,6 +32,7 @@ type HostPushState = {
   connection: { client: PushClient | null }
   // An unanswered probe is unknown, not unsupported.
   supported: boolean | null
+  routeKeySupported?: boolean
   capabilityProbeStop: (() => void) | null
   chain: Promise<void>
 }
@@ -96,27 +94,6 @@ async function currentToken(): Promise<MobilePushToken | null> {
   return tokenPromise
 }
 
-async function sendRegister(
-  client: PushClient,
-  token: MobilePushToken,
-  filter: MobilePushFilter
-): Promise<boolean> {
-  const params: Omit<MobilePushRegisterInput, 'deviceId'> = {
-    platform: token.platform,
-    token: token.token,
-    ...(token.apnsEnvironment ? { apnsEnvironment: token.apnsEnvironment } : {}),
-    filter
-  }
-  const reply = await pushRouteRegister
-    .request(client, params, { timeoutMs: REQUEST_TIMEOUT_MS, failWhenDisconnected: true })
-    .catch(() => null)
-  const registration = reply && pushRouteRegister.interpret(reply)
-  if (!registration?.accepted) {
-    return false
-  }
-  return registration.value?.registered === true
-}
-
 async function sendUnregister(client: PushClient, timeoutMs: number): Promise<boolean> {
   const reply = await pushRouteUnregister
     .request(client, null, { timeoutMs, failWhenDisconnected: true })
@@ -156,6 +133,7 @@ async function reconcileHost(hostId: string): Promise<void> {
         return
       }
       state.supported = capabilities.includes(NOTIFICATIONS_REMOTE_PUSH_CAPABILITY)
+      state.routeKeySupported = capabilities.includes('notifications.push-route-key.v1')
       void enqueueReconcile(hostId)
     })
     return
@@ -192,7 +170,10 @@ async function reconcileHost(hostId: string): Promise<void> {
   ) {
     return
   }
-  if (!(await sendRegister(client, token, filter)) || hostsById.get(hostId) !== state) {
+  if (
+    !(await sendRegister(client, token, filter, state.routeKeySupported)) ||
+    hostsById.get(hostId) !== state
+  ) {
     return
   }
   if (generation !== consentGeneration) {
@@ -303,15 +284,18 @@ export function startPushTokenSync(): () => void {
   const stopLease = startMobilePushLeaseRenewal(reconcileAllHosts)
   const stopToken = addPushTokenListener((token) => {
     tokenPromise = Promise.resolve(token)
+    refreshPushRoutes(token)
     void reconcileAllHosts()
   })
   return () => {
+    stopPushRoutePublication()
     stopLease()
     stopToken()
   }
 }
 
 export function resetPushRegistrationForTests(): void {
+  stopPushRoutePublication()
   hostsById.clear()
   registrationRecords = null
   tokenPromise = null
