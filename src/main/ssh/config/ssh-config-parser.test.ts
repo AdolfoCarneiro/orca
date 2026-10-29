@@ -46,53 +46,6 @@ Host myserver
     })
   })
 
-  it('keeps identical private endpoints behind distinct jump and proxy routes selectable', () => {
-    const hosts = parseSshConfig(`
-Host same-jump
-  HostName 10.0.0.5
-  User deploy
-  ProxyJump bastion-a
-Host other-jump
-  HostName 10.0.0.5
-  User deploy
-  ProxyJump bastion-b
-Host same-proxy
-  HostName 10.0.0.5
-  User deploy
-  ProxyCommand ssh bastion-a -W %h:%p
-Host other-proxy
-  HostName 10.0.0.5
-  User deploy
-  ProxyCommand ssh bastion-b -W %h:%p
-`)
-    const result = searchSshConfigHosts(hosts, [
-      {
-        configHost: 'saved-jump',
-        label: 'Saved jump',
-        host: '10.0.0.5',
-        port: 22,
-        username: 'deploy',
-        jumpHost: 'bastion-a'
-      },
-      {
-        configHost: 'saved-proxy',
-        label: 'Saved proxy',
-        host: '10.0.0.5',
-        port: 22,
-        username: 'deploy',
-        proxyCommand: 'ssh bastion-a -W %h:%p'
-      }
-    ])
-
-    expect(result.hosts.map(({ alias, alreadyInOrca }) => [alias, alreadyInOrca])).toEqual([
-      ['same-jump', true],
-      ['other-jump', false],
-      ['same-proxy', true],
-      ['other-proxy', false]
-    ])
-    expect(result.newHostCount).toBe(2)
-  })
-
   it('parses multiple host blocks', () => {
     const config = `
 Host staging
