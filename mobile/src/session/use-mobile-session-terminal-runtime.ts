@@ -24,6 +24,7 @@ import type {
   TerminalGestureInputQueue
 } from './mobile-session-route-types'
 import type { MobileSessionScreenStateModel } from './use-mobile-session-screen-state'
+import type { MobileDictationAnchor } from '../dictation/mobile-dictation-text-insertion'
 
 export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateModel) {
   const {
@@ -68,7 +69,9 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
   const dictationRouteContextRef = useRef<{
     readonly handle: string | null
     readonly liveInputEnabled: boolean
+    readonly anchor: MobileDictationAnchor | null
   } | null>(null)
+  const commandFieldAnchorRef = useRef<MobileDictationAnchor | null>(null)
   const terminalUnsubsRef = useRef<Map<string, () => void>>(new Map())
   const subscribingHandlesRef = useRef<Set<string>>(new Set())
   const leaseOnlyHandlesRef = useRef<Set<string>>(new Set())
@@ -183,6 +186,7 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
     sessionTabActionSheetKeyboardHideSubRef,
     sessionTabActionSheetRequestSeqRef,
     dictationRouteContextRef,
+    commandFieldAnchorRef,
     terminalUnsubsRef,
     subscribingHandlesRef,
     leaseOnlyHandlesRef,

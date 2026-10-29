@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatFinalTranscriptSegment } from './dictation-final-segments'
+import { formatFinalTranscriptSegment } from './dictation-transcript-spacing'
 
 describe('formatFinalTranscriptSegment', () => {
   it('adds a boundary between word-like streaming final segments', () => {

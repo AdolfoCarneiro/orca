@@ -50,6 +50,7 @@ export function MobileSessionActiveContent({
     nativeChatOverlayInputLockReason,
     nativeChatController,
     dictation,
+    chatDictationPreview,
     handleDictationToggle,
     handleDictationPressIn,
     handleDictationPressOut,
@@ -258,6 +259,7 @@ export function MobileSessionActiveContent({
         onMicPress={dictationEnabled ? handleDictationToggle : undefined}
         micActive={dictation.isStarting || dictation.isRecording}
         micStarting={dictation.isStarting}
+        dictationPreview={chatDictationPreview}
         micProcessing={dictation.isProcessing}
         dictationMode={dictationMode}
         onMicPressIn={handleDictationPressIn}

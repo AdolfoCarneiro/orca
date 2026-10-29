@@ -2,6 +2,7 @@ import { Text, View } from 'react-native'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { themedStyleSheet } from '../theme/themed-styles'
+import { TailClippedText } from '../components/TailClippedText'
 import {
   mobileDictationStatusTitle,
   type MobileDictationStatusFlags
@@ -11,13 +12,16 @@ type MobileTerminalLiveInputStatusProps = {
   readonly dictation: MobileDictationStatusFlags
   readonly dictationMode: string | undefined
   readonly isAttaching: boolean
+  // Words heard so far that will be typed into this terminal.
+  readonly heard: string
 }
 
 /** Shows transient recording/upload status over the field without intercepting its touches. */
 export function MobileTerminalLiveInputStatus({
   dictation,
   dictationMode,
-  isAttaching
+  isAttaching,
+  heard
 }: MobileTerminalLiveInputStatusProps) {
   useMobileColorScheme()
   const dictationTitle = mobileDictationStatusTitle(dictation)
@@ -25,24 +29,29 @@ export function MobileTerminalLiveInputStatus({
     return null
   }
   const title = dictationTitle ?? 'Uploading image'
-  const detail = dictation.isRecording
-    ? dictationMode === 'hold'
-      ? 'Release mic to stop'
-      : 'Tap mic to stop'
-    : dictation.isProcessing
-      ? 'Transcribing on desktop'
-      : dictation.isStarting
-        ? 'Preparing microphone'
-        : 'Uploading image to host'
+  // Live input can't type into the terminal until the text is final, so the newest words show here.
+  const detail =
+    heard ||
+    (dictation.isRecording
+      ? dictationMode === 'hold'
+        ? 'Release mic to stop'
+        : 'Tap mic to stop'
+      : dictation.isProcessing
+        ? 'Transcribing on desktop'
+        : dictation.isStarting
+          ? 'Preparing microphone'
+          : 'Uploading image to host')
 
   return (
     <View style={styles.status} pointerEvents="none">
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
-      <Text style={styles.detail} numberOfLines={1} ellipsizeMode="head">
-        {detail}
-      </Text>
+      <View style={styles.detailLine}>
+        <TailClippedText style={heard ? [styles.detail, styles.heard] : styles.detail}>
+          {detail}
+        </TailClippedText>
+      </View>
     </View>
   )
 }
@@ -67,10 +76,15 @@ const styles = themedStyleSheet(() => ({
     fontSize: typography.metaSize,
     fontWeight: '600'
   },
+  detailLine: {
+    flex: 1
+  },
   detail: {
-    flexShrink: 1,
     color: colors.textSecondary,
     fontSize: typography.metaSize,
     fontFamily: typography.monoFamily
+  },
+  heard: {
+    color: colors.textPrimary
   }
 }))

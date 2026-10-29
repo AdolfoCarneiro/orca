@@ -9,10 +9,20 @@ import { useMobileColorScheme } from '../../../theme/use-mobile-color-scheme'
 export function MobileNativeChatComposerField({
   value,
   skillToken,
+  dictationPreview,
   ref,
   ...props
 }: MobileNativeChatComposerFieldProps) {
   useMobileColorScheme()
+  if (dictationPreview) {
+    return (
+      <TextInput ref={ref} style={inputStyles.input} {...props}>
+        {dictationPreview.before}
+        <Text style={styles.dictationPreview}>{dictationPreview.text}</Text>
+        {dictationPreview.after}
+      </TextInput>
+    )
+  }
   if (!skillToken) {
     return <TextInput ref={ref} value={value} style={inputStyles.input} {...props} />
   }

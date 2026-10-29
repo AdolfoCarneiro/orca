@@ -25,12 +25,15 @@ type MobileDictationAudioChunkQueue = {
   transcriptSoFar: MobileDictationTranscriptSoFar
 }
 
-// Hosts that keep dictation through a reconnect report the text so far; a failure hands it over instead of dropping it.
+// Newer hosts report the text so far: shown while speaking, and handed over by a failure instead of dropped.
 export class MobileDictationTranscriptSoFar {
   private kept: { dictationId: string; text: string } | null = null
 
+  constructor(private readonly onNote: (text: string) => void = () => {}) {}
+
   note(dictationId: string, text: string): void {
     this.kept = { dictationId, text }
+    this.onNote(text)
   }
 
   take(dictationId: string): string {

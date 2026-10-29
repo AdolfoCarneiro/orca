@@ -107,6 +107,7 @@ type SessionScope = Pick<
   | 'setDictationEnabled'
   | 'deviceTokenRef'
   | 'dictationRouteContextRef'
+  | 'commandFieldAnchorRef'
   | 'activeHandleRef'
   | 'flushPendingLiveInputBeforeExternalSend'
   | 'canSend'
@@ -170,6 +171,7 @@ function Probe({ client, tab, connState, dictationEnabled }: ProbeOptions): null
     setDictationEnabled: () => {},
     deviceTokenRef: useRef('dev'),
     dictationRouteContextRef: useRef(null),
+    commandFieldAnchorRef: useRef(null),
     activeHandleRef,
     flushPendingLiveInputBeforeExternalSend: async () => true,
     canSend: gate.canSend,

@@ -4,11 +4,17 @@ import {
   setMobileNativeChatDraftText,
   useMobileNativeChatDraft
 } from './mobile-native-chat-draft-store'
-import { appendBufferedDictation } from '../../../terminal/terminal-live-dictation-routing'
+import {
+  insertDictationText,
+  readMobileDictationAnchor,
+  splitDraftForDictation,
+  type MobileDictationAnchor
+} from '../../../dictation/mobile-dictation-text-insertion'
 import {
   focusMobileNativeChatTextDestination,
   pruneMobileNativeChatDraftSkills,
-  registerMobileNativeChatTextDestination
+  registerMobileNativeChatTextDestination,
+  type MobileNativeChatDictationPreview
 } from './mobile-native-chat-draft-inputs'
 import type { NativeChatSkillDiscoverySnapshot } from '../../../../../src/shared/native-chat/input/native-chat-picker-items'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -53,7 +59,9 @@ export type MobileNativeChatStructuredComposer = {
 }
 
 type Props = MobileNativeChatMicProps & {
-  insertDictation?: (text: string) => boolean | void
+  // Applies dictation's edit to the draft this composer shows; false when it can no longer take it.
+  insertDictation?: (insert: (draft: string) => string) => boolean | void
+  dictationPreview?: MobileNativeChatDictationPreview | null
   draftScopeKey?: string | null
   editSession?: { cancel: () => void; refuseCommand: (text: string) => boolean; locked: boolean }
   onPickSkill?: (skill: { name: string; path: string }) => void
@@ -91,6 +99,7 @@ export function MobileNativeChatComposer({
   inputRef,
   draftScopeKey,
   insertDictation,
+  dictationPreview = null,
   editSession,
   onPickSkill,
   value,
@@ -122,19 +131,6 @@ export function MobileNativeChatComposer({
   onNeedSkills,
   stop = null
 }: Props): React.JSX.Element {
-  useEffect(() => {
-    if (!draftScopeKey) {
-      return
-    }
-    return registerMobileNativeChatTextDestination(
-      draftScopeKey,
-      insertDictation ??
-        ((text) =>
-          setMobileNativeChatDraftText(draftScopeKey, (before) =>
-            appendBufferedDictation(before, text)
-          ))
-    )
-  }, [draftScopeKey, insertDictation])
   useMobileColorScheme()
   const fallbackInputRef = useRef<TextInput>(null)
   const fieldRef = inputRef ?? fallbackInputRef
@@ -179,6 +175,56 @@ export function MobileNativeChatComposer({
     onSlashMenuOpen: structured?.onSlashMenuOpen,
     focusField: () => fieldRef.current?.focus()
   })
+  // Dictation lands on the selection the field had when it started, so taps elsewhere while talking don't move it.
+  const selectionRef = useRef<MobileDictationAnchor | null>(null)
+  const shownScopeRef = useRef(draftScopeKey)
+  useLayoutEffect(() => {
+    shownScopeRef.current = draftScopeKey
+    // Another chat's draft: its selection is unknown until the field reports one.
+    selectionRef.current = null
+  }, [draftScopeKey])
+  const { placeCaret } = menu
+  useEffect(() => {
+    if (!draftScopeKey) {
+      return
+    }
+    const write =
+      insertDictation ??
+      ((insert: (draft: string) => string) => setMobileNativeChatDraftText(draftScopeKey, insert))
+    return registerMobileNativeChatTextDestination(draftScopeKey, () => {
+      const anchor = selectionRef.current
+      return {
+        scope: draftScopeKey,
+        anchor,
+        insert: (text) => {
+          const landed = { caret: 0, text: '' }
+          const inserted = write((draft) => {
+            const next = insertDictationText(draft, text, anchor)
+            landed.caret = next.caret
+            landed.text = next.text
+            return next.text
+          })
+          // A reused composer may show another chat by now; only its own draft's caret moves.
+          if (inserted !== false && shownScopeRef.current === draftScopeKey) {
+            selectionRef.current = {
+              start: landed.caret,
+              end: landed.caret,
+              text: landed.text
+            }
+            placeCaret(landed.caret)
+          }
+          return inserted
+        }
+      }
+    })
+  }, [draftScopeKey, insertDictation, placeCaret])
+  const preview =
+    dictationPreview && dictationPreview.scope === (draftScopeKey ?? null)
+      ? {
+          ...splitDraftForDictation(value, dictationPreview.text, dictationPreview.anchor),
+          text: dictationPreview.text
+        }
+      : null
   const sendingRef = useRef(false)
   const mountedRef = useRef(true)
   const sendSurfaceIdRef = useRef(sendSurfaceId)
@@ -287,7 +333,11 @@ export function MobileNativeChatComposer({
             onBlur={() => setFocused(false)}
             // Controlled only transiently right after an autocomplete insert.
             selection={menu.pendingSelection ?? undefined}
-            onSelectionChange={(e) => menu.onSelectionChange(e.nativeEvent.selection)}
+            dictationPreview={preview}
+            onSelectionChange={(e) => {
+              selectionRef.current = readMobileDictationAnchor(e, value)
+              menu.onSelectionChange(e.nativeEvent.selection)
+            }}
             placeholder={placeholder}
             placeholderTextColor={colors.textMuted}
             selectionColor={colors.accentBlue}

@@ -34,6 +34,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const capture = useDictationCapture()
   const [status, setStatus] = useState<DictationStatus>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [transcriptSoFar, setTranscriptSoFar] = useState('')
   // Read from an abort that may run between a commit and its passive Effects, where state is stale.
   const statusRef = useRef<DictationStatus>('idle')
   const activeIdRef = useRef<string | null>(null)
@@ -45,7 +46,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const pendingAudioBudgetRef = useRef(new MobileDictationPendingAudioBudget())
   const acceptingChunksRef = useRef(false)
   const generationRef = useRef(0)
-  const transcriptSoFarRef = useRef(new MobileDictationTranscriptSoFar())
+  const transcriptSoFarRef = useRef(new MobileDictationTranscriptSoFar(setTranscriptSoFar))
 
   useLayoutEffect(() => {
     // Native audio events can arrive before passive Effects flush, but refs
@@ -59,6 +60,10 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const applyStatus = useCallback((next: DictationStatus) => {
     statusRef.current = next
     setStatus(next)
+    // Kept through processing so the text so far stays in place until the final transcript replaces it in the same render.
+    if (next !== 'recording' && next !== 'processing') {
+      setTranscriptSoFar('')
+    }
   }, [])
 
   const reportError = useCallback(
@@ -322,6 +327,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
     isStarting: status === 'starting',
     isRecording: status === 'recording',
     isProcessing: status === 'processing',
+    transcriptSoFar,
     error,
     start,
     stop,

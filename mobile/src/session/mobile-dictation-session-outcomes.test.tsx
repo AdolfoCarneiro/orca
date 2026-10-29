@@ -123,6 +123,7 @@ function mount(
       setDictationEnabled: () => {},
       deviceTokenRef: useRef('dev'),
       dictationRouteContextRef: useRef(null),
+      commandFieldAnchorRef: useRef(null),
       activeHandleRef: useRef('t1'),
       flushPendingLiveInputBeforeExternalSend: async () => true,
       canSend: true,
