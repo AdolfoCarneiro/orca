@@ -86,3 +86,28 @@ export async function writeCodexHistoryFixture(
     }
   }
 }
+
+export function codexLegacyMirrorRecords() {
+  return [
+    {
+      type: 'response_item',
+      payload: {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: 'Prompt' }]
+      }
+    },
+    { type: 'event_msg', payload: { type: 'user_message', message: 'Prompt' } },
+    { type: 'compacted', payload: { message: 'summary', replacement_history: [] } },
+    { type: 'event_msg', payload: { type: 'context_compacted' } },
+    { type: 'event_msg', payload: { type: 'agent_message', message: 'Response' } },
+    {
+      type: 'response_item',
+      payload: {
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'output_text', text: 'Response' }]
+      }
+    }
+  ]
+}

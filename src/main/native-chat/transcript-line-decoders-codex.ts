@@ -48,12 +48,7 @@ export function decodeCodexTranscriptLine(
   const baseId = extractString(payload.id) ?? fallbackId
 
   if (record.type === 'response_item') {
-    return codexResponseItem(
-      payload,
-      baseId,
-      timestamp,
-      options?.historyImport ? codexTurnItemBlocks : claudeContentBlocks
-    )
+    return codexResponseItem(payload, baseId, timestamp)
   }
   if (record.type === 'event_msg') {
     return codexEventMessage(payload, baseId, timestamp, options?.historyImport === true)
@@ -79,8 +74,7 @@ function codexUnwrappedResponseItem(
 function codexResponseItem(
   payload: Record<string, unknown>,
   id: string,
-  timestamp: number | null,
-  decodeMessageBlocks = claudeContentBlocks
+  timestamp: number | null
 ): NativeChatMessage | null {
   if (payload.type === 'message') {
     const role =
@@ -88,7 +82,7 @@ function codexResponseItem(
     if (!role) {
       return null
     }
-    const decodedBlocks = decodeMessageBlocks(payload.content)
+    const decodedBlocks = claudeContentBlocks(payload.content)
     const blocks =
       role === 'user' ? decodedBlocks.filter((block) => !isSkillContext(block)) : decodedBlocks
     if (blocks.length === 0) {
@@ -230,20 +224,11 @@ function codexCompactionMarker(id: string, timestamp: number | null): NativeChat
 }
 
 function codexTurnItemBlocks(content: unknown): NativeChatBlock[] {
-  if (typeof content === 'string') {
-    return content.trim() ? [{ type: 'text', text: content }] : []
-  }
   if (!Array.isArray(content)) {
     return []
   }
   const blocks: NativeChatBlock[] = []
   for (const value of content) {
-    if (typeof value === 'string') {
-      if (value.trim()) {
-        blocks.push({ type: 'text', text: value })
-      }
-      continue
-    }
     const item = asRecord(value)
     if (!item) {
       continue

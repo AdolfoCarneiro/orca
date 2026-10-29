@@ -92,7 +92,13 @@ export class SessionTerminationController {
     }
     // Escalate now rather than spend the physical-exit budget waiting for graceful shutdown.
     await this.requestForceKillWithRetry()
-    await this.waitForPhysicalExit(timeoutMs)
+    try {
+      await this.waitForPhysicalExit(timeoutMs)
+    } catch (error) {
+      // A fulfilled request without exit cannot suppress the next explicit cleanup attempt.
+      this.forceKillRequest = null
+      throw error
+    }
   }
 
   signal(sig: string): void {

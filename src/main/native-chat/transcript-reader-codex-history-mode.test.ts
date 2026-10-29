@@ -1,3 +1,4 @@
+import { codexLegacyMirrorRecords } from './agent-session-journal/codex-history-test-fixture'
 import { prepareLegacyTranscriptImport } from './agent-session-journal/journal-legacy-import'
 import { createNativeChatMerger, replaceList } from '../../shared/native-chat/native-chat-merge'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -219,28 +220,7 @@ describe('Codex transcript history modes', () => {
   })
 
   it('keeps legacy event messages without duplicating response copies', async () => {
-    const filePath = await writeCodexFixture([
-      {
-        type: 'response_item',
-        payload: {
-          type: 'message',
-          role: 'user',
-          content: [{ type: 'input_text', text: 'Prompt' }]
-        }
-      },
-      { type: 'event_msg', payload: { type: 'user_message', message: 'Prompt' } },
-      { type: 'compacted', payload: { message: 'summary', replacement_history: [] } },
-      { type: 'event_msg', payload: { type: 'context_compacted' } },
-      { type: 'event_msg', payload: { type: 'agent_message', message: 'Response' } },
-      {
-        type: 'response_item',
-        payload: {
-          type: 'message',
-          role: 'assistant',
-          content: [{ type: 'output_text', text: 'Response' }]
-        }
-      }
-    ])
+    const filePath = await writeCodexFixture(codexLegacyMirrorRecords())
 
     const result = await readNativeChatTranscript('codex', 'session-1', { filePath })
 

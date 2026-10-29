@@ -22,7 +22,10 @@ import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 import { openTestJournalHostDatabase } from '../agent-session-journal/journal-host-database-test-support'
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 
-import { writeCodexHistoryFixture } from '../agent-session-journal/codex-history-test-fixture'
+import {
+  codexLegacyMirrorRecords,
+  writeCodexHistoryFixture
+} from '../agent-session-journal/codex-history-test-fixture'
 import { structuredAgentRuntimeMetadata } from '../../runtime/structured-agent-runtime-metadata'
 import {
   resolveStructuredAgentSessionAdoptionForCreate,
@@ -74,6 +77,7 @@ function anotherSession(params: AgentSessionAttachParams): AgentSessionAttachPar
 
 it.each([
   ['matching', THREAD],
+  ['legacy', THREAD],
   ['mismatched', '019fd532-7c11-7a90-b6de-4e1a2c3d5f61']
 ] as const)(
   'resolves a selected-account rollout with %s metadata before at-rest publication',
@@ -89,6 +93,17 @@ it.each([
       undefined,
       metadataId
     )
+    if (_kind === 'legacy') {
+      await writeFile(
+        rollout.filePath,
+        [
+          { type: 'session_meta', payload: { id: THREAD, cwd: rig.root } },
+          ...codexLegacyMirrorRecords()
+        ]
+          .map((record) => JSON.stringify(record))
+          .join('\n')
+      )
+    }
     if (metadataId !== THREAD) {
       // Keep filename lookup valid so the imported metadata is what refuses the mismatched source.
       await rename(rollout.filePath, join(sessions, `rollout-2026-10-27T00-00-00-${THREAD}.jsonl`))
@@ -157,14 +172,26 @@ it.each([
       throw new Error('Real selected-account adoption failed')
     }
     const snapshot = await rig.host.journalSnapshot(SESSION)
-    expect(snapshot.items.map(({ body }) => body)).toEqual([
-      { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'saved CLI turn' }] },
-      {
-        kind: 'message',
-        role: 'assistant',
-        blocks: [{ type: 'text', text: 'saved CLI turn answer' }]
-      }
-    ])
+    expect(snapshot.items.map(({ body }) => body)).toEqual(
+      _kind === 'legacy'
+        ? [
+            { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'Prompt' }] },
+            {
+              kind: 'message',
+              role: 'system',
+              blocks: [{ type: 'text', text: 'Context compacted', presentation: 'compaction' }]
+            },
+            { kind: 'message', role: 'assistant', blocks: [{ type: 'text', text: 'Response' }] }
+          ]
+        : [
+            { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'saved CLI turn' }] },
+            {
+              kind: 'message',
+              role: 'assistant',
+              blocks: [{ type: 'text', text: 'saved CLI turn answer' }]
+            }
+          ]
+    )
     expect(result.value.page.items).toEqual(snapshot.items)
     expect(rig.store.getRecord(SESSION)?.accountHome).toEqual(accountHome)
     expect(rig.store.getRecord(SESSION)?.providerHandleChain).toMatchObject([

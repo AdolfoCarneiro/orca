@@ -13,6 +13,7 @@ import '../mock-descendant-sweep'
 import { TerminalHost } from '../terminal-host'
 import { TerminalSpawnGate } from '../terminal-spawn-gate'
 import { TerminalCreationWork } from '../terminal-creation-work'
+import { IMMEDIATE_KILL_PHYSICAL_EXIT_TIMEOUT_MS } from '../immediate-kill-reply-budget'
 import { createDaemonPtySubprocessHandle } from './subprocess-handle'
 import { spawnNativeDaemonPty } from './native-pty-spawn'
 import {
@@ -52,6 +53,7 @@ function fakePane(pid: number, chunks: string[], exitCode?: number) {
         listener({ exitCode: 137 })
       }
     }),
+    destroy: vi.fn(),
     write: vi.fn(),
     resize: vi.fn(),
     pause: vi.fn(),
@@ -101,7 +103,8 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     nodePty.spawn.mockReset()
-    ptyJob.terminatePtyJob.mockReset()
+    ptyJob.terminatePtyJob.mockReset().mockReturnValue('unavailable')
+    ptyJob.killConptyNow.mockReset().mockReturnValue(false)
     _resetConptyStartupTrustForTest()
   })
   afterEach(() => {
@@ -183,20 +186,29 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     expect(result.claimStartupEvents?.().data).toEqual(['\x1b[1t\x1b[?1004h'])
   })
 
-  it.each(['physical-exit', 'deadline'] as const)(
+  it.each(['physical-exit', 'deadline', 'observation-retry'] as const)(
     'ordinary create keeps the startup predecessor owned through %s and host disposal',
     async (outcome) => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       const broken = deadPane(990010)
       broken.kill.mockImplementation(() => {})
+      if (outcome === 'observation-retry') {
+        vi.spyOn(broken, 'onExit').mockImplementationOnce(() => {
+          throw new Error('initial exit subscription failed')
+        })
+        // The native close request returns but cannot establish exit; the job is unavailable.
+        ptyJob.killConptyNow.mockReturnValue(true)
+      }
       const replacement = fakePane(990011, [])
       nodePty.spawn.mockReturnValueOnce(broken).mockReturnValueOnce(replacement)
-      vi.spyOn(process, 'kill').mockImplementation((pid) => {
-        expect([broken.pid, replacement.pid]).toContain(pid)
-        if (pid === replacement.pid) {
+      vi.spyOn(process, 'kill').mockImplementation(() => {
+        throw new Error('Windows cleanup must not signal an unchecked PID')
+      })
+      ptyJob.terminatePtyJob.mockImplementation((proc) => {
+        if (proc === replacement) {
           queueMicrotask(() => replacement.emitExit(137))
         }
-        return true
+        return outcome === 'observation-retry' ? 'unavailable' : 'terminated'
       })
       const gate = new TerminalSpawnGate({ log: () => {} })
       const host = new TerminalHost({
@@ -225,7 +237,35 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
         rows: 24,
         streamClient: { onData() {}, onExit() {} }
       })
+      const creationSettled = creating.then(
+        () => null,
+        (error: unknown) => error
+      )
       try {
+        if (outcome === 'observation-retry') {
+          await vi.waitFor(() => expect(ptyJob.killConptyNow).toHaveBeenCalledOnce())
+          await vi.advanceTimersByTimeAsync(IMMEDIATE_KILL_PHYSICAL_EXIT_TIMEOUT_MS)
+          expect(await creationSettled).toBeInstanceOf(Error)
+          expect(host.listSessions()).toEqual([])
+          expect(gate.snapshot().terminals).toBe(1)
+          // Let the automatic failed-create recovery also exhaust its bounded exit wait.
+          await vi.advanceTimersByTimeAsync(IMMEDIATE_KILL_PHYSICAL_EXIT_TIMEOUT_MS)
+          const requests = ptyJob.terminatePtyJob.mock.calls.length
+          ptyJob.terminatePtyJob.mockImplementation(() => {
+            queueMicrotask(() => broken.emitExit(137))
+            return 'terminated'
+          })
+          await host.dispose()
+          expect(ptyJob.terminatePtyJob.mock.calls.length).toBeGreaterThan(requests)
+          expect(ptyJob.killConptyNow).toHaveBeenCalledOnce()
+          expect(broken.kill).not.toHaveBeenCalled()
+          expect(broken.destroy).not.toHaveBeenCalled()
+          expect(process.kill).not.toHaveBeenCalled()
+          expect(nodePty.spawn).toHaveBeenCalledOnce()
+          expect(gate.snapshot().terminals).toBe(0)
+          expect(host.listSessions()).toEqual([])
+          return
+        }
         await vi.waitFor(() => expect(broken.kill).toHaveBeenCalledOnce())
         expect(nodePty.spawn).toHaveBeenCalledOnce()
         expect(host.listSessions()).toEqual([])
@@ -241,15 +281,42 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
         expect(created.pid).toBe(outcome === 'physical-exit' ? replacement.pid : broken.pid)
         expect(nodePty.spawn).toHaveBeenCalledTimes(outcome === 'physical-exit' ? 2 : 1)
         expect(gate.snapshot().terminals).toBe(1)
-        const disposing = host.dispose()
         if (outcome === 'deadline') {
-          await vi.waitFor(() => expect(process.kill).toHaveBeenCalled())
+          ptyJob.terminatePtyJob.mockReturnValue('unavailable')
+          const disposing = host.dispose().then(
+            () => null,
+            (error: unknown) => error
+          )
+          await vi.waitFor(() =>
+            expect(
+              ptyJob.terminatePtyJob.mock.calls.filter(([proc]) => proc === broken).length
+            ).toBeGreaterThan(1)
+          )
           expect(gate.snapshot().terminals).toBe(1)
-          broken.emitExit(137)
+          expect(host.listSessions()).toHaveLength(1)
+          await vi.advanceTimersByTimeAsync(IMMEDIATE_KILL_PHYSICAL_EXIT_TIMEOUT_MS)
+          expect(await disposing).toBeInstanceOf(Error)
+          expect(gate.snapshot().terminals).toBe(1)
+          expect(host.listSessions()).toHaveLength(1)
+          // The same owner's force request must reach the now-available job after the timeout.
+          const requests = ptyJob.terminatePtyJob.mock.calls.length
+          ptyJob.terminatePtyJob.mockImplementation(() => {
+            queueMicrotask(() => broken.emitExit(137))
+            return 'terminated'
+          })
+          const retrying = host.dispose()
+          await vi.waitFor(() =>
+            expect(ptyJob.terminatePtyJob.mock.calls.length).toBeGreaterThan(requests)
+          )
+          await retrying
+          expect(broken.kill).toHaveBeenCalledOnce()
+          expect(broken.destroy).not.toHaveBeenCalled()
+        } else {
+          await host.dispose()
         }
-        await disposing
         expect(gate.snapshot().terminals).toBe(0)
         expect(host.listSessions()).toEqual([])
+        expect(process.kill).not.toHaveBeenCalled()
       } finally {
         broken.emitExit(137)
         replacement.emitExit(137)
@@ -313,12 +380,26 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
   it('kills the pane tree when the spawn is canceled while startup is awaited', async () => {
     const controller = new AbortController()
     const silent = fakePane(990001, [])
+    silent.kill.mockImplementation(() => {})
+    vi.spyOn(process, 'kill').mockImplementation(() => {
+      throw new Error('unchecked Windows PID')
+    })
     nodePty.spawn.mockReturnValueOnce(silent)
     const spawned = spawnNativeDaemonPty({ ...args, signal: controller.signal })
     await new Promise((resolve) => setImmediate(resolve))
+    let settled = false
+    const rejected = expect(spawned)
+      .rejects.toThrow('spawn canceled')
+      .then(() => {
+        settled = true
+      })
     controller.abort(new Error('spawn canceled'))
-
-    await expect(spawned).rejects.toThrow('spawn canceled')
+    await vi.waitFor(() => expect(silent.kill).toHaveBeenCalledOnce())
+    expect(settled).toBe(false)
+    expect(nodePty.spawn).toHaveBeenCalledOnce()
+    silent.emitExit(137)
+    await rejected
+    expect(process.kill).not.toHaveBeenCalled()
     expect(ptyJob.terminatePtyJob).toHaveBeenCalledWith(silent)
     // node-pty defers kill() until first output, which a silent pane never produces.
     expect(ptyJob.killConptyNow).toHaveBeenCalledWith(silent)

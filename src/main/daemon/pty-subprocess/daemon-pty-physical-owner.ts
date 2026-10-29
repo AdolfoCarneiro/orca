@@ -2,7 +2,7 @@ import type { DisposableNativePty } from './native-pty-spawn'
 import type * as pty from 'node-pty'
 import { forceKillPosixPtyProcessGroups } from '../../pty/posix-pty-process-groups'
 import { PendingPtyGroupSweep } from '../../pty/pending-pty-group-sweep'
-import { terminatePtyJob } from '../../windows/windows-pty-job'
+import { killConptyNow, terminatePtyJob } from '../../windows/windows-pty-job'
 import { SessionTerminationController } from '../session-termination-controller'
 import { shutdownOwnedTerminalProcess } from '../terminal-host-session-shutdown'
 export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
@@ -35,25 +35,12 @@ export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
       )
     )
   }
-  // Stays synchronous: dispose() reads nodePtyKillIssued right after to avoid double-closing ConPTY.
-  const forceKillConpty = (): void => {
-    if (exit) {
-      return
-    }
-    // Escalate a ConPTY kill through the job without double-closing node-pty's shell handle.
-    if (nodePtyKillIssued) {
-      terminatePtyJob(proc)
-      return
-    }
-    try {
-      killRoot()
-    } catch (signalError) {
-      fallBackToNodePtyKill(signalError)
-    }
-  }
-
   const kill = (): void => {
-    if (exit) {
+    if (exit || (process.platform === 'win32' && nodePtyKillIssued)) {
+      return
+    }
+    if (process.platform === 'win32' && killConptyNow(proc)) {
+      nodePtyKillIssued = true
       return
     }
     nodePtyKillIssued = true
@@ -64,6 +51,15 @@ export function createDaemonPtyPhysicalOwner(proc: pty.IPty) {
       throw error
     }
   }
+  const forceKillConpty = (): void => {
+    if (exit) {
+      return
+    }
+    // Re-request the owned job even after a native close; neither request proves exit.
+    terminatePtyJob(proc)
+    kill()
+  }
+
   const forceKill = () => (process.platform === 'win32' ? forceKillConpty() : forceKillPosix())
   const dispose = (): void => {
     if (disposed) {

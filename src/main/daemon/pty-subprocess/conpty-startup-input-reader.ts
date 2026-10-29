@@ -1,6 +1,5 @@
 import type { DaemonPtyPhysicalOwner } from './subprocess-handle'
 import type * as pty from 'node-pty'
-import { killConptyNow, terminatePtyJob } from '../../windows/windows-pty-job'
 import { CONPTY_DA1_RESPONSE } from '../../../shared/conpty-device-attributes'
 
 // Bundled ConPTY queries DA1 (or CPR when inheriting the cursor) right after it starts reading
@@ -113,13 +112,13 @@ export function watchConptyStartup(
 async function decideConptyStartup(
   proc: pty.IPty,
   signal: AbortSignal | undefined,
-  exitSource: Pick<pty.IPty, 'onExit'> = proc
+  physicalOwner: DaemonPtyPhysicalOwner
 ): Promise<{
   outcome: ConptyStartupOutcome
   claim: () => ConptyStartupEvents
   exited: Promise<void>
 }> {
-  const watch = watchConptyStartup(proc, exitSource)
+  const watch = watchConptyStartup(proc, physicalOwner)
   let limit: ReturnType<typeof setTimeout> | undefined
   let onAbort = (): void => {}
   try {
@@ -134,7 +133,7 @@ async function decideConptyStartup(
     return { outcome, claim: watch.claim, exited: watch.exited }
   } catch (error) {
     // A canceled spawn must not leave the half-started shell running.
-    discardConpty(proc, watch)
+    discardConpty(physicalOwner, watch)
     throw error
   } finally {
     clearTimeout(limit)
@@ -142,12 +141,12 @@ async function decideConptyStartup(
   }
 }
 
-function discardConpty(proc: pty.IPty, watch: Pick<ConptyStartupWatch, 'claim'>): void {
+function discardConpty(
+  physicalOwner: DaemonPtyPhysicalOwner,
+  watch: Pick<ConptyStartupWatch, 'claim'>
+): void {
   watch.claim()
-  // Handle-based only: a pid may already be recycled if the shell exited during startup.
-  terminatePtyJob(proc)
-  killConptyNow(proc)
-  proc.kill()
+  physicalOwner.forceKill()
 }
 
 // Why process-wide: the announcement is a fact of the bundled ConPTY build. Until one pane shows
@@ -208,9 +207,7 @@ export async function spawnConptyWithInputReader(
   )
   let limit: ReturnType<typeof setTimeout> | undefined
   try {
-    terminatePtyJob(first)
-    killConptyNow(first)
-    first.kill()
+    firstOwner.forceKill()
     const exited = await Promise.race([
       firstOwner.completion.then(() => true),
       new Promise<false>((resolve) => {
