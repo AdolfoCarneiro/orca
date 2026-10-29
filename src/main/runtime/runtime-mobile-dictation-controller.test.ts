@@ -115,6 +115,19 @@ describe('mobile dictation across a phone reconnect', () => {
 
     expect(feedAudio).toHaveBeenCalledTimes(count)
   })
+  it('gives up on as many gaps as it takes to stay within what a reconnect holds back', async () => {
+    const controller = await startPhoneDictation()
+    const fiveSeconds = Buffer.alloc(160_000).toString('base64')
+
+    // Every other chunk is missing: ten tiny ones, then ten of five seconds each.
+    for (let index = 0; index < 20; index += 1) {
+      const audioBase64 = index < 10 ? 'AAA=' : fiveSeconds
+      controller.feed({ ...chunk, audioBase64, seq: 2 * index + 1 })
+    }
+
+    // At most five 5s chunks stay held under the 30s cap.
+    expect(feedAudio).toHaveBeenCalledTimes(15)
+  })
 })
 
 describe('mobile dictation cancel', () => {

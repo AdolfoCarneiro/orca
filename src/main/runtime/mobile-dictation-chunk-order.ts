@@ -19,12 +19,18 @@ export class MobileDictationChunkOrder {
     }
     this.held.set(seq, chunk)
     this.heldLength += chunk.audioBase64.length
-    if (this.heldLength > MAX_HELD_BASE64_LENGTH || this.held.size > MAX_HELD_CHUNKS) {
+    const ready = this.releaseInOrder()
+    while (this.heldLength > MAX_HELD_BASE64_LENGTH || this.held.size > MAX_HELD_CHUNKS) {
       this.nextSeq = Infinity
       for (const held of this.held.keys()) {
         this.nextSeq = Math.min(this.nextSeq, held)
       }
+      ready.push(...this.releaseInOrder())
     }
+    return ready
+  }
+
+  private releaseInOrder(): MobileDictationChunk[] {
     const ready: MobileDictationChunk[] = []
     for (let next = this.held.get(this.nextSeq); next; next = this.held.get(this.nextSeq)) {
       ready.push(next)
