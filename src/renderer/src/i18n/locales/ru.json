@@ -37,7 +37,32 @@
     "sortDescending": "Сортировать выбранный столбец по убыванию",
     "originalOrder": "Исходный порядок строк",
     "save": "Сохранить",
-    "inspectionOnly": "Только просмотр · Порядок строк в файле не меняется"
+    "inspectionOnly": "Только просмотр · Порядок строк в файле не меняется",
+    "error": {
+      "tooManyCells": "В CSV слишком много ячеек для безопасного предпросмотра.",
+      "recordTooLarge": "Запись CSV слишком велика для безопасного предпросмотра.",
+      "tooManyPages": "В CSV слишком много страниц для безопасного предпросмотра.",
+      "previewRecordLimit": "Запись CSV превышает лимит предпросмотра в 1 МБ.",
+      "binaryData": "Этот файл содержит двоичные данные.",
+      "previewColumnLimit": "CSV превышает лимит предпросмотра в 4 096 столбцов.",
+      "changedOnDisk": "CSV изменился на диске. Загрузите файл заново, чтобы обновить предпросмотр.",
+      "pageBoundaryMismatch": "Границы страниц CSV не совпадают. Загрузите предпросмотр заново.",
+      "canceled": "Предпросмотр CSV отменён",
+      "workerFailed": "Сбой фонового процесса предпросмотра CSV. Загрузите файл заново, чтобы повторить попытку.",
+      "workerUnreadableResponse": "Фоновый процесс предпросмотра CSV вернул нечитаемый ответ.",
+      "cellMissing": "Выбранная строка или столбец CSV больше не существует.",
+      "rowMissing": "Выбранная строка CSV больше не существует.",
+      "columnLimit": "CSV превышает лимит в 4 096 столбцов.",
+      "recordLimit": "Запись CSV превышает лимит в 1 МБ.",
+      "tableEditBudget": "Размер правок в таблице должен быть меньше 1 МиБ. Для более крупных изменений используйте режим «Исходный текст».",
+      "editConflict": "CSV изменился во время редактирования этой ячейки. Отмените редактирование и попробуйте снова.",
+      "saveFailed": "Не удалось сохранить CSV. Ваши правки остаются в черновике.",
+      "pasteConflict": "CSV изменился до завершения вставки. Попробуйте снова.",
+      "copyTooManyCells": "Выберите меньше ячеек для копирования за раз.",
+      "copyTooLarge": "Выбранные ячейки слишком велики для безопасного копирования.",
+      "pasteExceedsTable": "Вставляемые данные выходят за границы таблицы. Сначала добавьте строки или столбцы.",
+      "pasteTooManyCells": "Выберите меньше ячеек для вставки за раз."
+    }
   },
   "osDocumentOpen": {
     "failed": "Не удалось открыть файл."
@@ -77,6 +102,23 @@
       "quitDuringMoveTitle": "Выйти во время переноса проекта?",
       "quitDuringMoveDescription": "Проект переносится на свой хост WSL. Всё равно выйти? Перенос будет отменён при следующем запуске.",
       "quitDuringMoveConfirm": "Всё равно выйти"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Имя не может быть пустым",
+        "nameInvalid": "Имя не может содержать косые черты или быть \".\" / \"..\"",
+        "parentRequired": "Необходимо указать родительскую папку",
+        "parentNotAbsolute": "Путь к родительской папке должен быть абсолютным",
+        "targetInaccessible": "Не удалось получить доступ к целевому пути: {{detail}}",
+        "targetNotEmpty": "«{{name}}» уже существует в этом расположении и содержит данные.",
+        "targetNotFolder": "«{{name}}» уже существует в этом расположении и не является папкой.",
+        "readDirectoryFailed": "Не удалось прочитать содержимое папки: {{detail}}",
+        "createDirectoryFailed": "Не удалось создать папку: {{detail}}",
+        "prepareDirectoryFailed": "Не удалось подготовить папку: {{detail}}",
+        "gitIdentityMissing": "Не настроены данные автора коммитов Git. Выполните `git config --global user.name \"Your Name\"` и `git config --global user.email \"you@example.com\"`, затем повторите попытку.",
+        "gitInitFailed": "Не удалось инициализировать репозиторий Git: {{detail}}",
+        "initialCommitFailed": "Не удалось создать начальный коммит: {{detail}}"
+      }
     }
   },
   "app": {
@@ -682,7 +724,26 @@
       "serverCount_many": "{{count}} серверов"
     },
     "shortcuts": {
-      "parseFailed": "Не удалось распознать сочетание клавиш."
+      "parseFailed": "Не удалось распознать сочетание клавиш.",
+      "validation": {
+        "invalidFormat": "Используйте сочетание клавиш, например Ctrl+Shift+P или Cmd+K.",
+        "mixedModifiers": "Используйте либо Mod, либо модификатор для конкретной платформы, но не оба сразу.",
+        "modifierRequired": "Добавьте хотя бы одну клавишу-модификатор.",
+        "digitKeyRequired": "Выберите цифровую клавишу 1–9 с модификатором, например Cmd+1 или Ctrl+1.",
+        "modifierOnly": "Нажмите клавишу, а не только модификатор.",
+        "invalidBindingValue": "Укажите строку, массив строк, null или false.",
+        "stringArrayRequired": "Укажите массив строк.",
+        "fileNotObject": "Файл сочетаний клавиш должен содержать объект JSON."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} должен быть объектом.",
+        "unknownAction": "Неизвестное действие сочетания клавиш «{{actionId}}» пропущено.",
+        "shortcutIgnored": "Сочетание клавиш для «{{actionId}}» пропущено: {{reason}}",
+        "platformsNotObject": "platforms должен быть объектом с разделами darwin, linux или win32.",
+        "unknownPlatform": "Неизвестная платформа «{{platform}}» пропущена.",
+        "conflictingOverrides": "Конфликтующие пользовательские сочетания клавиш пропущены: {{actions}}.",
+        "readFailed": "Не удалось прочитать файл сочетаний клавиш: {{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -868,14 +929,7 @@
             "b8a1618172": "Создание описания пул-реквеста недоступно в веб-клиенте.",
             "e57c82d276": "Поиск моделей для сообщений коммитов недоступен в веб-клиенте.",
             "9fc90740b6": "Создание сообщения коммита недоступно в веб-клиенте.",
-            "52bee9d8a0": "Конфликтующие сочетания клавиш пропущены: {{value0}}.",
-            "32f15bdb0f": "Неизвестная платформа «{{value0}}» пропущена.",
-            "0a69fcd8bc": "platforms должен быть объектом с разделами darwin, linux или win32.",
-            "10898045f3": "Сочетание клавиш для «{{value0}}» пропущено: укажите массив строк.",
-            "36761d9604": "Неизвестное действие сочетания клавиш «{{value0}}» пропущено.",
-            "d2e43e426a": "{{value0}} должен быть объектом.",
-            "fb290366b2": "Недоступно в веб-версии.",
-            "76122208ca": "Сочетание клавиш для «{{value0}}» пропущено: {{value1}}"
+            "fb290366b2": "Недоступно в веб-версии."
           }
         },
         "runtime": {
@@ -1933,22 +1987,30 @@
         "5c1c973855": "Удалить рецензента",
         "commentTooLarge": "Комментарий слишком большой для безопасной отправки.",
         "timeline": {
-          "completed": "как выполненное",
-          "notPlanned": "как незапланированное",
           "someone": "кто-то",
-          "assigned": "назначил",
-          "unassigned": "снял назначение",
-          "mentioned": "упомянул",
-          "in": "в",
-          "closed": "закрыл",
-          "reopened": "открыл снова",
-          "moved": "переместил",
-          "from": "из",
-          "to": "в",
           "activity": "События",
           "noActivity": "Пока нет событий.",
           "pullRequestReference": "PR #{{number}}",
-          "issueReference": "задача #{{number}}"
+          "issueReference": "задача #{{number}}",
+          "movedFromToInProject": "<actor/> переместил это из <from/> в <to/> в проекте <project/>",
+          "movedFromTo": "<actor/> переместил это из <from/> в <to/>",
+          "movedToInProject": "<actor/> переместил это в <to/> в проекте <project/>",
+          "movedTo": "<actor/> переместил это в <to/>",
+          "movedFromInProject": "<actor/> переместил это из <from/> в проекте <project/>",
+          "movedFrom": "<actor/> переместил это из <from/>",
+          "movedInProject": "<actor/> переместил это в проекте <project/>",
+          "movedThis": "<actor/> переместил это",
+          "closedCompletedIn": "<actor/> закрыл это как выполненное в <target/>",
+          "closedCompleted": "<actor/> закрыл это как выполненное",
+          "closedNotPlannedIn": "<actor/> закрыл эту задачу со статусом «Не планируется» в <target/>",
+          "closedNotPlanned": "<actor/> закрыл эту задачу со статусом «Не планируется»",
+          "closedIn": "<actor/> закрыл это в <target/>",
+          "closedThis": "<actor/> закрыл это",
+          "assignedUser": "<actor/> назначил <assignee/>",
+          "unassignedUser": "<actor/> снял назначение <assignee/>",
+          "mentionedIn": "<actor/> упомянул это в <target/>",
+          "mentionedThis": "<actor/> упомянул это",
+          "reopenedThis": "<actor/> открыл это снова"
         },
         "e15a8b77ef": "Для этой проверки нет подробностей в интерфейсе.",
         "e45324fbed": "Не удалось загрузить сведения о проверке.",
@@ -2203,8 +2265,7 @@
         "estimateValue": "Оценка {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Использовать существующую ветку",
-        "reuseExistingBranchHint": "Переключиться на существующую ветку вместо создания новой на её основе.",
+        "openExistingWorkspace": "Открыть существующее рабочее пространство",
         "createMultiple": "Создать ещё",
         "cbb47ee0dc": "Доступно только для локальных Git-проектов.",
         "d861de981b": "Выборочная выгрузка",
@@ -5233,7 +5294,8 @@
           "updateMany": "Обновить навыки",
           "title_few": "{{count}} установленных навыка Orca устарели",
           "title_many": "{{count}} установленных навыков Orca устарели",
-          "title_other": "Устаревшие установленные навыки Orca: {{count}}"
+          "title_other": "Устаревшие установленные навыки Orca: {{count}}",
+          "title_one": "Устаревшие установленные навыки Orca: {{count}}"
         },
         "SkillFreshnessUpdateDialog": {
           "title": "Обновить навыки",
@@ -5258,6 +5320,7 @@
           "upToDate_few": "{{count}} навыка актуальны.",
           "upToDate_many": "{{count}} навыков актуальны.",
           "upToDate_other": "Актуальных навыков: {{count}}.",
+          "upToDate_one": "Актуальных навыков: {{count}}.",
           "update_one": "Доступно {{count}} обновление",
           "update_few": "Доступно {{count}} обновления",
           "update_many": "Доступно {{count}} обновлений",
@@ -5668,7 +5731,8 @@
           "retainedSource": "Сам навык останется в {{path}}.",
           "nothing_few": "Нельзя удалить отсюда ни один из выбранных навыков ({{count}}).",
           "nothing_many": "Нельзя удалить отсюда ни один из выбранных навыков ({{count}}).",
-          "nothing_other": "Нельзя удалить отсюда ни один из выбранных навыков ({{count}})."
+          "nothing_other": "Нельзя удалить отсюда ни один из выбранных навыков ({{count}}).",
+          "nothing_one": "Нельзя удалить отсюда ни один из выбранных навыков ({{count}})."
         },
         "skillPlanOpCopy": {
           "busy": "Другая установка ещё выполняется",
@@ -5871,8 +5935,6 @@
           "b589b77997": "Перейдите в нужную папку и нажмите «Выбрать»."
         },
         "DeleteWorktreeDialog": {
-          "ff2a74ac0e": "и",
-          "91492c9ad6": "Удалить",
           "4f6750ca7b": "Не удалось удалить рабочее пространство",
           "42e610d6cf": "Не удалось принудительно удалить",
           "5cc1a6701c": "Открыть настройки",
@@ -5881,7 +5943,33 @@
           "fc23c4cbdf": "Удалить рабочее пространство",
           "86f0ae1257": "Удалить рабочие пространства",
           "removeFolderProjectInstead": "Удалите проект папки из списка вместо удаления этого рабочего пространства.",
-          "gitBlocksMainWorktree": "Git не позволяет удалить основное рабочее дерево."
+          "gitBlocksMainWorktree": "Git не позволяет удалить основное рабочее дерево.",
+          "removeBatchFolder_one": "Удалить <target>{{count}} рабочее пространство</target> из Orca. Папки проектов на диске не будут удалены.",
+          "removeBatchFolder_other": "Удалить <target>{{count}} рабочего пространства</target> из Orca. Папки проектов на диске не будут удалены.",
+          "removeBatchMixed_one": "Удалить <target>{{count}} рабочее пространство</target> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeBatchMixed_other": "Удалить <target>{{count}} рабочего пространства</target> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeBatchGit_one": "Удалить <target>{{count}} рабочее пространство</target> из git и удалить соответствующие папки рабочих пространств.",
+          "removeBatchGit_other": "Удалить <target>{{count}} рабочего пространства</target> из git и удалить соответствующие папки рабочих пространств.",
+          "removeSingleFolder": "Удалить <target/> из Orca. Папка проекта на диске не будет удалена.",
+          "removeSingleGit": "Удалить <target/> из git и удалить его папку рабочего пространства.",
+          "removeWithChildrenFolder_one": "Удалить <target/> и <descendants>{{count}} дочернее рабочее пространство</descendants> из Orca. Папки проектов на диске не будут удалены.",
+          "removeWithChildrenFolder_other": "Удалить <target/> и <descendants>{{count}} дочернего рабочего пространства</descendants> из Orca. Папки проектов на диске не будут удалены.",
+          "removeWithChildrenMixed_one": "Удалить <target/> и <descendants>{{count}} дочернее рабочее пространство</descendants> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeWithChildrenMixed_other": "Удалить <target/> и <descendants>{{count}} дочернего рабочего пространства</descendants> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeWithChildrenGit_one": "Удалить <target/> и <descendants>{{count}} дочернее рабочее пространство</descendants> из git и удалить их папки рабочих пространств.",
+          "removeWithChildrenGit_other": "Удалить <target/> и <descendants>{{count}} дочернего рабочего пространства</descendants> из git и удалить их папки рабочих пространств.",
+          "removeBatchFolder_few": "Удалить <target>{{count}} рабочих пространства</target> из Orca. Папки проектов на диске не будут удалены.",
+          "removeBatchFolder_many": "Удалить <target>{{count}} рабочих пространств</target> из Orca. Папки проектов на диске не будут удалены.",
+          "removeBatchMixed_few": "Удалить <target>{{count}} рабочих пространства</target> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeBatchMixed_many": "Удалить <target>{{count}} рабочих пространств</target> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeBatchGit_few": "Удалить <target>{{count}} рабочих пространства</target> из git и удалить соответствующие папки рабочих пространств.",
+          "removeBatchGit_many": "Удалить <target>{{count}} рабочих пространств</target> из git и удалить соответствующие папки рабочих пространств.",
+          "removeWithChildrenFolder_few": "Удалить <target/> и <descendants>{{count}} дочерних рабочих пространства</descendants> из Orca. Папки проектов на диске не будут удалены.",
+          "removeWithChildrenFolder_many": "Удалить <target/> и <descendants>{{count}} дочерних рабочих пространств</descendants> из Orca. Папки проектов на диске не будут удалены.",
+          "removeWithChildrenMixed_few": "Удалить <target/> и <descendants>{{count}} дочерних рабочих пространства</descendants> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeWithChildrenMixed_many": "Удалить <target/> и <descendants>{{count}} дочерних рабочих пространств</descendants> из Orca. Рабочие деревья Git также будут удалены из git и с диска; для рабочих пространств на основе папок будет удалена только запись в Orca.",
+          "removeWithChildrenGit_few": "Удалить <target/> и <descendants>{{count}} дочерних рабочих пространства</descendants> из git и удалить их папки рабочих пространств.",
+          "removeWithChildrenGit_many": "Удалить <target/> и <descendants>{{count}} дочерних рабочих пространств</descendants> из git и удалить их папки рабочих пространств."
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "Показать загруженные пути",
@@ -5956,17 +6044,32 @@
         "OrcaYamlTrustDialog": {
           "f3e2b868fb": "Выполнить хуки",
           "43b7bec4cd": "Не выполнять",
-          "c494b3ccb1": "в",
-          "79afc6772b": "orca.yaml",
-          "531689199b": "Всегда доверять",
-          "bf800b7e04": ". Запускайте, только если доверяете",
-          "831f2cd9f0": "выполняется на вашем компьютере",
-          "aa3ffb33fb": "В этом репозитории файл",
-          "c55beddbf8": "изменился с последнего одобрения. Проверьте его перед запуском",
-          "95bf974a1a": "Скрипт {{value0}}",
-          "9e52effffd": "Новый скрипт {{value0}}",
-          "e4a51dc4b3": "Запустить {{value0}} из {{value1}}?",
-          "02b0ede5ad": "Скрипт {{value1}} в {{value0}} изменился — запустить новую версию?"
+          "setupChangedTitle": "Скрипт настройки {{repo}} изменился — запустить новую версию?",
+          "archiveChangedTitle": "Скрипт архивации {{repo}} изменился — запустить новую версию?",
+          "issueCommandChangedTitle": "Команда задачи {{repo}} изменилась — запустить новую версию?",
+          "vmRecipeChangedTitle": "Рецепт ВМ {{repo}} изменился — запустить новую версию?",
+          "setupRunTitle": "Запустить скрипт настройки из {{repo}}?",
+          "archiveRunTitle": "Запустить скрипт архивации из {{repo}}?",
+          "issueCommandRunTitle": "Выполнить команду задачи из {{repo}}?",
+          "vmRecipeRunTitle": "Запустить рецепт ВМ из {{repo}}?",
+          "setupChangedBody": "<code>orca.yaml</code> изменился с последнего одобрения. Проверьте его перед запуском при создании этого рабочего пространства.",
+          "archiveChangedBody": "<code>orca.yaml</code> изменился с последнего одобрения. Проверьте его перед запуском при удалении этого рабочего пространства.",
+          "issueCommandChangedBody": "<code>orca.yaml</code> изменился с момента вашего последнего одобрения. Проверьте его ещё раз перед выполнением при запуске этого рабочего пространства со связанной задачей.",
+          "vmRecipeChangedBody": "<code>orca.yaml</code> изменился с последнего одобрения. Проверьте его перед выполнением, которое предшествует подготовке ВМ.",
+          "setupRunBody": "Файл <code>orca.yaml</code> этого репозитория выполняется на вашем компьютере при создании этого рабочего пространства. Запускайте, только если доверяете <repo/>.",
+          "archiveRunBody": "Файл <code>orca.yaml</code> этого репозитория выполняется на вашем компьютере при удалении этого рабочего пространства. Запускайте, только если доверяете <repo/>.",
+          "issueCommandRunBody": "Файл <code>orca.yaml</code> этого репозитория выполняется на вашем компьютере при запуске этого рабочего пространства со связанной задачей. Запускайте, только если доверяете <repo/>.",
+          "vmRecipeRunBody": "Файл <code>orca.yaml</code> этого репозитория выполняется на вашем компьютере перед подготовкой ВМ. Запускайте, только если доверяете <repo/>.",
+          "newSetupScript": "Новый скрипт настройки",
+          "setupScript": "Скрипт настройки",
+          "newArchiveScript": "Новый скрипт архивации",
+          "archiveScript": "Скрипт архивации",
+          "newIssueCommand": "Новая команда задачи",
+          "issueCommand": "Команда задачи",
+          "newVmRecipe": "Новый рецепт ВМ",
+          "vmRecipe": "Рецепт ВМ",
+          "thisRepository": "этот репозиторий",
+          "alwaysTrustRepo": "Всегда доверять <code>orca.yaml</code> в <repo/>"
         },
         "PendingWorktreeRow": {
           "af21e953d1": "Отмена создания рабочего дерева",
@@ -11876,34 +11979,15 @@
           "leaveToTerminalLabel": "Передать терминалу"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Фоновый процесс — запускается отдельно",
-          "instructionalTrust": "Инструкции — выполняются позже с полномочиями пользователя или агента",
-          "declarativeTrust": "Декларативное содержимое — без кода плагина",
-          "panelTrust": "Панель или содержимое, встроенное в Orca, — без фонового процесса",
-          "trustShortWorker": "Процесс",
-          "trustShortInstructional": "Инструкции",
-          "trustShortPanel": "Панель",
-          "trustShortDeclarative": "Декларативное",
-          "reviewTitle": "Проверить плагин",
-          "title": "Проверить разрешения",
-          "mixedTitle": "Проверить доступ и содержимое",
-          "instructionalTitle": "Проверить содержимое плагина",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "После последней проверки изменились разрешения, уровень доверия фонового процесса или инструкции плагина. Проверьте плагин снова перед запуском.",
-          "capabilities": "Этот плагин может",
-          "warning": "Эти разрешения ограничивают использование API Orca плагином. Его фоновый процесс всё равно работает как обычный процесс на компьютере с полным доступом к файлам, сети и другим процессам.",
           "instructionalWarning": "У этого плагина нет фонового процесса. Его инструкции всё равно могут вызывать действия при использовании вами или агентом. Перед включением проверьте инструкции и команды ниже.",
-          "panelWarning": "Эти разрешения ограничивают использование API Orca плагином. У плагина нет фонового процесса.",
           "declarativeWarning": "Этот плагин добавляет только проверенное содержимое. Он не запускает фоновый процесс и не получает доступ к API Orca.",
-          "keepDisabled": "Оставить выключенным",
           "enable": "Включить плагин",
           "capability": {
             "workspaceRead": "Читать имя, ветку и список терминалов активного рабочего дерева",
-            "terminalSend": "Вводить текст в видимый вам терминал (всегда в конкретный терминал)",
             "notificationsShow": "Показывать системные уведомления с именем плагина",
             "storage": "Хранить данные в собственной папке плагина",
             "secrets": "Хранить и читать секреты в собственном зашифрованном хранилище плагина",
-            "eventsSubscribe": "Получать уведомления о создании и удалении рабочих деревьев и изменениях статуса агентов",
             "settingsOwn": "Читать и менять собственные настройки плагина"
           },
           "decisionFailed": "Не удалось сохранить решение о разрешениях. Повторите попытку."
@@ -11923,7 +12007,6 @@
           "saveFailed": "Не удалось сохранить пути плагинов разработки.",
           "pathRequired": "Введите путь папки плагина.",
           "title": "Разработка",
-          "help": "Загружайте плагины прямо из папок этого компьютера во время разработки. Они также требуют проверки разрешений. Фоновые процессы выполняются на этом компьютере; действия рабочих пространств SSH идут через Orca, поэтому здесь указываются пути этого компьютера.",
           "remove": "Удалить",
           "pathLabel": "Путь папки плагина разработки",
           "placeholder": "/Users/you/plugins/my-plugin или C:\\Users\\you\\plugins\\my-plugin",
@@ -11951,16 +12034,11 @@
           "installFailed": "Не удалось установить плагин. Проверьте источник и повторите попытку."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Сочетания клавиш",
-          "worktree": "Работает, только пока активно рабочее пространство.",
-          "global": "Работает в приложении без активного рабочего пространства.",
-          "shadows": "Заменяет: {{value0}}"
+          "worktree": "Работает, только пока активно рабочее пространство."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Не удалось загрузить плагины каталога.",
           "refreshFailed": "Не удалось обновить каталоги. Сохранённые списки остаются доступны.",
-          "previewFailed": "Не удалось подготовить плагин к проверке. Обновите каталог и повторите попытку.",
-          "installFailed": "Не удалось установить плагин. Проверенный источник мог измениться.",
           "manageSources": "Управление источниками",
           "refreshing": "Обновление…",
           "refresh": "Обновить",
@@ -11969,7 +12047,6 @@
           "loading": "Загрузка плагинов каталога…",
           "tryAgain": "Повторить попытку",
           "noSourcesTitle": "Каталоги не настроены",
-          "noSources": "Добавьте официальный, общественный или приватный Git-каталог для просмотра плагинов.",
           "addSource": "Добавить каталог",
           "noResultsTitle": "Подходящие плагины не найдены",
           "noResults": "По этому запросу в каталогах плагины не найдены.",
@@ -11978,39 +12055,8 @@
           "empty": "В настроенных каталогах нет плагинов."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Официальный",
-          "installed": "Установлено",
-          "noDescription": "Описание не добавлено.",
           "blocked": "Заблокировано списком блокировок Orca: {{value0}}",
-          "blockedAction": "Заблокировано",
-          "checkUpdate": "Проверить обновление",
           "install": "Установить"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "Языковых пакетов: 1",
-          "languagePacks": "Языковых пакетов: {{value0}}",
-          "commandsOne": "Команд: 1",
-          "commands": "Команд: {{value0}}",
-          "keybindingsOne": "Сочетаний клавиш: 1",
-          "keybindings": "Сочетаний клавиш: {{value0}}",
-          "vmRecipesOne": "Рецептов ВМ: 1",
-          "vmRecipes": "Рецептов ВМ: {{value0}}",
-          "panelsOne": "Панелей: 1",
-          "panels": "Панелей: {{value0}}",
-          "eventsOne": "Подписок на события: 1",
-          "events": "Подписок на события: {{value0}}",
-          "worker": "Фоновый процесс",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "Включает",
-          "noContributions": "Только метаданные манифеста",
-          "capabilities": "Запрошенный доступ",
-          "workerWarning": "Возможности ограничивают использование API Orca плагином. Его фоновый процесс всё равно работает как обычный процесс на компьютере с полным доступом к файлам, сети и другим процессам.",
-          "blocked": "Список блокировок Orca блокирует этот плагин: {{value0}}",
-          "current": "Именно это содержимое плагина уже установлено.",
-          "close": "Закрыть",
-          "cancel": "Отмена",
-          "update": "Обновить плагин",
-          "install": "Установить плагин"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Не удалось добавить каталог. Проверьте URL Git, ссылку и учётные данные Git.",
@@ -12036,21 +12082,15 @@
           "done": "Готово"
         },
         "PluginRemoveDialog": {
-          "title": "Удалить плагин?",
-          "description": "{{value0}} и сохранённые данные плагина будут удалены с этого компьютера. Позже плагин можно установить снова.",
           "cancel": "Отмена",
           "remove": "Удалить плагин"
         },
         "PluginRollbackDialog": {
-          "title": "Откатить плагин?",
-          "description": "{{value0}} будет отключён, и восстановится его предыдущая неизменяемая версия. Если её разрешения или инструкции отличаются от текущих, Orca потребует повторной проверки.",
           "cancel": "Отмена",
           "confirm": "Откатить плагин"
         },
         "PluginsSettingsSection": {
           "systemLabel": "Система плагинов",
-          "systemDescription": "Находит установленные плагины и позволяет включать их по отдельности. Ничего не запускается до проверки и включения. Фоновые процессы всегда работают на этом компьютере; действия рабочих пространств SSH идут через Orca.",
-          "featureOff": "Включите систему плагинов для просмотра и управления установленными плагинами. Пока система выключена, установленные плагины остаются на диске и неактивны.",
           "loading": "Загрузка плагинов…",
           "noInstalledResultsTitle": "Подходящие плагины не найдены",
           "noInstalledResults": "По этому запросу установленные плагины не найдены.",
@@ -12060,37 +12100,18 @@
           "settingsUpdateFailed": "Не удалось сохранить настройки плагинов.",
           "install": "Установить плагин",
           "title": "Плагины",
-          "experimental": "Экспериментальные",
           "description": "Устанавливайте плагины Orca и управляйте ими. Плагины работают на этом компьютере даже для рабочих пространств SSH.",
           "logsFailed": "Не удалось загрузить журналы плагина.",
           "rollbackFailed": "Не удалось откатить плагин. Возможно, предыдущая неизменяемая версия недоступна."
         },
         "PluginSettingsRow": {
-          "blocked": "Заблокировано",
-          "needsReview": "Нужна проверка",
-          "restarting": "Перезапуск",
-          "invalid": "Некорректен",
-          "error": "Ошибка",
-          "disabled": "Выключен",
-          "running": "Работает",
-          "enabled": "Включено",
           "loadingLogs": "Загрузка журналов…",
           "noLogs": "Строк журнала не записано.",
           "logCount": "Последние строки журнала: {{value0}} (хранится до 200 строк)",
-          "reviewAndEnable": "Проверить и включить",
-          "official": "Официальный",
-          "dev": "Разработка",
           "bundled": "В комплекте",
-          "noDescription": "Описание не добавлено.",
           "killListMessage": "Список блокировок Orca отключил плагин: {{value0}}",
-          "viewAdvisory": "Открыть уведомление о безопасности",
-          "runtimeError": "Плагин остановлен после ошибки активации или фонового процесса.",
-          "restartCount": " · перезапусков: {{value0}}",
           "moreActions": "Другие действия для {{value0}}",
-          "hideLogs": "Скрыть журналы",
           "viewLogs": "Показать журналы",
-          "rollback": "Откатить",
-          "remove": "Удалить",
           "disableLabel": "Выключить {{value0}}",
           "enableLabel": "Включить {{value0}}",
           "invalidPluginError": "Манифест или установленные файлы плагина некорректны. Исправьте плагин и обновите список."
@@ -13182,7 +13203,8 @@
             "31b4c3195d": "Другие действия проводника",
             "d95e30fe28": "Обновить проводник",
             "6026b16950": "Свернуть всё",
-            "c1f3f3ec70": "Поиск по содержимому файлов"
+            "c1f3f3ec70": "Поиск по содержимому файлов",
+            "openInApp": "Открыть в {{app}}"
           },
           "FileExplorerTreeStatus": {
             "ce03835e1f": "В этом рабочем пространстве нет файлов",
@@ -13200,7 +13222,6 @@
             "6d1e0a7c3b": "Не удалось загрузить файлы коммита"
           },
           "HostedReviewActions": {
-            "4d5fb5a284": "Закрыть",
             "9845a71e17": "Другие действия",
             "2bfaf4379c": "Другие действия с {{value0}}",
             "377269db6f": "{{value0}} открыт заново",
@@ -13221,8 +13242,15 @@
             "markingReady": "Подготовка к ревью…",
             "markReady": "Отметить готовым к ревью",
             "draftMoreActions": "Другие действия с {{value0}}",
-            "closeDraft": "Закрыть",
-            "readyToast": "{{value0}} отмечен готовым к ревью"
+            "readyToast": "{{value0}} отмечен готовым к ревью",
+            "closeReview": "Закрыть {{review}}",
+            "closeReviewConfirmTitle": "Закрыть {{review}}?",
+            "reopenReviewConfirmTitle": "Открыть {{review}} снова?",
+            "closeConfirm": "Закрыть",
+            "reopenConfirm": "Открыть снова",
+            "closeReviewFailed": "Не удалось закрыть {{review}}",
+            "reopenReviewFailed": "Не удалось открыть {{review}} снова",
+            "markReadyFailed": "Не удалось отметить {{review}} как готовый к проверке"
           },
           "PortsPanel": {
             "3ea4a02a8f": "Отмена",
@@ -15042,11 +15070,6 @@
           "e59a252eca": "Создать новый код",
           "d0b52871ce": "Ваши телефоны подключены.",
           "051978a785": "Ваш телефон подключён.",
-          "channel": {
-            "group": "Канал выпуска",
-            "preview": "Предварительный",
-            "stable": "Стабильный"
-          },
           "pairingQrError": "Не удалось представить этот код сопряжения как QR-код. Вместо этого скопируйте его в Orca Mobile.",
           "noRelayCode": "Код сопряжения недоступен",
           "noPairingCode": "Код сопряжения недоступен",
@@ -15093,14 +15116,7 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Новые возможности, обновления каждый день."
-              },
-              "stable": {
-                "tagline": "Общедоступный выпуск, обновления каждую неделю."
-              },
               "downloadApk": "Скачать APK",
-              "openTestFlight": "Открыть TestFlight",
               "openAppStore": "Открыть App Store"
             }
           }
@@ -19352,6 +19368,7 @@
         "runBrowser_few": "Браузер использован {{count}} раза",
         "runBrowser_many": "Браузер использован {{count}} раз",
         "runBrowser_other": "Браузер использован {{count}} раза",
+        "runBrowser_one": "Браузер использован {{count}} раза",
         "runIntegration_one": "Использована {{count}} интеграция",
         "runIntegration_few": "Использовано {{count}} интеграции",
         "runIntegration_many": "Использовано {{count}} интеграций",
@@ -19363,6 +19380,7 @@
         "runPlan_few": "План обновлён {{count}} раза",
         "runPlan_many": "План обновлён {{count}} раз",
         "runPlan_other": "План обновлён {{count}} раза",
+        "runPlan_one": "План обновлён {{count}} раза",
         "runTool_one": "Использован {{count}} инструмент",
         "runTool_few": "Использовано {{count}} инструмента",
         "runTool_many": "Использовано {{count}} инструментов",
@@ -19394,6 +19412,7 @@
         "runLiveBrowser_few": "Использует браузер {{count}} раза",
         "runLiveBrowser_many": "Использует браузер {{count}} раз",
         "runLiveBrowser_other": "Использует браузер {{count}} раза",
+        "runLiveBrowser_one": "Использует браузер {{count}} раза",
         "runLiveIntegration_one": "Использует {{count}} интеграцию",
         "runLiveIntegration_few": "Использует {{count}} интеграции",
         "runLiveIntegration_many": "Использует {{count}} интеграций",
@@ -19405,6 +19424,7 @@
         "runLivePlan_few": "Обновляет план {{count}} раза",
         "runLivePlan_many": "Обновляет план {{count}} раз",
         "runLivePlan_other": "Обновляет план {{count}} раза",
+        "runLivePlan_one": "Обновляет план {{count}} раза",
         "runLiveTool_one": "Использует {{count}} инструмент",
         "runLiveTool_few": "Использует {{count}} инструмента",
         "runLiveTool_many": "Использует {{count}} инструментов",
@@ -19441,39 +19461,73 @@
         "task": "Фоновая задача",
         "outputFile": "Вывод: {{value0}}",
         "detailsUnavailable": "Подробности задач в этой сессии недоступны.",
-        "countAgentsOne": "1 агент",
-        "countAgentsMany": "Агентов: {{value0}}",
-        "countShellOne": "1 оболочка",
-        "countShellMany": "Оболочек: {{value0}}",
         "countShellCommandOne": "1 команда оболочки",
-        "countMonitorsOne": "1 наблюдение",
-        "countMonitorsMany": "Наблюдений: {{value0}}",
-        "countWorkflowsOne": "1 процесс",
-        "countWorkflowsMany": "Процессов: {{value0}}",
-        "countTasksOne": "1 задача",
-        "countTasksMany": "Задач: {{value0}}",
-        "headerTotal": "Фоновых задач: {{value0}}",
         "stateWorking": "в работе",
-        "stateWorkingCount": "В работе: {{value0}}",
         "stateMonitoring": "наблюдает",
-        "stateMonitoringCount": "Наблюдают: {{value0}}",
         "stateWaiting": "ожидает",
-        "stateWaitingCount": "Ожидают: {{value0}}",
         "stateBlocked": "заблокировано",
-        "stateBlockedCount": "Заблокировано: {{value0}}",
         "stateDone": "готово",
-        "stateDoneCount": "Готово: {{value0}}",
         "stateIdle": "остановлено",
-        "stateIdleCount": "Остановлено: {{value0}}",
         "stateUnverifiable": "статус недоступен",
-        "stateUnverifiableCount": "Статус недоступен: {{value0}}",
         "reasonWaiting": "нужно разрешение",
         "reasonBlocked": "ошибка",
         "groupAgents": "Агенты",
         "groupShell": "Оболочка",
         "groupMonitors": "Наблюдения",
         "groupWorkflows": "Процессы",
-        "groupTasks": "Задачи"
+        "groupTasks": "Задачи",
+        "countAgents_one": "{{count}} агент",
+        "countAgents_other": "{{count}} агента",
+        "countShell_one": "{{count}} оболочка",
+        "countShell_other": "{{count}} оболочки",
+        "countMonitors_one": "{{count}} наблюдение",
+        "countMonitors_other": "{{count}} наблюдения",
+        "countWorkflows_one": "{{count}} процесс",
+        "countWorkflows_other": "{{count}} процесса",
+        "countTasks_one": "{{count}} задача",
+        "countTasks_other": "{{count}} задачи",
+        "headerTotal_one": "{{count}} фоновая задача",
+        "headerTotal_other": "{{count}} фоновой задачи",
+        "stateWorkingCount_one": "В работе: {{value0}}",
+        "stateWorkingCount_other": "В работе: {{value0}}",
+        "stateMonitoringCount_one": "Наблюдение: {{value0}}",
+        "stateMonitoringCount_other": "Наблюдение: {{value0}}",
+        "stateWaitingCount_one": "В ожидании: {{value0}}",
+        "stateWaitingCount_other": "В ожидании: {{value0}}",
+        "stateBlockedCount_one": "Заблокировано: {{value0}}",
+        "stateBlockedCount_other": "Заблокировано: {{value0}}",
+        "stateDoneCount_one": "Готово: {{value0}}",
+        "stateDoneCount_other": "Готово: {{value0}}",
+        "stateIdleCount_one": "Остановлено: {{value0}}",
+        "stateIdleCount_other": "Остановлено: {{value0}}",
+        "stateUnverifiableCount_one": "Статус недоступен: {{value0}}",
+        "stateUnverifiableCount_other": "Статус недоступен: {{value0}}",
+        "countAgents_few": "{{count}} агента",
+        "countAgents_many": "{{count}} агентов",
+        "countShell_few": "{{count}} оболочки",
+        "countShell_many": "{{count}} оболочек",
+        "countMonitors_few": "{{count}} наблюдения",
+        "countMonitors_many": "{{count}} наблюдений",
+        "countWorkflows_few": "{{count}} процесса",
+        "countWorkflows_many": "{{count}} процессов",
+        "countTasks_few": "{{count}} задачи",
+        "countTasks_many": "{{count}} задач",
+        "headerTotal_few": "{{count}} фоновые задачи",
+        "headerTotal_many": "{{count}} фоновых задач",
+        "stateWorkingCount_few": "В работе: {{value0}}",
+        "stateWorkingCount_many": "В работе: {{value0}}",
+        "stateMonitoringCount_few": "Наблюдение: {{value0}}",
+        "stateMonitoringCount_many": "Наблюдение: {{value0}}",
+        "stateWaitingCount_few": "В ожидании: {{value0}}",
+        "stateWaitingCount_many": "В ожидании: {{value0}}",
+        "stateBlockedCount_few": "Заблокировано: {{value0}}",
+        "stateBlockedCount_many": "Заблокировано: {{value0}}",
+        "stateDoneCount_few": "Готово: {{value0}}",
+        "stateDoneCount_many": "Готово: {{value0}}",
+        "stateIdleCount_few": "Остановлено: {{value0}}",
+        "stateIdleCount_many": "Остановлено: {{value0}}",
+        "stateUnverifiableCount_few": "Статус недоступен: {{value0}}",
+        "stateUnverifiableCount_many": "Статус недоступен: {{value0}}"
       },
       "jumpToLatest": "К последним сообщениям",
       "newRowsAnnouncement": "Пока вас не было, появились новые сообщения",
@@ -19574,18 +19628,37 @@
           "failed": "ошибка",
           "stopped": "остановлен",
           "unverifiable": "статус недоступен",
-          "workingCount": "Работают: {{value0}}",
-          "idleCount": "Бездействуют: {{value0}}",
-          "failedCount": "С ошибками: {{value0}}",
-          "stoppedCount": "Остановлены: {{value0}}",
-          "unverifiableCount": "Статус недоступен: {{value0}}"
+          "workingCount_one": "Работает: {{count}}",
+          "workingCount_other": "Работают: {{count}}",
+          "idleCount_one": "Бездействует: {{count}}",
+          "idleCount_other": "Бездействуют: {{count}}",
+          "failedCount_one": "С ошибками: {{count}}",
+          "failedCount_other": "С ошибками: {{count}}",
+          "stoppedCount_one": "Остановлен: {{count}}",
+          "stoppedCount_other": "Остановлены: {{count}}",
+          "unverifiableCount_one": "Статус недоступен: {{count}}",
+          "unverifiableCount_other": "Статус недоступен: {{count}}",
+          "workingCount_few": "Работают: {{count}}",
+          "workingCount_many": "Работают: {{count}}",
+          "idleCount_few": "Бездействуют: {{count}}",
+          "idleCount_many": "Бездействуют: {{count}}",
+          "failedCount_few": "С ошибками: {{count}}",
+          "failedCount_many": "С ошибками: {{count}}",
+          "stoppedCount_few": "Остановлены: {{count}}",
+          "stoppedCount_many": "Остановлены: {{count}}",
+          "unverifiableCount_few": "Статус недоступен: {{count}}",
+          "unverifiableCount_many": "Статус недоступен: {{count}}"
         },
-        "startedOne": "Запущен 1 дочерний агент",
-        "startedN": "Запущено дочерних агентов: {{value0}}",
-        "ranOne": "Работал 1 дочерний агент",
-        "ranN": "Работало дочерних агентов: {{value0}}",
         "tokens": "Токенов: {{value0}}",
-        "unnamed": "Дочерний агент"
+        "unnamed": "Дочерний агент",
+        "started_one": "Запущен {{count}} дочерний агент",
+        "started_other": "Запущено {{count}} дочернего агента",
+        "ran_one": "Работал {{count}} дочерний агент",
+        "ran_other": "Работало {{count}} дочернего агента",
+        "started_few": "Запущено {{count}} дочерних агента",
+        "started_many": "Запущено {{count}} дочерних агентов",
+        "ran_few": "Работали {{count}} дочерних агента",
+        "ran_many": "Работали {{count}} дочерних агентов"
       },
       "rewind": {
         "unsupported": "В этом чате нельзя вернуться к предыдущему сообщению.",
@@ -20141,6 +20214,14 @@
           "descriptionMany": "Удаление остановит текущую работу этих агентов.",
           "confirm": "Остановить агентов и удалить",
           "confirmOne": "Остановить агента и удалить"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Без изменений",
+            "dirty": "Есть изменения",
+            "unpushed": "Не отправлено",
+            "unknown": "Неизвестно"
+          }
         }
       },
       "creation": {
@@ -20562,10 +20643,14 @@
     "discard": {
       "deleteUntrackedFileDescription": "Этот неотслеживаемый файл будет безвозвратно удалён. Это действие нельзя отменить.",
       "deleteUntrackedFilesDescription_other": "Неотслеживаемые файлы ({{count}}) будут безвозвратно удалены. Это действие нельзя отменить.",
+      "deleteUntrackedFilesDescription_few": "Неотслеживаемые файлы ({{count}}) будут безвозвратно удалены. Это действие нельзя отменить.",
+      "deleteUntrackedFilesDescription_many": "Неотслеживаемые файлы ({{count}}) будут безвозвратно удалены. Это действие нельзя отменить.",
       "restoreStagedVersionDescription": "Будет восстановлена последняя версия из индекса, а удаление отменено. Это действие нельзя отменить.",
       "unstagedChangesDescription": "Изменения этого файла вне индекса будут отменены. Это действие нельзя отменить.",
       "unstagedSelectionIncludingUntrackedDescription": "Изменения вне индекса будут отменены, а неотслеживаемые файлы среди выбранных — безвозвратно удалены. Это действие нельзя отменить.",
       "unstagedFilesIncludingUntrackedDescription_other": "Изменения вне индекса будут отменены, а неотслеживаемые файлы среди выбранных ({{count}}) — безвозвратно удалены. Это действие нельзя отменить.",
+      "unstagedFilesIncludingUntrackedDescription_few": "Изменения вне индекса будут отменены, а неотслеживаемые файлы среди выбранных ({{count}}) — безвозвратно удалены. Это действие нельзя отменить.",
+      "unstagedFilesIncludingUntrackedDescription_many": "Изменения вне индекса будут отменены, а неотслеживаемые файлы среди выбранных ({{count}}) — безвозвратно удалены. Это действие нельзя отменить.",
       "delete": "Удалить",
       "deleteCount": "Удалить {{count}}",
       "deleteUntrackedFilesDescription_one": "Будет безвозвратно удалён {{count}} неотслеживаемый файл. Это действие нельзя отменить.",
@@ -20928,7 +21013,8 @@
       "count_few": "{{count}} работающих терминала",
       "count_many": "{{count}} работающих терминалов"
     },
-    "restartedInputNotSent": "Терминал перезапустился во время ввода, поэтому часть текста могла не дойти. Проверьте новую оболочку, прежде чем вводить текст снова."
+    "restartedInputNotSent": "Терминал перезапустился во время ввода, поэтому часть текста могла не дойти. Проверьте новую оболочку, прежде чем вводить текст снова.",
+    "typingBeforeStartNotSent": "Часть клавиш, нажатых во время запуска терминала, не была отправлена."
   },
   "fileExplorer": {
     "root": {
@@ -21269,6 +21355,15 @@
     "openDefault": "Открыть приложением по умолчанию"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Ветка для этого рабочего дерева",
+      "existing": "Существующая ветка",
+      "existingHint": "Новые коммиты добавляются в эту ветку.",
+      "new": "Новая ветка",
+      "newHint": "Создать новую локальную ветку",
+      "newName": "Имя новой ветки",
+      "automaticName": "Автоматическое имя"
+    },
     "links": {
       "foreignReview": "Это ревью относится к другому репозиторию. Добавляйте ревью из репозитория этого рабочего пространства.",
       "repositoryLoading": "Данные репозитория ещё загружаются. Повторите попытку после загрузки.",
