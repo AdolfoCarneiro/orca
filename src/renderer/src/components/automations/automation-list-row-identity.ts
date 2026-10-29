@@ -10,13 +10,17 @@ import {
   getConnectionExecutionHostId,
   getRepoSshConnectionId,
   toSshExecutionHostId,
-  getWorktreeExecutionHostId,
+  parseExecutionHostId,
   toRuntimeExecutionHostId
 } from '../../../../shared/execution-host'
 import {
   resolveQualifiedFolderWorkspaceResult,
   type QualifiedFolderHostState
 } from '../../../../shared/folder-workspace-execution-host'
+import {
+  createRepoRowExecutionHostLookup,
+  resolveWorktreeExecutionHost
+} from '../../../../shared/worktree-execution-host-resolution'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
@@ -65,13 +69,12 @@ export function unscopedAutomationListRows(
 
 export function automationRepoForRow(
   row: AutomationListRow,
-  repos: readonly Repo[],
-  fallback: ReadonlyMap<string, Repo>
+  repos: readonly Repo[]
 ): Repo | undefined {
   const repoId = getAutomationRunRepoId(row.automation)
   const authority = row.catalogRef?.authority
   if (!authority) {
-    return fallback.get(repoId)
+    return findAutomationRepo(repos, repoId, row.automation.runContext)
   }
   const context = row.automation.runContext
   const owned = repos.filter((repo) => authorityOwnsHost(authority, getRepoExecutionHostId(repo)))
@@ -140,34 +143,49 @@ export function automationFolderWorktreeForRow(
   return matches.length === 1 ? matches[0] : undefined
 }
 
+export function automationWorktreesForRepo(
+  worktrees: readonly Worktree[],
+  repo: Repo,
+  repos: readonly Repo[]
+): Worktree[] {
+  const hostId = getRepoExecutionHostId(repo)
+  const host = parseExecutionHostId(hostId)
+  const lookup = createRepoRowExecutionHostLookup(repos)
+  return worktrees.filter((worktree) => {
+    if (worktree.repoId !== repo.id) {
+      return false
+    }
+    const owner = resolveWorktreeExecutionHost(lookup, worktree)
+    if (host?.kind === 'runtime') {
+      if (owner.kind === 'resolved' && owner.hostId === hostId) {
+        return true
+      }
+      return (
+        (worktree.runtimeOwnerEnvironmentId === host.environmentId || worktree.hostId === hostId) &&
+        (worktree.hostId === hostId ? 'local' : worktree.hostId) ===
+          (getRepoSshConnectionId(repo)
+            ? toSshExecutionHostId(getRepoSshConnectionId(repo)!)
+            : 'local')
+      )
+    }
+    return (
+      !worktree.runtimeOwnerEnvironmentId && owner.kind === 'resolved' && owner.hostId === hostId
+    )
+  })
+}
+
 export function automationWorktreeForRow(
   row: AutomationListRow,
   worktreesByRepo: Readonly<Record<string, readonly Worktree[]>>,
   repo: Repo | undefined,
-  fallback: ReadonlyMap<string, Worktree>,
+  repos: readonly Repo[],
   workspaceId: string | null | undefined = row.automation.workspaceId
 ): Worktree | undefined {
-  if (!workspaceId || !row.catalogRef) {
-    return workspaceId ? fallback.get(workspaceId) : undefined
-  }
-  if (!repo) {
+  if (!workspaceId || !repo) {
     return undefined
   }
-  const hostId = getRepoExecutionHostId(repo)
-  const matches = Object.values(worktreesByRepo)
-    .flat()
-    .filter(
-      (worktree) =>
-        worktree.id === workspaceId &&
-        (row.catalogRef?.authority.kind === 'runtime'
-          ? (worktree.runtimeOwnerEnvironmentId === row.catalogRef.authority.environmentId ||
-              worktree.hostId === hostId) &&
-            (worktree.hostId === hostId ? 'local' : worktree.hostId) ===
-              (getRepoSshConnectionId(repo)
-                ? toSshExecutionHostId(getRepoSshConnectionId(repo)!)
-                : 'local')
-          : !worktree.runtimeOwnerEnvironmentId &&
-            getWorktreeExecutionHostId(worktree, repo) === hostId)
-    )
+  const matches = automationWorktreesForRepo(worktreesByRepo[repo.id] ?? [], repo, repos).filter(
+    (worktree) => worktree.id === workspaceId
+  )
   return matches.length === 1 ? matches[0] : undefined
 }

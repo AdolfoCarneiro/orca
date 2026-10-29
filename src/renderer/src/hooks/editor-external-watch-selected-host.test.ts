@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import type { Repo } from '../../../shared/repo-types'
 import { useAppStore } from '@/store'
 import { subscribeEditorRuntimeFileWatch } from './editor-runtime-file-watch'
 import type { AppState } from '@/store/types'
@@ -254,4 +255,36 @@ it('keeps an open local editor watched locally when a same-id direct-SSH folder 
     ['/local/notes', undefined],
     ['/remote/notes', 'ssh-a']
   ])
+})
+
+it('never watches a sibling repo host when the requested worktree owner is absent or unstamped', () => {
+  const repo: Repo = {
+    id: 'repo',
+    path: '/repo',
+    displayName: 'Repo',
+    badgeColor: 'blue',
+    addedAt: 1
+  }
+  const state: SelectedHostState = {
+    ...makeState('worktree'),
+    activeWorkspaceExecutionHostId: 'local',
+    repos: [repo, { ...repo, connectionId: 'builder' }],
+    worktreesByRepo: {
+      repo: [makeWorktree({ id: 'same-worktree', repoId: 'repo', hostId: undefined })]
+    }
+  }
+  expect(selectEditorExternalWatchTargets(state).targets).toEqual([])
+  const captured = {
+    ...state,
+    worktreesByRepo: {
+      repo: [
+        makeWorktree({ id: 'same-worktree', repoId: 'repo', path: '/repo', hostId: 'ssh:builder' })
+      ]
+    }
+  }
+  expect(selectEditorExternalWatchTargets(captured).targets).toEqual([])
+  expect(
+    selectEditorExternalWatchTargets({ ...captured, activeWorkspaceExecutionHostId: 'ssh:builder' })
+      .targets
+  ).toMatchObject([{ connectionId: 'builder', worktreePath: '/repo' }])
 })

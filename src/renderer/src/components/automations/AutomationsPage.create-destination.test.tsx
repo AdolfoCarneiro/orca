@@ -22,7 +22,7 @@ import {
   settleHostQueries
 } from './automations-page-test-harness'
 import { listedRow } from './automations-page-listed-items'
-import { makeAutomation, REPO_ID, WORKSPACE_ID } from './automations-page-fixtures'
+import { makeAutomation, makeWorktree, REPO_ID, WORKSPACE_ID } from './automations-page-fixtures'
 import type { Repo } from '../../../../shared/repo-types'
 
 installAutomationsPageHarness()
@@ -264,6 +264,42 @@ describe('AutomationsPage create destination', () => {
 
     // Same-name local/SSH projects are ambiguous unless the picker is scoped to the destination.
     expect(mocks.editorDialog?.repos?.map((repo) => repo.id)).toEqual([SSH_REPO_ID])
+  })
+
+  it('keeps same-id workspace choices on the selected host and omits unstamped twins', async () => {
+    api.automations.list.mockResolvedValue([])
+    scopedList([])
+    addSshHost()
+    addSshProject()
+    const remote = mocks.state.repos.find((repo) => repo.id === SSH_REPO_ID)!
+    mocks.state.repos = [...mocks.state.repos, { ...remote, connectionId: null }]
+    const remoteRow = makeWorktree({
+      id: 'remote-ws',
+      repoId: SSH_REPO_ID,
+      hostId: `ssh:${SSH_TARGET_ID}`
+    })
+    mocks.state.worktreesByRepo = {
+      ...mocks.state.worktreesByRepo,
+      [SSH_REPO_ID]: [
+        makeWorktree({ id: 'legacy-ws', repoId: SSH_REPO_ID, hostId: undefined }),
+        makeWorktree({ id: 'local-ws', repoId: SSH_REPO_ID, hostId: 'local' }),
+        remoteRow
+      ]
+    }
+    mocks.state.activeWorktreeId = 'legacy-ws'
+    mocks.worktreeMap.set('legacy-ws', mocks.state.worktreesByRepo[SSH_REPO_ID]![0])
+    await renderPage()
+    await settleHostQueries()
+    await act(async () => {
+      mocks.listPanel?.openCreateDialog()
+    })
+    expect(mocks.editorDialog?.createDestination?.resolution.status).toBe('choice-required')
+    await act(async () => {
+      mocks.editorDialog?.createDestination?.onSelect(SSH_HOST_KEY)
+    })
+    expect(mocks.editorDialog?.draft?.projectId).toBe(SSH_REPO_ID)
+    expect(mocks.editorDialog?.draft?.workspaceId).toBe('remote-ws')
+    expect(mocks.editorDialog?.worktrees?.map((row) => row.id)).toEqual(['remote-ws'])
   })
 
   it('moves a stranded project to one the newly chosen host has', async () => {

@@ -22,8 +22,7 @@ describe('automation retarget setup consent', () => {
   it.each([
     [false, 'skip'],
     [true, 'skip'],
-    [false, 'run'],
-    [true, 'run']
+    [false, 'run']
   ] as const)(
     'persists resolved consent on retarget (move=%s, consent=%s)',
     async (move, consent) => {

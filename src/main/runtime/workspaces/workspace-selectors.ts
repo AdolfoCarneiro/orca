@@ -6,7 +6,6 @@ import { branchSelectorMatches, runtimePathsEqual } from '../runtime-worktree-pa
 import {
   getRepoExecutionHostId,
   getRepoRoutingConnectionId,
-  getWorktreeExecutionHostId,
   type ExecutionHostId
 } from '../../../shared/execution-host'
 import {
@@ -28,6 +27,9 @@ import type { Repo } from '../../../shared/repo-types'
 import type { RuntimeStore } from '../runtime-store-contract'
 import type { RuntimeWorkspaceCatalog } from './workspace-catalog'
 import { areWorktreePathsEqual } from '../../git/worktree-path-comparison'
+import { resolveWorktreeMetaOwner } from '../../persistence/host-qualified-worktree-meta'
+import { resolveWorktreeHostRouting } from '../worktree-launch-host-repo'
+import { createRepoRowExecutionHostLookup } from '../../../shared/worktree-execution-host-resolution'
 import { mergeWorktree } from '../../ipc/worktree-metadata-merge'
 
 export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBrowserNetworkExecutionHostForWorktree {
@@ -90,7 +92,12 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
       }
       if (candidates.length === 0) {
         const parsed = splitWorktreeIdForFilesystem(worktreeId)
-        const repo = parsed ? this.store?.getRepo(parsed.repoId) : null
+        const repos = this.store?.getRepos() ?? []
+        const owner = this.store && resolveWorktreeMetaOwner(this.store, worktreeId)
+        const repo =
+          parsed && owner
+            ? createRepoRowExecutionHostLookup(repos).byHost(parsed.repoId, owner.hostId)
+            : null
         const fallback =
           requiredHostId === undefined &&
           repo &&
@@ -107,14 +114,16 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
         runtimePathsEqual(worktree.path, selector.slice(5))
       )
       if (candidates.length > 1) {
+        const repos = this.store?.getRepos() ?? []
+        const lookup = createRepoRowExecutionHostLookup(repos)
+        const routes = candidates.map((worktree) =>
+          resolveWorktreeHostRouting(repos, worktree, lookup)
+        )
         const hostIds = new Set(
-          candidates.map((worktree) => {
-            const repo = this.store?.getRepo(worktree.repoId)
-            return getWorktreeExecutionHostId(worktree, repo)
-          })
+          routes.flatMap((route) => (route.kind === 'resolved' ? [route.hostId] : []))
         )
         // Why: duplicate registrations on one host describe one path; identical paths on different hosts do not.
-        if (hostIds.size === 1) {
+        if (routes.every((route) => route.kind === 'resolved') && hostIds.size === 1) {
           candidates = [candidates[0]]
         }
       }
@@ -246,7 +255,14 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
     if (!parsed?.repoId || !parsed.worktreePath) {
       return null
     }
-    const repo = this.store?.getRepos?.()?.find((entry) => entry.id === parsed.repoId)
+    const owner = this.store && resolveWorktreeMetaOwner(this.store, worktreeId)
+    if (!owner) {
+      return null
+    }
+    const repo = createRepoRowExecutionHostLookup(this.store?.getRepos() ?? []).byHost(
+      parsed.repoId,
+      owner.hostId
+    )
     const git = {
       path: parsed.worktreePath,
       head: '',
@@ -257,7 +273,7 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
     const meta = this.store?.getWorktreeMeta(worktreeId)
     const merged = {
       ...mergeWorktree(parsed.repoId, git, meta, repo?.displayName),
-      ...(repo ? { hostId: meta?.hostId ?? getRepoExecutionHostId(repo) } : {})
+      hostId: owner.hostId
     }
     return {
       ...merged,

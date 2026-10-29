@@ -179,6 +179,26 @@ describe('orchestration worker workspace resolution', () => {
     })
   })
 
+  it('never infers a disconnected owner for unstamped same-id host twins', async () => {
+    const repo: Repo = {
+      id: REPO_ID,
+      path: REPO_PATH,
+      displayName: 'Remote',
+      badgeColor: 'blue',
+      addedAt: 1,
+      connectionId: 'ssh-1'
+    }
+    const runtime = new OrcaRuntimeService(
+      makeStore({
+        repos: [repo, { ...repo, connectionId: 'ssh-2' }],
+        meta: { [WORKTREE_ID]: makeMeta('Remote feature') }
+      })
+    )
+    await expect(runtime.showManagedTerminalWorkspace(`id:${WORKTREE_ID}`)).rejects.toThrow(
+      'selector_not_found'
+    )
+  })
+
   it('does not fall back from the floating terminal sentinel to another workspace', async () => {
     const runtime = new OrcaRuntimeService(makeStore() as never)
 

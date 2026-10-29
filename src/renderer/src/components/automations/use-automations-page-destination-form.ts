@@ -4,13 +4,9 @@ import {
   isSameAutomationWorkspace
 } from './automation-recorded-target'
 import { useCallback, useEffect, useMemo } from 'react'
-import {
-  getRepoExecutionHostId,
-  getWorktreeExecutionHostId,
-  parseExecutionHostId,
-  toRuntimeExecutionHostId
-} from '../../../../shared/execution-host'
+import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
 import { translate } from '@/i18n/i18n'
+import { automationWorktreesForRepo } from './automation-list-row-identity'
 import { getAutomationCreateRepos } from './automation-create-projects'
 import {
   automationCreateEligibleProjects,
@@ -210,21 +206,8 @@ export function useAutomationsPageDestinationForm({
   const dialogWorktrees = useMemo(() => {
     const candidates = worktreesByRepo[draft.projectId] ?? []
     const project = dialogRepos.find((repo) => repo.id === draft.projectId)
-    if (!project) {
-      return candidates
-    }
-    const hostId = getRepoExecutionHostId(project)
-    const parsedHost = parseExecutionHostId(hostId)
-    return candidates.filter((worktree) => {
-      if (getWorktreeExecutionHostId(worktree, project) === hostId) {
-        return true
-      }
-      return (
-        parsedHost?.kind === 'runtime' &&
-        worktree.runtimeOwnerEnvironmentId === parsedHost.environmentId
-      )
-    })
-  }, [dialogRepos, draft.projectId, worktreesByRepo])
+    return project ? automationWorktreesForRepo(candidates, project, repos) : []
+  }, [dialogRepos, draft.projectId, repos, worktreesByRepo])
   const destinationForProject = useCallback(
     (projectId: string, hostStableKey?: string | null): AutomationCreateDestination | null => {
       const selectedEntry = hostStableKey

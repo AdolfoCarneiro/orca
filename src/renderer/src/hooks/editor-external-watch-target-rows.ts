@@ -1,18 +1,22 @@
 import type { AppState } from '@/store'
 import { getIndexedWorktreesById } from '@/store/worktree-repo-index'
-import { findRepoForHost } from '@/store/slices/repo-host-identity'
-import { getFolderWorkspaceConnectionId } from '@/lib/folder-workspace-connection'
 import { isWindowsAbsolutePathLike } from '../../../shared/cross-platform-path'
 import {
   isLocalExecutionHost,
   parseExecutionHostId,
-  toRuntimeExecutionHostId,
   type ExecutionHostId
 } from '../../../shared/execution-host'
+import {
+  findIndexedWorktreeOwnerForHost,
+  resolveIndexedWorktreeOwner
+} from '@/lib/worktree-runtime-owner-index'
+import {
+  createRepoRowExecutionHostLookup,
+  resolveWorktreeExecutionHost
+} from '../../../shared/worktree-execution-host-resolution'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import {
   resolveQualifiedIndexedFolderWorkspace,
-  selectFolderWorkspaces,
   selectWorktreesByRepo
 } from '@/store/workspace-record-selectors'
 
@@ -29,33 +33,19 @@ export type EditorExternalWatchTargetRows = {
   connectionId: string | null | undefined
 }
 
-function pickHostRow<T>(
-  rows: readonly T[],
-  hostId: ExecutionHostId | null,
-  rowHostId: (row: T) => string | null | undefined
-): T | undefined {
-  // Why: hosts can publish the same workspace id with different roots; a first-row pick would watch another host's path.
-  const onHost = hostId
-    ? rows.find((row) => parseExecutionHostId(rowHostId(row))?.id === hostId)
-    : undefined
-  return onHost ?? rows[0]
-}
-
 /** The catalog rows for one watch consumer, taken from the row on that consumer's own execution host. */
 export function resolveEditorExternalWatchTargetRows(
   state: WatchTargetRowState,
   worktreeId: string,
   hostId: ExecutionHostId | null
 ): EditorExternalWatchTargetRows | null {
-  const worktree = pickHostRow(
-    getIndexedWorktreesById(selectWorktreesByRepo(state), worktreeId),
-    hostId,
-    (row) =>
-      row.hostId ??
-      (row.runtimeOwnerEnvironmentId?.trim()
-        ? toRuntimeExecutionHostId(row.runtimeOwnerEnvironmentId.trim())
-        : null)
-  )
+  const worktrees = selectWorktreesByRepo(state)
+  const indexed = resolveIndexedWorktreeOwner(worktrees, worktreeId)
+  const worktree = hostId
+    ? (findIndexedWorktreeOwnerForHost(worktrees, worktreeId, hostId) ?? undefined)
+    : indexed.kind === 'resolved'
+      ? getIndexedWorktreesById(worktrees, worktreeId).find((row) => row === indexed.owner)
+      : undefined
   const workspaceScope = parseWorkspaceKey(worktreeId)
   const qualifiedFolder =
     workspaceScope?.type === 'folder'
@@ -66,29 +56,17 @@ export function resolveEditorExternalWatchTargetRows(
         )
       : null
   const selectedFolder = qualifiedFolder?.kind === 'selected' ? qualifiedFolder.value : null
-  const folderWorkspace =
-    selectedFolder?.workspace ??
-    (workspaceScope?.type === 'folder'
-      ? pickHostRow(
-          selectFolderWorkspaces(state).filter(
-            (workspace) => workspace.id === workspaceScope.folderWorkspaceId
-          ),
-          hostId,
-          (row) => row.executionHostId
-        )
-      : undefined)
+  const folderWorkspace = selectedFolder?.workspace
   if (!worktree && !folderWorkspace) {
     return null
   }
-  const worktreeHost = parseExecutionHostId(worktree?.hostId)
-  const repo = worktree
-    ? worktreeHost
-      ? (findRepoForHost(state.repos, worktree.repoId, { hostId: worktreeHost.id }) ??
-        (worktreeHost.kind === 'local'
-          ? undefined
-          : state.repos.find((candidate) => candidate.id === worktree.repoId)))
-      : state.repos.find((candidate) => candidate.id === worktree.repoId)
-    : undefined
+  const worktreeOwner = worktree
+    ? resolveWorktreeExecutionHost(createRepoRowExecutionHostLookup(state.repos), worktree)
+    : null
+  if (worktreeOwner?.kind === 'unresolved') {
+    return null
+  }
+  const repo = worktreeOwner?.kind === 'resolved' ? (worktreeOwner.owner ?? undefined) : undefined
   const folderHost = parseExecutionHostId(
     selectedFolder?.hostId ?? folderWorkspace?.executionHostId
   )
@@ -101,15 +79,9 @@ export function resolveEditorExternalWatchTargetRows(
     : undefined
   const connectionId = selectedFolder
     ? selectedFolder.connectionId
-    : folderWorkspace
-      ? folderHost
-        ? folderHost.kind === 'ssh'
-          ? folderHost.targetId
-          : null
-        : getFolderWorkspaceConnectionId(state, folderWorkspace.id)
-      : repo
-        ? (repo.connectionId ?? null)
-        : undefined
+    : worktreeOwner?.kind === 'resolved'
+      ? worktreeOwner.connectionId
+      : undefined
   return { worktree, repo, folderWorkspace, projectGroup, connectionId }
 }
 

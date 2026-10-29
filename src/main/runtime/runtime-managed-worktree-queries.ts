@@ -75,23 +75,28 @@ export class RuntimeManagedWorktreeQueries {
     )
     const hiddenRepos = runtimeHiddenRepos(this.deps.getStore())
     const worktrees = resolved.filter((worktree) => {
-      if (hiddenRepos.hasWorktree(worktree) || (scopedRepo && worktree.repoId !== scopedRepo.id)) {
+      const routing = resolveWorktreeHostRouting(repos, worktree, repoLookup)
+      if (hiddenRepos.hasWorktree(worktree) || routing.kind === 'ambiguous') {
         return false
       }
-      const routing = resolveWorktreeHostRouting(repos, worktree, repoLookup)
-      const repo = routing.kind === 'resolved' ? routing.repo : null
-      return (
-        !repo ||
-        this.toDetected(
-          repo,
-          worktree,
-          matchers.get(getRepoHostIdentityForParts(worktree.repoId, worktree.hostId ?? 'local')),
-          defaultsSupported,
-          undefined,
-          undefined,
-          repoOwnerCounts.get(repo.id)
-        ).visible
-      )
+      if (routing.kind !== 'resolved' || !routing.repo) {
+        return !scopedRepo
+      }
+      if (
+        scopedRepo &&
+        (worktree.repoId !== scopedRepo.id || routing.hostId !== getRepoExecutionHostId(scopedRepo))
+      ) {
+        return false
+      }
+      return this.toDetected(
+        routing.repo,
+        worktree,
+        matchers.get(getRepoHostIdentityForParts(worktree.repoId, routing.hostId)),
+        defaultsSupported,
+        undefined,
+        undefined,
+        repoOwnerCounts.get(routing.repo.id)
+      ).visible
     })
     // Scoped reads must name requested hosts even without rows; hidden retained repos must never reenter scope.
     const knownHostIds = withoutHiddenHosts(

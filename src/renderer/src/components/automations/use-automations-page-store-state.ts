@@ -48,8 +48,8 @@ export function useAutomationsPageStoreState() {
   const repoMap = useRepoMap()
   const worktreeMap = useWorktreeMap()
   const repoForRow = useCallback(
-    (row: AutomationListRow): Repo | undefined => automationRepoForRow(row, repos, repoMap),
-    [repoMap, repos]
+    (row: AutomationListRow): Repo | undefined => automationRepoForRow(row, repos),
+    [repos]
   )
   const worktreeForRow = useCallback(
     (
@@ -60,8 +60,8 @@ export function useAutomationsPageStoreState() {
       automationFolderWorktreeForRow(row, folderWorkspaces, workspaceId, {
         repos,
         projectGroups
-      }) ?? automationWorktreeForRow(row, worktreesByRepo, repo, worktreeMap, workspaceId),
-    [folderWorkspaces, projectGroups, repos, worktreeMap, worktreesByRepo]
+      }) ?? automationWorktreeForRow(row, worktreesByRepo, repo, repos, workspaceId),
+    [folderWorkspaces, projectGroups, repos, worktreesByRepo]
   )
   const enabledAgents = filterEnabledTuiAgents(AGENTS, settings?.disabledTuiAgents)
   const defaultAgent =

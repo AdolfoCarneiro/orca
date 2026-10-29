@@ -68,7 +68,13 @@ export function automationTargets(): AutomationTargets {
       })
       .setups.map((setup) => ({ ...setup, label: 'Project', kind: setup.kind })),
     workspaces: [
-      { worktreeId: 'workspace-1', repoId: 'repo-1', displayName: 'Main', path: '/repo' }
+      {
+        worktreeId: 'workspace-1',
+        repoId: 'repo-1',
+        hostId: 'local',
+        displayName: 'Main',
+        path: '/repo'
+      }
     ],
     coverage: {
       limit: 200,

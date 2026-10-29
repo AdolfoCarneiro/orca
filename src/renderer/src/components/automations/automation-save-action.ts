@@ -97,6 +97,13 @@ export function createAutomationSaveAction(context: AutomationSaveContext) {
     setEditorNotice(null)
     setIsSaving(true)
     try {
+      if (editingAutomationId === null) {
+        const checked = destination.createDestination.check(draft.projectId)
+        if (!checked.ok) {
+          setEditorNotice(checked.notice)
+          return
+        }
+      }
       const selectedWorkspaceExists =
         destinationForm.recordedTargetSelected ||
         draft.workspaceMode !== 'existing' ||
@@ -109,13 +116,6 @@ export function createAutomationSaveAction(context: AutomationSaveContext) {
           )
         )
         return
-      }
-      if (editingAutomationId === null) {
-        const checked = destination.createDestination.check(draft.projectId)
-        if (!checked.ok) {
-          setEditorNotice(checked.notice)
-          return
-        }
       }
       await saveOrcaAutomation(context, { hour, minute, now })
     } catch (error) {

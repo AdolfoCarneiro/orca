@@ -244,6 +244,45 @@ describe('RuntimeManagedWorktreeQueries.listDetected', () => {
 })
 
 describe('RuntimeManagedWorktreeQueries.list host scope', () => {
+  it('uses the resolved legacy host matcher and omits ambiguous legacy rows', async () => {
+    const repo = folderRepo({
+      kind: 'git',
+      connectionId: 'builder',
+      customWorktreeVisibilitySources: [{ id: 'remote-source', rootPath: '/source' }],
+      worktreeVisibilitySourcePreferences: { custom: { 'remote-source': 'hide' } }
+    })
+    const git: GitWorktreeInfo = {
+      path: '/source/topic',
+      head: '',
+      branch: 'topic',
+      isBare: false,
+      isMainWorktree: false
+    }
+    const row: ResolvedWorktree = {
+      ...mergeWorktree(repo.id, git, undefined),
+      git,
+      parentWorktreeId: null,
+      childWorktreeIds: [],
+      lineage: null
+    }
+    let repos = [repo]
+    let rows = [row]
+    const listing = queries(
+      partialRuntimeStore({ getRepos: () => repos, getSettings: () => settings }),
+      {
+        listResolved: async () => rows
+      }
+    )
+    expect((await listing.list(undefined, 10)).worktrees).toEqual([])
+    repos = [repo, folderRepo({ kind: 'git' })]
+    expect((await listing.list(undefined, 10)).worktrees).toEqual([])
+    rows = [
+      { ...row, hostId: 'ssh:builder' },
+      { ...row, hostId: 'local' }
+    ]
+    expect((await listing.list('remote', 10)).worktrees).toEqual([])
+  })
+
   it.each([5, 50])('bounds listing hydration and ownership work at scale %s', async (size) => {
     let idReads = 0
     let hydrated = 0

@@ -2,6 +2,10 @@ import { z } from 'zod'
 import { AutomationDraftValidationError } from './automation-error'
 import { getRepoMainWorktreeId } from '../../../src/shared/worktree/id'
 import { getRepoExecutionHostId, parseExecutionHostId } from '../../../src/shared/execution-host'
+import {
+  createRepoRowExecutionHostLookup,
+  resolveWorktreeExecutionHost
+} from '../../../src/shared/worktree-execution-host-resolution'
 import type { AutomationDestination } from '../../../src/shared/automation-owner-precondition'
 import { buildWorkspaceRunContext } from '../../../src/shared/task-source-context'
 import {
@@ -35,7 +39,7 @@ const repoSchema = z.object({
   path: z.string(),
   kind: z.string().optional(),
   connectionId: z.string().nullish(),
-  executionHostId: z.string().nullish()
+  executionHostId: workspaceSchema.shape.hostId.nullable()
 })
 
 export async function loadAutomationTargets(client: RpcClient, limit = 200) {
@@ -51,6 +55,7 @@ export async function loadAutomationTargets(client: RpcClient, limit = 200) {
     const parsed = repoSchema.safeParse(raw)
     return parsed.success ? [parsed.data] : []
   })
+  const repoLookup = createRepoRowExecutionHostLookup(repoRows)
   const projectRows = automationProjectsRead.interpret(projects).projects
   return {
     setups: automationSetupsRead.interpret(setups).setups.flatMap((setup) => {
@@ -77,7 +82,11 @@ export async function loadAutomationTargets(client: RpcClient, limit = 200) {
       const parsed = workspaceSchema.safeParse(
         row.success ? { ...row.data, worktreeId: row.data.id } : raw
       )
-      return parsed.success && !parsed.data.isArchived ? [parsed.data] : []
+      if (!parsed.success || parsed.data.isArchived) {
+        return []
+      }
+      const owner = resolveWorktreeExecutionHost(repoLookup, parsed.data)
+      return owner.kind === 'resolved' ? [{ ...parsed.data, hostId: owner.hostId }] : []
     }),
     coverage: {
       limit,
@@ -189,5 +198,5 @@ export function workspaceMatchesSetup(
   workspace: AutomationWorkspace,
   setup: AutomationSetup
 ): boolean {
-  return workspace.repoId === setup.repoId && (workspace.hostId ?? 'local') === setup.hostId
+  return workspace.repoId === setup.repoId && workspace.hostId === setup.hostId
 }
