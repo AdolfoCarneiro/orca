@@ -63,27 +63,26 @@ export function mobileWebAppBundleBudgetBytes(manifest) {
   return manifest.totalBytes - font.byteLength
 }
 
-// Measure sorted route prefixes with routes.slice(0,n): distinct importer sets determine chunks, not route count.
+// Measure sorted route prefixes with routes.slice(0,n), excluding locale catalogs: distinct importer sets determine chunks, not route count.
 // Re-measure table when routes change; it is envelope’s only input, and pins must fail rather than permit arbitrary ceiling bumps.
-// PROVISIONAL: main 86def974 sweep + tree 731d5633 prefix deltas from base d45d579; merged-tree measurement pending.
 export const MOBILE_WEB_APP_BUNDLE_SCRIPT_SWEEP = [
-  ['./_layout.tsx', 3],
-  ['./h/[hostId]/[...page].tsx', 7],
-  ['./h/[hostId]/accounts.tsx', 11],
-  ['./h/[hostId]/agent-history/[worktreeId].tsx', 16],
-  ['./h/[hostId]/automations.tsx', 22],
-  ['./h/[hostId]/edit.tsx', 27],
-  ['./h/[hostId]/files/[worktreeId].tsx', 32],
-  ['./h/[hostId]/files/preview/[worktreeId].tsx', 40],
-  ['./h/[hostId]/history/[worktreeId].tsx', 43],
-  ['./h/[hostId]/index.tsx', 51],
-  ['./h/[hostId]/new-workspace.tsx', 61],
-  ['./h/[hostId]/pr/[worktreeId].tsx', 62],
-  ['./h/[hostId]/review/[worktreeId].tsx', 76],
-  ['./h/[hostId]/session/[worktreeId].tsx', 89],
-  ['./h/[hostId]/source-control/[worktreeId].tsx', 97],
-  ['./h/[hostId]/tasks.tsx', 108],
-  ['./h/_layout.tsx', 112]
+  ['./_layout.tsx', 4],
+  ['./h/[hostId]/[...page].tsx', 8],
+  ['./h/[hostId]/accounts.tsx', 12],
+  ['./h/[hostId]/agent-history/[worktreeId].tsx', 17],
+  ['./h/[hostId]/automations.tsx', 24],
+  ['./h/[hostId]/edit.tsx', 29],
+  ['./h/[hostId]/files/[worktreeId].tsx', 34],
+  ['./h/[hostId]/files/preview/[worktreeId].tsx', 41],
+  ['./h/[hostId]/history/[worktreeId].tsx', 44],
+  ['./h/[hostId]/index.tsx', 52],
+  ['./h/[hostId]/new-workspace.tsx', 62],
+  ['./h/[hostId]/pr/[worktreeId].tsx', 63],
+  ['./h/[hostId]/review/[worktreeId].tsx', 77],
+  ['./h/[hostId]/session/[worktreeId].tsx', 91],
+  ['./h/[hostId]/source-control/[worktreeId].tsx', 98],
+  ['./h/[hostId]/tasks.tsx', 110],
+  ['./h/_layout.tsx', 114]
 ]
 
 const sweptScripts = MOBILE_WEB_APP_BUNDLE_SCRIPT_SWEEP.map(([, scripts]) => scripts)
