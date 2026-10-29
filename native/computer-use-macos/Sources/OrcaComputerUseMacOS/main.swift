@@ -267,7 +267,7 @@ final class Provider {
             guard let before, after.showsSameState(as: before) else {
                 return renderActionResult(action: action, snapshot: after)
             }
-            if let changed = observeLateChange(before: before, after: after, params: params) {
+            if let changed = try observeLateChange(before: before, params: params) {
                 return renderActionResult(action: action, snapshot: changed)
             }
             // Why: an AX call can succeed and do nothing, as AXPress does on many web controls (#31758).
@@ -286,16 +286,16 @@ final class Provider {
 
     /// Re-reads the target for about a second, since apps often apply an action on a later run-loop turn.
     /// Returns the observation to report once something changed, or nil if nothing did.
-    private func observeLateChange(before: Snapshot, after: Snapshot, params: [String: JSONValue]) -> Snapshot? {
+    private func observeLateChange(before: Snapshot, params: [String: JSONValue]) throws -> Snapshot? {
         let settleParams = params.merging(["restoreWindow": .bool(false)]) { _, replacement in replacement }
         let quietParams = settleParams.merging(["noScreenshot": .bool(true)]) { _, replacement in replacement }
         let deadline = Date().addingTimeInterval(1)
         while Date() < deadline {
             Thread.sleep(forTimeInterval: 0.2)
-            // A failed read means the window changed or closed, which is an effect.
-            guard let polled = try? observe(params: quietParams) else { return after }
+            let polled = try observe(params: quietParams)
             if !polled.showsSameState(as: before) {
-                return params["noScreenshot"]?.bool == true ? polled : (try? observe(params: settleParams)) ?? polled
+                if params["noScreenshot"]?.bool == true { return polled }
+                return try observe(params: settleParams)
             }
         }
         return nil
