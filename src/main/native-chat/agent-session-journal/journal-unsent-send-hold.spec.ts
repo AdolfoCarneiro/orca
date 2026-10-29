@@ -122,11 +122,12 @@ export function registerJournalUnsentSendHoldTests(): void {
     return open()
   }
 
-  function storeSubmissionSourceAs(
+  async function storeSubmissionSourceAs(
     journal: AgentSessionJournal,
     id: string,
     source: unknown
-  ): void {
+  ): Promise<void> {
+    await journal.close()
     const seq = journal.submission(id)?.submittedSequence
     const { db } = openTestJournalHostDatabase(root)
     const stored = liveTestJournalRows(db, IDENTITY.sessionId).find((row) => row.seq === seq)
@@ -298,7 +299,7 @@ export function registerJournalUnsentSendHoldTests(): void {
           origin: 'client',
           source: USER_MESSAGE_SOURCE
         })
-        storeSubmissionSourceAs(earlier, 'future', { kind: 'a-newer-kind' })
+        await storeSubmissionSourceAs(earlier, 'future', { kind: 'a-newer-kind' })
       })
       expect(journal.submission('future')?.source).toEqual({ kind: 'a-newer-kind' })
       await hold(journal)
@@ -317,7 +318,7 @@ export function registerJournalUnsentSendHoldTests(): void {
           origin: 'client',
           source: USER_MESSAGE_SOURCE
         })
-        storeSubmissionSourceAs(earlier, 'unreadable', {})
+        await storeSubmissionSourceAs(earlier, 'unreadable', {})
       })
       expect(journal.submission('unreadable')?.source).toEqual({ kind: '' })
       await hold(journal)

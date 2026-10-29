@@ -8,7 +8,8 @@ import {
   logJournalCheckpointFailure,
   readJournalSavedState,
   saveJournalState,
-  sweepJournalSavedState
+  sweepJournalSavedState,
+  unrefJournalCheckpointTimer
 } from './journal-saved-state'
 import { JournalWriteQueue } from './journal-write-queue'
 
@@ -26,7 +27,8 @@ const SLICE_MS = 25
 export async function backfillJournalState(run: JournalStateBackfillRun): Promise<void> {
   const now = run.now ?? Date.now
   const rest =
-    run.rest ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms).unref?.()))
+    run.rest ??
+    ((ms) => new Promise<void>((resolve) => unrefJournalCheckpointTimer(setTimeout(resolve, ms))))
   let sliceAt = now()
   const current = (): JournalHostDatabase | null => {
     const database = run.database()
@@ -143,7 +145,7 @@ export function startJournalStateBackfill(
           }
         })
     }, delay)
-    timer.unref?.()
+    unrefJournalCheckpointTimer(timer)
   }
   schedule(60 * 1_000)
   return {

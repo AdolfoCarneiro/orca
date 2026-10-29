@@ -13,6 +13,7 @@ import {
 import {
   closeTestJournalHostDatabase,
   createTrackedJournalOpener,
+  deleteTestJournalRow,
   insertTestJournalRowJson,
   liveTestJournalRows,
   openTestJournalHostDatabase,
@@ -82,10 +83,7 @@ export function registerJournalUnknownRowKindTests(): void {
     await journals.closeAll()
     const { db } = openTestJournalHostDatabase(root)
     edit((seq, json) => {
-      db.prepare('DELETE FROM journal_rows WHERE session_id = ? AND seq = ?').run(
-        IDENTITY.sessionId,
-        seq
-      )
+      deleteTestJournalRow(db, IDENTITY.sessionId, seq)
       insertTestJournalRowJson(db, IDENTITY.sessionId, seq, json, 5_000 + seq)
     })
     closeTestJournalHostDatabase(root)

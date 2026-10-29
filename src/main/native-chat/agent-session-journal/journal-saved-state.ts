@@ -176,7 +176,7 @@ export class JournalCheckpoint {
       this.timer = null
       void this.save()
     }, 1_000)
-    this.timer.unref?.()
+    unrefJournalCheckpointTimer(this.timer)
   }
 
   close(): Promise<void> {
@@ -191,5 +191,12 @@ export class JournalCheckpoint {
     this.closing = this.save()
     this.deps.queue.markClosed()
     return this.closing
+  }
+}
+
+/** Mobile test programs type global timers as numbers; Node timers may release the event loop. */
+export function unrefJournalCheckpointTimer(timer: unknown): void {
+  if (typeof timer === 'object' && timer && 'unref' in timer && typeof timer.unref === 'function') {
+    timer.unref()
   }
 }
