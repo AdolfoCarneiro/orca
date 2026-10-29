@@ -72,14 +72,15 @@ export function useWorktreeJumpPaletteTaskUrl({
     [taskSourceUrl]
   )
   const creationTarget = getComposerDefaultWorkspaceTarget(useAppStore.getState())
-  const linearSource = creationTarget
-    ? buildTaskSourceContextFromRepo({
-        provider: 'linear',
-        projectId: creationTarget.projectId,
-        repo: creationTarget.repo,
-        projectHostSetupId: creationTarget.projectHostSetupId
-      })
-    : defaultScopeSource(useAppStore.getState().settings)
+  const linearSource =
+    (creationTarget
+      ? buildTaskSourceContextFromRepo({
+          provider: 'linear',
+          projectId: creationTarget.projectId,
+          repo: creationTarget.repo,
+          projectHostSetupId: creationTarget.projectHostSetupId
+        })
+      : null) ?? defaultScopeSource(useAppStore.getState().settings)
   const linearScopeKey = useAppStore(() => getLinearSourceScope(linearSource).contextKey)
   const linearResult = useLinearIssueResult<CmdJLinearIssuePreview | null>(
     JSON.stringify([linearScopeKey, visible, createWorktreeName, linearIssueUrlIntent]),

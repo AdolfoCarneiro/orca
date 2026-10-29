@@ -63,7 +63,7 @@ it.each(
     reads.update.mockReturnValue(pending.promise)
     render(<LinearStateCell issue={hook.result.current.displayed[0]} />)
     fireEvent.click(screen.getByRole('button', { name: /Change Linear state from/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(hook.result.current.displayed[0].state.name).toBe('Done')
     if (timing === 'F2') {
       hook.rerender({ nonce: 1 })
@@ -291,7 +291,7 @@ it('rejects a during-save loader updater consumed after failure, then accepts ex
   reads.update.mockReturnValueOnce(pending.promise)
   render(<LinearStateCell issue={hook.result.current.displayed[0]} />)
   fireEvent.click(screen.getByRole('button', { name: /Change Linear state from/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   flushRows()
   expect(hook.result.current.displayed[0].state.name).toBe('Done')
 

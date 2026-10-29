@@ -9,14 +9,14 @@ import {
 } from './smart-workspace-linear-read-test-fixtures'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { credentialDecryptionMessage } from '../../../../shared/integration-credential-errors'
-import { getStatus } from '../../../../main/linear/client'
-import { searchIssues } from '../../../../main/linear/linear-issue-lookups'
-import { LINEAR_METHODS } from '../../../../main/runtime/rpc/methods/linear'
-import { mapDispatcherError } from '../../../../main/runtime/rpc/dispatcher-error-response'
-import { successResponse } from '../../../../main/runtime/rpc/errors'
+import { credentialDecryptionMessage } from '../../src/shared/integration-credential-errors'
+import { getStatus } from '../../src/main/linear/client'
+import { searchIssues } from '../../src/main/linear/linear-issue-lookups'
+import { LINEAR_METHODS } from '../../src/main/runtime/rpc/methods/linear'
+import { mapDispatcherError } from '../../src/main/runtime/rpc/dispatcher-error-response'
+import { successResponse } from '../../src/main/runtime/rpc/errors'
 import { unwrapRuntimeRpcResult } from '@/runtime/runtime-rpc-result'
-import type { RpcContext } from '../../../../main/runtime/rpc/core'
+import type { RpcContext } from '../../src/main/runtime/rpc/core'
 
 function installMainRpc(
   status: () => ReturnType<typeof getStatus> | Promise<ReturnType<typeof getStatus>> = getStatus

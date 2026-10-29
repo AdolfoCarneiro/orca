@@ -13,32 +13,32 @@ import {
   display,
   loadingHook,
   source
-} from './task-page-linear-refresh-test-fixtures'
-import { TaskPageLinearIssueTable } from './IssueTable'
+} from '../../src/renderer/src/components/task-page/linear/task-page-linear-refresh-test-fixtures'
+import { TaskPageLinearIssueTable } from '../../src/renderer/src/components/task-page/linear/IssueTable'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
+import type { TaskPageComposerActionsModel } from '../../src/renderer/src/components/task-page/use-task-page-composer-actions'
 import { useState } from 'react'
-import { workspaceFromLinearData } from '../../../../../main/linear/linear-workspace-record'
-import { credentialDecryptionMessage } from '../../../../../shared/integration-credential-errors'
+import { workspaceFromLinearData } from '../../src/main/linear/linear-workspace-record'
+import { credentialDecryptionMessage } from '../../src/shared/integration-credential-errors'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
 import { defaultScopeSource } from '@/lib/default-creation-host'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { pendingLinearIssueWrites } from '@/store/slices/linear/linear-issue-publication'
-import { PaginationBar } from '../PaginationBar'
-import { useTaskPageLinearListProjectionPrelude } from './use-task-page-linear-list-projection'
-import type { LinearIssue } from '../../../../../shared/linear/issue-types'
-import type { TaskSourceContext } from '../../../../../shared/task-source-context'
-import { useTaskPageLinearInOrcaEffects } from './use-task-page-linear-in-orca-effects'
-import { useTaskPageDetailRouting } from '../use-task-page-detail-routing'
-import { useLinearIssueWorkspaceDetail } from '../../linear-issue-workspace-detail-state'
+import { PaginationBar } from '../../src/renderer/src/components/task-page/PaginationBar'
+import { useTaskPageLinearListProjectionPrelude } from '../../src/renderer/src/components/task-page/linear/use-task-page-linear-list-projection'
+import type { LinearIssue } from '../../src/shared/linear/issue-types'
+import type { TaskSourceContext } from '../../src/shared/task-source-context'
+import { useTaskPageLinearInOrcaEffects } from '../../src/renderer/src/components/task-page/linear/use-task-page-linear-in-orca-effects'
+import { useTaskPageDetailRouting } from '../../src/renderer/src/components/task-page/use-task-page-detail-routing'
+import { useLinearIssueWorkspaceDetail } from '../../src/renderer/src/components/linear-issue-workspace-detail-state'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor, render, fireEvent, screen } from '@testing-library/react'
-import { deferred } from '../../../store/slices/linear-slice-test-harness'
-import { clearLinearRequestMaps } from '../../../store/slices/linear/linear-slice-request-state'
-import { useTaskPageLinearListSelectionPrelude } from './use-task-page-linear-list-selection'
-import { LinearStateCell } from './task-page-linear-issue-model'
-import { getTaskSourceCacheScope } from '../../../../../shared/task-source-context'
-import { useTaskPageLinearListEffects } from './use-task-page-linear-list-effects'
+import { deferred } from '../../src/renderer/src/store/slices/linear-slice-test-harness'
+import { clearLinearRequestMaps } from '../../src/renderer/src/store/slices/linear/linear-slice-request-state'
+import { useTaskPageLinearListSelectionPrelude } from '../../src/renderer/src/components/task-page/linear/use-task-page-linear-list-selection'
+import { LinearStateCell } from '../../src/renderer/src/components/task-page/linear/task-page-linear-issue-model'
+import { getTaskSourceCacheScope } from '../../src/shared/task-source-context'
+import { useTaskPageLinearListEffects } from '../../src/renderer/src/components/task-page/linear/use-task-page-linear-list-effects'
 
 const cacheTime = Date.parse('2026-01-01T00:00:00Z')
 beforeEach(() => {
@@ -185,7 +185,7 @@ it('keeps a filtered status-cell success through invalidation and rolls back a l
   reads.update.mockReturnValueOnce(pending.promise).mockResolvedValueOnce({ ok: false })
   const cell = render(<LinearStateCell issue={task()} />)
   fireEvent.click(screen.getByRole('button', { name: /Change Linear state from/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   await waitFor(() => expect(hook.result.current.rows[0].state.name).toBe('Done'))
   reads.list.mockResolvedValue({ items: [task('Done')] })
   await act(async () => {
@@ -202,7 +202,7 @@ it('keeps a filtered status-cell success through invalidation and rolls back a l
   })
   render(<LinearStateCell issue={task()} />)
   fireEvent.click(screen.getByRole('button', { name: /Change Linear state from/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   await waitFor(() => expect(hook.result.current.rows[0].state.name).toBe('In Review'))
   expect(reads.update).toHaveBeenCalledTimes(2)
 })
@@ -282,6 +282,9 @@ it('opens the fresh row on its origin source despite stale aliases and failed de
       setDialogWorkItem: vi.fn(),
       openTaskPage: vi.fn()
     } as never)
+    if (!route.linearDetailSourceContext) {
+      throw new Error('Expected the routed detail source')
+    }
     const detail = useLinearIssueWorkspaceDetail({
       issue: route.selectedLinearIssue ?? task(),
       providerSettings: route.linearDetailSourceContext,

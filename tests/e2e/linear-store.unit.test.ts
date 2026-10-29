@@ -1,21 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { workspaceFromLinearData } from '../../../../main/linear/linear-workspace-record'
-import { credentialDecryptionMessage } from '../../../../shared/integration-credential-errors'
-import type { LinearIssue } from '../../../../shared/linear/issue-types'
+import { workspaceFromLinearData } from '../../src/main/linear/linear-workspace-record'
+import { credentialDecryptionMessage } from '../../src/shared/integration-credential-errors'
+import type { LinearIssue } from '../../src/shared/linear/issue-types'
 import {
   getTaskSourceCacheScope,
   type TaskSourceContext
-} from '../../../../shared/task-source-context'
+} from '../../src/shared/task-source-context'
 import type {
   LinearCollectionResult,
   LinearConnectionStatus,
   LinearViewer
-} from '../../../../shared/linear/workspace-types'
+} from '../../src/shared/linear/workspace-types'
 import {
   clearLinearRequestMaps,
   getInflightStatusRequest
-} from './linear/linear-slice-request-state'
-import { createTestStore, deferred, issue } from './linear-slice-test-harness'
+} from '../../src/renderer/src/store/slices/linear/linear-slice-request-state'
+import {
+  createTestStore,
+  deferred,
+  issue
+} from '../../src/renderer/src/store/slices/linear-slice-test-harness'
 
 const linearStatus = vi.fn()
 const linearConnect = vi.fn()
@@ -59,7 +63,7 @@ vi.mock('@/runtime/runtime-linear-client', async (importOriginal) => {
   }
 })
 
-vi.mock('../../hooks/useIssueMetadata', () => ({
+vi.mock('../../src/renderer/src/hooks/useIssueMetadata', () => ({
   clearLinearMetadataCache: vi.fn()
 }))
 
@@ -527,7 +531,7 @@ describe('account observations stay separate from query transport', () => {
     linearStatus.mockRejectedValue(new Error('unreachable'))
     await store.getState().checkLinearConnection(true)
     expect(store.getState().linearStatus).toBe(confirmed)
-    expect(store.getState().linearIssueCache.warm.data.id).toBe('warm')
+    expect(store.getState().linearIssueCache.warm.data?.id).toBe('warm')
     expect(getInflightStatusRequest()).toBeNull()
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture exercises only the runtime setting; unrelated GlobalSettings are not read.
     store.setState({ settings: { activeRuntimeEnvironmentId: 'other' } as never })

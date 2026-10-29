@@ -1,20 +1,26 @@
 // @vitest-environment happy-dom
-import { reads, task, store, display, source } from './task-page-linear-refresh-test-fixtures'
+import {
+  reads,
+  task,
+  store,
+  display,
+  source
+} from '../../src/renderer/src/components/task-page/linear/task-page-linear-refresh-test-fixtures'
 import { afterEach, expect, it, vi } from 'vitest'
 import type * as RuntimeLinearProjectClient from '@/runtime/runtime-linear-project-client'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { listProjectIssues } from '../../../../../main/linear/linear-project-issue-queries'
-import { listCustomViewIssues } from '../../../../../main/linear/linear-custom-view-queries'
+import { listProjectIssues } from '../../src/main/linear/linear-project-issue-queries'
+import { listCustomViewIssues } from '../../src/main/linear/linear-custom-view-queries'
 import { linearCollectionCacheKey } from '@/store/slices/linear/linear-cache'
 import {
   getLinearSourceScope,
   scopedLinearCacheKey
 } from '@/store/slices/linear/linear-slice-scope'
 import { pendingLinearIssueWrites } from '@/store/slices/linear/linear-issue-publication'
-import { LinearStateCell } from './task-page-linear-issue-model'
+import { LinearStateCell } from '../../src/renderer/src/components/task-page/linear/task-page-linear-issue-model'
 
 const provider = vi.hoisted(() => ({ load: vi.fn() }))
-vi.mock('../../../../../main/linear/client', () => ({
+vi.mock('../../src/main/linear/client', () => ({
   getClients: () => [
     {
       workspace: { id: 'w', organizationName: 'Workspace' },
@@ -23,7 +29,7 @@ vi.mock('../../../../../main/linear/client', () => ({
   ],
   isAuthError: () => false
 }))
-vi.mock('../../../../../main/linear/linear-token-store', () => ({ clearToken: vi.fn() }))
+vi.mock('../../src/main/linear/linear-token-store', () => ({ clearToken: vi.fn() }))
 const actual = await vi.importActual<typeof RuntimeLinearProjectClient>(
   '@/runtime/runtime-linear-project-client'
 )
@@ -107,7 +113,7 @@ it.each(['project', 'custom-view'] as const)(
         />
       )
       fireEvent.click(screen.getByRole('button', { name: /Change Linear state from/ }))
-      fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }))
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }))
       expect(hook.result.current.displayedLinearIssues[0].state.name).toBe('Done')
       await act(async () => {
         pending.resolve({ ok: true })
@@ -194,7 +200,7 @@ it.each(['project', 'custom-view'] as const)(
       />
     )
     fireEvent.click(screen.getByRole('button', { name: /Change Linear state from/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     hook.unmount()
     await act(async () => {
       pending.resolve({ ok: true })

@@ -1,7 +1,8 @@
 import { getSelectedWorkspaceId } from '@/store/slices/linear/linear-cache'
 import {
   observeLinearIssueRead,
-  mapLinearIssueRead
+  mapLinearIssueRead,
+  type LinearIssueRead
 } from '@/store/slices/linear/linear-issue-publication'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearCollectionResult } from '../../../../shared/linear/workspace-types'
@@ -163,64 +164,68 @@ export function useSmartWorkspaceSecondarySearches({
       sourceContext: linearSourceContext,
       workspaceId: linearWorkspaceIdOverride
     }
-    const request = linearUrlIntent
-      ? mapLinearIssueRead(
-          lookupLinearIssueUrl({
-            intent: linearUrlIntent,
-            knownStatus: linearReadMethodsRef.current.linearStatus,
-            sourceContext: linearSourceContext,
-            fetchLinearIssue: (identifier, workspaceId, options) =>
-              linearReadMethodsRef.current.fetchLinearIssue(identifier, workspaceId, {
-                ...options,
-                rejectCredentialError: true
-              })
-          }),
-          (issue) => (issue ? [issue] : [])
+    const observe = <T extends LinearIssue[] | LinearCollectionResult<LinearIssue>>(
+      request: LinearIssueRead<T>
+    ) =>
+      observeLinearIssueRead(
+        request,
+        () => !stale,
+        (lease, view) => {
+          if (view.kind === 'abandoned') {
+            if (!stale) {
+              setLinearLoading(false)
+            }
+            return
+          }
+          const terminal = view.kind === 'data' || view.kind === 'error'
+          if (terminal) {
+            failedLinearReadRef.current =
+              view.kind === 'error' && isIntegrationCredentialDecryptionError(view.error)
+                ? readKey
+                : null
+          }
+          const data = view.data
+          void linearReadMethodsRef.current.refreshLinearSourceConnection(
+            view,
+            linearWorkspaceIdOverride
+          )
+          consumeLinearRead(lease, view, {
+            ...(data
+              ? { data: Array.isArray(data) ? data : data.items }
+              : view.kind !== 'error' && { data: [] }),
+            ...(terminal && {
+              error: linearIssueViewError(view),
+              settledUrl: linearUrlIntent ? trimmed : null
+            }),
+            loading: view.kind === 'loading'
+          })
+        }
+      )
+    const query = getSmartWorkspaceLinearSearchQuery(trimmed)
+    const release = linearUrlIntent
+      ? observe(
+          mapLinearIssueRead(
+            lookupLinearIssueUrl({
+              intent: linearUrlIntent,
+              knownStatus: linearReadMethodsRef.current.linearStatus,
+              sourceContext: linearSourceContext,
+              fetchLinearIssue: (identifier, workspaceId, options) =>
+                linearReadMethodsRef.current.fetchLinearIssue(identifier, workspaceId, {
+                  ...options,
+                  rejectCredentialError: true
+                })
+            }),
+            (issue) => (issue ? [issue] : [])
+          )
         )
       : trimmed
-        ? linearReadMethodsRef.current.searchLinearIssues(
-            getSmartWorkspaceLinearSearchQuery(trimmed),
-            RESULT_LIMIT,
-            readOptions
+        ? observe(linearReadMethodsRef.current.searchLinearIssues(query, RESULT_LIMIT, readOptions))
+        : observe(
+            linearReadMethodsRef.current.listLinearIssues(
+              { kind: 'list', filter: 'assigned', limit: RESULT_LIMIT },
+              readOptions
+            )
           )
-        : linearReadMethodsRef.current.listLinearIssues(
-            { kind: 'list', filter: 'assigned', limit: RESULT_LIMIT },
-            readOptions
-          )
-    const release = observeLinearIssueRead<LinearIssue[] | LinearCollectionResult<LinearIssue>>(
-      request,
-      () => !stale,
-      (lease, view) => {
-        if (view.kind === 'abandoned') {
-          if (!stale) {
-            setLinearLoading(false)
-          }
-          return
-        }
-        const terminal = view.kind === 'data' || view.kind === 'error'
-        if (terminal) {
-          failedLinearReadRef.current =
-            view.kind === 'error' && isIntegrationCredentialDecryptionError(view.error)
-              ? readKey
-              : null
-        }
-        const data = view.data
-        void linearReadMethodsRef.current.refreshLinearSourceConnection(
-          view,
-          linearWorkspaceIdOverride
-        )
-        consumeLinearRead(lease, view, {
-          ...(data
-            ? { data: Array.isArray(data) ? data : data.items }
-            : view.kind !== 'error' && { data: [] }),
-          ...(terminal && {
-            error: linearIssueViewError(view),
-            settledUrl: linearUrlIntent ? trimmed : null
-          }),
-          loading: view.kind === 'loading'
-        })
-      }
-    )
     return () => {
       stale = true
       release()

@@ -209,60 +209,67 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
 
     // Why: keep cached rows visible on navigation; only explicit refresh or a true cache miss shows the blocking loading state.
     setLinearLoading(forceRefresh || cachedResult === null)
-    const request: LinearIssueRead<LinearIssue[] | LinearCollectionResult<LinearIssue>> =
-      readArgs.kind === 'search'
-        ? searchLinearIssues(readArgs.query, LINEAR_ITEM_LIMIT, {
-            force: forceRefresh || shouldProbeOnLanding,
-            sourceContext: linearTaskSourceContext,
-            workspaceId: selectedLinearWorkspaceId
-          })
-        : listLinearIssues(listReadArgs, {
-            force: forceRefresh || shouldProbeOnLanding,
-            sourceContext: linearTaskSourceContext,
-            workspaceId: selectedLinearWorkspaceId
-          })
-    const release = observeLinearIssueRead(
-      request,
-      () =>
-        !cancelled &&
-        lastLinearRequestRef.current?.signature === requestSignature &&
-        lastLinearRequestRef.current?.nonce === linearRefreshNonce,
-      (lease, view) => {
-        if (view.kind === 'abandoned') {
-          if (!cancelled) {
-            finishLinearLoading(false)
+    const observe = <T extends LinearIssue[] | LinearCollectionResult<LinearIssue>>(
+      request: LinearIssueRead<T>
+    ) =>
+      observeLinearIssueRead(
+        request,
+        () =>
+          !cancelled &&
+          lastLinearRequestRef.current?.signature === requestSignature &&
+          lastLinearRequestRef.current?.nonce === linearRefreshNonce,
+        (lease, view) => {
+          if (view.kind === 'abandoned') {
+            if (!cancelled) {
+              finishLinearLoading(false)
+            }
+            return
           }
-          return
-        }
-        const result = view.data
-        const issues = result ? (Array.isArray(result) ? result : result.items) : null
-        consumeLinearRead(lease, view, {
-          ...(issues
-            ? {
-                data: shouldProbeOnLanding
-                  ? reconcileTaskPageLinearIssuesAfterLandingRefresh(retainedLinearRows, issues)
-                  : issues
-              }
-            : view.kind === 'loading'
-              ? { data: [] }
+          const result = view.data
+          const issues = result ? (Array.isArray(result) ? result : result.items) : null
+          consumeLinearRead(lease, view, {
+            ...(issues
+              ? {
+                  data: shouldProbeOnLanding
+                    ? reconcileTaskPageLinearIssuesAfterLandingRefresh(retainedLinearRows, issues)
+                    : issues
+                }
+              : view.kind === 'loading'
+                ? { data: [] }
+                : {}),
+            ...(result
+              ? { hasMore: taskPageLinearIssuesHaveMore(result, effectiveLinearIssueLimit) }
               : {}),
-          ...(result
-            ? { hasMore: taskPageLinearIssuesHaveMore(result, effectiveLinearIssueLimit) }
-            : {}),
-          ...(view.kind === 'data' || view.kind === 'error'
-            ? {
-                error:
-                  view.kind === 'error'
-                    ? taskProviderErrorText(linearIssueReadError(view.error))
-                    : result && !Array.isArray(result) && result.errors?.length
-                      ? taskProviderErrorText(linearIssueReadError(result.errors[0].message))
-                      : null
-              }
-            : {}),
-          loading: view.kind === 'loading' && (forceRefresh || result === null)
-        })
-      }
-    )
+            ...(view.kind === 'data' || view.kind === 'error'
+              ? {
+                  error:
+                    view.kind === 'error'
+                      ? taskProviderErrorText(linearIssueReadError(view.error))
+                      : result && !Array.isArray(result) && result.errors?.length
+                        ? taskProviderErrorText(linearIssueReadError(result.errors[0].message))
+                        : null
+                }
+              : {}),
+            loading: view.kind === 'loading' && (forceRefresh || result === null)
+          })
+        }
+      )
+    const release =
+      readArgs.kind === 'search'
+        ? observe(
+            searchLinearIssues(readArgs.query, LINEAR_ITEM_LIMIT, {
+              force: forceRefresh || shouldProbeOnLanding,
+              sourceContext: linearTaskSourceContext,
+              workspaceId: selectedLinearWorkspaceId
+            })
+          )
+        : observe(
+            listLinearIssues(listReadArgs, {
+              force: forceRefresh || shouldProbeOnLanding,
+              sourceContext: linearTaskSourceContext,
+              workspaceId: selectedLinearWorkspaceId
+            })
+          )
     return () => {
       cancelled = true
       release()

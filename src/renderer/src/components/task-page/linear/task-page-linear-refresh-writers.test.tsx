@@ -127,8 +127,8 @@ it('real drawer hydration, field controller and text writer compose rollback wit
   )
   render(<LinearItemDrawer issue={task()} onUse={vi.fn()} onClose={vi.fn()} />)
   expect(reads.detail).toHaveBeenCalledTimes(1)
-  fireEvent.click(screen.getByRole('button', { name: 'Priority', exact: true }))
-  fireEvent.click(screen.getByRole('button', { name: 'Label', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: 'Priority' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Label' }))
   fireEvent.change(screen.getByRole('textbox', { name: 'Issue title' }), {
     target: { value: 'Local title' }
   })
@@ -205,7 +205,7 @@ it('confirmed project selection retires old hydration and publishes through the 
   render(<Detail />)
   fireEvent.click(screen.getByRole('button', { name: 'Add to project' }))
   fireEvent.change(screen.getByPlaceholderText('Search projects'), { target: { value: 'Chosen' } })
-  fireEvent.click(await screen.findByRole('button', { name: 'Chosen', exact: true }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Chosen' }))
   expect(screen.getByTestId('project').textContent).toBe('None')
   expect(reads.update).toHaveBeenCalledWith(
     defaultScopeSource(null),
@@ -353,7 +353,7 @@ it('real board drop updates selected fallback and rolls it back through domain s
         preventDefault() {},
         stopPropagation() {},
         dataTransfer: { types: ['application/x-orca-linear-issue-id'], getData: () => 'same-uuid' }
-      } as React.DragEvent<HTMLElement>
+      } as unknown as React.DragEvent<HTMLElement>
     )
   })
   await waitFor(() =>

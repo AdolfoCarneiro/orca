@@ -5,24 +5,24 @@ import { clearLinearRequestMaps } from '@/store/slices/linear/linear-slice-reque
 
 import React from 'react'
 import type * as ReactModule from 'react'
-import type * as MainLinearClient from '../../../../main/linear/client'
+import type * as MainLinearClient from '../../src/main/linear/client'
 import type * as RuntimeLinearClient from '@/runtime/runtime-linear-client'
 import type * as RuntimeLinearIssueMutations from '@/runtime/runtime-linear-issue-mutations'
 import { registerRuntimeClientIpcBridge } from '@/hooks/ipc-events/runtime-client-ipc-bridge'
-import type { RuntimeClientEvent } from '../../../../shared/runtime-client-events'
+import type { RuntimeClientEvent } from '../../src/shared/runtime-client-events'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
-import type { LinearIssue } from '../../../../shared/linear/issue-types'
-import type { LinearConnectionStatus } from '../../../../shared/linear/workspace-types'
-import type { Repo } from '../../../../shared/repo-types'
-import { WorkspaceAttachmentSourceStatus } from '../sidebar/WorkspaceAttachmentSourceStatus'
+import type { LinearIssue } from '../../src/shared/linear/issue-types'
+import type { LinearConnectionStatus } from '../../src/shared/linear/workspace-types'
+import type { Repo } from '../../src/shared/repo-types'
+import { WorkspaceAttachmentSourceStatus } from '../../src/renderer/src/components/sidebar/WorkspaceAttachmentSourceStatus'
 import { Command } from '@/components/ui/command'
 import {
   referenceLinearIssue,
   referenceRepo
-} from '../sidebar/workspace-reference-fixtures.test-support'
-import { SmartWorkspaceSourceResultList } from './SmartWorkspaceSourceResultList'
-import { useWorkItemSourceSearch } from './use-work-item-source-search'
+} from '../../src/renderer/src/components/sidebar/workspace-reference-fixtures.test-support'
+import { SmartWorkspaceSourceResultList } from '../../src/renderer/src/components/new-workspace/SmartWorkspaceSourceResultList'
+import { useWorkItemSourceSearch } from '../../src/renderer/src/components/new-workspace/use-work-item-source-search'
 
 const queued = vi.hoisted(() => {
   const updates: VoidFunction[] = []
@@ -67,7 +67,7 @@ vi.mock('@/runtime/runtime-rpc-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   callRuntimeRpc: (...args: unknown[]) => detailTransport.rpc(...args)
 }))
-vi.mock('../../../../main/linear/client', async (original) => {
+vi.mock('../../src/main/linear/client', async (original) => {
   const actual = await original<typeof MainLinearClient>()
   return {
     ...actual,
@@ -85,7 +85,7 @@ vi.mock('../../../../main/linear/client', async (original) => {
           ]
   }
 })
-vi.mock('../../../../main/linear/linear-sdk', () => {
+vi.mock('../../src/main/linear/linear-sdk', () => {
   class LinearClient {
     client: { rawRequest: (...args: unknown[]) => Promise<unknown> }
     apiKey: string
@@ -102,7 +102,7 @@ vi.mock('../../../../main/linear/linear-sdk', () => {
     createLinearClient: (options: { apiKey: string }) => new LinearClient(options)
   }
 })
-vi.mock('../../../../main/linear/linear-workspace-registry', () => ({
+vi.mock('../../src/main/linear/linear-workspace-registry', () => ({
   getWorkspaceState: () => ({
     workspaces: detailTransport.workspaces.map((id) => ({
       id,
@@ -115,7 +115,7 @@ vi.mock('../../../../main/linear/linear-workspace-registry', () => ({
   resolveWorkspaceId: (id?: string | null) => id ?? detailTransport.workspaces[0],
   getCredentialError: () => detailTransport.credential.message
 }))
-vi.mock('../../../../main/linear/linear-token-store', () => ({
+vi.mock('../../src/main/linear/linear-token-store', () => ({
   clearToken: (id: string) => {
     detailTransport.workspaces = detailTransport.workspaces.filter((workspace) => workspace !== id)
     detailTransport.clear(id)
@@ -206,11 +206,13 @@ vi.mock('@/lib/local-preflight-context', () => ({
   localPreflightContextKey: () => 'test'
 }))
 vi.mock('@/i18n/i18n', () => ({ translate: (_key: string, fallback: string) => fallback }))
-vi.mock('./use-jira-source-connection', () => ({
+vi.mock('../../src/renderer/src/components/new-workspace/use-jira-source-connection', () => ({
   useJiraSourceConnection: () => ({ status: null, loaded: false })
 }))
-vi.mock('./use-jira-url-source', () => ({ useJiraUrlSource: () => ({ intent: false }) }))
-vi.mock('../use-jira-project-inventory', () => ({
+vi.mock('../../src/renderer/src/components/new-workspace/use-jira-url-source', () => ({
+  useJiraUrlSource: () => ({ intent: false })
+}))
+vi.mock('../../src/renderer/src/components/use-jira-project-inventory', () => ({
   useJiraProjectInventory: () => ({ projects: [], connected: true, error: null, loading: false })
 }))
 
@@ -234,7 +236,7 @@ export function LinearPicker({
   const controller = useWorkItemSourceSearch({
     repos,
     selectedRepo: defaultSource ? null : repo,
-    repoId: defaultSource ? null : repo.id,
+    repoId: defaultSource ? '' : repo.id,
     value,
     branchesEnabled: false,
     repoBackedSourcesDisabled: true
@@ -278,12 +280,12 @@ export function prepareDefaultPicker(status: LinearConnectionStatus) {
     refreshPreflightStatus: vi.fn(),
     fetchHostWorkspaceStatuses: vi.fn(async () => {}),
     fetchRuntimeEnvironmentRepos: vi.fn(async () => []),
-    fetchProjectGroups: vi.fn(async () => []),
-    fetchFolderWorkspaces: vi.fn(async () => []),
+    fetchProjectGroups: vi.fn(async () => {}),
+    fetchFolderWorkspaces: vi.fn(async () => {}),
     fetchWorktreeLineage: vi.fn(async () => {}),
     runtimeStatusByEnvironmentId: new Map(),
     runtimeEnvironments: [],
-    sshStateByEnvironment: {}
+    sshStateByEnvironment: new Map()
   })
 }
 export function installRuntimeBridge() {
@@ -307,15 +309,33 @@ export function aliasStatus(legacy = false): LinearConnectionStatus {
     selectedWorkspaceId: 'L',
     workspaces: [
       legacy
-        ? { id: 'L', organizationId: 'L', organizationName: 'Saved workspace', isLegacy: true }
-        : { id: 'L', organizationId: 'org', organizationName: 'Acme', organizationUrlKey: 'acme' },
+        ? {
+            displayName: 'Test',
+            email: null,
+            id: 'L',
+            organizationId: 'L',
+            organizationName: 'Saved workspace',
+            isLegacy: true
+          }
+        : {
+            displayName: 'Test',
+            email: null,
+            id: 'L',
+            organizationId: 'org',
+            organizationName: 'Acme',
+            organizationUrlKey: 'acme'
+          },
       {
+        displayName: 'Test',
+        email: null,
         id: 'W',
         organizationId: 'org',
         organizationName: 'Acme',
         ...(legacy ? {} : { organizationUrlKey: 'acme' })
       },
       {
+        displayName: 'Test',
+        email: null,
         id: 'F',
         organizationId: 'foreign',
         organizationName: 'Foreign',

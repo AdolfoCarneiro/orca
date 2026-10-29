@@ -15,9 +15,9 @@ import {
   aliasStatus,
   aliasRow
 } from './smart-workspace-linear-read-test-fixtures'
-import { LinearIntegrationCard } from '../settings/task-tracker-integration-cards'
-import { TooltipProvider } from '../ui/tooltip'
-import { getIssue } from '../../../../main/linear/linear-issue-lookups'
+import { LinearIntegrationCard } from '../../src/renderer/src/components/settings/task-tracker-integration-cards'
+import { TooltipProvider } from '../../src/renderer/src/components/ui/tooltip'
+import { getIssue } from '../../src/main/linear/linear-issue-lookups'
 import React from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -25,19 +25,21 @@ import { clearLinearRequestMaps } from '@/store/slices/linear/linear-slice-reque
 import {
   buildTaskSourceContextFromRepo,
   getTaskSourceCacheScope
-} from '../../../../shared/task-source-context'
+} from '../../src/shared/task-source-context'
 import { linearSearchCacheKey } from '@/store/slices/linear/linear-cache'
-import { RESULT_LIMIT } from './smart-workspace-name-field-model'
+import { RESULT_LIMIT } from '../../src/renderer/src/components/new-workspace/smart-workspace-name-field-model'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
-import { credentialDecryptionMessage } from '../../../../shared/integration-credential-errors'
-import type { LinearIssue } from '../../../../shared/linear/issue-types'
-import type { LinearConnectionStatus } from '../../../../shared/linear/workspace-types'
-import { referenceLinearIssue } from '../sidebar/workspace-reference-fixtures.test-support'
+import { credentialDecryptionMessage } from '../../src/shared/integration-credential-errors'
+import type { LinearIssue } from '../../src/shared/linear/issue-types'
+import type { LinearConnectionStatus } from '../../src/shared/linear/workspace-types'
+import { referenceLinearIssue } from '../../src/renderer/src/components/sidebar/workspace-reference-fixtures.test-support'
 
-vi.mock('../settings/linear-agent-skill-install-cta', () => ({
+vi.mock('../../src/renderer/src/components/settings/linear-agent-skill-install-cta', () => ({
   LinearAgentSkillInstallCta: () => null
 }))
-vi.mock('../linear-api-key-dialog', () => ({ LinearApiKeyDialog: () => null }))
+vi.mock('../../src/renderer/src/components/linear-api-key-dialog', () => ({
+  LinearApiKeyDialog: () => null
+}))
 
 describe('composer Linear read errors', () => {
   beforeEach(() => {
@@ -199,6 +201,7 @@ it.each(
     act(() =>
       events.emit({
         type: 'linearLinkedIssueUpdated',
+        worktreeId: 'fixture-worktree',
         identifier: 'ISSUE-1',
         workspaceId: 'workspace-1'
       })
@@ -270,6 +273,7 @@ it.each(
     act(() =>
       events.emit({
         type: 'linearLinkedIssueUpdated',
+        worktreeId: 'fixture-worktree',
         identifier: 'ISSUE-1',
         workspaceId: 'workspace-1'
       })
@@ -287,7 +291,14 @@ it('attachment Retry reacquires terminal cached missing without another provider
     viewer: null,
     selectedWorkspaceId: 'L',
     workspaces: [
-      { id: 'L', organizationId: 'org', organizationName: 'Acme', organizationUrlKey: 'acme' }
+      {
+        displayName: 'Test',
+        email: null,
+        id: 'L',
+        organizationId: 'org',
+        organizationName: 'Acme',
+        organizationUrlKey: 'acme'
+      }
     ]
   }
   mocks.state.linearStatus = status
@@ -317,7 +328,7 @@ it('attachment Retry reacquires terminal cached missing without another provider
   await waitFor(() => expect(screen.getByText(missing)).toBeTruthy())
   expect(mocks.state.detail).toHaveBeenCalledTimes(1)
   expect(pickerStore.getState().linearIssueCache['L::ENG-1']?.data).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
   await waitFor(() => expect(screen.getByText(missing)).toBeTruthy())
   expect(screen.queryByText('Loading Linear issue…')).toBeNull()
   expect(mocks.state.detail).toHaveBeenCalledTimes(1)
@@ -390,7 +401,12 @@ it.each(['success', 'error', 'queued'])(
     }
     const oldUpdates = queued.updates.splice(0)
     const emit = () =>
-      events.emit({ type: 'linearLinkedIssueUpdated', identifier: 'ENG-1', workspaceId: 'W' })
+      events.emit({
+        type: 'linearLinkedIssueUpdated',
+        worktreeId: 'fixture-worktree',
+        identifier: 'ENG-1',
+        workspaceId: 'W'
+      })
     act(emit)
     const currentUpdates = queued.updates.splice(0)
     queued.enabled = false
@@ -512,6 +528,7 @@ it.each(['success', 'fallback', 'legacy', 'release'] as const)(
     const emit = () =>
       events.emit({
         type: 'linearLinkedIssueUpdated',
+        worktreeId: 'fixture-worktree',
         identifier: 'ENG-1',
         workspaceId: 'W'
       })

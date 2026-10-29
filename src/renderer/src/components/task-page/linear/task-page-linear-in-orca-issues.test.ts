@@ -179,7 +179,7 @@ describe('readLinkedLinearIssuesWithLimit', () => {
       readLinkedLinearIssuesWithLimit(
         refs,
         (ref) =>
-          linearIssueReadFixture(async () => {
+          linearIssueReadFixture<LinearIssue | null>(async () => {
             active += 1
             maxActive = Math.max(maxActive, active)
             await Promise.resolve()

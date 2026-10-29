@@ -9,6 +9,7 @@ import type { AppState } from '../types'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearProjectSummary } from '../../../../shared/linear/project-types'
 import { createLinearSlice } from './linear'
+import type { LinearSlice } from './linear/linear-slice-contract'
 
 type IssueReadAction =
   | 'fetchLinearIssue'
@@ -51,8 +52,7 @@ function awaitableRead<T>(read: LinearIssueRead<T>): AwaitableRead<T> {
 export function createTestStore() {
   const store = create<AppState>()((...a) => {
     const slice = createLinearSlice(...a)
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture installs the real Linear slice only; awaitable decoration preserves each acquire/release contract while unrelated AppState services are absent.
-    return {
+    const state = {
       settings: null,
       ...slice,
       fetchLinearIssue: (...args) => awaitableRead(slice.fetchLinearIssue(...args)),
@@ -62,8 +62,9 @@ export function createTestStore() {
       listLinearProjectIssues: (...args) => awaitableRead(slice.listLinearProjectIssues(...args)),
       listLinearCustomViewIssues: (...args) =>
         awaitableRead(slice.listLinearCustomViewIssues(...args))
-      // SAFETY: tests exercise the Linear slice; unrelated AppState fields are not installed.
-    } as AppState
+    } satisfies Pick<TestAppState, 'settings' | keyof LinearSlice>
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the checked real Linear slice above is the fixture's complete installed state; unrelated AppState services are intentionally absent.
+    return state as unknown as AppState
   })
   // SAFETY: each issue action above is decorated with acquire plus the test-only then adapter.
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture installs the real Linear slice only; awaitable decoration preserves each acquire/release contract while unrelated AppState services are absent.
@@ -100,7 +101,7 @@ export function deferred<T>() {
 export function linearIssueReadFixture<T extends LinearIssueData>(
   dispatch: () => Promise<T>
 ): LinearIssueRead<T> {
-  return openLinearIssueRead({
+  return openLinearIssueRead<T>({
     scope: getLinearSourceScope({ kind: 'local' }),
     seed: null,
     dispatch,

@@ -48,7 +48,7 @@ export function openStoreLinearIssueRead<T extends LinearIssueData>(args: {
   }
   existing?.abandon()
   let read: LinearIssueRequest<T> | undefined
-  read = openLinearIssueRead({
+  read = openLinearIssueRead<T>({
     scope,
     workspaceId: args.workspaceId,
     identifier: args.identifier,

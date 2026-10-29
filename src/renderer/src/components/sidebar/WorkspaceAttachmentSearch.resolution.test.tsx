@@ -6,7 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { JiraConnectionStatus, JiraIssue, JiraSite } from '../../../../shared/jira/jira-types'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
-import type { LinearConnectionStatus } from '../../../../shared/linear/workspace-types'
+import type {
+  LinearCollectionResult,
+  LinearConnectionStatus
+} from '../../../../shared/linear/workspace-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { WorkspaceAttachment } from '../../../../shared/worktree/types'
 import type { JiraUrlSourceState } from '../new-workspace/use-jira-url-source'
@@ -162,8 +165,10 @@ describe('workspace reference URL resolution and recovery', () => {
       linearStatusChecked: true,
       fetchLinearIssue: (...args: unknown[]) =>
         linearIssueReadFixture(() => fetchLinearIssue(...args)),
-      searchLinearIssues: vi.fn(() => linearIssueReadFixture(async () => [])),
-      listLinearIssues: vi.fn(() => linearIssueReadFixture(async () => ({ items: [] })))
+      searchLinearIssues: vi.fn(() => linearIssueReadFixture<LinearIssue[]>(async () => [])),
+      listLinearIssues: vi.fn(() =>
+        linearIssueReadFixture<LinearCollectionResult<LinearIssue>>(async () => ({ items: [] }))
+      )
     })
     Object.assign(sourceMock.jiraState, {
       intent: false,

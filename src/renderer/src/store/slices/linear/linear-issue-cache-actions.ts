@@ -39,11 +39,11 @@ export function createLinearIssueCacheActions(
     },
 
     prefetchLinearIssues: (args: LinearIssueReadArgs, options?: LinearFetchOptions) => {
-      const read =
+      const complete =
         args.kind === 'search'
-          ? get().searchLinearIssues(args.query, args.limit, options)
-          : get().listLinearIssues(args, options)
-      void consumeLinearIssueRead(read).catch(() => {})
+          ? consumeLinearIssueRead(get().searchLinearIssues(args.query, args.limit, options))
+          : consumeLinearIssueRead(get().listLinearIssues(args, options))
+      void complete.catch(() => {})
     }
   }
 }

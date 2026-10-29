@@ -1,3 +1,5 @@
+import type { LinearIssue } from '../../../../shared/linear/issue-types'
+import type { LinearCollectionResult } from '../../../../shared/linear/workspace-types'
 import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
 import { linearIssueReadFixture } from '@/store/slices/linear-slice-test-harness'
 // @vitest-environment happy-dom
@@ -93,9 +95,11 @@ beforeEach(() => {
     linearStatus: { connected: false, viewer: null },
     linearStatusChecked: false,
     linearStatusContextKey: getProviderRuntimeContextKey(null),
-    fetchLinearIssue: vi.fn(() => linearIssueReadFixture(async () => null)),
-    listLinearIssues: vi.fn(() => linearIssueReadFixture(async () => ({ items: [] }))),
-    searchLinearIssues: vi.fn(() => linearIssueReadFixture(async () => []))
+    fetchLinearIssue: vi.fn(() => linearIssueReadFixture<LinearIssue | null>(async () => null)),
+    listLinearIssues: vi.fn(() =>
+      linearIssueReadFixture<LinearCollectionResult<LinearIssue>>(async () => ({ items: [] }))
+    ),
+    searchLinearIssues: vi.fn(() => linearIssueReadFixture<LinearIssue[]>(async () => []))
   })
   container = document.createElement('div')
   document.body.appendChild(container)
@@ -298,7 +302,9 @@ describe('SmartWorkspaceNameField Linear URL loading', () => {
         ]
       },
       linearStatusChecked: true,
-      fetchLinearIssue: vi.fn(() => linearIssueReadFixture(() => new Promise<null>(() => {})))
+      fetchLinearIssue: vi.fn(() =>
+        linearIssueReadFixture<LinearIssue | null>(() => new Promise<null>(() => {}))
+      )
     })
 
     await act(async () => {

@@ -28,7 +28,9 @@ function issue(organizationUrlKey = 'stably'): LinearIssue {
 
 describe('Linear issue URL lookup', () => {
   it('uses the known workspace named by the URL', async () => {
-    const fetchLinearIssue = vi.fn(() => linearIssueReadFixture(async () => issue()))
+    const fetchLinearIssue = vi.fn(() =>
+      linearIssueReadFixture<LinearIssue | null>(async () => issue())
+    )
     const readLinearStatus = vi.fn<() => Promise<LinearConnectionStatus>>()
 
     await expect(
@@ -53,7 +55,7 @@ describe('Linear issue URL lookup', () => {
 
   it('refreshes status from the source owner when the known workspace is stale', async () => {
     const fetchLinearIssue = vi.fn((_identifier: string, workspaceId?: string | null) =>
-      linearIssueReadFixture(async () =>
+      linearIssueReadFixture<LinearIssue | null>(async () =>
         workspaceId === 'remote-stably-workspace' ? issue() : null
       )
     )
@@ -85,7 +87,9 @@ describe('Linear issue URL lookup', () => {
   })
 
   it('uses legacy viewer status when mixed versions omit the workspace list', async () => {
-    const fetchLinearIssue = vi.fn(() => linearIssueReadFixture(async () => issue()))
+    const fetchLinearIssue = vi.fn(() =>
+      linearIssueReadFixture<LinearIssue | null>(async () => issue())
+    )
 
     await expect(
       readLinearIssueForTest(
@@ -112,7 +116,9 @@ describe('Linear issue URL lookup', () => {
   })
 
   it('probes a legacy workspace that omitted its organization URL key', async () => {
-    const fetchLinearIssue = vi.fn(() => linearIssueReadFixture(async () => issue()))
+    const fetchLinearIssue = vi.fn(() =>
+      linearIssueReadFixture<LinearIssue | null>(async () => issue())
+    )
 
     await expect(
       readLinearIssueForTest(
@@ -140,7 +146,9 @@ describe('Linear issue URL lookup', () => {
   })
 
   it('does not fall back to an all-workspaces lookup that can collide across organizations', async () => {
-    const fetchLinearIssue = vi.fn(() => linearIssueReadFixture(async () => issue('other')))
+    const fetchLinearIssue = vi.fn(() =>
+      linearIssueReadFixture<LinearIssue | null>(async () => issue('other'))
+    )
 
     await expect(
       readLinearIssueForTest(
