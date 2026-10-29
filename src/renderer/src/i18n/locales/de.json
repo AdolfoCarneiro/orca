@@ -119,6 +119,25 @@
         "gitInitFailed": "Git-Repository konnte nicht initialisiert werden: {{detail}}",
         "initialCommitFailed": "Erster Commit konnte nicht erstellt werden: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} ist bereits ein Host.",
+        "distroStopped": "{{distro}} wurde nach dem Einlesen der Liste gestoppt. Zum Starten „Starten und hinzufügen“ auswählen.",
+        "wsl1": "{{distro}} läuft unter WSL 1, das Orca nicht mehr unterstützt. In einem Terminal unter Windows mit folgendem Befehl auf WSL 2 umstellen: {{command}}",
+        "notRegistered": "{{distro}} ist keine installierte WSL-Distribution. In einem Terminal unter Windows {{command}} ausführen, um die installierten Distributionen anzuzeigen, oder die Distribution neu installieren und erneut versuchen.",
+        "sshManaged": "In {{distro}} läuft bereits der Orca-Server für „{{server}}“, den dieser Computer über SSH erreicht. Diesen Server zuerst entfernen; der Wechsel zu einem WSL-Host wird noch nicht unterstützt."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows hat nicht gemeldet, ob die Distribution läuft.",
+        "guestUnanswered": "Die Distribution läuft, hat aber nicht auf Orcas Prüfanfrage geantwortet.",
+        "orcadUnanswered": "Der Orca-Server in der Distribution hat nicht geantwortet.",
+        "restartGaveUp_one": "Der Orca-Server in {{distro}} konnte nach {{count}} Versuch nicht neu gestartet werden",
+        "restartGaveUp_other": "Der Orca-Server in {{distro}} konnte nach {{count}} Versuchen nicht neu gestartet werden",
+        "serviceUnconfirmed": "Der WSL-Dienst hat nicht bestätigt, ob die Distribution läuft.",
+        "peerCheckFailed": "Orca konnte den WSL-Host nicht fragen, ob eine andere Orca-Instanz auf diesem Computer ihn noch nutzt: {{detail}}",
+        "removalUnrecorded": "Orca konnte nicht erfassen, was nach dem Entfernen noch läuft: {{detail}}"
+      }
     }
   },
   "app": {
@@ -677,7 +696,13 @@
       "permissionOverrideMore_one": "und {{count}} weiterer",
       "permissionOverrideMore_other": "und {{count}} weitere",
       "permissionOverridesUse": "{{mode}} verwenden",
-      "approveForMe": "für mich genehmigen"
+      "approveForMe": "für mich genehmigen",
+      "codexHistorySharing": {
+        "title": "Codex-Verlauf zwischen Konten teilen",
+        "description": "Erlaubt jedem Codex-Konto und deinem eigenen ~/.codex, Unterhaltungen fortzusetzen, die in den anderen begonnen wurden. Schalte es aus, um den Verlauf jedes Kontos getrennt zu halten. Beim Ausschalten wird nichts entfernt, was bereits geteilt wurde.",
+        "unsupported": "Aktualisiere Orca auf {{host}}, um diese Einstellung dort zu ändern.",
+        "updateFailed": "Die Einstellung auf {{host}} konnte nicht aktualisiert werden."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "Symbolischer Link",
@@ -2265,8 +2290,7 @@
         "estimateValue": "Schätzung {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Branch wiederverwenden",
-        "reuseExistingBranchHint": "Den vorhandenen Branch auschecken, statt daraus einen neuen zu erstellen.",
+        "openExistingWorkspace": "Bestehenden Arbeitsbereich öffnen",
         "createMultiple": "Weitere erstellen",
         "cbb47ee0dc": "Nur für lokale Git-Projekte verfügbar.",
         "d861de981b": "Partieller Checkout",
@@ -11688,34 +11712,15 @@
           "leaveToTerminalLabel": "Dem Terminal überlassen"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Hintergrundprozess – läuft als eigener Prozess",
-          "instructionalTrust": "Anweisungen – werden später mit den Berechtigungen des Benutzers oder Agenten ausgeführt",
-          "declarativeTrust": "Deklarative Inhalte – kein Plugin-Code",
-          "panelTrust": "Panel oder in den Host integrierte Inhalte – kein Hintergrundprozess",
-          "trustShortWorker": "Hintergrundprozess",
-          "trustShortInstructional": "Anweisungen",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Deklarativ",
-          "reviewTitle": "Plugin prüfen",
-          "title": "Berechtigungen prüfen",
-          "mixedTitle": "Zugriff und Inhalte prüfen",
-          "instructionalTitle": "Plugin-Inhalte prüfen",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Seit der letzten Prüfung dieses Plugins haben sich Berechtigungen, die Vertrauensstufe des Hintergrundprozesses oder die enthaltenen Anweisungen geändert. Vor der Ausführung erneut prüfen.",
-          "capabilities": "Dieses Plugin kann",
-          "warning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
           "instructionalWarning": "Dieses Plugin hat keinen Hintergrundprozess. Seine Anweisungen können bei der Nutzung durch Benutzer oder Agenten dennoch Aktionen auslösen. Vor der Aktivierung die folgenden Anweisungen und Befehle prüfen.",
-          "panelWarning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Dieses Plugin hat keinen Hintergrundprozess.",
           "declarativeWarning": "Dieses Plugin stellt ausschließlich validierte Inhalte bereit. Es führt keinen Hintergrundprozess aus und erhält keinen Zugriff auf die Orca-API.",
-          "keepDisabled": "Deaktiviert lassen",
           "enable": "Plugin aktivieren",
           "capability": {
             "workspaceRead": "Namen, Branch und Terminal-Liste des fokussierten Worktrees lesen",
-            "terminalSend": "Text in ein sichtbares Terminal eingeben (immer ein bestimmtes Terminal)",
             "notificationsShow": "Desktop-Benachrichtigungen mit dem Plugin-Namen anzeigen",
             "storage": "Daten im eigenen Speicherordner des Plugins speichern",
             "secrets": "Geheimnisse im eigenen verschlüsselten Tresor des Plugins speichern und lesen",
-            "eventsSubscribe": "Benachrichtigungen erhalten, wenn Worktrees erstellt oder entfernt werden und wenn sich der Agentenstatus ändert",
             "settingsOwn": "Die eigenen Einstellungen des Plugins lesen und ändern"
           },
           "decisionFailed": "Die Berechtigungsentscheidung konnte nicht gespeichert werden. Erneut versuchen."
@@ -11735,7 +11740,6 @@
           "saveFailed": "Pfade für Entwicklungs-Plugins konnten nicht gespeichert werden.",
           "pathRequired": "Einen Plugin-Ordnerpfad eingeben.",
           "title": "Entwicklung",
-          "help": "Plugins während der Entwicklung direkt aus Ordnern auf diesem Computer laden. Auch Entwicklungs-Plugins erfordern eine Prüfung der Berechtigungen. Hintergrundprozesse laufen auf diesem Desktop-Host; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet. Die hier angegebenen Pfade beziehen sich daher auf den Desktop.",
           "remove": "Entfernen",
           "pathLabel": "Ordnerpfad des Entwicklungs-Plugins",
           "placeholder": "/Users/you/plugins/my-plugin oder C:\\Users\\you\\plugins\\my-plugin",
@@ -11763,16 +11767,11 @@
           "installFailed": "Plugin-Installation fehlgeschlagen. Die Quelle prüfen und erneut versuchen."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Tastenkürzel",
-          "worktree": "Wird nur ausgeführt, wenn ein Arbeitsbereich aktiv ist.",
-          "global": "Wird in der App ausgeführt, ohne dass ein aktiver Arbeitsbereich erforderlich ist.",
-          "shadows": "Ersetzt: {{value0}}"
+          "worktree": "Wird nur ausgeführt, wenn ein Arbeitsbereich aktiv ist."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Marktplatz-Plugins konnten nicht geladen werden.",
           "refreshFailed": "Marktplätze konnten nicht aktualisiert werden. Zwischengespeicherte Einträge bleiben verfügbar.",
-          "previewFailed": "Dieses Plugin konnte nicht zur Prüfung vorbereitet werden. Den Marktplatz aktualisieren und erneut versuchen.",
-          "installFailed": "Dieses Plugin konnte nicht installiert werden. Die geprüfte Quelle hat sich möglicherweise geändert.",
           "manageSources": "Quellen verwalten",
           "refreshing": "Wird aktualisiert…",
           "refresh": "Aktualisieren",
@@ -11781,7 +11780,6 @@
           "loading": "Marktplatz-Plugins werden geladen…",
           "tryAgain": "Erneut versuchen",
           "noSourcesTitle": "Keine Marktplätze konfiguriert",
-          "noSources": "Einen offiziellen, von der Community betriebenen oder privaten Git-Marktplatz hinzufügen, um Plugins zu durchsuchen.",
           "addSource": "Marktplatz hinzufügen",
           "noResultsTitle": "Keine passenden Plugins",
           "noResults": "Keine Marktplatz-Plugins entsprechen dieser Suche.",
@@ -11790,39 +11788,8 @@
           "empty": "Die konfigurierten Marktplätze enthalten keine Plugins."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Offiziell",
-          "installed": "Installiert",
-          "noDescription": "Keine Beschreibung angegeben.",
           "blocked": "Durch die Sicherheitsliste von Orca blockiert: {{value0}}",
-          "blockedAction": "Blockiert",
-          "checkUpdate": "Nach Update suchen",
           "install": "Installieren"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 Sprachpaket",
-          "languagePacks": "{{value0}} Sprachpakete",
-          "commandsOne": "1 Befehl",
-          "commands": "{{value0}} Befehle",
-          "keybindingsOne": "1 Tastenkürzel",
-          "keybindings": "{{value0}} Tastenkürzel",
-          "vmRecipesOne": "1 VM-Rezept",
-          "vmRecipes": "{{value0}} VM-Rezepte",
-          "panelsOne": "1 Panel",
-          "panels": "{{value0}} Panels",
-          "eventsOne": "1 Ereignisabonnement",
-          "events": "{{value0}} Ereignisabonnements",
-          "worker": "Hintergrundprozess",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "Enthält",
-          "noContributions": "Nur Manifest-Metadaten",
-          "capabilities": "Angeforderter Zugriff",
-          "workerWarning": "Berechtigungen begrenzen die Nutzung der Orca-API durch dieses Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
-          "blocked": "Die Sicherheitsliste von Orca blockiert dieses Plugin: {{value0}}",
-          "current": "Genau dieser Plugin-Inhalt ist bereits installiert.",
-          "close": "Schließen",
-          "cancel": "Abbrechen",
-          "update": "Plugin aktualisieren",
-          "install": "Plugin installieren"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Dieser Marktplatz konnte nicht hinzugefügt werden. Git-URL, Referenz und Git-Zugangsdaten prüfen.",
@@ -11848,21 +11815,15 @@
           "done": "Abschließen"
         },
         "PluginRemoveDialog": {
-          "title": "Plugin entfernen?",
-          "description": "Dadurch werden {{value0}} und die gespeicherten Plugin-Daten von diesem Computer entfernt. Das Plugin kann später erneut installiert werden.",
           "cancel": "Abbrechen",
           "remove": "Plugin entfernen"
         },
         "PluginRollbackDialog": {
-          "title": "Plugin zurücksetzen?",
-          "description": "Dadurch wird {{value0}} deaktiviert und die vorherige unveränderliche Version wiederhergestellt. Wenn diese Version andere Zugriffsrechte anfordert oder andere Anweisungen enthält, ist in Orca eine erneute Prüfung erforderlich.",
           "cancel": "Abbrechen",
           "confirm": "Plugin zurücksetzen"
         },
         "PluginsSettingsSection": {
           "systemLabel": "Plugin-System",
-          "systemDescription": "Erkennt installierte Plugins und ermöglicht deren einzelne Aktivierung. Vor der Prüfung und Aktivierung wird nichts ausgeführt. Hintergrundprozesse laufen immer auf diesem Computer; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet.",
-          "featureOff": "Das Plugin-System aktivieren, um installierte Plugins anzuzeigen und zu verwalten. Bereits installierte Plugins bleiben auf dem Datenträger und sind deaktiviert, solange das System ausgeschaltet ist.",
           "loading": "Plugins werden geladen…",
           "noInstalledResultsTitle": "Keine passenden Plugins",
           "noInstalledResults": "Keine installierten Plugins entsprechen dieser Suche.",
@@ -11872,37 +11833,18 @@
           "settingsUpdateFailed": "Plugin-Einstellungen konnten nicht gespeichert werden.",
           "install": "Plugin installieren",
           "title": "Plugins",
-          "experimental": "Experimentell",
           "description": "Orca-Plugins installieren und verwalten. Plugins laufen auf diesem Computer, auch für SSH-Arbeitsbereiche.",
           "logsFailed": "Plugin-Protokolle konnten nicht geladen werden.",
           "rollbackFailed": "Dieses Plugin konnte nicht zurückgesetzt werden. Möglicherweise ist keine vorherige unveränderliche Version verfügbar."
         },
         "PluginSettingsRow": {
-          "blocked": "Blockiert",
-          "needsReview": "Prüfung erforderlich",
-          "restarting": "Wird neu gestartet",
-          "invalid": "Ungültig",
-          "error": "Fehler",
-          "disabled": "Deaktiviert",
-          "running": "Wird ausgeführt",
-          "enabled": "Aktiviert",
           "loadingLogs": "Protokolle werden geladen…",
           "noLogs": "Keine Protokollzeilen aufgezeichnet.",
           "logCount": "Letzte {{value0}} von bis zu 200 gespeicherten Zeilen",
-          "reviewAndEnable": "Prüfen und aktivieren",
-          "official": "Offiziell",
-          "dev": "Entwicklung",
           "bundled": "Mitgeliefert",
-          "noDescription": "Keine Beschreibung angegeben.",
           "killListMessage": "Die Sicherheitsliste von Orca hat dieses Plugin deaktiviert: {{value0}}",
-          "viewAdvisory": "Sicherheitshinweis anzeigen",
-          "runtimeError": "Das Plugin wurde nach einem Aktivierungsfehler oder einem Fehler im Hintergrundprozess gestoppt.",
-          "restartCount": " · {{value0}} Neustarts",
           "moreActions": "Weitere Aktionen für {{value0}}",
-          "hideLogs": "Protokolle ausblenden",
           "viewLogs": "Protokolle anzeigen",
-          "rollback": "Zurücksetzen",
-          "remove": "Entfernen",
           "disableLabel": "{{value0}} deaktivieren",
           "enableLabel": "{{value0}} aktivieren",
           "invalidPluginError": "Das Plugin-Manifest oder die installierten Dateien sind ungültig. Das Plugin korrigieren und anschließend aktualisieren."
@@ -20189,6 +20131,38 @@
       "patch": "Der Diff zwischen dem Branch und dem Basis-Branch für die Generierung der PR-Details.",
       "stagedFiles": "Eine durch Zeilenumbrüche getrennte Liste der vorgemerkten Dateien für die Generierung der Commit-Nachricht.",
       "stagedPatch": "Der vorgemerkte Git-Patch für die Generierung der Commit-Nachricht."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "Der Prompt für {{label}} ist für die Windows-Befehlszeile zu groß. Weniger Änderungen vormerken und erneut versuchen.",
+        "promptTooLargeForArgument": "Der Prompt für {{label}} ist zu groß, um ihn als einzelnes Befehlszeilenargument zu übergeben. Weniger Änderungen vormerken und erneut versuchen.",
+        "agentCouldNotStart": "{{label}} konnte nicht gestartet werden. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentFailedToStart": "Der Start von {{label}} ist fehlgeschlagen. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentBinaryNotFound": "{{binary}} wurde in PATH nicht gefunden. {{label}} installieren, um KI-generierte Commit-Nachrichten zu nutzen.",
+        "timedOut": "Zeitüberschreitung bei der Generierung nach {{seconds}} s.",
+        "outputTooLarge": "Der CLI-Befehl von {{label}} hat zu viel Ausgabe erzeugt. Die CLI-Konfiguration des Agenten prüfen und erneut versuchen.",
+        "windowsBatchUnsafeArguments": "{{label}} wird über ein Windows-Batchskript ausgeführt, das den mehrzeiligen Prompt nicht als Argument annehmen kann. In den Einstellungen die ausführbare Datei des Agenten angeben oder einen benutzerdefinierten Befehl ohne {prompt} verwenden, damit Orca den Prompt über stdin sendet.",
+        "cliTerminated": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet.",
+        "cliTerminatedWithDetail": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet: {{detail}}",
+        "cliFailed": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen.",
+        "cliFailedWithDetail": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen: {{detail}}",
+        "agentReportedError": "{{label}} hat einen Fehler gemeldet.",
+        "emptyCommitMessage": "{{label}} hat eine leere Nachricht zurückgegeben.",
+        "emptyCommitMessageWithDetail": "{{label}} hat eine leere Nachricht zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} hat leere Details zurückgegeben.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} hat leere Details zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyJiraSummary": "{{label}} hat eine leere Zusammenfassung zurückgegeben.",
+        "emptyJiraSummaryWithDetail": "{{label}} hat eine leere Zusammenfassung zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "commitMessageUnparseable": "Die generierte Commit-Nachricht konnte nicht geparst werden.",
+        "pullRequestDetailsUnparseable": "Die generierten Pull-Request-Details konnten nicht geparst werden.",
+        "jiraSummaryEmptyAfterSanitization": "Die generierte Zusammenfassung war nach der Bereinigung leer.",
+        "jiraDescriptionRequired": "Eine Beschreibung ist erforderlich.",
+        "jiraAccountDisconnected": "Das ausgewählte Jira-Konto auf diesem Host erneut verbinden.",
+        "jiraSummaryBusyInOtherDraft": "In einem anderen Entwurf wird bereits ein Jira-Titel generiert.",
+        "stagedChangesReadFailed": "Vorgemerkte Änderungen konnten nicht gelesen werden.",
+        "noStagedChanges": "Keine vorgemerkten Änderungen zum Zusammenfassen.",
+        "noBranchChanges": "Keine Änderungen im Branch zum Zusammenfassen."
+      }
     }
   },
   "agentsSidebarIntro": {
@@ -20799,6 +20773,15 @@
     "openDefault": "In Standard-App öffnen"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch für diesen Worktree",
+      "existing": "Bestehender Branch",
+      "existingHint": "Neue Commits werden diesem Branch hinzugefügt.",
+      "new": "Neuer Branch",
+      "newHint": "Einen neuen lokalen Branch erstellen",
+      "newName": "Name des neuen Branches",
+      "automaticName": "Automatischer Name"
+    },
     "links": {
       "foreignReview": "Dieses Review gehört zu einem anderen Repository. Reviews aus dem Repository dieses Arbeitsbereichs hinzufügen.",
       "repositoryLoading": "Die Repository-Identität wird noch geladen. Erneut versuchen, sobald sie verfügbar ist.",
@@ -21787,6 +21770,39 @@
     "viewed": {
       "markFile": "{{path}} als angesehen markieren",
       "unmarkFile": "Markierung „Angesehen“ für {{path}} aufheben"
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Zum Starten der Automatisierung war kein Orca-Fenster verfügbar.",
+      "unevaluableSchedule": "Orca konnte diese Automatisierung nicht auswerten und hat diese Ausführung übersprungen.",
+      "noRunnableHost": "Dieser Automatisierung fehlt ein Host zur Ausführung.",
+      "wslMoveInProgress": "Das Projekt dieser Automatisierung wird auf seinen WSL-Host verschoben. Deshalb hat Orca diese Ausführung übersprungen. Die Ausführungen werden nach Abschluss des Verschiebens fortgesetzt.",
+      "wslMoveOwnedByHost": "Das Projekt dieser Automatisierung läuft jetzt auf seinem WSL-Host, der die Automatisierung dort ausführt. Orca führt diese lokale Kopie nicht mehr aus.",
+      "missedGraceWindow": "Bei der nächsten Prüfung durch Orca war die Nachholfrist für diese verpasste Ausführung bereits abgelaufen.",
+      "targetMissing": "Der Host der Automatisierung ist nicht mehr registriert. Daher gibt es für diese Automatisierung keinen Ausführungsort.",
+      "targetReplaced": "Der Host der Automatisierung wurde entfernt und erneut registriert. Daher muss diese Automatisierung vor der Ausführung erneut zugeordnet werden.",
+      "workspaceHostAmbiguous": "Der Arbeitsbereich der Automatisierung erstreckt sich über mehrere Hosts. Orca kann daher nicht bestimmen, auf welchem Host sie ausgeführt werden soll.",
+      "legacyTwinHosts": "Diese Automatisierung wurde gespeichert, bevor Orca ihren ausführenden Host erfasste. Ihr Projekt befindet sich auf mehreren Hosts. Die Automatisierung öffnen und den Host auswählen, auf dem sie ausgeführt werden soll.",
+      "targetUnavailable": "Das Ausführungsziel der Automatisierung ist nicht mehr verfügbar.",
+      "remoteSchedulingUnavailable": "Die Zeitplanung für Automatisierungen auf Remote-Servern ist mit diesem Orca-Client noch nicht verfügbar. Diese Automatisierung auf dem Remote-Server ausführen oder Orca aktualisieren, sobald dauerhafte Remote-Zeitplanung verfügbar ist.",
+      "projectSetupMissing": "Das Projekt ist auf dem ausgewählten Automatisierungs-Host nicht mehr eingerichtet.",
+      "targetSetupMismatch": "Das Ausführungsziel der Automatisierung stimmt nicht mehr mit der ausgewählten Host-Einrichtung des Projekts überein.",
+      "repoUnavailable": "Das Repository für den ausgewählten Automatisierungs-Host ist nicht mehr verfügbar.",
+      "repoDetached": "Das Repository ist dem ausgewählten Automatisierungs-Host nicht mehr zugeordnet.",
+      "projectPathChanged": "Der Projektpfad für den ausgewählten Automatisierungs-Host hat sich geändert.",
+      "automationChanged": "Die Automatisierung wurde geändert, bevor diese Ausführung gestartet werden konnte.",
+      "destinationChanged": "Das Ziel der Automatisierung wurde geändert, bevor diese Ausführung gestartet werden konnte.",
+      "hooksReviewBlocked": "Der Agent wartet darauf, dass neue oder geänderte Hooks überprüft werden („Hooks need review“). Diese Ausführung öffnen und den Hooks vertrauen oder sie entfernen. Geplante Ausführungen laufen weiter und sind erfolgreich, sobald nichts mehr überprüft werden muss.",
+      "agentNeverStarted": "Der Agent der Automatisierung wurde nach dem Absenden des Prompts nie gestartet.",
+      "agentNoCompletion": "Der Agent der Automatisierung hat keinen Abschluss gemeldet.",
+      "watchTimedOut": "Orca hat die Überwachung dieser Ausführung nach 6 Stunden ohne Abschlusssignal beendet.",
+      "projectSetupState": {
+        "notSetUp": "Das Projekt ist auf dem ausgewählten Automatisierungs-Host nicht eingerichtet.",
+        "settingUp": "Das Projekt wird auf dem ausgewählten Automatisierungs-Host noch eingerichtet.",
+        "error": "Die Projekteinrichtung auf dem ausgewählten Automatisierungs-Host ist fehlgeschlagen.",
+        "unsupported": "Der ausgewählte Automatisierungs-Host unterstützt dieses Projekt nicht."
+      }
     }
   },
   "codeHost": {

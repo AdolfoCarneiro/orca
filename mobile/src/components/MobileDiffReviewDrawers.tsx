@@ -5,6 +5,7 @@ import type { DiffComment } from '../../../src/shared/diff-comment-types'
 import { colors } from '../theme/mobile-theme'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import type { Translate } from '../i18n/mobile-i18n'
+import { sendSheetMessage } from './mobile-diff-review-send-copy'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import type { ActionSheetAction } from './ActionSheetModal'
 import { ActionSheetContent } from './ActionSheetModal'
@@ -117,6 +118,7 @@ function useSendActions(
     const terminalActions =
       load.kind === 'ready' || load.kind === 'error'
         ? load.terminals.map((terminal) => ({
+            id: `terminal:${terminal.terminal}`,
             label: t('components.diffReviewDrawers.terminalLabel', '{{title}} ({{id}})', {
               title: terminal.title || t('components.diffReviewDrawers.terminal', 'Terminal'),
               id: terminal.terminal.slice(0, 6)
@@ -130,6 +132,7 @@ function useSendActions(
     return [
       ...terminalActions,
       {
+        id: 'newAgentSession',
         label: t('components.diffReviewDrawers.newAgentSession', 'New Agent Session'),
         icon: Plus,
         disabled: comments.length === 0 || controller.agentLaunchAvailability !== 'available',
@@ -149,6 +152,7 @@ function useSendActions(
         onPress: () => void controller.createTerminalAndSend(comments)
       },
       {
+        id: 'copyNotes',
         label: t('components.diffReviewDrawers.copyNotes', 'Copy Notes'),
         icon: Copy,
         disabled:
@@ -165,6 +169,7 @@ function useOverflowActions(controller: ReturnType<typeof useMobileDiffReviewCon
   return useMemo<ActionSheetAction[]>(
     () => [
       {
+        id: 'copyNotes',
         label: t('components.diffReviewDrawers.copyNotes', 'Copy Notes'),
         icon: Copy,
         disabled:
@@ -172,12 +177,14 @@ function useOverflowActions(controller: ReturnType<typeof useMobileDiffReviewCon
         onPress: () => void controller.copyNotes()
       },
       {
+        id: 'sendUnsentNotes',
         label: t('components.diffReviewDrawers.sendUnsentNotes', 'Send Unsent Notes'),
         icon: Send,
         disabled: controller.unsentComments.length === 0,
         onPress: () => void controller.openSendSheet()
       },
       {
+        id: 'clearSentNotes',
         label: t('components.diffReviewDrawers.clearSentNotes', 'Clear Sent Notes'),
         icon: Trash2,
         disabled:
@@ -187,6 +194,7 @@ function useOverflowActions(controller: ReturnType<typeof useMobileDiffReviewCon
         onPress: () => void controller.clearSentNotes()
       },
       {
+        id: 'stageReviewedFiles',
         label: t('components.diffReviewDrawers.stageReviewedFiles', 'Stage Reviewed Files'),
         icon: Check,
         disabled: controller.reviewedUnstagedCount === 0 || controller.busyAction !== null,
@@ -194,6 +202,7 @@ function useOverflowActions(controller: ReturnType<typeof useMobileDiffReviewCon
         onPress: () => void controller.stageReviewedFiles()
       },
       {
+        id: 'markUnreviewed',
         label: t('components.diffReviewDrawers.markUnreviewed', 'Mark Unreviewed'),
         icon: X,
         disabled:
@@ -206,6 +215,7 @@ function useOverflowActions(controller: ReturnType<typeof useMobileDiffReviewCon
       ...(sessionTabsAvailable
         ? [
             {
+              id: 'openInSession',
               label: t('components.diffReviewDrawers.openInSession', 'Open in Session'),
               icon: FileText,
               disabled: !controller.currentItem || controller.currentItem.scope === 'branch',
@@ -216,21 +226,6 @@ function useOverflowActions(controller: ReturnType<typeof useMobileDiffReviewCon
     ],
     [controller, sessionTabsAvailable, t]
   )
-}
-
-function sendSheetMessage(
-  t: Translate,
-  controller: ReturnType<typeof useMobileDiffReviewController>,
-  load: SendSheetState
-): string | undefined {
-  const count = controller.unsentComments.length
-  return load.kind === 'loading'
-    ? t('components.diffReviewDrawers.loadingSessions', 'Loading agent sessions...')
-    : load.kind === 'error'
-      ? load.message
-      : count === 1
-        ? t('components.diffReviewDrawers.unsentNotes_one', '{{count}} unsent notes', { count })
-        : t('components.diffReviewDrawers.unsentNotes_other', '{{count}} unsent notes', { count })
 }
 
 function NoteComposerContent({ controller, composer }: Props & { composer: ComposerState }) {

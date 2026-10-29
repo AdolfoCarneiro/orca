@@ -20,7 +20,7 @@ import {
   UI_LANGUAGE_SPANISH
 } from '../../shared/ui-language'
 import { mainI18n, setMainPluginLanguagePacks, setMainUiLanguage, translateMain } from './main-i18n'
-import { pluginLanguageResourceId } from '../../shared/plugins/plugin-language-pack-artifact'
+import { pluginLanguageResourceId } from '../../shared/plugins/artifacts/plugin-language-pack-artifact'
 
 describe('main-i18n lazy locale loading', () => {
   afterEach(() => vi.restoreAllMocks())
@@ -112,14 +112,15 @@ describe('main-i18n lazy locale loading', () => {
   })
 
   it('loads a contributed catalog for native menus and dialogs', async () => {
-    const id = 'plugin:orca-samples.portuguese/pt-BR' as const
+    const id = 'plugin:samples.portuguese/pt-BR' as const
     setMainPluginLanguagePacks([
       {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
-        pluginKey: 'orca-samples.portuguese',
+        pluginKey: 'samples.portuguese',
         locale: 'pt-BR',
-        catalog: { menu: { file: 'Arquivo Orca' } }
+        catalog: { menu: { file: 'Arquivo Orca' } },
+        coverage: 100
       }
     ])
 
@@ -138,6 +139,7 @@ describe('main-i18n lazy locale loading', () => {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
         pluginKey,
+        coverage: 100,
         locale: 'pt-BR',
         catalog: { menu: { file: pluginKey } }
       }
@@ -160,6 +162,7 @@ describe('main-i18n lazy locale loading', () => {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
         pluginKey: 'orca-samples.russian',
+        coverage: 100,
         locale: 'ru-RU',
         catalog: {
           terminals_one: '{{count}} one',
