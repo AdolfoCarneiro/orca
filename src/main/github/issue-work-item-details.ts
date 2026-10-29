@@ -54,7 +54,10 @@ const issueItemSchema = z.object({
   url: z.string(),
   updatedAt: z.string(),
   author: z.object({ __typename: z.string(), login: z.string(), avatarUrl: z.string() }).nullable(),
-  assignees: z.object({ pageInfo: z.object({ hasNextPage: z.literal(false) }) }),
+  assignees: z.object({
+    nodes: z.array(z.object({ login: z.string().min(1) })),
+    pageInfo: z.object({ hasNextPage: z.literal(false) })
+  }),
   labels: z.object({
     nodes: z.array(z.object({ name: z.string() })),
     pageInfo: z.object({ hasNextPage: z.literal(false) })
@@ -66,7 +69,7 @@ type GraphQLIssueDetailsResponse = {
     repository?: {
       issue?: {
         body?: string | null
-        assignees?: { nodes?: { login?: string; avatarUrl?: string; name?: string | null }[] }
+        assignees?: { nodes?: (Partial<GitHubAssignableUser> | null)[] | null }
         participants?: { nodes?: GitHubAssignableUser[] }
         comments?: {
           nodes?: {
@@ -159,7 +162,7 @@ export async function getIssueDetailsViaGraphQL(
       }))
     const assigneeUsers: GitHubAssignableUser[] = (issue.assignees?.nodes ?? [])
       .filter((assignee): assignee is { login: string; avatarUrl?: string; name?: string | null } =>
-        Boolean(assignee.login)
+        Boolean(assignee?.login)
       )
       .map((assignee) => ({
         login: assignee.login,
@@ -203,12 +206,7 @@ export async function getIssueBodyAndComments(
   repository: GitHubApiRepository | null,
   connectionId?: string | null,
   localGitOptions: LocalGitExecOptions = {}
-): Promise<{
-  body: string
-  comments: PRComment[]
-  assignees: string[]
-  timelineItems: GitHubIssueTimelineItem[]
-}> {
+): Promise<Pick<CollapsedIssueDetails, 'body' | 'comments' | 'assignees' | 'timelineItems'>> {
   const ghOptions = {
     ...ghRepoExecOptions(githubRepoContext(repoPath, connectionId, localGitOptions)),
     ...githubHostExecOptions(repository)

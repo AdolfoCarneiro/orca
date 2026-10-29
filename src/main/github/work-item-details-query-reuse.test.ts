@@ -79,7 +79,13 @@ beforeEach(() => {
         ? { data: { repository: { issue } } }
         : args.some((arg) => arg.includes('/timeline?'))
           ? []
-          : { number: 5, title: 'REST issue', state: 'open', labels: [{ name: 'all labels' }] }
+          : {
+              number: 5,
+              title: 'REST issue',
+              state: 'open',
+              labels: [{ name: 'all labels' }],
+              assignees: [{ login: 'rest-assigned', name: 'REST Assigned User' }]
+            }
     )
   }))
 })
@@ -166,6 +172,31 @@ it('keeps ordinary metadata lookups on their existing REST path', async () => {
   expect(result.item?.title).toBe('REST issue')
   expect(mocks.exec).toHaveBeenCalledTimes(1)
   expect(mocks.exec.mock.calls[0][0]).toEqual(['api', 'repos/team/widgets/issues/5'])
+})
+
+it.each([
+  { reason: 'missing nodes', nodes: undefined },
+  { reason: 'null nodes', nodes: null },
+  { reason: 'null entry', nodes: [null] },
+  { reason: 'missing login', nodes: [{}] },
+  { reason: 'empty login', nodes: [{ login: '' }] }
+])('retains conversation and recovers issue assignees for $reason', async ({ nodes }) => {
+  issue.assignees = { nodes, pageInfo: { hasNextPage: false } }
+  const result = await getWorkItemWithRepository('/repo', 5, 'issue', undefined, {}, 'origin', true)
+  expect(result.item).toMatchObject({
+    title: 'REST issue',
+    assignees: [{ login: 'rest-assigned', name: 'REST Assigned User' }]
+  })
+  expect(result.issueDetails).toMatchObject({
+    body: 'Description',
+    comments: [{ id: 10, isBot: true }],
+    timelineItems: []
+  })
+  expect(mocks.exec.mock.calls.map(([args]) => args)).toEqual([
+    expect.arrayContaining(['api', 'graphql', 'includeItem=true']),
+    expect.arrayContaining(['api', 'repos/team/widgets/issues/5/timeline?per_page=100&page=1']),
+    ['api', 'repos/team/widgets/issues/5']
+  ])
 })
 
 it('does not query an unavailable explicitly selected source', async () => {
