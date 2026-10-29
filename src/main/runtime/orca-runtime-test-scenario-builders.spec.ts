@@ -217,6 +217,7 @@ function makePostRevealWorkerRecoveryHarness(
   runtime.setOrchestrationDb({
     reconcileMissingWorkerTerminal: vi.fn(),
     getActiveDispatchForTerminal: () => undefined,
+    findActiveRemoteAttachmentForPane: () => undefined,
     listLegacyWorkerTerminalRecoveryRows: () => [
       {
         dispatch_id: 'dispatch-post-reveal',
