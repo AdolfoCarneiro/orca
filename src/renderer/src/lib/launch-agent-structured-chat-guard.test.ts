@@ -25,12 +25,21 @@ import { createElement } from 'react'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { buildNewTabAgentMenuRows } from '../../../shared/agent-launch-picker-rows'
 import type * as StructuredLaunch from './launch-structured-agent-session'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const launchErrorMocks = structuredLaunchErrorMocks()
 
 // No initial chat mode proves availability rejection preceded terminal-tab adoption.
 describe('structured chat adoption guard on the launch path', () => {
+  let restoreCatalogStore: (() => void) | undefined
+  beforeEach(async () => {
+    const { registerStructuredSelectionCatalogStore } =
+      await import('./structured-agent-session-selection-controller')
+    restoreCatalogStore = registerStructuredSelectionCatalogStore({
+      read: () => ({ ...store, runtimeEnvironmentCatalogHydrated: true }),
+      subscribe: () => () => {}
+    })
+  })
   afterEach(async () => {
     cleanup()
     vi.restoreAllMocks()
@@ -40,6 +49,7 @@ describe('structured chat adoption guard on the launch path', () => {
       cancelStructuredAgentLaunch('wt-1', sessionId)
       retireStructuredAgentSessionLaunchCancellationTombstone('wt-1', sessionId)
     }
+    restoreCatalogStore?.()
   })
 
   let pickerMenu: typeof PickerMenu
