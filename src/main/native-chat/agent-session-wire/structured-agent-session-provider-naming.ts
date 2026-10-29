@@ -18,6 +18,7 @@ export function createStructuredAgentSessionProviderNaming(deps: {
   const logger = neverThrowingStructuredAgentSessionLogger(deps.logger)
   // A chat's running push; `again` asks it to read the record once more when it finishes.
   const running = new Map<string, { again: boolean; done: Promise<void> }>()
+  let stopped = false
 
   const pushOnce = async (sessionId: string): Promise<void> => {
     const record = deps.store.getRecord(sessionId)
@@ -54,6 +55,9 @@ export function createStructuredAgentSessionProviderNaming(deps: {
   return {
     /** Never throws and never delays the caller; the promise is for tests and teardown. */
     push(sessionId: string): Promise<void> {
+      if (stopped) {
+        return Promise.resolve()
+      }
       const current = running.get(sessionId)
       if (current) {
         current.again = true
@@ -63,6 +67,11 @@ export function createStructuredAgentSessionProviderNaming(deps: {
       running.set(sessionId, entry)
       entry.done = drain(sessionId, entry)
       return entry.done
+    },
+    /** Close admission synchronously; accepted updates finish before their adapters close. */
+    async stop(): Promise<void> {
+      stopped = true
+      await Promise.all([...running.values()].map((entry) => entry.done))
     }
   }
 }

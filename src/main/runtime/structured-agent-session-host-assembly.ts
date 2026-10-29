@@ -149,10 +149,12 @@ export async function installOnJournal(
     journalDatabase,
     waitForRecovery: lifecycle.drain,
     stopBackgroundWork: () => {
+      const namingStopped = providerNaming.stop()
       unbindEnvironment()
       stopCommands()
       stopVisualsSweep?.()
       modelCatalog?.stop()
+      return namingStopped
     }
   }
 }
