@@ -162,15 +162,15 @@ export function setWebSessionTabsRecordEntry<K extends WebSessionTabsBatchRecord
 ): NonNullable<WebSessionTabsSyncState[K]> {
   const edit = batchContext?.sourceEdit
   if (edit && Object.hasOwn(SESSION_SOURCE_KINDS, recordKey)) {
-    // SAFETY: every source field in the batch-record union is keyed in the exhaustive kind table.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: every source field in the batch-record union is keyed in the exhaustive kind table.
     const field = recordKey as RecordKey<WebSessionTabsSyncState>
     if (remove) {
       edit.remove(field, key)
     } else {
-      // SAFETY: field and value come from the same batch-record key.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: field and value come from the same batch-record key.
       edit.set(field, key, value as Entry<WebSessionTabsSyncState, typeof field>)
     }
-    // SAFETY: this branch reads the exact admitted field's current Record.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this branch reads the exact admitted field's current Record.
     const next = edit.read(field) as NonNullable<WebSessionTabsSyncState[K]>
     Object.assign(state, { [recordKey]: next })
     batchContext.changedRecords.add(recordKey)
@@ -183,7 +183,7 @@ export function setWebSessionTabsRecordEntry<K extends WebSessionTabsBatchRecord
   if (remove) {
     delete next[key]
   } else {
-    // SAFETY: removal uses undefined; assignment carries the selected Record entry type.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: removal uses undefined; assignment carries the selected Record entry type.
     next[key] = value as NonNullable<WebSessionTabsSyncState[K]>[string]
   }
   return next
@@ -202,11 +202,12 @@ export function withWorktreeEntry<T>(
   if (equal(record[key], value)) {
     return record
   }
-  // SAFETY: the caller's equality and value describe the selected batch Record's entry type.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the caller's equality and value describe the selected batch Record's entry type.
   return setWebSessionTabsRecordEntry(
     state,
     recordKey,
     key,
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the selected batch key determines this same entry value's type.
     value as NonNullable<WebSessionTabsSyncState[typeof recordKey]>[string],
     batchContext,
     value === null && deleteNull
