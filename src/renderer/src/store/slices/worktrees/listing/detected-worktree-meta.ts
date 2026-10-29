@@ -11,7 +11,8 @@ import {
 } from '../../../../../../shared/execution-host'
 import { parseWorkspaceKey } from '../../../../../../shared/workspace-scope'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../../../../shared/sidebar-inputs-switch'
-import { folderWorkspaceToWorktree } from '../../../../../../shared/folder-workspace-worktree'
+import { getFolderWorkspaceWorktree } from '../../../../../../shared/folder-workspace-worktree'
+export { getFolderWorkspaceWorktree }
 import {
   floatingWorkspaceToWorktree,
   isFloatingWorkspaceId
@@ -26,7 +27,6 @@ import {
   selectWorktreesByRepo
 } from '../../../workspace-record-selectors'
 
-const folderWorkspaceWorktreeCache = new WeakMap<FolderWorkspace, Worktree>()
 // Singleton floating workspace needs one cached row while resolved cwd stays equal, preserving selector identity.
 let floatingWorkspaceWorktreeCache: { path: string; worktree: Worktree } | null = null
 
@@ -74,17 +74,6 @@ export function folderWorkspaceMatchesHost(
   executionHostId: ExecutionHostId
 ): boolean {
   return getRepoExecutionHostId(workspace) === executionHostId
-}
-
-/** Stable synthetic row per folder workspace object, so selectors keep referential equality. */
-export function getFolderWorkspaceWorktree(folderWorkspace: FolderWorkspace): Worktree {
-  const cached = folderWorkspaceWorktreeCache.get(folderWorkspace)
-  if (cached) {
-    return cached
-  }
-  const worktree = folderWorkspaceToWorktree(folderWorkspace)
-  folderWorkspaceWorktreeCache.set(folderWorkspace, worktree)
-  return worktree
 }
 
 export function findKnownWorktreeById(

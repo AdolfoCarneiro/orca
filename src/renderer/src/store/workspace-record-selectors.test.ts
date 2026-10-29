@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { hostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 import { folderWorkspaceKey } from '../../../shared/workspace-scope'
+import {
+  getFolderWorkspaceWorktree,
+  folderWorkspaceToWorktree
+} from '../../../shared/folder-workspace-worktree'
+import { getFolderWorkspaceWorktree as metadataFolderRow } from './slices/worktrees/listing/detected-worktree-meta'
 import type { AppState } from './types'
 import { resolveIndexedFolderWorkspaceOwner } from '@/lib/worktree-runtime-owner-index'
 import { makeFolderWorkspace, makeWorktree } from './slices/worktrees-slice-test-fixtures'
@@ -71,9 +76,19 @@ describe('selectWorkspaceByHostTarget', () => {
   it('matches a folder workspace on its host only', () => {
     const state = makeState()
     const key = folderWorkspaceKey('folder-1')
-    expect(
-      selectWorkspaceByHostTarget(state, hostWorktreeTarget({ id: key, hostId: 'local' }))?.path
-    ).toBe(folder.folderPath)
+    const target = hostWorktreeTarget({ id: key, hostId: 'local' })
+    const row = selectWorkspaceByHostTarget(state, target)
+    expect(row?.path).toBe(folder.folderPath)
+    expect(metadataFolderRow).toBe(getFolderWorkspaceWorktree)
+    expect(row).toBe(metadataFolderRow(folder))
+    expect(selectWorkspaceByHostTarget(state, target)).toBe(row)
+    const replaced = selectWorkspaceByHostTarget(
+      makeState({ folderWorkspaces: [{ ...folder, folderPath: '/changed' }] }),
+      target
+    )
+    expect(replaced).not.toBe(row)
+    expect(replaced?.path).toBe('/changed')
+    expect(folderWorkspaceToWorktree(folder)).not.toBe(row)
     expect(
       selectWorkspaceByHostTarget(state, hostWorktreeTarget({ id: key, hostId: 'ssh:build-box' }))
     ).toBe(undefined)

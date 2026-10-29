@@ -1,8 +1,10 @@
 import { useContext } from 'react'
 import { NativeChatTextAttachmentOpener } from './NativeChatTextAttachments'
 import { isCommittedChatAttachmentCandidate } from '../../../../shared/native-chat-text-attachment-references'
-import { useNativeChatPastedTextScope } from './native-chat-pasted-text-state'
-import { useNativeChatPastedTextState } from './native-chat-pasted-text-state'
+import {
+  useNativeChatPastedTextScope,
+  useNativeChatPastedTextState
+} from './native-chat-pasted-text-state'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { FileX, Hourglass } from 'lucide-react'
 import { translate } from '@/i18n/i18n'

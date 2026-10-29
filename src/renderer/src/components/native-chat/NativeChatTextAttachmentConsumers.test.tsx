@@ -4,7 +4,10 @@ import { useQueuedEditFixture, withText, writeSpy } from './structured-queued-ed
 import { NativeChatQueuedMessageComposer } from './NativeChatQueuedMessageComposer'
 import { NativeChatComposer } from './NativeChatComposer'
 import { fileReferenceContent } from './native-chat-prompt-document'
-import { NativeChatMarkdownImageOwnerProvider } from './native-chat-markdown-image-owner'
+import {
+  NativeChatMarkdownImageOwnerProvider,
+  NativeChatMarkdownImageOwnerContext
+} from './native-chat-markdown-image-owner'
 import { useAppStore } from '@/store'
 import {
   nativeChatFanoutFixture,
@@ -18,7 +21,6 @@ import type { NativeChatStructuredComposerTransport } from './native-chat-compos
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 import { NativeChatPromptEditor } from './NativeChatPromptEditor'
 import { NativeChatTextAttachmentScope } from './NativeChatTextAttachments'
 import { useNativeChatPastedTextFile } from './use-native-chat-pasted-text-file'

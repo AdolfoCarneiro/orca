@@ -6,7 +6,8 @@ import {
 } from './native-chat-markdown-image-owner'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { useAppStore } from '@/store'
+import * as appStore from '@/store'
+import * as githubRepoHooks from './native-chat-github-repo'
 import type { AppState } from '@/store/types'
 import { NativeChatTextAttachmentScope } from './NativeChatTextAttachments'
 import {
@@ -26,6 +27,57 @@ import { FLOATING_TERMINAL_WORKTREE_ID, getDefaultSettings } from '../../../../s
 vi.mock('./NativeChatTextAttachmentPreview', () => ({
   NativeChatTextAttachmentPreview: () => null
 }))
+// STA-12852 owns incoming link-peek filter work; its preceding owner/index work still counts.
+let incomingHookDepth = 0,
+  incomingSelectorDepth = 0,
+  repoFilterDepth = 0
+const realGithubRepoHook = githubRepoHooks.useNativeChatGitHubRepo
+vi.spyOn(githubRepoHooks, 'useNativeChatGitHubRepo').mockImplementation((...args) => {
+  incomingHookDepth++
+  try {
+    return realGithubRepoHook(...args)
+  } finally {
+    incomingHookDepth--
+  }
+})
+const realStore = appStore.useAppStore
+const storeSpy = vi.spyOn(appStore, 'useAppStore').mockImplementation((selector) => {
+  if (!incomingHookDepth || !selector) {
+    return selector ? realStore(selector) : realStore()
+  }
+  return realStore((state) => {
+    incomingSelectorDepth++
+    try {
+      return selector(state)
+    } finally {
+      incomingSelectorDepth--
+    }
+  })
+})
+Object.assign(storeSpy, realStore)
+const useAppStore = appStore.useAppStore
+
+function instrumentRepoFilter<T>(rows: T[]): T[] {
+  Object.defineProperty(rows, 'filter', {
+    configurable: true,
+    value(this: T[], predicate: (row: T, index: number, array: T[]) => unknown, thisArg?: unknown) {
+      return Array.prototype.filter.call(
+        this,
+        function (this: unknown, row: T, index: number, array: T[]) {
+          repoFilterDepth++
+          try {
+            return predicate.call(this, row, index, array)
+          } finally {
+            repoFilterDepth--
+          }
+        },
+        thisArg
+      )
+    }
+  })
+  return rows
+}
+
 const ownerHook = vi.spyOn(runtimeContextHooks, 'useNativeChatImageRuntimeContext')
 const initial = useAppStore.getInitialState()
 afterEach(() => {
@@ -371,14 +423,25 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
     async (kind) => {
       for (const n of [10, 100]) {
         let operations = 0,
+          rawOperations = 0,
+          excludedOperations = 0,
           commits = 0,
           renders = 0
-        const meter = <T extends object, K extends keyof T>(row: T, key: K): T => {
+        const meter = <T extends object, K extends keyof T>(
+          row: T,
+          key: K,
+          isExcluded = () => false
+        ): T => {
           const value = row[key]
           Object.defineProperty(row, key, {
             enumerable: true,
             get: () => {
-              operations++
+              rawOperations++
+              if (isExcluded()) {
+                excludedOperations++
+              } else {
+                operations++
+              }
               return value
             }
           })
@@ -429,7 +492,8 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
                 repoFixture({
                   executionHostId: index % 2 ? 'runtime:owner-a' : 'local'
                 }),
-                'id'
+                'id',
+                () => incomingSelectorDepth > 0 && repoFilterDepth > 0
               )
             )
           : [repoFixture({ executionHostId: 'runtime:owner-a' })]
@@ -437,7 +501,7 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
           {
             ...initial,
             ...fixture,
-            repos,
+            repos: instrumentRepoFilter(repos),
             worktreesByRepo: folderCase || kind === 'detected-twins' ? {} : { repo: [known] },
             detectedWorktreesByRepo: folderCase
               ? {}
@@ -460,11 +524,15 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
           return null
         }
         operations = 0
+        rawOperations = 0
+        excludedOperations = 0
         ownerHook.mockClear()
         const view = mountScopes(n, mode, () => commits++, Probe)
         await act(async () => {})
         expect(ownerHook).toHaveBeenCalledTimes(n)
         const bound = 20 * n
+        expect(rawOperations).toBe(operations + excludedOperations)
+        expect(excludedOperations).toBe(unstamped ? 3 * n * n : 0)
         expect(operations).toBeLessThanOrEqual(bound)
         if (mode === 'with-probe') {
           expect(contexts).toHaveLength(n)
@@ -473,7 +541,9 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
             unstamped ? { kind: 'local' } : { kind: 'environment', environmentId: 'owner-a' }
           )
         }
-        const metrics = [{ event: 'cold', operations, commits, renders }]
+        const metrics = [
+          { event: 'cold', rawOperations, excludedOperations, operations, commits, renders }
+        ]
         const check = async (
           event: string,
           patch: Partial<AppState>,
@@ -482,9 +552,15 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
           limit = bound
         ) => {
           operations = 0
+          rawOperations = 0
+          excludedOperations = 0
           commits = 0
           renders = 0
+          if (patch.repos) {
+            instrumentRepoFilter(patch.repos)
+          }
           await act(async () => useAppStore.setState(patch))
+          expect(rawOperations).toBe(operations + excludedOperations)
           expect(operations).toBeLessThanOrEqual(limit)
           expect(commits).toBe(changed ? n : 0)
           expect(renders).toBe(changed && mode === 'with-probe' ? n : 0)
@@ -495,7 +571,7 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
               )
             ).toBe(true)
           }
-          metrics.push({ event, operations, commits, renders })
+          metrics.push({ event, rawOperations, excludedOperations, operations, commits, renders })
         }
         await check('known replacement', {
           worktreesByRepo: { ...useAppStore.getState().worktreesByRepo }

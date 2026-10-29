@@ -5,7 +5,7 @@ import type { HostWorktreeTarget } from '../../../shared/worktree/host-qualified
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { findIndexedWorktreeOwnerForHost } from '@/lib/worktree-runtime-owner-index'
 import type { AppState } from './types'
-import { getFolderWorkspaceWorktree } from './slices/worktrees/listing/detected-worktree-meta'
+import { getFolderWorkspaceWorktree } from '../../../shared/folder-workspace-worktree'
 
 // Route workspace readers here; check-workspace-record-read-ratchet.mjs enforces this boundary.
 

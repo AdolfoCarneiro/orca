@@ -43,6 +43,19 @@ export function getFolderWorkspaceHostIdentity(
   )
 }
 
+const folderWorkspaceWorktreeCache = new WeakMap<FolderWorkspace, Worktree>()
+
+/** Stable synthetic row per folder workspace object, so selectors keep referential equality. */
+export function getFolderWorkspaceWorktree(folderWorkspace: FolderWorkspace): Worktree {
+  const cached = folderWorkspaceWorktreeCache.get(folderWorkspace)
+  if (cached) {
+    return cached
+  }
+  const worktree = folderWorkspaceToWorktree(folderWorkspace)
+  folderWorkspaceWorktreeCache.set(folderWorkspace, worktree)
+  return worktree
+}
+
 export function folderWorkspaceToWorktree(folderWorkspace: FolderWorkspace): Worktree {
   const linkedTask = folderWorkspace.linkedTask
   const selectedTask = linkedTask
