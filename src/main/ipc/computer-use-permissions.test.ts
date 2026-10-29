@@ -1,10 +1,17 @@
 import type { EventEmitter } from 'node:events'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  app: null as EventEmitter | null,
-  handlers: new Map<string, (...args: unknown[]) => unknown>(),
-  focusedWindow: { current: null as object | null },
+type HoistedMocks = {
+  app: EventEmitter | null
+  handlers: Map<string, (...args: unknown[]) => unknown>
+  focusedWindow: { current: object | null }
+  probe: ReturnType<typeof vi.fn>
+}
+
+const mocks = vi.hoisted((): HoistedMocks => ({
+  app: null,
+  handlers: new Map(),
+  focusedWindow: { current: null },
   probe: vi.fn()
 }))
 
