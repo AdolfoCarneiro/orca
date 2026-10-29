@@ -15,7 +15,10 @@ import {
   type DocLinkMenuRow,
   type DocLinkMenuState
 } from './rich-markdown-commands'
-import { isSingleEmptyTopLevelOrderedList } from './rich-markdown-list-continuation'
+import {
+  isOrderedListMarkerBeforeCursor,
+  isSingleEmptyTopLevelOrderedList
+} from './rich-markdown-list-continuation'
 import type { LinkBubbleState } from './RichMarkdownLinkBubble'
 import {
   handleRichMarkdownEditorClick,
@@ -198,9 +201,9 @@ export function createRichMarkdownEditorConfig(params: EditorConfigParams): UseE
         if (text !== ' ' || from !== to || !view.state.selection.empty) {
           return false
         }
-        const { $from } = view.state.selection
-        const beforeCursor = $from.parent.textBetween(0, $from.parentOffset, '\0', '\0')
-        typedEmptyOrderedListMarkerRef.current = /^\d+\.$/.test(beforeCursor)
+        typedEmptyOrderedListMarkerRef.current = isOrderedListMarkerBeforeCursor(
+          view.state.selection.$from
+        )
         return false
       },
       handleKeyDown: createRichMarkdownKeyHandler({

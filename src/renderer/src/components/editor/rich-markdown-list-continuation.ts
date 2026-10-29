@@ -1,5 +1,14 @@
 import type { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
+import type { ResolvedPos } from '@tiptap/pm/model'
+
+export function isOrderedListMarkerBeforeCursor($from: ResolvedPos): boolean {
+  const firstChild = $from.parent.firstChild
+  if (firstChild?.isText && !/^\d/.test(firstChild.text ?? '')) {
+    return false
+  }
+  return /^\d+\.$/.test($from.parent.textBetween(0, $from.parentOffset, '\0', '\0'))
+}
 
 function getEmptyListItemContext(editor: Editor): {
   listDepth: number

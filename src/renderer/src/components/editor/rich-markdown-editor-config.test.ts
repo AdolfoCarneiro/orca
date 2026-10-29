@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
-import { Editor } from '@tiptap/react'
+import { Editor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { handleRichMarkdownEditorClick } from './rich-markdown-editor-click-routing'
 import type { DocLinkMenuState } from './rich-markdown-commands'
@@ -197,4 +197,145 @@ describe('rich Markdown DOM click routing', () => {
     expect(click(event)).toBe(false)
     expect(event.defaultPrevented).toBe(false)
   })
+})
+
+describe('numbered-marker text input admission', () => {
+  const editors: Editor[] = []
+
+  afterEach(() => {
+    editors.splice(0).forEach((editor) => editor.destroy())
+    vi.restoreAllMocks()
+  })
+
+  function markerEditor(content: NonNullable<JSONContent['content']>, offset?: number) {
+    const params = createConfigParams()
+    const config = createRichMarkdownEditorConfig(params)
+    const editor = new Editor({
+      extensions: [StarterKit],
+      content: { type: 'doc', content: [{ type: 'paragraph', content }] },
+      editorProps: config.editorProps
+    })
+    params.editorRef.current = editor
+    const block = editor.state.doc.firstChild
+    if (!block) {
+      throw new Error('Missing marker paragraph')
+    }
+    editor.commands.setTextSelection((offset ?? block.content.size) + 1)
+    const textBetween = vi.spyOn(block, 'textBetween')
+    const originalNodesBetween = block.content.nodesBetween
+    let visits = 0
+    vi.spyOn(block.content, 'nodesBetween').mockImplementation(
+      (from, to, callback, nodeStart, parent) =>
+        originalNodesBetween.call(
+          block.content,
+          from,
+          to,
+          (node, pos, owner, index) => {
+            visits++
+            return callback(node, pos, owner, index)
+          },
+          nodeStart,
+          parent
+        )
+    )
+    editors.push(editor)
+    function input(text = ' ', from = editor.state.selection.from, to = editor.state.selection.to) {
+      params.typedEmptyOrderedListMarkerRef.current = true
+      const handler = editor.view.props.handleTextInput
+      if (!handler) {
+        throw new Error('Production text-input handler was not registered')
+      }
+      const document = editor.state.doc
+      expect(handler.call(editor.view, editor.view, from, to, text, () => editor.state.tr)).toBe(
+        false
+      )
+      expect(editor.state.doc).toBe(document)
+      return params.typedEmptyOrderedListMarkerRef.current
+    }
+    return { editor, input, textBetween, visits: () => visits }
+  }
+
+  it.each([
+    { characters: 10_000, children: 100 },
+    { characters: 100_000, children: 100 },
+    { characters: 10_000, children: 1_000 },
+    { characters: 100_000, children: 1_000 }
+  ])('rejects prose without extracting its prefix: %j', ({ characters, children }) => {
+    const content = Array.from({ length: children }, (_, index) => ({
+      type: 'text',
+      text: 'a'.repeat(characters / children),
+      marks: [{ type: index % 2 ? 'bold' : 'italic' }]
+    }))
+    const { editor, input, textBetween, visits } = markerEditor(content)
+    expect(editor.state.doc.firstChild?.childCount).toBe(children)
+    expect(editor.state.selection.$from.parentOffset).toBe(characters)
+    expect(input()).toBe(false)
+    expect({ extractions: textBetween.mock.calls.length, inlineVisits: visits() }).toEqual({
+      extractions: 0,
+      inlineVisits: 0
+    })
+  })
+
+  it.each([
+    ['1.', true],
+    ['0123.', true],
+    ['12345678901234567890.', true],
+    ['12', false],
+    ['12.x', false],
+    ['12..', false],
+    [' 12.', false],
+    ['a12.', false],
+    ['１２.', false],
+    ['١٢.', false],
+    ['1.\n', false]
+  ])('preserves marker detection for %j', (text, expected) => {
+    const { editor, input } = markerEditor([{ type: 'text', text }])
+    expect(editor.state.doc.firstChild?.textContent).toBe(text)
+    expect(input()).toBe(expected)
+  })
+
+  it('keeps digit-leading marked fragments on the exact prefix path', () => {
+    const { input, textBetween, visits } = markerEditor([
+      { type: 'text', text: '12', marks: [{ type: 'bold' }] },
+      { type: 'text', text: '3', marks: [{ type: 'italic' }] },
+      { type: 'text', text: '.' }
+    ])
+    expect(input()).toBe(true)
+    expect({ extractions: textBetween.mock.calls.length, inlineVisits: visits() }).toEqual({
+      extractions: 1,
+      inlineVisits: 3
+    })
+  })
+
+  it('uses only the actual prefix when the caret precedes trailing text', () => {
+    const { input } = markerEditor([{ type: 'text', text: '23.suffix' }], 3)
+    expect(input()).toBe(true)
+  })
+
+  it.each([
+    [{ type: 'hardBreak' }, { type: 'text', text: '1.' }],
+    [{ type: 'text', text: '1' }, { type: 'hardBreak' }, { type: 'text', text: '.' }]
+  ])('retains the exact fallback for hard breaks: %j', (...content) => {
+    const { input, textBetween } = markerEditor(content)
+    expect(input()).toBe(false)
+    expect(textBetween).toHaveBeenCalledOnce()
+  })
+
+  it('clears the old hint at an empty paragraph', () => {
+    expect(markerEditor([]).input()).toBe(false)
+  })
+
+  it.each(['ordinary key', 'replacement', 'selected range'])(
+    'preserves the %s skip gate',
+    (kind) => {
+      const { editor, input, textBetween } = markerEditor([{ type: 'text', text: '123.' }])
+      if (kind === 'selected range') {
+        editor.commands.setTextSelection({ from: 1, to: 3 })
+      }
+      expect(
+        kind === 'ordinary key' ? input('x') : kind === 'replacement' ? input(' ', 1, 3) : input()
+      ).toBe(false)
+      expect(textBetween).not.toHaveBeenCalled()
+    }
+  )
 })
