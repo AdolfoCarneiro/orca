@@ -29,7 +29,7 @@ it.each([
   const surface = document.getElementById('editor')!
   surface.querySelector('pre')!.innerHTML = html
   surface.dispatchEvent(new Event('input', { bubbles: true }))
-  const saved = '```ts\n' + literal + '\n```'
+  const saved = `\`\`\`ts\n${literal}\n\`\`\``
   expect(messages.filter((message) => message.type === 'change')).toEqual([
     { type: 'change', generation: 7, markdown: saved }
   ])
