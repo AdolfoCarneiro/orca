@@ -114,7 +114,7 @@ if (preflightReady) {
   enableLinearRegexpFallback()
   void leaseAppImageGenerationForCurrentProcess()
   // Before any gate check: saved WSL work keeps a closed gate serving it.
-  configureWslHostsGateFromDisk(app.getPath('userData'))
+  configureWslHostsGateFromDisk(app.getPath('userData'), app.getVersion())
   // Why this early: a cold distro takes seconds to boot; starting now overlaps it with app startup.
   if (process.platform === 'win32' && wslHostsServing()) {
     wakeRememberedWslHosts(app.getPath('userData'))
