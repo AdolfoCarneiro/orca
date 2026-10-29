@@ -9,12 +9,14 @@ import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 type Selection = { label: string; detail?: string }
 
 export function NewWorktreeProjectTargetFields({
+  disabled = false,
   project,
   runTarget,
   projectBadgeColor,
   onOpenProject,
   onOpenRunTarget
 }: {
+  disabled?: boolean
   project: Selection | null
   runTarget: (Selection & { hostId: string }) | null
   projectBadgeColor: string | null
@@ -29,7 +31,12 @@ export function NewWorktreeProjectTargetFields({
         <Text style={styles.label}>
           {t('components.newWorktreeProjectTargetFields.project', 'Project')}
         </Text>
-        <Pressable style={styles.fieldButton} onPress={onOpenProject}>
+        <Pressable
+          disabled={disabled}
+          accessibilityState={{ disabled }}
+          style={[styles.fieldButton, disabled && { opacity: 0.5 }]}
+          onPress={onOpenProject}
+        >
           {projectBadgeColor ? (
             <View style={[styles.projectDot, { backgroundColor: projectBadgeColor }]} />
           ) : null}
@@ -48,7 +55,12 @@ export function NewWorktreeProjectTargetFields({
         <Text style={styles.label}>
           {t('components.newWorktreeProjectTargetFields.runOn', 'Run on')}
         </Text>
-        <Pressable style={styles.fieldButton} onPress={onOpenRunTarget}>
+        <Pressable
+          disabled={disabled}
+          accessibilityState={{ disabled }}
+          style={[styles.fieldButton, disabled && { opacity: 0.5 }]}
+          onPress={onOpenRunTarget}
+        >
           <HostKindIcon hostId={runTarget?.hostId} size={14} />
           <SelectionCopy
             selection={runTarget}

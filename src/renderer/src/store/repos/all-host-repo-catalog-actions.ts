@@ -69,7 +69,7 @@ export function createAllHostRepoCatalogActions(
           if (isRemovedRuntimeHostId(catalog.hostId, s.removedRuntimeEnvironmentIds)) {
             return s
           }
-          const result = mergeFetchedRepoCatalog(catalog, s.repos, s.settings)
+          const result = mergeFetchedRepoCatalog(catalog, s.repos, s.settings, s)
           const reconciliation = reconcileSupersededSshRepos(result.repos, s)
           const finalizedRepos = applyManualRepoOrder(reconciliation.repos, s.manualRepoOrder)
           const mergedProjectCompatibility = mergeFetchedHostProjectCatalog({

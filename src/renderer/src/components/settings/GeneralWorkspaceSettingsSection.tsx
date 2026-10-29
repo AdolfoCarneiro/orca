@@ -1,3 +1,4 @@
+import type { SettingsUpdate } from '@/store/slices/settings'
 import { ProjectGroupingSetting } from './ProjectGroupingSetting'
 import type React from 'react'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -11,7 +12,7 @@ import { GLOBAL_WORKTREE_VISIBILITY_SETTINGS_TARGET_ID } from '@/lib/settings-na
 
 type GeneralWorkspaceSettingsSectionProps = {
   settings: GlobalSettings
-  updateSettings: (updates: Partial<GlobalSettings>) => void
+  updateSettings: (updates: SettingsUpdate) => void
   updateSettingsOrThrow?: (updates: Partial<GlobalSettings>) => void | Promise<void>
   defaultsSupported?: boolean
   sourceDefaultsSupported?: boolean

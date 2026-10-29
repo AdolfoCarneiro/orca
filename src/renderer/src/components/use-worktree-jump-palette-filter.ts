@@ -1,3 +1,5 @@
+import { useAppStore } from '@/store'
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useMemo } from 'react'
 import { buildSidebarHostOptions } from '@/components/sidebar/sidebar-host-options'
 import { getProjectGroupExecutionHostIdForRows } from '../../../shared/sidebar-list/host-filtering'
@@ -41,6 +43,7 @@ export function useWorktreeJumpPaletteFilter({
   projectGroups,
   filter
 }: WorktreeJumpPaletteFilterInput) {
+  const projectIndex = useAppStore(getProjectGroupingIndexFromState)
   const repoMap = useMemo(() => new Map(repos.map((repo) => [repo.id, repo])), [repos])
   const repoByHostIdentity = useMemo(
     () => new Map(repos.map((repo) => [getRepoHostIdentity(repo), repo])),
@@ -85,9 +88,19 @@ export function useWorktreeJumpPaletteFilter({
         projects,
         projectHostSetups,
         settings,
+        projectIndex,
         defaultHostId
       }),
-    [workspaces, defaultHostId, hostOptions, projectHostSetups, projects, repos, settings]
+    [
+      workspaces,
+      defaultHostId,
+      hostOptions,
+      projectHostSetups,
+      projects,
+      repos,
+      settings,
+      projectIndex
+    ]
   )
   const filterActive = isPaletteFilterActive(filter)
   const hostFilterActive = filter.hostIds.length > 0

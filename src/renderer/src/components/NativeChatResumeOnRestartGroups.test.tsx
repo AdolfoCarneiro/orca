@@ -1,6 +1,9 @@
+import { getProjectGroupingIndexFromState } from '../store/project-host-setup-selector'
+import * as resumeGrouping from './native-chat-resume-on-restart-grouping'
+import { selectProjectCloneUrlPrefill } from '../lib/project-clone-url-prefill'
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, Profiler } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as worktreeIds from '../../../shared/worktree/id'
@@ -335,4 +338,78 @@ it('lists every chat when workspace lineage loops', () => {
 
   expect(chatBox('in-a')).toBeTruthy()
   expect(chatBox('in-b')).toBeTruthy()
+})
+
+it('keeps mounted resume rows and clone-prefill consumers quiet on unrelated writes, with a relevant update control', () => {
+  const candidates = seedTree()
+  const base = useAppStore.getState().repos[0]
+  const remote = {
+    ...base,
+    id: 'remote',
+    path: '/remote',
+    executionHostId: 'runtime:server' as const
+  }
+  useAppStore.setState({ repos: [base, remote] })
+  const groupPass = vi.spyOn(resumeGrouping, 'groupResumeWorkspacesByRepo')
+  const commits = vi.fn()
+  let cloneRenders = 0
+  function Prefill() {
+    cloneRenders++
+    const value = useAppStore((state) =>
+      selectProjectCloneUrlPrefill(
+        state,
+        getProjectGroupingIndexFromState(state).groupByRepoHost.get('local\0repo-1')?.key ?? null
+      )
+    )
+    return <output>{value}</output>
+  }
+  act(() =>
+    root.render(
+      <>
+        <Profiler id="resume" onRender={commits}>
+          <Harness candidates={candidates} />
+        </Profiler>
+        <Prefill />
+      </>
+    )
+  )
+  const initialCloneRenders = cloneRenders
+  commits.mockClear()
+  groupPass.mockClear()
+  act(() => useAppStore.setState({ activeRepoId: 'irrelevant' }))
+  expect(commits).not.toHaveBeenCalled()
+  expect(cloneRenders).toBe(initialCloneRenders)
+  act(() =>
+    useAppStore.setState({
+      settings: { ...useAppStore.getState().settings!, terminalFontSize: 20 }
+    })
+  )
+  expect(commits).not.toHaveBeenCalled()
+  expect(cloneRenders).toBe(initialCloneRenders)
+  act(() =>
+    useAppStore.setState({ repos: [base, { ...remote, displayName: 'other host changed' }] })
+  )
+  expect(groupPass).not.toHaveBeenCalled()
+  expect(commits).not.toHaveBeenCalled()
+  expect(cloneRenders).toBe(initialCloneRenders)
+  act(() => useAppStore.setState({ repos: [{ ...base, displayName: 'renamed' }, remote] }))
+  expect(container.textContent).toContain('renamed')
+  expect(commits).toHaveBeenCalled()
+  act(() =>
+    useAppStore.setState({
+      repos: [
+        {
+          ...base,
+          gitRemoteIdentity: {
+            canonicalKey: 'gitlab.com/org/app',
+            remoteName: 'origin',
+            remoteUrl: 'https://gitlab.com/org/app.git'
+          }
+        },
+        remote
+      ]
+    })
+  )
+  expect(cloneRenders).toBeGreaterThan(initialCloneRenders)
+  expect(container.querySelector('output')?.textContent).toBe('https://gitlab.com/org/app.git')
 })

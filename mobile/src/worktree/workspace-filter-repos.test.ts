@@ -1,6 +1,15 @@
+import { projectHostSetupProjectionFromRepos } from '../../../src/shared/project-host-setup-projection'
+vi.mock('../i18n/mobile-i18n', () => ({
+  translate: (_key: string, fallback: string) => fallback,
+  getMobileLocale: () => 'en'
+}))
 import { NO_WORKSPACE_ROW_FILTERS } from '../../../src/shared/workspace-view/workspace-row-filters'
-import { describe, expect, it } from 'vitest'
-import { buildFilterRepos } from './workspace-filter-repos'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  buildFilterRepos,
+  selectedWorkspaceProjectKeys,
+  toggleProjectFilter
+} from './workspace-filter-repos'
 import { filterWorktrees, type Worktree } from './workspace-list-sections'
 
 function row(worktreeId: string, repoId: string, hostId: Worktree['hostId']): Worktree {
@@ -21,6 +30,28 @@ function row(worktreeId: string, repoId: string, hostId: Worktree['hostId']): Wo
 }
 
 describe('the repo filter', () => {
+  it('uses served grouping membership for checked state and preserves partial/offline choices on group edits', () => {
+    const repos = ['a', 'b'].map((id) => ({
+      id,
+      displayName: 'app',
+      path: `/repos/${id}`,
+      badgeColor: '',
+      addedAt: 0,
+      upstream: { owner: 'org', repo: 'app' }
+    }))
+    const projection = projectHostSetupProjectionFromRepos(repos)
+    const rows = buildFilterRepos(repos, [], {
+      projects: projection.projects,
+      projectHostSetups: projection.setups
+    })
+    expect(rows).toHaveLength(1)
+    expect(selectedWorkspaceProjectKeys(rows, ['a', 'offline']).size).toBe(0)
+    const next = toggleProjectFilter(rows[0], ['a', 'offline'])
+    expect(new Set(next)).toEqual(new Set(['a', 'b', 'offline']))
+    expect(selectedWorkspaceProjectKeys(rows, next)).toEqual(new Set([rows[0].key]))
+    expect(toggleProjectFilter(rows[0], next)).toEqual(['offline'])
+  })
+
   it("lists each host's same-named repo separately, by id, as the desktop's filter does", () => {
     const repos = buildFilterRepos(
       [

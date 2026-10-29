@@ -1,3 +1,4 @@
+import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
 import type { Project, ProjectHostSetup } from '../../../shared/project-types'
 import {
   projectHostSetupProjectionFromRepos,
@@ -5,6 +6,10 @@ import {
 } from '../../../shared/project-host-setup-projection'
 import { resolveProjectHostSetupProjection } from '../../../shared/project-host-setup-hydration'
 import type { AppState } from './types'
+import {
+  buildProjectGroupingIndex,
+  type ProjectGroupingModel
+} from '../../../shared/project-section-grouping'
 
 const derivedProjectionByRepos = new WeakMap<AppState['repos'], ProjectHostSetupProjection>()
 // Catalog writers replace these readonly arrays; their identities are the invalidation boundary.
@@ -53,4 +58,37 @@ export function getProjectHostSetupProjectionFromState(
   )
   bySetups.set(setups, projection)
   return projection
+}
+
+const groupingModels = new WeakMap<ProjectHostSetupProjection, ProjectGroupingModel>()
+
+export function getProjectGroupingModelFromState(
+  state: Parameters<typeof getProjectHostSetupProjectionFromState>[0] & {
+    settings?: ProjectGroupingSettings | null
+  }
+): ProjectGroupingModel {
+  const projection = getProjectHostSetupProjectionFromState(state)
+  const cached = groupingModels.get(projection)
+  const mode = state.settings?.projectGroupingMode
+  const overrides = state.settings?.projectGroupingOverrides
+  if (
+    cached &&
+    cached.settings?.projectGroupingMode === mode &&
+    cached.settings?.projectGroupingOverrides === overrides
+  ) {
+    return cached
+  }
+  const model = {
+    projects: projection.projects,
+    projectHostSetups: projection.setups,
+    settings: { projectGroupingMode: mode, projectGroupingOverrides: overrides }
+  }
+  groupingModels.set(projection, model)
+  return model
+}
+
+export function getProjectGroupingIndexFromState(
+  state: Parameters<typeof getProjectGroupingModelFromState>[0]
+) {
+  return buildProjectGroupingIndex(getProjectGroupingModelFromState(state))
 }

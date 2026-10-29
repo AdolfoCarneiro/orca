@@ -1,3 +1,4 @@
+import { buildProjectGroupingIndex } from '../../../shared/project-section-grouping'
 import { describe, expect, it } from 'vitest'
 import { getExecutionHostLabel, type ExecutionHostId } from '../../../shared/execution-host'
 import {
@@ -65,6 +66,31 @@ function host(
     ...overrides
   }
 }
+
+it('keeps an eligible alias as a concrete run target inside its canonical group', () => {
+  const projectId = 'github:org/app'
+  const projectHostSetups = [
+    setup('canonical', projectId, 'local', 'canonical', { path: '/app' }),
+    setup('alias', 'repo:alias', 'local', 'alias', { path: '/app' })
+  ]
+  const grouping = buildProjectGroupingIndex({
+    projects: [
+      { id: projectId, displayName: 'App' },
+      { id: 'repo:alias', displayName: 'App' }
+    ],
+    projectHostSetups
+  })
+  expect(
+    buildProjectHostSetupOptions({
+      projectId,
+      groupKey: `project:${projectId}`,
+      grouping,
+      projectHostSetups,
+      eligibleRepos: [repo('alias')],
+      hosts: [host('local')]
+    })
+  ).toMatchObject([{ kind: 'ready', repoId: 'alias', id: 'alias', hostId: 'local' }])
+})
 
 describe('buildProjectHostSetupOptions', () => {
   it('returns ready setup choices for one project sorted with local first', () => {

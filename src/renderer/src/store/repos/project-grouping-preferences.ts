@@ -19,14 +19,15 @@ export function retireRemovedProjectGroupingState(get: () => AppState, repo: Rep
       state.toggleCollapsedGroup(key)
     }
   }
-  if (state.settings?.projectGroupingOverrides?.[projectId] === undefined) {
-    return
-  }
-  const overrides = { ...state.settings.projectGroupingOverrides }
-  delete overrides[projectId]
-  void state.updateSettings({ projectGroupingOverrides: overrides }).catch((error) => {
-    console.error('Failed to save removed project grouping preference:', error)
-  })
+  void state
+    .updateSettingsOrThrow((current) => {
+      const overrides = { ...current.projectGroupingOverrides }
+      delete overrides[projectId]
+      return { projectGroupingOverrides: overrides }
+    })
+    .catch((error) => {
+      console.error('Failed to save removed project grouping preference:', error)
+    })
 }
 
 export function carryFetchedProjectGroupingOverrides(
@@ -34,20 +35,20 @@ export function carryFetchedProjectGroupingOverrides(
   previous: readonly Project[]
 ): void {
   const state = get()
-  if (!state.settings || !Object.keys(state.settings.projectGroupingOverrides ?? {}).length) {
-    return
-  }
   const { remappedProjectIds } = carryProjectStateThroughIdentityChange(state.projects, previous)
   if (!remappedProjectIds.size) {
     return
   }
-  const overrides = carryProjectGroupingOverrides(
-    state.settings.projectGroupingOverrides,
-    remappedProjectIds
-  )
-  void state.updateSettings({ projectGroupingOverrides: overrides }).catch((error) => {
-    console.error('Failed to save project grouping preference after identity change:', error)
-  })
+  void state
+    .updateSettingsOrThrow((current) => ({
+      projectGroupingOverrides: carryProjectGroupingOverrides(
+        current.projectGroupingOverrides ?? {},
+        remappedProjectIds
+      )
+    }))
+    .catch((error) => {
+      console.error('Failed to save project grouping preference after identity change:', error)
+    })
 }
 
 export function filterRemovedProjectRepoIds(

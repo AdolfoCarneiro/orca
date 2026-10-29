@@ -1,3 +1,8 @@
+import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
+import {
+  getSettingsTargetHostSelection,
+  buildSettingsProjectList
+} from '../components/settings/settings-project-list'
 import { buildCmdJSettingsResults } from '../components/cmd-j/palette-results'
 import { matchesSettingsSearch } from '../components/settings/settings-search'
 import { describe, expect, it } from 'vitest'
@@ -54,6 +59,39 @@ describe('settings navigation metadata', () => {
       }
     }
   )
+
+  it('gives repeated repo IDs on distinct hosts unique navigable Settings sections in split modes', () => {
+    const common = { ...repo, upstream: { owner: 'org', repo: 'app' } }
+    const repos = [
+      common,
+      { ...common, path: '/server/app', executionHostId: 'runtime:server' as const }
+    ]
+    const projection = projectHostSetupProjectionFromRepos(repos)
+    for (const mode of ['repository', 'host', 'folder'] as const) {
+      const grouping = {
+        projects: projection.projects,
+        projectHostSetups: projection.setups,
+        settings: { projectGroupingMode: mode }
+      }
+      const sections = buildSettingsNavigationMetadata({
+        isMac: true,
+        isWindows: false,
+        isWebClient: false,
+        repos,
+        projectGrouping: grouping
+      }).filter((section) => section.id.startsWith('repo-'))
+      expect(new Set(sections.map((section) => section.id)).size).toBe(
+        mode === 'repository' ? 1 : 2
+      )
+      const entries = buildSettingsProjectList(repos, grouping)
+      for (const host of ['local', 'runtime:server'] as const) {
+        const selection = getSettingsTargetHostSelection(entries, common.id, host)
+        expect(sections.some((section) => section.id === `repo-${selection?.selectionKey}`)).toBe(
+          true
+        )
+      }
+    }
+  })
 
   it('places Chat directly after Appearance in Interface and moves its search entries', () => {
     const sections = buildSettingsNavigationMetadata({
@@ -204,7 +242,7 @@ describe('settings navigation metadata', () => {
     expect(webIds).not.toContain('voice')
     expect(webIds).not.toContain('advanced')
     expect(webIds).toContain('servers')
-    expect(webIds).toContain('repo-repo-1')
+    expect(webIds).toContain('repo-project:repo:repo-1')
     const floatingWorkspace = webSections.find((section) => section.id === 'floating-workspace')
     expect(floatingWorkspace?.description).toBe('Global terminal and markdown tabs.')
     expect(floatingWorkspace?.searchEntries.flatMap((entry) => entry.keywords)).not.toContain(
@@ -308,7 +346,7 @@ describe('settings navigation metadata', () => {
     })
 
     const general = sections.find((section) => section.id === 'general')
-    const repoSection = sections.find((section) => section.id === 'repo-repo-1')
+    const repoSection = sections.find((section) => section.id === 'repo-project:repo:repo-1')
 
     expect(general?.searchEntries.some((entry) => entry.title === 'Default Project Runtime')).toBe(
       false
@@ -327,7 +365,7 @@ describe('settings navigation metadata', () => {
     })
 
     const general = sections.find((section) => section.id === 'general')
-    const repoSection = sections.find((section) => section.id === 'repo-repo-1')
+    const repoSection = sections.find((section) => section.id === 'repo-project:repo:repo-1')
 
     expect(general?.searchEntries.some((entry) => entry.title === 'Default Project Runtime')).toBe(
       true
@@ -367,7 +405,7 @@ describe('settings navigation metadata', () => {
     const agents = sections.find((section) => section.id === 'agents')
     const general = sections.find((section) => section.id === 'general')
     const terminal = sections.find((section) => section.id === 'terminal')
-    const repoSection = sections.find((section) => section.id === 'repo-repo-1')
+    const repoSection = sections.find((section) => section.id === 'repo-project:repo:repo-1')
 
     expect(agents?.searchEntries.some((entry) => entry.title === 'Agent Runtime')).toBe(false)
     expect(general?.searchEntries.some((entry) => entry.title === 'Default Project Runtime')).toBe(
@@ -390,7 +428,7 @@ describe('settings navigation metadata', () => {
     const agents = sections.find((section) => section.id === 'agents')
     const general = sections.find((section) => section.id === 'general')
     const terminal = sections.find((section) => section.id === 'terminal')
-    const repoSection = sections.find((section) => section.id === 'repo-repo-1')
+    const repoSection = sections.find((section) => section.id === 'repo-project:repo:repo-1')
 
     expect(agents?.searchEntries.some((entry) => entry.title === 'Agent Runtime')).toBe(true)
     expect(general?.searchEntries.some((entry) => entry.title === 'Default Project Runtime')).toBe(
@@ -450,7 +488,7 @@ describe('settings navigation metadata', () => {
 
     const repoSections = sections.filter((section) => section.id.startsWith('repo-'))
     expect(repoSections).toHaveLength(1)
-    expect(repoSections[0].id).toBe('repo-local-1')
+    expect(repoSections[0].id).toBe('repo-project:git:gitlab.com/acme/app')
   })
 
   it('renders one nav section for same-host clones by default', () => {
@@ -472,7 +510,7 @@ describe('settings navigation metadata', () => {
 
     const repoSections = sections.filter((section) => section.id.startsWith('repo-'))
     expect(repoSections.map((section) => [section.id, section.title])).toEqual([
-      ['repo-clone-a', 'app']
+      ['repo-project:git:gitlab.com/acme/app', 'app']
     ])
   })
 

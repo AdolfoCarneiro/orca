@@ -38,6 +38,19 @@ const model = {
 }
 
 describe('project grouping', () => {
+  it('reuses unchanged grouping inputs and invalidates mode and override changes', () => {
+    const initial = buildProjectGroups(model, { projectGroupingMode: 'repository' })
+    expect(buildProjectGroups(model, { projectGroupingMode: 'repository' })).toBe(initial)
+    const split = buildProjectGroups(model, { projectGroupingMode: 'folder' })
+    expect(split).toHaveLength(3)
+    const merged = buildProjectGroups(model, {
+      projectGroupingMode: 'folder',
+      projectGroupingOverrides: { [first.projectId]: 'repository' }
+    })
+    expect(merged).toHaveLength(1)
+    expect(merged).not.toBe(split)
+  })
+
   it('switches one model between repository, host and folder without changing manual order', () => {
     const manualRepoOrder = [
       { hostId: 'local' as const, repoId: 'second' },
@@ -124,10 +137,13 @@ describe('project grouping', () => {
     ).toBe(`project:${first.projectId}`)
   })
 
-  it('keeps a folder filter on the selected host when repo ids repeat, with raw ids for older clients', () => {
+  it('treats raw and host-qualified filter entries independently', () => {
     const matches = projectRepoFilterMatcher(['first', 'runtime:server\0first'])
     expect(matches('first', 'runtime:server')).toBe(true)
-    expect(matches('first', 'local')).toBe(false)
+    expect(matches('first', 'local')).toBe(true)
+    const qualified = projectRepoFilterMatcher(['runtime:server\0first', 'second'])
+    expect(qualified('first', 'local')).toBe(false)
+    expect(qualified('second', 'local')).toBe(true)
   })
 
   it('carries overrides through identity succession without removing offline projects', () => {

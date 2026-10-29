@@ -28,6 +28,11 @@ export function wslMoveRewriteScope(context: WslMoveDesktopRewriteContext): WslM
   const { source } = context.cutover.manifest
   const repoIds = new Set(source.scopeRepoIds)
   const folderWorkspaceIds = new Set(source.scopeFolderWorkspaceIds)
+  const projectIds = new Set(
+    context.cutover.manifest.payload.repositories
+      .filter((repo) => repoIds.has(repo.id))
+      .map(getProjectIdentityKey)
+  )
   return {
     inScope: (owner) => {
       const parsed = parseWorkspaceKey(owner)
@@ -38,10 +43,7 @@ export function wslMoveRewriteScope(context: WslMoveDesktopRewriteContext): WslM
       return folderWorkspaceIds.has(id) || repoIds.has(getRepoIdFromWorktreeId(id))
     },
     repoInScope: (repoId) => repoIds.has(repoId),
-    projectInScope: (projectId) =>
-      context.cutover.manifest.payload.repositories.some(
-        (repo) => repoIds.has(repo.id) && getProjectIdentityKey(repo) === projectId
-      ),
+    projectInScope: (projectId) => projectIds.has(projectId),
     worktreeId: (worktreeId) => rewriteOrcadMigrationWorktreeId(worktreeId, context.rewritePath),
     path: (value) => context.rewritePath.path(value, 'absolute'),
     destinationHostId: context.destinationHostId

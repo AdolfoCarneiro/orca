@@ -1,3 +1,4 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useCallback, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { runWorktreeDelete } from '@/components/sidebar/delete-worktree-flow'
@@ -32,7 +33,8 @@ function getComposerPrefetchRepoId(
       state.repos,
       getComposerEligibleRepos(state.repos),
       state.activeRepoId,
-      state.settings
+      state.settings,
+      getProjectGroupingIndexFromState(state)
     ),
     focusedHostScope: state.workspaceHostScope
   })

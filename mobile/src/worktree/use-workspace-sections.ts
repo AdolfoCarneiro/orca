@@ -55,8 +55,8 @@ export function useWorkspaceSections(args: {
   } = args
 
   const uniqueRepos = useMemo(
-    () => buildFilterRepos(filterCatalogRepos, displayWorktrees),
-    [filterCatalogRepos, displayWorktrees, t]
+    () => buildFilterRepos(filterCatalogRepos, displayWorktrees, projectCatalog.grouping),
+    [filterCatalogRepos, displayWorktrees, projectCatalog.grouping, t]
   )
 
   const repoById = useMemo(

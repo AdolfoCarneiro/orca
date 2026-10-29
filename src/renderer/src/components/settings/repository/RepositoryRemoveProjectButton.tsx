@@ -5,18 +5,30 @@ import {
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { Repo } from '../../../../../shared/repo-types'
+import { isWindowsAbsolutePathLike } from '../../../../../shared/cross-platform-path'
+import { parseWslUncPath } from '../../../../../shared/wsl-paths'
 import type { SettingsProjectRemovalScope } from '../settings-project-list'
 import { Button } from '../../ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip'
 import { SearchableSetting } from '../SearchableSetting'
 import { translate } from '@/i18n/i18n'
 
-function getRemoveProjectDescription(scope: SettingsProjectRemovalScope): string {
+export function getRemoveProjectDescription(
+  scope: SettingsProjectRemovalScope,
+  repo: Repo
+): string {
   if (scope.startsWith('host:')) {
+    const host = getExecutionHostLabel(normalizeExecutionHostId(scope.slice(5)))
+    const wsl = parseWslUncPath(repo.path)
+    const surface = wsl
+      ? `${wsl.distro} (WSL)`
+      : isWindowsAbsolutePathLike(repo.path)
+        ? 'Windows'
+        : ''
     return translate(
       'settings.projectGrouping.removeHost',
       'Remove this project from Orca on {{host}}.',
-      { host: getExecutionHostLabel(normalizeExecutionHostId(scope.slice(5))) }
+      { host: surface ? `${host} · ${surface}` : host }
     )
   }
   if (scope === 'checkout') {
@@ -59,7 +71,7 @@ export function RepositoryRemoveProjectButton({
   return (
     <SearchableSetting
       title={translate('auto.components.settings.RepositoryPane.0909e5d650', 'Remove Project')}
-      description={getRemoveProjectDescription(removalScope)}
+      description={getRemoveProjectDescription(removalScope, repo)}
       keywords={[repo.displayName, 'delete', 'project', 'repository']}
       className="absolute top-0 right-0 z-10 w-auto max-w-none"
       forceVisible={forceVisible}

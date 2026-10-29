@@ -1,12 +1,8 @@
+import { getProjectGroupingModelFromState } from '@/store/project-host-setup-selector'
 import React, { useCallback, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
-import {
-  useAllWorktrees,
-  useProjectHostSetupProjection,
-  useRepoMap,
-  useWorktreeMap
-} from '@/store/selectors'
+import { useAllWorktrees, useRepoMap, useWorktreeMap } from '@/store/selectors'
 import type { ProjectGroup } from '../../../../shared/project-group-types'
 import type { Repo } from '../../../../shared/repo-types'
 import {
@@ -104,15 +100,7 @@ const WorktreeList = React.memo(function WorktreeList({
   )
   const pinnedDisplayPolicy = getPinnedWorktreeDisplayPolicy(settings)
   const defaultHostId = getSettingsFocusedExecutionHostId(settings)
-  const projectHostSetupProjection = useProjectHostSetupProjection()
-  const projectGrouping = useMemo(
-    () => ({
-      projects: projectHostSetupProjection.projects,
-      projectHostSetups: projectHostSetupProjection.setups,
-      settings
-    }),
-    [projectHostSetupProjection, settings]
-  )
+  const projectGrouping = useAppStore(getProjectGroupingModelFromState)
 
   const agentSendTargetWorktreeId = useAgentSendTargetWorktreeId()
   const { filterState, hasFilters, clearFilters, revealWorkspaceFilters } =

@@ -1,3 +1,5 @@
+import { useAppStore } from '@/store'
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useMemo } from 'react'
 import { buildImportedWorktreesCardCandidates } from '@/components/sidebar/imported-worktrees-card-candidates'
 import {
@@ -40,6 +42,7 @@ export function useWorktreeJumpPaletteProjectTargets({
   groupHostIdByGroupId,
   defaultHostId
 }: WorktreeJumpPaletteProjectTargetsInput) {
+  const projectIndex = useAppStore(getProjectGroupingIndexFromState)
   const settingsResults = useMemo(
     () => buildCmdJSettingsResults(settingsSections),
     [settingsSections]
@@ -91,9 +94,18 @@ export function useWorktreeJumpPaletteProjectTargets({
         projects,
         projectHostSetups,
         settings,
+        projectIndex,
         renderableRepoIds: renderableProjectRepoIds
       }),
-    [projectGroups, projectHostSetups, projects, renderableProjectRepoIds, repos, settings]
+    [
+      projectGroups,
+      projectHostSetups,
+      projects,
+      renderableProjectRepoIds,
+      repos,
+      settings,
+      projectIndex
+    ]
   )
   const projectTargetItems = useMemo<ProjectTargetPaletteItem[]>(
     () =>
@@ -105,6 +117,7 @@ export function useWorktreeJumpPaletteProjectTargets({
             projects,
             projectHostSetups,
             settings,
+            projectIndex,
             renderableRepoIds: renderableProjectRepoIds
           })
             .filter((result) => {
@@ -130,6 +143,7 @@ export function useWorktreeJumpPaletteProjectTargets({
       projectHostSetups,
       projects,
       settings,
+      projectIndex,
       renderableProjectRepoIds,
       repos
     ]

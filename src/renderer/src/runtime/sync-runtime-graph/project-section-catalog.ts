@@ -2,14 +2,16 @@ import {
   buildMobileProjectSectionCatalog,
   type MobileProjectSectionCatalog
 } from '../../../../shared/mobile-project-sections-contract'
-import type { ProjectHostSetupProjection } from '../../../../shared/project-host-setup-projection'
-import { getProjectHostSetupProjectionFromState } from '@/store/project-host-setup-selector'
+import type { ProjectGroupingIndex } from '../../../../shared/project-section-grouping'
+import {
+  getProjectGroupingModelFromState,
+  getProjectGroupingIndexFromState
+} from '@/store/project-host-setup-selector'
 import type { AppState } from '@/store/types'
 
 type CatalogSource = {
-  settings: AppState['settings']
+  grouping: ProjectGroupingIndex
   repos: AppState['repos']
-  projection: ProjectHostSetupProjection
   projectOrderBy: AppState['projectOrderBy']
   catalog: MobileProjectSectionCatalog
 }
@@ -25,28 +27,28 @@ export function getProjectSectionCatalogFromState(
   if (!Array.isArray(state.repos)) {
     return null
   }
-  const projection = getProjectHostSetupProjectionFromState(state)
+  const model = getProjectGroupingModelFromState(state)
+  const grouping = getProjectGroupingIndexFromState(state)
   const cached = cachedCatalogSource
   if (
     cached &&
     cached.repos === state.repos &&
-    cached.settings === (state.settings ?? null) &&
-    cached.projection === projection &&
+    cached.grouping === grouping &&
     cached.projectOrderBy === state.projectOrderBy
   ) {
     return cached.catalog
   }
   const catalog = buildMobileProjectSectionCatalog(
     state.repos,
-    projection,
+    { projects: model.projects, setups: model.projectHostSetups },
     state.projectOrderBy,
     undefined,
-    state.settings
+    model.settings,
+    grouping
   )
   cachedCatalogSource = {
-    settings: state.settings ?? null,
+    grouping,
     repos: state.repos,
-    projection,
     projectOrderBy: state.projectOrderBy,
     catalog
   }

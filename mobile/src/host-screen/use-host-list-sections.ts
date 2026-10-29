@@ -43,11 +43,12 @@ function useCollapsedGroups(state: HostScreenState): Set<string> {
 
 function useFilterRepos(
   catalogRepos: readonly SectionRepo[],
-  displayWorktrees: Worktree[]
+  displayWorktrees: Worktree[],
+  grouping?: import('../../../src/shared/project-section-grouping').ProjectSectionModel | null
 ): WorkspaceSectionRepo[] {
   return useMemo(
-    () => buildFilterRepos(catalogRepos, displayWorktrees),
-    [catalogRepos, displayWorktrees]
+    () => buildFilterRepos(catalogRepos, displayWorktrees, grouping),
+    [catalogRepos, displayWorktrees, grouping]
   )
 }
 
@@ -103,11 +104,15 @@ function useFeedHostListSections({
   const domains = feed?.kind === 'ready' ? feed.domains : null
   // The catalog installed with the rows; a desktop that predates it answers mobileRelay.projectSections.
   const served = domains?.projectCatalog ?? state.servedProjectSections
-  const uniqueRepos = useFilterRepos(served?.repos ?? state.desktopRepos, displayWorktrees)
   const projectOrderBy = state.view.projectOrderBy ?? served?.projectOrderBy ?? 'manual'
   const catalog = useMemo(
     () => buildSidebarFeedCatalog(served, state.desktopRepos, state.hostProjectGroups),
     [served, state.desktopRepos, state.hostProjectGroups]
+  )
+  const uniqueRepos = useFilterRepos(
+    served?.repos ?? state.desktopRepos,
+    displayWorktrees,
+    served ? catalog.projectGrouping : null
   )
   const view = useMemo(
     () =>

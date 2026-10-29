@@ -1,7 +1,8 @@
 import { getProjectCheckoutPathKey } from '../../../shared/project-grouping'
-import type { ExecutionHostId } from '../../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
 import type { ExecutionHostRegistryEntry } from '../../../shared/execution-host-registry'
 import type {
+  ProjectHostSetupOption,
   ProjectHostSetupSelection,
   ReadyProjectHostSetupOption
 } from './project-host-setup-options'
@@ -58,4 +59,19 @@ function collapseMergedHostCheckouts(
       const aliasSetups = aliasesByShown.get(option)
       return aliasSetups ? { ...option, aliasSetups } : option
     })
+}
+
+export function compareProjectHostSetupOptions(
+  a: ProjectHostSetupOption,
+  b: ProjectHostSetupOption
+): number {
+  if (a.hostId === LOCAL_EXECUTION_HOST_ID && b.hostId !== LOCAL_EXECUTION_HOST_ID) {
+    return -1
+  }
+  if (b.hostId === LOCAL_EXECUTION_HOST_ID && a.hostId !== LOCAL_EXECUTION_HOST_ID) {
+    return 1
+  }
+  const aDetail = a.kind === 'ready' ? a.path : a.detail
+  const bDetail = b.kind === 'ready' ? b.path : b.detail
+  return a.label.localeCompare(b.label) || aDetail.localeCompare(bDetail)
 }

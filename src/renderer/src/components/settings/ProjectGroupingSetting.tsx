@@ -1,3 +1,4 @@
+import type { SettingsUpdate } from '@/store/slices/settings'
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { resolveProjectGroupingMode } from '../../../../shared/project-grouping'
@@ -41,7 +42,7 @@ export function ProjectGroupingSetting({
   projectId
 }: {
   settings: GlobalSettings
-  updateSettings: (updates: Partial<GlobalSettings>) => void
+  updateSettings: (updates: SettingsUpdate) => void
   projectId?: string
 }) {
   const options = groupingOptions()
@@ -60,13 +61,18 @@ export function ProjectGroupingSetting({
     if (!projectId) {
       return
     }
-    const overrides = { ...settings.projectGroupingOverrides }
-    if (value === 'default') {
-      delete overrides[projectId]
-    } else if (value === 'repository' || value === 'host' || value === 'folder') {
-      overrides[projectId] = value
+    if (value !== 'default' && value !== 'repository' && value !== 'host' && value !== 'folder') {
+      return
     }
-    updateSettings({ projectGroupingOverrides: overrides })
+    updateSettings((current) => {
+      const overrides = { ...current.projectGroupingOverrides }
+      if (value === 'default') {
+        delete overrides[projectId]
+      } else {
+        overrides[projectId] = value
+      }
+      return { projectGroupingOverrides: overrides }
+    })
   }
   return (
     <SearchableSetting

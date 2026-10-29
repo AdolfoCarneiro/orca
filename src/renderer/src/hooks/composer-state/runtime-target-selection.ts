@@ -1,3 +1,4 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useComposerProjectOptions } from './project-group-target-options'
 import { ipcOrRuntimeTargetForHostId } from '@/runtime/runtime-client-target'
 import type { ComposerRuntimeTargetSelectionInput } from './composer-target-input-contracts'
@@ -25,6 +26,7 @@ import { getRuntimeEnvironmentIdForRepo } from '@/lib/repo-runtime-owner'
 import { useEphemeralVmRecipeOptions } from '@/hooks/useEphemeralVmRecipeOptions'
 
 export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSelectionInput) {
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const {
     actionableHostIds,
     activeRepoId,
@@ -101,6 +103,7 @@ export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSe
   const selectedWorkspaceTarget = useMemo(
     () =>
       resolveWorkspaceCreationTarget({
+        grouping,
         eligibleRepos,
         settings,
         projects,
@@ -119,6 +122,7 @@ export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSe
     [
       actionableHostIds,
       eligibleRepos,
+      grouping,
       pendingInitialWorkspaceTarget,
       projectHostSetups,
       projects,

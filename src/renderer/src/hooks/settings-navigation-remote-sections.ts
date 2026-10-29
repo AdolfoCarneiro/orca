@@ -1,3 +1,4 @@
+import { getRepoExecutionHostId } from '../../../shared/execution-host'
 import { getAdvancedPaneSearchEntries } from '@/components/settings/advanced-search'
 import { getDeveloperPermissionsPaneSearchEntries } from '@/components/settings/developer-permissions-search'
 import { getExperimentalPaneSearchEntries } from '@/components/settings/experimental-search'
@@ -35,6 +36,9 @@ export function buildRemoteSettingsSections(
   runtimeEnvironmentsSearchEntry: SettingsNavSection['searchEntries'][number],
   reposById: ReadonlyMap<string, Repo>
 ): SettingsNavSection[] {
+  const reposByHost = new Map(
+    repos.map((repo) => [`${getRepoExecutionHostId(repo)}\0${repo.id}`, repo])
+  )
   const showDesktopOnlySettings = !isWebClient
   return [
     ...(showDesktopOnlySettings
@@ -158,8 +162,18 @@ export function buildRemoteSettingsSections(
       : []),
     // Collapse host-specific repo rows to one project entry using the same inputs as settings panes.
     ...buildSettingsProjectList(repos, projectGrouping).map((settingsProject) => {
-      const { project, representativeRepoId, setups, checkoutLabel } = settingsProject
-      const representativeRepo = reposById.get(representativeRepoId) ?? repos[0]
+      const {
+        project,
+        representativeRepoId,
+        setups,
+        checkoutLabel,
+        selectionKey,
+        representativeHostId
+      } = settingsProject
+      const representativeRepo =
+        reposByHost.get(`${representativeHostId}\0${representativeRepoId}`) ??
+        reposById.get(representativeRepoId) ??
+        repos[0]
       const hostSummary =
         setups.length > 1
           ? translate(
@@ -169,7 +183,7 @@ export function buildRemoteSettingsSections(
             )
           : (setups[0]?.path ?? representativeRepo.path)
       return {
-        id: `repo-${representativeRepoId}`,
+        id: `repo-${selectionKey}`,
         title: checkoutLabel ?? project.displayName,
         description: `${getRepoKindLabel(project)} • ${hostSummary}`,
         icon: SlidersHorizontal,

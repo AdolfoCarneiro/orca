@@ -1,8 +1,5 @@
-import {
-  getProjectGroupKey,
-  resolveProjectGroupingMode,
-  type ProjectGroupingSettings
-} from './project-grouping'
+import type { ProjectGroupingSettings } from './project-grouping'
+import { buildProjectGroupingIndex, type ProjectGroupingIndex } from './project-section-grouping'
 import type { ProjectGroup } from './project-group-types'
 import type { ProjectHostSetupProjection } from './project-host-setup-projection'
 import type { ProjectSectionProject, ProjectSectionSetup } from './project-section-grouping'
@@ -62,13 +59,21 @@ export function buildMobileProjectSectionCatalog(
   projection: ProjectHostSetupProjection,
   projectOrderBy: ProjectOrderBy,
   projectGroups?: readonly ProjectGroup[],
-  settings?: ProjectGroupingSettings | null
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex
 ): MobileProjectSectionCatalog {
+  const index =
+    grouping ??
+    buildProjectGroupingIndex({
+      projects: projection.projects,
+      projectHostSetups: projection.setups,
+      settings
+    })
   return {
     repos: repos.map(sectionRepo),
     projects: projection.projects.map(({ id, displayName }) => ({ id, displayName })),
     setups: projection.setups.map((setup) => ({
-      groupKey: getProjectGroupKey(setup, resolveProjectGroupingMode(setup.projectId, settings)),
+      groupKey: index.groupByRepoHost.get(`${setup.hostId}\0${setup.repoId}`)?.key,
       id: setup.id,
       projectId: setup.projectId,
       hostId: setup.hostId,

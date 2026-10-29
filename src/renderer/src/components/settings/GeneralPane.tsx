@@ -1,3 +1,4 @@
+import type { SettingsUpdate } from '@/store/slices/settings'
 import type React from 'react'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { useAppStore } from '../../store'
@@ -74,7 +75,7 @@ const EMPTY_WSL_DISTROS: string[] = []
 
 type GeneralPaneProps = {
   settings: GlobalSettings
-  updateSettings: (updates: Partial<GlobalSettings>) => void
+  updateSettings: (updates: SettingsUpdate) => void
   updateSettingsOrThrow?: (updates: Partial<GlobalSettings>) => void | Promise<void>
   fontSuggestions: string[]
   onRequestFontSuggestions?: () => void

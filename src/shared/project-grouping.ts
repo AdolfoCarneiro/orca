@@ -3,8 +3,6 @@ import { LOCAL_EXECUTION_HOST_ID, toSshExecutionHostId } from './execution-host'
 import { isWindowsAbsolutePathLike, normalizeRuntimePathForComparison } from './cross-platform-path'
 import { parseWslUncPath } from './wsl-paths'
 import type { Project, ProjectHostSetup } from './project-types'
-import type { Repo } from './repo-types'
-import { projectHostSetupProjectionFromRepos } from './project-host-setup-projection'
 
 export type ProjectGroupingMode = 'repository' | 'host' | 'folder'
 export type ProjectGroupingPreferences = {
@@ -30,6 +28,7 @@ export type CheckoutProjectGroup<S extends GroupingSetup = GroupingSetup> = {
   label: string
   representative: S
   members: S[]
+  registrations: S[]
 }
 
 export function resolveProjectGroupingMode(
@@ -79,10 +78,17 @@ export function getProjectGroupKey(setup: GroupingSetup, mode: ProjectGroupingMo
     : host
 }
 
-const groupCache = new WeakMap<object, { signature: string; groups: CheckoutProjectGroup[] }>()
+const groupCache = new WeakMap<
+  object,
+  {
+    mode: ProjectGroupingMode | undefined
+    overrides: ProjectGroupingSettings['projectGroupingOverrides']
+    groups: CheckoutProjectGroup[]
+  }
+>()
 
 export function selectProjectGroupTarget<S extends GroupingSetup>(
-  group: CheckoutProjectGroup<S>,
+  group: Pick<CheckoutProjectGroup<S>, 'key' | 'label' | 'members' | 'representative'>,
   hint: {
     setupId?: string | null
     path?: string | null
@@ -116,11 +122,10 @@ export function buildProjectGroups<S extends GroupingSetup>(
   model: GroupingModel<S>,
   settings: ProjectGroupingSettings | null | undefined = model.settings
 ): CheckoutProjectGroup<S>[] {
-  const signature = JSON.stringify(
-    model.projects.map((project) => [project.id, resolveProjectGroupingMode(project.id, settings)])
-  )
   const cached = groupCache.get(model)
-  if (cached?.signature === signature) {
+  const mode = settings?.projectGroupingMode
+  const overrides = settings?.projectGroupingOverrides
+  if (cached && cached.mode === mode && cached.overrides === overrides) {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this model object always contains the same setup subtype.
     return cached.groups as CheckoutProjectGroup<S>[]
   }
@@ -141,52 +146,59 @@ export function buildProjectGroups<S extends GroupingSetup>(
     pathKeys.set(pathKey, equivalent ?? key)
   }
   const groups = new Map<string, CheckoutProjectGroup<S>>()
-  for (const setup of physical.values()) {
+  const groupByPhysical = new Map<string, CheckoutProjectGroup<S>>()
+  for (const [physicalKey, setup] of physical) {
     const mode = resolveProjectGroupingMode(setup.projectId, settings)
     const key = getProjectGroupKey(setup, mode)
-    const group = groups.get(key)
-    if (group) {
-      group.members.push(setup)
-      if (
-        setup.hostId === LOCAL_EXECUTION_HOST_ID &&
-        group.representative.hostId !== LOCAL_EXECUTION_HOST_ID
-      ) {
-        group.representative = setup
-      }
-    } else {
-      groups.set(key, {
-        key,
-        label:
-          key.includes('::setup:') || setup.projectId.startsWith('repo:')
-            ? setup.displayName
-            : (projects.get(setup.projectId)?.displayName ?? setup.displayName),
-        representative: setup,
-        members: [setup]
-      })
+    const group: CheckoutProjectGroup<S> = groups.get(key) ?? {
+      key,
+      label:
+        key.includes('::setup:') || setup.projectId.startsWith('repo:')
+          ? setup.displayName
+          : (projects.get(setup.projectId)?.displayName ?? setup.displayName),
+      representative: setup,
+      members: [],
+      registrations: []
     }
+    group.members.push(setup)
+    if (
+      setup.hostId === LOCAL_EXECUTION_HOST_ID &&
+      group.representative.hostId !== LOCAL_EXECUTION_HOST_ID
+    ) {
+      group.representative = setup
+    }
+    groups.set(key, group)
+    groupByPhysical.set(physicalKey, group)
+  }
+  for (const setup of model.projectHostSetups) {
+    const physicalKey =
+      pathKeys.get(getProjectCheckoutPathKey(setup)) ?? getPhysicalProjectKey(setup)
+    groupByPhysical.get(physicalKey)?.registrations.push(setup)
   }
   const result = [...groups.values()]
-  groupCache.set(model, { signature, groups: result })
+  groupCache.set(model, { mode, overrides, groups: result })
   return result
-}
-
-export function getRepoProjectGroupKey(
-  repo: Pick<Repo, 'id' | 'path' | 'displayName'> & Partial<Repo>,
-  settings?: ProjectGroupingSettings | null
-): string {
-  const projection = projectHostSetupProjectionFromRepos([{ badgeColor: '', addedAt: 0, ...repo }])
-  const setup = projection.setups[0]
-  return setup
-    ? getProjectGroupKey(setup, resolveProjectGroupingMode(setup.projectId, settings))
-    : `repo:${repo.id}`
 }
 
 export function projectRepoFilterMatcher(
   ids: readonly string[]
 ): (repoId: string, hostId: string) => boolean {
-  const qualified = ids.filter((id) => id.includes('\0'))
-  const selected = new Set(qualified.length ? qualified : ids)
+  const selected = new Set(ids)
   return (repoId, hostId) =>
     selected.size === 0 ||
-    selected.has(qualified.length ? getRepoHostIdentityForParts(repoId, hostId) : repoId)
+    selected.has(repoId) ||
+    selected.has(getRepoHostIdentityForParts(repoId, hostId))
+}
+
+/** Old clients remove a raw ID while echoing qualification they do not understand. */
+export function reconcileProjectRepoFilterEdit(
+  previous: readonly string[],
+  next: readonly string[]
+): string[] {
+  const incoming = new Set(next)
+  const removedRaw = new Set(previous.filter((id) => !id.includes('\0') && !incoming.has(id)))
+  const old = new Set(previous)
+  return [...incoming].filter(
+    (id) => !id.includes('\0') || !old.has(id) || !removedRaw.has(id.slice(id.indexOf('\0') + 1))
+  )
 }

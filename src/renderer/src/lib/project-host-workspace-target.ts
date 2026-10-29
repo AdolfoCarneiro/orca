@@ -1,5 +1,8 @@
 import {
-  buildProjectGroups,
+  buildProjectGroupingIndex,
+  type ProjectGroupingIndex
+} from '../../../shared/project-section-grouping'
+import {
   selectProjectGroupTarget,
   type ProjectGroupingSettings
 } from '../../../shared/project-grouping'
@@ -60,6 +63,7 @@ export type WorkspaceCreationTargetResolution =
     }
 
 type ProjectHostWorkspaceTargetInput = {
+  grouping?: ProjectGroupingIndex
   settings?: ProjectGroupingSettings | null
   path?: string | null
   eligibleRepos: readonly Repo[]
@@ -116,7 +120,9 @@ function createTarget(
   const candidates = reposById.get(setup.repoId) ?? []
   const repo =
     candidates.find((candidate) => getRepoExecutionHostId(candidate) === setup.hostId) ??
-    (candidates.length === 1 ? candidates[0] : null)
+    (candidates.length === 1 && !candidates[0].executionHostId && !candidates[0].connectionId
+      ? candidates[0]
+      : null)
   if (!repo) {
     return null
   }
@@ -198,12 +204,19 @@ export function resolveWorkspaceCreationTarget(
   }
 
   if (projectId && model) {
-    const groups = buildProjectGroups(
-      { projects: model.projects, projectHostSetups: setups },
-      input.settings
+    const index =
+      input.grouping ??
+      buildProjectGroupingIndex({
+        projects: model.projects,
+        projectHostSetups: allSetups,
+        settings: input.settings
+      })
+    const group = index.groupByKey.get(projectId)
+    const projectSetups = setups.filter((setup) =>
+      group
+        ? index.groupByRepoHost.get(`${setup.hostId}\0${setup.repoId}`)?.key === group.key
+        : setup.projectId === projectId
     )
-    const group = groups.find((candidate) => candidate.key === projectId)
-    const projectSetups = group?.members ?? setups.filter((setup) => setup.projectId === projectId)
     if (!group && !model.projects.some((project) => project.id === projectId)) {
       return { status: 'unavailable', reason: 'project-not-found' }
     }
@@ -217,7 +230,9 @@ export function resolveWorkspaceCreationTarget(
     if (hostId && !ready.some((setup) => setup.hostId === hostId)) {
       return { status: 'unavailable', reason: 'setup-not-ready' }
     }
-    const candidates = hostId ? ready.filter((setup) => setup.hostId === hostId) : ready
+    const candidates = ready.filter(
+      (setup) => (!hostId || setup.hostId === hostId) && createTarget(setup, reposById) !== null
+    )
     if (candidates.length > 0) {
       const selected = selectProjectGroupTarget(
         {

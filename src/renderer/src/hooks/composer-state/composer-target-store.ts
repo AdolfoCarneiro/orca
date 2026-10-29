@@ -1,3 +1,4 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
@@ -92,6 +93,7 @@ export function useComposerTargetStore(options: ComposerStateInput, decisions: C
     fetchSparsePresets
   } = actions
 
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const repos = useAppStore((s) => s.repos)
 
   const projects = useAppStore((s) => s.projects)
@@ -155,8 +157,8 @@ export function useComposerTargetStore(options: ComposerStateInput, decisions: C
   )
 
   const seedActiveRepoId = useMemo(
-    () => resolveComposerActiveRepoId(repos, eligibleRepos, activeRepoId, settings),
-    [repos, eligibleRepos, activeRepoId, settings]
+    () => resolveComposerActiveRepoId(repos, eligibleRepos, activeRepoId, settings, grouping),
+    [repos, eligibleRepos, activeRepoId, settings, grouping]
   )
 
   return {

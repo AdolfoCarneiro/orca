@@ -1,3 +1,4 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import {
@@ -40,9 +41,11 @@ function getComposerDefaultWorkspaceTarget(state: ReturnType<typeof useAppStore.
     state.repos,
     eligibleRepos,
     state.activeRepoId,
-    state.settings
+    state.settings,
+    getProjectGroupingIndexFromState(state)
   )
   const resolution = resolveWorkspaceCreationTarget({
+    grouping: getProjectGroupingIndexFromState(state),
     eligibleRepos,
     projects: state.projects,
     projectHostSetups: state.projectHostSetups,

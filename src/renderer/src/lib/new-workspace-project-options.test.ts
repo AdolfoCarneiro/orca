@@ -65,6 +65,18 @@ function group(overrides: Partial<ProjectGroup> = {}): ProjectGroup {
 }
 
 describe('buildNewWorkspaceProjectOptions', () => {
+  it('offers a physical group when only its alias registration is eligible', () => {
+    const options = buildNewWorkspaceProjectOptions({
+      projects: [project(), project({ id: 'repo:alias' })],
+      projectHostSetups: [
+        setup({ id: 'canonical', repoId: 'canonical' }),
+        setup({ id: 'alias', repoId: 'alias', projectId: 'repo:alias' })
+      ],
+      eligibleRepos: [repo('alias')]
+    })
+    expect(options.map((option) => option.id)).toEqual(['project:github:stablyai/orca'])
+  })
+
   it('deduplicates a logical project across local and SSH setups', () => {
     const options = buildNewWorkspaceProjectOptions({
       projects: [project()],

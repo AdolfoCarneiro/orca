@@ -1,3 +1,4 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { useAppStore } from '@/store'
 import type { ProjectGroup } from '../../../../shared/project-group-types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -54,6 +55,7 @@ import { getFolderSourceRepos } from '@/components/sidebar/folder-workspace-comp
 import { resolveWorkspaceCreationTarget } from '@/lib/project-host-workspace-target'
 
 export function useProjectTargetActions(input: ProjectTargetActionsInput) {
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const {
     actionableHostIds,
     eligibleRepos,
@@ -198,6 +200,7 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
         selectedWorkspaceTarget.status === 'ready' ? selectedWorkspaceTarget.target.hostId : null
       // Prefer focusedHostScope rather than hard-pin hostId, so projects available only on another host remain selectable.
       const next = resolveWorkspaceCreationTarget({
+        grouping,
         settings,
         eligibleRepos,
         projects,
@@ -216,6 +219,7 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
     [
       applyProjectGroupSelection,
       eligibleRepos,
+      grouping,
       actionableHostIds,
       handleRepoChange,
       isProjectGroupTarget,

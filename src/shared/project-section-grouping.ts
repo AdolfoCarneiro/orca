@@ -5,13 +5,14 @@ import { orderProjectSections, type ActivityItem } from './project-section-order
 import type { ProjectOrderBy } from './ui-chrome-types'
 import {
   buildProjectGroups,
-  getProjectCheckoutPathKey,
   type ProjectGroupingSettings,
   type CheckoutProjectGroup,
   type GroupingSetup
 } from './project-grouping'
 import type { Project, ProjectHostSetup } from './project-types'
 import type { Repo } from './repo-types'
+import { projectHostSetupProjectionFromRepos } from './project-host-setup-projection'
+import { getRepoHostIdentityForParts } from './repo-host-identity'
 
 /** The project fields grouping reads. */
 export type ProjectSectionProject = Pick<Project, 'id' | 'displayName'>
@@ -33,6 +34,8 @@ export type ProjectSectionModel = {
 }
 
 export type ProjectGroupingIndex = {
+  groups: CheckoutProjectGroup[]
+  groupByKey: ReadonlyMap<string, CheckoutProjectGroup>
   projectById: Map<string, ProjectSectionProject>
   setupByRepoId: Map<string, ProjectSectionSetup>
   groupByRepoId: Map<string, CheckoutProjectGroup>
@@ -65,6 +68,8 @@ const indexCache = new WeakMap<
   { groups: CheckoutProjectGroup[]; index: ProjectGroupingIndex }
 >()
 
+export function buildProjectGroupingIndex(model: ProjectSectionModel): ProjectGroupingIndex
+export function buildProjectGroupingIndex(model?: ProjectSectionModel): ProjectGroupingIndex | null
 export function buildProjectGroupingIndex(
   model?: ProjectSectionModel
 ): ProjectGroupingIndex | null {
@@ -76,32 +81,56 @@ export function buildProjectGroupingIndex(
   if (cached?.groups === groups) {
     return cached.index
   }
-  const groupByCheckout = new Map(
-    groups.flatMap((group) =>
-      group.members.map((member) => [getProjectCheckoutPathKey(member), group] as const)
-    )
-  )
   const index: ProjectGroupingIndex = {
+    groups,
+    groupByKey: new Map(groups.map((group) => [group.key, group])),
     projectById: new Map(model.projects.map((project) => [project.id, project])),
     setupByRepoHost: new Map(
       model.projectHostSetups.map((setup) => [`${setup.hostId}\0${setup.repoId}`, setup])
     ),
     groupByRepoHost: new Map(
-      model.projectHostSetups.flatMap((setup) => {
-        const group = groupByCheckout.get(getProjectCheckoutPathKey(setup))
-        return group ? [[`${setup.hostId}\0${setup.repoId}`, group] as const] : []
-      })
+      groups.flatMap((group) =>
+        group.registrations.map((setup) => [`${setup.hostId}\0${setup.repoId}`, group] as const)
+      )
     ),
     setupByRepoId: new Map(model.projectHostSetups.map((setup) => [setup.repoId, setup])),
     groupByRepoId: new Map(
-      model.projectHostSetups.flatMap((setup) => {
-        const group = groupByCheckout.get(getProjectCheckoutPathKey(setup))
-        return group ? [[setup.repoId, group] as const] : []
-      })
+      groups.flatMap((group) => group.registrations.map((setup) => [setup.repoId, group] as const))
     )
   }
   indexCache.set(model, { groups, index })
   return index
+}
+
+const repoModels = new WeakMap<readonly object[], ProjectGroupingModel>()
+
+/** Catalog-less clients use the same grouping builder with their bundled repo projection. */
+export function buildRepoProjectGroupingIndex(
+  repos: readonly (ProjectSectionRepo & Partial<Repo>)[],
+  settings?: ProjectGroupingSettings | null
+): ProjectGroupingIndex {
+  let model = repoModels.get(repos)
+  if (
+    !model ||
+    model.settings?.projectGroupingMode !== settings?.projectGroupingMode ||
+    model.settings?.projectGroupingOverrides !== settings?.projectGroupingOverrides
+  ) {
+    const projection = projectHostSetupProjectionFromRepos(
+      repos.map((repo) => ({ badgeColor: '', addedAt: 0, ...repo }))
+    )
+    model = { projects: projection.projects, projectHostSetups: projection.setups, settings }
+    repoModels.set(repos, model)
+  }
+  return buildProjectGroupingIndex(model)
+}
+
+export function getProjectGroupForRepo(
+  index: ProjectGroupingIndex,
+  repo: Pick<Repo, 'id'> & Partial<Repo>
+): CheckoutProjectGroup | undefined {
+  return index.groupByRepoHost.get(
+    getRepoHostIdentityForParts(repo.id, getRepoExecutionHostId(repo))
+  )
 }
 
 export type ProjectHeaderRevealTarget<
@@ -125,7 +154,8 @@ export function getProjectGroupingForRepo<
   const repoHost = hostId ?? (repo ? getRepoExecutionHostId(repo) : undefined)
   const identity = `${repoHost}\0${repoId}`
   const setup =
-    projectIndex?.setupByRepoHost.get(identity) ?? projectIndex?.setupByRepoId.get(repoId)
+    projectIndex?.setupByRepoHost.get(identity) ??
+    (hostId ? undefined : projectIndex?.setupByRepoId.get(repoId))
   const project = setup ? projectIndex?.projectById.get(setup.projectId) : undefined
   if (!setup || !project) {
     return {
@@ -135,7 +165,8 @@ export function getProjectGroupingForRepo<
     }
   }
   const group =
-    projectIndex?.groupByRepoHost.get(identity) ?? projectIndex?.groupByRepoId.get(repoId)
+    projectIndex?.groupByRepoHost.get(identity) ??
+    (hostId ? undefined : projectIndex?.groupByRepoId.get(repoId))
   return {
     key: group?.key ?? `project:${project.id}`,
     label: group?.label ?? project.displayName,

@@ -7,7 +7,6 @@ import {
   getAgentSkillNavInstallStatus,
   getLinearAgentSkillNavInstallStatus
 } from '@/lib/agent-skill-nav-install-status'
-import { getProjectHostSetupProjectionFromState } from '../../store/selectors'
 import { getSettingsSectionSearchEntries, rankSettingsSearchItems } from './settings-search'
 import { deriveNeededSectionIds } from './settings-load-performance'
 import { SCROLLBACK_PRESETS_ROWS } from './SettingsConstants'
@@ -156,22 +155,6 @@ export function useSettingsNavigationModel(
     () => new Set(visibleNavSections.map((section) => section.id)),
     [visibleNavSections]
   )
-  const projectByRepoId = useMemo(() => {
-    const projection = getProjectHostSetupProjectionFromState({
-      repos: model.repos,
-      projects: model.projects,
-      projectHostSetups: model.projectHostSetups
-    })
-    const projectById = new Map(projection.projects.map((project) => [project.id, project]))
-    const nextProjectByRepoId = new Map<string, (typeof projection.projects)[number]>()
-    for (const setup of projection.setups) {
-      const project = projectById.get(setup.projectId)
-      if (project && setup.repoId.trim()) {
-        nextProjectByRepoId.set(setup.repoId, project)
-      }
-    }
-    return nextProjectByRepoId
-  }, [model.projectHostSetups, model.projects, model.repos])
   const neededSectionIds = useMemo(
     () =>
       deriveNeededSectionIds({
@@ -199,7 +182,6 @@ export function useSettingsNavigationModel(
     getSectionSearchEntries,
     visibleNavSections,
     visibleSectionIds,
-    projectByRepoId,
     neededSectionIds
   }
 }

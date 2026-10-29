@@ -1,15 +1,12 @@
 import type { Repo } from '../../../shared/repo-types'
+import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
 import {
-  getRepoProjectGroupKey,
-  type ProjectGroupingSettings
-} from '../../../shared/project-grouping'
+  buildRepoProjectGroupingIndex,
+  type ProjectGroupingIndex
+} from '../../../shared/project-section-grouping'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { AgentSessionWorkspaceKind } from '../../../shared/agent-session-record'
-import {
-  getRepoExecutionHostId,
-  LOCAL_EXECUTION_HOST_ID,
-  type ExecutionHostId
-} from '../../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
 import { projectGroupIdFromRepoId } from '../../../shared/folder-workspace-worktree'
 import type { RepoIcon } from '../../../shared/repo-icon'
 import type { AgentSessionRestartActivity } from '../../../shared/agent-session-restart-activity'
@@ -107,16 +104,22 @@ export function groupResumeWorkspacesByRepo(
   workspaces: readonly ResumeWorkspaceGroup[],
   repoIdFor: (workspaceId: string) => string | null,
   repos: readonly Repo[] = [],
-  settings?: ProjectGroupingSettings | null
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex,
+  groupKeys?: readonly string[]
 ): ResumeRepoGroup[] {
+  const projectIndex = groupKeys
+    ? null
+    : (grouping ?? buildRepoProjectGroupingIndex(repos, settings))
   const groups = new Map<string, ResumeRepoGroup>()
-  for (const workspace of workspaces) {
+  for (const [position, workspace] of workspaces.entries()) {
     const repoId = repoIdFor(workspace.workspaceId)
     const hostId = workspace.candidates[0]?.executionHostId ?? LOCAL_EXECUTION_HOST_ID
-    const repo = repos.find(
-      (candidate) => candidate.id === repoId && getRepoExecutionHostId(candidate) === hostId
-    )
-    const key = repo ? getRepoProjectGroupKey(repo, settings) : (repoId ?? '\0none')
+    const key =
+      groupKeys?.[position] ??
+      projectIndex?.groupByRepoHost.get(`${hostId}\0${repoId}`)?.key ??
+      repoId ??
+      '\0none'
     const existing = groups.get(key)
     if (existing) {
       existing.workspaces.push(workspace)

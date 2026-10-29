@@ -1,29 +1,30 @@
 import { useAppStore } from '@/store'
+import type { ProjectGroupingSettings } from '../../../../shared/project-grouping'
 import {
-  getRepoProjectGroupKey,
-  type ProjectGroupingSettings
-} from '../../../../shared/project-grouping'
+  buildRepoProjectGroupingIndex,
+  type ProjectGroupingIndex
+} from '../../../../shared/project-section-grouping'
 import type { Repo } from '../../../../shared/repo-types'
-import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import { useMemo } from 'react'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { useAllWorktrees } from '@/store/selectors'
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { NEW_WORKSPACE_PROJECT_GROUP_OPTION_PREFIX } from '@/lib/new-workspace-project-options'
 
 /** Use each project’s newest workspace creation as recency; it matches this picker’s action without separate persisted state. */
 export function orderProjectIdsByRecency(
   worktrees: readonly Worktree[],
   repos: readonly Repo[] = [],
-  settings?: ProjectGroupingSettings | null
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex
 ): string[] {
+  const projectIndex = grouping ?? buildRepoProjectGroupingIndex(repos, settings)
   const newestByProject = new Map<string, number>()
   for (const worktree of worktrees) {
-    const repo = repos.find(
-      (candidate) =>
-        candidate.id === worktree.repoId &&
-        (!worktree.hostId || getRepoExecutionHostId(candidate) === worktree.hostId)
-    )
-    const projectId = repo ? getRepoProjectGroupKey(repo, settings) : worktree.projectId
+    const group = worktree.hostId
+      ? projectIndex.groupByRepoHost.get(`${worktree.hostId}\0${worktree.repoId}`)
+      : projectIndex.groupByRepoId.get(worktree.repoId)
+    const projectId = group?.key ?? worktree.projectId
     if (projectId === undefined || projectId === '') {
       continue
     }
@@ -44,10 +45,9 @@ export function orderProjectIdsByRecency(
 
 export function useRecentProjectIds(): string[] {
   const worktrees = useAllWorktrees()
-  const repos = useAppStore((state) => state.repos)
-  const settings = useAppStore((state) => state.settings)
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   return useMemo(
-    () => orderProjectIdsByRecency(worktrees, repos, settings),
-    [worktrees, repos, settings]
+    () => orderProjectIdsByRecency(worktrees, [], undefined, grouping),
+    [worktrees, grouping]
   )
 }

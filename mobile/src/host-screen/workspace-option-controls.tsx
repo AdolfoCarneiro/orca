@@ -1,3 +1,7 @@
+import {
+  selectedWorkspaceProjectKeys,
+  toggleProjectFilter
+} from '../worktree/workspace-filter-repos'
 import { useState, type ComponentType } from 'react'
 import { Text, View } from 'react-native'
 import { MobileSearchField } from '../components/MobileSearchField'
@@ -118,7 +122,8 @@ function HostsPage({ controller, hosts }: WorkspaceOptionProps) {
 function projectsValue({ controller }: WorkspaceOptionProps, t: Translate): string {
   const repos = controller.sectionsResult.uniqueRepos
   const selected = controller.state.view.filters.filterRepoIds
-  const checked = selected.length === 0 ? repos : repos.filter((repo) => selected.includes(repo.id))
+  const keys = selectedWorkspaceProjectKeys(repos, selected)
+  const checked = selected.length === 0 ? repos : repos.filter((repo) => keys.has(repo.key))
   return checklistValue(
     checked.map((repo) => repo.name),
     repos.length,
@@ -134,6 +139,7 @@ function ProjectsPage({ controller }: WorkspaceOptionProps) {
   const [query, setQuery] = useState('')
   const needle = query.trim().toLowerCase()
   const selected = state.view.filters.filterRepoIds
+  const checkedKeys = selectedWorkspaceProjectKeys(controller.sectionsResult.uniqueRepos, selected)
   const repos = controller.sectionsResult.uniqueRepos.filter(
     (repo) => !needle || repo.name.toLowerCase().includes(needle)
   )
@@ -165,8 +171,10 @@ function ProjectsPage({ controller }: WorkspaceOptionProps) {
             <CheckRow
               key={repo.key}
               label={repo.name}
-              checked={selected.includes(repo.id)}
-              onPress={() => settings.toggleRepoFilter(repo.id)}
+              checked={checkedKeys.has(repo.key)}
+              onPress={() =>
+                settings.setFilter('filterRepoIds', toggleProjectFilter(repo, selected))
+              }
               leading={<View style={[styles.filterRepoDot, { backgroundColor: repo.color }]} />}
             />
           ))

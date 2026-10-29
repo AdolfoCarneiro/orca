@@ -5,7 +5,7 @@ import { useAppStore } from '@/store'
 import { cn } from '@/lib/utils'
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import { getScreenSubmitModifierLabel } from '@/lib/screen-submit-shortcut'
-import { resolveProjectCloneUrlPrefill } from '@/lib/project-clone-url-prefill'
+import { selectProjectCloneUrlPrefill } from '@/lib/project-clone-url-prefill'
 import { useContextualTour } from '@/components/contextual-tours/use-contextual-tour'
 import {
   AddRemoteHostDialog,
@@ -113,7 +113,7 @@ export default function NewWorkspaceComposerCard(
     projectOptions.find((candidate) => candidate.id === selectedProjectId)?.displayName ??
     selectedRepoName
   const defaultCloneUrl = useAppStore((state) =>
-    resolveProjectCloneUrlPrefill(state.projects, state.repos, selectedProjectId, state.settings)
+    selectProjectCloneUrlPrefill(state, selectedProjectId)
   )
   const readyProjectHostSetupOptions = projectHostSetupOptions.filter(
     (option) => option.kind === 'ready'

@@ -1,8 +1,11 @@
-import { buildProjectGroups, type ProjectGroupingSettings } from '../../../shared/project-grouping'
+import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
+import {
+  buildProjectGroupingIndex,
+  type ProjectGroupingIndex
+} from '../../../shared/project-section-grouping'
 import {
   getExecutionHostLabel,
   isRuntimeOwnedSshTargetId,
-  LOCAL_EXECUTION_HOST_ID,
   parseExecutionHostId,
   type ExecutionHostId
 } from '../../../shared/execution-host'
@@ -17,7 +20,10 @@ import {
 import type { ProjectHostSetup } from '../../../shared/project-types'
 import type { Repo } from '../../../shared/repo-types'
 import { translate } from '@/i18n/i18n'
-import { dedupeReadySetupRows } from './project-host-setup-row-dedupe'
+import {
+  dedupeReadySetupRows,
+  compareProjectHostSetupOptions
+} from './project-host-setup-row-dedupe'
 
 export type ProjectHostSetupSelection = { id: string; hostId: ExecutionHostId }
 
@@ -60,7 +66,6 @@ export function getProjectHostSetupSelectionKey(
 }
 
 type BuildReadySetupOptionsInput = {
-  projectId: string
   projectHostSetups: readonly ProjectHostSetup[]
   eligibleRepos: readonly Repo[]
   hosts: readonly ExecutionHostRegistryEntry[]
@@ -75,6 +80,7 @@ type BuildNeedsSetupOptionsInput = {
 
 type BuildProjectHostSetupOptionsInput = {
   groupKey?: string | null
+  grouping?: ProjectGroupingIndex
   settings?: ProjectGroupingSettings | null
   projectId: string | null
   projectHostSetups: readonly ProjectHostSetup[]
@@ -84,6 +90,7 @@ type BuildProjectHostSetupOptionsInput = {
 
 export function buildProjectHostSetupOptions({
   groupKey,
+  grouping,
   settings,
   projectId,
   projectHostSetups,
@@ -93,21 +100,26 @@ export function buildProjectHostSetupOptions({
   if (!projectId) {
     return []
   }
-  const group = groupKey
-    ? buildProjectGroups(
-        { projects: [{ id: projectId, displayName: '' }], projectHostSetups },
-        settings
-      ).find((candidate) => candidate.key === groupKey)
-    : undefined
-  const groupedSetups = group?.members ?? projectHostSetups
+  const index =
+    grouping ??
+    buildProjectGroupingIndex({
+      projects: [{ id: projectId, displayName: '' }],
+      projectHostSetups,
+      settings
+    })
+  const group = groupKey ? index.groupByKey.get(groupKey) : undefined
+  const groupedSetups = projectHostSetups.filter((setup) =>
+    group
+      ? index.groupByRepoHost.get(`${setup.hostId}\0${setup.repoId}`)?.key === group.key
+      : setup.projectId === projectId
+  )
   const readyOptions = buildReadySetupOptions({
-    projectId,
     projectHostSetups: groupedSetups,
     eligibleRepos,
     hosts
   })
   const readySetupByHost = new Map(readyOptions.map((option) => [option.hostId, option]))
-  const pendingSetupByHost = getPendingSetupByHost(projectId, projectHostSetups)
+  const pendingSetupByHost = getPendingSetupByHost(groupedSetups)
   return [
     ...readyOptions,
     ...buildNeedsSetupOptions({
@@ -120,12 +132,11 @@ export function buildProjectHostSetupOptions({
 }
 
 function getPendingSetupByHost(
-  projectId: string,
   projectHostSetups: readonly ProjectHostSetup[]
 ): Map<ExecutionHostId, ProjectHostSetup> {
   const setups = new Map<ExecutionHostId, ProjectHostSetup>()
   for (const setup of projectHostSetups) {
-    if (setup.projectId !== projectId || setup.setupState === 'ready') {
+    if (setup.setupState === 'ready') {
       continue
     }
     if (!setups.has(setup.hostId)) {
@@ -136,7 +147,6 @@ function getPendingSetupByHost(
 }
 
 function buildReadySetupOptions({
-  projectId,
   projectHostSetups,
   eligibleRepos,
   hosts
@@ -147,7 +157,6 @@ function buildReadySetupOptions({
     .filter((setup) => {
       const host = hostById.get(setup.hostId)
       return (
-        setup.projectId === projectId &&
         setup.setupState === 'ready' &&
         eligibleRepoIds.has(setup.repoId) &&
         Boolean(host) &&
@@ -307,19 +316,4 @@ function getPendingSetupDetail(setup: ProjectHostSetup): string {
     case 'ready':
       return setup.path
   }
-}
-
-function compareProjectHostSetupOptions(
-  a: ProjectHostSetupOption,
-  b: ProjectHostSetupOption
-): number {
-  if (a.hostId === LOCAL_EXECUTION_HOST_ID && b.hostId !== LOCAL_EXECUTION_HOST_ID) {
-    return -1
-  }
-  if (b.hostId === LOCAL_EXECUTION_HOST_ID && a.hostId !== LOCAL_EXECUTION_HOST_ID) {
-    return 1
-  }
-  const aDetail = a.kind === 'ready' ? a.path : a.detail
-  const bDetail = b.kind === 'ready' ? b.path : b.detail
-  return a.label.localeCompare(b.label) || aDetail.localeCompare(bDetail)
 }

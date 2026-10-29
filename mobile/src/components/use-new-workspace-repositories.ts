@@ -1,3 +1,10 @@
+import {
+  projectSectionsRead,
+  readServedProjectSections,
+  type ServedProjectSections
+} from '../worktree/project-sections-operations'
+import { buildNewWorkspaceGrouping } from './new-workspace-project-targets'
+import type { ProjectGroupingIndex } from '../../../src/shared/project-section-grouping'
 import { useEffect, useMemo, useState } from 'react'
 import type { ExecutionHostId } from '../../../src/shared/execution-host'
 import type { RpcClient } from '../transport/rpc-client'
@@ -26,12 +33,17 @@ export function useNewWorkspaceRepositories(args: {
   selectedRepo: MobileWorkspaceRepo | null
   setSelectedRepo: (repo: MobileWorkspaceRepo | null) => void
   loading: boolean
+  grouping: ProjectGroupingIndex | null
 } {
   const { client, serverClients = NO_SERVER_CLIENTS, hostId, visible } = args
   const [initialRepos] = useState(() =>
     hostId ? (getCachedRepos(hostId) as MobileWorkspaceRepo[] | null) : null
   )
   const [desktopRepos, setDesktopRepos] = useState<MobileWorkspaceRepo[]>(initialRepos ?? [])
+  const [ownerCatalog, setOwnerCatalog] = useState<{
+    client: RpcClient
+    served: ServedProjectSections | null
+  } | null>(null)
   const serverRepos = useServerRepos<MobileWorkspaceRepo>(serverClients, visible)
   const [pickedRepo, setSelectedRepo] = useState<MobileWorkspaceRepo | null>(null)
   const [loading, setLoading] = useState(initialRepos == null)
@@ -50,6 +62,32 @@ export function useNewWorkspaceRepositories(args: {
     () => refreshMobileNewWorkspaceDialogSelectedRepo(repos, pickedRepo),
     [pickedRepo, repos]
   )
+
+  const grouping = useMemo(
+    () =>
+      ownerCatalog?.client === client
+        ? buildNewWorkspaceGrouping(allRepos, ownerCatalog.served)
+        : null,
+    [allRepos, client, ownerCatalog]
+  )
+  useEffect(() => {
+    if (!visible || !client) {
+      return
+    }
+    let stale = false
+    void projectSectionsRead
+      .request(client)
+      .then((reply) => {
+        const result = readServedProjectSections(reply)
+        if (!stale && result.kind === 'answered') {
+          setOwnerCatalog({ client, served: result.value })
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      stale = true
+    }
+  }, [client, visible])
 
   useEffect(() => {
     if (!visible || !lastVisitedRepo.loaded || selectedRepo || repos.length === 0) {
@@ -92,5 +130,12 @@ export function useNewWorkspaceRepositories(args: {
     }
   }, [visible, client, hostId])
 
-  return { repos, allRepos, selectedRepo, setSelectedRepo, loading: loading && repos.length === 0 }
+  return {
+    repos,
+    allRepos,
+    selectedRepo,
+    setSelectedRepo,
+    grouping,
+    loading: loading && repos.length === 0
+  }
 }

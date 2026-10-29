@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
-import { getRepoProjectGroupKey } from '../../../../shared/project-grouping'
+import { useAppStore } from '@/store'
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
+import { getProjectGroupForRepo } from '../../../../shared/project-section-grouping'
 import { buildProjectHostSetupOptions } from '@/lib/project-host-setup-options'
 import { buildNewWorkspaceCreateTargetOptions } from '@/lib/new-workspace-project-options'
 import type { WorkspaceCreationTargetResolution } from '@/lib/project-host-workspace-target'
@@ -32,10 +34,11 @@ export function useComposerProjectOptions(
   const selectedRepoProjectId =
     selectedWorkspaceTarget.status === 'ready' ? selectedWorkspaceTarget.target.projectId : null
 
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const selectedProjectId = selectedProjectGroup
     ? `project-group:${selectedProjectGroup.id}`
     : selectedRepo
-      ? getRepoProjectGroupKey(selectedRepo, settings)
+      ? (getProjectGroupForRepo(grouping, selectedRepo)?.key ?? selectedRepoProjectId)
       : selectedRepoProjectId
 
   const selectedProjectHostSetupId =
@@ -49,6 +52,7 @@ export function useComposerProjectOptions(
         projectId: selectedRepoProjectId,
         groupKey: selectedProjectId,
         settings,
+        grouping,
         projectHostSetups,
         eligibleRepos,
         hosts: hostOptions
@@ -59,7 +63,8 @@ export function useComposerProjectOptions(
       projectHostSetups,
       selectedRepoProjectId,
       selectedProjectId,
-      settings
+      settings,
+      grouping
     ]
   )
 
@@ -71,9 +76,10 @@ export function useComposerProjectOptions(
         eligibleRepos,
         projectGroups,
         hosts: hostOptions,
-        settings
+        settings,
+        grouping
       }),
-    [eligibleRepos, hostOptions, projectGroups, projectHostSetups, projects, settings]
+    [eligibleRepos, hostOptions, projectGroups, projectHostSetups, projects, settings, grouping]
   )
 
   return {

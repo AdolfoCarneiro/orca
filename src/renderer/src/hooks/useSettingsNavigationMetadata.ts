@@ -17,7 +17,7 @@ import {
 } from '@/lib/windows-terminal-capabilities'
 import { defaultScopeHost } from '@/lib/default-creation-host'
 import { useAppStore } from '@/store'
-import { useProjectHostSetupProjection } from '@/store/selectors'
+import { getProjectGroupingModelFromState } from '@/store/project-host-setup-selector'
 import {
   useChatSettingsOwnPermissions,
   useStructuredAgentSessionHostQueuesMessages
@@ -113,7 +113,7 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
   // The locale subscription must also invalidate the memo or labels retain the previous language.
   const languageRevision = useUiLanguageRevision()
   const repos = useAppStore((state) => state.repos)
-  const projectHostSetupProjection = useProjectHostSetupProjection()
+  const projectGrouping = useAppStore(getProjectGroupingModelFromState)
   const settings = useAppStore((state) => state.settings)
   const [managedBrowserCreationEnabled, mobileEmulatorCreationEnabled] = useAppStore(
     useShallow((state) => {
@@ -175,11 +175,7 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
         isDev: import.meta.env.DEV,
         isLinearConnected,
         repos,
-        projectGrouping: {
-          projects: projectHostSetupProjection.projects,
-          projectHostSetups: projectHostSetupProjection.setups,
-          settings
-        }
+        projectGrouping
       }),
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- translate() inside buildSettingsNavigationMetadata reads the UI language and catalogs implicitly.
     [
@@ -195,7 +191,7 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
       mobileEmulatorCreationEnabled,
       isLinearConnected,
       repos,
-      projectHostSetupProjection,
+      projectGrouping,
       settings,
       languageRevision
     ]

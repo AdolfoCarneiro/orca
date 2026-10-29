@@ -1,3 +1,4 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronRight, ChevronsUpDown, FolderPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -75,10 +76,10 @@ export default function AutomationProjectCombobox({
   const focusFrameRef = useRef<number | null>(null)
   const mountedRef = useMountedRef()
 
-  const settings = useAppStore((state) => state.settings)
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const groups = useMemo(
-    () => getAutomationProjectGroups(repos, value, settings),
-    [repos, value, settings]
+    () => getAutomationProjectGroups(repos, value, undefined, grouping),
+    [repos, value, grouping]
   )
   const selectedGroup = useMemo(
     () => getAutomationProjectGroupForRepo(groups, value),

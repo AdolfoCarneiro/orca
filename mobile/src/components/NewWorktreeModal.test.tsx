@@ -46,6 +46,7 @@ vi.mock('./PickerListDrawer', () => ({ PickerListDrawer: 'PickerListDrawer' }))
 vi.mock('./MobileAgentIcon', () => ({ MobileAgentIcon: 'MobileAgentIcon' }))
 vi.mock('./TaskProviderLogo', () => ({ TaskProviderLogo: 'TaskProviderLogo' }))
 
+import { MOBILE_PROJECT_SECTIONS_METHOD } from '../../../src/shared/mobile-project-sections-contract'
 import { setCachedRepos } from '../cache/repo-cache'
 import { recordHostDescriptor } from '../transport/host-descriptor-store'
 import { FakeSession } from '../transport/mobile-endpoint-supervisor-test-fakes'
@@ -90,7 +91,11 @@ function sourceInputs(renderer: ReactTestRenderer) {
 
 function requestsOnly(sendRequest: RpcClient['sendRequest']): RpcClient {
   const client = new FakeSession('connected')
-  client.sendRequest.mockImplementation(sendRequest)
+  client.sendRequest.mockImplementation((method, ...args) =>
+    method === MOBILE_PROJECT_SECTIONS_METHOD
+      ? replied({ catalog: null })
+      : sendRequest(method, ...args)
+  )
   return client
 }
 

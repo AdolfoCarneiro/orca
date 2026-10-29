@@ -1,3 +1,5 @@
+import { useAppStore } from '@/store'
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
 import { cn } from '@/lib/utils'
 import TaskProjectSourceCombobox from '@/components/task-project-source-combobox'
@@ -12,6 +14,7 @@ export function TaskPageGitHubModeControls({
 }: {
   model: TaskPageComposerActionsModel
 }): React.JSX.Element | null {
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const {
     setTaskResumeState,
     updateSettings,
@@ -78,7 +81,7 @@ export function TaskPageGitHubModeControls({
           selected={repoSelection}
           getRepoHostLabel={getTaskPickerRepoHostLabel}
           onChange={(next) => {
-            const normalized = normalizeTaskRepoSelection(eligibleRepos, next, settings)
+            const normalized = normalizeTaskRepoSelection(eligibleRepos, next, settings, grouping)
             setRepoSelection(normalized)
             void updateSettings({
               defaultRepoSelection: [...normalized]

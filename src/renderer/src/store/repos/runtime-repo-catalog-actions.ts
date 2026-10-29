@@ -56,7 +56,7 @@ export function createRuntimeRepoCatalogActions(
           if (isRemovedRuntimeHostId(catalog.hostId, s.removedRuntimeEnvironmentIds)) {
             return s
           }
-          const result = mergeFetchedRepoCatalog(catalog, s.repos, s.settings)
+          const result = mergeFetchedRepoCatalog(catalog, s.repos, s.settings, s)
           const reconciliation = reconcileSupersededSshRepos(result.repos, s)
           const finalizedRepos = applyManualRepoOrder(reconciliation.repos, s.manualRepoOrder)
           const validRepoIds = new Set(finalizedRepos.map((repo) => repo.id))

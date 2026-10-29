@@ -1,3 +1,4 @@
+import { getRepoHostIdentity } from '../../../shared/repo-host-identity'
 import type { Repo } from '../../../shared/repo-types'
 import type { Worktree } from '../../../shared/worktree/types'
 import {
@@ -15,6 +16,7 @@ type WorktreeSnapshot = {
 // Why: Zustand reruns selectors on every write, so identity projections need
 // cross-render caching without pinning replaced store snapshots in memory.
 const worktreeSnapshotCache = new WeakMap<AppState['worktreesByRepo'], WorktreeSnapshot>()
+const repoHostMapCache = new WeakMap<AppState['repos'], Map<string, Repo>>()
 const repoMapCache = new WeakMap<AppState['repos'], Map<string, Repo>>()
 
 function getWorktreeSnapshot(worktreesByRepo: AppState['worktreesByRepo']): WorktreeSnapshot {
@@ -87,4 +89,13 @@ export function getIndexedRepoMap(repos: AppState['repos']): Map<string, Repo> {
   const repoMap = new Map(repos.map((repo) => [repo.id, repo]))
   repoMapCache.set(repos, repoMap)
   return repoMap
+}
+
+export function getIndexedRepoHostMap(repos: AppState['repos']): ReadonlyMap<string, Repo> {
+  let map = repoHostMapCache.get(repos)
+  if (!map) {
+    map = new Map(repos.map((repo) => [getRepoHostIdentity(repo), repo]))
+    repoHostMapCache.set(repos, map)
+  }
+  return map
 }

@@ -13,6 +13,7 @@ export type SettingsProject = {
   projectId: string
   project: Project
   setups: ProjectHostSetup[]
+  representativeHostId: ExecutionHostId
   representativeRepoId: string
   /** Resolved group key used by this entry's host selection. */
   selectionKey: string
@@ -97,17 +98,16 @@ export function buildSettingsProjectList(
   repos: readonly Repo[],
   projectGrouping?: ProjectGroupingModel
 ): SettingsProject[] {
-  const projection = projectHostSetupProjectionFromRepos(repos)
-  const projectById = new Map(projection.projects.map((project) => [project.id, project]))
-  const model = projectGrouping ?? {
-    projects: projection.projects,
-    projectHostSetups: projection.setups
-  }
+  const model =
+    projectGrouping ??
+    (() => {
+      const projection = projectHostSetupProjectionFromRepos(repos)
+      return { projects: projection.projects, projectHostSetups: projection.setups }
+    })()
+  const projectById = new Map(model.projects.map((project) => [project.id, project]))
   return buildProjectGroups(model).flatMap((group) => {
     const projectId = group.representative.projectId
-    const project =
-      projectGrouping?.projects.find((candidate) => candidate.id === projectId) ??
-      projectById.get(projectId)
+    const project = projectById.get(projectId)
     if (!project) {
       return []
     }
@@ -116,8 +116,9 @@ export function buildSettingsProjectList(
         projectId,
         selectionKey: group.key,
         project,
-        setups: group.members,
+        setups: group.registrations,
         representativeRepoId: group.representative.repoId,
+        representativeHostId: group.representative.hostId,
         ...(group.key.includes('::host:') ? { checkoutLabel: group.label, splitProject: true } : {})
       }
     ]
@@ -151,7 +152,9 @@ export function buildRepoIdToRepresentative(
   for (const settingsProject of projects) {
     for (const setup of settingsProject.setups) {
       if (setup.repoId.trim().length > 0) {
-        map.set(setup.repoId, settingsProject.representativeRepoId)
+        if (!map.has(setup.repoId)) {
+          map.set(setup.repoId, settingsProject.selectionKey)
+        }
       }
     }
   }

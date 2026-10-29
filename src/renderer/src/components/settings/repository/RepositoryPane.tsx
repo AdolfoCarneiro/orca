@@ -15,7 +15,10 @@ import { WorktreeSymlinksSection } from '../WorktreeSymlinksSection'
 import { SparsePresetSettingsSection } from '../SparsePresetSettingsSection'
 import { RepositorySourceControlAiSection } from './source-control/RepositorySourceControlAiSection'
 import { SearchableSetting } from '../SearchableSetting'
-import { RepositoryRemoveProjectButton } from './RepositoryRemoveProjectButton'
+import {
+  getRemoveProjectDescription,
+  RepositoryRemoveProjectButton
+} from './RepositoryRemoveProjectButton'
 import type { SettingsProjectRemovalScope } from '../settings-project-list'
 import { matchesSettingsSearch } from '../settings-search'
 import { useAppStore } from '@/store/index'
@@ -245,6 +248,9 @@ export function RepositoryPane({
                 )}
               </p>
             ) : null}
+            <p className="text-xs text-muted-foreground">
+              {getRemoveProjectDescription(removalScope, repo)}
+            </p>
           </div>
           <RepositoryRemoveProjectButton
             repo={repo}

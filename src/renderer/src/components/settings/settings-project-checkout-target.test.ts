@@ -51,12 +51,12 @@ describe('local Project Settings checkout targets', () => {
 
       for (const repo of repos) {
         const representative = representatives.get(repo.id)
-        expect(representative).toBe(repo.id)
-        const entry = projects.find((project) => project.representativeRepoId === representative)
+        const entry = projects.find((project) => project.selectionKey === representative)
         expect(entry).toBeDefined()
         if (!entry) {
           throw new Error(`No settings entry for ${repo.id}`)
         }
+        expect(entry?.representativeRepoId).toBe(repo.id)
         const selection = selections.get(repo.id)
         expect(getSettingsProjectHostRepo(entry, repos, selection?.hostId)?.id).toBe(repo.id)
       }
@@ -73,7 +73,7 @@ describe('local Project Settings checkout targets', () => {
     const representatives = buildRepoIdToRepresentative(projects)
     expect(projects).toHaveLength(2)
     for (const repo of repos) {
-      expect(representatives.get(repo.id)).toBe(repo.id)
+      expect(representatives.get(repo.id)).toBe(`project:repo:${repo.id}`)
     }
   })
 })

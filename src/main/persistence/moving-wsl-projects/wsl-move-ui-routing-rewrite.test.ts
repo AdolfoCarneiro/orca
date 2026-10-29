@@ -86,6 +86,53 @@ function dismissal(
 }
 
 describe('WSL move UI routing rewrite', () => {
+  it.each([100, 1000])(
+    'indexes the manifest once for %i grouped keys on initial rewrite and replay',
+    (count) => {
+      let reads = 0
+      const repositories = Array.from({ length: count }, (_, i) => ({
+        ...source.state.repos[0],
+        get id() {
+          reads++
+          return `repo-${i}`
+        },
+        upstream: { owner: 'org', repo: `app-${i}` }
+      }))
+      const cutover = wslMoveCutoverFixture(
+        'scale',
+        'destination-committed',
+        {},
+        { repoIds: repositories.map((repo) => repo.id) }
+      )
+      cutover.manifest.payload.repositories = repositories
+      const grouped = repositories.map(
+        (_, i) => `project:github:org/app-${i}::host:local::local::wsl:ubuntu`
+      )
+      reads = 0
+      const indexed = wslMoveRewriteScope({
+        cutover,
+        rewritePath: createUncToLinuxPathRewriter('Ubuntu'),
+        destinationHostId: HOST,
+        recordSeededHostWorkspaceIds: () => {}
+      })
+      expect(reads).toBeLessThanOrEqual(5 * count)
+      reads = 0
+      const input = { ...EMPTY_UI, collapsedGroups: grouped }
+      const result = rewriteWslMoveUiRouting(input, indexed)
+      expect(result.collapsedGroups).toHaveLength(2 * count)
+      expect(reads).toBe(0)
+      const replayScope = wslMoveRewriteScope({
+        cutover,
+        rewritePath: createUncToLinuxPathRewriter('Ubuntu'),
+        destinationHostId: HOST,
+        recordSeededHostWorkspaceIds: () => {}
+      })
+      expect(reads).toBeLessThanOrEqual(5 * count)
+      const replay = rewriteWslMoveUiRouting({ ...input, ...result }, replayScope)
+      expect(replay.collapsedGroups ?? result.collapsedGroups).toEqual(result.collapsedGroups)
+    }
+  )
+
   it("copies only the moved project's rows to the host's form, keeping the local ones", () => {
     const ui = profileUi()
     const updates = rewriteWslMoveUiRouting(ui, scope)

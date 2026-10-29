@@ -1,4 +1,8 @@
-import { buildProjectGroups, type ProjectGroupingSettings } from '../../../shared/project-grouping'
+import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
+import {
+  buildProjectGroupingIndex,
+  type ProjectGroupingIndex
+} from '../../../shared/project-section-grouping'
 import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
 import type { ProjectGroup } from '../../../shared/project-group-types'
 import type { Project, ProjectHostSetup } from '../../../shared/project-types'
@@ -44,6 +48,7 @@ export function isNewWorkspaceProjectOptionQueryTooLarge(
 
 type BuildNewWorkspaceProjectOptionsInput = {
   settings?: ProjectGroupingSettings | null
+  grouping?: ProjectGroupingIndex
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
   eligibleRepos: readonly Repo[]
@@ -110,18 +115,25 @@ export function buildNewWorkspaceProjectOptions(
     setupDirectoriesByProjectId.set(setup.projectId, directories)
   }
 
-  const groups = buildProjectGroups({ projects, projectHostSetups }, input.settings)
+  const index =
+    input.grouping ??
+    buildProjectGroupingIndex({ projects, projectHostSetups, settings: input.settings })
+  const projectById = new Map(projects.map((project) => [project.id, project]))
+  const projectHostSetupsById = new Map(
+    projectHostSetups.map((setup) => [`${setup.hostId}\0${setup.id}`, setup])
+  )
+  const groups = index.groups
   const options = groups
     .filter((group) =>
-      group.members.some(
+      group.registrations.some(
         (setup) =>
-          setup.setupState === 'ready' &&
+          projectHostSetupsById.get(`${setup.hostId}\0${setup.id}`)?.setupState === 'ready' &&
           eligibleRepoIds.has(setup.repoId) &&
           (!liveHostIds || liveHostIds.has(setup.hostId))
       )
     )
     .flatMap((group) => {
-      const project = projects.find((candidate) => candidate.id === group.representative.projectId)
+      const project = projectById.get(group.representative.projectId)
       if (!project) {
         return []
       }

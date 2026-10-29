@@ -13,7 +13,7 @@ import type { SettingsRenderContext } from './settings-render-context'
 export function renderProjectSettingsSections(context: SettingsRenderContext): React.ReactNode {
   const { model, navigation, terminal, view } = context
   return model.settingsProjectList.map((settingsProject) => {
-    const repoSectionId = `repo-${settingsProject.representativeRepoId}`
+    const repoSectionId = `repo-${settingsProject.selectionKey}`
     // Identity edits must follow the selected Available Hosts entry.
     const hostSelection = getSettingsEntryHostSelection(
       settingsProject,
@@ -31,7 +31,7 @@ export function renderProjectSettingsSections(context: SettingsRenderContext): R
     }
     const repoHostIdentity = getRepoHostIdentity(repo)
     const repoHooksState = model.repoHooksMap[repoHostIdentity]
-    const project = navigation.projectByRepoId.get(repo.id) ?? settingsProject.project
+    const project = settingsProject.project
 
     return (
       <SettingsSection

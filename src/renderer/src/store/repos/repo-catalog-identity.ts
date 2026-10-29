@@ -1,3 +1,4 @@
+import type { ProjectGroupingIndex } from '../../../../shared/project-section-grouping'
 import type { ProjectGroupingSettings } from '../../../../shared/project-grouping'
 import type { Repo } from '../../../../shared/repo-types'
 import { applyInheritedProjectGroups } from '../../../../shared/project-group-inheritance'
@@ -13,9 +14,15 @@ export function mergeFetchedReposForHost(
   previous: readonly Repo[],
   fetched: readonly Repo[],
   hostId: string,
-  settings?: ProjectGroupingSettings | null
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex
 ): readonly Repo[] {
-  const fetchedWithProjectGroups = applyInheritedProjectGroups(previous, fetched, settings)
+  const fetchedWithProjectGroups = applyInheritedProjectGroups(
+    previous,
+    fetched,
+    settings,
+    grouping
+  )
   const fetchedIdentities = new Set(fetchedWithProjectGroups.map(getRepoHostIdentity))
   const preserved = previous.filter((repo) => {
     const existingHostId = getRepoExecutionHostId(repo)

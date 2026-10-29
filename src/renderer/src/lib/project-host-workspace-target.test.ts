@@ -57,6 +57,64 @@ function makeSetup(
 }
 
 describe('project-host workspace target resolution', () => {
+  it('does not resolve an explicit owned setup through another host’s sole same-ID registration', () => {
+    const projectId = 'github:org/app'
+    expect(
+      resolveWorkspaceCreationTarget({
+        eligibleRepos: [makeRepo('same', { executionHostId: 'local' })],
+        projects: [makeProject(projectId, ['same'])],
+        projectHostSetups: [makeSetup('remote-setup', projectId, 'runtime:remote', 'same')],
+        projectId,
+        projectHostSetupId: 'remote-setup'
+      })
+    ).toEqual({ status: 'unavailable', reason: 'setup-not-found' })
+  })
+
+  it('skips unresolved implicit members but keeps explicit setup failures for both project selectors', () => {
+    const projectId = 'github:org/app'
+    const allowed = makeRepo('allowed')
+    const projects = [makeProject(projectId, ['excluded', 'allowed'])]
+    const projectHostSetups = [
+      makeSetup('excluded', projectId, 'local', 'excluded'),
+      makeSetup('allowed', projectId, 'local', 'allowed')
+    ]
+    for (const selection of [projectId, `project:${projectId}`]) {
+      const input = {
+        eligibleRepos: [allowed],
+        projects,
+        projectHostSetups,
+        projectId: selection,
+        actionableHostIds: new Set<ExecutionHostId>(['local'])
+      }
+      expect(resolveWorkspaceCreationTarget({ ...input, activeRepoId: 'excluded' })).toMatchObject({
+        status: 'ready',
+        target: { repoId: 'allowed', projectHostSetupId: 'allowed' }
+      })
+      expect(resolveWorkspaceCreationTarget({ ...input, projectHostSetupId: 'excluded' })).toEqual({
+        status: 'unavailable',
+        reason: 'setup-not-found'
+      })
+      expect(
+        resolveWorkspaceCreationTarget({ ...input, projectHostSetupId: 'allowed' })
+      ).toMatchObject({ status: 'ready', target: { repoId: 'allowed' } })
+      expect(
+        resolveWorkspaceCreationTarget({
+          ...input,
+          projectHostSetups: [projectHostSetups[0]]
+        })
+      ).toEqual({ status: 'unavailable', reason: 'project-has-no-ready-setup' })
+      expect(
+        resolveWorkspaceCreationTarget({
+          ...input,
+          projectHostSetups: projectHostSetups.map((setup) => ({
+            ...setup,
+            setupState: 'setting-up' as const
+          }))
+        })
+      ).toEqual({ status: 'unavailable', reason: 'project-has-no-ready-setup' })
+    }
+  })
+
   it('falls back to a local setup for a local-only repo', () => {
     const repo = makeRepo('orca')
 

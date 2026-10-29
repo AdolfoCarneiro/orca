@@ -1,7 +1,12 @@
 import {
-  getRepoProjectGroupKey,
-  type ProjectGroupingSettings
-} from '../../../src/shared/project-grouping'
+  buildProjectGroupingIndex,
+  getProjectGroupForRepo,
+  type ProjectGroupingIndex
+} from '../../../src/shared/project-section-grouping'
+import type { ProjectGroupingSettings } from '../../../src/shared/project-grouping'
+import { withLegacyProjectGroupKeys } from '../../../src/shared/project-section-legacy-grouping'
+import { projectHostSetupProjectionFromRepos } from '../../../src/shared/project-host-setup-projection'
+import type { ServedProjectSections } from '../worktree/project-sections-operations'
 import type { Repo } from '../../../src/shared/repo-types'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../src/shared/execution-host'
 import { getProjectProviderIdentity } from '../../../src/shared/project-host-setup-projection'
@@ -11,6 +16,34 @@ type WorkspaceRepo = Pick<Repo, 'id' | 'displayName' | 'path'> &
   Partial<
     Pick<Repo, 'connectionId' | 'executionHostId' | 'upstream' | 'repoIcon' | 'gitRemoteIdentity'>
   >
+
+/** Desktop-owned membership is independent of the chosen execution server. */
+export function buildNewWorkspaceGrouping(
+  repos: readonly WorkspaceRepo[],
+  served: ServedProjectSections | null,
+  settings?: ProjectGroupingSettings | null
+): ProjectGroupingIndex {
+  const fallback = projectHostSetupProjectionFromRepos(
+    repos.map((repo) => ({ badgeColor: '', addedAt: 0, ...repo }))
+  )
+  if (!served) {
+    return buildProjectGroupingIndex({
+      projects: fallback.projects,
+      projectHostSetups: settings ? fallback.setups : withLegacyProjectGroupKeys(fallback.setups),
+      settings
+    })
+  }
+  const servedIdentities = new Set(served.setups.map((setup) => `${setup.hostId}\0${setup.repoId}`))
+  return buildProjectGroupingIndex({
+    projects: [...fallback.projects, ...served.projects],
+    projectHostSetups: [
+      ...withLegacyProjectGroupKeys(
+        fallback.setups.filter((setup) => !servedIdentities.has(`${setup.hostId}\0${setup.repoId}`))
+      ),
+      ...withLegacyProjectGroupKeys(served.setups)
+    ]
+  })
+}
 
 export type NewWorkspaceProjectOption<TRepo extends WorkspaceRepo> = {
   id: string
@@ -29,12 +62,16 @@ export type NewWorkspaceRunTargetOption<TRepo extends WorkspaceRepo> = {
 
 export function buildNewWorkspaceProjectOptions<TRepo extends WorkspaceRepo>(
   repos: readonly TRepo[],
-  settings?: ProjectGroupingSettings | null
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex,
+  localPlatform: NodeJS.Platform | null = null,
+  hostLabelById?: ReadonlyMap<ExecutionHostId, string>
 ): NewWorkspaceProjectOption<TRepo>[] {
+  const index = grouping ?? buildNewWorkspaceGrouping(repos, null, settings)
   const options = new Map<string, NewWorkspaceProjectOption<TRepo>>()
   const hostIdsByProject = new Map<string, Set<string>>()
   for (const repo of repos) {
-    const id = getRepoProjectGroupKey(repo, settings)
+    const id = getProjectGroupForRepo(index, repo)?.key ?? `project:repo:${repo.id}`
     const hostIds = hostIdsByProject.get(id) ?? new Set<string>()
     hostIds.add(getRepoExecutionHostId(repo))
     hostIdsByProject.set(id, hostIds)
@@ -52,7 +89,11 @@ export function buildNewWorkspaceProjectOptions<TRepo extends WorkspaceRepo>(
       ? `${providerIdentity.owner}/${providerIdentity.repo}`
       : ''
     const hostCount = hostIdsByProject.get(option.id)?.size ?? 0
-    const detail = providerDetail || (hostCount > 1 ? `${hostCount} hosts configured` : '')
+    const split = option.id.includes('::host:') || option.id.includes('::setup:')
+    const target = getNewWorkspaceRunTarget(option.repo, localPlatform, hostLabelById)
+    const detail = split
+      ? `${target.label} · ${target.detail}`
+      : providerDetail || (hostCount > 1 ? `${hostCount} hosts configured` : '')
     return detail ? { ...option, detail } : option
   })
 }
@@ -83,14 +124,16 @@ export function buildNewWorkspaceRunTargetOptions<TRepo extends WorkspaceRepo>(
   projectId: string | null,
   localPlatform: NodeJS.Platform | null = null,
   hostLabelById?: ReadonlyMap<ExecutionHostId, string>,
-  settings?: ProjectGroupingSettings | null
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex
 ): NewWorkspaceRunTargetOption<TRepo>[] {
   if (!projectId) {
     return []
   }
+  const index = grouping ?? buildNewWorkspaceGrouping(repos, null, settings)
   const options = new Map<string, NewWorkspaceRunTargetOption<TRepo>>()
   for (const repo of repos) {
-    if (getRepoProjectGroupKey(repo, settings) !== projectId) {
+    if ((getProjectGroupForRepo(index, repo)?.key ?? `project:repo:${repo.id}`) !== projectId) {
       continue
     }
     const hostId = getRepoExecutionHostId(repo)

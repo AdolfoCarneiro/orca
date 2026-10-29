@@ -1,3 +1,5 @@
+import { useAppStore } from '@/store'
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import type { TaskPageStoreBindingsModel } from './use-task-page-store-bindings'
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import {
@@ -41,6 +43,7 @@ export function useTaskPageRepoSelection(model: TaskPageStoreBindingsModel) {
     preflightStatusCurrent,
     linearConnected
   } = model
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const eligibleRepos = useMemo(() => getTaskEligibleRepos(repos), [repos])
 
   // Explicit repo preselection overrides saved defaults so repo-scoped entry points stay single-repo.
@@ -51,14 +54,14 @@ export function useTaskPageRepoSelection(model: TaskPageStoreBindingsModel) {
     }
     const persisted = settings?.defaultRepoSelection
     if (Array.isArray(persisted)) {
-      return normalizeTaskRepoSelection(eligibleRepos, new Set(persisted), settings)
+      return normalizeTaskRepoSelection(eligibleRepos, new Set(persisted), settings, grouping)
     }
-    return getDefaultTaskRepoSelection(eligibleRepos, settings)
-  }, [eligibleRepos, pageData.preselectedRepoId, settings])
+    return getDefaultTaskRepoSelection(eligibleRepos, settings, grouping)
+  }, [eligibleRepos, pageData.preselectedRepoId, settings, grouping])
   const [repoSelection, setRepoSelection] = useState<ReadonlySet<string>>(resolvedInitialSelection)
   const taskPickerGroups = useMemo(
-    () => getTaskProjectPickerGroups(eligibleRepos, repoSelection, settings),
-    [eligibleRepos, repoSelection, settings]
+    () => getTaskProjectPickerGroups(eligibleRepos, repoSelection, settings, grouping),
+    [eligibleRepos, repoSelection, settings, grouping]
   )
   const taskPickerRepos = useMemo(
     () => taskPickerGroups.map((group) => group.repo),
@@ -88,11 +91,11 @@ export function useTaskPageRepoSelection(model: TaskPageStoreBindingsModel) {
     if (pruned.size === 0 && eligibleIds.size === 0) {
       return
     }
-    const normalized = normalizeTaskRepoSelection(eligibleRepos, pruned, settings)
+    const normalized = normalizeTaskRepoSelection(eligibleRepos, pruned, settings, grouping)
     if (!areStringSetsEqual(normalized, repoSelection)) {
       setRepoSelection(normalized)
     }
-  }, [eligibleRepos, repoSelection, taskPickerRepos, settings])
+  }, [eligibleRepos, repoSelection, taskPickerRepos, settings, grouping])
   const selectedRepos = useMemo(
     () => eligibleRepos.filter((r) => repoSelection.has(r.id)),
     [eligibleRepos, repoSelection]

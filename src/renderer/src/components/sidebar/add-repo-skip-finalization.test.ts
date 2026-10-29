@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { getDefaultSettings } from '../../../../shared/constants'
+import { getProjectGroupingIndexFromState } from '../../store/project-host-setup-selector'
+import { projectRepoFilterMatcher } from '../../../../shared/project-grouping'
+import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import {
   finalizeImportedRepoAfterSkip,
@@ -62,10 +66,64 @@ describe('finalizeImportedRepoAfterSkip', () => {
     finalizeImportedRepoAfterSkip(state, 'repo-new')
 
     expect(state.setActiveRepo).toHaveBeenCalledWith('repo-new')
-    expect(state.setFilterRepoIds).toHaveBeenCalledWith(['repo-old', 'repo-new'])
+    expect(state.setFilterRepoIds).toHaveBeenCalledWith(['repo-old', 'local\0repo-new'])
     expect(state.setShowActiveOnly).toHaveBeenCalledWith(false)
     expect(state.setHideDefaultBranchWorkspace).not.toHaveBeenCalled()
   })
+
+  it.each(['repository', 'host', 'folder'] as const)(
+    'reveals the imported logical group without losing offline scope in %s mode',
+    (projectGroupingMode) => {
+      const repos: Repo[] = [
+        {
+          id: 'first',
+          path: '/app',
+          displayName: 'App',
+          badgeColor: '',
+          addedAt: 0,
+          upstream: { owner: 'org', repo: 'app' }
+        },
+        {
+          id: 'second',
+          path: '/app-copy',
+          displayName: 'App',
+          badgeColor: '',
+          addedAt: 0,
+          upstream: { owner: 'org', repo: 'app' }
+        },
+        {
+          id: 'remote',
+          path: '/remote/app',
+          displayName: 'App',
+          badgeColor: '',
+          addedAt: 0,
+          upstream: { owner: 'org', repo: 'app' },
+          executionHostId: 'runtime:remote'
+        }
+      ]
+      const grouping = getProjectGroupingIndexFromState({
+        repos,
+        settings: { ...getDefaultSettings('/home/test'), projectGroupingMode }
+      })
+      const state = makeState({ repos, filterRepoIds: ['offline', 'runtime:offline\0gone'] })
+      finalizeImportedRepoAfterSkip(state, 'second', grouping)
+      const selection = vi.mocked(state.setFilterRepoIds).mock.calls[0][0]
+      expect(selection).toEqual(expect.arrayContaining(['offline', 'runtime:offline\0gone']))
+      const matches = projectRepoFilterMatcher(selection)
+      expect(
+        repos
+          .filter((repo) => matches(repo.id, repo.executionHostId ?? 'local'))
+          .map((repo) => repo.id)
+      ).toEqual(
+        projectGroupingMode === 'repository'
+          ? ['first', 'second', 'remote']
+          : projectGroupingMode === 'host'
+            ? ['first', 'second']
+            : ['second']
+      )
+      expect(state.setActiveRepo).toHaveBeenCalledWith('second')
+    }
+  )
 
   it('leaves the project filter off when the import lands with no filter', () => {
     const state = makeState({ filterRepoIds: [] })
@@ -212,7 +270,7 @@ describe('finalizeImportedRepoAfterSkip', () => {
     finalizeImportedRepoAfterSkip(state, 'repo-new')
 
     expect(state.setActiveRepo).toHaveBeenCalledWith('repo-new')
-    expect(state.setFilterRepoIds).toHaveBeenCalledWith(['repo-old', 'repo-new'])
+    expect(state.setFilterRepoIds).toHaveBeenCalledWith(['repo-old', 'local\0repo-new'])
     expect(state.setShowActiveOnly).toHaveBeenCalledWith(false)
     expect(state.setHideDefaultBranchWorkspace).not.toHaveBeenCalled()
   })

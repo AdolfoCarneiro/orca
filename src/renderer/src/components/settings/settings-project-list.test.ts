@@ -49,6 +49,32 @@ const gitRemote = {
 }
 
 describe('buildSettingsProjectList', () => {
+  it('removes every registration of a physical checkout and resolves its alias deep link', async () => {
+    const repos = [
+      makeRepo({ id: 'identified', path: '/repos/app', gitRemoteIdentity: gitRemote }),
+      makeRepo({ id: 'pending', path: '/repos/app' })
+    ]
+    const projection = projectHostSetupProjectionFromRepos(repos)
+    for (const mode of ['repository', 'host', 'folder'] as const) {
+      const entries = buildSettingsProjectList(repos, {
+        projects: projection.projects,
+        projectHostSetups: projection.setups,
+        settings: { projectGroupingMode: mode }
+      })
+      expect(entries).toHaveLength(1)
+      expect(getSettingsTargetHostSelection(entries, 'pending', 'local')).toMatchObject({
+        selectionKey: entries[0].selectionKey,
+        setupId: 'pending'
+      })
+      const remaining = new Set(repos.map((repo) => repo.id))
+      await removeSettingsProjectFromAllHosts(entries[0].setups, async (id, { hostId }) => {
+        expect(hostId).toBe('local')
+        remaining.delete(id)
+      })
+      expect(remaining.size).toBe(0)
+    }
+  })
+
   it('collapses a git same-remote pair on two hosts (different ids) into one project', () => {
     const repos: Repo[] = [
       makeRepo({ id: 'local-1', gitRemoteIdentity: gitRemote }),
@@ -190,8 +216,8 @@ describe('deep-link resolution', () => {
 
   it('maps every host repoId to the representative section (getSettingsSectionId resolver)', () => {
     const map = buildRepoIdToRepresentative(projects)
-    expect(map.get('remote-9')).toBe('local-1')
-    expect(map.get('local-1')).toBe('local-1')
+    expect(map.get('remote-9')).toBe(projects[0].selectionKey)
+    expect(map.get('local-1')).toBe(projects[0].selectionKey)
   })
 
   it('maps a repoId to its owning project + host for selection', () => {

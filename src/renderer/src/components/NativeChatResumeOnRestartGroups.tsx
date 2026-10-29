@@ -1,4 +1,6 @@
-import { useContext, useMemo } from 'react'
+import { getIndexedRepoHostMap, getIndexedRepoMap } from '@/store/worktree-repo-index'
+import { projectGroupIdFromRepoId } from '../../../shared/folder-workspace-worktree'
+import { memo, useMemo } from 'react'
 import { Folder, FolderTree, GitBranch, Monitor } from 'lucide-react'
 import { RepoIconGlyph } from '@/components/repo/repo-icon'
 import { ProjectOptionDetail } from '@/components/new-workspace/ProjectComboboxRow'
@@ -13,6 +15,7 @@ import {
   type ExecutionHostId
 } from '../../../shared/execution-host'
 import { useAppStore } from '../store'
+import { useResumeProjectGroupKeys } from './use-resume-project-group-keys'
 import * as workspaceDisplay from './native-chat-resume-workspace-display'
 import {
   useLineageAncestors,
@@ -20,7 +23,7 @@ import {
   useWorkspaceWorktree
 } from './native-chat-resume-workspace-lookups'
 import { ResumeCandidateRow } from './NativeChatResumeOnRestartAgentRow'
-import { ResumeTreeCount, ResumeTreeRow } from './NativeChatResumeTreeRow'
+import { ResumeTreeGroup } from './NativeChatResumeTreeGroup'
 import {
   chatState,
   coveredKeys,
@@ -37,10 +40,8 @@ import {
   resumeWorkspaceLookup,
   nestResumeWorkspaces,
   resolveResumeGroupHeader,
-  resumeSelectionState,
   resumeWorkspaceKind,
   resumeWorkspaceCandidates,
-  toggleResumeSelection,
   type ResumeCandidate,
   type ResumeWorkspaceGroup,
   type ResumeWorkspaceNode
@@ -49,52 +50,6 @@ import {
 export type { ResumeCandidate } from './native-chat-resume-on-restart-grouping'
 
 /** Group by machine/project/workspace/chat, nesting child workspaces after parent chats. Show machine nodes for remote/multiple hosts; name unknown workspaces by their encoded folder. */
-
-function GroupNode({
-  nodeKey,
-  depth,
-  name,
-  checkboxLabel,
-  covered,
-  tree,
-  label,
-  children
-}: {
-  nodeKey: string
-  depth: number
-  name: string
-  checkboxLabel: string
-  /** Every selectable chat under this node. */
-  covered: readonly string[]
-  tree: TreeProps
-  label: React.ReactNode
-  children: React.ReactNode
-}): React.JSX.Element {
-  const selection = resumeSelectionState(covered, tree.selected)
-  const expanded = tree.isExpanded(nodeKey)
-  const selecting = useContext(ResumeTreeSelectingContext)
-  return (
-    <>
-      <ResumeTreeRow
-        depth={depth}
-        expanded={expanded}
-        onExpandedChange={(next) => tree.setExpanded(nodeKey, next)}
-        name={name}
-        checked={selection.checked}
-        disabled={tree.busy || selection.total === 0}
-        onCheckedChange={() => toggleResumeSelection(covered, selection, tree.onToggle)}
-        checkboxLabel={checkboxLabel}
-      >
-        {label}
-        {selecting && (
-          <ResumeTreeCount selectedCount={selection.selectedCount} total={selection.total} />
-        )}
-      </ResumeTreeRow>
-      {/* Collapsing unmounts the rows only; their selection lives with the dialog. */}
-      {expanded && children}
-    </>
-  )
-}
 
 function WorkspaceNode({
   node,
@@ -119,7 +74,7 @@ function WorkspaceNode({
   const { name, controlName } = workspaceDisplay.resolveNames(worktree, fallback, group.workspaceId)
   const branch = worktree && kind === 'git-worktree' ? resolveWorktreeBranchLabel(worktree) : ''
   return (
-    <GroupNode
+    <ResumeTreeGroup
       nodeKey={`workspace:${hostId}:${group.workspaceId}`}
       depth={depth}
       name={controlName}
@@ -177,7 +132,7 @@ function WorkspaceNode({
           fallbackDisplays={fallbackDisplays}
         />
       ))}
-    </GroupNode>
+    </ResumeTreeGroup>
   )
 }
 
@@ -195,11 +150,21 @@ function ProjectNode({
   depth: number
   tree: TreeProps
 }): React.JSX.Element {
-  const repos = useAppStore((store) => store.repos)
-  const projectGroups = useAppStore((store) => store.projectGroups)
-  const header = resolveResumeGroupHeader(repoId, repos, projectGroups)
+  const repo = useAppStore(
+    (store) =>
+      getIndexedRepoHostMap(store.repos).get(`${hostId}\0${repoId}`) ??
+      getIndexedRepoMap(store.repos).get(repoId)
+  )
+  const projectGroup = useAppStore((store) =>
+    store.projectGroups.find((group) => group.id === projectGroupIdFromRepoId(repoId))
+  )
+  const header = resolveResumeGroupHeader(
+    repoId,
+    repo ? [repo] : [],
+    projectGroup ? [projectGroup] : []
+  )
   return (
-    <GroupNode
+    <ResumeTreeGroup
       nodeKey={`project:${hostId}:${repoId}`}
       depth={depth}
       name={header.name}
@@ -235,12 +200,12 @@ function ProjectNode({
           tree={tree}
         />
       ))}
-    </GroupNode>
+    </ResumeTreeGroup>
   )
 }
 
 /** A machine's projects, each a node; workspaces the store cannot place sit at project depth. */
-function MachineContents({
+const MachineContents = memo(function MachineContents({
   hostId,
   workspaces,
   depth,
@@ -251,13 +216,16 @@ function MachineContents({
   depth: number
   tree: TreeProps
 }): React.JSX.Element {
-  const repos = useAppStore((state) => state.repos)
-  const settings = useAppStore((state) => state.settings)
   const lookup = resumeWorkspaceLookup(workspaces)
+  const repoIdFor = useMemo(
+    () => resumeWorkspaceLookup(workspaces)(tree.repoIdOf, null),
+    [workspaces, tree.repoIdOf]
+  )
+  const groupKeys = useResumeProjectGroupKeys(hostId, workspaces, repoIdFor)
   const ancestorsOf = lookup(tree.ancestorsOf, [])
   return (
     <>
-      {groupResumeWorkspacesByRepo(workspaces, lookup(tree.repoIdOf, null), repos, settings).map(
+      {groupResumeWorkspacesByRepo(workspaces, repoIdFor, [], undefined, undefined, groupKeys).map(
         (repoGroup) => {
           const nodes = nestResumeWorkspaces(repoGroup.workspaces, ancestorsOf)
           const fallbackDisplays = workspaceDisplay.deriveFallbacks(repoGroup)
@@ -287,24 +255,27 @@ function MachineContents({
       )}
     </>
   )
-}
+})
 
 function MachineNode({
   hostId,
   candidates,
   workspaces,
-  hostLabelById,
   tree
 }: {
   hostId: ExecutionHostId
   candidates: readonly ResumeCandidate[]
   workspaces: readonly ResumeWorkspaceGroup[]
-  hostLabelById: ReadonlyMap<ExecutionHostId, string>
   tree: TreeProps
 }): React.JSX.Element {
+  const { hostOptions } = useSidebarHostScopeOptions()
+  const hostLabelById = useMemo(
+    () => new Map(hostOptions.map((host) => [host.id, host.label])),
+    [hostOptions]
+  )
   const name = getHostContextLabel(hostId, { hostLabelById })
   return (
-    <GroupNode
+    <ResumeTreeGroup
       nodeKey={`machine:${hostId}`}
       depth={0}
       name={name}
@@ -328,7 +299,7 @@ function MachineNode({
       }
     >
       <MachineContents hostId={hostId} workspaces={workspaces} depth={1} tree={tree} />
-    </GroupNode>
+    </ResumeTreeGroup>
   )
 }
 
@@ -363,11 +334,6 @@ export function ResumeOnRestartGroups({
   const allWorkspaces = useMemo(() => machines.flatMap((machine) => machine.workspaces), [machines])
   const repoIdOf = useRepoIdByWorkspace(allWorkspaces)
   const ancestorsOf = useLineageAncestors(allWorkspaces)
-  const { hostOptions } = useSidebarHostScopeOptions()
-  const hostLabelById = useMemo(
-    () => new Map(hostOptions.map((host) => [host.id, host.label])),
-    [hostOptions]
-  )
   const expansion = useResumeTreeExpansion()
   const tree: TreeProps = {
     listedAt,
@@ -395,7 +361,6 @@ export function ResumeOnRestartGroups({
               hostId={machine.hostId}
               candidates={machine.candidates}
               workspaces={machine.workspaces}
-              hostLabelById={hostLabelById}
               tree={tree}
             />
           ) : (

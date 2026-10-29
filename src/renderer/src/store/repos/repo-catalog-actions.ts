@@ -110,7 +110,7 @@ export function createRepoCatalogActions(
             return s
           }
           // Why: re-adoption leaves a stale row on the old SSH target id (a ghost that fails "SSH target not found"); drop rows a live-host sibling supersedes.
-          const result = mergeFetchedRepoCatalog(catalog, s.repos, s.settings)
+          const result = mergeFetchedRepoCatalog(catalog, s.repos, s.settings, s)
           const reconciliation = reconcileSupersededSshRepos(result.repos, s)
           const prunedRepos = applyManualRepoOrder(reconciliation.repos, s.manualRepoOrder)
           const validRepoIds = new Set(prunedRepos.map((repo) => repo.id))
