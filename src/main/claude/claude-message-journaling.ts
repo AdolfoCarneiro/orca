@@ -110,26 +110,16 @@ export function journalClaudeMessage(
     ordinaryFailure
   const terminalIdentity = terminal && ctx.turn.identity && usageLimit ? ctx.turn.identity : null
   const identity =
-    (body?.kind === 'message' && envelope.role === 'assistant'
+    (body && envelope.role === 'assistant'
       ? ctx.streamedBlocks.reconcile(envelope)?.identity
       : null) ?? claudeMessageIdentity(envelope)
-  changed = ctx.streamedThinking.finalize(outputEnvelope, observedAt, openOutputTurn)
+  ctx.streamedText.forget(agentJournalItemKey(identity))
+  const thinking = ctx.streamedThinking.finalize(outputEnvelope, observedAt)
   if (body) {
     // Open before appending so backward scans include the turn's first output.
     ctx.turn.ensureOpen(message, source, observedAt)
     if (terminalIdentity) {
       writeClaudeTerminalFailure(ctx.sink, terminalIdentity, body)
-    } else if (body.kind === 'message' && body.role === 'assistant') {
-      ctx.streamedText.replace(
-        identity,
-        body,
-        producerRef,
-        {
-          turnScope: ctx.turn.turnScope,
-          lifecycle: true
-        },
-        {}
-      )
     } else {
       ctx.sink.appendItem(identity, body, { ...stamp(identity, body), lifecycle: true })
     }
@@ -173,6 +163,16 @@ export function journalClaudeMessage(
       ctx.backgroundTasks.observeMonitorToolResult(claudeRecord(message.tool_use_result)?.taskId)
     }
     ctx.tools.delete(result.toolUseId)
+    changed = true
+  }
+  if (thinking) {
+    ctx.turn.ensureOpen(message, source, observedAt)
+    // Preserve this terminal write under pressure so the thinking row cannot stay open.
+    ctx.sink.appendItem(thinking.identity, thinking.body, {
+      ...stamp(thinking.identity, thinking.body),
+      ...(thinking.startedAt === undefined ? {} : { observedAt: thinking.startedAt }),
+      lifecycle: true
+    })
     changed = true
   }
   changed =

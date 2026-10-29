@@ -29,7 +29,6 @@ export async function catchUpClaudeTranscript(input: {
   assertCurrent?: () => void
   timeoutMs?: number
   logger?: StructuredAgentSessionLogger
-  transferBeforeImport?: (keys: Iterable<string>) => boolean
 }): Promise<boolean> {
   let complete = false
   const outcome = await runHistoryCatchUp({
@@ -37,8 +36,6 @@ export async function catchUpClaudeTranscript(input: {
     scope: 'claude-transcript-catch-up',
     sessionId: input.sessionId,
     sink: input.sink,
-    beforeCommit: (plan) =>
-      input.transferBeforeImport?.(new Set([...plan.keys, ...(plan.affectedKeys ?? [])])) ?? true,
     ...(input.signal ? { signal: input.signal } : {}),
     ...(input.assertCurrent ? { assertCurrent: input.assertCurrent } : {}),
     timeoutMs: input.timeoutMs ?? DEFAULT_CLAUDE_CATCH_UP_TIMEOUT_MS,

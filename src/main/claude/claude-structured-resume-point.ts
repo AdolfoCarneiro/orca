@@ -94,7 +94,6 @@ function persistClaudeTurnResumePoint(
 
 /** Drain turn-end writes before close or exit persists the final cursor. */
 export async function settledClaudeTurnEndLeaf(session: ClaudeSession): Promise<string | null> {
-  await session.translator?.retireOutput?.(session.connection.outputDrained ?? Promise.resolve())
   await session.resumePointWrite?.settled
   return session.turnEndLeafUuid
 }

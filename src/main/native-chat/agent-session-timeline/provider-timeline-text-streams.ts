@@ -46,8 +46,8 @@ export type ProviderTimelineStream = {
   named: boolean
   channel: ProviderTimelineTextChannel
   producer: AgentJournalProducerLinkage | undefined
-  /** Whitespace-only streams cannot complete a message. */
-  written: boolean
+  /** Monotonic content admission time; blank first attempts consume no window. */
+  acceptedAt?: number
   bytes: number
   /** Once a write finds a settled turn, later text cannot land. */
   stoppedIn: string | null
@@ -75,7 +75,13 @@ export class ProviderTimelineTextStreams {
       ...(deps.schedule ? { schedule: deps.schedule } : {}),
       // The assembler’s shared budget already counts these protected streams.
       isProtected: () => true,
-      checkpointMs: () => AGENT_SESSION_TEXT_CHECKPOINT_MS,
+      isDue: (id) => {
+        const acceptedAt = this.byId.get(id)?.acceptedAt
+        return (
+          acceptedAt === undefined ||
+          performance.now() - acceptedAt >= AGENT_SESSION_TEXT_CHECKPOINT_MS
+        )
+      },
       emit: (id, text) => this.flushOnWindow(id, text)
     })
   }
@@ -132,7 +138,6 @@ export class ProviderTimelineTextStreams {
       named,
       channel: input.channel,
       producer: input.producer,
-      written: false,
       bytes: providerTimelineEntryBytes({
         key: 'id' in input.item ? input.item.id : input.item.stream,
         join: input.join,
@@ -253,7 +258,7 @@ export class ProviderTimelineTextStreams {
     providerFinal = false
   ): void {
     const empty = providerFinal ? text.length === 0 : text.trim().length === 0
-    if (!stream.written && empty) {
+    if (stream.acceptedAt === undefined && empty) {
       plan.onAdmitted(() => this.coalescer.markFlushed(stream.id))
       return
     }
@@ -264,7 +269,7 @@ export class ProviderTimelineTextStreams {
       options: { ...stream.producer, turnScope: stream.scope }
     })
     plan.onAdmitted(() => {
-      stream.written = true
+      stream.acceptedAt = performance.now()
       this.coalescer.markFlushed(stream.id)
     })
   }

@@ -96,7 +96,7 @@ describe('Claude stream-json close ordering', () => {
     await expect(connection.close()).resolves.toBe(true)
   })
 
-  it('keeps a pulled frame under delivery pressure after provider exit until its drain wake', async () => {
+  it('releases a pulled frame when provider exit is reported', async () => {
     mocks.refresh.mockReset()
     mocks.proveClaudeChildExit.mockReset()
     mocks.refresh.mockResolvedValue(undefined)
@@ -136,8 +136,6 @@ describe('Claude stream-json close ordering', () => {
     expect(events).toEqual([])
 
     child.emit('exit', 1, null)
-    await vi.waitFor(() => expect(events).toEqual(['exit']))
-    connection.resumeReading?.()
     await vi.waitFor(() => expect(events).toEqual(['exit', 'message:task_notification']))
     await expect(connection.close()).resolves.toBe(true)
   })
@@ -288,7 +286,10 @@ describe('Claude stream-json close ordering', () => {
       expect(closed).toBeUndefined()
       await vi.advanceTimersByTimeAsync(1)
       expect(closed).toBe(true)
-      await expect(connection.outputDrained).rejects.toThrow('output did not drain')
+      expect(warn).toHaveBeenCalledWith(
+        '[claude-stream-json] output still open after the proven exit:',
+        expect.anything()
+      )
     } finally {
       vi.useRealTimers()
       warn.mockRestore()
@@ -415,197 +416,3 @@ describe('Claude stream-json close ordering', () => {
     expect(child.stdin.writableEnded).toBe(true)
   })
 })
-
-it.each(['healthy', 'database-failure'] as const)(
-  'hands pulled exit output through the actual host tail before disposal and fence release: %s',
-  async (outcome) => {
-    const { checkpointJournalRig, closeCheckpointTestJournals } =
-      await import('./claude-checkpoint-test-support')
-    const { bindClaudeConnectionJournalControls } =
-      await import('./claude-structured-session-journal-control')
-    const { endExitedStructuredAgentSessionChildUnderSerialize } =
-      await import('../native-chat/agent-session-wire/structured-agent-session-child-exit')
-    const { agentSessionLeaseFixture, agentSessionRecordFixture } =
-      await import('../../shared/agent-session-record.test-fixture')
-    const { openTestJournalHostDatabase } =
-      await import('../native-chat/agent-session-journal/journal-host-database-test-support')
-    const r = await checkpointJournalRig({
-      watermarks: {
-        maxQueuedOperations: 1,
-        maxLifecycleQueuedOperations: 1,
-        lowQueuedOperations: 0,
-        lowQueuedBytes: 0
-      }
-    })
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.useFakeTimers()
-    vi.setSystemTime(0)
-    try {
-      r.stream({ type: 'message_start', message: { id: 'reply', role: 'assistant', content: [] } })
-      r.stream({
-        type: 'content_block_delta',
-        index: 0,
-        delta: { type: 'thinking_delta', thinking: 'prefix' }
-      })
-      vi.advanceTimersByTime(60)
-      await r.deferred.drained()
-      const child = fakeChild()
-      mocks.refresh.mockResolvedValue(undefined)
-      mocks.proveClaudeChildExit.mockImplementation(async () => {
-        child.emit('exit', 0, null)
-        return true
-      })
-      const pulled = Promise.withResolvers<Record<string, unknown>>()
-      const next = vi
-        .fn<() => Promise<IteratorResult<Record<string, unknown>>>>()
-        .mockImplementationOnce(async () => ({ value: await pulled.promise, done: false }))
-        .mockResolvedValue({ value: undefined, done: true })
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Inject only the SDK iterator/spawner; connection, delivery, translator, queue, journal and host exit are production.
-      const queryImpl = ((params: Parameters<typeof query>[0]) => {
-        params.options?.spawnClaudeCodeProcess?.({
-          command: 'claude',
-          args: [],
-          env: {},
-          signal: new AbortController().signal
-        })
-        return { [Symbol.asyncIterator]: () => ({ next }) }
-      }) as unknown as typeof query
-      const connection = await openClaudeStreamJsonConnection(
-        { pathToClaudeCodeExecutable: 'claude', options: {}, cwd: '/work' },
-        {
-          onMessage: (frame) => {
-            r.message(frame)
-            return r.translator.whenDelivered?.()
-          },
-          onExit: () =>
-            r.translator.handle({
-              type: 'ended',
-              sessionId: 'recovery',
-              observedAt: Date.now(),
-              reason: 'exit'
-            })
-        },
-        () => child,
-        queryImpl
-      )
-      const unbind = bindClaudeConnectionJournalControls(
-        r.deferred.sink,
-        connection,
-        r.translator,
-        {}
-      )
-      const dispose = vi.spyOn(r.translator, 'dispose')
-      const gate = Promise.withResolvers<void>()
-      await r.journal.readInOrder(() => {
-        void r.journal.readInOrder(() => gate.promise)
-      })
-      for (const lifecycle of [false, true]) {
-        r.deferred.sink.tryAppendItem?.(
-          { provider: 'claude', sessionId: 'claude-session', uuid: String(lifecycle) },
-          { kind: 'status', tone: 'info', text: 'blocked' },
-          { turnScope: { kind: 'thread' }, lifecycle }
-        )
-      }
-      const closing = connection.close()
-      pulled.resolve({
-        type: 'stream_event',
-        event: {
-          type: 'content_block_delta',
-          index: 0,
-          delta: { type: 'thinking_delta', thinking: ' tail' }
-        }
-      })
-      await vi.advanceTimersByTimeAsync(CLAUDE_READER_DRAIN_AFTER_EXIT_MS)
-      await expect(closing).resolves.toBe(true)
-      expect(dispose).not.toHaveBeenCalled()
-      let record = agentSessionRecordFixture(
-        agentSessionLeaseFixture({
-          sessionId: 'recovery',
-          runtimeKind: 'native',
-          runtimeFence: 1,
-          handoffStage: null,
-          ownerProcess: {
-            hostId: 'local',
-            pid: 424242,
-            processStartTimeMs: 1,
-            spawnToken: 'spawn'
-          },
-          reservedSpawnToken: 'spawn',
-          claimStatus: 'live',
-          unreconciled: false
-        })
-      )
-      const store = {
-        getRecord: () => record,
-        transitionHandoff: async (
-          _id: string,
-          transition: (current: typeof record) => typeof record
-        ) => (record = transition(record))
-      }
-      const provider = { generation: 'generation', fence: 1, phase: 'ready' as const }
-      const session: { child: typeof provider | null; journal: typeof r.journal } = {
-        child: provider,
-        journal: r.journal
-      }
-      const sessions = new Map([['recovery', session]])
-      const discarded = vi.fn()
-      const logger = { error: vi.fn(), warn: vi.fn() }
-      const tail = endExitedStructuredAgentSessionChildUnderSerialize(
-        {
-          store,
-          sessions,
-          flushLifecycle: () => r.deferred.lifecycleBarrier(),
-          generationEnded: vi.fn(),
-          serialize: (_id, task) => task(),
-          now: Date.now,
-          logger,
-          route: {
-            runtimeState: { eventSinkFor: () => r.deferred, discardEventSink: discarded },
-            acknowledgeRelease: vi.fn()
-          }
-        },
-        'recovery',
-        provider,
-        { expected: true, reason: 'closed', observedAt: 60 }
-      )
-      await Promise.resolve()
-      expect(record.lease.claimStatus).toBe('live')
-      expect(discarded).not.toHaveBeenCalled()
-      if (outcome === 'database-failure') {
-        openTestJournalHostDatabase(r.root).db.exec(
-          "CREATE TRIGGER pr35462_fail_output BEFORE INSERT ON journal_rows BEGIN SELECT RAISE(ABORT, 'unavailable'); END"
-        )
-      }
-      gate.resolve()
-      await vi.advanceTimersByTimeAsync(0)
-      await tail
-      expect(dispose).toHaveBeenCalledOnce()
-      expect(session.child).toBeNull()
-      expect(record.lease.claimStatus).toBe('released')
-      expect(discarded).toHaveBeenCalledOnce()
-      if (outcome === 'healthy') {
-        const expected = {
-          state: 'completed',
-          completedAt: 60,
-          blocks: [{ type: 'text', text: 'prefix tail' }]
-        }
-        expect(r.journal.itemBody('claude:claude-session:block%3Areply%3A0')).toMatchObject(
-          expected
-        )
-        await r.journal.close()
-        expect(
-          (await r.reopen()).itemBody('claude:claude-session:block%3Areply%3A0')
-        ).toMatchObject(expected)
-      } else {
-        expect(logger.warn).toHaveBeenCalled()
-        await expect(r.deferred.sink.written?.()).resolves.toMatchObject({ ok: false })
-      }
-      expect(r.deferred.state().queuedBytes).toBe(0)
-      expect(vi.getTimerCount()).toBe(0)
-      unbind?.()
-    } finally {
-      warn.mockRestore()
-      await closeCheckpointTestJournals()
-    }
-  }
-)

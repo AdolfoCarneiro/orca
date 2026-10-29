@@ -10,65 +10,6 @@ import {
 import { testEventSinkLogging } from '../native-chat/agent-session-wire/structured-agent-session-logger-test-support'
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
 
-import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key'
-import type {
-  AgentJournalItemBody,
-  AgentJournalItemIdentity
-} from '../../shared/agent-session-journal-types'
-import type { StructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
-import type { StructuredAgentSessionTransitionJournal } from '../native-chat/agent-session-wire/structured-agent-session-transition'
-
-/** Synchronous canonical view for existing translator unit recorders; recovery tests use the real journal. */
-export function withCheckpointTestTransitions(
-  sink: StructuredAgentSessionEventSink
-): StructuredAgentSessionEventSink {
-  const saved = new Map<
-    string,
-    { identity: AgentJournalItemIdentity; body: AgentJournalItemBody }
-  >()
-  const append = sink.appendItem.bind(sink)
-  sink.appendItem = (identity, body, options) => {
-    append(identity, body, options)
-    saved.set(agentJournalItemKey(identity), { identity, body })
-  }
-  const view = {
-    epoch: 'test',
-    canonicalItemId: (key: string) => key,
-    item: (key: string) => {
-      const item = saved.get(key)
-      return item ? { itemId: key, revision: 1, sequence: 0, observedAt: 0, body: item.body } : null
-    },
-    itemBody: (key: string) => saved.get(key)?.body ?? null,
-    visitItems: () => {},
-    visitItemsWithLinkage: () => {}
-  }
-  const journal: StructuredAgentSessionTransitionJournal = view
-  sink.tryAppendTransition = (transition) => {
-    for (const step of transition.steps) {
-      if (step.kind === 'settlement') {
-        throw new Error('unexpected test settlement')
-      }
-      const resolved =
-        step.kind === 'item' ? step.resolve(journal) : step.resolve(journal)?.compose()
-      if (!resolved) {
-        continue
-      }
-      const result = sink.tryAppendItem?.(resolved.identity, resolved.body, step.options)
-      if (result && !result.accepted) {
-        return result
-      }
-      if (!result) {
-        sink.appendItem(resolved.identity, resolved.body, step.options)
-      }
-    }
-    if (transition.publish) {
-      sink.publish()
-    }
-    return { accepted: true }
-  }
-  return sink
-}
-
 const journals = createTrackedJournalOpener()
 const roots: string[] = []
 export async function closeCheckpointTestJournals() {
@@ -78,7 +19,10 @@ export async function closeCheckpointTestJournals() {
 }
 
 export async function checkpointJournalRig(
-  options: { watermarks?: Partial<StructuredAgentSessionSinkWatermarks>; unbound?: boolean } = {}
+  options: {
+    watermarks?: Partial<StructuredAgentSessionSinkWatermarks>
+    unbound?: boolean
+  } = {}
 ) {
   const root = await mkdtemp(join(tmpdir(), 'orca-pr35462-checkpoint-'))
   roots.push(root)

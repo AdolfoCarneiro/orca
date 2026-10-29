@@ -12,12 +12,12 @@ import { codexJournalItem, codexStreamingJournalItem } from './codex-structured-
 import { withJournalReasoningLifecycle } from '../native-chat/agent-session-journal/journal-reasoning-row'
 import {
   codexStructuredItemKey,
-  codexStreamCheckpointDue,
-  MAX_CODEX_ITEM_STREAM_PENDING_PATCHES,
   MAX_CODEX_ITEM_STREAM_PENDING_PATCH_BYTES,
   MAX_CODEX_ITEM_STREAM_RETAINED_BYTES,
   codexItemStreamState,
-  pendingPatchBytes
+  pendingPatchBytes,
+  trimCodexPendingPatches,
+  codexStreamCheckpointDue
 } from './codex-structured-item-stream-bounds'
 import {
   CODEX_ITEM_STREAM_TYPES,
@@ -52,6 +52,7 @@ export function createCodexStructuredItemStreams(
 ): CodexStructuredItemStreams {
   const states = new CodexItemStreamRetention()
   const checkpointLengths = new Map<string, number>()
+  const acceptedAt = new Map<string, number>()
   const pendingCheckpoints = new Set<string>()
   // Resolve attribution on each append so later-discovered parents reach existing rows.
   const producers = new Map<string, { threadId: string; turnId: string | null }>()
@@ -69,6 +70,7 @@ export function createCodexStructuredItemStreams(
     coalescer.forget(key)
     states.forget(key)
     checkpointLengths.delete(key)
+    acceptedAt.delete(key)
     pendingCheckpoints.delete(key)
     producers.delete(key)
     const pending = pendingPatches.get(key)
@@ -78,79 +80,67 @@ export function createCodexStructuredItemStreams(
     }
   }
 
-  const trimStates = (): void => {
+  const trimStates = (): CodexStructuredItemStreamAdmission => {
     while (states.overCapacity) {
       const oldest = states.oldestEvictable()
       if (typeof oldest !== 'string') {
         break
       }
       const pending = coalescer.snapshot(oldest)
-      if (pending && pending.text.length > 0 && !persist(oldest, pending.text, true)) {
-        // Keep buffered output until its final checkpoint is accepted.
-        break
+      if (pending && pending.text.length > 0) {
+        const admission = persist(oldest, pending.text)
+        if (!admission.accepted) {
+          // The notification head still owns its incoming delta until capacity is admitted.
+          return admission
+        }
       }
       forgetState(oldest)
     }
+    return { accepted: true }
   }
 
-  const trimPendingPatches = (): void => {
-    while (pendingPatches.size > MAX_CODEX_ITEM_STREAM_PENDING_PATCHES) {
-      const oldest = pendingPatches.keys().next().value
-      if (typeof oldest !== 'string') {
-        break
-      }
-      const pending = pendingPatches.get(oldest)
-      if (pending) {
-        retainedPatchBytes = Math.max(0, retainedPatchBytes - pendingPatchBytes(pending))
-      }
-      pendingPatches.delete(oldest)
-    }
-  }
-
-  const append = (key: string, state: CodexItemStreamState, text: string): boolean => {
-    const translated = codexStreamingJournalItem(state.item, text)
-    if (!translated.body) {
-      return true
-    }
-    const body = withJournalReasoningLifecycle(translated.body, { state: 'running' })
-    return appendCodexItemAndPublish(deps.sink, state.identity, body, {
-      ...attributionOf(key),
-      ...(state.startedAt === undefined ? {} : { observedAt: state.startedAt })
-    }).accepted
-  }
-
-  const isText = (key: string): boolean => {
-    const type = states.get(key)?.item.type
-    return type === 'agentMessage' || type === 'reasoning'
-  }
-
-  const shouldPersist = (key: string, textLength: number): boolean =>
-    isText(key) || codexStreamCheckpointDue(checkpointLengths.get(key) ?? 0, textLength)
-
-  const persist = (key: string, text: string, force: boolean): boolean => {
-    if (!force && !shouldPersist(key, text.length)) {
-      return true
-    }
+  const persist = (key: string, text: string): CodexStructuredItemStreamAdmission => {
     const state = states.get(key)
-    if (state && append(key, state, text)) {
-      checkpointLengths.set(key, text.length)
-      pendingCheckpoints.delete(key)
-      return true
+    if (!state) {
+      return { accepted: false, reason: 'failed' }
     }
-    return false
+    const translated = codexStreamingJournalItem(state.item, text)
+    if (translated.body) {
+      const body = withJournalReasoningLifecycle(translated.body, { state: 'running' })
+      const admission = appendCodexItemAndPublish(deps.sink, state.identity, body, {
+        ...attributionOf(key),
+        ...(state.startedAt === undefined ? {} : { observedAt: state.startedAt })
+      })
+      if (!admission.accepted) {
+        return admission
+      }
+      acceptedAt.set(key, performance.now())
+    }
+    checkpointLengths.set(key, text.length)
+    pendingCheckpoints.delete(key)
+    return { accepted: true }
+  }
+
+  const shouldPersist = (key: string, textLength: number): boolean => {
+    const type = states.get(key)?.item.type
+    if (type === 'agentMessage' || type === 'reasoning') {
+      const previous = acceptedAt.get(key)
+      return (
+        previous === undefined || performance.now() - previous >= AGENT_SESSION_TEXT_CHECKPOINT_MS
+      )
+    }
+    const checkpointLength = checkpointLengths.get(key) ?? 0
+    return codexStreamCheckpointDue(checkpointLength, textLength)
   }
 
   const coalescer = createAgentSessionDeltaCoalescer({
     windowMs: deps.coalesceMs,
-    checkpointMs: (key) => (isText(key) ? AGENT_SESSION_TEXT_CHECKPOINT_MS : undefined),
     maxRetainedBytes: deps.maxRetainedBytes,
     maxTotalRetainedBytes: deps.maxTotalRetainedBytes,
     isProtected: (key) => states.isPersistent(key),
     schedule: deps.schedule,
     shouldEmit: shouldPersist,
-    emit: (key, text) => {
-      return persist(key, text, false)
-    }
+    emit: (key, text) => persist(key, text).accepted
   })
 
   const ensureState = (
@@ -169,18 +159,11 @@ export function createCodexStructuredItemStreams(
     const state = { item, identity: deps.identityFor(threadId, turnId, item) }
     states.retain(key, state)
     producers.set(key, { threadId, turnId })
-    trimStates()
     return state
   }
 
   const flush = (threadId?: string): boolean => {
-    let flushed = coalescer.flushAll(
-      (key) =>
-        !isText(key) ||
-        !checkpointLengths.has(key) ||
-        threadId === undefined ||
-        producers.get(key)?.threadId === threadId
-    )
+    let flushed = coalescer.flushAll()
     for (const key of pendingCheckpoints) {
       // flushAll already placed every stream's first row; re-saving other threads would bypass their cadence.
       if (threadId !== undefined && producers.get(key)?.threadId !== threadId) {
@@ -188,7 +171,7 @@ export function createCodexStructuredItemStreams(
       }
       const snapshot = coalescer.snapshot(key)
       if (snapshot && checkpointLengths.get(key) !== snapshot.text.length) {
-        flushed = persist(key, snapshot.text, true) && flushed
+        flushed = persist(key, snapshot.text).accepted && flushed
       } else {
         pendingCheckpoints.delete(key)
       }
@@ -243,6 +226,10 @@ export function createCodexStructuredItemStreams(
         const key = codexStructuredItemKey(threadId, itemId)
         const streamFlushed = coalescer.flush(key)
         const state = ensureState(threadId, itemId, 'fileChange', params)
+        const capacity = trimStates()
+        if (!capacity.accepted) {
+          return { handled: true, admission: capacity }
+        }
         state.item = { ...state.item, changes: paramsRecord.changes }
         const translated = codexJournalItem(state.item)
         if (translated.body) {
@@ -261,7 +248,10 @@ export function createCodexStructuredItemStreams(
           }
           retainedPatchBytes = Math.max(0, retainedPatchBytes - previousBytes) + nextBytes
           pendingPatches.set(key, nextPending)
-          trimPendingPatches()
+          retainedPatchBytes = Math.max(
+            0,
+            retainedPatchBytes - trimCodexPendingPatches(pendingPatches)
+          )
           if (streamFlushed) {
             const admission = flushPatch(key)
             if (!admission.accepted) {
@@ -282,6 +272,10 @@ export function createCodexStructuredItemStreams(
         return { handled: true, admission: { accepted: true } }
       }
       const state = ensureState(threadId, itemId, type ?? 'reasoning', params)
+      const capacity = trimStates()
+      if (!capacity.accepted) {
+        return { handled: true, admission: capacity }
+      }
       const delta = method === REASONING_PART_METHOD ? '\n' : paramsRecord.delta
       if (typeof delta === 'string') {
         const key = codexStructuredItemKey(threadId, state.item.id)
@@ -302,6 +296,7 @@ export function createCodexStructuredItemStreams(
       coalescer.dispose()
       states.clear()
       checkpointLengths.clear()
+      acceptedAt.clear()
       pendingCheckpoints.clear()
       producers.clear()
       pendingPatches.clear()

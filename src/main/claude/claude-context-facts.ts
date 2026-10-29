@@ -1,4 +1,4 @@
-import type { ClaudeJournalTranslator } from './claude-journal-translator-contract'
+import { claudeProviderFrameActivity } from '../native-chat/agent-session-wire/provider-frame-activity'
 import {
   contextTokensFromUsage,
   MAX_CONTEXT_MODEL_ID_CHARS,
@@ -58,6 +58,17 @@ export class ClaudeContextFacts {
 
   markActivity(): void {
     this.activity += 1
+  }
+
+  publishActivity(kind: string, payload: unknown): void {
+    const turnId = this.turn.id
+    if (turnId === null) {
+      return
+    }
+    const text = claudeProviderFrameActivity(kind, payload)
+    if (text !== undefined) {
+      this.sink.setActivity?.(text ? { turnId, text } : null)
+    }
   }
 
   /** Observe before journaling. */
@@ -216,24 +227,5 @@ export class ClaudeContextFacts {
     for (const listener of this.requestListeners) {
       listener(target)
     }
-  }
-}
-
-export function claudeContextReportMembers(
-  context: ClaudeContextFacts
-): Pick<
-  ClaudeJournalTranslator,
-  | 'markContextActivity'
-  | 'subscribeContextUsageRequests'
-  | 'recordContextReport'
-  | 'modelMayHaveChanged'
-  | 'modelWritten'
-> {
-  return {
-    markContextActivity: () => context.markActivity(),
-    subscribeContextUsageRequests: (listener) => context.subscribeReportRequests(listener),
-    recordContextReport: (target, report, part) => context.recordReport(target, report, part),
-    modelMayHaveChanged: () => context.modelMayHaveChanged(),
-    modelWritten: (model) => context.modelWritten(model)
   }
 }

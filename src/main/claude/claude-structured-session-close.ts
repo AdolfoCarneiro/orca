@@ -1,5 +1,3 @@
-export { claudeRootExitObserved } from './claude-final-output-coverage'
-import { retireClaudeSessionOutput, claudeRootExitObserved } from './claude-final-output-coverage'
 import type {
   ClaudeAcquisitionAttempt,
   ClaudeAcquisitionRegistry,
@@ -23,6 +21,14 @@ import { claudeHeldSends } from './claude-command-lifecycle'
 import { settledClaudeTurnEndLeaf } from './claude-structured-resume-point'
 import { settleClaudeTurnEndWaiters } from './claude-request-end-wait'
 import type { StructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
+
+/** Root exit releases the lease even with unverified descendants; a failed spawn proves no exit. */
+export function claudeRootExitObserved(
+  connection: ClaudeStreamJsonConnection | null | undefined
+): boolean {
+  const verdict = connection?.exitVerdict
+  return verdict?.root === 'exited' && verdict.processless !== true
+}
 
 export function claudeAcquisitionCleanupError(
   connection: ClaudeStreamJsonConnection | null | undefined,
@@ -49,17 +55,11 @@ export async function resolveClaudeAcquisitionError(input: {
 }): Promise<unknown> {
   let acquisitionError = input.error
   if (input.sessions.get(input.sessionId)?.connection !== input.attempt.connection) {
+    input.translator?.dispose()
     for (const prompt of input.prompts.clear()) {
       prompt.settle(null)
     }
     const closed = (await input.attempt.connection?.close()) ?? true
-    if (input.translator?.retireOutput) {
-      void input.translator
-        .retireOutput(input.attempt.connection?.outputDrained ?? Promise.resolve())
-        .catch(() => undefined)
-    } else {
-      input.translator?.dispose()
-    }
     if (input.attempt.connection?.exitVerdict.processless === true) {
       acquisitionError = new AgentSessionPreSpawnError(input.error)
     } else if (!closed) {
@@ -78,7 +78,7 @@ export function settleClaudeExitedSession(session: ClaudeSession): void {
   for (const prompt of session.prompts.clear()) {
     prompt.settle(null)
   }
-  void retireClaudeSessionOutput(session).catch(() => undefined)
+  session.translator?.dispose()
 }
 
 type CloseClaudePublishedSessionInput = {
@@ -104,6 +104,7 @@ async function finalizeClaudePublishedSession(
     prompt.settle(null)
   }
   const connectionClosed = await session.connection.close()
+  session.unbindReadingControl?.()
   let rootExitVerdict: Error | undefined
   if (connectionClosed !== true) {
     const cleanupError = claudeAcquisitionCleanupError(
@@ -157,9 +158,7 @@ async function finalizeClaudePublishedSession(
       }
       deliver(ended)
     } finally {
-      void retireClaudeSessionOutput(session).catch((error: unknown) =>
-        input.logger?.warn('Claude output handoff failed', { scope: 'claude-close-output', error })
-      )
+      session.translator?.dispose()
     }
   }
   session.closePersistence ??= persistClosedClaudeSession(input, session)

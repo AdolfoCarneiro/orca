@@ -8,7 +8,6 @@ import type {
   StructuredAgentSessionEventSink
 } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
-import { withCheckpointTestTransitions } from './claude-checkpoint-test-support'
 
 function orcaClientMessageId(identity: AgentJournalItemIdentity): string | null {
   return identity.provider === 'orca' ? identity.clientMessageId : null
@@ -28,7 +27,7 @@ function harness() {
   }
   let scheduled: (() => void) | null = null
   const translator = createClaudeJournalTranslator({
-    sink: withCheckpointTestTransitions(sink),
+    sink,
     fallbackIdPrefix: 'test',
     // Control checkpoint timing relative to identity announcements.
     schedule: (run) => {
@@ -40,9 +39,7 @@ function harness() {
   })
   const runStreamWindow = (): void => {
     const run = scheduled as (() => void) | null
-    const clock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + 60)
     run?.()
-    clock.mockRestore()
   }
   const fallbackRows = (): AgentJournalItemBody[] =>
     items

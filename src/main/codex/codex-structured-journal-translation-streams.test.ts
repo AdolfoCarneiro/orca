@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-
-afterEach(() => vi.useRealTimers())
+import { describe, expect, it, vi } from 'vitest'
 import type {
   AgentJournalItemBody,
   AgentJournalItemIdentity
@@ -734,7 +732,7 @@ describe('notice journal pipeline', () => {
 })
 
 describe('Codex streamed checkpoint admission', () => {
-  it('keeps a deferred prefix unassembled until the deadline and flushes a final tail', () => {
+  it('skips joining a below-threshold prefix and still writes its final text', () => {
     const { translator, tap, window } = translatorWith()
     const prefix = 'checkpoint '.repeat(12)
     translator.handle(notification('item/agentMessage/delta', { itemId: 'reply', delta: prefix }))
@@ -753,7 +751,7 @@ describe('Codex streamed checkpoint admission', () => {
       expect(prefixJoins()).toHaveLength(0)
       expect(tap.rows).toHaveLength(rows)
       expect(tap.publishes()).toBe(publications)
-      expect(window.idle()).toBe(false)
+      expect(window.idle()).toBe(true)
 
       translator.flush()
       expect(prefixJoins()).toHaveLength(1)
@@ -768,11 +766,8 @@ describe('Codex streamed checkpoint admission', () => {
     }
   })
 
-  it('retries refusal and starts the next deadline from the accepted save', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(0)
-    const tap = recorder()
-    const translator = createCodexJournalTranslator({ sink: tap.sink })
+  it('retries a refused checkpoint before forcing a smaller final increment', () => {
+    const { translator, tap, window } = translatorWith()
     let reject = false
     tap.sink.tryAppendItem = (identity, body, options) => {
       if (reject) {
@@ -784,79 +779,70 @@ describe('Codex streamed checkpoint admission', () => {
     const delta = (text: string) =>
       translator.handle(notification('item/agentMessage/delta', { itemId: 'reply', delta: text }))
     delta('a'.repeat(128))
-    vi.advanceTimersByTime(60)
+    window.fire()
     const rows = tap.rows.length
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + 400)
     reject = true
-    delta('b')
-    vi.advanceTimersByTime(400)
+    delta('b'.repeat(32))
+    window.fire()
+    window.fire()
     expect(tap.rows).toHaveLength(rows)
+    expect(window.idle()).toBe(false)
+
     reject = false
-    vi.advanceTimersByTime(60)
-    expect(tap.rows).toHaveLength(rows + 1)
+    window.fire()
+    expect(window.idle()).toBe(true)
+    expect(tap.rows.at(-1)?.body).toMatchObject({
+      blocks: [{ type: 'text', text: `${'a'.repeat(128)}${'b'.repeat(32)}` }]
+    })
     delta('x')
-    vi.advanceTimersByTime(399)
+    window.fire()
     expect(tap.rows).toHaveLength(rows + 1)
-    vi.advanceTimersByTime(1)
+    translator.flush()
     expect(tap.rows.at(-1)?.body).toMatchObject({
-      blocks: [{ type: 'text', text: `${'a'.repeat(128)}bx` }]
+      blocks: [{ type: 'text', text: `${'a'.repeat(128)}${'b'.repeat(32)}x` }]
     })
-    delta(' superseded')
-    translator.handle(
-      notification('item/completed', {
-        item: { type: 'agentMessage', id: 'reply', text: 'authoritative final' }
-      })
-    )
-    const completed = tap.rows.length
-    vi.advanceTimersByTime(1_000)
-    expect(tap.rows).toHaveLength(completed)
-    expect(tap.rows.at(-1)?.body).toMatchObject({
-      blocks: [{ type: 'text', text: 'authoritative final' }]
-    })
+    clock.mockRestore()
     translator.dispose()
   })
 })
 
-it.each([true, false])(
-  'orders the first other-thread text before a barrier, started=%s',
-  (started) => {
-    vi.useFakeTimers()
-    const tap = recorder()
-    const translator = createCodexJournalTranslator({ sink: tap.sink })
-    const child = (method: string, params: Record<string, unknown>) =>
+it.each([false, true])(
+  'keeps an unpublished other-thread first row before a tool; missing start=%s',
+  (missingStart) => {
+    const { translator, tap } = translatorWith()
+    const child = (method: string, params: unknown) =>
       translator.handle({
-        ...notification(method, params),
-        threadId: 'child-B'
+        type: 'notification',
+        sessionId: SESSION_ID,
+        threadId: 'child',
+        method,
+        params
       })
-    const childRows = () => tap.rows.filter((row) => row.body.kind === 'message')
-    const startTool = (id: string) =>
+    if (!missingStart) {
+      child('item/started', { item: { type: 'agentMessage', id: 'child-reply', text: '' } })
+    }
+    child('item/agentMessage/delta', { itemId: 'child-reply', delta: 'B' })
+    translator.handle(
+      notification('item/started', {
+        item: { type: 'commandExecution', id: 'tool', command: 'pwd', status: 'inProgress' }
+      })
+    )
+    const relevant = () =>
+      tap.rows.filter(
+        (row) =>
+          (row.body.kind === 'message' && row.body.role === 'assistant') ||
+          row.body.kind === 'tool-call'
+      )
+    expect(relevant().map((row) => row.body.kind)).toEqual(['message', 'tool-call'])
+    for (let i = 0; i < 10; i++) {
       translator.handle(
         notification('item/started', {
-          item: { type: 'commandExecution', id, command: 'pwd', status: 'inProgress' }
+          item: { type: 'commandExecution', id: `tool-${i}`, command: 'pwd', status: 'inProgress' }
         })
       )
-    try {
-      if (started) {
-        child('item/started', { item: { type: 'agentMessage', id: 'reply-B', text: '' } })
-      }
-      child('item/agentMessage/delta', { itemId: 'reply-B', delta: 'B spoke first' })
-      startTool('tool-A')
-      const first = [...new Map(tap.rows.map((row) => [row.key, row])).values()]
-      expect(first.slice(0, 2).map((row) => row.body.kind)).toEqual(['message', 'tool-call'])
-      expect(childRows()).toHaveLength(1)
-      for (let index = 0; index < 100; index++) {
-        child('item/agentMessage/delta', { itemId: 'reply-B', delta: 'x' })
-        startTool(`tool-A-${index}`)
-      }
-      expect(childRows()).toHaveLength(1)
-      vi.advanceTimersByTime(400)
-      expect(childRows()).toHaveLength(2)
-      expect(childRows()[1].body).toMatchObject({
-        blocks: [{ type: 'text', text: `B spoke first${'x'.repeat(100)}` }]
-      })
-      expect([...new Set(tap.rows.map((row) => row.key))][0]).toBe(first[0].key)
-    } finally {
-      translator.dispose()
-      vi.useRealTimers()
     }
+    expect(relevant().filter((row) => row.body.kind === 'message')).toHaveLength(1)
+    translator.dispose()
   }
 )

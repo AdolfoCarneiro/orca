@@ -1,9 +1,11 @@
-import { claudeDeliveryBudget } from './claude-checkpoint-input'
 import type {
   ClaudeJournalTranslator,
   ClaudeJournalTranslatorDeps
 } from './claude-journal-translator-contract'
-import { claudeRecord, claudeText, type ClaudeToolUse } from './claude-structured-item-translation'
+import {
+  claudeStreamingMessageBody,
+  type ClaudeToolUse
+} from './claude-structured-item-translation'
 import {
   claudeProviderFrameKind,
   createClaudeProviderFrameFallback,
@@ -11,7 +13,7 @@ import {
 } from './claude-structured-provider-fallback'
 import { ClaudeBackgroundTaskRows } from './claude-background-task-rows'
 import { ClaudeToolOriginRegistry } from './claude-tool-origin-registry'
-import { claudeProvisionalRowCorrections } from './claude-provisional-row-corrections'
+import { ClaudeProvisionalRowCorrections } from './claude-provisional-row-corrections'
 import { createClaudeStreamedThinking } from './claude-streamed-thinking'
 import { ClaudeSubagentIdentities } from './claude-subagent-identities'
 import { ClaudeJournaledSubagents } from './claude-subagent-journaled-identities'
@@ -25,7 +27,7 @@ import {
 } from './claude-turn-opening'
 import { ClaudeOpenTurn } from './claude-open-turn'
 import { claudeCommandCurrentTurn, observeClaudeCommandFrame } from './claude-command-turn'
-import { ClaudeContextFacts, claudeContextReportMembers } from './claude-context-facts'
+import { ClaudeContextFacts } from './claude-context-facts'
 import { claudeSessionStateEndsTurn } from './claude-session-state-turn-over'
 import { ClaudeJournalPrompts } from './claude-structured-journal-prompts'
 import { claudeChildToolQueries } from './claude-child-tool-queries'
@@ -34,10 +36,7 @@ import { journalClaudeResult, type ClaudeResultJournalContext } from './claude-r
 import { ClaudeAuthenticationFailures } from './claude-authentication-failures'
 import { ClaudeUsageLimits } from './claude-usage-limits'
 import { ClaudeThreadGoal } from './claude-thread-goal'
-import {
-  createClaudeFinalOutputCoverage,
-  claudeCheckpointOutputRetirement
-} from './claude-final-output-coverage'
+import { createClaudeFinalOutputCoverage } from './claude-final-output-coverage'
 
 export type {
   ClaudeJournalTranslator,
@@ -50,7 +49,7 @@ export function createClaudeJournalTranslator(
   const coverage = createClaudeFinalOutputCoverage(deps.sink)
   deps = { ...deps, sink: coverage.sink }
   const tools = new Map<string, ClaudeToolUse>()
-  // Buffered rows retain the root turn open when their text arrived.
+  // Every row joins the root turn open when it is written, whoever produced it.
   const turnScope = () => turn.turnScope
   const prompts = new ClaudeJournalPrompts({
     ...deps,
@@ -62,10 +61,7 @@ export function createClaudeJournalTranslator(
     sink: deps.sink,
     // Keep existing stamps when superseding a turn ends pending attribution corrections.
     turnSuperseded: () => corrections.abandon(),
-    endOpenWork: (completedAt) => {
-      streamedText.finish({ completedAt })
-      streamedThinking.finishOpen(completedAt)
-    },
+    endOpenWork: (completedAt) => streamedThinking.finishOpen(completedAt),
     onOpen: () => context.markActivity()
   })
   const context = new ClaudeContextFacts(turn, deps.sink)
@@ -79,7 +75,20 @@ export function createClaudeJournalTranslator(
     journaled
   })
   const childQueries = claudeChildToolQueries({ tools, toolOrigins, linkage: subagents.linkage })
-  const corrections = claudeProvisionalRowCorrections(deps.sink, subagents.linkage, turnScope)
+  const corrections = new ClaudeProvisionalRowCorrections({
+    ...subagents.linkage,
+    turnScope,
+    rewrite: (identity, body, options) => {
+      // Keep refused corrections pending under backpressure; legacy sinks accept unconditionally.
+      const admission = deps.sink.tryAppendItem?.(identity, body, options)
+      if (admission === undefined) {
+        deps.sink.appendItem(identity, body, options)
+        return true
+      }
+      return admission.accepted
+    },
+    publish: () => deps.sink.publish()
+  })
   const backgroundTasks = new ClaudeBackgroundTaskRows({
     sink: deps.sink,
     isForwardedParentTool: (toolUseId) => toolOrigins.has(toolUseId),
@@ -92,23 +101,30 @@ export function createClaudeJournalTranslator(
       ? { onPersistenceFailure: deps.onBackgroundTaskJournalFailure }
       : {})
   })
-  const deliveryBudget = claudeDeliveryBudget(
-    () => streamedText.admit(),
-    () => streamedThinking.admit()
-  )
   const streamedText = createClaudeStreamedTextCheckpoints({
-    deliveryBudget,
-    ...deps,
-    role: 'assistant',
-    producer: subagents.linkage
+    ...(deps.coalesceMs === undefined ? {} : { coalesceMs: deps.coalesceMs }),
+    ...(deps.schedule ? { schedule: deps.schedule } : {}),
+    producer: subagents.linkage,
+    persist: (identity, text, options, ended) => {
+      const body = claudeStreamingMessageBody(text)
+      const appendOptions = {
+        ...options,
+        turnScope: turnScope(),
+        ...(ended ? { lifecycle: true } : {})
+      }
+      const append = deps.sink.tryAppendItem
+        ? deps.sink.tryAppendItem(identity, body, appendOptions).accepted
+        : (deps.sink.appendItem(identity, body, appendOptions), true)
+      const publish = deps.sink.tryPublish
+        ? deps.sink.tryPublish().accepted
+        : (deps.sink.publish(), true)
+      return append && publish
+    }
   })
   const streamedThinking = createClaudeStreamedThinking({
-    deliveryBudget,
     ...deps,
     producer: subagents.linkage,
-    turnScope,
-    openTurn: (frame, observedAt) =>
-      turn.ensureOpen(frame, claudeStreamTurnSource(frame), observedAt)
+    turnScope
   })
   const flush = (): void => {
     streamedText.flush()
@@ -116,12 +132,6 @@ export function createClaudeJournalTranslator(
   }
 
   const handleStream = (message: Record<string, unknown>, observedAt: number): boolean => {
-    if (claudeRecord(message.event)?.type === 'message_start') {
-      const sessionId = claudeText(message.session_id)
-      if (sessionId) {
-        streamedText.retire(sessionId, claudeText(message.parent_tool_use_id), observedAt)
-      }
-    }
     const delta = streamedBlocks.observe(message, observedAt)
     const thinking = streamedThinking.observe(message, observedAt)
     // Prefer message_start; use the first content delta for older streams that omit it.
@@ -129,10 +139,7 @@ export function createClaudeJournalTranslator(
       delta || thinking ? claudeStreamTurnSource(message) : claudeStreamTurnStartSource(message)
     turn.ensureOpen(message, source, observedAt)
     if (delta) {
-      streamedText.append(delta.identity, delta.text, delta.parentToolUseId, {
-        turnScope: turnScope(),
-        observedAt: delta.startedAt
-      })
+      streamedText.append(delta.identity, delta.text, delta.parentToolUseId)
     }
     return delta !== null || thinking
   }
@@ -161,11 +168,9 @@ export function createClaudeJournalTranslator(
     goalBackgroundWork: deps.goalBackgroundWork ?? (() => 'unverifiable')
   }
 
-  let outputEndedAt: number | undefined
-  const translator: ClaudeJournalTranslator = {
+  return {
     handle: (event) => {
       if (event.type === 'ended') {
-        outputEndedAt ??= event.observedAt ?? Date.now()
         prompts.retryPendingCancellations()
         flush()
         corrections.abandon()
@@ -243,7 +248,7 @@ export function createClaudeJournalTranslator(
           )
         }
         context.observeResponse(event.message, event.observedAt ?? Date.now())
-        turn.publishActivity(kind, event.message)
+        context.publishActivity(kind, event.message)
         // Idle also closes faults without a result; the live cause decides failed reopening.
         if (claudeSessionStateEndsTurn(event.message)) {
           corrections.abandon()
@@ -252,7 +257,7 @@ export function createClaudeJournalTranslator(
         }
       } else if (event.type === 'provider-frame') {
         providerFallback.append(event.kind, event.payload)
-        turn.publishActivity(event.kind, event.payload)
+        context.publishActivity(event.kind, event.payload)
       }
     },
     journalPrompts: prompts,
@@ -273,18 +278,6 @@ export function createClaudeJournalTranslator(
       return turn.isOpen && turn.inputChoiceWorkObserved
     },
     flush,
-    transferBeforeImport: (keys) => streamedText.transfer(keys) && streamedThinking.transfer(keys),
-    whenDelivered: async () => {
-      await streamedText.whenDelivered()
-      await streamedThinking.whenDelivered()
-    },
-    retireOutput: claudeCheckpointOutputRetirement(
-      deps.sink,
-      streamedText,
-      streamedThinking,
-      () => outputEndedAt,
-      () => translator.dispose()
-    ),
     childToolOwner: childQueries.childToolOwner,
     childActivity: childQueries.childActivity,
     retryPendingTaskRows: () => backgroundTasks.retryPendingWrites(),
@@ -298,7 +291,11 @@ export function createClaudeJournalTranslator(
     get finalOutputAdmitted() {
       return coverage.admitted
     },
-    ...claudeContextReportMembers(context),
+    markContextActivity: () => context.markActivity(),
+    subscribeContextUsageRequests: (listener) => context.subscribeReportRequests(listener),
+    recordContextReport: (target, report, part) => context.recordReport(target, report, part),
+    modelMayHaveChanged: () => context.modelMayHaveChanged(),
+    modelWritten: (model) => context.modelWritten(model),
     dispose: () => {
       flush()
       context.dispose()
@@ -313,5 +310,4 @@ export function createClaudeJournalTranslator(
       toolOrigins.clear()
     }
   }
-  return translator
 }

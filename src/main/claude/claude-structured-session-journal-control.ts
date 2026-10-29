@@ -61,7 +61,6 @@ export function createClaudeJournalFailureHandler(input: {
 function retryOwedWritesOnDrain(
   translator: ClaudeJournalTranslator | null
 ): StructuredAgentSessionSinkAdmission {
-  translator?.flush()
   const tasks = translator?.retryPendingTaskRows?.() ?? { accepted: true }
   if (!tasks.accepted && tasks.reason === 'backpressure') {
     return tasks
@@ -71,7 +70,7 @@ function retryOwedWritesOnDrain(
 
 export function bindClaudeJournalReadingControl(
   sink: StructuredAgentSessionEventSink | undefined,
-  connection: Pick<ClaudeStreamJsonConnection, 'pauseReading' | 'resumeReading' | 'failOutput'>,
+  connection: Pick<ClaudeStreamJsonConnection, 'pauseReading' | 'resumeReading'>,
   translator: ClaudeJournalTranslator | null
 ): (() => void) | undefined {
   if (!connection.pauseReading || !connection.resumeReading) {
@@ -79,10 +78,6 @@ export function bindClaudeJournalReadingControl(
   }
   let sinkPaused = false
   return sink?.bindReadingControl?.({
-    failReading: (error) => {
-      connection.failOutput?.(error)
-      translator?.flush()
-    },
     pauseReading: () => {
       sinkPaused = true
       connection.pauseReading?.()
@@ -105,12 +100,7 @@ export function bindClaudeConnectionJournalControls(
 ): (() => void) | undefined {
   const unbinds = [
     bindClaudeJournalReadingControl(sink, connection, translator),
-    bindClaudeContextUsageCapture(connection, translator, capture),
-    sink?.bindOutputDrain?.(
-      () =>
-        translator?.retireOutput?.(connection.outputDrained ?? Promise.resolve()) ??
-        Promise.resolve()
-    )
+    bindClaudeContextUsageCapture(connection, translator, capture)
   ].filter((unbind): unbind is () => void => unbind !== undefined)
   return unbinds.length === 0
     ? undefined

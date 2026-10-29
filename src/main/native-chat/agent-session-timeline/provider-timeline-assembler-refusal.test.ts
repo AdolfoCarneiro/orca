@@ -1,7 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createDeferredStructuredAgentSessionEventSink } from '../agent-session-wire/structured-agent-session-event-sink'
-import { testEventSinkLogging } from '../agent-session-wire/structured-agent-session-logger-test-support'
-import { providerTimelineSink } from './provider-timeline-plan'
+import { afterEach, describe, expect, it } from 'vitest'
 import { MAX_PROVIDER_TIMELINE_OPEN_ENTRIES } from './provider-timeline-budget'
 import {
   closeProviderTimelineRigs,
@@ -195,78 +192,34 @@ describe('what the assembler holds open is bounded', () => {
   })
 })
 
-it('delivers a refused full flush after a real queue drain and scheduled wake without another provider event', async () => {
+it('a skipped timeline key creates no retry, while a genuinely refused key wakes and lands without more input', async () => {
+  const { vi } = await import('vitest')
   vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] })
-  const r = await openProviderTimelineRig()
-  const deferred = createDeferredStructuredAgentSessionEventSink({
-    ...testEventSinkLogging(),
-    watermarks: { maxQueuedOperations: 1 }
-  })
-  deferred.bind({ journal: r.journal, fence: 1, publish: () => {} })
-  const sink = providerTimelineSink(deferred.sink)
-  if (!sink) {
-    throw new Error('transition sink required')
-  }
-  const assembler = r.assemble({
-    sink,
+  const rig = await openProviderTimelineRig()
+  let refuse = false
+  const assembler = rig.assemble({
+    sink: refusingSink(rig.sink, () => refuse),
     schedule: (run, ms) => {
-      expect(ms).toBeGreaterThan(0)
       const timer = setTimeout(run, ms)
       return () => clearTimeout(timer)
     }
   })
-  const gate = Promise.withResolvers<void>()
-  try {
-    for (let i = 0; i < 3; i++) {
-      assembler.apply({
-        type: 'text.delta',
-        item: { id: `m${i}` },
-        channel: 'assistant',
-        text: 'P'
-      })
-    }
-    assembler.flush()
-    await vi.runAllTimersAsync()
-    await deferred.drained()
-    for (let i = 0; i < 3; i++) {
-      assembler.apply({
-        type: 'text.delta',
-        item: { id: `m${i}` },
-        channel: 'assistant',
-        text: ' tail'
-      })
-    }
-    await r.journal.readInOrder(() => {
-      void r.journal.readInOrder(() => gate.promise)
-    })
-    expect(
-      deferred.sink.tryAppendItem?.(
-        { provider: 'claude', sessionId: 'blocker', uuid: 'blocker' },
-        { kind: 'status', tone: 'info', text: 'blocked' },
-        { turnScope: { kind: 'thread' } }
-      )
-    ).toEqual({ accepted: true })
-    assembler.flush()
-    expect(deferred.state().backpressured).toBe(true)
-    expect(vi.getTimerCount()).toBe(1)
-    gate.resolve()
-    await deferred.drained()
-    await vi.runAllTimersAsync()
-    expect(await deferred.sink.written?.()).toEqual({ ok: true })
-    const saved = r.journal.snapshot().items
-    for (let i = 0; i < 3; i++) {
-      expect(
-        messageText(saved.find((row) => row.itemId === providerItemId('item', `m${i}`))?.body)
-      ).toBe('P tail')
-    }
-    expect(vi.getTimerCount()).toBe(0)
-    const cursor = r.journal.cursor()
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(r.journal.cursor()).toEqual(cursor)
-  } finally {
-    gate.resolve()
-    assembler.dispose()
-    deferred.close()
-    vi.useRealTimers()
-  }
+  assembler.apply({ type: 'text.delta', item: { id: 'a' }, channel: 'assistant', text: 'P' })
+  vi.advanceTimersByTime(60)
+  await rig.eventSink.written?.()
+  assembler.apply({ type: 'text.delta', item: { id: 'a' }, channel: 'assistant', text: 'T' })
+  assembler.apply({ type: 'text.delta', item: { id: 'b' }, channel: 'reasoning', text: 'B' })
+  refuse = true
+  vi.advanceTimersByTime(60)
+  expect(vi.getTimerCount()).toBe(1)
+  expect(messageText((await rig.row(providerItemId('item', 'a')))?.body)).toBe('P')
+  refuse = false
+  vi.advanceTimersByTime(60)
+  expect(messageText((await rig.row(providerItemId('item', 'b')))?.body)).toBe('B')
+  expect(messageText((await rig.row(providerItemId('item', 'a')))?.body)).toBe('P')
+  expect(vi.getTimerCount()).toBe(0)
+  assembler.apply({ type: 'text.close', item: { id: 'a' } })
+  expect(messageText((await rig.row(providerItemId('item', 'a')))?.body)).toBe('PT')
+  assembler.dispose()
+  vi.useRealTimers()
 })

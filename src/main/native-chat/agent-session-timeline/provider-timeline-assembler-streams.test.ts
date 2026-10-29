@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
 import { measureDeltaSnapshotWork } from '../agent-session-wire/agent-session-delta-work-test-support'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseAgentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
 import { agentJournalTurnBody } from '../../../shared/agent-session-turn-record'
 import {
@@ -17,40 +17,6 @@ afterEach(async () => {
 })
 
 describe("a stream writes only while its row's turn runs", () => {
-  it('saves a paused tail at its deadline and closes without losing the next tail', async () => {
-    vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout', 'clearTimeout'] })
-    vi.setSystemTime(0)
-    const rig = await openProviderTimelineRig({
-      schedule: (run, ms) => {
-        const timer = setTimeout(run, ms)
-        return () => clearTimeout(timer)
-      }
-    })
-    const delta = (text: string) =>
-      rig.assembler.apply({
-        type: 'text.delta',
-        item: { id: 'm' },
-        channel: 'reasoning',
-        text
-      })
-    delta('first')
-    vi.advanceTimersByTime(59)
-    expect(await rig.row(providerItemId('item', 'm'))).toBeUndefined()
-    vi.advanceTimersByTime(1)
-    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first')
-    delta(' tail')
-    vi.advanceTimersByTime(399)
-    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first')
-    vi.advanceTimersByTime(1)
-    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first tail')
-    delta(' close')
-    rig.assembler.apply({ type: 'text.close', item: { id: 'm' } })
-    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first tail close')
-    const revision = (await rig.row(providerItemId('item', 'm')))?.revision
-    vi.advanceTimersByTime(1_000)
-    expect((await rig.row(providerItemId('item', 'm')))?.revision).toBe(revision)
-  })
-
   it('stops at the end of its turn, though its next delta was admitted before the end was written', async () => {
     const rig = await openProviderTimelineRig()
     const { assembler, bind, drained } = openUnboundProviderTimelineAssembler(rig.journal)
@@ -136,6 +102,53 @@ describe('the open budget counts every provider string a stream keeps', () => {
   })
 })
 
+it.each(['close', 'tool', 'flush-dispose', 'next-delta'])(
+  'keeps a timer-skipped full tail for the %s barrier',
+  async (boundary) => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout', 'clearTimeout'] })
+    const r = await openProviderTimelineRig({
+      schedule: (run, ms) => {
+        const timer = setTimeout(run, ms)
+        return () => clearTimeout(timer)
+      }
+    })
+    const delta = (text: string) =>
+      r.assembler.apply({ type: 'text.delta', item: { id: 'm' }, channel: 'reasoning', text })
+    delta('P')
+    vi.advanceTimersByTime(60)
+    expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('P')
+    vi.advanceTimersByTime(40)
+    delta('T')
+    vi.advanceTimersByTime(60)
+    expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('P')
+    expect(vi.getTimerCount()).toBe(0)
+    vi.advanceTimersByTime(40)
+    if (boundary === 'next-delta') {
+      vi.setSystemTime(100)
+      vi.advanceTimersByTime(300)
+      delta('U')
+      vi.advanceTimersByTime(60)
+    } else if (boundary === 'close') {
+      r.assembler.apply({ type: 'text.close', item: { id: 'm' } })
+    } else if (boundary === 'tool') {
+      r.assembler.apply({
+        type: 'item.close',
+        item: 'tool',
+        body: { kind: 'tool-call', name: 'Bash', input: {}, state: 'completed' }
+      })
+    } else {
+      r.assembler.flush()
+      r.assembler.dispose()
+    }
+    expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe(
+      boundary === 'next-delta' ? 'PTU' : 'PT'
+    )
+    vi.advanceTimersByTime(1000)
+    expect(vi.getTimerCount()).toBe(0)
+    r.assembler.dispose()
+  }
+)
+
 it('releases actual clean timeline owners linearly on session end, turn end, external Stop and dispose', async () => {
   for (const n of [10, 100]) {
     for (const boundary of ['session', 'turn', 'stop', 'dispose']) {
@@ -179,7 +192,7 @@ it('releases actual clean timeline owners linearly on session end, turn end, ext
       }
       const work = meter.work()
       meter.stop()
-      expect(work).toBeLessThanOrEqual(4 * n)
+      expect(work).toBeLessThanOrEqual(8 * n)
       await r.eventSink.written?.()
       for (let i = 0; i < n; i++) {
         expect(messageText((await r.row(providerItemId('item', `m${i}`)))?.body)).toBe('P')
@@ -194,10 +207,9 @@ it('releases actual clean timeline owners linearly on session end, turn end, ext
   }
 })
 
-it('executes early and 400ms callbacks on only pending delivery among N/10N clean bodies', async () => {
-  vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] })
-  const traces: number[][] = []
+it('scans retained owners once on a skipped timer, assembles no body, and tears down without timers at N/10N', async () => {
   for (const n of [10, 100]) {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] })
     let callbacks = 0
     const r = await openProviderTimelineRig({
       schedule: (run, ms) => {
@@ -225,35 +237,65 @@ it('executes early and 400ms callbacks on only pending delivery among N/10N clea
       text: ' tail'
     })
     const meter = measureDeltaSnapshotWork()
-    const join = Array.prototype.join
-    let assemblies = 0
-    const joining = vi.spyOn(Array.prototype, 'join').mockImplementation(function (
-      this: unknown[],
-      separator
-    ) {
-      if (this.includes('P') && this.includes(' tail')) {
-        assemblies++
-      }
-      return join.call(this, separator)
-    })
-    await vi.advanceTimersByTimeAsync(60)
+    const join = vi.spyOn(Array.prototype, 'join')
+    vi.advanceTimersByTime(60)
     expect(callbacks).toBe(1)
-    expect(assemblies).toBe(0)
-    expect(messageText((await r.row(providerItemId('item', 'm0')))?.body)).toBe('P')
-    const early = meter.work()
-    meter.reset()
-    await vi.advanceTimersByTimeAsync(340)
-    expect(callbacks).toBe(2)
-    const due = meter.work()
+    expect(
+      join.mock.contexts.some(
+        (chunks) => Array.isArray(chunks) && chunks.includes('P') && chunks.includes(' tail')
+      )
+    ).toBe(false)
+    join.mockRestore()
+    expect(meter.work()).toBeLessThanOrEqual(3 * n)
     meter.stop()
-    joining.mockRestore()
-    await r.eventSink.written?.()
-    expect(messageText((await r.row(providerItemId('item', 'm0')))?.body)).toBe('P tail')
-    expect(assemblies).toBe(1)
     expect(vi.getTimerCount()).toBe(0)
-    traces.push([early, due])
+    expect(messageText((await r.row(providerItemId('item', 'm0')))?.body)).toBe('P')
+    r.assembler.flush()
+    expect(messageText((await r.row(providerItemId('item', 'm0')))?.body)).toBe('P tail')
     r.assembler.dispose()
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
   }
-  expect(traces[1]).toEqual(traces[0])
-  expect(traces[0].every((work) => work > 0 && work <= 5)).toBe(true)
+})
+
+it('actual ACP lane flush/dispose saves a skipped tail and session end retains Stop semantics', async () => {
+  const { AcpStructuredLane } = await import('../../acp/acp-structured-lane')
+  const { GROK_ACP_DIALECT } = await import('../../acp/acp-dialects/grok-dialect')
+  const { testEventSinkLogging } =
+    await import('../agent-session-wire/structured-agent-session-logger-test-support')
+  vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] })
+  const r = await openProviderTimelineRig()
+  const failed = vi.fn()
+  const lane = new AcpStructuredLane({
+    sink: r.sink,
+    sessionId: 'session-timeline',
+    agent: 'grok',
+    agentName: 'Grok',
+    generation: 'gen-1',
+    providerSessionId: 'provider-session-1',
+    dialect: GROK_ACP_DIALECT,
+    logger: testEventSinkLogging().logger,
+    onInputAccepted: () => {},
+    onFailed: failed
+  })
+  lane.apply([
+    { type: 'turn.open', turn: 't', at: 1000 },
+    { type: 'text.delta', item: { id: 'm' }, channel: 'assistant', text: 'P' }
+  ])
+  vi.advanceTimersByTime(60)
+  await r.eventSink.written?.()
+  lane.apply([{ type: 'text.delta', item: { id: 'm' }, channel: 'assistant', text: 'T' }])
+  vi.advanceTimersByTime(60)
+  expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('P')
+  lane.flush()
+  lane.apply([
+    { type: 'turn.end', turn: 't', at: 2000, state: 'interrupted' },
+    { type: 'session.ended', verdict: { state: 'unverifiable' } }
+  ])
+  lane.dispose()
+  await r.eventSink.written?.()
+  expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('PT')
+  expect(await r.turn('t')).toMatchObject({ state: 'interrupted' })
+  expect(failed).not.toHaveBeenCalled()
+  expect(vi.getTimerCount()).toBe(0)
 })

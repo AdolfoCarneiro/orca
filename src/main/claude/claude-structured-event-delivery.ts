@@ -5,22 +5,9 @@ import {
 } from './claude-structured-retired-model'
 import type {
   ClaudeSession,
-  ClaudeAcquisitionAttempt,
   ClaudeStructuredSessionAdapterDeps,
   ClaudeStructuredSessionEvent
 } from './structured/claude-structured-session-state'
-
-/** Reader output belongs to its original writer through EOF, including after process-exit publication. */
-export function deliverClaudeAcquisitionOutput(
-  attempt: ClaudeAcquisitionAttempt,
-  event: () => void
-): void {
-  if (attempt.published) {
-    event()
-  } else {
-    attempt.buffered.push(event)
-  }
-}
 
 type ClaudeEventDelivery = {
   session: ClaudeSession | null

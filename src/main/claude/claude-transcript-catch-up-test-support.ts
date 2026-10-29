@@ -6,10 +6,7 @@ import { afterEach, type Mock, vi } from 'vitest'
 import type { AgentSessionJournalIdentity } from '../../shared/agent-session-journal-types'
 import { claudeProviderHandle } from '../../shared/agent-session-provider-handle-encoding'
 import { createTrackedJournalOpener } from '../native-chat/agent-session-journal/journal-host-database-test-support'
-import {
-  createDeferredStructuredAgentSessionEventSink,
-  type StructuredAgentSessionSinkWatermarks
-} from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
+import { createDeferredStructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import { testEventSinkLogging } from '../native-chat/agent-session-wire/structured-agent-session-logger-test-support'
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
 import { catchUpClaudeTranscript } from './claude-transcript-catch-up'
@@ -98,11 +95,7 @@ afterEach(async () => {
   }
 })
 
-export async function chat(
-  project = '-work',
-  cwd = '/work',
-  watermarks?: Partial<StructuredAgentSessionSinkWatermarks>
-) {
+export async function chat(project = '-work', cwd = '/work') {
   const root = await mkdtemp(join(tmpdir(), 'orca-claude-catch-up-'))
   const projects = join(root, 'claude-home', 'projects', project)
   await mkdir(projects, { recursive: true })
@@ -120,10 +113,7 @@ export async function chat(
     stateDirectory: root,
     now: () => 1_000
   })
-  const deferred = createDeferredStructuredAgentSessionEventSink({
-    ...testEventSinkLogging(),
-    watermarks
-  })
+  const deferred = createDeferredStructuredAgentSessionEventSink(testEventSinkLogging())
   deferred.bind({ journal, fence: 1, publish: () => {} })
   cleanups.push(async () => {
     deferred.close()
@@ -222,7 +212,7 @@ export async function chat(
       leafUuid: string,
       options: Pick<
         Parameters<typeof catchUpClaudeTranscript>[0],
-        'signal' | 'timeoutMs' | 'assertCurrent' | 'transferBeforeImport'
+        'signal' | 'timeoutMs' | 'assertCurrent'
       > = {}
     ) => {
       const covered = await catchUpClaudeTranscript({

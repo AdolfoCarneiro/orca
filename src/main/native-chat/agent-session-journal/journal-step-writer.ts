@@ -18,7 +18,6 @@ export type JournalStep =
       /** Resolve after earlier steps commit; null writes nothing. */
       resolve: () => JournalResolvedItem | null
       options: JournalItemAppendOptions
-      release?: () => void
     }
   | { kind: 'settlement'; batch: JournalResolvedLifecycleBatchInput }
 
@@ -36,13 +35,7 @@ export class JournalStepWriter {
     return this.deps.serialize(() => {
       const wrote: boolean[] = []
       for (const step of steps) {
-        try {
-          wrote.push(this.deps.writeRows(() => this.plan(step)).length > 0)
-        } finally {
-          if (step.kind === 'item') {
-            step.release?.()
-          }
-        }
+        wrote.push(this.deps.writeRows(() => this.plan(step)).length > 0)
       }
       return wrote
     })

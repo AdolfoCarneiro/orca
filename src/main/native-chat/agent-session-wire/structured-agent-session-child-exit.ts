@@ -201,10 +201,6 @@ export async function endExitedStructuredAgentSessionChildUnderSerialize<
   try {
     // Drain the child’s tail before deriving dead-generation settlement.
     try {
-      const output = await context.route?.runtimeState.eventSinkFor(sessionId).outputDrained?.()
-      if (output && !output.ok) {
-        logExitFailure(context, sessionId, 'exit-output-drain', output.error)
-      }
       const barrier = await context.flushLifecycle(sessionId)
       if (!barrier.ok) {
         logExitFailure(context, sessionId, 'exit-lifecycle-barrier', barrier.error)

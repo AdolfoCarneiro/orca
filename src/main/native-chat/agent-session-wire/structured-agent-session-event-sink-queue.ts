@@ -12,12 +12,27 @@ import type {
 import type { StructuredAgentSessionTransitionJournal } from './structured-agent-session-transition'
 import { StructuredAgentSessionFinalTailReservation } from './structured-agent-session-final-tail-reservation'
 
-import type {
-  Admitted,
-  StructuredAgentSessionSinkOperation,
-  StructuredAgentSessionDrainWaiter
-} from './structured-agent-session-sink-operation'
-export type { StructuredAgentSessionSinkOperation } from './structured-agent-session-sink-operation'
+export type StructuredAgentSessionSinkOperation = {
+  sequence: number
+  bytes: number
+  lifecycleBytes?: number
+  lifecycle?: boolean
+  finalTail?: true
+  /** Only publications coalesce by key; replacing journal writes would reorder them behind later work. */
+  publicationKey?: string
+  /** Handover synchronously joins the journal queue in submission order. */
+  run: (target: StructuredAgentSessionEventTarget) => Promise<unknown> | void
+}
+
+type Admitted = StructuredAgentSessionSinkOperation & {
+  superseded?: boolean
+  releaseFinalTail?: () => void
+}
+
+export type StructuredAgentSessionDrainWaiter = {
+  through: number
+  resolve: (result: StructuredAgentSessionSinkBarrier) => void
+}
 
 /** Buffer only before bind, then hand writes directly to the journal in issuance order.
  * Pressure counts all admitted unsettled operations, wherever they wait. */
@@ -70,25 +85,6 @@ export class StructuredAgentSessionSinkQueue {
 
   journalItems = (): StructuredAgentSessionTransitionJournal | null => this.target?.journal ?? null
 
-  /** Working memory for the materialization executing on the journal lane; never re-admit it. */
-  allocate(bytes: number, lifecycle: boolean): () => void {
-    if (!Number.isSafeInteger(bytes) || bytes < 0) {
-      throw new Error('invalid journal allocation')
-    }
-    this.queuedBytes += bytes
-    if (lifecycle) {
-      this.lifecycleQueuedBytes += bytes
-    }
-    this.updateBackpressure()
-    return () => {
-      this.queuedBytes -= bytes
-      if (lifecycle) {
-        this.lifecycleQueuedBytes -= bytes
-      }
-      this.updateBackpressure()
-    }
-  }
-
   journalStopDecidesTurn = (turnId: string, endedAt: number): boolean =>
     this.target?.journal.stopMarks.personStopDecides(turnId, endedAt) ?? false
 
@@ -120,7 +116,6 @@ export class StructuredAgentSessionSinkQueue {
 
   close(): void {
     this.closed = true
-    this.readingControl?.failReading?.(new Error('the journal sink closed'))
     this.dropBuffered()
     this.finalTail.close()
     this.updateBackpressure()
@@ -314,7 +309,6 @@ export class StructuredAgentSessionSinkQueue {
   private fail = (error: unknown): void => {
     if (this.failure === null) {
       this.failure = { error }
-      this.readingControl?.failReading?.(error)
       this.deps.onFailed?.(error)
     }
     this.dropBuffered()

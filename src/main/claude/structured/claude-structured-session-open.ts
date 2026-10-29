@@ -73,7 +73,6 @@ export async function openClaudeStructuredSession(input: {
         claudeConfigDir: session.initialization.claudeConfigDir,
         cwd: session.initialization.cwd,
         sink: session.events,
-        transferBeforeImport: (keys) => session.translator?.transferBeforeImport?.(keys) ?? true,
         signal: request.signal,
         assertCurrent: () => {
           current()

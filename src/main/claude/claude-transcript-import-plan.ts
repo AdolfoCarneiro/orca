@@ -11,6 +11,9 @@ import {
 } from '../../shared/agent-session-journal-types'
 import { journalLifecycleItemMutation } from '../native-chat/agent-session-journal/journal-row-builders'
 import {
+  continuedOutsideNotice,
+  continuedOutsideRecordId,
+  createHistoryCatchUpBatch,
   HISTORY_CATCH_UP_MAX_OPERATIONS,
   type HistoryCatchUpPlan
 } from '../native-chat/agent-session-wire/structured-agent-session-history-catch-up'
@@ -35,11 +38,7 @@ import {
   readClaudeMessageEnvelope
 } from './claude-structured-item-translation'
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
-import {
-  claudeTranscriptImportBatch,
-  createClaudeTranscriptItemReader,
-  claudeTranscriptTransitionWriter
-} from './claude-transcript-item-reader'
+import { createClaudeTranscriptItemReader } from './claude-transcript-item-reader'
 import { idleClaudeJournalTurn } from './claude-session-state-turn-over'
 
 /** An isolated projection of final source items, compared with saved historical content. */
@@ -136,13 +135,6 @@ export function createClaudeTranscriptImportPlan(input: {
     return { accepted: true } as const
   }
   const sink: StructuredAgentSessionEventSink = {
-    tryAppendTransition: claudeTranscriptTransitionWriter({
-      journal: input.journal,
-      aliases,
-      mutations,
-      saved,
-      append
-    }),
     appendItem: append,
     tryAppendItem: append,
     appendTombstone: () => {
@@ -268,22 +260,49 @@ export function createClaudeTranscriptImportPlan(input: {
       translator.flush()
       // A row that renders nothing (a thinking block saved without its text) adds no divider either.
       const rows = [...mutations.values()]
-      const plan = claudeTranscriptImportBatch({
-        rows,
-        dependencies,
-        saved,
-        rewound: input.rewound,
-        sessionId: input.sessionId,
-        epoch: input.journal.epoch,
-        providerSessionId: input.providerSessionId,
-        uuids
-      })
-      return {
-        ...plan,
-        affectedKeys: [...aliases.keys(), ...aliases.values()].map((key) =>
-          typeof key === 'string' ? key : agentJournalItemKey(key)
+      const batch = createHistoryCatchUpBatch()
+      const firstCreated = rows.find(
+        (row) =>
+          row.kind === 'item' &&
+          row.body.kind !== 'turn' &&
+          !dependencies.has(agentJournalItemKey(row.identity))
+      )
+      if (input.rewound !== null && firstCreated) {
+        batch.push(
+          journalLifecycleItemMutation(
+            { turnScope: AGENT_JOURNAL_THREAD_SCOPE },
+            {
+              provider: 'legacy',
+              agent: 'claude',
+              sessionId: input.sessionId,
+              recordId: continuedOutsideRecordId(agentJournalItemKey(firstCreated.identity))
+            },
+            continuedOutsideNotice(input.rewound)
+          )
         )
       }
+      const revised = new Set<string>()
+      for (const row of rows) {
+        const key = agentJournalItemKey(row.identity)
+        const existing = saved(key)
+        if (existing && row.kind === 'item') {
+          batch.revise(row, { canonicalItemId: existing.itemId, revision: existing.revision })
+          revised.add(key)
+        } else {
+          batch.push(row)
+        }
+      }
+      for (const [key, item] of dependencies) {
+        if (!revised.has(key)) {
+          batch.expectItem(key, { canonicalItemId: item.itemId, revision: item.revision })
+        }
+      }
+      return batch.finish('claude-history-import', [
+        input.journal.epoch,
+        input.providerSessionId,
+        uuids,
+        rows
+      ])
     },
     dispose: () => translator.dispose()
   }
