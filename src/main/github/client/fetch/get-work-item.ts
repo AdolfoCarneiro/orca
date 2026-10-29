@@ -10,6 +10,10 @@ import {
 import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
 import type { MainWorkItem } from './../map/work-item-field-coercion'
 import {
+  getIssueDetailsViaGraphQL,
+  type CollapsedIssueDetails
+} from '../../issue-work-item-details'
+import {
   fetchIssueWorkItem,
   fetchPullRequestWorkItem,
   fetchPullRequestWorkItemFromCandidates
@@ -36,6 +40,7 @@ export async function getWorkItem(
 export type WorkItemRepositoryLookup = {
   item: MainWorkItem | null
   repository: GitHubApiRepository | null
+  issueDetails?: CollapsedIssueDetails | null
 }
 
 export async function getWorkItemWithRepository(
@@ -44,7 +49,8 @@ export async function getWorkItemWithRepository(
   type?: 'issue' | 'pr',
   connectionId?: string | null,
   localGitOptions: LocalGitExecOptions = {},
-  preference?: IssueSourcePreference
+  preference?: IssueSourcePreference,
+  includeIssueDetails = false
 ): Promise<WorkItemRepositoryLookup> {
   return withGitHubRepoExecution(repoPath, connectionId, localGitOptions, async () => {
     await acquire()
@@ -61,9 +67,23 @@ export async function getWorkItemWithRepository(
         if (!source && preference === 'origin') {
           return { item: null, repository: null }
         }
+        const issueDetails =
+          includeIssueDetails && source
+            ? await getIssueDetailsViaGraphQL(
+                repoPath,
+                number,
+                source,
+                connectionId,
+                localGitOptions,
+                true
+              )
+            : undefined
         return {
-          item: await fetchIssueWorkItem(repoPath, source, number, connectionId, localGitOptions),
-          repository: source
+          item:
+            issueDetails?.item ??
+            (await fetchIssueWorkItem(repoPath, source, number, connectionId, localGitOptions)),
+          repository: source,
+          ...(includeIssueDetails ? { issueDetails } : {})
         }
       }
       if (type === 'pr') {

@@ -41,7 +41,11 @@ vi.mock('../platform/clipboard', () => ({
   useClipboardWriter: () => ({ writeText: async () => {} })
 }))
 vi.mock('expo-router', () => ({ useFocusEffect: () => {} }))
-vi.mock('../platform/haptics', () => ({ triggerError: () => {} }))
+vi.mock('../platform/haptics', () => ({
+  triggerError: () => {},
+  triggerEdgeBump: () => {},
+  triggerSelection: () => {}
+}))
 vi.mock('./use-mobile-native-chat-readability', () => ({
   useMobileNativeChatReadability: () => true
 }))

@@ -91,7 +91,7 @@ describe('GitHub GraphQL rate-limit guard', () => {
       })
     ).resolves.toEqual({ ok: true })
     await expect(
-      updatePRTitle('/repo-root', 7, 'New title', undefined, {
+      updatePRTitle('/repo-root', 7, '  New title @literal  ', undefined, {
         owner: 'stablyai',
         repo: 'orca',
         host: 'github.com'
@@ -131,7 +131,14 @@ describe('GitHub GraphQL rate-limit guard', () => {
     )
     expect(ghExecFileAsyncMock).toHaveBeenNthCalledWith(
       4,
-      ['pr', 'edit', '7', '--title', 'New title', '--repo', 'stablyai/orca'],
+      [
+        'api',
+        '-X',
+        'PATCH',
+        'repos/stablyai/orca/pulls/7',
+        '--raw-field',
+        'title=  New title @literal  '
+      ],
       { cwd: '/repo-root', host: 'github.com' }
     )
   })

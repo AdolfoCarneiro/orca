@@ -8,6 +8,7 @@ import {
 } from '../codex/codex-home-paths'
 import { syncSystemConfigIntoManagedCodexHome } from '../codex/codex-config-mirror'
 import { startCodexAccountSessionBridgeInBackground } from '../codex/codex-account-session-bridge'
+import { isCodexHistorySharedAcrossAccounts } from './codex-history-sharing'
 import {
   resolveHostCodexSessionSourceHome,
   resolveWslCodexSessionSourceHome
@@ -135,6 +136,9 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
 
   // Bridge history in the background: /resume only sees launch-home rollouts, and scans can be large.
   protected startSelfContainedSessionBridgeForLaunch(perAccountHome: string): void {
+    if (!isCodexHistorySharedAcrossAccounts(this.store.getSettings())) {
+      return
+    }
     void startCodexAccountSessionBridgeInBackground({
       targetCodexHomePath: perAccountHome,
       sourceCodexHomePaths: this.getSelfContainedSessionBridgeSourceHomes()
@@ -250,7 +254,11 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
     target: CodexAccountSelectionTarget,
     runtimeHomePath: string | null
   ): void {
-    if (process.platform !== 'win32' || !runtimeHomePath) {
+    if (
+      process.platform !== 'win32' ||
+      !runtimeHomePath ||
+      !isCodexHistorySharedAcrossAccounts(this.store.getSettings())
+    ) {
       return
     }
     const runtimeHomeWsl = parseWslUncPath(runtimeHomePath)

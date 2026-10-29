@@ -105,6 +105,7 @@ it('fills both slots from a light and dark pair, plus icon and terminal themes',
   })
   expect(settings.terminalPluginPalettes).toHaveLength(2)
   expect(toast.success).toHaveBeenCalledWith('Now using Ember', {
+    duration: 10_000,
     action: { label: 'Switch back', onClick: expect.any(Function) }
   })
 })

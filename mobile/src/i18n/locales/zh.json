@@ -13,7 +13,7 @@
       "sessionWindow": "5小时",
       "switchFailed": "无法切换账户",
       "title": "账户",
-      "useReset": "使用重置机会",
+      "useReset": "使用重置额度",
       "weeklyWindow": "7天"
     }
   },
@@ -168,7 +168,7 @@
   },
   "chat": {
     "ask": {
-      "answerPlaceholder": "输入你的回答",
+      "answerPlaceholder": "输入您的回答",
       "next": "下一步",
       "other": "其他…",
       "skip": "跳过",
@@ -281,7 +281,7 @@
       "stoppedManually": "已手动停止"
     },
     "orcaStop": {
-      "canContinue": "你可以在此对话中继续。",
+      "canContinue": "您可以在此对话中继续。",
       "crash": "此回复进行期间，{{machine}} 上的 Orca 意外停止。",
       "quit": "此回复进行期间，{{machine}} 上的 Orca 已关闭。",
       "remote": "此回复进行期间，{{machine}} 上的 Orca 已停止。",
@@ -834,7 +834,7 @@
       "loadFailed": "发生错误。",
       "loading": "正在加载 PR…",
       "notPermitted": "无权访问：您的 GitHub 账户尚未连接。",
-      "retryLoading": "重新加载 PR"
+      "retryLoading": "重试加载 PR"
     },
     "protocolBlockScreen": {
       "backToHosts": "返回主机列表",
@@ -1238,6 +1238,7 @@
       "chooseWorkspaceFile": "请选择此工作区内的文件。",
       "discard": "放弃",
       "discardMessage": "未保存的更改将丢失。",
+      "discardMessageSaving": "正在进行的保存可能无法完成。未保存的编辑将会丢失。",
       "discardTitle": "放弃更改？",
       "fileTitle": "文件",
       "loadFailed": "无法加载预览",
@@ -1491,7 +1492,21 @@
       "workspace": "工作区"
     }
   },
+  "newWorkspace": {
+    "hostPicker": {
+      "title": "选择创建工作区的主机"
+    },
+    "loadingDrawer": {
+      "downloadProgress": "正在下载… {{progress}}",
+      "downloading": "正在下载",
+      "loading": "加载中"
+    }
+  },
   "notifications": {
+    "desktopChannel": {
+      "name": "桌面通知",
+      "silentName": "Orca 静默通知"
+    },
     "notificationDeliverySection": {
       "footer": "提醒类型遵循各个已配对桌面的通知设置。连续 7 天未使用此应用后，通知将暂停；打开应用并重新连接即可恢复。",
       "onlyWhenAway": "仅在离开桌面时",
@@ -1545,7 +1560,7 @@
       "openOnWeb": "在网页上打开 {{name}}",
       "passed": "{{count}} 项通过",
       "pending": "待处理",
-      "pendingCount": "{{count}} 项待完成",
+      "pendingCount": "{{count}} 项待处理",
       "queued": "已加入队列",
       "rerunFailing": "重新运行失败的检查",
       "skipped": "已跳过",
@@ -1948,14 +1963,14 @@
       "unstaged": "未暂存"
     },
     "fileReader": {
-      "copyReviewNotes": "复制评论注释",
+      "copyReviewNotes": "复制评审备注",
       "imageLabel": "{{title}} 图片",
-      "noReviewNotes": "暂无评论注释",
+      "noReviewNotes": "暂无评审备注",
       "previewLabel": "{{title}} 预览",
-      "reviewNotes_one": "{{count}} 条评论注释",
-      "reviewNotes_other": "{{count}} 条评论注释",
+      "reviewNotes_one": "{{count}} 条评审备注",
+      "reviewNotes_other": "{{count}} 条评审备注",
       "send": "发送",
-      "sendReviewNotes": "将评论注释发送给 AI"
+      "sendReviewNotes": "将评审备注发送给 AI"
     },
     "floatingWorkspace": {
       "title": "浮动工作区"
@@ -2169,7 +2184,7 @@
       "notesHint": "选择接收当前注释的智能体会话。",
       "removeShortcutMessage": "移除此自定义快捷键？",
       "renameTerminal": "重命名终端",
-      "sendReviewNotes": "发送评论注释",
+      "sendReviewNotes": "发送评审备注",
       "shortcut": "快捷键",
       "terminal": "终端",
       "terminalName": "终端名称",
@@ -2293,7 +2308,7 @@
       "notesCopied": "评审笔记已复制",
       "notesSent": "评审笔记已发送",
       "notesSentWithWarning": "评审笔记已发送。{{warning}}",
-      "promptNotSent": "智能体已启动，但笔记未发送。请使用“复制笔记”复制后粘贴。",
+      "promptNotSent": "智能体已启动，但笔记未发送。请使用“复制备注”复制后粘贴。",
       "sendFailed": "发送笔记失败",
       "startingAgent": "正在启动智能体…",
       "waitingForDesktop": "等待桌面连接…"
@@ -2344,7 +2359,7 @@
       "updateFailed": "更新标题失败。"
     },
     "useQuickCommands": {
-      "loadFailed": "加载快速命令失败",
+      "loadFailed": "加载快捷命令失败",
       "saveFailed": "保存快速命令失败"
     },
     "useSessionTerminalSendActions": {
@@ -2520,11 +2535,67 @@
     }
   },
   "sourceControl": {
+    "actionSheetRunners": {
+      "noBaseBranch": "没有可作为变基目标的基础分支",
+      "waitingForDesktop": "正在等待桌面…"
+    },
     "actions": {
+      "checkingReviewStatus": "正在检查评审状态。",
+      "checkoutBeforePublish": "请先检出分支再发布提交。",
+      "commitStagedChanges": "提交已暂存的更改。",
       "commits": "提交",
+      "committing": "正在提交。",
       "createPr": "创建PR",
+      "enterCommitMessage": "请输入提交信息后再提交。",
+      "forcePushWithLease": "使用 lease 强制推送以更新远程分支。",
+      "forcePushing": "正在强制推送。",
+      "linkedReviewUnavailable": "关联的评审分支不可用。",
+      "publishToOrigin": "将此分支发布到 origin。",
+      "pullCommits_one": "拉取 {{count}} 个提交。",
+      "pullCommits_other": "拉取 {{count}} 个提交。",
       "pushAndCreatePr": "推送并创建 PR",
-      "switchBranch": "切换分支"
+      "pushCommits_one": "推送 {{count}} 个提交。",
+      "pushCommits_other": "推送 {{count}} 个提交。",
+      "pushLinkedReview": "将更新推送到关联的评审分支。",
+      "remoteOperationInProgress": "正在执行远程操作。",
+      "resolveConflicts": "请先解决冲突再提交。",
+      "reviewAlreadyMerged": "没有可提交的内容。评审已合并。",
+      "stageAllChanges": "暂存全部更改。",
+      "stageFileToCommit": "请至少暂存一个文件后再提交。",
+      "switchBranch": "切换分支",
+      "syncCounts": "拉取 {{behind}} 个提交，推送 {{ahead}} 个提交。",
+      "upToDate": "没有可提交的内容。分支已是最新状态。",
+      "waitForRemoteOperation": "请在远程操作完成后重试。"
+    },
+    "branchBaseRef": {
+      "resolveFailed": "无法解析基础分支"
+    },
+    "branchCard": {
+      "branchCount": "已提交 {{count}} 个文件",
+      "changedCount": "已更改 {{count}} 个文件",
+      "cherryPickState": "cherry-pick",
+      "mergeState": "合并",
+      "rebaseState": "变基",
+      "stagedCount": "已暂存 {{count}} 个文件"
+    },
+    "branchCompare": {
+      "commits_one": "{{count}} 次提交",
+      "commits_other": "{{count}} 次提交",
+      "files_one": "{{count}} 个文件",
+      "files_other": "{{count}} 个文件",
+      "sectionTitle": "已提交的更改",
+      "summary": "{{files}} - 与 {{baseRef}} 比较",
+      "summaryWithCommits": "{{files}} - {{commits}} - 与 {{baseRef}} 比较"
+    },
+    "branchCompareOutcome": {
+      "baseBranchUnavailable": "无法解析用于比较的基础分支。",
+      "loadFailed": "无法加载已提交的更改"
+    },
+    "branchDiffPreviewDrawer": {
+      "closePreview": "关闭已提交更改的差异预览",
+      "committedOnBranch": "已提交到分支",
+      "loadFailed": "无法加载差异",
+      "truncated": "移动端预览中的差异已截断。"
     },
     "commitDropdown": {
       "checkOutBranchToPush": "请先检出分支再推送提交",
@@ -2549,8 +2620,49 @@
       "stageFile": "暂存至少一个要提交的文件",
       "useCommitAndForcePush": "使用提交并强制推送 — 远程只有本地提交的旧副本"
     },
+    "commitFailurePanel": {
+      "fix": "修复",
+      "fixWithAi": "使用 AI 修复提交失败",
+      "hideDetails": "隐藏详情",
+      "hideFailureDetails": "隐藏提交失败详情",
+      "showDetails": "显示详情",
+      "showFailureDetails": "显示提交失败详情",
+      "summary": "提交失败。",
+      "title": "提交失败"
+    },
+    "commitMessageAi": {
+      "generateFailed": "生成提交信息失败"
+    },
+    "commitRunners": {
+      "actionFailed": "源代码控制操作失败",
+      "commitFailed": "提交失败"
+    },
+    "conflictAbort": {
+      "abortMerge": "中止合并",
+      "abortOperation": "中止 {{operation}}",
+      "abortRebase": "中止变基",
+      "aborting": "正在中止…"
+    },
+    "content": {
+      "cancelGeneration": "取消生成提交信息",
+      "commitMessageDisabled": "提交信息输入已禁用。没有已暂存的文件。",
+      "commitMessagePlaceholder": "提交信息",
+      "emptyMessage": "工作树无更改。",
+      "emptyTitle": "无本地更改",
+      "generateMessage": "使用 AI 生成提交信息",
+      "noStagedFiles": "没有已暂存的文件",
+      "openActions": "打开源代码控制操作菜单",
+      "reconnecting": "正在重新连接桌面…",
+      "regenerateHint": "清除消息以重新生成。",
+      "stageAll": "暂存全部",
+      "unstageAll": "取消全部暂存"
+    },
     "createPrAction": {
-      "createReview": "创建 {{titleLabel}}"
+      "checkingStatus": "正在检查评审状态…",
+      "createPullRequest": "创建PR",
+      "createReview": "创建 {{titleLabel}}",
+      "providerUnavailable": "此提供商无法创建评审",
+      "statusUnavailable": "评审状态不可用"
     },
     "dropdownCounts": {
       "fastForwardCount_one": "快进 {{count}} 个提交",
@@ -2572,6 +2684,64 @@
       "titleUnpublishedForcePushCount_one": "使用 lease 强制推送 {{count}} 个分支提交，并在需要时设置上游。",
       "titleUnpublishedForcePushCount_other": "使用 lease 强制推送 {{count}} 个分支提交，并在需要时设置上游。"
     },
+    "fileList": {
+      "committedSection": "已提交的更改"
+    },
+    "fileRows": {
+      "addedByThem": "对方已添加",
+      "addedByUs": "我方已添加",
+      "bothAdded": "双方均已添加",
+      "bothDeleted": "双方均已删除",
+      "bothModified": "双方均已修改",
+      "committedSection": "已提交的更改",
+      "committedUnavailable": "已提交的更改不可用。",
+      "deletedByThem": "对方已删除",
+      "deletedByUs": "我方已删除",
+      "discardFile": "放弃 {{path}} 的更改",
+      "loadingCommitted": "正在加载已提交的更改…",
+      "openChangedFile": "打开已更改的文件 {{path}}",
+      "openCommittedChange": "打开 {{path}} 中已提交的更改",
+      "renamedFrom": "原路径 {{path}}",
+      "stageFile": "暂存 {{path}}",
+      "unresolvedConflict": "未解决的冲突",
+      "unstageFile": "取消暂存 {{path}}"
+    },
+    "gitHistory": {
+      "days_one": "{{count}} 天",
+      "days_other": "{{count}} 天",
+      "hours_one": "{{count}} 小时",
+      "hours_other": "{{count}} 小时",
+      "justNow": "刚刚",
+      "loadFailed": "加载提交历史失败",
+      "minutes_one": "{{count}} 分钟",
+      "minutes_other": "{{count}} 分钟",
+      "months_one": "{{count}} 个月",
+      "months_other": "{{count}} 个月",
+      "noCommitMessage": "（无提交信息）",
+      "years_one": "{{count}} 年",
+      "years_other": "{{count}} 年"
+    },
+    "gitHistoryList": {
+      "loadFailed": "加载历史记录失败",
+      "loadFilesFailed": "无法加载提交文件",
+      "noCommits": "暂无提交。",
+      "noFileChanges": "无文件更改",
+      "retryFiles": "重试加载提交文件",
+      "waitingForDesktop": "正在等待桌面…"
+    },
+    "gitStatus": {
+      "changes": "更改",
+      "conflicts": "冲突",
+      "stagedChanges": "已暂存的更改"
+    },
+    "header": {
+      "backToSession": "返回会话",
+      "close": "关闭源代码控制",
+      "openNumberedPrWeb": "在网页上打开 PR #{{number}}",
+      "openPrWeb": "在网页上打开 PR",
+      "refresh": "刷新源代码控制",
+      "title": "源代码控制"
+    },
     "hostedReview": {
       "mrCopy": {
         "reviewLabel": "合并请求",
@@ -2584,8 +2754,80 @@
         "titleLabel": "PR"
       }
     },
+    "hostedReviewCopy": {
+      "committingChanges": "正在提交更改…",
+      "creatingReview": "正在创建评审…",
+      "forcePushing": "正在使用 lease 强制推送…",
+      "generatingCommitMessage": "正在生成提交信息…",
+      "publishingBranch": "正在发布分支…",
+      "pushingCommits": "正在推送提交…",
+      "stagingChanges": "正在暂存更改…",
+      "updatingBranch": "正在更新分支…"
+    },
     "hostedReviewCreate": {
       "pushSucceeded": "推送成功，但创建 {{shortLabel}} 失败：{{error}}"
+    },
+    "hostedReviewCreateIntent": {
+      "branchChanged": "准备创建 PR 时分支发生了变化。",
+      "generateMessageFailed": "无法生成提交信息。请在“源代码控制”中填写后重试。",
+      "resolveConflicts": "请先解决冲突，再创建 PR。",
+      "resolveOrStageChanges": "请先处理或暂存更改，再创建 PR。",
+      "reviewCommitMessage": "请先检查提交信息，然后重试创建 PR。"
+    },
+    "hostedReviewGitPreparation": {
+      "commitFailed": "提交失败",
+      "refreshFailed": "无法刷新源代码控制",
+      "stageFailed": "暂存更改失败",
+      "updateBranchFailed": "无法更新远程分支。请重试创建 PR。"
+    },
+    "hostedReviewRemotePrerequisite": {
+      "forcePushFailed": "使用 lease 强制推送失败",
+      "publishFailed": "发布分支失败",
+      "pushFailed": "推送提交失败"
+    },
+    "hostedReviewService": {
+      "createFailed": "创建 PR 失败",
+      "pushBeforeCreateFailed": "推送失败。请解决推送错误后重试。"
+    },
+    "hubTab": {
+      "changes": "更改",
+      "commits": "提交",
+      "pullRequest": "PR"
+    },
+    "loaders": {
+      "connectingToDesktop": "正在连接桌面…",
+      "loadFailed": "无法加载源代码控制",
+      "updateDesktop": "请更新 Orca 桌面端，以在手机上使用源代码控制。",
+      "waitingForDesktop": "正在等待桌面…"
+    },
+    "modals": {
+      "actionsTitle": "源代码控制",
+      "currentBranch": "当前",
+      "discardButton": "放弃",
+      "discardConfirmMessage": "放弃对“{{path}}”的更改？此操作无法撤销。",
+      "discardTitle": "放弃更改",
+      "openPrMessage": "在浏览器中打开？",
+      "openPrWithWarning": "在浏览器中打开？\n\n{{warning}}",
+      "prCreatedTitle": "PR 已创建",
+      "switchBranchTitle": "切换分支"
+    },
+    "openers": {
+      "openDiffFailed": "无法打开差异",
+      "tabNotReady": "文件已打开，但标签页尚未就绪。请重试。",
+      "waitingForDesktop": "正在等待桌面…"
+    },
+    "panel": {
+      "loadFailedTitle": "无法加载",
+      "unavailableTitle": "源代码控制不可用"
+    },
+    "prChip": {
+      "createPr": "创建 PR",
+      "loading": "正在加载 PR…",
+      "loadingLabel": "正在加载 PR",
+      "openLabel": "PR #{{number}}，{{state}}，{{checks}}。打开 PR。",
+      "openWithComments_one": "PR #{{number}}，{{state}}，{{checks}}，{{count}} 条未解决的评论。打开 PR。",
+      "openWithComments_other": "PR #{{number}}，{{state}}，{{checks}}，{{count}} 条未解决的评论。打开 PR。",
+      "unavailableLabel": "PR 不可用：{{message}}"
     },
     "prCreate": {
       "authRequired": "请在创建 {{reviewLabel}} 之前完成身份验证。",
@@ -2605,8 +2847,19 @@
       "unsupportedMergeRequests": "此仓库不支持创建合并请求。",
       "unsupportedPullRequests": "此仓库不支持创建 PR。"
     },
+    "prLink": {
+      "updatePullRequestFailed": "更新关联的 PR 失败",
+      "updateReviewFailed": "更新关联的评审失败"
+    },
     "primaryAction": {
-      "forcePushFromDesktop": "从桌面强制推送此 PR 的分支"
+      "commit": "提交",
+      "forcePush": "强制推送",
+      "forcePushFromDesktop": "从桌面强制推送此 PR 的分支",
+      "publishBranch": "发布分支",
+      "pull": "拉",
+      "push": "推",
+      "stageAll": "暂存全部",
+      "sync": "同步"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "分支已发布",
@@ -2656,6 +2909,591 @@
       "tryFastForwardPull": "尝试快进拉取；git 可能会拒绝本地提交",
       "tryRegularPush": "尝试常规推送；git 可能要求强制推送",
       "useForcePushToSync": "请使用强制推送——远程只有本地提交的旧副本"
+    },
+    "runners": {
+      "actionFailed": "源代码控制操作失败"
+    },
+    "screenState": {
+      "noBranch": "无分支"
+    },
+    "state": {
+      "noUpstream": "无上游分支",
+      "syncStatus": "领先 {{ahead}}，落后 {{behind}}"
+    },
+    "useMobileCommitFailureRecovery": {
+      "launchFailed": "启动智能体失败",
+      "waitingForDesktop": "正在等待桌面…"
+    },
+    "useMobileCommitMessageGeneration": {
+      "generateFailed": "生成提交信息失败"
+    },
+    "useMobileCreatePrRunner": {
+      "branchRequired": "创建 PR 前，请先检出分支。"
+    },
+    "useMobileGitRequests": {
+      "actionFailed": "源代码控制操作失败",
+      "branchUnavailable": "无法获取分支状态",
+      "commitFailed": "提交失败",
+      "waitingForDesktop": "正在等待桌面…"
+    }
+  },
+  "tasks": {
+    "composerSource": {
+      "baseFailed": "无法解析基础分支。",
+      "forkPushWarning": "此 PR 未开启“允许维护者编辑”；向 fork 仓库推送可能会被 GitHub 拒绝。"
+    },
+    "detailCommentRenderers": {
+      "commentPlaceholder": "添加评论",
+      "comments_one": "{{count}} 条评论",
+      "comments_other": "{{count}} 条评论",
+      "reopenThread": "重新打开讨论串",
+      "reply": "回复",
+      "resolveThread": "解决讨论串",
+      "resolvedCommentBy": "{{author}} 的评论（已解决）",
+      "resolvedThreadBy": "{{author}} 的讨论串（已解决）",
+      "sendComment": "发送评论",
+      "show": "显示"
+    },
+    "filterPickers": {
+      "allTeams": "所有团队",
+      "changeStatus": "更改状态",
+      "fieldHidden": "不在卡片上显示",
+      "fieldShown": "在卡片上显示",
+      "fieldsSubtitle": "选择要在条目卡片上显示的项目字段。",
+      "fieldsTitle": "项目字段",
+      "gitlabFilter": "GitLab 筛选",
+      "gitlabView": "GitLab 视图",
+      "jiraFilter": "Jira 筛选",
+      "jiraSite": "Jira 站点",
+      "linearFilter": "Linear 筛选",
+      "linearIssue": "Linear 议题",
+      "linearWorkspace": "Linear 工作区",
+      "loadingStates": "正在加载状态…",
+      "noFields": "此视图没有可显示的额外字段。",
+      "noStates": "无可用状态",
+      "switchWorkspaceFailed": "切换工作区失败",
+      "teamsSubtitle": "选择要在“任务”中显示的团队。",
+      "teamsTitle": "Linear 团队",
+      "teams_one": "{{count}} 个团队",
+      "teams_other": "{{count}} 个团队"
+    },
+    "githubProjectList": {
+      "browseProjects": "浏览项目",
+      "chooseProject": "选择 GitHub 项目",
+      "emptyField": "空的",
+      "issueSubtitle": "议题 · {{repository}}{{number}}",
+      "itemSubtitle": "项目条目 · {{repository}}{{number}}",
+      "items": "条目",
+      "moreFields_one": "+{{count}} 个字段",
+      "moreFields_other": "+{{count}} 个字段",
+      "noItems": "没有项目条目",
+      "pullRequestSubtitle": "PR · {{repository}}{{number}}"
+    },
+    "githubProjectPickers": {
+      "add": "添加",
+      "addByUrlHint": "使用“通过 URL 添加”来访问未列出的项目。",
+      "addPlaceholder": "通过 URL 或 owner/number 添加",
+      "adding": "添加中…",
+      "browseAll": "浏览全部",
+      "browseLoading": "浏览全部（加载中…）",
+      "chooseView": "选择项目视图",
+      "loadFailed": "无法加载项目",
+      "noMatches": "没有匹配的项目。",
+      "noMoreProjects": "没有更多项目。",
+      "noProjects": "尚未加载任何项目",
+      "organizationsError": "组织：{{message}}",
+      "organizationsLoadFailed": "{{count}} 个组织未能加载。",
+      "ownerLoadFailed": "无法加载 {{owner}} 的项目。",
+      "pin": "固定",
+      "pinned": "已固定",
+      "recent": "最近的",
+      "retryHint": "点按重试。",
+      "searchProjects": "搜索项目",
+      "sort": "项目排序",
+      "subtitle": "为“任务”页面选择项目视图。",
+      "title": "GitHub 项目",
+      "unsupportedLayout": "Orca 暂不支持此 GitHub 项目布局。",
+      "view": "项目视图"
+    },
+    "githubViewControls": {
+      "fields": "字段：{{fields}}",
+      "openView": "在 GitHub 中打开视图",
+      "sort": "排序：{{sort}}",
+      "source": "来源：{{source}}"
+    },
+    "itemActions": {
+      "changeStatus": "更改状态",
+      "copyGitHubLink": "复制 GitHub 链接",
+      "copyLinearLink": "复制 Linear 链接",
+      "createWorkspace": "创建工作区",
+      "creating": "创建中…",
+      "mergeConflicts": "GitHub 报告存在合并冲突。",
+      "mergeMergeRequest": "合并合并请求",
+      "mergePullRequest": "合并 PR"
+    },
+    "itemDetailContent": {
+      "addSubIssue": "添加子议题",
+      "assignee": "负责人",
+      "assignees": "负责人",
+      "checks": "检查项",
+      "description": "描述",
+      "discussion": "讨论",
+      "noChecks": "未找到检查项。",
+      "noComments": "暂无评论。",
+      "noPipelineRuns": "此 MR 没有运行任何管道。",
+      "noSubIssues": "没有子议题。",
+      "none": "没有任何",
+      "pipeline": "管道",
+      "pipelineJobs_one": "{{count}} 个作业",
+      "pipelineJobs_other": "{{count}} 个作业",
+      "project": "项目",
+      "rerunAll": "重新运行全部",
+      "rerunFailed": "重新运行失败项",
+      "status": "状态",
+      "subIssueTitle": "子议题标题",
+      "subIssues": "子议题",
+      "type": "类型"
+    },
+    "itemDetailDrawer": {
+      "refreshDetails": "刷新详情"
+    },
+    "itemFieldEditors": {
+      "addLabels": "添加标签，以英文逗号分隔",
+      "addUsernames": "添加用户名，以英文逗号分隔",
+      "assignees": "负责人",
+      "labels": "标签",
+      "loadingAssignees": "正在加载负责人…",
+      "loadingLabels": "正在加载标签…",
+      "noAssignableUsers": "未找到此仓库中可指派的用户。",
+      "noLabels": "此仓库没有标签。",
+      "none": "没有任何",
+      "removeLabels": "移除标签，以英文逗号分隔",
+      "removeUsernames": "移除用户名，以英文逗号分隔",
+      "saveTitle": "保存标题",
+      "title": "标题",
+      "updateAssignees": "更新负责人",
+      "updateLabels": "更新标签"
+    },
+    "itemReviewSections": {
+      "binaryFile": "二进制文件。",
+      "changedFilesTitle": "已更改文件",
+      "descriptionPlaceholder": "描述",
+      "fileContentsUnavailable": "文件内容不可用。",
+      "hideFile": "隐藏",
+      "loadingReviewers": "正在加载评审人…",
+      "markUnviewed": "标记未查看",
+      "markViewed": "标记已查看",
+      "noDescription": "没有描述。",
+      "noReviewerSuggestions": "未找到推荐的评审人。",
+      "noReviewersRequested": "未请求评审人",
+      "requestReview": "请求评审",
+      "reviewersPlaceholder": "邀请评审人",
+      "reviewersTitle": "评审人",
+      "saveDescription": "保存描述",
+      "viewFile": "查看"
+    },
+    "legacySurface": {
+      "loadIssuesFailed": "无法从 {{source}} 加载议题。",
+      "mergeAction": "合并",
+      "mergeMethodTitle": "合并方式",
+      "mergePullRequestTitle": "合并 PR",
+      "mergeRequestMergeMessage": "请选择此合并请求的合并方式。",
+      "mergeRequestTitle": "合并请求",
+      "pullRequestMergeMessage": "请选择此 PR 的合并方式。",
+      "retryLoadingIssues": "重试从 {{source}} 加载议题",
+      "retrying": "正在重试…",
+      "sourceFallback": "{{repo}} 的首选议题来源 upstream 不可用，已改用 origin。",
+      "subIssueDataUnavailable": "您的token无法获取子议题数据。",
+      "updateItemTitle": "更新条目"
+    },
+    "linearList": {
+      "changeStatusFrom": "更改状态，当前为 {{status}}"
+    },
+    "linearViewControls": {
+      "displayButton": "显示",
+      "groupLabel": "分组：{{group}}",
+      "orderLabel": "排序：{{order}}"
+    },
+    "listDisplayPickers": {
+      "displayPropertiesTitle": "显示属性",
+      "linearGroupTitle": "Linear 议题分组",
+      "linearOrderTitle": "Linear 议题排序",
+      "linearViewTitle": "Linear 视图",
+      "sortTasksTitle": "任务排序"
+    },
+    "listSurface": {
+      "connectLinearButton": "连接 Linear",
+      "connectLinearMessage": "直接在“任务”中浏览并开始处理分配给您的 Linear 议题。",
+      "connectLinearTitle": "连接您的 Linear 账户",
+      "jiraStatusFailed": "读取 Jira 状态失败",
+      "updateDesktopMessage": "此移动端“任务”视图需要更高版本的桌面端运行时。",
+      "updateDesktopTitle": "更新 Orca 桌面端"
+    },
+    "options": {
+      "all": "全部",
+      "assignedToMe": "分配给我",
+      "assignee": "负责人",
+      "board": "看板",
+      "boardDescription": "按组分列显示",
+      "closedState": "已关闭",
+      "completedState": "已完成",
+      "createdState": "我创建的",
+      "githubAssignedIssuesDescription": "分配给您的开放议题",
+      "githubDescription": "议题和 PR",
+      "githubIssuesDescription": "GitHub 议题",
+      "githubOpenIssuesDescription": "开放的 GitHub 议题",
+      "githubProjectsDescription": "GitHub 项目视图",
+      "githubPullRequestsDescription": "GitHub PR",
+      "gitlabAllDescription": "所有 GitLab 状态",
+      "gitlabClosedDescription": "已关闭的议题和合并请求",
+      "gitlabDescription": "议题和合并请求",
+      "gitlabMergedDescription": "已合并的合并请求",
+      "gitlabOpenDescription": "开放的议题和合并请求",
+      "identifier": "标识符",
+      "issues": "议题",
+      "jiraDescription": "分配给您及由您报告的议题",
+      "labels": "标签",
+      "linearAllDescription": "所有已连接工作区中的开放议题",
+      "linearAssignedDescription": "分配给您的议题",
+      "linearCompletedDescription": "最近完成的议题",
+      "linearCreatedDescription": "您创建的议题",
+      "linearDescription": "分配给您的议题和团队议题",
+      "list": "列表",
+      "listDescription": "以紧凑行显示议题",
+      "mergedState": "已合并",
+      "mine": "我的",
+      "myIssues": "我的议题",
+      "myPullRequestsDescription": "您创建的 PR",
+      "myTodos": "我的待办事项",
+      "myTodosDescription": "待处理的 GitLab 待办事项",
+      "needsReview": "待评审",
+      "noGrouping": "没有分组",
+      "openPullRequestsDescription": "开放的 PR",
+      "openState": "开放",
+      "priority": "优先级",
+      "projectMergeRequests": "项目 MR",
+      "projectMergeRequestsDescription": "按仓库查看合并请求和议题",
+      "projects": "项目",
+      "pullRequests": "PR",
+      "repository": "仓库",
+      "repositorySortDescription": "按仓库分组，组内最新活动优先",
+      "reviewRequestsDescription": "分配给您的评审请求",
+      "status": "状态",
+      "team": "团队",
+      "updated": "已更新",
+      "updatedSortDescription": "最新活动优先"
+    },
+    "pickerProjection": {
+      "allRepos": "所有仓库",
+      "allSites": "所有站点",
+      "currentlyAscending": "当前升序 · 点按切换为降序",
+      "currentlyDescending": "当前降序 · 点按切换为升序",
+      "fieldAscending": "{{field}} 升序",
+      "fieldDescending": "{{field}} 降序",
+      "fields": "字段",
+      "repos_one": "{{count}} 个仓库",
+      "repos_other": "{{count}} 个仓库",
+      "selectTarget": "选择目标",
+      "selectedFields": "{{selected}}/{{total}} 个字段",
+      "sortAscending": "升序排列",
+      "sources_one": "{{count}} 个来源",
+      "sources_other": "{{count}} 个来源",
+      "unsupportedLayout": "移动端不支持此布局",
+      "updatedSort": "已更新",
+      "usesFieldAscending": "按 {{field}} 升序排列",
+      "usesFieldDescending": "按 {{field}} 降序排列",
+      "usesGitHubRankOrder": "采用 GitHub 排列顺序",
+      "viewNumber": "视图 #{{number}}",
+      "viewOrder": "视图顺序"
+    },
+    "prFileDiff": {
+      "commentOnLine": "在第 {{line}} 行添加评论",
+      "commentPlaceholder": "添加评审评论",
+      "noTextChanges": "未发现文本更改。",
+      "showingDiffLines": "显示前 {{limit}} 行差异，共 {{total}} 行。"
+    },
+    "projectComments": {
+      "comments_one": "{{count}} 条评论",
+      "comments_other": "{{count}} 条评论",
+      "discussion": "讨论",
+      "editComment": "编辑评论",
+      "noComments": "暂无评论。",
+      "reopenThread": "重新打开讨论串",
+      "reply": "回复",
+      "resolveThread": "解决讨论串",
+      "resolvedCommentBy": "{{author}} 的评论（已解决）",
+      "resolvedThreadBy": "{{author}} 发起的讨论串（已解决）",
+      "show": "显示"
+    },
+    "projectDetailDrawer": {
+      "addRepositoryFromDesktop": "{{repository}} 尚未添加到 Orca。请在桌面应用中添加此仓库，然后刷新移动端的“任务”。",
+      "clearType": "清除类型",
+      "closeItem": "关闭条目",
+      "copyGitHubLink": "复制 GitHub 链接",
+      "copyRepository": "复制仓库名",
+      "createWorkspace": "创建工作区",
+      "draftIssue": "草稿议题",
+      "issue": "议题",
+      "issueType": "议题类型",
+      "loadingIssueTypes": "正在加载议题类型…",
+      "mergePullRequest": "合并 PR",
+      "mergeRepositoryRequirement": "合并前需在 Orca 中添加此仓库。",
+      "noIssueTypes": "此仓库未配置议题类型。",
+      "noType": "无类型",
+      "openInGitHub": "在 GitHub 中打开",
+      "projectItem": "项目条目",
+      "projectSubtitle": "GitHub 项目 · {{repository}}{{itemNumber}}",
+      "pullRequest": "PR",
+      "reopenItem": "重新打开条目",
+      "repositoryNotInOrca": "仓库不在 Orca 中",
+      "status": "状态",
+      "type": "类型",
+      "workspaceCreationRequirement": "只能从 GitHub 议题和 PR 创建工作区。"
+    },
+    "projectFieldEditors": {
+      "clearField": "清空字段",
+      "completedIteration": "已完成 · {{startDate}} · {{duration}} 天",
+      "datePlaceholder": "YYYY-MM-DD",
+      "invalidDate": "请按 YYYY-MM-DD 格式输入日期。",
+      "invalidNumber": "请输入有效数字。",
+      "noIterations": "暂无可用迭代。",
+      "numberPlaceholder": "数字",
+      "projectFields": "项目字段",
+      "saveField": "保存字段",
+      "textPlaceholder": "文本",
+      "upcomingIteration": "当前及即将开始 · {{startDate}} · {{duration}} 天"
+    },
+    "projectMetadataEditors": {
+      "assignees": "负责人",
+      "description": "描述",
+      "labels": "标签",
+      "loadingAssignees": "正在加载负责人…",
+      "loadingLabels": "正在加载标签…",
+      "noAssignableUsers": "未找到此仓库中可设为负责人的用户。",
+      "noDescription": "没有描述。",
+      "noLabels": "此仓库中没有标签。",
+      "none": "无",
+      "saveDescription": "保存描述",
+      "saveTitle": "保存标题",
+      "title": "标题"
+    },
+    "projectReviewPanels": {
+      "binaryFile": "二进制文件。",
+      "changedFiles": "已更改文件",
+      "checks": "检查项",
+      "fileUnavailable": "文件内容不可用。",
+      "hideFile": "隐藏",
+      "loadingReviewers": "正在加载评审人…",
+      "markUnviewed": "标记未查看",
+      "markViewed": "标记已查看",
+      "noChecks": "未找到检查项。",
+      "noReviewers": "未请求评审人",
+      "noSuggestions": "未找到推荐的评审人。",
+      "requestReview": "请求评审",
+      "requestReviewers": "邀请评审人",
+      "rerunAll": "全部重新运行",
+      "rerunFailed": "重新运行失败项",
+      "reviewers": "评审人",
+      "viewFile": "查看"
+    },
+    "providerControls": {
+      "myTodos": "我的待办",
+      "projectMergeRequests": "项目 MR",
+      "sort": "排序：{{sortLabel}}"
+    },
+    "providerItemList": {
+      "intoBranch": "合并到 {{base}}",
+      "nextPage": "前往下一页",
+      "page": "第 {{page}} 页",
+      "pageOfTotal": "第 {{page}} 页，共 {{total}} 页",
+      "previousPage": "前往上一页",
+      "selectPage": "选择页码，当前第 {{page}} 页",
+      "selectPageOfTotal": "选择页码，当前第 {{page}} 页，共 {{total}} 页"
+    },
+    "providerPickers": {
+      "allRepositories": "所有仓库",
+      "githubView": "GitHub 视图",
+      "issueSources": "GitHub 议题来源",
+      "issueSourcesDescription": "选择每个仓库从 upstream 还是 origin 查询和创建工作项。",
+      "issues": "议题",
+      "noIssueSources": "没有其他可用的议题来源。",
+      "origin": "origin",
+      "pageHint": "跳转到已加载或可用的结果页。",
+      "pageLoaded": "已加载",
+      "pageNotLoaded": "加载更早的结果",
+      "pageNumber": "第 {{page}} 页",
+      "pages": "GitHub 结果页",
+      "pullRequests": "PR",
+      "queryingSource": "正在查询 {{source}}",
+      "repoDescription": "选择要查询的仓库。",
+      "repos": "仓库",
+      "taskSource": "任务来源",
+      "upstream": "上游"
+    },
+    "providerViewProjection": {
+      "all": "全部",
+      "allSites": "所有站点",
+      "allTeams": "所有团队",
+      "allWorkspaces": "所有工作区",
+      "chooseProject": "选择项目",
+      "default": "默认",
+      "defaultSubtitle": "{{subtitle}} · 默认",
+      "issues": "议题",
+      "list": "列表",
+      "noGrouping": "没有分组",
+      "openState": "开放",
+      "priority": "优先级",
+      "projects": "项目",
+      "pullRequests": "PR",
+      "teams_one": "{{count}} 个团队",
+      "teams_other": "{{count}} 个团队",
+      "workspace": "工作区"
+    },
+    "reviewerLinear": {
+      "issues": "议题",
+      "unassigned": "未分配"
+    },
+    "screenChrome": {
+      "connectLinear": "连接 Linear",
+      "newGitHubIssue": "新的 GitHub 议题",
+      "newLinearIssue": "新建 Linear 议题",
+      "refreshGitHub": "刷新 GitHub 工作",
+      "refreshGitLab": "刷新 GitLab 工作项",
+      "refreshJira": "刷新 Jira 议题",
+      "refreshLinear": "刷新 Linear",
+      "title": "任务"
+    },
+    "searchControl": {
+      "jiraPlaceholder": "Jira JQL，例如 project = ABC AND statusCategory != Done",
+      "projectPlaceholder": "搜索项目视图…",
+      "providerPlaceholder": "搜索 {{provider}} 任务…"
+    },
+    "smartSourceModes": {
+      "allStates": "全部",
+      "branch": "分支",
+      "closedState": "已关闭",
+      "mergedState": "已合并",
+      "name": "名称",
+      "openState": "开放",
+      "smart": "智能"
+    },
+    "sparsePresetDraft": {
+      "directoryRequired": "添加至少一个目录。",
+      "repoRelativeDirectoriesRequired": "使用仓库相对目录，而不是根目录、绝对路径或父段。"
+    },
+    "taskViewOptions": {
+      "allSubtitle": "所选站点中未解决的议题",
+      "assignedSubtitle": "分配给您的未解决议题",
+      "doneSubtitle": "分配给您且最近已解决的议题",
+      "noGitHubTasks": "暂无 GitHub 任务",
+      "noGitLabTasks": "暂无 GitLab 任务",
+      "noJiraTasks": "暂无 Jira 任务",
+      "noLinearTasks": "暂无 Linear 任务",
+      "reportedSubtitle": "您报告的未解决议题"
+    },
+    "tasksCreateDrawers": {
+      "connect": "连接",
+      "connectLinearWorkspace": "连接 Linear 工作区",
+      "createIssue": "创建议题",
+      "createWorkspaceIn": "选择创建工作区的仓库",
+      "description": "描述",
+      "descriptionPlaceholder": "补充背景信息",
+      "fileIn": "在 {{slug}} 中创建议题",
+      "issueSource": "议题来源",
+      "keySecurityHint": "密钥通过主机操作系统的钥匙串加密，并存储在本地。",
+      "linearConnectSubtitle": "粘贴个人 API 密钥，即可浏览该工作区的议题。",
+      "linearSettingsLink": "Linear 设置 / 安全 / 新建 API 密钥",
+      "linearTeam": "Linear 团队",
+      "linearTeamSubtitle": "在所选 Linear 团队中创建议题。",
+      "newIssueTitle": "新建 {{providerLabel}} 议题",
+      "origin": "origin",
+      "personalApiKey": "个人API密钥",
+      "repository": "仓库",
+      "repositorySubtitle": "在所选仓库中创建议题。",
+      "team": "团队",
+      "title": "标题",
+      "titlePlaceholder": "任务标题",
+      "upstream": "上游"
+    },
+    "workspaceAgentSelection": {
+      "blankTerminal": "空白终端"
+    },
+    "workspaceCreateDrawer": {
+      "addRepository": "创建 Linear 工作区前，请先添加 Git 仓库。",
+      "advanced": "高级",
+      "agent": "智能体",
+      "connect": "连接",
+      "connectFirst": "请先连接仓库",
+      "connectRepository": "连接仓库",
+      "connecting": "连接中…",
+      "createFrom": "基于 {{branch}} 创建",
+      "defaultBranch": "默认分支",
+      "detectingAgents": "正在检测智能体…",
+      "optional": "[可选]",
+      "remoteRepository": "远程仓库",
+      "repository": "仓库",
+      "repositoryNotFound": "未找到仓库。",
+      "selectRepository": "选择仓库",
+      "sshConnection": "SSH 连接",
+      "startFrom": "创建起点",
+      "title": "创建工作区",
+      "workspaceName": "工作区名称"
+    },
+    "workspaceCreateProjection": {
+      "nameAlreadyExists": "“{{name}}”已存在。",
+      "nameRequired": "请输入名称。",
+      "nameTooLong": "名称不能超过80个字符。",
+      "openShell": "打开 shell"
+    },
+    "workspaceOptionPickers": {
+      "baseBranchSubtitle": "选择现有分支或引用。",
+      "baseBranchTitle": "创建起点",
+      "branchName": "分支名称：{{name}}",
+      "defaultBranch": "默认分支",
+      "defaultBranchSubtitle": "使用此仓库配置的基础分支",
+      "editPreset": "编辑 {{name}}",
+      "fullCheckout": "完整检出",
+      "fullCheckoutSubtitle": "使用整个仓库",
+      "newPreset": "新预设",
+      "noBranches": "没有匹配的分支。",
+      "searchBranches": "搜索分支",
+      "sparseCheckoutTitle": "稀疏检出"
+    },
+    "workspaceSshGate": {
+      "authenticationFailed": "身份验证失败",
+      "connected": "已连接",
+      "connecting": "连接中",
+      "connectionFailed": "连接失败",
+      "deployingRelay": "正在部署中继",
+      "disconnected": "已断开连接",
+      "reconnectFailed": "重新连接失败",
+      "reconnecting": "重新连接中"
+    },
+    "workspaceTrustDrawers": {
+      "alwaysTrustAndRun": "始终信任并运行",
+      "creating": "创建中…",
+      "directoriesLabel": "目录",
+      "directories_one": "{{count}} 个目录",
+      "directories_other": "{{count}} 个目录",
+      "dontRun": "不运行",
+      "editSparsePreset": "编辑稀疏检出预设",
+      "nameLabel": "名称",
+      "namePlaceholder": "渲染器界面",
+      "newSetupScript": "新设置脚本",
+      "newSparsePreset": "新建稀疏检出预设",
+      "runHooks": "运行钩子",
+      "runSetupAndCreate": "运行设置脚本并创建",
+      "runSetupTitle": "运行 {{name}} 的设置脚本？",
+      "setupChangedTitle": "{{name}} 的设置脚本已更改",
+      "setupScript": "设置脚本",
+      "setupSubtitle": "创建此工作区前，请选择是否运行 {{name}} 的设置脚本。",
+      "setupTitle": "运行设置脚本？",
+      "skipSetupAndCreate": "跳过设置脚本并创建",
+      "trustFailed": "无法将设置脚本设为可信。",
+      "trustSubtitle": "工作区启动前，此仓库的 orca.yaml 会在您的电脑上运行。请仅在信任此仓库时运行。"
+    },
+    "worktreeCreateRetry": {
+      "createFailed": "创建工作区失败"
     }
   },
   "terminal": {

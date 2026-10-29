@@ -351,7 +351,13 @@
       "customPermissions": "自定义参数",
       "rowPermissionsLabel": "{{agent}} 权限",
       "replaceWithPermissionMode": "替换为 {{mode}}",
-      "approveForMe": "代我批准"
+      "approveForMe": "代我批准",
+      "codexHistorySharing": {
+        "title": "在账户之间共享 Codex 历史记录",
+        "description": "让每个 Codex 账户以及你自己的 ~/.codex 都能继续在其他账户中开始的对话。关闭后，每个账户的历史记录将保持独立。关闭不会移除任何已共享的内容。",
+        "unsupported": "请更新 {{host}} 上的 Orca 以在那里更改此设置。",
+        "updateFailed": "无法更新 {{host}} 上的设置。"
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "符号链接",
