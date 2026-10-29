@@ -47,8 +47,6 @@ export function createBrowserHostActions(
       set((s) => ({
         browserSessionHostIdOverride: nextHostId,
         browserSessionProfiles: s.browserSessionProfilesByHostId[nextHostId] ?? [],
-        defaultBrowserSessionProfileId:
-          s.defaultBrowserSessionProfileIdByHostId[nextHostId] ?? null,
         browserSessionImportState: null,
         detectedBrowsers: [],
         detectedBrowsersLoaded: false,
@@ -58,13 +56,15 @@ export function createBrowserHostActions(
     },
 
     setDefaultBrowserSessionProfileId: (profileId) => {
-      set((s) => ({
-        defaultBrowserSessionProfileId: profileId,
-        defaultBrowserSessionProfileIdByHostId: {
-          ...s.defaultBrowserSessionProfileIdByHostId,
-          [getBrowserSettingsHostId(s)]: profileId
-        }
-      }))
+      const state = get()
+      const hostId = getBrowserSettingsHostId(state)
+      const { [hostId]: _previous, ...otherHosts } =
+        state.settings?.browserDefaultProfileIdByHostId ?? {}
+      void state.updateSettings({
+        browserDefaultProfileIdByHostId: profileId
+          ? { ...otherHosts, [hostId]: profileId }
+          : otherHosts
+      })
     }
   }
 }

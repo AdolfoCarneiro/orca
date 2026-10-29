@@ -130,32 +130,6 @@ export function profileListByHostUpdate(
   }
 }
 
-/** A host's full listing; it also drops a default pick the host no longer lists, so new tabs don't open on a deleted profile. */
-export function listedProfilesByHostUpdate(
-  state: AppState,
-  profiles: BrowserSessionProfile[],
-  hostId: ExecutionHostId
-): Partial<BrowserSlice> {
-  const isUnlisted = (profileId: string | null | undefined): boolean =>
-    !!profileId && !profiles.some((profile) => profile.id === profileId)
-  const update = profileListByHostUpdate(state, profiles, hostId)
-  return {
-    ...update,
-    // Why: the unkeyed default belongs to the Settings host, the one whose list the mirror follows.
-    ...(update.browserSessionProfiles && isUnlisted(state.defaultBrowserSessionProfileId)
-      ? { defaultBrowserSessionProfileId: null }
-      : {}),
-    ...(isUnlisted(state.defaultBrowserSessionProfileIdByHostId[hostId])
-      ? {
-          defaultBrowserSessionProfileIdByHostId: {
-            ...state.defaultBrowserSessionProfileIdByHostId,
-            [hostId]: null
-          }
-        }
-      : {})
-  }
-}
-
 export function getBrowserProfilesForHost(
   state: AppState,
   hostId: ExecutionHostId
@@ -166,14 +140,21 @@ export function getBrowserProfilesForHost(
   )
 }
 
+/** The host's chosen default profile, or null (Default) when unset or no longer in the host's listing. */
 export function getDefaultBrowserProfileForHost(
-  state: AppState,
+  state: Pick<AppState, 'settings' | 'browserSessionProfilesByHostId'>,
   hostId: ExecutionHostId
 ): string | null {
-  return (
-    state.defaultBrowserSessionProfileIdByHostId[hostId] ??
-    (getBrowserSettingsHostId(state) === hostId ? state.defaultBrowserSessionProfileId : null)
-  )
+  // Why: only paired runtimes keep their own profiles; every other host renders on this desktop's.
+  const profileHostId =
+    parseExecutionHostId(hostId)?.kind === 'runtime' ? hostId : LOCAL_EXECUTION_HOST_ID
+  const profileId = state.settings?.browserDefaultProfileIdByHostId?.[profileHostId]
+  // Why: a real listing always has Default, so an empty one is a failed fetch and proves nothing.
+  const listed = state.browserSessionProfilesByHostId[profileHostId]
+  return typeof profileId === 'string' &&
+    (!listed?.length || listed.some((p) => p.id === profileId))
+    ? profileId
+    : null
 }
 
 export function browserImportStateForHostUpdate(

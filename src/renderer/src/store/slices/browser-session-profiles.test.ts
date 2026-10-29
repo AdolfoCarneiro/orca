@@ -3,6 +3,7 @@ import type { AppState } from '../types'
 import type { BrowserCookieImportSummary } from '../../../../shared/browser-workspace-types'
 import { getExecutionHostLabel } from '../../../../shared/execution-host'
 import { emitBrowserCookieImportToast } from '@/lib/browser-cookie-import-toast'
+import { getDefaultBrowserProfileForHost } from './browser/browser-host-state'
 import {
   createBrowserMockApi,
   createTestStore,
@@ -100,15 +101,15 @@ describe('createBrowserSlice runtime guard', () => {
     const store = createTestStore()
     runtimeEnvironmentCall.mockRejectedValueOnce(new Error('timed out'))
     store.setState({
-      settings: settingsWithRuntime('env-1'),
-      defaultBrowserSessionProfileId: 'work',
-      defaultBrowserSessionProfileIdByHostId: { 'runtime:env-1': 'work' }
+      settings: {
+        ...settingsWithRuntime('env-1')!,
+        browserDefaultProfileIdByHostId: { 'runtime:env-1': 'work' }
+      }
     })
 
     await store.getState().fetchBrowserSessionProfiles()
 
-    expect(store.getState().defaultBrowserSessionProfileId).toBe('work')
-    expect(store.getState().defaultBrowserSessionProfileIdByHostId['runtime:env-1']).toBe('work')
+    expect(getDefaultBrowserProfileForHost(store.getState(), 'runtime:env-1')).toBe('work')
   })
 
   it('creates a profile in the active runtime environment', async () => {
@@ -475,20 +476,17 @@ describe('createBrowserSlice runtime guard', () => {
       label: id,
       source: null
     })
-    store.setState({
-      defaultBrowserSessionProfileId: 'work',
-      defaultBrowserSessionProfileIdByHostId: { local: 'work' }
-    })
+    store.getState().setDefaultBrowserSessionProfileId('work')
+    expect(store.getState().settings?.browserDefaultProfileIdByHostId).toEqual({ local: 'work' })
     mockApi.browser.sessionListProfiles
       .mockResolvedValueOnce([listed('default'), listed('work')])
       .mockResolvedValueOnce([listed('default')])
 
     await store.getState().fetchBrowserSessionProfiles('local')
-    expect(store.getState().defaultBrowserSessionProfileIdByHostId.local).toBe('work')
+    expect(getDefaultBrowserProfileForHost(store.getState(), 'local')).toBe('work')
 
     await store.getState().fetchBrowserSessionProfiles('local')
-    expect(store.getState().defaultBrowserSessionProfileId).toBeNull()
-    expect(store.getState().defaultBrowserSessionProfileIdByHostId.local).toBeNull()
+    expect(getDefaultBrowserProfileForHost(store.getState(), 'local')).toBeNull()
   })
 
   it('keeps the newest listing when an older one answers last', async () => {
