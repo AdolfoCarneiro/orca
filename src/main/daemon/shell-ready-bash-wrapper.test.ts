@@ -219,6 +219,16 @@ describePosix('daemon shell-ready bash wrapper', () => {
     }
   )
 
+  itWithBash('emits the ready marker once while ble.sh hides the readline prompt', async () => {
+    const { getDaemonBashShellReadyRcfileContent } = await importFreshDaemonBashRcfile()
+    // Like ble.sh's internal_suppress_bash_output: after attach, Bash's own prompt goes nowhere.
+    writeFileSync(join(userDataPath, '.bash_profile'), 'BLE_ATTACHED=1\nexec 2>/dev/null\n')
+
+    const output = runInteractiveBashRcfile(getDaemonBashShellReadyRcfileContent(), userDataPath)
+
+    expect(output.split('\x1b]777;orca-shell-ready\x07')).toHaveLength(2)
+  })
+
   itWithBash('normalizes array PROMPT_COMMAND hooks so bash 3.2 still runs cleanup', async () => {
     const { getDaemonBashShellReadyRcfileContent } = await importFreshDaemonBashRcfile()
     writeFileSync(
