@@ -17,6 +17,7 @@ const { mountedEditors, syncWordWrap, cleanupShiftWheel, createEditor } = vi.hoi
       editor: {
         getModifiedEditor: () => modified,
         getContainerDomNode: () => document.createElement('div'),
+        getModel: () => null,
         onDidDispose: vi.fn(() => ({ dispose: vi.fn() }))
       },
       disposeModified: () => listeners.forEach((listener) => listener())
