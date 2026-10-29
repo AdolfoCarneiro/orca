@@ -2,9 +2,10 @@ import { z } from 'zod'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import { projectWorkerListFleet } from './worker/worker-list-projection'
 
-// Only an empty check sees the whole mailbox, so only it says to stop; the rest drain first.
-const DRAIN_MAILBOX =
-  'Handle the rest of the mail you already read and start any other workers you need, then run check until count is 0 and follow its next.'
+// Only an empty check sees the whole mailbox, so only it says to stop.
+const AWAIT_WAKE = "Orca wakes you when workers report; end your turn when you're done."
+const FINISH_MAILBOX = 'Finish the rest of your mail.'
+const MORE_MAIL = 'More mail is waiting: run check again.'
 const AWAIT_WORKER_REPORTS =
   'Orca wakes you when a worker reports. Once every worker you need is started, end your turn. Do not poll.'
 export const WORKER_DONE_RECORDED_NEXT = 'Recorded. End your turn.'
@@ -14,6 +15,11 @@ const ReadyWorkerStart = z.looseObject({
   workerOutcome: z.never().optional()
 })
 
+const TakenRunCheck = z.looseObject({
+  runId: z.string(),
+  deliveryAcknowledged: z.literal(true)
+})
+
 const EmptyRunCheck = z.looseObject({
   runId: z.string(),
   count: z.literal(0),
@@ -21,16 +27,21 @@ const EmptyRunCheck = z.looseObject({
   waitInterrupted: z.never().optional()
 })
 
-/** A start may come mid-batch, so it sends the caller to `check`, which alone decides stopping. */
 export function withWorkerStartNext(receipt: unknown): unknown {
   const ready = ReadyWorkerStart.safeParse(receipt)
-  return ready.success ? { ...ready.data, next: DRAIN_MAILBOX } : receipt
+  return ready.success ? { ...ready.data, next: AWAIT_WAKE } : receipt
 }
 
 export async function withRunCheckNext(
   runtime: OrcaRuntimeService,
   result: unknown
 ): Promise<unknown> {
+  // A batch is capped, so a take that leaves unread mail behind is the one case that needs another check.
+  const taken = TakenRunCheck.safeParse(result)
+  if (taken.success) {
+    const leftBehind = runtime.getOrchestrationDb().getUnreadRunMailbox(taken.data.runId, 1)
+    return leftBehind.length > 0 ? { ...taken.data, next: MORE_MAIL } : result
+  }
   const empty = EmptyRunCheck.safeParse(result)
   return empty.success && (await awaitsWorkerReports(runtime, empty.data.runId))
     ? { ...empty.data, next: AWAIT_WORKER_REPORTS }
@@ -39,7 +50,7 @@ export async function withRunCheckNext(
 
 /** A question arrives in a batch the caller has not finished handling. */
 export function withAnswerNext<T extends object>(receipt: T): T & { next: string } {
-  return { ...receipt, next: DRAIN_MAILBOX }
+  return { ...receipt, next: FINISH_MAILBOX }
 }
 
 /** A worker still runs and worker-list owes no action: each running worker's stop or exit sends mail. */

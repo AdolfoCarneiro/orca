@@ -7384,11 +7384,6 @@
           "191ac34567": "智能体编排",
           "nestedWorkerDepthTitle": "工作智能体嵌套深度",
           "nestedWorkerDepthDescription": "已派发的工作智能体可以再派发自己的工作智能体的层数。设为 1 时智能体树保持扁平：协调者派发工作智能体，这些工作智能体不再派发。",
-          "chatErrorEscalationTitle": "将聊天错误告知协调者",
-          "chatErrorEscalationDescription": "当被分派的智能体遇到结束其回合的错误时，将原始错误发送给分派它的协调者。任务仍分配给该智能体。仅适用于在聊天界面中运行的智能体。",
-          "chatErrorEscalationNeedsChat": "请在实验性设置中开启聊天界面后使用。",
-          "chatErrorEscalationKeywordError": "错误",
-          "chatErrorEscalationKeywordChat": "聊天",
           "7bc082f4de": "复制安装命令"
         },
         "OrchestrationSetupCard": {

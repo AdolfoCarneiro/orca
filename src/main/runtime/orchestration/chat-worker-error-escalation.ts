@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import { structuredAgentSessionStartFailure } from '../../native-chat/agent-session-wire/structured-agent-session-failure-text'
-import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { agentSessionFailureFact } from '../../../shared/agent-session-failure'
 import { agentSessionFailureWords } from '../../../shared/agent-session-failure-words'
 import { formatOrcaSessionAddress, isOrcaSessionId } from '../../../shared/orca-session-address'
@@ -13,23 +12,7 @@ import { chatRequestError, isSenderOwnRejection } from './chat-worker-error-word
 import type { OrchestrationDb } from './db'
 import type { DispatchContextRow } from './types'
 import { escalateWorkerFailure } from './worker-failure-escalation'
-import { reportWorkerTurnStop, type WorkerTurnStopReportDeps } from './worker-turn-stop-report'
-
-export type ChatWorkerErrorEscalationDeps = WorkerTurnStopReportDeps & {
-  /** Chat UI is on and the user left the Orchestration switch on; off still reports a plain stop. */
-  enabled: () => boolean
-}
-
-export function chatWorkerErrorEscalationEnabled(
-  settings:
-    | Pick<GlobalSettings, 'experimentalNativeChat' | 'orchestrationChatErrorEscalationEnabled'>
-    | undefined
-): boolean {
-  return (
-    settings?.experimentalNativeChat === true &&
-    settings.orchestrationChatErrorEscalationEnabled !== false
-  )
-}
+import type { WorkerTurnStopReportDeps } from './worker-turn-stop-report'
 
 type ChatWorkerDispatch = { dispatch: DispatchContextRow; from: string }
 
@@ -77,7 +60,7 @@ function escalationId(dispatchId: string, request: StructuredAgentSessionRequest
 /** Capture authority synchronously; notification bookkeeping never rejects a committed write. */
 export async function escalateChatWorkerError(
   request: StructuredAgentSessionRequestFailure,
-  deps: ChatWorkerErrorEscalationDeps
+  deps: WorkerTurnStopReportDeps
 ): Promise<void> {
   try {
     const db = deps.getDb()
@@ -119,12 +102,6 @@ export async function escalateChatWorkerError(
         (current?.status !== 'pending' && current?.status !== 'dispatched') ||
         current.assignee_handle !== dispatch.assignee_handle
       ) {
-        continue
-      }
-      if (!deps.enabled()) {
-        const stopKey = `request:${request.kind}:${request.id}`
-        const stop = { from, stopKey, reason: 'errored' as const, lastOutput: undefined }
-        reportWorkerTurnStop(db, { kind: 'local', dispatch }, stop, deps)
         continue
       }
       escalateWorkerFailure(

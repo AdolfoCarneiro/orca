@@ -43,8 +43,6 @@ ORCA orchestration worker-start --spec "<task>" --worktree current --agent codex
   `references/recovery-and-cleanup.md`.
 - To steer a worker, use
   `ORCA orchestration send --to dispatch:<dispatch_id> --subject "<topic>" --body "<guidance>"`.
-  A sent message is only queued; confirm the worker applied it before reporting
-  the corrected result.
 
 Never:
 
@@ -55,7 +53,7 @@ Never:
 
 ## When Orca wakes you
 
-- Run the `check` command the wake gives you, and repeat it until `count` is 0. Answer each `question` with
+- Run the `check` command the wake gives you. Answer each `question` with
   `ORCA orchestration reply --id <message_id> --body "<answer>" --json`.
 - An `escalation` with `stopReason` means the worker stopped without
   `worker_done`: steer it with `send`, stop and retry it, or tell the user.

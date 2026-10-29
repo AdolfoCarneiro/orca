@@ -201,21 +201,6 @@ describe('OrchestrationPane', () => {
     expect(matchesSettingsSearch('nested worker', getOrchestrationPaneSearchEntries())).toBe(true)
   })
 
-  it('shows the chat-error preference disabled and unchecked while Chat UI is off, preserving its saved choice', () => {
-    const settings = getDefaultSettings('/tmp')
-    settings.experimentalNativeChat = false
-    settings.orchestrationChatErrorEscalationEnabled = true
-    const markup = renderToStaticMarkup(<OrchestrationPane {...getPaneProps(settings)} />)
-    expect(markup).toContain('Turn on Chat UI in Experimental settings to use it.')
-    const container = document.createElement('div')
-    container.innerHTML = markup
-    const toggle = container.querySelector('[aria-label="Tell the coordinator about chat errors"]')
-    expect(toggle?.hasAttribute('disabled')).toBe(true)
-    expect(toggle?.getAttribute('aria-checked')).toBe('false')
-    expect(settings.orchestrationChatErrorEscalationEnabled).toBe(true)
-    expect(matchesSettingsSearch('chat errors', getOrchestrationPaneSearchEntries())).toBe(true)
-  })
-
   it('keeps the nested depth row visible when settings search routes to Orchestration', () => {
     useAppStore.setState({ settingsSearchQuery: 'Nested worker' })
 

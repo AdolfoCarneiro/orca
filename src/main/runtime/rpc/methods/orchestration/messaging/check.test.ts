@@ -242,11 +242,28 @@ describe('orchestration RPC methods', () => {
       expect(await check({ ack: deliveryId })).not.toHaveProperty('next')
     })
 
-    it('ends the turn for a structured worker while chat failure mail is off', async () => {
+    it('says to check again only when a capped batch leaves mail behind', async () => {
+      setup()
+      for (let index = 0; index < 51; index++) {
+        db.insertMessage({
+          from: 'term_worker',
+          to: `run:${activeRunId}`,
+          subject: `status ${index}`,
+          type: 'status',
+          runId: activeRunId
+        })
+      }
+      const check = () => call('orchestration.check', { terminal: 'term_coord' })
+
+      expect(await check()).toMatchObject({ count: 50, next: expect.stringContaining('again') })
+      const last = await check()
+      expect(last).toMatchObject({ count: 1 })
+      expect(last).not.toHaveProperty('next')
+    })
+
+    it('ends the turn for a structured worker', async () => {
       setup()
       createDispatchedTask('structworker_review')
-      // A failed chat still reports its stop, so the coordinator is woken either way.
-      vi.spyOn(runtime, 'isChatWorkerErrorEscalationEnabled').mockReturnValue(false)
 
       expect(await call('orchestration.check', { terminal: 'term_coord' })).toHaveProperty('next')
     })

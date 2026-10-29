@@ -76,12 +76,10 @@ async function assigned() {
     identity.handle,
     identity.paneKey
   )
-  let enabled = true
   const failure = vi.fn((request: Parameters<typeof escalateChatWorkerError>[0]) => {
     deliveries.push(
       escalateChatWorkerError(request, {
         getDb: () => db,
-        enabled: () => enabled,
         notify: () => {},
         isWaitingForMail: () => false
       })
@@ -148,9 +146,6 @@ async function assigned() {
     end,
     allow: (n: number) => {
       allowed = n
-    },
-    enabled: (value: boolean) => {
-      enabled = value
     },
     mail: () => db.getUnreadRunMailbox(run.id, 100, ['escalation'])
   }
@@ -372,7 +367,7 @@ scenario(
   }
 )
 
-it.each(['dispatch', 'setting', 'history', 'clear'] as const)(
+it.each(['dispatch', 'history', 'clear'] as const)(
   'preserves %s authority/lifetime behavior during the pending answer',
   async (change) =>
     usingAssigned(async (r) => {
@@ -387,8 +382,6 @@ it.each(['dispatch', 'setting', 'history', 'clear'] as const)(
           r.dispatch.assignee_handle!,
           r.dispatch.assignee_pane_key ?? undefined
         )
-      } else if (change === 'setting') {
-        r.enabled(false)
       } else if (change === 'history') {
         r.host
           .collaboratorsForTests()
@@ -401,13 +394,9 @@ it.each(['dispatch', 'setting', 'history', 'clear'] as const)(
       }
       r.rig.child().agent.reply(frame, { stopReason: 'end_turn' })
       await Promise.all(deliveries)
-      // With the switch off the coordinator still learns of the stop, without the error words.
-      expect(r.mail()).toHaveLength(change === 'clear' || change === 'setting' ? 1 : 0)
+      expect(r.mail()).toHaveLength(change === 'clear' ? 1 : 0)
       if (change === 'clear') {
         expect(r.mail()[0]?.body).toContain('captured A words')
-      }
-      if (change === 'setting') {
-        expect(r.mail()[0]?.body).not.toContain('captured A words')
       }
       expect(
         (await r.host.journalSnapshot(SESSION)).items.some((item) =>
