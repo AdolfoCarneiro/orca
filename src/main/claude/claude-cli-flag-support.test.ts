@@ -58,6 +58,7 @@ describe('whether a launch passes a Claude CLI flag', () => {
     expect(calls).toHaveBeenCalledTimes(1)
     expect(calls).toHaveBeenCalledWith('/bin/claude', {
       cwd: '/repo',
+      prefixArgs: undefined,
       env: { PATH: '/shims' },
       timeoutMs: 10_000
     })
@@ -280,4 +281,19 @@ describe('whether a launch passes a Claude CLI flag', () => {
     )
     expect(calls).toHaveBeenCalledOnce()
   })
+})
+
+it('keeps version facts separate for different prefixes through the same program', async () => {
+  const { support, calls } = supportWith(async (_command, launch) =>
+    'prefixArgs' in launch && Array.isArray(launch.prefixArgs) && launch.prefixArgs.includes('new')
+      ? '2.1.280'
+      : '2.0.0'
+  )
+  await expect(
+    supports(support, CLAUDE_THINKING_DISPLAY_FLAG, { ...LAUNCH, prefixArgs: ['old'] })
+  ).resolves.toBe(false)
+  await expect(
+    supports(support, CLAUDE_THINKING_DISPLAY_FLAG, { ...LAUNCH, prefixArgs: ['new'] })
+  ).resolves.toBe(true)
+  expect(calls).toHaveBeenCalledTimes(2)
 })
