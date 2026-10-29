@@ -7,6 +7,7 @@ import { useClipboardWriter } from '../platform/clipboard'
 import { routeDictationTranscript } from '../terminal/terminal-live-dictation-routing'
 import { insertDictationText } from '../dictation/mobile-dictation-text-insertion'
 import {
+  commandFieldAnchorIn,
   useMobileDictationDestination,
   useMobileDictationPreviews
 } from './use-mobile-dictation-destination'
@@ -173,8 +174,7 @@ export function useMobileSessionNativeChatDictation(
         return
       }
       // The draft written is the active terminal's; a selection read in another terminal only appends there.
-      const anchor =
-        routeContext?.handle === activeHandleRef.current ? (routeContext?.anchor ?? null) : null
+      const anchor = routeContext?.handle === activeHandleRef.current ? routeContext.anchor : null
       setInput((current) => insertDictationText(current, route.text, anchor).text)
       showToast('Dictation inserted')
     },
@@ -185,7 +185,7 @@ export function useMobileSessionNativeChatDictation(
   })
 
   const dictationLeaveHold = useMobileDictationLeaveHold(dictation)
-  const previews = useMobileDictationPreviews(destination.target, dictation.transcriptSoFar)
+  const previews = useMobileDictationPreviews(destination, dictation, activeHandle)
 
   // Only a host setup read sets this; while false, the host's start refusal decides (older hosts, first tap before the read).
   const dictationNeedsSetupRef = useRef(false)
@@ -203,7 +203,7 @@ export function useMobileSessionNativeChatDictation(
       ? {
           handle: activeHandle,
           liveInputEnabled: liveInputTerminalHandles.has(activeHandle),
-          anchor: commandFieldAnchorRef.current
+          anchor: commandFieldAnchorIn(commandFieldAnchorRef.current, activeHandle)
         }
       : null
     dictationRouteContextRef.current = routeContext

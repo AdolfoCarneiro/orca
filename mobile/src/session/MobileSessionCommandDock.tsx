@@ -52,6 +52,7 @@ export function MobileSessionCommandDock({
     commandDictationPreview,
     liveDictationText,
     commandFieldAnchorRef,
+    activeHandle,
     cancelDictation,
     handleDictationToggle,
     handleDictationPressIn,
@@ -150,10 +151,10 @@ export function MobileSessionCommandDock({
                 // Why: iOS kills active dictation/IME if JS writes a value differing from native text; store raw, normalize at send.
                 onChangeText={bufferedTerminalDraftState.setInput}
                 onSelectionChange={(e) => {
-                  commandFieldAnchorRef.current = readMobileDictationAnchor(
-                    e,
-                    bufferedTerminalDraftState.input
-                  )
+                  commandFieldAnchorRef.current = {
+                    handle: activeHandle,
+                    anchor: readMobileDictationAnchor(e, bufferedTerminalDraftState.input)
+                  }
                 }}
                 // The preview stands in for an empty draft, so its placeholder must not show through.
                 placeholder={commandDictationPreview ? undefined : 'Type a command…'}

@@ -12,8 +12,17 @@ import {
 type MobileDictationTarget =
   | { field: 'chat'; scope: string | null; anchor: MobileDictationAnchor | null }
   | { field: 'command'; anchor: MobileDictationAnchor | null }
-  // Live terminal input: the words show on its status row.
+  // Live terminal input: the words show on that terminal's status row.
+  | { field: 'live'; handle: string }
   | null
+
+// Terminals share one command field: a selection read in another terminal doesn't place this one's words.
+export function commandFieldAnchorIn(
+  saved: { handle: string | null; anchor: MobileDictationAnchor } | null,
+  handle: string
+): MobileDictationAnchor | null {
+  return saved?.handle === handle ? saved.anchor : null
+}
 
 // Where a dictation's words go, read once when it starts: a chat composer, the terminal's command field, or live input.
 export function useMobileDictationDestination(
@@ -25,7 +34,11 @@ export function useMobileDictationDestination(
   const captureDestination = useCallback(
     (
       chatShown: boolean,
-      terminal: { liveInputEnabled: boolean; anchor: MobileDictationAnchor | null } | null
+      terminal: {
+        handle: string
+        liveInputEnabled: boolean
+        anchor: MobileDictationAnchor | null
+      } | null
     ) => {
       const chat = captureMobileNativeChatTextDestination()
       chatRef.current = chat
@@ -37,7 +50,7 @@ export function useMobileDictationDestination(
               anchor: chat?.anchor ?? null
             }
           : terminal?.liveInputEnabled
-            ? null
+            ? { field: 'live', handle: terminal.handle }
             : { field: 'command', anchor: terminal?.anchor ?? null }
       )
     },
@@ -65,7 +78,11 @@ export function useMobileDictationDestination(
 }
 
 // The words heard so far, drawn where the dictation's target will put them.
-export function useMobileDictationPreviews(target: MobileDictationTarget, heard: string) {
+export function useMobileDictationPreviews(
+  { target }: { target: MobileDictationTarget },
+  { transcriptSoFar: heard }: { transcriptSoFar: string },
+  activeHandle: string | null
+) {
   // Memoized: the chat preview is a context value every composer reads.
   const chatDictationPreview = useMemo<MobileNativeChatDictationPreview | null>(
     () =>
@@ -81,6 +98,6 @@ export function useMobileDictationPreviews(target: MobileDictationTarget, heard:
   return {
     chatDictationPreview,
     commandDictationPreview,
-    liveDictationText: target === null ? heard : ''
+    liveDictationText: target?.field === 'live' && target.handle === activeHandle ? heard : ''
   }
 }
