@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { createElement, type ReactNode } from 'react'
-import { act, create, type ReactTestRenderer, type ReactTestInstance } from 'react-test-renderer'
-import { afterEach, expect, it, vi } from 'vitest'
+import { act, createElement, type ReactNode } from 'react'
+import { create, type ReactTestRenderer, type ReactTestInstance } from 'react-test-renderer'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import type { RpcClient } from '../transport/rpc-client'
 import type { RpcResponse } from '../transport/types'
@@ -149,8 +149,17 @@ import { HostScreenOverlays } from '../host-screen/host-screen-overlays'
 import { useHostScreenController } from '../host-screen/use-host-screen-controller'
 import { NewWorktreeProjectTargetFields } from './NewWorktreeProjectTargetFields'
 import { BOTTOM_DRAWER_HIDE_DURATION_MS } from './bottom-drawer-constants'
+import type * as PublisherFixture from '../../../src/renderer/src/runtime/project-grouping-owner-publication.test-fixture'
 
 let renderer: ReactTestRenderer | undefined
+let createProjectGroupingPublisher: typeof PublisherFixture.createProjectGroupingPublisher
+let publisher: ReturnType<typeof PublisherFixture.createProjectGroupingPublisher> | undefined
+beforeEach(async () => {
+  // A new desktop process starts without the catalog retained by a previous process.
+  vi.resetModules()
+  ;({ createProjectGroupingPublisher } =
+    await import('../../../src/renderer/src/runtime/project-grouping-owner-publication.test-fixture'))
+})
 const reply = (result: unknown): RpcResponse => ({ id: 'reply', ok: true, result })
 const executionOptions = z.object({ envelope: z.object({ executionHost: z.string() }) })
 const textOf = (node: ReactTestInstance) =>
@@ -166,21 +175,31 @@ const flush = async () => {
     }
   })
 }
-afterEach(() => {
-  act(() => renderer?.unmount())
-  expect(removedShellCache.forgetHostUpdateFailures).not.toHaveBeenCalled()
-  expect(removedShellCache.deleteHostPageCache).not.toHaveBeenCalled()
-  expect(unregisterPushForRemovedHost).not.toHaveBeenCalled()
-  renderer = undefined
-  fixture.client = null
-  vi.useRealTimers()
-  vi.clearAllMocks()
+afterEach(async () => {
+  try {
+    try {
+      await act(async () => renderer?.unmount())
+    } finally {
+      renderer = undefined
+      await publisher?.dispose()
+    }
+    expect(removedShellCache.forgetHostUpdateFailures).not.toHaveBeenCalled()
+    expect(removedShellCache.deleteHostPageCache).not.toHaveBeenCalled()
+    expect(unregisterPushForRemovedHost).not.toHaveBeenCalled()
+  } finally {
+    publisher = undefined
+    fixture.client = null
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  }
 })
 
 it.each(['overlay', 'standalone'] as const)(
   'enables actual %s Project/Run/Create after failed then delayed owner read and installed same-client wake',
   async (entrance) => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    const checkpoint = (phase: string, snapshot?: unknown) =>
+      console.info('Creation proof checkpoint', { entrance, phase, snapshot })
     const local = {
       id: 'same',
       path: '/local/app',
@@ -215,16 +234,18 @@ it.each(['overlay', 'standalone'] as const)(
       }
       return reply({})
     })
-    vi.resetModules()
-    const { mountProjectGroupingPublisher } =
-      await import('../../../src/renderer/src/runtime/project-grouping-owner-publication.test-fixture')
-    const publisher = await mountProjectGroupingPublisher(mainIpc.handlers, async (frame) => {
-      const response = await request(frame.method, frame.params, { envelope: frame.envelope })
-      if (!response.ok) {
-        throw new Error(response.error.message)
-      }
-      return response.result
-    })
+    publisher = createProjectGroupingPublisher(
+      mainIpc.handlers,
+      async (frame) => {
+        const response = await request(frame.method, frame.params, { envelope: frame.envelope })
+        if (!response.ok) {
+          throw new Error(response.error.message)
+        }
+        return response.result
+      },
+      checkpoint
+    )
+    await publisher.mount()
     const client = publisher.client
     fixture.client = client
     let controller!: ReturnType<typeof useHostScreenController>
@@ -240,6 +261,7 @@ it.each(['overlay', 'standalone'] as const)(
       )
     })
     await flush()
+    checkpoint('native entrance mounted')
     if (entrance === 'overlay') {
       expect(controller.state.showNewWorktree).toBe(false)
       await act(async () => controller.actions.openNewWorktreeModal())
@@ -262,8 +284,10 @@ it.each(['overlay', 'standalone'] as const)(
       publisher.frames.filter((frame) => frame.method === MOBILE_PROJECT_SECTIONS_METHOD).length
     ).toBeGreaterThan(0)
     expect(publisher.read).toThrow('runtime_unavailable')
+    checkpoint('initial disabled controls checked')
     await publisher.hydrate([local, server])
     await flush()
+    checkpoint('native controls hydrated')
     expect(
       publisher.accepted.at(-1)?.projectSectionCatalog?.repos.map((repo) => repo.path)
     ).toEqual(['/local/app', '/server/app'])
@@ -279,6 +303,7 @@ it.each(['overlay', 'standalone'] as const)(
     await act(async () => projectRow.props.onPress())
     await act(async () => vi.advanceTimersByTimeAsync(BOTTOM_DRAWER_HIDE_DURATION_MS + 1))
     await flush()
+    checkpoint('project selected')
     // The field containing the selected checkout path is the real Run-on control.
     const run = renderer!.root
       .findAll((node) => String(node.type) === 'Pressable')
@@ -291,6 +316,7 @@ it.each(['overlay', 'standalone'] as const)(
     await act(async () => serverRow.props.onPress())
     await act(async () => vi.advanceTimersByTimeAsync(BOTTOM_DRAWER_HIDE_DURATION_MS + 1))
     await flush()
+    checkpoint('server target selected')
     expect(
       request.mock.calls
         .filter(([method]) => method === 'repo.list')
@@ -311,6 +337,7 @@ it.each(['overlay', 'standalone'] as const)(
     expect(pressable('Create worktree').props.disabled).toBe(false)
     await act(async () => pressable('Create worktree').props.onPress())
     await flush()
+    checkpoint('create action settled')
     const creates = request.mock.calls.filter(([method]) => method === 'worktree.create')
     expect(creates).toHaveLength(1)
     expect(creates[0]).toEqual([
@@ -328,8 +355,6 @@ it.each(['overlay', 'standalone'] as const)(
         expect.stringContaining('executionHost=runtime%3Aserver')
       )
     }
-    act(() => renderer!.unmount())
-    renderer = undefined
-    publisher.dispose()
+    checkpoint('routed create and completion checked')
   }
 )

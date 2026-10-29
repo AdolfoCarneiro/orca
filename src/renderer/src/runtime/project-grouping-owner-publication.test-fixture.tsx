@@ -17,9 +17,10 @@ import type { RpcRequestFrame } from '../../../../mobile/src/transport/rpc-envel
 import type { Repo } from '../../../shared/repo-types'
 import type { RuntimeRendererSyncWindowGraph } from '../../../shared/runtime-types'
 
-export async function mountProjectGroupingPublisher(
+export function createProjectGroupingPublisher(
   handlers: ReadonlyMap<string, (...args: unknown[]) => unknown>,
-  otherRequest: (request: RpcRequestFrame) => unknown = () => ({})
+  otherRequest: (request: RpcRequestFrame) => unknown = () => ({}),
+  onCheckpoint: (phase: string, snapshot: unknown) => void = () => {}
 ) {
   useAppStore.setState(useAppStore.getInitialState(), true)
   const settings = getDefaultSettings('')
@@ -100,13 +101,24 @@ export async function mountProjectGroupingPublisher(
     act(async () => {
       await vi.advanceTimersByTimeAsync(100)
     })
-  await act(async () => root.render(<Producer />))
-  await act(async () => {
-    await useAppStore.getState().fetchSettings()
-    await useAppStore.getState().fetchRepos({ runtimeEnvironmentId: null })
-  })
-  await settle()
-  expect(read).toThrow('runtime_unavailable')
+  const checkpoint = (phase: string) => {
+    let ownerRead: unknown
+    try {
+      ownerRead = read()
+    } catch (error) {
+      ownerRead = error instanceof Error ? error.message : String(error)
+    }
+    const state = useAppStore.getState()
+    onCheckpoint(phase, {
+      ownerRead,
+      settingsHydrated: state.projectGroupingSettingsHydrated,
+      reposHydrated: state.localRepoCatalogHydrated,
+      settingsRequests: getSettings.mock.calls.length,
+      catalogRequests: list.mock.calls.length,
+      accepted: accepted.length,
+      pendingRequests: tracker.size()
+    })
+  }
   return {
     client,
     runtime,
@@ -114,22 +126,41 @@ export async function mountProjectGroupingPublisher(
     frames,
     accepted,
     read,
+    mount: async () => {
+      checkpoint('publisher mounting')
+      await act(async () => root.render(<Producer />))
+      checkpoint('publisher mounted')
+      await act(async () => {
+        await useAppStore.getState().fetchSettings()
+        await useAppStore.getState().fetchRepos({ runtimeEnvironmentId: null })
+      })
+      checkpoint('failed owners fetched')
+      await settle()
+      checkpoint('failed owners settled')
+      expect(read).toThrow('runtime_unavailable')
+    },
     hydrate: async (repos: readonly Repo[]) => {
+      checkpoint('owner hydration starting')
       list.mockResolvedValue(repos)
       await act(async () => {
         await useAppStore.getState().fetchSettings()
         await useAppStore.getState().fetchRepos({ runtimeEnvironmentId: null })
       })
       await settle()
+      checkpoint('owner hydration settled')
       expect(read()).toMatchObject({ catalog: accepted.at(-1)?.projectSectionCatalog })
     },
-    dispose: () => {
-      act(() => root.unmount())
+    dispose: async () => {
+      try {
+        await act(async () => root.unmount())
+        checkpoint('publisher unmounted')
+      } finally {
+        container.remove()
+        Object.assign(window, { api: priorApi })
+        useAppStore.setState(useAppStore.getInitialState(), true)
+      }
       expect(leases).toBe(0)
       expect(tracker.size()).toBe(0)
-      container.remove()
-      Object.assign(window, { api: priorApi })
-      useAppStore.setState(useAppStore.getInitialState(), true)
     }
   }
 }

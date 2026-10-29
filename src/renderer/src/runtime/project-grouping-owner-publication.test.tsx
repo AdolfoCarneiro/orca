@@ -2,7 +2,7 @@
 import '../../../main/runtime/rpc/unused-default-rpc-methods.test-fixture'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '../store'
 import { useRuntimeGraphSync } from '../app-shell/use-runtime-graph-sync'
 import { getDefaultSettings } from '../../../shared/constants'
@@ -15,6 +15,14 @@ import { stubRpcClient } from '../../../../mobile/src/transport/rpc-client-test-
 import { RpcClientRequestTracker } from '../../../../mobile/src/transport/rpc-client-request-tracker'
 import { mapRuntimeError, successResponse } from '../../../main/runtime/rpc/errors'
 import type { RuntimeRendererSyncWindowGraph } from '../../../shared/runtime-types'
+import type * as PublisherFixture from './project-grouping-owner-publication.test-fixture'
+
+let createProjectGroupingPublisher: typeof PublisherFixture.createProjectGroupingPublisher
+beforeEach(async () => {
+  vi.resetModules()
+  ;({ createProjectGroupingPublisher } =
+    await import('./project-grouping-owner-publication.test-fixture'))
+})
 
 vi.mock('../../../../mobile/src/i18n/mobile-i18n', () => ({
   translate: (_key: string, fallback: string) => fallback
@@ -238,45 +246,54 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
   }
 })
 
-it('drives the reusable real publication fixture from failed owners into a same-client resource answer', async () => {
-  vi.useFakeTimers()
-  vi.resetModules()
-  const { mountProjectGroupingPublisher } =
-    await import('./project-grouping-owner-publication.test-fixture')
-  const publisher = await mountProjectGroupingPublisher(ipc.handlers)
-  const resource = getProjectSectionsResource(publisher.client)
-  const release = resource.subscribe(() => {}, { addEventListener: () => ({ remove: () => {} }) })
+it('releases a pending producer before a new lifetime recovers the same-client resource from real owners', async () => {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+  const priorApi = window.api
   try {
-    await act(async () => {
-      await Promise.resolve()
-    })
-    expect(resource.getSnapshot()).toEqual({ kind: 'pending' })
-    await publisher.hydrate([
-      {
-        id: 'same',
-        path: '/local/app',
-        displayName: 'App',
-        badgeColor: '',
-        addedAt: 0,
-        upstream: { owner: 'org', repo: 'app' }
-      },
-      {
-        id: 'same',
-        path: '/server/app',
-        executionHostId: 'runtime:server',
-        displayName: 'App',
-        badgeColor: '',
-        addedAt: 0,
-        upstream: { owner: 'org', repo: 'app' }
+    for (const recover of [false, true]) {
+      const publisher = createProjectGroupingPublisher(ipc.handlers)
+      const resource = getProjectSectionsResource(publisher.client)
+      const release = resource.subscribe(() => {}, {
+        addEventListener: () => ({ remove: () => {} })
+      })
+      try {
+        await publisher.mount()
+        await act(async () => {
+          await Promise.resolve()
+        })
+        expect(resource.getSnapshot()).toEqual({ kind: 'pending' })
+        if (recover) {
+          await publisher.hydrate([
+            {
+              id: 'same',
+              path: '/local/app',
+              displayName: 'App',
+              badgeColor: '',
+              addedAt: 0,
+              upstream: { owner: 'org', repo: 'app' }
+            },
+            {
+              id: 'same',
+              path: '/server/app',
+              executionHostId: 'runtime:server',
+              displayName: 'App',
+              badgeColor: '',
+              addedAt: 0,
+              upstream: { owner: 'org', repo: 'app' }
+            }
+          ])
+          expect(resource.getSnapshot()).toMatchObject({
+            kind: 'answered',
+            value: { repos: [{ path: '/local/app' }, { path: '/server/app' }] }
+          })
+        }
+      } finally {
+        release()
+        await publisher.dispose()
       }
-    ])
-    expect(resource.getSnapshot()).toMatchObject({
-      kind: 'answered',
-      value: { repos: [{ path: '/local/app' }, { path: '/server/app' }] }
-    })
+      expect(window.api).toBe(priorApi)
+    }
   } finally {
-    release()
-    publisher.dispose()
     vi.useRealTimers()
   }
 })
