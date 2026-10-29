@@ -7,6 +7,7 @@ import {
 } from '../../../../shared/native-chat-text-attachment-references'
 import { NativeChatTextAttachmentPreview } from './NativeChatTextAttachmentPreview'
 import { useNativeChatImageRuntimeContext } from './native-chat-image-runtime-context'
+import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 
 export const NativeChatTextAttachmentOpener = createContext<
   ((path: string, text?: string) => void) | null
@@ -30,20 +31,25 @@ export function NativeChatTextAttachmentScope({
 
 function StructuredAttachmentScope({ tabId, children }: { tabId: string; children: ReactNode }) {
   const context = useNativeChatImageRuntimeContext(tabId)
+  const visible = useContext(NativeChatMarkdownImageOwnerContext)?.isVisible ?? true
   const owner = JSON.stringify(context)
   const [selection, setSelection] = useState<{
     owner: string
     path: string
     text?: string
   } | null>(null)
-  // A changed owner cancels only the preview; the editor and its focus stay mounted.
-  if (selection && selection.owner !== owner) {
+  // Only the preview retires when its chat hides or changes owner; the editor stays mounted.
+  if (selection && (selection.owner !== owner || !visible)) {
     setSelection(null)
   }
-  const selected = selection?.owner === owner ? selection : null
+  const selected = visible && selection?.owner === owner ? selection : null
   const open = useCallback(
-    (path: string, text?: string) => setSelection({ owner, path, text }),
-    [owner]
+    (path: string, text?: string) => {
+      if (visible) {
+        setSelection({ owner, path, text })
+      }
+    },
+    [owner, visible]
   )
   return (
     <NativeChatTextAttachmentOpener.Provider value={open}>
@@ -69,17 +75,21 @@ function AttachmentButton({
 }) {
   const [open, setOpen] = useState(false)
   const opener = useContext(NativeChatTextAttachmentOpener)
+  const visible = useContext(NativeChatMarkdownImageOwnerContext)?.isVisible ?? true
+  if (open && !visible) {
+    setOpen(false)
+  }
   return (
     <>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => (opener ? opener(path) : setOpen(true))}
+        onClick={() => visible && (opener ? opener(path) : setOpen(true))}
       >
         {chatTextAttachmentName(path)}
       </Button>
-      {open ? (
+      {open && visible ? (
         <NativeChatTextAttachmentPreview
           path={path}
           target={runtimeContext?.target ?? null}
