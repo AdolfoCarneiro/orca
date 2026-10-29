@@ -128,7 +128,7 @@ function raiseWorkspaceUnreadFlag(
   set((s) => {
     const worktree = findKnownWorktreeById(s, worktreeId)
     if (!worktree || worktree.isUnread) {
-      return s
+      return undefined
     }
     shouldPersist = true
     const nextWorktrees = applyWorktreeUpdates(s.worktreesByRepo, worktreeId, {
@@ -211,7 +211,7 @@ export function clearWorkspaceUnreadFlag(
     const worktree = findKnownWorktreeById(s, worktreeId)
     if (!worktree || !worktree.isUnread) {
       // Why: return `s` (not {}) to keep the object reference on a no-op, avoiding selector churn.
-      return s
+      return undefined
     }
     shouldPersist = true
     const nextWorktrees = applyWorktreeUpdates(s.worktreesByRepo, worktreeId, {

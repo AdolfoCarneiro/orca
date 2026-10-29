@@ -76,7 +76,7 @@ export function createAgentStatusLiveActions(
           getTabIdFromPaneKey(paneKey)
         )
       ) {
-        return state
+        return undefined
       }
       if (retirement !== undefined) {
         const owner = resolvePaneKey(state, paneKey)
@@ -88,7 +88,7 @@ export function createAgentStatusLiveActions(
             routing.connectionId !== owner.repoConnectionId &&
             (owner.repoConnectionResolved || routing.worktreeId !== owner.owningWorktreeId))
         ) {
-          return state
+          return undefined
         }
       }
       built = buildAgentStatusLiveEntry({
@@ -102,7 +102,7 @@ export function createAgentStatusLiveActions(
         updatedAt
       })
       if (!built.entry) {
-        return state
+        return undefined
       }
       const previousEntries = state.agentStatusByPaneKey
       const reduction = reduceAgentStatusLiveUpdate(state, built, updatedAt)

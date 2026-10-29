@@ -41,7 +41,7 @@ export function createOpenConflictFile(
 
         if (!conflict) {
           openedConflictFile = false
-          return s
+          return undefined
         }
 
         if (existing) {

@@ -110,13 +110,13 @@ export function createUiAgentActions(
     closeAgentSendPopoverTargetMode: (id, instanceId) =>
       set((s) => {
         if (!s.agentSendPopoverTargetMode) {
-          return s
+          return undefined
         }
         if (id && s.agentSendPopoverTargetMode.id !== id) {
-          return s
+          return undefined
         }
         if (instanceId && s.agentSendPopoverTargetMode.instanceId !== instanceId) {
-          return s
+          return undefined
         }
         return { agentSendPopoverTargetMode: null }
       }),

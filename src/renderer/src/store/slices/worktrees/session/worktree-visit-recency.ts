@@ -34,7 +34,7 @@ export function createMarkWorktreeVisited(
           hostId: ownerHostId
         }) ?? 0
       if (!(now > prev)) {
-        return s
+        return undefined
       }
       return editSessionSource(s).set('lastVisitedAtByWorktreeId', visitKey, now).finish({})
     })
@@ -127,12 +127,12 @@ export function createSeedActiveWorktreeLastVisitedIfMissing(
     set((s) => {
       const id = s.activeWorktreeId
       if (!id) {
-        return s
+        return undefined
       }
       const hostId = s.activeWorkspaceExecutionHostId ?? s.getKnownWorktreeById(id)?.hostId
       const key = getWorktreeVisitKey(id, hostId)
       if (getWorktreeVisitTimestamp(s.lastVisitedAtByWorktreeId, { id, hostId }) != null) {
-        return s
+        return undefined
       }
       return editSessionSource(s).set('lastVisitedAtByWorktreeId', key, Date.now()).finish({})
     })

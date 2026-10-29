@@ -56,7 +56,7 @@ export function createOpenConflictReview(
 
         if (!conflict) {
           openedConflictFile = false
-          return s
+          return undefined
         }
 
         if (existing) {

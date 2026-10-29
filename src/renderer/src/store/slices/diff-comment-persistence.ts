@@ -210,13 +210,13 @@ export function mutateDiffComments(
     if (scope?.type === 'folder') {
       const target = findFolderWorkspaceOwner(s, scope.folderWorkspaceId)
       if (!target) {
-        return s
+        return undefined
       }
       folderExecutionHostId = getExecutionHostIdForFolderWorkspace(s, scope.folderWorkspaceId)
       previous = target.diffComments
       const computed = mutate(previous ?? [])
       if (computed === null) {
-        return s
+        return undefined
       }
       next = computed
       return editSessionSource(s)
@@ -233,7 +233,7 @@ export function mutateDiffComments(
       commentIds ? { commentIds: new Set(commentIds) } : {}
     )
     if (!repoList || !found) {
-      return s
+      return undefined
     }
     twin = {
       ...(found.twin ? { twin: found.twin } : {}),
@@ -242,7 +242,7 @@ export function mutateDiffComments(
     previous = diffCommentRowNotes(found)
     const computed = mutate(previous ?? [])
     if (computed === null) {
-      return s
+      return undefined
     }
     next = computed
     const nextList: Worktree[] = repoList.map((w) =>
@@ -269,7 +269,7 @@ function rollback(
     if (scope?.type === 'folder') {
       const target = findFolderWorkspaceOwner(s, scope.folderWorkspaceId, folderExecutionHostId)
       if (!target || target.diffComments !== expectedCurrent) {
-        return s
+        return undefined
       }
       return editSessionSource(s)
         .sequence('folderWorkspaces')
@@ -280,7 +280,7 @@ function rollback(
     }
     const repoList = s.worktreesByRepo[repoId]
     if (!repoList) {
-      return s
+      return undefined
     }
     // Rollback only rows still holding this mutation’s array; later mutations and untouched twins must survive.
     const targets = repoList.filter(
@@ -288,7 +288,7 @@ function rollback(
     )
     // Removed worktrees return before remapping to avoid pointless identity churn/notifications.
     if (targets.length === 0) {
-      return s
+      return undefined
     }
     const nextList: Worktree[] = repoList.map((w) =>
       targets.includes(w) ? { ...w, diffComments: previous } : w

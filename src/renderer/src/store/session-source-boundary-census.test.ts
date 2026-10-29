@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { SESSION_SOURCE_FIELDS, SESSION_SOURCE_KINDS } from '../lib/session-source-fields'
 import { composeSessionSourceWrites } from './session-source-compose'
-import { editSessionSource } from './session-source-edits'
+import { editSessionSource, unwrapSessionSourceWrite } from './session-source-edits'
 
 function productionFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -29,13 +29,16 @@ describe('session source boundary completeness', () => {
     const boundaries = new Set([
       'store/session-source-edits.ts',
       'store/session-source-write-boundary.ts',
-      'store/editor-buffer-record-lifecycle.ts'
+      'store/editor-buffer-record-lifecycle.ts',
+      'store/slices/agent-status/agent-status-runtime.ts'
     ])
     const violations = productionFiles(root).flatMap((path) => {
       if (boundaries.has(relative(root, path))) {
         return []
       }
-      return /SESSION_SOURCE_RECEIPT|\bas\s+SessionSourceWrite\b/.test(readFileSync(path, 'utf8'))
+      return /unwrapSessionSourceWrite|SESSION_SOURCE_RECEIPT|withSessionSourceReceipt|SessionSourceSnapshot|\bas\s+(?:unknown\s+as\s+)?SessionSourceWrite\b/.test(
+        readFileSync(path, 'utf8')
+      )
         ? [relative(root, path)]
         : []
     })
@@ -49,9 +52,12 @@ describe('session source boundary completeness', () => {
     expect(() => composeSessionSourceWrites([first, competing])).toThrow(
       'Composed source writes overlap: editorDrafts'
     )
-    const next = { ...before, ...first }
+    const next = { ...before, ...unwrapSessionSourceWrite(first).partial }
     const middleware = editSessionSource(next).set('editorDrafts', 'b', 'joined').finish()
-    expect(composeSessionSourceWrites([first, middleware], true).editorDrafts).toEqual({
+    expect(
+      unwrapSessionSourceWrite(composeSessionSourceWrites([first, middleware], true)).partial
+        .editorDrafts
+    ).toEqual({
       a: 'next',
       b: 'joined'
     })

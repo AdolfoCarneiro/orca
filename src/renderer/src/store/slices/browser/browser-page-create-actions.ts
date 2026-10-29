@@ -128,11 +128,11 @@ export function createBrowserPageCreateActions(
 
           const page = findPage(s.browserPagesByWorkspace, pageId)
           if (!page) {
-            return s
+            return undefined
           }
           const workspace = findWorkspace(s.browserTabsByWorktree, page.workspaceId)
           if (!workspace) {
-            return s
+            return undefined
           }
           closedWorkspaceIdForLabel = page.workspaceId
           docPageIdToRelease = page.docLocation ? page.id : null

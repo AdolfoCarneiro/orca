@@ -162,7 +162,7 @@ export function createTabsCreateActions(
           target.sourceGroupId
         )
         if (!sourceGroup) {
-          return state
+          return undefined
         }
         const existingTabs = state.unifiedTabsByWorktree[worktreeId] ?? []
         const shouldActivate = init?.activate ?? true

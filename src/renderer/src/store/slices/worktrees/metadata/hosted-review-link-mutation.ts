@@ -292,7 +292,7 @@ export function applyHostedReviewLinkClear(
       copy.hostId
     )
     if (nextWorktrees === byRepo && nextDetectedWorktrees === s.detectedWorktreesByRepo) {
-      return s
+      return undefined
     }
     return {
       ...(nextWorktrees !== byRepo

@@ -124,7 +124,7 @@ export const createRecentlyClosedTabsSlice: SessionStateCreator<
       const stack = s.recentlyClosedTerminalTabsByWorktree[worktreeId] ?? []
       snapshot = stack[0]
       if (!snapshot) {
-        return s
+        return undefined
       }
       return {
         recentlyClosedTerminalTabsByWorktree: {
@@ -160,7 +160,7 @@ export const createRecentlyClosedTabsSlice: SessionStateCreator<
         const kinds = s.recentlyClosedTabKindsByWorktree[worktreeId] ?? []
         kind = kinds[0]
         if (!kind) {
-          return s
+          return undefined
         }
         return {
           recentlyClosedTabKindsByWorktree: {

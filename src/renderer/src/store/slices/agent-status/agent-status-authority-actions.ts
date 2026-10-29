@@ -157,7 +157,7 @@ export function createAgentStatusAuthorityActions(
           (key) => key in s.recentlyRetiredAgentStatusPaneKeys
         )
         if (restorable.length === 0) {
-          return s
+          return undefined
         }
         const next = { ...s.recentlyRetiredAgentStatusPaneKeys }
         for (const key of restorable) {

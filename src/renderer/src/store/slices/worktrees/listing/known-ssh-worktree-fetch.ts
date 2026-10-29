@@ -117,7 +117,7 @@ export async function runKnownSshWorktreeFetch(
       getCurrentDirectSshAuthority(state, executionHostId) ||
       !repoHasExactlyOneExecutionHostOwner(state, repoId, executionHostId, false)
     ) {
-      return state
+      return undefined
     }
     admitted = true
     const setup = getProjectHostSetupForRepoHost(state, repoId, executionHostId)
@@ -148,7 +148,7 @@ export async function runKnownSshWorktreeFetch(
       detected
     )
     if (!worktreesChanged && !detectedChanged) {
-      return state
+      return undefined
     }
     return {
       ...(worktreesChanged

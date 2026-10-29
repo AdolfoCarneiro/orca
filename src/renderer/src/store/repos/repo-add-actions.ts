@@ -115,7 +115,7 @@ export function createRepoAddActions(
         }
         set((s) => {
           if (s.repos.some((r) => getRepoHostIdentity(r) === repoIdentity)) {
-            return s
+            return undefined
           }
           const sourceEdit = editSessionSource(s).sequence('repos').append(repo)
           const nextRepos = sourceEdit.read('repos')

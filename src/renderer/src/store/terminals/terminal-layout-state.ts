@@ -34,7 +34,7 @@ export function createTerminalLayoutActions(
         const current = s.localOnlyScrollbackByTabId ?? {}
         if (!buffersByLeafId || Object.keys(buffersByLeafId).length === 0) {
           if (!(tabId in current)) {
-            return s
+            return undefined
           }
           return editSessionSource(s).remove('localOnlyScrollbackByTabId', tabId).finish()
         }
@@ -47,7 +47,7 @@ export function createTerminalLayoutActions(
       set((s) => {
         const layout = s.terminalLayoutsByTabId[tabId]
         if (!layout || layout.ptyIdsByLeafId?.[leafId] === ptyId) {
-          return s
+          return undefined
         }
         return editSessionSource(s)
           .set('terminalLayoutsByTabId', tabId, {
@@ -78,7 +78,7 @@ export function createTerminalLayoutActions(
       set((s) => {
         if (!layout) {
           if (!(tabId in s.terminalLayoutsByTabId)) {
-            return s
+            return undefined
           }
           return editSessionSource(s).remove('terminalLayoutsByTabId', tabId).finish()
         }
@@ -93,7 +93,7 @@ export function createTerminalLayoutActions(
         // Why: pane-title churn re-persists structurally identical snapshots; bailing keeps every pane selector asleep.
         const existing = s.terminalLayoutsByTabId[tabId]
         if (existing && terminalLayoutEqual(existing, normalized.snapshot)) {
-          return s
+          return undefined
         }
         return editSessionSource(s)
           .set('terminalLayoutsByTabId', tabId, normalized.snapshot)

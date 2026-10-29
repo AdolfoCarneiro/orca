@@ -147,7 +147,7 @@ async function applyWorkspaceCleanupProgress(
     ) {
       // Why: `return state` is Zustand's real no-op; a fresh `{}` would still
       // sweep every subscriber.
-      return state
+      return undefined
     }
     // Dismissals may commit during enrichment; do not overwrite them with pre-await candidates.
     const finalCandidates =

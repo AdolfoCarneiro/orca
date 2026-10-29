@@ -36,7 +36,7 @@ export function createFolderWorkspaceCatalogActions(
     let applied = false
     set((current) => {
       if (!isHostCatalogFenceCurrent(get, fence)) {
-        return current
+        return undefined
       }
       applied = true
       getFolderWorkspaceUpdateCoordinator(get).recordCatalogReplacement(
@@ -52,7 +52,7 @@ export function createFolderWorkspaceCatalogActions(
         current.projectGroups
       )
       if (arrayElementsUnchanged(folderWorkspaces, current.folderWorkspaces)) {
-        return current
+        return undefined
       }
       return replaceSessionSourceFields({
         folderWorkspaces,

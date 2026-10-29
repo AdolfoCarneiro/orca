@@ -13,6 +13,7 @@ export class SessionSourceReceipts {
   private readonly sequences: SessionSourceSequences = {}
   private readonly presence = new Map<SessionSourceField, Map<string, SessionSourcePresence>>()
   private full = false
+  private fullBoundary: SessionSourceDiscovery['fullBoundary']
 
   get size(): number {
     return this.changes.size
@@ -20,6 +21,7 @@ export class SessionSourceReceipts {
 
   add(receipt: SessionSourceDiscovery): void {
     this.full ||= receipt.full
+    this.fullBoundary = receipt.fullBoundary ?? this.fullBoundary
     for (const [field, entries] of receipt.presence ?? []) {
       const pending = this.presence.get(field) ?? new Map<string, SessionSourcePresence>()
       this.presence.set(field, pending)
@@ -27,6 +29,7 @@ export class SessionSourceReceipts {
         const prior = pending.get(key)
         if (prior && !prior.after && transition.after) {
           this.full = true
+          this.fullBoundary = 'order'
         }
         pending.set(key, { before: prior?.before ?? transition.before, after: transition.after })
       }
@@ -61,6 +64,7 @@ export class SessionSourceReceipts {
     return {
       changes: new Map([...this.changes].map(([field, keys]) => [field, keys && new Set(keys)])),
       full: this.full,
+      fullBoundary: this.fullBoundary,
       sequences: Object.fromEntries(
         Object.entries(this.sequences).map(([field, rows]) => [field, new Map(rows)])
       ),

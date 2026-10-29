@@ -4,13 +4,12 @@ import type { AgentStatusBatchTransaction, AgentStatusBatchUpdate } from './agen
 import type { AgentStatusSlice } from './agent-status-slice-contract'
 import type { GeneratedTabTitleUpdate } from '../terminal-tab-title-batch'
 import { createFreshnessScheduler } from './agent-status-freshness-scheduler'
-import { SessionSourceReceipts } from '@/lib/session-source-receipts'
 import {
   editSessionSource,
-  readSessionSourceReceipt,
-  withSessionSourceReceipt,
+  unwrapSessionSourceWrite,
+  composeSessionSourceWrites,
   type SessionSourceUpdate,
-  type SessionSourceSnapshot
+  type SessionSourcePartial
 } from '../../session-source-edits'
 
 export type AgentStatusStateUpdate = SessionSourceUpdate<AppState>
@@ -37,8 +36,7 @@ export function createAgentStatusRuntime(
   >
 ): AgentStatusRuntime {
   let batchedAgentStatusState: AppState | null = null
-  let batchedAgentStatusTouchedKeys: Set<keyof AppState> | null = null
-  let batchedSourceReceipts: SessionSourceReceipts | null = null
+  let batchedSourceWrites: SessionSourcePartial<AppState>[] | null = null
   // Staged in-place mutations cannot signal changes by identity; count every accepted write.
   let batchedAgentStatusRevision = 0
   let batchedAgentStatusEffects: (() => void)[] | null = null
@@ -53,25 +51,15 @@ export function createAgentStatusRuntime(
       storeSet(update, false)
       return
     }
-    // SAFETY: the private staged root is the updater's captured state; the snapshot brand is compile-only.
-    const nextState =
-      typeof update === 'function' ? update(staged as SessionSourceSnapshot<AppState>) : update
-    if (Object.is(nextState, staged)) {
+    const nextState = typeof update === 'function' ? update(staged) : update
+    if (nextState === undefined) {
       return
     }
     batchedAgentStatusRevision += 1
-    const receipt = readSessionSourceReceipt(nextState)
-    if (receipt) {
-      batchedSourceReceipts?.add(receipt)
-    }
-    const touched = batchedAgentStatusTouchedKeys
-    if (touched) {
-      for (const key of Object.keys(nextState)) {
-        touched.add(key as keyof AppState)
-      }
-    }
-    // The staged object is private until commit, so fold into it instead of cloning AppState per update.
-    Object.assign(staged, nextState)
+    const { partial } = unwrapSessionSourceWrite(nextState)
+    batchedSourceWrites?.push(nextState)
+    // The staged root is private until commit; prior published values remain immutable.
+    Object.assign(staged, partial)
   }
 
   const runAfterCommit = (effect: () => void): void => {
@@ -145,11 +133,9 @@ export function createAgentStatusRuntime(
       return operation(batchTransaction)
     }
     const initialState = storeGet()
-    const touchedKeys = new Set<keyof AppState>()
     const revisionAtStart = batchedAgentStatusRevision
     batchedAgentStatusState = { ...initialState }
-    batchedAgentStatusTouchedKeys = touchedKeys
-    batchedSourceReceipts = new SessionSourceReceipts()
+    batchedSourceWrites = []
     batchedAgentStatusEffects = []
     batchedGeneratedTabTitleUpdates = []
     try {
@@ -159,18 +145,17 @@ export function createAgentStatusRuntime(
       const generatedTabTitleUpdates = batchedGeneratedTabTitleUpdates
       const freshnessRequested = batchedAgentStatusFreshnessRequested
       const hasStagedWrites = batchedAgentStatusRevision !== revisionAtStart
-      const sourceReceipt = batchedSourceReceipts.take(initialState, nextState)
+      const sourceWrites = batchedSourceWrites
       batchedAgentStatusState = null
-      batchedAgentStatusTouchedKeys = null
-      batchedSourceReceipts = null
+      batchedSourceWrites = null
       batchedAgentStatusEffects = null
       batchedGeneratedTabTitleUpdates = null
       batchedAgentStatusFreshnessRequested = false
       if (hasStagedWrites) {
-        const patch = withSessionSourceReceipt(
-          buildAgentStatusBatchPatch(initialState, nextState, touchedKeys),
-          sourceReceipt
-        )
+        const patch = composeSessionSourceWrites(sourceWrites, true, {
+          before: initialState,
+          after: nextState
+        })
         storeSet(patch, false)
       }
       if (generatedTabTitleUpdates.length > 0) {
@@ -185,8 +170,7 @@ export function createAgentStatusRuntime(
       return result
     } finally {
       batchedAgentStatusState = null
-      batchedAgentStatusTouchedKeys = null
-      batchedSourceReceipts = null
+      batchedSourceWrites = null
       batchedAgentStatusEffects = null
       batchedGeneratedTabTitleUpdates = null
       batchedAgentStatusFreshnessRequested = false
@@ -220,7 +204,7 @@ export function createAgentStatusRuntime(
         }
       }
       if (!changed) {
-        return s
+        return undefined
       }
       return edit.finish()
     })
@@ -236,19 +220,4 @@ export function createAgentStatusRuntime(
     transactAgentStatuses,
     clearSleepingAgentSessionsByPaneKey
   }
-}
-
-function buildAgentStatusBatchPatch(
-  initialState: AppState,
-  nextState: AppState,
-  touchedKeys: ReadonlySet<keyof AppState>
-): Partial<AppState> {
-  const patch: Record<string, unknown> = {}
-  // Untouched slices cannot differ, so the patch stays proportional to what the fold actually wrote.
-  for (const key of touchedKeys) {
-    if (!Object.is(nextState[key], initialState[key])) {
-      patch[key as string] = nextState[key]
-    }
-  }
-  return patch as Partial<AppState>
 }

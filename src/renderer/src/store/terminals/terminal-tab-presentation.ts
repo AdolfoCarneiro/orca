@@ -53,7 +53,7 @@ export function createTerminalTabPresentationActions(
       set((s) => {
         const ownerWorktreeId = getTerminalTabOwnerWorktreeId(s.tabsByWorktree, tabId)
         if (!ownerWorktreeId) {
-          return s
+          return undefined
         }
         const tabs = s.tabsByWorktree[ownerWorktreeId] ?? []
         const current = tabs.find((tab) => tab.id === tabId)
@@ -62,7 +62,7 @@ export function createTerminalTabPresentationActions(
           current?.aiVaultTitle?.sessionId === aiVaultTitle?.sessionId &&
           current?.aiVaultTitle?.title === aiVaultTitle?.title
         if (!current || sameTitle) {
-          return s
+          return undefined
         }
         const ownerTabs = tabs.map((tab) => (tab.id === tabId ? { ...tab, aiVaultTitle } : tab))
         const edit = editSessionSource(s).set('tabsByWorktree', ownerWorktreeId, ownerTabs)
@@ -122,13 +122,13 @@ export function createTerminalTabPresentationActions(
       set((s) => {
         const ownerWorktreeId = getTerminalTabOwnerWorktreeId(s.tabsByWorktree, tabId)
         if (!ownerWorktreeId) {
-          return s
+          return undefined
         }
         const tabs = s.tabsByWorktree[ownerWorktreeId] ?? []
         const tabIndex = tabs.findIndex((t) => t.id === tabId)
         const currentTab = tabs[tabIndex]
         if (!currentTab?.launchAgent) {
-          return s
+          return undefined
         }
         const { launchAgent: _launchAgent, ...tabWithoutLaunchAgent } = currentTab
         void _launchAgent
@@ -143,10 +143,10 @@ export function createTerminalTabPresentationActions(
         const currentByPane = s.runtimePaneTitlesByTabId[tabId] ?? {}
         const prevTitle = currentByPane[paneId]
         if (prevTitle === title) {
-          return s
+          return undefined
         }
         if (prevTitle && isDecorativeAgentTitleFrameChange(prevTitle, title)) {
-          return s
+          return undefined
         }
         // Why: re-sort hookless title changes only when their activity classification changes.
         const classificationChanged =
@@ -170,7 +170,7 @@ export function createTerminalTabPresentationActions(
       set((s) => {
         const currentByPane = s.runtimePaneTitlesByTabId[tabId]
         if (!currentByPane || !(paneId in currentByPane)) {
-          return s
+          return undefined
         }
         const prevTitle = currentByPane[paneId]
         const nextByPane = { ...currentByPane }

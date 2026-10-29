@@ -27,7 +27,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
       const notificationIdsToDismiss = new Set<string>()
       set((s) => {
         if (paneKeys.length === 0) {
-          return s
+          return undefined
         }
         const now = Date.now()
         const migrationUnsupported = Object.values(s.migrationUnsupportedByPtyId ?? {})
@@ -80,7 +80,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
           }
         }
         if (!next && !nextUnreadCompletions && !nextManual) {
-          return s
+          return undefined
         }
         return {
           ...(next ? { acknowledgedAgentsByPaneKey: next } : {}),
@@ -96,7 +96,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
     unacknowledgeAgents: (paneKeys) =>
       set((s) => {
         if (paneKeys.length === 0) {
-          return s
+          return undefined
         }
         let next: Record<string, number> | null = null
         let nextManual: Record<string, number> | null = null
@@ -117,7 +117,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
           }
         }
         if (!next && !nextManual) {
-          return s
+          return undefined
         }
         return {
           ...(next ? { acknowledgedAgentsByPaneKey: next } : {}),

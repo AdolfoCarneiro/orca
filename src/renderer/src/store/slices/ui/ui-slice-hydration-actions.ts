@@ -287,7 +287,7 @@ export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Par
           : s.persistedUIWriteBaselineGeneration
         if (hydratedUIPartialMatchesState(s, hydrated as Partial<UISlice>)) {
           if (!writeBaselineMoved) {
-            return s
+            return undefined
           }
           return {
             persistedUIWriteBaseline: nextWriteBaseline,

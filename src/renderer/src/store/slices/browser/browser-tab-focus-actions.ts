@@ -24,7 +24,7 @@ export function createBrowserTabFocusActions(
         const recentlyClosed = s.recentlyClosedBrowserTabsByWorktree[worktreeId] ?? []
         entryToRestore = recentlyClosed[0]
         if (!entryToRestore) {
-          return s
+          return undefined
         }
         return {
           recentlyClosedBrowserTabsByWorktree: {
@@ -110,7 +110,7 @@ export function createBrowserTabFocusActions(
       set((s) => {
         const browserTab = findWorkspace(s.browserTabsByWorktree, tabId)
         if (!browserTab) {
-          return s
+          return undefined
         }
         // Floating/background activation must not move global selection or break agent-auto-ack targeting (agent-auto-ack-targets.ts).
         const scopeWorktreeId = targetWorktreeId ?? browserTab.worktreeId

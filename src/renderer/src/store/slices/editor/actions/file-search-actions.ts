@@ -69,7 +69,7 @@ export function createFileSearchActions(
       set((s) => {
         const current = s.fileSearchStateByWorktree[worktreeId]
         if (!current || current.seedRequestId !== seedRequestId) {
-          return s
+          return undefined
         }
         const next = { ...current }
         delete next.seedRequestId
@@ -84,7 +84,7 @@ export function createFileSearchActions(
       set((s) => {
         const current = s.fileSearchStateByWorktree[worktreeId]
         if (!current) {
-          return s
+          return undefined
         }
         const nextCollapsed = new Set(current.collapsedFiles)
         if (nextCollapsed.has(filePath)) {
@@ -103,7 +103,7 @@ export function createFileSearchActions(
       set((s) => {
         const current = s.fileSearchStateByWorktree[worktreeId]
         if (!current) {
-          return s
+          return undefined
         }
         return {
           fileSearchStateByWorktree: {

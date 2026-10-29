@@ -137,7 +137,7 @@ export const createCommentMutationActions = (
     set((state) => {
       const entry = state.commentsCache[cacheKey]
       if (!entry?.data) {
-        return state
+        return undefined
       }
       return {
         commentsCache: {
@@ -189,7 +189,7 @@ export const createCommentMutationActions = (
       set((state) => {
         const entry = state.commentsCache[cacheKey]
         if (!entry?.data) {
-          return state
+          return undefined
         }
         return {
           commentsCache: {

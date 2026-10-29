@@ -252,7 +252,7 @@ export function applyHostLineageRefresh(
       worktreeLineageById === s.worktreeLineageById &&
       workspaceLineageByChildKey === s.workspaceLineageByChildKey
     ) {
-      return s
+      return undefined
     }
     return { worktreeLineageById, workspaceLineageByChildKey }
   })

@@ -26,11 +26,11 @@ export function createProjectGroupCatalogActions(
     }
     set((s) => {
       if (!isHostCatalogFenceCurrent(get, fence)) {
-        return s
+        return undefined
       }
       const { projectGroups } = mergeFetchedProjectGroupCatalog(catalog, s.projectGroups)
       if (arrayElementsUnchanged(projectGroups, s.projectGroups)) {
-        return s
+        return undefined
       }
       return replaceSessionSourceFields({
         projectGroups,

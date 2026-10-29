@@ -274,7 +274,7 @@ export const createPullRequestGenerationSlice: SessionStateCreator<
     set((state) => {
       const nextRecord = updater(state.pullRequestGenerationRecords[key] ?? null)
       if (!nextRecord) {
-        return state
+        return undefined
       }
       return {
         pullRequestGenerationRecords: {

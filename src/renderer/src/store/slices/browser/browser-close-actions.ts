@@ -61,7 +61,7 @@ export function createBrowserCloseActions(
             }
           }
           if (!owningWorktreeId || !closedWorkspace) {
-            return current
+            return undefined
           }
 
           const closedPages = s.browserPagesByWorkspace[tabId] ?? []

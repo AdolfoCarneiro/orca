@@ -46,7 +46,7 @@ export const createStructuredSessionLaunchDirectorySlice: SessionStateCreator<
           : state
       }
       if (current?.sessionId === sessionId && current.launchDirectory === launchDirectory) {
-        return state
+        return undefined
       }
       return {
         structuredSessionLaunchDirectoryByTabId: {

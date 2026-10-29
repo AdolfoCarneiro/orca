@@ -172,16 +172,16 @@ export function createSetActiveWorktree(
         pendingActivationTerminalPrepCancels.delete(worktreeId)
         set((s) => {
           if (s.activeWorktreeId !== worktreeId) {
-            return s
+            return undefined
           }
           const tabs = s.tabsByWorktree[worktreeId] ?? []
           const wakeable = tabs.filter(isWakeable)
           if (wakeable.length === 0) {
-            return s
+            return undefined
           }
           const allDead = wakeable.every((tab) => !tabHasLivePty(s.ptyIdsByTabId, tab.id))
           if (!allDead && !shouldTagTerminalTabs) {
-            return s
+            return undefined
           }
           const edit = editSessionSource(s)
           markWorktreeTabsForActivationSpawn(edit, worktreeId, {

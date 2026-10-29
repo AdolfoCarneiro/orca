@@ -171,7 +171,7 @@ export function mergeFetchedWorktrees(
     )
     if (refusal) {
       decision.outcome = refusal
-      return s
+      return undefined
     }
     decision.outcome = 'applied'
     const matchOptions = worktreeHostMatchOptions(s, args.repoId, args.hostId)
@@ -259,7 +259,7 @@ export function mergeFetchedWorktrees(
       removedIds.length === 0 &&
       Object.keys(versionPatch).length === 0
     ) {
-      return s
+      return undefined
     }
     const edit = editSessionSource(s)
     if (worktreesChanged) {

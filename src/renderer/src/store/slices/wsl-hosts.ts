@@ -20,7 +20,7 @@ export const createWslHostsSlice: SessionStateCreator<AppState, WslHostsSlice> =
     set((state) => {
       const current = state.wslHostStatuses[status.environmentId]
       if (persistedUIValuesEqual(current, status)) {
-        return state
+        return undefined
       }
       return { wslHostStatuses: { ...state.wslHostStatuses, [status.environmentId]: status } }
     })

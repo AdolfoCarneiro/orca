@@ -81,7 +81,7 @@ export const createSshSlice: SessionStateCreator<AppState, SshSlice> = (set) => 
     set((s) => {
       const previous = s.sshConnectionStates.get(targetId)
       if (sshConnectionStatesEqual(previous, state)) {
-        return s
+        return undefined
       }
       localTargetConnectionGenerations.advance(targetId)
       const didReconnect = previous?.status !== 'connected' && state.status === 'connected'
@@ -149,7 +149,7 @@ export const createSshSlice: SessionStateCreator<AppState, SshSlice> = (set) => 
       } else if (targetId in next) {
         delete next[targetId]
       } else {
-        return s
+        return undefined
       }
       return { unrestoredPortForwardsByConnection: next }
     }),

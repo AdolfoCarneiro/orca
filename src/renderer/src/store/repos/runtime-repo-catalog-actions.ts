@@ -45,11 +45,11 @@ export function createRuntimeRepoCatalogActions(
         let finalizedHostRepos: Repo[] = []
         set((s) => {
           if (!isHostCatalogFenceCurrent(get, fence)) {
-            return s
+            return undefined
           }
           // Why: skip merging a runtime env removed while this Connect-flow fetch was in flight, so purged repos aren't re-added (#8881).
           if (isRemovedRuntimeHostId(catalog.hostId, s.removedRuntimeEnvironmentIds)) {
-            return s
+            return undefined
           }
           const result = mergeFetchedRepoCatalog(catalog, s.repos)
           const reconciliation = reconcileSupersededSshRepos(result.repos, s)

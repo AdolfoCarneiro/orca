@@ -154,7 +154,7 @@ export const createCommitMessageGenerationSlice: SessionStateCreator<
     set((state) => {
       const nextRecord = updater(state.commitMessageGenerationRecords[key] ?? null)
       if (!nextRecord) {
-        return state
+        return undefined
       }
       return {
         commitMessageGenerationRecords: {

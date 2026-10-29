@@ -189,7 +189,7 @@ export function createGitStatusActions(
           statusHeadUnchanged &&
           !shouldInvalidateBranchCompare
         ) {
-          return s
+          return undefined
         }
 
         const nextBranchLineTotalMap = branchLineTotalUnchanged
@@ -260,7 +260,7 @@ export function createGitStatusActions(
       set((s) => {
         const prev = s.gitConflictOperationByWorktree[worktreeId] ?? 'unknown'
         if (prev === operation) {
-          return s
+          return undefined
         }
         // Why: when the operation clears on a non-active worktree, also clear tracked conflict paths — same as setGitStatus does for the active one.
         const nextTracked =

@@ -142,7 +142,7 @@ export function createClearWorktreeDeleteState(
     set((s) => {
       const key = getWorktreeDeleteStateKey(s, worktreeId, executionHostId)
       if (!s.deleteStateByWorktreeId[key]) {
-        return s
+        return undefined
       }
       const next = { ...s.deleteStateByWorktreeId }
       delete next[key]

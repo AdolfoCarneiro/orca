@@ -1,6 +1,8 @@
 import { withSessionSourceWrites, type SessionStateCreator } from './session-source-write-boundary'
 import {
   editSessionSource,
+  unwrapSessionSourceWrite,
+  type SessionSourcePartial,
   type OrdinarySourcePartial,
   type SessionSourceWrite
 } from './session-source-edits'
@@ -39,16 +41,12 @@ const NO_KEPT = {}
 /** Reconcile views/records atomically with openFiles identity/membership; same-file views join by identity rules and unreferenced records retire. Write fields via writeEditorBuffer; checkInvariant rejects mirror drift. */
 function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
   state: TState,
-  requested: TState | Partial<TState>,
+  requested: SessionSourcePartial<TState>,
   checkInvariant: boolean,
   scheduleRejoin: () => void
-): TState | Partial<TState> {
-  const keepRequest = requested.editorBufferKeepRequest
-  let write = requested
-  if (Object.hasOwn(write, 'editorBufferKeepRequest')) {
-    write = { ...write }
-    delete write.editorBufferKeepRequest
-  }
+): SessionSourcePartial<TState> {
+  const { partial: write } = unwrapSessionSourceWrite(requested)
+  const keepRequest = write.editorBufferKeepRequest
   const openFiles = write.openFiles ?? state.openFiles
   const records = write.editorBuffers ?? state.editorBuffers
   const drafts = write.editorDrafts ?? state.editorDrafts
@@ -81,7 +79,7 @@ function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
     ) {
       scheduleRejoin()
     }
-    return write
+    return requested
   }
   const routeState: EditorBufferRouteState = { ...state, ...write }
   const input = {
@@ -104,6 +102,9 @@ function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
     sourceEdit
   )
   const changed: Partial<Omit<EditorBufferState, 'editorDrafts' | 'openFiles'>> = {}
+  if (Object.hasOwn(write, 'editorBufferKeepRequest')) {
+    changed.editorBufferKeepRequest = undefined
+  }
   let changedFiles: typeof openFiles | undefined
   const mirrors = result.viewMirrors
   if (mirrors.size > 0) {
@@ -132,14 +133,14 @@ function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
   if (next.editorBufferKept !== input.editorBufferKept) {
     changed.editorBufferKept = next.editorBufferKept
   }
+  const sourceChanged = sourceEdit.changed
   const sourceWrite = sourceEdit.finish()
-  if (Object.keys(changed).length === 0 && Object.keys(sourceWrite).length === 0) {
-    return write
+  if (Object.keys(changed).length === 0 && !sourceChanged) {
+    return requested
   }
   return composeSessionSourceWrites(
     [
-      // SAFETY: callers retain their existing receipt; the identity gate handles unsupported raw writes.
-      write as SessionSourceWrite<TState>,
+      requested,
       // SAFETY: changed excludes both session-source fields in EditorBufferState.
       changed as OrdinarySourcePartial<TState>,
       // SAFETY: sourceEdit writes the same editor fields TState extends.

@@ -106,7 +106,7 @@ export const createWorkspaceSpaceSlice: SessionStateCreator<AppState, WorkspaceS
         state.workspaceSpaceScanProgress?.scanId !== progress.scanId &&
         !state.workspaceSpaceScanning
       ) {
-        return state
+        return undefined
       }
       const sameScan = state.workspaceSpaceScanProgress?.scanId === progress.scanId
       const previousMeasurements = sameScan ? state.workspaceSpaceMeasurements : []
@@ -230,7 +230,7 @@ export const createWorkspaceSpaceSlice: SessionStateCreator<AppState, WorkspaceS
         nextMeasurements.length === state.workspaceSpaceMeasurements.length &&
         nextAnalysis === state.workspaceSpaceAnalysis
       ) {
-        return state
+        return undefined
       }
       return {
         workspaceSpaceAnalysis: nextAnalysis,

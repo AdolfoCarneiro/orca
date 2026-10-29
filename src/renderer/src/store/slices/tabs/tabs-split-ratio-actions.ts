@@ -11,7 +11,7 @@ export function createTabsSplitRatioActions(
       set((state) => {
         const currentLayout = state.layoutByWorktree[worktreeId]
         if (!currentLayout) {
-          return state
+          return undefined
         }
         // No-op ratios must preserve root identity to avoid waking every subscriber (STA-3328).
         let targetNode: TabGroupLayoutNode | undefined = currentLayout
@@ -24,7 +24,7 @@ export function createTabsSplitRatioActions(
               : undefined
         }
         if (!targetNode || targetNode.type !== 'split' || (targetNode.ratio ?? 0.5) === ratio) {
-          return state
+          return undefined
         }
         return editSessionSource(state)
           .set(

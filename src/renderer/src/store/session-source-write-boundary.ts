@@ -5,10 +5,9 @@ import {
   type SessionSourceDiscovery
 } from '../lib/session-source-fields'
 import {
-  SESSION_SOURCE_RECEIPT,
-  readSessionSourceReceipt,
+  unwrapSessionSourceWrite,
   type SessionSourceSet,
-  type SessionSourceWrite
+  type SessionSourcePartial
 } from './session-source-edits'
 
 type SourceApi<S> = Omit<S, 'setState'> & {
@@ -30,22 +29,15 @@ export type SessionStateCreator<T, Slice = T> = StateCreator<
   Slice
 >
 
-export function replaceSessionSourceFields<S extends object>(
-  partial: S
-): S & SessionSourceWrite<S> {
-  return Object.assign({}, partial, {
-    [SESSION_SOURCE_RECEIPT]: {
-      changes: new Map(SESSION_SOURCE_FIELDS.map((field) => [field, null])),
-      full: true
-    }
-  })
-}
+export { replaceSessionSourceFields } from './session-source-edits'
 
 /** The fixed-field gate is the only compatibility fallback for an unreported write. */
 export function withSessionSourceWrites<T extends object>(
   createState: SessionStateCreator<T>,
   development = import.meta.env.DEV,
-  reconcile?: (api: StoreApi<T>) => (state: T, requested: T | Partial<T>) => T | Partial<T>
+  reconcile?: (
+    api: StoreApi<T>
+  ) => (state: T, requested: SessionSourcePartial<T>) => SessionSourcePartial<T>
 ): StateCreator<T, [], [['orca/session-source', never]]> {
   const initialize: StateCreator<T, [], []> = (set, get, api) => {
     const prepare = reconcile?.(api)
@@ -62,11 +54,15 @@ export function withSessionSourceWrites<T extends object>(
           ;(write as (partial: (state: T) => T | Partial<T>, replace?: boolean) => void)(
             (state) => {
               const requested = typeof partial === 'function' ? partial(state) : partial
-              if (requested === state) {
+              if (requested === undefined) {
                 return state
               }
-              const prepared = prepare ? prepare(state, requested) : requested
-              let receipt = readSessionSourceReceipt(prepared)
+              // SAFETY: raw Zustand ingress is checked by this same fixed-field gate below.
+              const admitted = requested as SessionSourcePartial<T>
+              const accepted = prepare ? prepare(state, admitted) : admitted
+              const { partial: prepared, receipt: suppliedReceipt } =
+                unwrapSessionSourceWrite(accepted)
+              let receipt = suppliedReceipt
               const changes = new Map(receipt?.changes)
               const unreported: string[] = []
               for (const field of SESSION_SOURCE_FIELDS) {
@@ -87,10 +83,14 @@ export function withSessionSourceWrites<T extends object>(
               if (unreported.length && development) {
                 throw new Error(`Unreported session source write: ${unreported.join(', ')}`)
               }
-              receipt = { ...receipt, changes, full: Boolean(receipt?.full || unreported.length) }
+              receipt = {
+                ...receipt,
+                changes,
+                full: Boolean(receipt?.full || unreported.length),
+                fullBoundary: unreported.length ? 'fallback' : receipt?.fullBoundary
+              }
               currentReceipt = receipt
               const next = { ...prepared }
-              Reflect.deleteProperty(next, SESSION_SOURCE_RECEIPT)
               return Object.keys(next).length ? next : state
             },
             replace

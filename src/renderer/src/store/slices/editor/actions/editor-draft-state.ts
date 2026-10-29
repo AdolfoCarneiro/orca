@@ -63,7 +63,7 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
 
         const file = state.openFiles.find((candidate) => candidate.id === fileId)
         if (!file || Boolean(file.csvPreviewOnly) === enabled) {
-          return state
+          return undefined
         }
         sourceEdit
           .sequence('openFiles')
@@ -78,12 +78,12 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
       set((s) => {
         const viewIds = [fileId, ...editorBufferSiblingViewIds(s, fileId)]
         if (viewIds.every((id) => s.editorDrafts[id] === content)) {
-          return s
+          return undefined
         }
         // Read-only drafts could trigger dirty/autosave/hot-exit overwrite of agent transcripts; refuse them.
         const file = s.openFiles.find((f) => f.id === fileId)
         if (file?.readOnly === true || file?.csvPreviewOnly === true) {
-          return s
+          return undefined
         }
         const edit = editSessionSource(s)
         for (const id of viewIds) {
@@ -106,7 +106,7 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
         // Why: default is false — delete rather than store it so the record stays minimal.
         if (!enabled) {
           if (!(fileId in s.markdownRichModeSizeOverride)) {
-            return s
+            return undefined
           }
           const next = { ...s.markdownRichModeSizeOverride }
           delete next[fileId]
@@ -123,7 +123,7 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
         // Why: default is 'edit' — delete rather than store it so the record stays minimal and hydration round-trips cleanly.
         if (mode === 'edit') {
           if (!(fileId in s.editorViewMode)) {
-            return s
+            return undefined
           }
           const next = { ...s.editorViewMode }
           delete next[fileId]
@@ -138,7 +138,7 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
         // Why: don't persist the default value; delete instead so the map carries only overrides and hydration round-trips cleanly.
         if (visible) {
           if (!(fileId in s.markdownFrontmatterVisible)) {
-            return s
+            return undefined
           }
           return editSessionSource(s).remove('markdownFrontmatterVisible', fileId).finish()
         }
@@ -150,7 +150,7 @@ export function createEditorDraftState(set: EditorSet, _get: EditorGet): EditorD
       set((s) => {
         if (!visible) {
           if (!(fileId in s.markdownTableOfContentsVisible)) {
-            return s
+            return undefined
           }
           const next = { ...s.markdownTableOfContentsVisible }
           delete next[fileId]

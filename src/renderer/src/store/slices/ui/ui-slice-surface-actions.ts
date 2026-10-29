@@ -19,7 +19,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
       set((state) => {
         if (!scan) {
           if (!state.workspacePortScan && Object.keys(state.workspacePortScansByKey).length === 0) {
-            return state
+            return undefined
           }
           return { workspacePortScan: null, workspacePortScansByKey: {} }
         }
@@ -28,7 +28,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
           state.workspacePortScan.result === scan.result &&
           state.workspacePortScansByKey[scan.key] === scan.result
         ) {
-          return state
+          return undefined
         }
         return {
           workspacePortScan: scan,
@@ -42,7 +42,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
           state.workspacePortScan?.key === scan?.key &&
           state.workspacePortScan?.result === scan?.result
         ) {
-          return state
+          return undefined
         }
         return { workspacePortScan: scan }
       }),
@@ -54,7 +54,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
           state.workspacePortScan?.key === projection?.key &&
           state.workspacePortScan?.result === projection?.result
         ) {
-          return state
+          return undefined
         }
         return { workspacePortScansByKey: scansByKey, workspacePortScan: projection }
       }),
@@ -62,7 +62,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
       set((state) => {
         const currentResult = state.workspacePortScansByKey[key]
         if (currentResult === result || (!result && !currentResult)) {
-          return state
+          return undefined
         }
         const nextScansByKey = { ...state.workspacePortScansByKey }
         if (result) {
@@ -123,7 +123,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
       set((s) => {
         const target = s.customPets.find((m) => m.id === id)
         if (!target) {
-          return s
+          return undefined
         }
         const next = s.customPets.filter((m) => m.id !== id)
         // Why: removing the active custom pet falls back to bundled default so the overlay isn't empty.

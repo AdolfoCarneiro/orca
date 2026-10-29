@@ -70,7 +70,7 @@ export function createTabsGroupActions(
           orderSlot && groups.find((group) => group.tabOrder.includes(orderSlot.tabId))
         if (reserved) {
           groupId = reserved.id
-          return state
+          return undefined
         }
         const tabs = state.unifiedTabsByWorktree[worktreeId] ?? []
         const placement = resolveUnifiedTabCreatePlacement({
@@ -140,7 +140,7 @@ export function createTabsGroupActions(
             ...activeSurfacePatch
           })
         ) {
-          return state
+          return undefined
         }
         return edit.finish(activeSurfacePatch)
       }),

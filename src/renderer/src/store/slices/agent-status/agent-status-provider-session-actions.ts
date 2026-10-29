@@ -59,7 +59,7 @@ export function createAgentStatusProviderSessionActions(
             (existingStatus && updatedAt < existingStatus.updatedAt) ||
             (existingRecord && updatedAt < existingRecord.updatedAt)
           ) {
-            return s
+            return undefined
           }
           const tabId = routing?.tabId ?? getTabIdFromPaneKey(paneKey) ?? existingRecord?.tabId
           const worktreeId =
@@ -68,7 +68,7 @@ export function createAgentStatusProviderSessionActions(
             existingRecord?.worktreeId ??
             findAgentPaneWorktreeId(s, paneKey)
           if (!worktreeId) {
-            return s
+            return undefined
           }
           const registryEntry = s.agentLaunchConfigByPaneKey[paneKey]
           const registryMatches = registryEntryMatchesStatus({

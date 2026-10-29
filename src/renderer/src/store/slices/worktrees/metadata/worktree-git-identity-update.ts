@@ -106,7 +106,7 @@ export function createUpdateWorktreeGitIdentity(
     set((s) => {
       const current = s.worktreesByRepo[repoId]
       if (!current) {
-        return s
+        return undefined
       }
 
       let changed = false
@@ -205,7 +205,7 @@ export function createUpdateWorktreeGitIdentity(
       })
 
       if (!changed) {
-        return s
+        return undefined
       }
 
       return editSessionSource(s)

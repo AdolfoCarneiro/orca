@@ -114,7 +114,7 @@ export function createTabsFocusActions(
           found = findTabAndWorktree(state.unifiedTabsByWorktree, tabId)
         }
         if (!found) {
-          return state
+          return undefined
         }
         const { tab, worktreeId } = found
         if (ORCA_LAYOUT_OWNER_IS_MAIN && tab.isPreview && !opts?.preservePreview) {

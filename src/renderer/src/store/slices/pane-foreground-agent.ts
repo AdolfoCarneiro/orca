@@ -50,7 +50,7 @@ export const createPaneForegroundAgentSlice: SessionStateCreator<
         current.routingConfirmationPending === entry.routingConfirmationPending &&
         current.shellForeground === entry.shellForeground
       ) {
-        return s
+        return undefined
       }
       return {
         paneForegroundAgentByPaneKey: { ...s.paneForegroundAgentByPaneKey, [paneKey]: entry }
@@ -60,7 +60,7 @@ export const createPaneForegroundAgentSlice: SessionStateCreator<
   clearPaneForegroundAgent: (paneKey) => {
     set((s) => {
       if (!(paneKey in s.paneForegroundAgentByPaneKey)) {
-        return s
+        return undefined
       }
       const next = { ...s.paneForegroundAgentByPaneKey }
       delete next[paneKey]

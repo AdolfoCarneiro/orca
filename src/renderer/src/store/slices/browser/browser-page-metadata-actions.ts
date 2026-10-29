@@ -42,7 +42,7 @@ export function createBrowserPageMetadataActions(
 
         const current = s.remoteBrowserPageHandlesByPageId[pageId]
         if (!current || (remotePageId && current.remotePageId !== remotePageId)) {
-          return s
+          return undefined
         }
         removedHandle = current
 
@@ -57,11 +57,11 @@ export function createBrowserPageMetadataActions(
       set((s) => {
         const page = findPage(s.browserPagesByWorkspace, pageId)
         if (!page) {
-          return s
+          return undefined
         }
         const workspace = findWorkspace(s.browserTabsByWorktree, page.workspaceId)
         if (!workspace) {
-          return s
+          return undefined
         }
         const nextPages = (s.browserPagesByWorkspace[workspace.id] ?? []).map((entry) =>
           entry.id === pageId ? { ...entry, viewportPresetId } : entry
@@ -96,7 +96,7 @@ export function createBrowserPageMetadataActions(
         const existing = s.browserAnnotationsByPageId[pageId] ?? []
         const target = existing.find((annotation) => annotation.id === annotationId)
         if (!target) {
-          return s
+          return undefined
         }
         const updated = sanitizeBrowserPageAnnotation({ ...target, ...patch })
         return {
@@ -114,7 +114,7 @@ export function createBrowserPageMetadataActions(
         const existing = s.browserAnnotationsByPageId[pageId] ?? []
         const next = existing.filter((annotation) => annotation.id !== annotationId)
         if (next.length === existing.length) {
-          return s
+          return undefined
         }
         const nextByPageId = { ...s.browserAnnotationsByPageId }
         if (next.length > 0) {
@@ -140,7 +140,7 @@ export function createBrowserPageMetadataActions(
           notes === s.browserAnnotationsByPageId &&
           markers === s.browserAnnotationMarkerIdsByPageId
         ) {
-          return s
+          return undefined
         }
         return { browserAnnotationsByPageId: notes, browserAnnotationMarkerIdsByPageId: markers }
       }),
@@ -160,7 +160,7 @@ export function createBrowserPageMetadataActions(
         const delivered = new Set(deliveredAnnotations)
         const remaining = existing.filter((note) => !delivered.has(note))
         if (remaining.length === existing.length) {
-          return s
+          return undefined
         }
         const nextByPageId = { ...s.browserAnnotationsByPageId }
         if (remaining.length > 0) {

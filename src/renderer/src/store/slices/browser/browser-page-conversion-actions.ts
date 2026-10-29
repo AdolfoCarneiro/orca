@@ -50,7 +50,7 @@ export function createBrowserPageConversionActions(
             ...(newPageId ? { newPageId } : {})
           })
           if (!plan) {
-            return s
+            return undefined
           }
           converted = plan.newPage
           // Collect revocations outside reducers so main executes once even if set retries.
@@ -162,7 +162,7 @@ export function createBrowserPageConversionActions(
         const recentlyClosed = s.recentlyClosedBrowserPagesByWorkspace[workspaceId] ?? []
         pageToRestore = recentlyClosed[0]
         if (!pageToRestore) {
-          return s
+          return undefined
         }
         return {
           recentlyClosedBrowserPagesByWorkspace: {
@@ -188,11 +188,11 @@ export function createBrowserPageConversionActions(
       set((s) => {
         const workspace = findWorkspace(s.browserTabsByWorktree, workspaceId)
         if (!workspace) {
-          return s
+          return undefined
         }
         const pages = s.browserPagesByWorkspace[workspaceId] ?? []
         if (!pages.some((page) => page.id === pageId)) {
-          return s
+          return undefined
         }
         const nextWorkspace = mirrorWorkspaceFromActivePage(
           {

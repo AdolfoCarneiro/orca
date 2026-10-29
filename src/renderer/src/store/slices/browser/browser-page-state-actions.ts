@@ -30,11 +30,11 @@ export function createBrowserPageStateActions(
       set((s) => {
         const page = findPage(s.browserPagesByWorkspace, pageId)
         if (!page) {
-          return s
+          return undefined
         }
         const workspace = findWorkspace(s.browserTabsByWorktree, page.workspaceId)
         if (!workspace) {
-          return s
+          return undefined
         }
         const nextPage = {
           ...page,
@@ -72,7 +72,7 @@ export function createBrowserPageStateActions(
           mirroredWorkspace !== null &&
           !browserWorkspaceMirrorFieldsEqual(workspace, mirroredWorkspace)
         if (pageStateUnchanged && !unifiedLabelNeedsRepair && !workspaceNeedsRepair) {
-          return s
+          return undefined
         }
         if (pageStateUnchanged) {
           const nextState: Partial<AppState> = {}
@@ -147,14 +147,14 @@ export function createBrowserPageStateActions(
         const current = s.browserCertificateFailuresByPageId[pageId]
         if (failure === null) {
           if (!current) {
-            return s
+            return undefined
           }
           const nextFailures = { ...s.browserCertificateFailuresByPageId }
           delete nextFailures[pageId]
           return { browserCertificateFailuresByPageId: nextFailures }
         }
         if (!findPage(s.browserPagesByWorkspace, pageId) || current === failure) {
-          return s
+          return undefined
         }
         return {
           browserCertificateFailuresByPageId: {
@@ -178,11 +178,11 @@ export function createBrowserPageStateActions(
       set((s) => {
         const page = findPage(s.browserPagesByWorkspace, pageId)
         if (!page) {
-          return s
+          return undefined
         }
         const workspace = findWorkspace(s.browserTabsByWorktree, page.workspaceId)
         if (!workspace) {
-          return s
+          return undefined
         }
         // Keep document URL blank at navigation sink too; committing grants here leaks to persistence, publication and address bar.
         const nextPageUrl = page.docLocation ? ORCA_BROWSER_BLANK_URL : nextUrl

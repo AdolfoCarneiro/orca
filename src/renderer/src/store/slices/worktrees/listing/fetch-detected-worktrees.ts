@@ -66,7 +66,7 @@ export function createFetchDetectedWorktrees(
             ownerWasMissingAtStart && !refresh.directSshAuthority
           )
         ) {
-          return s
+          return undefined
         }
         admitted = true
         // Why: detected-only refreshes can overlap host-scoped visible refreshes; merge detected state so SSH/runtime rows aren't clobbered.

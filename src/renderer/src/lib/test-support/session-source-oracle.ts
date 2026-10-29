@@ -22,12 +22,25 @@ export function observeSessionSourceOracle(store: SourceTestStore): () => void {
       const native = discoverSessionSources(before, after)
       expect(receipt, 'accepted write has a source receipt').toBeDefined()
       if (receipt?.full) {
-        return
+        expect(
+          receipt.fullBoundary,
+          'full boundaries require explicit replacement or order authority'
+        ).toBeOneOf(['replacement', 'order'])
+        if (receipt.fullBoundary === 'replacement') {
+          expect(
+            [...receipt.changes.values()].some((keys) => keys === null),
+            'replacement names its complete domain'
+          ).toBe(true)
+        }
+      } else {
+        expect(native.full, 'native order changes require a full boundary').toBe(false)
       }
-      expect(native.full, 'native order changes require a full boundary').toBe(false)
       for (const [field, keys] of native.changes) {
         expect(receipt?.changes.has(field), `missing source field: ${field}`).toBe(true)
         const reported = receipt?.changes.get(field)
+        if (reported === null) {
+          continue
+        }
         if (keys === null) {
           expect(reported, field).toBeNull()
         } else {

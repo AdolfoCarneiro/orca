@@ -71,6 +71,7 @@ export type SessionMutation = ReadonlyMap<SessionSourceField, ReadonlySet<string
 export type SessionSourceDiscovery = {
   changes: SessionMutation
   full: boolean
+  fullBoundary?: 'replacement' | 'order' | 'fallback'
   sequences?: SessionSourceSequences
   presence?: ReadonlyMap<SessionSourceField, ReadonlyMap<string, SessionSourcePresence>>
 }

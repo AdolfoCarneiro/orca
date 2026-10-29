@@ -66,7 +66,7 @@ export const createGitHubSlice: SessionStateCreator<AppState, GitHubSlice> = (se
         state.status !== token.status ||
         state.updatedAt !== token.updatedAt
       ) {
-        return s
+        return undefined
       }
       const nextStates = { ...s.prRefreshStates }
       delete nextStates[cacheKey]

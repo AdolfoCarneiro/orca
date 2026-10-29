@@ -79,7 +79,7 @@ export function createAgentStatusOrchestrationActions(
         }
 
         if (!runtimeMapChanged && !liveChanged && !retainedChanged) {
-          return s
+          return undefined
         }
 
         return {

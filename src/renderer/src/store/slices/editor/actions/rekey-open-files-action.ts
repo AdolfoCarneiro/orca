@@ -172,7 +172,7 @@ export function createRekeyOpenFilesAction(
         const next = rekeyOpenFilesPatch(s, rekeys, moveOperationId)
         if (!next.ok) {
           result = next
-          return s
+          return undefined
         }
         return next.patch
       })

@@ -114,18 +114,18 @@ export function createCheckRunDetailsActions(
 
         const existing = s.openFiles.find((f) => f.id === id)
         if (existing?.mode !== 'check-details' || !existing.checkRunDetails) {
-          return s
+          return undefined
         }
         const current = existing.checkRunDetails
         if (current.contextKey !== contextKey) {
-          return s
+          return undefined
         }
         if (
           state.requestId !== undefined &&
           current.requestId !== undefined &&
           state.requestId < current.requestId
         ) {
-          return s
+          return undefined
         }
         // Async sidebar project lookup must not clear a previously known MR ref.
         const githubRepository = state.githubRepository ?? current.githubRepository ?? null
@@ -151,7 +151,7 @@ export function createCheckRunDetailsActions(
           isSameGitHubRepository(current.githubRepository ?? null, githubRepository) &&
           isSameGitLabProjectRef(current.gitlabProjectRef ?? null, gitlabProjectRef)
         ) {
-          return s
+          return undefined
         }
         accepted = { previous: current, next: nextCheckRunDetails }
         sourceEdit

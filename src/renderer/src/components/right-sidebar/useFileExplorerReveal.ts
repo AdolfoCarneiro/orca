@@ -128,7 +128,7 @@ export function useFileExplorerReveal({
       }
 
       if (!changed) {
-        return state
+        return undefined
       }
 
       return {

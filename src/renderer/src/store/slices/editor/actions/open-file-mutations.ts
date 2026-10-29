@@ -75,14 +75,14 @@ export function createOpenFileMutations(
         // Per-keystroke openFiles rebuilds caused typing lag; preserve no-op identity.
         const file = s.openFiles.find((f) => f.id === fileId)
         if (!file) {
-          return s
+          return undefined
         }
         // Why: read-only tabs can never become dirty; hard no-op any stray change/save callback that reached here.
         if (
           (file.readOnly === true || file.csvPreviewOnly === true) &&
           (dirty || opts?.written !== true)
         ) {
-          return s
+          return undefined
         }
         const buffer = editorBufferOf(s, file)
         const needsPreviewClear = dirty && file.isPreview
@@ -99,7 +99,7 @@ export function createOpenFileMutations(
           !needsPreviewClear &&
           !dropDraft
         ) {
-          return s
+          return undefined
         }
         if (ORCA_LAYOUT_OWNER_IS_MAIN && needsPreviewClear) {
           promoted.push(...previewEditorTabsOf(s.unifiedTabsByWorktree, fileId))
@@ -172,7 +172,7 @@ export function createOpenFileMutations(
 
         const file = s.openFiles.find((f) => f.id === fileId)
         if (!file?.pendingSelfMoveEcho) {
-          return s
+          return undefined
         }
         sourceEdit
           .sequence('openFiles')

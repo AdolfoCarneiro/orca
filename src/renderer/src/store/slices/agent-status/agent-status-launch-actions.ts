@@ -72,7 +72,7 @@ export function createAgentStatusLaunchActions(
           }
         }
         if (!registryChanged && nextSleepingAgentSessions === s.sleepingAgentSessionsByPaneKey) {
-          return s
+          return undefined
         }
         return {
           ...(registryChanged
@@ -93,7 +93,7 @@ export function createAgentStatusLaunchActions(
     clearAgentLaunchConfig: (paneKey) => {
       set((s) => {
         if (!(paneKey in s.agentLaunchConfigByPaneKey)) {
-          return s
+          return undefined
         }
         const nextLaunchConfigs = { ...s.agentLaunchConfigByPaneKey }
         delete nextLaunchConfigs[paneKey]

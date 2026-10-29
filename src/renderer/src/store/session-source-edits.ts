@@ -1,43 +1,52 @@
 import {
+  SESSION_SOURCE_FIELDS,
   SESSION_SOURCE_KINDS,
-  type SessionSourceKind,
   type SessionSourceDiscovery,
   type SessionSourceField,
   type SessionSourcePresence
 } from '../lib/session-source-fields'
 import { SessionSourceSequence } from './session-source-sequence'
 
-export const SESSION_SOURCE_RECEIPT = Symbol('session source receipt')
-declare const SOURCE_SNAPSHOT: unique symbol
-export type SessionSourceSnapshot<S> = S & { readonly [SOURCE_SNAPSHOT]: true }
+import { SessionSourceReceipts } from '../lib/session-source-receipts'
+import type { AppState } from './types'
+import type {
+  SourceKey,
+  RecordKey,
+  Entry,
+  OrdinarySourcePartial,
+  SessionSourcePartial
+} from './session-source-write-types'
+export type {
+  OrdinarySourcePartial,
+  SessionSourcePartial,
+  SessionSourceUpdate,
+  SessionSourceSetArgs,
+  SessionSourceSet
+} from './session-source-write-types'
+
 type SourceEntry = { present: boolean; value: unknown }
-type SourceKey<S> = Extract<keyof S, SessionSourceField>
-type RecordKey<S> = Extract<SourceKey<S>, SessionSourceKind<'keyed'>>
-type Entry<S, F extends RecordKey<S>> =
-  NonNullable<S[F]> extends ReadonlyMap<string, infer V>
-    ? V
-    : NonNullable<S[F]> extends Record<string, infer V>
-      ? V
-      : never
-export type OrdinarySourcePartial<S> = Partial<
-  Omit<S, Exclude<SourceKey<S>, SessionSourceKind<'field'>>>
-> &
-  Partial<Record<Exclude<SourceKey<S>, SessionSourceKind<'field'>>, never>>
-export type SessionSourceWrite<S> = Partial<S> & {
-  readonly [SESSION_SOURCE_RECEIPT]: SessionSourceDiscovery
+
+class SourceWrite<S> {
+  readonly sourceWrite = true
+  readonly #data: { partial: Readonly<Partial<S>>; receipt: SessionSourceDiscovery }
+  constructor(partial: Partial<S>, receipt: SessionSourceDiscovery) {
+    this.#data = Object.freeze({
+      partial: Object.freeze({ ...partial }),
+      receipt: Object.freeze(receipt)
+    })
+    Object.freeze(this)
+  }
+  static unwrap<S>(write: SourceWrite<S>) {
+    return write.#data
+  }
 }
-export type SessionSourcePartial<S> = OrdinarySourcePartial<S> | SessionSourceWrite<S>
-export type SessionSourceUpdate<S> =
-  | SessionSourcePartial<S>
-  | ((
-      state: SessionSourceSnapshot<S>
-    ) => OrdinarySourcePartial<S> | SessionSourceWrite<S> | SessionSourceSnapshot<S>)
-export type SessionSourceSetArgs<S> =
-  | [partial: SessionSourceUpdate<S>, replace?: false]
-  | [partial: SessionSourceWrite<S> & S, replace: true]
-export type SessionSourceSet<S> = {
-  (partial: SessionSourceUpdate<S>, replace?: false): void
-  (partial: SessionSourceWrite<S> & S, replace: true): void
+export type SessionSourceWrite<S> = SourceWrite<S>
+
+/** Only the setter, middleware and batch boundary may access accepted payloads. */
+export function unwrapSessionSourceWrite<S>(write: SessionSourcePartial<S>) {
+  return write instanceof SourceWrite
+    ? SourceWrite.unwrap(write)
+    : { partial: write, receipt: undefined }
 }
 
 /** Values and addresses are emitted by the same operation; no source ancestry is retained. */
@@ -48,6 +57,7 @@ export class SessionSourceEdit<S extends object> {
   private readonly baseEntries = new Map<SessionSourceField, Map<string, SourceEntry>>()
   private readonly presence = new Map<SessionSourceField, Map<string, SessionSourcePresence>>()
   private full = false
+  private fullBoundary: SessionSourceDiscovery['fullBoundary']
   private readonly sequences: NonNullable<SessionSourceDiscovery['sequences']> = {}
 
   constructor(private readonly source: S) {}
@@ -148,6 +158,7 @@ export class SessionSourceEdit<S extends object> {
       (source instanceof Map ? source.has(key) : Object.hasOwn(source ?? {}, key))
     ) {
       this.full = true
+      this.fullBoundary = 'order'
     }
     this.transition(field, key, present, true)
     const record = this.record(field)
@@ -193,6 +204,7 @@ export class SessionSourceEdit<S extends object> {
     const prior = entries.get(key)
     if (prior && !prior.after && after) {
       this.full = true
+      this.fullBoundary = 'order'
     }
     entries.set(key, { before: prior?.before ?? before, after })
     this.presence.set(field, entries)
@@ -203,6 +215,7 @@ export class SessionSourceEdit<S extends object> {
     this.copied.delete(field)
     this.changes.set(field, null)
     this.full = true
+    this.fullBoundary = 'replacement'
     return this
   }
 
@@ -230,7 +243,10 @@ export class SessionSourceEdit<S extends object> {
         for (const [key, change] of presence) {
           this.transition(field, key, change.before, change.after)
         }
-        this.full ||= field !== 'openFiles' && reordered
+        if (field !== 'openFiles' && reordered) {
+          this.full = true
+          this.fullBoundary = 'order'
+        }
         return this
       }
     )
@@ -255,17 +271,16 @@ export class SessionSourceEdit<S extends object> {
         }
       }
     }
-    return Object.assign({}, other, this.partial, {
-      [SESSION_SOURCE_RECEIPT]: {
-        changes: new Map(
-          [...this.changes].map(([field, keys]) => [field, keys === null ? null : new Set(keys)])
-        ),
-        full: this.full,
-        sequences: Object.fromEntries(
-          Object.entries(this.sequences).map(([field, groups]) => [field, new Map(groups)])
-        ),
-        presence: new Map([...this.presence].map(([field, entries]) => [field, new Map(entries)]))
-      }
+    return new SourceWrite(Object.assign({}, other, this.partial), {
+      changes: new Map(
+        [...this.changes].map(([field, keys]) => [field, keys === null ? null : new Set(keys)])
+      ),
+      full: this.full,
+      fullBoundary: this.fullBoundary,
+      sequences: Object.fromEntries(
+        Object.entries(this.sequences).map(([field, groups]) => [field, new Map(groups)])
+      ),
+      presence: new Map([...this.presence].map(([field, entries]) => [field, new Map(entries)]))
     })
   }
 }
@@ -276,14 +291,43 @@ export function editSessionSource<S extends object>(state: S): SessionSourceEdit
 
 type SequenceRow<S, F extends keyof S> = S[F] extends readonly (infer V)[] ? V : never
 
-export function readSessionSourceReceipt(write: object): SessionSourceDiscovery | undefined {
-  // SAFETY: this symbol is private to the typed boundary implementation.
-  return Reflect.get(write, SESSION_SOURCE_RECEIPT) as SessionSourceDiscovery | undefined
+export function replaceSessionSourceFields<S extends object>(partial: S): SessionSourceWrite<S> {
+  return new SourceWrite(partial, {
+    changes: new Map(SESSION_SOURCE_FIELDS.map((field) => [field, null])),
+    full: true,
+    fullBoundary: 'replacement'
+  })
 }
 
-export function withSessionSourceReceipt<S>(
-  partial: Partial<S>,
-  receipt: SessionSourceDiscovery
+/** Composition accepts only already-authorized writes; overlap is reserved for sequential middleware. */
+export function composeSessionSourceWrites<S>(
+  writes: SessionSourcePartial<S>[],
+  middlewareChain = false,
+  roots?: { before: AppState; after: AppState }
 ): SessionSourceWrite<S> {
-  return Object.assign({}, partial, { [SESSION_SOURCE_RECEIPT]: receipt })
+  const receipts = new SessionSourceReceipts(),
+    fields = new Set<string>()
+  const partial: Partial<S> = {}
+  for (const write of writes) {
+    const data = unwrapSessionSourceWrite(write)
+    for (const field of data.receipt?.changes.keys() ?? []) {
+      if (
+        import.meta.env.DEV &&
+        !middlewareChain &&
+        SESSION_SOURCE_KINDS[field] === 'keyed' &&
+        fields.has(field)
+      ) {
+        throw new Error(`Composed source writes overlap: ${field}`)
+      }
+      fields.add(field)
+    }
+    if (data.receipt) {
+      receipts.add(data.receipt)
+    }
+    Object.assign(partial, data.partial)
+  }
+  return new SourceWrite(
+    partial,
+    roots ? receipts.take(roots.before, roots.after) : receipts.snapshot()
+  )
 }

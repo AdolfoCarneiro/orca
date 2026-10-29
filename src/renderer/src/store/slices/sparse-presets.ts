@@ -140,7 +140,7 @@ export const createSparsePresetsSlice: SessionStateCreator<AppState, SparsePrese
       set((s) => {
         const existing = s.sparsePresetsByRepo[args.repoId]
         if (existing === undefined) {
-          return s
+          return undefined
         }
         const without = existing.filter((preset) => preset.id !== saved.id)
         return {

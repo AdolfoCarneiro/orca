@@ -13,7 +13,7 @@ import {
 } from '../../../shared/session-change-set'
 import type { AppState } from '../store/types'
 import { getDefaultWorkspaceSession } from '../../../shared/constants'
-import { editSessionSource, SESSION_SOURCE_RECEIPT } from '../store/session-source-edits'
+import { editSessionSource, unwrapSessionSourceWrite } from '../store/session-source-edits'
 import { makeOpenFile } from '../store/slices/store-session-test-harness'
 import type { WorkspaceSessionPatch } from '../../../shared/workspace-session-state-types'
 
@@ -61,7 +61,10 @@ describe('keyed session persistence', () => {
         throw new Error('unrelated file traversal')
       }
     })
-    const update = projection.update({ ...native, openFiles }, write[SESSION_SOURCE_RECEIPT])
+    const update = projection.update(
+      { ...native, openFiles },
+      unwrapSessionSourceWrite(write).receipt!
+    )
     expect(update.full).toBe(false)
     expect(update.patch.openFilesByWorktree).toEqual(expected.openFilesByWorktree)
     expect(update.patch.openFilesByWorktree?.['repo::/a']).toHaveLength(2)

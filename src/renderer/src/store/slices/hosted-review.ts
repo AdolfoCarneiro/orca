@@ -230,7 +230,7 @@ export const createHostedReviewSlice: SessionStateCreator<AppState, HostedReview
                   requestStartedEntry
                 )
               ) {
-                return state
+                return undefined
               }
               const currentPRCache = state.prCache ?? {}
               const prCache = options?.exactReviewKey

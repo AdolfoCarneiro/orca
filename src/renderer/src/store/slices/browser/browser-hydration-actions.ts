@@ -100,7 +100,7 @@ export function createBrowserHydrationActions(
                 .finish({})
             }
           }
-          return s
+          return undefined
         })
       // Switch point: main switches the tab's profile; its frame shows the change.
       const tab = ORCA_LAYOUT_OWNER_IS_MAIN

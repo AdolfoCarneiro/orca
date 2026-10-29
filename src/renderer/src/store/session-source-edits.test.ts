@@ -1,10 +1,9 @@
-import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { useAppStore } from './index'
 import {
   editSessionSource,
-  SESSION_SOURCE_RECEIPT,
+  unwrapSessionSourceWrite,
   type SessionSourceWrite
 } from './session-source-edits'
 import {
@@ -33,11 +32,13 @@ function fixture(): AppState {
 }
 
 function verify(before: AppState, write: SessionSourceWrite<AppState>): AppState {
-  const next = { ...before, ...write }
-  expect(write[SESSION_SOURCE_RECEIPT].changes).toEqual(
+  const next = { ...before, ...unwrapSessionSourceWrite(write).partial }
+  expect(unwrapSessionSourceWrite(write).receipt!.changes).toEqual(
     discoverSessionSources(before, next).changes
   )
-  expect(write[SESSION_SOURCE_RECEIPT].full).toBe(discoverSessionSources(before, next).full)
+  expect(unwrapSessionSourceWrite(write).receipt!.full).toBe(
+    discoverSessionSources(before, next).full
+  )
   return next
 }
 
@@ -74,13 +75,16 @@ describe('atomic named source edits', () => {
       .remove('editorDrafts', 'a')
       .set('editorDrafts', 'a', 'before')
       .finish()
-    expect(reordered[SESSION_SOURCE_RECEIPT].full).toBe(true)
-    expect(Object.keys(reordered.editorDrafts!)).toEqual(['b', 'a'])
+    expect(unwrapSessionSourceWrite(reordered).receipt!.full).toBe(true)
+    expect(Object.keys(unwrapSessionSourceWrite(reordered).partial.editorDrafts!)).toEqual([
+      'b',
+      'a'
+    ])
     const empty = editSessionSource(before)
       .replace('editorDrafts', {})
       .set('editorDrafts', 'c', 'new')
       .finish()
-    expect(empty.editorDrafts).toEqual({ c: 'new' })
+    expect(unwrapSessionSourceWrite(empty).partial.editorDrafts).toEqual({ c: 'new' })
     expect(before.editorDrafts).toEqual({ a: 'before', b: 'untouched' })
   })
 
@@ -103,9 +107,9 @@ describe('atomic named source edits', () => {
     const edit = editSessionSource(before)
     edit.sequence('repos').map((repo, index) => (index === 0 ? { ...repo, name: 'renamed' } : repo))
     const write = edit.finish()
-    const repos = write.repos
+    const repos = unwrapSessionSourceWrite(write).partial.repos
     verify(before, write)
-    expect(write[SESSION_SOURCE_RECEIPT].sequences?.repos?.get('same')).toEqual(repos)
+    expect(unwrapSessionSourceWrite(write).receipt!.sequences?.repos?.get('same')).toEqual(repos)
     expect(before.repos).toEqual([row, row])
   })
 
@@ -114,13 +118,13 @@ describe('atomic named source edits', () => {
     Object.freeze(before.editorDrafts)
     Object.freeze(before)
     const first = editSessionSource(before).remove('editorDrafts', 'a').finish()
-    const middle = { ...before, ...first }
+    const middle = { ...before, ...unwrapSessionSourceWrite(first).partial }
     Object.freeze(middle.editorDrafts)
     const second = editSessionSource(middle).set('editorDrafts', 'a', 'A').finish()
-    const after = { ...middle, ...second }
+    const after = { ...middle, ...unwrapSessionSourceWrite(second).partial }
     const pending = new SessionSourceReceipts()
-    pending.add(first[SESSION_SOURCE_RECEIPT])
-    pending.add(second[SESSION_SOURCE_RECEIPT])
+    pending.add(unwrapSessionSourceWrite(first).receipt!)
+    pending.add(unwrapSessionSourceWrite(second).receipt!)
     const receipt = pending.take(before, after)
     const native = discoverSessionSources(before, after)
     expect(Object.keys(after.editorDrafts)).toEqual(['b', 'a'])
@@ -133,15 +137,15 @@ describe('atomic named source edits', () => {
   it('coalesces pending keyed receipts against the captured source without enumerating Records', () => {
     const before = fixture()
     const first = editSessionSource(before).set('editorDrafts', 'a', 'temporary').finish()
-    const middle = { ...before, ...first }
+    const middle = { ...before, ...unwrapSessionSourceWrite(first).partial }
     const second = editSessionSource(middle)
       .set('editorDrafts', 'a', before.editorDrafts.a)
       .remove('editorDrafts', 'b')
       .finish()
-    const after = { ...middle, ...second }
+    const after = { ...middle, ...unwrapSessionSourceWrite(second).partial }
     const pending = new SessionSourceReceipts()
-    pending.add(first[SESSION_SOURCE_RECEIPT])
-    pending.add(second[SESSION_SOURCE_RECEIPT])
+    pending.add(unwrapSessionSourceWrite(first).receipt!)
+    pending.add(unwrapSessionSourceWrite(second).receipt!)
     const native = discoverSessionSources(before, after)
     const trap = <T extends object>(record: T): T =>
       new Proxy(record, {
@@ -169,8 +173,7 @@ describe('source write identity gate', () => {
       mode: 'edit' as const,
       isDirty: false
     }
-    setSessionTestState(
-      store,
+    store.setState(
       replaceSessionSourceFields({
         ...fixture(),
         openFiles: [{ ...file, isDirty: true }],
@@ -190,6 +193,23 @@ describe('source write identity gate', () => {
     expect(after.openFiles.every((row) => row.isDirty)).toBe(true)
     expect(receipt?.changes).toEqual(discoverSessionSources(before, after).changes)
     expect(receipt?.full).toBe(false)
+  })
+  it('preserves identity for an explicit no-op and keeps accepted payloads opaque', () => {
+    const store = createStore<AppState>()(withSessionSourceWrites(fixture, true))
+    const before = store.getState()
+    let notifications = 0
+    store.subscribe(() => {
+      notifications++
+    })
+    store.setState(() => undefined)
+    expect(store.getState()).toBe(before)
+    expect(notifications).toBe(0)
+    const write = editSessionSource(before).set('editorDrafts', 'a', 'opaque').finish()
+    expect({ ...write }).toEqual({ sourceWrite: true })
+    expect(Object.isFrozen(write)).toBe(true)
+    expect(Object.isFrozen(unwrapSessionSourceWrite(write).partial)).toBe(true)
+    store.setState(write)
+    expect(store.getState().editorDrafts.a).toBe('opaque')
   })
   it('publishes receipts before synchronous subscribers, including nested notifications', () => {
     const store = createStore<AppState>()(withSessionSourceWrites(fixture, true))
@@ -215,7 +235,7 @@ describe('source write identity gate', () => {
         full = Boolean(store.getSessionSourceReceipt()?.full)
       })
       // SAFETY: this deliberately bypasses the source setter type to exercise its one runtime gate.
-      const unsupported = { editorDrafts: {} } as SessionSourceWrite<AppState>
+      const unsupported = { editorDrafts: {} } as unknown as SessionSourceWrite<AppState>
       if (development) {
         expect(() => store.setState(unsupported)).toThrow(
           'Unreported session source write: editorDrafts'
@@ -224,7 +244,7 @@ describe('source write identity gate', () => {
         store.setState(unsupported)
         expect(full).toBe(true)
       }
-      setSessionTestState(store, replaceSessionSourceFields(fixture()), true)
+      store.setState(replaceSessionSourceFields(fixture()), true)
       expect(full).toBe(true)
     }
   })

@@ -45,7 +45,7 @@ export function createTabsLabelActions(
       const tabPatch = patchTab(edit, tabId, { viewMode: mode })
       const rowPatch = patchTerminalTabRow(edit, tabId, { viewMode: mode })
       if (!tabPatch && !rowPatch) {
-        return state
+        return undefined
       }
       return edit.finish()
     })
@@ -70,7 +70,7 @@ export function createTabsLabelActions(
     set((state) => {
       const found = findTabAndWorktree(state.unifiedTabsByWorktree, tabId)
       if (!found) {
-        return state
+        return undefined
       }
       // Why: viewMode defaults to 'terminal' for legacy/missing, so the first toggle flips to 'chat'.
       const fromMode: 'terminal' | 'chat' = to
@@ -171,7 +171,7 @@ export function createTabsLabelActions(
             ? reorderProjectedTabOrder(group.tabOrder, tabIds, opts.projectedMoveTabId)
             : dedupeTabOrder(tabIds)
           if (nextTabOrder === group.tabOrder) {
-            return state
+            return undefined
           }
           reordered = true
           changes.push({ worktreeId, from: group.tabOrder, to: nextTabOrder })
@@ -192,7 +192,7 @@ export function createTabsLabelActions(
             )
             .finish({})
         }
-        return state
+        return undefined
       })
       // Switch point: main takes the window's new order unless the caller already asked it.
       if (ORCA_LAYOUT_OWNER_IS_MAIN && !opts?.layoutOwnerHandled) {
@@ -255,7 +255,7 @@ export function createTabsLabelActions(
       set((state) => {
         const found = findTabAndWorktree(state.unifiedTabsByWorktree, tabId)
         if (!found) {
-          return state
+          return undefined
         }
         const { tab, worktreeId } = found
         // Switch point: main makes a pinned preview permanent; its frame clears the flag.
@@ -293,7 +293,7 @@ export function createTabsLabelActions(
       set((state) => {
         const found = findTabAndWorktree(state.unifiedTabsByWorktree, tabId)
         if (!found) {
-          return state
+          return undefined
         }
         const { tab, worktreeId } = found
         const tabs = (state.unifiedTabsByWorktree[worktreeId] ?? []).map((candidate) =>

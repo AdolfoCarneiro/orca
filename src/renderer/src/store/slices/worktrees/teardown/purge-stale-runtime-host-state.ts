@@ -249,7 +249,7 @@ export function createPurgeStaleRuntimeHostState(
             !visibilitySourceSupportChanged &&
             removedWorktreeIds.size === 0
           ) {
-            return s
+            return undefined
           }
 
           const detectedWorktreesByRepo = detectedChanged

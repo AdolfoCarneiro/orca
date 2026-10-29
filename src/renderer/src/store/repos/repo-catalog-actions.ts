@@ -47,7 +47,7 @@ export function createRepoCatalogActions(
       set((s) => {
         // Why: SshPane importConfig() often reports [] on every Manage-pane open.
         if (readoptions.length === 0 && s.pendingSshRepoReadoptions.length === 0) {
-          return s
+          return undefined
         }
         const pendingSshRepoReadoptions = mergeSshRepoReadoptions(
           s.pendingSshRepoReadoptions,
@@ -102,7 +102,7 @@ export function createRepoCatalogActions(
         set((s) => {
           // Why: an in-flight fetch for a just-removed env would re-add purged repos and stick; skip only when the env was tombstoned, not merely unhydrated (#8881).
           if (isRemovedRuntimeHostId(catalog.hostId, s.removedRuntimeEnvironmentIds)) {
-            return s
+            return undefined
           }
           // Why: re-adoption leaves a stale row on the old SSH target id (a ghost that fails "SSH target not found"); drop rows a live-host sibling supersedes.
           const result = mergeFetchedRepoCatalog(catalog, s.repos)

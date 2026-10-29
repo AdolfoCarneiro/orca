@@ -51,7 +51,7 @@ export const createStructuredChatSleptAtSlice: SessionStateCreator<
     set((state) => {
       const current = state.structuredChatSleptAtByPaneKey
       if (current[paneKey] === sleptAt) {
-        return state
+        return undefined
       }
       const { [paneKey]: _previous, ...rest } = current
       return {

@@ -68,7 +68,7 @@ export function createProjectGroupMutationActions(
                 existing.id === ownedGroup.id && getProjectGroupHostId(existing) === ownerHostId
             )
           ) {
-            return s
+            return undefined
           }
           return editSessionSource(s)
             .sequence('projectGroups')

@@ -173,7 +173,7 @@ export function createTabsDragPreviewActions(
         }
 
         if (Object.keys(next).length === 0) {
-          return state
+          return undefined
         }
 
         return next
@@ -192,7 +192,7 @@ export function createTabsDragPreviewActions(
         const groups = state.groupsByWorktree[worktreeId] ?? []
         const sourceGroup = groups.find((group) => group.id === sourceGroupId)
         if (!sourceGroup || sourceGroup.activeTabId === preDragActiveTabId) {
-          return state
+          return undefined
         }
         return editSessionSource(state)
           .set(

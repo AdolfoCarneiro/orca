@@ -123,11 +123,11 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
   setEnvironmentSshConnectionState: (environmentId, targetId, state, generation) =>
     set((s) => {
       if (!generationIsCurrent(environmentId, generation)) {
-        return s
+        return undefined
       }
       const bucket = getBucket(s.sshStateByEnvironment, environmentId)
       if (sshConnectionStatesEqual(bucket.connectionStates.get(targetId), state)) {
-        return s
+        return undefined
       }
       advanceEnvironmentSshTargetConnectionGeneration(environmentId, targetId)
       const connectionStates = new Map(bucket.connectionStates)
@@ -138,7 +138,7 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
   setEnvironmentSshTargetsMetadata: (environmentId, targets, generation) =>
     set((s) => {
       if (!generationIsCurrent(environmentId, generation)) {
-        return s
+        return undefined
       }
       const bucket = getBucket(s.sshStateByEnvironment, environmentId)
       const targetIds = new Set(targets.map((target) => target.id))
@@ -177,11 +177,11 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
   setEnvironmentRemovedSshTargetLabels: (environmentId, labels, generation) =>
     set((s) => {
       if (!generationIsCurrent(environmentId, generation)) {
-        return s
+        return undefined
       }
       const bucket = getBucket(s.sshStateByEnvironment, environmentId)
       if (removedLabelsEqual(bucket.removedTargetLabels, labels)) {
-        return s
+        return undefined
       }
       return withBucket(s, environmentId, {
         ...bucket,
@@ -199,7 +199,7 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
           bucket.connectionStates.size === 0 &&
           bucket.targetGenerations.size === 0)
       ) {
-        return s
+        return undefined
       }
       // Keep friendly labels while unhydrated reads return unknown; drop unverified generations so fencing cannot use them.
       return withBucket(s, environmentId, {
@@ -214,7 +214,7 @@ export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
     set((s) => {
       stateGenerations.advance(environmentId)
       if (!s.sshStateByEnvironment.has(environmentId)) {
-        return s
+        return undefined
       }
       const next = new Map(s.sshStateByEnvironment)
       next.delete(environmentId)

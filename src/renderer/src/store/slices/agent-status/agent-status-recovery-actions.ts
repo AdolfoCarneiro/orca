@@ -94,7 +94,7 @@ export function createAgentStatusRecoveryActions(
           }
         }
         if (!changed) {
-          return s
+          return undefined
         }
         const nextLaunch =
           removed.length > 0 ? { ...s.agentLaunchConfigByPaneKey } : s.agentLaunchConfigByPaneKey
@@ -120,7 +120,7 @@ export function createAgentStatusRecoveryActions(
           }
         }
         if (!changed) {
-          return s
+          return undefined
         }
         const nextLaunch =
           removed.length > 0 ? { ...s.agentLaunchConfigByPaneKey } : s.agentLaunchConfigByPaneKey

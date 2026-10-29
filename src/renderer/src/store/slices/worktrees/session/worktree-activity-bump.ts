@@ -31,7 +31,7 @@ export function createBumpWorktreeActivity(
       let shouldPersist = false
       set((s) => {
         if (!s.folderWorkspaces.some((workspace) => workspace.id === folderWorkspaceId)) {
-          return s
+          return undefined
         }
         shouldPersist = true
         const isActive = s.activeWorktreeId === worktreeId
@@ -51,7 +51,7 @@ export function createBumpWorktreeActivity(
     set((s) => {
       const worktree = findKnownWorktreeById(s, worktreeId)
       if (!worktree) {
-        return s
+        return undefined
       }
       shouldPersist = true
       // Active-worktree PTY side effects must not reorder selection; persist activity for the next background sort (PR #209).
