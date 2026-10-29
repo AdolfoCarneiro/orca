@@ -192,12 +192,12 @@ export function TerminalShortcutSettings({
   return (
     <>
       <Text style={[styles.groupHeading, styles.groupTopGap]}>
-        {t('components.terminalShortcutSettings.shortcutBar', 'SHORTCUT BAR')}
+        {t('components.terminalShortcutSettings.moreKeys', 'MORE KEYS')}
       </Text>
       <Text style={styles.groupDescription}>
         {t(
-          'components.terminalShortcutSettings.shortcutBarDescription',
-          'Toggle keys to show or hide them, and hold the grip to drag a key into the order you want on the terminal shortcut bar.'
+          'components.terminalShortcutSettings.moreKeysDescription',
+          'These keys sit under ⋯ on the terminal key row. Toggle keys to show or hide them, and hold the grip to drag a key into the order you want. Esc, Tab, Enter and the arrows are always on the key row itself.'
         )}
       </Text>
       <View style={[styles.section, styles.sectionTopGap]}>

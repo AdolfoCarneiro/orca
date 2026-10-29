@@ -29,6 +29,8 @@ type MessageBoxProps = Omit<
   trailing?: ReactNode
   /** A bar floating at the bottom of the screen; casts the composer's shadow. */
   docked?: boolean
+  /** Drawn over the text, which hides while it is set, e.g. dictation's live preview. */
+  inputOverlay?: ReactNode
   monospace?: boolean
   style?: StyleProp<ViewStyle>
 }
@@ -45,6 +47,7 @@ export function MessageBox({
   leading,
   trailing,
   docked = false,
+  inputOverlay,
   monospace = false,
   style,
   editable = true,
@@ -59,26 +62,31 @@ export function MessageBox({
   const minHeight = hasActions ? MESSAGE_MIN_HEIGHT : FORM_MESSAGE_MIN_HEIGHT
   return (
     <View style={[styles.box, !hasActions && styles.formBox, docked && styles.docked, style]}>
-      <TextInput
-        ref={ref}
-        value={value}
-        onChangeText={onChangeText}
-        editable={editable}
-        multiline={multiline}
-        textAlignVertical="top"
-        placeholderTextColor={colors.textMuted}
-        selectionColor={colors.accentBlue}
-        style={[
-          styles.messageText,
-          !hasActions && styles.formText,
-          monospace && styles.mono,
-          contentHeight !== undefined && {
-            height: Math.min(MESSAGE_MAX_HEIGHT, Math.max(minHeight, contentHeight))
-          },
-          !editable && styles.disabled
-        ]}
-        {...inputProps}
-      />
+      {/* Always wrapped, so showing the overlay never remounts the field under the keyboard. */}
+      <View>
+        <TextInput
+          ref={ref}
+          value={value}
+          onChangeText={onChangeText}
+          editable={editable}
+          multiline={multiline}
+          textAlignVertical="top"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.accentBlue}
+          style={[
+            styles.messageText,
+            !hasActions && styles.formText,
+            monospace && styles.mono,
+            contentHeight !== undefined && {
+              height: Math.min(MESSAGE_MAX_HEIGHT, Math.max(minHeight, contentHeight))
+            },
+            !editable && styles.disabled,
+            inputOverlay !== undefined && styles.hiddenText
+          ]}
+          {...inputProps}
+        />
+        {inputOverlay}
+      </View>
       {hasActions ? (
         <View style={styles.actionRow}>
           {leading}

@@ -1003,9 +1003,7 @@
       "empty": "Aucun raccourci personnalisé défini pour le moment.",
       "removeShortcut": "Supprimer {{label}}",
       "resetDefaults": "Rétablir les valeurs par défaut",
-      "resetDescription": "Afficher toutes les touches de raccourci intégrées dans l'ordre initial",
-      "shortcutBar": "BARRE DE RACCOURCIS",
-      "shortcutBarDescription": "Activez ou désactivez les touches pour les afficher ou les masquer. Maintenez le doigt sur la poignée pour faire glisser une touche à la position souhaitée dans la barre de raccourcis du terminal."
+      "resetDescription": "Afficher toutes les touches de raccourci intégrées dans l'ordre initial"
     },
     "useCodexResetCreditAction": {
       "confirmTitle": "Utiliser une réinitialisation des limites de débit ?",
@@ -1897,16 +1895,8 @@
   },
   "session": {
     "accessoryKeys": {
-      "addCustomShortcut": "Ajouter un raccourci personnalisé",
       "dismissKeyboard": "Masquer le clavier",
-      "dismissKeyboardHint": "Masque le clavier virtuel et garde la session de terminal en cours ouverte.",
-      "paste": "Coller",
-      "pasteFromClipboard": "Coller depuis le presse-papiers",
-      "sendKey": "Envoyer {{label}}",
-      "switchToBufferedInput": "Basculer vers la saisie de commandes en mémoire tampon",
-      "switchToDesktopMode": "Passer en mode bureau",
-      "switchToLiveInput": "Basculer vers la saisie directe dans le terminal",
-      "switchToPhoneMode": "Basculer en mode téléphone"
+      "sendKey": "Envoyer {{label}}"
     },
     "activeContent": {
       "createTab": "Créer un onglet",
@@ -2032,21 +2022,12 @@
       "titleRight": "Fermer les onglets à droite ?"
     },
     "commandDock": {
-      "commandPlaceholder": "Saisissez une commande…",
       "liveInputHint": "Le texte saisi est envoyé directement au terminal actif.",
       "liveInputLabel": "Saisie en direct dans le terminal",
       "sendCommand": "Envoyer la commande"
     },
     "contentRow": {
       "dismissCreationWarning": "Ignorer l'avertissement de création de l'espace de travail"
-    },
-    "diffCommentLineRow": {
-      "addNote": "Ajouter une note à la ligne {{line}}",
-      "deleteNote": "Supprimer la note à la ligne {{line}}",
-      "diffLine": "{{title}}, ligne {{line}} du diff",
-      "line": "Ligne {{line}}",
-      "placeholder": "Ajouter une note de revue",
-      "saveNote": "Enregistrer la note"
     },
     "diffLineRow": {
       "addNoteLabel": "Ajouter une note à la ligne {{line}}",

@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { InteractionManager, Pressable, TextInput, View, type TextInputProps } from 'react-native'
+import {
+  InteractionManager,
+  Pressable,
+  View,
+  type TextInput,
+  type TextInputProps
+} from 'react-native'
 import { Search, X } from 'lucide-react-native'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { colors, spacing } from '../theme/mobile-theme'

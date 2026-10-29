@@ -113,6 +113,9 @@ export const composerInputStyles = themedStyleSheet(() => ({
   mono: {
     fontFamily: typography.monoFamily
   },
+  hiddenText: {
+    color: 'transparent'
+  },
   disabled: {
     opacity: 0.5
   }
