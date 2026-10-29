@@ -471,6 +471,7 @@ describe('OrcaRuntimeService', () => {
     )
     runtime.setOrchestrationDb({
       getActiveDispatchForTerminal: () => undefined,
+      findActiveRemoteAttachmentForPane: () => undefined,
       listLegacyWorkerTerminalRecoveryRows: () => [
         {
           dispatch_id: 'dispatch-legacy',
