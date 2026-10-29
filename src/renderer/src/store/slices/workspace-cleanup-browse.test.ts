@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import type { AppState } from '../types'
@@ -22,7 +22,7 @@ const DISMISSAL = {
 function createStore(uiSet: ReturnType<typeof vi.fn>) {
   ;(globalThis as { window: unknown }).window = { api: { ui: { set: uiSet } } }
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         ({
           workspaceCleanupDismissals: { 'wt-1': DISMISSAL },

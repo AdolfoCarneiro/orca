@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
@@ -49,7 +49,7 @@ type WindowStub = {
 function createEditorStore() {
   // oxlint-disable-next-line typescript/no-explicit-any, typescript/consistent-type-assertions -- SAFETY: a partial store; tests read only the slices it builds.
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...args) =>
         ({
           ...emptyTabLayoutState(),

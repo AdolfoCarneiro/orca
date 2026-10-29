@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -30,7 +30,9 @@ function makeRepo(id: string): Repo {
 
 function createTestStore(repos: Repo[]) {
   const store = create<AppState>()(
-    withSessionSourceWrites((...args) => createDetectedAgentsSlice(...args) as unknown as AppState)
+    withSessionSourceTestWrites(
+      (...args) => createDetectedAgentsSlice(...args) as unknown as AppState
+    )
   )
   setSessionTestState(store, {
     repos,

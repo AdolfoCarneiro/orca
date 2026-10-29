@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '../session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { editSessionSource } from '../session-source-edits'
 import { vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
@@ -18,7 +18,7 @@ export function createEditorStore() {
   // Only the editor slice + activeWorktreeId are needed for these tests.
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the editor slices under test.
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...args) =>
         ({
           activeWorktreeId: 'wt-1',
@@ -40,7 +40,7 @@ export function createEditorStore() {
 
 export function createEditorTabsStore() {
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...args) =>
         ({
           activeWorktreeId: 'wt-1',

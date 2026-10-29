@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '../session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { createStore } from 'zustand/vanilla'
 import { getDefaultUIState } from '../../../../shared/constants'
 import type { PersistedUIState } from '../../../../shared/persisted-ui-state-types'
@@ -13,7 +13,7 @@ export function createUIStore() {
   // because page opens record view visits.
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the UI slices under test.
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...args) =>
         ({
           repos: [],

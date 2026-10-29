@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import { createGitHubSlice } from './github'
@@ -24,7 +24,7 @@ globalThis.window = { api: mockApi }
 
 function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         ({
           ...createGitHubSlice(...a),

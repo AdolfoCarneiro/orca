@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { performance } from 'node:perf_hooks'
 import { create } from 'zustand'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -31,7 +31,7 @@ async function flushImmediatePromises(): Promise<void> {
 
 function createCodexOnlyStore() {
   return create<AppState>()(
-    withSessionSourceWrites((...args) => createCodexUsageSlice(...args) as AppState)
+    withSessionSourceTestWrites((...args) => createCodexUsageSlice(...args) as AppState)
   )
 }
 

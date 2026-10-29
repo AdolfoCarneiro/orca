@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 /** Cap PR refresh statuses across ephemeral host/repo/branch keys. Evict settled error/skipped entries first to preserve visible in-flight/queued/paused pills, then enforce hard bound on active entries only as last resort. */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { create } from 'zustand'
@@ -51,7 +51,7 @@ globalThis.window = { api: mockApi }
 
 function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         ({
           ...createGitHubSlice(...a),

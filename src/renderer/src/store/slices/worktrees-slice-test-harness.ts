@@ -1,7 +1,7 @@
 import { createAgentStatusSlice } from './agent-status/agent-status'
 import { vi, type Mock } from 'vitest'
 import { create } from 'zustand'
-import { withSessionSourceWrites } from '../session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { setSessionTestState } from '../../lib/test-support/session-source-fixture'
 import type { AppState } from '../types'
 import type { DetectedWorktreeListResult, Worktree } from '../../../../shared/worktree/types'
@@ -132,7 +132,7 @@ export function resetRemoteRuntimeMocks() {
 /** Supplies the worktree slice with the minimal UI and runtime state needed to exercise creation and teardown. */
 export function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This slice fixture supplies the state read by worktree actions; unrelated slices are intentionally omitted.
         ({

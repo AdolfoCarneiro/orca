@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { createStore } from 'zustand/vanilla'
 import type { AppState } from '@/store/types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
@@ -11,7 +11,7 @@ export function createCommandFinishedStatusStore(): {
   getStatus: (paneKey: string) => AgentStatusEntry | undefined
 } {
   const store = createStore<AppState>()(
-    withSessionSourceWrites((...args) => {
+    withSessionSourceTestWrites((...args) => {
       const state = {
         settings: null,
         tabsByWorktree: {},

@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { createStore } from 'zustand/vanilla'
 import { describe, expect, it, vi } from 'vitest'
 import { createEditorSlice } from './editor'
@@ -59,7 +59,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const store = createStore<AppState>()(
-      withSessionSourceWrites(
+      withSessionSourceTestWrites(
         (...args) =>
           ({
             activeWorktreeId: 'wt-1',
@@ -112,7 +112,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const fetchPRCheckDetails = vi.fn()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const store = createStore<AppState>()(
-      withSessionSourceWrites(
+      withSessionSourceTestWrites(
         (...args) =>
           ({
             activeWorktreeId: 'wt-1',
@@ -182,7 +182,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const fetchPRCheckDetails = vi.fn().mockResolvedValue(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const store = createStore<AppState>()(
-      withSessionSourceWrites(
+      withSessionSourceTestWrites(
         (...args) =>
           ({
             activeWorktreeId: 'wt-1',
@@ -234,7 +234,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     loadGitLabJobLogDetailsMock.mockResolvedValue(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const store = createStore<AppState>()(
-      withSessionSourceWrites(
+      withSessionSourceTestWrites(
         (...args) =>
           ({
             activeWorktreeId: 'wt-1',
@@ -272,7 +272,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
   it('keeps a stored GitLab project ref when a patch omits it', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const store = createStore<AppState>()(
-      withSessionSourceWrites(
+      withSessionSourceTestWrites(
         (...args) =>
           ({
             activeWorktreeId: 'wt-1',

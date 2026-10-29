@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { create } from 'zustand'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SparsePreset } from '../../../../shared/worktree/create-types'
@@ -25,7 +25,7 @@ globalThis.window = { api: mockApi }
 
 function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites((...a) => ({ ...createSparsePresetsSlice(...a) }) as AppState)
+    withSessionSourceTestWrites((...a) => ({ ...createSparsePresetsSlice(...a) }) as AppState)
   )
 }
 

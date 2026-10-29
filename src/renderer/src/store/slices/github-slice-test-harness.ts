@@ -1,5 +1,5 @@
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
-import { withSessionSourceWrites } from '../session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { vi, type Mock } from 'vitest'
 import { create } from 'zustand'
 import { createGitHubSlice } from './github'
@@ -121,7 +121,7 @@ export function resetRemoteRuntimeMocks() {
 
 export function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         ({
           ...createGitHubSlice(...a),

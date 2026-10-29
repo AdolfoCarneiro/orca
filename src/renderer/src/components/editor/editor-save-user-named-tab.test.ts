@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { createEditorSlice } from '@/store/slices/editor'
@@ -15,7 +15,7 @@ vi.mock('@/lib/connection-context', () => ({ getConnectionIdForFile: () => null 
 function createEditorStore() {
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-explicit-any -- SAFETY: the editor save path reads only the slice and fields built here.
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...args) =>
         ({
           ...emptyTabLayoutState(),

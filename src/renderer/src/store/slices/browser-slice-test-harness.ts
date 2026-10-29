@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '../session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { vi, type Mock } from 'vitest'
 import { create } from 'zustand'
 import { createBrowserSlice } from './browser'
@@ -49,7 +49,7 @@ export function createBrowserMockApi(runtimeEnvironmentTransportCall: Mock): Bro
 
 export function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial store; browser actions touch only the fields seeded here.
         ({

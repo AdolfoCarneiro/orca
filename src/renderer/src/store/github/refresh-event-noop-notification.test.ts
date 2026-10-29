@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import { useAppStore } from '../index'
@@ -11,7 +11,7 @@ globalThis.window = { api: { gh: { prChecks: vi.fn() }, cache: { setGitHub: vi.f
 
 function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites((...a) => ({
+    withSessionSourceTestWrites((...a) => ({
       ...useAppStore.getInitialState(),
       ...createGitHubSlice(...a),
       ...createHostedReviewSlice(...a)

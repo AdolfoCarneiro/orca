@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { create } from 'zustand'
 import { describe, expect, it } from 'vitest'
 import type { WorkspaceSpaceAnalysis } from '../../../../shared/workspace-space-types'
@@ -7,7 +7,7 @@ import { createWorkspaceSpaceSlice } from './workspace-space'
 
 function createWorkspaceSpaceTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...a) =>
         ({
           ...createWorkspaceSpaceSlice(...a)

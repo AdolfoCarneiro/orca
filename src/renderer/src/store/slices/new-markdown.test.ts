@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { createStore } from 'zustand/vanilla'
 import { describe, expect, it, vi } from 'vitest'
 import { createEditorSlice } from './editor'
@@ -19,7 +19,7 @@ vi.mock('@/runtime/runtime-rpc-client', async (importOriginal) =>
 function createEditorStore(overrides?: Partial<AppState>) {
   // oxlint-disable-next-line typescript/no-explicit-any, typescript/consistent-type-assertions -- SAFETY: a partial store; tests read only the slices it builds.
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (...args) =>
         ({
           ...emptyTabLayoutState(),

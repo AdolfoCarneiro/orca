@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -31,7 +31,7 @@ globalThis.window = {
 
 function createTestStore() {
   return create<AppState>()(
-    withSessionSourceWrites((...args) => {
+    withSessionSourceTestWrites((...args) => {
       const slice = createDiffCommentsSlice(...args)
       return {
         ...slice,

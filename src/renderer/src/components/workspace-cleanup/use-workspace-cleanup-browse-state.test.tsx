@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -15,7 +15,7 @@ import { useWorkspaceCleanupBrowseState } from './use-workspace-cleanup-browse-s
 import type { WorkspaceCleanupBrowseController } from './use-workspace-cleanup-browse-state'
 
 const store = create<AppState>()(
-  withSessionSourceWrites(
+  withSessionSourceTestWrites(
     (...a) =>
       ({
         workspaceCleanupDismissals: {},

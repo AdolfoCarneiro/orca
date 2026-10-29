@@ -1,4 +1,4 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { createStore } from 'zustand/vanilla'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { AppState } from '../types'
@@ -34,7 +34,7 @@ function makeWorktree(id: string): Worktree {
 function createHistoryStore(worktreeIds: string[] = []): StoreApi<MinimalState> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createStore<AppState>()(
-    withSessionSourceWrites(
+    withSessionSourceTestWrites(
       (set, get, api) =>
         ({
           worktreesByRepo: {
