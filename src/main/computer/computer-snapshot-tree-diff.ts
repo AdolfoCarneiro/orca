@@ -22,6 +22,8 @@ export function diffComputerTreeText(previous: string, next: string): ComputerTr
     return null
   }
   const beforeByIndex = new Map(before.elements.map((element) => [element.index, element]))
+  const beforeParents = elementParents(before.elements)
+  const afterParents = elementParents(after.elements)
   const afterIndexes = new Set(after.elements.map((element) => element.index))
   const moved = movedIndexes(before.elements, after.elements)
   const body: string[] = []
@@ -29,6 +31,9 @@ export function diffComputerTreeText(previous: string, next: string): ComputerTr
   let added = 0
   for (const element of after.elements) {
     const old = beforeByIndex.get(element.index)
+    if (old && beforeParents.get(element.index) !== afterParents.get(element.index)) {
+      return null
+    }
     if (!old) {
       added += 1
       body.push(...markLines('+', element))
@@ -67,6 +72,17 @@ export function diffComputerTreeText(previous: string, next: string): ComputerTr
 
 function markLines(mark: '+' | '~', element: ComputerTreeElement): string[] {
   return element.lines.map((line) => `${mark} ${line}`)
+}
+
+function elementParents(elements: ComputerTreeElement[]): Map<number, number | undefined> {
+  const parents = new Map<number, number | undefined>()
+  const path: number[] = []
+  for (const element of elements) {
+    path.length = Math.min(path.length, element.depth)
+    parents.set(element.index, path.at(-1))
+    path[element.depth] = element.index
+  }
+  return parents
 }
 
 // Elements that kept their index but changed position; the longest run in old order stays put.

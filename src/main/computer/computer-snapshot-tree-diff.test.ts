@@ -105,6 +105,27 @@ describe('diffComputerTreeText', () => {
     expect(diff?.text).toContain('~ \t\t\t\t27 container, Value: 7 points')
   })
 
+  const titleField = '\t\t\t\t\t16 text field (settable) Title, Value: draft'
+  const reparented = replaceLine(BEFORE, '\t\t\t\t\t15 text Title', [
+    '\t\t\t\t986 container New fields',
+    '\t\t\t\t\t15 text Title'
+  ])
+
+  it.each([
+    { change: 'inserted parent', before: BEFORE, after: reparented },
+    { change: 'removed parent', before: reparented, after: BEFORE },
+    {
+      change: 'existing parent',
+      before: BEFORE,
+      after: replaceLine(replaceLine(BEFORE, titleField, []), '\t\t\t\t17 container', [
+        '\t\t\t\t17 container',
+        titleField
+      ])
+    }
+  ])('returns the full tree after reparenting through $change', ({ before, after }) => {
+    expect(diffComputerTreeText(tree(before), tree(after))).toBeNull()
+  })
+
   it('falls back to the full tree when an insert renumbered everything after it', () => {
     const renumbered = BEFORE.map((line, position) =>
       position < 9
