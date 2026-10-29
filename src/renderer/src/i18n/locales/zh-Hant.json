@@ -21492,5 +21492,53 @@
       },
       "finishPending": "先前一次移至 {{distro}} 主機的操作已在主機上完成。Orca 會在重新啟動時於這裡完成它，你也可以按一下「重新檢查」立即完成。"
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "標題為必填欄位",
+      "networkError": "網路錯誤，請檢查連線。",
+      "invalidUpdate": "無效的更新 — {{detail}}",
+      "invalidRequest": "無效的請求 — {{detail}}",
+      "issueNotFound": "找不到議題 — 可能已遭刪除。",
+      "issueUpdateFailed": "無法更新議題：{{detail}}",
+      "github": {
+        "repoUnresolved": "無法確認此存放庫的 GitHub 擁有者和存放庫名稱",
+        "unexpectedResponse": "GitHub 傳回非預期的回應",
+        "pullRequestIdUnresolved": "無法確認 GitHub PR ID",
+        "reviewerRequired": "請至少輸入一位審查人",
+        "stackAutoMergeUnsupported": "GitHub 不支援堆疊中 PR 的自動合併。",
+        "autoMergeAlreadyMergeable": "此 PR 已可合併。請使用「合併」而非自動合併。",
+        "noFailedChecks": "沒有失敗的 GitHub Actions 檢查可重新執行。",
+        "noRerunnableChecks": "找不到可重新執行的檢查。",
+        "stackMergeInvalidResponse": "GitHub 傳回無效的堆疊合併回應。",
+        "stackMergePending": "GitHub 仍在合併此堆疊。請重新整理以查看狀態。",
+        "rateLimited": "已達 GitHub 速率限制。請稍候幾分鐘再試。",
+        "issuePermissionDenied": "你沒有權限編輯此議題。請檢查 GitHub 權杖範圍。",
+        "issuesDisabled": "此存放庫已停用議題。",
+        "pullRequestPermissionDenied": "你沒有權限編輯此 PR。請檢查 GitHub 權杖範圍。",
+        "pullRequestNotFound": "找不到 PR — 可能已遭刪除。",
+        "pullRequestUpdateFailed": "無法更新 PR：{{detail}}",
+        "autoMergeEnableFailed": "無法為 PR 啟用自動合併：{{detail}}",
+        "autoMergeDisableFailed": "無法為 PR 停用自動合併：{{detail}}",
+        "mergeQueueAddFailed": "無法將 PR 新增至合併佇列：{{detail}}",
+        "rerunPermissionDenied": "你沒有權限在此存放庫重新執行檢查。請檢查 GitHub 權杖範圍。",
+        "rerunTargetNotFound": "找不到要重新執行的 GitHub 資源 — 可能已過期或遭刪除。",
+        "rerunRejected": "無法重新執行檢查 — {{detail}}",
+        "rerunFailed": "無法重新執行檢查：{{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "無法確認此存放庫的 GitLab 專案",
+        "unexpectedResponse": "GitLab 傳回非預期的回應",
+        "commentBodyRequired": "必須填寫留言內容",
+        "discussionIdRequired": "必須提供討論 ID",
+        "readyTitleConflict": "將合併請求標記為可供審查時無法更新標題",
+        "mergeRequestTitleUnreadable": "無法讀取合併請求的目前標題",
+        "rateLimited": "已達 GitLab 速率限制。請稍候幾分鐘再試。",
+        "issuePermissionDenied": "你沒有權限編輯此議題。請檢查 GitLab 權杖範圍。",
+        "jobLogPermissionDenied": "你沒有權限讀取此作業的日誌。請檢查 GitLab 權杖範圍。",
+        "jobProjectNotFound": "找不到此作業的 GitLab 專案。",
+        "jobLogFailed": "無法載入作業日誌：{{detail}}"
+      }
+    }
   }
 }

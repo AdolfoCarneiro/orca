@@ -21499,5 +21499,53 @@
       },
       "finishPending": "{{distro}} 호스트로의 이전 이동은 호스트에서 완료되었습니다. Orca가 다시 시작할 때 또는 지금 다시 확인을 누르면 여기에서 마무리합니다."
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "제목은 필수 항목입니다",
+      "networkError": "네트워크 오류 — 연결을 확인하세요.",
+      "invalidUpdate": "잘못된 업데이트 — {{detail}}",
+      "invalidRequest": "잘못된 요청 — {{detail}}",
+      "issueNotFound": "이슈를 찾을 수 없습니다 — 삭제되었을 수 있습니다.",
+      "issueUpdateFailed": "이슈를 업데이트하지 못했습니다: {{detail}}",
+      "github": {
+        "repoUnresolved": "이 리포지토리의 GitHub 소유자와 리포지토리 이름을 확인할 수 없습니다",
+        "unexpectedResponse": "GitHub에서 예상치 못한 응답을 받았습니다",
+        "pullRequestIdUnresolved": "GitHub PR ID를 확인할 수 없습니다",
+        "reviewerRequired": "리뷰어를 한 명 이상 입력하세요",
+        "stackAutoMergeUnsupported": "GitHub는 스택에 포함된 PR의 자동 병합을 지원하지 않습니다.",
+        "autoMergeAlreadyMergeable": "이 PR은 이미 병합할 수 있습니다. 자동 병합 대신 '병합'을 사용하세요.",
+        "noFailedChecks": "다시 실행할 실패한 GitHub Actions 체크가 없습니다.",
+        "noRerunnableChecks": "다시 실행할 수 있는 체크를 찾을 수 없습니다.",
+        "stackMergeInvalidResponse": "GitHub가 잘못된 스택 병합 응답을 반환했습니다.",
+        "stackMergePending": "GitHub에서 아직 이 스택을 병합 중입니다. 새로고침하여 상태를 확인하세요.",
+        "rateLimited": "GitHub 속도 제한에 도달했습니다. 몇 분 후 다시 시도하세요.",
+        "issuePermissionDenied": "이 이슈를 편집할 권한이 없습니다. GitHub 토큰 범위를 확인하세요.",
+        "issuesDisabled": "이 리포지토리에서는 이슈가 비활성화되어 있습니다.",
+        "pullRequestPermissionDenied": "이 PR을 편집할 권한이 없습니다. GitHub 토큰 범위를 확인하세요.",
+        "pullRequestNotFound": "PR을 찾을 수 없습니다 — 삭제되었을 수 있습니다.",
+        "pullRequestUpdateFailed": "PR을 업데이트하지 못했습니다: {{detail}}",
+        "autoMergeEnableFailed": "PR 자동 병합을 활성화하지 못했습니다: {{detail}}",
+        "autoMergeDisableFailed": "PR 자동 병합을 비활성화하지 못했습니다: {{detail}}",
+        "mergeQueueAddFailed": "PR을 병합 대기열에 추가하지 못했습니다: {{detail}}",
+        "rerunPermissionDenied": "이 리포지토리에서 체크를 다시 실행할 권한이 없습니다. GitHub 토큰 범위를 확인하세요.",
+        "rerunTargetNotFound": "다시 실행할 GitHub 리소스를 찾을 수 없습니다 — 만료되었거나 삭제되었을 수 있습니다.",
+        "rerunRejected": "체크를 다시 실행하지 못했습니다 — {{detail}}",
+        "rerunFailed": "체크를 다시 실행하지 못했습니다: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "이 리포지토리의 GitLab 프로젝트를 확인할 수 없습니다",
+        "unexpectedResponse": "GitLab에서 예상치 못한 응답을 받았습니다",
+        "commentBodyRequired": "댓글 내용이 필요합니다",
+        "discussionIdRequired": "토론 ID가 필요합니다",
+        "readyTitleConflict": "MR을 검토 준비 완료로 표시하는 동안 제목을 업데이트할 수 없습니다",
+        "mergeRequestTitleUnreadable": "현재 MR 제목을 읽을 수 없습니다",
+        "rateLimited": "GitLab 속도 제한에 도달했습니다. 몇 분 후 다시 시도하세요.",
+        "issuePermissionDenied": "이 이슈를 편집할 권한이 없습니다. GitLab 토큰 범위를 확인하세요.",
+        "jobLogPermissionDenied": "이 작업의 로그를 읽을 권한이 없습니다. GitLab 토큰 범위를 확인하세요.",
+        "jobProjectNotFound": "이 작업의 GitLab 프로젝트를 찾을 수 없습니다.",
+        "jobLogFailed": "작업 로그를 불러오지 못했습니다: {{detail}}"
+      }
+    }
   }
 }

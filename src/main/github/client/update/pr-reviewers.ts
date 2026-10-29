@@ -1,6 +1,7 @@
 import { invalidateReviewLookupsAfterPRMutation } from '../../pr-mutation-review-invalidation'
 import { ghExecFileAsync, acquire, release, type LocalGitExecOptions } from '../../gh-utils'
 import { resolveGitHubRepoExecution, type GitHubApiRepository } from '../../github-api-repository'
+import { codeHostFailure } from '../../../../shared/code-host-failure-copy'
 export async function requestPRReviewers(
   repoPath: string,
   prNumber: number,
@@ -11,7 +12,7 @@ export async function requestPRReviewers(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const logins = reviewers.map((reviewer) => reviewer.trim()).filter(Boolean)
   if (logins.length === 0) {
-    return { ok: false, error: 'Enter at least one reviewer' }
+    return codeHostFailure('github.reviewerRequired')
   }
   const { ownerRepo, ghOptions } = await resolveGitHubRepoExecution(
     repoPath,
@@ -20,7 +21,7 @@ export async function requestPRReviewers(
     localGitOptions
   )
   if (!ownerRepo) {
-    return { ok: false, error: 'Could not resolve GitHub owner/repo for this repository' }
+    return codeHostFailure('github.repoUnresolved')
   }
   await acquire()
   try {
@@ -53,7 +54,7 @@ export async function removePRReviewers(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const logins = reviewers.map((reviewer) => reviewer.trim()).filter(Boolean)
   if (logins.length === 0) {
-    return { ok: false, error: 'Enter at least one reviewer' }
+    return codeHostFailure('github.reviewerRequired')
   }
   const { ownerRepo, ghOptions } = await resolveGitHubRepoExecution(
     repoPath,
@@ -62,7 +63,7 @@ export async function removePRReviewers(
     localGitOptions
   )
   if (!ownerRepo) {
-    return { ok: false, error: 'Could not resolve GitHub owner/repo for this repository' }
+    return codeHostFailure('github.repoUnresolved')
   }
   await acquire()
   try {

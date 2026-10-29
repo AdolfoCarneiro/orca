@@ -20,6 +20,7 @@ import type { PRComment } from '../../../../../shared/github/comment-types'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { worktreeLaunchWorkspace } from '@/lib/agent-launch-route-input'
+import { codeHostErrorText } from '@/lib/code-host-error-copy'
 
 type ChecksPanelCommentResolutionInput = Pick<
   ChecksPanelControllerState,
@@ -95,7 +96,7 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
         if (!result.ok) {
           rollbackThread(previousThreadComments)
           if (notifyOnFailure) {
-            toast.error(result.error)
+            toast.error(codeHostErrorText(result))
           }
           return false
         }

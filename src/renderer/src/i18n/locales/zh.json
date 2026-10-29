@@ -21499,5 +21499,53 @@
       },
       "finishPending": "之前一次到 {{distro}} 主机的移动已在主机上完成。Orca 会在重启时在此处完成它，也可以点击“重新检查”立即完成。"
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "标题为必填项",
+      "networkError": "网络错误 — 请检查你的网络连接。",
+      "invalidUpdate": "无效的更新 — {{detail}}",
+      "invalidRequest": "无效的请求 — {{detail}}",
+      "issueNotFound": "未找到议题 — 可能已被删除。",
+      "issueUpdateFailed": "更新议题失败：{{detail}}",
+      "github": {
+        "repoUnresolved": "无法确定此仓库的 GitHub 所有者和仓库名称",
+        "unexpectedResponse": "GitHub 返回了意外响应",
+        "pullRequestIdUnresolved": "无法确定 GitHub PR ID",
+        "reviewerRequired": "请至少输入一位评审人",
+        "stackAutoMergeUnsupported": "GitHub 不支持堆栈中 PR 的自动合并。",
+        "autoMergeAlreadyMergeable": "此 PR 已可合并。请使用“合并”而非自动合并。",
+        "noFailedChecks": "没有失败的 GitHub Actions 检查可重新运行。",
+        "noRerunnableChecks": "未找到可重新运行的检查。",
+        "stackMergeInvalidResponse": "GitHub 返回了无效的堆栈合并响应。",
+        "stackMergePending": "GitHub 仍在合并此堆栈。请刷新以查看状态。",
+        "rateLimited": "已达到 GitHub 速率限制。请几分钟后重试。",
+        "issuePermissionDenied": "你没有权限编辑此议题。请检查 GitHub 令牌范围。",
+        "issuesDisabled": "此仓库已禁用议题。",
+        "pullRequestPermissionDenied": "你没有权限编辑此 PR。请检查 GitHub 令牌范围。",
+        "pullRequestNotFound": "未找到 PR — 可能已被删除。",
+        "pullRequestUpdateFailed": "更新 PR 失败：{{detail}}",
+        "autoMergeEnableFailed": "为 PR 启用自动合并失败：{{detail}}",
+        "autoMergeDisableFailed": "为 PR 禁用自动合并失败：{{detail}}",
+        "mergeQueueAddFailed": "将 PR 添加到合并队列失败：{{detail}}",
+        "rerunPermissionDenied": "你没有权限在此仓库中重新运行检查。请检查 GitHub 令牌范围。",
+        "rerunTargetNotFound": "未找到要重新运行的 GitHub 资源 — 可能已过期或被删除。",
+        "rerunRejected": "无法重新运行检查 — {{detail}}",
+        "rerunFailed": "重新运行检查失败：{{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "无法确定此仓库的 GitLab 项目",
+        "unexpectedResponse": "GitLab 返回了意外响应",
+        "commentBodyRequired": "必须填写评论正文",
+        "discussionIdRequired": "必须提供讨论 ID",
+        "readyTitleConflict": "将合并请求标记为就绪时无法更新标题",
+        "mergeRequestTitleUnreadable": "无法读取合并请求的当前标题",
+        "rateLimited": "已达到 GitLab 速率限制。请几分钟后重试。",
+        "issuePermissionDenied": "你没有权限编辑此议题。请检查 GitLab 令牌范围。",
+        "jobLogPermissionDenied": "你没有权限读取此作业的日志。请检查 GitLab 令牌范围。",
+        "jobProjectNotFound": "找不到此作业的 GitLab 项目。",
+        "jobLogFailed": "加载作业日志失败：{{detail}}"
+      }
+    }
   }
 }

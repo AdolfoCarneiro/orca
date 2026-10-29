@@ -22111,5 +22111,53 @@
       },
       "finishPending": "Un déplacement précédent vers l'hôte {{distro}} est terminé là-bas. Orca le finalise ici au redémarrage, ou dès maintenant avec Revérifier."
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Le titre est obligatoire",
+      "networkError": "Erreur réseau — vérifiez votre connexion.",
+      "invalidUpdate": "Mise à jour invalide — {{detail}}",
+      "invalidRequest": "Requête invalide — {{detail}}",
+      "issueNotFound": "Issue introuvable — elle a peut-être été supprimée.",
+      "issueUpdateFailed": "Échec de la mise à jour de l'issue : {{detail}}",
+      "github": {
+        "repoUnresolved": "Impossible de déterminer le propriétaire et le nom de ce dépôt sur GitHub",
+        "unexpectedResponse": "Réponse inattendue de GitHub",
+        "pullRequestIdUnresolved": "Impossible de déterminer l'ID de la pull request GitHub",
+        "reviewerRequired": "Saisissez au moins un reviewer",
+        "stackAutoMergeUnsupported": "GitHub ne prend pas en charge l'auto-merge des pull requests empilées.",
+        "autoMergeAlreadyMergeable": "Cette pull request peut déjà être mergée. Utilisez Merge au lieu de l'auto-merge.",
+        "noFailedChecks": "Aucune vérification GitHub Actions en échec à relancer.",
+        "noRerunnableChecks": "Aucune vérification relançable trouvée.",
+        "stackMergeInvalidResponse": "GitHub a renvoyé une réponse invalide pour le merge de la stack.",
+        "stackMergePending": "GitHub est encore en train de merger cette stack. Actualisez pour vérifier son état.",
+        "rateLimited": "Limite de débit GitHub atteinte. Réessayez dans quelques minutes.",
+        "issuePermissionDenied": "Vous n'avez pas l'autorisation de modifier cette issue. Vérifiez les scopes de votre token GitHub.",
+        "issuesDisabled": "Les issues sont désactivées sur ce dépôt.",
+        "pullRequestPermissionDenied": "Vous n'avez pas l'autorisation de modifier cette pull request. Vérifiez les scopes de votre token GitHub.",
+        "pullRequestNotFound": "Pull request introuvable — elle a peut-être été supprimée.",
+        "pullRequestUpdateFailed": "Échec de la mise à jour de la pull request : {{detail}}",
+        "autoMergeEnableFailed": "Échec de l'activation de l'auto-merge pour la pull request : {{detail}}",
+        "autoMergeDisableFailed": "Échec de la désactivation de l'auto-merge pour la pull request : {{detail}}",
+        "mergeQueueAddFailed": "Échec de l'ajout de la pull request à la merge queue : {{detail}}",
+        "rerunPermissionDenied": "Vous n'avez pas l'autorisation de relancer les vérifications sur ce dépôt. Vérifiez les scopes de votre token GitHub.",
+        "rerunTargetNotFound": "Ressource GitHub à relancer introuvable — elle a peut-être expiré ou été supprimée.",
+        "rerunRejected": "Impossible de relancer les vérifications — {{detail}}",
+        "rerunFailed": "Échec de la relance des vérifications : {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Impossible de déterminer le projet GitLab pour ce dépôt",
+        "unexpectedResponse": "Réponse inattendue de GitLab",
+        "commentBodyRequired": "Le contenu du commentaire est requis",
+        "discussionIdRequired": "L'ID de la discussion est requis",
+        "readyTitleConflict": "Impossible de modifier le titre en marquant une merge request comme prête",
+        "mergeRequestTitleUnreadable": "Impossible de lire le titre actuel de la merge request",
+        "rateLimited": "Limite de débit GitLab atteinte. Réessayez dans quelques minutes.",
+        "issuePermissionDenied": "Vous n'avez pas l'autorisation de modifier cette issue. Vérifiez les scopes de votre token GitLab.",
+        "jobLogPermissionDenied": "Vous n'avez pas l'autorisation de lire le journal de ce job. Vérifiez les scopes de votre token GitLab.",
+        "jobProjectNotFound": "Impossible de trouver le projet GitLab de ce job.",
+        "jobLogFailed": "Échec du chargement du journal du job : {{detail}}"
+      }
+    }
   }
 }

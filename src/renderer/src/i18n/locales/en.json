@@ -21840,5 +21840,53 @@
       "markFile": "Mark {{path}} as viewed",
       "unmarkFile": "Unmark {{path}} as viewed"
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Title is required",
+      "networkError": "Network error — check your connection.",
+      "invalidUpdate": "Invalid update — {{detail}}",
+      "invalidRequest": "Invalid request — {{detail}}",
+      "issueNotFound": "Issue not found — it may have been deleted.",
+      "issueUpdateFailed": "Failed to update issue: {{detail}}",
+      "github": {
+        "repoUnresolved": "Could not resolve GitHub owner/repo for this repository",
+        "unexpectedResponse": "Unexpected response from GitHub",
+        "pullRequestIdUnresolved": "Could not resolve GitHub pull request ID",
+        "reviewerRequired": "Enter at least one reviewer",
+        "stackAutoMergeUnsupported": "GitHub does not support auto-merge for stacked pull requests.",
+        "autoMergeAlreadyMergeable": "This pull request can already be merged. Use Merge instead of auto-merge.",
+        "noFailedChecks": "No failed GitHub Actions checks to rerun.",
+        "noRerunnableChecks": "No rerunnable checks found.",
+        "stackMergeInvalidResponse": "GitHub returned an invalid stack merge response.",
+        "stackMergePending": "GitHub is still merging this stack. Refresh to check its status.",
+        "rateLimited": "GitHub rate limit hit. Try again in a few minutes.",
+        "issuePermissionDenied": "You don't have permission to edit this issue. Check your GitHub token scopes.",
+        "issuesDisabled": "Issues are disabled on this repository.",
+        "pullRequestPermissionDenied": "You don't have permission to edit this pull request. Check your GitHub token scopes.",
+        "pullRequestNotFound": "Pull request not found — it may have been deleted.",
+        "pullRequestUpdateFailed": "Failed to update pull request: {{detail}}",
+        "autoMergeEnableFailed": "Failed to enable auto-merge for pull request: {{detail}}",
+        "autoMergeDisableFailed": "Failed to disable auto-merge for pull request: {{detail}}",
+        "mergeQueueAddFailed": "Failed to add pull request to the merge queue: {{detail}}",
+        "rerunPermissionDenied": "You don't have permission to rerun checks on this repository. Check your GitHub token scopes.",
+        "rerunTargetNotFound": "GitHub resource to rerun was not found — it may have expired or been deleted.",
+        "rerunRejected": "Could not rerun checks — {{detail}}",
+        "rerunFailed": "Failed to rerun checks: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Could not resolve GitLab project for this repository",
+        "unexpectedResponse": "Unexpected response from GitLab",
+        "commentBodyRequired": "Comment body is required",
+        "discussionIdRequired": "Discussion id is required",
+        "readyTitleConflict": "Cannot update the title while marking a merge request ready",
+        "mergeRequestTitleUnreadable": "Could not read the current merge request title",
+        "rateLimited": "GitLab rate limit hit. Try again in a few minutes.",
+        "issuePermissionDenied": "You don't have permission to edit this issue. Check your GitLab token scopes.",
+        "jobLogPermissionDenied": "You don't have permission to read this job's log. Check your GitLab token scopes.",
+        "jobProjectNotFound": "Could not find this job's GitLab project.",
+        "jobLogFailed": "Failed to load the job log: {{detail}}"
+      }
+    }
   }
 }

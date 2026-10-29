@@ -21788,5 +21788,53 @@
       "markFile": "{{path}} als angesehen markieren",
       "unmarkFile": "Markierung „Angesehen“ für {{path}} aufheben"
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Titel ist erforderlich",
+      "networkError": "Netzwerkfehler — Verbindung überprüfen.",
+      "invalidUpdate": "Ungültige Aktualisierung — {{detail}}",
+      "invalidRequest": "Ungültige Anfrage — {{detail}}",
+      "issueNotFound": "Issue nicht gefunden — es wurde möglicherweise gelöscht.",
+      "issueUpdateFailed": "Issue konnte nicht aktualisiert werden: {{detail}}",
+      "github": {
+        "repoUnresolved": "owner/repo für dieses Repository auf GitHub konnte nicht ermittelt werden",
+        "unexpectedResponse": "Unerwartete Antwort von GitHub",
+        "pullRequestIdUnresolved": "GitHub-Pull-Request-ID konnte nicht ermittelt werden",
+        "reviewerRequired": "Mindestens einen Prüfer eingeben",
+        "stackAutoMergeUnsupported": "GitHub unterstützt keinen automatischen Merge für Pull Requests in einem Stack.",
+        "autoMergeAlreadyMergeable": "Dieser Pull Request kann bereits gemergt werden. Statt automatischem Merge „Mergen“ verwenden.",
+        "noFailedChecks": "Keine fehlgeschlagenen Checks von GitHub Actions zum erneuten Ausführen.",
+        "noRerunnableChecks": "Keine erneut ausführbaren Checks gefunden.",
+        "stackMergeInvalidResponse": "GitHub hat eine ungültige Antwort zum Stack-Merge zurückgegeben.",
+        "stackMergePending": "GitHub mergt diesen Stack noch. Zum Prüfen des Status aktualisieren.",
+        "rateLimited": "GitHub-Ratenlimit erreicht. In einigen Minuten erneut versuchen.",
+        "issuePermissionDenied": "Keine Berechtigung zum Bearbeiten dieses Issues. GitHub-Token-Berechtigungen prüfen.",
+        "issuesDisabled": "Issues sind für dieses Repository deaktiviert.",
+        "pullRequestPermissionDenied": "Keine Berechtigung zum Bearbeiten dieses Pull Requests. GitHub-Token-Berechtigungen prüfen.",
+        "pullRequestNotFound": "Pull Request nicht gefunden — er wurde möglicherweise gelöscht.",
+        "pullRequestUpdateFailed": "Pull Request konnte nicht aktualisiert werden: {{detail}}",
+        "autoMergeEnableFailed": "Automatischer Merge für den Pull Request konnte nicht aktiviert werden: {{detail}}",
+        "autoMergeDisableFailed": "Automatischer Merge für den Pull Request konnte nicht deaktiviert werden: {{detail}}",
+        "mergeQueueAddFailed": "Pull Request konnte nicht zur Merge-Warteschlange hinzugefügt werden: {{detail}}",
+        "rerunPermissionDenied": "Keine Berechtigung zum erneuten Ausführen von Checks in diesem Repository. GitHub-Token-Berechtigungen prüfen.",
+        "rerunTargetNotFound": "GitHub-Ressource zum erneuten Ausführen nicht gefunden — sie ist möglicherweise abgelaufen oder wurde gelöscht.",
+        "rerunRejected": "Checks konnten nicht erneut ausgeführt werden — {{detail}}",
+        "rerunFailed": "Checks konnten nicht erneut ausgeführt werden: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "GitLab-Projekt für dieses Repository konnte nicht ermittelt werden",
+        "unexpectedResponse": "Unerwartete Antwort von GitLab",
+        "commentBodyRequired": "Kommentartext ist erforderlich",
+        "discussionIdRequired": "Diskussions-ID ist erforderlich",
+        "readyTitleConflict": "Beim Markieren eines Merge Requests als bereit kann der Titel nicht aktualisiert werden",
+        "mergeRequestTitleUnreadable": "Aktueller Merge-Request-Titel konnte nicht gelesen werden",
+        "rateLimited": "GitLab-Ratenlimit erreicht. In einigen Minuten erneut versuchen.",
+        "issuePermissionDenied": "Keine Berechtigung zum Bearbeiten dieses Issues. GitLab-Token-Berechtigungen prüfen.",
+        "jobLogPermissionDenied": "Keine Berechtigung zum Lesen dieses Job-Protokolls. GitLab-Token-Berechtigungen prüfen.",
+        "jobProjectNotFound": "GitLab-Projekt dieses Jobs konnte nicht gefunden werden.",
+        "jobLogFailed": "Job-Protokoll konnte nicht geladen werden: {{detail}}"
+      }
+    }
   }
 }

@@ -22459,5 +22459,53 @@
       },
       "finishPending": "Предыдущий перенос на хост {{distro}} там уже завершён. Orca завершит его здесь при перезапуске или сейчас — по кнопке «Проверить снова»."
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Укажите название",
+      "networkError": "Ошибка сети — проверьте подключение.",
+      "invalidUpdate": "Некорректное обновление — {{detail}}",
+      "invalidRequest": "Некорректный запрос — {{detail}}",
+      "issueNotFound": "Задача не найдена — возможно, она была удалена.",
+      "issueUpdateFailed": "Не удалось обновить задачу: {{detail}}",
+      "github": {
+        "repoUnresolved": "Не удалось определить owner/repo на GitHub для этого репозитория",
+        "unexpectedResponse": "Неожиданный ответ от GitHub",
+        "pullRequestIdUnresolved": "Не удалось определить ID пул-реквеста GitHub",
+        "reviewerRequired": "Укажите хотя бы одного рецензента",
+        "stackAutoMergeUnsupported": "GitHub не поддерживает автослияние пул-реквестов в стеке.",
+        "autoMergeAlreadyMergeable": "Этот пул-реквест уже можно слить. Используйте «Слить» вместо автослияния.",
+        "noFailedChecks": "Нет неуспешных проверок GitHub Actions для повторного запуска.",
+        "noRerunnableChecks": "Проверки для повторного запуска не найдены.",
+        "stackMergeInvalidResponse": "GitHub вернул некорректный ответ на слияние стека.",
+        "stackMergePending": "GitHub ещё выполняет слияние этого стека. Обновите, чтобы проверить статус.",
+        "rateLimited": "Достигнут лимит запросов GitHub. Повторите попытку через несколько минут.",
+        "issuePermissionDenied": "У вас нет разрешения на редактирование этой задачи. Проверьте права токена GitHub.",
+        "issuesDisabled": "Задачи в этом репозитории отключены.",
+        "pullRequestPermissionDenied": "У вас нет разрешения на редактирование этого пул-реквеста. Проверьте права токена GitHub.",
+        "pullRequestNotFound": "Пул-реквест не найден — возможно, он был удалён.",
+        "pullRequestUpdateFailed": "Не удалось обновить пул-реквест: {{detail}}",
+        "autoMergeEnableFailed": "Не удалось включить автослияние пул-реквеста: {{detail}}",
+        "autoMergeDisableFailed": "Не удалось отключить автослияние пул-реквеста: {{detail}}",
+        "mergeQueueAddFailed": "Не удалось добавить пул-реквест в очередь слияния: {{detail}}",
+        "rerunPermissionDenied": "У вас нет разрешения на повторный запуск проверок в этом репозитории. Проверьте права токена GitHub.",
+        "rerunTargetNotFound": "Ресурс GitHub для повторного запуска не найден — возможно, срок его действия истёк или он был удалён.",
+        "rerunRejected": "Не удалось повторно запустить проверки — {{detail}}",
+        "rerunFailed": "Не удалось повторно запустить проверки: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Не удалось определить проект GitLab для этого репозитория",
+        "unexpectedResponse": "Неожиданный ответ от GitLab",
+        "commentBodyRequired": "Необходимо ввести текст комментария",
+        "discussionIdRequired": "Требуется ID обсуждения",
+        "readyTitleConflict": "Нельзя обновить название и одновременно отметить запрос на слияние как готовый",
+        "mergeRequestTitleUnreadable": "Не удалось прочитать текущее название запроса на слияние",
+        "rateLimited": "Достигнут лимит запросов GitLab. Повторите попытку через несколько минут.",
+        "issuePermissionDenied": "У вас нет разрешения на редактирование этой задачи. Проверьте права токена GitLab.",
+        "jobLogPermissionDenied": "У вас нет разрешения на чтение журнала этого задания. Проверьте права токена GitLab.",
+        "jobProjectNotFound": "Не удалось найти проект GitLab для этого задания.",
+        "jobLogFailed": "Не удалось загрузить журнал задания: {{detail}}"
+      }
+    }
   }
 }

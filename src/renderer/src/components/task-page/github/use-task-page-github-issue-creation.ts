@@ -4,6 +4,7 @@ import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+import { codeHostErrorText } from '@/lib/code-host-error-copy'
 export function useTaskPageGitHubIssueCreation(model: TaskPageWorkspaceActionsModel) {
   const {
     setTaskRefreshNonce,
@@ -66,7 +67,7 @@ export function useTaskPageGitHubIssueCreation(model: TaskPageWorkspaceActionsMo
           })
       if (!result.ok) {
         toast.error(
-          result.error ||
+          codeHostErrorText(result) ||
             translate('auto.components.TaskPage.7437e340b4', 'Failed to create issue.')
         )
         return
