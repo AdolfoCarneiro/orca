@@ -1,3 +1,8 @@
+import { waitForPromiseWithSignal, throwIfSignalAborted } from '../../../shared/abort-signal-reason'
+import {
+  type RuntimeEnvironmentSetupFailure,
+  runtimeEnvironmentSetupFailure
+} from '../../../shared/runtime-environment-subscription-setup'
 import { getRuntimeEnvironmentStatus } from './runtime-environment-status-probe'
 import { getPreferredPairedRuntimeConnection } from '../../../shared/runtime-environments'
 import { ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES } from '../../../shared/electron-remote-runtime-client-capabilities'
@@ -178,13 +183,34 @@ export async function subscribeRuntimeEnvironment(
   },
   isCurrent: () => boolean = () => true,
   signal?: AbortSignal,
-  preparation?: ManagedRuntimeCallPreparation
+  preparation?: ManagedRuntimeCallPreparation,
+  crewAttempt?: {
+    assertCurrent: () => void
+    observeFailure: (failure: RuntimeEnvironmentSetupFailure) => void
+  }
 ): Promise<RemoteRuntimeSubscription> {
   const callbacks = {
     ...rawCallbacks,
     onEvent: decodeSessionTabsDeltaEvents(method, rawCallbacks.onEvent)
   }
-  const environment = await resolveManagedRuntimeEnvironment(userDataPath, selector, preparation)
+  let preparationFailure: RuntimeEnvironmentSetupFailure | undefined
+  crewAttempt?.assertCurrent()
+  const prepared = crewAttempt
+    ? resolveManagedRuntimeEnvironment(userDataPath, selector, preparation, (failure) => {
+        preparationFailure = failure
+      })
+    : resolveManagedRuntimeEnvironment(userDataPath, selector, preparation)
+  const environment = crewAttempt
+    ? await waitForPromiseWithSignal(prepared, signal).catch((error: unknown) => {
+        crewAttempt.observeFailure(
+          preparationFailure?.error === error
+            ? preparationFailure
+            : runtimeEnvironmentSetupFailure(error, 'managed-preparation')
+        )
+        throw error
+      })
+    : await prepared
+  crewAttempt?.assertCurrent()
   const pairedConnection = getPreferredPairedRuntimeConnection(environment)
   const effectiveTimeoutMs = timeoutMs ?? DEFAULT_REMOTE_RUNTIME_TIMEOUT_MS
   let markedUsed = false
@@ -229,7 +255,7 @@ export async function subscribeRuntimeEnvironment(
         signal
       })
     }
-    return await subscribeRemoteRuntimeRequest(
+    const subscription = await subscribeRemoteRuntimeRequest(
       pairedConnection,
       method,
       params,
@@ -237,14 +263,25 @@ export async function subscribeRuntimeEnvironment(
       callbacksWithMarkUsed,
       { clientCapabilities: ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES, signal }
     )
+    if (crewAttempt) {
+      try {
+        throwIfSignalAborted(signal)
+        crewAttempt.assertCurrent()
+      } catch (error) {
+        subscription.close()
+        throw error
+      }
+    }
+    return subscription
   } catch (error) {
-    if (error instanceof Error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
       error.message = withRuntimeUnreachableHint(
         environment,
         error.message,
         pairedConnection.endpoint
       )
     }
+    crewAttempt?.observeFailure(runtimeEnvironmentSetupFailure(error, 'subscription'))
     throw error
   }
 }

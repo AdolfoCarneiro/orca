@@ -1,3 +1,4 @@
+import { RuntimeEnvironmentSetupGuardError } from '../../shared/runtime-environment-subscription-setup'
 import {
   formatWslHostsPolicyBlockedArgument,
   formatWslHostsServeOnlyArgument,
@@ -9,6 +10,7 @@ import {
   type WslHostsGateState
 } from '../../shared/wsl-host-internal-gate'
 import type { OrcadDeploymentLink } from '../../shared/runtime-environments'
+import { wslHostRunRefusal, WSL_HOST_REMOVING_MESSAGE } from './wsl-host-add-admission'
 import type { WslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 
 export const WSL_HOSTS_GATED_OFF_MESSAGE = 'WSL hosts are not available in this build.'
@@ -123,6 +125,32 @@ export function assertWslHostReachable(environment: {
   orcadDeployment?: OrcadDeploymentLink | null
 }): void {
   if (isGatedOffWslHost(environment)) {
-    throw new Error(WSL_HOSTS_GATED_OFF_MESSAGE)
+    throw new RuntimeEnvironmentSetupGuardError(WSL_HOSTS_GATED_OFF_MESSAGE, {
+      kind: 'wsl',
+      reason: 'launch-closed'
+    })
   }
+}
+
+export function assertWslHostRunAllowed(
+  gate: Parameters<typeof wslHostRunRefusal>[0],
+  removing: ReadonlySet<string>,
+  environmentId: string
+): void {
+  const refusal = wslHostRunRefusal(gate)
+  if (refusal || removing.has(environmentId)) {
+    throw new RuntimeEnvironmentSetupGuardError(refusal?.message ?? WSL_HOST_REMOVING_MESSAGE, {
+      kind: 'wsl',
+      reason:
+        refusal?.kind === 'disabled'
+          ? 'disabled'
+          : refusal?.kind === 'server-files-missing'
+            ? 'server-files-missing'
+            : 'removing'
+    })
+  }
+}
+
+export function wslHostRuntimeCallGuard(message: string, reason: 'parked' | 'unavailable'): Error {
+  return new RuntimeEnvironmentSetupGuardError(message, { kind: 'wsl', reason })
 }
