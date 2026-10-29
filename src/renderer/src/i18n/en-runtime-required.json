@@ -238,6 +238,7 @@
         },
         "editor": {
           "save": {
+            "bytesUpdateRequired": "Saving binary files here requires a newer Orca server. Update the Orca server and try again.",
             "notUtf8": {
               "refused": "This file isn't UTF-8 text, so it wasn't saved."
             },
@@ -582,6 +583,33 @@
         "OrchestrationSkillAgentCoverage": {
           "fullCoverage_one": "All 1 detected agent has the skill.",
           "fullCoverage_other": "All {{value0}} detected agents have the skill."
+        },
+        "PluginDevelopmentSection": {
+          "title": "Development"
+        },
+        "PluginMarketplaceBrowser": {
+          "addSource": "Add catalog",
+          "empty": "The configured catalogs do not list any plugins.",
+          "emptyTitle": "Nothing listed yet",
+          "loading": "Loading catalog plugins…",
+          "manageSources": "Manage sources",
+          "noInstalled": "Plugins you install appear here.",
+          "noInstalledTitle": "No plugins installed",
+          "noResults": "No catalog plugins match this search.",
+          "noResultsTitle": "No matching plugins",
+          "noSourcesTitle": "No catalogs configured",
+          "refresh": "Refresh",
+          "refreshing": "Refreshing…",
+          "tryAgain": "Try again"
+        },
+        "PluginsSettingsSection": {
+          "empty": "Browse the All tab to install plugins from a catalog.",
+          "emptyTitle": "No plugins installed yet",
+          "install": "Install plugin",
+          "loading": "Loading plugins…",
+          "noInstalledResults": "No installed plugins match this search.",
+          "noInstalledResultsTitle": "No matching plugins",
+          "systemLabel": "Plugin system"
         },
         "ProjectWindowsRuntimeSetting": {
           "activeTaskPlural": "{{count}} active tasks",
@@ -1726,6 +1754,46 @@
     "mcp": {
       "serverCount_one": "{{count}} server",
       "serverCount_other": "{{count}} servers"
+    },
+    "shortcuts": {
+      "diagnostics": {
+        "conflictingOverrides": "Conflicting custom shortcuts were ignored: {{actions}}.",
+        "platformsNotObject": "platforms must be an object with darwin, linux, or win32 sections.",
+        "readFailed": "Could not read keybindings file: {{reason}}",
+        "sectionNotObject": "{{section}} must be an object.",
+        "shortcutIgnored": "Shortcut for \"{{actionId}}\" was ignored: {{reason}}",
+        "unknownAction": "Unknown keybinding action \"{{actionId}}\" was ignored.",
+        "unknownPlatform": "Unknown platform \"{{platform}}\" was ignored."
+      },
+      "validation": {
+        "digitKeyRequired": "Pick a number key 1–9 with a modifier, like Cmd+1 or Ctrl+1.",
+        "fileNotObject": "Keybindings file must contain a JSON object.",
+        "invalidBindingValue": "Use a string, string array, null, or false.",
+        "invalidFormat": "Use a shortcut like Ctrl+Shift+P or Cmd+K.",
+        "mixedModifiers": "Use either Mod or a platform-specific modifier, not both.",
+        "modifierOnly": "Press a key, not only a modifier.",
+        "modifierRequired": "Include at least one modifier key.",
+        "stringArrayRequired": "Use a string array."
+      }
+    }
+  },
+  "sidebar": {
+    "createProject": {
+      "errors": {
+        "createDirectoryFailed": "Failed to create directory: {{detail}}",
+        "gitIdentityMissing": "Git author identity is not configured. Run `git config --global user.name \"Your Name\"` and `git config --global user.email \"you@example.com\"`, then try again.",
+        "gitInitFailed": "Failed to initialize git repository: {{detail}}",
+        "initialCommitFailed": "Failed to create initial commit: {{detail}}",
+        "nameEmpty": "Name cannot be empty",
+        "nameInvalid": "Name cannot contain slashes or be \".\" / \"..\"",
+        "parentNotAbsolute": "Parent directory must be an absolute path",
+        "parentRequired": "Parent directory is required",
+        "prepareDirectoryFailed": "Failed to prepare directory: {{detail}}",
+        "readDirectoryFailed": "Failed to read directory: {{detail}}",
+        "targetInaccessible": "Cannot access target path: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" already exists at this location and is not empty.",
+        "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder."
+      }
     }
   },
   "sourceControl": {

@@ -36,6 +36,7 @@ type TerminalLiveInputCommitOptions<TTabType extends string> = {
   readonly activeHandleRef: RefObject<string | null>
   readonly activeSessionTabType: TTabType | null | undefined
   readonly activeSessionTabTypeRef: RefObject<TTabType | null>
+  readonly framesLivePaste?: (handle: string) => boolean
   readonly connected: boolean
   readonly liveInputRef: RefObject<TextInput | null>
   readonly liveInputTerminalHandles: ReadonlySet<string>
@@ -62,6 +63,7 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   activeHandleRef,
   activeSessionTabType,
   activeSessionTabTypeRef,
+  framesLivePaste,
   connected,
   liveInputRef,
   liveInputTerminalHandles,
@@ -87,6 +89,12 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   const advanceLiveInputInteractionGeneration = useCallback(() => {
     liveInputInteractionGenerationRef.current += 1
   }, [])
+  // Drop the cleared field's late native echo of whatever session just ended.
+  const recordEndedSession = useCallback((handle: string) => {
+    const fieldText = liveInputTextRef.current
+    endedSessionTextRef.current =
+      fieldText.length > 0 ? { handle, text: fieldText, at: Date.now() } : null
+  }, [])
   const {
     applyLiveInputMirror,
     clearPendingLiveInputCommit,
@@ -101,8 +109,10 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   } = useTerminalLivePendingInputFlush({
     activeHandleRef,
     activeSessionTabTypeRef,
+    framesLivePaste,
     liveInputRef,
     liveInputTerminalHandlesRef,
+    onPasteEndsFieldSession: recordEndedSession,
     sendLiveTerminalInputRef,
     setLiveInputCapture: updateLiveInputCapture
   })
@@ -156,12 +166,10 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   const endFieldSessionThenSend = useCallback(
     (handle: string, bytes: string): Promise<boolean> => {
       advanceLiveInputInteractionGeneration()
-      const fieldText = liveInputTextRef.current
-      endedSessionTextRef.current =
-        fieldText.length > 0 ? { handle, text: fieldText, at: Date.now() } : null
+      recordEndedSession(handle)
       return endLiveInputSessionThenSend(handle, bytes)
     },
-    [advanceLiveInputInteractionGeneration, endLiveInputSessionThenSend]
+    [advanceLiveInputInteractionGeneration, endLiveInputSessionThenSend, recordEndedSession]
   )
 
   // Ignore the cleared field’s native echo or it would retype old text at the new cursor.

@@ -193,6 +193,18 @@ export const mobileSessionCommandInputStyles = themedStyleSheet(() => ({
     fontFamily: typography.monoFamily,
     marginRight: spacing.sm
   },
+  commandField: {
+    flex: 1,
+    flexDirection: 'row',
+    marginRight: spacing.sm
+  },
+  commandFieldInput: {
+    marginRight: 0
+  },
+  // Dictation's preview draws the draft instead while it is hidden.
+  commandFieldInputHidden: {
+    color: 'transparent'
+  },
   liveInputField: {
     flex: 1,
     marginRight: spacing.sm
