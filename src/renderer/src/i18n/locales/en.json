@@ -16868,6 +16868,9 @@
           "tooLarge": "{{value0}} is too large to open in {{value1}} ({{value2}}; the limit is {{value3}}).",
           "unsupported": "{{value0}} can't read this file from where it is stored. Update the Orca server that hosts it, or switch to Source.",
           "readFailed": "{{value0}} couldn't be read for {{value1}}. {{value2}}"
+        },
+        "richMarkdownBlobImagePaste": {
+          "saveFailed": "Couldn't save a pasted image beside the document. It may not load after Orca restarts."
         }
       },
       "diff": {
