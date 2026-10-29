@@ -218,7 +218,11 @@ export function createStructuredAgentSessionConversationDelivery(input: {
     now: () => deps.now?.() ?? Date.now(),
     acquireAborts: input.acquireAborts,
     recordRanOptions: (sessionId, fence) =>
-      createStructuredAgentSessionRanRecorder(sessionId, fence)
+      createStructuredAgentSessionRanRecorder(
+        { deps, sessions, now: () => deps.now?.() ?? Date.now() },
+        sessionId,
+        fence
+      )
   })
   const adoptOpened = async (
     sessionId: string,
