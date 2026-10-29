@@ -28,7 +28,8 @@ export function bindTerminalTextFieldSubmit(
     event.preventDefault()
     onSubmit()
   }
-  const captureAndroidChords = hostOs() === 'android'
+  const os = hostOs()
+  const captureHardwareChords = os === 'android' || os === 'ios'
   let composing = false
   const startComposition = (): void => {
     composing = true
@@ -41,7 +42,7 @@ export function bindTerminalTextFieldSubmit(
       return
     }
     if (
-      !captureAndroidChords ||
+      !captureHardwareChords ||
       !onKeyChord ||
       event.defaultPrevented ||
       composing ||
@@ -54,9 +55,9 @@ export function bindTerminalTextFieldSubmit(
     ) {
       return
     }
-    const specialKey = getTerminalLiveSpecialKeyId(event.key)
+    const specialKey = event.key === 'Enter' ? 'enter' : getTerminalLiveSpecialKeyId(event.key)
     if (
-      event.key === 'Enter' ||
+      (event.key === 'Enter' && (!event.shiftKey || event.ctrlKey || event.altKey)) ||
       event.key === 'Backspace' ||
       event.key === 'Delete' ||
       (FIELD_CARET_KEYS.has(event.key) && !event.ctrlKey && !event.altKey && !event.shiftKey) ||

@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { createElement, useEffect, useRef, type RefObject } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { hostOs } from '../platform/host-os'
 import { useMobileSessionTerminalSendActions } from './use-mobile-session-terminal-send-actions'
 import { useTerminalLiveInputCommit } from '../terminal/use-terminal-live-input-commit'
 import type { TerminalLiveInputSender } from '../terminal/terminal-live-input-sender'
@@ -30,7 +31,7 @@ vi.mock('../terminal/mobile-terminal-operations', () => ({
     interpret: () => true
   }
 }))
-vi.mock('../platform/host-os', () => ({ hostOs: () => 'android' }))
+vi.mock('../platform/host-os', () => ({ hostOs: vi.fn(() => 'android') }))
 
 // The page's own sibling, because the listener this test dispatches to only exists there.
 vi.mock(
@@ -209,6 +210,17 @@ function pressEnter(): void {
   )
 }
 
+function pressShiftEnter(): KeyboardEvent {
+  const event = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    shiftKey: true,
+    bubbles: true,
+    cancelable: true
+  })
+  liveField.dispatchEvent(event)
+  return event
+}
+
 function holdAcknowledgement(): () => void {
   let release = (): void => {}
   const pending = new Promise<void>((resolve) => {
@@ -221,7 +233,11 @@ function holdAcknowledgement(): () => void {
   }
 }
 
-describe('keyboard controls through the live pending-text queue', () => {
+describe.each(['android', 'ios'] as const)('the %s live pending-text queue', (os) => {
+  beforeEach(() => {
+    vi.mocked(hostOs).mockReturnValue(os)
+  })
+
   it('sends the control once only after pending text is acknowledged', async () => {
     mocks.sent.length = 0
     const release = holdAcknowledgement()
@@ -244,6 +260,7 @@ describe('keyboard controls through the live pending-text queue', () => {
 
   it.each([
     { key: 'Ctrl-C', press: pressControl, fieldAfter: 'hellox', expected: 'hello\x03x' },
+    { key: 'Shift+Enter', press: pressShiftEnter, fieldAfter: 'x', expected: 'hello\x1b\rx' },
     { key: 'Enter', press: pressEnter, fieldAfter: 'x', expected: 'hello\rx' }
   ])('keeps text typed right after $key behind it', async ({ press, fieldAfter, expected }) => {
     mocks.sent.length = 0
