@@ -26,7 +26,14 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 function createFakeGateway(
-  options: { sessionTtlMs?: number; devicesStatus?: number; rejectBearer?: boolean } = {}
+  options: {
+    sessionTtlMs?: number
+    devicesStatus?: number
+    rejectBearer?: boolean
+    originClaims?: boolean
+    refuseFields?: boolean
+    refuseLegacy?: boolean
+  } = {}
 ): {
   client: PushGatewayClient
   calls: Recorded[]
@@ -76,6 +83,23 @@ function createFakeGateway(
         expiresAt: now.value + (options.sessionTtlMs ?? 24 * 60 * 60_000),
         hostFingerprint
       })
+    }
+    if (url.endsWith('/health')) {
+      return jsonResponse(200, { features: options.originClaims ? ['origin-claim-v1'] : [] })
+    }
+    const fields =
+      body &&
+      typeof body === 'object' &&
+      ('routeKey' in body ||
+        ('notification' in body &&
+          !!body.notification &&
+          typeof body.notification === 'object' &&
+          'origin' in body.notification))
+    if (
+      (options.refuseFields && fields) ||
+      (options.refuseLegacy && !fields && !url.endsWith('/health'))
+    ) {
+      return jsonResponse(400, {})
     }
     const bearer = headers.get('authorization')?.replace('Bearer ', '') ?? ''
     if (options.rejectBearer || !liveTokens.has(bearer)) {
@@ -199,7 +223,8 @@ describe('PushGatewayClient', () => {
     const gateway = createFakeGateway({ devicesStatus: 400 })
     expect(await gateway.client.registerDevice(REGISTER_INPUT)).toEqual({
       ok: false,
-      reason: 'rejected'
+      reason: 'rejected',
+      status: 400
     })
   })
 
@@ -252,4 +277,54 @@ describe('PushGatewayClient', () => {
 
     expect(await gateway.client.deleteDevice('reg-1')).toEqual(false)
   })
+})
+
+describe('origin-claim rollback', () => {
+  const notification = {
+    origin: 'o'.repeat(16),
+    occurrence: 'c'.repeat(43),
+    notificationId: 'subject',
+    notificationSeq: 1,
+    notificationEpoch: 'epoch',
+    source: 'agent-task-complete' as const,
+    agentState: 'finished' as const,
+    title: 'Done',
+    body: ''
+  }
+  it.each([false, true])(
+    'strips a refused send once; clears support only after acceptance (legacy refused=%s)',
+    async (refuseLegacy) => {
+      const gateway = createFakeGateway({ originClaims: true, refuseFields: true, refuseLegacy })
+      await gateway.client.send({ registrationIds: ['reg-1'], notification })
+      await gateway.client.send({
+        registrationIds: ['reg-1'],
+        notification: { ...notification, notificationSeq: 2 }
+      })
+      const bodies = gateway.calls
+        .filter((call) => call.url.endsWith('/v1/send'))
+        .map((call) => call.body)
+      expect(bodies).toHaveLength(refuseLegacy ? 4 : 3)
+      expect(bodies[0]).toMatchObject({ notification })
+      expect(bodies[1]).toMatchObject({
+        notification: { notificationSeq: 1, notificationEpoch: 'epoch' }
+      })
+      expect(JSON.stringify(bodies[1])).not.toContain('occurrence')
+      expect(JSON.stringify(bodies[2]).includes('occurrence')).toBe(refuseLegacy)
+    }
+  )
+  it.each([false, true])(
+    'strips a refused registration once; clears support only after acceptance (legacy refused=%s)',
+    async (refuseLegacy) => {
+      const gateway = createFakeGateway({ originClaims: true, refuseFields: true, refuseLegacy })
+      await gateway.client.registerDevice({ ...REGISTER_INPUT, routeKey: 'k'.repeat(43) })
+      await gateway.client.registerDevice({ ...REGISTER_INPUT, routeKey: 'k'.repeat(43) })
+      const bodies = gateway.calls
+        .filter((call) => call.url.endsWith('/v1/devices'))
+        .map((call) => call.body)
+      expect(bodies).toHaveLength(refuseLegacy ? 4 : 3)
+      expect(bodies[0]).toMatchObject({ routeKey: 'k'.repeat(43) })
+      expect(bodies[1]).toEqual({ v: 1, ...REGISTER_INPUT })
+      expect(JSON.stringify(bodies[2]).includes('routeKey')).toBe(refuseLegacy)
+    }
+  )
 })

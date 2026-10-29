@@ -65,6 +65,9 @@ export type NotificationDispatchRequest = {
   /** Producer-owned once-only news identity bypasses workspace burst dedupe so distinct events survive. */
   attentionKey?: string
   structuredOrigin?: StructuredAttentionOrigin
+  occurrence?: string
+  origin?: string
+  forwardingEnvironmentId?: string
   /** The execution host already pushed this to its paired phones, so main must not fan it out again. */
   mobileDeliveredByHost?: boolean
 }

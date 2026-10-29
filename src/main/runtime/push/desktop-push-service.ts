@@ -1,4 +1,5 @@
 // Push authenticates with host keys, independent of cloud sign-in; retain gateway registrations and durable cleanup for accountless hosts too.
+import { deriveRelayHostId } from '../mobile-cloud-relay/relay-http-client'
 import { randomUUID } from 'node:crypto'
 import type {
   MobilePushTestResult,
@@ -82,6 +83,10 @@ export class DesktopPushService {
 
   start(): void {
     this.stopped = false
+    const keypair = this.runtimeRpc.getE2EEKeypair()
+    if (keypair) {
+      this.runtime.setMobilePushOrigin(deriveRelayHostId(keypair.publicKey))
+    }
     this.dispatcher.start()
     this.runtime.setMobilePushRegistrar(this)
     this.unsubscribe = this.runtime.onNotificationDispatched((event) => {
@@ -198,7 +203,11 @@ export class DesktopPushService {
     void this.flushUnregisterOutbox()
     return failure
       ? { registered: false, reason: failure }
-      : { registered: true, registrationId: result.registrationId }
+      : {
+          registered: true,
+          registrationId: result.registrationId,
+          gatewayOrigin: this.client.gatewayOrigin
+        }
   }
 
   async unregister(deviceId: string): Promise<{ unregistered: boolean }> {
@@ -258,6 +267,7 @@ export class DesktopPushService {
       const stored = this.registry.setPushRegistration(input.deviceId, {
         registrationId,
         filter: input.filter,
+        ...(input.routeKey ? { routeKey: input.routeKey } : {}),
         expiresAt: Date.now() + 7 * 24 * 60 * 60_000
       })
       // False means the device was removed or left mobile scope while the gateway
