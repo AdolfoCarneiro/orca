@@ -9,7 +9,7 @@ import type { AttachmentTextRead } from '../../../../shared/attachment-text-sour
 import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from '../../../../shared/agent-session-runtime-capabilities'
 
 export function createChatAttachmentReader(
-  target: RuntimeClientTarget,
+  target: RuntimeClientTarget | null,
   text?: string
 ): AttachmentTextRead {
   if (text !== undefined) {
@@ -23,6 +23,11 @@ export function createChatAttachmentReader(
         contentBase64: btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')),
         eof: offset + bytes.length === blob.size
       }
+    }
+  }
+  if (!target) {
+    return async () => {
+      throw new Error('The attachment host is unavailable. Reconnect and retry.')
     }
   }
   const expectedEnvironmentPairingRevision =

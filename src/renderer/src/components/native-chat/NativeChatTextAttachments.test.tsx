@@ -156,3 +156,16 @@ it('survives StrictMode cleanup and refuses clipboard publication after the owne
   })
   expect(mocks.write).not.toHaveBeenCalled()
 })
+
+it('opens and copies the live paste before upload even while its host route is unresolved', async () => {
+  const text = '\ufefflive\r\n'.concat('🙂'.repeat(10_000))
+  render(<NativeChatTextAttachmentPreview path="" text={text} target={null} onClose={() => {}} />)
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
+      false
+    )
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
+  await waitFor(() => expect(mocks.write).toHaveBeenCalledWith(text))
+  expect(mocks.rpc).not.toHaveBeenCalled()
+})

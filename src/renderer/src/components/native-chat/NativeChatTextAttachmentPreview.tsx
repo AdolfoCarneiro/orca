@@ -26,20 +26,12 @@ export function NativeChatTextAttachmentPreview({
   target: RuntimeClientTarget | null
   onClose: () => void
 }) {
-  const read = useMemo(
-    () =>
-      target
-        ? createChatAttachmentReader(target, text)
-        : async () => {
-            throw new Error('The attachment host is unavailable. Reconnect and retry.')
-          },
-    [target, text]
-  )
+  const read = useMemo(() => createChatAttachmentReader(target, text), [target, text])
   const { source, display, busy, error, setError, setBusy, load, retry } = useAttachmentTextPreview(
     path,
     read
   )
-  const name = chatTextAttachmentName(path)
+  const name = text === undefined ? chatTextAttachmentName(path) : 'Pasted text'
   const run = async (action: 'copy' | 'save') => {
     setBusy(true)
     setError('')
