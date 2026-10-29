@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 import { ShareUsageCard, type ShareUsageCardProps } from './ShareUsageCard'
 import { getIntlLocale, translate } from '@/i18n/i18n'
-import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 type ShareUsageButtonProps = ShareUsageCardProps
 
@@ -74,7 +73,7 @@ export function ShareUsageButton(props: ShareUsageButtonProps): React.JSX.Elemen
     }
   }, [captureToClipboard, clearCopiedResetTimer])
 
-  const handleShareToX = useCallback((): void => {
+  const handleShareToX = useCallback(async () => {
     const { provider, summary, range } = props
     const providerName = provider === 'claude' ? 'Claude' : 'Codex'
     const rangeLabel =
@@ -113,7 +112,7 @@ export function ShareUsageButton(props: ShareUsageButtonProps): React.JSX.Elemen
       'github.com/stablyai/orca'
     ]
     const url = `https://x.com/intent/post?text=${encodeURIComponent(lines.join('\n'))}`
-    openAppHttpLink(url)
+    await window.api.shell.openUrl(url)
   }, [props])
 
   return (
@@ -164,7 +163,7 @@ export function ShareUsageButton(props: ShareUsageButtonProps): React.JSX.Elemen
             </Button>
             <Button
               variant="outline"
-              onClick={handleShareToX}
+              onClick={() => void handleShareToX()}
               disabled={capturing}
               className="flex-1"
             >

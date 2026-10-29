@@ -78,11 +78,6 @@ function unsetEnvVarCommand(varName: string): { label: string; command: string }
   }
 }
 
-function openExternal(url: string): void {
-  // Route through Electron’s shell IPC because window.open may not reach the default browser.
-  openAppHttpLink(url)
-}
-
 async function copyToClipboard(text: string): Promise<void> {
   try {
     await window.api.ui.writeClipboardText(text)
@@ -349,7 +344,7 @@ export function GhAuthErrorHelp({
           {docsUrl ? (
             <button
               type="button"
-              onClick={() => openExternal(docsUrl)}
+              onClick={(event) => openAppHttpLink(docsUrl, { event })}
               className="inline-flex items-center gap-1 rounded border border-amber-500/30 px-1.5 py-0.5 text-[11px] hover:bg-amber-500/20"
             >
               <ExternalLink className="size-3" />{' '}
@@ -387,7 +382,11 @@ export function GhAuthErrorHelp({
           </Button>
         ))}
         {docsUrl ? (
-          <Button size="sm" variant="outline" onClick={() => openExternal(docsUrl)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(event) => openAppHttpLink(docsUrl, { event })}
+          >
             <ExternalLink className="mr-1 size-3.5" />{' '}
             {translate('auto.components.github.project.GhAuthErrorHelp.baa006f9af', 'Docs')}
           </Button>

@@ -32,7 +32,7 @@ export function useWorkspaceReferenceLinkActions(
       event.preventDefault()
       event.stopPropagation()
       holdOpenUntilRefocus()
-      openAppHttpLink(url)
+      openAppHttpLink(url, { event })
       return
     }
     const state = useAppStore.getState()
