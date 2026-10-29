@@ -67,6 +67,18 @@ describe('delete/modify merge resolved through resolveConflict and completeMerge
     await expect(detectConflictOperation(repoPath)).resolves.toBe('unknown')
   })
 
+  it('refuses to resolve a path someone already resolved, keeping their staged work', async () => {
+    const { repoPath, git } = createDeleteModifyConflict()
+    writeFileSync(join(repoPath, 'gone.txt'), 'hand merged\n')
+    git('add', 'gone.txt')
+
+    await expect(resolveConflict(repoPath, 'gone.txt', 'keep_deletion')).rejects.toThrow(
+      'no longer in conflict'
+    )
+    expect(git('show', ':gone.txt')).toBe('hand merged\n')
+    expect(existsSync(join(repoPath, 'gone.txt'))).toBe(true)
+  })
+
   it('refuses without a merge in progress instead of committing staged changes', async () => {
     const { repoPath, git } = createDeleteModifyConflict()
     git('merge', '--abort')

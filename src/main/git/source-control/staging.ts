@@ -39,6 +39,15 @@ export async function resolveConflict(
   resolution: ConflictResolution,
   options: GitRuntimeOptions = {}
 ): Promise<void> {
+  const pathspec = literalPathspec(filePath, worktreePath, options)
+  // A stale row (phone poll, another client) must not overwrite a resolution someone already staged.
+  const { stdout: unmerged } = await gitExecFileAsync(
+    ['ls-files', '--unmerged', '-z', '--', pathspec],
+    gitOptionsForWorktree(worktreePath, options)
+  )
+  if (!unmerged) {
+    throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
+  }
   if (resolution !== 'keep_deletion') {
     await stageFile(worktreePath, filePath, options)
     return
@@ -46,7 +55,7 @@ export async function resolveConflict(
   invalidateGitReadCaches()
   try {
     await gitExecFileAsync(
-      ['rm', '--force', '--quiet', '--', literalPathspec(filePath, worktreePath, options)],
+      ['rm', '--force', '--quiet', '--', pathspec],
       gitOptionsForWorktree(worktreePath, options)
     )
   } finally {
