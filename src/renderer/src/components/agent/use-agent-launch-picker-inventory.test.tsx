@@ -3,6 +3,7 @@ import { createElement, Suspense, startTransition, useLayoutEffect, useState } f
 import { act, cleanup, fireEvent, render, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AgentLaunchPickerMenu } from './AgentLaunchPickerMenu'
+import { exerciseAgentPickerFreshness } from './agent-launch-picker-freshness-test-fixture'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
@@ -103,6 +104,14 @@ beforeEach(() => {
     )
 })
 afterEach(cleanup)
+
+it('revalidates completed host Chat defaults behind held siblings through the actual producer, resource and panel', async () => {
+  await exerciseAgentPickerFreshness({
+    menu: model('source-freshness', ['claude']),
+    session: mocks.session,
+    catalog
+  })
+})
 
 it('publishes only committed selection to physical catalog admission after a suspended render', async () => {
   const menu = model('committed-priority', ['codex', 'claude', 'gemini', 'cursor', 'amp'])
@@ -314,7 +323,7 @@ it.each(['slow', 'failed'] as const)(
     await act(async () => {})
     expect(hook.result.current[0]).toMatchObject({
       defaultsPending: false,
-      structuredDefaultsPending: false,
+      structuredDefaultsPending: kind === 'failed',
       arguments: '--host-only',
       terminal: { permissionMode: 'ask' },
       catalog: { origin: 'unknown' }
@@ -419,12 +428,13 @@ it('updates terminal availability when detection changes while the Chat rows sta
   if (menu.state !== 'settled') {
     throw new Error('settled fixture')
   }
+  const initialProps: { value: Extract<NewTabAgentMenuModel, { state: 'settled' }> } = {
+    value: { ...menu, detection: { ...menu.detection, detectedIds: [] } }
+  }
   const hook = renderHook(
     ({ value }: { value: Extract<NewTabAgentMenuModel, { state: 'settled' }> }) =>
       useAgentLaunchPickerInventory('wt', value, true),
-    {
-      initialProps: { value: { ...menu, detection: { ...menu.detection, detectedIds: [] } } }
-    }
+    { initialProps }
   )
   await act(async () => {})
   expect(hook.result.current[0].surfaces).toEqual(['chat'])
