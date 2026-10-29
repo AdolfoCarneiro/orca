@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render } from '@testing-library/react'
-import { useLayoutEffect } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import type { RuntimeRpcSubscriptionHandlers } from '@/runtime/runtime-rpc-subscribe'
@@ -58,22 +57,14 @@ vi.mock('@/store', async () => {
 afterEach(() => {
   cleanup()
   rig.streams.length = 0
+  renderCounts.clear()
 })
 const local = { kind: 'local' } as const
 const remote = { kind: 'environment', environmentId: 'crew-host' } as const
-function Pane({
-  party,
-  target = local,
-  renderCount
-}: {
-  party: string
-  target?: RuntimeClientTarget
-  renderCount: () => void
-}) {
+const renderCounts = new Map<string, number>()
+function Pane({ party, target = local }: { party: string; target?: RuntimeClientTarget }) {
+  renderCounts.set(party, (renderCounts.get(party) ?? 0) + 1)
   const crew = useOrchestrationCrew(target, party)
-  useLayoutEffect(() => {
-    renderCount()
-  })
   return (
     <>
       <output data-testid={party}>
@@ -109,12 +100,10 @@ function publish(index: number, pending = false) {
 }
 
 it('retains the collapsed/no-crew wake, publishes only complete replacements and isolates parties', async () => {
-  const first = vi.fn(),
-    other = vi.fn()
   const view = render(
     <>
-      <Pane party="term_first" renderCount={first} />
-      <Pane party="term_other" renderCount={other} />
+      <Pane party="term_first" />
+      <Pane party="term_other" />
     </>
   )
   await act(async () => {})
@@ -124,7 +113,7 @@ it('retains the collapsed/no-crew wake, publishes only complete replacements and
     rig.streams[0].handlers.onEvent({ type: 'complete' })
   })
   expect(view.getByTestId('term_first').textContent).toBe('0')
-  const beforeOther = other.mock.calls.length
+  const beforeOther = renderCounts.get('term_other')
   let complete = () => {}
   act(() => {
     complete = publish(0, true)
@@ -132,12 +121,12 @@ it('retains the collapsed/no-crew wake, publishes only complete replacements and
   expect(view.getByTestId('term_first').textContent).toBe('0')
   act(complete)
   expect(view.getByTestId('term_first').textContent).toBe('1')
-  expect(other).toHaveBeenCalledTimes(beforeOther)
-  const before = first.mock.calls.length
+  expect(renderCounts.get('term_other')).toBe(beforeOther)
+  const before = renderCounts.get('term_first') ?? 0
   act(() => publish(0, true)())
-  expect(first).toHaveBeenCalledTimes(before)
+  expect(renderCounts.get('term_first')).toBe(before)
   act(() => publish(0, false)())
-  expect(first).toHaveBeenCalledTimes(before + 1)
+  expect(renderCounts.get('term_first')).toBe(before + 1)
   view.unmount()
   expect(rig.streams.every((stream) => stream.unsubscribe.mock.calls.length === 1)).toBe(true)
   expect(rig.listeners.size).toBe(0)
@@ -145,11 +134,11 @@ it('retains the collapsed/no-crew wake, publishes only complete replacements and
 
 it('caches old-host refusal per generation and resubscribes after reconnect or pairing changes', async () => {
   replaceRuntimeEnvironmentRevisions([{ id: 'crew-host', createdAt: 1 }])
-  const view = render(<Pane party="term_old" target={remote} renderCount={vi.fn()} />)
+  const view = render(<Pane party="term_old" target={remote} />)
   await act(async () => {})
   act(() => rig.streams[0].handlers.onError({ code: 'method_not_found' }))
   expect(view.getByTestId('term_old').textContent).toBe('unknown')
-  view.rerender(<Pane party="term_plain" target={remote} renderCount={vi.fn()} />)
+  view.rerender(<Pane party="term_plain" target={remote} />)
   await act(async () => {})
   expect(rig.streams).toHaveLength(1)
   act(() => {
@@ -198,17 +187,14 @@ it('renders no unaffected local parties or hosts after unused state and other-ho
     { id: 'crew-host', createdAt: 10 },
     { id: 'crew-other-host', createdAt: 20 }
   ])
-  const localFirst = vi.fn(),
-    localOther = vi.fn(),
-    selected = vi.fn(),
-    other = vi.fn()
-  const counts = [localFirst, localOther, selected, other]
+  const parties = ['term_local_first', 'term_local_other', 'term_selected', 'term_other_host']
+  const counts = () => parties.map((party) => renderCounts.get(party) ?? 0)
   const view = render(
     <>
-      <Pane party="term_local_first" renderCount={localFirst} />
-      <Pane party="term_local_other" renderCount={localOther} />
-      <Pane party="term_selected" target={remote} renderCount={selected} />
-      <Pane party="term_other_host" target={otherHost} renderCount={other} />
+      <Pane party="term_local_first" />
+      <Pane party="term_local_other" />
+      <Pane party="term_selected" target={remote} />
+      <Pane party="term_other_host" target={otherHost} />
     </>
   )
   await act(async () => {})
@@ -216,8 +202,9 @@ it('renders no unaffected local parties or hosts after unused state and other-ho
   for (let index = 0; index < 4; index++) {
     act(() => publish(index)())
   }
-  counts.forEach((count) => count.mockClear())
-  const expectNone = () => counts.forEach((count) => expect(count).not.toHaveBeenCalled())
+  expect(counts().every((count) => count > 0)).toBe(true)
+  renderCounts.clear()
+  const expectNone = () => expect(counts()).toEqual([0, 0, 0, 0])
 
   act(() => {
     rig.state = { ...rig.state, unusedLocalState: 1 }
@@ -235,12 +222,10 @@ it('renders no unaffected local parties or hosts after unused state and other-ho
     rig.listeners.forEach((wake) => wake())
   })
   await act(async () => {})
-  expect(localFirst).not.toHaveBeenCalled()
-  expect(localOther).not.toHaveBeenCalled()
-  expect(selected).not.toHaveBeenCalled()
-  expect(other).toHaveBeenCalled()
+  expect(counts().slice(0, 3)).toEqual([0, 0, 0])
+  expect(renderCounts.get('term_other_host')).toBeGreaterThan(0)
   expect(rig.streams).toHaveLength(5)
-  counts.forEach((count) => count.mockClear())
+  renderCounts.clear()
   act(() =>
     replaceRuntimeEnvironmentRevisions([
       { id: 'crew-host', createdAt: 10 },
@@ -248,23 +233,15 @@ it('renders no unaffected local parties or hosts after unused state and other-ho
     ])
   )
   await act(async () => {})
-  expect(localFirst).not.toHaveBeenCalled()
-  expect(localOther).not.toHaveBeenCalled()
-  expect(selected).not.toHaveBeenCalled()
-  expect(other).toHaveBeenCalled()
+  expect(counts().slice(0, 3)).toEqual([0, 0, 0])
+  expect(renderCounts.get('term_other_host')).toBeGreaterThan(0)
   expect(rig.streams).toHaveLength(6)
-  counts.forEach((count) => count.mockClear())
+  renderCounts.clear()
   act(() => publish(5, true)())
-  expect(localFirst).not.toHaveBeenCalled()
-  expect(localOther).not.toHaveBeenCalled()
-  expect(selected).not.toHaveBeenCalled()
-  expect(other).toHaveBeenCalledOnce()
-  counts.forEach((count) => count.mockClear())
+  expect(counts()).toEqual([0, 0, 0, 1])
+  renderCounts.clear()
   act(() => publish(2, true)())
-  expect(selected).toHaveBeenCalledOnce()
-  expect(localFirst).not.toHaveBeenCalled()
-  expect(localOther).not.toHaveBeenCalled()
-  expect(other).not.toHaveBeenCalled()
+  expect(counts()).toEqual([0, 0, 1, 0])
   expect(view.getByTestId('term_selected').textContent).toBe('1')
   expect(view.getByTestId('term_selected-question').textContent).toBe('Which option?')
   view.unmount()
