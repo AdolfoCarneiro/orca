@@ -8,7 +8,7 @@ import Foundation
 //     ios/MobileWebShellOrigin.swift ios/MobileWebShellGeneration.swift ios/MobileWebShellCsp.swift \
 //     ios/MobileWebShellLoadState.swift ios/MobileWebShellResponseHeaders.swift \
 //     ios/MobileWebShellBridge.swift ios/MobileWebShellAppliedProps.swift \
-//     ios/MobileWebShellNavigationPolicy.swift \
+//     ios/MobileWebShellNavigationPolicy.swift ios/MobileWebShellAssetRead.swift \
 //     tests/MobileWebShellChecks.swift && /tmp/mobile-web-shell-checks
 @main struct MobileWebShellChecks {
   static let session = "sess-01JN_aZ9"
@@ -588,6 +588,82 @@ import Foundation
     precondition(decide(machine) == .cancel)
   }
 
+  static func checkCancelledAssetReads() {
+    final class Counts {
+      var reads = 0
+      var deliveries = 0
+    }
+    let file = URL(fileURLWithPath: "/unused-cancelled-asset")
+    let expected = Data([0, 1, 2, 255])
+    for count in [16, 160] {
+      let queue = DispatchQueue(label: "mobile-web-shell-cancelled-read-check")
+      let gate = DispatchSemaphore(value: 0)
+      let done = DispatchGroup()
+      let counts = Counts()
+      queue.async { gate.wait() }
+      for _ in 0..<count {
+        let read = MobileWebShellAssetRead { _ in preconditionFailure("cancelled delivery") }
+        done.enter()
+        queue.async {
+          let data = read.read(file) { _ in
+            counts.reads += 1
+            return expected
+          }
+          read.complete(data)
+          done.leave()
+        }
+        read.cancel()
+      }
+      let successor = MobileWebShellAssetRead { data in
+        precondition(data == expected)
+        counts.deliveries += 1
+      }
+      done.enter()
+      queue.async {
+        let data = successor.read(file) { _ in
+          counts.reads += 1
+          return expected
+        }
+        successor.complete(data)
+        done.leave()
+      }
+      gate.signal()
+      precondition(done.wait(timeout: .now() + 5) == .success)
+      precondition(counts.reads == 1)
+      precondition(counts.deliveries == 1)
+      successor.complete(expected)
+      precondition(counts.deliveries == 1)
+    }
+
+    var runningDeliveries = 0
+    let running = MobileWebShellAssetRead { _ in runningDeliveries += 1 }
+    let result = running.read(file) { _ in
+      running.cancel()
+      return expected
+    }
+    precondition(result == nil)
+    running.complete(result)
+    precondition(runningDeliveries == 0)
+
+    final class Owner {}
+    var owner: Owner? = Owner()
+    weak var retainedOwner = owner
+    let retained = MobileWebShellAssetRead { [owner] _ in withExtendedLifetime(owner) {} }
+    owner = nil
+    precondition(retainedOwner != nil)
+    retained.cancel()
+    precondition(retainedOwner == nil)
+
+    enum ReadFailure: Error { case unreadable }
+    var failures = 0
+    let failed = MobileWebShellAssetRead { data in
+      precondition(data == nil)
+      failures += 1
+    }
+    failed.complete(failed.read(file) { _ in throw ReadFailure.unreadable })
+    precondition(failures == 1)
+  }
+
   static func main() {
     checkSessionIds()
     checkRequestResolution()
@@ -600,6 +676,7 @@ import Foundation
     checkNavigationErrors()
     checkNavigationVerdict()
     checkOwnLoadIsSpentOnce()
+    checkCancelledAssetReads()
     checkAppliedProps()
     checkBridgeAcceptance()
     checkBridgePostTarget()

@@ -48,15 +48,23 @@ private let bridgeDeliver = """
 private final class MobileWebShellSchemeHandler: NSObject, WKURLSchemeHandler {
   /// Read up-to-10-MiB assets off WebKit’s main-thread scheme callbacks.
   private let readQueue = DispatchQueue(label: "dev.orca.mobile-web-shell.read")
-  /// Main-thread live-task set prevents stopped-task delivery’s uncatchable Objective-C exception.
-  private var liveTasks: Set<ObjectIdentifier> = []
+  /// Main-thread ownership prevents stopped-task delivery’s uncatchable Objective-C exception.
+  private var liveTasks: [ObjectIdentifier: MobileWebShellAssetRead] = [:]
 
   var sessionId: String?
   var generation: MobileWebShellGeneration?
 
+  deinit {
+    cancelAll()
+  }
+
+  func cancelAll() {
+    for read in liveTasks.values { read.cancel() }
+    liveTasks.removeAll()
+  }
+
   func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
     let key = ObjectIdentifier(urlSchemeTask)
-    liveTasks.insert(key)
     guard
       let sessionId,
       let generation,
@@ -65,40 +73,37 @@ private final class MobileWebShellSchemeHandler: NSObject, WKURLSchemeHandler {
       let path = MobileWebShellOrigin.resolveRequestPath(parts, sessionId: sessionId),
       let asset = generation.entries[path]
     else {
-      fail(urlSchemeTask, key)
+      urlSchemeTask.didFailWithError(URLError(.resourceUnavailable))
       return
     }
-    readQueue.async { [weak self] in
-      let data = try? Data(contentsOf: asset.file)
-      DispatchQueue.main.async {
-        guard let self, self.liveTasks.contains(key) else { return }
-        guard
-          let data,
-          let response = Self.makeResponse(
-            url: url,
-            asset: asset,
-            byteCount: data.count,
-            path: path
-          )
-        else {
-          self.fail(urlSchemeTask, key)
-          return
-        }
-        self.liveTasks.remove(key)
-        urlSchemeTask.didReceive(response)
-        urlSchemeTask.didReceive(data)
-        urlSchemeTask.didFinish()
+    let read = MobileWebShellAssetRead { [weak self] data in
+      guard let self, self.liveTasks.removeValue(forKey: key) != nil else { return }
+      guard
+        let data,
+        let response = Self.makeResponse(
+          url: url,
+          asset: asset,
+          byteCount: data.count,
+          path: path
+        )
+      else {
+        urlSchemeTask.didFailWithError(URLError(.resourceUnavailable))
+        return
       }
+      urlSchemeTask.didReceive(response)
+      urlSchemeTask.didReceive(data)
+      urlSchemeTask.didFinish()
+    }
+    liveTasks[key] = read
+    readQueue.async {
+      let data = read.read(asset.file)
+      guard read.isActive else { return }
+      DispatchQueue.main.async { read.complete(data) }
     }
   }
 
   func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-    liveTasks.remove(ObjectIdentifier(urlSchemeTask))
-  }
-
-  private func fail(_ urlSchemeTask: WKURLSchemeTask, _ key: ObjectIdentifier) {
-    guard liveTasks.remove(key) != nil else { return }
-    urlSchemeTask.didFailWithError(URLError(.resourceUnavailable))
+    liveTasks.removeValue(forKey: ObjectIdentifier(urlSchemeTask))?.cancel()
   }
 
   private static func makeResponse(
@@ -176,6 +181,10 @@ final class OrcaMobileWebShellView: ExpoView, WKNavigationDelegate, WKUIDelegate
   private var isolationFailed = false
   private let loadState = MobileWebShellLoadStateMachine()
 
+  deinit {
+    schemeHandler.cancelAll()
+  }
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     let configuration = WKWebViewConfiguration()
@@ -235,6 +244,7 @@ final class OrcaMobileWebShellView: ExpoView, WKNavigationDelegate, WKUIDelegate
     clearBridgeTarget()
     loadState.reset()
     pendingDocumentUrl = nil
+    schemeHandler.cancelAll()
     webView.stopLoading()
     webView.isHidden = false
     emit(loadState.started())
@@ -269,6 +279,7 @@ final class OrcaMobileWebShellView: ExpoView, WKNavigationDelegate, WKUIDelegate
     schemeHandler.sessionId = nil
     schemeHandler.generation = nil
     pendingDocumentUrl = nil
+    schemeHandler.cancelAll()
     webView.stopLoading()
     webView.isHidden = true
     emit(loadState.failed(reason))
@@ -410,6 +421,8 @@ final class OrcaMobileWebShellView: ExpoView, WKNavigationDelegate, WKUIDelegate
 
   private func reportDocumentFailure() {
     clearBridgeTarget()
+    schemeHandler.cancelAll()
+    webView.stopLoading()
     emit(loadState.failed(.documentLoadFailed))
   }
 
@@ -505,6 +518,7 @@ final class OrcaMobileWebShellView: ExpoView, WKNavigationDelegate, WKUIDelegate
   /// Report renderer death; memory pressure/provider updates look alike, so the caller owns retry policy.
   func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
     clearBridgeTarget()
+    schemeHandler.cancelAll()
     emit(loadState.failed(.renderProcessGone))
   }
 

@@ -1,5 +1,8 @@
 {
   "name": "orca-mobile-web-shell",
   "version": "0.0.1",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test:ios-foundation": "node tests/run-ios-foundation-checks.mjs"
+  }
 }
