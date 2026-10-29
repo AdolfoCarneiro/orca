@@ -113,9 +113,9 @@ describe('read-only editor tabs (AI Vault View Log)', () => {
   it('hydrates a persisted read-only tab clean and ignores any persisted dirty draft', () => {
     const store = createEditorStore()
     setSessionTestState(store, {
-      worktreesByRepo: { 'repo-1': [{ id: 'wt-1' }] },
+      worktreesByRepo: store.getState().worktreesByRepo,
       folderWorkspaces: []
-    } as never)
+    })
 
     store.getState().hydrateEditorSession({
       openFilesByWorktree: {
@@ -146,9 +146,9 @@ describe('read-only editor tabs (AI Vault View Log)', () => {
   it('restores the SSH target that owns an external host file', () => {
     const store = createEditorStore()
     setSessionTestState(store, {
-      worktreesByRepo: { 'repo-1': [{ id: 'wt-1' }] },
+      worktreesByRepo: store.getState().worktreesByRepo,
       folderWorkspaces: []
-    } as never)
+    })
 
     store.getState().hydrateEditorSession({
       openFilesByWorktree: {

@@ -8,6 +8,7 @@ import type { AppState } from '../types'
 import { createDictationSlice } from './dictation'
 
 type DictationTestStore = Pick<AppState, 'modelStates' | 'refreshModelStates' | 'setModelStates'>
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this slice uses only its own initialized dictation fields; no omitted AppState field is read.
 const dictationSlice = createDictationSlice as unknown as SessionStateCreator<DictationTestStore>
 
 let reply: SpeechModelState[]

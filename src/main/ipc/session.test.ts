@@ -41,9 +41,10 @@ describe('registerSessionHandlers', () => {
       patchWorkspaceSession: vi.fn(),
       flushPendingOrThrowAsync: vi.fn(() => Promise.resolve())
     }
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the handlers under test touch only the store methods stubbed above and never the runtime.
     registerSessionHandlers(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fenced-write fixture supplies every Store method these handlers call.
       store as never,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture exercises only save handlers and supplies their runtime reconnect source.
       {
         shutdownReconnectSources: () => ({
           isLiveLocalPty: () => false,
