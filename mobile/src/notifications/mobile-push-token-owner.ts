@@ -27,6 +27,7 @@ export function createMobilePushOwner(
     isCurrent: () => boolean
     invalidate: () => void
     rederive: () => void
+    refresh: () => void
     currentToken: () => Promise<MobilePushToken | null>
     start: () => void
     stop: () => void
@@ -47,6 +48,9 @@ export function createMobilePushOwner(
     },
     rederive() {
       root.intent = generation()
+      void refresh()
+    },
+    refresh: () => {
       void refresh()
     },
     async currentToken(): Promise<MobilePushToken | null> {

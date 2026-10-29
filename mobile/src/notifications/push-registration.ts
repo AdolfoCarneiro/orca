@@ -187,6 +187,9 @@ export function attachPushRegistration(hostId: string, client: PushClient): () =
     state.connection.client = client
     state.supported = null
   }
+  if (owner && !owner.token) {
+    owner.refresh()
+  }
   void enqueueReconcile(hostId)
   const connection = state.connection
   return () => {
