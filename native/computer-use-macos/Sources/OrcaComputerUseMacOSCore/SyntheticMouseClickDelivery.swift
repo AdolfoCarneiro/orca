@@ -1,4 +1,4 @@
-/// STA-3433: use HID taps; CGEventPostToPid lacks window association and AppKit drops presses.
+/// Foreground (--restore-window) clicks: HID taps behind a focused-recipient fence; background clicks use BackgroundInputTransport.
 /// Pace down/up events or WindowServer can drop mouseUp.
 public enum SyntheticMouseClickDelivery {
     public static let maxClickCount = 3

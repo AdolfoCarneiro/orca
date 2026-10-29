@@ -244,6 +244,8 @@ final class Provider {
 
     private func actionResult(params: [String: JSONValue], action runAction: () throws -> [String: Any]) throws -> [String: Any] {
         var action = try runAction()
+        // Why: only --restore-window activates the app or posts to the HID tap; every other route leaves the user's desktop alone.
+        action["delivery"] = isForegroundRequest(params) ? "foreground" : "background"
         do {
             return try renderActionResult(action: action, snapshot: observe(params: params))
         } catch let error as ProviderError where (error.code == "window_not_found" || error.code == "window_stale") && hasRequestedWindowSelector(params) {
@@ -372,8 +374,7 @@ final class Provider {
     }
 
     private func currentKeyboardSnapshot(params: [String: JSONValue]) throws -> Snapshot {
-        // Why: AX text replacement/select-all do not post global input, so only
-        // synthetic fallback paths require the target window to be focused.
+        // Why: keyboard actions need fresh focused-element state, never pixels.
         try currentSnapshot(params: params.merging(["noScreenshot": .bool(true)]) { _, replacement in replacement })
     }
 
@@ -516,6 +517,9 @@ final class Provider {
                     "dialogs": false,
                     "dock": false,
                     "menubar": false,
+                ],
+                "input": [
+                    "background": BackgroundInputTransport.isAvailable,
                 ],
             ],
         ]
@@ -736,9 +740,7 @@ final class Provider {
             )
         }
         let modifiers = try KeyMap.parseModifiers(params["modifiers"]?.string)
-        // Why: agents expect a click into a target app to make the next
-        // keyboard action safe, even when the click uses an AX action path.
-        recoverWindow(snapshot.app, windowId: snapshot.windowId, windowBounds: snapshot.windowBounds)
+        let foreground = isForegroundRequest(params)
         if let elementIndex = try optionalInteger(params, "elementIndex") {
             let record = try element(snapshot, elementIndex)
             if modifiers.isEmpty,
@@ -748,13 +750,7 @@ final class Provider {
                 return actionMetadata(path: "accessibility", actionName: actionName)
             }
             if let point = center(record.localFrame, in: snapshot.windowBounds) {
-                try Input.click(
-                    at: point,
-                    button: button,
-                    count: count,
-                    modifiers: modifiers,
-                    targetWindow: snapshot
-                )
+                try clickPointer(at: point, button: button, count: count, modifiers: modifiers, snapshot: snapshot, foreground: foreground)
                 return actionMetadata(
                     path: "synthetic",
                     fallbackReason: "actionUnsupported",
@@ -764,13 +760,7 @@ final class Provider {
             throw ProviderError.coded("element_not_clickable", "element \(record.index) has no clickable frame")
         }
         let point = try coordinatePoint(params: params, xKey: "x", yKey: "y", snapshot: snapshot)
-        try Input.click(
-            at: point,
-            button: button,
-            count: count,
-            modifiers: modifiers,
-            targetWindow: snapshot
-        )
+        try clickPointer(at: point, button: button, count: count, modifiers: modifiers, snapshot: snapshot, foreground: foreground)
         return actionMetadata(
             path: "synthetic",
             verification: unverifiedAction(reason: "synthetic_input")
@@ -844,8 +834,7 @@ final class Provider {
         if let focused = focusedRecord(snapshot), let verification = TextInput.replaceSelection(focused.element, with: text) {
             return actionMetadata(path: "accessibility", actionName: "AXReplaceSelection", verification: verification)
         }
-        try requireTargetWindowFocused(snapshot, restoreWindowRequested: params["restoreWindow"]?.bool == true)
-        try Input.typeText(text, pid: snapshot.app.pid)
+        try deliverKeys(try withTransportErrors { try BackgroundInputTransport.textEvents(text) }, snapshot: snapshot, params: params)
         return actionMetadata(
             path: "synthetic",
             actionName: "typeText",
@@ -855,8 +844,7 @@ final class Provider {
 
     private func pressKey(params: [String: JSONValue]) throws -> [String: Any] {
         let snapshot = try currentKeyboardSnapshot(params: params)
-        try requireTargetWindowFocused(snapshot, restoreWindowRequested: params["restoreWindow"]?.bool == true)
-        try Input.pressKey(try requiredString(params, "key"), pid: snapshot.app.pid)
+        try deliverKeys(try Input.keyEvents(try requiredString(params, "key")), snapshot: snapshot, params: params)
         return actionMetadata(
             path: "synthetic",
             actionName: "pressKey",
@@ -874,8 +862,7 @@ final class Provider {
                 verification: TextInput.selectionVerification(focused.element)
             )
         }
-        try requireTargetWindowFocused(snapshot, restoreWindowRequested: params["restoreWindow"]?.bool == true)
-        try Input.pressKey(key, pid: snapshot.app.pid)
+        try deliverKeys(try Input.keyEvents(key), snapshot: snapshot, params: params)
         return actionMetadata(
             path: "synthetic",
             actionName: "hotkey",
@@ -889,8 +876,10 @@ final class Provider {
         if let focused = focusedRecord(snapshot), let verification = TextInput.replaceSelection(focused.element, with: text) {
             return actionMetadata(path: "accessibility", actionName: "AXReplaceSelection", verification: verification)
         }
-        try requireTargetWindowFocused(snapshot, restoreWindowRequested: params["restoreWindow"]?.bool == true)
-        try Input.pasteText(text, pid: snapshot.app.pid)
+        let pasteKeys = try Input.keyEvents("cmd+v")
+        try Input.withPasteboardText(text) {
+            try deliverKeys(pasteKeys, snapshot: snapshot, params: params)
+        }
         return actionMetadata(
             path: "clipboard",
             actionName: "paste",
@@ -915,11 +904,11 @@ final class Provider {
             guard let point = center(record.localFrame, in: snapshot.windowBounds) else {
                 throw ProviderError.coded("element_not_found", "element \(record.index) has no scrollable frame")
             }
-            try Input.scroll(pid: snapshot.app.pid, at: point, direction: direction, pages: pages)
+            try scrollPointer(at: point, direction: direction, pages: pages, snapshot: snapshot, params: params)
             return actionMetadata(path: "synthetic", fallbackReason: "actionUnsupported")
         }
         let point = try coordinatePoint(params: params, xKey: "x", yKey: "y", snapshot: snapshot)
-        try Input.scroll(pid: snapshot.app.pid, at: point, direction: direction, pages: pages)
+        try scrollPointer(at: point, direction: direction, pages: pages, snapshot: snapshot, params: params)
         return actionMetadata(path: "synthetic")
     }
 
@@ -942,7 +931,14 @@ final class Provider {
             start = try coordinatePoint(params: params, xKey: "fromX", yKey: "fromY", snapshot: snapshot)
             end = try coordinatePoint(params: params, xKey: "toX", yKey: "toY", snapshot: snapshot)
         }
-        try Input.drag(pid: snapshot.app.pid, from: start, to: end)
+        if isForegroundRequest(params) {
+            try requireTargetWindowFocused(snapshot, restoreWindowRequested: true)
+            try Input.drag(from: start, to: end)
+        } else {
+            try withTransportErrors {
+                try BackgroundInputTransport.drag(backgroundTarget(snapshot), from: start, to: end)
+            }
+        }
         return actionMetadata(path: "synthetic")
     }
 
@@ -1351,6 +1347,92 @@ private func requireTargetWindowFocused(_ snapshot: Snapshot, restoreWindowReque
     }
 }
 
+private func isForegroundRequest(_ params: [String: JSONValue]) -> Bool {
+    params["restoreWindow"]?.bool == true
+}
+
+private func backgroundTarget(_ snapshot: Snapshot) -> BackgroundInputTransport.Target {
+    BackgroundInputTransport.Target(pid: snapshot.app.pid, windowID: snapshot.windowId, windowFrame: snapshot.windowBounds)
+}
+
+private func withTransportErrors<T>(_ body: () throws -> T) throws -> T {
+    do {
+        return try body()
+    } catch let failure as BackgroundInputTransport.Failure {
+        switch failure {
+        case let .unavailable(missingSymbols):
+            throw ProviderError.coded("background_unavailable", "background input is unavailable on this macOS version (missing \(missingSymbols.joined(separator: ", "))); retry with --restore-window to bring the app forward and use foreground input")
+        case .processNotFound:
+            throw ProviderError.coded("app_not_found", "the target app quit before input was delivered")
+        case .eventCreationFailed:
+            throw ProviderError.coded("accessibility_error", "failed to create input event")
+        }
+    }
+}
+
+private func clickPointer(
+    at point: CGPoint,
+    button: MouseButtonSelection,
+    count: Int,
+    modifiers: [KeyModifier],
+    snapshot: Snapshot,
+    foreground: Bool
+) throws {
+    if foreground {
+        try Input.click(at: point, button: button, count: count, modifiers: modifiers, targetWindow: snapshot)
+        return
+    }
+    let hit = BackgroundInputTransport.classifyPointerHit(pid: snapshot.app.pid, at: point)
+    guard hit != .popupMenu else {
+        throw ProviderError.coded("background_unavailable", "a background click on a popup menu or web <select> opens the menu off screen or wedges the app's input; set the option with set-value on the popup element, or retry with --restore-window for a foreground click")
+    }
+    try withTransportErrors {
+        try BackgroundInputTransport.click(
+            backgroundTarget(snapshot),
+            at: point,
+            button: button,
+            clickCount: count,
+            flags: eventFlags(modifiers),
+            hit: hit
+        )
+    }
+}
+
+private func scrollPointer(at point: CGPoint, direction: String, pages: Double, snapshot: Snapshot, params: [String: JSONValue]) throws {
+    guard let delta = boundedInteger(max(1, (12 * pages).rounded()), as: Int32.self) else {
+        throw ProviderError.coded("invalid_argument", "pages is out of range")
+    }
+    let wheel1: Int32 = direction == "up" ? delta : direction == "down" ? -delta : 0
+    let wheel2: Int32 = direction == "left" ? delta : direction == "right" ? -delta : 0
+    if isForegroundRequest(params) {
+        try requireTargetWindowFocused(snapshot, restoreWindowRequested: true)
+        try Input.scroll(at: point, wheel1: wheel1, wheel2: wheel2)
+        return
+    }
+    try withTransportErrors {
+        try BackgroundInputTransport.scroll(backgroundTarget(snapshot), at: point, wheel1: wheel1, wheel2: wheel2)
+    }
+}
+
+private func deliverKeys(_ events: [CGEvent], snapshot: Snapshot, params: [String: JSONValue]) throws {
+    if isForegroundRequest(params) {
+        try requireTargetWindowFocused(snapshot, restoreWindowRequested: true)
+        for event in events {
+            event.post(tap: .cghidEventTap)
+        }
+        return
+    }
+    try withTransportErrors {
+        try BackgroundInputTransport.sendKeys(events, to: backgroundTarget(snapshot))
+    }
+}
+
+private func eventFlags(_ modifiers: [KeyModifier]) -> CGEventFlags {
+    modifiers.reduce(into: CGEventFlags()) { result, modifier in
+        result.insert(modifier.flag)
+    }
+}
+
 private func matchingWindow(appElement: AXUIElement, capture: WindowCapture, focused: AXUIElement, explicitTarget: Bool) -> AXUIElement? {
     guard let windows = copyArray(appElement, kAXWindowsAttribute as String) else {
         return nil
@@ -1698,43 +1780,6 @@ private func screenshotScale(screenshot: ScreenshotPayload?, bounds: CGRect) -> 
         width: CGFloat(screenshot.width) / bounds.width,
         height: CGFloat(screenshot.height) / bounds.height
     )
-}
-
-extension MouseButtonSelection {
-    // Why: macOS has no dedicated middle-button event family; it rides `otherMouse*`
-    // with the button number carried by `mouseButton:` on the event constructor.
-    var cgButton: CGMouseButton {
-        switch self {
-        case .left:
-            return .left
-        case .right:
-            return .right
-        case .middle:
-            return .center
-        }
-    }
-
-    var downEvent: CGEventType {
-        switch self {
-        case .left:
-            return .leftMouseDown
-        case .right:
-            return .rightMouseDown
-        case .middle:
-            return .otherMouseDown
-        }
-    }
-
-    var upEvent: CGEventType {
-        switch self {
-        case .left:
-            return .leftMouseUp
-        case .right:
-            return .rightMouseUp
-        case .middle:
-            return .otherMouseUp
-        }
-    }
 }
 
 private func mouseButton(_ raw: String?) throws -> MouseButtonSelection {
@@ -2567,9 +2612,7 @@ private enum Input {
         guard let source = CGEventSource(stateID: .combinedSessionState) else {
             throw ProviderError.coded("accessibility_error", "failed to create event source")
         }
-        let flags = modifiers.reduce(into: CGEventFlags()) { result, modifier in
-            result.insert(modifier.flag)
-        }
+        let flags = eventFlags(modifiers)
         let target = syntheticClickRecipient(pid: targetWindow.app.pid, windowId: targetWindow.windowId)
         do {
             try SyntheticMouseClickDelivery.deliver(
@@ -2623,73 +2666,39 @@ private enum Input {
         }
     }
 
-    static func scroll(pid: pid_t, at point: CGPoint, direction: String, pages: Double) throws {
-        guard let delta = boundedInteger(max(1, (12 * pages).rounded()), as: Int32.self) else {
-            throw ProviderError.coded("invalid_argument", "pages is out of range")
-        }
-        let wheel1: Int32 = direction == "up" ? delta : direction == "down" ? -delta : 0
-        let wheel2: Int32 = direction == "left" ? delta : direction == "right" ? -delta : 0
+    static func scroll(at point: CGPoint, wheel1: Int32, wheel2: Int32) throws {
+        try hidMouse(.mouseMoved, at: point)
+        usleep(SyntheticMouseClickDelivery.interEventPauseMicroseconds)
         guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 2, wheel1: wheel1, wheel2: wheel2, wheel3: 0) else {
             throw ProviderError.coded("accessibility_error", "failed to create scroll event")
         }
         event.location = point
-        event.postToPid(pid)
+        event.post(tap: .cghidEventTap)
     }
 
-    static func drag(pid: pid_t, from start: CGPoint, to end: CGPoint) throws {
-        guard let source = CGEventSource(stateID: .combinedSessionState) else {
-            throw ProviderError.coded("accessibility_error", "failed to create event source")
-        }
-        try mouse(.mouseMoved, source: source, point: start, button: .left, pid: pid)
-        try mouse(.leftMouseDown, source: source, point: start, button: .left, pid: pid)
+    static func drag(from start: CGPoint, to end: CGPoint) throws {
+        try hidMouse(.mouseMoved, at: start)
+        try hidMouse(.leftMouseDown, at: start)
+        usleep(SyntheticMouseClickDelivery.interEventPauseMicroseconds)
         for step in 1...10 {
             let progress = CGFloat(step) / 10
-            try mouse(
-                .leftMouseDragged,
-                source: source,
-                point: CGPoint(x: start.x + (end.x - start.x) * progress, y: start.y + (end.y - start.y) * progress),
-                button: .left,
-                pid: pid
+            try hidMouse(.leftMouseDragged, at: CGPoint(x: start.x + (end.x - start.x) * progress, y: start.y + (end.y - start.y) * progress))
+            usleep(10_000)
+        }
+        try hidMouse(.leftMouseUp, at: end)
+    }
+
+    static func keyEvents(_ key: String) throws -> [CGEvent] {
+        let parsed = try KeyMap.parse(key)
+        return try withTransportErrors {
+            try BackgroundInputTransport.chordEvents(
+                keyCode: parsed.keyCode,
+                modifiers: parsed.modifiers.map { (keyCode: $0.keyCode, flag: $0.flag) }
             )
         }
-        try mouse(.leftMouseUp, source: source, point: end, button: .left, pid: pid)
     }
 
-    static func typeText(_ text: String, pid: pid_t) throws {
-        for unit in text.utf16 {
-            var char = unit
-            guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
-                  let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
-            else {
-                throw ProviderError.coded("accessibility_error", "failed to create keyboard event")
-            }
-            down.keyboardSetUnicodeString(stringLength: 1, unicodeString: &char)
-            up.keyboardSetUnicodeString(stringLength: 1, unicodeString: &char)
-            down.post(tap: .cghidEventTap)
-            up.post(tap: .cghidEventTap)
-        }
-    }
-
-    static func pressKey(_ key: String, pid: pid_t) throws {
-        let parsed = try KeyMap.parse(key)
-        var flags = CGEventFlags()
-        var pressedModifiers: [KeyModifier] = []
-        defer {
-            for modifier in pressedModifiers.reversed() {
-                flags.remove(modifier.flag)
-                try? keyEvent(modifier.keyCode, down: false, flags: flags, pid: pid)
-            }
-        }
-        for modifier in parsed.modifiers {
-            flags.insert(modifier.flag)
-            try keyEvent(modifier.keyCode, down: true, flags: flags, pid: pid)
-            pressedModifiers.append(modifier)
-        }
-        try keyEvent(parsed.keyCode, down: true, flags: flags, pid: pid)
-        try keyEvent(parsed.keyCode, down: false, flags: flags, pid: pid)
-    }
-
-    static func pasteText(_ text: String, pid: pid_t) throws {
+    static func withPasteboardText(_ text: String, _ body: () throws -> Void) throws {
         let pasteboard = NSPasteboard.general
         let previousItems: [NSPasteboardItem] = pasteboard.pasteboardItems?.map { item in
             let copy = NSPasteboardItem()
@@ -2708,29 +2717,14 @@ private enum Input {
                 pasteboard.writeObjects(previousItems)
             }
         }
-        try pressKey("cmd+v", pid: pid)
+        try body()
     }
 
-    private static func mouse(
-        _ type: CGEventType,
-        source: CGEventSource,
-        point: CGPoint,
-        button: CGMouseButton,
-        flags: CGEventFlags = [],
-        pid: pid_t
-    ) throws {
-        guard let event = CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: button) else {
+    /// Posts to the HID tap, which moves the user's real pointer; foreground (--restore-window) only.
+    private static func hidMouse(_ type: CGEventType, at point: CGPoint) throws {
+        guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else {
             throw ProviderError.coded("accessibility_error", "failed to create mouse event")
         }
-        event.flags = flags
-        event.postToPid(pid)
-    }
-
-    private static func keyEvent(_ keyCode: CGKeyCode, down: Bool, flags: CGEventFlags, pid: pid_t) throws {
-        guard let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: down) else {
-            throw ProviderError.coded("accessibility_error", "failed to create key event")
-        }
-        event.flags = flags
         event.post(tap: .cghidEventTap)
     }
 }

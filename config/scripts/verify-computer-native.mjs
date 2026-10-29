@@ -344,11 +344,6 @@ function verifyNativeArgumentGuardrails() {
       'macOS typeText must try verified focused AX text replacement before synthetic keyboard fallback'
     )
   }
-  if (!macos.includes('even when the click uses an AX action path')) {
-    failures.push(
-      'macOS clicks must activate the target window before accessibility or pointer input'
-    )
-  }
   if (
     !macos.includes('if visibleWindowCount > 0') ||
     !macos.includes('ProviderError.coded("permission_denied", "app') ||
