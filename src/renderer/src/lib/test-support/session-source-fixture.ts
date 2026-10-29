@@ -1,5 +1,8 @@
 import { createStore } from 'zustand/vanilla'
-import { withSessionSourceWrites } from '../../store/session-source-write-boundary'
+import {
+  withSessionSourceWrites,
+  replaceSessionSourceFields
+} from '../../store/session-source-write-boundary'
 import type { StoreApi } from 'zustand'
 import {
   editSessionSource,
@@ -11,7 +14,6 @@ import {
   type SessionSourceWrite,
   type OrdinarySourcePartial
 } from '../../store/session-source-edits'
-import { replaceSessionSourceFields } from '../../store/session-source-write-boundary'
 
 export type SessionTestStore<S> = Omit<StoreApi<S>, 'setState'> & { setState: SessionSourceSet<S> }
 

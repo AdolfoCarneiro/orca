@@ -1,13 +1,16 @@
 export { type SessionUnitSelection, selectSessionUnits } from './session-unit-selection'
 
 import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from './workspace-session-host-field-ownership'
-import { SESSION_MAP_FIELDS } from './session-change-set'
-import type { SessionReferenceKind } from './session-unit-index'
 import { getRepoIdFromWorktreeId } from './worktree/id'
 import type { WorkspaceSessionState } from './workspace-session-state-types'
-import type { SessionUnitIndex, SessionUnitAddress } from './session-unit-index'
+import type {
+  SessionUnitIndex,
+  SessionUnitAddress,
+  SessionReferenceKind
+} from './session-unit-index'
 import {
   isSessionMapField,
+  SESSION_MAP_FIELDS,
   type SessionAdmissionKind,
   type SessionUnitChange,
   type SessionMapField
