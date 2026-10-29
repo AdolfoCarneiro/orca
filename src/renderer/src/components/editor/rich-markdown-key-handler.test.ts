@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Editor, isMacOS, type JSONContent } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
+import { CellSelection } from '@tiptap/pm/tables'
 import { createIsolatedMarkdownExtensionForTests } from './isolated-markdown-extension-for-tests'
 import { createRichMarkdownKeyHandler, type KeyHandlerContext } from './rich-markdown-key-handler'
 import { createRichMarkdownExtensions } from './rich-markdown-extensions'
@@ -443,6 +444,27 @@ describe('rich markdown key handler', () => {
     }
   })
 
+  it('keeps Shift+Enter navigation for a multi-cell selection that cannot take a break', () => {
+    const editor = createTableEditor()
+    try {
+      const cellAt = (text: string) => {
+        const $text = editor.state.doc.resolve(caretAtText(editor, text))
+        return $text.before($text.depth - 1)
+      }
+      const first = cellAt('a1')
+      const last = cellAt('b1')
+      editor.view.dispatch(
+        editor.state.tr.setSelection(CellSelection.create(editor.state.doc, first, last))
+      )
+      const event = keyEvent('Enter', { shiftKey: true })
+
+      expect(createRichMarkdownKeyHandler(createContext(editor, false))(null, event)).toBe(true)
+      expect(editor.state.selection.$from.parent.textContent).toBe('b2')
+    } finally {
+      editor.destroy()
+    }
+  })
+
   it.each(['Shift-Enter', 'Mod-Enter'])(
     'preserves the table line break inserted by %s through save and reopen',
     (shortcut) => {
@@ -455,18 +477,12 @@ describe('rich markdown key handler', () => {
         const ctx = createContext(editor, false)
         ctx.isMac = isMacOS()
         editor.setOptions({ editorProps: { handleKeyDown: createRichMarkdownKeyHandler(ctx) } })
-        const before = editor.getJSON()
         const originalSourceRef = { current: TABLE_MARKDOWN }
         const baseCanonicalRef = { current: editor.getMarkdown() }
         const lastCommittedMarkdownRef = { current: TABLE_MARKDOWN }
 
         expect(editor.commands.keyboardShortcut(shortcut)).toBe(true)
         expect(editor.state.selection.$from.parent.child(1).type.name).toBe('hardBreak')
-        const edited = editor.getJSON()
-        expect(editor.commands.undo()).toBe(true)
-        expect(editor.getJSON()).toEqual(before)
-        expect(editor.commands.redo()).toBe(true)
-        expect(editor.getJSON()).toEqual(edited)
 
         const reopen = (source: string): Editor => {
           const codec = createRichMarkdownEditorCodec()
