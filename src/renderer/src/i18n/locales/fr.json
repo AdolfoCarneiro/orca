@@ -17184,7 +17184,7 @@
                       "0c7b9b2b7a": "Copied",
                       "c937229f19": "Capture effectuée",
                       "1f5cb19034": "Annotation ajoutée",
-                      "limitReached": "Limite de {{value0}} annotations atteinte. Envoyez, supprimez ou effacez-en pour en ajouter d’autres."
+                      "limitReached": "Limite de {{limit}} annotations atteinte. Envoyez, supprimez ou effacez-en pour en ajouter d’autres."
                     }
                   }
                 }

@@ -16960,7 +16960,7 @@
                       "0c7b9b2b7a": "Copiado",
                       "c937229f19": "Captura tomada",
                       "1f5cb19034": "Anotación añadida",
-                      "limitReached": "Se alcanzó el límite de {{value0}} anotaciones. Envíe, elimine o borre algunas para añadir más."
+                      "limitReached": "Se alcanzó el límite de {{limit}} anotaciones. Envíe, elimine o borre algunas para añadir más."
                     }
                   }
                 }
