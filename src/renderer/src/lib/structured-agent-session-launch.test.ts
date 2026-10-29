@@ -62,7 +62,7 @@ describe('startStructuredAgentLaunch', () => {
     expect(getStructuredAgentSessionLaunchLifecycle(worktreeId, intent.sessionId)).toBe('failed')
   })
 
-  it('clears the draft seed when the launch is cancelled', async () => {
+  it('preserves the ordinary draft seed when the launch is cancelled', async () => {
     const worktreeId = 'wt-draft-cancelled'
     const intent = launchIntent(worktreeId, 'cancelled-draft-session')
     const create = Promise.withResolvers<{ sessionId: string; fence: number }>()
@@ -80,7 +80,7 @@ describe('startStructuredAgentLaunch', () => {
     await expect(launch.launchResult).rejects.toThrow('structured session launch cancelled')
     await flushLaunchSettlement()
 
-    expect(composerDraft(intent.sessionId)).toBe('')
+    expect(composerDraft(intent.sessionId)).toBe('review this')
   })
 
   it('opens the chat without an informational progress toast', async () => {
