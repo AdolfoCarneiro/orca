@@ -10,6 +10,8 @@ export default defineConfig({
   resolve: {
     // A faithful Node stand-in for the native module, rather than a mock in every test that reaches it.
     alias: {
+      '@': fileURLToPath(new URL('../src/renderer/src', import.meta.url)),
+      '@renderer': fileURLToPath(new URL('../src/renderer/src', import.meta.url)),
       'expo-crypto': fileURLToPath(
         new URL('./src/test-support/expo-crypto-node.ts', import.meta.url)
       )

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { createElement, type ReactNode } from 'react'
 import { act, create, type ReactTestRenderer, type ReactTestInstance } from 'react-test-renderer'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -5,12 +6,29 @@ import { z } from 'zod'
 import type { RpcClient } from '../transport/rpc-client'
 import type { RpcResponse } from '../transport/types'
 
+const mainIpc = vi.hoisted(() => ({ handlers: new Map<string, (...args: unknown[]) => unknown>() }))
+vi.mock('electron', () => ({
+  app: { getPath: () => '/tmp' },
+  BrowserWindow: {
+    fromWebContents: () => ({ id: 17 }),
+    fromId: () => ({ isDestroyed: () => false })
+  },
+  ipcMain: {
+    handle: (name: string, handler: (...args: unknown[]) => unknown) =>
+      mainIpc.handlers.set(name, handler),
+    removeHandler: () => {},
+    removeAllListeners: () => {},
+    on: () => {}
+  }
+}))
+
 const fixture = vi.hoisted(
   (): {
     client: RpcClient | null
     back: ReturnType<typeof vi.fn>
     replace: ReturnType<typeof vi.fn>
-  } => ({ client: null, back: vi.fn(), replace: vi.fn() })
+    push: ReturnType<typeof vi.fn>
+  } => ({ client: null, back: vi.fn(), replace: vi.fn(), push: vi.fn() })
 )
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: async () => null, setItem: async () => {}, removeItem: async () => {} }
@@ -62,12 +80,23 @@ vi.mock('./bottom-drawer-modal-host', () => ({
 }))
 vi.mock('./MobileAgentIcon', () => ({ MobileAgentIcon: 'MobileAgentIcon' }))
 vi.mock('./TaskProviderLogo', () => ({ TaskProviderLogo: 'TaskProviderLogo' }))
-vi.mock('expo-router', () => ({ useLocalSearchParams: () => ({ hostId: 'owner-controls' }) }))
+vi.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({ hostId: 'owner-controls' }),
+  usePathname: () => '/h/owner-controls',
+  useFocusEffect: () => {}
+}))
 vi.mock('../transport/host-client-hooks', () => ({
-  useHostClient: () => ({ client: fixture.client, state: 'connected' })
+  useHostClient: () => ({ client: fixture.client, state: 'connected' }),
+  useForgetHostClient: () => () => {},
+  useForceReconnect: () => () => {}
 }))
 vi.mock('./host-protocol-gates-context', () => ({
-  useHostProtocolGates: () => ({ hostCapabilities: [MOBILE_DESKTOP_RELAY_RUNTIME_CAPABILITY] })
+  useHostProtocolGates: () => ({
+    hostCapabilities: [MOBILE_DESKTOP_RELAY_RUNTIME_CAPABILITY],
+    statusReadable: true,
+    exactProjectRepoFilters: true
+  }),
+  useOptionalHostProtocolGates: () => null
 }))
 vi.mock('../navigation/route-handoff', () => ({ useRouteHandoff: () => fixture }))
 vi.mock('../platform/external-link', () => ({ openExternalLink: vi.fn() }))
@@ -76,17 +105,34 @@ vi.mock('../host-screen/workspace-details-sheet', () => ({ WorkspaceDetailsSheet
 vi.mock('./ConfirmModal', () => ({ ConfirmModal: () => null }))
 vi.mock('./ActionSheetModal', () => ({ ActionSheetContent: () => null }))
 
-import {
-  MOBILE_PROJECT_SECTIONS_METHOD,
-  buildMobileProjectSectionCatalog
-} from '../../../src/shared/mobile-project-sections-contract'
-import { projectHostSetupProjectionFromRepos } from '../../../src/shared/project-host-setup-projection'
+// Presentation, phone identity and list scroll are outside the catalog→creation path.
+vi.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
+}))
+vi.mock('../layout/responsive-layout', () => ({
+  useResponsiveLayout: () => ({ isWideLayout: false, contentMaxWidth: 800 })
+}))
+vi.mock('../hooks/use-now', () => ({ useNow: () => 0 }))
+vi.mock('../hooks/use-active-worktree-scroll', () => ({ useActiveWorktreeScroll: () => ({}) }))
+vi.mock('../transport/client-context-connection-metrics', () => ({
+  useReconnectAttempt: () => 0,
+  useLastConnectedAt: () => 0,
+  useRelayRecoveryStatus: () => ({})
+}))
+vi.mock('../transport/use-host-display', () => ({ useHostDisplay: () => ({}) }))
+vi.mock('../host-screen/use-host-sidebar-feed', () => ({ useSwitchedHostSidebarFeed: () => null }))
+vi.mock('../transport/host-store', () => ({
+  loadHosts: async () => [{ id: 'owner-controls', name: 'Owner' }],
+  updateLastConnected: async () => {}
+}))
+
+import { MOBILE_PROJECT_SECTIONS_METHOD } from '../../../src/shared/mobile-project-sections-contract'
 import { MOBILE_DESKTOP_RELAY_RUNTIME_CAPABILITY } from '../../../src/shared/mobile-desktop-relay-contract'
 import { MOBILE_RELAY_HOSTS_LIST_METHOD } from '../../../src/shared/mobile-relay-hosts-contract'
-import { stubRpcClient } from '../transport/rpc-client-test-stub'
 import { NewWorkspacePageScreen } from '../new-workspace/NewWorkspacePageScreen'
 import { HostScreenOverlays } from '../host-screen/host-screen-overlays'
-import type { HostScreenController } from '../host-screen/use-host-screen-controller'
+import { useHostScreenController } from '../host-screen/use-host-screen-controller'
+import { NewWorktreeProjectTargetFields } from './NewWorktreeProjectTargetFields'
 import { BOTTOM_DRAWER_HIDE_DURATION_MS } from './bottom-drawer-constants'
 
 let renderer: ReactTestRenderer | undefined
@@ -127,33 +173,9 @@ it.each(['overlay', 'standalone'] as const)(
       upstream: { owner: 'org', repo: 'app' }
     }
     const server = { ...local, path: '/server/app', executionHostId: 'runtime:server' as const }
-    const projection = projectHostSetupProjectionFromRepos([local, server])
-    const catalog = buildMobileProjectSectionCatalog(
-      [local, server],
-      projection,
-      'manual',
-      undefined,
-      { projectGroupingMode: 'repository' }
-    )
-    const events = new Set<(event: unknown) => void>()
-    let reads = 0
-    let answer!: (value: RpcResponse) => void
-    const delayed = new Promise<RpcResponse>((resolve) => {
-      answer = resolve
-    })
     const request = vi.fn<RpcClient['sendRequest']>(async (method, _params, options) => {
       const onServer =
         executionOptions.safeParse(options).data?.envelope.executionHost === 'runtime:server'
-      if (method === MOBILE_PROJECT_SECTIONS_METHOD) {
-        if (++reads === 1) {
-          return {
-            id: 'unknown',
-            ok: false,
-            error: { code: 'runtime_unavailable', message: 'Inputs not hydrated' }
-          }
-        }
-        return delayed
-      }
       if (method === MOBILE_RELAY_HOSTS_LIST_METHOD) {
         return reply({
           hosts: [
@@ -175,64 +197,58 @@ it.each(['overlay', 'standalone'] as const)(
       }
       return reply({})
     })
-    const client = stubRpcClient({
-      sendRequest: request,
-      subscribe: (_method, _params, onEvent) => {
-        events.add(onEvent)
-        return () => {
-          events.delete(onEvent)
-        }
+    vi.resetModules()
+    const { mountProjectGroupingPublisher } =
+      await import('../../../src/renderer/src/runtime/project-grouping-owner-publication.test-fixture')
+    const publisher = await mountProjectGroupingPublisher(mainIpc.handlers, async (frame) => {
+      const response = await request(frame.method, frame.params, { envelope: frame.envelope })
+      if (!response.ok) {
+        throw new Error(response.error.message)
       }
+      return response.result
     })
+    const client = publisher.client
     fixture.client = client
-    const close = vi.fn()
-    const navigate = vi.fn()
-    const fetch = vi.fn(async () => {})
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: all fields read by HostScreenOverlays are supplied; unrelated sheets are outside the chain under proof.
-    const controller = {
-      client,
-      connState: 'connected',
-      hostCapabilities: [MOBILE_DESKTOP_RELAY_RUNTIME_CAPABILITY],
-      hostId: 'owner-controls',
-      existingWorktreePaths: [],
-      actions: { closeNewWorktreeModal: close, navigateFromHostList: navigate },
-      catalog: { fetchWorktrees: fetch },
-      state: {
-        actionTarget: null,
-        confirmDelete: null,
-        confirmRemoveHost: false,
-        hostName: 'Owner',
-        showNewWorktree: true,
-        hostLabelById: new Map(),
-        worktrees: []
-      }
-    } as unknown as HostScreenController
+    let controller!: ReturnType<typeof useHostScreenController>
+    function OverlayEntrance() {
+      controller = useHostScreenController()
+      return createElement(HostScreenOverlays, { controller })
+    }
     await act(async () => {
       renderer = create(
         entrance === 'overlay'
-          ? createElement(HostScreenOverlays, { controller })
+          ? createElement(OverlayEntrance)
           : createElement(NewWorkspacePageScreen)
       )
     })
     await flush()
+    if (entrance === 'overlay') {
+      expect(controller.state.showNewWorktree).toBe(false)
+      await act(async () => controller.actions.openNewWorktreeModal())
+      await flush()
+    }
     const pressable = (label: string) =>
       renderer!.root
         .findAll((node) => String(node.type) === 'Pressable')
         .find((node) => textOf(node) === label)!
     expect(pressable('Select a project').props.disabled).toBe(true)
-    expect(pressable('Select a run target').props.disabled).toBe(true)
+    const targetFields = () =>
+      renderer!.root
+        .findByType(NewWorktreeProjectTargetFields)
+        .findAll((node) => String(node.type) === 'Pressable')
+    expect(targetFields()).toHaveLength(2)
+    expect(targetFields()[1].props.disabled).toBe(true)
+    expect(textOf(targetFields()[1])).toContain('/local/app')
     expect(pressable('Create worktree').props.disabled).toBe(true)
-    expect(reads).toBe(1)
-    await act(async () => {
-      for (const event of events) {
-        event({ type: 'reposChanged' })
-      }
-    })
+    expect(
+      publisher.frames.filter((frame) => frame.method === MOBILE_PROJECT_SECTIONS_METHOD).length
+    ).toBeGreaterThan(0)
+    expect(publisher.read).toThrow('runtime_unavailable')
+    await publisher.hydrate([local, server])
     await flush()
-    expect(reads).toBe(2)
-    expect(pressable('Create worktree').props.disabled).toBe(true)
-    await act(async () => answer(reply({ catalog })))
-    await flush()
+    expect(
+      publisher.accepted.at(-1)?.projectSectionCatalog?.repos.map((repo) => repo.path)
+    ).toEqual(['/local/app', '/server/app'])
     const projectControl = renderer!.root
       .findAll((node) => String(node.type) === 'Pressable')
       .find((node) => textOf(node).startsWith('App'))!
@@ -285,11 +301,10 @@ it.each(['overlay', 'standalone'] as const)(
       expect.objectContaining({ envelope: { executionHost: 'runtime:server' } })
     ])
     if (entrance === 'overlay') {
-      expect(navigate).toHaveBeenCalledWith(
+      expect(fixture.push).toHaveBeenCalledWith(
         expect.stringContaining('executionHost=runtime%3Aserver')
       )
-      expect(fetch).toHaveBeenCalledWith({ allowDuringModal: true })
-      expect(close).toHaveBeenCalledOnce()
+      expect(controller.state.showNewWorktree).toBe(false)
     } else {
       expect(fixture.replace).toHaveBeenCalledWith(
         expect.stringContaining('executionHost=runtime%3Aserver')
@@ -297,6 +312,6 @@ it.each(['overlay', 'standalone'] as const)(
     }
     act(() => renderer!.unmount())
     renderer = undefined
-    expect(events.size).toBe(0)
+    publisher.dispose()
   }
 )

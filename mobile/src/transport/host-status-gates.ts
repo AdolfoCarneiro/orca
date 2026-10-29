@@ -135,7 +135,8 @@ export function useHostStatusGates(args: {
       statusPending: connState === 'connected' && client !== null,
       statusReadable: false,
       exactProjectRepoFilters:
-        loaded?.hostId === hostId &&
+        loaded !== null &&
+        loaded.hostId === hostId &&
         loaded.client === client &&
         loaded.hostCapabilities.includes(PROJECT_REPO_FILTER_EXACT_CAPABILITY),
       projectRepoFilterSupport: 'unknown'

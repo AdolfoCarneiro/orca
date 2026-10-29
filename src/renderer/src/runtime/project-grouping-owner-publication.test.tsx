@@ -237,3 +237,46 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
     vi.useRealTimers()
   }
 })
+
+it('drives the reusable real publication fixture from failed owners into a same-client resource answer', async () => {
+  vi.useFakeTimers()
+  vi.resetModules()
+  const { mountProjectGroupingPublisher } =
+    await import('./project-grouping-owner-publication.test-fixture')
+  const publisher = await mountProjectGroupingPublisher(ipc.handlers)
+  const resource = getProjectSectionsResource(publisher.client)
+  const release = resource.subscribe(() => {}, { addEventListener: () => ({ remove: () => {} }) })
+  try {
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(resource.getSnapshot()).toEqual({ kind: 'pending' })
+    await publisher.hydrate([
+      {
+        id: 'same',
+        path: '/local/app',
+        displayName: 'App',
+        badgeColor: '',
+        addedAt: 0,
+        upstream: { owner: 'org', repo: 'app' }
+      },
+      {
+        id: 'same',
+        path: '/server/app',
+        executionHostId: 'runtime:server',
+        displayName: 'App',
+        badgeColor: '',
+        addedAt: 0,
+        upstream: { owner: 'org', repo: 'app' }
+      }
+    ])
+    expect(resource.getSnapshot()).toMatchObject({
+      kind: 'answered',
+      value: { repos: [{ path: '/local/app' }, { path: '/server/app' }] }
+    })
+  } finally {
+    release()
+    publisher.dispose()
+    vi.useRealTimers()
+  }
+})

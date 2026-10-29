@@ -1,4 +1,4 @@
-import { createElement } from 'react'
+import { createElement, useEffect } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MobileWebBundleManifestRead } from '../transport/mobile-web-bundle-reply-schemas'
@@ -17,6 +17,7 @@ type Doubles = {
     hostProtocolWindow: { protocolVersion: number; minCompatibleMobileVersion: number }
   }
   manifest: MobileWebBundleManifestRead | null
+  currentGates?: unknown
   fetch: () => Promise<MobileWebBundleFetchResult>
 }
 
@@ -32,24 +33,34 @@ const doubles = vi.hoisted((): Doubles => ({
   fetch: () => Promise.reject(new Error('no fetch staged'))
 }))
 
-vi.mock('expo-crypto', () => ({ getRandomBytes: (length: number) => new Uint8Array(length) }))
+vi.mock('expo-crypto', async () => {
+  const { randomBytes } = await import('node:crypto')
+  return { getRandomBytes: (length: number) => new Uint8Array(randomBytes(length)) }
+})
 vi.mock('expo-file-system', () => ({ Directory: class {}, File: class {}, Paths: { cache: '' } }))
 vi.mock('../transport/mobile-endpoint-supervisor-support', () => ({
   encodeBase64Url: () => 'session-id'
 }))
 vi.mock('../components/host-protocol-gates-context', () => ({
-  useHostProtocolGates: () => doubles.gates
+  useHostProtocolGates: () => doubles.gates,
+  useOptionalHostProtocolGates: () => doubles.currentGates
 }))
 vi.mock('../transport/host-client-hooks', () => ({ useHostClient: () => doubles.connection }))
-vi.mock('../transport/rpc-operation', () => ({
-  defineRpcOperation: (definition: unknown) => definition,
-  runRpcOperation: async () => {
-    if (doubles.manifest === null) {
-      throw new Error('the test reached the host with no manifest staged')
+vi.mock('../transport/rpc-operation', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../transport/rpc-operation')>()
+  return {
+    ...actual,
+    runRpcOperation: async (...args: Parameters<typeof actual.runRpcOperation>) => {
+      if (args[1].name !== 'mobileWeb.bundle-manifest') {
+        return actual.runRpcOperation(...args)
+      }
+      if (doubles.manifest === null) {
+        throw new Error('the test reached the host with no manifest staged')
+      }
+      return { manifest: doubles.manifest }
     }
-    return { manifest: doubles.manifest }
   }
-}))
+})
 vi.mock('../transport/mobile-web-bundle-fetch', () => ({
   fetchMobileWebBundle: () => doubles.fetch()
 }))
@@ -347,3 +358,214 @@ describe('an update the shell refuses while the host is reachable', () => {
     expect(cachedBuildIds(fileSystem)).toEqual([NEWER_BUILD_ID])
   })
 })
+
+// Native presentation and identity are inert; controls, preference owners, bridge and socket are real.
+vi.mock('react-native', () => ({
+  AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
+  Platform: { OS: 'ios', select: (v: { ios?: unknown }) => v.ios },
+  StyleSheet: { create: <T>(v: T) => v, hairlineWidth: 1 },
+  Pressable: 'Pressable',
+  Text: 'Text',
+  TextInput: 'TextInput',
+  View: 'View',
+  Switch: 'Switch',
+  InteractionManager: { runAfterInteractions: () => ({ cancel: () => {} }) }
+}))
+vi.mock('lucide-react-native', () => new Proxy({}, { get: (_t, key) => key, has: () => true }))
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: { getItem: async () => null, setItem: async () => {} }
+}))
+vi.mock('expo-secure-store', () => ({
+  getItemAsync: async () => null,
+  setItemAsync: async () => {},
+  deleteItemAsync: async () => {}
+}))
+vi.mock('../transport/host-app-version-store', () => ({ recordHostAppVersion: async () => {} }))
+vi.mock('../transport/host-descriptor-recorder', () => ({
+  recordHostDescriptorFromStatus: () => {}
+}))
+vi.mock('electron', () => ({
+  app: { getPath: () => testState.dir },
+  safeStorage: { isEncryptionAvailable: () => false }
+}))
+vi.mock('../../../src/main/telemetry/client', () => ({ track: vi.fn() }))
+
+import WebSocket from 'ws'
+import {
+  testState,
+  closeTestStores,
+  createStore,
+  readDataFile
+} from '../../../src/main/persistence/persistence-test-harness'
+import { createProjectGroupingSocketOwner } from '../../../src/main/persistence/applying-settings/project-grouping-socket-owner.test-fixture'
+import { DirectRpcClient } from '../transport/direct-rpc-client'
+import { createBridgePortPair } from './bridge/bridge-port-pair-test-harness'
+import { useHostStatusGates } from '../transport/host-status-gates'
+import { useHostScreenState } from '../host-screen/use-host-screen-state'
+import { useHostViewSettings } from '../host-screen/use-host-view-settings'
+import { useHostViewSettings as useReleasedSettings } from '../host-screen/project-grouping-released-view-settings.test-fixture'
+import { ProjectsPage as ReleasedProjectsPage } from '../host-screen/project-grouping-released-project-page.test-fixture'
+import { WORKSPACE_OPTION_CONTROLS } from '../host-screen/workspace-option-controls'
+import { projectHostSetupProjectionFromRepos } from '../../../src/shared/project-host-setup-projection'
+import { buildFilterRepos } from '../worktree/workspace-filter-repos'
+import type { RpcClient } from '../transport/rpc-client'
+import type { HostScreenController } from '../host-screen/use-host-screen-controller'
+import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../src/shared/sidebar-inputs-switch'
+
+it.each(['released-page/current-native', 'current-page/released-native'] as const)(
+  'joins failed-download compatible cache, %s controls, opaque bridge, auth and disk',
+  async (composition) => {
+    expect(ORCA_SIDEBAR_INPUTS_IS_MAIN).toBe(false)
+    const owner = await createProjectGroupingSocketOwner()
+    vi.stubGlobal('WebSocket', WebSocket)
+    const endpoint = owner.environment.endpoints[0]
+    // Physical sender and opaque bridge are byte-identical to the released version; pins are in review evidence.
+    const direct = new DirectRpcClient(
+      endpoint.endpoint,
+      endpoint.deviceToken,
+      endpoint.publicKeyB64,
+      {}
+    )
+    const Q = 'runtime:server\0same'
+    const renders: ReactTestRenderer[] = []
+    let cached: Mounted | undefined
+    let pair: ReturnType<typeof createBridgePortPair> | undefined
+    const catalogRepos = [
+      { id: 'same', displayName: 'Local', path: '/local', badgeColor: '', addedAt: 0 },
+      {
+        id: 'same',
+        displayName: 'Server',
+        path: '/server',
+        executionHostId: 'runtime:server' as const,
+        badgeColor: '',
+        addedAt: 0
+      }
+    ]
+    const projection = projectHostSetupProjectionFromRepos(catalogRepos)
+    const groupedRepos = buildFilterRepos(catalogRepos, [], {
+      projects: projection.projects,
+      projectHostSetups: projection.setups,
+      settings: { projectGroupingMode: 'folder' }
+    })
+    const rawRepos = buildFilterRepos(catalogRepos, [])
+    const mountControls = async (client: RpcClient, released: boolean) => {
+      const Control = released
+        ? ReleasedProjectsPage
+        : WORKSPACE_OPTION_CONTROLS.projects.kind === 'page'
+          ? WORKSPACE_OPTION_CONTROLS.projects.Page
+          : null
+      if (!Control) {
+        throw new Error('Missing Project page')
+      }
+      function Controls() {
+        doubles.currentGates = useHostStatusGates({
+          client,
+          hostId: HOST_ID,
+          connState: client.getState()
+        })
+        const state = useHostScreenState(HOST_ID)
+        const current = useHostViewSettings({ client, connState: 'connected', state })
+        const old = useReleasedSettings({ client, connState: 'connected', state })
+        const settings = released ? old : current
+        useEffect(() => {
+          state.clientRef.current = client
+          void settings.syncViewSettingsFromDesktop()
+        }, [client])
+        // SAFETY: real state and settings supply every reached Project-page field; unrelated host-screen sections are outside this fixture.
+        const controller = {
+          state,
+          settings,
+          sectionsResult: { uniqueRepos: released ? rawRepos : groupedRepos }
+        } as unknown as HostScreenController
+        return createElement(Control, { controller, hosts: [], label: 'Projects' })
+      }
+      let tree!: ReactTestRenderer
+      await act(async () => {
+        tree = create(createElement(Controls))
+      })
+      renders.push(tree)
+      return tree
+    }
+    const press = async (tree: ReactTestRenderer, label: string) => {
+      await act(async () =>
+        tree.root
+          .findByProps({ accessibilityLabel: label, accessibilityRole: 'checkbox' })
+          .props.onPress()
+      )
+    }
+    try {
+      await vi.waitFor(() => expect(direct.getState()).toBe('connected'))
+      doubles.connection = { client: direct, state: 'connected' }
+      doubles.gates.hostCapabilities = [MOBILE_WEB_BUNDLE_CAPABILITY]
+      doubles.manifest = NEWER_MANIFEST
+      doubles.fetch = refuseTheAssets
+      const fileSystem = createFakeGenerationFileSystem()
+      await cacheGeneration(fileSystem)
+      cached = await mountRoute(fileSystem)
+      expect(cached.state()).toMatchObject({ kind: 'ready', buildId: GOOD_BUILD_ID })
+      expect(cached.updateNotice()).toBe('update-failed')
+      pair = createBridgePortPair({
+        rpc: direct,
+        buildId: GOOD_BUILD_ID,
+        route: { pathname: ROUTE_PATHNAME },
+        pageRoutes: [ROUTE_PATTERN],
+        sessionEstablished: true
+      })
+      await pair.flush()
+      owner.store.updateUI({ filterRepoIds: ['same', Q] })
+      const page = await mountControls(pair.client, composition.startsWith('released'))
+      await vi.waitFor(() =>
+        expect(
+          page.root.findByProps({ accessibilityLabel: 'Local', accessibilityRole: 'checkbox' })
+            .props.accessibilityState.checked
+        ).toBe(true)
+      )
+      await press(page, 'Local')
+      await vi.waitFor(() =>
+        expect(owner.store.getUI().filterRepoIds).toEqual(
+          composition.startsWith('released') ? [] : [Q]
+        )
+      )
+      const pageEdit = owner.requests.findLast((r) => r.method === 'ui.set')
+      expect(pageEdit?.params).toEqual(
+        composition.startsWith('released')
+          ? { filterRepoIds: [Q] }
+          : { filterRepoIds: [Q], filterRepoIdsMode: 'exact' }
+      )
+      owner.store.updateUI({ filterRepoIds: [] })
+      const native = await mountControls(direct, composition.endsWith('released-native'))
+      await press(native, 'Server')
+      await vi.waitFor(() =>
+        expect(owner.store.getUI().filterRepoIds).toEqual(
+          composition.endsWith('released-native') ? ['same'] : [Q]
+        )
+      )
+      // Same physical socket's old raw re-entry never inherits another writer's exact meaning.
+      await pair.client.sendRequest('ui.set', { filterRepoIds: [] })
+      expect(owner.store.getUI().filterRepoIds).toEqual([])
+      expect(
+        owner.auth.every((entry) => !entry.capabilities.includes('ui.project-repo-filter-exact.v1'))
+      ).toBe(true)
+      const installs = owner.requests.filter(
+        (r) => r.method === 'runtime.clientCapabilities.update'
+      )
+      expect(
+        installs.every((r) => !JSON.stringify(r.params).includes('ui.project-repo-filter-exact'))
+      ).toBe(true)
+      owner.store.flush()
+      expect(readDataFile().ui).not.toHaveProperty('filterRepoIdsMode')
+      await closeTestStores()
+      expect(createStore().getUI().filterRepoIds).toEqual([])
+    } finally {
+      await act(async () => renders.forEach((tree) => tree.unmount()))
+      await cached?.unmount()
+      pair?.client.close()
+      pair?.host.dispose()
+      direct.close()
+      await owner.close()
+      doubles.currentGates = undefined
+      vi.unstubAllGlobals()
+    }
+  },
+  20_000
+)

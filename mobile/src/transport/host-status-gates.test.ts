@@ -383,3 +383,26 @@ describe('useHostStatusGates', () => {
     }
   })
 })
+
+it.each([null, new FakeSession('connected')])(
+  'treats an unstamped server initial snapshot as unknown without dereferencing it (%s)',
+  async (client) => {
+    recordDescriptorFromStatusMock.mockClear()
+    let gates!: HostStatusGates
+    function Probe() {
+      gates = useHostStatusGates({ hostId: undefined, client, connState: 'connected' })
+      return null
+    }
+    let renderer: ReactTestRenderer | undefined
+    try {
+      await act(async () => {
+        renderer = create(createElement(Probe))
+      })
+      expect(gates.exactProjectRepoFilters).toBe(false)
+      expect(gates.hostCapabilities).toEqual([])
+      expect(recordDescriptorFromStatusMock).not.toHaveBeenCalled()
+    } finally {
+      await act(async () => renderer?.unmount())
+    }
+  }
+)

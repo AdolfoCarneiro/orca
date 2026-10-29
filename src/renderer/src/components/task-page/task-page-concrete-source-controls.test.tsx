@@ -3,7 +3,16 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useShallow } from 'zustand/react/shallow'
 import { useRef, useState } from 'react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import {
+  createStore,
+  closeTestStores,
+  readDataFile,
+  testState
+} from '../../../../main/persistence/persistence-test-harness'
 import { useAppStore } from '@/store'
 import { TooltipProvider } from '../ui/tooltip'
 import { getDefaultSettings } from '../../../../shared/constants'
@@ -30,6 +39,15 @@ import {
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import { getTaskPageRepoSourceContext } from './task-page-source-context'
 
+vi.mock('electron', () => ({
+  app: { getPath: () => testState.dir },
+  safeStorage: { isEncryptionAvailable: () => false }
+}))
+vi.mock('../../../../main/telemetry/client', () => ({ track: vi.fn() }))
+beforeEach(() => {
+  testState.dir = mkdtempSync(join(tmpdir(), 'orca-task-source-owner-'))
+})
+
 vi.mock('@/components/github/GitHubMarkdownComposer', () => ({
   GitHubMarkdownComposer: () => null
 }))
@@ -48,7 +66,9 @@ vi.mock('@/runtime/runtime-rpc-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   callRuntimeRpc: rpc
 }))
-afterEach(() => {
+afterEach(async () => {
+  await closeTestStores()
+  rmSync(testState.dir, { recursive: true, force: true })
   cleanup()
   useAppStore.setState(useAppStore.getInitialState(), true)
   resetTaskPageGitHubMutationRegistryForTests()
@@ -69,14 +89,17 @@ it.each(['github', 'gitlab'] as const)(
     }
     const server: Repo = { ...base, path: '/server/app', executionHostId: 'runtime:server' }
     const projection = projectHostSetupProjectionFromRepos([base, server])
-    let saved: GlobalSettings = { ...getDefaultSettings(''), defaultRepoSelection: ['local\0same'] }
+    let owner = createStore()
+    owner.updateSettings({ defaultRepoSelection: ['local\0same'] })
+    let saved = owner.getSettings()
     const persist = vi.fn(async (updates: Partial<GlobalSettings>) => {
-      saved = { ...saved, ...updates }
+      owner.updateSettings(updates)
+      saved = owner.getSettings()
       return saved
     })
     Object.assign(window, {
       api: {
-        settings: { set: persist },
+        settings: { set: persist, get: async () => owner.getSettings() },
         shell: { openUrl: vi.fn() },
         gl: { listIssues: vi.fn(async () => ({ items: [] })) }
       }
@@ -277,7 +300,14 @@ it.each(['github', 'gitlab'] as const)(
     await waitFor(() => expect(saved.defaultRepoSelection).toEqual(['runtime:server\0same']))
     expect(selected).toEqual([server])
     view.unmount()
-    act(() => useAppStore.setState({ settings: { ...saved } }))
+    owner.flush()
+    expect(readDataFile().settings.defaultRepoSelection).toEqual(['runtime:server\0same'])
+    await closeTestStores()
+    owner = createStore()
+    saved = owner.getSettings()
+    await act(async () => {
+      await useAppStore.getState().fetchSettings()
+    })
     const restored = render(<Harness />)
     expect(selected).toEqual([server])
     if (provider === 'github') {
