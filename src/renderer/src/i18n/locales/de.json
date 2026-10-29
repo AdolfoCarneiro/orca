@@ -14623,6 +14623,7 @@
       },
       "mobile": {
         "MobileHero": {
+          "downloadApp": "App herunterladen",
           "a8fb43cf1c": "Fortfahren",
           "3f90dbd274": "Abschließen",
           "b622eba64d": "Zurück",
@@ -14711,10 +14712,7 @@
               },
               "stable": {
                 "tagline": "Die öffentliche Version, wöchentlich aktualisiert."
-              },
-              "downloadApk": "APK herunterladen",
-              "openTestFlight": "TestFlight öffnen",
-              "openAppStore": "App Store öffnen"
+              }
             }
           }
         },
@@ -20360,7 +20358,8 @@
       "count_one": "{{count}} laufendes Terminal",
       "count_other": "{{count}} laufende Terminals"
     },
-    "restartedInputNotSent": "Das Terminal wurde während der Eingabe neu gestartet. Daher hat es möglicherweise einen Teil der Eingabe nicht erhalten. Die neue Shell prüfen, bevor die Eingabe wiederholt wird."
+    "restartedInputNotSent": "Das Terminal wurde während der Eingabe neu gestartet. Daher hat es möglicherweise einen Teil der Eingabe nicht erhalten. Die neue Shell prüfen, bevor die Eingabe wiederholt wird.",
+    "typingBeforeStartNotSent": "Einige Tasteneingaben während des Terminalstarts wurden nicht gesendet."
   },
   "fileExplorer": {
     "root": {

@@ -1018,6 +1018,7 @@
                 "persist": {
                   "877e3638d8": "Update the remote runtime to change this workspace’s linked issue",
                   "4367540861": "Update the remote runtime to link Linear issues",
+                  "dismissRenameError": "Update the remote runtime to dismiss auto-name errors",
                   "github": {
                     "pr": {
                       "suppression": "Update the remote runtime to unlink GitHub pull requests"
@@ -5688,6 +5689,8 @@
           "remoteCloneParentPlaceholder": "/home/user/projects"
         },
         "AutoRenameFailedDialog": {
+          "dismissError": "Dismiss error",
+          "dismissing": "Dismissing…",
           "aed1623b1e": "Close",
           "eab8b45238": "Copy error",
           "a23b22d16f": "Copied",
@@ -14708,7 +14711,8 @@
           "androidHelp": {
             "guide": "Install guide"
           },
-          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code."
+          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code.",
+          "downloadApp": "Download app"
         },
         "MobilePage": {
           "e17393c6a3": "Phone preview",
@@ -14744,10 +14748,7 @@
               },
               "stable": {
                 "tagline": "The public release, updated weekly."
-              },
-              "downloadApk": "Download APK",
-              "openTestFlight": "Open TestFlight",
-              "openAppStore": "Open App Store"
+              }
             }
           }
         },
@@ -20389,7 +20390,8 @@
       "count_one": "{{count}} running terminal",
       "count_other": "{{count}} running terminals"
     },
-    "restartedInputNotSent": "The terminal restarted while you were typing, so some input may not have reached it. Check the new shell before typing it again."
+    "restartedInputNotSent": "The terminal restarted while you were typing, so some input may not have reached it. Check the new shell before typing it again.",
+    "typingBeforeStartNotSent": "Some keys typed while the terminal was starting were not sent."
   },
   "fileExplorer": {
     "root": {

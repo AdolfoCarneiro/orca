@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useAppStore } from '../store'
 import { i18n, setRendererPluginLanguagePacks, loadRendererUiLanguage } from './i18n'
 import { usePluginLanguagePacks } from '../store/plugin-language-packs'
+import { isPluginUiLanguage } from '../../../shared/ui-language'
 import { initializeLanguageDetection, useLanguageReadiness } from './language-readiness'
 
 export function I18nProvider({ children }: { children: ReactNode }): React.JSX.Element {
@@ -12,6 +13,10 @@ export function I18nProvider({ children }: { children: ReactNode }): React.JSX.E
     uiLanguage === 'system' ? state.detection?.locale : null
   )
   const generation = useRef(0)
+  // The store keeps unchanged packs by reference, so this changes only when the selected pack's content does.
+  const activePack = isPluginUiLanguage(uiLanguage)
+    ? packs.find((pack) => pack.id === uiLanguage)
+    : undefined
 
   useEffect(() => {
     setRendererPluginLanguagePacks(packs)
@@ -54,7 +59,7 @@ export function I18nProvider({ children }: { children: ReactNode }): React.JSX.E
     return () => {
       cancelled = true
     }
-  }, [uiLanguage, packs, retryCount, systemLocale])
+  }, [uiLanguage, activePack, retryCount, systemLocale])
 
   // initReactI18next already binds useTranslation to this instance.
   return <>{children}</>
