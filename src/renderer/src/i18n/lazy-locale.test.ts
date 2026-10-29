@@ -8,8 +8,8 @@ import {
   UI_LANGUAGE_RUSSIAN,
   UI_LANGUAGE_SPANISH
 } from '../../../shared/ui-language'
-import { i18n, loadRendererUiLanguage, setRendererPluginLanguagePacks } from './i18n'
-import { pluginLanguageResourceId } from '../../../shared/plugins/plugin-language-pack-artifact'
+import { i18n, loadRendererUiLanguage, setRendererPluginLanguagePacks, translate } from './i18n'
+import { pluginLanguageResourceId } from '../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 
 // Every changeLanguage caller must transparently load real non-English translations before its promise settles.
 
@@ -72,6 +72,22 @@ describe('renderer i18n lazy locale loading', () => {
     expect(i18n.t('zhOnlyKey', { defaultValue: 'English' })).toBe('English')
   })
 
+  it('selects CLDR forms for a native plural call in English and Russian', async () => {
+    const images = (count: number): string =>
+      translate('components.native-chat.queuedMessages.imageCount', '{{count}} images', {
+        count,
+        defaultValue_one: '{{count}} image'
+      })
+    expect([1, 2].map(images)).toEqual(['1 image', '2 images'])
+    await i18n.changeLanguage(await loadRendererUiLanguage(UI_LANGUAGE_RUSSIAN))
+    expect([1, 3, 5, 21].map(images)).toEqual([
+      '1 изображение',
+      '3 изображения',
+      '5 изображений',
+      '21 изображение'
+    ])
+  })
+
   it('shares one catalog request between concurrent loads of a locale', async () => {
     i18n.removeResourceBundle('ko', 'translation')
     const request = vi.spyOn(globalThis, 'fetch')
@@ -127,14 +143,15 @@ describe('renderer i18n lazy locale loading', () => {
   })
 
   it('loads an isolated catalog contributed by an enabled plugin', async () => {
-    const id = 'plugin:orca-samples.portuguese/pt-BR' as const
+    const id = 'plugin:samples.portuguese/pt-BR' as const
     setRendererPluginLanguagePacks([
       {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
-        pluginKey: 'orca-samples.portuguese',
+        pluginKey: 'samples.portuguese',
         locale: 'pt-BR',
-        catalog: { menu: { file: 'Arquivo Orca' } }
+        catalog: { menu: { file: 'Arquivo Orca' } },
+        coverage: 100
       }
     ])
 

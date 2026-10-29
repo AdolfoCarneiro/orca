@@ -13,15 +13,8 @@ import {
 import { closeHistory } from '@tiptap/pm/history'
 import { Slice } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
-import {
-  useCallback,
-  useImperativeHandle,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  type HTMLAttributes,
-  type RefObject
-} from 'react'
+import { memo, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react'
+import { shallow } from 'zustand/shallow'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -36,26 +29,23 @@ import {
   promptTextOffset,
   promptTextPosition
 } from './native-chat-prompt-document'
-import type { NativeChatComposerInput } from './native-chat-composer-input'
+import type {
+  NativeChatComposerInput,
+  NativeChatPromptEditorProps
+} from './native-chat-composer-input'
 import { NativeChatImageRowProvider } from './NativeChatImageReferencePill'
 import { mountedEditorView } from './native-chat-mounted-editor-view'
 
-type Props = Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'onSelect'> & {
-  scopeKey?: string
-  positionTarget?: string
-  /** The composer's thumbnail ids, in order, which number its image chips. */
-  imageRow?: readonly string[]
-  inputRef: RefObject<NativeChatComposerInput | null>
-  initialValue: string
-  disabled: boolean
-  placeholder: string
-  onChange: (input: NativeChatComposerInput) => void
-  onSelect: (input: NativeChatComposerInput) => void
-}
-
 const NO_IMAGES: readonly string[] = []
 
-export function NativeChatPromptEditor({
+// `initialValue` only seeds the editor at mount; keep the other props referentially stable or this memo stops helping.
+export const NativeChatPromptEditor = memo(
+  NativePromptEditor,
+  ({ initialValue: _previous, ...previous }, { initialValue: _next, ...next }) =>
+    shallow(previous, next)
+)
+
+function NativePromptEditor({
   scopeKey,
   positionTarget,
   imageRow = NO_IMAGES,
@@ -67,7 +57,7 @@ export function NativeChatPromptEditor({
   onSelect,
   className,
   ...events
-}: Props): React.JSX.Element {
+}: NativeChatPromptEditorProps): React.JSX.Element {
   const historyPaths = useMemo(() => createNativeChatPastedTextHistory(scopeKey ?? ''), [scopeKey])
   const adopted = useRef(readNativeChatDraftSnapshot(scopeKey, initialValue))
   const userOwned = useRef(false)

@@ -1,5 +1,5 @@
 import { app, clipboard, dialog, type BrowserWindow } from 'electron'
-import { parseSkillShareId } from '../shared/skill-share-link'
+import { isRoutedOrcaDeepLink } from './startup/orca-deep-link-url'
 import { createMacAppActivationHandler } from './window/macos-app-activation'
 import { isBackgroundLaunch, isOrcadSidecarLaunch } from './window/foreground-activation-policy'
 import { createDesktopHandoff, desktopHandoffArguments } from './window/macos-desktop-handoff'
@@ -11,6 +11,7 @@ import { openMainWindow as openMainWindowController } from './startup/main-windo
 import { mainProcessState as state } from './startup/main-process-state'
 import { runMainProcessPreflight } from './startup/main-process-preflight'
 import { runWslHolderUninstallPreflight } from './startup/wsl-holder-uninstall-preflight'
+import { runAgentHooksUninstallPreflight } from './startup/agent-hooks-uninstall-preflight'
 import { enableLinearRegexpFallback } from './startup/linear-regexp-fallback'
 import { registerMainProcessIpcHandlers } from './startup/main-process-ipc-bootstrap'
 import { initializeMainProcessReady } from './startup/main-process-ready'
@@ -38,6 +39,13 @@ import { wakeRememberedWslHosts } from './wsl/wsl-host-early-wake'
 import { wslHostsServing } from './wsl/wsl-host-gate'
 import { configureWslHostsGateFromDisk } from './wsl/wsl-host-gate-startup'
 import { ignoreInheritedWslHostsGateState } from '../shared/wsl-host-internal-gate'
+import { registerOrcaProtocolClient } from './startup/orca-protocol-registration'
+import { clearWindowsStdHandleInheritance } from './startup/windows-std-handle-inheritance'
+import { installWindowsIsolatedSpawner } from './startup/windows-isolated-spawner'
+import { dropE2eSpawnLogOutsideE2e } from './startup/e2e-spawn-log-env'
+
+// Before anything spawns, so no daemon, PTY or agent inherits it outside e2e.
+dropE2eSpawnLogOutsideE2e()
 
 function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}): BrowserWindow {
   return openMainWindowController(options)
@@ -56,6 +64,9 @@ const requestDesktopHandoff = createDesktopHandoff({
 function requestDesktopActivation(argv: readonly string[] = []): void {
   state.skillShareDeepLinks.capture(argv, (shareId) => {
     state.mainWindow?.webContents.send('ui:openSkillShare', shareId)
+  })
+  state.pluginInstallLinks.capture(argv, (link) => {
+    state.mainWindow?.webContents.send('ui:openPluginInstallLink', link)
   })
   state.osOpenedDocuments.capture(argv, publishOsOpenedDocuments)
   // Duplicate serve launches must not activate a desktop on a headless server (#11935).
@@ -102,11 +113,15 @@ const handleMacAppActivation = createMacAppActivationHandler({
   requestActivation: requestDesktopActivation
 })
 
+// Before anything spawns: no child may inherit Orca's std handles.
+clearWindowsStdHandleInheritance()
+installWindowsIsolatedSpawner()
 // A relaunch or installer inherits the parent's published WSL gate state; this process recomputes.
 ignoreInheritedWslHostsGateState()
-// The uninstaller's holder release runs instead of the app, never alongside it.
+// The uninstaller's holder release and hook removal run instead of the app, never alongside it.
 const preflightReady =
   !runWslHolderUninstallPreflight() &&
+  !runAgentHooksUninstallPreflight() &&
   runMainProcessPreflight({
     focusExistingWindow,
     requestDesktopActivation
@@ -123,7 +138,7 @@ if (preflightReady) {
     wakeRememberedWslHosts(app.getPath('userData'))
   }
   app.on('open-url', (event, url) => {
-    if (!parseSkillShareId(url)) {
+    if (!isRoutedOrcaDeepLink(url)) {
       return
     }
     event.preventDefault()
@@ -140,7 +155,12 @@ if (preflightReady) {
       requestDesktopActivation()
     }
   })
+  registerOrcaProtocolClient(app, {
+    platform: process.platform,
+    desktopLaunch: !state.isServeMode && !isBackgroundLaunch() && !isOrcadSidecarLaunch()
+  })
   state.skillShareDeepLinks.capture(process.argv)
+  state.pluginInstallLinks.capture(process.argv)
   // The first renderer pulls on mount; nothing listens this early.
   state.osOpenedDocuments.capture(process.argv)
   registerMainProcessIpcHandlers()
@@ -152,9 +172,9 @@ if (preflightReady) {
         handleMacAppActivation
       })
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
       const message =
-        formatProfileStateStartupFailure(error) ??
-        `Orca could not finish starting: ${error instanceof Error ? error.message : String(error)}`
+        formatProfileStateStartupFailure(error) ?? `Orca could not finish starting: ${detail}`
       const failureClass = profileStateStartupFailureClass(error)
       if (failureClass !== undefined) {
         recordDurableCrashBreadcrumb('profile_state_startup_failed', {
@@ -211,7 +231,13 @@ if (preflightReady) {
             return
           }
           await presentProfileStateStartupRecoveryDialog({
-            message,
+            message:
+              formatProfileStateStartupFailure(error, translateMain) ??
+              translateMain(
+                'startupFailure.finishFailed',
+                'Orca could not finish starting: {{detail}}',
+                { detail }
+              ),
             ...(failureClass === 'recovery-required' || failureClass === 'ambiguous-authority'
               ? { recoveryCommand: 'orca profile state exports' }
               : {}),
