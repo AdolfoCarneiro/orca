@@ -1008,14 +1008,18 @@ def insert_focused_text(window, value):
     if editable is None or text is None:
         return None
     start = end = int(attempt(lambda: Atspi.Text.get_caret_offset(text), -1))
-    if int(attempt(lambda: Atspi.Text.get_n_selections(text), 0)) > 0:
+    selection_count = attempt(lambda: Atspi.Text.get_n_selections(text))
+    if selection_count not in (0, 1):
+        return None
+    if selection_count == 1:
         selection = attempt(lambda: Atspi.Text.get_selection(text, 0))
-        if selection is not None and 0 <= selection.start_offset < selection.end_offset:
-            start, end = selection.start_offset, selection.end_offset
+        if selection is None or not 0 <= selection.start_offset < selection.end_offset:
+            return None
+        start, end = selection.start_offset, selection.end_offset
     if start < 0:
         return None
     original_count = attempt(lambda: Atspi.Text.get_character_count(text))
-    if original_count is None or original_count < 0:
+    if original_count is None or original_count < 0 or end > original_count:
         return None
     original = None
     if end > start:

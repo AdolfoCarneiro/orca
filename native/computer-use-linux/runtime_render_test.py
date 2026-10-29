@@ -349,28 +349,65 @@ class RuntimeRenderTest(unittest.TestCase):
     def test_text_entry_inserts_into_the_focused_field_of_a_background_window(self):
         for tool in ("type_text", "paste_text"):
             for value in ("there", "élan", "🚀 café"):
-                field = FakeAccessible("text", "Message", value="Hello world")
-                field.caret, field.selection = 11, (6, 11)
-                field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
-                field.get_editable_text_iface = lambda: field
-                with self.subTest(tool=tool, value=value), SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])) as fixture:
-                    calls = []
-                    fixture.restore = lambda: calls.append("restore")
-                    with patch.object(runtime, "type_text", lambda _: calls.append("keys")), \
-                         patch.object(runtime, "paste_text", lambda _: calls.append("clipboard")):
-                        result = runtime.run_operation({"tool": tool, "app": "Fixture", "text": value, "noScreenshot": True})
-                    self.assertEqual(calls, [])
-                    self.assertEqual((field.value, field.caret), ("Hello " + value, 6 + len(value)))
-                    self.assertEqual(result["action"]["path"], "accessibility")
-                    self.assertEqual(result["action"]["verification"]["state"], "verified")
+                for selection in ((6, 11), None):
+                    field = FakeAccessible("text", "Message", value="Hello world")
+                    field.caret, field.selection = 11, selection
+                    field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
+                    field.get_editable_text_iface = lambda: field
+                    with self.subTest(tool=tool, value=value, selection=selection), SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])) as fixture:
+                        calls = []
+                        fixture.restore = lambda: calls.append("restore")
+                        with patch.object(runtime, "type_text", lambda _: calls.append("keys")), \
+                             patch.object(runtime, "paste_text", lambda _: calls.append("clipboard")):
+                            result = runtime.run_operation({"tool": tool, "app": "Fixture", "text": value, "noScreenshot": True})
+                        self.assertEqual(calls, [])
+                        prefix = "Hello " if selection else "Hello world"
+                        self.assertEqual((field.value, field.caret), (prefix + value, len(prefix) + len(value)))
+                        self.assertEqual(result["action"]["path"], "accessibility")
+                        self.assertEqual(result["action"]["verification"]["state"], "verified")
 
     def test_text_entry_without_an_editable_focused_field_still_requires_window_focus(self):
-        field = FakeAccessible("text", "Read only", value="Hello")
-        field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED)
-        with SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])):
-            with self.assertRaisesRegex(RuntimeError, "window_not_focused"):
-                runtime.run_operation({"tool": "type_text", "app": "Fixture", "text": "x", "noScreenshot": True})
-        self.assertEqual(field.value, "Hello")
+        cases = [
+            ("not-editable", 1, (6, 11)),
+            ("count-error", TimeoutError("selection timed out"), (6, 11)),
+            ("count-missing", None, (6, 11)),
+            ("count-negative", -1, (6, 11)),
+            ("multiple", 2, (6, 11)),
+            ("range-error", 1, TimeoutError("range timed out")),
+            ("range-missing", 1, None),
+            ("range-empty", 1, (6, 6)),
+            ("range-reversed", 1, (11, 6)),
+            ("range-outside", 1, (6, 12)),
+        ]
+        for tool in ("type_text", "paste_text"):
+            for active in (False, True):
+                for name, count, selection in cases:
+                    field = FakeAccessible("text", "Message", value="Hello world")
+                    field.caret, field.selection = 11, (6, 11)
+                    states = [FakeStateType.FOCUSED] + ([] if name == "not-editable" else [FakeStateType.EDITABLE])
+                    field.get_state_set = lambda: FakeStateSet(*states)
+                    field.get_editable_text_iface = lambda: field
+                    selected = types.SimpleNamespace(start_offset=selection[0], end_offset=selection[1]) if isinstance(selection, tuple) else selection
+                    with self.subTest(tool=tool, active=active, case=name), SnapshotFixture(
+                        FakeAccessible("frame", "Editor", children=[field])
+                    ) as fixture, patch.object(runtime.Atspi.Text, "get_n_selections", return_value=count, side_effect=count if isinstance(count, Exception) else None), \
+                         patch.object(runtime.Atspi.Text, "get_selection", return_value=selected, side_effect=selected if isinstance(selected, Exception) else None), \
+                         patch.object(runtime.Atspi.EditableText, "insert_text", wraps=FakeEditableText.insert_text) as insert, \
+                         patch.object(runtime, "type_text") as keys, patch.object(runtime, "paste_text") as paste:
+                        if active:
+                            fixture.root.get_state_set = lambda: FakeStateSet(FakeStateType.ACTIVE)
+                            result = runtime.run_operation({"tool": tool, "app": "Fixture", "text": "x", "noScreenshot": True})
+                            (keys if tool == "type_text" else paste).assert_called_once_with("x")
+                            self.assertEqual(result["action"]["verification"]["state"], "unverified")
+                        else:
+                            with self.assertRaisesRegex(RuntimeError, "window_not_focused"):
+                                runtime.run_operation({"tool": tool, "app": "Fixture", "text": "x", "noScreenshot": True})
+                        if not active or tool != "type_text":
+                            keys.assert_not_called()
+                        if not active or tool != "paste_text":
+                            paste.assert_not_called()
+                        insert.assert_not_called()
+                        self.assertEqual((field.value, field.selection), ("Hello world", (6, 11)))
 
     def test_partial_text_replacement_fails_without_typing_again(self):
         for tool in ("type_text", "paste_text"):
