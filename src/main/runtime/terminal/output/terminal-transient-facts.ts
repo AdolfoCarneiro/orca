@@ -22,6 +22,7 @@ import type { TerminalTitleFactMeta } from '../../../../shared/terminal-output-s
 
 export abstract class OrcaRuntimeWithEmitDaemonPtyTransientFact extends OrcaRuntimeWithScheduleWaitBlockedCheck {
   protected abstract retirePtyAgentLaunchAuthority(ptyId: string): void
+  protected abstract observeLaunchExitReceipt(ptyId: string, receiptId: string): void
 
   /** A transient fact the daemon detected while it held scan authority —
    *  emitted through the same fact channel as byte-scanned facts. Arrives
@@ -38,6 +39,9 @@ export abstract class OrcaRuntimeWithEmitDaemonPtyTransientFact extends OrcaRunt
           exitCode: fact.exitCode
         })
         this.openCodeRunLifetime.onCommandFinished(ptyId, fact.exitCode)
+        return
+      case 'launch-exit-receipt':
+        this.observeLaunchExitReceipt(ptyId, fact.receiptId)
         return
       case 'pr-link':
         this.recordTerminalSideEffectFact(ptyId, { kind: 'pr-link', link: fact.link })

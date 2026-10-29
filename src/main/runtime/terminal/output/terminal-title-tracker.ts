@@ -168,6 +168,9 @@ export abstract class OrcaRuntimeWithGetUnpersistedTrackedTitleForPty extends Or
           this.recordTerminalSideEffectFact(ptyId, { kind: 'command-finished', exitCode })
           this.openCodeRunLifetime.onCommandFinished(ptyId, exitCode)
         },
+        onLaunchExitReceipt: (receiptId) => {
+          this.observeLaunchExitReceipt(ptyId, receiptId)
+        },
         onBell: () => {
           this.recordTerminalSideEffectFact(ptyId, { kind: 'bell' })
         },

@@ -1,4 +1,5 @@
 import type { AgentPaneChange } from '../../agent-hooks/agent-transition-detector'
+import { launchExitReceiptId } from '../../agent-launch/agent-launch-token'
 import { agentVerdictDisplayMark } from '../../../shared/agent-main-agent-verdict'
 import type { AgentStatusIpcPayload } from '../../../shared/agent-status-ipc-payload'
 import { hookRowAgentPhase } from '../../../shared/agent-transitions'
@@ -7,6 +8,7 @@ import { TerminalAgentTurnNews, type TerminalAgentTurnNewsItem } from '../termin
 import type { OrchestrationDb } from './db'
 import { redactWorkerTerminalView } from './worker-terminal-redaction'
 import {
+  reportWorkerExit,
   reportWorkerTurnStop,
   workerTurnStopDispatchId,
   type WorkerTurnStopDispatch,
@@ -45,6 +47,41 @@ export class TerminalWorkerTurnStops {
 
   observe(change: AgentPaneChange): void {
     this.news.observe(change)
+  }
+
+  /** The launched agent returned to its shell; a killed agent sends no stop hook and the PTY stays open. */
+  observeAgentExited(paneKey: string, restoredReceiptId?: string): void {
+    const resolved = this.resolve(paneKey)
+    if (!resolved || (restoredReceiptId && !this.isDispatchReceipt(resolved, restoredReceiptId))) {
+      return
+    }
+    reportWorkerExit(
+      resolved.db,
+      resolved.target,
+      {
+        from: resolved.handle,
+        processIncarnation: this.deps.getProcessIncarnation(resolved.handle),
+        exitCause: 'the agent process ended; its terminal is still open'
+      },
+      this.deps
+    )
+  }
+
+  /** The receipt of the launch this Dispatch committed to, in the same shell process it was sent to. */
+  private isDispatchReceipt(
+    { handle, target }: { handle: string; target: WorkerTurnStopDispatch },
+    receiptId: string
+  ): boolean {
+    if (target.kind !== 'local') {
+      return false
+    }
+    const { launch_token_hash, process_incarnation } = target.dispatch
+    return (
+      !!launch_token_hash &&
+      !!process_incarnation &&
+      launchExitReceiptId(launch_token_hash) === receiptId &&
+      process_incarnation === this.deps.getProcessIncarnation(handle)
+    )
   }
 
   private async report(stop: PreparedStop): Promise<void> {

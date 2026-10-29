@@ -242,12 +242,18 @@ const PROVIDER_FACT_KEYS = [
 ] as const
 
 const CASE_ENV_KEYS = ['A', 'CUSTOM_FLAG']
+const LAUNCH_EXIT_RECEIPT_SUFFIX =
+  / ?[;&] (printf|Write-Host|powershell\.exe) .*orca-launch-exit;[0-9a-f]{32}.*$/
 
 /** Capture provider identity, requested environment and pre-view hidden state at the spawn boundary. */
 export async function providerFacts(provider: Mock): Promise<Record<string, unknown>> {
   const options = recordOf(provider.mock.calls.at(-1)?.[0])
   const env = recordOf(options.env)
   const spawned = recordOf(await provider.mock.results.at(-1)?.value)
+  if (typeof options.command === 'string') {
+    // agent-launch-exit-receipt.test.ts covers the shell's exit receipt; parity compares the launch.
+    options.command = options.command.replace(LAUNCH_EXIT_RECEIPT_SUFFIX, '')
+  }
   return {
     ...Object.fromEntries(
       PROVIDER_FACT_KEYS.filter((k) => k in options).map((k) => [k, options[k]])

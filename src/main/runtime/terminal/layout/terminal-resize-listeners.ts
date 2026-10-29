@@ -22,7 +22,11 @@ import { parseWorkerTerminalHostScope } from '../../../../shared/worker-terminal
 import { getRepoIdFromWorktreeId } from '../../../../shared/worktree/id'
 import { escalateWorkerFailure } from '../../orchestration/worker-failure-escalation'
 import { dispatchReportMailbox } from '../../orchestration/dispatch-report-mailbox'
-import { reportWorkerTurnStop } from '../../orchestration/worker-turn-stop-report'
+import {
+  reportWorkerExit,
+  workerExitStopKey,
+  workerTurnStopMessageId
+} from '../../orchestration/worker-turn-stop-report'
 import { LOCAL_EXECUTION_HOST_ID, toSshExecutionHostId } from '../../../../shared/execution-host'
 import type { OrchestrationDb } from '../../orchestration/db'
 
@@ -65,6 +69,8 @@ export abstract class OrcaRuntimeWithSubscribeToTerminalResize extends OrcaRunti
       processExited: true,
       // Escalate unexpected exits on the next coordinator check even before its circuit breaker trips.
       escalate: !isDeliberateTerminalExit(cause),
+      // An agent exit receipt already sent this process's exit report.
+      stopKey: workerExitStopKey(this.getTerminalProcessIncarnation(handle)),
       describe: (task, outcome) => ({
         subject: `Agent exited unexpectedly (${errorContext})`,
         body: `Worker ${handle} stopped while running task ${task}. ${errorContext}.${outcome}`
@@ -92,16 +98,10 @@ export abstract class OrcaRuntimeWithSubscribeToTerminalResize extends OrcaRunti
     ) {
       return
     }
-    reportWorkerTurnStop(
+    reportWorkerExit(
       db,
       { kind: 'remote', attachment },
-      {
-        from: handle,
-        stopKey: `exit:${processIncarnation}`,
-        reason: 'exited',
-        lastOutput: undefined,
-        exitCause
-      },
+      { from: handle, processIncarnation, exitCause },
       this.workerTurnStopReportDeps
     )
   }
@@ -151,6 +151,7 @@ export abstract class OrcaRuntimeWithSubscribeToTerminalResize extends OrcaRunti
       options: Parameters<OrchestrationDb['failDispatch']>[2]
       processExited: boolean
       escalate: boolean
+      stopKey?: string
       describe: (task: string, outcome: string) => { subject: string; body: string }
       payload: Record<string, unknown>
     }
@@ -177,6 +178,7 @@ export abstract class OrcaRuntimeWithSubscribeToTerminalResize extends OrcaRunti
       db,
       dispatch,
       {
+        ...(failure.stopKey ? { id: workerTurnStopMessageId(dispatch.id, failure.stopKey) } : {}),
         from: handle,
         mailbox: () => dispatchReportMailbox(db, dispatch),
         describe: (task) =>

@@ -1,4 +1,5 @@
 import { withClaudeAgentViewPlugin } from '../../../shared/claude-agent-view-launch'
+import { withLaunchExitReceipt } from '../../../shared/agent-launch-exit-receipt'
 import { resolveStartupShell } from '../../../shared/tui-agent-startup-shell'
 import { resolveLocalWindowsAgentStartupShell } from '../../../shared/windows-terminal-shell'
 import { getAppEnvironment } from '../../../shared/app-environment'
@@ -11,6 +12,7 @@ import { LEGACY_TERMINAL_SHIM_REMOTE_ENV_KEYS } from '../../pty/legacy-terminal-
 import { PI_PROCESS_OWNER_ENV_KEYS } from '../../pty/pi-process-owner-env'
 import { planCodexNoDaemonLaunch } from '../../pty/codex-no-daemon-launch-command'
 import { applyAgentWorkspaceTrustToSpawn } from '../../agent-workspace-trust-spawn'
+import { agentLaunchTokenHash, launchExitReceiptId } from '../../agent-launch/agent-launch-token'
 import type { PtySpawnOptions } from '../../providers/pty-provider-contract'
 import type { CodexAccountSelectionTarget } from '../../codex-accounts/runtime-selection'
 import { getStartupTerminalIngressIntent } from '../terminal-startup-color-query-replies'
@@ -172,8 +174,16 @@ export async function assemblePtySpawnLaunchOptions(input: PtySpawnLaunchOptions
     cwd: input.cwd
   })
   const command = noDaemonLaunch ? await noDaemonLaunch : launchCommand
+  const launchToken = input.preAdoptedStablePane ? undefined : env?.ORCA_AGENT_LAUNCH_TOKEN
   if (command !== undefined) {
-    spawnOptions.command = command
+    // The shell reports the agent's return, since a killed agent sends no hook; SSH hosts are POSIX.
+    spawnOptions.command = launchToken
+      ? withLaunchExitReceipt(
+          command,
+          launchExitReceiptId(agentLaunchTokenHash(launchToken)),
+          connectionId ? 'posix' : shell
+        )
+      : command
   }
   if (args.commandDelivery !== undefined) {
     spawnOptions.commandDelivery = args.commandDelivery
