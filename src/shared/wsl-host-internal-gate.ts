@@ -57,6 +57,11 @@ export function publishWslHostsGateState(
   }
 }
 
+/** Main's entry, before anything reads the gate: it recomputes its own, so an inherited value is stale. */
+export function ignoreInheritedWslHostsGateState(): void {
+  resolvedHere = true
+}
+
 function inheritedGateState(
   env: Readonly<Record<string, string | undefined>>
 ): WslHostsGateState | null {

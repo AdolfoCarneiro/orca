@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  ignoreInheritedWslHostsGateState,
   isWslHostsServing,
   publishWslHostsGateState,
   WSL_HOSTS_GATE_STATE_ENV
@@ -29,5 +30,14 @@ describe('WSL hosts gate state inherited from main', () => {
 
     expect(env[WSL_HOSTS_GATE_STATE_ENV]).toBe('closed')
     expect(isWslHostsServing({ [WSL_HOSTS_GATE_STATE_ENV]: 'open' })).toBe(false)
+  })
+
+  it("ignores an inherited state from main's entry on, before the gate is configured", () => {
+    ignoreInheritedWslHostsGateState()
+
+    expect(isWslHostsServing({ [WSL_HOSTS_GATE_STATE_ENV]: 'open' })).toBe(false)
+    expect(
+      isWslHostsServing({ ORCA_INTERNAL_WSL_HOSTS: '1', [WSL_HOSTS_GATE_STATE_ENV]: 'closed' })
+    ).toBe(true)
   })
 })

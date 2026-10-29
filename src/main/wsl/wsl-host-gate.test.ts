@@ -12,7 +12,11 @@ import {
   wslHostsWindowArguments,
   WSL_HOSTS_GATED_OFF_MESSAGE
 } from './wsl-host-gate'
-import { isWslHostsServing, WSL_HOSTS_GATE_STATE_ENV } from '../../shared/wsl-host-internal-gate'
+import {
+  ignoreInheritedWslHostsGateState,
+  isWslHostsServing,
+  WSL_HOSTS_GATE_STATE_ENV
+} from '../../shared/wsl-host-internal-gate'
 
 const wslHost = {
   orcadDeployment: { kind: 'wsl' as const, distro: 'Ubuntu', localPort: 41000, remotePort: 6768 }
@@ -175,6 +179,27 @@ describe('WSL hosts gate', () => {
 
       expect(process.env[WSL_HOSTS_GATE_STATE_ENV]).toBe(state)
     })
+
+    // A relaunch or the updater's installer inherits the parent's value; main must recompute.
+    it.each([
+      ['closed', '1', 'open', true],
+      ['open', undefined, 'closed', false]
+    ])(
+      'ignores a stale inherited %s and overwrites it',
+      (inherited, gateEnv, recomputed, serving) => {
+        vi.stubEnv(WSL_HOSTS_GATE_STATE_ENV, inherited)
+        vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', gateEnv)
+        ignoreInheritedWslHostsGateState()
+        expect(isWslHostsServing(process.env)).toBe(gateEnv === '1')
+
+        configureWslHostsGate(facts(false, false))
+
+        expect(wslHostsGateState()).toBe(recomputed)
+        expect(process.env[WSL_HOSTS_GATE_STATE_ENV]).toBe(recomputed)
+        expect(wslHostsServing()).toBe(serving)
+        expect(isWslHostsServing(process.env)).toBe(serving)
+      }
+    )
 
     it('withdraws it on reset', () => {
       vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', '1')
