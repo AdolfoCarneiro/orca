@@ -208,6 +208,7 @@ describe('force-park exemption flips under capability changes', () => {
           {
             root: { type: 'leaf', leafId: LEAF_IDS[id] },
             activeLeafId: LEAF_IDS[id],
+            expandedLeafId: null,
             ptyIdsByLeafId: { [LEAF_IDS[id]]: ptyIdFor(id) }
           }
         ])

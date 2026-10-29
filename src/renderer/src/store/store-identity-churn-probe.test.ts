@@ -1,6 +1,8 @@
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
-import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import {
+  replaceSessionSourceFields,
+  withSessionSourceWrites
+} from '@/store/session-source-write-boundary'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import { withReactCommitCascadeWriteProbe } from './react-commit-cascade-write-probe'
