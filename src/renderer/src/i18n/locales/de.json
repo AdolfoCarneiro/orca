@@ -37,7 +37,32 @@
     "sortDescending": "Ausgewählte Spalte absteigend sortieren",
     "originalOrder": "Ursprüngliche Zeilenreihenfolge",
     "save": "Speichern",
-    "inspectionOnly": "Nur zur Ansicht · Zeilenreihenfolge der Datei unverändert"
+    "inspectionOnly": "Nur zur Ansicht · Zeilenreihenfolge der Datei unverändert",
+    "error": {
+      "tooManyCells": "CSV enthält zu viele Zellen für eine sichere Vorschau.",
+      "recordTooLarge": "Der CSV-Datensatz ist zu groß für eine sichere Vorschau.",
+      "tooManyPages": "CSV hat zu viele Seiten für eine sichere Vorschau.",
+      "previewRecordLimit": "Der CSV-Datensatz überschreitet das Vorschau-Limit von 1 MB.",
+      "binaryData": "Diese Datei enthält Binärdaten.",
+      "previewColumnLimit": "CSV überschreitet das Vorschau-Limit von 4.096 Spalten.",
+      "changedOnDisk": "CSV wurde auf dem Datenträger geändert. Datei neu laden, um die Vorschau zu aktualisieren.",
+      "pageBoundaryMismatch": "Die CSV-Seitengrenzen stimmen nicht überein. Vorschau neu laden.",
+      "canceled": "Die CSV-Vorschau wurde abgebrochen",
+      "workerFailed": "Der CSV-Vorschauprozess ist fehlgeschlagen. Datei neu laden, um es erneut zu versuchen.",
+      "workerUnreadableResponse": "Der CSV-Vorschauprozess hat eine unlesbare Antwort zurückgegeben.",
+      "cellMissing": "Die ausgewählte CSV-Zeile oder -Spalte existiert nicht mehr.",
+      "rowMissing": "Die ausgewählte CSV-Zeile existiert nicht mehr.",
+      "columnLimit": "CSV überschreitet das Limit von 4.096 Spalten.",
+      "recordLimit": "Der CSV-Datensatz überschreitet das Limit von 1 MB.",
+      "tableEditBudget": "Änderungen an der Tabelle müssen unter 1 MiB bleiben. Für größere Änderungen „Quelltext“ verwenden.",
+      "editConflict": "CSV wurde während der Bearbeitung dieser Zelle geändert. Abbrechen und erneut versuchen.",
+      "saveFailed": "CSV konnte nicht gespeichert werden. Die Änderungen bleiben im Entwurf.",
+      "pasteConflict": "CSV wurde vor Abschluss des Einfügens geändert. Erneut versuchen.",
+      "copyTooManyCells": "Zum Kopieren weniger Zellen auf einmal auswählen.",
+      "copyTooLarge": "Die ausgewählten Zellen sind zu groß, um sie sicher zu kopieren.",
+      "pasteExceedsTable": "Der Einfügebereich geht über die Tabelle hinaus. Zuerst Zeilen oder Spalten hinzufügen.",
+      "pasteTooManyCells": "Zum Einfügen weniger Zellen auf einmal auswählen."
+    }
   },
   "osDocumentOpen": {
     "failed": "Die Datei konnte nicht geöffnet werden."
@@ -77,6 +102,23 @@
     "startupWorktreeRefresh": {
       "loading": "Arbeitsbereiche werden gesucht…",
       "description": "Während lokale und entfernte Projekte geladen werden, können weitere Arbeitsbereiche erscheinen."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Name darf nicht leer sein",
+        "nameInvalid": "Name darf weder Schrägstriche enthalten noch \".\" / \"..\" sein",
+        "parentRequired": "Übergeordnetes Verzeichnis ist erforderlich",
+        "parentNotAbsolute": "Übergeordnetes Verzeichnis muss ein absoluter Pfad sein",
+        "targetInaccessible": "Zugriff auf Zielpfad nicht möglich: {{detail}}",
+        "targetNotEmpty": "„{{name}}“ existiert bereits an diesem Ort und ist nicht leer.",
+        "targetNotFolder": "„{{name}}“ existiert bereits an diesem Ort und ist kein Ordner.",
+        "readDirectoryFailed": "Verzeichnis konnte nicht gelesen werden: {{detail}}",
+        "createDirectoryFailed": "Verzeichnis konnte nicht erstellt werden: {{detail}}",
+        "prepareDirectoryFailed": "Verzeichnis konnte nicht vorbereitet werden: {{detail}}",
+        "gitIdentityMissing": "Git-Autorenidentität ist nicht konfiguriert. `git config --global user.name \"Your Name\"` und `git config --global user.email \"you@example.com\"` ausführen und dann erneut versuchen.",
+        "gitInitFailed": "Git-Repository konnte nicht initialisiert werden: {{detail}}",
+        "initialCommitFailed": "Erster Commit konnte nicht erstellt werden: {{detail}}"
+      }
     }
   },
   "app": {
@@ -696,7 +738,26 @@
       "workspace": "Arbeitsbereich"
     },
     "shortcuts": {
-      "parseFailed": "Tastenkürzel konnte nicht ausgewertet werden."
+      "parseFailed": "Tastenkürzel konnte nicht ausgewertet werden.",
+      "validation": {
+        "invalidFormat": "Ein Tastenkürzel wie Ctrl+Shift+P oder Cmd+K verwenden.",
+        "mixedModifiers": "Entweder Mod oder eine plattformspezifische Modifikatortaste verwenden, nicht beides.",
+        "modifierRequired": "Mindestens eine Modifikatortaste verwenden.",
+        "digitKeyRequired": "Eine Zifferntaste von 1–9 mit einer Modifikatortaste wählen, z. B. Cmd+1 oder Ctrl+1.",
+        "modifierOnly": "Eine Taste drücken, nicht nur eine Modifikatortaste.",
+        "invalidBindingValue": "Eine Zeichenfolge, ein Array aus Zeichenfolgen, null oder false verwenden.",
+        "stringArrayRequired": "Ein Array aus Zeichenfolgen verwenden.",
+        "fileNotObject": "Die Tastenbelegungsdatei muss ein JSON-Objekt enthalten."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} muss ein Objekt sein.",
+        "unknownAction": "Unbekannte Tastenbelegungsaktion „{{actionId}}“ wurde ignoriert.",
+        "shortcutIgnored": "Tastenkürzel für „{{actionId}}“ wurde ignoriert: {{reason}}",
+        "platformsNotObject": "platforms muss ein Objekt mit Abschnitten für darwin, linux oder win32 sein.",
+        "unknownPlatform": "Unbekannte Plattform „{{platform}}“ wurde ignoriert.",
+        "conflictingOverrides": "Benutzerdefinierte Tastenkürzel mit Konflikten wurden ignoriert: {{actions}}.",
+        "readFailed": "Tastenbelegungsdatei konnte nicht gelesen werden: {{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -882,14 +943,7 @@
             "b8a1618172": "Das Generieren von Pull-Request-Details ist im Web-Client nicht verfügbar.",
             "e57c82d276": "Die Modellerkennung für Commit-Nachrichten ist im Web-Client nicht verfügbar.",
             "9fc90740b6": "Das Generieren von Commit-Nachrichten ist im Web-Client nicht verfügbar.",
-            "52bee9d8a0": "Benutzerdefinierte Tastenkürzel mit Konflikten wurden ignoriert: {{value0}}.",
-            "32f15bdb0f": "Unbekannte Plattform „{{value0}}“ wurde ignoriert.",
-            "0a69fcd8bc": "platforms muss ein Objekt mit Abschnitten für darwin, linux oder win32 sein.",
-            "10898045f3": "Tastenkürzel für „{{value0}}“ wurde ignoriert: Ein Array aus Zeichenfolgen verwenden.",
-            "36761d9604": "Unbekannte Tastenbelegungsaktion „{{value0}}“ wurde ignoriert.",
-            "d2e43e426a": "{{value0}} muss ein Objekt sein.",
-            "fb290366b2": "Im Web nicht verfügbar.",
-            "76122208ca": "Tastenkürzel für „{{value0}}“ wurde ignoriert: {{value1}}"
+            "fb290366b2": "Im Web nicht verfügbar."
           }
         },
         "runtime": {
@@ -2211,8 +2265,7 @@
         "estimateValue": "Schätzung {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Branch wiederverwenden",
-        "reuseExistingBranchHint": "Den vorhandenen Branch auschecken, statt daraus einen neuen zu erstellen.",
+        "openExistingWorkspace": "Bestehenden Arbeitsbereich öffnen",
         "createMultiple": "Weitere erstellen",
         "cbb47ee0dc": "Nur für lokale Git-Projekte verfügbar.",
         "d861de981b": "Partieller Checkout",
@@ -11634,34 +11687,15 @@
           "leaveToTerminalLabel": "Dem Terminal überlassen"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Hintergrundprozess – läuft als eigener Prozess",
-          "instructionalTrust": "Anweisungen – werden später mit den Berechtigungen des Benutzers oder Agenten ausgeführt",
-          "declarativeTrust": "Deklarative Inhalte – kein Plugin-Code",
-          "panelTrust": "Panel oder in den Host integrierte Inhalte – kein Hintergrundprozess",
-          "trustShortWorker": "Hintergrundprozess",
-          "trustShortInstructional": "Anweisungen",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Deklarativ",
-          "reviewTitle": "Plugin prüfen",
-          "title": "Berechtigungen prüfen",
-          "mixedTitle": "Zugriff und Inhalte prüfen",
-          "instructionalTitle": "Plugin-Inhalte prüfen",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Seit der letzten Prüfung dieses Plugins haben sich Berechtigungen, die Vertrauensstufe des Hintergrundprozesses oder die enthaltenen Anweisungen geändert. Vor der Ausführung erneut prüfen.",
-          "capabilities": "Dieses Plugin kann",
-          "warning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
           "instructionalWarning": "Dieses Plugin hat keinen Hintergrundprozess. Seine Anweisungen können bei der Nutzung durch Benutzer oder Agenten dennoch Aktionen auslösen. Vor der Aktivierung die folgenden Anweisungen und Befehle prüfen.",
-          "panelWarning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Dieses Plugin hat keinen Hintergrundprozess.",
           "declarativeWarning": "Dieses Plugin stellt ausschließlich validierte Inhalte bereit. Es führt keinen Hintergrundprozess aus und erhält keinen Zugriff auf die Orca-API.",
-          "keepDisabled": "Deaktiviert lassen",
           "enable": "Plugin aktivieren",
           "capability": {
             "workspaceRead": "Namen, Branch und Terminal-Liste des fokussierten Worktrees lesen",
-            "terminalSend": "Text in ein sichtbares Terminal eingeben (immer ein bestimmtes Terminal)",
             "notificationsShow": "Desktop-Benachrichtigungen mit dem Plugin-Namen anzeigen",
             "storage": "Daten im eigenen Speicherordner des Plugins speichern",
             "secrets": "Geheimnisse im eigenen verschlüsselten Tresor des Plugins speichern und lesen",
-            "eventsSubscribe": "Benachrichtigungen erhalten, wenn Worktrees erstellt oder entfernt werden und wenn sich der Agentenstatus ändert",
             "settingsOwn": "Die eigenen Einstellungen des Plugins lesen und ändern"
           },
           "decisionFailed": "Die Berechtigungsentscheidung konnte nicht gespeichert werden. Erneut versuchen."
@@ -11681,7 +11715,6 @@
           "saveFailed": "Pfade für Entwicklungs-Plugins konnten nicht gespeichert werden.",
           "pathRequired": "Einen Plugin-Ordnerpfad eingeben.",
           "title": "Entwicklung",
-          "help": "Plugins während der Entwicklung direkt aus Ordnern auf diesem Computer laden. Auch Entwicklungs-Plugins erfordern eine Prüfung der Berechtigungen. Hintergrundprozesse laufen auf diesem Desktop-Host; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet. Die hier angegebenen Pfade beziehen sich daher auf den Desktop.",
           "remove": "Entfernen",
           "pathLabel": "Ordnerpfad des Entwicklungs-Plugins",
           "placeholder": "/Users/you/plugins/my-plugin oder C:\\Users\\you\\plugins\\my-plugin",
@@ -11709,16 +11742,11 @@
           "installFailed": "Plugin-Installation fehlgeschlagen. Die Quelle prüfen und erneut versuchen."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Tastenkürzel",
-          "worktree": "Wird nur ausgeführt, wenn ein Arbeitsbereich aktiv ist.",
-          "global": "Wird in der App ausgeführt, ohne dass ein aktiver Arbeitsbereich erforderlich ist.",
-          "shadows": "Ersetzt: {{value0}}"
+          "worktree": "Wird nur ausgeführt, wenn ein Arbeitsbereich aktiv ist."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Marktplatz-Plugins konnten nicht geladen werden.",
           "refreshFailed": "Marktplätze konnten nicht aktualisiert werden. Zwischengespeicherte Einträge bleiben verfügbar.",
-          "previewFailed": "Dieses Plugin konnte nicht zur Prüfung vorbereitet werden. Den Marktplatz aktualisieren und erneut versuchen.",
-          "installFailed": "Dieses Plugin konnte nicht installiert werden. Die geprüfte Quelle hat sich möglicherweise geändert.",
           "manageSources": "Quellen verwalten",
           "refreshing": "Wird aktualisiert…",
           "refresh": "Aktualisieren",
@@ -11727,7 +11755,6 @@
           "loading": "Marktplatz-Plugins werden geladen…",
           "tryAgain": "Erneut versuchen",
           "noSourcesTitle": "Keine Marktplätze konfiguriert",
-          "noSources": "Einen offiziellen, von der Community betriebenen oder privaten Git-Marktplatz hinzufügen, um Plugins zu durchsuchen.",
           "addSource": "Marktplatz hinzufügen",
           "noResultsTitle": "Keine passenden Plugins",
           "noResults": "Keine Marktplatz-Plugins entsprechen dieser Suche.",
@@ -11736,39 +11763,8 @@
           "empty": "Die konfigurierten Marktplätze enthalten keine Plugins."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Offiziell",
-          "installed": "Installiert",
-          "noDescription": "Keine Beschreibung angegeben.",
           "blocked": "Durch die Sicherheitsliste von Orca blockiert: {{value0}}",
-          "blockedAction": "Blockiert",
-          "checkUpdate": "Nach Update suchen",
           "install": "Installieren"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 Sprachpaket",
-          "languagePacks": "{{value0}} Sprachpakete",
-          "commandsOne": "1 Befehl",
-          "commands": "{{value0}} Befehle",
-          "keybindingsOne": "1 Tastenkürzel",
-          "keybindings": "{{value0}} Tastenkürzel",
-          "vmRecipesOne": "1 VM-Rezept",
-          "vmRecipes": "{{value0}} VM-Rezepte",
-          "panelsOne": "1 Panel",
-          "panels": "{{value0}} Panels",
-          "eventsOne": "1 Ereignisabonnement",
-          "events": "{{value0}} Ereignisabonnements",
-          "worker": "Hintergrundprozess",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "Enthält",
-          "noContributions": "Nur Manifest-Metadaten",
-          "capabilities": "Angeforderter Zugriff",
-          "workerWarning": "Berechtigungen begrenzen die Nutzung der Orca-API durch dieses Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
-          "blocked": "Die Sicherheitsliste von Orca blockiert dieses Plugin: {{value0}}",
-          "current": "Genau dieser Plugin-Inhalt ist bereits installiert.",
-          "close": "Schließen",
-          "cancel": "Abbrechen",
-          "update": "Plugin aktualisieren",
-          "install": "Plugin installieren"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Dieser Marktplatz konnte nicht hinzugefügt werden. Git-URL, Referenz und Git-Zugangsdaten prüfen.",
@@ -11794,21 +11790,15 @@
           "done": "Abschließen"
         },
         "PluginRemoveDialog": {
-          "title": "Plugin entfernen?",
-          "description": "Dadurch werden {{value0}} und die gespeicherten Plugin-Daten von diesem Computer entfernt. Das Plugin kann später erneut installiert werden.",
           "cancel": "Abbrechen",
           "remove": "Plugin entfernen"
         },
         "PluginRollbackDialog": {
-          "title": "Plugin zurücksetzen?",
-          "description": "Dadurch wird {{value0}} deaktiviert und die vorherige unveränderliche Version wiederhergestellt. Wenn diese Version andere Zugriffsrechte anfordert oder andere Anweisungen enthält, ist in Orca eine erneute Prüfung erforderlich.",
           "cancel": "Abbrechen",
           "confirm": "Plugin zurücksetzen"
         },
         "PluginsSettingsSection": {
           "systemLabel": "Plugin-System",
-          "systemDescription": "Erkennt installierte Plugins und ermöglicht deren einzelne Aktivierung. Vor der Prüfung und Aktivierung wird nichts ausgeführt. Hintergrundprozesse laufen immer auf diesem Computer; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet.",
-          "featureOff": "Das Plugin-System aktivieren, um installierte Plugins anzuzeigen und zu verwalten. Bereits installierte Plugins bleiben auf dem Datenträger und sind deaktiviert, solange das System ausgeschaltet ist.",
           "loading": "Plugins werden geladen…",
           "noInstalledResultsTitle": "Keine passenden Plugins",
           "noInstalledResults": "Keine installierten Plugins entsprechen dieser Suche.",
@@ -11818,37 +11808,18 @@
           "settingsUpdateFailed": "Plugin-Einstellungen konnten nicht gespeichert werden.",
           "install": "Plugin installieren",
           "title": "Plugins",
-          "experimental": "Experimentell",
           "description": "Orca-Plugins installieren und verwalten. Plugins laufen auf diesem Computer, auch für SSH-Arbeitsbereiche.",
           "logsFailed": "Plugin-Protokolle konnten nicht geladen werden.",
           "rollbackFailed": "Dieses Plugin konnte nicht zurückgesetzt werden. Möglicherweise ist keine vorherige unveränderliche Version verfügbar."
         },
         "PluginSettingsRow": {
-          "blocked": "Blockiert",
-          "needsReview": "Prüfung erforderlich",
-          "restarting": "Wird neu gestartet",
-          "invalid": "Ungültig",
-          "error": "Fehler",
-          "disabled": "Deaktiviert",
-          "running": "Wird ausgeführt",
-          "enabled": "Aktiviert",
           "loadingLogs": "Protokolle werden geladen…",
           "noLogs": "Keine Protokollzeilen aufgezeichnet.",
           "logCount": "Letzte {{value0}} von bis zu 200 gespeicherten Zeilen",
-          "reviewAndEnable": "Prüfen und aktivieren",
-          "official": "Offiziell",
-          "dev": "Entwicklung",
           "bundled": "Mitgeliefert",
-          "noDescription": "Keine Beschreibung angegeben.",
           "killListMessage": "Die Sicherheitsliste von Orca hat dieses Plugin deaktiviert: {{value0}}",
-          "viewAdvisory": "Sicherheitshinweis anzeigen",
-          "runtimeError": "Das Plugin wurde nach einem Aktivierungsfehler oder einem Fehler im Hintergrundprozess gestoppt.",
-          "restartCount": " · {{value0}} Neustarts",
           "moreActions": "Weitere Aktionen für {{value0}}",
-          "hideLogs": "Protokolle ausblenden",
           "viewLogs": "Protokolle anzeigen",
-          "rollback": "Zurücksetzen",
-          "remove": "Entfernen",
           "disableLabel": "{{value0}} deaktivieren",
           "enableLabel": "{{value0}} aktivieren",
           "invalidPluginError": "Das Plugin-Manifest oder die installierten Dateien sind ungültig. Das Plugin korrigieren und anschließend aktualisieren."
@@ -19639,6 +19610,14 @@
           "descriptionMany": "Beim Löschen wird die aktuelle Arbeit dieser Agenten gestoppt.",
           "confirm": "Agenten stoppen und löschen",
           "confirmOne": "Den Agenten stoppen und löschen"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Sauber",
+            "dirty": "Geändert",
+            "unpushed": "Nicht gepusht",
+            "unknown": "Unbekannt"
+          }
         }
       },
       "creation": {
@@ -20737,6 +20716,15 @@
     "openDefault": "In Standard-App öffnen"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch für diesen Worktree",
+      "existing": "Bestehender Branch",
+      "existingHint": "Neue Commits werden diesem Branch hinzugefügt.",
+      "new": "Neuer Branch",
+      "newHint": "Einen neuen lokalen Branch erstellen",
+      "newName": "Name des neuen Branches",
+      "automaticName": "Automatischer Name"
+    },
     "links": {
       "foreignReview": "Dieses Review gehört zu einem anderen Repository. Reviews aus dem Repository dieses Arbeitsbereichs hinzufügen.",
       "repositoryLoading": "Die Repository-Identität wird noch geladen. Erneut versuchen, sobald sie verfügbar ist.",

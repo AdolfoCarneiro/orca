@@ -37,7 +37,32 @@
     "sortDescending": "Seçili sütunu azalan sırada sırala",
     "originalOrder": "Özgün satır sırası",
     "save": "Kaydet",
-    "inspectionOnly": "Yalnızca inceleme · Dosyadaki satır sırası değişmez"
+    "inspectionOnly": "Yalnızca inceleme · Dosyadaki satır sırası değişmez",
+    "error": {
+      "tooManyCells": "CSV, güvenli önizleme için çok fazla hücre içeriyor.",
+      "recordTooLarge": "CSV kaydı güvenli önizleme için çok büyük.",
+      "tooManyPages": "CSV, güvenli önizleme için çok fazla sayfa içeriyor.",
+      "previewRecordLimit": "CSV kaydı, 1 MB önizleme sınırını aşıyor.",
+      "binaryData": "Bu dosya ikili veri içeriyor.",
+      "previewColumnLimit": "CSV, 4.096 sütunluk önizleme sınırını aşıyor.",
+      "changedOnDisk": "CSV diskte değişti. Önizlemeyi yenilemek için dosyayı yeniden yükleyin.",
+      "pageBoundaryMismatch": "CSV sayfa sınırları eşleşmiyor. Önizlemeyi yeniden yükleyin.",
+      "canceled": "CSV önizlemesi iptal edildi",
+      "workerFailed": "CSV önizleme işçisinde hata oluştu. Yeniden denemek için dosyayı yeniden yükleyin.",
+      "workerUnreadableResponse": "CSV önizleme işçisi okunamayan bir yanıt döndürdü.",
+      "cellMissing": "Seçili CSV satırı veya sütunu artık yok.",
+      "rowMissing": "Seçili CSV satırı artık yok.",
+      "columnLimit": "CSV, 4.096 sütunluk sınırı aşıyor.",
+      "recordLimit": "CSV kaydı, 1 MB sınırını aşıyor.",
+      "tableEditBudget": "Tablo düzenlemeleri 1 MiB sınırının altında kalmalıdır. Daha büyük değişiklikler için Kaynak görünümünü kullanın.",
+      "editConflict": "Bu hücre düzenlenirken CSV değişti. İptal edip yeniden deneyin.",
+      "saveFailed": "CSV kaydedilemedi. Düzenlemeleriniz taslakta duruyor.",
+      "pasteConflict": "Yapıştırma tamamlanmadan CSV değişti. Yeniden deneyin.",
+      "copyTooManyCells": "Tek seferde kopyalamak için daha az hücre seçin.",
+      "copyTooLarge": "Seçili hücreler güvenle kopyalanamayacak kadar büyük.",
+      "pasteExceedsTable": "Yapıştırılacak içerik tablonun sınırlarını aşıyor. Önce satır veya sütun ekleyin.",
+      "pasteTooManyCells": "Tek seferde yapıştırmak için daha az hücre seçin."
+    }
   },
   "osDocumentOpen": {
     "failed": "Dosya açılamadı."
@@ -77,6 +102,23 @@
       "quitDuringMoveTitle": "Bir proje taşınırken çıkılsın mı?",
       "quitDuringMoveDescription": "Bir proje WSL ana makinesine taşınıyor. Yine de çıkılsın mı? Taşıma bir sonraki açılışta geri alınır.",
       "quitDuringMoveConfirm": "Yine de çık"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Ad boş olamaz",
+        "nameInvalid": "Ad eğik çizgi içeremez veya \".\" / \"..\" olamaz",
+        "parentRequired": "Üst dizin gereklidir",
+        "parentNotAbsolute": "Üst dizin mutlak bir yol olmalıdır",
+        "targetInaccessible": "Hedef yola erişilemiyor: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" bu konumda zaten var ve boş değil.",
+        "targetNotFolder": "\"{{name}}\" bu konumda zaten var ve bir klasör değil.",
+        "readDirectoryFailed": "Dizin okunamadı: {{detail}}",
+        "createDirectoryFailed": "Dizin oluşturulamadı: {{detail}}",
+        "prepareDirectoryFailed": "Dizin hazırlanamadı: {{detail}}",
+        "gitIdentityMissing": "Git yazar kimliği yapılandırılmamış. `git config --global user.name \"Your Name\"` ve `git config --global user.email \"you@example.com\"` komutlarını çalıştırın, ardından yeniden deneyin.",
+        "gitInitFailed": "Git repository'si başlatılamadı: {{detail}}",
+        "initialCommitFailed": "İlk commit oluşturulamadı: {{detail}}"
+      }
     }
   },
   "app": {
@@ -674,7 +716,26 @@
       "workspace": "Çalışma Alanı"
     },
     "shortcuts": {
-      "parseFailed": "Kısayol ayrıştırılamadı."
+      "parseFailed": "Kısayol ayrıştırılamadı.",
+      "validation": {
+        "invalidFormat": "Ctrl+Shift+P veya Cmd+K gibi bir kısayol kullanın.",
+        "mixedModifiers": "Mod veya platforma özgü bir değiştirici kullanın; ikisini birlikte kullanmayın.",
+        "modifierRequired": "En az bir değiştirici tuş ekleyin.",
+        "digitKeyRequired": "Cmd+1 veya Ctrl+1 gibi, 1–9 arasında bir rakam tuşunu değiştiriciyle birlikte seçin.",
+        "modifierOnly": "Yalnızca değiştirici tuşa değil, başka bir tuşa da basın.",
+        "invalidBindingValue": "Bir dize, dize dizisi, null veya false kullanın.",
+        "stringArrayRequired": "Bir dize dizisi kullanın.",
+        "fileNotObject": "Tuş atamaları dosyası bir JSON nesnesi içermelidir."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} bir nesne olmalıdır.",
+        "unknownAction": "Bilinmeyen tuş ataması eylemi \"{{actionId}}\" yok sayıldı.",
+        "shortcutIgnored": "\"{{actionId}}\" için kısayol yok sayıldı: {{reason}}",
+        "platformsNotObject": "platforms, darwin, linux veya win32 bölümlerine sahip bir nesne olmalıdır.",
+        "unknownPlatform": "Bilinmeyen platform \"{{platform}}\" yok sayıldı.",
+        "conflictingOverrides": "Çakışan özel kısayollar yok sayıldı: {{actions}}.",
+        "readFailed": "Tuş atamaları dosyası okunamadı: {{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -860,14 +921,7 @@
             "b8a1618172": "Pull request ayrıntı oluşturma web istemcisinde kullanılamaz.",
             "e57c82d276": "Commit mesajı model keşfi web istemcisinde kullanılamaz.",
             "9fc90740b6": "Commit mesajı oluşturma web istemcisinde kullanılamaz.",
-            "52bee9d8a0": "Çakışan özel kısayollar yok sayıldı: {{value0}}.",
-            "32f15bdb0f": "Bilinmeyen platform \"{{value0}}\" yok sayıldı.",
-            "0a69fcd8bc": "platforms, darwin, linux veya win32 bölümlerine sahip bir nesne olmalıdır.",
-            "10898045f3": "\"{{value0}}\" için kısayol yok sayıldı: Bir dize dizisi kullanın.",
-            "36761d9604": "Bilinmeyen tuş ataması eylemi \"{{value0}}\" yok sayıldı.",
-            "d2e43e426a": "{{value0}} bir nesne olmalıdır.",
-            "fb290366b2": "Web'de kullanılamaz.",
-            "76122208ca": "\"{{value0}}\" için kısayol yok sayıldı: {{value1}}"
+            "fb290366b2": "Web'de kullanılamaz."
           }
         },
         "runtime": {
@@ -2189,8 +2243,7 @@
         "estimateValue": "Tahmin {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Branch'i yeniden kullan",
-        "reuseExistingBranchHint": "Ondan yeni bir tane oluşturmak yerine mevcut branch'i checkout edin.",
+        "openExistingWorkspace": "Mevcut çalışma alanını aç",
         "createMultiple": "Daha fazla oluştur",
         "cbb47ee0dc": "Yalnızca yerel Git projeleri için kullanılabilir.",
         "d861de981b": "Sparse checkout",
@@ -11620,34 +11673,15 @@
           "leaveToTerminalLabel": "Terminale bırak"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Arka plan işçisi; kendi işlemini çalıştırır",
-          "instructionalTrust": "Talimat içeriği; daha sonra kullanıcı veya ajan yetkisiyle çalışır",
-          "declarativeTrust": "Bildirimsel içerik; eklenti kodu yok",
-          "panelTrust": "Panel veya host'a entegre içerik; işçi işlemi yok",
-          "trustShortWorker": "İşçi",
-          "trustShortInstructional": "Talimat",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Bildirimsel",
-          "reviewTitle": "Eklentiyi incele",
-          "title": "İzinleri incele",
-          "mixedTitle": "Erişimi ve içeriği incele",
-          "instructionalTitle": "Eklenti içeriğini incele",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Bu eklentiyi son incelemenizden bu yana izinler, işçi güven düzeyi veya talimat içeriği değişti. Çalışabilmesi için tekrar inceleyin.",
-          "capabilities": "Bu eklenti şunları yapabilir",
-          "warning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bilgisayarınızda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
           "instructionalWarning": "Bu eklentinin işçi işlemi yok. Talimat içeriği yine de siz veya bir ajan onu kullandığında eylemlere neden olabilir. Etkinleştirmeden önce aşağıdaki talimatları ve komutları inceleyin.",
-          "panelWarning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. Bu eklentinin arka plan işçisi yok.",
           "declarativeWarning": "Bu eklenti yalnızca doğrulanmış içerik sağlar. Arka plan işçisi çalıştırmaz veya Orca'nın API'sine erişim almaz.",
-          "keepDisabled": "Devre Dışı Bırak",
           "enable": "Eklentiyi etkinleştir",
           "capability": {
             "workspaceRead": "Odaklanılan worktree'nizin adını, branch'ini ve terminal listesini okur",
-            "terminalSend": "Görebildiğiniz bir terminale metin yazar (her zaman belirli bir terminal)",
             "notificationsShow": "Eklenti adıyla etiketlenmiş masaüstü bildirimleri gösterir",
             "storage": "Eklentinin kendi depolama klasöründe veri saklar",
             "secrets": "Eklentinin kendi şifreli kasasında gizli bilgileri saklar ve okur",
-            "eventsSubscribe": "Worktree'ler oluşturulduğunda veya kaldırıldığında ve ajan durumu değiştiğinde bildirim alır",
             "settingsOwn": "Eklentinin kendi ayarlarını okur ve değiştirir"
           },
           "decisionFailed": "İzin kararı kaydedilemedi. Tekrar deneyin."
@@ -11667,7 +11701,6 @@
           "saveFailed": "Geliştirme eklentisi yolları kaydedilemedi.",
           "pathRequired": "Bir eklenti klasörü yolu girin.",
           "title": "Geliştirme",
-          "help": "Geliştirirken eklentileri doğrudan bu bilgisayardaki klasörlerden yükleyin. Geliştirme eklentileri yine de izin incelemesi gerektirir. İşçiler bu masaüstü host'unda çalışır; SSH çalışma alanı eylemleri Orca üzerinden yönlendirilir, bu yüzden buradaki yollar masaüstü yollarıdır.",
           "remove": "Kaldır",
           "pathLabel": "Geliştirme eklentisi klasör yolu",
           "placeholder": "/Users/you/plugins/my-plugin veya C:\\Users\\you\\plugins\\my-plugin",
@@ -11695,16 +11728,11 @@
           "installFailed": "Eklenti yüklemesi başarısız oldu. Kaynağı kontrol edin ve tekrar deneyin."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Klavye kısayolları",
-          "worktree": "Yalnızca bir çalışma alanı etkinken çalışır.",
-          "global": "Etkin bir çalışma alanı gerektirmeden uygulamada çalışır.",
-          "shadows": "Şunun yerini alır: {{value0}}"
+          "worktree": "Yalnızca bir çalışma alanı etkinken çalışır."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Marketplace eklentileri yüklenemedi.",
           "refreshFailed": "Marketplace'ler yenilenemedi. Önbelleğe alınmış listeler kullanılabilir durumda kalmaya devam ediyor.",
-          "previewFailed": "Bu eklenti inceleme için hazırlanamadı. Marketplace'i yenileyin ve tekrar deneyin.",
-          "installFailed": "Bu eklenti yüklenemedi. İncelenen kaynak değişmiş olabilir.",
           "manageSources": "Kaynakları yönet",
           "refreshing": "Yenileniyor…",
           "refresh": "Yenile",
@@ -11713,7 +11741,6 @@
           "loading": "Marketplace eklentileri yükleniyor…",
           "tryAgain": "Tekrar dene",
           "noSourcesTitle": "Marketplace yapılandırılmadı",
-          "noSources": "Eklentilere göz atmak için resmi, topluluk veya özel bir Git marketplace'i ekleyin.",
           "addSource": "Marketplace ekle",
           "noResultsTitle": "Eşleşen eklenti yok",
           "noResults": "Hiçbir marketplace eklentisi bu aramayla eşleşmiyor.",
@@ -11722,39 +11749,8 @@
           "empty": "Yapılandırılmış marketplace'ler herhangi bir eklenti listelemiyor."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Resmi",
-          "installed": "Yüklü",
-          "noDescription": "Açıklama sağlanmadı.",
           "blocked": "Orca'nın güvenlik listesi tarafından engellendi: {{value0}}",
-          "blockedAction": "Engellendi",
-          "checkUpdate": "Güncelleme kontrol et",
           "install": "Yükle"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 dil paketi",
-          "languagePacks": "{{value0}} dil paketi",
-          "commandsOne": "1 komut",
-          "commands": "{{value0}} komut",
-          "keybindingsOne": "1 klavye kısayolu",
-          "keybindings": "{{value0}} klavye kısayolu",
-          "vmRecipesOne": "1 VM tarifi",
-          "vmRecipes": "{{value0}} VM tarifi",
-          "panelsOne": "1 panel",
-          "panels": "{{value0}} panel",
-          "eventsOne": "1 olay aboneliği",
-          "events": "{{value0}} olay aboneliği",
-          "worker": "Arka plan işçisi",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "İçerir",
-          "noContributions": "Yalnızca manifest meta verisi",
-          "capabilities": "İstenen erişim",
-          "workerWarning": "Yetkinlikler bu eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bu bilgisayarda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
-          "blocked": "Orca'nın güvenlik listesi bu eklentiyi engelliyor: {{value0}}",
-          "current": "Bu eklentinin tam olarak bu içeriği zaten yüklü.",
-          "close": "Kapat",
-          "cancel": "İptal",
-          "update": "Eklentiyi güncelle",
-          "install": "Eklentiyi yükle"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Bu marketplace eklenemedi. Git URL'sini, ref'i ve Git kimlik bilgilerinizi kontrol edin.",
@@ -11780,21 +11776,15 @@
           "done": "Tamam"
         },
         "PluginRemoveDialog": {
-          "title": "Eklenti kaldırılsın mı?",
-          "description": "Bu, {{value0}} eklentisini ve bu bilgisayarda saklanan eklenti verilerini kaldırır. Daha sonra tekrar yükleyebilirsiniz.",
           "cancel": "İptal",
           "remove": "Eklentiyi kaldır"
         },
         "PluginRollbackDialog": {
-          "title": "Eklenti geri alınsın mı?",
-          "description": "Bu, {{value0}} eklentisini devre dışı bırakır ve önceki değiştirilemez sürümünü geri yükler. O sürüm farklı bir erişim veya talimat içeriği istiyorsa Orca yeniden inceleme ister.",
           "cancel": "İptal",
           "confirm": "Eklentiyi geri al"
         },
         "PluginsSettingsSection": {
           "systemLabel": "Eklenti sistemi",
-          "systemDescription": "Yüklü eklentileri bulur ve bunları tek tek etkinleştirmenize olanak tanır. Siz inceleyip etkinleştirene kadar hiçbir şey çalışmaz. Worker'lar her zaman bu bilgisayarda çalışır; SSH çalışma alanı işlemleri Orca üzerinden yönlendirilir.",
-          "featureOff": "Yüklü eklentileri görmek ve yönetmek için eklenti sistemini açın. Zaten yüklü olanlar diskte kalır ve sistem kapalıyken devre dışı kalır.",
           "loading": "Eklentiler yükleniyor…",
           "noInstalledResultsTitle": "Eşleşen eklenti yok",
           "noInstalledResults": "Bu aramayla eşleşen yüklü eklenti yok.",
@@ -11804,37 +11794,18 @@
           "settingsUpdateFailed": "Eklenti ayarları kaydedilemedi.",
           "install": "Eklenti yükle",
           "title": "Eklentiler",
-          "experimental": "Deneysel",
           "description": "Orca eklentilerini yükleyin ve yönetin. Eklentiler, SSH çalışma alanları için bile bu bilgisayarda çalışır.",
           "logsFailed": "Eklenti günlükleri yüklenemedi.",
           "rollbackFailed": "Bu eklenti geri alınamadı. Önceki değiştirilemez bir sürüm mevcut olmayabilir."
         },
         "PluginSettingsRow": {
-          "blocked": "Engellendi",
-          "needsReview": "İnceleme gerekiyor",
-          "restarting": "Yeniden başlatılıyor",
-          "invalid": "Geçersiz",
-          "error": "Hata",
-          "disabled": "Devre dışı",
-          "running": "Çalışıyor",
-          "enabled": "Etkin",
           "loadingLogs": "Günlükler yükleniyor…",
           "noLogs": "Kayıtlı günlük satırı yok.",
           "logCount": "En fazla 200 satırdan son {{value0}}",
-          "reviewAndEnable": "İncele ve etkinleştir",
-          "official": "Resmi",
-          "dev": "Geliştirici",
           "bundled": "Paket içinde",
-          "noDescription": "Açıklama sağlanmadı.",
           "killListMessage": "Orca'nın güvenlik listesi bu eklentiyi devre dışı bıraktı: {{value0}}",
-          "viewAdvisory": "Uyarıyı görüntüle",
-          "runtimeError": "Eklenti, bir etkinleştirme veya worker hatasından sonra durdu.",
-          "restartCount": " · {{value0}} yeniden başlatma",
           "moreActions": "{{value0}} için diğer işlemler",
-          "hideLogs": "Günlükleri gizle",
           "viewLogs": "Günlükleri görüntüle",
-          "rollback": "Geri al",
-          "remove": "Kaldır",
           "disableLabel": "{{value0}} eklentisini devre dışı bırak",
           "enableLabel": "{{value0}} eklentisini etkinleştir",
           "invalidPluginError": "Eklenti manifest'i veya yüklü dosyalar geçersiz. Eklentiyi düzeltip yenileyin."
@@ -19621,6 +19592,14 @@
           "descriptionMany": "Silme işlemi bu ajanların mevcut çalışmalarını durdurur.",
           "confirm": "Ajanları durdur ve sil",
           "confirmOne": "Ajanı durdur ve sil"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Temiz",
+            "dirty": "Değişiklik var",
+            "unpushed": "Push edilmemiş",
+            "unknown": "Bilinmiyor"
+          }
         }
       },
       "creation": {
@@ -20718,6 +20697,15 @@
     "openDefault": "Varsayılan uygulamada aç"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Bu çalışma ağacı için dal",
+      "existing": "Mevcut dal",
+      "existingHint": "Yeni commitler bu dala eklenir.",
+      "new": "Yeni dal",
+      "newHint": "Yeni bir yerel dal oluştur",
+      "newName": "Yeni dal adı",
+      "automaticName": "Otomatik ad"
+    },
     "links": {
       "foreignReview": "Bu inceleme başka bir repo'ya ait. Bu çalışma alanının repo'sundaki incelemeleri ekleyin.",
       "repositoryLoading": "Repo kimliği hâlâ yükleniyor. Kullanılabilir olduğunda yeniden deneyin.",

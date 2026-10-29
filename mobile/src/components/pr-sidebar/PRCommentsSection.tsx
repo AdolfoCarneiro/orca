@@ -311,23 +311,23 @@ function CommentGroupView({
           {group.kind === 'thread'
             ? count === 1
               ? t(
-                  'pullRequest.commentsSection.resolvedThread_one',
+                  'pullRequest.commentsSection.resolvedThreadSingle',
                   'Resolved thread by {{author}}',
-                  { author: root.author, count }
+                  { author: root.author }
                 )
               : t(
-                  'pullRequest.commentsSection.resolvedThread_other',
+                  'pullRequest.commentsSection.resolvedThreadCount',
                   'Resolved thread by {{author}} ({{count}})',
                   { author: root.author, count }
                 )
             : count === 1
               ? t(
-                  'pullRequest.commentsSection.resolvedComment_one',
+                  'pullRequest.commentsSection.resolvedCommentSingle',
                   'Resolved comment by {{author}}',
-                  { author: root.author, count }
+                  { author: root.author }
                 )
               : t(
-                  'pullRequest.commentsSection.resolvedComment_other',
+                  'pullRequest.commentsSection.resolvedCommentCount',
                   'Resolved comment by {{author}} ({{count}})',
                   { author: root.author, count }
                 )}
