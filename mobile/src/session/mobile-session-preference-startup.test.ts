@@ -64,10 +64,11 @@ function refocus() {
 }
 
 function sessionScope() {
+  const customKeys: CustomKey[] = []
   return {
     hostId: 'host',
     connState: 'connecting',
-    customKeys: [] as CustomKey[],
+    customKeys,
     setTerminalTextScale: vi.fn(),
     terminalTextScaleRevisionRef: { current: 0 },
     setAutocompleteEnabled: vi.fn(),
