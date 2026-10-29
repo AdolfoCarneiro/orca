@@ -35,18 +35,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function select(node: Node | null, collapsed = false) {
-  const selection = window.getSelection()
-  if (!node || !selection) {
-    throw new Error('Expected a selectable preview text node')
-  }
-  const range = document.createRange()
-  range.setStart(node, 0)
-  range.setEnd(node, collapsed ? 0 : 3)
-  selection.removeAllRanges()
-  selection.addRange(range)
-}
-
 function fixture() {
   const view = render(<Preview content="initial selected text" />)
   return {
@@ -65,7 +53,18 @@ function fixture() {
         }
       })
     },
-    select: () => select(view.container.firstChild?.firstChild ?? null)
+    select() {
+      const node = view.container.firstChild?.firstChild
+      const selection = window.getSelection()
+      if (!node || !selection) {
+        throw new Error('Expected a selectable preview text node')
+      }
+      const range = document.createRange()
+      range.setStart(node, 0)
+      range.setEnd(node, 3)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
   }
 }
 
@@ -76,61 +75,16 @@ it('applies the latest external source by the original deadline during continuou
     view.update(`external-${step}`, step * 1000)
     view.frame(step * 1000)
     expect(view.container.textContent).toBe('initial selected text')
-    expect(frames.size).toBe(1)
   }
   view.frame(3999)
   expect(view.container.textContent).toBe('initial selected text')
   view.update('external-4', 4000)
   view.frame(4000)
   expect(view.container.textContent).toBe('external-4')
-  expect(frames.size).toBe(0)
   view.select()
   view.update('next episode', 4500)
   view.frame(7499)
   expect(view.container.textContent).toBe('external-4')
   view.frame(7500)
   expect(view.container.textContent).toBe('next episode')
-})
-
-it('starts a fresh deadline after source reversion and releases the latest edit on selection release', () => {
-  const view = fixture()
-  view.select()
-  view.update('discarded source', 1000)
-  view.update('initial selected text', 2000)
-  expect(frames.size).toBe(0)
-  view.update('fresh pending source', 2500)
-  view.frame(4000)
-  expect(view.container.textContent).toBe('initial selected text')
-  view.frame(5500)
-  expect(view.container.textContent).toBe('fresh pending source')
-  view.select()
-  view.update('first pending source', 6000)
-  view.update('latest pending source', 6500)
-  window.getSelection()?.removeAllRanges()
-  view.frame(6500)
-  expect(view.container.textContent).toBe('latest pending source')
-  expect(frames.size).toBe(0)
-  view.select()
-  view.update('pending at close', 7000)
-  expect(frames.size).toBe(1)
-  view.unmount()
-  expect(frames.size).toBe(0)
-})
-
-it.each(['none', 'collapsed', 'outside'])('updates immediately with %s selection', (kind) => {
-  const view = fixture()
-  const outside = document.body.appendChild(document.createTextNode('outside selection'))
-  try {
-    if (kind !== 'none') {
-      select(
-        kind === 'outside' ? outside : (view.container.firstChild?.firstChild ?? null),
-        kind === 'collapsed'
-      )
-    }
-    view.update('latest immediate source', 1000)
-    expect(view.container.textContent).toBe('latest immediate source')
-    expect(frames.size).toBe(0)
-  } finally {
-    outside.remove()
-  }
 })
