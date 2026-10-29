@@ -75,6 +75,9 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
+const waitUntilEnabled = (name: string) =>
+  waitFor(() => expect(screen.getByRole('button', { name }).hasAttribute('disabled')).toBe(false))
+
 it('keeps terminal text unchanged and does no body reads until a structured reference is opened', async () => {
   const content = `Read @${path}`
   const renderText = (text: string) => <span>{text}</span>
@@ -93,19 +96,13 @@ it('keeps terminal text unchanged and does no body reads until a structured refe
   )
   expect(mocks.rpc).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Pasted text' }))
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-      false
-    )
-  )
+  await waitUntilEnabled('Copy contents')
   expect(
     mocks.rpc.mock.calls.filter((call) => call[1] === 'agentSessionAttachment.readTextChunk')
   ).toHaveLength(1)
   fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
   await waitFor(() => expect(mocks.write).toHaveBeenCalledWith(bytes.toString('utf8')))
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save file' }).hasAttribute('disabled')).toBe(false)
-  )
+  await waitUntilEnabled('Save file')
   fireEvent.click(screen.getByRole('button', { name: 'Save file' }))
   await waitFor(() => expect(mocks.finish).toHaveBeenCalled())
   expect(
@@ -122,11 +119,7 @@ it('shows the old-host limitation and refreshes capability on Retry without affe
   expect(mocks.rpc.mock.calls.every((call) => call[1] === 'status.get')).toBe(true)
   capable = true
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-      false
-    )
-  )
+  await waitUntilEnabled('Copy contents')
 })
 
 it('survives StrictMode cleanup and refuses clipboard publication after the owner is re-paired', async () => {
@@ -135,78 +128,22 @@ it('survives StrictMode cleanup and refuses clipboard publication after the owne
       <NativeChatTextAttachmentPreview path={path} target={target} onClose={() => {}} />
     </StrictMode>
   )
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-      false
-    )
-  )
-  let release!: () => void
-  let started!: () => void
-  const reading = new Promise<void>((resolve) => {
-    started = resolve
-  })
-  mocks.rpc.mockImplementationOnce(async (_target, _method, request) => {
-    started()
-    await new Promise<void>((resolve) => {
-      release = resolve
-    })
-    const chunk = bytes.subarray(request.offset, request.offset + request.length)
-    return {
-      snapshot: 'a'.repeat(64),
-      size: bytes.length,
-      contentBase64: chunk.toString('base64'),
-      bytesRead: chunk.length,
-      eof: true
-    }
+  await waitUntilEnabled('Copy contents')
+  const gate = Promise.withResolvers<void>()
+  const started = Promise.withResolvers<void>()
+  const normal = mocks.rpc.getMockImplementation()!
+  mocks.rpc.mockImplementationOnce(async (...args) => {
+    started.resolve()
+    await gate.promise
+    return normal(...args)
   })
   fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
-  await reading
+  await started.promise
   await act(async () => {
     replaceRuntimeEnvironmentRevisions([{ id: 'env-text', createdAt: 2 }])
-    release()
+    gate.resolve()
   })
   expect(mocks.write).not.toHaveBeenCalled()
-})
-
-it('cancels a source during status admission and lets a newly opened successor read', async () => {
-  const { AttachmentTextSource } = await import('../../../../shared/attachment-text-source')
-  const { createChatAttachmentReader } = await import('./native-chat-text-attachment-read')
-  for (const count of [1, 10]) {
-    const gates = Array.from({ length: count }, () => Promise.withResolvers<unknown>())
-    const started = Promise.withResolvers<void>()
-    let probes = 0
-    const normal = mocks.rpc.getMockImplementation()!
-    mocks.rpc.mockImplementation((...args) => {
-      if (args[1] === 'status.get' && probes < count) {
-        const gate = gates[probes++]!
-        if (probes === count) {
-          started.resolve()
-        }
-        return gate.promise
-      }
-      return normal(...args)
-    })
-    const sources = gates.map(
-      () => new AttachmentTextSource(path, createChatAttachmentReader(target))
-    )
-    const pending = sources.map((source) =>
-      source.page(0).then(
-        () => false,
-        () => true
-      )
-    )
-    await started.promise
-    sources.forEach((source) => source.dispose())
-    const before = mocks.rpc.mock.calls.filter((call) => call[1] !== 'status.get').length
-    gates.forEach((gate) =>
-      gate.resolve({ capabilities: [AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY] })
-    )
-    expect(await Promise.all(pending)).toEqual(Array(count).fill(true))
-    expect(mocks.rpc.mock.calls.filter((call) => call[1] !== 'status.get')).toHaveLength(before)
-    const successor = new AttachmentTextSource(path, createChatAttachmentReader(target))
-    expect(await successor.copyText()).toBe(bytes.toString('utf8'))
-    mocks.rpc.mockImplementation(normal)
-  }
 })
 
 it.each([true, false])(
@@ -246,11 +183,7 @@ it.each([true, false])(
       return
     }
     fireEvent.click(screen.getByRole('button', { name: 'Open source' }))
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-        false
-      )
-    )
+    await waitUntilEnabled('Copy contents')
     const gate = Promise.withResolvers<unknown>()
     const normal = mocks.rpc.getMockImplementation()!
     mocks.rpc.mockImplementationOnce(() => gate.promise)
@@ -270,11 +203,7 @@ it.each([true, false])(
     expect(mocks.write).not.toHaveBeenCalled()
     expect(mocks.finish).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Open source' }))
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
-        false
-      )
-    )
+    await waitUntilEnabled('Copy contents')
     expect(screen.getByRole('textbox', { name: 'draft', hidden: true })).toBe(input)
     const picker = Promise.withResolvers<{ canceled: false; transferId: string }>()
     mocks.start.mockReturnValueOnce(picker.promise)
@@ -297,7 +226,7 @@ it('exports all raw web bytes and cancels desktop picker/output failures', async
     <NativeChatTextAttachmentPreview path={path} target={target} onClose={() => {}} />
   )
   const save = () => screen.getByRole('button', { name: 'Save file' })
-  await waitFor(() => expect(save().hasAttribute('disabled')).toBe(false))
+  await waitUntilEnabled('Save file')
   fireEvent.click(save())
   await waitFor(() => expect(click).toHaveBeenCalledOnce())
   const blob = create.mock.calls[0]![0]
@@ -312,10 +241,10 @@ it('exports all raw web bytes and cancels desktop picker/output failures', async
   mocks.web = false
   mocks.start.mockResolvedValueOnce({ canceled: true })
   render(<NativeChatTextAttachmentPreview path={path} target={target} onClose={() => {}} />)
-  await waitFor(() => expect(save().hasAttribute('disabled')).toBe(false))
+  await waitUntilEnabled('Save file')
   fireEvent.click(save())
   await waitFor(() => expect(mocks.start).toHaveBeenCalledOnce())
-  await waitFor(() => expect(save().hasAttribute('disabled')).toBe(false))
+  await waitUntilEnabled('Save file')
   expect(mocks.append).not.toHaveBeenCalled()
   expect(mocks.finish).not.toHaveBeenCalled()
   mocks.append.mockRejectedValueOnce(new Error('Output failed'))

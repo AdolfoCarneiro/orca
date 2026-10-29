@@ -67,9 +67,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-it('opens a committed phone card through the file-tap route into the shipping preview and copies the complete source', async () => {
-  const text = '\ufefffirst\r\n' + '🙂'.repeat(10_000) + 'last'
-  const bytes = Buffer.from(text)
+function serveAttachment(bytes: Buffer) {
   mocks.send.mockImplementation(
     async (method: string, request?: { offset: number; length: number }): Promise<RpcResponse> => {
       if (method === 'status.get') {
@@ -96,6 +94,12 @@ it('opens a committed phone card through the file-tap route into the shipping pr
       }
     }
   )
+}
+
+it('opens a committed phone card through the file-tap route into the shipping preview and copies the complete source', async () => {
+  const text = '\ufefffirst\r\n' + '🙂'.repeat(10_000) + 'last'
+  const bytes = Buffer.from(text)
+  serveAttachment(bytes)
   function Card() {
     const handlers = useMobileFileTapHandlers({
       client,
@@ -155,32 +159,7 @@ it('opens a committed phone card through the file-tap route into the shipping pr
 
 it('refuses escaped full Copy that exceeds the phone frame and never copies the page', async () => {
   const bytes = Buffer.from('\u0001'.repeat(120_000))
-  mocks.send.mockImplementation(
-    async (method: string, request?: { offset: number; length: number }): Promise<RpcResponse> => {
-      if (method === 'status.get') {
-        return {
-          id: 's',
-          ok: true,
-          result: { capabilities: ['native-chat.text-attachment-read.v1'] }
-        }
-      }
-      if (!request) {
-        throw new Error('Missing range')
-      }
-      const chunk = bytes.subarray(request.offset, request.offset + request.length)
-      return {
-        id: 'r',
-        ok: true,
-        result: {
-          snapshot: 'a'.repeat(64),
-          size: bytes.length,
-          bytesRead: chunk.length,
-          contentBase64: chunk.toString('base64'),
-          eof: request.offset + chunk.length === bytes.length
-        }
-      }
-    }
-  )
+  serveAttachment(bytes)
   const route = normalizeMobileFilePreviewRouteParams({
     hostId: 'owner',
     worktreeId: 'work',
