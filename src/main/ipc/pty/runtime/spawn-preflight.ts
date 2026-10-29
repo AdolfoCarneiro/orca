@@ -152,6 +152,8 @@ export async function prepareRuntimePtySpawn(
     mintedSessionId: ctx.requestedSessionId === undefined,
     resumeOnSelectedAccount: false,
     emptySessionIdSkipsHostEnv: true,
+    // The distro may stop after the hold read: a background start's prep must not wake it (E9).
+    wslPassiveRestore: args.wslUserAct !== true,
     requestedAgentTeamsPath: ctx.requestedAgentTeamsPath,
     provider: ctx.provider,
     deps: ctx.deps
