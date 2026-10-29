@@ -342,7 +342,11 @@ describe('orchestration mailbox pointer submit', () => {
     } else {
       expect(writePty).not.toHaveBeenCalled()
       if (targetOverride) {
-        expect(settleMailboxPointerEnter).not.toHaveBeenCalled()
+        expect(settleMailboxPointerEnter).toHaveBeenCalledWith(
+          ['msg-1'],
+          { ptyId, processIncarnation: expectedTarget.processIncarnation },
+          [MAILBOX_POINTER_WRITE_ATTEMPTED]
+        )
         expect(releaseMailboxPointerEnter).not.toHaveBeenCalled()
         expect(redrive).not.toHaveBeenCalled()
       } else {
@@ -356,7 +360,7 @@ describe('orchestration mailbox pointer submit', () => {
     }
   })
 
-  it('releases only unwritten reservations and preserves ambiguous input across PTY changes', () => {
+  it('releases all persisted phases by their original targets across PTY changes', () => {
     const db = new OrchestrationDb(':memory:')
     try {
       const mailboxHandle = 'run:run-1'
@@ -434,22 +438,24 @@ describe('orchestration mailbox pointer submit', () => {
       expect(resumed).toBe(false)
       expect(releaseMailboxPointerEnter).toHaveBeenCalledTimes(2)
       expect(releaseMailboxPointerEnter).toHaveBeenCalledWith([first.id], firstTarget, [
-        MAILBOX_POINTER_RESERVED
-      ])
-      expect(releaseMailboxPointerEnter).toHaveBeenCalledWith([second.id], secondTarget, [
-        MAILBOX_POINTER_RESERVED
-      ])
-      expect(settleMailboxPointerEnter).toHaveBeenCalledTimes(2)
-      expect(settleMailboxPointerEnter).toHaveBeenCalledWith([second.id], secondTarget, [
+        MAILBOX_POINTER_RESERVED,
+        MAILBOX_POINTER_WRITE_ATTEMPTED,
         MAILBOX_POINTER_ENTER_ATTEMPTED
       ])
-      expect(db.getMessageById(first.id)?.pointer_enter_pending).toBe(0)
-      expect(db.getMessageById(second.id)).toMatchObject({
-        pointer_enter_pending: MAILBOX_POINTER_WRITE_ATTEMPTED,
-        pointer_pty_id: 'pty-b',
-        pointer_process_incarnation: 'inc-b',
-        delivered_at: null
-      })
+      expect(releaseMailboxPointerEnter).toHaveBeenCalledWith([second.id], secondTarget, [
+        MAILBOX_POINTER_RESERVED,
+        MAILBOX_POINTER_WRITE_ATTEMPTED,
+        MAILBOX_POINTER_ENTER_ATTEMPTED
+      ])
+      expect(settleMailboxPointerEnter).not.toHaveBeenCalled()
+      for (const message of [first, second]) {
+        expect(db.getMessageById(message.id)).toMatchObject({
+          pointer_enter_pending: 0,
+          pointer_pty_id: null,
+          pointer_process_incarnation: null,
+          delivered_at: null
+        })
+      }
       expect(deps.writePty).not.toHaveBeenCalled()
     } finally {
       db.close()
@@ -622,17 +628,13 @@ describe('orchestration mailbox pointer submit', () => {
       redrive: vi.fn()
     })
 
-    expect(resumed).toBe(false)
+    expect(resumed).toBe(true)
     expect(settleMailboxPointerEnter).toHaveBeenCalledWith(
       ['msg-surviving'],
       { ptyId, processIncarnation: target.processIncarnation },
-      [MAILBOX_POINTER_ENTER_ATTEMPTED]
+      [MAILBOX_POINTER_WRITE_ATTEMPTED, MAILBOX_POINTER_ENTER_ATTEMPTED]
     )
-    expect(releaseMailboxPointerEnter).toHaveBeenCalledWith(
-      ['msg-surviving'],
-      { ptyId, processIncarnation: target.processIncarnation },
-      [MAILBOX_POINTER_RESERVED]
-    )
+    expect(releaseMailboxPointerEnter).not.toHaveBeenCalled()
     expect(writePty).not.toHaveBeenCalled()
   })
 })

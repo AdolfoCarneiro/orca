@@ -93,6 +93,7 @@ it('enqueues busy reports before effects and runs the oldest attributed full tur
       kind: 'turn',
       turnId: `full-${attempt}`,
       state: 'running',
+      // ast-grep-ignore: test-no-wall-clock -- imported clock.start() fakes Date before each case.
       startedAt: Date.now(),
       userItemId: agentJournalSubmissionKey(attempt)
     },
@@ -146,6 +147,7 @@ it('fresh mail passes a stopped personal queue and old admitted/missed mail with
       kind: 'turn',
       turnId: 'fresh-running',
       state: 'running',
+      // ast-grep-ignore: test-no-wall-clock -- imported clock.start() fakes Date before each case.
       startedAt: Date.now(),
       userItemId: agentJournalSubmissionKey(freshAttempt)
     },
@@ -413,6 +415,10 @@ it('recovers only the original ordinary creation after ambiguous acceptance, a l
   if (!original) {
     throw new Error('ordinary card missing after commit')
   }
+  expect(original.body.from).toMatchObject({
+    kind: 'agent',
+    orchestration: { message: 'mail-notice' }
+  })
   const update = {
     messageId: id,
     expectedBodyFingerprint: original.fingerprint,
@@ -424,7 +430,23 @@ it('recovers only the original ordinary creation after ambiguous acceptance, a l
       ...update
     })
   ).toMatchObject({ ok: true })
-  expect(journal().queuedMessages.get(id)?.body.from).toEqual(original.body.from)
+  const edited = journal().queuedMessages.get(id)
+  expect(edited).toBeDefined()
+  expect(edited).toMatchObject({
+    messageId: original.messageId,
+    position: original.position,
+    queuedAt: original.queuedAt,
+    mailSource: original.mailSource
+  })
+  if (!edited) {
+    throw new Error('edited ordinary card missing')
+  }
+  expect(edited.body.blocks).toEqual([{ type: 'text', text: update.text }])
+  expect(edited.body.from).toBeUndefined()
+  expect(rig.store.readCommandReceipt({ kind: 'global' }, id)).toMatchObject({
+    verdict: 'readable',
+    receipt: { status: 'accepted', result: { kind: 'queued-draft', messageId: id } }
+  })
   const personal = rig.send('personal next', 'queue-if-active')
   await personal.result
   const move = { messageId: id, afterMessageId: personal.id }

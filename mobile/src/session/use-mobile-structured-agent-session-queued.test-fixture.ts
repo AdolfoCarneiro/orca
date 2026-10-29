@@ -1,5 +1,5 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import type { ReactElement } from 'react'
+import { createElement, Fragment, type ReactElement } from 'react'
 import type { RpcClient } from '../transport/rpc-client'
 import { expect, onTestFinished, vi } from 'vitest'
 import * as queueReducer from '../../../src/shared/structured-agent-session-reducer'
@@ -143,7 +143,7 @@ export function batchEvent(
   queuedMessages?: AgentSessionQueuedMessage[] | null,
   submissions: AgentJournalSubmission[] = [],
   queuePause?: AgentSessionQueuePause | null
-): AgentSessionSubscribeEvent {
+): Extract<AgentSessionSubscribeEvent, { type: 'batch' }> {
   return {
     type: 'batch',
     sessionId: SESSION_ID,
@@ -254,17 +254,21 @@ export async function mountPhoneQueuePopulation(
   onTestFinished(unmount)
   await act(async () => {
     view = create(
-      ids.map((id) =>
-        render(
-          id,
-          {
-            ...client,
-            subscribe: vi.fn((_method, _params, onData) => {
-              listeners.set(id, onData)
-              return vi.fn()
-            })
-          },
-          id === SESSION_ID ? 'host-b\0workspace-b' : `host-b\0${id}`
+      createElement(
+        Fragment,
+        null,
+        ids.map((id) =>
+          render(
+            id,
+            {
+              ...client,
+              subscribe: vi.fn((_method, _params, onData) => {
+                listeners.set(id, onData)
+                return vi.fn()
+              })
+            },
+            id === SESSION_ID ? 'host-b\0workspace-b' : `host-b\0${id}`
+          )
         )
       )
     )
