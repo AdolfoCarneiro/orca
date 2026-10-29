@@ -3,7 +3,7 @@
  * the host could not turn back on yet. A pass runs at startup and after each move; this covers the
  * host coming back later in the same run. Backs off, and stops once nothing is left.
  */
-import { wslHostsGateOpen } from '../../wsl/wsl-host-gate'
+import { wslHostsServing } from '../../wsl/wsl-host-gate'
 import { listWslMoveCutovers } from './wsl-move-cutover-journal'
 import { runWslMoveDesktopRewritePass } from './wsl-move-desktop-rewrite'
 import { pendingWslMoveDesktopRewriteStores } from './wsl-move-desktop-rewrite-stores'
@@ -45,7 +45,7 @@ export function scheduleWslMoveRewriteRetry(
   delaysMs: readonly number[] = WSL_MOVE_REWRITE_RETRY_DELAYS_MS,
   attempt = 0
 ): void {
-  if (timer || !wslHostsGateOpen() || !hasUnfinishedMove(userDataPath)) {
+  if (timer || !wslHostsServing() || !hasUnfinishedMove(userDataPath)) {
     return
   }
   const delay = delaysMs[Math.min(attempt, delaysMs.length - 1)] ?? 0

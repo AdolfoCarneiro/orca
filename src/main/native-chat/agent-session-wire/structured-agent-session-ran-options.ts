@@ -8,12 +8,10 @@ import type {
   StructuredAgentSessionProviderChild
 } from './structured-agent-session-host-types'
 import { structuredAgentSessionOptionOverridesRefusal } from './structured-agent-session-option-intent'
-import { savedAgentSessionCatalogModels } from './structured-agent-session-pick-reply'
 import { recordAgentSessionRanOptions } from '../../runtime/agent-session-record-options'
 
 type RanOptionsContext = {
   deps: Pick<StructuredAgentSessionHostDeps, 'store' | 'logger' | 'agents' | 'modelCatalog'>
-  savedCatalog?: Parameters<typeof savedAgentSessionCatalogModels>[0]['modelCatalog']
   sessions: ReadonlyMap<string, StructuredAgentSessionHostSession>
   now: () => number
 }
@@ -169,18 +167,13 @@ export async function recordStructuredAgentSessionRanOptions(
   if (!ran.model) {
     return
   }
-  const models = await savedAgentSessionCatalogModels(
-    { modelCatalog: context.savedCatalog ?? context.deps.modelCatalog },
-    record.provider,
-    sessionId
-  )
   await store
     .reviseSessionOptions(recordAgentSessionRanOptions, {
       sessionId,
       fence: child.fence,
       model,
       options: ran,
-      models,
+      models: undefined,
       now: context.now()
     })
     .catch((error: unknown) =>

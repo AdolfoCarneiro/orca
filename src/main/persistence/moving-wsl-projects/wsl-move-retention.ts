@@ -7,7 +7,7 @@
  *   flag rows whose identity it changed (a later move offers them; none runs on its own), and drop
  *   marks no committed move explains, such as after "Use on this computer again".
  */
-import { wslHostsGateOpen } from '../../wsl/wsl-host-gate'
+import { wslHostsServing } from '../../wsl/wsl-host-gate'
 import type { Store } from '../loading-store/store'
 import {
   listWslMoveCutoverChain,
@@ -104,7 +104,7 @@ let passQueue: Promise<unknown> = Promise.resolve()
 export function runWslMoveRetentionPass(
   options: WslMoveRetentionOptions
 ): Promise<WslMoveRetentionReport | null> {
-  if (!wslHostsGateOpen()) {
+  if (!wslHostsServing()) {
     return Promise.resolve(null)
   }
   const next = passQueue.then(() =>

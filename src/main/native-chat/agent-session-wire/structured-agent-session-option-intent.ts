@@ -1,5 +1,7 @@
-import type { StructuredAgentSessionOptionsReader } from './structured-agent-session-options-read'
-import { IN_PROCESS_OPTIONS_READER } from './structured-agent-session-option-observation'
+import {
+  IN_PROCESS_OPTIONS_READER,
+  type StructuredAgentSessionOptionsReader
+} from './structured-agent-session-resting-options'
 import { refuse, type AgentSessionOptionResult } from '../../../shared/agent-session-wire'
 import {
   AGENT_CHAT_PERMISSION_MODE_OPTION_ID,
@@ -9,12 +11,11 @@ import type { AgentSessionRecordStore } from '../../runtime/agent-session-record
 import type { StructuredAgentRegistry } from './structured-agent-registry'
 import type { AgentSessionTurnContext, TurnOutcome } from './structured-agent-session-turns'
 import {
-  savedAgentSessionCatalogModels,
+  type savedAgentSessionCatalogModels,
   structuredAgentSessionPickReply
 } from './structured-agent-session-pick-reply'
 import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
 import { pickAgentSessionOption } from '../../runtime/agent-session-record-options'
-import { isAgentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
 
 function acceptsOptionPick(
   agents: Pick<StructuredAgentRegistry, 'definition'>,
@@ -48,7 +49,7 @@ export function structuredAgentSessionOptionOverridesRefusal(
       )
 }
 
-/** Save accepted intent; model changes drop inherited effort/Fast values the new model cannot run. */
+/** Records literal picks for registered keys; the native control owns value acceptance. */
 export async function recordStructuredAgentSessionOptionIntent(
   deps: {
     store: Pick<
@@ -60,9 +61,7 @@ export async function recordStructuredAgentSessionOptionIntent(
   } & Parameters<typeof savedAgentSessionCatalogModels>[0],
   ctx: Pick<AgentSessionTurnContext, 'sessionId' | 'fence' | 'publish' | 'now'>,
   input: { key: string; value: string },
-  reader: StructuredAgentSessionOptionsReader & {
-    savedCatalog?: Parameters<typeof savedAgentSessionCatalogModels>[0]['modelCatalog']
-  } = IN_PROCESS_OPTIONS_READER
+  reader: StructuredAgentSessionOptionsReader = IN_PROCESS_OPTIONS_READER
 ): Promise<TurnOutcome<AgentSessionOptionResult>> {
   const { sessionId, fence } = ctx
   const record = deps.store.getRecord(sessionId)
@@ -79,8 +78,6 @@ export async function recordStructuredAgentSessionOptionIntent(
   if (!reader.readsWithoutModel && input.key === 'model' && input.value === '') {
     return { ok: true, value: { key: input.key, value: input.value, options: {} } }
   }
-  const catalog = { modelCatalog: reader.savedCatalog ?? deps.modelCatalog }
-  const models = await savedAgentSessionCatalogModels(catalog, record.provider, sessionId)
   let options: Readonly<Record<string, string>>
   if (input.key === AGENT_CHAT_PERMISSION_MODE_OPTION_ID) {
     const permissionMode = input.value
@@ -88,20 +85,9 @@ export async function recordStructuredAgentSessionOptionIntent(
     // Preserve the wire’s permission mode within options.
     options = { ...record.options, [input.key]: input.value }
   } else {
-    const picked = { sessionId, fence, ...input, models, now: ctx.now() }
-    try {
-      options =
-        (await deps.store.reviseSessionOptions(pickAgentSessionOption, picked)).options ?? {}
-    } catch (error) {
-      if (isAgentSessionRefusalError(error)) {
-        return { ok: false, refusal: error.refusal }
-      }
-      throw error
-    }
+    const picked = { sessionId, fence, ...input, models: undefined, now: ctx.now() }
+    options = (await deps.store.reviseSessionOptions(pickAgentSessionOption, picked)).options ?? {}
   }
-  const displayModels =
-    models ??
-    (await savedAgentSessionCatalogModels(catalog, record.provider, sessionId, undefined, false))
   ctx.publish()
   return {
     ok: true,
@@ -109,7 +95,7 @@ export async function recordStructuredAgentSessionOptionIntent(
       ...input,
       options:
         deps.adapter?.projectOptions?.(sessionId, options)?.options ??
-        structuredAgentSessionPickReply(options, displayModels)
+        structuredAgentSessionPickReply(options, undefined)
     }
   }
 }

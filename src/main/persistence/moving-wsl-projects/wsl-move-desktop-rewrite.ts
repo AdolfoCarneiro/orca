@@ -9,7 +9,7 @@ import type {
   WslMoveRecordStoreRewrittenRequest,
   WslMoveRecordStoreRewrittenResult
 } from '../../../shared/wsl-move/wsl-move-renderer-rewrite-types'
-import { wslHostsGateOpen } from '../../wsl/wsl-host-gate'
+import { wslHostsServing } from '../../wsl/wsl-host-gate'
 import { listWslMoveCutovers, writeWslMoveCutover } from './wsl-move-cutover-journal'
 import {
   isWslMoveDesktopRewriteRegistryComplete,
@@ -189,7 +189,7 @@ export function runWslMoveDesktopRewritePass(
 export function runGatedWslMoveDesktopRewritePass(
   options: WslMoveDesktopRewritePassOptions
 ): Promise<void> {
-  return wslHostsGateOpen() ? runWslMoveDesktopRewritePass(options) : Promise.resolve()
+  return wslHostsServing() ? runWslMoveDesktopRewritePass(options) : Promise.resolve()
 }
 
 const COMMITTED_PHASE_INDEX = WSL_MOVE_CUTOVER_PHASES.indexOf('destination-committed')
@@ -202,7 +202,7 @@ const COMMITTED_PHASE_INDEX = WSL_MOVE_CUTOVER_PHASES.indexOf('destination-commi
 export function listPendingWslMoveRendererRewrites(
   userDataPath: string
 ): WslMovePendingRendererRewrite[] {
-  if (!wslHostsGateOpen()) {
+  if (!wslHostsServing()) {
     return []
   }
   try {
@@ -244,7 +244,7 @@ export function recordWslMoveRendererStoreRewritten(
    * the write, so the renderer re-applies its stores at every startup regardless. */
   flushRendererStorage: () => void = () => {}
 ): WslMoveRecordStoreRewrittenResult {
-  if (!wslHostsGateOpen()) {
+  if (!wslHostsServing()) {
     return { recorded: false, reason: 'gated-off' }
   }
   const store = listWslMoveDesktopRewriteStores().find((entry) => entry.id === request.storeId)

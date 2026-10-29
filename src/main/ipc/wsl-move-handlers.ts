@@ -28,7 +28,9 @@ import {
 import type { WslMoveDriverDeps } from '../persistence/moving-wsl-projects/wsl-move-driver-ports'
 import { listUnfinishedWslMoves } from '../persistence/moving-wsl-projects/wsl-move-host-automations-rewrite'
 import { runTrackedWslMove } from '../telemetry/wsl-move-telemetry'
-import { wslHostsGateOpen } from '../wsl/wsl-host-gate'
+import { runTrackedWslMoveUndo } from '../telemetry/wsl-move-undo-telemetry'
+import { isAnyWslMoveRunning } from '../persistence/moving-wsl-projects/wsl-move-running-moves'
+import { wslHostsGateOpen, wslHostsServing } from '../wsl/wsl-host-gate'
 import type { WslMoveUndoPorts } from './wsl-move-undo-wiring'
 import { releaseWslMovedProjectHere } from './wsl-move-release-here'
 
@@ -39,6 +41,7 @@ export const WSL_MOVE_HANDLER_CHANNELS = [
   'wslMove:start',
   'wslMove:cancel',
   'wslMove:listUnfinished',
+  'wslMove:isRunning',
   'wslMove:useProjectHereAgain'
 ] as const
 
@@ -126,8 +129,10 @@ function registerWslMoveDriverHandlers(
     }
   )
   ipcMain.handle('wslMove:listUnfinished', (): WslMoveUnfinished[] =>
-    wslHostsGateOpen() ? listUnfinishedWslMoves(getUserDataPath()) : []
+    wslHostsServing() ? listUnfinishedWslMoves(getUserDataPath()) : []
   )
+  // The quit prompt's question; a quit now loses the run, which the next launch undoes.
+  ipcMain.handle('wslMove:isRunning', (): boolean => wslHostsGateOpen() && isAnyWslMoveRunning())
   ipcMain.handle(
     'wslMove:cancel',
     (event: RendererEvent, distro: unknown): boolean =>
@@ -147,8 +152,8 @@ function registerWslMoveUseHereHandler(
   ipcMain.handle(
     'wslMove:useProjectHereAgain',
     async (event: { sender?: WebContents }, request: unknown): Promise<WslMoveUseLocallyResult> => {
-      // Gate first: with it closed, nothing is read.
-      if (!wslHostsGateOpen()) {
+      // Gate first: with it closed, nothing is read. Serve-only keeps the way back.
+      if (!wslHostsServing()) {
         return { released: false, reason: 'gated-off' }
       }
       const sender = event.sender
@@ -167,13 +172,14 @@ function registerWslMoveUseHereHandler(
       }
       const ref =
         request.kind === 'repo' ? { repoId: request.id } : { folderWorkspaceId: request.id }
-      return releaseWslMovedProjectHere(
-        getUserDataPath(),
-        ref,
+      const unsavedWorkspaceIds =
         'unsavedWorkspaceIds' in request && Array.isArray(request.unsavedWorkspaceIds)
           ? request.unsavedWorkspaceIds.filter((id): id is string => typeof id === 'string')
-          : [],
-        createUndoPorts
+          : []
+      return runTrackedWslMoveUndo(
+        () => performance.now(),
+        () =>
+          releaseWslMovedProjectHere(getUserDataPath(), ref, unsavedWorkspaceIds, createUndoPorts)
       )
     }
   )

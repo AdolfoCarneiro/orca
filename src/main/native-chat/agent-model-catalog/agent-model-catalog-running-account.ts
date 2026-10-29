@@ -55,7 +55,10 @@ export async function resolveAgentModelCatalogReadRecords(
   const record = params.sessionId ? deps.getConversation(params.sessionId) : undefined
   const savedOnly = params.savedOnly || !!(record && !deps.getRecord(record.sessionId))
   let scoped: typeof record
-  if (record && record.provider === params.agent && deps.drivesRecord(record)) {
+  if (record && (record.provider !== params.agent || !deps.drivesRecord(record))) {
+    return null
+  }
+  if (record) {
     try {
       scoped = await onRunningAccount(deps, record)
     } catch {

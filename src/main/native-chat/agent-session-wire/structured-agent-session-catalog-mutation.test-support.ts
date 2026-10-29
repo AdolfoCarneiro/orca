@@ -159,7 +159,12 @@ export async function createCatalogMutationFixture(
     expect(rig.adapter.acquire).not.toHaveBeenCalled()
     expect(
       await catalogMutationDeadline(
-        catalog.read({ agent, sessionId: SESSION, savedOnly: true, verifiedOnly: true }),
+        catalog.prepareSaved({
+          agent,
+          sessionId: SESSION,
+          inSessionWorkspace: true,
+          verifiedOnly: true
+        }),
         'external catalog fixture preflight'
       )
     ).toMatchObject({ origin: 'probe', models: [{ id: model }] })

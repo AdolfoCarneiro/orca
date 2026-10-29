@@ -1,3 +1,4 @@
+import { hostTestCatalogReadOperation } from '../../../native-chat/agent-session-wire/structured-agent-session-host-test-data'
 import { performance } from 'node:perf_hooks'
 import { afterEach, expect, it, vi } from 'vitest'
 import { agentSessionConversationView } from '../../../../shared/agent-session-conversation-view'
@@ -58,8 +59,11 @@ it.each([100, 1_000])(
       deps: {
         agents,
         adapter: {},
-        store: { getConversation: () => agentSessionConversationView(record) },
-        modelCatalog: { read: catalogRead }
+        store: {
+          getRecord: () => record,
+          getConversation: () => agentSessionConversationView(record)
+        },
+        modelCatalog: { read: catalogRead, captureRead: hostTestCatalogReadOperation }
       },
       serialize: (_session: string, task: () => Promise<unknown>) => task(),
       openConversation: async () => conversation,

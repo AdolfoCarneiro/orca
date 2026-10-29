@@ -41,12 +41,26 @@ vi.mock('../../shared/runtime-environment-wsl-host-store', () => ({
   findWslHostDeployment: (_userData: string, environmentId: string) =>
     deployments.get(environmentId) ?? null
 }))
+const hostFile = vi.hoisted(() => ({ unreadable: false }))
+vi.mock('../../shared/wsl-host-deployment-store', () => ({
+  readWslHostDeployments: () => {
+    if (hostFile.unreadable) {
+      throw new Error('orca-wsl-host-deployments.json is not valid')
+    }
+    return { deployments: [], unreadableEnvironmentIds: new Set() }
+  }
+}))
 vi.mock('../wsl/wsl-distro-registry-id', () => ({ readWslDistroRegistrations: async () => null }))
 vi.mock('../wsl/wsl-orcad-deploy', () => ({
   defaultWslOrcadEnvironmentId: (distro: string) => `wsl:${distro}`
 }))
 vi.mock('../wsl-background-distro-gate', () => ({
-  readConfirmedRunningWslDistros: async () => host.running
+  readConfirmedRunningWslDistros: async () => host.running,
+  // The user-act gate notes a woken distro when the act settles.
+  noteWslDistroWoken: vi.fn(),
+  noteWslDistroMayHaveStopped: vi.fn(),
+  noteWslDistrosRunning: vi.fn(),
+  readWslDistroRunningState: vi.fn(async () => 'running')
 }))
 vi.mock('../wsl/wsl-host-service-instance', () => ({
   getWslHostService: () => ({
@@ -134,10 +148,16 @@ function requestIdOf(payload: unknown): string {
     : ''
 }
 
+/** The profile's projects: one bridge project on Ubuntu keeps its record from being pruned. */
+const profile = vi.hoisted(() => ({
+  repos: [{ id: 'r1', path: '\\\\wsl.localhost\\Ubuntu\\home\\dev\\app', connectionId: null }]
+}))
+
 async function register(): Promise<void> {
   const { registerWslMoveOrchestrator } = await import('./wsl-move-orchestrator-wiring')
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The driver is mocked; the wiring only passes deps through.
-  registerWslMoveOrchestrator({} as never, () => ({ now: () => new Date(0) }) as never)
+  const store = { getRepos: () => profile.repos, getFolderWorkspaces: () => [] }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The wiring reads only the projects of the store, and the driver is mocked.
+  registerWslMoveOrchestrator(store as never, () => ({ now: () => new Date(0) }) as never)
 }
 
 /** Answers every slept-pane request the window has been sent. */
@@ -171,6 +191,7 @@ beforeEach(() => {
   host.running = { status: 'confirmed', distros: ['Ubuntu'] }
   host.added = []
   releases.listeners.length = 0
+  hostFile.unreadable = false
   hostActions.listeners.length = 0
   deployments.clear()
   store.reads = 0
@@ -199,10 +220,12 @@ describe('WSL move orchestrator wiring', () => {
     ]
     await register()
     await answerWindow()
-    expect(driver.previewWslMove).toHaveBeenCalledWith(expect.anything(), {
-      distro: 'Ubuntu',
-      sleptPanes
-    })
+    // The automatic mover's preview settles a move an update or crash interrupted, finishing at restart.
+    expect(driver.previewWslMove).toHaveBeenCalledWith(
+      expect.anything(),
+      { distro: 'Ubuntu', sleptPanes },
+      { settleInterrupted: 'finish-at-restart' }
+    )
     expect(driver.moveProjectsToWslHost).toHaveBeenCalledWith(expect.anything(), {
       distro: 'Ubuntu',
       sleptPanes
@@ -306,7 +329,10 @@ describe('WSL move orchestrator wiring', () => {
     }
     const records = await handlers.get('wslMoveOrchestrator:list')?.({})
     expect(records).toEqual([
-      expect.objectContaining({ distro: 'Ubuntu', state: { kind: 'parked', reason: 'declined' } })
+      expect.objectContaining({
+        distro: 'Ubuntu',
+        state: { kind: 'parked', reason: 'declined', cause: 'released-here' }
+      })
     ])
   })
 
@@ -426,5 +452,95 @@ describe('WSL move orchestrator wiring', () => {
     await answerWindow()
     expect(driver.previewWslMove).toHaveBeenCalledTimes(1)
     expect(driver.moveProjectsToWslHost).not.toHaveBeenCalled()
+  })
+
+  // Pre-review #3: a host file that cannot be read must never make a distro look gone.
+  it('prunes nothing when the WSL host file cannot be read', async () => {
+    vi.stubEnv(WSL_HOSTS_INTERNAL_GATE_ENV, '1')
+    hostFile.unreadable = true
+    const savedRepos = profile.repos
+    profile.repos = []
+    store.records = new Map([
+      [
+        'local-wsl:ubuntu',
+        {
+          distro: 'Ubuntu',
+          state: { kind: 'idle' },
+          attempts: 0,
+          appVersion: '1.0.0',
+          updatedAt: 0
+        }
+      ]
+    ])
+    try {
+      await register()
+      expect(await handlers.get('wslMoveOrchestrator:list')?.({})).toEqual([
+        expect.objectContaining({ distro: 'Ubuntu' })
+      ])
+    } finally {
+      profile.repos = savedRepos
+    }
+  })
+
+  it('prunes a distro with no host and no bridge projects once the file reads', async () => {
+    vi.stubEnv(WSL_HOSTS_INTERNAL_GATE_ENV, '1')
+    const savedRepos = profile.repos
+    profile.repos = []
+    store.records = new Map([
+      [
+        'local-wsl:ubuntu',
+        {
+          distro: 'Ubuntu',
+          state: { kind: 'idle' },
+          attempts: 0,
+          appVersion: '1.0.0',
+          updatedAt: 0
+        }
+      ]
+    ])
+    try {
+      await register()
+      expect(await handlers.get('wslMoveOrchestrator:list')?.({})).toEqual([])
+    } finally {
+      profile.repos = savedRepos
+    }
+  })
+
+  // #34632's stopped-distro gates: Check again runs the driver as the user's act on its distro,
+  // so its reads of a just-connected distro pass; a wake's reads stay background work.
+  it('runs the driver for Check again as the user act, and for a wake as background work', async () => {
+    vi.stubEnv(WSL_HOSTS_INTERNAL_GATE_ENV, '1')
+    const { isWslUserActFor } = await import('../wsl/wsl-user-act-scope')
+    const seen: boolean[] = []
+    const original = driver.previewWslMove.getMockImplementation()
+    driver.previewWslMove.mockImplementation(
+      async (_deps: unknown, request: { distro: string }) => {
+        seen.push(isWslUserActFor(request.distro))
+        return {
+          outcome: 'ready',
+          distro: request.distro,
+          repoIds: ['r1'],
+          folderWorkspaceIds: [],
+          changed: [],
+          heldByHost: [],
+          refused: [],
+          blockers: []
+        }
+      }
+    )
+    host.statuses = [
+      { distro: 'Ubuntu', state: 'ready', environmentId: 'wsl:Ubuntu', detail: null }
+    ]
+    await register()
+    await answerWindow()
+    await handlers.get('wslMoveOrchestrator:userAction')?.(
+      { sender: { id: MAIN_WINDOW_ID } },
+      { distro: 'Ubuntu', action: 'retry' }
+    )
+    await answerWindow()
+    if (original) {
+      driver.previewWslMove.mockImplementation(original)
+    }
+    expect(seen).toEqual([false, true])
   })
 })

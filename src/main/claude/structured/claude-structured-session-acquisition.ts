@@ -19,8 +19,9 @@ import { adoptClaudeStructuredSpawnOptions } from '../claude-structured-spawn-op
 import { observeClaudeExecutionModel } from '../claude-structured-execution-observations'
 import { observeClaudeFastModeFacts } from '../claude-structured-session-options'
 import {
+  claudeSessionInitialization,
   createClaudeSessionPublication,
-  claudeSessionInitialization
+  reportClaudeOptions
 } from './claude-structured-session-publication'
 import * as sessionState from './claude-structured-session-state'
 import { resolveClaudeAcquisitionError } from '../claude-structured-session-close'
@@ -42,7 +43,10 @@ export async function acquireClaudeSession({
   acquisitions,
   exits,
   callbacks
-}: sessionState.ClaudeSessionAcquisitionInput): Promise<AgentSessionAcquisition> {
+}: Omit<
+  Parameters<typeof resolveClaudeAcquisitionLaunch>[0],
+  'previous' | 'attempt'
+>): Promise<AgentSessionAcquisition> {
   const sessionId = input.identity.sessionId
   const prompts = new ClaudePromptRegistry()
   const { previous, attempt } = acquisitions.start(sessionId, prompts)
@@ -63,10 +67,7 @@ export async function acquireClaudeSession({
       callbacks,
       sessionId
     },
-    () =>
-      liveSession && sessions.get(sessionId) === liveSession
-        ? liveSession.backgroundTasks.goalBackgroundWork
-        : 'unverifiable'
+    () => (liveSession && sessions.get(sessionId) === liveSession ? liveSession : null)
   )
   const contextActivity = translator?.contextActivity ?? 0
   const recordTurnEnd = claudeTurnResumePointWriter(sessionId, sessions, deps)
@@ -100,6 +101,9 @@ export async function acquireClaudeSession({
     if (liveSession) {
       liveSession.leafUuid = observedLeafUuid
       observeClaudeFastModeFacts(liveSession, message)
+      if (message.type === 'result' && sessions.get(sessionId) === liveSession) {
+        reportClaudeOptions(liveSession, sessions, input, deps.requestTimeoutMs, attempt, callbacks)
+      }
       if (claudeSessionStateEndsTurn(message) && sessions.get(sessionId) === liveSession) {
         settleClaudeTurnEndWaiters(liveSession)
       }

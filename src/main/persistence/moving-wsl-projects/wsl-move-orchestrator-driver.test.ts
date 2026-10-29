@@ -75,6 +75,7 @@ function orchestratorOverDriver(): {
     prepareHost: async () => 'ready',
     hostRemovalPending: () => false,
     hasHost: () => true,
+    isDistroInUse: () => true,
     isHostReady: () => true,
     preview: (distro) => previewWslMove(world.deps, { distro }),
     start: async (distro, stillWanted) =>
@@ -102,7 +103,8 @@ function orchestratorOverDriver(): {
       }
     },
     track: () => {},
-    publish: () => {}
+    publish: () => {},
+    runAsUserAct: (_distro, act) => act()
   }
   const orchestrator = new WslMoveOrchestrator(ports)
   return {
@@ -200,11 +202,15 @@ describe('the move orchestrator over the real driver', () => {
     const { orchestrator } = orchestratorOverDriver()
     await orchestrator.trigger('Ubuntu', 'connect')
     expect(bringWslMovedProjectBack(userDataPath, { repoId: 'repo-1' }).released).toBe(true)
-    orchestrator.releasedByUser('Ubuntu')
+    orchestrator.releasedByUser('Ubuntu', 'released-here')
     const stagedBefore = world.points.filter((point) => point === 'stage:before').length
     await orchestrator.trigger('Ubuntu', 'project-opened')
     await orchestrator.trigger('Ubuntu', 'connect')
-    expect(stateOf(orchestrator)).toEqual({ kind: 'parked', reason: 'declined' })
+    expect(stateOf(orchestrator)).toEqual({
+      kind: 'parked',
+      reason: 'declined',
+      cause: 'released-here'
+    })
     expect(world.points.filter((point) => point === 'stage:before').length).toBe(stagedBefore)
   })
 })

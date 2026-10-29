@@ -74,6 +74,7 @@ function orchestratorOverHost(connector: ReturnType<typeof makeConnector>) {
       ),
     hostRemovalPending: (distro) => wslHostRemovalPending(userDataPath, distro),
     hasHost: () => service.recordForEnvironment(environmentId) !== null,
+    isDistroInUse: () => true,
     isHostReady,
     preview: async (distro) => {
       await driverConnect(distro)
@@ -99,7 +100,8 @@ function orchestratorOverHost(connector: ReturnType<typeof makeConnector>) {
     save: () => {},
     schedule: () => () => {},
     track: () => {},
-    publish: () => {}
+    publish: () => {},
+    runAsUserAct: (_distro, act) => act()
   })
   return { orchestrator, service, driverConnect }
 }

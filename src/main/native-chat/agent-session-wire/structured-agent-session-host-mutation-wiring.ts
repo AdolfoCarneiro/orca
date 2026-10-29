@@ -20,7 +20,6 @@ type Inputs = {
   runtimeState: StructuredAgentSessionHostRuntimeState
   attachContext: () => StructuredAgentSessionAttachContext
   serialize: StructuredAgentSessionMutationContext['serialize']
-  savedCatalog: StructuredAgentSessionMutationContext['savedCatalog']
   now: () => number
 }
 
@@ -29,7 +28,6 @@ export function createStructuredAgentSessionHostMutationContext(
 ): StructuredAgentSessionMutationContext {
   return {
     deps: input.deps,
-    savedCatalog: input.savedCatalog,
     sessions: input.sessions,
     publish: (sessionId, journal) => input.subscribers.publish(sessionId, journal),
     publishConversationName: (sessionId) => {

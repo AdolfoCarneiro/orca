@@ -52,7 +52,7 @@ describe('wslMoveOrchestratorEventProps', () => {
       { kind: 'waiting-for-host', migrationId: 'm' },
       { kind: 'backoff', nextAttemptAt: 0, reason: 'x' },
       { kind: 'parked', reason: 'not-now', until: 1 },
-      { kind: 'parked', reason: 'declined' },
+      { kind: 'parked', reason: 'declined', cause: 'released-here' },
       { kind: 'parked', reason: 'removal-pending' },
       { kind: 'parked', reason: 'stuck' },
       { kind: 'done', migrationId: 'm' },

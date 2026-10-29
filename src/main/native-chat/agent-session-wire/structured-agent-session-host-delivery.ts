@@ -61,7 +61,6 @@ export type StructuredAgentSessionConversationDelivery = {
 
 export function createStructuredAgentSessionConversationDelivery(input: {
   deps: StructuredAgentSessionHostDeps
-  savedCatalog: Parameters<typeof createStructuredAgentSessionRanRecorder>[0]['savedCatalog']
   acquireAborts: Pick<StructuredAgentSessionAcquireAborts, 'begin'>
   sessions: Map<string, StructuredAgentSessionHostSession>
   serialize: <T>(sessionId: string, task: () => Promise<T>) => Promise<T>
@@ -219,11 +218,7 @@ export function createStructuredAgentSessionConversationDelivery(input: {
     now: () => deps.now?.() ?? Date.now(),
     acquireAborts: input.acquireAborts,
     recordRanOptions: (sessionId, fence) =>
-      createStructuredAgentSessionRanRecorder(
-        { deps, sessions, savedCatalog: input.savedCatalog, now: () => deps.now?.() ?? Date.now() },
-        sessionId,
-        fence
-      )
+      createStructuredAgentSessionRanRecorder(sessionId, fence)
   })
   const adoptOpened = async (
     sessionId: string,

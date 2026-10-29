@@ -1,4 +1,7 @@
-import type { AgentModelCatalogService } from '../agent-model-catalog/agent-model-catalog-service'
+import {
+  createStructuredAgentSessionCatalogReads,
+  structuredAgentSessionCatalogScopeOwned
+} from './structured-agent-session-catalog-reads'
 import type { createRestartReconciler } from './structured-agent-session-restart-reconcile'
 import type { StructuredAgentSessionHostRuntimeState } from './structured-agent-session-host-runtime-state'
 import {
@@ -28,40 +31,56 @@ type ReadContext = {
 
 /** Readers share the conversation owner; inventory never founds a journal or prepares a provider. */
 export function createStructuredAgentSessionConversationReads(context: () => ReadContext) {
-  const prospectiveAccountHomeOwned = async (id: string) => {
+  const sessionOwned = async (id: string, current: () => boolean = () => true) => {
     const { deps, sessions, adoptOpened } = context()
     const record = deps.store.requireWritableRecord(id)
     let session = sessions.get(id)
     if (!session) {
       const opened = await restoreStructuredAgentSessionRead(deps, id)
       if (opened) {
-        await adoptOpened(id, opened)
-        session = opened.session
-      }
-    }
-    return (await structuredAgentSessionReceivingAccount(deps, record, session)).home
-  }
-  const ownedSavedCatalog: Pick<AgentModelCatalogService, 'read'> = {
-    read: async (params) => {
-      const { deps, sessions } = context()
-      const catalog = deps.modelCatalog
-      if (!catalog) {
-        return { origin: 'unknown' }
-      }
-      const records = await catalog.resolveReadRecords(
-        { ...params, savedOnly: true },
-        {
-          liveAccountHome: (id) => sessions.get(id)?.child?.accountHome,
-          launchAccountHome: (record) => prospectiveAccountHomeOwned(record.sessionId)
+        if (current()) {
+          await adoptOpened(id, opened)
+          session = opened.session
+        } else {
+          await opened.session.journal.close()
         }
-      )
-      return records
-        ? catalog.readResolved({ ...params, savedOnly: true }, records)
-        : { origin: 'unknown' }
+      }
     }
+    return { record, session }
   }
+  const prospectiveAccountHomeOwned = async (id: string) => {
+    const { record, session } = await sessionOwned(id)
+    return (await structuredAgentSessionReceivingAccount(context().deps, record, session)).home
+  }
+  const readModelCatalog = createStructuredAgentSessionCatalogReads(() => ({
+    deps: context().deps,
+    serialize: context().serialize,
+    scopeOwned: async (params) => {
+      const record = params.sessionId
+        ? context().deps.store.getConversation(params.sessionId)
+        : undefined
+      if (
+        record &&
+        (record.provider !== params.agent ||
+          !providerSupport.agentDrivesSession(context().deps.agents, record))
+      ) {
+        return null
+      }
+      if (!record) {
+        return null
+      }
+      if (!context().deps.store.getRecord(record.sessionId)) {
+        return structuredAgentSessionCatalogScopeOwned(context().deps, params, undefined)
+      }
+      const { session } = await sessionOwned(record.sessionId, params.operation?.current)
+      if (params.operation?.current() === false) {
+        return null
+      }
+      return structuredAgentSessionCatalogScopeOwned(context().deps, params, session)
+    }
+  }))
   return {
-    ownedSavedCatalog,
+    readModelCatalog,
     createRestore: (
       reconcileLeases: ReturnType<typeof createRestartReconciler>,
       runtimeState: StructuredAgentSessionHostRuntimeState,

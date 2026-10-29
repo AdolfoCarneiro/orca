@@ -22,7 +22,7 @@ import {
   type OrcadMigrationDestinationCatalog
 } from '../../ssh/orcad-migration-cutover-coordinator'
 import { orcadMigrationRequestFits } from '../../ssh/orcad-migration-manifest-export'
-import { wslHostsGateOpen } from '../../wsl/wsl-host-gate'
+import { wslHostsServing } from '../../wsl/wsl-host-gate'
 import {
   listWslMoveCutovers,
   removeUncommittedWslMoveCutover,
@@ -208,7 +208,7 @@ export async function recoverInterruptedWslMoves(
   isDistroRegistered?: (distro: string, distroGuid?: string) => Promise<boolean | null>
 ): Promise<WslMoveStartupRecovery> {
   const result: WslMoveStartupRecovery = { reset: [], waitingForHost: [] }
-  if (!wslHostsGateOpen()) {
+  if (!wslHostsServing()) {
     return result
   }
   let inFlight: WslMoveCutover[]

@@ -25,6 +25,7 @@ import {
   useWslMoveDialogStore
 } from './wsl-move-dialog-store'
 import { collectWslMoveSleptPaneBindings } from './wsl-move-slept-pane-bindings'
+import { followWslMoveOrchestratorStatus } from './wsl-move-orchestrator-status'
 import { findWorktreeById } from '@/store/github/worktree-refresh'
 import { getWslDistroFromPath } from '@/lib/local-preflight-context'
 import {
@@ -39,6 +40,8 @@ import { adoptWslMoveProgress } from './wsl-move-run-adoption'
 import { closeWslMoveDialog, reloadAfterWslMove } from './wsl-move-dialog-close'
 import { RecoverableRenderErrorBoundary } from '../error-boundaries/RecoverableRenderErrorBoundary'
 import { useWslHostsEnabled } from '../sidebar/use-wsl-hosts-enabled'
+import { useConfirmationDialog } from '../confirmation-dialog-context'
+import { useWslMoveQuitGuard } from './use-wsl-move-quit-guard'
 import { WslMovePreviewBody, wslMoveNotMovingLines } from './WslMovePreviewBody'
 import { WslMoveProgressBody } from './WslMoveProgressBody'
 import { WslMoveResultBody, wslMoveResultTitle } from './WslMoveResultBody'
@@ -76,9 +79,13 @@ function blockerViews(
 /** Root-hosted: entry points in Settings, the sidebar and project settings all open it. */
 export function WslMoveDialogHost(): React.JSX.Element | null {
   const enabled = useWslHostsEnabled()
+  const confirm = useConfirmationDialog()
+  useWslMoveQuitGuard(enabled, confirm)
   const open = useWslMoveDialogStore(
     (s) => s.dialog.stage !== 'closed' && !('hidden' in s.dialog && s.dialog.hidden)
   )
+  // D3a-2: the per-distro move state for the host rows' status lines, only while hosts are on.
+  useEffect(() => (enabled ? followWslMoveOrchestratorStatus() : undefined), [enabled])
   // A run this window did not start (it reloaded mid-move) still gets its progress and reload.
   useEffect(
     () => (enabled ? window.api.wslMove.onProgress(adoptWslMoveProgress) : undefined),

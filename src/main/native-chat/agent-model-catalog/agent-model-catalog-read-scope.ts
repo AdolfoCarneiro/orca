@@ -1,57 +1,32 @@
-import { isNativeLocalLocation } from '../../../shared/execution-host'
-import type { AgentSessionAccountHome } from '../../../shared/agent-session-record'
-import { agentModelCatalogFingerprintForRecord } from './agent-model-catalog-fingerprint'
-import { newChatCatalogKey } from './agent-model-catalog-prewarm'
-import { catalogFolder, sessionWorkspacePath } from './agent-model-catalog-workspace'
-import { resolveAgentModelCatalogScope } from './agent-model-catalog-scope'
-import type { AgentModelCatalogReadRecords } from './agent-model-catalog-running-account'
 import type {
   AgentModelCatalogReadParams,
-  AgentModelCatalogLookupDeps
+  AgentModelCatalogServiceDeps
 } from './agent-model-catalog-service-contract'
+import type { AgentModelCatalogReadRecords } from './agent-model-catalog-running-account'
 
-export type AgentModelCatalogReadScope = AgentModelCatalogReadRecords &
-  NonNullable<Awaited<ReturnType<typeof resolveAgentModelCatalogScope>>> & {
-    workspacePath: string | null | undefined
-    folder: string | undefined
-    probeHome: AgentSessionAccountHome | null
-  }
-
-/** Resolve folder/invocation scope without acquiring a conversation. */
-export async function resolveAgentModelCatalogReadScope(
-  deps: AgentModelCatalogLookupDeps,
-  params: AgentModelCatalogReadParams,
-  { record, scoped, savedOnly }: AgentModelCatalogReadRecords
-): Promise<AgentModelCatalogReadScope | null> {
-  const workspacePath = params.inSessionWorkspace
-    ? record
-      ? await sessionWorkspacePath(deps, record)
-      : null
-    : params.workspacePath
-  const folder = await catalogFolder(deps, params.agent, workspacePath, scoped)
-  let fingerprint: string
-  let probeHome: AgentSessionAccountHome | null
-  if (scoped) {
-    fingerprint = agentModelCatalogFingerprintForRecord(scoped, folder)
-    // Native probes cannot list a WSL-pinned account.
-    probeHome = isNativeLocalLocation(scoped.location) ? scoped.accountHome : null
-  } else {
-    const key = await newChatCatalogKey(deps, params.agent, folder)
-    if (!key) {
-      return null
-    }
-    fingerprint = key.fingerprint
-    probeHome = key.accountHome
-  }
-  const scope = await resolveAgentModelCatalogScope(
-    deps,
-    { ...params, savedOnly },
-    scoped,
-    fingerprint,
-    probeHome
-  )
-  if (!scope) {
+export function agentModelCatalogReadRecords(
+  deps: AgentModelCatalogServiceDeps,
+  params: AgentModelCatalogReadParams
+): AgentModelCatalogReadRecords | null {
+  const record = params.sessionId ? deps.getConversation(params.sessionId) : undefined
+  if (record && (record.provider !== params.agent || !deps.drivesRecord(record))) {
     return null
   }
-  return { record, scoped, savedOnly, workspacePath, folder, probeHome, ...scope }
+  if (params.records !== undefined) {
+    return params.records
+  }
+  return {
+    record,
+    scoped: record,
+    savedOnly: !!params.savedOnly || !!(record && !deps.getRecord(record.sessionId))
+  }
+}
+
+export function agentModelCatalogScopedRecord(
+  deps: AgentModelCatalogServiceDeps,
+  params: AgentModelCatalogReadParams
+) {
+  const records = agentModelCatalogReadRecords(deps, params)
+  const stored = params.sessionId ? deps.getConversation(params.sessionId) : undefined
+  return records?.scoped && stored ? { ...stored, accountHome: records.scoped.accountHome } : stored
 }

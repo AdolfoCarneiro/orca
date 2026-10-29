@@ -95,6 +95,24 @@ export function findWslMovedProjectForWorkspace(
   return findWorktreeById(selectWorktreesByRepo(state), worktreeId) ? null : project
 }
 
+/**
+ * The moved project a local automation belongs to: its copy here stays as it was (undo brings it
+ * back), but the host runs it now and this computer never does. Null for any other automation.
+ */
+export function wslMovedProjectForAutomation(
+  projects: readonly WslMovedProject[],
+  automation: { executionTargetType: string; projectId: string; workspaceId?: string | null }
+): WslMovedProject | null {
+  if (projects.length === 0 || automation.executionTargetType !== 'local') {
+    return null
+  }
+  const folder = automation.workspaceId ? parseWorkspaceKey(automation.workspaceId) : null
+  if (folder?.type === 'folder') {
+    return movedProjectForKey(projects, automation.workspaceId ?? '')
+  }
+  return projects.find((p) => p.kind === 'repo' && p.id === automation.projectId) ?? null
+}
+
 export function isWslMovedChatTab(tab: Pick<Tab, 'contentType'>): boolean {
   return tab.contentType === 'agent-session'
 }

@@ -9,7 +9,7 @@ import {
   type WslMoveCutover
 } from '../../../shared/wsl-move/wsl-move-cutover'
 import type { WslMoveUseLocallyResult } from '../../../shared/wsl-move/wsl-moved-project'
-import { wslHostsGateOpen } from '../../wsl/wsl-host-gate'
+import { wslHostsServing } from '../../wsl/wsl-host-gate'
 import { isWslMoveRunning } from './wsl-move-running-moves'
 import {
   listWslMoveCutoverChain,
@@ -43,7 +43,7 @@ export function findWslMovedProjectMove(
   userDataPath: string,
   ref: WslMoveProjectRef
 ): { move: WslMoveCutover } | Extract<WslMoveUseLocallyResult, { released: false }> {
-  if (!wslHostsGateOpen()) {
+  if (!wslHostsServing()) {
     return { released: false, reason: 'gated-off' }
   }
   let move: WslMoveCutover | undefined

@@ -39,6 +39,8 @@ export type Fake = WslMoveOrchestratorPorts & {
   clock: { now: number }
   timers: { at: number; run: () => void; cancelled: boolean }[]
   saved: Map<string, WslMoveOrchestratorRecord>
+  /** Distros a step ran for as the user's act, in order. */
+  userActs: string[]
   advance: (ms: number) => Promise<void>
 }
 
@@ -46,6 +48,7 @@ export function fakePorts(overrides: Partial<WslMoveOrchestratorPorts> = {}): Fa
   const clock = { now: 1_000 }
   const timers: Fake['timers'] = []
   const saved = new Map<string, WslMoveOrchestratorRecord>()
+  const userActs: string[] = []
   const ports: Fake = {
     clock,
     timers,
@@ -57,6 +60,7 @@ export function fakePorts(overrides: Partial<WslMoveOrchestratorPorts> = {}): Fa
     isHostReady: vi.fn(() => true),
     hostRemovalPending: vi.fn(() => false),
     hasHost: vi.fn(() => true),
+    isDistroInUse: vi.fn(() => true),
     preview: vi.fn(async (distro: string) => ready(distro)),
     start: vi.fn(async () => moved),
     finishedMove: () => null,
@@ -83,6 +87,11 @@ export function fakePorts(overrides: Partial<WslMoveOrchestratorPorts> = {}): Fa
     },
     track: vi.fn(),
     publish: vi.fn(),
+    userActs,
+    runAsUserAct: <T>(distro: string, act: () => Promise<T>): Promise<T> => {
+      userActs.push(distro)
+      return act()
+    },
     advance: async (ms) => {
       clock.now += ms
       for (const timer of timers.splice(0)) {

@@ -56,7 +56,11 @@ describe('WslMoveOrchestrator: user choices, races and failures', () => {
       await orchestrator.trigger('Ubuntu', 'connect')
       pending = false
       await orchestrator.trigger('Ubuntu', 'project-opened')
-      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'parked', reason: 'declined' })
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({
+        kind: 'parked',
+        reason: 'declined',
+        cause: 'removed'
+      })
       expect(ports.prepareHost).not.toHaveBeenCalled()
     })
   })
@@ -109,11 +113,15 @@ describe('WslMoveOrchestrator: user choices, races and failures', () => {
       const orchestrator = new WslMoveOrchestrator(ports)
       const step = orchestrator.trigger('Ubuntu', 'connect')
       await vi.waitFor(() => expect(ports.preview).toHaveBeenCalled())
-      orchestrator.releasedByUser('Ubuntu')
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
       release()
       await step
       expect(ports.start).not.toHaveBeenCalled()
-      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'parked', reason: 'declined' })
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({
+        kind: 'parked',
+        reason: 'declined',
+        cause: 'released-here'
+      })
     })
 
     it('keeps a release made while the host was being readied', async () => {
@@ -129,7 +137,7 @@ describe('WslMoveOrchestrator: user choices, races and failures', () => {
       const orchestrator = new WslMoveOrchestrator(ports)
       const step = orchestrator.trigger('Ubuntu', 'connect')
       await vi.waitFor(() => expect(ports.prepareHost).toHaveBeenCalled())
-      orchestrator.releasedByUser('Ubuntu')
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
       readied()
       await step
       expect(ports.preview).not.toHaveBeenCalled()
@@ -184,20 +192,24 @@ describe('WslMoveOrchestrator: user choices, races and failures', () => {
     it('is never readied again by any automatic trigger, only by the user', async () => {
       const ports = fakePorts()
       const orchestrator = new WslMoveOrchestrator(ports)
-      orchestrator.releasedByUser('Ubuntu')
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
       ports.clock.now += 365 * 86_400_000
       for (const trigger of ['connect', 'project-opened', 'startup', 'timer'] as const) {
         await orchestrator.trigger('Ubuntu', trigger)
       }
       expect(ports.prepareHost).not.toHaveBeenCalled()
       expect(ports.preview).not.toHaveBeenCalled()
-      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'parked', reason: 'declined' })
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({
+        kind: 'parked',
+        reason: 'declined',
+        cause: 'released-here'
+      })
     })
 
     it('resumes once the user adds the host again', async () => {
       const ports = fakePorts()
       const orchestrator = new WslMoveOrchestrator(ports)
-      orchestrator.releasedByUser('Ubuntu')
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
       orchestrator.hostAddedByUser('Ubuntu')
       expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'pending' })
       await orchestrator.trigger('Ubuntu', 'connect')
@@ -232,11 +244,15 @@ describe('WslMoveOrchestrator: user choices, races and failures', () => {
       const step = orchestrator.trigger('Ubuntu', 'connect')
       await vi.waitFor(() => expect(seen.wanted).toBeDefined())
       expect(seen.wanted?.()).toBe(true)
-      orchestrator.releasedByUser('Ubuntu')
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
       expect(seen.wanted?.()).toBe(false)
       answer()
       await step
-      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'parked', reason: 'declined' })
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({
+        kind: 'parked',
+        reason: 'declined',
+        cause: 'released-here'
+      })
     })
 
     // #4: the reply to Retry never waits for the move it starts.
@@ -319,10 +335,93 @@ describe('WslMoveOrchestrator: user choices, races and failures', () => {
     const step = orchestrator.trigger('Ubuntu', 'project-opened')
     await vi.waitFor(() => expect(seen.wanted).toBeDefined())
     expect(seen.wanted?.()).toBe(true)
-    orchestrator.releasedByUser('Ubuntu')
+    orchestrator.releasedByUser('Ubuntu', 'released-here')
     expect(seen.wanted?.()).toBe(false)
     readied()
     await step
     expect(ports.preview).not.toHaveBeenCalled()
+  })
+
+  // D3a-2: the status line needs to know which choice declined the distro.
+  describe('decline causes and pruning', () => {
+    it('records whether the user released the projects here or removed the host', () => {
+      const orchestrator = new WslMoveOrchestrator(fakePorts())
+      orchestrator.releasedByUser('Ubuntu', 'removed')
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({
+        kind: 'parked',
+        reason: 'declined',
+        cause: 'removed'
+      })
+      orchestrator.hostAddedByUser('Ubuntu')
+      expect(stateOf(orchestrator, 'Ubuntu')).toEqual({ kind: 'pending' })
+    })
+
+    it('drops records of distros with neither a host nor bridge projects, at start and on Remove', () => {
+      let inUse = false
+      const loaded = new Map<string, WslMoveOrchestratorRecord>([
+        [
+          wslMoveJournalKey('Gone'),
+          {
+            distro: 'Gone',
+            state: { kind: 'idle' },
+            attempts: 0,
+            appVersion: '1.0.0',
+            updatedAt: 0
+          }
+        ]
+      ])
+      const ports = fakePorts({ load: () => loaded, isDistroInUse: vi.fn(() => inUse) })
+      const orchestrator = new WslMoveOrchestrator(ports)
+      expect(orchestrator.list()).toEqual([])
+      inUse = true
+      orchestrator.releasedByUser('Ubuntu', 'released-here')
+      expect(orchestrator.list()).toHaveLength(1)
+      inUse = false
+      // A decline is the user's choice: kept even with nothing left on the distro.
+      orchestrator.releasedByUser('Ubuntu', 'removed')
+      expect(orchestrator.list()).toHaveLength(1)
+    })
+  })
+
+  // Pre-review #1: a pruned decline would let a later wake re-add a host the user removed.
+  it('never prunes a user choice, even for a distro with nothing left', () => {
+    const parked = (reason: 'declined' | 'not-now'): WslMoveOrchestratorRecord => ({
+      distro: reason === 'declined' ? 'Removed' : 'Snoozed',
+      state:
+        reason === 'declined'
+          ? { kind: 'parked', reason, cause: 'removed' }
+          : { kind: 'parked', reason, until: 2_000 },
+      attempts: 0,
+      appVersion: '1.0.0',
+      updatedAt: 0
+    })
+    const loaded = new Map<string, WslMoveOrchestratorRecord>([
+      [wslMoveJournalKey('Removed'), parked('declined')],
+      [wslMoveJournalKey('Snoozed'), parked('not-now')]
+    ])
+    const orchestrator = new WslMoveOrchestrator(
+      fakePorts({ load: () => loaded, isDistroInUse: vi.fn(() => false) })
+    )
+    expect(
+      orchestrator
+        .list()
+        .map((record) => record.distro)
+        .sort()
+    ).toEqual(['Removed', 'Snoozed'])
+    orchestrator.releasedByUser('Ubuntu', 'removed')
+    expect(stateOf(orchestrator, 'Ubuntu')).toMatchObject({ reason: 'declined', cause: 'removed' })
+  })
+
+  // #34632's stopped-distro gates: the user's Check again is their act on the distro, so the
+  // driver's reads for a just-connected distro are not refused as background work.
+  it('runs a Retry step as the user act on its distro, and nothing else', async () => {
+    const ports = fakePorts()
+    const orchestrator = new WslMoveOrchestrator(ports)
+    await orchestrator.trigger('Ubuntu', 'connect')
+    await orchestrator.trigger('Debian', 'project-opened')
+    expect(ports.userActs).toEqual([])
+    await orchestrator.userAction('Ubuntu', 'retry')
+    await orchestrator.whenIdle()
+    expect(ports.userActs).toEqual(['Ubuntu'])
   })
 })

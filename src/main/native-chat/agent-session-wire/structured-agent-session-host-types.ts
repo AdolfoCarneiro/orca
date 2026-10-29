@@ -1,5 +1,6 @@
 import type { AgentSessionRecordReader } from '../../runtime/orchestration/structured-session-lineage'
 import type { NativeResponseEvidence } from '../../runtime/orchestration/structured-parent-account-work'
+import type { AgentModelCatalogSource } from '../agent-model-catalog/agent-model-catalog-service-contract'
 import type { StructuredAgentSessionDeliveryLoop } from './structured-agent-session-delivery-loop'
 import type {
   OpenedStructuredAgentSessionConversation,
@@ -97,6 +98,8 @@ export type StructuredAgentSessionProviderChild = StructuredAgentSessionProvider
   readonly permissionMode?: AgentChatPermissionChoice
   /** The account home it was launched under, in memory only; absent when its adapter reports none. */
   readonly accountHome?: AgentSessionAccountHome
+  /** The launch source that may publish observations for this child. */
+  readonly catalogSource?: AgentModelCatalogSource
   /** Read adapter-held sends at each decision. */
   readonly heldSends?: () => ReadonlySet<string> | undefined
   readonly exitObservation?: DeferredStructuredAgentSessionEventSink['exitObservation']
