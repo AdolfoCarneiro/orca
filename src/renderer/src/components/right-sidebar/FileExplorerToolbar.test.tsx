@@ -302,9 +302,8 @@ describe('FileExplorerToolbar', () => {
     const openInItems = findOpenInMenuItems(element)
     expect(openInItems.props.worktreePath).toBe('/tmp/orca')
     expect(openInItems.props.connectionId).toBe('ssh-1')
-    expect((openInItems.props.formatLabel as (app: string) => string)('Cursor')).toBe(
-      'Open in Cursor'
-    )
+    const formatLabel = openInItems.props.formatLabel
+    expect(typeof formatLabel === 'function' ? formatLabel('Cursor') : null).toBe('Open in Cursor')
   })
 
   it('passes the managed target owner to folder open-in launchers', () => {
