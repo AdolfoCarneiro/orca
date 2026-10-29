@@ -3,13 +3,14 @@ import process from 'node:process'
 import { main } from './orcad-entry'
 import { resolveOrcadExitCode } from './orcad-exit-code'
 import { reserveServeStdoutForReadiness } from '../server/serve-stdout-boundary'
-import { runOrcadNativePreflight } from './orcad-native-preflight'
+import { runOrcadNativePreflightVerdict } from './orcad-native-preflight'
 import {
   ORCAD_PROFILE_PREFLIGHT_FLAG,
   ORCAD_STARTUP_PREFLIGHT_FLAG
 } from '../../shared/orcad-profile-preflight'
 import {
   confirmBundledOrcadStartupQualified,
+  forgetBundledOrcadStartupQualification,
   preflightBundledOrcadStartup,
   runOrcadProfilePreflight
 } from './orcad-profile-preflight'
@@ -95,9 +96,12 @@ function startOrcadProcess(): void {
       // Stdout is the readiness API; send incidental diagnostics to stderr.
       reserveServeStdoutForReadiness()
       void preflightBundledOrcadStartup()
-        .then(() => {
-          // Probe before deferred node-pty loading can crash this process.
-          runOrcadNativePreflight()
+        .then((qualified) => {
+          // Probe before deferred node-pty loading can crash this process; a slot qualified on this
+          // unchanged host passed it on its last launch.
+          if (runOrcadNativePreflightVerdict({ qualified }) !== 'ok') {
+            forgetBundledOrcadStartupQualification()
+          }
           return main()
         })
         .then(confirmBundledOrcadStartupQualified)

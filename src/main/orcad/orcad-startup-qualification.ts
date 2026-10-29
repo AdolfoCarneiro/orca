@@ -57,7 +57,8 @@ export async function orcadStartupQualificationKey(
     .digest('hex')
   const abi = detectNativeHostAbi()
   return JSON.stringify({
-    schema: 1,
+    // 2: the marker now also vouches for the node-pty probe; older markers don't.
+    schema: 2,
     artifactVersion,
     runtime: ORCAD_NODE_RUNTIME_IDENTITY,
     node: process.versions.node,

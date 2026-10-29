@@ -132,9 +132,11 @@ describe('runtime concurrent creates on one name', () => {
     { request: { name: 'nautilus', nameWasGenerated: true }, second: null }
   ])('gives the second create of $request.name its next candidate', async ({ request, second }) => {
     await Promise.all([createWorktree(request), createWorktree(request)])
-    const [first, other] = addedPaths().map((path) => basename(path))
-    expect(first).toBe(request.name)
-    expect(other).not.toBe(first)
+    // Claims are ordered, but each create resolves its path's realpath before Git's add, so on a
+    // loaded runner either create can reach add first. Check the names, not the call order.
+    const names = addedPaths().map((path) => basename(path))
+    expect(names.filter((name) => name === request.name)).toHaveLength(1)
+    const other = names.find((name) => name !== request.name) ?? ''
     if (second) {
       expect(other).toBe(second)
     } else {

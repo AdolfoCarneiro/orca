@@ -5,19 +5,16 @@ import { useDocumentDarkTheme } from '@/hooks/use-document-dark-theme'
 
 type MermaidViewerProps = {
   content: string
-  filePath: string
+  scrollCacheKey: string
 }
 
 // Render full .mmd/.mermaid files directly as diagram source.
 export default function MermaidViewer({
   content,
-  filePath
+  scrollCacheKey
 }: MermaidViewerProps): React.JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null)
   const isDark = useDocumentDarkTheme()
-
-  // Source and diagram heights differ; keep their scroll positions separate.
-  const scrollCacheKey = `${filePath}:mermaid-diagram`
 
   useLayoutEffect(() => {
     const container = rootRef.current

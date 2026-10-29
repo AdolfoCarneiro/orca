@@ -503,6 +503,14 @@ jobs:
         if: needs.code_paths.outputs.static_analysis == 'true'
         run: bun config/scripts/audit-localization-coverage.mjs --check
 
+      - name: Verify mobile localization
+        if: needs.code_paths.outputs.static_analysis == 'true'
+        run: bun config/scripts/verify-mobile-localization.mjs
+
+      - name: Verify mobile localization coverage
+        if: needs.code_paths.outputs.static_analysis == 'true'
+        run: bun run verify:mobile-localization-coverage
+
       - wait: [localization-catalogs, localization-extraction]
 
       # Keep project declarations in .ts: skipLibCheck silently widened unresolved .d.ts names to any, hiding #1186 IPC breakage. See .github/CONTRIBUTING.md#type-declarations-prefer-ts-over-dts.
