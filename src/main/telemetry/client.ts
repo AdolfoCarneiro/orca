@@ -83,7 +83,7 @@ export function initTelemetry(store: Store, scheduleStart: postHogStart.StartSch
   }
 
   posthog = null
-  postHogStart.deferStart(WRITE_KEY, scheduleStart, ensurePostHogClient)
+  postHogStart.deferStart(WRITE_KEY, store, scheduleStart, ensurePostHogClient)
 }
 
 function ensurePostHogClient(): PostHog | null {
@@ -94,9 +94,7 @@ function ensurePostHogClient(): PostHog | null {
   try {
     // Apply consent as it stands now; the live per-event check already gated each held capture.
     posthog = createPostHogClient(start.writeKey, resolveConsent(storeRef.getSettings()))
-    for (const message of start.held) {
-      posthog.capture(message)
-    }
+    postHogStart.replayHeld(posthog, start.held)
   } catch (err) {
     // Callers include opt-out and quit, which must still complete without a client.
     console.warn('[telemetry] PostHog client failed to start or replay held events:', err)
@@ -210,7 +208,7 @@ export function track<N extends EventName>(name: N, props: EventProps<N>): boole
   if (posthog) {
     posthog.capture(message)
   } else {
-    postHogStart.holdCapture(message)
+    postHogStart.holdCapture(message, ensurePostHogClient)
   }
   if (dashboardActiveSurface && settings.telemetry) {
     trackedDashboardActiveDays.set(dashboardActiveSurface, dashboardActiveDay)
@@ -325,7 +323,7 @@ export function trackAppOpenedOnce(): void {
 export async function shutdownTelemetry(): Promise<void> {
   // Fence before flushing so late IPC cannot enqueue.
   shuttingDown = true
-  const instance = postHogStart.hasHeldCaptures() ? ensurePostHogClient() : posthog
+  const instance = postHogStart.hasSendableHeldCaptures() ? ensurePostHogClient() : posthog
   postHogStart.resetStart()
   if (!instance) {
     return
