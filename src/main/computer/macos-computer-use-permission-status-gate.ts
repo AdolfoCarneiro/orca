@@ -1,186 +1,139 @@
 import type { ComputerUsePermissionStatusResult } from '../../shared/computer-use-permissions-types'
 
-// Each macOS probe launches a helper that polls TCC for ~3.5s; denied answers only change on user action.
-const PERMISSION_STATUS_RESULT_REUSE_MS = 2_000
-const PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS = 10_000
-const PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS = 120_000
+// Each macOS probe launches a helper that settles TCC for ~2s; one launch per 5s caps every path at 12/min.
+const PERMISSION_STATUS_LAUNCH_FLOOR_MS = 5_000
 
-type ProbeOutcome =
-  | { ok: true; result: ComputerUsePermissionStatusResult }
-  | { ok: false; error: unknown }
+type StatusResult = ComputerUsePermissionStatusResult
 
-type InFlightProbe = {
-  epoch: number
-  promise: Promise<ComputerUsePermissionStatusResult>
-  followUp: Promise<ComputerUsePermissionStatusResult> | null
-}
-
-export type PermissionStatusReadOptions = {
-  // Local passive badges opt into the denied backoff; foreground reads never get a cached denial.
-  background?: boolean
-}
-
-export type PermissionStatusProbeGate = {
-  read: (options?: PermissionStatusReadOptions) => Promise<ComputerUsePermissionStatusResult>
-  noteAppDeparture: () => void
-  noteAppReturn: () => void
-  setAppActiveProbe: (isAppActive: () => boolean) => void
+export type PermissionStatusGate = {
+  read: () => Promise<StatusResult>
+  // Setup's cheapest answer: in-flight, recent grant or last denial, before launching anything new.
+  peek: () => Promise<StatusResult>
   invalidate: () => void
 }
 
-export type AppActivitySource = {
-  onDeparture: (listener: () => void) => void
-  onReturn: (listener: () => void) => void
-  isAppActive: () => boolean
-}
+export function createPermissionStatusGate(
+  probe: () => Promise<StatusResult>
+): PermissionStatusGate {
+  let inFlight: { promise: Promise<StatusResult>; joinable: boolean } | null = null
+  let lastLaunchAt = Number.NEGATIVE_INFINITY
+  // Only grants are cached; a denial or error is never served, so a fresh grant shows within one floor.
+  let granted: StatusResult | null = null
+  // Setup may act on a stale denial: it launches the helper either way.
+  let lastDenied: StatusResult | null = null
+  let waiters: {
+    promise: Promise<StatusResult>
+    resolve: (next: Promise<StatusResult>) => void
+  } | null = null
+  let trailingTimer: ReturnType<typeof setTimeout> | null = null
 
-export function createPermissionStatusProbeGate(options: {
-  probe: () => Promise<ComputerUsePermissionStatusResult>
-  now?: () => number
-}): PermissionStatusProbeGate {
-  const now = options.now ?? Date.now
-  // A new epoch means the answer may have changed; results from older epochs are never served.
-  let epoch = 0
-  let departed = false
-  let isAppActive = (): boolean => false
-  let inFlight: InFlightProbe | null = null
-  let cached: { epoch: number; outcome: ProbeOutcome; finishedAt: number } | null = null
-  let reuseUntil = 0
-  let deniedStreak = 0
+  const floorExpiresAt = (): number => lastLaunchAt + PERMISSION_STATUS_LAUNCH_FLOOR_MS
 
-  const noteAppReturn = (): void => {
-    if (departed) {
-      departed = false
-      epoch += 1
-    }
-  }
-
-  const recordOutcome = (probeEpoch: number, outcome: ProbeOutcome): void => {
-    if (probeEpoch !== epoch) {
+  const armTrailing = (): void => {
+    if (!waiters || inFlight || trailingTimer) {
       return
     }
-    const finishedAt = now()
-    cached = { epoch: probeEpoch, outcome, finishedAt }
-    if (!outcome.ok || !isMissingPermission(outcome.result)) {
-      if (outcome.ok) {
-        deniedStreak = 0
-      }
-      reuseUntil = finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS
-      return
-    }
-    deniedStreak += 1
-    const backoff = PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS * 2 ** (deniedStreak - 1)
-    reuseUntil = finishedAt + Math.min(backoff, PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS)
-  }
-
-  const startProbe = (): Promise<ComputerUsePermissionStatusResult> => {
-    const probeEpoch = epoch
-    const entry: InFlightProbe = {
-      epoch: probeEpoch,
-      promise: options.probe().then(
-        (result) => {
-          recordOutcome(probeEpoch, { ok: true, result })
-          return result
-        },
-        (error: unknown) => {
-          recordOutcome(probeEpoch, { ok: false, error })
-          throw error
+    trailingTimer = setTimeout(
+      () => {
+        trailingTimer = null
+        if (waiters && !inFlight) {
+          void launch().catch(() => {})
         }
-      ),
-      followUp: null
-    }
+      },
+      Math.max(0, floorExpiresAt() - Date.now())
+    )
+    trailingTimer.unref?.()
+  }
+
+  const launch = (): Promise<StatusResult> => {
+    lastLaunchAt = Date.now()
+    const entry = { promise: probe(), joinable: true }
     inFlight = entry
-    void entry.promise
+    entry.promise
+      .then(
+        (result) => {
+          if (entry.joinable) {
+            granted = isCacheable(result) ? result : null
+            lastDenied = granted ? null : result
+          }
+        },
+        () => {
+          granted = null
+        }
+      )
       .finally(() => {
         if (inFlight === entry) {
           inFlight = null
         }
+        armTrailing()
       })
-      .catch(() => {})
+    // Readers waiting out the floor take whichever probe starts next, whatever triggered it.
+    const pending = waiters
+    waiters = null
+    pending?.resolve(entry.promise)
     return entry.promise
   }
 
-  const reuseLimit = (
-    entry: { outcome: ProbeOutcome; finishedAt: number },
-    readOptions: PermissionStatusReadOptions
-  ): number => {
-    if (readOptions.background) {
-      return reuseUntil
+  const read = (): Promise<StatusResult> => {
+    if (granted && Date.now() < floorExpiresAt()) {
+      return Promise.resolve(granted)
     }
-    // Foreground readers may have just granted; only passive badges accept a finished denial.
-    if (entry.outcome.ok && isMissingPermission(entry.outcome.result)) {
-      return 0
+    if (inFlight?.joinable) {
+      return inFlight.promise
     }
-    return entry.finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS
-  }
-
-  const read = (
-    readOptions: PermissionStatusReadOptions = {}
-  ): Promise<ComputerUsePermissionStatusResult> => {
-    // The renderer's focus read can reach main before did-become-active does.
-    if (departed && isAppActive()) {
-      noteAppReturn()
+    if (!inFlight && Date.now() >= floorExpiresAt()) {
+      return launch()
     }
-    const current = inFlight
-    if (current) {
-      if (current.epoch === epoch) {
-        return current.promise
-      }
-      // Never run two helpers at once; re-probe once the stale one settles.
-      current.followUp ??= current.promise.then(noop, noop).then(() => read(readOptions))
-      return current.followUp
+    if (!waiters) {
+      let resolve: (next: Promise<StatusResult>) => void = () => {}
+      const promise = new Promise<StatusResult>((settle) => {
+        resolve = settle
+      })
+      waiters = { promise, resolve }
     }
-    if (cached && cached.epoch === epoch) {
-      if (now() < reuseLimit(cached, readOptions)) {
-        const { outcome } = cached
-        return outcome.ok ? Promise.resolve(outcome.result) : Promise.reject(outcome.error)
-      }
-    }
-    return startProbe()
+    armTrailing()
+    return waiters.promise
   }
 
   return {
     read,
-    noteAppDeparture: () => {
-      departed = true
-    },
-    noteAppReturn,
-    setAppActiveProbe: (probe) => {
-      isAppActive = probe
+    peek: () => {
+      if (inFlight?.joinable) {
+        return inFlight.promise
+      }
+      if (granted && Date.now() < floorExpiresAt()) {
+        return Promise.resolve(granted)
+      }
+      return lastDenied ? Promise.resolve(lastDenied) : read()
     },
     invalidate: () => {
-      epoch += 1
-      deniedStreak = 0
+      granted = null
+      lastDenied = null
+      if (inFlight) {
+        inFlight.joinable = false
+      }
     }
   }
 }
 
-// App-level activation only: moving between Orca's own windows can't change a TCC answer.
-export function bindPermissionStatusGateToAppActivity(
-  gate: PermissionStatusProbeGate,
-  activity: AppActivitySource
-): void {
-  gate.setAppActiveProbe(activity.isAppActive)
-  // Listeners attach after startup; a grant made while Orca was inactive must count on first return.
-  if (!activity.isAppActive()) {
-    gate.noteAppDeparture()
-  }
-  activity.onDeparture(() => gate.noteAppDeparture())
-  activity.onReturn(() => gate.noteAppReturn())
-}
-
-function noop(): void {}
-
-function isMissingPermission(result: ComputerUsePermissionStatusResult): boolean {
+// A missing helper answers without launching anything, so it is as safe to reuse as a grant.
+function isCacheable(result: StatusResult): boolean {
   return (
-    result.helperUnavailableReason === null &&
-    result.permissions.some((permission) => permission.status === 'not-granted')
+    result.helperUnavailableReason !== null ||
+    result.permissions.every((permission) => permission.status !== 'not-granted')
   )
 }
 
-export const computerUsePermissionStatusGate = createPermissionStatusProbeGate({
-  probe: async () => {
-    const { getComputerUsePermissionStatus } = await import('./macos-computer-use-permissions')
-    return getComputerUsePermissionStatus()
-  }
-})
+async function probeStatus(): Promise<StatusResult> {
+  const { getComputerUsePermissionStatus } = await import('./macos-computer-use-permissions')
+  return getComputerUsePermissionStatus()
+}
+
+const macosGate = createPermissionStatusGate(probeStatus)
+
+// Off macOS the probe answers 'unsupported' instantly without a helper, so it skips the gate.
+export const computerUsePermissionStatusGate: PermissionStatusGate = {
+  read: () => (process.platform === 'darwin' ? macosGate.read() : probeStatus()),
+  peek: () => (process.platform === 'darwin' ? macosGate.peek() : probeStatus()),
+  invalidate: () => macosGate.invalidate()
+}

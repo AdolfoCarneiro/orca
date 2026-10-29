@@ -2,7 +2,8 @@ import { spawn, spawnSync } from 'node:child_process'
 import { RuntimeClientError } from './runtime-client-error'
 import { readMacosBundleId, resetMacosTccPermission } from '../macos-tcc-reset'
 import { resolveMacOSComputerUseAppPath } from './macos-native-provider-paths'
-import { getComputerUsePermissionStatus } from './macos-computer-use-permission-status'
+import { resolveComputerUseHelperUnavailableReason } from './macos-computer-use-permission-status'
+import { computerUsePermissionStatusGate } from './macos-computer-use-permission-status-gate'
 import type {
   ComputerUsePermissionId,
   ComputerUsePermissionResetResult,
@@ -14,14 +15,65 @@ const DEFAULT_COMPUTER_USE_BUNDLE_ID = 'com.stablyai.orca.computer-use'
 
 export { getComputerUsePermissionStatus } from './macos-computer-use-permission-status'
 
+// One setup-helper launch per 5s across every permission; the window is claimed synchronously.
+const SETUP_HELPER_LAUNCH_WINDOW_MS = 5_000
+let lastSetupLaunchAt = Number.NEGATIVE_INFINITY
+let queuedSetupLaunch: { helperAppPath: string; helperArgs: string[] } | null = null
+const setupInFlight = new Map<string, Promise<ComputerUsePermissionSetupResult>>()
+
 export function openComputerUsePermissions(
   permissionId?: ComputerUsePermissionId
 ): Promise<ComputerUsePermissionSetupResult> {
-  return openComputerUsePermissionsAsync(permissionId)
+  const key = permissionId ?? 'all'
+  const existing = setupInFlight.get(key)
+  if (existing) {
+    return existing
+  }
+  const run = openComputerUsePermissionsAsync(permissionId).finally(() => setupInFlight.delete(key))
+  setupInFlight.set(key, run)
+  return run
+}
+
+// Launches now, or queues the latest request for when the window reopens; never drops a click.
+function requestSetupHelperLaunch(
+  helperAppPath: string,
+  helperArgs: string[]
+): 'launched' | 'queued' {
+  const waitMs = lastSetupLaunchAt + SETUP_HELPER_LAUNCH_WINDOW_MS - Date.now()
+  if (waitMs <= 0 && !queuedSetupLaunch) {
+    launchSetupHelper(helperAppPath, helperArgs)
+    return 'launched'
+  }
+  if (!queuedSetupLaunch) {
+    const timer = setTimeout(
+      () => {
+        const queued = queuedSetupLaunch
+        queuedSetupLaunch = null
+        if (queued) {
+          launchSetupHelper(queued.helperAppPath, queued.helperArgs)
+        }
+      },
+      Math.max(0, waitMs)
+    )
+    timer.unref?.()
+  }
+  queuedSetupLaunch = { helperAppPath, helperArgs }
+  return 'queued'
+}
+
+function launchSetupHelper(helperAppPath: string, helperArgs: string[]): void {
+  lastSetupLaunchAt = Date.now()
+  // Kill and relaunch so a repeated click always brings the helper back to the front.
+  closeExistingPermissionHelpers()
+  const helper = spawn('/usr/bin/open', ['-n', helperAppPath, '--args', ...helperArgs], {
+    detached: true,
+    stdio: 'ignore'
+  })
+  helper.unref()
 }
 
 async function openComputerUsePermissionsAsync(
-  permissionId?: ComputerUsePermissionId
+  permissionId: ComputerUsePermissionId | undefined
 ): Promise<ComputerUsePermissionSetupResult> {
   if (process.platform !== 'darwin') {
     return {
@@ -42,7 +94,7 @@ async function openComputerUsePermissionsAsync(
   if (!helperAppPath) {
     throw new RuntimeClientError('accessibility_error', 'Orca Computer Use.app was not found')
   }
-  const status = await getComputerUsePermissionStatus()
+  const status = await computerUsePermissionStatusGate.peek()
   if (status.helperUnavailableReason) {
     throw new RuntimeClientError('accessibility_error', status.helperUnavailableReason)
   }
@@ -60,20 +112,16 @@ async function openComputerUsePermissionsAsync(
     }
   }
 
-  closeExistingPermissionHelpers()
   const helperArgs = permissionId ? ['--permission', permissionId] : ['--permissions']
-  const helper = spawn('/usr/bin/open', ['-n', helperAppPath, '--args', ...helperArgs], {
-    detached: true,
-    stdio: 'ignore'
-  })
-  helper.unref()
+  const launch = requestSetupHelperLaunch(helperAppPath, helperArgs)
 
   return {
     platform: process.platform,
     helperAppPath,
     permissionId,
-    openedSettings: permissionId !== undefined,
+    openedSettings: launch === 'launched' && permissionId !== undefined,
     launchedHelper: true,
+    launchQueued: launch === 'queued',
     permissions: status.permissions,
     nextStep
   }
@@ -102,18 +150,23 @@ async function resetComputerUsePermissionsAsync(): Promise<ComputerUsePermission
     throw new RuntimeClientError('accessibility_error', 'Orca Computer Use.app was not found')
   }
 
-  const status = await getComputerUsePermissionStatus()
-  if (status.helperUnavailableReason) {
-    throw new RuntimeClientError('accessibility_error', status.helperUnavailableReason)
+  const unavailableReason = resolveComputerUseHelperUnavailableReason()
+  if (unavailableReason) {
+    throw new RuntimeClientError('accessibility_error', unavailableReason)
   }
 
   const bundleId = (await readMacosBundleId(helperAppPath)) ?? DEFAULT_COMPUTER_USE_BUNDLE_ID
   closeExistingPermissionHelpers()
-  await resetTccPermission('Accessibility', bundleId)
-  await resetTccPermission('ScreenCapture', bundleId)
+  try {
+    await resetTccPermission('Accessibility', bundleId)
+    await resetTccPermission('ScreenCapture', bundleId)
+  } finally {
+    // Even a partial reset may have revoked grants; never serve the pre-reset snapshot again.
+    computerUsePermissionStatusGate.invalidate()
+  }
 
   return {
-    ...(await getComputerUsePermissionStatus()),
+    ...(await computerUsePermissionStatusGate.read()),
     bundleId
   }
 }

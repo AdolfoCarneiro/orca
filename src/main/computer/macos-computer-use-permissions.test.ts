@@ -7,6 +7,12 @@ import {
   openComputerUsePermissions,
   resetComputerUsePermissions
 } from './macos-computer-use-permissions'
+import { getComputerUsePermissionStatus } from './macos-computer-use-permission-status'
+import type * as permissionStatusGateModule from './macos-computer-use-permission-status-gate'
+import {
+  createPermissionStatusGate,
+  type PermissionStatusGate
+} from './macos-computer-use-permission-status-gate'
 
 const resolveHelperAppPathMock = vi.hoisted(() => vi.fn())
 const resolveHelperExecutablePathMock = vi.hoisted(() => vi.fn())
@@ -15,6 +21,18 @@ const helperAppPath = '/Applications/Orca Computer Use.app'
 const helperInfoPlistPath = join(helperAppPath, 'Contents', 'Info.plist')
 
 const plistBuddyStdout = vi.hoisted(() => ({ value: 'com.example.orca.computer-use\n' }))
+const gate = vi.hoisted((): { current: PermissionStatusGate | null } => ({ current: null }))
+let testClock = 0
+
+// A fresh gate per test so one test's floor or cached grant never leaks into the next.
+vi.mock('./macos-computer-use-permission-status-gate', async (importOriginal) => ({
+  ...(await importOriginal<typeof permissionStatusGateModule>()),
+  computerUsePermissionStatusGate: {
+    read: () => gate.current!.read(),
+    peek: () => gate.current!.peek(),
+    invalidate: () => gate.current!.invalidate()
+  }
+}))
 
 vi.mock('child_process', () => ({
   execFileSync: vi.fn(),
@@ -60,6 +78,9 @@ describe('openComputerUsePermissions', () => {
     vi.mocked(stat).mockResolvedValue({} as Awaited<ReturnType<typeof stat>>)
     mockPermissionStatus('{"accessibility":"granted","screenshots":"granted"}')
     setPlatform('darwin')
+    // Jump past the previous test's setup window instead of resetting module state.
+    vi.useFakeTimers({ now: (testClock += 600_000) })
+    gate.current = createPermissionStatusGate(getComputerUsePermissionStatus)
   })
 
   afterEach(() => {
@@ -99,6 +120,7 @@ describe('openComputerUsePermissions', () => {
       permissionId: undefined,
       openedSettings: false,
       launchedHelper: true,
+      launchQueued: false,
       permissions: [
         { id: 'accessibility', status: 'granted' },
         { id: 'screenshots', status: 'not-granted' }
@@ -132,6 +154,7 @@ describe('openComputerUsePermissions', () => {
       permissionId: 'accessibility',
       openedSettings: true,
       launchedHelper: true,
+      launchQueued: false,
       permissions: [
         { id: 'accessibility', status: 'not-granted' },
         { id: 'screenshots', status: 'not-granted' }
@@ -155,6 +178,7 @@ describe('openComputerUsePermissions', () => {
       permissionId: 'accessibility',
       openedSettings: true,
       launchedHelper: true,
+      launchQueued: false,
       permissions: [
         { id: 'accessibility', status: 'granted' },
         { id: 'screenshots', status: 'not-granted' }
@@ -205,9 +229,9 @@ describe('openComputerUsePermissions', () => {
 
   it('resets stale macOS TCC grants for the helper bundle id', async () => {
     resolveHelperAppPathMock.mockReturnValue('/Applications/Orca Computer Use.app')
-    vi.mocked(readFile)
-      .mockResolvedValueOnce('{"accessibility":"granted","screenshots":"granted"}')
-      .mockResolvedValueOnce('{"accessibility":"not-granted","screenshots":"not-granted"}')
+    vi.mocked(readFile).mockResolvedValueOnce(
+      '{"accessibility":"not-granted","screenshots":"not-granted"}'
+    )
     vi.mocked(spawnSync).mockReturnValue({ status: 0 } as ReturnType<typeof spawnSync>)
 
     await expect(resetComputerUsePermissions()).resolves.toEqual({
@@ -242,6 +266,89 @@ describe('openComputerUsePermissions', () => {
       expect.anything(),
       expect.anything()
     )
+  })
+})
+
+describe('setup helper launch window', () => {
+  const originalPlatform = process.platform
+
+  beforeEach(() => {
+    vi.mocked(spawn)
+      .mockReset()
+      .mockImplementation(fakeSpawnDispatch(() => ({})))
+    vi.mocked(spawnSync).mockClear()
+    vi.mocked(mkdtemp).mockResolvedValue(permissionStatusTempDir)
+    vi.mocked(stat).mockResolvedValue({} as Awaited<ReturnType<typeof stat>>)
+    resolveHelperAppPathMock.mockReturnValue(helperAppPath)
+    resolveHelperExecutablePathMock.mockReturnValue(
+      `${helperAppPath}/Contents/MacOS/orca-computer-use-macos`
+    )
+    mockPermissionStatus('{"accessibility":"not-granted","screenshots":"not-granted"}')
+    setPlatform('darwin')
+    vi.useFakeTimers({ now: (testClock += 600_000) })
+    gate.current = createPermissionStatusGate(getComputerUsePermissionStatus)
+  })
+
+  afterEach(async () => {
+    // Drain any queued launch so it cannot carry into the next test.
+    await vi.advanceTimersByTimeAsync(5_000)
+    vi.useRealTimers()
+    setPlatform(originalPlatform)
+  })
+
+  const setupLaunches = (): string[][] =>
+    vi
+      .mocked(spawn)
+      .mock.calls.filter(
+        ([program, args]) =>
+          program === '/usr/bin/open' &&
+          Array.isArray(args) &&
+          !args.includes('--permission-status-file')
+      )
+      .map(([, args]) => (Array.isArray(args) ? args.slice(3) : []))
+
+  const setupKills = (): number =>
+    vi.mocked(spawnSync).mock.calls.filter(([program]) => program === '/usr/bin/pkill').length
+
+  it('launches once per window across permission keys and queues the latest request', async () => {
+    const results = await Promise.all([
+      openComputerUsePermissions('accessibility'),
+      openComputerUsePermissions('screenshots'),
+      openComputerUsePermissions()
+    ])
+    expect(setupLaunches()).toEqual([['--permission', 'accessibility']])
+    expect(results.map((result) => result.launchQueued)).toEqual([false, true, true])
+    expect(results[1]).toMatchObject({ openedSettings: false, launchedHelper: true })
+
+    await vi.advanceTimersByTimeAsync(4_999)
+    expect(setupLaunches()).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(setupLaunches()).toEqual([['--permission', 'accessibility'], ['--permissions']])
+  })
+
+  it('re-shows the helper on a second Open by killing and relaunching it after the window', async () => {
+    await openComputerUsePermissions('accessibility')
+    const killsAfterFirst = setupKills()
+    await expect(openComputerUsePermissions('accessibility')).resolves.toMatchObject({
+      launchQueued: true
+    })
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(setupLaunches()).toEqual([
+      ['--permission', 'accessibility'],
+      ['--permission', 'accessibility']
+    ])
+    expect(setupKills()).toBe(killsAfterFirst * 2)
+  })
+
+  it('reuses the status it already has instead of probing again for setup', async () => {
+    await gate.current!.read()
+    await openComputerUsePermissions('accessibility')
+    const statusLaunches = vi
+      .mocked(spawn)
+      .mock.calls.filter(
+        ([, args]) => Array.isArray(args) && args.includes('--permission-status-file')
+      )
+    expect(statusLaunches).toHaveLength(1)
   })
 })
 

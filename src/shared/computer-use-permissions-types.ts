@@ -19,7 +19,9 @@ export type ComputerUsePermissionSetupResult = {
   helperAppPath: string | null
   permissionId?: ComputerUsePermissionId
   openedSettings: boolean
+  // True when a helper launched or is queued to launch within 5s; older clients only read this.
   launchedHelper: boolean
+  launchQueued?: boolean
   permissions?: ComputerUsePermissionState[]
   nextStep?: string | null
 }

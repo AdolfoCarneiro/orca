@@ -35,14 +35,10 @@ async function getComputerUsePermissionStatusAsync(): Promise<ComputerUsePermiss
   }
 
   const helperAppPath = resolveMacOSComputerUseAppPath()
-  if (!helperAppPath) {
-    return createUnavailablePermissionStatus('Orca Computer Use.app was not found', null)
-  }
-
-  const executablePath = resolveMacOSComputerUseExecutablePath()
-  if (!executablePath) {
+  const unavailableReason = resolveComputerUseHelperUnavailableReason()
+  if (!helperAppPath || unavailableReason) {
     return createUnavailablePermissionStatus(
-      `${helperAppPath}/Contents/MacOS/orca-computer-use-macos was not found`,
+      unavailableReason ?? 'Orca Computer Use.app was not found',
       helperAppPath
     )
   }
@@ -58,6 +54,18 @@ async function getComputerUsePermissionStatusAsync(): Promise<ComputerUsePermiss
       { id: 'screenshots', status: raw.screenshots ?? 'not-granted' }
     ]
   }
+}
+
+// Answers from the bundle layout alone, without launching the helper.
+export function resolveComputerUseHelperUnavailableReason(): string | null {
+  const helperAppPath = resolveMacOSComputerUseAppPath()
+  if (!helperAppPath) {
+    return 'Orca Computer Use.app was not found'
+  }
+  if (!resolveMacOSComputerUseExecutablePath()) {
+    return `${helperAppPath}/Contents/MacOS/orca-computer-use-macos was not found`
+  }
+  return null
 }
 
 function createUnavailablePermissionStatus(

@@ -114,7 +114,6 @@ export function createComputerUsePermissionsApi(): NonNullable<
   Partial<PreloadApi>['computerUsePermissions']
 > {
   return {
-    // Browser focus can't activate the host app, so remote reads never opt into the denied backoff.
     getStatus: () =>
       callRuntimeResult<ComputerUsePermissionStatusResult>(
         'computer.permissionsStatus',
