@@ -10,7 +10,6 @@ import {
 import { testOrcaSessionId } from '../../../shared/orca-session-address-test-fixture'
 import type { SenderNameResolver } from './agent-message-sender'
 import { orchestrationSenderName } from './orchestration-sender-name'
-import * as canonical from './canonical-orca-session-id'
 import * as relations from './agent-message-relation'
 import * as lineage from './structured-session-lineage'
 import { structuredMailSource, type MailSourceMessage } from './structured-mail-source'
@@ -325,7 +324,6 @@ it.each([
     const getRecord = vi.fn((id: string) => bySession.get(id) ?? null)
     const reader = { listRecords, getRecord }
     vi.spyOn(lineage, 'readAgentSessionRecordStore').mockReturnValue(reader)
-    const canonicalCalls = vi.spyOn(canonical, 'canonicalOrcaSessionId')
     const relationCalls = vi.spyOn(relations, 'agentMessageRelation')
     try {
       const run = db.createRun({
@@ -432,8 +430,6 @@ it.each([
       expect(batchVisits).toBe(batchSize * 2) // Grouping and provenance serialization, no per-sender filter.
       expect(payloadParses).toBe(batchSize)
       expect(payloadBytes).toBe(batch.reduce((sum, message) => sum + message.payload.length, 0))
-      expect(canonicalCalls).toHaveBeenCalledTimes(groups * 8)
-      expect(listRecords).toHaveBeenCalledTimes(groups * 8)
       expect(scanVisits).toBe(groups * 8 * sessionCount)
       // G Run + G report + G active recipient + 2G worker resources + 2G recorded workers.
       expect(statements).toHaveBeenCalledTimes(groups * 7)

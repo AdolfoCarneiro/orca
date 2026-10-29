@@ -430,14 +430,8 @@ it.each([100, 1000])(
         }
         return proxy
       })
-    const build = rows.buildWorktreeAgentRows
-    const builds = vi
-      .spyOn(rows, 'buildWorktreeAgentRows')
-      .mockImplementation((args) => build(args))
-    const resolve = presentation.resolveRowProgramStatus
-    const normalized = vi
-      .spyOn(presentation, 'resolveRowProgramStatus')
-      .mockImplementation((row) => resolve(row))
+    const builds = vi.spyOn(rows, 'buildWorktreeAgentRows')
+    const normalized = vi.spyOn(presentation, 'resolveRowProgramStatus')
     render(
       <>
         {Array.from({ length: n }, (_, id) => (
