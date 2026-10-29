@@ -227,6 +227,7 @@ import {
 import {
   ChatImageRead,
   DocPreviewFileRead,
+  DocPreviewFileReadChunk,
   FileDirRead,
   FileListAll,
   FileOpenDiff,
@@ -977,6 +978,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.readChunk': FileReadChunk,
   'files.readDir': FileDirRead,
   'files.readDocPreview': DocPreviewFileRead,
+  'files.readDocPreviewChunk': DocPreviewFileReadChunk,
   'files.readPreview': FileOpen,
   'files.readTerminalArtifact': TerminalArtifactFile,
   'files.readTerminalArtifactPreview': TerminalArtifactFile,
