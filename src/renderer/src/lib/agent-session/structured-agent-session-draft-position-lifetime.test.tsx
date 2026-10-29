@@ -315,6 +315,7 @@ it.each([10, 100])(
                   }
                 }
               }
+              // oxlint-disable-next-line anti-slop/no-reflect-get -- Test-only Proxy forwards unmeasured string/symbol keys with the original receiver.
               return Reflect.get(target, key, receiver)
             }
           }),
@@ -331,6 +332,7 @@ it.each([10, 100])(
                   return entries
                 }
               }
+              // oxlint-disable-next-line anti-slop/no-reflect-get -- Test-only Proxy forwards unmeasured string/symbol keys with the original receiver.
               return Reflect.get(target, key, receiver)
             }
           })
