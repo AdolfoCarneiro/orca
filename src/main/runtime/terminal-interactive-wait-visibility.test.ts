@@ -473,6 +473,19 @@ describe('Screen rule readiness scope', () => {
   })
 })
 
+/** Stands in for a mailbox with work pending, which these timer mechanics take as given. */
+function withPendingDelivery(runtime: OrcaRuntimeService): OrcaRuntimeService {
+  runtime['getOrchestrationMailboxTerminal'] = (ptyId) => ({
+    ptyId,
+    handle: 'term_pending',
+    paneKeys: [],
+    lastAgentStatus: 'idle',
+    lastAgentStatusObservedLive: true
+  })
+  vi.spyOn(runtime['orchestrationMailboxNotifications'], 'hasDeliverableMail').mockReturnValue(true)
+  return runtime
+}
+
 describe('terminal wait ownership', () => {
   beforeEach(() => {
     vi.spyOn(RuntimeMachineName.prototype, 'start').mockImplementation(() => {})
@@ -557,7 +570,7 @@ describe('terminal wait ownership', () => {
       lastOscTitle: 'Codex'
     })
     const deliver = vi.fn()
-    const runtime = new OrcaRuntimeService()
+    const runtime = withPendingDelivery(new OrcaRuntimeService())
     runtime['ptysById'].set(pty.ptyId, pty)
     runtime['deliverPendingMessagesForPty'] = deliver
     expect(runtime['checkDeliverySettledAndArmRecheck'](pty.ptyId)).toBe(false)
@@ -575,8 +588,8 @@ describe('terminal wait ownership', () => {
       lastAgentStatus: 'idle',
       lastOscTitle: 'Codex'
     })
-    const first = new OrcaRuntimeService()
-    const second = new OrcaRuntimeService()
+    const first = withPendingDelivery(new OrcaRuntimeService())
+    const second = withPendingDelivery(new OrcaRuntimeService())
     first['ptysById'].set(pty.ptyId, pty)
     second['ptysById'].set(pty.ptyId, pty)
     first['checkDeliverySettledAndArmRecheck'](pty.ptyId)

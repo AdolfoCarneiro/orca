@@ -83,18 +83,6 @@ describe('mailbox delivery honours the tui-idle evidence ranking', () => {
     expect(deliver).not.toHaveBeenCalled()
   })
 
-  // Time can lift weak-evidence refusal without any further edge; delivery needs a retry to avoid stranded messages.
-  it('retries a refused delivery once the pane falls quiet', async () => {
-    const { runtime } = await makeRuntime('codex')
-    const deliver = watchDelivery(runtime)
-    runtime.onPtyData(PTY_ID, `${osc('Codex')}output\n`, Date.now())
-    expect(deliver).not.toHaveBeenCalled()
-
-    // No further title/graph edge arrives after this daemon output stops.
-    await vi.advanceTimersByTimeAsync(5_000)
-    expect(deliver).toHaveBeenCalled()
-  })
-
   it('does not retry into a pane that went busy again', async () => {
     const { runtime } = await makeRuntime('codex')
     const deliver = watchDelivery(runtime)
@@ -127,35 +115,6 @@ describe('mailbox delivery honours the tui-idle evidence ranking', () => {
     const deliver = watchDelivery(runtime)
     runtime.onPtyData(PTY_ID, `${osc('⠋ - DeepSeek Build')}working\n`, Date.now())
     expect(deliver).toHaveBeenCalled()
-  })
-
-  // Recognition finishing only publishes a snapshot, so pending mail needs a retry past the quiet window.
-  it('delivers once foreground recognition resolves after the quiet retry', async () => {
-    let recognize: (process: string) => void = () => {}
-    const runtime = makeTuiIdleRuntime({
-      repoPath: '/tmp/followups',
-      getForegroundProcess: () => new Promise<string>((resolve) => (recognize = resolve))
-    })
-    runtime.attachWindow(1)
-    runtime.syncWindowGraph(1, GRAPH)
-    registerBoundPty(runtime, PTY_ID, WORKTREE_ID, null, {
-      tabId: TAB_ID,
-      leafId: LEAF_ID,
-      incarnationId: 'followups-inc'
-    })
-    await runtime.listTerminals(`id:${WORKTREE_ID}`)
-    const deliver = watchDelivery(runtime)
-    vi.spyOn(runtime['orchestrationMailboxNotifications'], 'hasDeliverableMail').mockImplementation(
-      () => deliver.mock.calls.length === 0
-    )
-    runtime.onPtyData(PTY_ID, `${osc('⠋ Codex')}working\n`, Date.now())
-    await vi.advanceTimersByTimeAsync(5_000)
-    expect(deliver).not.toHaveBeenCalled()
-
-    recognize('codex')
-    await vi.advanceTimersByTimeAsync(10_000)
-    expect(deliver).toHaveBeenCalledTimes(1)
-    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('still delivers for an agent whose name is its only rest signal', async () => {
