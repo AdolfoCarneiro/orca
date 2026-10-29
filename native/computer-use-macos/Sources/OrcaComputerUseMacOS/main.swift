@@ -747,7 +747,7 @@ final class Provider {
         if let elementIndex = try optionalInteger(params, "elementIndex") {
             let record = try element(snapshot, elementIndex)
             if !foreground {
-                try requireBackgroundClickAllowed(BackgroundInputTransport.classifyPointerHit(record.element))
+                try requireBackgroundClickAllowed(backgroundClickHit(record.element, snapshot: snapshot))
             }
             if modifiers.isEmpty,
                count <= 1,
@@ -756,7 +756,7 @@ final class Provider {
                 return actionMetadata(path: "accessibility", actionName: actionName)
             }
             if let point = center(record.localFrame, in: snapshot.windowBounds) {
-                try clickPointer(at: point, button: button, count: count, modifiers: modifiers, snapshot: snapshot, foreground: foreground)
+                try clickPointer(at: point, button: button, count: count, modifiers: modifiers, snapshot: snapshot, foreground: foreground, element: record.element)
                 return actionMetadata(
                     path: "synthetic",
                     fallbackReason: "actionUnsupported",
@@ -1280,6 +1280,7 @@ private func hitTestSyntheticClickRecipient(
     targetPID: pid_t,
     targetCandidates: () -> [WindowCandidate]
 ) -> SyntheticMouseClickDelivery.RecipientObservation {
+    guard Float(point.x).isFinite, Float(point.y).isFinite else { return .unavailable }
     let systemWide = AXUIElementCreateSystemWide()
     var hitElement: AXUIElement?
     switch AXUIElementCopyElementAtPosition(
@@ -1295,20 +1296,33 @@ private func hitTestSyntheticClickRecipient(
     default:
         return .unavailable
     }
-    guard let hitElement,
-          let ownerPID = pidAttribute(hitElement),
-          let window = containingWindow(hitElement)
-    else { return .unavailable }
+    guard let hitElement else { return .unavailable }
+    return pointerRecipient(of: hitElement, targetPID: targetPID, targetCandidates: targetCandidates)
+}
+
+private func pointerRecipient(
+    of element: AXUIElement,
+    targetPID: pid_t,
+    targetCandidates: () -> [WindowCandidate]
+) -> SyntheticMouseClickDelivery.RecipientObservation {
+    guard let ownerPID = pidAttribute(element), let window = containingWindow(element) else {
+        return .unavailable
+    }
     if let windowId = windowNumber(window) {
         return .focused(syntheticClickRecipient(pid: ownerPID, windowId: windowId))
     }
-    guard ownerPID == targetPID else { return .unavailable }
-    guard let frame = absoluteFrame(window),
+    guard ownerPID == targetPID, let frame = absoluteFrame(window),
+          let windows = copyArray(AXUIElementCreateApplication(ownerPID), kAXWindowsAttribute as String)
+    else { return .unavailable }
+    var matches: [AXUIElement] = []
+    for candidate in windows {
+        guard let candidateFrame = absoluteFrame(candidate) else { return .unavailable }
+        if windowFramesMatch(candidateFrame, frame) { matches.append(candidate) }
+    }
+    guard matches.count == 1, CFEqual(matches[0], window),
           let candidate = SyntheticMouseClickDelivery.uniqueWindowCandidate(
             from: targetCandidates(),
-            matching: {
-              windowFramesMatch($0.bounds, frame)
-            }
+            matching: { windowFramesMatch($0.bounds, frame) }
           )
     else { return .unavailable }
     return .focused(syntheticClickRecipient(pid: ownerPID, windowId: candidate.windowId))
@@ -1386,13 +1400,27 @@ private func clickPointer(
     count: Int,
     modifiers: [KeyModifier],
     snapshot: Snapshot,
-    foreground: Bool
+    foreground: Bool,
+    element: AXUIElement? = nil
 ) throws {
     if foreground {
         try Input.click(at: point, button: button, count: count, modifiers: modifiers, targetWindow: snapshot)
         return
     }
-    let hit = BackgroundInputTransport.classifyPointerHit(pid: snapshot.app.pid, at: point)
+    let hitElement: AXUIElement
+    if let element {
+        hitElement = element
+    } else {
+        var found: AXUIElement?
+        guard Float(point.x).isFinite, Float(point.y).isFinite,
+              AXUIElementCopyElementAtPosition(AXUIElementCreateApplication(snapshot.app.pid), Float(point.x), Float(point.y), &found) == .success,
+              let found
+        else {
+            throw ProviderError.coded("background_unavailable", "cannot identify the background click target; run get-app-state again or retry with --restore-window")
+        }
+        hitElement = found
+    }
+    let hit = try backgroundClickHit(hitElement, snapshot: snapshot)
     try requireBackgroundClickAllowed(hit)
     try withTransportErrors {
         try BackgroundInputTransport.click(
@@ -1404,6 +1432,16 @@ private func clickPointer(
             hit: hit
         )
     }
+}
+
+private func backgroundClickHit(_ element: AXUIElement, snapshot: Snapshot) throws -> BackgroundInputTransport.PointerHit {
+    let recipient = pointerRecipient(of: element, targetPID: snapshot.app.pid) {
+        WindowCapture.candidates(pid: snapshot.app.pid)
+    }
+    guard recipient == .focused(syntheticClickRecipient(pid: snapshot.app.pid, windowId: snapshot.windowId)) else {
+        throw ProviderError.coded("background_unavailable", "the background click target does not identify the requested window; run get-app-state again or retry with --restore-window")
+    }
+    return BackgroundInputTransport.classifyPointerHit(element)
 }
 
 private func requireBackgroundClickAllowed(_ hit: BackgroundInputTransport.PointerHit) throws {

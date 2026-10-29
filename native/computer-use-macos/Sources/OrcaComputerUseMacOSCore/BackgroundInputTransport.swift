@@ -129,17 +129,6 @@ public enum BackgroundInputTransport {
         try mouseEvent(type, target: target, at: point, button: button.cgButton, clickState: clickState, flags: flags, symbols: PrivateSymbols.shared.require())
     }
 
-    public static func classifyPointerHit(pid: pid_t, at point: CGPoint) -> PointerHit {
-        let appElement = AXUIElementCreateApplication(pid)
-        var hitElement: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(appElement, Float(point.x), Float(point.y), &hitElement) == .success,
-              let hitElement
-        else {
-            return .other
-        }
-        return classifyPointerHit(hitElement)
-    }
-
     public static func classifyPointerHit(_ element: AXUIElement) -> PointerHit {
         var current = element
         for depth in 0..<48 {
