@@ -178,7 +178,7 @@ export function normalizeImageTranscriptMessages(
     const messageImagePaths = imageSourcePathsFromMessage(message)
     if (messageImagePaths.length > 0) {
       normalized ??= messages.slice(0, index)
-      const imagePaths = [...messageImagePaths]
+      const sourceTurns = [{ message, paths: messageImagePaths }]
       let nextIndex = index + 1
       while (nextIndex < messages.length) {
         const candidate = messages[nextIndex]!
@@ -190,7 +190,7 @@ export function normalizeImageTranscriptMessages(
         ) {
           break
         }
-        imagePaths.push(...candidatePaths)
+        sourceTurns.push({ message: candidate, paths: candidatePaths })
         nextIndex += 1
       }
       const prompt = messages[nextIndex]
@@ -202,18 +202,22 @@ export function normalizeImageTranscriptMessages(
         normalized.push({
           ...prompt,
           blocks: [
-            ...imagePaths.map((path) => ({ type: 'image-ref' as const, path })),
+            ...sourceTurns.flatMap(({ paths }) =>
+              paths.map((path) => ({ type: 'image-ref' as const, path }))
+            ),
             ...stripImagePromptMarkersFromTextBlocks(prompt.blocks)
           ]
         })
         index = nextIndex
         continue
       }
-      // Without a following prompt, keep only this turn’s paths; later scanned source turns remain separate.
-      normalized.push({
-        ...message,
-        blocks: messageImagePaths.map((path) => ({ type: 'image-ref' as const, path }))
-      })
+      for (const sourceTurn of sourceTurns) {
+        normalized.push({
+          ...sourceTurn.message,
+          blocks: sourceTurn.paths.map((path) => ({ type: 'image-ref' as const, path }))
+        })
+      }
+      index = nextIndex - 1
       continue
     }
     const blocks = stripImagePromptMarkersFromTextBlocks(message.blocks)
