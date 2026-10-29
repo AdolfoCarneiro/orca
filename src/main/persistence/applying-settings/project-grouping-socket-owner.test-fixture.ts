@@ -31,7 +31,8 @@ export async function createProjectGroupingSocketOwner(
     response?: (method: string, response: string) => string
   } = {}
 ) {
-  testState.dir = mkdtempSync(join(tmpdir(), 'orca-grouping-peer-'))
+  const directory = mkdtempSync(join(tmpdir(), 'orca-grouping-peer-'))
+  testState.dir = directory
   const store = createStore()
   const runtime = new OrcaRuntimeService(store)
   // The released strict wrapper predates the request-only marker; field toleration is identical.
@@ -45,7 +46,7 @@ export async function createProjectGroupingSocketOwner(
   )
   const server = new OrcaRuntimeRpcServer({
     runtime,
-    userDataPath: testState.dir,
+    userDataPath: directory,
     methods: [
       ...methods,
       ...STATUS_METHODS,
@@ -54,7 +55,7 @@ export async function createProjectGroupingSocketOwner(
     ],
     enableWebSocket: false
   })
-  const registry = new DeviceRegistry(testState.dir)
+  const registry = new DeviceRegistry(directory)
   server['deviceRegistry'] = registry
   const device = registry.addDevice('Fixture paired client', 'runtime')
   const desktop = generateKeyPair()
@@ -133,6 +134,7 @@ export async function createProjectGroupingSocketOwner(
   }
   return {
     store,
+    directory,
     runtime,
     server,
     registry,
@@ -147,7 +149,7 @@ export async function createProjectGroupingSocketOwner(
       await new Promise<void>((resolve) => wss.close(() => resolve()))
       wiring.dispose()
       await closeTestStores()
-      rmSync(testState.dir, { recursive: true, force: true })
+      rmSync(directory, { recursive: true, force: true })
     }
   }
 }

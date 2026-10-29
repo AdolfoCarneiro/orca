@@ -150,18 +150,19 @@ it.each(['token', 'device-key', 'migration-fallback', 'strict-old'] as const)(
   20_000
 )
 
-it('fences encrypted A→B→A client cutover and obsolete settlements while the successor stays in flight', async () => {
+it('fences encrypted A→B→A client cutover across separate owners and obsolete settlements while the successor stays in flight', async () => {
   const delayed: (() => void)[] = []
   let delay = true
-  const owner = await createProjectGroupingSocketOwner({
-    deliver: (method, response, reply) => {
-      if (method === 'ui.set' && delay) {
-        delayed.push(() => reply(response))
-      } else {
-        reply(response)
-      }
+  const deliver = (method: string, response: string, reply: (response: string) => void) => {
+    if (method === 'ui.set' && delay) {
+      delayed.push(() => reply(response))
+    } else {
+      reply(response)
     }
-  })
+  }
+  const owner = await createProjectGroupingSocketOwner({ deliver })
+  const other = await createProjectGroupingSocketOwner({ deliver })
+  const bEnvironment = { ...other.environment, id: 'owner-B' }
   window.localStorage.clear()
   window.sessionStorage.clear()
   window.localStorage.setItem('orca.web.runtimeEnvironment.v1', JSON.stringify(owner.environment))
@@ -170,24 +171,22 @@ it('fences encrypted A→B→A client cutover and obsolete settlements while the
   const session = await import('../web/preload-api/web-runtime-session')
   const { createWebUiApi } = await import('../web/preload-api/web-ui-api')
   const ui = createWebUiApi()
-  const selected = (id: string) =>
-    owner.requests.filter((r) => r.method === 'ui.set' && JSON.stringify(r.params).includes(id))
+  const selected = (peer: typeof owner, id: string) =>
+    peer.requests.filter((r) => r.method === 'ui.set' && JSON.stringify(r.params).includes(id))
   try {
     const original = session.getClientForEnvironment(owner.environment)
     const a = ui.setWithAck!({ filterRepoIds: ['A-old'] }).catch((error: unknown) => error)
-    await vi.waitFor(() => expect(selected('A-old')).toHaveLength(1))
-    // A logical owner change uses the existing active-environment owner, even on the same physical desktop.
-    const bEnvironment = { ...owner.environment, id: 'owner-B' }
+    await vi.waitFor(() => expect(selected(owner, 'A-old')).toHaveLength(1))
     session.webRuntimeState.activeEnvironment = bEnvironment
     const b = ui.setWithAck!({ filterRepoIds: ['B-old'] }).catch((error: unknown) => error)
-    await vi.waitFor(() => expect(selected('B-old')).toHaveLength(1))
+    await vi.waitFor(() => expect(selected(other, 'B-old')).toHaveLength(1))
     session.webRuntimeState.activeEnvironment = { ...owner.environment, pairingRevision: 2 }
     const c = ui.setWithAck!({ filterRepoIds: ['A-new'] })
     let settled = false
     void c.then(() => {
       settled = true
     })
-    await vi.waitFor(() => expect(selected('A-new')).toHaveLength(1))
+    await vi.waitFor(() => expect(selected(owner, 'A-new')).toHaveLength(1))
     expect(session.webRuntimeState.activeClient).not.toBe(original)
     expect(delayed).toHaveLength(3)
     delayed[0]()
@@ -196,19 +195,29 @@ it('fences encrypted A→B→A client cutover and obsolete settlements while the
     expect(await b).toBeInstanceOf(Error)
     expect(settled).toBe(false)
     expect(owner.store.getUI().filterRepoIds).toEqual(['A-new'])
+    expect(other.store.getUI().filterRepoIds).toEqual(['B-old'])
+    expect(selected(other, 'A-old')).toHaveLength(0)
+    expect(selected(other, 'A-new')).toHaveLength(0)
+    expect(selected(owner, 'B-old')).toHaveLength(0)
     delayed[2]()
     await c
     expect(settled).toBe(true)
     delay = false
     await ui.setWithAck!({ sortBy: 'name' })
     expect(owner.store.getUI()).toMatchObject({ filterRepoIds: ['A-new'], sortBy: 'name' })
+    expect(other.requests.filter((r) => r.method === 'ui.set')).toHaveLength(1)
     owner.store.flush()
+    other.store.flush()
     await closeTestStores()
+    testState.dir = owner.directory
     expect(createStore().getUI()).toMatchObject({ filterRepoIds: ['A-new'], sortBy: 'name' })
+    testState.dir = other.directory
+    expect(createStore().getUI().filterRepoIds).toEqual(['B-old'])
   } finally {
     session.closeActiveRuntimeClients()
     delayed.forEach((reply) => reply())
     await owner.close()
+    await other.close()
     vi.unstubAllGlobals()
   }
 }, 20_000)
