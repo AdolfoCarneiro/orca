@@ -73,6 +73,7 @@ async function runChild(host: 'electron' | 'node', mode: 'clear' | 'keep', holde
 }
 
 describeOnWindows('clearing std handle inheritance', () => {
+  // A regression pins the pipe for the 60 s holder; fail on the assertion, not the 5 s default.
   it('keeps stdio inherit output and frees the pipe while a detached holder lives', async () => {
     const run = await runChild('electron', 'clear', 60_000)
 
@@ -82,6 +83,7 @@ describeOnWindows('clearing std handle inheritance', () => {
     expect(run.holderAliveAtClose).toBe(true)
   }, 90_000)
 
+  // Cold Electron start on a CI runner plus the 3 s holder exceeds the 5 s default.
   it('without it, Electron main lets the holder keep the pipe open until it exits', async () => {
     const run = await runChild('electron', 'keep', 3_000)
 
@@ -90,6 +92,7 @@ describeOnWindows('clearing std handle inheritance', () => {
     expect(run.holderAliveAtClose).toBe(false)
   }, 60_000)
 
+  // A regression pins the pipe for the 60 s holder; fail on the assertion, not the 5 s default.
   it('plain Node already clears its own std handles, so it is no model for Orca', async () => {
     const run = await runChild('node', 'keep', 60_000)
 
