@@ -14,7 +14,7 @@ import {
 
 type WslDistroNotRunning = NonNullable<DetectedWorktreeListResult['wslDistroStopped']>
 
-/** A stopped distro is a state, not a failure: neutral, with stored rows and a non-booting re-check. */
+/** A stopped distro is a state, not a failure: neutral, with stored rows and a click that may start it. */
 export function RepoWslDistroStoppedIndicator({
   repo,
   notRunning
@@ -36,9 +36,18 @@ export function RepoWslDistroStoppedIndicator({
           "Couldn't confirm WSL distro {{value0}} is running",
           { value0: notRunning.distro }
         )
-  const checkAgain = translate(
-    'auto.components.sidebar.RepoScanUnavailableIndicator.wslCheckAgain',
-    'Check again'
+  // The click is a user act, so this scan may start the distro; a failed start still re-lists.
+  const startAndScan = async (): Promise<void> => {
+    try {
+      await window.api.worktrees.scanStartingWslDistro?.({ repoId: repo.id })
+    } catch {
+      // The re-list below reports the distro's state.
+    }
+    await fetchWorktrees(repo.id, { executionHostId: getRepoExecutionHostId(repo) })
+  }
+  const startAndScanLabel = translate(
+    'auto.components.sidebar.RepoScanUnavailableIndicator.wslStartAndScan',
+    'Start distro and scan'
   )
   return (
     <TooltipProvider disableHoverableContent={false}>
@@ -51,7 +60,7 @@ export function RepoWslDistroStoppedIndicator({
               'inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground',
               pending && 'opacity-60'
             )}
-            aria-label={`${title}. ${checkAgain}`}
+            aria-label={`${title}. ${startAndScanLabel}`}
             aria-busy={pending}
             disabled={pending}
             onKeyDown={stopRepoHeaderKeyboardToggle}
@@ -60,9 +69,7 @@ export function RepoWslDistroStoppedIndicator({
               event.preventDefault()
               event.stopPropagation()
               setPending(true)
-              void fetchWorktrees(repo.id, {
-                executionHostId: getRepoExecutionHostId(repo)
-              }).finally(() => setPending(false))
+              void startAndScan().finally(() => setPending(false))
             }}
           >
             <PowerOff className="size-3.5" aria-hidden="true" />
@@ -77,18 +84,10 @@ export function RepoWslDistroStoppedIndicator({
                 'Showing the worktrees Orca already knew about. They refresh when Orca sees the distro running.'
               )}
             </div>
-            {notRunning.state === 'stopped' ? (
-              <div className="text-muted-foreground">
-                {translate(
-                  'auto.components.sidebar.RepoScanUnavailableIndicator.wslStartHint',
-                  'Open a terminal in this project to start it.'
-                )}
-              </div>
-            ) : null}
             <div className="text-muted-foreground">
               {translate(
-                'auto.components.sidebar.RepoScanUnavailableIndicator.wslCheckAgainHint',
-                'Click the icon to check again.'
+                'auto.components.sidebar.RepoScanUnavailableIndicator.wslStartAndScanHint',
+                'Click the icon to start the distro and scan again.'
               )}
             </div>
           </div>

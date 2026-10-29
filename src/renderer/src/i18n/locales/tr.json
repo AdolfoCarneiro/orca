@@ -7066,9 +7066,8 @@
           "wslStoppedTitle": "WSL dağıtımı {{value0}} durduruldu",
           "wslUnverifiableTitle": "WSL dağıtımı {{value0}} öğesinin çalıştığı doğrulanamadı",
           "wslRetained": "Orca'nın zaten bildiği worktree'ler gösteriliyor. Orca dağıtımın çalıştığını gördüğünde yenilenirler.",
-          "wslStartHint": "Başlatmak için bu projede bir terminal açın.",
-          "wslCheckAgain": "Yeniden denetle",
-          "wslCheckAgainHint": "Yeniden denetlemek için simgeye tıklayın."
+          "wslStartAndScan": "Dağıtımı başlat ve tara",
+          "wslStartAndScanHint": "Dağıtımı başlatıp yeniden taramak için simgeye tıklayın."
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Git'i kullanmak için Xcode lisansını kabul edin",

@@ -7408,9 +7408,8 @@
           "wslStoppedTitle": "Дистрибутив WSL {{value0}} остановлен",
           "wslUnverifiableTitle": "Не удалось подтвердить, что дистрибутив WSL {{value0}} запущен",
           "wslRetained": "Показаны рабочие деревья, уже известные Orca. Они обновятся, когда Orca увидит, что дистрибутив запущен.",
-          "wslStartHint": "Откройте терминал в этом проекте, чтобы запустить его.",
-          "wslCheckAgain": "Проверить снова",
-          "wslCheckAgainHint": "Нажмите на значок, чтобы проверить снова."
+          "wslStartAndScan": "Запустить дистрибутив и сканировать",
+          "wslStartAndScanHint": "Нажмите на значок, чтобы запустить дистрибутив и выполнить сканирование снова."
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Примите лицензию Xcode для работы Git",

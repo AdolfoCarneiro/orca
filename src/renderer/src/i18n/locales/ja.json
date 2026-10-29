@@ -6444,9 +6444,8 @@
           "wslStoppedTitle": "WSL ディストリビューション {{value0}} は停止しています",
           "wslUnverifiableTitle": "WSL ディストリビューション {{value0}} が実行中か確認できませんでした",
           "wslRetained": "Orca が把握済みのワークツリーを表示しています。ディストリビューションの実行を Orca が確認すると更新されます。",
-          "wslStartHint": "起動するには、このプロジェクトでターミナルを開いてください。",
-          "wslCheckAgain": "再確認",
-          "wslCheckAgainHint": "アイコンをクリックすると再確認します。"
+          "wslStartAndScan": "ディストリビューションを起動してスキャン",
+          "wslStartAndScanHint": "アイコンをクリックすると、ディストリビューションを起動して再スキャンします。"
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Git を使うには Xcode ライセンスに同意してください",

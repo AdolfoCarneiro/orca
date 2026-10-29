@@ -11877,9 +11877,8 @@
           "wslStoppedTitle": "A distribuição WSL {{value0}} está parada",
           "wslUnverifiableTitle": "Não foi possível confirmar que a distribuição WSL {{value0}} está em execução",
           "wslRetained": "Mostrando as worktrees que o Orca já conhecia. Elas são atualizadas quando o Orca vê a distribuição em execução.",
-          "wslStartHint": "Abra um terminal neste projeto para iniciá-la.",
-          "wslCheckAgain": "Verificar novamente",
-          "wslCheckAgainHint": "Clique no ícone para verificar novamente."
+          "wslStartAndScan": "Iniciar distribuição e verificar",
+          "wslStartAndScanHint": "Clique no ícone para iniciar a distribuição e verificar novamente."
         },
         "AutoRenameFailedDialog": {
           "aed1623b1e": "Fechar",

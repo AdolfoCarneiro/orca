@@ -7130,9 +7130,8 @@
           "wslStoppedTitle": "WSL distro {{value0}} is stopped",
           "wslUnverifiableTitle": "Couldn't confirm WSL distro {{value0}} is running",
           "wslRetained": "Showing the worktrees Orca already knew about. They refresh when Orca sees the distro running.",
-          "wslStartHint": "Open a terminal in this project to start it.",
-          "wslCheckAgain": "Check again",
-          "wslCheckAgainHint": "Click the icon to check again."
+          "wslStartAndScan": "Start distro and scan",
+          "wslStartAndScanHint": "Click the icon to start the distro and scan again."
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Accept the Xcode license to use Git",

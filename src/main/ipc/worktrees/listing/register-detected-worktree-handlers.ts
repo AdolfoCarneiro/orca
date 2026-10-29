@@ -23,6 +23,7 @@ import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switc
 import { dropWorkspacesTheListingInvalidates } from '../../../persistence/restoring-sessions/invalid-workspace-layout-purge'
 import { notifyWatchedWorktreeCatalogChanged } from '../../watched-worktree-catalog-notification'
 import { setWslStoppedWorktreeRescanNotifier } from './wsl-stopped-worktree-listing'
+import { scanWorktreesStartingWslDistro } from './wsl-distro-starting-scan'
 
 export const DETECTED_WORKTREE_PROVIDER_TIMEOUT_MS = 30_000
 
@@ -127,6 +128,15 @@ export function registerDetectedWorktreeHandlers(context: WorktreeIpcContext): v
             source: 'metadata-fallback',
             worktrees: []
           }
+    }
+  )
+
+  ipcMain.handle(
+    'worktrees:scanStartingWslDistro',
+    async (_event, args: { repoId: string }): Promise<void> => {
+      if (typeof args?.repoId === 'string') {
+        await scanWorktreesStartingWslDistro(store, args.repoId)
+      }
     }
   )
 

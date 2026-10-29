@@ -6712,9 +6712,8 @@
           "wslStoppedTitle": "La distribución WSL {{value0}} está detenida",
           "wslUnverifiableTitle": "No se pudo confirmar que la distribución WSL {{value0}} esté en ejecución",
           "wslRetained": "Se muestran los worktrees que Orca ya conocía. Se actualizan cuando Orca detecta la distribución en ejecución.",
-          "wslStartHint": "Abre una terminal en este proyecto para iniciarla.",
-          "wslCheckAgain": "Comprobar de nuevo",
-          "wslCheckAgainHint": "Haz clic en el icono para comprobar de nuevo."
+          "wslStartAndScan": "Iniciar distribución y escanear",
+          "wslStartAndScanHint": "Haz clic en el icono para iniciar la distribución y volver a escanear."
         },
         "manualSortSwitch": {
           "title": "Orden cambiado a Manual",

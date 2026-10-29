@@ -6922,9 +6922,8 @@
           "wslStoppedTitle": "La distribution WSL {{value0}} est arrêtée",
           "wslUnverifiableTitle": "Impossible de confirmer que la distribution WSL {{value0}} est en cours d'exécution",
           "wslRetained": "Affichage des worktrees déjà connus d'Orca. Ils sont actualisés dès qu'Orca voit la distribution en cours d'exécution.",
-          "wslStartHint": "Ouvrez un terminal dans ce projet pour la démarrer.",
-          "wslCheckAgain": "Vérifier à nouveau",
-          "wslCheckAgainHint": "Cliquez sur l'icône pour vérifier à nouveau."
+          "wslStartAndScan": "Démarrer la distribution et analyser",
+          "wslStartAndScanHint": "Cliquez sur l'icône pour démarrer la distribution et relancer l'analyse."
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Acceptez la licence Xcode pour utiliser Git",

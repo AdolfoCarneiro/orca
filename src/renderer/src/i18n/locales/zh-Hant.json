@@ -6906,9 +6906,8 @@
           "wslStoppedTitle": "WSL 發行版 {{value0}} 已停止",
           "wslUnverifiableTitle": "無法確認 WSL 發行版 {{value0}} 正在執行",
           "wslRetained": "正在顯示 Orca 已知的工作樹。Orca 偵測到該發行版執行後會重新整理。",
-          "wslStartHint": "在此專案中開啟終端機即可啟動它。",
-          "wslCheckAgain": "再次檢查",
-          "wslCheckAgainHint": "點擊圖示再次檢查。"
+          "wslStartAndScan": "啟動發行版並掃描",
+          "wslStartAndScanHint": "點擊圖示啟動該發行版並重新掃描。"
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "接受 Xcode 授權條款以使用 Git",
