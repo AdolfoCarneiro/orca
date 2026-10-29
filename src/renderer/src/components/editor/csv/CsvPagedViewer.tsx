@@ -26,6 +26,7 @@ export default function CsvPagedViewer({
   preferenceKey?: string
   onReload: () => void
 }): React.JSX.Element {
+  useUiLanguageRevision()
   const [sniff, setSniff] = useState<{ delimiter: string; error: string | null } | null>(null)
   const [choice, setChoice] = useState<CsvDelimiterChoice>('auto')
   useEffect(() => {
@@ -96,7 +97,6 @@ function CsvPagedTable({
   onChange: (choice: CsvDelimiterChoice) => void
   onReload: () => void
 }): React.JSX.Element {
-  useUiLanguageRevision()
   const storedKey = JSON.stringify([
     preferenceKey ??
       buildFileViewPreferenceKey({
