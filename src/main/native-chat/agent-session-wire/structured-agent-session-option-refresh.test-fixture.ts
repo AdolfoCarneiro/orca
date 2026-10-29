@@ -4,7 +4,10 @@ import type {
   AgentSessionOptionResult,
   AgentSessionOptionsResult
 } from '../../../shared/agent-session-wire'
-import type { SessionOptionDescriptor } from '../../../shared/native-chat/input/native-chat-session-options'
+import type {
+  PiRefreshHarness,
+  PiRefreshMount
+} from '../../../shared/structured-agent-session-option-refresh.test-fixture-contract'
 import type { AgentModelCatalogService } from '../agent-model-catalog/agent-model-catalog-service'
 import type { StructuredAgentSessionMutationContext } from './structured-agent-session-host-mutations'
 import type { StructuredAgentSessionLiveOptions } from './structured-agent-session-option-models'
@@ -123,16 +126,6 @@ export function piOptionRefreshHost(sessionId = 'session-1') {
   }
   return host
 }
-
-type Host = ReturnType<typeof piOptionRefreshHost>
-export type PiRefreshHarness = {
-  snapshot: () => readonly SessionOptionDescriptor[]
-  demand: () => void
-  pick: (value: string) => Promise<boolean>
-  replace: (fence: number, otherHost?: boolean) => Promise<void>
-  close: () => Promise<void>
-}
-export type PiRefreshMount = (host: Host) => Promise<PiRefreshHarness>
 
 function effort(view: PiRefreshHarness) {
   return view.snapshot().find((entry) => entry.id === 'effort')

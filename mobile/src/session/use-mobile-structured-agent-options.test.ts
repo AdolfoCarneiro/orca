@@ -1,4 +1,4 @@
-import { piOptionRefreshContract } from '../../../src/main/native-chat/agent-session-wire/structured-agent-session-option-refresh.test-fixture'
+import type { PiRefreshFixtureModule } from '../../../src/shared/structured-agent-session-option-refresh.test-fixture-contract'
 import { createElement, useLayoutEffect } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
@@ -15,6 +15,11 @@ import type {
 } from './mobile-structured-agent-session-rpc'
 import { useMobileStructuredAgentOptions } from './use-mobile-structured-agent-options'
 import { rememberMobileCreatedStructuredSession } from './mobile-created-structured-sessions'
+
+// Load the real host at runtime without adding its Node-only graph to the mobile project.
+const { piOptionRefreshContract } = await vi.importActual<PiRefreshFixtureModule>(
+  '../../../src/main/native-chat/agent-session-wire/structured-agent-session-option-refresh.test-fixture'
+)
 
 const OPTIONS: AgentSessionOptionsResult = {
   models: [

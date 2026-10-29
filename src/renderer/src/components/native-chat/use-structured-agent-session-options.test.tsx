@@ -28,10 +28,15 @@ vi.mock('@/lib/structured-agent-session-launch-options', () => ({
   getStructuredAgentSessionLaunchSelection: () => null
 }))
 
-import {
-  piOptionRefreshContract,
-  type PiRefreshMount
-} from '../../../../main/native-chat/agent-session-wire/structured-agent-session-option-refresh.test-fixture'
+import type {
+  PiRefreshFixtureModule,
+  PiRefreshMount
+} from '../../../../shared/structured-agent-session-option-refresh.test-fixture-contract'
+
+// Load the real host at runtime without adding its Node-only graph to the renderer project.
+const { piOptionRefreshContract } = await vi.importActual<PiRefreshFixtureModule>(
+  '../../../../main/native-chat/agent-session-wire/structured-agent-session-option-refresh.test-fixture'
+)
 
 import type { SessionOptionDescriptor } from '../../../../shared/native-chat/input/native-chat-session-options'
 import type { StructuredAgentSessionMutate } from './use-structured-agent-session-mutate'
