@@ -51,7 +51,8 @@ export type MockTransport = {
 
 export function createMockTransport(initialPtyId: string | null = null): MockTransport {
   let ptyId = initialPtyId
-  const transport = {
+  const sendInput: MockTransport['sendInput'] = vi.fn(() => true)
+  const transport: MockTransport = {
     attach: vi.fn<PtyTransport['attach']>(({ existingPtyId }) => {
       ptyId = existingPtyId
     }),
@@ -65,18 +66,17 @@ export function createMockTransport(initialPtyId: string | null = null): MockTra
     disconnect: vi.fn(() => {
       ptyId = null
     }),
-    sendInput: vi.fn(() => true),
+    sendInput,
+    // Query replies use the same spy as ordinary input (#7329).
+    sendInputImmediate: vi.fn((data: string): boolean => sendInput(data)),
+    sendInputAccepted: vi.fn(async (data: string): Promise<boolean> => sendInput(data)),
     claimViewport: vi.fn(() => true),
     resize: vi.fn(() => true),
     getPtyId: vi.fn(() => ptyId),
     getConnectionId: vi.fn(() => null),
     serializeBuffer: undefined
-  } as MockTransport
+  }
   transport.isConnected = vi.fn(() => ptyId !== null)
-  const sendInput = transport.sendInput as unknown as (data: string) => boolean
-  // Why: query replies route through sendInputImmediate; delegate to the same spy so reply-delivery assertions still observe them (#7329).
-  transport.sendInputImmediate = vi.fn((data: string) => sendInput(data))
-  transport.sendInputAccepted = vi.fn(async (data: string) => sendInput(data))
   return transport
 }
 
