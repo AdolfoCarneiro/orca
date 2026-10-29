@@ -1,5 +1,5 @@
 import type { JSONContent } from '@tiptap/react'
-import { imageReferenceToken } from '../../../../shared/native-chat-image-reference'
+import { imageReferenceToken } from '../../../../shared/native-chat/native-chat-image-reference'
 import {
   agentReferenceToken,
   isPublicOrchestrationAddress,
