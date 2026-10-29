@@ -18894,11 +18894,6 @@
     }
   },
   "components": {
-    "orchestrationCrew": {
-      "mentionAll": "Mention all",
-      "mentionInMessage": "Mention in message",
-      "mentionRejected": "The terminal did not accept the agent reference. Try again."
-    },
     "onboarding": {
       "flow": {
         "stepTooltip": {
@@ -20384,6 +20379,9 @@
       "stepCheck": "Check"
     },
     "orchestrationCrew": {
+      "mentionAll": "Mention all",
+      "mentionInMessage": "Mention in message",
+      "mentionRejected": "The terminal did not accept the agent reference. Try again.",
       "workers": "{{total}} workers",
       "managedByNames": "Managed by {{names}}",
       "talkingWithNames": "Talking with {{names}}",

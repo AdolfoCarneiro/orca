@@ -490,7 +490,6 @@ function useCapturedPrompt(
     resolvePendingImageAttachment: () => {},
     dropPendingImageAttachment: () => {},
     setNotice: () => {},
-    pastesInline: () => false,
     pastedTextEditor: () => input.current
   })
   useNativeChatComposerEditSession({
