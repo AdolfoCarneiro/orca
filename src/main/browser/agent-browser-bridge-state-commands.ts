@@ -22,6 +22,7 @@ import {
   type AgentBrowserConsoleOutput,
   type AgentBrowserNetworkOutput
 } from './agent-browser-log-entries'
+import { touchEmulationParams } from './guest-touch-emulation'
 
 export abstract class AgentBrowserBridgeStateCommands extends AgentBrowserBridgeInteractionCommands {
   async cookieGet(
@@ -110,6 +111,11 @@ export abstract class AgentBrowserBridgeStateCommands extends AgentBrowserBridge
         deviceScaleFactor: scale,
         mobile
       })
+      await sendGuestCdpCommand(
+        wc,
+        'Emulation.setTouchEmulationEnabled',
+        touchEmulationParams(mobile)
+      )
       // Metrics-only resize can leave the compositor at its old size and crop remote screencasts.
       await sendGuestCdpCommand(wc, 'Emulation.setVisibleSize', { width, height }).catch(() => {})
 

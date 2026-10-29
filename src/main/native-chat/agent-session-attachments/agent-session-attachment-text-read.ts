@@ -27,9 +27,7 @@ export async function readAttachmentTextChunk(
     entryPath: request.path,
     targetPath: request.path,
     implicitRootPath: null,
-    authorizedRootPaths: [],
-    maxTextBytes: 0,
-    maxBinaryBytes: 0
+    authorizedRootPaths: []
   })
   try {
     const snapshot = async () => {
