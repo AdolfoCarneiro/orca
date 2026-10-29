@@ -186,8 +186,19 @@ function getClickedLinkHref(view: EditorView, event: MouseEvent): string {
       : event.target instanceof Node
         ? event.target.parentElement
         : null
-  const link = target?.closest('a[href]')
-  return link && view.dom.contains(link) ? (link.getAttribute('href') ?? '') : ''
+  const link = target?.closest('a')
+  if (!link || !view.dom.contains(link)) {
+    return ''
+  }
+  // The rendered href is blanked for file:, drive-path and custom schemes, so read the mark instead.
+  let linkPos: number
+  try {
+    linkPos = view.posAtDOM(link, 0)
+  } catch {
+    return ''
+  }
+  const linkMark = view.state.doc.nodeAt(linkPos)?.marks.find((mark) => mark.type.name === 'link')
+  return linkMark ? String(linkMark.attrs.href ?? '') : ''
 }
 
 function openShiftModifiedMarkdownLink({

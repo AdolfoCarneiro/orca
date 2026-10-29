@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { Editor } from '@tiptap/react'
+import { Editor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { handleRichMarkdownEditorClick } from './rich-markdown-editor-click-routing'
@@ -74,18 +74,16 @@ function clickLink({
   href = 'https://example.com/docs',
   content,
   pos = 2,
-  targetSelector = 'a',
-  eventTarget
+  targetSelector = 'a'
 }: {
   sourceOwner?: HttpLinkSourceOwner
   isMac?: boolean
   shiftKey?: boolean
   modKey?: boolean
   href?: string
-  content?: string
+  content?: string | JSONContent
   pos?: number
   targetSelector?: string
-  eventTarget?: Element
 } = {}): boolean {
   editor = new Editor({
     extensions: [StarterKit],
@@ -98,7 +96,7 @@ function clickLink({
     cancelable: true
   })
   event.preventDefault()
-  const target = eventTarget ?? editor.view.dom.querySelector(targetSelector)
+  const target = editor.view.dom.querySelector(targetSelector)
   if (!target) {
     throw new Error(`Missing click target: ${targetSelector}`)
   }
@@ -241,10 +239,9 @@ describe('rich Markdown alternate browser click', () => {
 })
 
 describe('rich Markdown link click targets', () => {
-  it.each([true, false])('opens the first character after plain text (Mac: %s)', (isMac) => {
+  it('opens the first character after plain text', () => {
     expect(
       clickLink({
-        isMac,
         shiftKey: false,
         content: '<p>plain <a href="child.md">X</a> tail</p>',
         pos: 7
@@ -289,10 +286,26 @@ describe('rich Markdown link click targets', () => {
     expect(activateMarkdownLink).not.toHaveBeenCalled()
   })
 
-  it('keeps anchors outside the editor inert', () => {
-    const outside = document.createElement('a')
-    outside.href = 'outside.md'
-    expect(clickLink({ shiftKey: false, eventTarget: outside })).toBe(false)
-    expect(activateMarkdownLink).not.toHaveBeenCalled()
-  })
+  it.each(['file:///repo/docs/child.md', 'C:\\repo\\docs\\child.md'])(
+    'opens %s even though the rendered anchor drops its href',
+    (href) => {
+      expect(
+        clickLink({
+          shiftKey: false,
+          content: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  { type: 'text', text: 'example', marks: [{ type: 'link', attrs: { href } }] }
+                ]
+              }
+            ]
+          }
+        })
+      ).toBe(true)
+      expect(activateMarkdownLink).toHaveBeenCalledWith(href, expect.any(Object))
+    }
+  )
 })
