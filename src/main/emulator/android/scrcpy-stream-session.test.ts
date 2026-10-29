@@ -201,3 +201,81 @@ describe('ScrcpyStreamSession teardown', () => {
     expect(callbacks.onClose).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('ScrcpyStreamSession video socket lifetime', () => {
+  it('rejects startup and releases the stream when a partial handshake closes', async () => {
+    const { video, server, callbacks, started } = await startSession()
+    const result = started.then(
+      () => null,
+      (error: unknown) => error
+    )
+    try {
+      video.emit('data', handshake().subarray(0, 1))
+      video.emit('close')
+      expect(callbacks.onError).toHaveBeenCalledExactlyOnceWith('scrcpy video stream closed')
+      expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+      expect(await result).toEqual(new Error('scrcpy video stream closed'))
+      expect(server.kill).toHaveBeenCalledTimes(1)
+    } finally {
+      server.emit('exit', 1)
+      await result
+    }
+  })
+
+  it('releases an established stream when its video socket closes', async () => {
+    const { video, control, server, callbacks, started } = await startSession()
+    video.emit('data', handshake())
+    const session = await started
+    try {
+      video.emit('close')
+      expect(callbacks.onError).toHaveBeenCalledExactlyOnceWith('scrcpy video stream closed')
+      expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+      expect(control.destroy).toHaveBeenCalledTimes(1)
+      expect(server.kill).toHaveBeenCalledTimes(1)
+    } finally {
+      session.close()
+    }
+  })
+
+  it('still retries a connection that fails before its first byte', async () => {
+    const { video, control, server, callbacks, started } = await startSession()
+    const replacement = new TestSocket()
+    io.connect.mockReset().mockReturnValueOnce(replacement).mockReturnValueOnce(control)
+    vi.useFakeTimers()
+    const result = started.then(
+      (session) => session,
+      () => null
+    )
+    try {
+      video.emit('error', new Error('not ready'))
+      video.emit('close')
+      await vi.advanceTimersByTimeAsync(100)
+      expect(io.connect).toHaveBeenCalledTimes(1)
+      replacement.emit('data', handshake())
+      const session = await result
+      expect(session).not.toBeNull()
+      expect(callbacks.onError).not.toHaveBeenCalled()
+      session?.close()
+      expect(replacement.destroy).toHaveBeenCalledTimes(1)
+      expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+    } finally {
+      server.emit('exit', 1)
+      await result
+      vi.useRealTimers()
+    }
+  })
+
+  it('owns the socket before its first byte and ignores data after helper exit', async () => {
+    const { video, server, callbacks, started } = await startSession()
+    const rejected = expect(started).rejects.toThrow(
+      'scrcpy server exited before the video stream started'
+    )
+    server.emit('exit', 1)
+    await rejected
+    expect(video.destroy).toHaveBeenCalledTimes(1)
+    video.emit('data', handshake())
+    expect(callbacks.onMeta).not.toHaveBeenCalled()
+    expect(io.connect).toHaveBeenCalledTimes(1)
+    expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+  })
+})

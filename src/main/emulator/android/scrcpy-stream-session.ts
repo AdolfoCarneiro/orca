@@ -144,6 +144,7 @@ export class ScrcpyStreamSession {
       return
     }
     const socket = connect(this.port, '127.0.0.1')
+    this.videoSocket = socket
     // error and close can both fire; settle once to avoid duplicate retry chains.
     let settled = false
     const retry = (): void => {
@@ -160,13 +161,13 @@ export class ScrcpyStreamSession {
       setTimeout(() => this.openVideoSocket(attempt + 1), 100)
     }
     socket.once('data', (chunk: Buffer) => {
-      if (settled) {
+      if (settled || this.closed) {
         return
       }
       settled = true
       socket.setTimeout(0)
       emulatorProbe('scrcpy.video.connected', { attempt, bytes: chunk.length })
-      this.videoSocket = socket
+      socket.once('close', () => this.fail('scrcpy video stream closed'))
       socket.on('data', (next: Buffer) => this.handleVideoChunk(next))
       socket.on('error', (error) => this.fail(error.message))
       this.handleVideoChunk(chunk)
