@@ -1,3 +1,4 @@
+import { wslDistroForCommand } from '../../shared/wsl-paths'
 import { mergeCommandEnvironment } from '../../shared/command-environment'
 import type { CommitMessagePlan } from '../../shared/commit-message-plan'
 import {
@@ -26,31 +27,31 @@ export function runLocalPlanForAgent(input: {
   spawnAgent: SpawnSourceControlAgent
   shouldExecute?: () => boolean
 }): Promise<InternalTextGenerationResult> {
+  const wslDistro = input.plan.promptFile
+    ? (wslDistroForCommand(input.target.cwd, input.target.wslDistro) ?? undefined)
+    : input.target.wslDistro
   const target = {
     ...input.target,
+    wslDistro,
     env: mergeCommandEnvironment(
       input.target.env,
       input.plan.env,
-      input.target.wslDistro ? 'linux' : process.platform
+      wslDistro ? 'linux' : process.platform
     )
   }
   const start = (): LocalProcessExecution<InternalTextGenerationResult> => {
     if (input.shouldExecute && !input.shouldExecute()) {
       return {
-        result: Promise.resolve({
-          success: false,
-          error: 'Generation canceled.',
-          canceled: true
-        }),
+        result: Promise.resolve({ success: false, error: 'Generation canceled.', canceled: true }),
         processClosed: Promise.resolve()
       }
     }
     return runLocalSourceControlPlan({
       plan: input.plan,
       cwd: input.target.cwd,
-      env: input.target.wslDistro ? input.target.env : target.env,
+      env: wslDistro ? input.target.env : target.env,
       operation: input.operation,
-      wslDistro: input.target.wslDistro,
+      wslDistro,
       spawnAgent: input.spawnAgent
     })
   }
@@ -92,22 +93,14 @@ function runCodexLocalPlanUnderHomeLock(
   })
   const queuedCancel = (): void => {
     canceledWhileQueued = true
-    publishResult({
-      success: false,
-      error: 'Generation canceled.',
-      canceled: true
-    })
+    publishResult({ success: false, error: 'Generation canceled.', canceled: true })
   }
   setLocalGenerationCancelToken(laneKey, queuedCancel)
   const operationSettled = withCodexHomeProcessLock(
     resolveCodexHomeProcessLockKeyForSpawnEnv(target.env, target.wslDistro, commandEnv),
     async () => {
       if (canceledWhileQueued) {
-        publishResult({
-          success: false,
-          error: 'Generation canceled.',
-          canceled: true
-        })
+        publishResult({ success: false, error: 'Generation canceled.', canceled: true })
         return
       }
       const execution = start()
