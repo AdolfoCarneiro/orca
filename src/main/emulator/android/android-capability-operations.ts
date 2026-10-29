@@ -33,7 +33,10 @@ export async function launchAndroidApp(
   packageName: string,
   activity?: string
 ): Promise<void> {
-  ensureAdbOk(await runner(sdk.adb, launchAppArgs(serial, packageName, activity)), 'adb launch')
+  // Older Android releases return exit 0 after am start reports an activity launch failure.
+  ensureAdbOk(await runner(sdk.adb, launchAppArgs(serial, packageName, activity)), 'adb launch', {
+    checkErrorOutput: true
+  })
 }
 
 export async function setAndroidPermission(
@@ -55,15 +58,12 @@ export async function dumpAndroidAccessibilityTree(
   sdk: AndroidSdkPaths,
   serial: string
 ): Promise<AndroidAxNode> {
-  const dump = ensureAdbOk(
-    await runner(sdk.adb, ['-s', serial, 'shell', 'uiautomator', 'dump', UIAUTOMATOR_DUMP_PATH]),
-    'uiautomator dump'
-  )
   // uiautomator reports idle/root failures with exit 0 and leaves the previous XML untouched.
-  const failure = `${dump.stdout}\n${dump.stderr}`.match(/^\s*ERROR:.*$/im)?.[0]
-  if (failure) {
-    throw new EmulatorError('emulator_error', `uiautomator dump failed: ${failure.trim()}`)
-  }
+  ensureAdbOk(
+    await runner(sdk.adb, ['-s', serial, 'shell', 'uiautomator', 'dump', UIAUTOMATOR_DUMP_PATH]),
+    'uiautomator dump',
+    { checkErrorOutput: true }
+  )
   const xml = ensureAdbOk(
     await runner(sdk.adb, ['-s', serial, 'shell', 'cat', UIAUTOMATOR_DUMP_PATH]),
     'read ui dump'
