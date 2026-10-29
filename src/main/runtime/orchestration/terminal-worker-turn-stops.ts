@@ -7,6 +7,7 @@ import { TerminalAgentTurnNews, type TerminalAgentTurnNewsItem } from '../termin
 import type { OrchestrationDb } from './db'
 import { redactWorkerTerminalView } from './worker-terminal-redaction'
 import {
+  reportWorkerExit,
   reportWorkerTurnStop,
   workerTurnStopDispatchId,
   type WorkerTurnStopDispatch,
@@ -20,6 +21,10 @@ export type TerminalWorkerTurnStopsDeps = WorkerTurnStopReportDeps & {
   getHandle: (paneKey: string) => string | null
   getProcessIncarnation: (handle: string) => string | null
   readScreen: (handle: string) => Promise<RuntimeTerminalRead>
+  /** Fresh execution-host proof that only the shell runs in the pane; unverifiable is false. */
+  confirmShellAlone: (ptyId: string) => Promise<boolean>
+  /** Changes when the PTY relaunches an agent or the pane gets a new PTY. */
+  readLaunchFence: (ptyId: string) => string | null
 }
 
 /** Report a terminal worker whose turn ended (or stopped at a prompt) while its Dispatch is open. */
@@ -47,24 +52,35 @@ export class TerminalWorkerTurnStops {
     this.news.observe(change)
   }
 
-  /** The launched agent's command ended while its shell lives; a killed agent sends no stop hook and its PTY never exits. */
-  observeAgentExit(paneKey: string): void {
-    const resolved = this.resolve(paneKey)
-    if (!resolved) {
+  /** A command or agent title ended in the pane; a killed agent sends no stop hook and its shell keeps the PTY open. */
+  observeCommandEnded(paneKey: string, ptyId: string): void {
+    const seen = this.resolve(paneKey)
+    if (!seen) {
       return
     }
-    reportWorkerTurnStop(
-      resolved.db,
-      resolved.target,
-      {
-        from: resolved.handle,
-        stopKey: `agent-exit:${this.deps.getProcessIncarnation(resolved.handle)}`,
-        reason: 'exited',
-        lastOutput: undefined,
-        exitCause: 'the agent process ended; its terminal is still open'
-      },
-      this.deps
-    )
+    const dispatchId = workerTurnStopDispatchId(seen.target)
+    const launch = this.deps.readLaunchFence(ptyId)
+    void this.deps.confirmShellAlone(ptyId).then((alone) => {
+      // A nested shell's completion leaves the agent running; a relaunch since is a new agent.
+      const resolved = alone ? this.resolve(paneKey) : null
+      if (
+        !resolved ||
+        workerTurnStopDispatchId(resolved.target) !== dispatchId ||
+        this.deps.readLaunchFence(ptyId) !== launch
+      ) {
+        return
+      }
+      reportWorkerExit(
+        resolved.db,
+        resolved.target,
+        {
+          from: resolved.handle,
+          processIncarnation: this.deps.getProcessIncarnation(resolved.handle),
+          exitCause: 'the agent process ended; its terminal is still open'
+        },
+        this.deps
+      )
+    })
   }
 
   private async report(stop: PreparedStop): Promise<void> {

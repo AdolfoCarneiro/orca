@@ -133,15 +133,14 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
     }
   }
 
-  /** Returns the panes of the launched agent it retired, none when the PTY had no launched agent. */
-  protected retirePtyAgentLaunchAuthority(ptyId: string): ReadonlySet<string> {
+  protected retirePtyAgentLaunchAuthority(ptyId: string): void {
     const pty = this.ptysById.get(ptyId)
     if (!pty) {
-      return new Set()
+      return
     }
     const receipt = this.restoredOrchestrationAuthorityByPtyId.get(ptyId)
     if (!pty.launchToken && !receipt && !pty.launchAgent && !pty.launchCommandAgent) {
-      return new Set()
+      return
     }
     // Why: collect before the delete below, which drops the restored-authority receipt a
     // receipt-only pane's key comes from.
@@ -154,7 +153,6 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
     for (const paneKey of paneKeys) {
       this.retireAgentHookCompatibilityAuthorityFn?.(paneKey)
     }
-    return paneKeys
   }
 
   async resolveTerminalCwd(handle: string): Promise<string | null> {

@@ -53,12 +53,17 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
     setTimer: unrefTimer,
     getHandle: (paneKey) => this.getTerminalHandleForPaneKey(paneKey),
     getProcessIncarnation: (handle) => this.getTerminalProcessIncarnation(handle),
-    readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 })
+    readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 }),
+    confirmShellAlone: (ptyId) => this.confirmTerminalShellAlone(ptyId),
+    readLaunchFence: (ptyId) => {
+      const pty = this.ptysById.get(ptyId)
+      return pty ? `${pty.incarnationId}:${pty.launchToken}` : null
+    }
   })
 
-  protected observeLaunchedAgentCommandEnded(paneKeys: ReadonlySet<string>): void {
-    for (const paneKey of paneKeys) {
-      this.terminalWorkerTurnStops.observeAgentExit(paneKey)
+  protected observeWorkerCommandEnded(ptyId: string): void {
+    for (const paneKey of this.collectPaneKeysForPty(ptyId)) {
+      this.terminalWorkerTurnStops.observeCommandEnded(paneKey, ptyId)
     }
   }
 

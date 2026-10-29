@@ -22,7 +22,7 @@ import { parseWorkerTerminalHostScope } from '../../../../shared/worker-terminal
 import { getRepoIdFromWorktreeId } from '../../../../shared/worktree/id'
 import { escalateWorkerFailure } from '../../orchestration/worker-failure-escalation'
 import { dispatchReportMailbox } from '../../orchestration/dispatch-report-mailbox'
-import { reportWorkerTurnStop } from '../../orchestration/worker-turn-stop-report'
+import { reportWorkerExit } from '../../orchestration/worker-turn-stop-report'
 import { LOCAL_EXECUTION_HOST_ID, toSshExecutionHostId } from '../../../../shared/execution-host'
 import type { OrchestrationDb } from '../../orchestration/db'
 
@@ -92,16 +92,10 @@ export abstract class OrcaRuntimeWithSubscribeToTerminalResize extends OrcaRunti
     ) {
       return
     }
-    reportWorkerTurnStop(
+    reportWorkerExit(
       db,
       { kind: 'remote', attachment },
-      {
-        from: handle,
-        stopKey: `exit:${processIncarnation}`,
-        reason: 'exited',
-        lastOutput: undefined,
-        exitCause
-      },
+      { from: handle, processIncarnation, exitCause },
       this.workerTurnStopReportDeps
     )
   }

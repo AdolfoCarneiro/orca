@@ -139,3 +139,24 @@ export function reportWorkerTurnStop(
     console.warn('[orchestration] failed to relay a worker stop report', dispatchId, error)
   }
 }
+
+/** One key per process, so the shell regaining the pane and the PTY's later exit report it once. */
+export function reportWorkerExit(
+  db: OrchestrationDb,
+  target: WorkerTurnStopDispatch,
+  exit: { from: string; processIncarnation: string | null; exitCause: string },
+  deps: WorkerTurnStopReportDeps
+): void {
+  reportWorkerTurnStop(
+    db,
+    target,
+    {
+      from: exit.from,
+      stopKey: `exit:${exit.processIncarnation}`,
+      reason: 'exited',
+      lastOutput: undefined,
+      exitCause: exit.exitCause
+    },
+    deps
+  )
+}
