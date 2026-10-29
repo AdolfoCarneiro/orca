@@ -1,9 +1,11 @@
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import type * as TimersPromises from 'node:timers/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { escapeRegex } from '../../shared/string-utils'
+import { clearMacOSComputerUseHelperCompatibilityCache } from './macos-computer-use-helper-compatibility'
 
 const resolveHelperAppPathMock = vi.hoisted(() => vi.fn())
 const resolveHelperExecutablePathMock = vi.hoisted(() => vi.fn())
@@ -47,6 +49,8 @@ vi.mock('child_process', () => ({
   spawnSync: vi.fn()
 }))
 
+vi.mock('node:fs', () => ({ readFileSync: vi.fn() }))
+
 vi.mock('fs/promises', () => ({
   mkdtemp: vi.fn(),
   readFile: vi.fn(),
@@ -66,6 +70,12 @@ describe('getComputerUsePermissionStatus', () => {
     vi.mocked(spawn).mockClear()
     vi.mocked(spawnSync).mockClear()
     vi.mocked(execFileSync).mockReset()
+    vi.mocked(readFileSync)
+      .mockReset()
+      .mockImplementation(() => {
+        throw new Error('ENOENT')
+      })
+    clearMacOSComputerUseHelperCompatibilityCache()
     vi.mocked(mkdtemp).mockReset()
     vi.mocked(readFile).mockReset()
     vi.mocked(rm).mockReset()
@@ -226,12 +236,11 @@ describe('getComputerUsePermissionStatus', () => {
   })
 
   it('returns unavailable status without launching an incompatible helper app', async () => {
-    vi.mocked(execFileSync).mockImplementation((command) => {
-      if (command === '/usr/bin/sw_vers') {
-        return '13.6.9\n'
-      }
-      return '14.0\n'
-    })
+    vi.mocked(readFileSync).mockImplementation((path) =>
+      path === '/System/Library/CoreServices/SystemVersion.plist'
+        ? '<key>ProductVersion</key><string>13.6.9</string>'
+        : '<key>LSMinimumSystemVersion</key><string>14.0</string>'
+    )
     const { getComputerUsePermissionStatus } = await import('./macos-computer-use-permissions')
 
     await expect(getComputerUsePermissionStatus()).resolves.toEqual({

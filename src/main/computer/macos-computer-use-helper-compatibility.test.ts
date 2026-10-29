@@ -1,35 +1,33 @@
-import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearMacOSComputerUseHelperCompatibilityCache,
-  compareVersions,
   formatMacOSComputerUseHelperUnavailableReason,
   getMacOSComputerUseHelperCompatibility
 } from './macos-computer-use-helper-compatibility'
 
-vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }))
+vi.mock('node:fs', () => ({ readFileSync: vi.fn() }))
+
+const helperAppPath = '/Applications/Orca Computer Use.app'
+
+function mockPlists({ system, helper }: { system: string; helper: string }): void {
+  vi.mocked(readFileSync).mockImplementation((path) =>
+    path === '/System/Library/CoreServices/SystemVersion.plist'
+      ? `<dict>\n\t<key>ProductVersion</key>\n\t<string>${system}</string>\n</dict>`
+      : `<dict>\n  <key>LSMinimumSystemVersion</key>\n  <string>${helper}</string>\n</dict>`
+  )
+}
 
 describe('macOS Computer Use helper compatibility', () => {
   beforeEach(() => {
-    vi.mocked(execFileSync).mockReset()
+    vi.mocked(readFileSync).mockReset()
     clearMacOSComputerUseHelperCompatibilityCache()
   })
 
-  it('compares dotted macOS versions numerically', () => {
-    expect(compareVersions('13.6.9', '14.0')).toBeLessThan(0)
-    expect(compareVersions('14.0', '14')).toBe(0)
-    expect(compareVersions('14.10', '14.9')).toBeGreaterThan(0)
-  })
-
   it('reports an installed helper whose minimum exceeds the current OS', () => {
-    vi.mocked(execFileSync).mockImplementation((command) => {
-      if (command === '/usr/bin/sw_vers') {
-        return '13.6.9\n'
-      }
-      return '14.0\n'
-    })
+    mockPlists({ system: '13.6.9', helper: '14.0' })
 
-    const result = getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')
+    const result = getMacOSComputerUseHelperCompatibility(helperAppPath)
 
     expect(result).toEqual({
       compatible: false,
@@ -41,22 +39,26 @@ describe('macOS Computer Use helper compatibility', () => {
     )
   })
 
+  it('accepts a helper whose minimum matches the current OS', () => {
+    mockPlists({ system: '12.0', helper: '12.0' })
+
+    expect(getMacOSComputerUseHelperCompatibility(helperAppPath)?.compatible).toBe(true)
+  })
+
   it('does not classify unreadable metadata as a known incompatibility', () => {
-    vi.mocked(execFileSync).mockImplementation(() => {
+    vi.mocked(readFileSync).mockImplementation(() => {
       throw new Error('unreadable')
     })
 
-    expect(getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')).toBeNull()
+    expect(getMacOSComputerUseHelperCompatibility(helperAppPath)).toBeNull()
   })
 
   it('caches successful compatibility metadata for the immutable helper app', () => {
-    vi.mocked(execFileSync).mockImplementation((command) => {
-      return command === '/usr/bin/sw_vers' ? '12.7.6\n' : '12.0\n'
-    })
+    mockPlists({ system: '12.7.6', helper: '12.0' })
 
-    getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')
-    getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')
+    getMacOSComputerUseHelperCompatibility(helperAppPath)
+    getMacOSComputerUseHelperCompatibility(helperAppPath)
 
-    expect(execFileSync).toHaveBeenCalledTimes(2)
+    expect(readFileSync).toHaveBeenCalledTimes(2)
   })
 })

@@ -1,11 +1,14 @@
-import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { compareDottedVersions } from '../orcad/native-host-abi'
 
 export type MacOSHelperSystemCompatibility = {
   compatible: boolean
   currentVersion: string
   minimumVersion: string
 }
+
+const SYSTEM_VERSION_PLIST_PATH = '/System/Library/CoreServices/SystemVersion.plist'
 
 const compatibilityByHelperAppPath = new Map<string, MacOSHelperSystemCompatibility>()
 
@@ -17,12 +20,15 @@ export function getMacOSComputerUseHelperCompatibility(
     return cached
   }
   const currentVersion = readCurrentMacOSVersion()
-  const minimumVersion = readHelperMinimumMacOSVersion(helperAppPath)
+  const minimumVersion = readPlistVersion(
+    join(helperAppPath, 'Contents', 'Info.plist'),
+    'LSMinimumSystemVersion'
+  )
   if (!currentVersion || !minimumVersion) {
     return null
   }
   const compatibility = {
-    compatible: compareVersions(currentVersion, minimumVersion) >= 0,
+    compatible: compareDottedVersions(currentVersion, minimumVersion) >= 0,
     currentVersion,
     minimumVersion
   }
@@ -40,56 +46,27 @@ export function formatMacOSComputerUseHelperUnavailableReason(
   return `Orca Computer Use requires macOS ${compatibility.minimumVersion} or newer (this Mac is running macOS ${compatibility.currentVersion})`
 }
 
-export function compareVersions(left: string, right: string): number {
-  const leftParts = parseVersion(left)
-  const rightParts = parseVersion(right)
-  if (!leftParts || !rightParts) {
-    return Number.NaN
-  }
-  const count = Math.max(leftParts.length, rightParts.length)
-  for (let index = 0; index < count; index++) {
-    const difference = (leftParts[index] ?? 0) - (rightParts[index] ?? 0)
-    if (difference !== 0) {
-      return difference
-    }
-  }
-  return 0
-}
-
 function readCurrentMacOSVersion(): string | null {
-  const electronVersion = (
-    process as NodeJS.Process & { getSystemVersion?: () => string }
-  ).getSystemVersion?.()
-  if (parseVersion(electronVersion)) {
-    return electronVersion ?? null
+  // The computer sidecar runs as plain Node, where Electron's getSystemVersion is absent.
+  const electronVersion = process.getSystemVersion?.()
+  if (electronVersion && isDottedVersion(electronVersion)) {
+    return electronVersion
   }
+  return readPlistVersion(SYSTEM_VERSION_PLIST_PATH, 'ProductVersion')
+}
+
+// Both plists are XML: the helper's is written by build-computer-macos.mjs, SystemVersion.plist ships as XML.
+function readPlistVersion(plistPath: string, key: string): string | null {
+  let source: string
   try {
-    const version = execFileSync('/usr/bin/sw_vers', ['-productVersion'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim()
-    return parseVersion(version) ? version : null
+    source = readFileSync(plistPath, 'utf8')
   } catch {
     return null
   }
+  const version = new RegExp(`<key>${key}</key>\\s*<string>([^<]*)</string>`).exec(source)?.[1]
+  return version && isDottedVersion(version) ? version : null
 }
 
-function readHelperMinimumMacOSVersion(helperAppPath: string): string | null {
-  try {
-    const version = execFileSync(
-      '/usr/libexec/PlistBuddy',
-      ['-c', 'Print :LSMinimumSystemVersion', join(helperAppPath, 'Contents', 'Info.plist')],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-    ).trim()
-    return parseVersion(version) ? version : null
-  } catch {
-    return null
-  }
-}
-
-function parseVersion(version: string | null | undefined): number[] | null {
-  if (!version || !/^\d+(?:\.\d+)*$/.test(version)) {
-    return null
-  }
-  return version.split('.').map(Number)
+function isDottedVersion(version: string): boolean {
+  return /^\d+(?:\.\d+)*$/.test(version)
 }
