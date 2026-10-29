@@ -25,7 +25,7 @@ type SelectionView = EditorView & {
 }
 
 function selectionView(view: EditorView): SelectionView {
-  // SAFETY: The pinned engine's existing observer bridge owns these internal input/selection hooks.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The pinned engine's existing observer bridge owns these internal input/selection hooks.
   return view as SelectionView
 }
 
