@@ -233,11 +233,18 @@ export function partitionHasOtherRepoWorktreeTabs(
   hostId: ExecutionHostId
 ): boolean {
   const repoId = getRepoIdFromWorktreeId(worktreeId)
-  const tabsByWorktree = owner.getWorkspaceSession(hostId).tabsByWorktree ?? {}
-  return Object.entries(tabsByWorktree).some(
-    ([id, tabs]) =>
-      id !== worktreeId && getRepoIdFromWorktreeId(id) === repoId && (tabs?.length ?? 0) > 0
-  )
+  const { root, index } = sessionPublication(
+    owner[sessionHostPartitionOperationsContext].runtime.state
+  ).partition(hostId)
+  return index
+    .references('repo', repoId)
+    .some(
+      ({ field, key }) =>
+        field === 'tabsByWorktree' &&
+        key !== worktreeId &&
+        getRepoIdFromWorktreeId(key) === repoId &&
+        (root.tabsByWorktree[key]?.length ?? 0) > 0
+    )
 }
 
 export function setHostWorkspaceSession(

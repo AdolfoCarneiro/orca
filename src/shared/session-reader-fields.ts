@@ -125,8 +125,17 @@ export class SessionFieldReader extends SessionReaderState {
     field: F,
     value: SessionPresence<WorkspaceSessionState[F]>
   ): void {
-    const current = this.resolve(field)
-    if (current.present === value.present && current.value === value.value) {
+    const priorTransition = this.transitions.get(field)
+    const current = priorTransition
+      ? this.shape(field, priorTransition)
+      : Object.hasOwn(this.prior, field)
+        ? { present: true, value: this.prior[field] }
+        : { present: false, value: undefined }
+    if (
+      !priorTransition?.entries?.size &&
+      current.present === value.present &&
+      current.value === value.value
+    ) {
       return
     }
     this.mutate()

@@ -223,8 +223,8 @@ export function reduceSessionTerminalRetirements(
     return
   }
   const panes = new Set([
-    ...Object.keys(reader.policy('terminalSurfaceTombstonesByPaneKey', 'prior') ?? {}),
-    ...Object.keys(reader.policy('terminalSurfaceTombstonesByPaneKey') ?? {})
+    ...reader.index.keys('terminalSurfaceTombstonesByPaneKey'),
+    ...reader.keys('terminalSurfaceTombstonesByPaneKey')
   ])
   for (const pane of panes) {
     const prior = reader.unit('terminalSurfaceTombstonesByPaneKey', pane, 'prior').value

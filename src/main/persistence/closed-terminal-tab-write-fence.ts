@@ -46,7 +46,10 @@ export function reduceClosedTerminalTabPruning(reader: SessionUnitReader, now: n
   reader.replace('closedTerminalTabTombstonesByTabId', {
     present: true,
     value: pruneClosedTerminalTabTombstones(
-      reader.policy('closedTerminalTabTombstonesByTabId'),
+      reader.map(
+        'closedTerminalTabTombstonesByTabId',
+        reader.keys('closedTerminalTabTombstonesByTabId')
+      ),
       now
     )
   })

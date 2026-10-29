@@ -303,3 +303,38 @@ describe('resolved field transitions against independent native values', () => {
     })
   }
 })
+
+it('prepares a complete native-order replacement without enumerating the prior Record', () => {
+  let enumerations = 0
+  const records = {
+    a: { closedAt: 1, worktreeId: 'repo::/a' },
+    b: { closedAt: 2, worktreeId: 'repo::/b' }
+  }
+  const prior = freeze({
+    ...getDefaultWorkspaceSession(),
+    closedTerminalTabTombstonesByTabId: new Proxy(records, {
+      ownKeys(value) {
+        enumerations++
+        return Reflect.ownKeys(value)
+      }
+    })
+  })
+  const reader = new SessionUnitReader(prior, new SessionUnitIndex(prior))
+  const replacement = { b: records.b, a: records.a }
+  reader.replace('closedTerminalTabTombstonesByTabId', { present: true, value: replacement })
+  enumerations = 0
+  const prepared = reader.prepare({ kind: 'authoritative' })
+  expect(enumerations).toBe(0)
+  expect(prepared.orders.get('closedTerminalTabTombstonesByTabId')).toEqual(
+    Object.keys(replacement)
+  )
+  expect(prepared.units).toContainEqual(
+    expect.objectContaining({
+      field: 'closedTerminalTabTombstonesByTabId',
+      key: null,
+      nextPresent: true
+    })
+  )
+  expect(Object.keys(prepared.root.closedTerminalTabTombstonesByTabId!)).toEqual(['b', 'a'])
+  expect(Object.keys(records)).toEqual(['a', 'b'])
+})

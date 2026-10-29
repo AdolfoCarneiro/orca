@@ -197,11 +197,16 @@ export class SessionUnitReader extends SessionFieldReader {
         }
         if (
           Object.hasOwn(this.prior, field) === Object.hasOwn(root, field) &&
-          (this.prior[field] === undefined) === (root[field] === undefined) &&
-          Object.keys(this.prior[field] ?? {}).join('\0') ===
-            Object.keys(root[field] ?? {}).join('\0')
+          (this.prior[field] === undefined) === (root[field] === undefined)
         ) {
-          continue
+          const priorKeys = [...this.index.keys(field)],
+            nextKeys = orders.get(field) ?? this.keys(field)
+          if (
+            priorKeys.length === nextKeys.length &&
+            priorKeys.every((key, position) => key === nextKeys[position])
+          ) {
+            continue
+          }
         }
       } else if (
         this.prior[field] === root[field] &&

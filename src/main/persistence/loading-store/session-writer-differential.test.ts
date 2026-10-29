@@ -281,10 +281,24 @@ describe('complete policy outputs with zero selected units', () => {
               }
       }
       prior.terminalTopologyRevisionByRepoId = shape === 'populated' ? { 'repo-1': 1 } : {}
+      let enumerations = 0
+      if (prior.terminalSurfaceTombstonesByPaneKey) {
+        prior.terminalSurfaceTombstonesByPaneKey = new Proxy(
+          prior.terminalSurfaceTombstonesByPaneKey,
+          {
+            ownKeys: (value) => {
+              enumerations++
+              return Reflect.ownKeys(value)
+            }
+          }
+        )
+      }
       freeze(prior)
       const reader = new SessionUnitReader(prior, new SessionUnitIndex(prior))
+      enumerations = 0
       reduceSessionTerminalRetirements(reader, new Map())
-      const result = reader.snapshot()
+      const result = reader.prepare({ kind: 'renderer' }).root
+      expect(enumerations).toBe(0)
       expect(result.terminalSurfaceTombstonesByPaneKey).toStrictEqual({})
       expect(result).toStrictEqual(sanitizeWorkspaceSessionTerminalRetirements(prior, prior))
       const plain = freeze(getDefaultWorkspaceSession())
