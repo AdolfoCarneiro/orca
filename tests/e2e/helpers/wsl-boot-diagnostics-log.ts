@@ -1,7 +1,8 @@
 /**
  * Diagnostics for the E9 WSL guard: a JSON-lines log of every spawn, plus main-process filesystem
  * touches of a `\\wsl.localhost` path, each with its time and caller stack, so a boot the
- * running-list watcher sees can be matched to the act that caused it.
+ * running-list watcher sees can be matched to the act that caused it. Test harness only: installed
+ * into an e2e-mode app through Playwright, never imported by shipped code.
  */
 import { existsSync, readFileSync } from 'node:fs'
 import type { ElectronApplication } from '@stablyai/playwright-test'
@@ -21,6 +22,10 @@ export async function recordMainProcessWslDiagnostics(
   logFile: string
 ): Promise<void> {
   await app.evaluate((_electron, logFile) => {
+    // Never patch fs or capture stacks in an app that is not in e2e mode.
+    if (!process.env.ORCA_E2E_USER_DATA_DIR || !process.env.ORCA_E2E_SPAWN_LOG) {
+      throw new Error('WSL boot diagnostics need an e2e-mode app with the spawn log named')
+    }
     const fs = process.mainModule?.require('node:fs')
     const proto = process.mainModule?.require('node:child_process')?.ChildProcess?.prototype
     if (!fs || !proto) {
