@@ -1,6 +1,10 @@
 import type { RuntimeBrowserClientPlacement } from '../../../../../shared/runtime-browser-placement'
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
-import type { BrowserGrabPayload } from '../../../../../shared/browser-grab-types'
+import type {
+  BrowserAnnotationIntent,
+  BrowserGrabPayload,
+  GrabIntent
+} from '../../../../../shared/browser-grab-types'
 import type { BrowserContextMenuRequestedEvent } from '../../../../../shared/browser-guest-events'
 import type { BrowserPage as BrowserPageState } from '../../../../../shared/browser-workspace-types'
 import type { GrabModeHook } from '../annotate/useGrabMode'
@@ -86,4 +90,26 @@ export type ClientHostedBrowserPagePaneProps = {
   chromeShortcutScope: BrowserChromeShortcutScope
   onUpdatePageState: (tabId: string, updates: BrowserTabPageState) => void
   onSetUrl: BrowserPageUrlSetter
+}
+
+export type BrowserPageGrabAnnotations = {
+  grabIntent: GrabIntent
+  startGrabIntent: (nextIntent: GrabIntent) => void
+  pendingAnnotationPayload: BrowserGrabPayload | null
+  setPendingAnnotationPayload: Dispatch<SetStateAction<BrowserGrabPayload | null>>
+  grabToast: BrowserPageGrabToastState | null
+  setGrabToast: Dispatch<SetStateAction<BrowserPageGrabToastState | null>>
+  grabToastTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | undefined>
+  dismissGrabToast: () => void
+  handleGrabCopy: () => void
+  handleGrabCopyScreenshot: () => void
+  grabMenuActionTakenRef: MutableRefObject<boolean>
+  handleAddBrowserAnnotation: (
+    comment: string,
+    intent: BrowserAnnotationIntent,
+    imagePaths?: string[]
+  ) => void
+  handleCancelPendingBrowserAnnotation: () => void
+  cancelPendingBrowserCapture: () => void
+  handleGrabActionShortcut: (key: 'c' | 's') => void
 }
