@@ -433,6 +433,8 @@ it('opens setup with a clicked chevron without launching, then dispatches its se
   const configure = document.querySelector<HTMLButtonElement>(
     'button[aria-label="Configure Codex"]'
   )
+  expect(configure?.dataset.variant).toBe('ghost')
+  expect(configure?.previousElementSibling?.getAttribute('data-orientation')).toBe('vertical')
   act(() => configure?.click())
   expect(launch).not.toHaveBeenCalled()
   expect(document.body.textContent).toContain('Arguments')

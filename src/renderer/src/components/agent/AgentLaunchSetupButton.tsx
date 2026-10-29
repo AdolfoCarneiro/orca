@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactElemen
 import { flushSync } from 'react-dom'
 import { ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { translate } from '@/i18n/i18n'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
@@ -106,21 +107,25 @@ export function AgentLaunchSetupButton({
     onOpenChange?.(next)
   }
   const trigger = (
-    <PopoverTrigger asChild>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-xs"
-        disabled={disabled}
-        aria-label={translate('agentPicker.configure', 'Configure {{agent}}', {
-          agent: entry.label
-        })}
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={setupKeyDown}
-      >
-        <ChevronRight />
-      </Button>
-    </PopoverTrigger>
+    <div className="flex shrink-0 items-center gap-1">
+      <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="text-muted-foreground"
+          disabled={disabled}
+          aria-label={translate('agentPicker.configure', 'Configure {{agent}}', {
+            agent: entry.label
+          })}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={setupKeyDown}
+        >
+          <ChevronRight />
+        </Button>
+      </PopoverTrigger>
+    </div>
   )
   return (
     <Popover open={open} onOpenChange={changeOpen}>
