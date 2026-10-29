@@ -6,6 +6,7 @@ import type {
 import {
   createPermissionStatusProbeGate,
   PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS,
+  PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS,
   PERMISSION_STATUS_RESULT_REUSE_MS
 } from './macos-computer-use-permission-status-gate'
 
@@ -23,6 +24,7 @@ function statusWith(accessibility: ComputerUsePermissionStatus): ComputerUsePerm
 
 const denied = statusWith('not-granted')
 const granted = statusWith('granted')
+const background = { background: true }
 
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve: (value: T) => void = () => {}
@@ -33,75 +35,97 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 }
 
 describe('createPermissionStatusProbeGate', () => {
-  it('stops relaunching the helper while Accessibility stays denied (#34390)', async () => {
+  it('stops relaunching the helper for passive readers while Accessibility stays denied (#34390)', async () => {
     let clock = 0
     const probe = vi.fn(async () => denied)
     const gate = createPermissionStatusProbeGate({ probe, now: () => clock })
 
     // Three always-mounted setup-guide hooks read on every window focus.
-    await Promise.all([gate.read(), gate.read(), gate.read()])
+    await Promise.all([gate.read(background), gate.read(background), gate.read(background)])
     expect(probe).toHaveBeenCalledTimes(1)
 
     for (let elapsed = 0; elapsed < PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS * 5; elapsed += 500) {
       clock += 500
-      await gate.read()
+      await gate.read(background)
     }
     // Backoff 10s, 20s, 40s, 80s, then 120s cap: 8 launches in 10 minutes instead of 1,200.
     expect(probe).toHaveBeenCalledTimes(8)
 
-    gate.noteActivation()
-    await gate.read()
+    gate.noteAppReturn()
+    await gate.read(background)
     expect(probe).toHaveBeenCalledTimes(8)
   })
 
-  it('re-probes once per return to Orca so a grant or revocation shows immediately', async () => {
+  it('re-probes once per return to the app so a grant or revocation shows immediately', async () => {
     const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
     const gate = createPermissionStatusProbeGate({ probe, now: () => 0 })
 
-    await expect(gate.read()).resolves.toBe(denied)
-    gate.noteBlur()
-    gate.noteActivation()
-    const reads = await Promise.all([gate.read(), gate.read(), gate.read()])
-    expect(reads).toEqual([granted, granted, granted])
+    await expect(gate.read(background)).resolves.toBe(denied)
+    gate.noteAppDeparture()
+    gate.noteAppReturn()
+    const reads = await Promise.all([gate.read(background), gate.read(background)])
+    expect(reads).toEqual([granted, granted])
     expect(probe).toHaveBeenCalledTimes(2)
 
     probe.mockResolvedValueOnce(denied)
-    gate.noteBlur()
-    gate.noteActivation()
-    await expect(gate.read()).resolves.toBe(denied)
+    gate.noteAppDeparture()
+    gate.noteAppReturn()
+    await expect(gate.read(background)).resolves.toBe(denied)
     expect(probe).toHaveBeenCalledTimes(3)
   })
 
-  it('lets a fresh remote read bypass the denied backoff', async () => {
+  it('serves a fresh read when the renderer focus read beats did-become-active', async () => {
+    let active = false
+    const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
+    const gate = createPermissionStatusProbeGate({ probe, now: () => 0 })
+    gate.setAppActiveProbe(() => active)
+
+    await gate.read(background)
+    gate.noteAppDeparture()
+    await expect(gate.read(background)).resolves.toBe(denied)
+    expect(probe).toHaveBeenCalledTimes(1)
+
+    active = true
+    await expect(gate.read(background)).resolves.toBe(granted)
+    gate.noteAppReturn()
+    await expect(gate.read(background)).resolves.toBe(granted)
+    expect(probe).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps callers that omit background, like older clients, within 2s of live', async () => {
     let clock = 0
     const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
     const gate = createPermissionStatusProbeGate({ probe, now: () => clock })
 
     await gate.read()
     clock += PERMISSION_STATUS_RESULT_REUSE_MS - 1
-    await expect(gate.read({ fresh: true })).resolves.toBe(denied)
-    clock += 1
     await expect(gate.read()).resolves.toBe(denied)
-    await expect(gate.read({ fresh: true })).resolves.toBe(granted)
+    clock += 1
+    await expect(gate.read(background)).resolves.toBe(denied)
+    await expect(gate.read()).resolves.toBe(granted)
     expect(probe).toHaveBeenCalledTimes(2)
   })
 
-  it('re-probes after an in-flight check is invalidated without overlapping helpers', async () => {
+  it('discards an invalidated in-flight probe without overlapping helpers', async () => {
+    let clock = 0
     const first = deferred<ComputerUsePermissionStatusResult>()
-    const probe = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValueOnce(denied)
-    const gate = createPermissionStatusProbeGate({ probe, now: () => 0 })
+    const probe = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue(denied)
+    const gate = createPermissionStatusProbeGate({ probe, now: () => clock })
 
-    const stale = gate.read()
+    const obsolete = gate.read(background)
     gate.invalidate()
-    const current = gate.read()
+    const current = gate.read(background)
     expect(probe).toHaveBeenCalledTimes(1)
 
-    first.resolve(granted)
-    await expect(stale).resolves.toBe(granted)
+    first.resolve(denied)
+    await expect(obsolete).resolves.toBe(denied)
     await expect(current).resolves.toBe(denied)
     expect(probe).toHaveBeenCalledTimes(2)
-    await expect(gate.read()).resolves.toBe(denied)
-    expect(probe).toHaveBeenCalledTimes(2)
+
+    // Only the live probe counts toward the backoff: first step is 10s, not 20s.
+    clock += PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS
+    await gate.read(background)
+    expect(probe).toHaveBeenCalledTimes(3)
   })
 
   it('shares a failed check briefly instead of backing it off like a denial', async () => {
@@ -110,7 +134,7 @@ describe('createPermissionStatusProbeGate', () => {
     const probe = vi.fn().mockRejectedValueOnce(failure).mockResolvedValueOnce(granted)
     const gate = createPermissionStatusProbeGate({ probe, now: () => clock })
 
-    const results = await Promise.allSettled([gate.read(), gate.read()])
+    const results = await Promise.allSettled([gate.read(background), gate.read(background)])
     expect(results).toEqual([
       { status: 'rejected', reason: failure },
       { status: 'rejected', reason: failure }
@@ -118,7 +142,7 @@ describe('createPermissionStatusProbeGate', () => {
     expect(probe).toHaveBeenCalledTimes(1)
 
     clock += PERMISSION_STATUS_RESULT_REUSE_MS
-    await expect(gate.read()).resolves.toBe(granted)
+    await expect(gate.read(background)).resolves.toBe(granted)
     expect(probe).toHaveBeenCalledTimes(2)
   })
 })

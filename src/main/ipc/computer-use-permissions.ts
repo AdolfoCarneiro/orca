@@ -1,16 +1,23 @@
-import { app, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import type {
   ComputerUsePermissionId,
   ComputerUsePermissionResetResult,
   ComputerUsePermissionSetupResult,
   ComputerUsePermissionStatusResult
 } from '../../shared/computer-use-permissions-types'
-import { computerUsePermissionStatusGate } from '../computer/macos-computer-use-permission-status-gate'
+import {
+  bindPermissionStatusGateToAppActivity,
+  computerUsePermissionStatusGate,
+  type PermissionStatusReadOptions
+} from '../computer/macos-computer-use-permission-status-gate'
 
 export function registerComputerUsePermissionHandlers(): void {
   if (process.platform === 'darwin') {
-    app.on('browser-window-blur', () => computerUsePermissionStatusGate.noteBlur())
-    app.on('browser-window-focus', () => computerUsePermissionStatusGate.noteActivation())
+    bindPermissionStatusGateToAppActivity(computerUsePermissionStatusGate, {
+      onDeparture: (listener) => app.on('did-resign-active', listener),
+      onReturn: (listener) => app.on('did-become-active', listener),
+      isAppActive: () => BrowserWindow.getFocusedWindow() !== null
+    })
   }
   ipcMain.handle(
     'computerUsePermissions:openSetup',
@@ -26,7 +33,8 @@ export function registerComputerUsePermissionHandlers(): void {
   )
   ipcMain.handle(
     'computerUsePermissions:getStatus',
-    (): Promise<ComputerUsePermissionStatusResult> => computerUsePermissionStatusGate.read()
+    (_event, args?: PermissionStatusReadOptions): Promise<ComputerUsePermissionStatusResult> =>
+      computerUsePermissionStatusGate.read({ background: args?.background === true })
   )
   ipcMain.handle(
     'computerUsePermissions:reset',

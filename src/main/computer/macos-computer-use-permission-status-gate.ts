@@ -16,15 +16,22 @@ type InFlightProbe = {
 }
 
 export type PermissionStatusReadOptions = {
-  // Remote callers can't signal activation; reuse only a just-finished result.
-  fresh?: boolean
+  // Passive status badges opt into the denied backoff; omitted keeps older clients near-live.
+  background?: boolean
 }
 
 export type PermissionStatusProbeGate = {
   read: (options?: PermissionStatusReadOptions) => Promise<ComputerUsePermissionStatusResult>
-  noteBlur: () => void
-  noteActivation: () => void
+  noteAppDeparture: () => void
+  noteAppReturn: () => void
+  setAppActiveProbe: (isAppActive: () => boolean) => void
   invalidate: () => void
+}
+
+export type AppActivitySource = {
+  onDeparture: (listener: () => void) => void
+  onReturn: (listener: () => void) => void
+  isAppActive: () => boolean
 }
 
 export function createPermissionStatusProbeGate(options: {
@@ -34,13 +41,24 @@ export function createPermissionStatusProbeGate(options: {
   const now = options.now ?? Date.now
   // A new epoch means the answer may have changed; results from older epochs are never served.
   let epoch = 0
-  let blurredSinceActivation = false
+  let departed = false
+  let isAppActive = (): boolean => false
   let inFlight: InFlightProbe | null = null
   let cached: { epoch: number; outcome: ProbeOutcome; finishedAt: number } | null = null
   let reuseUntil = 0
   let deniedStreak = 0
 
+  const noteAppReturn = (): void => {
+    if (departed) {
+      departed = false
+      epoch += 1
+    }
+  }
+
   const recordOutcome = (probeEpoch: number, outcome: ProbeOutcome): void => {
+    if (probeEpoch !== epoch) {
+      return
+    }
     const finishedAt = now()
     cached = { epoch: probeEpoch, outcome, finishedAt }
     if (!outcome.ok || !isMissingPermission(outcome.result)) {
@@ -85,6 +103,10 @@ export function createPermissionStatusProbeGate(options: {
   const read = (
     readOptions: PermissionStatusReadOptions = {}
   ): Promise<ComputerUsePermissionStatusResult> => {
+    // The renderer's focus read can reach main before did-become-active does.
+    if (departed && isAppActive()) {
+      noteAppReturn()
+    }
     const current = inFlight
     if (current) {
       if (current.epoch === epoch) {
@@ -95,9 +117,9 @@ export function createPermissionStatusProbeGate(options: {
       return current.followUp
     }
     if (cached && cached.epoch === epoch) {
-      const limit = readOptions.fresh
-        ? Math.min(reuseUntil, cached.finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS)
-        : reuseUntil
+      const limit = readOptions.background
+        ? reuseUntil
+        : cached.finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS
       if (now() < limit) {
         const { outcome } = cached
         return outcome.ok ? Promise.resolve(outcome.result) : Promise.reject(outcome.error)
@@ -108,21 +130,28 @@ export function createPermissionStatusProbeGate(options: {
 
   return {
     read,
-    noteBlur: () => {
-      blurredSinceActivation = true
+    noteAppDeparture: () => {
+      departed = true
     },
-    noteActivation: () => {
-      // Returning to Orca is when a grant made in System Settings can land.
-      if (blurredSinceActivation) {
-        blurredSinceActivation = false
-        epoch += 1
-      }
+    noteAppReturn,
+    setAppActiveProbe: (probe) => {
+      isAppActive = probe
     },
     invalidate: () => {
       epoch += 1
       deniedStreak = 0
     }
   }
+}
+
+// App-level activation only: moving between Orca's own windows can't change a TCC answer.
+export function bindPermissionStatusGateToAppActivity(
+  gate: PermissionStatusProbeGate,
+  activity: AppActivitySource
+): void {
+  gate.setAppActiveProbe(activity.isAppActive)
+  activity.onDeparture(() => gate.noteAppDeparture())
+  activity.onReturn(() => gate.noteAppReturn())
 }
 
 function noop(): void {}

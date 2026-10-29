@@ -1,0 +1,66 @@
+import type { EventEmitter } from 'node:events'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({
+  app: null as EventEmitter | null,
+  handlers: new Map<string, (...args: unknown[]) => unknown>(),
+  focusedWindow: { current: null as object | null },
+  probe: vi.fn()
+}))
+
+vi.mock('electron', async () => {
+  const { EventEmitter: Emitter } = await import('node:events')
+  mocks.app = new Emitter()
+  return {
+    app: mocks.app,
+    BrowserWindow: { getFocusedWindow: () => mocks.focusedWindow.current },
+    ipcMain: {
+      handle: (name: string, handler: (...args: unknown[]) => unknown) =>
+        mocks.handlers.set(name, handler)
+    }
+  }
+})
+
+vi.mock('../computer/macos-computer-use-permissions', () => ({
+  getComputerUsePermissionStatus: mocks.probe
+}))
+
+describe('registerComputerUsePermissionHandlers', () => {
+  const originalPlatform = process.platform
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform })
+  })
+
+  it('re-probes passive readers on app return but not on transfers between Orca windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' })
+    mocks.probe.mockResolvedValue({
+      platform: 'darwin',
+      helperAppPath: '/Applications/Orca Computer Use.app',
+      helperUnavailableReason: null,
+      permissions: [
+        { id: 'accessibility', status: 'not-granted' },
+        { id: 'screenshots', status: 'granted' }
+      ]
+    })
+    const { registerComputerUsePermissionHandlers } = await import('./computer-use-permissions')
+    registerComputerUsePermissionHandlers()
+    const app = mocks.app!
+    const readPassively = (): unknown =>
+      mocks.handlers.get('computerUsePermissions:getStatus')!({}, { background: true })
+
+    mocks.focusedWindow.current = {}
+    await readPassively()
+    for (let transfer = 0; transfer < 5; transfer++) {
+      app.emit('browser-window-blur')
+      app.emit('browser-window-focus')
+      await readPassively()
+    }
+    expect(mocks.probe).toHaveBeenCalledTimes(1)
+
+    app.emit('did-resign-active')
+    app.emit('did-become-active')
+    await readPassively()
+    expect(mocks.probe).toHaveBeenCalledTimes(2)
+  })
+})

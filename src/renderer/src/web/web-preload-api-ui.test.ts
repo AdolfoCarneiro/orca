@@ -731,7 +731,7 @@ describe('web UI preload API', () => {
     expect(calls).toEqual(
       expect.arrayContaining([
         { method: 'skills.discover', params: { cwd: '/repo/worktree' } },
-        { method: 'computer.permissionsStatus', params: { fresh: true } },
+        { method: 'computer.permissionsStatus', params: {} },
         { method: 'computer.permissions', params: { id: 'accessibility' } }
       ])
     )

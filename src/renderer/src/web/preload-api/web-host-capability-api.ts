@@ -114,11 +114,10 @@ export function createComputerUsePermissionsApi(): NonNullable<
   Partial<PreloadApi>['computerUsePermissions']
 > {
   return {
-    getStatus: () =>
+    getStatus: (args) =>
       callRuntimeResult<ComputerUsePermissionStatusResult>(
         'computer.permissionsStatus',
-        // The host can't see this browser window's focus, so ask for a fresh read.
-        { fresh: true },
+        args ?? {},
         15_000
       ),
     openSetup: (args) =>
