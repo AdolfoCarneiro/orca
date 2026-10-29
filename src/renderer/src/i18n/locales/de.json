@@ -11840,8 +11840,8 @@
           "managedOverSshHelp": "Dieser Desktop aktualisiert diesen Server über SSH. In dessen Zeile unter „Entfernte Orca-Server“ auf „Aktualisieren“ klicken."
         },
         "BrowserLinkRoutingSetting": {
-          "description": "http(s)-Links aus dem Terminal, Markdown und dem Editor im integrierten Browser von Orca öffnen. {{shortcut}} verwendet immer den Systembrowser.",
-          "descriptionBase": "http(s)-Links aus dem Terminal, Markdown und dem Editor im integrierten Browser von Orca öffnen."
+          "description": "http(s)-Links aus ganz Orca im integrierten Browser von Orca öffnen. Anmeldeseiten und {{shortcut}} verwenden immer den Systembrowser.",
+          "descriptionBase": "http(s)-Links aus ganz Orca im integrierten Browser von Orca öffnen. Anmeldeseiten öffnen sich weiterhin im Systembrowser."
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "Shift gedrückt halten, um im Webbrowser zu öffnen",
