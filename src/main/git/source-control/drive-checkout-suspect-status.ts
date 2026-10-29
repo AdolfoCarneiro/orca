@@ -121,8 +121,17 @@ function appendReplacements(
   replacements: Map<string, GitStatusEntry[]>,
   minimal: readonly GitStatusEntry[]
 ): void {
+  if (replacements.size === 0) {
+    return
+  }
+  const stagedByPath = new Map<string, GitStatusEntry>()
+  for (const entry of minimal) {
+    if (entry.area === 'staged' && replacements.has(entry.path) && !stagedByPath.has(entry.path)) {
+      stagedByPath.set(entry.path, entry)
+    }
+  }
   for (const [relativePath, rows] of replacements) {
-    const staged = minimal.find((entry) => entry.path === relativePath && entry.area === 'staged')
+    const staged = stagedByPath.get(relativePath)
     merged.push(...(staged ? withRenameSource(rows, staged) : rows))
   }
   replacements.clear()

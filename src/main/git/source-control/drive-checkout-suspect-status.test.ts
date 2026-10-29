@@ -67,6 +67,28 @@ const unstaged = (filePath: string, extra: Partial<GitStatusEntry> = {}): GitSta
 })
 
 describe('mergeSuspectStatus', () => {
+  it.each([30, 300])('merges %i recovered paths without rescanning every status row', (count) => {
+    let pathReads = 0
+    const minimal: GitStatusEntry[] = Array.from({ length: count * 3 }, (_, index) => ({
+      get path() {
+        pathReads += 1
+        return `untracked-${index}.ts`
+      },
+      status: 'untracked',
+      area: 'untracked'
+    }))
+    const targeted = Array.from({ length: count }, (_, index) => unstaged(`recovered-${index}.ts`))
+
+    const merged = mergeSuspectStatus(
+      minimal,
+      new Set(targeted.map((entry) => entry.path)),
+      targeted
+    )
+
+    expect(pathReads).toBeLessThan(minimal.length * 4)
+    expect(merged).toEqual([...targeted, ...minimal])
+  })
+
   it('overrides unstaged rows only for checked paths and keeps staged and untracked rows', () => {
     const minimal: GitStatusEntry[] = [
       { path: 'a.ts', status: 'modified', area: 'staged' },
