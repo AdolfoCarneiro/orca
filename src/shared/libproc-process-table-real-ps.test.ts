@@ -107,11 +107,13 @@ describe.runIf(process.platform === 'darwin')(
       const after = rowsOf(await inProcess(args, env), columns)
       const commandAt = columns.indexOf('command')
       const failures: string[] = []
+      const shared: number[] = []
       for (const [pid, ours] of before) {
         const real = ps.get(pid)
         if (!real || JSON.stringify(after.get(pid)) !== JSON.stringify(ours)) {
           continue
         }
+        shared.push(pid)
         // Another user's argv needs setuid ps; only pane descendants get that fallback.
         const comparable =
           commandAt === -1 || ownPids.has(pid)
@@ -124,6 +126,12 @@ describe.runIf(process.platform === 'darwin')(
         if (JSON.stringify(comparable) !== JSON.stringify(expected)) {
           failures.push(`${pid}: ${JSON.stringify(comparable)} != ${JSON.stringify(expected)}`)
         }
+      }
+      // ps sorts by terminal, then pid; parsers that take the first match rely on that order.
+      const comparedPids = new Set(shared)
+      const psOrder = [...ps.keys()].filter((pid) => comparedPids.has(pid))
+      if (JSON.stringify(psOrder) !== JSON.stringify(shared)) {
+        failures.push(`row order differs from ps for ${args.join(' ')}`)
       }
       return failures
     }
