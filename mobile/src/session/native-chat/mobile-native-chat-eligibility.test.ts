@@ -90,6 +90,20 @@ describe('resolveMobileNativeChat', () => {
       expect(resolveMobileNativeChat({ type: 'terminal', launchAgent: agent }, true)).toBeNull()
       expect(
         resolveMobileNativeChat(
+          {
+            type: 'terminal',
+            nativeChatIdentity: {
+              terminal: 'same-pty',
+              agent,
+              sessionId: 'saved-session',
+              transcriptPath: '/saved/transcript'
+            }
+          },
+          true
+        )
+      ).toBeNull()
+      expect(
+        resolveMobileNativeChat(
           { type: 'terminal', agentStatus: status({ agentType: agent }) },
           true
         )

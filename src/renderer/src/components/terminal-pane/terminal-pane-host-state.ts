@@ -1,13 +1,12 @@
-import { getResolvedExecutionHostIdForWorktree } from '@/lib/resolved-worktree-execution-host'
+import {
+  getResolvedFolderExecutionOwner,
+  getResolvedWorktreeExecutionOwner
+} from '@/lib/resolved-worktree-execution-host'
 import { isWindowsHostWslWorkspace } from '@/lib/execution-host-facts'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
-import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
-import {
-  findIndexedFolderWorkspaceOwner,
-  findIndexedWorktreeOwnerForHost
-} from '@/lib/worktree-runtime-owner-index'
+import { getLocalProjectRuntimeWorkspace } from '@/lib/local-project-runtime-workspace'
 import { getRendererAppPlatform } from '@/lib/renderer-app-platform'
-import { parseExecutionHostId } from '../../../../shared/execution-host'
+import { getRepoExecutionHostId, parseExecutionHostId } from '../../../../shared/execution-host'
 import { lastVerifiedRuntimeStatus } from '../../../../shared/runtime-host-status'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import type { AppState } from '@/store/types'
@@ -50,8 +49,89 @@ function reconnectErrorText(
   return sshConnectFailureText(state.sshConnectionStates.get(targetId), error)
 }
 
-function resolveNativeChatWslProject(state: AppState, worktreeId: string): boolean | null {
-  const owner = parseExecutionHostId(getResolvedExecutionHostIdForWorktree(state, worktreeId) ?? '')
+type LocalRuntimeWorkspace = NonNullable<
+  Parameters<typeof getLocalProjectExecutionRuntimeContext>[4]
+>
+const localReposByCatalog = new WeakMap<AppState['repos'], AppState['repos']>()
+const localGroupsByCatalog = new WeakMap<AppState['projectGroups'], AppState['projectGroups']>()
+
+function localCatalogRows<
+  T extends { executionHostId?: string | null; connectionId?: string | null }
+>(rows: T[], cache: WeakMap<T[], T[]>): T[] {
+  let local = cache.get(rows)
+  if (!local) {
+    local = rows.filter((row) => getRepoExecutionHostId(row) === 'local')
+    cache.set(rows, local)
+  }
+  return local
+}
+
+const folderRuntimeWorkspaceCache = new WeakMap<
+  AppState['folderWorkspaces'][number],
+  {
+    repos: AppState['repos']
+    groups: AppState['projectGroups']
+    workspace: LocalRuntimeWorkspace
+  }
+>()
+const localRuntimeCache = new WeakMap<
+  LocalRuntimeWorkspace,
+  {
+    projects: AppState['projects']
+    repos: AppState['repos']
+    settings: AppState['settings']
+    value: boolean | null
+  }
+>()
+
+function selectLocalWslRuntime(state: AppState, workspace: LocalRuntimeWorkspace): boolean | null {
+  if (!workspace.path) {
+    return null
+  }
+  const previous = localRuntimeCache.get(workspace)
+  if (
+    previous &&
+    previous.projects === state.projects &&
+    previous.repos === state.repos &&
+    (
+      [
+        'localWindowsRuntimeDefault',
+        'localAgentRuntime',
+        'localAgentWslDistro',
+        'terminalWindowsShell',
+        'terminalWindowsWslDistro'
+      ] as const
+    ).every((field) => previous.settings?.[field] === state.settings?.[field])
+  ) {
+    return previous.value
+  }
+  const runtime = getLocalProjectExecutionRuntimeContext(
+    state,
+    workspace.id,
+    'win32',
+    {},
+    workspace
+  )
+  const value = runtime?.status === 'resolved' ? runtime.runtime.kind === 'wsl' : null
+  localRuntimeCache.set(workspace, {
+    projects: state.projects,
+    repos: state.repos,
+    settings: state.settings,
+    value
+  })
+  return value
+}
+
+export function selectNativeChatWslProject(state: AppState, worktreeId: string): boolean | null {
+  const scope = parseWorkspaceKey(worktreeId)
+  const folderOwner =
+    scope?.type === 'folder'
+      ? getResolvedFolderExecutionOwner(state, scope.folderWorkspaceId)
+      : null
+  const worktreeOwner =
+    scope?.type !== 'folder' ? getResolvedWorktreeExecutionOwner(state, worktreeId) : null
+  const hostId = folderOwner?.hostId ?? worktreeOwner?.hostId
+  const owner = hostId ? parseExecutionHostId(hostId) : null
   if (!owner) {
     return null
   }
@@ -59,8 +139,34 @@ function resolveNativeChatWslProject(state: AppState, worktreeId: string): boole
     if (getRendererAppPlatform() !== 'win32') {
       return false
     }
-    const projectRuntime = getLocalProjectExecutionRuntimeContext(state, worktreeId)
-    return projectRuntime?.status === 'resolved' ? projectRuntime.runtime.kind === 'wsl' : null
+    if (worktreeOwner) {
+      return selectLocalWslRuntime(state, worktreeOwner.workspace)
+    }
+    if (!folderOwner) {
+      return null
+    }
+    const folder = folderOwner.workspace
+    let cached = folderRuntimeWorkspaceCache.get(folder)
+    if (!cached || cached.repos !== state.repos || cached.groups !== state.projectGroups) {
+      // A unique applicable repo supplies its override; the folder itself needs no repo.
+      const workspace = getLocalProjectRuntimeWorkspace(
+        {
+          ...state,
+          folderWorkspaces: [folder],
+          repos: localCatalogRows(state.repos, localReposByCatalog),
+          projectGroups: localCatalogRows(state.projectGroups, localGroupsByCatalog)
+        },
+        worktreeId
+      ) ?? {
+        id: worktreeId,
+        repoId: '',
+        path: folder.folderPath,
+        hostId: owner.id
+      }
+      cached = { repos: state.repos, groups: state.projectGroups, workspace }
+      folderRuntimeWorkspaceCache.set(folder, cached)
+    }
+    return selectLocalWslRuntime(state, cached.workspace)
   }
   if (owner.kind === 'ssh') {
     return false
@@ -68,35 +174,14 @@ function resolveNativeChatWslProject(state: AppState, worktreeId: string): boole
   const hostPlatform = lastVerifiedRuntimeStatus(
     state.runtimeStatusByEnvironmentId.get(owner.environmentId)
   )?.hostPlatform
-  const scope = parseWorkspaceKey(worktreeId)
-  const workspacePath =
-    scope?.type === 'folder'
-      ? findIndexedFolderWorkspaceOwner(
-          selectFolderWorkspaces(state),
-          scope.folderWorkspaceId,
-          owner.id
-        )?.folderPath
-      : findIndexedWorktreeOwnerForHost(selectWorktreesByRepo(state), worktreeId, owner.id)?.path
+  const workspacePath = folderOwner?.workspace.folderPath ?? worktreeOwner?.workspace.path
   if (!hostPlatform || (hostPlatform === 'win32' && !workspacePath)) {
     return null
   }
+  // Paired Windows non-UNC runtime remains unknown until host runtime facts are available (#28977).
   return hostPlatform === 'win32'
     ? isWindowsHostWslWorkspace(hostPlatform, workspacePath) || null
     : false
-}
-
-const nativeChatWslByState = new WeakMap<AppState, Map<string, boolean | null>>()
-
-export function selectNativeChatWslProject(state: AppState, worktreeId: string): boolean | null {
-  let byWorktree = nativeChatWslByState.get(state)
-  if (!byWorktree) {
-    byWorktree = new Map()
-    nativeChatWslByState.set(state, byWorktree)
-  }
-  if (!byWorktree.has(worktreeId)) {
-    byWorktree.set(worktreeId, resolveNativeChatWslProject(state, worktreeId))
-  }
-  return byWorktree.get(worktreeId) ?? null
 }
 
 function computeTerminalPaneHostState(state: AppState, worktreeId: string): TerminalPaneHostState {

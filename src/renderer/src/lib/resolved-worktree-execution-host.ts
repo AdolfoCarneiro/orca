@@ -19,37 +19,80 @@ import type { WorktreeRuntimeOwnerState } from './worktree-runtime-owner-state'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/runtime-client-target'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 
-function getResolvedFolderHost(
-  state: WorktreeRuntimeOwnerState,
+export function getResolvedFolderExecutionOwner<
+  T extends NonNullable<WorktreeRuntimeOwnerState['folderWorkspaces']>[number]
+>(
+  state: WorktreeRuntimeOwnerState & { folderWorkspaces?: readonly T[] },
   folderWorkspaceId: string
-): ExecutionHostId | null {
+): { hostId: ExecutionHostId; workspace: T } | null {
   const preferredHostId =
     state.activeWorktreeId === folderWorkspaceKey(folderWorkspaceId)
       ? (state.activeWorkspaceExecutionHostId ?? undefined)
       : undefined
-  const folder = findIndexedFolderWorkspaceOwner(
-    state.folderWorkspaces,
-    folderWorkspaceId,
-    preferredHostId
-  )
+  const folder =
+    findIndexedFolderWorkspaceOwner(state.folderWorkspaces, folderWorkspaceId, preferredHostId) ??
+    findIndexedFolderWorkspaceOwner(state.folderWorkspaces, folderWorkspaceId)
+  if (!folder) {
+    return null
+  }
   const group = folder
-    ? findIndexedProjectGroupOwner(state.projectGroups, folder.projectGroupId, preferredHostId)
+    ? (findIndexedProjectGroupOwner(state.projectGroups, folder.projectGroupId, preferredHostId) ??
+      findIndexedProjectGroupOwner(state.projectGroups, folder.projectGroupId))
     : null
   const explicitHost = parseExecutionHostId(folder?.executionHostId ?? group?.executionHostId)
-  if (explicitHost) {
-    return explicitHost.id
-  }
-  const connectionId = folder?.connectionId?.trim() || group?.connectionId?.trim()
-  if (connectionId) {
-    return toSshExecutionHostId(connectionId)
-  }
+  const connectionId = folder.connectionId?.trim() || group?.connectionId?.trim()
   const restoredHost = parseExecutionHostId(
     state.restoredRuntimeHostIdByWorkspaceSessionKey?.[folderWorkspaceKey(folderWorkspaceId)]
   )
-  if (restoredHost?.kind === 'runtime') {
-    return restoredHost.id
+  const hostId =
+    explicitHost?.id ??
+    (connectionId
+      ? toSshExecutionHostId(connectionId)
+      : restoredHost?.kind === 'runtime'
+        ? restoredHost.id
+        : group || preferredHostId
+          ? (preferredHostId ?? LOCAL_EXECUTION_HOST_ID)
+          : null)
+  return hostId && (!preferredHostId || hostId === preferredHostId)
+    ? { hostId, workspace: folder }
+    : null
+}
+
+/** Keep the selected row and inherited host together through runtime/path resolution. */
+export function getResolvedWorktreeExecutionOwner<
+  T extends NonNullable<WorktreeRuntimeOwnerState['worktreesByRepo']>[string][number]
+>(
+  state: WorktreeRuntimeOwnerState & { worktreesByRepo?: Record<string, readonly T[]> },
+  worktreeId: string
+): { hostId: ExecutionHostId; workspace: T } | null {
+  const preferredHostId =
+    state.activeWorktreeId === worktreeId
+      ? (state.activeWorkspaceExecutionHostId ?? undefined)
+      : undefined
+  const worktree =
+    (preferredHostId
+      ? findIndexedWorktreeOwnerForHost(state.worktreesByRepo, worktreeId, preferredHostId)
+      : null) ?? findIndexedWorktreeOwner(state.worktreesByRepo, worktreeId)
+  if (!worktree) {
+    return null
   }
-  return folder && (group || preferredHostId) ? (preferredHostId ?? LOCAL_EXECUTION_HOST_ID) : null
+  const repo =
+    (preferredHostId
+      ? findIndexedRepoOwnerForHost(state.repos, worktree.repoId, preferredHostId)
+      : null) ?? findIndexedRepoOwner(state.repos, worktree.repoId)
+  const hostId =
+    parseExecutionHostId(worktree.hostId)?.id ?? (repo ? getRepoExecutionHostId(repo) : null)
+  return hostId && (!preferredHostId || hostId === preferredHostId)
+    ? { hostId, workspace: worktree }
+    : null
+}
+
+function restoredFolderRuntimeHost(
+  state: WorktreeRuntimeOwnerState,
+  key: string
+): ExecutionHostId | null {
+  const host = parseExecutionHostId(state.restoredRuntimeHostIdByWorkspaceSessionKey?.[key])
+  return host?.kind === 'runtime' ? host.id : null
 }
 
 /** Require hydrated ownership: restored SSH worktrees can collide with local repo rows while catalogs load. */
@@ -64,30 +107,10 @@ export function getResolvedExecutionHostIdForWorktree(
     return LOCAL_EXECUTION_HOST_ID
   }
   const scope = parseWorkspaceKey(worktreeId)
-  if (scope?.type === 'folder') {
-    return getResolvedFolderHost(state, scope.folderWorkspaceId)
-  }
-  const preferredHostId =
-    state.activeWorktreeId === worktreeId
-      ? (state.activeWorkspaceExecutionHostId ?? undefined)
-      : undefined
-  const worktree = preferredHostId
-    ? findIndexedWorktreeOwnerForHost(state.worktreesByRepo, worktreeId, preferredHostId)
-    : findIndexedWorktreeOwner(state.worktreesByRepo, worktreeId)
-  const worktreeHost = parseExecutionHostId(worktree?.hostId)
-  if (worktreeHost) {
-    return worktreeHost.id
-  }
-  if (!worktree) {
-    return null
-  }
-  const repo = preferredHostId
-    ? findIndexedRepoOwnerForHost(state.repos, worktree.repoId, preferredHostId)
-    : findIndexedRepoOwner(state.repos, worktree.repoId)
-  if (!repo) {
-    return null
-  }
-  return getRepoExecutionHostId(repo)
+  return scope?.type === 'folder'
+    ? (getResolvedFolderExecutionOwner(state, scope.folderWorkspaceId)?.hostId ??
+        restoredFolderRuntimeHost(state, folderWorkspaceKey(scope.folderWorkspaceId)))
+    : (getResolvedWorktreeExecutionOwner(state, worktreeId)?.hostId ?? null)
 }
 
 /**

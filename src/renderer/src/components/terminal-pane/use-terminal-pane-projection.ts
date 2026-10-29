@@ -28,7 +28,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     applyNativeChatLeafRoute,
     canToggleChatForLeaf,
     chatLeafId,
-    chatViewIsSupported,
+    savedOwnerDisposition,
     contextMenu,
     contextMenuLeafId,
     effectiveChatViewMode,
@@ -36,7 +36,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     getNativeChatLeafIds,
     getTabWideAgentHintLeafId,
     isActive,
-    isChatEligibleForLeaf,
+    presentationPolicyForLeaf,
     isChatViewMode,
     isVisible,
     managerRef,
@@ -117,21 +117,21 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     applyNativeChatLeafRoute(
       resolveNativeChatLeafRoute({
         isChatViewMode,
-        chatViewIsSupported,
+        savedOwnerDisposition,
         chatLeafId,
         activeLeafId,
         chatLeafStillMounted,
-        activeLeafIsEligible: isChatEligibleForLeaf(activeLeafId)
+        activeLeafDisposition: presentationPolicyForLeaf(activeLeafId).saved
       })
     )
   }, [
     isChatViewMode,
-    chatViewIsSupported,
+    savedOwnerDisposition,
     chatLeafId,
     activePane?.leafId,
     chatLeafStillMounted,
     applyNativeChatLeafRoute,
-    isChatEligibleForLeaf
+    presentationPolicyForLeaf
   ])
   const chatPane =
     effectiveChatViewMode && chatLeafId
@@ -194,7 +194,8 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
         })
     }))
   )
-  const contextMenuIsChatView = effectiveChatViewMode && contextMenuLeafId === chatLeafId
+  const contextMenuIsChatView =
+    isChatViewMode && (chatLeafId === null || contextMenuLeafId === chatLeafId)
   const handleContextMenuToggleNativeChat = useCallback(() => {
     const leafId = getContextMenuLeafId()
     if (!leafId) {
