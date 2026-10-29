@@ -1,20 +1,14 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { claudeProviderHandle } from '../../shared/agent-session-provider-handle-encoding'
-import { openAgentSessionJournal } from '../native-chat/agent-session-journal/journal-store-factory'
-import {
-  closeTestJournalHostDatabase,
-  openTestJournalHostDatabase
-} from '../native-chat/agent-session-journal/journal-host-database-test-support'
-import { createDeferredStructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
-import { testEventSinkLogging } from '../native-chat/agent-session-wire/structured-agent-session-logger-test-support'
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
 import { describe, expect, it, vi } from 'vitest'
-import type { query } from '@anthropic-ai/claude-agent-sdk'
+import { query } from '@anthropic-ai/claude-agent-sdk'
+import {
+  openProviderTimelineRig,
+  closeProviderTimelineRigs,
+  SESSION
+} from '../native-chat/agent-session-timeline/provider-timeline-assembler-test-support'
 import {
   CLAUDE_READER_DRAIN_AFTER_EXIT_MS,
   openClaudeStreamJsonConnection,
@@ -78,6 +72,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -128,6 +123,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -172,6 +168,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -212,6 +209,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -245,6 +243,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -262,7 +261,7 @@ describe('Claude stream-json close ordering', () => {
   })
 
   // Inherited pipes must not keep sends and Stops waiting after proven exit.
-  it('resolves a proven close though the output never ends', async () => {
+  it('rejects an empty noncooperative reader after bounded proven-process cleanup', async () => {
     mocks.refresh.mockReset()
     mocks.proveClaudeChildExit.mockReset()
     mocks.refresh.mockResolvedValue(undefined)
@@ -278,6 +277,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -290,18 +290,19 @@ describe('Claude stream-json close ordering', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.useFakeTimers()
     try {
-      let closed: boolean | undefined
-      void connection.close().then((value) => {
-        closed = value
-      })
-      await vi.advanceTimersByTimeAsync(CLAUDE_READER_DRAIN_AFTER_EXIT_MS - 1)
+      let closed: unknown
+      void connection.close().then(
+        (value) => {
+          closed = value
+        },
+        (error: unknown) => {
+          closed = error
+        }
+      )
+      await vi.advanceTimersByTimeAsync(CLAUDE_READER_DRAIN_AFTER_EXIT_MS + 1_000 - 1)
       expect(closed).toBeUndefined()
       await vi.advanceTimersByTimeAsync(1)
-      expect(closed).toBe(true)
-      expect(warn).toHaveBeenCalledWith(
-        '[claude-stream-json] output still open after the proven exit:',
-        expect.anything()
-      )
+      expect(closed).toEqual(new Error('Claude output reader did not complete after input EOF'))
     } finally {
       vi.useRealTimers()
       warn.mockRestore()
@@ -324,6 +325,7 @@ describe('Claude stream-json close ordering', () => {
         signal: new AbortController().signal
       })
       return {
+        next,
         [Symbol.asyncIterator]: () => ({ next })
       }
     }) as unknown as typeof query
@@ -429,111 +431,132 @@ describe('Claude stream-json close ordering', () => {
   })
 })
 
-it.each(['root-exit', 'requested-close'] as const)(
-  'saves a resolved SDK next exactly once before %s retires its translator',
+it.each(['root-exit', 'requested-close', 'source-error'] as const)(
+  'drains the installed SDK decoded queue and EOF before %s retires its original journal owner',
   async (ending) => {
     mocks.refresh.mockReset().mockResolvedValue(undefined)
     mocks.proveClaudeChildExit.mockReset().mockResolvedValue(true)
     const child = fakeChild()
-    const pulled = Promise.withResolvers<IteratorResult<Record<string, unknown>>>()
-    const next = vi
-      .fn<() => Promise<IteratorResult<Record<string, unknown>>>>()
-      .mockReturnValueOnce(pulled.promise)
-      .mockResolvedValue({ done: true, value: undefined })
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this query supplies exactly the spawn and iterator protocol exercised by the production reader.
-    const queryImpl = ((params: Parameters<typeof query>[0]) => {
-      params.options?.spawnClaudeCodeProcess?.({
-        command: 'claude',
-        args: [],
-        env: {},
-        signal: new AbortController().signal
-      })
-      return { [Symbol.asyncIterator]: () => ({ next }) }
-    }) as unknown as typeof query
-    const root = await mkdtemp(join(tmpdir(), 'orca-received-sdk-tail-'))
-    const identity = {
-      sessionId: 'session-1',
-      workspaceId: 'workspace',
-      hostId: 'host',
-      agent: 'claude' as const,
-      providerHandle: claudeProviderHandle('provider-session')
-    }
-    let journal = await openAgentSessionJournal({
-      identity,
-      database: openTestJournalHostDatabase(root)
-    })
-    const sink = createDeferredStructuredAgentSessionEventSink(testEventSinkLogging())
-    sink.bind({ journal, fence: 1, publish: () => {} })
-    const translator = createClaudeJournalTranslator({ sink: sink.sink })
-    const delivered: string[] = []
-    let connection: Awaited<ReturnType<typeof openClaudeStreamJsonConnection>> | undefined
-    try {
-      connection = await openClaudeStreamJsonConnection(
-        { pathToClaudeCodeExecutable: 'claude', options: {}, cwd: '/work/repo' },
-        {
-          onMessage: (message) => {
-            delivered.push('message')
-            translator.handle({ type: 'message', sessionId: 'session-1', message })
-          },
-          onExit: () => {
-            delivered.push('exit')
-            translator.handle({
-              type: 'ended',
-              sessionId: 'session-1',
-              reason: 'exit',
-              observedAt: 2
-            })
-            translator.dispose()
+    const rig = await openProviderTimelineRig()
+    const translator = createClaudeJournalTranslator({ sink: rig.eventSink })
+    const first = Promise.withResolvers<void>()
+    const writer = Promise.withResolvers<void>()
+    const transferred: string[] = []
+    let completion: Promise<boolean> | undefined
+    const connection = await openClaudeStreamJsonConnection(
+      { pathToClaudeCodeExecutable: 'claude', options: {}, cwd: '/work/repo' },
+      {
+        onMessage: (message) => {
+          transferred.push(String(message.uuid))
+          translator.handle({ type: 'message', sessionId: SESSION, message })
+          if (message.uuid === 'result-1') {
+            void rig.journal.readInOrder(() => writer.promise)
+            for (let index = 0; index < 512; index++) {
+              rig.eventSink.appendItem(
+                { provider: 'orca', clientMessageId: `pressure-${index}` },
+                { kind: 'status', tone: 'info', text: 'queued' },
+                { turnScope: { kind: 'thread' } }
+              )
+            }
+            first.resolve()
           }
         },
-        () => child,
-        queryImpl
-      )
-      expect(next).toHaveBeenCalledOnce()
-      connection.pauseReading?.()
-      // Resolve the actual next() promise, then exit in the same stack before its await runs.
-      pulled.resolve({
-        done: false,
-        value: {
-          type: 'user',
-          session_id: 'provider-session',
-          uuid: 'resolved-result',
-          message: {
-            role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                tool_use_id: 'resolved-tool',
-                content: 'the complete received tool result'
-              }
-            ]
+        onExit: () => {
+          transferred.push('exit')
+          const retire = (): void => {
+            translator.handle({ type: 'ended', sessionId: SESSION, reason: 'exit', observedAt: 2 })
+            translator.dispose()
+            transferred.push('complete')
           }
+          completion = connection.close().then(
+            (proven) => {
+              retire()
+              return proven
+            },
+            (error: unknown) => {
+              retire()
+              throw error
+            }
+          )
+          void completion.catch(() => {})
         }
-      })
-      const closing = ending === 'requested-close' ? connection.close() : undefined
-      child.emit('exit', 0, null)
-      connection.pauseReading?.()
-      await vi.waitFor(() => expect(delivered).toEqual(['message', 'exit']))
-      if (closing) {
-        await closing
+      },
+      () => child,
+      query
+    )
+    const unbind = rig.eventSink.bindReadingControl?.({
+      pauseReading: () => connection.pauseReading?.(),
+      resumeReading: () => connection.resumeReading?.()
+    })
+    try {
+      for (const index of [1, 2, 3]) {
+        child.stdout.write(
+          `${JSON.stringify({
+            type: 'user',
+            session_id: 'provider-session',
+            uuid: `result-${index}`,
+            message: {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: `tool-${index}`,
+                  content: `complete received body ${index}`
+                }
+              ]
+            }
+          })}\n`
+        )
       }
-      await expect(sink.drained()).resolves.toEqual({ ok: true })
-      await journal.close()
-      closeTestJournalHostDatabase(root)
-      journal = await openAgentSessionJournal({
-        identity,
-        database: openTestJournalHostDatabase(root)
-      })
-      const tools = journal.snapshot().items.filter((item) => item.body.kind === 'tool-call')
-      expect(tools).toHaveLength(1)
-      expect(JSON.stringify(tools[0].body)).toContain('the complete received tool result')
+      await first.promise
+      expect(transferred).toEqual(['result-1'])
+      vi.useFakeTimers()
+      const closing = ending === 'requested-close' ? connection.close() : undefined
+      child.exitCode = 0
+      child.emit('exit', 0, null)
+      expect(connection.closed).toBe(true)
+      await expect(connection.send({ type: 'user' })).rejects.toThrow()
+      await expect(connection.setModel('model-after-exit')).rejects.toThrow()
+      if (ending === 'source-error') {
+        child.stdout.emit('error', new Error('received source failed'))
+      }
+      // The inherited raw pipe stays open; EOF must come from the owned facade.
+      await vi.advanceTimersByTimeAsync(1_000)
+      void (ending === 'source-error'
+        ? await expect(completion).rejects.toThrow('received source failed')
+        : await expect(completion ?? closing).resolves.toBe(true))
+      vi.useRealTimers()
+      expect(transferred).toEqual(['result-1', 'exit', 'result-2', 'result-3', 'complete'])
+      expect(child.stdout.destroyed).toBe(false)
+      writer.resolve()
+      await expect(rig.eventSink.written?.()).resolves.toEqual({ ok: true })
+      const reopened = await rig.reopenJournal()
+      const tools = reopened.snapshot().items.filter((row) => row.body.kind === 'tool-call')
+      expect(tools.map((row) => row.itemId)).toEqual(
+        [1, 2, 3].map((index) => `orca:claude-tool%3Aprovider-session%3Atool-${index}`)
+      )
+      expect(tools.map((row) => row.body)).toEqual(
+        [1, 2, 3].map((index) =>
+          expect.objectContaining({
+            output: expect.objectContaining({
+              head: `complete received body ${index}`,
+              truncated: false,
+              byteLength: Buffer.byteLength(`complete received body ${index}`)
+            })
+          })
+        )
+      )
     } finally {
-      await connection?.close()
+      vi.useRealTimers()
+      writer.resolve()
+      child.stdout.end()
+      child.stderr.end()
+      void (ending === 'source-error'
+        ? await expect(connection.close()).rejects.toThrow('received source failed')
+        : await connection.close())
+      unbind?.()
       translator.dispose()
-      sink.close()
-      await journal.close()
-      closeTestJournalHostDatabase(root)
-      await rm(root, { recursive: true, force: true })
+      await closeProviderTimelineRigs()
     }
   }
 )

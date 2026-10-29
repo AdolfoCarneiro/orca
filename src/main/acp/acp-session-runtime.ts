@@ -1,7 +1,7 @@
 import type { Readable, Writable } from 'node:stream'
 import { z } from 'zod'
 import { AcpRpcError } from './acp-errors'
-import { callAcpSession } from './acp-response-settlement'
+import { callAcpSession, type AcpSessionResponse } from './acp-response-settlement'
 import { AcpJsonRpcPeer, type AcpPeerOptions, type AcpRequestContext } from './acp-json-rpc-peer'
 import {
   answerAcpPermission,
@@ -9,13 +9,11 @@ import {
   type AcpPermissionHandler
 } from './acp-permission-requests'
 import { readAcpSessionEvent, type AcpSessionEvent } from './acp-session-events'
-import { setupAcpSession } from './acp-session-setup'
+import { setupAcpSession, initializeAcpSession } from './acp-session-setup'
 import type { AcpSessionStarted, AcpSessionStartOptions } from './acp-session-setup'
 export type { AcpSessionStarted, AcpSessionStartOptions } from './acp-session-setup'
 export type { AcpSessionEvent } from './acp-session-events'
 import {
-  ACP_PROTOCOL_VERSION,
-  InitializeResponseSchema,
   AuthenticateResponseSchema,
   PromptResponseSchema,
   SetSessionModeResponseSchema,
@@ -63,7 +61,7 @@ export class AcpSessionRuntime {
   private initialized?: Promise<InitializeResponse>
   private starting?: Promise<AcpSessionStarted>
   private started?: AcpSessionStarted
-  private activePrompt?: Promise<PromptResponse>
+  private activePrompt?: object
   private reportedUpdateAnomaly = false
 
   constructor(
@@ -97,30 +95,14 @@ export class AcpSessionRuntime {
   }
 
   initialize(): Promise<InitializeResponse> {
-    this.initialized ??= this.call(
-      'initialize',
-      {
-        protocolVersion: ACP_PROTOCOL_VERSION,
-        clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
-        ...(this.options.clientInfo === undefined ? {} : { clientInfo: this.options.clientInfo })
-      } satisfies InitializeRequest,
-      InitializeResponseSchema
-    )
-      .then((response) => {
-        if (response.protocolVersion !== ACP_PROTOCOL_VERSION) {
-          const error = new AcpRpcError(
-            -32602,
-            `Unsupported ACP protocol version: ${response.protocolVersion}`
-          )
-          this.peer.close(error)
-          throw error
-        }
-        return response
-      })
-      .catch((error) => {
-        this.initialized = undefined
-        throw error
-      })
+    this.initialized ??= initializeAcpSession(
+      this.peer,
+      this.options.clientInfo,
+      this.options.onAuthAnswered
+    ).catch((error) => {
+      this.initialized = undefined
+      throw error
+    })
     return this.initialized
   }
 
@@ -147,14 +129,23 @@ export class AcpSessionRuntime {
   /** Requires advertised session deletion support. */
   deleteSession = (sessionId: string) => this.call('session/delete', { sessionId }, z.unknown())
 
-  start(options: AcpSessionStartOptions): Promise<AcpSessionStarted> {
+  start(
+    options: AcpSessionStartOptions,
+    received?: (started: AcpSessionStarted) => void
+  ): Promise<AcpSessionStarted> {
     if (this.started) {
       return Promise.resolve(this.started)
     }
     this.starting ??= this.initialize()
       .then((initialized) =>
-        setupAcpSession(initialized, options, (method, params, schema) =>
-          this.call(method, params, schema)
+        setupAcpSession(
+          initialized,
+          options,
+          (method, params, schema, settle) => this.call(method, params, schema, settle),
+          (started) => {
+            this.started = started
+            received?.(started)
+          }
         )
       )
       .then((started) => {
@@ -168,17 +159,26 @@ export class AcpSessionRuntime {
     return this.starting
   }
 
-  async prompt(prompt: PromptRequest['prompt'], meta?: Meta): Promise<PromptResponse> {
+  async prompt(
+    prompt: PromptRequest['prompt'],
+    meta?: Meta,
+    received?: (response: AcpSessionResponse<PromptResponse>) => void
+  ): Promise<PromptResponse> {
     if (this.activePrompt) {
       throw new Error('ACP prompt already in progress')
     }
     const params: PromptRequest = { sessionId: this.sessionId(), prompt, ...withMeta(meta) }
-    const response = this.call('session/prompt', params, PromptResponseSchema)
-    this.activePrompt = response
+    const promptIdentity = {}
+    this.activePrompt = promptIdentity
     try {
-      return await response
+      return await this.call('session/prompt', params, PromptResponseSchema, (response) => {
+        if (this.activePrompt === promptIdentity) {
+          this.activePrompt = undefined
+        }
+        received?.(response)
+      })
     } finally {
-      if (this.activePrompt === response) {
+      if (this.activePrompt === promptIdentity) {
         this.activePrompt = undefined
       }
     }
@@ -245,6 +245,10 @@ export class AcpSessionRuntime {
     this.listeners.clear()
   }
 
+  protected finishInput(): Promise<void> {
+    return this.peer.finishInput()
+  }
+
   protected drainNotifications(error?: Error): void {
     this.peer.drainNotifications(error)
   }
@@ -256,8 +260,13 @@ export class AcpSessionRuntime {
     return this.started.sessionId
   }
 
-  private call<T>(method: string, params: unknown, schema: z.ZodType<T>): Promise<T> {
-    return callAcpSession(this.peer, method, params, schema, this.options.onAuthAnswered)
+  private call<T>(
+    method: string,
+    params: unknown,
+    schema: z.ZodType<T>,
+    received?: (response: AcpSessionResponse<T>) => void
+  ): Promise<T> {
+    return callAcpSession(this.peer, method, params, schema, this.options.onAuthAnswered, received)
   }
 
   private handleRequest(method: string, params: unknown, context: AcpRequestContext): unknown {

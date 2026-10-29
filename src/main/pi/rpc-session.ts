@@ -57,6 +57,7 @@ export type PiRpcSessionDeps = PiHistoryCaptureDeps & {
 }
 
 export class PiRpcSession {
+  private exitObservedAt?: number
   readonly connection: PiRpcConnection
   readonly lane: JsonlRpcTimelineLane
   readonly turns: PiRpcTurns
@@ -155,6 +156,10 @@ export class PiRpcSession {
           )
           .finally(() => this.releaseAfterExit?.())
       }
+    })
+    this.connection.onExit(() => {
+      this.exitObservedAt ??= Date.now()
+      this.input.events?.observeExit?.(this.heldSends, this.exitObservedAt)
     })
     this.startup = new PiRpcSessionStartup(
       input,
@@ -263,7 +268,7 @@ export class PiRpcSession {
     this.publishedExit = true
     this.unbindReadingControl?.()
     this.unbindReadingControl = undefined
-    const observedAt = Date.now()
+    const observedAt = this.exitObservedAt ?? Date.now()
     this.input.events?.observeExit?.(this.heldSends, observedAt)
     this.failedCause ??= error
     this.dialogs.cancelAll()

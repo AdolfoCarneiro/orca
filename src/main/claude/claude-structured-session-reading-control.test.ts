@@ -271,6 +271,7 @@ describe('Claude structured reading control', () => {
       (body) => body.kind === 'message' && blockOf(body)?.taskId === 'hard-watermark-task'
     )
     expect(taskRows).toHaveLength(1)
+    expect(blockOf(taskRows[0])?.error).toBeUndefined()
     expect(blockOf(taskRows[0])?.summary).toBe('The real provider task failed')
     expect(
       [...persisted.values()].some(

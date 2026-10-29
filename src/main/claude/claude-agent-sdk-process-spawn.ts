@@ -1,3 +1,6 @@
+import { PassThrough } from 'node:stream'
+import { ownRetainedString } from '../../shared/own-retained-string'
+import { createProviderSourceCompletion } from '../provider-process/provider-source-completion'
 import type { PipedChildProcess, PipedProcessSpawner } from '@orca/process-host/process-spec'
 import type { SpawnOptions as ClaudeAgentSdkSpawnOptions } from '@anthropic-ai/claude-agent-sdk'
 import { spawnProcess } from '@orca/process-host'
@@ -16,6 +19,9 @@ export type ClaudeCodeProcessSpawn = {
   readonly pid: number | undefined
   /** The spawn spec's verdict, so the close ladder never re-decides it. False until the SDK spawns. */
   readonly supervised: boolean
+  readonly receivedInput: boolean
+  finishInput: () => Promise<void>
+  readonly inputDone: Promise<void>
 }
 
 function definedEnv(env: Record<string, string | undefined>): Record<string, string> {
@@ -35,6 +41,8 @@ export function createClaudeCodeProcessSpawn(
   platform: NodeJS.Platform = process.platform
 ): ClaudeCodeProcessSpawn {
   let managed: ManagedProviderProcess | null = null
+  let source: ReturnType<typeof createProviderSourceCompletion> | undefined
+  let receivedInput = false
   return {
     spawn: (options) => {
       // SDK abort would kill the child outside Orca's ladder, losing observed exit proof.
@@ -53,9 +61,46 @@ export function createClaudeCodeProcessSpawn(
           acceptClose: claudeChildCloseProven
         }
       )
-      // The SDK drains stderr only for its own local spawn; the managed process drains it here.
-      return managed.child
+      const stdout = new PassThrough()
+      let tail: string[] = []
+      source = createProviderSourceCompletion(managed.child.stdout, {
+        data: (chunk) => {
+          receivedInput ||= chunk.length > 0
+          const newline = chunk.lastIndexOf('\n')
+          if (newline === -1) {
+            tail.push(chunk)
+          } else {
+            stdout.write(tail.join('') + chunk.slice(0, newline + 1))
+            tail = [ownRetainedString(chunk.slice(newline + 1))]
+          }
+        },
+        end: (natural) => {
+          stdout.end(natural ? tail.join('') : undefined)
+          tail = []
+        },
+        error: () => {
+          stdout.end()
+          tail = []
+        }
+      })
+      // Keep the real handle for exit proof; SDK cleanup only owns its stdout facade.
+      return new Proxy(managed.child, {
+        get: (child, key) => {
+          if (key === 'stdout') {
+            return stdout
+          }
+          const value = Reflect.get(child, key, child)
+          return typeof value === 'function' ? value.bind(child) : value
+        }
+      })
     },
+    get inputDone() {
+      return source?.done ?? Promise.resolve()
+    },
+    get receivedInput() {
+      return receivedInput
+    },
+    finishInput: () => source?.finish() ?? Promise.resolve(),
     get child() {
       return managed?.child ?? null
     },

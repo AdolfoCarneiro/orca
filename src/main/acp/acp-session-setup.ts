@@ -1,6 +1,12 @@
+import { callAcpSession } from './acp-response-settlement'
+import type { AcpJsonRpcPeer } from './acp-json-rpc-peer'
+import type { AcpSessionResponse } from './acp-response-settlement'
 import type { z } from 'zod'
 import { AcpAuthRequiredError, AcpRpcError, acpAuthRequiredError } from './acp-errors'
 import {
+  ACP_PROTOCOL_VERSION,
+  InitializeResponseSchema,
+  type InitializeRequest,
   NewSessionResponseSchema,
   LoadSessionResponseSchema,
   ResumeSessionResponseSchema,
@@ -29,17 +35,27 @@ export type AcpSessionStartOptions = NewSessionRequest & {
   resumePreference?: 'load' | 'resume'
   authMethodId?: string
 }
-type Request = <T>(method: string, params: unknown, schema: z.ZodType<T>) => Promise<T>
+type Request = <T>(
+  method: string,
+  params: unknown,
+  schema: z.ZodType<T>,
+  received?: (response: AcpSessionResponse<T>) => void
+) => Promise<T>
 
 export async function setupAcpSession(
   initialized: InitializeResponse,
   options: AcpSessionStartOptions,
-  request: Request
+  request: Request,
+  received?: (started: AcpSessionStarted) => void
 ): Promise<AcpSessionStarted> {
   const setup = async (): Promise<AcpSessionStarted> => {
     const { sessionId, resumePreference, authMethodId: _auth, ...params } = options
     if (sessionId === undefined) {
-      const response = await request('session/new', params, newSessionSchema)
+      const response = await request('session/new', params, newSessionSchema, (reply) => {
+        if ('value' in reply) {
+          received?.({ kind: 'new', sessionId: reply.value.sessionId, response: reply.value })
+        }
+      })
       return { kind: 'new', sessionId: response.sessionId, response }
     }
     const capabilities = initialized.agentCapabilities
@@ -49,14 +65,32 @@ export async function setupAcpSession(
       return {
         kind: 'load',
         sessionId,
-        response: await request('session/load', { ...params, sessionId }, loadSessionSchema)
+        response: await request(
+          'session/load',
+          { ...params, sessionId },
+          loadSessionSchema,
+          (reply) => {
+            if ('value' in reply) {
+              received?.({ kind: 'load', sessionId, response: reply.value })
+            }
+          }
+        )
       }
     }
     if (resume) {
       return {
         kind: 'resume',
         sessionId,
-        response: await request('session/resume', { ...params, sessionId }, resumeSessionSchema)
+        response: await request(
+          'session/resume',
+          { ...params, sessionId },
+          resumeSessionSchema,
+          (reply) => {
+            if ('value' in reply) {
+              received?.({ kind: 'resume', sessionId, response: reply.value })
+            }
+          }
+        )
       }
     }
     throw new AcpRpcError(-32601, 'ACP agent cannot load or resume this session')
@@ -82,4 +116,32 @@ export async function setupAcpSession(
       throw failure
     }
   }
+}
+
+export function initializeAcpSession(
+  peer: AcpJsonRpcPeer,
+  clientInfo: InitializeRequest['clientInfo'],
+  answered: ((signedIn: boolean) => void) | undefined
+): Promise<InitializeResponse> {
+  return callAcpSession(
+    peer,
+    'initialize',
+    {
+      protocolVersion: ACP_PROTOCOL_VERSION,
+      clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
+      ...(clientInfo === undefined ? {} : { clientInfo })
+    } satisfies InitializeRequest,
+    InitializeResponseSchema,
+    answered,
+    (reply) => {
+      if ('value' in reply && reply.value.protocolVersion !== ACP_PROTOCOL_VERSION) {
+        const error = new AcpRpcError(
+          -32602,
+          `Unsupported ACP protocol version: ${reply.value.protocolVersion}`
+        )
+        peer.close(error)
+        throw error
+      }
+    }
+  )
 }

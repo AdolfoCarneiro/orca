@@ -110,6 +110,7 @@ export function endAcpStructuredSession(
   if (session.ended) {
     return
   }
+  observedAt = session.exitObservedAt ?? observedAt
   session.ended = true
   session.events?.observeExit?.(undefined, observedAt)
   session.exitObservedAt = observedAt

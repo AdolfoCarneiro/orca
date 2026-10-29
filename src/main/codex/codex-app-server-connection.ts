@@ -48,7 +48,6 @@ async function connectCodexAppServer(
   let recordReader: ProviderRecordReader | undefined
   let nextRequestId = 1
   let closing = false
-  let closesInFlight = 0
   let exitReported = false
   // Several listeners can report one failure; preserve its first, specific cause.
   let terminalError: Error | null = null
@@ -67,16 +66,35 @@ async function connectCodexAppServer(
     }
   })
 
-  // Fail pending calls immediately, but notify the owner only once root exit is proven.
+  let outputDone: Promise<void> | undefined
+  let exitPublication: Promise<void> | undefined
+
+  function finishOutput(): Promise<void> {
+    outputDone ??= Promise.resolve().then(async () => {
+      try {
+        await recordReader?.finish()
+      } finally {
+        dispatcher.failPending(terminalError ?? buildExitError())
+      }
+    })
+    return outputDone
+  }
+
+  // Death rejects new sends immediately; received replies keep their original owner.
   function handleUnexpectedEnd(cause?: Error): void {
-    recordReader?.drain()
-    if (!terminalError) {
-      terminalError = buildExitError(cause)
-      dispatcher.failPending(terminalError)
-    }
-    if (managed.rootVerdict === 'exited' && closesInFlight === 0 && !exitReported) {
+    terminalError ??= buildExitError(cause)
+    void finishOutput().catch(() => {})
+    if (managed.rootVerdict === 'exited' && !exitReported) {
       exitReported = true
-      handlers.onExit?.(terminalError, { expected: closing })
+      const inputDone = finishOutput()
+      try {
+        exitPublication = Promise.resolve(
+          handlers.onExit?.(terminalError, { expected: closing, inputDone })
+        )
+      } catch (error) {
+        exitPublication = Promise.reject(error)
+      }
+      void exitPublication.catch(() => {})
     }
   }
 
@@ -85,11 +103,6 @@ async function connectCodexAppServer(
   })
   managed.onExit(() => handleUnexpectedEnd())
   child.stdin.on('error', (error) => {
-    // Broken pipes invalidate the transport; during close, fail calls without claiming root exit.
-    if (closing) {
-      dispatcher.failPending(error)
-      return
-    }
     handleUnexpectedEnd(error)
     void managed.close()
   })
@@ -121,7 +134,7 @@ async function connectCodexAppServer(
   }
 
   function notify(method: string, params?: Record<string, unknown>): void {
-    if (managed.rootVerdict === 'exited' || terminalError) {
+    if (closing || managed.rootVerdict === 'exited' || terminalError) {
       return
     }
     try {
@@ -134,7 +147,11 @@ async function connectCodexAppServer(
   function request(
     method: string,
     params?: Record<string, unknown>,
-    options: { timeoutMs?: number | null; onReply?: () => void } = {}
+    options: {
+      timeoutMs?: number | null
+      onReply?: () => void
+      onResult?: (result: unknown) => void
+    } = {}
   ): Promise<unknown> {
     if (closing) {
       return Promise.reject(new Error(`codex app-server connection is closed (${method})`))
@@ -164,7 +181,14 @@ async function connectCodexAppServer(
                 )
               )
             }, timeoutMs)
-      dispatcher.addPending(id, { method, resolve, reject, timer, onReply: options.onReply })
+      dispatcher.addPending(id, {
+        method,
+        resolve,
+        reject,
+        timer,
+        onReply: options.onReply,
+        onResult: options.onResult
+      })
       try {
         sendLine(params === undefined ? { method, id } : { method, id, params })
       } catch (error) {
@@ -193,24 +217,16 @@ async function connectCodexAppServer(
 
   function close(): Promise<boolean> {
     closing ||= managed.rootVerdict !== 'exited'
-    closesInFlight += 1
-    return managed
-      .close(tree)
-      .then((result) => {
-        recordReader?.drain()
-        if (result.root === 'exited' && !exitReported) {
-          exitReported = true
-          handlers.onExit?.(terminalError ?? buildExitError(), { expected: closing })
-        }
-        dispatcher.failPending(new Error('codex app-server connection closed'))
-        return result.root === 'exited'
-      })
-      .finally(() => {
-        closesInFlight -= 1
-        if (managed.rootVerdict === 'exited') {
-          handleUnexpectedEnd()
-        }
-      })
+    return managed.close(tree).then(async (result) => {
+      if (result.root === 'exited') {
+        handleUnexpectedEnd()
+      }
+      await finishOutput()
+      if (result.root === 'exited') {
+        await exitPublication
+      }
+      return result.root === 'exited'
+    })
   }
 
   const connection: CodexAppServerConnection = {

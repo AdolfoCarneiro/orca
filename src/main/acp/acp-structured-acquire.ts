@@ -11,6 +11,8 @@ import { providerSpawnedProcessIdentity } from '../provider-process/provider-spa
 import { acpPrivateTempConnect } from './acp-private-temp'
 import {
   assertAcpStartingSession,
+  assertAcpBeforeSpawn,
+  observeAcpChildExit,
   isAcpReadySession,
   type AcpStructuredChild
 } from './acp-structured-child'
@@ -55,14 +57,11 @@ export async function acquireAcpStructuredSession(input: {
   if (!sink) {
     throw new AgentSessionPreSpawnError(new Error(`${spec.agent} chats need a journal sink`))
   }
-  const closedBeforeSpawn = () => {
-    if (input.abandoned()) {
-      throw new AgentSessionPreSpawnError(new Error(`${agentName} was closed before it started`))
-    }
-  }
+  const closedBeforeSpawn = () => assertAcpBeforeSpawn(input.abandoned, agentName)
   closedBeforeSpawn()
   const launch = await prepareAcpStructuredLaunch(deps, acquire, closedBeforeSpawn)
   let session: AcpStructuredChild | null = null
+  const current = () => session
   // Use a slot so closure writes do not conflict with control-flow narrowing.
   const slot: {
     lane: AcpStructuredLane | null
@@ -152,7 +151,8 @@ export async function acquireAcpStructuredSession(input: {
       // Protocol loss may leave the process alive; stdout EOF alone does not trigger this.
       onClose: (error) => input.onConnectionLost(session, error),
       // Read final diagnostics at process exit, which may follow stdout EOF.
-      onExit: () => input.onExit(session)
+      onExit: (_error, context) =>
+        observeAcpChildExit(current, now(), context.inputDone, input.onExit, input.onConnectionLost)
     }
   )
   if (!spec.permissionModeConfig) {

@@ -1,3 +1,4 @@
+import { AgentSessionPreSpawnError } from '../native-chat/agent-session-wire/structured-agent-session-adapter'
 import type { SubmissionRejectionFact } from '../../shared/agent-session-failure'
 import type { StructuredAgentSessionProviderOpenResult } from '../native-chat/agent-session-wire/structured-agent-session-provider-open-contract'
 import { AcpAgentError } from './acp-errors'
@@ -60,5 +61,34 @@ export function assertAcpStartingSession(
     throw new Error(
       session.connection.stderrTail() || `${session.spec.command} closed while starting`
     )
+  }
+}
+
+export function observeAcpChildExit(
+  getSession: () => AcpStructuredChild | null,
+  observedAt: number,
+  inputDone: Promise<void> | undefined,
+  onExit: (session: AcpStructuredChild | null) => void,
+  onConnectionLost: (session: AcpStructuredChild | null, error: Error) => void
+): void | Promise<void> {
+  const session = getSession()
+  if (session) {
+    session.exitObservedAt ??= observedAt
+    session.events?.observeExit?.(session.turns?.heldSends, observedAt)
+  }
+  return inputDone
+    ? inputDone.then(
+        () => onExit(getSession()),
+        (error: unknown) => {
+          onConnectionLost(getSession(), error instanceof Error ? error : new Error(String(error)))
+          onExit(getSession())
+        }
+      )
+    : onExit(session)
+}
+
+export function assertAcpBeforeSpawn(abandoned: () => boolean, agentName: string): void {
+  if (abandoned()) {
+    throw new AgentSessionPreSpawnError(new Error(`${agentName} was closed before it started`))
   }
 }

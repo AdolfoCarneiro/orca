@@ -24,7 +24,7 @@ import { claudeStreamJsonExitError } from './claude-stream-json-exit-error'
 
 export { ClaudeControlRequestError }
 
-/** Bound output draining after proven exit so inherited pipes cannot hold close open. */
+/** A foreign empty reader must report a fault rather than hold process cleanup forever. */
 export const CLAUDE_READER_DRAIN_AFTER_EXIT_MS = 2_000
 
 /** Lazy import confines SDK executable-search env mutation and missing-package failures to structured Claude. */
@@ -173,45 +173,31 @@ export async function openClaudeStreamJsonConnection(
       terminalError = withProviderSpawnAbsence(error, managed.spawnAbsence)
     }
     inbox.fail(terminalError)
-    // A resolved next() already owns a delivery continuation. Let it transfer before teardown;
-    // an unresolved read does not hold exit publication or a later send hostage.
-    const error = terminalError
-    queueMicrotask(() => {
-      if (!closing && !faultReported) {
-        faultReported = true
-        handlers.onFault?.(error)
-      }
-      if (managed.rootExitObserved && !exitReported) {
-        exitReported = true
-        handlers.onExit?.(error, { expected: closing })
-      }
+    if (!closing && !faultReported) {
+      faultReported = true
+      handlers.onFault?.(terminalError)
+    }
+    if (managed.rootExitObserved && !exitReported) {
+      exitReported = true
+      handlers.onExit?.(terminalError, { expected: closing })
+    }
+    void spawner.finishInput().catch((error: unknown) => {
+      handlers.onFault?.(error instanceof Error ? error : new Error(String(error)))
     })
   }
 
   const readerDone = (async () => {
     try {
-      const iterator = session[Symbol.asyncIterator]()
-      let completed = false
-      try {
-        for (;;) {
-          await waitUntilReadable()
-          if (terminalError) {
-            break
-          }
-          const next = await iterator.next()
-          if (next.done) {
-            completed = true
-            break
-          }
-          if (!isRecord(next.value)) {
-            throw new Error('claude stream-json yielded a non-object message')
-          }
-          handlers.onMessage?.(next.value)
+      for (;;) {
+        await waitUntilReadable()
+        const next = await session.next()
+        if (next.done) {
+          break
         }
-      } finally {
-        if (!completed) {
-          await iterator.return?.()
+        if (!isRecord(next.value)) {
+          throw new Error('claude stream-json yielded a non-object message')
         }
+        handlers.onMessage?.(next.value)
       }
     } catch (error: unknown) {
       // Transport failure can leave the child alive, requiring a tree reap.
@@ -222,6 +208,10 @@ export async function openClaudeStreamJsonConnection(
     }
   })()
 
+  void spawner.inputDone.catch((cause: unknown) => {
+    handleUnexpectedEnd(cause instanceof Error ? cause : new Error(String(cause)))
+    void managed.close()
+  })
   managed.onExit(() => handleUnexpectedEnd())
   child.on('error', (error) => {
     if (!closing && managed.rootVerdict !== 'exited') {
@@ -278,15 +268,26 @@ export async function openClaudeStreamJsonConnection(
         closePromise = null
         return false
       }
-      const drained = await withTimeout(
-        readerDone.then(() => true),
-        CLAUDE_READER_DRAIN_AFTER_EXIT_MS,
-        false
+      const inputFailure = await spawner.finishInput().then(
+        () => null,
+        (error: unknown) => error
       )
-      if (!drained) {
-        console.warn('[claude-stream-json] output still open after the proven exit:', {
-          pid: spawner.pid
-        })
+      if (spawner.receivedInput) {
+        await readerDone
+      } else {
+        const drained = await withTimeout(
+          readerDone.then(() => true),
+          CLAUDE_READER_DRAIN_AFTER_EXIT_MS,
+          false
+        )
+        if (!drained) {
+          const error = new Error('Claude output reader did not complete after input EOF')
+          handlers.onFault?.(error)
+          throw error
+        }
+      }
+      if (inputFailure !== null) {
+        throw inputFailure
       }
       return true
     })()
@@ -294,7 +295,11 @@ export async function openClaudeStreamJsonConnection(
   }
 
   return {
-    ...createClaudeControlSurface(session),
+    ...createClaudeControlSurface(session, () =>
+      closing || managed.rootVerdict === 'exited' || terminalError
+        ? (terminalError ?? new Error('claude stream-json connection is closed'))
+        : null
+    ),
     get pid() {
       return spawner.pid
     },

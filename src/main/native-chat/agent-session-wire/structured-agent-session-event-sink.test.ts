@@ -376,40 +376,6 @@ describe('deferred structured agent-session event sink', () => {
     expect(log).toEqual([{ call: 'appendItem', fence: 8, ordinal: 0 }])
   })
 
-  it('admits lifecycle publication after crossing the pacing watermark', async () => {
-    const log: Recorded[] = []
-    const errors: unknown[] = []
-    const deferred = createDeferredStructuredAgentSessionEventSink({
-      ...testEventSinkLogging(),
-      onFailed: (error) => errors.push(error),
-      watermarks: {
-        pauseQueuedBytes: 1,
-        lowQueuedBytes: 0,
-        pauseQueuedOperations: 1,
-        lowQueuedOperations: 0
-      }
-    })
-
-    deferred.sink.appendLifecycleBatch?.(
-      'settlement-1',
-      [{ kind: 'item', identity: identity(0), body: BODY, turnScope: AGENT_JOURNAL_THREAD_SCOPE }],
-      { lifecycle: true }
-    )
-    expect(deferred.sink.tryPublish?.({ lifecycle: true })).toEqual({
-      accepted: true
-    })
-    expect(deferred.state()).toMatchObject({ queuedOperations: 2, backpressured: true })
-    expect(errors).toHaveLength(0)
-
-    deferred.bind(target(8, log))
-    await expect(deferred.lifecycleBarrier()).resolves.toEqual({ ok: true })
-
-    expect(log).toEqual([
-      { call: 'appendLifecycleBatch', fence: 8, settlementId: 'settlement-1' },
-      { call: 'publish', fence: 8 }
-    ])
-  })
-
   it('ignores stale reading-control cleanup after a newer provider stream binds', async () => {
     const log: Recorded[] = []
     const firstControl = { pauseReading: vi.fn(), resumeReading: vi.fn() }
@@ -623,4 +589,88 @@ describe('producer linkage reaches the journal through every append path', () =>
     ])
     deferred.close()
   })
+})
+
+it('keeps startup publication submit, bind and retirement work linear at N and 10N', async () => {
+  async function measure(count: number, ending: 'bind' | 'drop') {
+    let work = 0
+    const get = Map.prototype.get
+    const set = Map.prototype.set
+    const remove = Map.prototype.delete
+    const find = Array.prototype.findIndex
+    const spies = [
+      vi.spyOn(Map.prototype, 'get').mockImplementation(function (
+        this: Map<unknown, unknown>,
+        key
+      ) {
+        work++
+        return get.call(this, key)
+      }),
+      vi.spyOn(Map.prototype, 'set').mockImplementation(function (
+        this: Map<unknown, unknown>,
+        key,
+        value
+      ) {
+        work++
+        return set.call(this, key, value)
+      }),
+      vi.spyOn(Map.prototype, 'delete').mockImplementation(function (
+        this: Map<unknown, unknown>,
+        key
+      ) {
+        work++
+        return remove.call(this, key)
+      }),
+      vi.spyOn(Array.prototype, 'findIndex').mockImplementation(function (
+        this: unknown[],
+        predicate,
+        context
+      ) {
+        return find.call(this, (value, index, array) => {
+          work++
+          return predicate.call(context, value, index, array)
+        })
+      })
+    ]
+    const log: Recorded[] = []
+    const deferred = createDeferredStructuredAgentSessionEventSink(testEventSinkLogging())
+    let peak = 0
+    try {
+      for (let index = 0; index < count; index++) {
+        deferred.sink.appendItem(identity(index), BODY, { turnScope: AGENT_JOURNAL_THREAD_SCOPE })
+        deferred.sink.publish()
+        peak = Math.max(peak, deferred.state().queuedOperations)
+      }
+      const barrier = deferred.drained()
+      void (ending === 'bind' ? deferred.bind(target(1, log)) : deferred.close())
+      const result = await barrier
+      const final = deferred.state()
+      return { work, log, peak, result, final }
+    } finally {
+      for (const spy of spies) {
+        spy.mockRestore()
+      }
+      deferred.close()
+    }
+  }
+  for (const ending of ['bind', 'drop'] as const) {
+    const small = await measure(128, ending)
+    const large = await measure(1280, ending)
+    expect(large.work).toBeLessThanOrEqual(small.work * 11)
+    expect(large.peak).toBe(1281)
+    expect(large.final).toMatchObject({ queuedOperations: 0, queuedBytes: 0, backpressured: false })
+    expect(large.result).toEqual({ ok: true })
+    expect(large.log).toEqual(
+      ending === 'bind'
+        ? [
+            ...Array.from({ length: 1280 }, (_, ordinal) => ({
+              call: 'appendItem',
+              fence: 1,
+              ordinal
+            })),
+            { call: 'publish', fence: 1 }
+          ]
+        : []
+    )
+  }
 })

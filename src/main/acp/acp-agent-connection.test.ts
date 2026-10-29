@@ -44,7 +44,10 @@ function fixture(
   agent.on('initialize', (frame) => agent.reply(frame, { protocolVersion: 1 }))
   agent.on('session/new', (frame) => agent.reply(frame, { sessionId: 'session-1' }))
   if (behavior.exitOnEnd !== false) {
-    child.stdin.once('finish', () => child.emit('exit', 0, null))
+    child.stdin.once('finish', () => {
+      child.emit('exit', 0, null)
+      child.stdout.end()
+    })
   }
   const connection = createAcpAgentConnection(
     {
@@ -57,11 +60,18 @@ function fixture(
     options,
     spawn
   )
-  opened.push({ connection, exit: () => child.emit('exit', 0, null) })
+  opened.push({
+    connection,
+    exit: () => {
+      child.emit('exit', 0, null)
+      child.stdout.end()
+    }
+  })
   return { agent, child, spawn, connection }
 }
 
 afterEach(async () => {
+  vi.useRealTimers()
   for (const { connection, exit } of opened.splice(0)) {
     exit()
     await connection.close()
@@ -131,7 +141,8 @@ describe('ACP process-owning connection', () => {
     expect(onClose).not.toHaveBeenCalled()
     expect(onExit).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {
       expected: false,
-      exit: { code: 7, signal: null, processless: false }
+      exit: { code: 7, signal: null, processless: false },
+      inputDone: expect.any(Promise)
     })
     expect(statusDuringExit).toEqual([{ code: 7, signal: null, processless: false }])
     const late = vi.fn()
@@ -184,7 +195,7 @@ describe('ACP process-owning connection', () => {
     const onExit = vi.fn()
     const { connection, child, agent } = fixture({ onClose, onExit })
     await connection.start(start)
-    const rejected = expect(connection.prompt([...prompt])).rejects.toThrow('connection closed')
+    const rejected = expect(connection.prompt([...prompt])).rejects.toThrow('exited')
     child.stdout.end()
     await tick()
     expect(connection.closed).toBe(false)
@@ -225,7 +236,7 @@ describe('ACP process-owning connection', () => {
     const { connection, child, spawn } = fixture({ onExit }, { exitOnEnd: false })
     const first = connection.close()
     const joined = connection.close()
-    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await vi.advanceTimersByTimeAsync(grace + 2_000)
     expect(await first).toBe(false)
     expect(await joined).toBe(false)
     expect(connection.rootVerdict).toBe('live')
@@ -235,7 +246,7 @@ describe('ACP process-owning connection', () => {
       return 'unverifiable'
     })
     const retry = connection.close()
-    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await vi.advanceTimersByTimeAsync(grace + 2_000)
     expect(await retry).toBe(true)
     expect(connection.processTreeUnproven).toBe(true)
     expect(spawn).toHaveBeenCalledOnce()
@@ -252,7 +263,7 @@ describe('ACP process-owning connection', () => {
     expect(connection.closed).toBe(true)
     agent.notify('_x.ai/session/update', { outcome: 'before-exit' })
     expect(onExtensionNotification).toHaveBeenCalledOnce()
-    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await vi.advanceTimersByTimeAsync(grace + 2_000)
     expect(await closing).toBe(false)
     expect(connection.rootVerdict).toBe('live')
     agent.notify('_x.ai/session/update', { outcome: 'after-unproven-close' })
@@ -267,11 +278,13 @@ describe('ACP process-owning connection', () => {
       const { connection, child } = fixture({}, { exitOnEnd: false })
       teardown.mockResolvedValueOnce(tree)
       const close = connection.close()
-      await vi.advanceTimersByTimeAsync(grace + 1_000)
+      await vi.advanceTimersByTimeAsync(grace + 2_000)
       expect(await close).toBe(false)
       child.emit('exit', null, 'SIGKILL')
       expect(connection.processTreeUnproven).toBe(true)
-      expect(await connection.close()).toBe(true)
+      const finishing = connection.close()
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(await finishing).toBe(true)
       expect(connection.processTreeUnproven).toBe(true)
       expect(connection.lastCloseResult).toEqual({ root: 'live', tree })
       expect(teardown).toHaveBeenCalledOnce()
@@ -385,4 +398,183 @@ it('closes a recognized stdout prompt over 16 MiB without inventing a signed-out
   agent.stdout.write(`SIGN IN ${'x'.repeat(16 * 1024 * 1024)}\n`)
   await vi.waitFor(() => expect(connection.closed).toBe(true))
   expect(answered).toHaveBeenCalledTimes(1)
+})
+
+it.each(['root-exit', 'requested-close'] as const)(
+  'persists the separate-chunk tool update and prompt response before %s settles its lane',
+  async (ending) => {
+    const { openAcpAdapterRig, sendHello, PROVIDER_SESSION, GROK_CONFIG_OPTIONS } =
+      await import('./acp-structured-adapter.test-support')
+    const { closeProviderTimelineRigs } =
+      await import('../native-chat/agent-session-timeline/provider-timeline-assembler-test-support')
+    const { readAgentJournalTurn } = await import('../../shared/agent-session-turn-record')
+    const agent = new AcpScriptedAgent()
+    const child = Object.assign(createFakePipedChild(), {
+      pid: 9_999_999,
+      stdin: agent.stdin,
+      stdout: agent.stdout,
+      stderr: new PassThrough(),
+      kill: vi.fn(() => true)
+    })
+    agent.on('initialize', (frame) => agent.reply(frame, { protocolVersion: 1 }))
+    agent.on('session/new', (frame) =>
+      agent.reply(frame, { sessionId: PROVIDER_SESSION, configOptions: GROK_CONFIG_OPTIONS })
+    )
+    for (const method of ['_x.ai/subagent/cancel', '_x.ai/task/kill']) {
+      agent.on(method, (frame) => agent.fail(frame, -32602, 'Invalid params', 'missing field'))
+    }
+    child.stdin.once('finish', () => child.emit('exit', 0, null))
+    let connection: AcpAgentConnection | undefined
+    const f = await openAcpAdapterRig({
+      deps: {
+        connect: (launch, handlers) => {
+          connection = createAcpAgentConnection(launch, handlers, () => child)
+          return connection
+        }
+      }
+    })
+    const writer = Promise.withResolvers<void>()
+    try {
+      await f.acquire()
+      expect(f.openFailure()).toBeUndefined()
+      await sendHello(f, 'received-prompt')
+      const prompt = agent.frames.find((frame) => frame.method === 'session/prompt')
+      if (!prompt || !connection) {
+        throw new Error('production prompt was not dispatched')
+      }
+      agent.notify('session/update', {
+        sessionId: PROVIDER_SESSION,
+        _meta: { promptId: 'prompt:received-prompt' },
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId: 'received-tool',
+          title: 'echo complete',
+          kind: 'execute',
+          status: 'in_progress'
+        }
+      })
+      void f.rig.journal.readInOrder(() => writer.promise)
+      for (let index = 0; index < 512; index++) {
+        f.rig.eventSink.appendItem(
+          { provider: 'orca', clientMessageId: `pressure-${index}` },
+          { kind: 'status', tone: 'info', text: 'queued' },
+          { turnScope: { kind: 'thread' } }
+        )
+      }
+      // Every subsequent stdout chunk is resident in Node while the writer remains held.
+      agent.notify('session/update', {
+        sessionId: PROVIDER_SESSION,
+        _meta: { promptId: 'prompt:received-prompt' },
+        update: {
+          sessionUpdate: 'tool_call_update',
+          toolCallId: 'received-tool',
+          status: 'completed',
+          content: [
+            { type: 'content', content: { type: 'text', text: 'the entire received tool output' } }
+          ]
+        }
+      })
+      agent.reply(prompt, { stopReason: 'end_turn' })
+      expect(child.stdout.readableLength).toBeGreaterThan(0)
+      const closing = ending === 'requested-close' ? connection.close() : undefined
+      child.emit('exit', 0, null)
+      expect(connection.exited).toBe(true)
+      await expect(connection.prompt([{ type: 'text', text: 'too late' }])).rejects.toThrow()
+      child.stdout.end()
+      await (closing ?? connection.close())
+      expect(agent.frames.filter((frame) => frame.method === 'session/prompt')).toHaveLength(1)
+      expect(f.settled).toContainEqual(
+        expect.objectContaining({
+          clientMessageId: 'received-prompt',
+          providerIdentity: expect.anything()
+        })
+      )
+      writer.resolve()
+      const reopened = await f.rig.reopenJournal()
+      const rows = reopened.snapshot().items
+      const tools = rows.filter((row) => row.body.kind === 'tool-call')
+      expect(tools).toHaveLength(1)
+      expect(tools[0].body).toMatchObject({
+        state: 'completed',
+        callId: 'received-tool',
+        output: { head: 'the entire received tool output', truncated: false }
+      })
+      expect(rows.flatMap((row) => readAgentJournalTurn(row.body) ?? [])).toContainEqual(
+        expect.objectContaining({ state: 'completed' })
+      )
+    } finally {
+      writer.resolve()
+      child.stdout.end()
+      await connection?.close()
+      await f.adapter.closeAll()
+      await closeProviderTimelineRigs()
+    }
+  }
+)
+
+it('normalizes a received session/new identity and context before startup exit retires its lane', async () => {
+  const { openAcpAdapterRig, PROVIDER_SESSION, GROK_CONFIG_OPTIONS } =
+    await import('./acp-structured-adapter.test-support')
+  const { SESSION, closeProviderTimelineRigs } =
+    await import('../native-chat/agent-session-timeline/provider-timeline-assembler-test-support')
+  const agent = new AcpScriptedAgent()
+  const child = Object.assign(createFakePipedChild(), {
+    pid: 9_999_999,
+    stdin: agent.stdin,
+    stdout: agent.stdout,
+    stderr: new PassThrough(),
+    kill: vi.fn(() => true)
+  })
+  agent.on('initialize', (frame) => agent.reply(frame, { protocolVersion: 1 }))
+  const requested = deferred<Parameters<typeof agent.reply>[0]>()
+  agent.on('session/new', (frame) => requested.resolve(frame))
+  let connection: AcpAgentConnection | undefined
+  const f = await openAcpAdapterRig({
+    deps: {
+      connect: (launch, handlers) => {
+        connection = createAcpAgentConnection(launch, handlers, () => child)
+        return connection
+      }
+    }
+  })
+  try {
+    f.rig.assembler.apply({ type: 'turn.open', turn: 'previous-turn', at: 1_000 })
+    f.rig.assembler.apply({ type: 'turn.end', at: 2_000, state: 'completed', outcome: 'success' })
+    const acquired = await f.acquire({ waitForStart: false })
+    const opening = f.adapter
+      .open({
+        sessionId: SESSION,
+        fence: 1,
+        acquisitionGeneration: acquired.acquisitionGeneration,
+        signal: new AbortController().signal
+      })
+      .catch((error: unknown) => error)
+    const request = await requested.promise
+    if (!connection) {
+      throw new Error('startup did not create its connection')
+    }
+    child.stdout.pause()
+    agent.reply(request, {
+      sessionId: PROVIDER_SESSION,
+      configOptions: GROK_CONFIG_OPTIONS,
+      models: {
+        currentModelId: 'grok-4.7',
+        availableModels: [
+          { modelId: 'grok-4.7', name: 'Grok 4.7', _meta: { totalContextTokens: 200_000 } }
+        ]
+      }
+    })
+    child.emit('exit', 0, null)
+    child.stdout.end()
+    await connection.close()
+    expect(await opening).toBeInstanceOf(Error)
+    const reopened = await f.rig.reopenJournal()
+    expect(reopened.contextUsage().window?.tokens).toBe(200_000)
+  } finally {
+    child.emit('exit', 0, null)
+    child.stdout.end()
+    await connection?.close()
+    await f.adapter.closeAll()
+    await closeProviderTimelineRigs()
+  }
 })

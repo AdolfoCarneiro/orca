@@ -1,3 +1,4 @@
+import { createProviderSourceCompletion } from '../provider-process/provider-source-completion'
 import type { Readable, Writable } from 'node:stream'
 import { z } from 'zod'
 import { readAcpResponse } from './acp-response-settlement'
@@ -38,6 +39,7 @@ export class AcpJsonRpcPeer {
   private nextId = 1
   private terminalError?: Error
   private drainingNotifications = false
+  private readonly source: ReturnType<typeof createProviderSourceCompletion>
   private readonly limits: Required<AcpPeerOptions>
 
   constructor(
@@ -75,11 +77,15 @@ export class AcpJsonRpcPeer {
       },
       { maxLineBytes: this.limits.maxLineBytes }
     )
-    input.setEncoding('utf8')
-    input.on('data', this.onData)
-    input.on('end', this.onInputEnd)
-    input.on('close', this.onInputEnd)
-    input.on('error', this.onError)
+    this.source = createProviderSourceCompletion(input, {
+      data: this.onData,
+      end: (natural) => {
+        const tail = this.framer.finish(natural)
+        void (tail?.trim() && this.otherLine(tail))
+        void (this.limits.closeOnInputEnd && this.close())
+      },
+      error: this.onError
+    })
     output.on('close', this.onEnd)
     output.on('finish', this.onEnd)
     output.on('error', this.onError)
@@ -147,6 +153,9 @@ export class AcpJsonRpcPeer {
         timer
       })
       void this.send({ jsonrpc: '2.0', id, method, params }, controller.signal).catch((error) => {
+        if (this.drainingNotifications) {
+          return
+        }
         const pending = this.pending.get(id)
         if (!pending) {
           return
@@ -176,32 +185,34 @@ export class AcpJsonRpcPeer {
     this.shutdown(error, true)
   }
 
+  finishInput(): Promise<void> {
+    return this.source.finish()
+  }
+
   private shutdown(error: Error, drainNotifications: boolean): void {
     if (this.terminalError && (!this.drainingNotifications || drainNotifications)) {
       return
     }
-    this.drainingNotifications = drainNotifications
     if (!drainNotifications) {
-      this.input.removeListener('data', this.onData)
-      this.input.removeListener('end', this.onInputEnd)
-      this.input.removeListener('close', this.onInputEnd)
-      detachAcpStreamErrorHandler(this.input, this.onError)
+      this.source?.dispose()
+      this.framer.drain()
       this.framer.reset()
     }
-    if (this.terminalError) {
-      return
-    }
+    this.drainingNotifications = drainNotifications
     this.output.removeListener('close', this.onEnd)
     this.output.removeListener('finish', this.onEnd)
     detachAcpStreamErrorHandler(this.output, this.onError)
     this.terminalError = error
     this.writer.close(error)
+    this.incoming.close(error)
+    if (drainNotifications) {
+      return
+    }
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer)
       pending.reject(error)
     }
     this.pending.clear()
-    this.incoming.close(error)
     try {
       this.handlers.onClose?.(error)
     } catch (failure) {
@@ -217,15 +228,6 @@ export class AcpJsonRpcPeer {
     }
   }
   private readonly onEnd = (): void => this.close()
-  private readonly onInputEnd = (): void => {
-    const tail = this.framer.takeTail()
-    if (tail.trim()) {
-      this.otherLine(tail)
-    }
-    if (this.limits.closeOnInputEnd) {
-      this.close()
-    }
-  }
   private readonly onError = (error: Error): void => this.close(error)
   private otherLine(line: string): void {
     this.handlers.onOtherLine?.(line)
@@ -275,7 +277,7 @@ export class AcpJsonRpcPeer {
       return
     }
     const frame = parsed.data
-    if (this.drainingNotifications && (frame.id !== undefined || frame.method === undefined)) {
+    if (this.drainingNotifications && frame.method !== undefined && frame.id !== undefined) {
       return
     }
     if (frame.method !== undefined) {

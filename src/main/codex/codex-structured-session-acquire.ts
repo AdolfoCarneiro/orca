@@ -14,12 +14,16 @@ import {
 } from './codex-structured-acquisition-lifecycle'
 import { CodexSubagentExecutions } from './codex-subagent-executions'
 import { createCodexDispatchEchoes } from './codex-structured-dispatch-echo'
-import { createCodexSessionJournalTranslator } from './codex-structured-session-journal'
+import {
+  createCodexSessionJournalTranslator,
+  createCodexAcquisitionJournalDisposer
+} from './codex-structured-session-journal'
 import { spawnCodexAppServerConnection } from './codex-app-server-connection'
 import { codexSpawnedProcessIdentity } from './codex-structured-owner-identity'
 import {
   closeCodexPublishedSession,
-  handleCodexSessionExit
+  handleCodexSessionExit,
+  observeCodexSessionExit
 } from './codex-structured-session-close'
 import { openCodexStructuredSession } from './codex-structured-session-start'
 import { agentSessionFailureFact, providerDiagnosticOf } from '../../shared/agent-session-failure'
@@ -84,19 +88,9 @@ export async function acquireCodexStructuredSession(input: {
     subagentExecutions,
     prompts: acquisition.prompts
   })
-  let disposed = false
-  attempt.dispose = () => {
-    if (disposed) {
-      return
-    }
-    disposed = true
+  attempt.dispose = createCodexAcquisitionJournalDisposer(acquisition, translator, () =>
     unbindReadingControl?.()
-    // Retired callbacks use the acquisition translator, never the published-session lookup.
-    acquisition.retire()
-    acquisition.prompts.clear()
-    translator?.flush()
-    translator?.dispose()
-  }
+  )
   const open = deps.openConnection ?? spawnCodexAppServerConnection
   const spawnIdentity = codexSpawnedProcessIdentity(acquireInput, deps.readProcessStartTime)
   try {
@@ -195,51 +189,56 @@ export async function acquireCodexStructuredSession(input: {
           }),
         onSpawned: spawnIdentity.onSpawned,
         onExit: (error, exit) => {
-          acquisition.appliedSettings.end()
-          try {
-            if (attempt.acquisitionGeneration && !sessions.has(sessionId)) {
-              attempt.exitProven = true
-              attempt.exitError = error
-              attempt.dispose?.()
-              acquisitions.deleteIfCurrent(sessionId, attempt)
-              deps.onEvent?.({
-                type: 'ended',
+          const observedAt = deps.now?.() ?? Date.now()
+          observeCodexSessionExit(sessions.get(sessionId), acquisition.connection, observedAt)
+          const finish = (): void => {
+            acquisition.appliedSettings.end()
+            try {
+              if (attempt.acquisitionGeneration && !sessions.has(sessionId)) {
+                attempt.exitProven = true
+                attempt.exitError = error
+                attempt.dispose?.()
+                acquisitions.deleteIfCurrent(sessionId, attempt)
+                deps.onEvent?.({
+                  type: 'ended',
+                  sessionId,
+                  fence: acquireInput.fence,
+                  acquisitionGeneration,
+                  reason: error.message,
+                  cause:
+                    attempt.cancelled && attempt.requestedClose !== false
+                      ? 'requested-close'
+                      : 'unexpected-exit',
+                  failure: attempt.cancelled
+                    ? agentSessionFailureFact('hostFault')
+                    : providerSpawnAbsent(error)
+                      ? providerStartupFailureFact(error)
+                      : agentSessionFailureFact('providerExited', {
+                          detail: providerDiagnosticOf(error)
+                        }),
+                  observedAt: deps.now?.() ?? Date.now()
+                })
+              }
+              if (sessions.get(sessionId)?.connection === acquisition.connection) {
+                attempt.exitProven = true
+                attempt.exitError = error
+              }
+              handleCodexSessionExit({
+                sessions,
                 sessionId,
-                fence: acquireInput.fence,
-                acquisitionGeneration,
-                reason: error.message,
-                cause:
-                  attempt.cancelled && attempt.requestedClose !== false
-                    ? 'requested-close'
-                    : 'unexpected-exit',
-                failure: attempt.cancelled
-                  ? agentSessionFailureFact('hostFault')
-                  : providerSpawnAbsent(error)
-                    ? providerStartupFailureFact(error)
-                    : agentSessionFailureFact('providerExited', {
-                        detail: providerDiagnosticOf(error)
-                      }),
-                observedAt: deps.now?.() ?? Date.now()
+                connection: acquisition.connection,
+                error,
+                // A previously unproven Orca close still owns this exit.
+                ...(exit?.expected ? { closedByOrca: true as const } : {}),
+                ...(deps.logger ? { logger: deps.logger } : {}),
+                prompts: acquisition.prompts,
+                ...(deps.onEvent ? { onEvent: deps.onEvent } : {})
               })
+            } finally {
+              notificationRetries.clear(sessionId, acquisition.connection)
             }
-            if (sessions.get(sessionId)?.connection === acquisition.connection) {
-              attempt.exitProven = true
-              attempt.exitError = error
-            }
-            handleCodexSessionExit({
-              sessions,
-              sessionId,
-              connection: acquisition.connection,
-              error,
-              // A previously unproven Orca close still owns this exit.
-              ...(exit?.expected ? { closedByOrca: true as const } : {}),
-              ...(deps.logger ? { logger: deps.logger } : {}),
-              prompts: acquisition.prompts,
-              ...(deps.onEvent ? { onEvent: deps.onEvent } : {})
-            })
-          } finally {
-            notificationRetries.clear(sessionId, acquisition.connection)
           }
+          return exit?.inputDone ? exit.inputDone.then(finish, finish) : finish()
         }
       }
     )

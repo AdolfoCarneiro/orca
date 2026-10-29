@@ -32,7 +32,10 @@ function fixture(
     return child
   })
   if (behavior.exitOnEnd !== false) {
-    child.stdin.once('finish', () => child.emit('exit', 0, null))
+    child.stdin.once('finish', () => {
+      child.emit('exit', 0, null)
+      child.stdout.end()
+    })
   }
   const connection = new JsonlRpcAgentConnection(
     {
@@ -45,10 +48,17 @@ function fixture(
     options,
     spawn
   )
-  opened.push({ connection, exit: () => child.emit('exit', 0, null) })
+  opened.push({
+    connection,
+    exit: () => {
+      child.emit('exit', 0, null)
+      child.stdout.end()
+    }
+  })
   return { child, spawn, connection }
 }
 afterEach(async () => {
+  vi.useRealTimers()
   for (const { connection, exit } of opened.splice(0)) {
     exit()
     await connection.close()
@@ -138,6 +148,7 @@ describe('JSON-lines RPC process ownership', () => {
     child.stdout.emit('end')
     child.emit('exit', 7, null)
     expect(onClose).not.toHaveBeenCalled()
+    await connection.close()
     expect(onExit).toHaveBeenCalledWith(
       expect.objectContaining({ message: expect.stringContaining('code 7') }),
       expect.anything()
@@ -150,7 +161,7 @@ describe('JSON-lines RPC process ownership', () => {
     const { connection, child, spawn } = fixture({}, { exitOnEnd: false })
     const first = connection.close()
     const joined = connection.close()
-    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await vi.advanceTimersByTimeAsync(grace + 2_000)
     expect(await first).toEqual({ root: 'live', tree: 'unverifiable' })
     expect(await joined).toEqual({ root: 'live', tree: 'unverifiable' })
     expect(teardown).toHaveBeenCalledOnce()
@@ -159,7 +170,7 @@ describe('JSON-lines RPC process ownership', () => {
       return 'unverifiable'
     })
     const retry = connection.close()
-    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await vi.advanceTimersByTimeAsync(grace + 2_000)
     expect(await retry).toEqual({ root: 'exited', tree: 'unverifiable' })
     expect(spawn).toHaveBeenCalledOnce()
     expect(vi.getTimerCount()).toBe(0)
@@ -169,10 +180,12 @@ describe('JSON-lines RPC process ownership', () => {
     vi.useFakeTimers()
     const { connection, child } = fixture({}, { exitOnEnd: false })
     const close = connection.close()
-    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await vi.advanceTimersByTimeAsync(grace + 2_000)
     await close
     child.emit('exit', null, 'SIGKILL')
-    await connection.close()
+    const finishing = connection.close()
+    await vi.advanceTimersByTimeAsync(1_000)
+    await finishing
     expect(connection.lastCloseResult).toEqual({
       root: 'live',
       tree: 'unverifiable'
@@ -190,6 +203,7 @@ describe('JSON-lines RPC process ownership', () => {
     expect(onExit).not.toHaveBeenCalled()
     child.emit('close', null, null)
     expect(connection.rootVerdict).toBe('exited')
+    await connection.close()
     expect(onExit.mock.calls[0][1].exit.processless).toBe(true)
   })
 

@@ -45,7 +45,7 @@ export class StructuredAgentSessionSinkQueue {
   /** Closing drops only buffered operations after this handover sequence. */
   private handedOverSequence = 0
   private handedOverSettled: Promise<void> = Promise.resolve()
-  private readonly buffered: Admitted[] = []
+  private readonly buffered = new Map<number, Admitted>()
   private readonly waitingPublications = new Map<string, Admitted>()
   private readonly waiters: StructuredAgentSessionDrainWaiter[] = []
 
@@ -98,7 +98,8 @@ export class StructuredAgentSessionSinkQueue {
       return
     }
     this.target = target
-    for (const operation of this.buffered.splice(0)) {
+    for (const [sequence, operation] of this.buffered) {
+      this.buffered.delete(sequence)
       this.handOver(operation, target)
     }
   }
@@ -141,14 +142,7 @@ export class StructuredAgentSessionSinkQueue {
       return { accepted: false, reason: 'failed' }
     }
     const key = operation.publicationKey
-    const replaceAt =
-      key === undefined ? -1 : this.buffered.findIndex((queued) => queued.publicationKey === key)
-    const replaced =
-      replaceAt >= 0
-        ? this.buffered[replaceAt]
-        : key === undefined
-          ? undefined
-          : this.waitingPublications.get(key)
+    const replaced = key === undefined ? undefined : this.waitingPublications.get(key)
     const nextBytes = this.queuedBytes - (replaced?.bytes ?? 0) + operation.bytes
     const nextOperations = this.queuedOperations + (replaced ? 0 : 1)
     // Received content always joins the journal; pressure only paces future input.
@@ -156,19 +150,18 @@ export class StructuredAgentSessionSinkQueue {
       ...operation,
       sequence: ++this.acceptedSequence
     }
-    if (replaceAt >= 0) {
-      this.buffered.splice(replaceAt, 1)
-    } else if (replaced) {
+    if (replaced && !this.buffered.delete(replaced.sequence)) {
       // Superseded publications still settle in order as no-ops.
       replaced.superseded = true
     }
+    if (key !== undefined) {
+      this.waitingPublications.set(key, accepted)
+    }
     this.queuedBytes = nextBytes
     this.queuedOperations = nextOperations
-    if (this.target) {
-      this.handOver(accepted, this.target)
-    } else {
-      this.buffered.push(accepted)
-    }
+    void (this.target
+      ? this.handOver(accepted, this.target)
+      : this.buffered.set(accepted.sequence, accepted))
     this.updateBackpressure()
     return { accepted: true }
   }
@@ -178,22 +171,18 @@ export class StructuredAgentSessionSinkQueue {
     this.handedOverSequence = operation.sequence
     const key = operation.publicationKey
     let outcome: Promise<unknown>
-    if (key === undefined) {
-      outcome = runNow(() => operation.run(bound))
-    } else {
-      this.waitingPublications.set(key, operation)
-      // Publications read in journal order so they cannot overtake prior writes.
-      outcome = runNow(() =>
-        bound.journal.readInOrder(() => {
-          if (this.waitingPublications.get(key) === operation) {
-            this.waitingPublications.delete(key)
-          }
-          return operation.superseded || this.closed || this.failure !== null
-            ? undefined
-            : operation.run(bound)
-        })
-      )
-    }
+    void (key === undefined
+      ? (outcome = runNow(() => operation.run(bound)))
+      : (outcome = runNow(() =>
+          bound.journal.readInOrder(() => {
+            if (this.waitingPublications.get(key) === operation) {
+              this.waitingPublications.delete(key)
+            }
+            return operation.superseded || this.closed || this.failure !== null
+              ? undefined
+              : operation.run(bound)
+          })
+        )))
     // Observe failure immediately even if earlier writes are still settling.
     const landed = outcome.then(() => undefined, this.fail)
     this.handedOverSettled = Promise.all([earlier, landed]).then(() => this.settle(operation))
@@ -215,14 +204,20 @@ export class StructuredAgentSessionSinkQueue {
 
   /** Buffered drops settle only after earlier handed-over writes so barriers cannot overtake them. */
   private dropBuffered(): void {
-    const dropped = this.buffered.splice(0)
-    for (const operation of dropped) {
+    let last: Admitted | undefined
+    for (const operation of this.buffered.values()) {
       this.release(operation)
+      const key = operation.publicationKey
+      if (key !== undefined && this.waitingPublications.get(key) === operation) {
+        this.waitingPublications.delete(key)
+      }
+      last = operation
     }
-    const last = dropped.at(-1)
-    if (last) {
+    this.buffered.clear()
+    const droppedThrough = last?.sequence
+    if (droppedThrough !== undefined) {
       this.handedOverSettled = this.handedOverSettled.then(() => {
-        this.settledSequence = Math.max(this.settledSequence, last.sequence)
+        this.settledSequence = Math.max(this.settledSequence, droppedThrough)
         this.settleWaiters()
       })
     }
@@ -233,11 +228,7 @@ export class StructuredAgentSessionSinkQueue {
       return
     }
     this.backpressured = next
-    if (next) {
-      this.readingControl?.pauseReading()
-    } else {
-      this.readingControl?.resumeReading()
-    }
+    void (next ? this.readingControl?.pauseReading() : this.readingControl?.resumeReading())
     this.deps.onBackpressureChange?.(next, this.state())
   }
 

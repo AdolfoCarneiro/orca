@@ -16,6 +16,7 @@ export type IncrementalNdjsonFramer = {
   resume(): void
   /** Transfer complete records already received, even when future reads are paused. */
   drain(): void
+  finish(natural: boolean): string | undefined
   reset(): void
   /** Once input has ended: the unterminated last line, never parsed as a record. */
   takeTail(): string
@@ -268,6 +269,14 @@ export function createIncrementalNdjsonFramer(
       } finally {
         draining = false
       }
+    },
+    finish(natural): void {
+      this.drain()
+      const tail = this.takeTail()
+      if (natural && tail.trim()) {
+        process(`${tail}\n`)
+      }
+      return natural ? undefined : tail
     },
     takeTail(): string {
       const tail =

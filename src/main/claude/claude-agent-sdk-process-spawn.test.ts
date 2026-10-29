@@ -43,7 +43,9 @@ describe('claude agent SDK process spawn', () => {
     expect(spawn.child).toBeNull()
     const child = spawn.spawn(sdkOptions())
 
-    expect(child).toBe(process.child)
+    expect(child.stdout).not.toBe(process.child.stdout)
+    expect(child.stdin).toBe(process.child.stdin)
+    expect(child.pid).toBe(process.child.pid)
     expect(spawn.child).toBe(process.child)
     expect(spawn.pid).toBe(4321)
     expect(spawn.supervised).toBe(false)

@@ -24,7 +24,10 @@ const SIGN_IN_LINE_MAX_CHARS = 32_768
 export type AcpAgentConnectionOptions = Omit<AcpSessionRuntimeOptions, 'peer'> & {
   peer?: Omit<AcpPeerOptions, 'closeOnInputEnd'>
   /** Process exit evidence, including expected closes and processless spawn failures. */
-  onExit?: (error: Error, context: { expected: boolean; exit: ProviderProcessExit }) => void
+  onExit?: (
+    error: Error,
+    context: { expected: boolean; exit: ProviderProcessExit; inputDone?: Promise<void> }
+  ) => void | Promise<void>
   onOutput?: () => void
   signIn?: AcpSignInWatch
 }
@@ -42,6 +45,8 @@ export class AcpAgentConnection extends AcpSessionRuntime {
   private readonly managed: ManagedProviderProcess
   private readonly lifecycle: { closing: boolean; error?: Error }
   private readonly diagnoseLifecycle: (message: string) => void
+  private inputDone?: Promise<void>
+  private exitPublication?: Promise<void>
   readonly spawned: Promise<void>
 
   constructor(
@@ -141,9 +146,15 @@ export class AcpAgentConnection extends AcpSessionRuntime {
       const error =
         lifecycle.error ??
         new AcpConnectionClosedError(managed.stderrTail().trim() || `${launch.command} exited`)
-      super.close(error)
+      this.drainNotifications(error)
+      const inputDone = this.completeInput(error)
       try {
-        options.onExit?.(error, { expected: lifecycle.closing, exit })
+        this.exitPublication = Promise.resolve(
+          options.onExit?.(error, { expected: lifecycle.closing, exit, inputDone })
+        )
+        void this.exitPublication.catch((failure: unknown) =>
+          diagnose(`ACP exit listener failed: ${String(failure)}`)
+        )
       } catch (failure) {
         diagnose(`ACP exit listener failed: ${String(failure)}`)
       }
@@ -193,6 +204,9 @@ export class AcpAgentConnection extends AcpSessionRuntime {
   }
 
   pauseReading(): void {
+    if (this.lifecycle.closing || this.managed.rootVerdict === 'exited' || this.closed) {
+      return
+    }
     this.managed.child.stdout.pause()
   }
 
@@ -200,12 +214,29 @@ export class AcpAgentConnection extends AcpSessionRuntime {
     this.managed.child.stdout.resume()
   }
 
+  private completeInput(error?: Error): Promise<void> {
+    this.inputDone ??= Promise.resolve()
+      .then(() => this.finishInput())
+      .then(
+        () => super.close(error),
+        (failure: unknown) => {
+          const error = failure instanceof Error ? failure : new Error(String(failure))
+          super.close(error)
+          throw error
+        }
+      )
+    return this.inputDone
+  }
+
   override close(error?: Error): Promise<boolean> {
     this.lifecycle.closing ||= this.managed.rootVerdict !== 'exited'
     this.drainNotifications(error)
-    return this.managed
-      .close()
-      .then((result) => result.root === 'exited')
-      .finally(() => super.close(error))
+    return this.managed.close().then(async (result) => {
+      await this.completeInput(error)
+      if (result.root === 'exited') {
+        await this.exitPublication
+      }
+      return result.root === 'exited'
+    })
   }
 }

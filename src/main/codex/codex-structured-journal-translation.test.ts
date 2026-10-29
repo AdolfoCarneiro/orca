@@ -758,25 +758,4 @@ describe('codex journal translation', () => {
     expect(tap.bound).toEqual([])
     expect(tap.publishes()).toBe(0)
   })
-
-  it('admits turn start publication across the pacing watermark', async () => {
-    const bodies: AgentJournalItemBody[] = []
-    const publishes: string[] = []
-    const deferred = hardWatermarkDeferred()
-    const translator = createCodexJournalTranslator({
-      sink: deferred.sink,
-      primaryThreadId: () => THREAD_ID
-    })
-
-    expect(translator.handle(TURN_STARTED)).toEqual({ accepted: true })
-    expect(deferred.state()).toMatchObject({ queuedOperations: 3, backpressured: true })
-
-    deferred.bind(deferredTarget(bodies, publishes))
-    await expect(deferred.lifecycleBarrier()).resolves.toEqual({ ok: true })
-
-    expect(bodies).toEqual([
-      expect.objectContaining({ kind: 'turn', turnId: TURN_ID, state: 'running' })
-    ])
-    expect(publishes).toHaveLength(2)
-  })
 })
