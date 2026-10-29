@@ -13,9 +13,20 @@ export type AgentBrowserEnvelope = { success?: boolean; data?: unknown; error?: 
 export function parseAgentBrowserJsonOutput(stdout: string): AgentBrowserEnvelope {
   const parsed = JSON.parse(stdout)
   // Orca batches one command; a longer array is a passthrough `exec batch` reply.
-  if (!Array.isArray(parsed) || parsed.length !== 1) {
+  if (Array.isArray(parsed) && parsed.length !== 1) {
     return parsed
   }
-  const [entry] = parsed
-  return { success: entry?.success, data: entry?.result, error: entry?.error }
+  const envelope: AgentBrowserEnvelope = Array.isArray(parsed)
+    ? { success: parsed[0]?.success, data: parsed[0]?.result, error: parsed[0]?.error }
+    : parsed
+  return { ...envelope, data: withoutDaemonLifecycle(envelope?.data) }
+}
+
+// agent-browser 0.31+ adds its daemon's launch bookkeeping to every reply; it is not page data.
+function withoutDaemonLifecycle(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data) || !('lifecycle' in data)) {
+    return data
+  }
+  const { lifecycle: _lifecycle, ...rest } = data
+  return rest
 }

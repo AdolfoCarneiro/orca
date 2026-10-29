@@ -1,11 +1,12 @@
 import { app } from 'electron'
-import { existsSync, accessSync, chmodSync, constants } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { platform, arch } from 'node:os'
 import type { WebContents } from 'electron'
 import { BrowserError } from './cdp-bridge'
 import { ORCA_TAB_SESSION_PREFIX } from './agent-browser-orphan-sweep'
 import { EMBEDDED_NAVIGATION_TIMEOUT_MS } from './agent-browser-bridge-types'
+import { ensureDependencyBinaryExecutable } from './agent-browser-dependency-binary'
 
 export function agentBrowserNativeName(): string {
   const ext = process.platform === 'win32' ? '.exe' : ''
@@ -33,13 +34,7 @@ export function resolveAgentBrowserBinary(): string {
     agentBrowserNativeName()
   )
   if (existsSync(nmBin)) {
-    if (process.platform !== 'win32') {
-      try {
-        accessSync(nmBin, constants.X_OK)
-      } catch {
-        chmodSync(nmBin, 0o755)
-      }
-    }
+    ensureDependencyBinaryExecutable(nmBin)
     return nmBin
   }
 
