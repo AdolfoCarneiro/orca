@@ -113,7 +113,8 @@ it('keeps a closed source link target, formatting and one-step undo through Mark
   const source = createEditor('/repo/notes/note.md')
   const original = source.getMarkdown()
   const html = copy(source)
-  expect(html).toContain('href="./guide.md"')
+  expect(html).toContain('href="file:///repo/notes/guide.md"')
+  expect(html).toContain('data-orca-link-clipboard-href="./guide.md"')
   expect(html).toContain('data-orca-link-clipboard-origin=')
   expect(source.getMarkdown()).toBe(original)
   source.destroy()
@@ -220,11 +221,11 @@ it.each(['missing', 'unknown', 'altered'])(
       )
     }
     if (kind === 'altered') {
-      html = html.replace('href="./guide.md"', 'href="./different.md"')
+      html = html.replace('href="file:///repo/notes/guide.md"', 'href="./different.md"')
     }
     const target = createEditor('/repo/other/note.md')
     paste(target, html)
-    expect(href(target)).toBe(kind === 'altered' ? './different.md' : './guide.md')
+    expect(href(target)).toBe(kind === 'altered' ? './different.md' : 'file:///repo/notes/guide.md')
   }
 )
 
@@ -298,7 +299,7 @@ it('keeps a newer clipboard usable after old origin eviction', () => {
   }
   const target = createEditor('/repo/other/note.md')
   paste(target, oldest)
-  expect(href(target)).toBe('./guide.md')
+  expect(href(target)).toBe('file:///repo/notes/guide.md')
   paste(target, newest)
   expect(href(target)).toBe('../notes/guide.md')
 })
@@ -321,5 +322,98 @@ it('invalidates the whole origin when its path budget overflows', () => {
   source.commands.setContent(content)
   const target = createEditor('/repo/other/note.md')
   paste(target, copy(source))
-  expect(href(target)).toBe('./guide.md')
+  expect(href(target)).toBe('file:///repo/notes/guide.md')
+})
+
+it.each([
+  [
+    '/repo/notes/note.md',
+    './a%20b%23c.md?version=2#part',
+    'file:///repo/notes/a%20b%23c.md?version=2#part'
+  ],
+  ['C:\\repo\\notes\\note.md', './guide.md', 'file:///C:/repo/notes/guide.md'],
+  ['\\\\server\\share\\notes\\note.md', './guide.md', 'file://server/share/notes/guide.md']
+])(
+  'keeps exported local links from %s usable without any Orca clipboard attributes',
+  (path, link, expected) => {
+    const source = createEditor(path, link)
+    const original = source.getMarkdown()
+    const html = copy(source).replace(/ data-orca-[^=]+="[^"]*"/g, '')
+    source.destroy()
+    const target = createEditor('/repo/other/note.md')
+    paste(target, html)
+    expect(href(target)).toBe(expected)
+    expect(target.getMarkdown()).not.toContain('data-orca')
+    const reopened = createEditor('/repo/other/note.md')
+    reopened.commands.setContent(target.getMarkdown(), { contentType: 'markdown' })
+    expect(href(reopened)).toBe(expected)
+    expect(original).toContain(link)
+  }
+)
+
+it.each(['environment', 'ssh'] as const)('keeps %s exports relative', (kind) => {
+  const owner = kind === 'environment' ? environment('source') : directSsh('source')
+  const source = createEditor('/repo/notes/note.md', './guide.md', owner)
+  const html = copy(source)
+  expect(html).toContain('href="./guide.md"')
+  expect(html).not.toContain('data-orca-link-clipboard-href=')
+})
+
+it.each(['environment', 'ssh', 'unresolved'] as const)(
+  'keeps inherited local-to-%s handling without a source origin',
+  (kind) => {
+    const source = createEditor('/repo/notes/note.md')
+    const html = copy(source).replace(/ data-orca-link-clipboard-origin="[^"]+"/g, '')
+    const owner =
+      kind === 'environment' ? environment('source') : kind === 'ssh' ? directSsh('source') : null
+    const target = createEditor('/repo/other/note.md', './old.md', owner)
+    paste(target, html)
+    expect(href(target)).toBe('./guide.md')
+  }
+)
+
+it('keeps every local link portable when the origin reference budget overflows', () => {
+  const source = createEditor('/repo/notes/note.md')
+  source.commands.setContent({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: Array.from({ length: 260 }, (_, index) => ({
+          type: 'text',
+          text: `guide ${index} `,
+          marks: [{ type: 'link', attrs: { href: `./guide-${index}.md` } }]
+        }))
+      }
+    ]
+  })
+  const target = createEditor('/repo/other/note.md')
+  paste(target, copy(source))
+  const links = Array.from(target.view.dom.querySelectorAll('a'))
+  expect(links).toHaveLength(260)
+  expect(links.map((link) => link.getAttribute('href'))).toEqual(
+    Array.from({ length: 260 }, (_, index) => `file:///repo/notes/guide-${index}.md`)
+  )
+})
+
+it('preserves each original spelling when equivalent links return to their source folder', () => {
+  const source = createEditor('/repo/notes/note.md')
+  source.commands.setContent({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: ['./guide.md', 'guide.md', '../notes/guide.md'].map((href, index) => ({
+          type: 'text',
+          text: `guide ${index} `,
+          marks: [{ type: 'link', attrs: { href } }]
+        }))
+      }
+    ]
+  })
+  const target = createEditor('/repo/notes/other.md')
+  paste(target, copy(source))
+  expect(
+    Array.from(target.view.dom.querySelectorAll('a')).map((link) => link.getAttribute('href'))
+  ).toEqual(['./guide.md', 'guide.md', '../notes/guide.md'])
 })

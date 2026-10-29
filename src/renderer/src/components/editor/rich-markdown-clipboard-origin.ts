@@ -3,110 +3,38 @@ import { DOMSerializer } from '@tiptap/pm/model'
 import { Plugin } from '@tiptap/pm/state'
 import { isWindowsAbsolutePathLike } from '../../../../shared/cross-platform-path'
 import { createBrowserUuid } from '@/lib/browser-uuid'
-import { captureDirectSshMutationExpectation } from '@/lib/ssh-mutation-expectation'
-import { useAppStore } from '@/store'
-import { captureRuntimeEnvironmentRequestRevision } from '@/runtime/runtime-environment-revision'
-import { getRuntimeEnvironmentConnectionGeneration } from '@/store/slices/runtime-status'
-import { createRuntimeImportSessionGuard } from '@/runtime/runtime-file-mutation-rpc'
-import { documentResourceAccess } from '@/lib/local-file-access'
-import { readRichMarkdownImageRuntimeContext } from './rich-markdown-image-context'
-import type { RichMarkdownImageRuntimeContext } from './rich-markdown-image-context'
 import { resolveImageAbsolutePath } from './markdown-preview-links'
+import {
+  captureRichMarkdownClipboardSource,
+  sameRichMarkdownClipboardFileOwner,
+  type RichMarkdownClipboardSource
+} from './rich-markdown-clipboard-source'
+
 import {
   isRelativeClipboardLink,
   rebaseClipboardLink,
   resolveRelativeClipboardLink
 } from './rich-markdown-clipboard-link-target'
 
+export { sameRichMarkdownClipboardFileOwner } from './rich-markdown-clipboard-source'
+
 const ORIGIN_ATTRIBUTE = 'data-orca-image-clipboard-origin'
 const LINK_ORIGIN_ATTRIBUTE = 'data-orca-link-clipboard-origin'
+const ORIGINAL_LINK_ATTRIBUTE = 'data-orca-link-clipboard-href'
 const MAX_ORIGINS = 16
 const MAX_SOURCE_CHARACTERS = 32 * 1024
 const MAX_REFERENCES_PER_KIND = 256
 
-type ClipboardSource = {
-  filePath: string
-  runtimeContext?: RichMarkdownImageRuntimeContext
-  access: ReturnType<typeof documentResourceAccess>
-  assertCurrent?: () => void
+export type RichMarkdownClipboardImageSource = RichMarkdownClipboardSource & {
+  absolutePath: string
 }
-
-export type RichMarkdownClipboardImageSource = ClipboardSource & { absolutePath: string }
-type ClipboardLinkSource = ClipboardSource & { absoluteHref: string }
+type ClipboardLinkSource = RichMarkdownClipboardSource & { absoluteHref: string }
 type ClipboardOrigin = {
   images: Map<string, RichMarkdownClipboardImageSource>
   links: Map<string, ClipboardLinkSource>
 }
 
 const origins = new Map<string, ClipboardOrigin>()
-
-export function sameRichMarkdownClipboardFileOwner(
-  source: RichMarkdownImageRuntimeContext | undefined,
-  destination: Pick<
-    RichMarkdownImageRuntimeContext,
-    'target' | 'connectionId' | 'expectedExternalSshTargetId'
-  >
-): boolean {
-  return (
-    (source?.target.kind ?? 'local') === destination.target.kind &&
-    (source?.target.kind !== 'environment' ||
-      (destination.target.kind === 'environment' &&
-        source.target.environmentId === destination.target.environmentId)) &&
-    (source?.connectionId ?? null) === (destination.connectionId ?? null) &&
-    source?.expectedExternalSshTargetId === destination.expectedExternalSshTargetId
-  )
-}
-
-function captureSourceGuard(
-  context: RichMarkdownImageRuntimeContext | undefined
-): (() => void) | undefined {
-  if (context?.target.kind === 'environment') {
-    return createRuntimeImportSessionGuard(
-      context.target.environmentId,
-      captureRuntimeEnvironmentRequestRevision(context.target.environmentId),
-      getRuntimeEnvironmentConnectionGeneration(context.target.environmentId)
-    )
-  }
-  const connectionId = context?.connectionId
-  if (!connectionId) {
-    return undefined
-  }
-  const expected = captureDirectSshMutationExpectation(useAppStore.getState(), connectionId)
-  return () => {
-    const current = captureDirectSshMutationExpectation(useAppStore.getState(), connectionId)
-    if (current.expectedSshConnectionGeneration !== expected.expectedSshConnectionGeneration) {
-      throw new Error('Source image connection changed; copy the selection again.')
-    }
-  }
-}
-
-function captureSource(editor: Editor): ClipboardSource | null {
-  const storage: unknown = 'image' in editor.storage ? editor.storage.image : undefined
-  if (
-    !storage ||
-    typeof storage !== 'object' ||
-    !('filePath' in storage) ||
-    typeof storage.filePath !== 'string' ||
-    !storage.filePath
-  ) {
-    return null
-  }
-  const context = readRichMarkdownImageRuntimeContext({
-    runtimeContext: 'runtimeContext' in storage ? storage.runtimeContext : undefined
-  })
-  if (context === null) {
-    return null
-  }
-  const runtimeContext = context ? { ...context, target: { ...context.target } } : undefined
-  const filePath = storage.filePath
-  let assertCurrent: (() => void) | undefined
-  try {
-    assertCurrent = captureSourceGuard(runtimeContext)
-  } catch {
-    return null
-  }
-  return { filePath, runtimeContext, access: documentResourceAccess(filePath), assertCurrent }
-}
 
 export function readRichMarkdownClipboardImageSources(
   html: string
@@ -135,20 +63,36 @@ export function readRichMarkdownClipboardImageSources(
 }
 
 function rebaseClipboardLinks(html: string, editor: Editor): string {
-  if (!html.includes(LINK_ORIGIN_ATTRIBUTE)) {
+  if (!html.includes(LINK_ORIGIN_ATTRIBUTE) && !html.includes(ORIGINAL_LINK_ATTRIBUTE)) {
     return html
   }
-  const destination = captureSource(editor)
-  if (!destination) {
-    return html
-  }
+  const destination = captureRichMarkdownClipboardSource(editor)
+  const localDestination =
+    destination &&
+    sameRichMarkdownClipboardFileOwner(destination.runtimeContext, { target: { kind: 'local' } })
   const document = new DOMParser().parseFromString(html, 'text/html')
   let changed = false
-  for (const link of document.querySelectorAll(`a[${LINK_ORIGIN_ATTRIBUTE}]`)) {
+  for (const link of document.querySelectorAll(
+    `a[${LINK_ORIGIN_ATTRIBUTE}], a[${ORIGINAL_LINK_ATTRIBUTE}]`
+  )) {
     const id = link.getAttribute(LINK_ORIGIN_ATTRIBUTE)
-    const href = link.getAttribute('href')
+    const exportedHref = link.getAttribute('href')
+    const originalHref = link.getAttribute(ORIGINAL_LINK_ATTRIBUTE)
+    const href = originalHref ?? exportedHref
     const source = id && href ? origins.get(id)?.links.get(href) : undefined
     if (
+      originalHref &&
+      (!isRelativeClipboardLink(originalHref) || (source && exportedHref !== source.absoluteHref))
+    ) {
+      continue
+    }
+    if (originalHref && !localDestination && exportedHref?.startsWith('file:')) {
+      link.setAttribute('href', originalHref)
+      changed = true
+      continue
+    }
+    if (
+      !destination ||
       !source ||
       !href ||
       !sameRichMarkdownClipboardFileOwner(
@@ -161,7 +105,7 @@ function rebaseClipboardLinks(html: string, editor: Editor): string {
     try {
       source.assertCurrent?.()
       const rebased = rebaseClipboardLink(href, source.absoluteHref, destination.filePath)
-      if (rebased !== href) {
+      if (rebased !== exportedHref) {
         link.setAttribute('href', rebased)
         changed = true
       }
@@ -180,12 +124,12 @@ export const RichMarkdownClipboardOrigin = Extension.create({
     const serializeImage = serializer.nodes.image
     const serializeLink = serializer.marks.link
     let origin: string | null = null
-    let source: ClipboardSource | null | undefined
+    let source: RichMarkdownClipboardSource | null | undefined
     let characters = 0
     let valid = true
-    const getSource = (): ClipboardSource | null => {
+    const getSource = (): RichMarkdownClipboardSource | null => {
       if (source === undefined) {
-        source = captureSource(editor)
+        source = captureRichMarkdownClipboardSource(editor)
         characters = source?.filePath.length ?? 0
       }
       return source
@@ -280,7 +224,6 @@ export const RichMarkdownClipboardOrigin = Extension.create({
                     link: (mark, inline) => {
                       const result = DOMSerializer.renderSpec(document, serializeLink(mark, inline))
                       if (
-                        valid &&
                         typeof mark.attrs.href === 'string' &&
                         isRelativeClipboardLink(mark.attrs.href) &&
                         result.dom instanceof HTMLElement
@@ -289,6 +232,16 @@ export const RichMarkdownClipboardOrigin = Extension.create({
                         const absoluteHref = owner
                           ? resolveRelativeClipboardLink(mark.attrs.href, owner.filePath)
                           : null
+                        if (
+                          owner &&
+                          absoluteHref &&
+                          sameRichMarkdownClipboardFileOwner(owner.runtimeContext, {
+                            target: { kind: 'local' }
+                          })
+                        ) {
+                          result.dom.setAttribute('href', absoluteHref)
+                          result.dom.setAttribute(ORIGINAL_LINK_ATTRIBUTE, mark.attrs.href)
+                        }
                         const id = absoluteHref
                           ? captureOrigin('links', mark.attrs.href, absoluteHref)
                           : null
