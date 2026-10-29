@@ -81,11 +81,18 @@ export type DaemonLaunchPolicy = {
   spawnAdmission?: 'observe' | 'enforce'
   /** Replace a stale-version daemon once it drains on every platform, not only macOS. */
   recycleStaleDaemonOnEveryPlatform?: boolean
+  /** Called right after a fresh daemon child is forked (not on adoption or launchd paths). */
+  onChildSpawned?: () => void
 }
 
 export function createOutOfProcessLauncher(
   runtimeDir: string,
-  { macosLoginSessionWatch = false, startupTimeoutMs, spawnAdmission }: DaemonLaunchPolicy = {}
+  {
+    macosLoginSessionWatch = false,
+    startupTimeoutMs,
+    spawnAdmission,
+    onChildSpawned
+  }: DaemonLaunchPolicy = {}
 ): DaemonLauncher {
   return async (socketPath, tokenPath, suppliedPidPath, suppliedLaunchNonce) => {
     const entryPath = getDaemonEntryPath()
@@ -209,7 +216,8 @@ export function createOutOfProcessLauncher(
           launchNonce,
           macosLoginSessionWatch,
           startupTimeoutMs,
-          ...(spawnAdmission ? { spawnAdmission } : {})
+          ...(spawnAdmission ? { spawnAdmission } : {}),
+          ...(onChildSpawned ? { onSpawned: onChildSpawned } : {})
         })
       } catch (error) {
         if (!(error instanceof DaemonEndpointUnavailableError) || error.reason !== 'occupied') {

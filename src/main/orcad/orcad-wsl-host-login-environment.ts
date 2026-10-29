@@ -89,8 +89,8 @@ export function adoptWslHostLoginEnvironmentLogged(): Promise<void> {
   )
 }
 
-/** How long orcad startup waits for the login env before its imports, so the daemon can spawn first. */
-export const LOGIN_ENVIRONMENT_HEAD_START_MS = 50
+/** How long orcad startup waits for the daemon fork (login env, then endpoint probes) before imports. */
+export const DAEMON_FORK_HEAD_START_MS = 150
 
 /** Waits for `pending` at most `capMs`; the timer is unref'd and cleared once `pending` settles. */
 export async function settleWithin(pending: Promise<unknown>, capMs: number): Promise<void> {

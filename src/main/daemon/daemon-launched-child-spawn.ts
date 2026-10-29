@@ -37,6 +37,8 @@ export type DaemonChildSpawnOptions = {
   spawnAdmission?: 'observe' | 'enforce'
   /** Defaults to 10 s; a cold first exec on Windows can need longer. */
   startupTimeoutMs?: number
+  /** Called right after the child process is forked, before its readiness wait. */
+  onSpawned?: () => void
 }
 
 export function buildDaemonScriptArgs(

@@ -51,8 +51,39 @@ describe('startOrcadDaemon', () => {
     expect(initDaemonPtyProviderMock).toHaveBeenCalledWith(undefined, {
       macosLoginSessionWatch: false,
       recycleStaleDaemonOnEveryPlatform: true,
-      spawnAdmission: 'enforce'
+      spawnAdmission: 'enforce',
+      onChildSpawned: expect.any(Function)
     })
+  })
+
+  it('signals the fork as soon as the launcher forks the child, before init settles', async () => {
+    // The signal is one-shot per process; take a fresh module so earlier cases can't have settled it.
+    vi.resetModules()
+    const supervision = await import('./orcad-daemon-supervision')
+    const fork = Promise.withResolvers<void>()
+    const init = Promise.withResolvers<void>()
+    initDaemonPtyProviderMock.mockImplementationOnce(
+      async (_signal?: unknown, options?: unknown) => {
+        await fork.promise
+        const policy = options && typeof options === 'object' ? options : {}
+        if ('onChildSpawned' in policy && typeof policy.onChildSpawned === 'function') {
+          policy.onChildSpawned()
+        }
+        await init.promise
+      }
+    )
+    let forked = false
+    void supervision.orcadDaemonSpawned().then(() => {
+      forked = true
+    })
+    const starting = supervision.startOrcadDaemon()
+
+    await Promise.resolve()
+    expect(forked).toBe(false)
+    fork.resolve()
+    await vi.waitFor(() => expect(forked).toBe(true))
+    init.resolve()
+    await starting
   })
 
   it('gives a cold Windows daemon a longer startup budget', async () => {
@@ -61,7 +92,8 @@ describe('startOrcadDaemon', () => {
       macosLoginSessionWatch: false,
       recycleStaleDaemonOnEveryPlatform: true,
       spawnAdmission: 'enforce',
-      startupTimeoutMs: 30_000
+      startupTimeoutMs: 30_000,
+      onChildSpawned: expect.any(Function)
     })
   })
 

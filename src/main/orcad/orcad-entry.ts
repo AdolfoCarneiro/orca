@@ -26,7 +26,7 @@ import type { AiVaultSearchSettings } from '../../shared/ai-vault-search-setting
 import { stampRuntimeSourceEnv } from '../../shared/runtime-source-env'
 import {
   adoptWslHostLoginEnvironmentLogged,
-  LOGIN_ENVIRONMENT_HEAD_START_MS,
+  DAEMON_FORK_HEAD_START_MS,
   settleWithin
 } from './orcad-wsl-host-login-environment'
 import { installOrcadProcessErrorGuards } from './orcad-process-error-guards'
@@ -72,20 +72,20 @@ async function startOrcadRuntime(
   const { time: timed, report: reportStartupTiming } = createOrcadStartupTiming()
   // Overlap login-shell probing with imports and store startup.
   const loginEnvironment = adoptWslHostLoginEnvironmentLogged()
-  const { startOrcadDaemon, stopOrcadDaemon } = await import('./orcad-daemon-supervision')
+  const daemon = await import('./orcad-daemon-supervision')
   // The daemon and its PTYs inherit the adopted login env and nothing later startup writes, so it
   // spawns as soon as that lands, in parallel with the imports, stores and hook server. Never rejects.
-  const daemonStartup = loginEnvironment.then(() => timed('daemon', () => startOrcadDaemon()))
+  const daemonStartup = loginEnvironment.then(() => timed('daemon', daemon.startOrcadDaemon))
   // Observed now: an early abort may never reach the await below.
   void daemonStartup.catch(() => {})
   // Registered first, so it runs last (cleanups run in reverse) and covers an import that throws
   // mid-spawn. It disconnects without killing daemon PTYs that must survive restart, after an
   // in-flight spawn settles; a failed one leaves only the disconnect to do.
-  registerCleanup(() => daemonStartup.catch(() => {}).then(() => stopOrcadDaemon()))
-  // Bundled imports resolve as microtasks and never yield, so a login env finishing during them could
-  // only spawn the daemon after them all. A plain login shell lands within the cap, and the daemon
-  // (a separate process) then boots while the runtime graph evaluates; a slow one costs only the cap.
-  await settleWithin(loginEnvironment, LOGIN_ENVIRONMENT_HEAD_START_MS)
+  registerCleanup(() => daemonStartup.catch(() => {}).then(() => daemon.stopOrcadDaemon()))
+  // Bundled imports resolve as microtasks and never yield, so a daemon start still waiting on I/O
+  // (the login env, endpoint probes) could only fork after them all. Wait, capped, for the fork, so
+  // the daemon process boots while the runtime graph evaluates; a slow login shell costs only the cap.
+  await settleWithin(timed('daemon-fork', daemon.orcadDaemonSpawned), DAEMON_FORK_HEAD_START_MS)
   const { OrcaRuntimeService } = await import('../runtime/orca-runtime')
   const { OrcaRuntimeRpcServer } = await import('../runtime/runtime-rpc')
   const { registerHeadlessPtyRuntime } = await import('../ipc/pty/register-headless-runtime')

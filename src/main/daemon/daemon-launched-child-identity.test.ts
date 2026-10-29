@@ -80,6 +80,25 @@ describe('launchDaemonChild identity', () => {
     })
   })
 
+  it('reports the fork right after spawning, before the child is ready', async () => {
+    const child = fakeDaemonChild(4242)
+    spawnDaemonChildProcessMock.mockReturnValue(child)
+    const onSpawned = vi.fn()
+
+    const launch = launchDaemonChild({ ...LAUNCH_OPTIONS, onSpawned })
+    expect(onSpawned).toHaveBeenCalledOnce()
+    child.emit('message', {
+      type: 'ready',
+      pid: 4242,
+      startedAtMs: 1_700_000_000_000,
+      linuxStartTicks: '5150',
+      bootId: 'boot-a'
+    })
+    await launch
+
+    expect(onSpawned).toHaveBeenCalledOnce()
+  })
+
   it('rejects a readiness message that carries no self-reported PID', async () => {
     const child = fakeDaemonChild(4242)
     spawnDaemonChildProcessMock.mockReturnValue(child)

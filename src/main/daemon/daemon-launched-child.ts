@@ -103,6 +103,7 @@ async function launchDaemonChildAttempt(
 ): Promise<LaunchedDaemonChild> {
   const { pidPath, launchNonce } = options
   const child = spawnDaemonChildProcess(options, useDurableScope)
+  options.onSpawned?.()
 
   // Bound startup stderr while retaining the crash tail.
   let startupStderr = ''

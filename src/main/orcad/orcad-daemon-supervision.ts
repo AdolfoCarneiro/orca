@@ -16,8 +16,25 @@ type OrcadDaemonStartup =
   | { state: 'unavailable'; reason: string }
 
 /** Continue serving without a daemon on failure, but never claim terminal persistence. */
+const daemonSpawned = Promise.withResolvers<void>()
+
+/** Settles once startup forked a daemon child, or finished starting without forking one. */
+export function orcadDaemonSpawned(): Promise<void> {
+  return daemonSpawned.promise
+}
+
 export async function startOrcadDaemon(
   platform: NodeJS.Platform = process.platform
+): Promise<OrcadDaemonStartup> {
+  try {
+    return await startOrcadDaemonAndSignalSpawn(platform)
+  } finally {
+    daemonSpawned.resolve()
+  }
+}
+
+async function startOrcadDaemonAndSignalSpawn(
+  platform: NodeJS.Platform
 ): Promise<OrcadDaemonStartup> {
   // Daemons must survive SSH logout; macOS GUI-session retirement would kill their terminals.
   const policy = {
@@ -25,6 +42,7 @@ export async function startOrcadDaemon(
     // Old daemons retain old code/umask; recycle only once terminals cannot be lost.
     recycleStaleDaemonOnEveryPlatform: true,
     spawnAdmission: resolveTerminalSpawnAdmissionMode(),
+    onChildSpawned: () => daemonSpawned.resolve(),
     // First Windows execution of uploaded Node/conpty may exceed 10 seconds under antivirus.
     ...(platform === 'win32' ? { startupTimeoutMs: WINDOWS_DAEMON_STARTUP_TIMEOUT_MS } : {})
   }
