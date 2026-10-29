@@ -3,6 +3,7 @@ import type { NativeChatMessage } from '../../native-chat-types'
 import { imageReferenceToken } from '../../native-chat-image-reference'
 import {
   imageReferencesToPromptMarkers,
+  imageSourcePathFromText,
   promptMarkersToImageReferences,
   isImageSourceUserTurn,
   normalizeImageTranscriptMessages,
@@ -22,6 +23,30 @@ function userText(id: string, text: string): NativeChatMessage {
     source: 'transcript'
   }
 }
+
+describe('imageSourcePathFromText', () => {
+  it.each([
+    ['[Image: source: /tmp/a.png]', '/tmp/a.png'],
+    ['[Image:\nsource:\n\t/tmp/a.png] \n', '/tmp/a.png'],
+    ['[Image: source: /tmp/with ] brackets.png]', '/tmp/with ] brackets.png'],
+    ['[Image: source: ]', ''],
+    ['[Image: source:\n ]', ''],
+    ['[Image: source:\t]', ''],
+    ['[Image: source:]', null],
+    ['[Image: source:\n]', null],
+    ['[Image: source: /tmp/a\nb.png]', null],
+    ['[Image: source: /tmp/a.png\n]', null],
+    ['[Image: source: /tmp/a.png] trailing text', null]
+  ])('preserves marker whitespace and bracket rules for %j', (text, path) => {
+    expect(imageSourcePathFromText(text)).toBe(path)
+  })
+
+  it('rejects unfinished and multiline paths after a long whitespace prefix', () => {
+    const prefix = `[Image: source:${' '.repeat(1000)}`
+    expect(imageSourcePathFromText(prefix)).toBeNull()
+    expect(imageSourcePathFromText(`${prefix}a\nb]`)).toBeNull()
+  })
+})
 
 describe('normalizeImageTranscriptMessages', () => {
   it('merges the paired [Image: source]/[Image #1] turns into one image-ref turn', () => {
