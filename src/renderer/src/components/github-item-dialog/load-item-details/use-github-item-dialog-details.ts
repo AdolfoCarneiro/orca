@@ -1,6 +1,6 @@
 import { useGitHubTaskRefresh } from './use-github-task-refresh'
 
-import { githubTaskContent, type GitHubTaskRefreshHandler } from '@/lib/github-task-target'
+import { addressedGitHubIssueItem, type GitHubTaskRefreshHandler } from '@/lib/github-task-target'
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
@@ -186,17 +186,18 @@ export function useGitHubItemDialogDetails({
     target?.key
   ])
 
+  const addressedWorkItem = useMemo(
+    () => (workItem ? addressedGitHubIssueItem(workItem, details?.item) : null),
+    [workItem, details?.item]
+  )
   const displayWorkItem = useMemo<GitHubWorkItem | null>(() => {
-    if (!workItem) {
-      return null
-    }
-    if (!details?.item) {
+    if (!workItem || !details?.item) {
       return workItem
     }
-    return workItem.type === 'issue'
-      ? { ...workItem, ...githubTaskContent(details.item) }
+    return workItem.type === 'issue' && addressedWorkItem !== workItem
+      ? addressedWorkItem
       : { ...workItem, ...details.item, repoId: workItem.repoId }
-  }, [details?.item, workItem])
+  }, [details?.item, workItem, addressedWorkItem])
 
   useEffect(() => {
     if (!workItem || details?.item.reviewRequests === undefined) {
@@ -299,6 +300,8 @@ export function useGitHubItemDialogDetails({
     error,
     detailsLoaded,
     displayWorkItem,
+    addressedWorkItem,
+    itemContextKey: optimisticKey,
     appendOptimisticComment,
     invalidateCurrentDetailsCache,
     handlePRFileViewedChange,

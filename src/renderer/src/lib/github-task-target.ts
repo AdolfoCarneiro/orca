@@ -1,4 +1,4 @@
-import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
+import type { GitHubWorkItem, GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
 import type { Repo } from '../../../shared/repo-types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import {
@@ -28,6 +28,23 @@ export function githubTaskContent(
 ): Partial<GitHubWorkItem> {
   const { title, state, labels, assignees = [], author, authorAvatarUrl, updatedAt } = item
   return { title, state, labels, assignees, author, authorAvatarUrl, updatedAt }
+}
+export function addressedGitHubIssueItem(
+  item: GitHubWorkItem,
+  loaded: GitHubWorkItemDetails['item'] | undefined
+): GitHubWorkItem {
+  const address = parseGitHubIssueOrPRLink(item.url)
+  const returned = loaded && parseGitHubIssueOrPRLink(loaded.url)
+  return item.type === 'issue' &&
+    loaded?.type === 'issue' &&
+    address?.type === 'issue' &&
+    returned?.type === 'issue' &&
+    address.number === item.number &&
+    returned.number === loaded.number &&
+    loaded.number === item.number &&
+    githubRepoIdentityKey(address.slug) === githubRepoIdentityKey(returned.slug)
+    ? { ...item, ...githubTaskContent(loaded) }
+    : item
 }
 export function githubTaskSourceKey(source?: TaskSourceContext | null): string {
   return source?.provider === 'github' ? getTaskSourceCacheScope(source) : ''

@@ -19,6 +19,7 @@ import type { AppState } from '@/store/types'
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
 import type { GitHubProjectTable, GitHubProjectRow } from '../../../shared/github/project-types'
 import { createGitHubSlice } from '@/store/slices/github'
+import GitHubItemDialog from '@/components/github-item-dialog/open-dialog/github-item-dialog'
 import { TaskPageContent } from '@/components/task-page/Content'
 import type { TaskPageComposerActionsModel } from '@/components/task-page/use-task-page-composer-actions'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -49,6 +50,9 @@ vi.mock('@/store', () => ({
     setState: (...args: Parameters<StoreApi<AppState>['setState']>) => store.setState(...args),
     subscribe: (listener: (s: AppState, previous: AppState) => void) => store.subscribe(listener)
   })
+}))
+vi.mock('@/components/confirmation-dialog-context', () => ({
+  useConfirmationDialog: () => async () => true
 }))
 vi.mock('@/components/PullRequestPage', () => ({ default: () => null }))
 vi.mock('@/components/github-project/ProjectViewWrapper', () => ({ default: () => null }))
@@ -117,19 +121,29 @@ vi.mock('@/components/github/github-duplicate-issue-candidates', () => ({
 }))
 vi.mock('@/components/github-item-dialog/edit-item-fields/gh-edit-section-top-columns', () => ({
   GHEditSectionTopColumns: (p: {
+    item: GitHubWorkItem
     localAssignees: string[]
+    localLabels: string[]
+    isLabelsPending: boolean
+    onLabelToggle: (label: string) => void
     onAssigneeToggle: (login: string) => void
   }) => (
     <>
       <output data-assignees data-render={++fieldsRenders}>
         {p.localAssignees.join(',')}
       </output>
+      <output data-editor-item>{JSON.stringify(p.item)}</output>
+      <output data-labels>{p.localLabels.join(',')}</output>
+      <button disabled={p.isLabelsPending} onClick={() => p.onLabelToggle('bug')}>
+        Add bug
+      </button>
       <button onClick={() => p.onAssigneeToggle('bob')}>Add Bob</button>
     </>
   )
 }))
 vi.mock('@/components/github-item-dialog/discuss-item/conversation-tab-description', () => ({
   ConversationTabDescription: (p: {
+    item: GitHubWorkItem
     body: string
     resolvedBodyDraft: string
     setBodyDraft: (v: string) => void
@@ -138,6 +152,7 @@ vi.mock('@/components/github-item-dialog/discuss-item/conversation-tab-descripti
   }) => (
     <>
       <output data-body>{p.body}</output>
+      <output data-conversation-item>{JSON.stringify(p.item)}</output>
       <input
         aria-label="Body draft"
         value={p.resolvedBodyDraft}
@@ -217,7 +232,7 @@ function fixture(n = 1) {
   pages = [null, null, [{ ...seed, id: 'issue:5' }, twin, ...others]]
   return { others, twin }
 }
-function Harness() {
+function Harness({ standalone = false }: { standalone?: boolean }) {
   const mutation = useTaskPageGitHubWorkItemMutation({
     queryKey: 'q',
     query: parseTaskQuery('is:open'),
@@ -251,13 +266,23 @@ function Harness() {
   }
   return (
     <TooltipProvider>
-      <TaskPageContent model={model as TaskPageComposerActionsModel} />
+      {standalone ? (
+        <GitHubItemDialog
+          workItem={openedItem}
+          repoPath={repo.path}
+          sourceContext={openedSource}
+          onUse={useItem}
+          onClose={() => {}}
+        />
+      ) : (
+        <TaskPageContent model={model as TaskPageComposerActionsModel} />
+      )}
     </TooltipProvider>
   ) // SAFETY: this fixture deliberately renders only the issue branch with its production accepted callback.
 }
-async function mount() {
+async function mount(standalone = false) {
   await act(async () => {
-    root.render(<Harness />)
+    root.render(<Harness standalone={standalone} />)
   })
 }
 async function click(label = 'Refresh task') {
@@ -292,6 +317,8 @@ beforeEach(() => {
       gh: {
         workItemDetails: direct,
         updateIssue: update,
+        updatePRState: update,
+        mergePR: update,
         updateIssueBySlug: update,
         addIssueComment: postComment,
         listWorkItems: list,
@@ -299,7 +326,8 @@ beforeEach(() => {
         getProjectViewTable: projectRead,
         updateIssueTypeBySlug: issueType
       },
-      shell: { openUrl: vi.fn() }
+      shell: { openUrl: vi.fn() },
+      ui: { writeClipboardText: vi.fn().mockResolvedValue(undefined) }
     }
   })
   direct.mockResolvedValue(oldDetails)

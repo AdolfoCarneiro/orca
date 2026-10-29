@@ -53,8 +53,9 @@ export const createWorkItemMutationActions = (
         // Why: don't patch another host/account's visually identical issue/PR cache entry.
         if (
           sourceScopes.length &&
-          key.startsWith('github:') &&
-          !sourceScopes.some((scope) => key === scope || key.startsWith(`${scope}::`))
+          !sourceScopes.some((scope) => key === scope || key.startsWith(`${scope}::`)) &&
+          (key.startsWith('github:') ||
+            !(repoId && options?.hostId && repositoryKey && options?.matches))
         ) {
           continue
         }

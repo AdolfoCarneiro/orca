@@ -15,6 +15,7 @@ import {
   context,
   store,
   fieldsRenders,
+  useItem,
   container,
   taskMutation,
   direct,
@@ -170,6 +171,7 @@ it.each([false, true])(
       repos: [runtimeRepo],
       workItemsCache: { [runtimeKey]: { data: [context.openedItem, upstream], fetchedAt: 10 } }
     })
+    let canonicalResponse: Promise<GitHubWorkItemDetails | null> | GitHubWorkItemDetails = returned
     const call = vi.fn(
       async ({ method, params }: { method: string; params?: { ownerRepo?: unknown } }) => {
         if (method === 'status.get') {
@@ -187,7 +189,7 @@ it.each([false, true])(
           result:
             method === 'github.workItemDetails'
               ? params?.ownerRepo
-                ? returned
+                ? await canonicalResponse
                 : { ...oldDetails, item: upstream }
               : { ok: true },
           _meta: { runtimeId: 'remote-runtime' }
@@ -196,7 +198,26 @@ it.each([false, true])(
     )
     Object.assign(window.api, { runtimeEnvironments: { call } })
     await mount()
-    expect(container.querySelector('h1')?.textContent).toContain('Upstream')
+    expect(container.querySelector('h1')?.textContent).toContain(seed.title)
+    expect(JSON.parse(container.querySelector('[data-editor-item]')!.textContent!)).toMatchObject({
+      title: seed.title,
+      url: seed.url,
+      id: seed.id
+    })
+    expect(
+      JSON.parse(container.querySelector('[data-conversation-item]')!.textContent!)
+    ).toMatchObject(upstream)
+    await click('Start workspace from issue')
+    expect(useItem).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: seed.title, url: seed.url })
+    )
+    await click('Copy GitHub link')
+    expect(window.api.ui.writeClipboardText).toHaveBeenLastCalledWith(seed.url)
+    await click('Open on GitHub')
+    expect(window.api.shell.openUrl).toHaveBeenLastCalledWith(seed.url)
+    expect(
+      call.mock.calls.find(([args]) => args.method === 'github.workItemDetails')?.[0].params
+    ).not.toHaveProperty('ownerRepo')
     const button = container.querySelector<HTMLButtonElement>('[aria-label="Refresh task"]')!
     expect(button.disabled).toBe(old)
     if (old) {
@@ -209,8 +230,34 @@ it.each([false, true])(
     expect(
       call.mock.calls.find(([args]) => args.method === 'github.updateIssue')?.[0].params
     ).not.toHaveProperty('ownerRepo')
+    const pending = Promise.withResolvers<GitHubWorkItemDetails | null>()
+    canonicalResponse = pending.promise
+    await draft('Comment draft', 'Fork draft')
+    await click()
+    expect(container.querySelector('h1')?.textContent).toContain(seed.title)
+    expect(
+      JSON.parse(container.querySelector('[data-conversation-item]')!.textContent!)
+    ).toMatchObject(upstream)
+    await act(async () => pending.resolve({ ...returned, item: upstream }))
+    expect(container.querySelector('[role="alert"]')).not.toBeNull()
+    expect(container.querySelector('h1')?.textContent).toContain(seed.title)
+    canonicalResponse = returned
     await click()
     expect(container.querySelector('h1')?.textContent).toContain('Accepted title')
+    await click('Start workspace from issue')
+    expect(useItem).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: 'Accepted title', id: seed.id, url: seed.url })
+    )
+    expect(container.querySelector<HTMLInputElement>('[aria-label="Comment draft"]')?.value).toBe(
+      'Fork draft'
+    )
+    const canonicalKey = [...workItemDetailsCache.entries()].find(([, entry]) => entry.route)![0]
+    const { invalidateWorkItemDetailsCacheForKey } =
+      await import('@/components/github-item-dialog/load-item-details/work-item-details-cache')
+    await act(async () => invalidateWorkItemDetailsCacheForKey(canonicalKey))
+    expect(
+      call.mock.calls.findLast(([args]) => args.method === 'github.workItemDetails')?.[0].params
+    ).toHaveProperty('ownerRepo')
     expect(store.getState().workItemsCache[runtimeKey].data?.map((row) => row.title)).toEqual([
       'Accepted title',
       'Upstream'
@@ -218,6 +265,19 @@ it.each([false, true])(
     const last = call.mock.calls.findLast(([args]) => args.method === 'github.workItemDetails')?.[0]
     expect(last?.params).toMatchObject({ ownerRepo: { owner: 'o', repo: 'r', host: 'github.com' } })
     expect(list).not.toHaveBeenCalled()
+    const obsolete = Promise.withResolvers<GitHubWorkItemDetails | null>()
+    canonicalResponse = obsolete.promise
+    await click()
+    context.openedItem = {
+      ...context.openedItem,
+      url: 'https://github.com/other/r/issues/5',
+      title: 'Other fork seed',
+      labels: ['other']
+    }
+    await mount()
+    await act(async () => obsolete.resolve(returned))
+    expect(container.querySelector('h1')?.textContent).toContain('Other fork seed')
+    expect(container.querySelector('[data-labels]')?.textContent).toBe('other')
   }
 )
 
@@ -595,3 +655,43 @@ it('keeps an ordinary pending lease through an earlier dialog comment callback a
   expect(workItemDetailsCache.get(bKey)?.pending).toBeUndefined()
   expect(container.querySelector('h1')?.textContent).toContain('Task A')
 })
+
+it.each([
+  ['matching GHES', 'https://ghe.example:8443/o/r/issues/5', {}, true],
+  [
+    'different GHES port',
+    'https://ghe.example:8443/o/r/issues/5',
+    { url: 'https://ghe.example/o/r/issues/5' },
+    false
+  ],
+  ['different host', seed.url, { url: 'https://ghe.example/o/r/issues/5' }, false],
+  ['different type', seed.url, { url: 'https://github.com/o/r/pull/5', type: 'pr' }, false],
+  ['different number', seed.url, { url: 'https://github.com/o/r/issues/6', number: 6 }, false],
+  ['inconsistent metadata', seed.url, { number: 6 }, false],
+  ['unparseable equal URLs', 'not-an-issue', {}, false]
+] as const)(
+  'qualifies new addressed destinations from actual ordinary %s data without rejecting its conversation',
+  async (_name, url, change, matches) => {
+    context.openedItem = { ...seed, url }
+    const loaded = {
+      ...oldDetails,
+      item: { ...seed, title: 'Loaded addressed title', url, ...change }
+    }
+    direct.mockResolvedValue(loaded)
+    await mount()
+    expect(direct).toHaveBeenCalledTimes(1)
+    const title = matches ? loaded.item.title : seed.title
+    expect(container.querySelector('h1')?.textContent).toContain(title)
+    expect(JSON.parse(container.querySelector('[data-editor-item]')!.textContent!)).toMatchObject({
+      title,
+      url,
+      id: seed.id,
+      repoId: repo.id
+    })
+    expect(
+      JSON.parse(container.querySelector('[data-conversation-item]')!.textContent!)
+    ).toMatchObject(matches ? { title, url, id: seed.id } : loaded.item)
+    await click('Start workspace from issue')
+    expect(useItem).toHaveBeenLastCalledWith(expect.objectContaining({ title, url, id: seed.id }))
+  }
+)

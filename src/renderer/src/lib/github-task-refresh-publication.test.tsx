@@ -5,6 +5,7 @@ import {
   projectKey,
   user,
   seed,
+  oldDetails,
   returned,
   projectRow,
   table,
@@ -29,10 +30,20 @@ import {
 } from './github-task-refresh.test-fixture'
 
 import React, { act } from 'react'
+import { useStore } from 'zustand'
+import GitHubItemDialog from '@/components/github-item-dialog/open-dialog/github-item-dialog'
+import { getTaskPageRepoSourceContext } from '@/components/task-page/task-page-source-context'
+import { PRActionsPanel } from '@/components/pull-request-page/actions/panel'
+import { findTaskPageDialogWorkItem } from '@/components/task-page/task-page-cache-selectors'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import {
+  workItemDetailsCache,
+  invalidateWorkItemDetailsCacheForKey
+} from '@/components/github-item-dialog/load-item-details/work-item-details-cache'
 
 import { expect, it } from 'vitest'
 
-import type { GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
+import type { GitHubWorkItem, GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
 
 import { getTaskSourceCacheScope } from '../../../shared/task-source-context'
 import { workItemsCacheKey, projectViewCacheKey } from '@/store/github/cache-identity'
@@ -76,6 +87,10 @@ it('clicks the real header/direct reader/settler and publishes accepted data to 
     repo
   })!
   expect(context.openedItem.assignees).toBeUndefined()
+  list.mockResolvedValueOnce({ items: [{ ...seed, id: 'issue:5' }] })
+  await store.getState().fetchWorkItems(repo.id, repo.path, 30, 'legacy')
+  const legacyKey = workItemsCacheKey(repo.id, 30, 'legacy')
+  list.mockClear()
   taskPageGitHubResumeCache.write(resume, 2, context.pages[2]!, Date.now())
   const before = taskPageGitHubResumeCache.read(resume, 2)!.cachedAt
   await mount()
@@ -105,6 +120,10 @@ it('clicks the real header/direct reader/settler and publishes accepted data to 
     id: 'issue:5',
     title: 'Accepted title',
     repoHostId: 'local'
+  })
+  expect(store.getState().workItemsCache[legacyKey].data?.[0]).toMatchObject({
+    id: 'issue:5',
+    title: 'Accepted title'
   })
   expect(store.getState().githubTaskDrawerWorkItem).toMatchObject({
     id: seed.id,
@@ -367,4 +386,163 @@ it('reconciles a real aggregate held leaf at landing final commit against a newe
     'After second acceptance'
   )
   quietCleanup?.()
+})
+
+it.each(['rollback', 'null', 'error'] as const)(
+  'keeps optimistic labels across ordinary detail completion and %s, then accepts changed state/labels without a parent seed callback',
+  async (outcome) => {
+    await mount(true)
+    await click()
+    const canonical = [...workItemDetailsCache.entries()].find(([, entry]) => entry.route)!
+    const ordinary = Promise.withResolvers<GitHubWorkItemDetails | null>()
+    const write = Promise.withResolvers<{ ok: boolean; error?: string }>()
+    direct.mockReturnValueOnce(ordinary.promise)
+    await act(async () => invalidateWorkItemDetailsCacheForKey(canonical[0]))
+    update.mockReturnValueOnce(write.promise)
+    await click('Add bug')
+    const labels = () => container.querySelector('[data-labels]')?.textContent
+    expect(labels()).toBe('bug')
+    await act(async () =>
+      ordinary.resolve({ ...oldDetails, item: { ...oldDetails.item, labels: [] } })
+    )
+    expect(labels()).toBe('bug')
+    expect(
+      [...container.querySelectorAll('button')].find((button) => button.textContent === 'Add bug')
+        ?.disabled
+    ).toBe(true)
+    if (outcome === 'error') {
+      direct.mockRejectedValueOnce(new Error('Read failed'))
+    } else if (outcome === 'null') {
+      direct.mockResolvedValueOnce(null)
+    }
+    await act(async () =>
+      write.resolve(outcome === 'rollback' ? { ok: false, error: 'Rejected' } : { ok: true })
+    )
+    expect(labels()).toBe(outcome === 'rollback' ? '' : 'bug')
+    expect(context.openedItem).toBe(seed)
+    await draft('Body draft', 'Keep body')
+    await draft('Comment draft', 'Keep comment')
+    direct.mockResolvedValue({
+      ...returned,
+      item: { ...returned.item, state: 'closed', labels: ['accepted'] }
+    })
+    await click()
+    expect(labels()).toBe('accepted')
+    direct.mockResolvedValue({ ...returned, item: { ...returned.item, state: 'open', labels: [] } })
+    await click()
+    expect(labels()).toBe('')
+    expect(container.querySelector<HTMLInputElement>('[aria-label="Body draft"]')?.value).toBe(
+      'Keep body'
+    )
+    expect(container.querySelector<HTMLInputElement>('[aria-label="Comment draft"]')?.value).toBe(
+      'Keep comment'
+    )
+    const late = Promise.withResolvers<GitHubWorkItemDetails | null>()
+    direct.mockReturnValueOnce(late.promise)
+    await click()
+    context.openedItem = { ...seed, url: 'https://github.com/other/r/issues/5', labels: ['other'] }
+    direct.mockResolvedValue({ ...oldDetails, item: context.openedItem })
+    await mount(true)
+    await act(async () => late.resolve(returned))
+    expect(labels()).toBe('other')
+  }
+)
+
+it('keeps a production-prefetched foreign legacy PR unchanged through real local close rollback/success and merge callbacks', async () => {
+  const local: GitHubWorkItem = {
+    ...seed,
+    id: 'pr:5',
+    type: 'pr',
+    url: 'https://github.com/o/r/pull/5',
+    mergeable: 'MERGEABLE'
+  }
+  const foreign = {
+    ...local,
+    url: 'https://github.com/upstream/r/pull/5',
+    repoHostId: 'ssh:builder' as const
+  }
+  const sshRepo = {
+    ...repo,
+    path: '/remote/repo',
+    connectionId: 'builder',
+    executionHostId: 'ssh:builder' as const
+  }
+  store.setState({ repos: [repo, sshRepo], workItemsCache: {} })
+  const sources = {
+    issues: { owner: 'o', repo: 'r' },
+    prs: { owner: 'o', repo: 'r' },
+    originCandidate: { owner: 'o', repo: 'r' },
+    upstreamCandidate: null
+  }
+  list.mockResolvedValueOnce({ items: [foreign], sources })
+  await act(async () => {
+    store.getState().prefetchWorkItems(repo.id, sshRepo.path, 30, 'is:pr is:open')
+    await store.getState().fetchWorkItems(repo.id, sshRepo.path, 30, 'is:pr is:open')
+  })
+  const foreignKey = Object.keys(store.getState().workItemsCache)[0]
+  const foreignEntry = store.getState().workItemsCache[foreignKey]
+  expect(foreignKey).toContain('ssh:builder::')
+  list.mockResolvedValueOnce({ items: [local], sources })
+  await act(async () => {
+    await store.getState().fetchWorkItems(repo.id, repo.path, 30, '', { sourceContext: source })
+  })
+  direct.mockReturnValueOnce(Promise.withResolvers<GitHubWorkItemDetails | null>().promise)
+  const foreignSource = getTaskPageRepoSourceContext(sshRepo, 'github')
+  function PanelAndDrawer() {
+    const [state, setState] = React.useState<GitHubWorkItem['state']>('open')
+    const row = useStore(store, (s) => findTaskPageDialogWorkItem(s.workItemsCache, foreign))
+    return (
+      <TooltipProvider>
+        <PRActionsPanel
+          item={local}
+          repoPath={repo.path}
+          repoId={repo.id}
+          sourceContext={source}
+          projectOrigin={undefined}
+          localState={state}
+          onStateChange={setState}
+          onMutated={() => {}}
+        />
+        <section data-foreign-drawer>
+          <GitHubItemDialog
+            workItem={row ?? foreign}
+            repoPath={sshRepo.path}
+            sourceContext={foreignSource}
+            onUse={() => {}}
+            onClose={() => {}}
+          />
+        </section>
+      </TooltipProvider>
+    )
+  }
+  await act(async () => context.root.render(<PanelAndDrawer />))
+  const assertForeign = () => {
+    expect(store.getState().workItemsCache[foreignKey]).toBe(foreignEntry)
+    expect(container.querySelector('[data-foreign-drawer]')?.textContent).toContain('Open')
+  }
+  const write = Promise.withResolvers<{ ok: boolean; error?: string }>()
+  update.mockReturnValueOnce(write.promise)
+  await click('Close pull request')
+  expect(store.getState().workItemsCache[key].data?.[0].state).toBe('closed')
+  assertForeign()
+  await act(async () => write.resolve({ ok: false, error: 'Rejected close' }))
+  expect(store.getState().workItemsCache[key].data?.[0].state).toBe('open')
+  assertForeign()
+  update.mockResolvedValue({ ok: true })
+  await click('Close pull request')
+  expect(store.getState().workItemsCache[key].data?.[0].state).toBe('closed')
+  assertForeign()
+  await click('Reopen PR')
+  await act(async () => {
+    container
+      .querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  })
+  const merge = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (node) => node.textContent === 'Squash and merge'
+  )!
+  expect(merge).toBeTruthy()
+  await act(async () => merge.click())
+  expect(store.getState().workItemsCache[key].data?.[0].state).toBe('merged')
+  assertForeign()
 })
