@@ -2,7 +2,10 @@ import { OrchestrationDb } from './db'
 import { describe, expect, it, vi } from 'vitest'
 import { readAgentMessageSource } from '../../../shared/agent-session/agent-session-message-source'
 import { agentMessageHeading } from '../../../shared/agent-session/agent-message-presentation'
-import { agentSessionConversationView } from '../../../shared/agent-session-conversation-view'
+import {
+  agentSessionConversationView,
+  type AgentSessionConversationView
+} from '../../../shared/agent-session-conversation-view'
 import {
   agentSessionLeaseFixture,
   agentSessionRecordFixture
@@ -186,7 +189,7 @@ it.each([100, 1000])(
       agentSessionRecordFixture(agentSessionLeaseFixture({ sessionId: coordinator }))
     )
     const successor = testOrcaSessionId('cleared-worker')
-    const records = sessions.map((sessionId, i) => ({
+    const records: AgentSessionConversationView[] = sessions.map((sessionId, i) => ({
       ...base,
       sessionId,
       conversationName: `Worker ${i}`
