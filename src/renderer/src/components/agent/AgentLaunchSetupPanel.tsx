@@ -321,7 +321,7 @@ export function AgentLaunchSetupPanel({
                   <span className="ml-auto truncate text-muted-foreground/70">
                     {translate(
                       'agentPicker.argumentsTerminalHint',
-                      'Only used when it opens in a terminal (CLI)'
+                      'Only applies to terminal (CLI) launches'
                     )}
                   </span>
                 </button>

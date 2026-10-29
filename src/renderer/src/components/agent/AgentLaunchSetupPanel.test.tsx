@@ -48,6 +48,7 @@ it('shows a raw Arguments value in the shared Permissions menu; removing its chi
   )
   expect(entry.arguments).toBe('--permission-mode plan --add-dir docs')
   expect(host.textContent).not.toContain('Reset to default')
+  expect(host.textContent).toContain('Only applies to terminal (CLI) launches')
 })
 
 it('leaves chat Permissions enabled even with launch-owned raw CLI permission text', () => {
@@ -381,7 +382,7 @@ it('searches current and supplied legacy models, keeps unknown explicit choices,
     )
   )
   expect(host.querySelector('textarea[aria-label="Arguments"]')).toBeNull()
-  expect(host.textContent).not.toContain('Only used when it opens in a terminal (CLI)')
+  expect(host.textContent).not.toContain('Only applies to terminal (CLI) launches')
   expect(host.querySelector('[cmdk-item][data-current="true"]')?.textContent).toBe('private-model')
   expect(host.textContent).toContain('Legacy models')
   expect(host.textContent).not.toContain('Retired model')
