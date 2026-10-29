@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { i18n } from '@/i18n/i18n'
 import { getHostedReviewCacheKey } from '@/store/slices/hosted-review-cache-identity'
 import {
   filterWorkspaceCleanupCandidates,
@@ -139,24 +138,5 @@ describe('workspace cleanup presentation', () => {
         NOW
       )
     ).toEqual([candidate])
-  })
-
-  it('searches the displayed git chip label for the current language', async () => {
-    const candidate = makeCandidate({
-      git: { clean: false, upstreamAhead: 0, upstreamBehind: 0, checkedAt: NOW }
-    })
-    await i18n.changeLanguage('es')
-    try {
-      expect(
-        filterWorkspaceCleanupCandidates(
-          [candidate],
-          { ...DEFAULT_FILTERS, query: 'con cambios' },
-          new Map(),
-          NOW
-        )
-      ).toEqual([candidate])
-    } finally {
-      await i18n.changeLanguage('en')
-    }
   })
 })

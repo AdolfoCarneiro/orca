@@ -13,6 +13,7 @@ import { buildFileViewPreferenceKey } from '../file-view-preference-storage'
 import { openCsvHttpLink } from './csv-link-routing'
 import { runtimeTargetEnvironmentId } from '@/runtime/runtime-client-target'
 import { formatCsvPreviewError } from './csv-preview-error-message'
+import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 
 export default function CsvPagedViewer({
   file,
@@ -95,6 +96,7 @@ function CsvPagedTable({
   onChange: (choice: CsvDelimiterChoice) => void
   onReload: () => void
 }): React.JSX.Element {
+  useUiLanguageRevision()
   const storedKey = JSON.stringify([
     preferenceKey ??
       buildFileViewPreferenceKey({

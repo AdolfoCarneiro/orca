@@ -12,6 +12,7 @@ import { remapCsvColumnWidths } from './csv-column-width-preferences'
 import { useCsvColumnWidths } from './useCsvColumnWidths'
 import { buildFileViewPreferenceKey } from '../file-view-preference-storage'
 import { formatCsvPreviewError } from './csv-preview-error-message'
+import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 
 export default function CsvViewer({
   content,
@@ -36,6 +37,7 @@ export default function CsvViewer({
   onContentChange?: (content: string) => void
   onSave?: (content: string) => Promise<boolean>
 }): React.JSX.Element {
+  useUiLanguageRevision()
   const [delimiterChoice, setDelimiterChoice] = useState<CsvDelimiterChoice>('auto')
   const detectedDelimiter = useMemo(
     () => detectCsvDelimiter(filePath, content),
