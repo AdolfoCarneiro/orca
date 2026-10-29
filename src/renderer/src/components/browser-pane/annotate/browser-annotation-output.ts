@@ -239,6 +239,12 @@ export function formatBrowserAnnotationsAsMarkdown(annotations: BrowserPageAnnot
         lines.push(...fence('html', target.htmlSnippet))
       }
       lines.push(`**Feedback:** ${inlineText(annotation.comment)}`)
+      if (annotation.imagePaths?.length) {
+        lines.push('**Images (open these files):**')
+        for (const imagePath of annotation.imagePaths) {
+          lines.push(`- ${inlineCode(imagePath)}`)
+        }
+      }
       lines.push('')
     })
   }
