@@ -7,7 +7,7 @@ import {
 import { installBrowserSessionPartitionPolicies } from './browser-session-partition-policies'
 import { readDocPreviewFile } from './doc-preview-file-reader'
 import { publishDocPreviewFailure } from './doc-preview-failure-notice'
-import { getDocPreviewGrant } from './doc-preview-grant-registry'
+import { getDocPreviewGrant, onDocPreviewGrantRevoked } from './doc-preview-grant-registry'
 
 /** Register before Electron readiness freezes scheme privileges. */
 export function registerDocPreviewSchemePrivileges(
@@ -78,28 +78,41 @@ export async function handleDocPreviewRequest(request: Request): Promise<Respons
     return notFound('Not found')
   }
   const relativePath = target.relativePath || grant.entryRelativePath
-  const outcome = await readDocPreviewFile(grant, relativePath)
-  if (!outcome.ok) {
-    publishDocPreviewFailure({ grantId: target.grantId, relativePath, reason: outcome.reason })
-    return new Response(outcome.message, {
-      status: outcome.status,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    })
-  }
-  const bytes = outcome.bytes
-  const body =
-    bytes.buffer instanceof ArrayBuffer
-      ? new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-      : new Uint8Array(bytes)
-  return new Response(body, {
-    status: 200,
-    headers: {
-      'Content-Type': outcome.contentType,
-      'Content-Security-Policy': DOC_PREVIEW_CONTENT_SECURITY_POLICY,
-      // Reload must re-read workspace files.
-      'Cache-Control': 'no-store'
+  const controller = new AbortController()
+  const unsubscribe = onDocPreviewGrantRevoked((revoked) => {
+    if (revoked.id === grant.id) {
+      controller.abort()
     }
   })
+  try {
+    const outcome = await readDocPreviewFile(grant, relativePath, controller.signal)
+    if (controller.signal.aborted) {
+      return Response.error()
+    }
+    if (!outcome.ok) {
+      publishDocPreviewFailure({ grantId: target.grantId, relativePath, reason: outcome.reason })
+      return new Response(outcome.message, {
+        status: outcome.status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      })
+    }
+    const bytes = outcome.bytes
+    const body =
+      bytes.buffer instanceof ArrayBuffer
+        ? new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+        : new Uint8Array(bytes)
+    return new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type': outcome.contentType,
+        'Content-Security-Policy': DOC_PREVIEW_CONTENT_SECURITY_POLICY,
+        // Reload must re-read workspace files.
+        'Cache-Control': 'no-store'
+      }
+    })
+  } finally {
+    unsubscribe()
+  }
 }
 
 export function isAllowedDocPreviewRequestUrl(url: string): boolean {

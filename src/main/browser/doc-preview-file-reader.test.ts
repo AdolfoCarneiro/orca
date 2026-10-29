@@ -93,7 +93,10 @@ describe('readDocPreviewFile — paired runtime owner', () => {
         implicitRootRelativePath: null,
         authorizedRootRelativePaths: ['docs']
       },
-      15_000
+      15_000,
+      undefined,
+      undefined,
+      { signal: undefined }
     )
     expect(outcome).toEqual({
       ok: true,
@@ -120,7 +123,10 @@ describe('readDocPreviewFile — paired runtime owner', () => {
       'env-1',
       'files.readDocPreview',
       expect.objectContaining({ relativePath: 'docs/assets/logo.png' }),
-      15_000
+      15_000,
+      undefined,
+      undefined,
+      { signal: undefined }
     )
     expect(outcome).toEqual({ ok: true, bytes: png, contentType: 'image/png' })
   })
@@ -246,7 +252,45 @@ describe('readDocPreviewFile — paired runtime owner', () => {
         implicitRootRelativePath: 'docs',
         authorizedRootRelativePaths: ['assets']
       },
-      15_000
+      15_000,
+      undefined,
+      undefined,
+      { signal: undefined }
+    )
+  })
+
+  it('discards a runtime reply canceled before payload conversion', async () => {
+    const reply = Promise.withResolvers<{
+      ok: true
+      result: { content: string; isBinary: boolean }
+    }>()
+    mocks.callRuntimeEnvironment.mockReturnValueOnce(reply.promise)
+    const controller = new AbortController()
+    const pending = readDocPreviewFile(runtimeGrant(), 'index.html', controller.signal)
+    let contentReads = 0
+    reply.resolve({
+      ok: true,
+      result: {
+        get content() {
+          contentReads++
+          return 'obsolete document'
+        },
+        isBinary: false
+      }
+    })
+    controller.abort()
+
+    expect(await pending).toMatchObject({ ok: false })
+    expect(contentReads).toBe(0)
+    expect(mocks.callRuntimeEnvironment).toHaveBeenCalledWith(
+      '/user-data',
+      'env-1',
+      'files.readDocPreview',
+      expect.anything(),
+      15_000,
+      undefined,
+      undefined,
+      { signal: controller.signal }
     )
   })
 })

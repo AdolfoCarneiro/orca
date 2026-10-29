@@ -97,7 +97,8 @@ async function readRuntimeDocPreviewFile(
   relativePath: string,
   entryRelativePath: string,
   implicitRootRelativePath: string | null,
-  authorizedRootRelativePaths: string[]
+  authorizedRootRelativePaths: string[],
+  signal?: AbortSignal
 ): Promise<PreviewFileBytes> {
   const userDataPath = getRuntimeEnvironmentRegistryRoot()
   const response = await callRuntimeEnvironment(
@@ -111,8 +112,12 @@ async function readRuntimeDocPreviewFile(
       implicitRootRelativePath,
       authorizedRootRelativePaths
     },
-    DOC_PREVIEW_READ_TIMEOUT_MS
+    DOC_PREVIEW_READ_TIMEOUT_MS,
+    undefined,
+    undefined,
+    { signal }
   )
+  signal?.throwIfAborted()
   if (!response.ok) {
     // Old hosts lack scoped reads; report the required update instead of method_not_found.
     throw new Error(
@@ -135,7 +140,8 @@ function notFoundOutcome(message = 'Not found'): DocPreviewReadOutcome {
 
 export async function readDocPreviewFile(
   grant: DocPreviewGrant,
-  relativePath: string
+  relativePath: string,
+  signal?: AbortSignal
 ): Promise<DocPreviewReadOutcome> {
   const candidatePath = resolveDocPreviewCandidatePath(grant, relativePath)
   if (!candidatePath) {
@@ -177,17 +183,17 @@ export async function readDocPreviewFile(
       // Runtime file reads cannot address documents outside the worktree.
       return notFoundOutcome()
     }
-    return toOutcome(
-      await readRuntimeDocPreviewFile(
-        runtimeOwner.environmentId,
-        runtimeOwner.worktreeSelector,
-        worktreeRelativePath,
-        entryRelativePath,
-        implicitRootRelativePath,
-        authorizedRootRelativePaths
-      ),
-      contentType
+    const source = await readRuntimeDocPreviewFile(
+      runtimeOwner.environmentId,
+      runtimeOwner.worktreeSelector,
+      worktreeRelativePath,
+      entryRelativePath,
+      implicitRootRelativePath,
+      authorizedRootRelativePaths,
+      signal
     )
+    signal?.throwIfAborted()
+    return toOutcome(source, contentType)
   } catch (error) {
     return isTooLargeReadError(error)
       ? { ok: false, status: 413, reason: 'too-large', message: TRUNCATED_PREVIEW_MESSAGE }

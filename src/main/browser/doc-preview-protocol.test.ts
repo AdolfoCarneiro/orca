@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { DocPreviewReadOutcome, readDocPreviewFile } from './doc-preview-file-reader'
 
 const mocks = vi.hoisted(() => ({
-  readDocPreviewFile: vi.fn(),
+  readDocPreviewFile: vi.fn<typeof readDocPreviewFile>(),
   installBrowserSessionPartitionPolicies: vi.fn()
 }))
 
@@ -89,7 +90,11 @@ describe('handleDocPreviewRequest', () => {
     expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8')
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(await response.text()).toBe('<h1>hi</h1>')
-    expect(mocks.readDocPreviewFile).toHaveBeenCalledWith(grant, 'index.html')
+    expect(mocks.readDocPreviewFile).toHaveBeenCalledWith(
+      grant,
+      'index.html',
+      expect.any(AbortSignal)
+    )
   })
 
   it('falls back to the granted entry document for a root request', async () => {
@@ -97,7 +102,11 @@ describe('handleDocPreviewRequest', () => {
 
     await handleDocPreviewRequest(new Request(`orca-preview://${grant.id}/`))
 
-    expect(mocks.readDocPreviewFile).toHaveBeenCalledWith(grant, 'index.html')
+    expect(mocks.readDocPreviewFile).toHaveBeenCalledWith(
+      grant,
+      'index.html',
+      expect.any(AbortSignal)
+    )
   })
 
   it('decodes percent-encoded segments before resolving', async () => {
@@ -105,8 +114,98 @@ describe('handleDocPreviewRequest', () => {
 
     await handleDocPreviewRequest(new Request(buildDocPreviewUrl(grant.id, 'a b/c#d.html')))
 
-    expect(mocks.readDocPreviewFile).toHaveBeenCalledWith(grant, 'a b/c#d.html')
+    expect(mocks.readDocPreviewFile).toHaveBeenCalledWith(
+      grant,
+      'a b/c#d.html',
+      expect.any(AbortSignal)
+    )
   })
+
+  it.each(['success', 'failure'] as const)(
+    'retires a revoked read before publishing its late %s',
+    async (kind) => {
+      const send = vi.fn()
+      setDocPreviewFailureSink({ send })
+      const grant = mintGrant()
+      const read = Promise.withResolvers<DocPreviewReadOutcome>()
+      mocks.readDocPreviewFile.mockReturnValueOnce(read.promise)
+      const pending = handleDocPreviewRequest(
+        new Request(buildDocPreviewUrl(grant.id, 'index.html'))
+      )
+      const signal = mocks.readDocPreviewFile.mock.calls[0]?.[2]
+      expect(signal?.aborted).toBe(false)
+      read.resolve(
+        kind === 'success'
+          ? { ok: true, bytes: Buffer.from('old document'), contentType: 'text/html' }
+          : { ok: false, status: 404, reason: 'unreadable', message: 'old failure' }
+      )
+      revokeDocPreviewGrant(grant.id)
+
+      expect(signal?.aborted).toBe(true)
+      const response = await pending
+      expect(response.type).toBe('error')
+      expect(response.status).toBe(0)
+      expect(await response.text()).toBe('')
+      expect(send).not.toHaveBeenCalled()
+    }
+  )
+
+  it('keeps sibling and replacement grants live when the old grant is revoked', async () => {
+    const old = mintGrant()
+    const sibling = mintGrant()
+    const oldRead = Promise.withResolvers<DocPreviewReadOutcome>()
+    const siblingRead = Promise.withResolvers<DocPreviewReadOutcome>()
+    mocks.readDocPreviewFile
+      .mockReturnValueOnce(oldRead.promise)
+      .mockReturnValueOnce(siblingRead.promise)
+    const pendingOld = handleDocPreviewRequest(
+      new Request(buildDocPreviewUrl(old.id, 'index.html'))
+    )
+    const pendingSibling = handleDocPreviewRequest(
+      new Request(buildDocPreviewUrl(sibling.id, 'index.html'))
+    )
+    const oldSignal = mocks.readDocPreviewFile.mock.calls[0]?.[2]
+    const siblingSignal = mocks.readDocPreviewFile.mock.calls[1]?.[2]
+    revokeDocPreviewGrant(old.id)
+    expect(oldSignal?.aborted).toBe(true)
+    expect(siblingSignal?.aborted).toBe(false)
+    const successor = mintGrant()
+    const response = await handleDocPreviewRequest(
+      new Request(buildDocPreviewUrl(successor.id, 'index.html'))
+    )
+    expect(response.status).toBe(200)
+    const outcome = { ok: true, bytes: Buffer.from('live'), contentType: 'text/html' } as const
+    oldRead.resolve(outcome)
+    siblingRead.resolve(outcome)
+    expect((await pendingOld).type).toBe('error')
+    expect(await (await pendingSibling).text()).toBe('live')
+  })
+
+  it.each(['success', 'failure', 'throw'] as const)(
+    'removes its revocation subscription after a normal %s',
+    async (kind) => {
+      const grant = mintGrant()
+      if (kind === 'failure') {
+        mocks.readDocPreviewFile.mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          reason: 'unreadable',
+          message: 'missing'
+        })
+      } else if (kind === 'throw') {
+        mocks.readDocPreviewFile.mockRejectedValueOnce(new Error('unexpected reader failure'))
+      }
+      const pending = handleDocPreviewRequest(
+        new Request(buildDocPreviewUrl(grant.id, 'index.html'))
+      )
+      await (kind === 'throw'
+        ? expect(pending).rejects.toThrow('unexpected reader failure')
+        : pending)
+      const signal = mocks.readDocPreviewFile.mock.calls[0]?.[2]
+      revokeDocPreviewGrant(grant.id)
+      expect(signal?.aborted).toBe(false)
+    }
+  )
 
   it('404s an unknown grant without reading anything', async () => {
     const response = await handleDocPreviewRequest(
