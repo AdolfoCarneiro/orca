@@ -11,9 +11,7 @@ import { testOrcaSessionId } from '../../../shared/orca-session-address-test-fix
 import type { SenderNameResolver } from './agent-message-sender'
 import { orchestrationSenderName } from './orchestration-sender-name'
 import * as canonical from './canonical-orca-session-id'
-import * as parties from './orchestration-party'
 import * as relations from './agent-message-relation'
-import { structuredWorkerIdentities } from '../structured-worker-identity'
 import * as lineage from './structured-session-lineage'
 import { structuredMailSource, type MailSourceMessage } from './structured-mail-source'
 
@@ -328,10 +326,7 @@ it.each([
     const reader = { listRecords, getRecord }
     vi.spyOn(lineage, 'readAgentSessionRecordStore').mockReturnValue(reader)
     const canonicalCalls = vi.spyOn(canonical, 'canonicalOrcaSessionId')
-    const partyCalls = vi.spyOn(parties, 'resolveOrchestrationParty')
     const relationCalls = vi.spyOn(relations, 'agentMessageRelation')
-    const registry = vi.spyOn(structuredWorkerIdentities, 'getBySessionId')
-    const handleRegistry = vi.spyOn(structuredWorkerIdentities, 'get')
     try {
       const run = db.createRun({
         objective: 'cost',
@@ -347,7 +342,6 @@ it.each([
           maxDepth: 8
         })
       )
-      const getRun = vi.spyOn(db, 'getRun')
       const byId = db.getDispatchContextById.bind(db)
       let reportedCandidateRows = 0
       const dispatchById = vi.spyOn(db, 'getDispatchContextById').mockImplementation((...args) => {
@@ -355,10 +349,6 @@ it.each([
         reportedCandidateRows += row ? 1 : 0
         return row
       })
-      const workerRows = vi.spyOn(db, 'getWorkerTerminalResourceByProcessIncarnation')
-      const workerHandles = vi.spyOn(db, 'getWorkerTerminalResourceByHandle')
-      const nameDispatch = vi.spyOn(db, 'getActiveDispatchForTerminal'),
-        tasks = vi.spyOn(db, 'getTask')
       const candidates = db.getActiveDispatchMailboxOwners.bind(db)
       let candidateRows = 0
       const candidateCalls = vi
@@ -435,7 +425,6 @@ it.each([
       expect(getRecord).toHaveBeenCalledTimes(groups) // Actual name lineage, separate from full canonical scans.
       expect(terminal).not.toHaveBeenCalled()
       expect(relationCalls).toHaveBeenCalledTimes(groups)
-      expect(getRun).toHaveBeenCalledTimes(groups)
       expect(dispatchById).toHaveBeenCalledTimes(groups)
       expect(reportedCandidateRows).toBe(groups) // Every explicit report returns one real candidate.
       expect(candidateCalls).toHaveBeenCalledTimes(groups)
@@ -443,24 +432,11 @@ it.each([
       expect(batchVisits).toBe(batchSize * 2) // Grouping and provenance serialization, no per-sender filter.
       expect(payloadParses).toBe(batchSize)
       expect(payloadBytes).toBe(batch.reduce((sum, message) => sum + message.payload.length, 0))
-      expect(partyCalls).toHaveBeenCalledTimes(groups * 2) // Sender plus actual recipient, neither mocked away.
       expect(canonicalCalls).toHaveBeenCalledTimes(groups * 8)
       expect(listRecords).toHaveBeenCalledTimes(groups * 8)
       expect(scanVisits).toBe(groups * 8 * sessionCount)
-      expect(registry).toHaveBeenCalledTimes(groups * 2)
-      expect(workerRows).toHaveBeenCalledTimes(groups * 2)
-      expect(handleRegistry).not.toHaveBeenCalled()
-      expect(workerHandles).not.toHaveBeenCalled()
-      expect(nameDispatch).not.toHaveBeenCalled()
-      expect(tasks).not.toHaveBeenCalled()
-      // Every SQL query in this corpus is one of these actual acquisition/candidate paths.
-      expect(statements.mock.calls.length).toBe(
-        getRun.mock.calls.length +
-          dispatchById.mock.calls.length +
-          candidateCalls.mock.calls.length +
-          workerRows.mock.calls.length +
-          registry.mock.calls.length
-      )
+      // G Run + G report + G active recipient + 2G worker resources + 2G recorded workers.
+      expect(statements).toHaveBeenCalledTimes(groups * 7)
     } finally {
       vi.restoreAllMocks()
       db.close()

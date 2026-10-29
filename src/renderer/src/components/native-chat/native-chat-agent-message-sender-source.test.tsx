@@ -355,9 +355,9 @@ it.each([100, 1000])(
       }
     })
     const arrays = new WeakMap<AgentStatusEntry[], AgentStatusEntry[]>()
-    const recordWork = new Map<string, { source: number; calls: number }>()
-    function recordProbe<Source extends object, Result extends object = Source>(name: string) {
-      const metric = { source: 0, calls: 0 }
+    const recordWork = new Map<string, { source: number }>()
+    function recordProbe<Source extends object>(name: string) {
+      const metric = { source: 0 }
       recordWork.set(name, metric)
       return {
         source(record: Source): Source {
@@ -370,38 +370,21 @@ it.each([100, 1000])(
               return target[key as keyof typeof target]
             }
           })
-        },
-        result(record: Result): Result {
-          metric.calls++
-          return record
         }
       }
     }
     const titles =
       recordProbe<ReturnType<typeof inputs.selectRuntimePaneTitlesForWorktree>>('titles')
     const ptys = recordProbe<ReturnType<typeof inputs.selectLivePtyIdsForWorktree>>('ptys')
-    const layouts = recordProbe<
-      AppState['terminalLayoutsByTabId'],
-      ReturnType<typeof selectors.selectTerminalLayoutsForWorktree>
-    >('layouts')
+    const layouts = recordProbe<AppState['terminalLayoutsByTabId']>('layouts')
     const foreground =
       recordProbe<ReturnType<typeof inputs.selectPaneForegroundAgentsForWorktree>>('foreground')
-    const titleSelect = inputs.selectRuntimePaneTitlesForWorktree
-    const ptySelect = inputs.selectLivePtyIdsForWorktree
-    const layoutSelect = selectors.selectTerminalLayoutsForWorktree
-    const foregroundSelect = inputs.selectPaneForegroundAgentsForWorktree
-    vi.spyOn(inputs, 'selectRuntimePaneTitlesForWorktree').mockImplementation((...args) =>
-      titles.result(titleSelect(...args))
-    )
-    vi.spyOn(inputs, 'selectLivePtyIdsForWorktree').mockImplementation((...args) =>
-      ptys.result(ptySelect(...args))
-    )
-    vi.spyOn(selectors, 'selectTerminalLayoutsForWorktree').mockImplementation((...args) =>
-      layouts.result(layoutSelect(...args))
-    )
-    vi.spyOn(inputs, 'selectPaneForegroundAgentsForWorktree').mockImplementation((...args) =>
-      foreground.result(foregroundSelect(...args))
-    )
+    const recordSelectors = [
+      vi.spyOn(inputs, 'selectRuntimePaneTitlesForWorktree'),
+      vi.spyOn(inputs, 'selectLivePtyIdsForWorktree'),
+      vi.spyOn(selectors, 'selectTerminalLayoutsForWorktree'),
+      vi.spyOn(inputs, 'selectPaneForegroundAgentsForWorktree')
+    ]
     useAppStore.setState({
       runtimePaneTitlesByTabId: titles.source(
         Object.fromEntries(Array.from({ length: n }, (_, i) => [`tab-${i}`, { 0: `Pane ${i}` }]))
@@ -469,17 +452,20 @@ it.each([100, 1000])(
     expect(entries).toBe(n * input.mock.calls.length)
     expect(freshnessVisits).toBe(n)
     expect(projections).toHaveBeenCalledTimes(1)
+    for (const spy of recordSelectors) {
+      expect(spy).toHaveBeenCalledTimes(1)
+    }
     for (const metric of recordWork.values()) {
-      expect(metric).toEqual({ calls: 1, source: n })
+      expect(metric.source).toBe(n)
     }
     const counts = new Map(renders)
     const reset = () => {
-      for (const spy of [input, builds, projections, normalized]) {
+      for (const spy of [input, builds, projections, normalized, ...recordSelectors]) {
         spy.mockClear()
       }
       entries = freshnessVisits = handleEntries = 0
       for (const metric of recordWork.values()) {
-        metric.source = metric.calls = 0
+        metric.source = 0
       }
     }
     // Each record generation actually reconstructs the full workspace; the unchanged authority
@@ -503,8 +489,11 @@ it.each([100, 1000])(
       expect(normalized).not.toHaveBeenCalled()
       expect(entries).toBe(n * input.mock.calls.length)
       expect(freshnessVisits).toBe(0)
+      for (const spy of recordSelectors) {
+        expect(spy).toHaveBeenCalledTimes(1)
+      }
       for (const metric of recordWork.values()) {
-        expect(metric).toEqual({ calls: 1, source: reads })
+        expect(metric.source).toBe(reads)
       }
       expect(handleEntries).toBe('settings' in update ? n : 0)
       expect(renders).toEqual(counts)
@@ -534,8 +523,11 @@ it.each([100, 1000])(
       expect(entries).toBe(n * input.mock.calls.length)
       expect(freshnessVisits).toBe(facetOnly ? 0 : n)
       expect(projections).toHaveBeenCalledTimes(1)
+      for (const spy of recordSelectors) {
+        expect(spy).toHaveBeenCalledTimes(1)
+      }
       for (const metric of recordWork.values()) {
-        expect(metric).toEqual({ calls: 1, source: 0 })
+        expect(metric.source).toBe(0)
       }
       expect(renders).toEqual(counts)
     }
