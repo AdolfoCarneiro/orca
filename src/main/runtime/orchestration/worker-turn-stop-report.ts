@@ -70,10 +70,10 @@ export function reportWorkerTurnStop(
   deps: WorkerTurnStopReportDeps
 ): void {
   const dispatchId = workerTurnStopDispatchId(target)
-  // Waiting on its own helpers' reports is deliberate, like `check --wait`.
+  // Resting on its own helpers' reports is deliberate, like `check --wait`; a prompt or error is not.
   if (
     deps.isWaitingForMail(`dispatch:${dispatchId}`) ||
-    (target.kind === 'local' && db.hasOpenHelperDispatch(dispatchId))
+    (stop.reason === 'finished' && target.kind === 'local' && db.hasOpenHelperDispatch(dispatchId))
   ) {
     return
   }

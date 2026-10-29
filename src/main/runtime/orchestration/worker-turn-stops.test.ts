@@ -175,6 +175,28 @@ describe('terminal worker turn stops', () => {
     expect(ctx.mail()[0]?.subject).toBe('Worker is waiting on a prompt')
   })
 
+  it('escalates a prompt or error while its helper is open, but not a clean rest', async () => {
+    const ctx = setup()
+    const helperTask = ctx.db.createTask({ spec: 'help', runId: ctx.run.id })
+    ctx.db.createDispatchContext({
+      taskId: helperTask.id,
+      assigneeHandle: 'term_helper',
+      creator: { kind: 'terminal', handle: HANDLE, paneKey: PANE },
+      maxDepth: Number.MAX_SAFE_INTEGER
+    })
+    expect(ctx.db.hasOpenHelperDispatch(ctx.dispatch.id)).toBe(true)
+    const target = { kind: 'local' as const, dispatch: ctx.dispatch }
+    const stop = { from: HANDLE, lastOutput: undefined }
+    reportWorkerTurnStop(ctx.db, target, { ...stop, stopKey: '1', reason: 'finished' }, ctx.deps)
+    expect(ctx.mail()).toHaveLength(0)
+    reportWorkerTurnStop(ctx.db, target, { ...stop, stopKey: '2', reason: 'needs-input' }, ctx.deps)
+    reportWorkerTurnStop(ctx.db, target, { ...stop, stopKey: '3', reason: 'errored' }, ctx.deps)
+    expect(ctx.mail().map((m) => m.subject)).toEqual([
+      'Worker is waiting on a prompt',
+      'Worker stopped on an error without reporting'
+    ])
+  })
+
   it('stays quiet for a resumed turn, a settled Dispatch, or a deliberate wait', async () => {
     const resumed = setup()
     const current = { row: hookRow({}) }
