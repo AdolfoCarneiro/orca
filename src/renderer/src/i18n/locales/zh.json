@@ -21754,11 +21754,10 @@
   "agentPicker": {
     "search": "搜索智能体和配置…",
     "configure": "配置 {{agent}}",
-    "model": "模型",
     "arguments": "参数",
     "argumentsHint": "仅适用于 CLI 启动。",
-    "openChat": "打开聊天",
-    "openTerminal": "打开终端"
+    "launchChat": "启动聊天",
+    "launchTerminal": "启动终端"
   },
   "wslMove": {
     "entry": {

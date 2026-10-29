@@ -22183,11 +22183,10 @@
   "agentPicker": {
     "search": "Buscar agentes e configurações…",
     "configure": "Configurar {{agent}}",
-    "model": "Modelo",
     "arguments": "Argumentos",
     "argumentsHint": "Aplica-se apenas às inicializações pela CLI.",
-    "openChat": "Abrir chat",
-    "openTerminal": "Abrir terminal"
+    "launchChat": "Iniciar chat",
+    "launchTerminal": "Iniciar terminal"
   },
   "wslMove": {
     "entry": {

@@ -261,8 +261,8 @@ export function AgentLaunchSetupPanel({
                 <span className="flex min-w-0 flex-col">
                   <span>{translate('agentPicker.legacyModels', 'Legacy models')}</span>
                   <span className="text-muted-foreground">
-                    {translate('agentPicker.legacyModelCount', '{{count}} models', {
-                      count: legacyCount
+                    {translate('agentPicker.legacyModelCount', '{{total}} models', {
+                      total: legacyCount
                     })}
                   </span>
                 </span>

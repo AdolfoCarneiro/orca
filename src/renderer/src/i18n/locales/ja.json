@@ -21754,11 +21754,10 @@
   "agentPicker": {
     "search": "Agent と設定を検索…",
     "configure": "{{agent}} を設定",
-    "model": "モデル",
     "arguments": "引数",
     "argumentsHint": "CLI での起動にのみ適用されます。",
-    "openChat": "チャットを開く",
-    "openTerminal": "ターミナルを開く"
+    "launchChat": "チャットを起動",
+    "launchTerminal": "ターミナルを起動"
   },
   "wslMove": {
     "entry": {

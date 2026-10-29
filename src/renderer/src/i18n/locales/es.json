@@ -22370,11 +22370,10 @@
   "agentPicker": {
     "search": "Buscar agentes y configuraciones…",
     "configure": "Configurar {{agent}}",
-    "model": "Modelo",
     "arguments": "Argumentos",
     "argumentsHint": "Solo se aplica a los inicios de CLI.",
-    "openChat": "Abrir chat",
-    "openTerminal": "Abrir terminal"
+    "launchChat": "Iniciar chat",
+    "launchTerminal": "Iniciar terminal"
   },
   "wslMove": {
     "entry": {

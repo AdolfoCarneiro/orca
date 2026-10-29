@@ -22368,17 +22368,19 @@
   "agentPicker": {
     "search": "Search agents and setups…",
     "configure": "Configure {{agent}}",
-    "model": "Model",
     "arguments": "Arguments",
     "argumentsHint": "Applies only to CLI launches.",
-    "openChat": "Open chat",
-    "openTerminal": "Open terminal",
+    "launchChat": "Launch chat",
+    "launchTerminal": "Launch terminal",
     "setByArguments": "Set by your Arguments",
     "searchModels": "Search models",
     "noModels": "No models match your search.",
-    "backModels": "Back to current models",
     "legacyModels": "Legacy models",
-    "toggleArguments": "Toggle Arguments"
+    "toggleArguments": "Toggle Arguments",
+    "agentDefaultModel": "Default model",
+    "argumentsTerminalHint": "Only used when it opens in a terminal (CLI)",
+    "searchAgentModels": "Search {{agent}} models…",
+    "legacyModelCount": "{{total}} models"
   },
   "automations": {
     "runFailures": {
