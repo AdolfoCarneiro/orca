@@ -4,13 +4,18 @@ import { normalizeMarkdownTocTitle, type MarkdownTocItem } from './markdown-tabl
 // Match all TOC levels, including h4/h5, so every listed heading can resolve.
 const RICH_MARKDOWN_TOC_HEADING_SELECTOR = 'h1, h2, h3, h4, h5'
 
+// Image node views render alt text as an attribute, but the TOC title includes it.
 function headingText(node: Node): string {
-  if (node instanceof Element && node.tagName === 'IMG') {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent ?? ''
+  }
+  if (!(node instanceof Element)) {
+    return ''
+  }
+  if (node.tagName === 'IMG') {
     return node.getAttribute('alt') ?? ''
   }
-  return node.childNodes.length
-    ? Array.from(node.childNodes, headingText).join('')
-    : (node.textContent ?? '')
+  return Array.from(node.childNodes, headingText).join('')
 }
 
 function matchingTitle(value: string): string {

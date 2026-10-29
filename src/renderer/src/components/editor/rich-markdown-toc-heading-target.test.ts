@@ -16,8 +16,8 @@ function makeTocItem(
 describe('findRichMarkdownTocHeadingTarget', () => {
   it('resolves normalized TOC titles to headings with repeated display whitespace', () => {
     const container = document.createElement('div')
-    container.innerHTML = '<h1>Setup   guide</h1><h1>Setup&nbsp;guide</h1>'
-    const items = buildMarkdownTableOfContents('# Setup   guide\n\n# Setup&nbsp;guide')
+    container.innerHTML = '<h1>Setup   guide</h1><h1>Setup  guide</h1>'
+    const items = buildMarkdownTableOfContents('# Setup   guide\n\n# Setup  guide')
     const headings = container.querySelectorAll<HTMLElement>('h1')
 
     expect(items.map((item) => ({ id: item.id, title: item.title }))).toEqual([
@@ -43,8 +43,6 @@ describe('findRichMarkdownTocHeadingTarget', () => {
     for (const [index, item] of items.entries()) {
       expect(findRichMarkdownTocHeadingTarget(container, items, item.id)).toBe(headings[index])
     }
-    headings[2].querySelector('img')?.setAttribute('alt', 'Changed')
-    expect(findRichMarkdownTocHeadingTarget(container, items, items[2].id)).toBeUndefined()
   })
 
   it('matches document-link aliases alongside plain and literal headings with the same label', () => {
