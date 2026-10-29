@@ -9,6 +9,7 @@ import { computerUsePermissionStatusGate } from '../computer/macos-computer-use-
 
 export function registerComputerUsePermissionHandlers(): void {
   if (process.platform === 'darwin') {
+    app.on('browser-window-blur', () => computerUsePermissionStatusGate.noteBlur())
     app.on('browser-window-focus', () => computerUsePermissionStatusGate.noteActivation())
   }
   ipcMain.handle(
@@ -33,7 +34,12 @@ export function registerComputerUsePermissionHandlers(): void {
       const { resetComputerUsePermissions } =
         await import('../computer/macos-computer-use-permissions')
       computerUsePermissionStatusGate.invalidate()
-      return resetComputerUsePermissions()
+      try {
+        return await resetComputerUsePermissions()
+      } finally {
+        // Reads during the reset may have cached the pre-reset grants.
+        computerUsePermissionStatusGate.invalidate()
+      }
     }
   )
 }

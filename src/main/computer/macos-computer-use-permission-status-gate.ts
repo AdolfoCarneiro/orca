@@ -1,7 +1,7 @@
 import type { ComputerUsePermissionStatusResult } from '../../shared/computer-use-permissions-types'
 
 // Each macOS probe launches a helper that polls TCC for ~3.5s; denied answers only change on user action.
-export const PERMISSION_STATUS_GRANTED_REUSE_MS = 2_000
+export const PERMISSION_STATUS_RESULT_REUSE_MS = 2_000
 export const PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS = 10_000
 export const PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS = 120_000
 
@@ -9,8 +9,20 @@ type ProbeOutcome =
   | { ok: true; result: ComputerUsePermissionStatusResult }
   | { ok: false; error: unknown }
 
+type InFlightProbe = {
+  epoch: number
+  promise: Promise<ComputerUsePermissionStatusResult>
+  followUp: Promise<ComputerUsePermissionStatusResult> | null
+}
+
+export type PermissionStatusReadOptions = {
+  // Remote callers can't signal activation; reuse only a just-finished result.
+  fresh?: boolean
+}
+
 export type PermissionStatusProbeGate = {
-  read: () => Promise<ComputerUsePermissionStatusResult>
+  read: (options?: PermissionStatusReadOptions) => Promise<ComputerUsePermissionStatusResult>
+  noteBlur: () => void
   noteActivation: () => void
   invalidate: () => void
 }
@@ -20,76 +32,100 @@ export function createPermissionStatusProbeGate(options: {
   now?: () => number
 }): PermissionStatusProbeGate {
   const now = options.now ?? Date.now
-  let inFlight: Promise<ComputerUsePermissionStatusResult> | null = null
-  let cached: ProbeOutcome | null = null
-  let lastProbeAt = 0
+  // A new epoch means the answer may have changed; results from older epochs are never served.
+  let epoch = 0
+  let blurredSinceActivation = false
+  let inFlight: InFlightProbe | null = null
+  let cached: { epoch: number; outcome: ProbeOutcome; finishedAt: number } | null = null
   let reuseUntil = 0
   let deniedStreak = 0
-  let generation = 0
 
-  const runProbe = (): Promise<ComputerUsePermissionStatusResult> => {
-    const probeGeneration = generation
-    const tracked = options
-      .probe()
-      .then(
-        (result) => {
-          if (probeGeneration === generation) {
-            recordOutcome({ ok: true, result })
-          }
-          return result
-        },
-        (error: unknown) => {
-          if (probeGeneration === generation) {
-            recordOutcome({ ok: false, error })
-          }
-          throw error
-        }
-      )
-      .finally(() => {
-        if (inFlight === tracked) {
-          inFlight = null
-        }
-      })
-    inFlight = tracked
-    return tracked
-  }
-
-  const recordOutcome = (outcome: ProbeOutcome): void => {
-    cached = outcome
-    lastProbeAt = now()
-    if (outcome.ok && !isMissingPermission(outcome.result)) {
-      deniedStreak = 0
-      reuseUntil = lastProbeAt + PERMISSION_STATUS_GRANTED_REUSE_MS
+  const recordOutcome = (probeEpoch: number, outcome: ProbeOutcome): void => {
+    const finishedAt = now()
+    cached = { epoch: probeEpoch, outcome, finishedAt }
+    if (!outcome.ok || !isMissingPermission(outcome.result)) {
+      if (outcome.ok) {
+        deniedStreak = 0
+      }
+      reuseUntil = finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS
       return
     }
     deniedStreak += 1
     const backoff = PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS * 2 ** (deniedStreak - 1)
-    reuseUntil = lastProbeAt + Math.min(backoff, PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS)
+    reuseUntil = finishedAt + Math.min(backoff, PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS)
+  }
+
+  const startProbe = (): Promise<ComputerUsePermissionStatusResult> => {
+    const probeEpoch = epoch
+    const entry: InFlightProbe = {
+      epoch: probeEpoch,
+      promise: options.probe().then(
+        (result) => {
+          recordOutcome(probeEpoch, { ok: true, result })
+          return result
+        },
+        (error: unknown) => {
+          recordOutcome(probeEpoch, { ok: false, error })
+          throw error
+        }
+      ),
+      followUp: null
+    }
+    inFlight = entry
+    void entry.promise
+      .finally(() => {
+        if (inFlight === entry) {
+          inFlight = null
+        }
+      })
+      .catch(() => {})
+    return entry.promise
+  }
+
+  const read = (
+    readOptions: PermissionStatusReadOptions = {}
+  ): Promise<ComputerUsePermissionStatusResult> => {
+    const current = inFlight
+    if (current) {
+      if (current.epoch === epoch) {
+        return current.promise
+      }
+      // Never run two helpers at once; re-probe once the stale one settles.
+      current.followUp ??= current.promise.then(noop, noop).then(() => read(readOptions))
+      return current.followUp
+    }
+    if (cached && cached.epoch === epoch) {
+      const limit = readOptions.fresh
+        ? Math.min(reuseUntil, cached.finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS)
+        : reuseUntil
+      if (now() < limit) {
+        const { outcome } = cached
+        return outcome.ok ? Promise.resolve(outcome.result) : Promise.reject(outcome.error)
+      }
+    }
+    return startProbe()
   }
 
   return {
-    read: () => {
-      if (inFlight) {
-        return inFlight
-      }
-      if (cached && now() < reuseUntil) {
-        return cached.ok ? Promise.resolve(cached.result) : Promise.reject(cached.error)
-      }
-      return runProbe()
+    read,
+    noteBlur: () => {
+      blurredSinceActivation = true
     },
     noteActivation: () => {
-      // Returning to Orca is when a grant made in System Settings can land; still keep a floor.
-      reuseUntil = Math.min(reuseUntil, lastProbeAt + PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS)
+      // Returning to Orca is when a grant made in System Settings can land.
+      if (blurredSinceActivation) {
+        blurredSinceActivation = false
+        epoch += 1
+      }
     },
     invalidate: () => {
-      generation += 1
-      inFlight = null
-      cached = null
-      reuseUntil = 0
+      epoch += 1
       deniedStreak = 0
     }
   }
 }
+
+function noop(): void {}
 
 function isMissingPermission(result: ComputerUsePermissionStatusResult): boolean {
   return (

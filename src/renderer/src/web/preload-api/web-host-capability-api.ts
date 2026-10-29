@@ -117,7 +117,8 @@ export function createComputerUsePermissionsApi(): NonNullable<
     getStatus: () =>
       callRuntimeResult<ComputerUsePermissionStatusResult>(
         'computer.permissionsStatus',
-        {},
+        // The host can't see this browser window's focus, so ask for a fresh read.
+        { fresh: true },
         15_000
       ),
     openSetup: (args) =>

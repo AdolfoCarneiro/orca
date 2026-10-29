@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
-export const ComputerPermissionsStatusParams = z.object({})
+// Older hosts strip `fresh`; older clients omit it and get the backed-off read.
+export const ComputerPermissionsStatusParams = z.object({ fresh: z.boolean().optional() })
 
 export const ComputerCapabilitiesParams = z.object({})
