@@ -8,7 +8,7 @@ import { planDeviceKeyFork } from './device-key-fork'
 import { planIdleEphemeralPrune, withoutEphemeralRows } from './ephemeral-device-rows'
 import { quarantineCorruptRegistry } from './device-registry-corruption'
 import { readDeviceRegistryFile } from './device-registry-file-read'
-import { writeMergedDeviceRegistry } from './device-registry-disk-merge'
+import { DeviceRegistryWriter } from './device-registry-disk-merge'
 import type { RelayDeviceBinding } from './mobile-cloud-relay/relay-revoke-outbox'
 import type { MobilePairingConnectionMode } from '../../shared/mobile-pairing-connection-mode'
 import type { RuntimePairingReach } from '../../shared/runtime-pairing-reach'
@@ -49,9 +49,11 @@ export class DeviceRegistry {
   private registryDoubtful = false
   private corruptFilePending = false
   private pendingLastSeenFlush: NodeJS.Timeout | null = null
+  private readonly writer: DeviceRegistryWriter
 
   constructor(userDataPath: string) {
     this.registryPath = join(userDataPath, DEVICE_REGISTRY_FILENAME)
+    this.writer = new DeviceRegistryWriter(this.registryPath)
     // #20497: reap temp files orphaned by a crash before rename.
     void removeStaleDurableWriteTempFiles(this.registryPath, {
       minimumAgeMs: STALE_WRITE_TEMP_AGE_MS
@@ -105,9 +107,10 @@ export class DeviceRegistry {
     )
     if (existing) {
       // Widen advertised reach, never narrow it and break an off-host link already handed out.
-      return pairingReach === 'network' && existing.pairingReach === 'this-computer'
-        ? this.setPairingReach(existing, 'network')
-        : existing
+      const widen = pairingReach === 'network' && existing.pairingReach === 'this-computer'
+      // Removed on disk meanwhile: mint a fresh offer rather than hand out a revoked one.
+      const offered = widen ? this.setPairingReach(existing, 'network') : existing
+      return offered ?? this.addDevice(name, scope, pairingReach, grants)
     }
     return this.addDevice(name, scope, pairingReach, grants)
   }
@@ -115,10 +118,9 @@ export class DeviceRegistry {
   private setPairingReach(
     existing: TokenDeviceEntry,
     pairingReach: RuntimePairingReach
-  ): TokenDeviceEntry {
+  ): TokenDeviceEntry | null {
     const updated: TokenDeviceEntry = { ...existing, pairingReach }
-    this.replaceRow(existing.deviceId, () => updated)
-    return updated
+    return this.replaceRow(existing.deviceId, () => updated) ? updated : null
   }
 
   /** Explicit QR regeneration revokes leaked unused offers; ordinary re-advertisement reuses them. */
@@ -325,7 +327,8 @@ export class DeviceRegistry {
       candidateIndex === index ? update(device) : device
     )
     this.devices = this.save(nextDevices)
-    return true
+    // False when the file had already lost the row: the update did not apply.
+    return this.devices.some((candidate) => candidate.deviceId === deviceId)
   }
 
   private assertReadable(): void {
@@ -347,7 +350,7 @@ export class DeviceRegistry {
     before: readonly DeviceEntry[] = this.devices
   ): DeviceEntry[] {
     this.assertReadable()
-    const written = writeMergedDeviceRegistry(this.registryPath, before, devices, options)
+    const written = this.writer.write(before, devices, options)
     // Every save includes current timestamps, making a pending refresh redundant.
     this.cancelPendingLastSeenFlush()
     return written

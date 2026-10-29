@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as secureFile from '../../shared/secure-file'
 import { DeviceRegistry } from './device-registry'
 import { DEVICE_REGISTRY_FILENAME } from './mobile-pairing-files'
 
@@ -15,6 +16,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
   rmSync(dir, { recursive: true, force: true })
 })
 
@@ -106,5 +108,55 @@ describe('device registry saves over an externally edited file', () => {
 
     expect(reloaded.getDevice(fork.deviceId)).toBeNull()
     expect(fileIds()).not.toContain(fork.deviceId)
+  })
+
+  // Review of #35483: a stale writer (an old orcad's flush during an upgrade overlap) puts back a
+  // device this process revoked; the next save must not adopt it.
+  it('never re-adopts a device this process removed when a stale writer puts it back', () => {
+    const { registry, desktop, phone } = pairedRegistry()
+    const path = join(dir, DEVICE_REGISTRY_FILENAME)
+    const snapshot = readFileSync(path, 'utf8')
+
+    expect(registry.removeDevice(desktop.deviceId)).toBe(true)
+    writeFileSync(path, snapshot)
+    registry.updateLastSeen(phone.deviceId)
+
+    expect(fileIds()).toEqual([phone.deviceId])
+    expect(registry.getDevice(desktop.deviceId)).toBeNull()
+    expect(registry.validateToken(desktop.token)).toBeNull()
+  })
+
+  it('never re-adopts a session-only row whose load-time cleanup save failed', () => {
+    const registry = new DeviceRegistry(dir)
+    const desktop = registry.addDevice('desktop', 'runtime')
+    const fork = registry.forkDeviceKey(
+      desktop.deviceId,
+      Buffer.alloc(32, 1).toString('base64'),
+      'Tab',
+      { ephemeral: true }
+    )
+    const writes = vi.spyOn(secureFile, 'writeDurableSecureJsonFile').mockImplementationOnce(() => {
+      throw new Error('disk full')
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const reloaded = new DeviceRegistry(dir)
+    expect(writes).toHaveBeenCalledOnce()
+    expect(fileIds()).toContain(fork.deviceId)
+    reloaded.addDevice('second desktop', 'runtime')
+
+    expect(fileIds()).not.toContain(fork.deviceId)
+    expect(reloaded.getDevice(fork.deviceId)).toBeNull()
+  })
+
+  it('reports a row update as not applied when the row was removed on disk, and keeps it removed', () => {
+    const { registry, phone } = pairedRegistry()
+
+    removeOnDisk(phone.deviceId)
+    const applied = registry.setMobilePairingConnectionMode(phone.deviceId, 'local-only')
+
+    expect(applied).toBe(false)
+    expect(fileIds()).not.toContain(phone.deviceId)
+    expect(registry.getDevice(phone.deviceId)).toBeNull()
   })
 })
