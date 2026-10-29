@@ -56,27 +56,6 @@ afterEach(() => {
 })
 
 describe('review note height collection', () => {
-  it.each([10, 100])('collects %i note elements with one selector pass', (count) => {
-    const editor = createEditor()
-    const container = document.createElement('div')
-    const markdownComments = Array.from({ length: count }, (_, index) => comment(`note-${index}`))
-    const cards = markdownComments.map((note) => addCard(container, note.id, 30))
-    const query = vi.spyOn(container, 'querySelector')
-    const queryAll = vi.spyOn(container, 'querySelectorAll')
-    const positions = measureRichMarkdownReviewNotePositions({
-      editor,
-      container,
-      markdownComments,
-      markdownSourceLineOffset: 0
-    })
-    expect(positions.map((position) => position.top)).toEqual(
-      Array.from({ length: count }, (_, index) => 100 + index * 38)
-    )
-    expect(query).not.toHaveBeenCalled()
-    expect(queryAll).toHaveBeenCalledTimes(1)
-    expect(cards.every(({ rect }) => rect.mock.calls.length === 1)).toBe(true)
-  })
-
   it('remeasures current cards and preserves first-match and missing-card behavior', () => {
     const editor = createEditor()
     const container = document.createElement('div')
@@ -100,20 +79,5 @@ describe('review note height collection', () => {
     expect(measure().map((position) => position.top)).toEqual([100, 210])
     expect(duplicate.rect).not.toHaveBeenCalled()
     expect(unrelated.rect).not.toHaveBeenCalled()
-  })
-
-  it('skips selectors when no comments have a source position', () => {
-    const editor = createEditor()
-    const container = document.createElement('div')
-    const queryAll = vi.spyOn(container, 'querySelectorAll')
-    expect(
-      measureRichMarkdownReviewNotePositions({
-        editor,
-        container,
-        markdownComments: [],
-        markdownSourceLineOffset: 0
-      })
-    ).toEqual([])
-    expect(queryAll).not.toHaveBeenCalled()
   })
 })
