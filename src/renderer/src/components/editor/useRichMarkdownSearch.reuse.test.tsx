@@ -50,6 +50,7 @@ function mountSearch() {
     registerPlugin: vi.fn(),
     unregisterPlugin: vi.fn(),
     view: {
+      dom: document.createElement('div'),
       dispatch: (tr: EditorState['tr']) => {
         state = state.apply(tr)
         if (tr.docChanged) {

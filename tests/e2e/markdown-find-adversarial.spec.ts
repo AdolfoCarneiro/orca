@@ -170,6 +170,8 @@ test('backward native selection completes before focused copy and an inside-rang
   const search = await find(orcaPage)
   await centered(first)
   await drag(orcaPage, second, first, 11, 6)
+  await orcaPage.keyboard.press('Escape')
+  await expect(search).toHaveCount(0)
   const copied = await editor.evaluate((element) => {
     const instance = document.querySelector<HTMLElement & { editor?: Editor }>(
       '.rich-markdown-editor'
@@ -200,7 +202,8 @@ test('backward native selection completes before focused copy and an inside-rang
   await expect(editor).toBeFocused()
   const inside = await textPoint(first, 12)
   await orcaPage.mouse.click(inside.x, inside.y)
-  await search.focus()
+  await pressShortcut(orcaPage, 'f')
+  await expect(search).toBeFocused()
   const caret = await first.evaluate((element) => {
     const instance = document.querySelector<HTMLElement & { editor?: Editor }>(
       '.rich-markdown-editor'

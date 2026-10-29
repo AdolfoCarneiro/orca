@@ -91,6 +91,22 @@ afterEach(() => {
 })
 
 describe('rich Markdown search adversarial interactions', () => {
+  it('close-time focus never navigates the query', () => {
+    const { editor, hook, query, documentCaret, input, beforePassiveRef, scrollTo } = mountSearch()
+    query('beta')
+    documentCaret()
+    const selection = editor.state.selection
+    act(() => input.focus())
+    act(() => hook.result.current.searchActions.setSearchQuery('Edit'))
+    beforePassiveRef.current = () => hook.result.current.searchActions.closeSearch()
+    scrollTo.mockClear()
+    act(() => vi.advanceTimersByTime(150))
+    expect(editor.state.selection.eq(selection)).toBe(true)
+    expect(document.activeElement).toBe(editor.view.dom)
+    expect(hook.result.current.searchState.isSearchOpen).toBe(false)
+    expect(scrollTo).not.toHaveBeenCalled()
+  })
+
   it('does not revive a delayed search after a document click and another control focus', () => {
     const { editor, hook, otherControl, query, documentCaret, scrollTo } = mountSearch()
     query('beta')

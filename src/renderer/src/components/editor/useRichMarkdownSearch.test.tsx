@@ -25,7 +25,7 @@ function createEditor(): { editor: Editor; emitUpdate: () => void } {
     registerPlugin: vi.fn(),
     state: { doc: {}, tr: transaction },
     unregisterPlugin: vi.fn(),
-    view: { dispatch: vi.fn() }
+    view: { dispatch: vi.fn(), dom: document.createElement('div') }
   } as unknown as Editor
   return {
     editor,
