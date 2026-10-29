@@ -1,9 +1,10 @@
 import { beforeEach, vi } from 'vitest'
+import type { Mock } from 'vitest'
 import { clearRuntimeCompatibilityCacheForTests } from './runtime-rpc-client'
 
-export const runtimeCall = vi.fn()
-export const runtimeEnvironmentCall = vi.fn()
-export const runtimeEnvironmentSubscribe = vi.fn()
+export const runtimeCall: Mock = vi.fn()
+export const runtimeEnvironmentCall: Mock = vi.fn()
+export const runtimeEnvironmentSubscribe: Mock = vi.fn()
 
 export function installRuntimeRpcClientTestBridge(): void {
   beforeEach(() => {

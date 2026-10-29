@@ -488,7 +488,7 @@ it('recovers an unhinted allocated pane across a lost reply and a publication er
   const request = {
     command: 'qodercli --resume original',
     launchAgent: 'qoder' as const,
-    launchConfig: { agentCommand: 'qodercli', agentArgs: '--original' },
+    launchConfig: { agentCommand: 'qodercli', agentArgs: '--original', agentEnv: {} },
     createMutation: { clientIdentity: 'unhinted-phone', id: 'unhinted-operation' }
   }
   const inventory: {
@@ -580,7 +580,7 @@ it.each(['moved', 'closed', 'replaced'] as const)(
     const request = {
       command: 'qodercli --resume original',
       launchAgent: 'qoder' as const,
-      launchConfig: { agentCommand: 'qodercli', agentArgs: '--original' },
+      launchConfig: { agentCommand: 'qodercli', agentArgs: '--original', agentEnv: {} },
       keepPaneOnStartFailure: true as const,
       createMutation: { clientIdentity: 'authority-phone', id: 'authority-operation' },
       identity: {

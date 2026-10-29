@@ -7,11 +7,16 @@ import type { RuntimeTerminalCreate } from '../../../../shared/runtime-types'
 import type { RuntimePtyWorktreeRecord } from '../../runtime-terminal-state-records'
 import { copySleepingAgentLaunchConfig } from '../../runtime-agent-launch-resolution'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
-import { ptyHoldsRecordedSurface } from '../../pty-recorded-surface-topology'
+import {
+  ptyHoldsRecordedSurface,
+  type PtySurfaceTopology
+} from '../../pty-recorded-surface-topology'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { persistFreshPaneBinding } from '../../../ipc/pty/spawn-commit-binding'
 
 export abstract class OrcaRuntimeWithReconcileOwnedMobileTerminal extends OrcaRuntimeWithResolveMobileSessionTerminalCommand {
+  protected abstract ptySurfaceTopology(): PtySurfaceTopology
+
   protected validateOwnedMobileDispatch(
     pty: RuntimePtyWorktreeRecord,
     terminal: RuntimeTerminalCreate,

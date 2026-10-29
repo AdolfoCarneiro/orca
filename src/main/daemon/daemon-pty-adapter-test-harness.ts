@@ -7,9 +7,10 @@ import type { DaemonPtyAdapterOptions } from './daemon-pty-runtime-state'
 import { DaemonServer } from './daemon-server'
 import { getDaemonSocketPath } from './daemon-spawner'
 import type { SubprocessHandle } from './session-subprocess-handle'
+import type { TerminalHostOptions } from './terminal-host-options'
 import type { DaemonFileLog } from './daemon-file-log'
 
-export type SpawnSubprocess = ConstructorParameters<typeof DaemonServer>[0]['spawnSubprocess']
+export type SpawnSubprocess = TerminalHostOptions['spawnSubprocess']
 
 export type DaemonAdapterHarness = {
   dir: string

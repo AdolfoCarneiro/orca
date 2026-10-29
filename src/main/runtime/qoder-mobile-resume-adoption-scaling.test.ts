@@ -35,7 +35,7 @@ it('bounds lost-reply persisted-surface reconciliation at N/10N without replayin
     const request = {
       command: 'qodercli --resume original',
       launchAgent: 'qoder' as const,
-      launchConfig: { agentCommand: 'qodercli', agentArgs: '--original' },
+      launchConfig: { agentCommand: 'qodercli', agentArgs: '--original', agentEnv: {} },
       createMutation: { clientIdentity: 'scale-phone', id: 'scale-operation' }
     }
     const inventory: {
