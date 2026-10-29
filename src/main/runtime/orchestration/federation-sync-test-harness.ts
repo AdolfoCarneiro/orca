@@ -1,3 +1,4 @@
+import { CrewChanges } from './crew/crew-changes'
 import { vi } from 'vitest'
 import { ORCHESTRATION_FEDERATION_LIFECYCLE_SETTLEMENT_RUNTIME_CAPABILITY } from '../../../shared/protocol-version'
 import { OrcaRuntimeService } from '../orca-runtime'
@@ -21,6 +22,7 @@ export function createIdleSyncHarness(initialSequence = 2, protocolVersion?: 1 |
   }
   const createDb = () =>
     ({
+      crewChanges: new CrewChanges(),
       getFederatedDispatch: () => federated,
       getDispatchContextById: () => ({ run_id: 'run_home', task_id: 'task_home' }),
       getWorkerDispatch: () => ({ state: 'ready' }),

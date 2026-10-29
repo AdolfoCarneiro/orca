@@ -1,3 +1,4 @@
+import { CrewChanges } from './crew/crew-changes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OrcaRuntimeService } from '../orca-runtime'
 
@@ -22,6 +23,7 @@ describe('terminal federation acknowledgment recovery', () => {
       .spyOn(runtime, 'syncOrchestrationFederatedDispatch')
       .mockResolvedValue(undefined)
     runtime.setOrchestrationDb({
+      crewChanges: new CrewChanges(),
       listActiveFederatedDispatches: () => [],
       findNextTerminalFederatedDispatchPendingAcknowledgment: (afterRowId: number) =>
         candidates.find((candidate) => candidate.rowId > afterRowId)
@@ -57,6 +59,7 @@ describe('terminal federation acknowledgment recovery', () => {
       .spyOn(runtime, 'syncOrchestrationFederatedDispatch')
       .mockRejectedValue(new Error('worker unavailable'))
     runtime.setOrchestrationDb({
+      crewChanges: new CrewChanges(),
       listActiveFederatedDispatches: () => [],
       findNextTerminalFederatedDispatchPendingAcknowledgment: (afterRowId: number) =>
         candidates.find((candidate) => candidate.rowId > afterRowId)
@@ -85,6 +88,7 @@ describe('terminal federation acknowledgment recovery', () => {
     })
     const sync = vi.spyOn(runtime, 'syncOrchestrationFederatedDispatch').mockReturnValue(blocked)
     runtime.setOrchestrationDb({
+      crewChanges: new CrewChanges(),
       listActiveFederatedDispatches: () => [],
       findNextTerminalFederatedDispatchPendingAcknowledgment: () => ({
         dispatchId: 'dispatch_1',

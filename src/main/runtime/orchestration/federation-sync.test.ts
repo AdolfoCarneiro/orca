@@ -1,3 +1,4 @@
+import { CrewChanges } from './crew/crew-changes'
 import { describe, expect, it, vi } from 'vitest'
 import {
   ORCHESTRATION_FEDERATION_LIFECYCLE_SETTLEMENT_RUNTIME_CAPABILITY,
@@ -161,6 +162,7 @@ describe('federation relay acknowledgments', () => {
       to_home_acknowledged_sequence: 0
     }
     const db = {
+      crewChanges: new CrewChanges(),
       getFederatedDispatch: () => federated,
       getDispatchContextById: () => ({ run_id: 'run_home', task_id: 'task_home' }),
       getWorkerDispatch: () => ({ state: 'ready' }),
@@ -464,6 +466,7 @@ describe('federation relay acknowledgments', () => {
     let pendingToWorker = [{ sequence: 1 }]
     const runtime = new OrcaRuntimeService()
     runtime.setOrchestrationDb({
+      crewChanges: new CrewChanges(),
       getFederatedDispatch: () => federated,
       getDispatchContextById: () => ({ run_id: 'run_home', task_id: 'task_home' }),
       importFederatedRelayItem: ({
