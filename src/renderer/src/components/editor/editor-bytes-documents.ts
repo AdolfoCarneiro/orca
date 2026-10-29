@@ -94,8 +94,21 @@ export function setEditorBytesDraft(fileId: string, draft: CustomEditorBinaryDoc
   notify()
 }
 
-/** A view unmounting with nothing unsaved frees the bytes; the next mount reads them again. */
+const mountedViews = new Map<string, number>()
+
+/** Counts a mounted view, so split panes on one file share its bytes until the last one leaves. */
+export function retainEditorBytes(fileId: string): void {
+  mountedViews.set(fileId, (mountedViews.get(fileId) ?? 0) + 1)
+}
+
+/** The last view unmounting with nothing unsaved frees the bytes; the next mount reads them again. */
 export function releaseEditorBytes(fileId: string): void {
+  const remaining = (mountedViews.get(fileId) ?? 1) - 1
+  if (remaining > 0) {
+    mountedViews.set(fileId, remaining)
+    return
+  }
+  mountedViews.delete(fileId)
   if (documents.get(fileId)?.draft === null) {
     documents.delete(fileId)
     notify()

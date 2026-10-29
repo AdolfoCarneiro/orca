@@ -33,6 +33,8 @@ vi.mock('@/runtime/runtime-file-bytes-write', () => ({
 import {
   editorBytesDocument,
   loadEditorBytes,
+  releaseEditorBytes,
+  retainEditorBytes,
   saveEditorBytesDraft,
   setEditorBytesDraft,
   sha256Hex
@@ -94,5 +96,16 @@ describe('binary custom editor saves', () => {
     writeRuntimeFileBytes.mockResolvedValue({ ok: true })
     await saveEditorBytesDraft(getState, file, context, 'overwrite', () => false)
     expect(writeRuntimeFileBytes.mock.calls[0][4]).toEqual({})
+  })
+})
+
+describe('binary custom editor views', () => {
+  it('keeps the bytes while another split pane still shows the file', () => {
+    retainEditorBytes('book')
+    retainEditorBytes('book')
+    releaseEditorBytes('book')
+    setEditorBytesDraft('book', edited)
+    expect(editorBytesDocument('book')).toBe(edited)
+    releaseEditorBytes('book')
   })
 })

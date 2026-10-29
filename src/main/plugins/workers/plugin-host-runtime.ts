@@ -309,7 +309,5 @@ export function createPluginWorkerRuntime(
 }
 
 function readExport(module: unknown, name: 'default' | 'deactivate'): unknown {
-  return typeof module === 'object' && module !== null && name in module
-    ? Reflect.get(module, name)
-    : undefined
+  return typeof module === 'object' && module !== null && name in module ? module[name] : undefined
 }

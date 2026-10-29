@@ -32,7 +32,7 @@ const req = (id: number, method = 'notifications.show', params: unknown = { titl
   method,
   params
 })
-const pong = (payload: unknown, extra: object = {}) => ({
+const pong = (payload: unknown, extra: Record<string, unknown> = {}) => ({
   orca: 1,
   kind: 'evt',
   event: 'pong',

@@ -27,7 +27,12 @@ const textEdit = (text: string, id = 1) => ({
   method: 'editor.applyEdit',
   params: { baseVersion: 1, content: { kind: 'text', text } }
 })
-const keydown = (payload: object) => ({ orca: 1, kind: 'evt', event: 'editor.keydown', payload })
+const keydown = (payload: Record<string, unknown>) => ({
+  orca: 1,
+  kind: 'evt',
+  event: 'editor.keydown',
+  payload
+})
 const textDocument = (text: string, readOnly: boolean) => ({
   orca: 1,
   kind: 'evt',

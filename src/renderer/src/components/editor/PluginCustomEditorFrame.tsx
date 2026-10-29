@@ -92,6 +92,8 @@ export default function PluginCustomEditorFrame({
     let cancelled = false
     let currentHtml: string | null = null
     let revision = 0
+    // Why: refresh events start overlapping reads; only the newest may set the entry.
+    let latestRead = 0
     const pluginsApi = window.api?.plugins
     const readEntry = pluginsApi?.readCustomEditorEntry
     if (!pluginsApi || !readEntry) {
@@ -100,9 +102,10 @@ export default function PluginCustomEditorFrame({
     }
     setEntry({ status: 'loading' })
     const load = (): void => {
+      const read = ++latestRead
       readEntry({ pluginKey, editorId })
         .then((result) => {
-          if (cancelled) {
+          if (cancelled || read !== latestRead) {
             return
           }
           if (!result) {
@@ -123,7 +126,7 @@ export default function PluginCustomEditorFrame({
           })
         })
         .catch(() => {
-          if (!cancelled) {
+          if (!cancelled && read === latestRead) {
             currentHtml = null
             setEntry({ status: 'error' })
           }

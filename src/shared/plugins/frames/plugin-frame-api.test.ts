@@ -35,7 +35,7 @@ function mountShell(surface: PluginFrameSurface = 'panel') {
   )?.[1]
   // Configurable only so happy-dom can tear down; the frame's copy stays locked.
   window.eval(script!.replaceAll('configurable: false', 'configurable: true'))
-  const orca: FrameOrca = Reflect.get(window, 'orca')
+  const orca: FrameOrca = Object.getOwnPropertyDescriptor(window, 'orca')?.value
   const fromHost = (data: unknown, source: unknown = parent) =>
     window.dispatchEvent(
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the shim only compares source identity.

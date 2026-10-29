@@ -306,6 +306,10 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       return frameText ?? options.getDocument().text
     },
     reset() {
+      // Why apply, not drop: a view switch unmounts the frame, and a held edit is the newest content.
+      if (heldEdit !== null) {
+        applyHeldEdit()
+      }
       ready = false
       frameText = null
       frameReadOnly = null

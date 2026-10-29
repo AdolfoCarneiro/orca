@@ -30,7 +30,7 @@ function png(width: number, height: number): Buffer {
 }
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
-function catalog(url: string, images?: object): PluginMarketplace {
+function catalog(url: string, images?: Record<string, unknown>): PluginMarketplace {
   return {
     name: 'Official',
     owner: 'stablyai',

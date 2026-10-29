@@ -22,7 +22,12 @@ const applyEdit = (content: unknown, baseVersion = 1, id = nextId++) => ({
 })
 const edit = (text: string, baseVersion = 1, id?: number) =>
   applyEdit({ kind: 'text', text }, baseVersion, id)
-const keydown = (payload: object) => ({ orca: 1, kind: 'evt', event: 'editor.keydown', payload })
+const keydown = (payload: Record<string, unknown>) => ({
+  orca: 1,
+  kind: 'evt',
+  event: 'editor.keydown',
+  payload
+})
 
 type Posted = { message: unknown; transfer: unknown }
 

@@ -4,7 +4,7 @@ import { pluginEnvelopeSchema } from './plugin-protocol'
 
 /** Hand-rolled pong reading avoids Zod’s ~90x rejection cost; pin exact schema acceptance parity. */
 
-const pong = (payload: unknown, extra: object = {}): unknown => ({
+const pong = (payload: unknown, extra: Record<string, unknown> = {}): unknown => ({
   orca: 1,
   kind: 'evt',
   event: FRAME_EVENTS.pong,

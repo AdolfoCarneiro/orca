@@ -244,9 +244,9 @@ test('contains hostile panel network and navigation probes', async ({
     }
 
     const bridgeErrorCode = await frame.locator('html').evaluate(async () => {
-      const orca: unknown = Reflect.get(window, 'orca')
-      const host: unknown = typeof orca === 'object' && orca ? Reflect.get(orca, 'host') : null
-      const call: unknown = typeof host === 'object' && host ? Reflect.get(host, 'call') : null
+      const orca: unknown = 'orca' in window ? window.orca : null
+      const host: unknown = typeof orca === 'object' && orca && 'host' in orca ? orca.host : null
+      const call: unknown = typeof host === 'object' && host && 'call' in host ? host.call : null
       if (typeof call !== 'function') {
         return 'missing_window_orca'
       }
@@ -254,7 +254,8 @@ test('contains hostile panel network and navigation probes', async ({
         await call('invalid.hostileAction', {})
         return 'unexpected_success'
       } catch (error) {
-        const code: unknown = typeof error === 'object' && error ? Reflect.get(error, 'code') : null
+        const code: unknown =
+          typeof error === 'object' && error && 'code' in error ? error.code : null
         return typeof code === 'string' ? code : 'missing_error_code'
       }
     })

@@ -17,6 +17,7 @@ import {
   hasEditorBytesDraft,
   loadEditorBytes,
   releaseEditorBytes,
+  retainEditorBytes,
   setEditorBytesDraft,
   sha256Hex,
   subscribeEditorBytes
@@ -83,7 +84,10 @@ export default function PluginBytesCustomEditorSurface({
     (next: Parameters<typeof setEditorBytesDraft>[1]) => setEditorBytesDraft(fileId, next),
     [fileId]
   )
-  useEffect(() => () => releaseEditorBytes(fileId), [fileId])
+  useEffect(() => {
+    retainEditorBytes(fileId)
+    return () => releaseEditorBytes(fileId)
+  }, [fileId])
 
   useEffect(() => {
     // Unsaved bytes keep the baseline they were made against; rereading would hide a conflict.
