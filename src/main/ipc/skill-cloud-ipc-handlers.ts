@@ -36,10 +36,13 @@ import {
   skillSharePublishIpcSchema
 } from './skill-share-publishing-ipc-schemas'
 
-function registerSharingHandlers(
-  runtime: OrcaRuntimeService,
-  discover: (target?: z.infer<typeof SkillDiscoveryTargetSchema>) => Promise<SkillDiscoveryResult>
-): void {
+/** Discovery for Share; `skillDirectories` limits which stopped WSL roots it may read. */
+export type SkillShareDiscover = (
+  target?: z.infer<typeof SkillDiscoveryTargetSchema>,
+  skillDirectories?: readonly string[]
+) => Promise<SkillDiscoveryResult>
+
+function registerSharingHandlers(runtime: OrcaRuntimeService, discover: SkillShareDiscover): void {
   const preparations = new SkillSharePreparationService(
     join(app.getPath('userData'), 'skill-share-preparations'),
     {
@@ -51,7 +54,7 @@ function registerSharingHandlers(
   )
   handleMainWindowSkillIpc('skills:prepareShare', async (_event, value: unknown) => {
     const input = skillSharePrepareIpcSchema.parse(value)
-    const result = await discover(input.target)
+    const result = await discover(input.target, input.skillDirectories)
     const requested = new Set(input.skillIds)
     const skills = result.skills.filter((candidate) => requested.has(candidate.id))
     if (skills.length !== requested.size) {
@@ -279,7 +282,7 @@ function registerCloudInstallHandlers(runtime: OrcaRuntimeService): void {
 
 export function registerSkillCloudIpcHandlers(
   runtime: OrcaRuntimeService,
-  discover: (target?: z.infer<typeof SkillDiscoveryTargetSchema>) => Promise<SkillDiscoveryResult>
+  discover: SkillShareDiscover
 ): void {
   registerSharingHandlers(runtime, discover)
   registerCloudInstallHandlers(runtime)
