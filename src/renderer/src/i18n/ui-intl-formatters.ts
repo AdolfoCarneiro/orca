@@ -2,15 +2,16 @@ import { getIntlLocale } from './i18n'
 import { supportedIntlLocale } from './intl-locale-support'
 
 type CachedFormatter<T> = { locale: string; formatter: T }
+type FormatterOptions = Intl.DateTimeFormatOptions | Intl.NumberFormatOptions | Intl.CollatorOptions
 
-const dateTimeFormats = new WeakMap<object, CachedFormatter<Intl.DateTimeFormat>>()
-const numberFormats = new WeakMap<object, CachedFormatter<Intl.NumberFormat>>()
-const collators = new WeakMap<object, CachedFormatter<Intl.Collator>>()
+const dateTimeFormats = new WeakMap<FormatterOptions, CachedFormatter<Intl.DateTimeFormat>>()
+const numberFormats = new WeakMap<FormatterOptions, CachedFormatter<Intl.NumberFormat>>()
+const collators = new WeakMap<FormatterOptions, CachedFormatter<Intl.Collator>>()
 
 // Module-level formatters would freeze the language active at import; key by options object and rebuild on switches.
 function cachedFormatter<T>(
-  cache: WeakMap<object, CachedFormatter<T>>,
-  options: object,
+  cache: WeakMap<FormatterOptions, CachedFormatter<T>>,
+  options: FormatterOptions,
   intl: { supportedLocalesOf(locale: string): string[] },
   create: (locale: string) => T
 ): T {
