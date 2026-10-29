@@ -939,7 +939,7 @@ final class Provider {
         }
         if isForegroundRequest(params) {
             try requireTargetWindowFocused(snapshot, restoreWindowRequested: true)
-            try Input.drag(from: start, to: end)
+            try Input.drag(from: start, to: end, targetWindow: snapshot)
         } else {
             try withTransportErrors {
                 try BackgroundInputTransport.drag(backgroundTarget(snapshot), from: start, to: end)
@@ -1308,9 +1308,13 @@ private func pointerRecipient(
     guard let ownerPID = pidAttribute(element), let window = containingWindow(element) else {
         return .unavailable
     }
-    if let windowId = windowNumber(window) {
-        return .focused(syntheticClickRecipient(pid: ownerPID, windowId: windowId))
+    var numberValue: CFTypeRef?
+    let numberStatus = AXUIElementCopyAttributeValue(window, "AXWindowNumber" as CFString, &numberValue)
+    if numberStatus == .success {
+        guard let number = numberValue as? NSNumber else { return .unavailable }
+        return .focused(syntheticClickRecipient(pid: ownerPID, windowId: CGWindowID(number.uint32Value)))
     }
+    guard numberStatus == .attributeUnsupported || numberStatus == .noValue else { return .unavailable }
     guard ownerPID == targetPID, let frame = absoluteFrame(window),
           let windows = copyArray(AXUIElementCreateApplication(ownerPID), kAXWindowsAttribute as String)
     else { return .unavailable }
@@ -1458,7 +1462,7 @@ private func scrollPointer(at point: CGPoint, direction: String, pages: Double, 
     let wheel2: Int32 = direction == "left" ? delta : direction == "right" ? -delta : 0
     if isForegroundRequest(params) {
         try requireTargetWindowFocused(snapshot, restoreWindowRequested: true)
-        try Input.scroll(at: point, wheel1: wheel1, wheel2: wheel2)
+        try Input.scroll(at: point, wheel1: wheel1, wheel2: wheel2, targetWindow: snapshot)
         return
     }
     try withTransportErrors {
@@ -2666,7 +2670,7 @@ private enum Input {
         }
         let flags = eventFlags(modifiers)
         let target = syntheticClickRecipient(pid: targetWindow.app.pid, windowId: targetWindow.windowId)
-        do {
+        try withRecipientErrors {
             try SyntheticMouseClickDelivery.deliver(
                 clickCount: count,
                 target: target,
@@ -2701,6 +2705,12 @@ private enum Input {
                 post: { $0.post(tap: .cghidEventTap) },
                 pause: { _ = usleep($0) }
             )
+        }
+    }
+
+    private static func withRecipientErrors(_ body: () throws -> Void) throws {
+        do {
+            try body()
         } catch let failure as SyntheticMouseClickDelivery.FenceFailure {
             switch failure {
             case let .recipientChanged(expected, actual, deliveredPresses):
@@ -2712,32 +2722,46 @@ private enum Input {
                     : "\(deliveredPresses) press(es) may already have been delivered; run get-app-state and verify state before retrying"
                 throw ProviderError.coded(
                     "window_not_focused",
-                    "coordinate click aborted because target pid \(expected.ownerPID) window \(expected.windowID) is no longer the focused topmost recipient (current: \(actualDescription)); \(recovery)"
+                    "pointer input aborted because target pid \(expected.ownerPID) window \(expected.windowID) is no longer the focused topmost recipient (current: \(actualDescription)); \(recovery)"
                 )
             }
         }
     }
 
-    static func scroll(at point: CGPoint, wheel1: Int32, wheel2: Int32) throws {
-        try hidMouse(.mouseMoved, at: point)
-        usleep(SyntheticMouseClickDelivery.interEventPauseMicroseconds)
-        guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 2, wheel1: wheel1, wheel2: wheel2, wheel3: 0) else {
+    static func scroll(at point: CGPoint, wheel1: Int32, wheel2: Int32, targetWindow: Snapshot) throws {
+        let move = try mouseEvent(.mouseMoved, at: point)
+        guard let wheel = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 2, wheel1: wheel1, wheel2: wheel2, wheel3: 0) else {
             throw ProviderError.coded("accessibility_error", "failed to create scroll event")
         }
-        event.location = point
-        event.post(tap: .cghidEventTap)
+        wheel.location = point
+        try withRecipientErrors {
+            try SyntheticMouseClickDelivery.deliverScroll(
+                move: move, wheel: wheel,
+                target: syntheticClickRecipient(pid: targetWindow.app.pid, windowId: targetWindow.windowId),
+                currentObservation: { currentSyntheticClickRecipient(snapshot: targetWindow, point: point) },
+                post: { $0.post(tap: .cghidEventTap) },
+                pause: { _ = usleep($0) }
+            )
+        }
     }
 
-    static func drag(from start: CGPoint, to end: CGPoint) throws {
-        try hidMouse(.mouseMoved, at: start)
-        try hidMouse(.leftMouseDown, at: start)
-        usleep(SyntheticMouseClickDelivery.interEventPauseMicroseconds)
-        for step in 1...10 {
+    static func drag(from start: CGPoint, to end: CGPoint, targetWindow: Snapshot) throws {
+        let move = try mouseEvent(.mouseMoved, at: start)
+        let down = try mouseEvent(.leftMouseDown, at: start)
+        let up = try mouseEvent(.leftMouseUp, at: end)
+        let dragged = try (1...10).map { step in
             let progress = CGFloat(step) / 10
-            try hidMouse(.leftMouseDragged, at: CGPoint(x: start.x + (end.x - start.x) * progress, y: start.y + (end.y - start.y) * progress))
-            usleep(10_000)
+            return try mouseEvent(.leftMouseDragged, at: CGPoint(x: start.x + (end.x - start.x) * progress, y: start.y + (end.y - start.y) * progress))
         }
-        try hidMouse(.leftMouseUp, at: end)
+        try withRecipientErrors {
+            try SyntheticMouseClickDelivery.deliverDrag(
+                move: move, down: down, dragged: dragged, up: up,
+                target: syntheticClickRecipient(pid: targetWindow.app.pid, windowId: targetWindow.windowId),
+                currentObservation: { currentSyntheticClickRecipient(snapshot: targetWindow, point: start) },
+                post: { $0.post(tap: .cghidEventTap) },
+                pause: { _ = usleep($0) }
+            )
+        }
     }
 
     static func keyEvents(_ key: String) throws -> [CGEvent] {
@@ -2777,12 +2801,14 @@ private enum Input {
         try body()
     }
 
-    /// Posts to the HID tap, which moves the user's real pointer; foreground (--restore-window) only.
-    private static func hidMouse(_ type: CGEventType, at point: CGPoint) throws {
+    private static func mouseEvent(_ type: CGEventType, at point: CGPoint) throws -> CGEvent {
+        guard point.x.isFinite, point.y.isFinite else {
+            throw ProviderError.coded("invalid_argument", "pointer coordinates are out of range")
+        }
         guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else {
             throw ProviderError.coded("accessibility_error", "failed to create mouse event")
         }
-        event.post(tap: .cghidEventTap)
+        return event
     }
 }
 

@@ -69,6 +69,50 @@ public enum SyntheticMouseClickDelivery {
         return match
     }
 
+    public static func deliverScroll<Event>(
+        move: Event,
+        wheel: Event,
+        target: Recipient,
+        currentObservation: () -> RecipientObservation,
+        post: (Event) -> Void,
+        pause: (UInt32) -> Void
+    ) throws {
+        try requireRecipient(target, currentObservation: currentObservation)
+        post(move)
+        pause(interEventPauseMicroseconds)
+        try requireRecipient(target, currentObservation: currentObservation)
+        post(wheel)
+    }
+
+    public static func deliverDrag<Event>(
+        move: Event,
+        down: Event,
+        dragged: [Event],
+        up: Event,
+        target: Recipient,
+        currentObservation: () -> RecipientObservation,
+        post: (Event) -> Void,
+        pause: (UInt32) -> Void
+    ) throws {
+        try requireRecipient(target, currentObservation: currentObservation)
+        post(move)
+        try requireRecipient(target, currentObservation: currentObservation)
+        post(down)
+        pause(interEventPauseMicroseconds)
+        for event in dragged {
+            post(event)
+            pause(10_000)
+        }
+        post(up)
+    }
+
+    private static func requireRecipient(_ target: Recipient, currentObservation: () -> RecipientObservation) throws {
+        let observation = currentObservation()
+        guard observation == .focused(target) else {
+            throw FenceFailure.recipientChanged(expected: target, actual: observation.recipient, deliveredPresses: 0)
+        }
+    }
+
     public static func deliver<Event>(
         clickCount: Int,
         target: Recipient,
