@@ -77,11 +77,13 @@ export function reportWorkerTurnStop(
   deps: WorkerTurnStopReportDeps
 ): void {
   const dispatchId = workerTurnStopDispatchId(target)
-  // Waiting on its own helpers' reports is deliberate, like `check --wait`; an exited process waits on nothing.
+  // Waiting on mail or resting on its own helpers is deliberate; a prompt, error, or exit is not.
   if (
     stop.reason !== 'exited' &&
     (deps.isWaitingForMail(`dispatch:${dispatchId}`) ||
-      (target.kind === 'local' && db.hasOpenHelperDispatch(dispatchId)))
+      (stop.reason === 'finished' &&
+        target.kind === 'local' &&
+        db.hasOpenHelperDispatch(dispatchId)))
   ) {
     return
   }

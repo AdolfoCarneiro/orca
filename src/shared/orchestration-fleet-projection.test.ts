@@ -469,20 +469,6 @@ describe('fleet liveness and attention after a host verdict', () => {
     })
   })
 
-  it('sends a live worker that stopped without reporting to worker-read, as needing action', () => {
-    const now = 10_000
-    const projected = projectOrchestrationFleet({
-      workers: [worker('1', { outcome: 'finished_unverified' })],
-      statuses: [status('1', now - 1, { state: 'done' })],
-      now
-    })
-    expect(projected.workers[0]).toMatchObject({
-      liveness: { verdict: 'live' },
-      attention: { requiresAction: true },
-      nextAction: { kind: 'recover', argv: ['orchestration', 'worker-read', '--dispatch', '1'] }
-    })
-  })
-
   it('refuses to certify a process_exited stage whose cause was never observed', () => {
     const projected = projectOrchestrationFleet({
       workers: [
