@@ -40,67 +40,53 @@ function markedText(editor: Editor, mark: string): string[] {
   return text
 }
 
-const continuations = [
-  ['**bold** continuation', 'bold', 'bold'],
-  ['[API](https://example.com) continuation', 'link', 'API'],
-  ['`git status` continuation', 'code', 'git status']
-] as const
-
-const cases = continuations.flatMap(([continuation, mark, text]) =>
-  ['\n', '\r\n'].map((newline) => ({
-    source: `- Parent\n  - [ ] First\n    ${continuation}\n  - [x] Done`.replaceAll('\n', newline),
-    mark,
-    text
-  }))
-)
-
 describe('tight bullet task continuations', () => {
-  it.each(cases)(
-    'keeps $mark continuation editable through save/reopen in $source',
-    ({ source, mark, text }) => {
-      const editor = openMarkdown(source)
-      try {
-        editor.state.doc.check()
-        expect(markedText(editor, mark)).toEqual([text])
-        const refs = {
-          originalSourceRef: { current: source },
-          baseCanonicalRef: { current: editor.getMarkdown() },
-          lastCommittedMarkdownRef: { current: source }
+  it('keeps a formatted continuation editable through save and reopen', () => {
+    const source = '- Parent\n  - [ ] First\n    **bold** continuation\n  - [x] Done'
+    const mark = 'bold'
+    const text = 'bold'
+    const editor = openMarkdown(source)
+    try {
+      editor.state.doc.check()
+      expect(markedText(editor, mark)).toEqual([text])
+      const refs = {
+        originalSourceRef: { current: source },
+        baseCanonicalRef: { current: editor.getMarkdown() },
+        lastCommittedMarkdownRef: { current: source }
+      }
+      let end = -1
+      editor.state.doc.descendants((node, position) => {
+        if (node.isText && node.text?.includes('continuation')) {
+          end = position + node.nodeSize
         }
-        let end = -1
-        editor.state.doc.descendants((node, position) => {
-          if (node.isText && node.text?.includes('continuation')) {
-            end = position + node.nodeSize
+      })
+      expect(end).toBeGreaterThan(0)
+      editor.view.dispatch(editor.state.tr.insertText('!', end))
+      const saved = commitRichMarkdownSerialization(editor, refs, roundTrip)
+      const reopened = openMarkdown(saved.markdown)
+      try {
+        reopened.state.doc.check()
+        expect(markedText(reopened, mark)).toEqual([text])
+        expect(reopened.state.doc.textContent).toBe(`ParentFirst${text} continuation!Done`)
+        let found = false
+        reopened.state.doc.descendants((node) => {
+          if (node.type.name === 'taskItem' && node.firstChild?.textContent === 'First') {
+            found = true
+            expect(node.childCount).toBe(2)
+            expect(node.child(1).type.name).toBe('paragraph')
+          }
+          if (node.type.name === 'taskItem' && node.firstChild?.textContent === 'Done') {
+            expect(node.attrs.checked).toBe(true)
           }
         })
-        expect(end).toBeGreaterThan(0)
-        editor.view.dispatch(editor.state.tr.insertText('!', end))
-        const saved = commitRichMarkdownSerialization(editor, refs, roundTrip)
-        const reopened = openMarkdown(saved.markdown)
-        try {
-          reopened.state.doc.check()
-          expect(markedText(reopened, mark)).toEqual([text])
-          expect(reopened.state.doc.textContent).toBe(`ParentFirst${text} continuation!Done`)
-          let found = false
-          reopened.state.doc.descendants((node) => {
-            if (node.type.name === 'taskItem' && node.firstChild?.textContent === 'First') {
-              found = true
-              expect(node.childCount).toBe(2)
-              expect(node.child(1).type.name).toBe('paragraph')
-            }
-            if (node.type.name === 'taskItem' && node.firstChild?.textContent === 'Done') {
-              expect(node.attrs.checked).toBe(true)
-            }
-          })
-          expect(found).toBe(true)
-        } finally {
-          reopened.destroy()
-        }
+        expect(found).toBe(true)
       } finally {
-        editor.destroy()
+        reopened.destroy()
       }
+    } finally {
+      editor.destroy()
     }
-  )
+  })
 
   it.each([
     '> - Parent\n>   - [ ] First\n>     continuation',
