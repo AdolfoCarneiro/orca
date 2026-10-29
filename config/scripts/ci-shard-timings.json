@@ -12473,7 +12473,6 @@
       "src/shared/native-chat/input/native-chat-ask.test.ts": 95,
       "src/shared/native-chat/input/native-chat-background-task-row.test.ts": 67,
       "src/shared/native-chat/native-chat-context-usage.test.ts": 28,
-      "src/shared/native-chat-href-routing.test.ts": 36,
       "src/shared/native-chat/transcript/native-chat-image-transcript-markers.test.ts": 51,
       "src/shared/native-chat-paste-bytes.test.ts": 35,
       "src/shared/native-chat/native-chat-scope-cache.test.ts": 28,
@@ -13274,7 +13273,8 @@
       "tests/tools/windows-pty-native-capability-smoke/packaged-node-pty-capability-oracle.test.mjs": 49,
       "tests/tools/windows-pty-native-capability-smoke/packaged-node-pty-capability-probe.test.mjs": 171,
       "tests/tools/windows-pty-native-capability-smoke/run.test.mjs": 33,
-      "src/shared/native-chat/transcript/native-chat-cut-turn-notice.test.ts": 217
+      "src/shared/native-chat/transcript/native-chat-cut-turn-notice.test.ts": 217,
+      "src/shared/native-chat/native-chat-href-routing.test.ts": 36
     }
   },
   "e2e": {
