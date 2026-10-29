@@ -386,7 +386,7 @@ describe('reconnect dependency transitions', () => {
       const saved = structuredClone(root)
       const reader = new SessionUnitReader(root, index)
       reader.write(field, key, entry)
-      const map = { ...model[field] }
+      const map: Record<string, unknown> = { ...model[field] }
       if (entry.present) {
         Object.assign(map, { [key]: entry.value })
       } else {

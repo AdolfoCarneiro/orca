@@ -114,7 +114,7 @@ const edits: readonly {
     native: (root) => {
       const next = { ...root.sleepingAgentSessionsByPaneKey }
       delete next[`tab-a:${leaf(1)}`]
-      const result = { ...root, sleepingAgentSessionsByPaneKey: next }
+      const result: WorkspaceSessionState = { ...root, sleepingAgentSessionsByPaneKey: next }
       if (!Object.keys(next).length) {
         delete result.sleepingAgentSessionsByPaneKey
       }
@@ -131,7 +131,7 @@ const edits: readonly {
     native: (root) => {
       const next = { ...root.terminalPtyIncarnationsByPaneKey }
       delete next[`tab-a:${leaf(1)}`]
-      const result = { ...root, terminalPtyIncarnationsByPaneKey: next }
+      const result: WorkspaceSessionState = { ...root, terminalPtyIncarnationsByPaneKey: next }
       if (!Object.keys(next).length) {
         delete result.terminalPtyIncarnationsByPaneKey
       }
@@ -255,7 +255,7 @@ describe('shared writer normalization differential', () => {
 
 describe('complete policy outputs with zero selected units', () => {
   for (const shape of ['absent', 'empty', 'populated'] as const) {
-    const closed =
+    const closed: WorkspaceSessionState['closedTerminalTabTombstonesByTabId'] =
       shape === 'absent'
         ? undefined
         : shape === 'empty'
@@ -274,7 +274,9 @@ describe('complete policy outputs with zero selected units', () => {
                   worktreeId: GIT_KEY,
                   parentTabId: 'retired',
                   leafId: leaf(1),
-                  ptyId: 'gone'
+                  ptyId: 'gone',
+                  incarnationId: 'gone-incarnation',
+                  retiredAt: 1
                 }
               }
       }

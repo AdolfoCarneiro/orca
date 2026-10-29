@@ -210,7 +210,8 @@ describe('native Record order differential', () => {
         if (edit.ownUndefined) {
           // SAFETY: deliberately exercise orphan own-undefined properties admitted by legacy snapshots.
           Object.assign(native, { [edit.ownUndefined]: undefined })
-          reader.write(field, edit.ownUndefined, { present: true, value: undefined })
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this malformed legacy own-undefined entry deliberately falls outside the valid saved DTO.
+          reader.write(field, edit.ownUndefined, { present: true, value: undefined as never })
         }
       }
       const nativeKeys = Object.keys(native)
@@ -272,7 +273,8 @@ describe('sealed resolved publication', () => {
     reader.replace('terminalPtyIncarnationsByPaneKey', { present: true, value: undefined })
     reader.write('terminalPtyIncarnationsByPaneKey', 'ownUndefined', {
       present: true,
-      value: undefined
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the invariant deliberately exercises an invalid own-undefined incarnation from legacy ingress.
+      value: undefined as never
     })
     const snapshot = freeze(reader.snapshot())
     let effects = 0
