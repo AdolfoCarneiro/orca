@@ -1,8 +1,11 @@
+import { createStore } from 'zustand/vanilla'
+import { withSessionSourceWrites } from '../../store/session-source-write-boundary'
 import type { StoreApi } from 'zustand'
 import {
   editSessionSource,
   unwrapSessionSourceWrite,
   type SessionSourcePartial,
+  type SessionSourceUpdate,
   type SessionSourceSet,
   type SessionSourceEdit,
   type SessionSourceWrite,
@@ -61,4 +64,14 @@ export function sessionTestEdit<S extends object>(
 ): SessionSourceWrite<S> {
   const edit = editSessionSource(state)
   return edit.finish(apply(edit))
+}
+
+/** Minimal setter doubles still exercise the opaque write boundary. */
+export function applySessionTestUpdate<S extends object>(
+  state: S,
+  update: SessionSourceUpdate<S>
+): S {
+  const store = createStore<S>()(withSessionSourceWrites<S>(() => state, true))
+  store.setState(update)
+  return store.getState()
 }

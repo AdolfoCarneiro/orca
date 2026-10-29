@@ -1,3 +1,4 @@
+import { isSessionSourceOracleActive } from '@/lib/test-support/session-source-oracle'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
@@ -33,13 +34,17 @@ function countOpenFileScans(
     get(target, property, receiver) {
       if (property === Symbol.iterator) {
         return () => {
-          counts.openFiles += 1
+          if (!isSessionSourceOracleActive()) {
+            counts.openFiles += 1
+          }
           return target[Symbol.iterator]()
         }
       }
       if (property === 'filter') {
         return (predicate: (file: AppState['openFiles'][number]) => boolean) => {
-          counts.openFiles += 1
+          if (!isSessionSourceOracleActive()) {
+            counts.openFiles += 1
+          }
           return target.filter(predicate)
         }
       }
@@ -52,7 +57,9 @@ function countOpenFileScans(
 function countRecordScans<T extends object>(record: T, onScan: () => void): T {
   return new Proxy(record, {
     ownKeys(target) {
-      onScan()
+      if (!isSessionSourceOracleActive()) {
+        onScan()
+      }
       return Reflect.ownKeys(target)
     }
   })

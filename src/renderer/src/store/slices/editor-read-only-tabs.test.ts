@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 import { createEditorStore } from './editor-slice-test-harness'
@@ -111,7 +112,7 @@ describe('read-only editor tabs (AI Vault View Log)', () => {
 
   it('hydrates a persisted read-only tab clean and ignores any persisted dirty draft', () => {
     const store = createEditorStore()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-1': [{ id: 'wt-1' }] },
       folderWorkspaces: []
     } as never)
@@ -144,7 +145,7 @@ describe('read-only editor tabs (AI Vault View Log)', () => {
 
   it('restores the SSH target that owns an external host file', () => {
     const store = createEditorStore()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-1': [{ id: 'wt-1' }] },
       folderWorkspaces: []
     } as never)

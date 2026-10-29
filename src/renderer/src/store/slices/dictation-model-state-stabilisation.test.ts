@@ -1,3 +1,4 @@
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create, type StateCreator } from 'zustand'
@@ -22,7 +23,7 @@ beforeEach(() => {
 describe('dictation model-state stabilisation', () => {
   it('does not publish an unchanged reply', async () => {
     reply = [{ id: 'whisper-tiny', status: 'downloading', progress: 0.42 }]
-    const store = create<DictationTestStore>(dictationSlice)
+    const store = create<DictationTestStore>()(withSessionSourceTestWrites(dictationSlice))
     await store.getState().refreshModelStates()
     const previous = store.getState()
     const subscriber = vi.fn()
@@ -48,7 +49,7 @@ describe('dictation model-state stabilisation', () => {
       ]
     }
   ] as { changed: SpeechModelState[] }[])('publishes a changed reply', async ({ changed }) => {
-    const store = create<DictationTestStore>(dictationSlice)
+    const store = create<DictationTestStore>()(withSessionSourceTestWrites(dictationSlice))
     store.getState().setModelStates([{ id: 'whisper-tiny', status: 'downloading', progress: 0.42 }])
     const subscriber = vi.fn()
     store.subscribe(subscriber)
