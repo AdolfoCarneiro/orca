@@ -5,7 +5,6 @@ import {
   mobileQueuedEditValueKey,
   sameMobileQueuedEditImage
 } from './mobile-queued-message-edit-value'
-import { appendBufferedDictation } from '../terminal/terminal-live-dictation-routing'
 import type {
   MobileNativeChatDraftInputs,
   MobileNativeChatDraftDestination
@@ -37,7 +36,7 @@ export type MobileQueuedMessageInlineEditor = {
   text: string
   saving: boolean
   canSave: boolean
-  insertDictation?: (text: string) => boolean
+  insertDictation?: (insert: (draft: string) => string) => boolean
   change: (text: string) => void
   save: () => Promise<boolean>
   removeImage: (id: string) => void
@@ -200,20 +199,19 @@ export function seedMobileQueuedEditInputs(
   }))
 }
 
+// A handed-back edit takes the dictation in the composer it went back to.
 export function insertMobileQueuedEditDictation(
   edit: MobileQueuedEditDraft,
   destination: MobileNativeChatDraftDestination,
-  text: string
+  insert: (draft: string) => string
 ): boolean {
   if (!destination.active) {
     return false
   }
   if (destination.scope !== edit.scopeKey) {
-    setMobileNativeChatDraftText(destination.scope, (before) =>
-      appendBufferedDictation(before, text)
-    )
+    setMobileNativeChatDraftText(destination.scope, insert)
   } else {
-    edit.text = appendBufferedDictation(edit.text, text)
+    edit.text = insert(edit.text)
   }
   return true
 }
