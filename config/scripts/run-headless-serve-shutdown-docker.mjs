@@ -176,7 +176,8 @@ try {
 
 function runDesktopStartupOracle({ image, appImage, platform }) {
   console.log('Running original AppImage desktop startup oracle...')
-  docker([
+  const fuseAvailable = existsSync('/dev/fuse')
+  const result = docker([
     'run',
     '--rm',
     '--init',
@@ -191,8 +192,14 @@ function runDesktopStartupOracle({ image, appImage, platform }) {
     '256m',
     '--cap-drop',
     'ALL',
+    // Only this oracle needs a nested PID namespace; the restricted CLI cases stay unchanged.
     '--security-opt',
-    'no-new-privileges',
+    'seccomp=unconfined',
+    '--security-opt',
+    'apparmor=unconfined',
+    ...(fuseAvailable
+      ? ['--device', '/dev/fuse', '--cap-add', 'SYS_ADMIN']
+      : ['--security-opt', 'no-new-privileges']),
     '--user',
     'orca',
     '--entrypoint',
@@ -204,6 +211,8 @@ function runDesktopStartupOracle({ image, appImage, platform }) {
     image,
     '/input/orca.AppImage'
   ])
+  process.stdout.write(result.stdout)
+  process.stderr.write(result.stderr)
 }
 
 function valueAfter(flag) {

@@ -41,6 +41,8 @@ launcher_start_ticks=
 launcher_pgid=
 launcher_status=
 launcher_waited=false
+bundled_cli=
+terminal_handle=
 tree_pids=()
 declare -A tree_start_ticks=()
 
@@ -178,6 +180,13 @@ report_launcher_exit() {
 cleanup() {
   local status=$?
   trap - EXIT
+  if [[ -n "$terminal_handle" && -x "$bundled_cli" ]]; then
+    ORCA_USER_DATA_PATH="$profile" timeout 15s "$bundled_cli" terminal close \
+      --terminal "$terminal_handle" --json >/dev/null 2>&1 || true
+  fi
+  if identity_alive "$launcher_pid" "$launcher_start_ticks"; then
+    collect_process_tree
+  fi
   signal_process_group TERM || true
   signal_owned_processes TERM || true
   if ! wait_for_owned_exit 10; then
@@ -198,9 +207,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$state_dir/home" "$state_dir/config" "$state_dir/cache" "$state_dir/runtime"
+profile="$state_dir/profile"
+mkdir -p "$state_dir/home" "$state_dir/config" "$state_dir/cache" "$state_dir/runtime" "$profile"
 chmod 700 "$state_dir/runtime"
 export HOME="$state_dir/home"
+export USERPROFILE="$HOME"
+export XDG_DATA_HOME="$state_dir/data"
+export XDG_STATE_HOME="$state_dir/state"
+export CODEX_HOME="$HOME/.codex"
+export CLAUDE_CONFIG_DIR="$HOME/.claude"
+export ORCA_E2E_HOME_DIR="$HOME"
+export ORCA_E2E_USER_DATA_DIR="$profile"
+export ORCA_BACKGROUND_LAUNCH=1
+export ORCA_DISABLE_MACOS_LOGIN_SHELL=1
+# The desktop must produce these values itself for its packaged PTY.
+unset ORCA_CLI_COMMAND ORCA_USER_DATA_PATH
 export XDG_CONFIG_HOME="$state_dir/config"
 export XDG_CACHE_HOME="$state_dir/cache"
 export XDG_RUNTIME_DIR="$state_dir/runtime"
@@ -211,7 +232,13 @@ ulimit -c 0
 [[ -r "$appimage" ]] || { echo "FAIL: AppImage is not readable: $appimage" >&2; exit 1; }
 [[ -x "$appimage" ]] || { echo "FAIL: AppImage is not executable: $appimage" >&2; exit 1; }
 
-setsid --wait dbus-run-session -- xvfb-run -a "$appimage" --appimage-extract-and-run --no-sandbox \
+appimage_args=(--appimage-extract-and-run)
+if [[ -c /dev/fuse ]]; then
+  appimage_args=()
+fi
+printf 'AppImage desktop launch mode: %s\n' "${appimage_args[*]:-fuse}"
+setsid --wait dbus-run-session -- xvfb-run -a "$appimage" "${appimage_args[@]}" --no-sandbox \
+  --password-store=basic --use-mock-keychain \
   >"$stdout_log" 2>"$stderr_log" &
 launcher_pid=$!
 launcher_start_ticks=$(read_start_ticks "$launcher_pid" 2>/dev/null || true)
@@ -243,6 +270,77 @@ if ! identity_alive "$launcher_pid" "$launcher_start_ticks"; then
   echo "FAIL: desktop launcher identity changed after startup marker" >&2
   exit 1
 fi
+
+collect_process_tree
+shim="$profile/linux-orca-cli-shim/orca"
+[[ -x "$shim" ]] || { echo 'FAIL: first-use desktop shim was not written' >&2; exit 1; }
+# A cached dispatcher would miss the first-use live-launcher boundary.
+grep -q '^expected_runtime_identity=' "$shim"
+grep -q '^expected_launcher_identity=' "$shim"
+bundled_cli=$(sed -n "s/^launcher='\([^']*\)'$/\1/p" "$shim")
+[[ "$bundled_cli" == */resources/bin/orca-ide && -x "$bundled_cli" ]]
+[[ "$bundled_cli" != "$XDG_CACHE_HOME/"* ]]
+runtime_root=$(dirname "$(dirname "$(dirname "$bundled_cli")")")
+runtime_pid=$(jq -er '.pid | select(. > 0)' "$profile/orca-runtime.json")
+runtime_id=$(jq -er '.runtimeId' "$profile/orca-runtime.json")
+[[ $(readlink -f "/proc/$runtime_pid/exe") == "$runtime_root/orca-ide" ]]
+parent_pid_namespace=$(readlink /proc/self/ns/pid)
+ORCA_USER_DATA_PATH="$profile" timeout --kill-after=5s 30s unshare --user --map-root-user --pid --fork --kill-child --mount-proc \
+  bash -euc '
+    [[ $(readlink /proc/self/ns/pid) != "$4" ]]
+    [[ ! -e "/proc/$1" ]]
+    if kill -0 "$1" 2>/dev/null; then exit 1; fi
+    "$2" status --json > "$3"
+    [[ ! -e "/proc/$1" ]]
+    if kill -0 "$1" 2>/dev/null; then exit 1; fi
+  ' -- "$runtime_pid" "$shim" "$state_dir/namespace-status.json" "$parent_pid_namespace"
+jq -e --arg id "$runtime_id" \
+  '.ok == true and .result.runtime.reachable == true and .result.runtime.runtimeId == $id' \
+  "$state_dir/namespace-status.json" >/dev/null
+jq -cn --arg shim "$shim" --arg id "$runtime_id" --argjson pid "$runtime_pid" \
+  '{assertion:"appimage-live-shim-hidden-pid", shim:$shim, runtimeId:$id, publishedPid:$pid, pidHidden:true, reachable:true}'
+
+repo="$HOME/desktop-oracle-repo"
+git init --quiet "$repo"
+git -C "$repo" -c user.name=DesktopOracle -c user.email=desktop-oracle@example.invalid \
+  commit --quiet --allow-empty -m 'Initialize scratch repository'
+cli() {
+  ORCA_USER_DATA_PATH="$profile" timeout 30s "$bundled_cli" "$@" --json
+}
+cli repo add --path "$repo" > "$state_dir/repo-add.json"
+# Only the real terminal shell expands the two public path variables; no inherited override.
+cat > "$HOME/desktop-oracle-env.sh" <<'TERMINAL_SCRIPT'
+#!/usr/bin/env bash
+printf '%s\n' "$ORCA_CLI_COMMAND" "$ORCA_USER_DATA_PATH" > "$HOME/desktop-oracle-env.txt"
+exec bash --noprofile --norc
+TERMINAL_SCRIPT
+if ! cli terminal create --worktree "path:$repo" \
+  --command "bash '$HOME/desktop-oracle-env.sh'" > "$state_dir/terminal-create.json"; then
+  echo 'FAIL: actual packaged terminal creation failed under Xvfb; no alternate terminal used' >&2
+  cat "$state_dir/terminal-create.json" >&2
+  exit 1
+fi
+terminal_handle=$(jq -er '.result.terminal.handle' "$state_dir/terminal-create.json")
+jq -e '.ok == true and (.result.terminal.ptyId | type == "string" and length > 0)' \
+  "$state_dir/terminal-create.json" >/dev/null
+deadline=$((SECONDS + 30))
+while [[ ! -s "$HOME/desktop-oracle-env.txt" ]] && ((SECONDS < deadline)); do
+  sleep 0.2
+done
+if [[ ! -s "$HOME/desktop-oracle-env.txt" ]]; then
+  echo 'FAIL: actual packaged PTY did not execute the path-variable query' >&2
+  cli terminal read --terminal "$terminal_handle" >&2 || true
+  exit 1
+fi
+mapfile -t terminal_env < "$HOME/desktop-oracle-env.txt"
+if [[ ${#terminal_env[@]} != 2 || ${terminal_env[0]} != "$shim" || ${terminal_env[1]} != "$profile" ]]; then
+  echo 'FAIL: packaged PTY owning CLI command/profile mismatch' >&2
+  cat "$HOME/desktop-oracle-env.txt" >&2
+  exit 1
+fi
+jq -cn --slurpfile created "$state_dir/terminal-create.json" \
+  --arg command "${terminal_env[0]}" --arg profile "${terminal_env[1]}" \
+  '{assertion:"packaged-terminal-owning-cli", terminal:$created[0].result.terminal.handle, ptyId:$created[0].result.terminal.ptyId, ORCA_CLI_COMMAND:$command, ORCA_USER_DATA_PATH:$profile}'
 
 collect_process_tree
 xvfb_pids=()
