@@ -49,7 +49,10 @@ type OwnerState = Pick<
   | 'unifiedTabsByWorktree'
 >
 
-type RouteState = Omit<OwnerState, 'tabsByWorktree' | 'unifiedTabsByWorktree'>
+type RouteState = Omit<
+  OwnerState,
+  'tabsByWorktree' | 'unifiedTabsByWorktree' | 'structuredSessionLaunchDirectoryByTabId'
+>
 
 // Subscribe only to ownership inputs; derive context after Zustand filters unrelated updates.
 function selectNativeChatImageRouteState(state: AppState): RouteState {
@@ -60,7 +63,6 @@ function selectNativeChatImageRouteState(state: AppState): RouteState {
     detectedWorktreesByRepo: selectDetectedWorktreesByRepo(state),
     folderWorkspaces: selectFolderWorkspaces(state),
     floatingWorkspacePath: state.floatingWorkspacePath,
-    structuredSessionLaunchDirectoryByTabId: state.structuredSessionLaunchDirectoryByTabId,
     projectGroups: state.projectGroups,
     runtimeEnvironments: state.runtimeEnvironments,
     runtimeEnvironmentCatalogHydrated: state.runtimeEnvironmentCatalogHydrated,
@@ -76,6 +78,7 @@ function selectNativeChatImageRouteState(state: AppState): RouteState {
 export function selectNativeChatImageOwnerState(state: AppState): OwnerState {
   return {
     ...selectNativeChatImageRouteState(state),
+    structuredSessionLaunchDirectoryByTabId: state.structuredSessionLaunchDirectoryByTabId,
     tabsByWorktree: state.tabsByWorktree,
     unifiedTabsByWorktree: state.unifiedTabsByWorktree
   }
@@ -115,7 +118,8 @@ export function resolveNativeChatImageRuntimeContext(
 }
 
 export function resolveNativeChatImageRuntimeContextForOwner(
-  state: RouteState & Pick<OwnerState, 'unifiedTabsByWorktree'>,
+  state: RouteState &
+    Pick<OwnerState, 'unifiedTabsByWorktree' | 'structuredSessionLaunchDirectoryByTabId'>,
   tabId: string,
   owner: string | null
 ): NativeChatImageRuntimeContext {
@@ -172,7 +176,7 @@ export function resolveNativeChatImageRuntimeContextForOwner(
   return context
 }
 
-/** Ordinary workspace directories need only the selected owner; floating also needs its tab list. */
+/** Ordinary workspace directories need only the selected owner; floating also needs its tab list and pin. */
 export function createNativeChatImageOwnerSelector(tabId: string) {
   const selectOwner = createNativeChatTabOwnerSelector(tabId)
   return (state: AppState) => {
@@ -183,7 +187,9 @@ export function createNativeChatImageOwnerSelector(tabId: string) {
       floatingTabs:
         owner && isFloatingWorkspaceId(owner) && Object.hasOwn(state.unifiedTabsByWorktree, owner)
           ? state.unifiedTabsByWorktree[owner]
-          : undefined
+          : undefined,
+      // Why: the bridge publishes one pin per write, so the shared map would re-resolve every chat per pin.
+      launchDirectory: state.structuredSessionLaunchDirectoryByTabId[tabId]
     }
   }
 }
@@ -199,11 +205,14 @@ export function createNativeChatImageRuntimeContextSelector(tabId: string) {
       return context
     }
     ownerState = next
-    // This view serves only the existing floating-directory predicate, never an owner index.
+    // These views serve only the existing floating-directory predicate, never an owner index.
     const unifiedTabsByWorktree =
       next.owner && next.floatingTabs ? { [next.owner]: next.floatingTabs } : {}
+    const structuredSessionLaunchDirectoryByTabId = next.launchDirectory
+      ? { [tabId]: next.launchDirectory }
+      : {}
     const resolved = resolveNativeChatImageRuntimeContextForOwner(
-      { ...next, unifiedTabsByWorktree },
+      { ...next, unifiedTabsByWorktree, structuredSessionLaunchDirectoryByTabId },
       tabId,
       next.owner
     )

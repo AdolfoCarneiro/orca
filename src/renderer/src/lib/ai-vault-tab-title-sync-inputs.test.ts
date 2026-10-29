@@ -91,6 +91,16 @@ function replaceProvider(
   return { ...state, [collection]: { ...state[collection], [paneKey]: next } }
 }
 
+async function collectGarbage(): Promise<void> {
+  if (typeof globalThis.gc !== 'function') {
+    throw new Error('Run with the repository Vitest --expose-gc config')
+  }
+  for (let round = 0; round < 3; round++) {
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    globalThis.gc()
+  }
+}
+
 describe('AI Vault title subscription inputs', () => {
   it('does not enumerate unchanged retained and sleeping maps during live status writes', () => {
     const state = makeState(500)
@@ -245,6 +255,39 @@ describe('AI Vault title subscription inputs', () => {
       }
     }
     expect(aiVaultTitleSyncInputsChanged(moved, settingsOnly)).toBe(true)
+  })
+
+  it("releases a closed tab's status and tab maps after an update that skips the owner comparison", async () => {
+    function cacheThenCloseTab() {
+      const open = makeState(3)
+      // An owner-only update caches request membership for the open tabs.
+      const ownerOnly: AppState = { ...open, settings: structuredClone(open.settings) }
+      expect(aiVaultTitleSyncInputsChanged(ownerOnly, open)).toBe(false)
+      // Closing a tab replaces membership maps and returns before any owner comparison.
+      const [closedPane] = Object.keys(open.agentStatusByPaneKey)
+      const { [closedPane]: _closed, ...agentStatusByPaneKey } = open.agentStatusByPaneKey
+      const closed: AppState = {
+        ...ownerOnly,
+        agentStatusByPaneKey,
+        tabsByWorktree: { 'wt-title': open.tabsByWorktree['wt-title'].slice(1) }
+      }
+      expect(aiVaultTitleSyncInputsChanged(closed, ownerOnly)).toBe(true)
+      return {
+        closed,
+        retired: [new WeakRef(open.agentStatusByPaneKey), new WeakRef(open.tabsByWorktree)]
+      }
+    }
+
+    const { closed, retired } = cacheThenCloseTab()
+    await collectGarbage()
+
+    expect(retired.map((ref) => ref.deref())).toEqual([undefined, undefined])
+    expect(
+      aiVaultTitleSyncInputsChanged(
+        { ...closed, settings: structuredClone(closed.settings) },
+        closed
+      )
+    ).toBe(false)
   })
 
   it('still checks active panes and stored titles after unchanged record collections', () => {

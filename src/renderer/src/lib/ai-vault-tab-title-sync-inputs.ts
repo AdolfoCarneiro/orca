@@ -163,16 +163,20 @@ type RequestWorktreeIdsInputs = Pick<
 let cachedRequestWorktreeIds: { inputs: RequestWorktreeIdsInputs; worktreeIds: string[] } | null =
   null
 
+function requestInputsMatch(inputs: RequestWorktreeIdsInputs, state: AppState): boolean {
+  return (
+    inputs.agentStatusByPaneKey === state.agentStatusByPaneKey &&
+    inputs.retainedAgentsByPaneKey === state.retainedAgentsByPaneKey &&
+    inputs.sleepingAgentSessionsByPaneKey === state.sleepingAgentSessionsByPaneKey &&
+    inputs.tabsByWorktree === state.tabsByWorktree &&
+    inputs.terminalLayoutsByTabId === state.terminalLayoutsByTabId
+  )
+}
+
 // Request membership reads only these maps, so owner-only updates reuse it instead of re-collecting every tab.
 function requestWorktreeIds(state: AppState): string[] {
   const cached = cachedRequestWorktreeIds
-  if (
-    cached?.inputs.agentStatusByPaneKey === state.agentStatusByPaneKey &&
-    cached.inputs.retainedAgentsByPaneKey === state.retainedAgentsByPaneKey &&
-    cached.inputs.sleepingAgentSessionsByPaneKey === state.sleepingAgentSessionsByPaneKey &&
-    cached.inputs.tabsByWorktree === state.tabsByWorktree &&
-    cached.inputs.terminalLayoutsByTabId === state.terminalLayoutsByTabId
-  ) {
+  if (cached && requestInputsMatch(cached.inputs, state)) {
     return cached.worktreeIds
   }
   const worktreeIds = [
@@ -205,6 +209,16 @@ function requestOwnersEqual(current: AppState, previous: AppState): boolean {
 }
 
 export function aiVaultTitleSyncInputsChanged(current: AppState, previous: AppState): boolean {
+  const changed = syncInputsChanged(current, previous)
+  // Why: later updates only move forward from current, so a snapshot it replaced can never hit again;
+  // keeping it would pin closed tabs' status text and scrollback until the next owner change.
+  if (cachedRequestWorktreeIds && !requestInputsMatch(cachedRequestWorktreeIds.inputs, current)) {
+    cachedRequestWorktreeIds = null
+  }
+  return changed
+}
+
+function syncInputsChanged(current: AppState, previous: AppState): boolean {
   const agentRecordsChanged =
     current.agentStatusByPaneKey !== previous.agentStatusByPaneKey ||
     current.retainedAgentsByPaneKey !== previous.retainedAgentsByPaneKey ||
