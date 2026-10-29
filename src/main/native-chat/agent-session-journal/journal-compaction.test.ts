@@ -1,3 +1,8 @@
+import Database from '../../sqlite/sync-database'
+import * as rowTable from './journal-row-table'
+import * as rowSchema from './journal-row-schema'
+import * as journalOpen from './journal-open'
+import { encodeJournalState } from './journal-state-codec'
 import { statSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -276,17 +281,16 @@ it('retires producer batch finals and repeated batches while measuring whole-row
     }
   ])
   expect(saveJournalState(database, state)).toBe(true)
-  expect(await compact()).toBe(3)
-  expect(stored().map((row) => row.seq)).toEqual([1, 2, 5, 6, 8, 9, 10])
+  expect(await compact()).toBe(4)
+  expect(stored().map((row) => row.seq)).toEqual([1, 2, 5, 6, 9, 10])
   expectSameState(restoreJournal(database.db, sessionId)?.state)
-  // Finite batch residuals: first sibling, current sibling, current item, duplicate current item.
+  // First/latest sibling anchors and the stale latest reply touch pin whole batches.
   const exceptions = stored()
-    .filter((row) => [5, 6, 8, 9].includes(row.seq))
+    .filter((row) => [5, 6, 9].includes(row.seq))
     .map((row) => [row.seq, Buffer.byteLength(row.rowJson)])
   expect(exceptions).toEqual([
     [5, 470],
     [6, 471],
-    [8, 289],
     [9, 244]
   ])
 })
@@ -310,60 +314,90 @@ it.each(['{broken', '{"v":9999}', 'misnumbered'])(
   }
 )
 
-it.each([false, true])(
-  'requires retained current/removal witnesses and resolves saved aliases (removed: %s)',
-  async (missingRemoved) => {
+it.each(['body', 'role', 'owner'] as const)(
+  'refuses the first retirement when complete-prefix durable %s differs, then validates a real retirement',
+  async (damage) => {
+    append([
+      { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+      item(2, 1),
+      { ...item(3, 2), executionOwner: 7, agentId: 'child', producerKind: 'agent' },
+      item(4, 3),
+      item(5, 1)
+    ])
+    const healthy = encodeJournalState(state)
+    if (damage === 'owner') {
+      state.itemExecutionOwners.delete('reply')
+    } else {
+      const current = state.items.get('reply')!
+      state.items.set('reply', {
+        ...current,
+        body: damage === 'body' ? text('corrupt body') : { ...text('revision 3'), role: 'user' }
+      })
+    }
+    expect(saveJournalState(database, state)).toBe(true)
+    const before = stored()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(await compact()).toBe(0)
+    expect(stored()).toEqual(before)
+    expect(warn).toHaveBeenCalled()
+    // Restore the independently folded checkpoint; no raw row was edited or manufactured as retired.
+    state = replayJournal(database.db, sessionId)!.state
+    expect(encodeJournalState(state)).toEqual(healthy)
+    expect(saveJournalState(database, state, true)).toBe(true)
+    const fold = vi.spyOn(journalOpen, 'startJournalRowFold')
+    expect(await compact()).toBe(2)
+    expect(fold).toHaveBeenCalledTimes(1)
+    expect(stored().map((row) => row.seq)).toEqual([1, 2, 5])
+    expectSameState(restoreJournal(database.db, sessionId)?.state)
+    append([item(6, 4), item(7, 5), item(8, 1)])
+    saveJournalState(database, state)
+    fold.mockClear()
+    expect(await compact()).toBe(3)
+    expect(fold).not.toHaveBeenCalled()
+    expect(stored().map((row) => row.seq)).toEqual([1, 2, 8])
+    expectSameState(restoreJournal(database.db, sessionId)?.state)
+  }
+)
+
+it('does no independent fold without candidates and compares JSON objects semantically', async () => {
+  append([{ ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }, item(2, 1)])
+  saveJournalState(database, state)
+  const fold = vi.spyOn(journalOpen, 'startJournalRowFold')
+  expect(await compact()).toBe(0)
+  expect(fold).not.toHaveBeenCalled()
+  append([item(3, 2), item(4, 3)])
+  saveJournalState(database, state)
+  // Object key ordering is not durable state; map/item order still is.
+  const json = database.db.prepare('SELECT state_json FROM journal_state').get()?.state_json
+  if (typeof json !== 'string') throw new Error('missing checkpoint')
+  database.db
+    .prepare('UPDATE journal_state SET state_json = ?')
+    .run(JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(json)).reverse()), null, 2))
+  expect(await compact()).toBe(1)
+})
+
+it.each(['missing epoch', 'wrong epoch', 'invalid sequence'])(
+  'does not treat %s damage as an earlier retirement',
+  async (damage) => {
     append([
       { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
       item(2, 1),
       item(3, 2),
-      item(4, 1),
-      item(5, 1, 'removed'),
-      item(6, 2, 'removed'),
-      {
-        ...base(7),
-        kind: 'lifecycle-batch',
-        settlementId: 'remove',
-        mutations: [{ kind: 'tombstone', itemId: 'removed', revision: 3 }]
-      },
-      item(8, 2, 'removed'),
-      item(9, 1, 'missing'),
-      item(10, 2, 'missing'),
-      missingRemoved
-        ? { ...base(11), kind: 'tombstone', itemId: 'missing', revision: 3 }
-        : item(11, 3, 'missing'),
-      item(12, 1, 'missing'),
-      item(13, 1, 'canonical'),
-      item(14, 2, 'canonical'),
-      item(15, 3, 'canonical'),
-      item(16, 2, 'removed')
+      item(4, 3)
     ])
-    state.aliases.set('alias', 'canonical')
     saveJournalState(database, state)
-    database.db.prepare('DELETE FROM journal_rows WHERE seq = 11').run()
-    const aliased = item(15, 3, 'alias')
-    database.db
-      .prepare('UPDATE journal_rows SET row_json = ? WHERE seq = 15')
-      .run(JSON.stringify(aliased))
-    const catchUp = () =>
-      projectJournalBatch({
-        rows: readJournalRowsAfterCursor(database.db, sessionId, epoch, 3),
-        snapshot: renderJournalState(state),
-        afterSequence: 3,
-        canonicalItemId: (id) => state.aliases.get(id) ?? id
-      })
-    const before = catchUp()
-    // Stale reply revision 1 cannot replace revision 2; removed revision 2 cannot resurrect revision 3.
-    expect(await compact()).toBe(3)
-    expect(stored().map((row) => row.seq)).toEqual([1, 2, 3, 4, 5, 7, 9, 10, 12, 13, 15, 16])
-    expect(catchUp()).toEqual(before)
-    expectSameState(restoreJournal(database.db, sessionId)?.state)
-    const bytes = (seq: number) =>
-      Buffer.byteLength(stored().find((row) => row.seq === seq)?.rowJson ?? '')
-    expect(bytes(4)).toBe(187) // Stale latest touch still belongs in catch-up.
-    expect(bytes(7)).toBe(167) // Current removal batch witness.
-    expect(bytes(16)).toBe(190) // The epoch's last row is retained.
-    expect(bytes(10)).toBe(190) // Missing-current-witness exception retains this middle copy.
+    if (damage === 'missing epoch') database.db.exec('DELETE FROM journal_rows WHERE seq = 1')
+    else if (damage === 'wrong epoch')
+      database.db
+        .prepare('UPDATE journal_rows SET row_json = ? WHERE seq = 3')
+        .run(JSON.stringify({ ...item(3, 2), epoch: 'foreign' }))
+    else
+      database.db
+        .prepare('INSERT INTO journal_rows VALUES (?, ?, ?, ?, ?)')
+        .run(sessionId, epoch, 0, 1000, JSON.stringify(item(0, 1)))
+    const before = stored()
+    expect(await compact()).toBe(0)
+    expect(stored()).toEqual(before)
   }
 )
 
@@ -432,7 +466,312 @@ it('reports no completion when stopped and schedules another wake after a native
   expect(onError).toHaveBeenCalledTimes(1)
   await vi.advanceTimersByTimeAsync(6 * 60 * 60_000)
   expect(onError).toHaveBeenCalledTimes(2)
+  database.db.exec('DROP TRIGGER fail_retirement')
+  await vi.advanceTimersByTimeAsync(6 * 60 * 60_000)
+  expect(onError).toHaveBeenCalledTimes(2)
+  expect(stored().map((row) => row.seq)).toEqual([1, 2, 6])
+  expectSameState(restoreJournal(database.db, sessionId)?.state)
   task.stop()
   expect(vi.getTimerCount()).toBe(0)
-  expect(stored().length).toBe(before.length + 2)
 })
+
+it.each([10, 100])(
+  'bounds real maintenance and anchors for %i duplicate/imported batches',
+  async (count) => {
+    database.db.pragma('auto_vacuum = 0')
+    database.db.exec('VACUUM')
+    append([
+      { ...base(1), kind: 'epoch', reason: 'legacy_import', providerHandle },
+      item(2, 1),
+      item(3, 1, 'removed')
+    ])
+    const rows: JournalRow[] = []
+    const batch = (
+      settlementId: string,
+      mutations: Extract<JournalRow, { kind: 'lifecycle-batch' }>['mutations']
+    ) => {
+      rows.push({ ...base(4 + rows.length), kind: 'lifecycle-batch', settlementId, mutations })
+    }
+    const current = { kind: 'item', itemId: 'reply', revision: 2, body: text('P') } as const
+    for (let index = 0; index < count; index++) {
+      batch('repeated', [current])
+      batch(`paired-${index}`, [current])
+      batch(`paired-${index}`, [
+        { ...current, revision: 99, body: { ...text('ignored'), role: 'user' } }
+      ])
+      rows.push({ ...item(4 + rows.length, 2), body: text('P') })
+      batch(`remove-${index}`, [{ kind: 'tombstone', itemId: 'removed', revision: 2 }])
+    }
+    const shared = 4 + rows.length
+    batch('sibling', [current, { ...current, itemId: 'sibling', revision: 1 }])
+    rows.push(item(4 + rows.length, 1), item(5 + rows.length, 1, 'removed'))
+    const stop = 4 + rows.length
+    rows.push({
+      ...base(stop),
+      kind: 'tombstone',
+      itemId: 'stop',
+      revision: 1,
+      stopEvent: { reason: 'user-stop', at: 1000 + stop }
+    })
+    append(rows)
+    saveJournalState(database, state)
+    const beforeBytes = stored().reduce((sum, row) => sum + Buffer.byteLength(row.rowJson), 0)
+    const read = vi.spyOn(rowTable, 'readJournalRowsAfter')
+    const parse = vi.spyOn(rowSchema, 'parseJournalRow')
+    const transaction = vi.spyOn(database, 'transaction')
+    const physicalReads: number[] = []
+    let deleteCalls = 0
+    const prepare = Database.prototype.prepare
+    const observed = new WeakSet<object>()
+    vi.spyOn(Database.prototype, 'prepare').mockImplementation(function (this: Database, sql) {
+      const statement = prepare.call(this, sql)
+      if (!observed.has(statement)) {
+        observed.add(statement)
+        if (sql.startsWith('SELECT seq, ts, row_json FROM journal_rows')) {
+          const all = statement.all.bind(statement)
+          vi.spyOn(statement, 'all').mockImplementation((...args) => {
+            const rows = all(...args)
+            physicalReads.push(rows.length)
+            return rows
+          })
+        } else if (sql.startsWith('DELETE FROM journal_rows')) {
+          const remove = statement.run.bind(statement)
+          vi.spyOn(statement, 'run').mockImplementation((...args) => {
+            deleteCalls++
+            return remove(...args)
+          })
+        }
+      }
+      return statement
+    })
+    const set = Map.prototype.set
+    let summaries = 0
+    const summaryKeys = new Set<string>()
+    const summary = vi.spyOn(Map.prototype, 'set').mockImplementation(function (
+      this: Map<unknown, unknown>,
+      key,
+      value
+    ) {
+      if (
+        typeof key === 'string' &&
+        value &&
+        typeof value === 'object' &&
+        'first' in value &&
+        'last' in value
+      ) {
+        summaries++
+        summaryKeys.add(key)
+      }
+      return set.call(this, key, value)
+    })
+    expect(await backfillJournalState(run())).toEqual({ deleted: 5 * count })
+    summary.mockRestore()
+    const parsed = parse.mock.results.flatMap((result) =>
+      result.type === 'return' && result.value.ok ? [result.value.row] : []
+    )
+    const contributions = parsed.reduce(
+      (sum, row) =>
+        sum + (row.kind === 'lifecycle-batch' ? row.mutations.length : row.kind === 'item' ? 1 : 0),
+      0
+    )
+    const retained = [1, 2, 3, shared, shared + 1, shared + 2, stop]
+    expect(summaries).toBe(5 * count + 6)
+    expect(summaryKeys.size).toBe(3)
+    expect(deleteCalls).toBe(5 * count)
+    expect(physicalReads.reduce((sum, size) => sum + size, 0)).toBe(3 * (5 * count + 7))
+    expect(physicalReads.every((size) => size <= 32)).toBe(true)
+    expect(parse).toHaveBeenCalledTimes(3 * (5 * count + 7))
+    expect(contributions).toBe(3 * (5 * count + 6))
+    expect(
+      read.mock.results.every((result) => result.type === 'return' && result.value.length <= 32)
+    ).toBe(true)
+    expect(read.mock.calls.length).toBeLessThanOrEqual(2 * Math.ceil((5 * count + 7) / 32))
+    const chunks = transaction.mock.calls.filter((call) => call[1] === true).length
+    expect(chunks).toBeGreaterThanOrEqual(Math.ceil((5 * count) / 8))
+    expect(chunks).toBeLessThanOrEqual(Math.ceil((5 * count) / 8) + Math.ceil((5 * count + 7) / 32))
+    const residual = stored()
+    expect(residual.map((row) => row.seq)).toEqual(retained)
+    const bytes = residual.reduce((sum, row) => sum + Buffer.byteLength(row.rowJson), 0)
+    expect(bytes).toBeLessThan(beforeBytes)
+    expect(
+      residual
+        .filter((row) => JSON.parse(row.rowJson).kind === 'lifecycle-batch')
+        .map((row) => row.seq)
+    ).toEqual([shared])
+    expect(residual.filter((row) => row.rowJson.includes('ignored'))).toEqual([])
+    expect(
+      residual.filter((row) => ['item', 'lifecycle-batch'].includes(JSON.parse(row.rowJson).kind))
+    ).toHaveLength(5)
+    expect(5).toBeLessThanOrEqual(2 * summaryKeys.size)
+    expect(
+      residual.reduce((copies, row) => {
+        const parsed = rowSchema.parseJournalRow(row.rowJson)
+        if (!parsed.ok) throw new Error('unreadable residual')
+        const mutations =
+          parsed.row.kind === 'lifecycle-batch'
+            ? parsed.row.mutations
+            : parsed.row.kind === 'item'
+              ? [parsed.row]
+              : []
+        return copies + mutations.filter((mutation) => mutation.itemId === 'reply').length
+      }, 0)
+    ).toBe(3)
+    expectSameState(restoreJournal(database.db, sessionId)?.state)
+    closeTestJournalHostDatabases()
+    database = openTestJournalHostDatabase(root)
+    read.mockClear()
+    parse.mockClear()
+    physicalReads.length = 0
+    const deletesBefore = deleteCalls
+    expect(await backfillJournalState(run())).toEqual({ deleted: 0 })
+    expect(parse).toHaveBeenCalledTimes(2 * retained.length)
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(physicalReads).toEqual([retained.length, retained.length])
+    expect(deleteCalls).toBe(deletesBefore)
+    expect(stored()).toEqual(residual)
+    expect(stored().reduce((sum, row) => sum + Buffer.byteLength(row.rowJson), 0)).toBe(bytes)
+  }
+)
+
+it.each(['append', 'reopen', 'epoch'] as const)(
+  'keeps its captured prefix across a paced %s',
+  async (change) => {
+    append([
+      { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+      item(2, 1),
+      item(3, 2),
+      item(4, 3)
+    ])
+    saveJournalState(database, state)
+    const before = stored()
+    let wakes = 0
+    const outcome = await compactJournalSession(database, sessionId, epoch, async () => {
+      expect(database.db.isTransaction).toBe(false)
+      if (++wakes === 4) {
+        if (change === 'append') {
+          append([item(5, 4), item(6, 5)])
+          saveJournalState(database, state)
+        } else if (change === 'reopen') {
+          closeTestJournalHostDatabases()
+          database = openTestJournalHostDatabase(root)
+        } else publishTestJournalEpoch(database.db, sessionId, 'new-epoch')
+      }
+      return database
+    })
+    if (change === 'append') {
+      expect(outcome).toBe(1)
+      expect(stored().map((row) => row.seq)).toEqual([1, 2, 4, 5, 6])
+      expectSameState(restoreJournal(database.db, sessionId)?.state)
+    } else {
+      expect(outcome).toBeNull()
+      if (change === 'reopen') expect(stored()).toEqual(before)
+      else
+        expect(
+          database.db.prepare('SELECT COUNT(*) AS n FROM journal_rows WHERE epoch = ?').get(epoch)
+            ?.n
+        ).toBe(before.length)
+    }
+  }
+)
+
+it('keeps uncheckpointed tails after a failed FULL publication and retires them after a real later save', async () => {
+  append([{ ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }, item(2, 1)])
+  saveJournalState(database, state)
+  append([item(3, 2), item(4, 3), item(5, 4)])
+  const before = stored()
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  database.db.exec(
+    "CREATE TRIGGER fail_checkpoint BEFORE INSERT ON journal_state BEGIN SELECT RAISE(ABORT, 'save failed'); END"
+  )
+  expect(await backfillJournalState(run())).toBeNull()
+  expect(warn).toHaveBeenCalled()
+  expect(stored()).toEqual(before)
+  expect(readJournalSavedState(database.db, sessionId, epoch)?.lastSequence).toBe(2)
+  database.db.exec('DROP TRIGGER fail_checkpoint')
+  expect(await backfillJournalState(run())).toEqual({ deleted: 2 })
+  expectSameState(restoreJournal(database.db, sessionId)?.state)
+})
+
+it('leaves an active FULL host transaction alone and retries a stranded native rollback before reuse', async () => {
+  append([
+    { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+    item(2, 1),
+    item(3, 2),
+    item(4, 3),
+    item(5, 4)
+  ])
+  saveJournalState(database, state)
+  const before = stored()
+  const connection = database.db
+  connection.exec('BEGIN IMMEDIATE')
+  await expect(compact()).rejects.toThrow(/transaction|Safety level/i)
+  expect(connection.isTransaction).toBe(true)
+  connection.exec('ROLLBACK')
+  expect(stored()).toEqual(before)
+  connection.exec(`CREATE TABLE retirement_parent (id INTEGER PRIMARY KEY);
+    CREATE TABLE retirement_child (parent_id INTEGER REFERENCES retirement_parent(id) DEFERRABLE INITIALLY DEFERRED);
+    CREATE TRIGGER fail_retirement BEFORE DELETE ON journal_rows WHEN old.seq = 4
+      BEGIN INSERT INTO retirement_child VALUES (1); END`)
+  const exec = connection.exec.bind(connection)
+  let rollbackFails = true
+  const intercepted = vi.spyOn(connection, 'exec').mockImplementation((sql) => {
+    if (sql === 'ROLLBACK' && rollbackFails) throw new Error('native rollback unavailable')
+    return exec(sql)
+  })
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  await expect(compact()).rejects.toThrow(/FOREIGN KEY/i)
+  expect(connection.isTransaction).toBe(true)
+  await expect(compact()).rejects.toThrow()
+  rollbackFails = false
+  // The host getter must first undo the whole failed chunk and restore FULL.
+  expect(stored()).toEqual(before)
+  expect(Number(connection.pragma('synchronous', { simple: true }))).toBe(2)
+  intercepted.mockRestore()
+  connection.exec('DROP TRIGGER fail_retirement')
+  expect(await compact()).toBe(2)
+  expectSameState(restoreJournal(database.db, sessionId)?.state)
+})
+
+it('cancels between bounded chunks without a completion latch, then finishes on the normal next pass', async () => {
+  append([
+    { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+    ...Array.from({ length: 24 }, (_, index) => item(index + 2, index + 1))
+  ])
+  saveJournalState(database, state)
+  const total = stored().length
+  expect(
+    await compactJournalSession(database, sessionId, epoch, async () => {
+      expect(database.db.isTransaction).toBe(false)
+      return stored().length < total ? null : database
+    })
+  ).toBeNull()
+  expect(total - stored().length).toBe(8)
+  expectSameState(restoreJournal(database.db, sessionId)?.state)
+  expect(await compact()).toBe(14)
+  expect(stored().map((row) => row.seq)).toEqual([1, 2, 25])
+})
+
+it.each(['blob JSON', 'text timestamp'])(
+  'rejects a physically present unreadable SQL row rather than treating it as a retired hole: %s',
+  async (damage) => {
+    append([
+      { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+      item(2, 1),
+      item(3, 2),
+      item(4, 3),
+      item(5, 4),
+      item(6, 5)
+    ])
+    saveJournalState(database, state)
+    database.db.exec(
+      damage === 'blob JSON'
+        ? 'UPDATE journal_rows SET row_json = CAST(row_json AS BLOB) WHERE seq = 4'
+        : "UPDATE journal_rows SET ts = 'not-a-timestamp' WHERE seq = 4"
+    )
+    const physical = () =>
+      database.db.prepare('SELECT seq, ts, row_json FROM journal_rows ORDER BY seq').all()
+    const before = physical()
+    expect(await compact()).toBe(0)
+    expect(physical()).toEqual(before)
+  }
+)

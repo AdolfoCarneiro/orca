@@ -11,6 +11,7 @@ import {
 import type { AgentSessionRecord } from '../../shared/agent-session-record'
 import { agentSessionRecordFixture } from '../../shared/agent-session-record.test-fixture'
 import { replayJournal, restoreJournal } from '../native-chat/agent-session-journal/journal-open'
+import { compactJournalSession } from '../native-chat/agent-session-journal/journal-compaction'
 import { saveJournalState } from '../native-chat/agent-session-journal/journal-saved-state'
 import {
   openTestJournalHostDatabase,
@@ -141,6 +142,22 @@ describe('ACP launch resolution', () => {
         revision: 1,
         body: turn.body
       })
+      for (const [seq, revision] of [
+        [3, 2],
+        [4, 3]
+      ] as const) {
+        insertTestJournalRow(database.db, identity.sessionId, {
+          v: 4,
+          epoch: 'epoch-1',
+          seq,
+          fence: 1,
+          ts: seq,
+          kind: 'item',
+          itemId: agentJournalItemKey(turnIdentity),
+          revision,
+          body: turn.body
+        })
+      }
       const load = replayJournal(database.db, identity.sessionId)
       if (!load) {
         throw new Error('missing replay')
@@ -154,12 +171,17 @@ describe('ACP launch resolution', () => {
         }
       }
       const full = () => replayJournal(database.db, identity.sessionId)
-      const restored = () => restoreJournal(database.db, identity.sessionId)
-      expect(await readDecisions(restored)).toStrictEqual(await readDecisions(full))
-      expect(await readDecisions(restored)).toEqual({ unsaved: false, losses: [lostKey] })
-      insertTestJournalRowJson(database.db, identity.sessionId, 3, '{damaged')
-      expect(await readDecisions(restored)).toStrictEqual(await readDecisions(full))
-      expect(await readDecisions(restored)).toEqual({ unsaved: false, losses: [] })
+      const baseline = await readDecisions(full)
+      expect(
+        await compactJournalSession(database, identity.sessionId, 'epoch-1', async () => database)
+      ).toBe(1)
+      closeTestJournalHostDatabase(root)
+      const reopened = openTestJournalHostDatabase(root)
+      const afterRetirement = () => restoreJournal(reopened.db, identity.sessionId)
+      expect(await readDecisions(afterRetirement)).toStrictEqual(baseline)
+      expect(await readDecisions(afterRetirement)).toEqual({ unsaved: false, losses: [lostKey] })
+      insertTestJournalRowJson(reopened.db, identity.sessionId, 5, '{damaged')
+      expect(await readDecisions(afterRetirement)).toEqual({ unsaved: false, losses: [] })
     } finally {
       closeTestJournalHostDatabase(root)
       rmSync(root, { recursive: true, force: true })

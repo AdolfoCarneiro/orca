@@ -4,6 +4,19 @@ import {
 } from '../../../../shared/agent-session-record.test-fixture'
 import { agentSessionConversationView } from '../../../../shared/agent-session-conversation-view'
 import type { AgentSessionLease } from '../../../../shared/agent-session-record'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { openCompactionConsumerJournal } from '../../../native-chat/agent-session-journal/journal-compaction-consumers.test-support'
+import { createTrackedJournalOpener } from '../../../native-chat/agent-session-journal/journal-host-database-test-support'
+import { readStructuredAgentSessionHistoryResult } from '../../../native-chat/agent-session-wire/structured-agent-session-history-result'
+import type { AgentSessionHistoryRequest } from '../../../../shared/agent-session-wire'
+import type { AgentSessionHistoryScope } from '../../../native-chat/agent-session-wire/agent-session-history-page'
+import { RuntimeClient } from '../../../../cli/runtime-client'
+import { ORCHESTRATION_WORKER_OBSERVATION_HANDLERS } from '../../../../cli/handlers/orchestration/worker-observation-handlers'
+import { readStructuredWorkerTerminal } from '../../structured-worker-terminal-read'
+import { structuredWorkerIdentities } from '../../structured-worker-identity'
+import { OrcaRuntimeWithResolveTerminalPane } from '../../terminal/recovery/resolve-terminal-pane'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentJournalRenderItem } from '../../../../shared/agent-session-journal-types'
 import type { StructuredWorkerIdentity } from '../../structured-worker-identity'
@@ -215,6 +228,115 @@ describe('structured worker stop', () => {
 describe('structured worker output', () => {
   beforeEach(() => {
     hostRef.current = null
+  })
+
+  it('keeps real retired/reopened output and cursors through worker-read, CLI, terminal routing and archive', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'orca-compacted-worker-output-'))
+    const journals = createTrackedJournalOpener()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const client = new RuntimeClient('/tmp/orca-compaction-worker-read', 60000, null, null)
+    const source: StructuredWorkerIdentity = { ...IDENTITY, agent: 'codex' }
+    try {
+      const scenario = await openCompactionConsumerJournal(journals, root)
+      const record = agentSessionConversationView(
+        agentSessionRecordFixture(
+          agentSessionLeaseFixture({
+            sessionId: source.sessionId,
+            runtimeFence: 1,
+            claimStatus: 'live',
+            deathEvidence: null
+          })
+        )
+      )
+      hostRef.current = {
+        deps: { store: { getConversation: () => record } },
+        hasSession: () => true,
+        history: (request: AgentSessionHistoryRequest, scope?: AgentSessionHistoryScope) =>
+          readStructuredAgentSessionHistoryResult({
+            journal: scenario.journal,
+            record: null,
+            request,
+            scope
+          })
+      }
+      structuredWorkerIdentities.register(source)
+      const read = (cursor?: string, limit?: number) =>
+        readStructuredWorkerJournal({
+          identity: source,
+          dispatchId: 'compacted-output',
+          workerState: 'ready',
+          liveness: 'live',
+          agent: 'codex',
+          ...(cursor ? { cursor } : {}),
+          ...(limit === undefined ? {} : { limit })
+        })
+      const first = await read(undefined, 1)
+      const baseline = await read()
+      const resumed = await read(first.cursor)
+      const archiveBefore = await captureStructuredWorkerArchive(source, 'codex')
+      const runtime: { readTerminal: (handle: string) => Promise<unknown> } = Object.assign(
+        Object.create(OrcaRuntimeWithResolveTerminalPane.prototype),
+        {
+          getOrchestrationDbIfAvailable: () => null,
+          getLivePtyForHandle: () => {
+            throw new Error('structured output must not reach PTY lookup')
+          }
+        }
+      )
+      const terminal = await runtime.readTerminal(source.handle)
+      const rawTerminal = await readStructuredWorkerTerminal({ handle: source.handle, db: null })
+      const call = vi.fn()
+      call.mockImplementation(async (method: string) => {
+        if (method !== 'orchestration.workerRead') throw new Error('unexpected CLI RPC')
+        return { result: await read() }
+      })
+      vi.spyOn(client, 'call').mockImplementation(call)
+      const cli = async () => {
+        log.mockClear()
+        await ORCHESTRATION_WORKER_OBSERVATION_HANDLERS['orchestration worker-read']!({
+          flags: new Map<string, string | boolean>([
+            ['dispatch', 'compacted-output'],
+            ['source', 'transcript']
+          ]),
+          client,
+          cwd: root,
+          json: false
+        })
+        expect(log).toHaveBeenCalledOnce()
+        return log.mock.calls[0]?.[0]
+      }
+      const printed = await cli()
+      expect(printed).toContain('answer 4')
+      expect(printed).not.toContain('child answer')
+      await scenario.retireAndReopen()
+      expect(await read()).toEqual(baseline)
+      expect(await read(first.cursor)).toEqual(resumed)
+      expect(await cli()).toEqual(printed)
+      expect(await readStructuredWorkerTerminal({ handle: source.handle, db: null })).toEqual(
+        rawTerminal
+      )
+      expect(await runtime.readTerminal(source.handle)).toEqual(terminal)
+      const archive = await captureStructuredWorkerArchive(source, 'codex')
+      expect(archive).toEqual(archiveBefore)
+      hostRef.current = null
+      const archived = readArchivedStructuredJournal({
+        dispatchId: 'compacted-output',
+        workerState: 'succeeded',
+        resourceId: 'resource',
+        createdAt: '2026-10-29 00:00:00',
+        releaseState: 'released',
+        archive
+      })
+      expect(archived.transcript.messages).toEqual(baseline.transcript.messages)
+      expect(archived.warnings).toEqual(baseline.warnings)
+      expect(archived.transcript.limited).toEqual(baseline.transcript.limited)
+    } finally {
+      vi.restoreAllMocks()
+      structuredWorkerIdentities.clear()
+      hostRef.current = null
+      await journals.closeAll()
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
   it('round-trips the journal through the archive and back out of a released read', async () => {

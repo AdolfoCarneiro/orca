@@ -33,6 +33,7 @@ import {
   saveJournalState,
   sweepJournalSavedState
 } from './journal-saved-state'
+import { compactJournalSession } from './journal-compaction'
 import { backfillJournalState } from './journal-state-backfill'
 import { JournalStopMarks } from './journal-stop-marks'
 import { readAgentSessionHistory } from '../agent-session-wire/agent-session-history-page'
@@ -118,7 +119,7 @@ function expectSameState(actual: JournalReducerState, expected: JournalReducerSt
   expect(renderJournalState(actual)).toStrictEqual(renderJournalState(expected))
 }
 
-it('round trips the complete replayed reducer, including insertion order and undefined echoes', () => {
+it('round trips and retires the complete reducer, preserving order, aliases, inheritance and settlement eviction', async () => {
   const user = text('Please investigate', 'user')
   const rows: JournalRow[] = [
     { ...base(1), kind: 'epoch', reason: 'legacy_import', providerHandle },
@@ -212,10 +213,61 @@ it('round trips the complete replayed reducer, including insertion order and und
     itemId: itemId(6),
     revision: 1,
     executionOwner: 2,
+    agentId: 'task-1',
+    producerKind: 'agent',
     body: text('Working')
   })
-  const state = write(rows)
+  rows.push(
+    {
+      ...base(rows.length + 1),
+      kind: 'item',
+      itemId: itemId(6),
+      revision: 2,
+      body: text('Owner inherited')
+    },
+    {
+      ...base(rows.length + 2),
+      kind: 'item',
+      itemId: itemId(6),
+      revision: 3,
+      body: text('Still inherited')
+    },
+    {
+      ...base(rows.length + 3),
+      kind: 'item',
+      itemId: itemId(3),
+      revision: 3,
+      body: text('Recreated')
+    },
+    {
+      ...base(rows.length + 4),
+      kind: 'item',
+      itemId: itemId(3),
+      revision: 4,
+      body: text('Recreated final')
+    }
+  )
+  rows.push(
+    {
+      ...base(rows.length + 1),
+      kind: 'item',
+      itemId: itemId(1),
+      revision: 2,
+      body: text('Provider normalized the send', 'user')
+    },
+    {
+      ...base(rows.length + 2),
+      kind: 'item',
+      itemId: itemId(1),
+      revision: 3,
+      body: text('Provider normalized it again', 'user')
+    }
+  )
+  let state = write(rows)
   expect(state.items.has(agentJournalSubmissionKey('send-1'))).toBe(true)
+  expect(state.aliases.get(itemId(1))).toBe(agentJournalSubmissionKey('send-1'))
+  expect(state.items.get(agentJournalSubmissionKey('send-1'))?.body).toEqual(user)
+  expect(state.items.get(itemId(6))?.agentId).toBe('task-1')
   expect(state.itemEchoes.has(itemId(2))).toBe(true)
   expect(state.itemEchoes.get(itemId(2))).toBeUndefined()
   expect([...state.appliedSettlementIds][0]).toBe('settlement-2')
@@ -228,6 +280,52 @@ it('round trips the complete replayed reducer, including insertion order and und
     turnItemId: itemId(5)
   })
   expect(liveTestJournalRows(database.db, identity.sessionId)).toHaveLength(rows.length)
+  // This codec-only undefined declaration is absent from JSON rows; it must not certify retirement.
+  const beforeRetirement = liveTestJournalRows(database.db, identity.sessionId)
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  expect(
+    await compactJournalSession(database, identity.sessionId, epoch, async () => database)
+  ).toBe(0)
+  expect(liveTestJournalRows(database.db, identity.sessionId)).toEqual(beforeRetirement)
+  // The real retirement starts with an independent replay of the actual serialized prefix.
+  state = requireState(replayJournal(database.db, identity.sessionId)?.state)
+  expect(state.itemEchoes.has(itemId(2))).toBe(false)
+  expect(saveJournalState(database, state, true)).toBe(true)
+  const retired = await backfillJournalState({
+    database: () => database,
+    checkpointOpen: async () => false,
+    stopped: () => false,
+    rest: async () => {}
+  })
+  expect(retired?.deleted).toBeGreaterThan(MAX_JOURNAL_APPLIED_SETTLEMENT_IDS - 2)
+  expectSameState(requireState(restoreJournal(database.db, identity.sessionId)?.state), state)
+  // An evicted settlement may legitimately apply again; its first retained occurrence has no authority.
+  const retry: JournalRow = {
+    ...base(rows.length + 1),
+    kind: 'lifecycle-batch',
+    settlementId: 'settlement-0',
+    mutations: [
+      {
+        kind: 'item',
+        itemId: itemId(4),
+        revision: MAX_JOURNAL_APPLIED_SETTLEMENT_IDS + 3,
+        body: text('Retry after eviction')
+      }
+    ]
+  }
+  insertTestJournalRow(database.db, identity.sessionId, retry)
+  applyJournalRow(state, retry)
+  expectSameState(requireState(restoreJournal(database.db, identity.sessionId)?.state), state)
+  expect([...state.appliedSettlementIds].at(-1)).toBe('settlement-0')
+  expect(saveJournalState(database, state)).toBe(true)
+  const repeated = await backfillJournalState({
+    database: () => database,
+    checkpointOpen: async () => false,
+    stopped: () => false,
+    rest: async () => {}
+  })
+  expect(repeated?.deleted).toBeGreaterThan(0)
+  expectSameState(requireState(restoreJournal(database.db, identity.sessionId)?.state), state)
 })
 
 it('opens the saved prefix plus a tail like full replay and still refuses a damaged tail', async () => {

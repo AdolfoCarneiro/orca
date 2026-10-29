@@ -1,3 +1,5 @@
+import { compactionTransportCorpus } from '../../../../shared/journal-compaction-frames.test-fixture'
+import { STRUCTURED_AGENT_SESSION_CLIENT_COALESCE_MS } from '../../../../shared/structured-agent-session-coalescer'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   EMPTY_STRUCTURED_AGENT_SESSION,
@@ -103,6 +105,50 @@ describe('structured agent-session read transport generations', () => {
       target
     })
   }
+
+  it('consumes the SQLite-verified retired frames and reconnects at the applied sparse cursor', async () => {
+    vi.useFakeTimers()
+    const corpus = compactionTransportCorpus()
+    let state = EMPTY_STRUCTURED_AGENT_SESSION
+    const transport = startStructuredAgentSessionReadTransport({
+      subscribeRetryNow: () => () => {},
+      applyEvent: (event) => {
+        state = reduceStructuredAgentSession(state, { type: 'event', event }, 0)
+      },
+      applyError: vi.fn(),
+      getCursor: () => state.cursor,
+      onContactLost: vi.fn(),
+      onHistoryReadInvalidated: () => undefined,
+      sessionId: 'session-1',
+      target
+    })
+    try {
+      attempts[0]!.onEvent(compactionTransportCorpus(7).snapshot)
+      attempts[0]!.onEvent(corpus.frame)
+      await vi.advanceTimersByTimeAsync(STRUCTURED_AGENT_SESSION_CLIENT_COALESCE_MS)
+      const expected = reduceStructuredAgentSession(
+        EMPTY_STRUCTURED_AGENT_SESSION,
+        { type: 'event', event: corpus.snapshot },
+        0
+      )
+      expect(state.items).toEqual(expected.items)
+      expect(state.submissions).toEqual(expected.submissions)
+      expect(state.cursor).toEqual(expected.cursor)
+      attempts[0]!.closed.resolve({ unsubscribe: attempts[0]!.unsubscribe })
+      await flushPromises()
+      attempts[0]!.onClose()
+      await vi.advanceTimersByTimeAsync(750)
+      expect(mocks.subscribe.mock.calls[1]?.[1]).toMatchObject({
+        sessionId: 'session-1',
+        cursor: expected.cursor
+      })
+      attempts[1]!.closed.resolve({ unsubscribe: attempts[1]!.unsubscribe })
+      await flushPromises()
+    } finally {
+      transport.dispose()
+      vi.useRealTimers()
+    }
+  })
 
   it('flushes queued rows before reading the applied cursor for reconnect', async () => {
     vi.useFakeTimers()

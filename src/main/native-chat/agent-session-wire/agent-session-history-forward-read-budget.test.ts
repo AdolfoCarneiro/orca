@@ -2,6 +2,21 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { openCompactionConsumerJournal } from '../agent-session-journal/journal-compaction-consumers.test-support'
+import {
+  COMPACTION_IDENTITY,
+  COMPACTION_RETAINED_SEQUENCES,
+  compactionTransportCorpus
+} from '../../../shared/journal-compaction-frames.test-fixture'
+import {
+  EMPTY_STRUCTURED_AGENT_SESSION,
+  reduceStructuredAgentSession
+} from '../../../shared/structured-agent-session-reducer'
+import { projectJournalBatch } from './agent-session-journal-batch'
+import { readQueuePublication } from './structured-agent-session-queued-publication'
+import { CLIENT_HISTORY_READER } from './agent-session-item-wire-form'
+import { StructuredAgentSessionCurrentWork } from './structured-agent-session-current-work'
+import { liveTestJournalRows } from '../agent-session-journal/journal-host-database-test-support'
 import Database from '../../sqlite/sync-database'
 import {
   AGENT_SESSION_JOURNAL_SCHEMA_VERSION,
@@ -196,3 +211,192 @@ describe('forward history SQL read budget', () => {
     }
   )
 })
+
+it.each([
+  { snapshotCatchUp: false, readsCurrentRequests: false, boundedFrames: false },
+  { snapshotCatchUp: true, readsCurrentRequests: true, boundedFrames: true }
+])(
+  'delivers an actually retired/reopened journal through old/new client capabilities: %j',
+  async (capabilities) => {
+    root = await mkdtemp(join(tmpdir(), 'orca-compaction-consumers-'))
+    const scenario = await openCompactionConsumerJournal(journals, root)
+    const canonical = (id: string) => scenario.journal.canonicalItemId(id)
+    const projection = (sequence: number) => {
+      const read = scenario.journal.readSince({ epoch: scenario.journal.epoch, sequence })
+      if (!read.ok) throw new Error('unexpected cursor reset')
+      return projectJournalBatch({
+        rows: read.rows,
+        snapshot: scenario.journal.snapshot(),
+        afterSequence: sequence,
+        canonicalItemId: canonical
+      })
+    }
+    const expected = Array.from({ length: 16 }, (_, sequence) => projection(sequence))
+    const original = scenario.journal.snapshot()
+    const runSubscriber = (sequence: number) => {
+      const events: AgentSessionSubscribeEvent[] = []
+      const subscribers = new AgentSessionSubscribers({
+        now: () => 0,
+        readCurrentWork: (_session, journal) =>
+          new StructuredAgentSessionCurrentWork(journal, 1, 0),
+        readQueuePublication: () =>
+          readQueuePublication(scenario.journal, (journal) => ({
+            record: null,
+            work: new StructuredAgentSessionCurrentWork(journal, 1, 0)
+          }))
+      })
+      subscribers.open({
+        ...capabilities,
+        id: 'reader',
+        sessionId: COMPACTION_IDENTITY.sessionId,
+        journal: scenario.journal,
+        fence: 1,
+        cursor: { epoch: scenario.journal.epoch, sequence },
+        emit: (event) => events.push(structuredClone(event))
+      })
+      let state = reduceStructuredAgentSession(
+        EMPTY_STRUCTURED_AGENT_SESSION,
+        {
+          type: 'event',
+          event: compactionTransportCorpus(Math.max(1, sequence)).snapshot
+        },
+        0
+      )
+      if (sequence === 0)
+        state = {
+          ...EMPTY_STRUCTURED_AGENT_SESSION,
+          epoch: scenario.journal.epoch,
+          cursor: { epoch: scenario.journal.epoch, sequence: 0 }
+        }
+      for (const event of events)
+        state = reduceStructuredAgentSession(state, { type: 'event', event }, 0)
+      return { events, state }
+    }
+    const baseline = Array.from({ length: 16 }, (_, sequence) => runSubscriber(sequence).state)
+    const tailBefore = readAgentSessionHistory(scenario.journal, {
+      sessionId: COMPACTION_IDENTITY.sessionId,
+      direction: 'tail',
+      limit: 2
+    })
+    const olderBefore = readAgentSessionHistory(scenario.journal, {
+      sessionId: COMPACTION_IDENTITY.sessionId,
+      direction: 'before',
+      cursor: { epoch: scenario.journal.epoch, sequence: 9 },
+      limit: 2
+    })
+    await scenario.retireAndReopen()
+    expect(
+      liveTestJournalRows(openTestJournalHostDatabase(root).db, COMPACTION_IDENTITY.sessionId).map(
+        (row) => row.seq
+      )
+    ).toEqual(COMPACTION_RETAINED_SEQUENCES)
+    expect(scenario.journal.snapshot()).toEqual(original)
+    for (let sequence = 0; sequence <= 15; sequence++) {
+      expect(projection(sequence)).toEqual(expected[sequence])
+      const delivered = runSubscriber(sequence)
+      expect(delivered.state).toEqual(baseline[sequence])
+      expect(delivered.state.cursor).toEqual(original.cursor)
+      expect(delivered.state.items).toEqual(original.items)
+      expect(delivered.state.items.some((item) => item.itemId === 'removed')).toBe(false)
+      expect(delivered.state.actionablePromptIds).toEqual(['prompt'])
+      expect(delivered.state.working).toBe(true)
+      expect(delivered.state.queuedMessages?.map((card) => card.messageId)).toEqual(['draft'])
+      let cursor = { epoch: scenario.journal.epoch, sequence }
+      for (let pageCount = 0; pageCount < 16; pageCount++) {
+        const result = readAgentSessionHistory(scenario.journal, {
+          sessionId: COMPACTION_IDENTITY.sessionId,
+          direction: 'after',
+          cursor,
+          limit: 2
+        })
+        if (!result.ok) throw new Error('unexpected sparse history reset')
+        if (!result.page.hasNewer) {
+          expect(result.page.window.nextCursor).toEqual(original.cursor)
+          break
+        }
+        expect(result.page.window.nextCursor.sequence).toBeGreaterThan(cursor.sequence)
+        cursor = result.page.window.nextCursor
+        expect(pageCount).toBeLessThan(15)
+      }
+    }
+    expect(
+      readAgentSessionHistory(scenario.journal, {
+        sessionId: COMPACTION_IDENTITY.sessionId,
+        direction: 'tail',
+        limit: 2
+      })
+    ).toEqual(tailBefore)
+    expect(
+      readAgentSessionHistory(scenario.journal, {
+        sessionId: COMPACTION_IDENTITY.sessionId,
+        direction: 'before',
+        cursor: { epoch: scenario.journal.epoch, sequence: 9 },
+        limit: 2
+      })
+    ).toEqual(olderBefore)
+    let client: ReturnType<typeof reduceStructuredAgentSession> = {
+      ...EMPTY_STRUCTURED_AGENT_SESSION,
+      epoch: scenario.journal.epoch,
+      cursor: { epoch: scenario.journal.epoch, sequence: 1 }
+    }
+    for (let step = 0; step < 16; step++) {
+      const result = readAgentSessionHistory(
+        scenario.journal,
+        {
+          sessionId: COMPACTION_IDENTITY.sessionId,
+          direction: 'after',
+          cursor: client.cursor!,
+          limit: 12
+        },
+        { reader: { ...CLIENT_HISTORY_READER, budgetBytes: 1024 } }
+      )
+      if (!result.ok) throw new Error('unexpected bounded sparse reset')
+      if (step === 0) expect(result.page.window.nextCursor.sequence).toBeLessThan(15)
+      client = reduceStructuredAgentSession(
+        client,
+        {
+          type: 'event',
+          event: {
+            type: 'batch',
+            sessionId: COMPACTION_IDENTITY.sessionId,
+            batch: {
+              cursor: result.page.window.nextCursor,
+              items: result.page.items,
+              submissions: result.page.submissions,
+              removedItemIds: result.page.removedItemIds
+            }
+          }
+        },
+        0
+      )
+      if (!result.page.hasNewer) break
+      expect(step).toBeLessThan(15)
+    }
+    expect(client.cursor).toEqual(original.cursor)
+    expect(client.items).toEqual(original.items)
+    // The exact shared immutable corpus is checked against SQLite and production producer callbacks.
+    const corpus = compactionTransportCorpus()
+    const events: AgentSessionSubscribeEvent[] = []
+    const producer = new AgentSessionSubscribers({ now: () => 0 })
+    producer.open({
+      id: 'snapshot',
+      sessionId: COMPACTION_IDENTITY.sessionId,
+      journal: scenario.journal,
+      fence: 1,
+      emit: (event) => events.push(event)
+    })
+    expect(events[0]).toMatchObject(corpus.snapshot)
+    producer.open({
+      id: 'resume',
+      sessionId: COMPACTION_IDENTITY.sessionId,
+      journal: scenario.journal,
+      fence: 1,
+      cursor: { epoch: scenario.journal.epoch, sequence: 7 },
+      snapshotCatchUp: false,
+      emit: (event) => events.push(event)
+    })
+    expect(events.at(-1)).toMatchObject(corpus.frame)
+    expect(olderBefore).toEqual({ ok: true, page: corpus.older })
+    expect(tailBefore).toEqual({ ok: true, page: corpus.tail })
+  }
+)
