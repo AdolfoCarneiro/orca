@@ -260,10 +260,8 @@ export function useEditorPanelFileContentLoader({
         }
         delete fileLoadRetryAttemptsRef.current[id]
         // Why: a bytes custom editor pages a binary file on the same route; a grant has no ranged reads.
-        const loaded =
-          result.isBinary && !readArgs.terminalArtifactGrantId
-            ? { ...result, byteSource: readArgs }
-            : result
+        const byteSource = result.isBinary && !readArgs.terminalArtifactGrantId ? readArgs : null
+        const loaded = byteSource ? { ...result, byteSource } : result
         setFileContents((prev) => ({ ...prev, [id]: loaded }))
         stampCleanTabDiskBaseline(id, result)
       } catch (err) {
