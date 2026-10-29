@@ -1116,8 +1116,7 @@
       "name": "Name",
       "workspaceName": "Workspace name",
       "branchName": "Branch name",
-      "derivedFromName": "Derived from name",
-      "reuseBranch": "Reuse branch “{{branch}}”"
+      "derivedFromName": "Derived from name"
     },
     "smartWorkspaceSourceDrawer": {
       "title": "Name or 'Create From'",
@@ -1491,6 +1490,18 @@
       "noBotComments": "No bot comments.",
       "noHumanComments": "No human comments.",
       "noComments": "No comments yet."
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "Branch for this worktree",
+      "existing": "Existing branch",
+      "existingHint": "New commits go on this branch.",
+      "new": "New branch",
+      "newHint": "Create a new local branch",
+      "newName": "New branch name",
+      "automaticName": "Automatic name",
+      "hostUpdateRequired": "Update Orca on the workspace host to reuse a branch or explicitly create a separate branch."
     }
   }
 }

@@ -407,7 +407,26 @@
       "claudeWorkspace": "Claude ワークスペース"
     },
     "shortcuts": {
-      "parseFailed": "ショートカットを解析できません。"
+      "parseFailed": "ショートカットを解析できません。",
+      "validation": {
+        "invalidFormat": "Ctrl+Shift+P や Cmd+K のようなショートカットを使用してください。",
+        "mixedModifiers": "Mod またはプラットフォーム固有の修飾キーのどちらかを使用し、併用しないでください。",
+        "modifierRequired": "修飾キーを少なくとも1つ含めてください。",
+        "digitKeyRequired": "Cmd+1 や Ctrl+1 のように、1–9 の数字キーと修飾キーを組み合わせてください。",
+        "modifierOnly": "修飾キーだけでなく、別のキーも押してください。",
+        "invalidBindingValue": "文字列、文字列配列、null、または false を使用してください。",
+        "stringArrayRequired": "文字列配列を使用してください。",
+        "fileNotObject": "キーバインドファイルには JSON オブジェクトを含める必要があります。"
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} はオブジェクトである必要があります。",
+        "unknownAction": "不明なキーバインド操作「{{actionId}}」は無視されました。",
+        "shortcutIgnored": "「{{actionId}}」のショートカットは無視されました: {{reason}}",
+        "platformsNotObject": "platforms は darwin、linux、または win32 セクションを持つオブジェクトである必要があります。",
+        "unknownPlatform": "不明なプラットフォーム「{{platform}}」は無視されました。",
+        "conflictingOverrides": "競合するカスタムショートカットは無視されました: {{actions}}。",
+        "readFailed": "キーバインドファイルを読み取れませんでした: {{reason}}"
+      }
     }
   },
   "menu": {
@@ -582,14 +601,7 @@
             "b8a1618172": "PR の詳細の生成は、Web クライアントでは使用できません。",
             "e57c82d276": "コミットメッセージモデルの検出は、Web クライアントでは使用できません。",
             "9fc90740b6": "コミットメッセージの生成は、Web クライアントでは使用できません。",
-            "52bee9d8a0": "競合するカスタムショートカットは無視されました: {{value0}}。",
-            "32f15bdb0f": "不明なプラットフォーム「{{value0}}」は無視されました。",
-            "0a69fcd8bc": "プラットフォームは、darwin、linux、または win32 セクションを持つオブジェクトである必要があります。",
-            "10898045f3": "「{{value0}}」のショートカットは無視されました: 文字列配列を使用してください。",
-            "36761d9604": "不明なキーバインド 操作「{{value0}}」は無視されました。",
-            "d2e43e426a": "{{value0}} はオブジェクトでなければなりません。",
-            "fb290366b2": "ウェブでは利用できません。",
-            "76122208ca": "「{{value0}}」のショートカットは無視されました: {{value1}}"
+            "fb290366b2": "ウェブでは利用できません。"
           }
         },
         "runtime": {
@@ -1901,6 +1913,7 @@
         "estimateValue": "見積もり {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "既存のワークスペースを開く",
         "cbb47ee0dc": "ローカル Git プロジェクトでのみ使用できます。",
         "d861de981b": "まばらなチェックアウト",
         "090cfedeb4": "メモを書く",
@@ -1934,8 +1947,6 @@
         "notConnected": "未接続",
         "runOn": "実行先",
         "notePasteTooLarge": "メモ欄への貼り付け内容が大きすぎます。",
-        "reuseExistingBranch": "ブランチを再利用",
-        "reuseExistingBranchHint": "既存のブランチから新規ブランチを作成せず、そのブランチをチェックアウトします。",
         "createMultiple": "さらに作成",
         "waitForSetupBeforeAgent": "セットアップが完了するまで待ってから Agent を開始してください",
         "destroyDisabled": "破壊は無効です",
@@ -19060,6 +19071,14 @@
           "descriptionMany": "削除すると、これらの Agent の現在の作業が停止します。",
           "confirm": "Agent を停止して削除",
           "confirmOne": "Agent を停止して削除"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "クリーン",
+            "dirty": "変更あり",
+            "unpushed": "未プッシュ",
+            "unknown": "不明"
+          }
         }
       },
       "creation": {
@@ -19656,6 +19675,23 @@
     "startupWorktreeRefresh": {
       "loading": "ワークスペースを検出中…",
       "description": "ローカルおよびリモートのプロジェクトを読み込む間に、さらにワークスペースが表示されることがあります。"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "名前を空にすることはできません",
+        "nameInvalid": "名前にスラッシュは使用できず、\".\" / \"..\" にもできません",
+        "parentRequired": "親ディレクトリは必須です",
+        "parentNotAbsolute": "親ディレクトリは絶対パスである必要があります",
+        "targetInaccessible": "対象パスにアクセスできません: {{detail}}",
+        "targetNotEmpty": "この場所にはすでに「{{name}}」が存在し、空ではありません。",
+        "targetNotFolder": "この場所にはすでに「{{name}}」が存在し、フォルダーではありません。",
+        "readDirectoryFailed": "ディレクトリを読み取れませんでした: {{detail}}",
+        "createDirectoryFailed": "ディレクトリを作成できませんでした: {{detail}}",
+        "prepareDirectoryFailed": "ディレクトリを準備できませんでした: {{detail}}",
+        "gitIdentityMissing": "Git の作成者情報が設定されていません。`git config --global user.name \"Your Name\"` と `git config --global user.email \"you@example.com\"` を実行してから、もう一度お試しください。",
+        "gitInitFailed": "Git リポジトリを初期化できませんでした: {{detail}}",
+        "initialCommitFailed": "最初のコミットを作成できませんでした: {{detail}}"
+      }
     }
   },
   "editor": {
@@ -20310,7 +20346,32 @@
     "sortDescending": "選択した列を降順に並べ替え",
     "originalOrder": "元の行順",
     "save": "保存",
-    "inspectionOnly": "検査のみ · ファイルの行順は変更されません"
+    "inspectionOnly": "検査のみ · ファイルの行順は変更されません",
+    "error": {
+      "tooManyCells": "CSV に含まれるセルが多すぎるため、安全にプレビューできません。",
+      "recordTooLarge": "CSV レコードが大きすぎるため、安全にプレビューできません。",
+      "tooManyPages": "CSV のページ数が多すぎるため、安全にプレビューできません。",
+      "previewRecordLimit": "CSV レコードがプレビューの上限である 1 MB を超えています。",
+      "binaryData": "このファイルにはバイナリデータが含まれています。",
+      "previewColumnLimit": "CSV の列数がプレビューの上限である 4,096 列を超えています。",
+      "changedOnDisk": "ディスク上の CSV が変更されました。ファイルを再読み込みしてプレビューを更新してください。",
+      "pageBoundaryMismatch": "CSV のページ境界が一致しません。プレビューを再読み込みしてください。",
+      "canceled": "CSV のプレビューがキャンセルされました",
+      "workerFailed": "CSV プレビューのワーカーでエラーが発生しました。ファイルを再読み込みして再試行してください。",
+      "workerUnreadableResponse": "CSV プレビューのワーカーが読み取れない応答を返しました。",
+      "cellMissing": "選択した CSV の行または列はもう存在しません。",
+      "rowMissing": "選択した CSV の行はもう存在しません。",
+      "columnLimit": "CSV の列数が上限の 4,096 列を超えています。",
+      "recordLimit": "CSV レコードが上限の 1 MB を超えています。",
+      "tableEditBudget": "テーブルの編集は 1 MiB 未満に収めてください。それ以上の変更には「ソース」を使用してください。",
+      "editConflict": "このセルの編集中に CSV が変更されました。キャンセルして再試行してください。",
+      "saveFailed": "CSV を保存できませんでした。編集内容は下書きに残っています。",
+      "pasteConflict": "貼り付けが完了する前に CSV が変更されました。再試行してください。",
+      "copyTooManyCells": "一度にコピーするセルの数を減らしてください。",
+      "copyTooLarge": "選択したセルが大きすぎるため、安全にコピーできません。",
+      "pasteExceedsTable": "貼り付け範囲がテーブルを超えています。先に行または列を追加してください。",
+      "pasteTooManyCells": "一度に貼り付けるセルの数を減らしてください。"
+    }
   },
   "worktree": {
     "nestedRemoval": {
@@ -20431,6 +20492,15 @@
     "alwaysForceDeleteBranchesTooltip": "将来のワークスペースの削除後に保持されるブランチに適用されます。"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "このワークツリーのブランチ",
+      "existing": "既存のブランチ",
+      "existingHint": "新しいコミットはこのブランチに追加されます。",
+      "new": "新しいブランチ",
+      "newHint": "新しいローカルブランチを作成",
+      "newName": "新しいブランチ名",
+      "automaticName": "自動で命名"
+    },
     "links": {
       "foreignReview": "このレビューは別のリポジトリに属しています。このワークスペースのリポジトリのレビューを追加してください。",
       "repositoryLoading": "リポジトリの識別情報をまだ読み込んでいます。利用可能になってから再試行してください。",

@@ -593,7 +593,26 @@
       "claudeWorkspace": "Espace de travail Claude"
     },
     "shortcuts": {
-      "parseFailed": "Impossible d’analyser le raccourci."
+      "parseFailed": "Impossible d’analyser le raccourci.",
+      "validation": {
+        "invalidFormat": "Utilisez un raccourci comme Ctrl+Shift+P ou Cmd+K.",
+        "mixedModifiers": "Utilisez soit Mod, soit un modificateur propre à la plateforme, pas les deux.",
+        "modifierRequired": "Incluez au moins une touche de modification.",
+        "digitKeyRequired": "Choisissez une touche de 1 à 9 avec un modificateur, comme Cmd+1 ou Ctrl+1.",
+        "modifierOnly": "Appuyez sur une touche, pas seulement sur un modificateur.",
+        "invalidBindingValue": "Utilisez une chaîne, un tableau de chaînes, null ou false.",
+        "stringArrayRequired": "Utilisez un tableau de chaînes.",
+        "fileNotObject": "Le fichier de raccourcis clavier doit contenir un objet JSON."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} doit être un objet.",
+        "unknownAction": "Action de raccourci inconnue « {{actionId}} » ignorée.",
+        "shortcutIgnored": "Raccourci pour « {{actionId}} » ignoré : {{reason}}",
+        "platformsNotObject": "« platforms » doit être un objet avec des sections darwin, linux ou win32.",
+        "unknownPlatform": "Plateforme inconnue « {{platform}} » ignorée.",
+        "conflictingOverrides": "Des raccourcis personnalisés en conflit ont été ignorés : {{actions}}.",
+        "readFailed": "Impossible de lire le fichier de raccourcis clavier : {{reason}}"
+      }
     }
   },
   "menu": {
@@ -768,14 +787,7 @@
             "b8a1618172": "La génération du détail de pull request est indisponible dans le client web.",
             "e57c82d276": "La découverte des modèles de messages de commit est indisponible dans le client web.",
             "9fc90740b6": "La génération des messages de commit est indisponible dans le client web.",
-            "52bee9d8a0": "Des raccourcis personnalisés en conflit ont été ignorés : {{value0}}.",
-            "32f15bdb0f": "Plateforme inconnue « {{value0}} » ignorée.",
-            "0a69fcd8bc": "« platforms » doit être un objet avec des sections darwin, linux ou win32.",
-            "10898045f3": "Raccourci pour « {{value0}} » ignoré : utilisez un tableau de chaînes.",
-            "36761d9604": "Action de raccourci inconnue « {{value0}} » ignorée.",
-            "d2e43e426a": "{{value0}} doit être un objet.",
-            "fb290366b2": "Indisponible sur le web.",
-            "76122208ca": "Raccourci pour « {{value0}} » ignoré : {{value1}}"
+            "fb290366b2": "Indisponible sur le web."
           }
         },
         "runtime": {
@@ -2117,8 +2129,7 @@
         "estimateValue": "Estimation {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Réutiliser la branche",
-        "reuseExistingBranchHint": "Faites un checkout de la branche existante au lieu d'en créer une nouvelle à partir de celle-ci.",
+        "openExistingWorkspace": "Ouvrir l’espace de travail existant",
         "createMultiple": "Créer plus",
         "cbb47ee0dc": "Disponible uniquement pour les projets Git locaux.",
         "d861de981b": "Sparse checkout",
@@ -19771,6 +19782,14 @@
           "descriptionMany": "La suppression interrompra le travail en cours de ces agents.",
           "confirm": "Arrêter les agents et supprimer",
           "confirmOne": "Arrêter l'agent et supprimer"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Propre",
+            "dirty": "Modifié",
+            "unpushed": "Non poussé",
+            "unknown": "Inconnu"
+          }
         }
       },
       "creation": {
@@ -20291,6 +20310,23 @@
     "startupWorktreeRefresh": {
       "loading": "Recherche des espaces de travail…",
       "description": "D'autres espaces de travail peuvent apparaître pendant le chargement des projets locaux et distants."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Le nom ne peut pas être vide",
+        "nameInvalid": "Le nom ne peut pas contenir de barres obliques ni être \".\" / \"..\"",
+        "parentRequired": "Le répertoire parent est requis",
+        "parentNotAbsolute": "Le répertoire parent doit être un chemin absolu",
+        "targetInaccessible": "Impossible d’accéder au chemin cible : {{detail}}",
+        "targetNotEmpty": "« {{name}} » existe déjà à cet emplacement et n’est pas vide.",
+        "targetNotFolder": "« {{name}} » existe déjà à cet emplacement et n’est pas un dossier.",
+        "readDirectoryFailed": "Impossible de lire le répertoire : {{detail}}",
+        "createDirectoryFailed": "Impossible de créer le répertoire : {{detail}}",
+        "prepareDirectoryFailed": "Impossible de préparer le répertoire : {{detail}}",
+        "gitIdentityMissing": "L’identité de l’auteur Git n’est pas configurée. Exécutez `git config --global user.name \"Your Name\"` et `git config --global user.email \"you@example.com\"`, puis réessayez.",
+        "gitInitFailed": "Impossible d’initialiser le dépôt Git : {{detail}}",
+        "initialCommitFailed": "Impossible de créer le commit initial : {{detail}}"
+      }
     }
   },
   "editor": {
@@ -20958,7 +20994,32 @@
     "sortDescending": "Trier la colonne sélectionnée par ordre décroissant",
     "originalOrder": "Ordre d'origine des lignes",
     "save": "Enregistrer",
-    "inspectionOnly": "Inspection uniquement · Ordre des lignes du fichier inchangé"
+    "inspectionOnly": "Inspection uniquement · Ordre des lignes du fichier inchangé",
+    "error": {
+      "tooManyCells": "Le CSV contient trop de cellules pour être prévisualisé sans risque.",
+      "recordTooLarge": "L’enregistrement CSV est trop volumineux pour être prévisualisé sans risque.",
+      "tooManyPages": "Le CSV contient trop de pages pour être prévisualisé sans risque.",
+      "previewRecordLimit": "L’enregistrement CSV dépasse la limite d’aperçu de 1 Mo.",
+      "binaryData": "Ce fichier contient des données binaires.",
+      "previewColumnLimit": "Le CSV dépasse la limite d’aperçu de 4 096 colonnes.",
+      "changedOnDisk": "Le CSV a changé sur le disque. Rechargez le fichier pour actualiser l’aperçu.",
+      "pageBoundaryMismatch": "Les limites de page du CSV ne correspondent pas. Rechargez l’aperçu.",
+      "canceled": "L’aperçu du CSV a été annulé",
+      "workerFailed": "Le worker d’aperçu CSV a échoué. Rechargez le fichier pour réessayer.",
+      "workerUnreadableResponse": "Le worker d’aperçu CSV a renvoyé une réponse illisible.",
+      "cellMissing": "La ligne ou la colonne CSV sélectionnée n’existe plus.",
+      "rowMissing": "La ligne CSV sélectionnée n’existe plus.",
+      "columnLimit": "Le CSV dépasse la limite de 4 096 colonnes.",
+      "recordLimit": "L’enregistrement CSV dépasse la limite de 1 Mo.",
+      "tableEditBudget": "Les modifications du tableau doivent rester sous 1 Mio. Utilisez Source pour les modifications plus importantes.",
+      "editConflict": "Le CSV a changé pendant la modification de cette cellule. Annulez et réessayez.",
+      "saveFailed": "Le CSV n’a pas pu être enregistré. Vos modifications restent dans le brouillon.",
+      "pasteConflict": "Le CSV a changé avant la fin du collage. Réessayez.",
+      "copyTooManyCells": "Sélectionnez moins de cellules à copier à la fois.",
+      "copyTooLarge": "Les cellules sélectionnées sont trop volumineuses pour être copiées sans risque.",
+      "pasteExceedsTable": "Le collage dépasse les limites du tableau. Ajoutez d’abord des lignes ou des colonnes.",
+      "pasteTooManyCells": "Sélectionnez moins de cellules à coller à la fois."
+    }
   },
   "worktree": {
     "nestedRemoval": {
@@ -21081,6 +21142,15 @@
     "moreBranchActions": "Plus d'options de suppression de branche"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branche pour cet arbre de travail",
+      "existing": "Branche existante",
+      "existingHint": "Les nouveaux commits sont ajoutés à cette branche.",
+      "new": "Nouvelle branche",
+      "newHint": "Créer une nouvelle branche locale",
+      "newName": "Nom de la nouvelle branche",
+      "automaticName": "Nom automatique"
+    },
     "links": {
       "foreignReview": "Cette revue appartient à un autre dépôt. Ajoutez des revues du dépôt de cet espace de travail.",
       "repositoryLoading": "L'identité du dépôt est encore en cours de chargement. Réessayez dès qu'elle est disponible.",

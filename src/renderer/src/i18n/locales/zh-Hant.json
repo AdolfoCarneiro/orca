@@ -37,7 +37,32 @@
     "sortDescending": "依選取的欄遞減排序",
     "originalOrder": "原始列順序",
     "save": "儲存",
-    "inspectionOnly": "僅檢視 · 檔案列順序不變"
+    "inspectionOnly": "僅檢視 · 檔案列順序不變",
+    "error": {
+      "tooManyCells": "CSV 中的儲存格過多，無法安全預覽。",
+      "recordTooLarge": "CSV 記錄過大，無法安全預覽。",
+      "tooManyPages": "CSV 頁數過多，無法安全預覽。",
+      "previewRecordLimit": "CSV 記錄超過 1 MB 的預覽上限。",
+      "binaryData": "此檔案含有二進位資料。",
+      "previewColumnLimit": "CSV 超過 4,096 欄的預覽上限。",
+      "changedOnDisk": "磁碟上的 CSV 已變更。請重新載入檔案以更新預覽。",
+      "pageBoundaryMismatch": "CSV 頁面邊界不符。請重新載入預覽。",
+      "canceled": "CSV 預覽已取消",
+      "workerFailed": "CSV 預覽背景工作行程發生錯誤。請重新載入檔案以重試。",
+      "workerUnreadableResponse": "CSV 預覽背景工作行程傳回無法讀取的回應。",
+      "cellMissing": "選取的 CSV 列或欄已不存在。",
+      "rowMissing": "選取的 CSV 列已不存在。",
+      "columnLimit": "CSV 超過 4,096 欄的上限。",
+      "recordLimit": "CSV 記錄超過 1 MB 的上限。",
+      "tableEditBudget": "表格編輯內容必須小於 1 MiB。較大的變更請使用「原始碼」。",
+      "editConflict": "編輯此儲存格時 CSV 已變更。請取消後重試。",
+      "saveFailed": "無法儲存 CSV。編輯內容仍保留在草稿中。",
+      "pasteConflict": "貼上完成前 CSV 已變更。請重試。",
+      "copyTooManyCells": "請減少一次複製的儲存格數量。",
+      "copyTooLarge": "選取的儲存格過大，無法安全複製。",
+      "pasteExceedsTable": "貼上範圍超出表格。請先新增列或欄。",
+      "pasteTooManyCells": "請減少一次貼上的儲存格數量。"
+    }
   },
   "osDocumentOpen": {
     "failed": "無法開啟檔案。"
@@ -77,6 +102,23 @@
       "quitDuringMoveTitle": "要在專案移動期間結束嗎？",
       "quitDuringMoveDescription": "有專案正在移至其 WSL 主機。仍要結束嗎？下次啟動時會復原此次移動。",
       "quitDuringMoveConfirm": "仍要結束"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "名稱不可為空白",
+        "nameInvalid": "名稱不可包含斜線，也不可為 \".\" / \"..\"",
+        "parentRequired": "必須指定上層目錄",
+        "parentNotAbsolute": "上層目錄必須是絕對路徑",
+        "targetInaccessible": "無法存取目標路徑：{{detail}}",
+        "targetNotEmpty": "此位置已存在「{{name}}」，且內容不為空。",
+        "targetNotFolder": "此位置已存在「{{name}}」，且不是資料夾。",
+        "readDirectoryFailed": "無法讀取目錄：{{detail}}",
+        "createDirectoryFailed": "無法建立目錄：{{detail}}",
+        "prepareDirectoryFailed": "無法準備目錄：{{detail}}",
+        "gitIdentityMissing": "尚未設定 Git 作者身分。請執行 `git config --global user.name \"Your Name\"` 和 `git config --global user.email \"you@example.com\"`，然後再試一次。",
+        "gitInitFailed": "無法初始化 Git 存放庫：{{detail}}",
+        "initialCommitFailed": "無法建立初始提交：{{detail}}"
+      }
     }
   },
   "app": {
@@ -672,7 +714,26 @@
       "workspace": "工作區"
     },
     "shortcuts": {
-      "parseFailed": "無法解析快速鍵。"
+      "parseFailed": "無法解析快速鍵。",
+      "validation": {
+        "invalidFormat": "請使用 Ctrl+Shift+P 或 Cmd+K 這類快速鍵。",
+        "mixedModifiers": "請使用 Mod 或特定平台的修飾鍵，不要同時使用兩者。",
+        "modifierRequired": "請至少包含一個修飾鍵。",
+        "digitKeyRequired": "請選擇 1–9 的數字鍵搭配修飾鍵，例如 Cmd+1 或 Ctrl+1。",
+        "modifierOnly": "請按下一般按鍵，不要只按修飾鍵。",
+        "invalidBindingValue": "請使用字串、字串陣列、null 或 false。",
+        "stringArrayRequired": "請使用字串陣列。",
+        "fileNotObject": "鍵繫結檔案必須包含 JSON 物件。"
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} 必須是物件。",
+        "unknownAction": "已忽略未知的鍵繫結操作「{{actionId}}」。",
+        "shortcutIgnored": "已忽略「{{actionId}}」的快速鍵：{{reason}}",
+        "platformsNotObject": "platforms 必須是包含 darwin、linux 或 win32 區段的物件。",
+        "unknownPlatform": "已忽略未知的平台「{{platform}}」。",
+        "conflictingOverrides": "已忽略有衝突的自訂快速鍵：{{actions}}。",
+        "readFailed": "無法讀取鍵繫結檔案：{{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -858,14 +919,7 @@
             "b8a1618172": "網頁用戶端無法產生 PR 詳細資訊。",
             "e57c82d276": "網頁用戶端無法探索提交訊息模型。",
             "9fc90740b6": "網頁用戶端無法產生提交訊息。",
-            "52bee9d8a0": "衝突的自訂快速鍵被忽略：{{value0}}。",
-            "32f15bdb0f": "未知平台「{{value0}}」被忽略。",
-            "0a69fcd8bc": "platforms 必須是具有 darwin、linux 或 win32 部分的物件。",
-            "10898045f3": "「{{value0}}」的快速鍵被忽略：使用字串陣列。",
-            "36761d9604": "未知的鍵繫結操作「{{value0}}」被忽略。",
-            "d2e43e426a": "{{value0}} 必須是一個物件。",
-            "fb290366b2": "無法在網頁版使用。",
-            "76122208ca": "「{{value0}}」的快速鍵被忽略：{{value1}}"
+            "fb290366b2": "無法在網頁版使用。"
           }
         },
         "runtime": {
@@ -2181,8 +2235,7 @@
         "estimateValue": "估計值 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "重複使用分支",
-        "reuseExistingBranchHint": "檢出已有分支，而不是從它建立新分支。",
+        "openExistingWorkspace": "開啟現有工作區",
         "createMultiple": "建立更多",
         "cbb47ee0dc": "僅適用於本機 Git 專案。",
         "d861de981b": "稀疏檢出",
@@ -19340,6 +19393,14 @@
           "descriptionMany": "刪除時會停止這些代理程式目前的工作。",
           "confirm": "停止代理程式並刪除",
           "confirmOne": "停止代理程式並刪除"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "乾淨",
+            "dirty": "有變更",
+            "unpushed": "未推送",
+            "unknown": "未知"
+          }
         }
       },
       "creation": {
@@ -20424,6 +20485,15 @@
     "openDefault": "在預設應用程式中開啟"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "此工作樹的分支",
+      "existing": "現有分支",
+      "existingHint": "新提交會加入此分支。",
+      "new": "新分支",
+      "newHint": "建立新的本機分支",
+      "newName": "新分支名稱",
+      "automaticName": "自動命名"
+    },
     "links": {
       "foreignReview": "此審查屬於另一個存放庫。請新增來自此工作區存放庫的審查。",
       "repositoryLoading": "存放庫身分資訊仍在載入。待其可用後重試。",

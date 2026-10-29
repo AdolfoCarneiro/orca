@@ -37,7 +37,32 @@
     "sortDescending": "Sort selected column descending",
     "originalOrder": "Original row order",
     "save": "Save",
-    "inspectionOnly": "Inspection only · File row order unchanged"
+    "inspectionOnly": "Inspection only · File row order unchanged",
+    "error": {
+      "tooManyCells": "CSV contains too many cells to preview safely.",
+      "recordTooLarge": "CSV record is too large to preview safely.",
+      "tooManyPages": "CSV has too many pages to preview safely.",
+      "previewRecordLimit": "CSV record exceeds the 1 MB preview limit.",
+      "binaryData": "This file contains binary data.",
+      "previewColumnLimit": "CSV exceeds the 4,096 column preview limit.",
+      "changedOnDisk": "CSV changed on disk. Reload the file to refresh the preview.",
+      "pageBoundaryMismatch": "CSV page boundary mismatch. Reload the preview.",
+      "canceled": "CSV preview was canceled",
+      "workerFailed": "CSV preview worker failed. Reload the file to retry.",
+      "workerUnreadableResponse": "CSV preview worker returned an unreadable response.",
+      "cellMissing": "The selected CSV row or column no longer exists.",
+      "rowMissing": "The selected CSV row no longer exists.",
+      "columnLimit": "CSV exceeds the 4,096 column limit.",
+      "recordLimit": "CSV record exceeds the 1 MB limit.",
+      "tableEditBudget": "Table edits must stay below 1 MiB. Use Source for larger changes.",
+      "editConflict": "CSV changed while this cell was being edited. Cancel and try again.",
+      "saveFailed": "CSV could not be saved. Your edits remain in the draft.",
+      "pasteConflict": "CSV changed before paste completed. Try again.",
+      "copyTooManyCells": "Select fewer cells to copy at once.",
+      "copyTooLarge": "Selected cells are too large to copy safely.",
+      "pasteExceedsTable": "Paste exceeds the table. Add rows or columns first.",
+      "pasteTooManyCells": "Select fewer cells to paste at once."
+    }
   },
   "osDocumentOpen": {
     "failed": "Failed to open the file."
@@ -77,6 +102,23 @@
     "startupWorktreeRefresh": {
       "loading": "Discovering workspaces…",
       "description": "More workspaces may appear while local and remote projects load."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Name cannot be empty",
+        "nameInvalid": "Name cannot contain slashes or be \".\" / \"..\"",
+        "parentRequired": "Parent directory is required",
+        "parentNotAbsolute": "Parent directory must be an absolute path",
+        "targetInaccessible": "Cannot access target path: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" already exists at this location and is not empty.",
+        "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder.",
+        "readDirectoryFailed": "Failed to read directory: {{detail}}",
+        "createDirectoryFailed": "Failed to create directory: {{detail}}",
+        "prepareDirectoryFailed": "Failed to prepare directory: {{detail}}",
+        "gitIdentityMissing": "Git author identity is not configured. Run `git config --global user.name \"Your Name\"` and `git config --global user.email \"you@example.com\"`, then try again.",
+        "gitInitFailed": "Failed to initialize git repository: {{detail}}",
+        "initialCommitFailed": "Failed to create initial commit: {{detail}}"
+      }
     }
   },
   "app": {
@@ -692,7 +734,26 @@
       }
     },
     "shortcuts": {
-      "parseFailed": "Unable to parse shortcut."
+      "parseFailed": "Unable to parse shortcut.",
+      "validation": {
+        "invalidFormat": "Use a shortcut like Ctrl+Shift+P or Cmd+K.",
+        "mixedModifiers": "Use either Mod or a platform-specific modifier, not both.",
+        "modifierRequired": "Include at least one modifier key.",
+        "digitKeyRequired": "Pick a number key 1–9 with a modifier, like Cmd+1 or Ctrl+1.",
+        "modifierOnly": "Press a key, not only a modifier.",
+        "invalidBindingValue": "Use a string, string array, null, or false.",
+        "stringArrayRequired": "Use a string array.",
+        "fileNotObject": "Keybindings file must contain a JSON object."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} must be an object.",
+        "unknownAction": "Unknown keybinding action \"{{actionId}}\" was ignored.",
+        "shortcutIgnored": "Shortcut for \"{{actionId}}\" was ignored: {{reason}}",
+        "platformsNotObject": "platforms must be an object with darwin, linux, or win32 sections.",
+        "unknownPlatform": "Unknown platform \"{{platform}}\" was ignored.",
+        "conflictingOverrides": "Conflicting custom shortcuts were ignored: {{actions}}.",
+        "readFailed": "Could not read keybindings file: {{reason}}"
+      }
     },
     "mcp": {
       "inspectFailed": "Unable to inspect {{directory}}.",
@@ -895,14 +956,7 @@
             "b8a1618172": "Pull request detail generation is unavailable in the web client.",
             "e57c82d276": "Commit message model discovery is unavailable in the web client.",
             "9fc90740b6": "Commit message generation is unavailable in the web client.",
-            "52bee9d8a0": "Conflicting custom shortcuts were ignored: {{value0}}.",
-            "32f15bdb0f": "Unknown platform \"{{value0}}\" was ignored.",
-            "0a69fcd8bc": "platforms must be an object with darwin, linux, or win32 sections.",
-            "10898045f3": "Shortcut for \"{{value0}}\" was ignored: Use a string array.",
-            "36761d9604": "Unknown keybinding action \"{{value0}}\" was ignored.",
-            "d2e43e426a": "{{value0}} must be an object.",
-            "fb290366b2": "Unavailable on web.",
-            "76122208ca": "Shortcut for \"{{value0}}\" was ignored: {{value1}}"
+            "fb290366b2": "Unavailable on web."
           }
         },
         "runtime": {
@@ -2223,8 +2277,7 @@
         "estimateValue": "Estimate {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Reuse branch",
-        "reuseExistingBranchHint": "Check out the existing branch instead of creating a new one from it.",
+        "openExistingWorkspace": "Open existing workspace",
         "createMultiple": "Create more",
         "cbb47ee0dc": "Only available for local Git projects.",
         "d861de981b": "Sparse checkout",
@@ -19655,6 +19708,14 @@
           "descriptionMany": "Deleting will stop these agents' current work.",
           "confirm": "Stop agents and delete",
           "confirmOne": "Stop agent and delete"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Clean",
+            "dirty": "Dirty",
+            "unpushed": "Unpushed",
+            "unknown": "Unknown"
+          }
         }
       },
       "creation": {
@@ -20747,6 +20808,15 @@
     "openDefault": "Open in Default App"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch for this worktree",
+      "existing": "Existing branch",
+      "existingHint": "New commits go on this branch.",
+      "new": "New branch",
+      "newHint": "Create a new local branch",
+      "newName": "New branch name",
+      "automaticName": "Automatic name"
+    },
     "links": {
       "foreignReview": "This review belongs to another repository. Add reviews from this workspace’s repository.",
       "repositoryLoading": "Repository identity is still loading. Try again once it is available.",

@@ -164,7 +164,7 @@ export async function loadMobileFilePreview(
       read.refusal,
       options
     )
-    if (refreshed) {
+    if (refreshed && options.isCurrent?.() !== false) {
       source = refreshed
       options.onTerminalArtifactSourceRefreshed?.(refreshed)
       read = await sendMobileFilePreviewRead(

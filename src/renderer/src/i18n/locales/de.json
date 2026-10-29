@@ -37,7 +37,32 @@
     "sortDescending": "Ausgewählte Spalte absteigend sortieren",
     "originalOrder": "Ursprüngliche Zeilenreihenfolge",
     "save": "Speichern",
-    "inspectionOnly": "Nur zur Ansicht · Zeilenreihenfolge der Datei unverändert"
+    "inspectionOnly": "Nur zur Ansicht · Zeilenreihenfolge der Datei unverändert",
+    "error": {
+      "tooManyCells": "CSV enthält zu viele Zellen für eine sichere Vorschau.",
+      "recordTooLarge": "Der CSV-Datensatz ist zu groß für eine sichere Vorschau.",
+      "tooManyPages": "CSV hat zu viele Seiten für eine sichere Vorschau.",
+      "previewRecordLimit": "Der CSV-Datensatz überschreitet das Vorschau-Limit von 1 MB.",
+      "binaryData": "Diese Datei enthält Binärdaten.",
+      "previewColumnLimit": "CSV überschreitet das Vorschau-Limit von 4.096 Spalten.",
+      "changedOnDisk": "CSV wurde auf dem Datenträger geändert. Datei neu laden, um die Vorschau zu aktualisieren.",
+      "pageBoundaryMismatch": "Die CSV-Seitengrenzen stimmen nicht überein. Vorschau neu laden.",
+      "canceled": "Die CSV-Vorschau wurde abgebrochen",
+      "workerFailed": "Der CSV-Vorschauprozess ist fehlgeschlagen. Datei neu laden, um es erneut zu versuchen.",
+      "workerUnreadableResponse": "Der CSV-Vorschauprozess hat eine unlesbare Antwort zurückgegeben.",
+      "cellMissing": "Die ausgewählte CSV-Zeile oder -Spalte existiert nicht mehr.",
+      "rowMissing": "Die ausgewählte CSV-Zeile existiert nicht mehr.",
+      "columnLimit": "CSV überschreitet das Limit von 4.096 Spalten.",
+      "recordLimit": "Der CSV-Datensatz überschreitet das Limit von 1 MB.",
+      "tableEditBudget": "Änderungen an der Tabelle müssen unter 1 MiB bleiben. Für größere Änderungen „Quelltext“ verwenden.",
+      "editConflict": "CSV wurde während der Bearbeitung dieser Zelle geändert. Abbrechen und erneut versuchen.",
+      "saveFailed": "CSV konnte nicht gespeichert werden. Die Änderungen bleiben im Entwurf.",
+      "pasteConflict": "CSV wurde vor Abschluss des Einfügens geändert. Erneut versuchen.",
+      "copyTooManyCells": "Zum Kopieren weniger Zellen auf einmal auswählen.",
+      "copyTooLarge": "Die ausgewählten Zellen sind zu groß, um sie sicher zu kopieren.",
+      "pasteExceedsTable": "Der Einfügebereich geht über die Tabelle hinaus. Zuerst Zeilen oder Spalten hinzufügen.",
+      "pasteTooManyCells": "Zum Einfügen weniger Zellen auf einmal auswählen."
+    }
   },
   "osDocumentOpen": {
     "failed": "Die Datei konnte nicht geöffnet werden."
@@ -77,6 +102,23 @@
     "startupWorktreeRefresh": {
       "loading": "Arbeitsbereiche werden gesucht…",
       "description": "Während lokale und entfernte Projekte geladen werden, können weitere Arbeitsbereiche erscheinen."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Name darf nicht leer sein",
+        "nameInvalid": "Name darf weder Schrägstriche enthalten noch \".\" / \"..\" sein",
+        "parentRequired": "Übergeordnetes Verzeichnis ist erforderlich",
+        "parentNotAbsolute": "Übergeordnetes Verzeichnis muss ein absoluter Pfad sein",
+        "targetInaccessible": "Zugriff auf Zielpfad nicht möglich: {{detail}}",
+        "targetNotEmpty": "„{{name}}“ existiert bereits an diesem Ort und ist nicht leer.",
+        "targetNotFolder": "„{{name}}“ existiert bereits an diesem Ort und ist kein Ordner.",
+        "readDirectoryFailed": "Verzeichnis konnte nicht gelesen werden: {{detail}}",
+        "createDirectoryFailed": "Verzeichnis konnte nicht erstellt werden: {{detail}}",
+        "prepareDirectoryFailed": "Verzeichnis konnte nicht vorbereitet werden: {{detail}}",
+        "gitIdentityMissing": "Git-Autorenidentität ist nicht konfiguriert. `git config --global user.name \"Your Name\"` und `git config --global user.email \"you@example.com\"` ausführen und dann erneut versuchen.",
+        "gitInitFailed": "Git-Repository konnte nicht initialisiert werden: {{detail}}",
+        "initialCommitFailed": "Erster Commit konnte nicht erstellt werden: {{detail}}"
+      }
     }
   },
   "app": {
@@ -694,7 +736,26 @@
       "workspace": "Arbeitsbereich"
     },
     "shortcuts": {
-      "parseFailed": "Tastenkürzel konnte nicht ausgewertet werden."
+      "parseFailed": "Tastenkürzel konnte nicht ausgewertet werden.",
+      "validation": {
+        "invalidFormat": "Ein Tastenkürzel wie Ctrl+Shift+P oder Cmd+K verwenden.",
+        "mixedModifiers": "Entweder Mod oder eine plattformspezifische Modifikatortaste verwenden, nicht beides.",
+        "modifierRequired": "Mindestens eine Modifikatortaste verwenden.",
+        "digitKeyRequired": "Eine Zifferntaste von 1–9 mit einer Modifikatortaste wählen, z. B. Cmd+1 oder Ctrl+1.",
+        "modifierOnly": "Eine Taste drücken, nicht nur eine Modifikatortaste.",
+        "invalidBindingValue": "Eine Zeichenfolge, ein Array aus Zeichenfolgen, null oder false verwenden.",
+        "stringArrayRequired": "Ein Array aus Zeichenfolgen verwenden.",
+        "fileNotObject": "Die Tastenbelegungsdatei muss ein JSON-Objekt enthalten."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} muss ein Objekt sein.",
+        "unknownAction": "Unbekannte Tastenbelegungsaktion „{{actionId}}“ wurde ignoriert.",
+        "shortcutIgnored": "Tastenkürzel für „{{actionId}}“ wurde ignoriert: {{reason}}",
+        "platformsNotObject": "platforms muss ein Objekt mit Abschnitten für darwin, linux oder win32 sein.",
+        "unknownPlatform": "Unbekannte Plattform „{{platform}}“ wurde ignoriert.",
+        "conflictingOverrides": "Benutzerdefinierte Tastenkürzel mit Konflikten wurden ignoriert: {{actions}}.",
+        "readFailed": "Tastenbelegungsdatei konnte nicht gelesen werden: {{reason}}"
+      }
     },
     "ssh": {
       "status": {
@@ -880,14 +941,7 @@
             "b8a1618172": "Das Generieren von Pull-Request-Details ist im Web-Client nicht verfügbar.",
             "e57c82d276": "Die Modellerkennung für Commit-Nachrichten ist im Web-Client nicht verfügbar.",
             "9fc90740b6": "Das Generieren von Commit-Nachrichten ist im Web-Client nicht verfügbar.",
-            "52bee9d8a0": "Benutzerdefinierte Tastenkürzel mit Konflikten wurden ignoriert: {{value0}}.",
-            "32f15bdb0f": "Unbekannte Plattform „{{value0}}“ wurde ignoriert.",
-            "0a69fcd8bc": "platforms muss ein Objekt mit Abschnitten für darwin, linux oder win32 sein.",
-            "10898045f3": "Tastenkürzel für „{{value0}}“ wurde ignoriert: Ein Array aus Zeichenfolgen verwenden.",
-            "36761d9604": "Unbekannte Tastenbelegungsaktion „{{value0}}“ wurde ignoriert.",
-            "d2e43e426a": "{{value0}} muss ein Objekt sein.",
-            "fb290366b2": "Im Web nicht verfügbar.",
-            "76122208ca": "Tastenkürzel für „{{value0}}“ wurde ignoriert: {{value1}}"
+            "fb290366b2": "Im Web nicht verfügbar."
           }
         },
         "runtime": {
@@ -2207,8 +2261,7 @@
         "estimateValue": "Schätzung {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Branch wiederverwenden",
-        "reuseExistingBranchHint": "Den vorhandenen Branch auschecken, statt daraus einen neuen zu erstellen.",
+        "openExistingWorkspace": "Bestehenden Arbeitsbereich öffnen",
         "createMultiple": "Weitere erstellen",
         "cbb47ee0dc": "Nur für lokale Git-Projekte verfügbar.",
         "d861de981b": "Partieller Checkout",
@@ -19621,6 +19674,14 @@
           "descriptionMany": "Beim Löschen wird die aktuelle Arbeit dieser Agenten gestoppt.",
           "confirm": "Agenten stoppen und löschen",
           "confirmOne": "Den Agenten stoppen und löschen"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Sauber",
+            "dirty": "Geändert",
+            "unpushed": "Nicht gepusht",
+            "unknown": "Unbekannt"
+          }
         }
       },
       "creation": {
@@ -20715,6 +20776,15 @@
     "openDefault": "In Standard-App öffnen"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch für diesen Worktree",
+      "existing": "Bestehender Branch",
+      "existingHint": "Neue Commits werden diesem Branch hinzugefügt.",
+      "new": "Neuer Branch",
+      "newHint": "Einen neuen lokalen Branch erstellen",
+      "newName": "Name des neuen Branches",
+      "automaticName": "Automatischer Name"
+    },
     "links": {
       "foreignReview": "Dieses Review gehört zu einem anderen Repository. Reviews aus dem Repository dieses Arbeitsbereichs hinzufügen.",
       "repositoryLoading": "Die Repository-Identität wird noch geladen. Erneut versuchen, sobald sie verfügbar ist.",

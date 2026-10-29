@@ -82,6 +82,8 @@ function MobileFilePreviewDocument({ route }: Props) {
     [routePreviewSource]
   )
   const previewSourceKeyRef = useRef(previewSourceKey)
+  // Grant-only refreshes keep the source key, so loads read the source here instead of re-running.
+  const previewSourceRef = useRef(previewSource)
   const previewLoadRevisionRef = useRef(0)
   const lineColumn = useMemo(
     () =>
@@ -100,6 +102,10 @@ function MobileFilePreviewDocument({ route }: Props) {
   }, [previewSourceKey])
 
   useEffect(() => {
+    previewSourceRef.current = previewSource
+  }, [previewSource])
+
+  useEffect(() => {
     draftContentRef.current = draftContent
   }, [draftContent])
 
@@ -108,12 +114,12 @@ function MobileFilePreviewDocument({ route }: Props) {
   }, [savedContent])
 
   const loadPreview = useCallback(async () => {
-    const loadRevision = ++previewLoadRevisionRef.current
+    const revision = ++previewLoadRevisionRef.current
     const loadSourceKey = previewSourceKey
-    const isCurrentLoad = () =>
-      previewLoadRevisionRef.current === loadRevision &&
-      previewSourceKeyRef.current === loadSourceKey
-    if (!previewParams || !previewSource || loadSourceKey !== routePreviewSourceKey) {
+    const loadSource = previewSourceRef.current
+    const isCurrent = () =>
+      revision === previewLoadRevisionRef.current && previewSourceKeyRef.current === loadSourceKey
+    if (!previewParams || !loadSource || loadSourceKey !== routePreviewSourceKey) {
       setPreview(previewError(route.ok ? 'Unable to load preview' : route.message))
       return
     }
@@ -133,15 +139,17 @@ function MobileFilePreviewDocument({ route }: Props) {
     }
     setSaveError('')
     try {
-      const result = await loadMobileFilePreview(client, previewSource, undefined, {
+      const result = await loadMobileFilePreview(client, loadSource, undefined, {
+        isCurrent,
         onTerminalArtifactSourceRefreshed: (source) => {
-          if (isCurrentLoad()) {
+          if (isCurrent()) {
+            previewSourceRef.current = source
             setPreviewSource(source)
           }
         },
         refreshGrant: true
       })
-      if (!isCurrentLoad()) {
+      if (!isCurrent()) {
         return
       }
       if (shouldKeepDirtyDraftOnPreviewLoadResult(preserveDirtyDraft, result)) {
@@ -165,7 +173,7 @@ function MobileFilePreviewDocument({ route }: Props) {
       }
       setPreview(result)
     } catch (err) {
-      if (!isCurrentLoad()) {
+      if (!isCurrent()) {
         return
       }
       const message = err instanceof Error ? err.message : 'Unable to load preview'
@@ -175,15 +183,7 @@ function MobileFilePreviewDocument({ route }: Props) {
       }
       setPreview(previewError(message))
     }
-  }, [
-    client,
-    connState,
-    previewParams,
-    previewSource,
-    previewSourceKey,
-    route,
-    routePreviewSourceKey
-  ])
+  }, [client, connState, previewParams, previewSourceKey, route, routePreviewSourceKey])
 
   useEffect(() => {
     void loadPreview()

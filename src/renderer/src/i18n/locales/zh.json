@@ -407,7 +407,26 @@
       "claudeWorkspace": "Claude 工作区"
     },
     "shortcuts": {
-      "parseFailed": "无法解析快捷键。"
+      "parseFailed": "无法解析快捷键。",
+      "validation": {
+        "invalidFormat": "请使用 Ctrl+Shift+P 或 Cmd+K 这样的快捷键。",
+        "mixedModifiers": "请使用 Mod 或平台专用修饰键，不要同时使用两者。",
+        "modifierRequired": "请至少包含一个修饰键。",
+        "digitKeyRequired": "请选择 1–9 数字键并搭配修饰键，例如 Cmd+1 或 Ctrl+1。",
+        "modifierOnly": "请按下普通按键，而不只是修饰键。",
+        "invalidBindingValue": "请使用字符串、字符串数组、null 或 false。",
+        "stringArrayRequired": "请使用字符串数组。",
+        "fileNotObject": "键绑定文件必须包含 JSON 对象。"
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} 必须是对象。",
+        "unknownAction": "未知的键绑定操作“{{actionId}}”已被忽略。",
+        "shortcutIgnored": "“{{actionId}}”的快捷键已被忽略：{{reason}}",
+        "platformsNotObject": "platforms 必须是包含 darwin、linux 或 win32 部分的对象。",
+        "unknownPlatform": "未知平台“{{platform}}”已被忽略。",
+        "conflictingOverrides": "有冲突的自定义快捷键已被忽略：{{actions}}。",
+        "readFailed": "无法读取键绑定文件：{{reason}}"
+      }
     }
   },
   "menu": {
@@ -582,14 +601,7 @@
             "b8a1618172": "PR详细信息生成在 Web 客户端中不可用。",
             "e57c82d276": "Commit 消息模型发现在 Web 客户端中不可用。",
             "9fc90740b6": "Commit 消息生成在 Web 客户端中不可用。",
-            "52bee9d8a0": "冲突的自定义快捷键被忽略：{{value0}}。",
-            "32f15bdb0f": "未知平台“{{value0}}”被忽略。",
-            "0a69fcd8bc": "platform 必须是具有 darwin、linux 或 win32 部分的对象。",
-            "10898045f3": "“{{value0}}”的快捷方式被忽略：使用字符串数组。",
-            "36761d9604": "未知的键绑定操作“{{value0}}”被忽略。",
-            "d2e43e426a": "{{value0}} 必须是一个对象。",
-            "fb290366b2": "无法在网络上使用。",
-            "76122208ca": "“{{value0}}”的快捷方式被忽略：{{value1}}"
+            "fb290366b2": "无法在网络上使用。"
           }
         },
         "runtime": {
@@ -1901,6 +1913,7 @@
         "estimateValue": "估计值 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "打开现有工作区",
         "cbb47ee0dc": "仅适用于本地 Git 项目。",
         "d861de981b": "稀疏检出",
         "090cfedeb4": "写备注",
@@ -1934,8 +1947,6 @@
         "notConnected": "未连接",
         "runOn": "运行于",
         "notePasteTooLarge": "笔记字段的粘贴内容过大。",
-        "reuseExistingBranch": "复用分支",
-        "reuseExistingBranchHint": "检出已有分支，而不是从它创建新分支。",
         "createMultiple": "创建更多",
         "waitForSetupBeforeAgent": "等待设置完成后再启动智能体",
         "destroyDisabled": "已禁用销毁",
@@ -19025,6 +19036,14 @@
           "descriptionMany": "删除将停止这些智能体当前任务。",
           "confirm": "停止智能体并删除",
           "confirmOne": "停止智能体并删除"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "干净",
+            "dirty": "有更改",
+            "unpushed": "未推送",
+            "unknown": "未知"
+          }
         }
       },
       "creation": {
@@ -19656,6 +19675,23 @@
     "startupWorktreeRefresh": {
       "loading": "正在发现工作区…",
       "description": "本地和远程项目加载期间，可能会显示更多工作区。"
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "名称不能为空",
+        "nameInvalid": "名称不能包含斜杠，也不能是 \".\" / \"..\"",
+        "parentRequired": "必须指定父目录",
+        "parentNotAbsolute": "父目录必须为绝对路径",
+        "targetInaccessible": "无法访问目标路径：{{detail}}",
+        "targetNotEmpty": "此位置已存在“{{name}}”，且不为空。",
+        "targetNotFolder": "此位置已存在“{{name}}”，且不是文件夹。",
+        "readDirectoryFailed": "读取目录失败：{{detail}}",
+        "createDirectoryFailed": "创建目录失败：{{detail}}",
+        "prepareDirectoryFailed": "准备目录失败：{{detail}}",
+        "gitIdentityMissing": "未配置 Git 作者身份。请运行 `git config --global user.name \"Your Name\"` 和 `git config --global user.email \"you@example.com\"`，然后重试。",
+        "gitInitFailed": "初始化 Git 仓库失败：{{detail}}",
+        "initialCommitFailed": "创建初始提交失败：{{detail}}"
+      }
     }
   },
   "editor": {
@@ -20310,7 +20346,32 @@
     "sortDescending": "对选中的列降序排序",
     "originalOrder": "原始行顺序",
     "save": "保存",
-    "inspectionOnly": "仅查看 · 文件行顺序不变"
+    "inspectionOnly": "仅查看 · 文件行顺序不变",
+    "error": {
+      "tooManyCells": "CSV 中的单元格过多，无法安全预览。",
+      "recordTooLarge": "CSV 记录过大，无法安全预览。",
+      "tooManyPages": "CSV 页数过多，无法安全预览。",
+      "previewRecordLimit": "CSV 记录超出 1 MB 的预览限制。",
+      "binaryData": "此文件包含二进制数据。",
+      "previewColumnLimit": "CSV 超出 4,096 列的预览限制。",
+      "changedOnDisk": "磁盘上的 CSV 已更改。请重新加载文件以刷新预览。",
+      "pageBoundaryMismatch": "CSV 页面边界不匹配。请重新加载预览。",
+      "canceled": "CSV 预览已取消",
+      "workerFailed": "CSV 预览后台工作进程出错。请重新加载文件以重试。",
+      "workerUnreadableResponse": "CSV 预览后台工作进程返回了无法读取的响应。",
+      "cellMissing": "所选 CSV 行或列已不存在。",
+      "rowMissing": "所选 CSV 行已不存在。",
+      "columnLimit": "CSV 超出 4,096 列的限制。",
+      "recordLimit": "CSV 记录超出 1 MB 的限制。",
+      "tableEditBudget": "表格编辑内容必须小于 1 MiB。更大的更改请使用“源码”。",
+      "editConflict": "编辑此单元格时 CSV 已更改。请取消后重试。",
+      "saveFailed": "无法保存 CSV。编辑内容仍保留在草稿中。",
+      "pasteConflict": "粘贴完成前 CSV 已更改。请重试。",
+      "copyTooManyCells": "请减少一次复制的单元格数量。",
+      "copyTooLarge": "所选单元格过大，无法安全复制。",
+      "pasteExceedsTable": "粘贴范围超出表格。请先添加行或列。",
+      "pasteTooManyCells": "请减少一次粘贴的单元格数量。"
+    }
   },
   "worktree": {
     "nestedRemoval": {
@@ -20431,6 +20492,15 @@
     "alwaysForceDeleteBranches": "始终删除保留的分支"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "此工作树使用的分支",
+      "existing": "现有分支",
+      "existingHint": "新提交将添加到此分支。",
+      "new": "新分支",
+      "newHint": "创建新的本地分支",
+      "newName": "新分支名称",
+      "automaticName": "自动命名"
+    },
     "links": {
       "foreignReview": "此评审属于另一个仓库。请添加来自此工作区仓库的评审。",
       "repositoryLoading": "仓库身份仍在加载。待其可用后重试。",
