@@ -188,8 +188,10 @@ it('actual runtime-status session loss and recovery reacquire hydration and fini
   // SAFETY: this fixture installs the production runtime slice over the same Zustand store.
   const runtime = createRuntimeStatusSlice(
     s.setState,
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     s.getState as unknown as Parameters<typeof createRuntimeStatusSlice>[1]
   )
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
   s.setState({ ...runtime, settings: { activeRuntimeEnvironmentId: 'remote' } as never })
   runtime.setRuntimeEnvironmentStatus(
     'remote',
@@ -218,6 +220,7 @@ it('actual runtime-status session loss and recovery reacquire hydration and fini
     runtime.setRuntimeEnvironmentStatus(
       'remote',
       {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
         status: {
           runtimeId: 'new',
           graphStatus: 'ready',
@@ -262,15 +265,12 @@ it('actual runtime-status session loss and recovery reacquire hydration and fini
 
 it('local publication runtime subscription isolates unrelated store and foreign-source turns', async () => {
   const s = store()
-  const { useState } = await import('react')
   const { useLinearIssuePublication } = await import('@/hooks/useLinearIssuePublication')
   const renders = [0, 0]
   const mount = (index: number, context: ReturnType<typeof source>) =>
     renderHook(() => {
       renders[index]++
-      const [row, setRow] = useState(task())
-      useLinearIssuePublication(row, context, (apply) => setRow(apply))
-      return row
+      return useLinearIssuePublication(task(), context).issue!
     })
   const local = mount(0, source('local')),
     foreign = mount(1, source('runtime:foreign'))

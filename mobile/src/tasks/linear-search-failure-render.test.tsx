@@ -52,7 +52,9 @@ vi.mock('../components/SmartWorkspaceSourceRow', () => ({ SmartWorkspaceSourceRo
 
 const searchMethod = LINEAR_METHODS.find((method) => method.name === 'linear.searchIssues')!
 // SAFETY: only linear.searchIssues is dispatched; the production handler uses this runtime method alone.
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
 const context = { runtime: { linearSearchIssues: searchIssues } } as unknown as RpcContext
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
 const client = {
   sendRequest: async (_method: string, params: unknown) => {
     const request = { id: '1', authToken: '', method: searchMethod.name, params }
@@ -230,11 +232,13 @@ function Tasks() {
     loading
   }
   // SAFETY: the actual Linear search branch uses precisely these fields; unrelated screen controls are omitted.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
   const actions = useMobileTasksTaskListLoading(model as unknown as ProviderLoadActionsModel)
   useEffect(() => {
     void actions.loadTasks()
   }, [])
   // SAFETY: shipping error banner reads error/provider/loading; unrelated drawers/chrome are mocked above.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
   return <MobileTasksLegacySurface model={actions as unknown as ConnectionPresentationModel} />
 }
 it('shipping phone Tasks renders the safe real main/RPC search failure', async () => {

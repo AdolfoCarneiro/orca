@@ -1,42 +1,62 @@
 import { useAppStore } from '@/store'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import type { LinearIssue } from '../../../shared/linear/issue-types'
 import type { RuntimeLinearSettings } from '@/runtime/runtime-linear-client'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import {
   registerLinearIssueConsumer,
-  type LinearIssuePublication
+  projectLinearIssue,
+  type LinearIssueLease,
+  type LinearIssueView
 } from '@/store/slices/linear/linear-issue-publication'
+import { useLinearCommittedState } from './linear-issue-committed-state'
 
 export function useLinearIssuePublication(
   issue: LinearIssue | null,
-  source: RuntimeLinearSettings,
-  publish: (apply: LinearIssuePublication) => void
+  source: RuntimeLinearSettings
 ) {
-  const callback = useRef(publish)
-  callback.current = publish
-  const scope = getLinearSourceScope(source)
   const key = useAppStore(() => getLinearSourceScope(source).contextKey)
-  const identity = useRef({ key, id: issue?.id, workspaceId: issue?.workspaceId })
-  identity.current = { key, id: issue?.id, workspaceId: issue?.workspaceId }
-  const consumer = useRef<ReturnType<typeof registerLinearIssueConsumer> | null>(null)
-  // oxlint-disable react-hooks/exhaustive-deps -- Why: key captures the complete source/runtime; saved-field edits must not restart hydration.
-  const isCurrent = useCallback(
-    () =>
-      scope.isCurrentRuntime() &&
-      identity.current.key === key &&
-      identity.current.id === issue?.id &&
-      identity.current.workspaceId === issue?.workspaceId,
-    [key, issue?.id, issue?.workspaceId]
+  const scope = getLinearSourceScope(source)
+  const target = JSON.stringify([key, issue?.id, issue?.workspaceId])
+  const seed = useMemo(
+    () => ({
+      // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the complete target materializes this seed once, independently of later row field objects.
+      issue: issue ? projectLinearIssue(scope, issue) : null,
+      loading: Boolean(issue)
+    }),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: target is the complete source/runtime/occurrence identity for this seed.
+    [target]
   )
-  // oxlint-enable react-hooks/exhaustive-deps
-  useEffect(() => {
+  const saved = useLinearCommittedState(target, seed, scope)
+  const { publish, read: consumeRead } = saved
+  const consumer = useRef<ReturnType<typeof registerLinearIssueConsumer> | null>(null)
+  useLayoutEffect(() => {
     if (!issue) {
       return
     }
-    const registration = registerLinearIssueConsumer(scope, issue.id, (apply) =>
-      callback.current((previous) => (isCurrent() ? apply(previous) : previous))
-    )
+    const registration = registerLinearIssueConsumer(scope, issue.id, (publication) => {
+      publish(
+        (previous, fields) => {
+          if (!previous.issue) {
+            return previous
+          }
+          const patch: Partial<LinearIssue> = {}
+          for (const field of publication.fields) {
+            if (fields?.includes(field)) {
+              Object.assign(
+                patch,
+                field === 'labels'
+                  ? { labels: publication.patch.labels, labelIds: publication.patch.labelIds }
+                  : { [field]: publication.patch[field] }
+              )
+            }
+          }
+          return { ...previous, issue: { ...previous.issue, ...patch } }
+        },
+        (field) => field !== undefined && publication.current(field),
+        { fields: publication.fields }
+      )
+    })
     consumer.current = registration
     return () => {
       registration.release()
@@ -44,16 +64,49 @@ export function useLinearIssuePublication(
         consumer.current = null
       }
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the complete source/runtime key and provider ID own this subscription, not row field changes.
-  }, [issue?.id, issue?.workspaceId, key])
-  const acceptRead = useCallback(
-    <T extends Partial<LinearIssue>>(next: T): T => {
-      if (isCurrent()) {
-        consumer.current?.retire()
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: target owns the complete source/runtime/occurrence, not saved fields.
+  }, [target, publish])
+  const read = useCallback(
+    (
+      lease: LinearIssueLease<LinearIssue | null>,
+      view: LinearIssueView<LinearIssue | null>,
+      seed = false
+    ) => {
+      const issue =
+        view.data && (view.kind === 'data' || seed)
+          ? seed
+            ? // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: target captures the exact projection scope for this delivered seed.
+              projectLinearIssue(scope, view.data)
+            : view.data
+          : null
+      if (issue) {
+        consumeRead(lease, view, () => ({ issue, loading: view.kind === 'loading' }), {
+          acknowledge: seed ? undefined : consumer.current?.capture()
+        })
+      } else if (view.kind === 'abandoned') {
+        publish(
+          (previous) => ({ ...previous, loading: false }),
+          () => true,
+          { fields: ['loading'] }
+        )
+      } else {
+        consumeRead(
+          lease,
+          view,
+          (previous) => ({ ...previous, loading: view.kind === 'loading' }),
+          {
+            fields: ['loading']
+          }
+        )
       }
-      return next
     },
-    [isCurrent]
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: target captures the immutable source/runtime for seed projection.
+    [consumeRead, publish, target]
   )
-  return { acceptRead, isCurrent }
+  return {
+    issue: saved.value.issue,
+    loading: saved.value.loading,
+    read,
+    isCurrent: saved.isCurrent
+  }
 }

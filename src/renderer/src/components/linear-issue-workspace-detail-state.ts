@@ -1,9 +1,6 @@
 import { useAppStore } from '@/store'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
-import {
-  observeLinearIssueRead,
-  projectLinearIssue
-} from '@/store/slices/linear/linear-issue-publication'
+import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -49,16 +46,14 @@ export function useLinearIssueWorkspaceDetail({
   providerSettings: RuntimeLinearSettings
   requestKey: string
 }): LinearIssueWorkspaceDetailState {
-  const { acceptRead, isCurrent } = useLinearIssuePublication(issue, providerSettings, (apply) => {
-    setFullIssue((previous) => apply(previous))
-    setEditState((previous) => apply(previous))
-  })
-  const [fullIssue, setFullIssue] = useState<LinearIssue>(issue)
-  const [issueLoading, setIssueLoading] = useState(true)
+  const publication = useLinearIssuePublication(issue, providerSettings)
+  const { isCurrent } = publication
+  const fullIssue = publication.issue ?? issue
+  const issueLoading = publication.loading
   const [comments, setComments] = useState<LinearComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(true)
   const [commentsError, setCommentsError] = useState<string | null>(null)
-  const [editState, setEditState] = useState<LinearEditState>(() => initLinearIssueEditState(issue))
+  const editState = initLinearIssueEditState(fullIssue)
   const optimisticCommentsRef = useRef<LinearComment[]>([])
   const commentsRequestIdRef = useRef(0)
   const hydrationRequestIdRef = useRef(0)
@@ -80,12 +75,15 @@ export function useLinearIssueWorkspaceDetail({
       const requestId = ++commentsRequestIdRef.current
       const current = () =>
         mountedRef.current && requestId === commentsRequestIdRef.current && isCurrent()
+      // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
       setCommentsLoading((previous) => (current() ? true : previous))
+      // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
       setCommentsError((previous) => (current() ? null : previous))
       return linearIssueComments(targetProviderSettings, targetIssue.id, targetIssue.workspaceId)
         .then((fetched) => {
           if (current()) {
             setComments((previous) =>
+              // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
               current()
                 ? mergeLinearIssueComments(fetched, optimisticCommentsRef.current)
                 : previous
@@ -95,6 +93,7 @@ export function useLinearIssueWorkspaceDetail({
         .catch((error) => {
           if (current()) {
             setCommentsError((previous) =>
+              // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
               current()
                 ? error instanceof Error
                   ? error.message
@@ -105,6 +104,7 @@ export function useLinearIssueWorkspaceDetail({
         })
         .finally(() => {
           if (current()) {
+            // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
             setCommentsLoading((previous) => (current() ? false : previous))
           }
         })
@@ -122,7 +122,6 @@ export function useLinearIssueWorkspaceDetail({
     const scope = getLinearSourceScope(providerSettings)
     const current = () =>
       mountedRef.current && requestId === hydrationRequestIdRef.current && isCurrent()
-    setIssueLoading((previous) => (current() ? true : previous))
     const initialRequest = { issue, providerSettings }
     let initial = true
     const release = observeLinearIssueRead(
@@ -135,29 +134,9 @@ export function useLinearIssueWorkspaceDetail({
         }),
       current,
       (lease, view) => {
-        if (view.kind === 'abandoned') {
-          setIssueLoading((previous) => (current() ? false : previous))
-          return
-        }
         const seed = initial && view.kind === 'loading'
         initial = false
-        if ((view.kind === 'data' || seed) && view.data) {
-          setFullIssue((previous) =>
-            lease.commit(view, previous, (_, data) =>
-              data ? (seed ? projectLinearIssue(scope, data) : acceptRead(data)) : previous
-            )
-          )
-          setEditState((previous) =>
-            lease.commit(view, previous, (_, data) =>
-              data
-                ? initLinearIssueEditState(
-                    seed ? projectLinearIssue(scope, data) : acceptRead(data)
-                  )
-                : previous
-            )
-          )
-        }
-        setIssueLoading((previous) => lease.commit(view, previous, () => view.kind === 'loading'))
+        publication.read(lease, view, seed)
       }
     )
     void loadComments(initialRequest.issue, initialRequest.providerSettings)
@@ -167,7 +146,7 @@ export function useLinearIssueWorkspaceDetail({
       commentsRequestIdRef.current += 1
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: requestKey captures source/runtime/issue identity; field updates must not restart hydration.
-  }, [acceptRead, isCurrent, loadComments, mountedRef, requestKey])
+  }, [publication.read, isCurrent, loadComments, mountedRef, requestKey])
 
   return {
     displayed: fullIssue,

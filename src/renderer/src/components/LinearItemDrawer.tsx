@@ -1,8 +1,5 @@
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
-import {
-  observeLinearIssueRead,
-  projectLinearIssue
-} from '@/store/slices/linear/linear-issue-publication'
+import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -12,11 +9,10 @@ import { getWorktreeAttachmentLabel } from '@/lib/worktree-attachment-label'
 import { folderWorkspaceToWorktree } from '../../../shared/folder-workspace-worktree'
 import { useAppStore } from '@/store'
 import { useAllWorktrees } from '@/store/selectors'
-import type { LinearComment, LinearIssue } from '../../../shared/linear/issue-types'
+import type { LinearComment } from '../../../shared/linear/issue-types'
 import { linearIssueComments } from '@/runtime/runtime-linear-issue-mutations'
 import {
   initLinearIssueEditState,
-  type LinearEditState,
   type LinearItemDrawerProps,
   type LinearLocalComment
 } from '@/components/linear-item-drawer-types'
@@ -39,16 +35,12 @@ export default function LinearItemDrawer({
   const settings = useAppStore((s) => s.settings)
   const providerSettings = sourceContext ?? defaultScopeSource(settings)
   const scope = getLinearSourceScope(providerSettings)
-  const { acceptRead, isCurrent } = useLinearIssuePublication(issue, providerSettings, (apply) => {
-    setFullIssue((previous) => (issue ? apply(previous ?? issue) : previous))
-    setEditState((previous) =>
-      issue ? apply(previous ?? initLinearIssueEditState(issue)) : previous
-    )
-  })
-  const [fullIssue, setFullIssue] = useState<LinearIssue | null>(null)
+  const publication = useLinearIssuePublication(issue, providerSettings)
+  const { isCurrent } = publication
+  const fullIssue = publication.issue
   const [comments, setComments] = useState<LinearComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
-  const [editState, setEditState] = useState<LinearEditState | null>(null)
+  const editState = fullIssue ? initLinearIssueEditState(fullIssue) : null
   const requestIdRef = useRef(0)
   const optimisticCommentsRef = useRef<LinearComment[]>([])
   const allWorktrees = useAllWorktrees()
@@ -62,9 +54,7 @@ export default function LinearItemDrawer({
   // oxlint-disable-next-line react-doctor/no-derived-state-effect -- Why: resets drafts as it starts the fenced IPC fetch for a new issue id.
   useEffect(() => {
     if (!issue) {
-      setFullIssue(null)
       setComments([])
-      setEditState(null)
       return
     }
     optimisticCommentsRef.current = []
@@ -86,22 +76,7 @@ export default function LinearItemDrawer({
       (lease, view) => {
         const seed = initial && view.kind === 'loading'
         initial = false
-        if ((view.kind === 'data' || seed) && view.data) {
-          setFullIssue((previous) =>
-            lease.commit(view, previous, (_, data) =>
-              data ? (seed ? projectLinearIssue(scope, data) : acceptRead(data)) : previous
-            )
-          )
-          setEditState((previous) =>
-            lease.commit(view, previous, (_, data) =>
-              data
-                ? initLinearIssueEditState(
-                    seed ? projectLinearIssue(scope, data) : acceptRead(data)
-                  )
-                : previous
-            )
-          )
-        }
+        publication.read(lease, view, seed)
       }
     )
 
@@ -121,6 +96,7 @@ export default function LinearItemDrawer({
           }
         }
         setComments((previous) =>
+          // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
           requestId === requestIdRef.current && isCurrent() ? fetched : previous
         )
       })
@@ -128,6 +104,7 @@ export default function LinearItemDrawer({
       .finally(() => {
         if (requestId === requestIdRef.current) {
           setCommentsLoading((previous) =>
+            // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
             requestId === requestIdRef.current && isCurrent() ? false : previous
           )
         }
@@ -137,7 +114,7 @@ export default function LinearItemDrawer({
       release()
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [issue?.id, issue?.workspaceId, scope.contextKey])
+  }, [issue?.id, issue?.workspaceId, scope.contextKey, publication.read])
 
   // Clear Radix’s stale body pointer-events after overlay transitions, as GitHubItemDialog does.
   useEffect(() => {

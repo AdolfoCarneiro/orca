@@ -27,6 +27,7 @@ export function useTaskPageLinearInOrcaEffects(model: TaskPageLinearListEffectsM
     taskResumeApplied,
     linearMode,
     setLinearIssues,
+    linearIssueResult: { read: consumeLinearRead, setLoading: finishLinearLoading },
     setLinearIssuesHasMore,
     setLinearLoading,
     setLinearError,
@@ -79,44 +80,40 @@ export function useTaskPageLinearInOrcaEffects(model: TaskPageLinearListEffectsM
         isCurrentLinearRequest(lastLinearRequestRef, requestSignature, linearRefreshNonce),
       (lease, view) => {
         if (view.kind === 'abandoned') {
-          setLinearLoading((previous) =>
-            !cancelled &&
-            isCurrentLinearRequest(lastLinearRequestRef, requestSignature, linearRefreshNonce)
-              ? false
-              : previous
-          )
+          if (!cancelled) {
+            finishLinearLoading(false)
+          }
           return
         }
-        if (view.data) {
-          setLinearIssues((current) =>
-            lease.commit(view, current, (_, results) =>
-              filterLinearIssuesForInOrcaWorkspace(
-                (results ?? []).filter((issue): issue is LinearIssue => issue !== null),
-                selectedLinearWorkspaceId
-              )
-            )
-          )
-        }
-        if (view.kind === 'data') {
-          setLinearError((current) =>
-            lease.commit(view, current, (_, results) => {
-              const loaded = results?.filter(Boolean).length ?? 0
-              if (loaded === 0) {
-                return translate(
-                  'auto.components.TaskPage.linearHasWorktreeLoadFailed',
-                  'Unable to load Linear issues linked to an Orca workspace.'
+        const results = view.data
+        const loaded = results?.filter(Boolean).length ?? 0
+        consumeLinearRead(lease, view, {
+          ...(results
+            ? {
+                data: filterLinearIssuesForInOrcaWorkspace(
+                  results.filter((issue): issue is LinearIssue => issue !== null),
+                  selectedLinearWorkspaceId
                 )
               }
-              return loaded === results?.length
-                ? null
-                : translate(
-                    'auto.components.TaskPage.linearHasWorktreePartialLoadFailed',
-                    'Some Linear issues linked to an Orca workspace could not be loaded. Refresh to try again.'
-                  )
-            })
-          )
-        }
-        setLinearLoading((current) => lease.commit(view, current, () => view.kind === 'loading'))
+            : {}),
+          ...(view.kind === 'data'
+            ? {
+                error:
+                  loaded === 0
+                    ? translate(
+                        'auto.components.TaskPage.linearHasWorktreeLoadFailed',
+                        'Unable to load Linear issues linked to an Orca workspace.'
+                      )
+                    : loaded === results?.length
+                      ? null
+                      : translate(
+                          'auto.components.TaskPage.linearHasWorktreePartialLoadFailed',
+                          'Some Linear issues linked to an Orca workspace could not be loaded. Refresh to try again.'
+                        )
+              }
+            : {}),
+          loading: view.kind === 'loading'
+        })
       }
     )
     return () => {
@@ -124,6 +121,8 @@ export function useTaskPageLinearInOrcaEffects(model: TaskPageLinearListEffectsM
       release()
     }
   }, [
+    consumeLinearRead,
+    finishLinearLoading,
     fetchLinearIssue,
     inOrcaLinkedLinearRefsSignature,
     inOrcaLinkedLinearRefsRef,

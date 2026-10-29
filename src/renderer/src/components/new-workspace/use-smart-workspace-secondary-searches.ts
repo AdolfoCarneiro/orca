@@ -1,7 +1,6 @@
 import {
   observeLinearIssueRead,
-  mapLinearIssueRead,
-  type LinearIssueRead
+  mapLinearIssueRead
 } from '@/store/slices/linear/linear-issue-publication'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearCollectionResult } from '../../../../shared/linear/workspace-types'
@@ -20,8 +19,6 @@ import { restrictJiraQueryToProject } from '../../../../shared/jira/jira-project
 import { getBranchSearchRequest } from '../../../../shared/new-workspace/smart-workspace-source-results'
 import type { useWorkItemSourceFoundation } from './use-work-item-source-foundation'
 
-type Foundation = ReturnType<typeof useWorkItemSourceFoundation>
-
 export function useSmartWorkspaceSecondarySearches({
   foundation,
   shouldQueryLinear,
@@ -31,7 +28,7 @@ export function useSmartWorkspaceSecondarySearches({
   shouldQueryJira,
   jiraSearchQuery
 }: {
-  foundation: Foundation
+  foundation: ReturnType<typeof useWorkItemSourceFoundation>
   shouldQueryLinear: boolean
   linearQuery: string
   linearUrlIntent: ReturnType<typeof parseBoundedSmartWorkspaceLinearIssueUrlIntent>
@@ -54,6 +51,7 @@ export function useSmartWorkspaceSecondarySearches({
     linearStatus,
     linearSourceContext,
     linearWorkspaceIdOverride,
+    linearIssueResult: { read: consumeLinearRead },
     setLinearIssues,
     setLinearLoading,
     setSettledLinearUrlQuery,
@@ -65,11 +63,6 @@ export function useSmartWorkspaceSecondarySearches({
     setJiraIssues,
     setJiraLoading
   } = foundation
-  // Read the latest metadata for URL resolution without making the search effect depend on object identity.
-  const linearStatusRef = useRef(linearStatus)
-  // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
-  linearStatusRef.current = linearStatus
-  // Store action references can change with wiring; reads should only rerun for query/scope changes.
   const linearReadMethodsRef = useRef(foundation)
   // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
   linearReadMethodsRef.current = foundation
@@ -99,7 +92,6 @@ export function useSmartWorkspaceSecondarySearches({
     ]
   )
 
-  // Why: branches are searched on the selected repo's own host.
   const selectedRepoHostId = selectedRepo ? getRepoExecutionHostId(selectedRepo) : null
   useEffect(() => {
     if (!branchSearchRequest || !selectedRepoHostId) {
@@ -109,7 +101,6 @@ export function useSmartWorkspaceSecondarySearches({
       return
     }
     let stale = false
-    // Why: visibility retains prior rows while typing ahead of the debounced query.
     setBranchesLoading(true)
     void searchRuntimeRepoBaseRefDetails(
       selectedRepoHostId,
@@ -150,7 +141,6 @@ export function useSmartWorkspaceSecondarySearches({
 
   useEffect(() => {
     const readKey = [linearQuery, linearSourceContext, linearWorkspaceIdOverride] as const
-    // Why: the status refresh after a failure re-runs this same read; don't blink its error.
     const rereadOfFailure =
       failedLinearReadRef.current?.every((part, index) => part === readKey[index]) === true
     const canQuery = !disabled && shouldQueryLinear && linearStatus.connected === true
@@ -170,70 +160,70 @@ export function useSmartWorkspaceSecondarySearches({
       setLinearLoading(true)
       setSettledLinearUrlQuery(null)
     }
-    // Why: empty-query list must not briefly paint the previous non-empty result set.
     if (trimmed === '') {
       setLinearIssues([])
     }
     const readOptions = {
       sourceContext: linearSourceContext,
-      ...(linearWorkspaceIdOverride !== undefined ? { workspaceId: linearWorkspaceIdOverride } : {})
+      workspaceId: linearWorkspaceIdOverride
     }
-    const request: LinearIssueRead<LinearIssue[] | LinearCollectionResult<LinearIssue>> =
-      linearUrlIntent
-        ? mapLinearIssueRead(
-            lookupLinearIssueUrl({
-              intent: linearUrlIntent,
-              knownStatus: linearStatusRef.current,
-              sourceContext: linearSourceContext,
-              fetchLinearIssue: (identifier, workspaceId, options) =>
-                linearReadMethodsRef.current.fetchLinearIssue(identifier, workspaceId, {
-                  ...options,
-                  rejectCredentialError: true
-                })
-            }),
-            (issue) => (issue ? [issue] : [])
+    const request = linearUrlIntent
+      ? mapLinearIssueRead(
+          lookupLinearIssueUrl({
+            intent: linearUrlIntent,
+            knownStatus: linearReadMethodsRef.current.linearStatus,
+            sourceContext: linearSourceContext,
+            fetchLinearIssue: (identifier, workspaceId, options) =>
+              linearReadMethodsRef.current.fetchLinearIssue(identifier, workspaceId, {
+                ...options,
+                rejectCredentialError: true
+              })
+          }),
+          (issue) => (issue ? [issue] : [])
+        )
+      : trimmed
+        ? linearReadMethodsRef.current.searchLinearIssues(
+            getSmartWorkspaceLinearSearchQuery(trimmed),
+            RESULT_LIMIT,
+            readOptions
           )
-        : trimmed
-          ? linearReadMethodsRef.current.searchLinearIssues(
-              getSmartWorkspaceLinearSearchQuery(trimmed),
-              RESULT_LIMIT,
-              readOptions
-            )
-          : linearReadMethodsRef.current.listLinearIssues(
-              { kind: 'list', filter: 'assigned', limit: RESULT_LIMIT },
-              readOptions
-            )
-    const release = observeLinearIssueRead(
+        : linearReadMethodsRef.current.listLinearIssues(
+            { kind: 'list', filter: 'assigned', limit: RESULT_LIMIT },
+            readOptions
+          )
+    const release = observeLinearIssueRead<LinearIssue[] | LinearCollectionResult<LinearIssue>>(
       request,
       () => !stale,
       (lease, view) => {
         if (view.kind === 'abandoned') {
-          return setLinearLoading((previous) => (!stale ? false : previous))
+          if (!stale) {
+            setLinearLoading(false)
+          }
+          return
         }
-        setLinearIssues((current) =>
-          lease.commit(view, current, (_, data) =>
-            data ? (Array.isArray(data) ? data : data.items) : view.kind === 'error' ? current : []
-          )
-        )
         if (view.kind === 'data' || view.kind === 'error') {
           failedLinearReadRef.current =
             view.kind === 'error' && isIntegrationCredentialDecryptionError(view.error)
               ? readKey
               : null
-          setLinearReadError((current) =>
-            lease.commit(view, current, (_, data) =>
+        }
+        const data = view.data
+        const partialError = !Array.isArray(data) ? data?.errors?.[0]?.message : null
+        consumeLinearRead(lease, view, {
+          ...(data
+            ? { data: Array.isArray(data) ? data : data.items }
+            : view.kind !== 'error' && { data: [] }),
+          ...((view.kind === 'data' || view.kind === 'error') && {
+            error:
               view.kind === 'error'
                 ? linearIssueReadError(view.error)
-                : data && !Array.isArray(data) && data.errors?.length
-                  ? linearIssueReadError(data.errors[0].message)
-                  : null
-            )
-          )
-          setSettledLinearUrlQuery((current) =>
-            lease.commit(view, current, () => (linearUrlIntent ? trimmed : null))
-          )
-        }
-        setLinearLoading((current) => lease.commit(view, current, () => view.kind === 'loading'))
+                : partialError
+                  ? linearIssueReadError(partialError)
+                  : null,
+            settledUrl: linearUrlIntent ? trimmed : null
+          }),
+          loading: view.kind === 'loading'
+        })
       }
     )
     return () => {
@@ -241,6 +231,7 @@ export function useSmartWorkspaceSecondarySearches({
       release()
     }
   }, [
+    consumeLinearRead,
     disabled,
     linearStatus.connected,
     linearQuery,
@@ -262,7 +253,6 @@ export function useSmartWorkspaceSecondarySearches({
       return
     }
     let stale = false
-    // Why: a superseded query must immediately release its shared Jira request slot.
     const controller = new AbortController()
     setJiraLoading(true)
     const siteId =

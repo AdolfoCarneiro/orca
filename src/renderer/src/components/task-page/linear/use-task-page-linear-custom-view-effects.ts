@@ -31,6 +31,7 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
     setLinearCustomViewsError,
     selectedLinearCustomView,
     setLinearCustomViewIssuesResult,
+    linearCustomViewIssueResult: { read: consumeLinearRead, setLoading: finishLinearLoading },
     linearCustomViewIssueLimit,
     setLinearCustomViewProjectsResult,
     setLinearCustomViewContentsLoading,
@@ -124,26 +125,21 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
         () => !cancelled,
         (lease, view) => {
           if (view.kind === 'abandoned') {
-            setLinearCustomViewContentsLoading((previous) => (!cancelled ? false : previous))
+            if (!cancelled) {
+              finishLinearLoading(false)
+            }
             return
           }
-          if (view.data) {
-            setLinearCustomViewIssuesResult((current) =>
-              lease.commit(view, current, (_, data) => data ?? current)
-            )
-          }
-          setLinearCustomViewContentsError((current) =>
-            lease.commit(view, current, (_, data) =>
+          consumeLinearRead(lease, view, {
+            ...(view.data ? { data: view.data } : {}),
+            error:
               view.kind === 'error'
                 ? linearIssueReadError(view.error)
-                : data?.errors?.length
-                  ? linearIssueReadError(data.errors[0].message)
-                  : null
-            )
-          )
-          setLinearCustomViewContentsLoading((current) =>
-            lease.commit(view, current, () => view.kind === 'loading')
-          )
+                : view.data?.errors?.length
+                  ? linearIssueReadError(view.data.errors[0].message)
+                  : null,
+            loading: view.kind === 'loading'
+          })
         }
       )
     } else {
@@ -171,6 +167,8 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
       release()
     }
   }, [
+    consumeLinearRead,
+    finishLinearLoading,
     linearRefreshNonce,
     linearCustomViewIssueLimit,
     listLinearCustomViewIssues,

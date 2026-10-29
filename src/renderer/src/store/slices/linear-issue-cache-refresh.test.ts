@@ -51,6 +51,11 @@ vi.mock('../../hooks/useIssueMetadata', () => ({
 describe('createLinearSlice caching', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    linearStatus.mockResolvedValue({
+      connected: true,
+      viewer: null,
+      selectedWorkspaceId: 'workspace-1'
+    })
   })
 
   it('serves fresh list cache and lets forced refresh bypass it', async () => {

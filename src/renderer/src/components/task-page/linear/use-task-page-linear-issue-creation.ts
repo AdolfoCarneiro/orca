@@ -1,7 +1,7 @@
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
 import type { TaskPageLinearProjectCreationModel } from './use-task-page-linear-project-creation'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { linearCreateIssue } from '@/runtime/runtime-linear-issue-mutations'
@@ -36,21 +36,37 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
     discardNewLinearIssueDraft,
     newLinearIssueTargetTeam
   } = model
-  const publication = useRef<(() => void) | null>(null)
-  const selection = useRef(model.linearSelectionRequest)
-  const sourceKey = getLinearSourceScope(
-    linearTaskSourceContext ?? defaultScopeSource(settings)
-  ).contextKey
-  const source = useRef(sourceKey)
-  selection.current = model.linearSelectionRequest
-  source.current = sourceKey
-  useEffect(
-    () => () => {
-      publication.current?.()
+  const publication = useRef<{ release: () => void } | null>(null)
+  const sourceSettings = linearTaskSourceContext ?? defaultScopeSource(settings)
+  const scope = getLinearSourceScope(sourceSettings)
+  const sourceKey = useAppStore(() => getLinearSourceScope(sourceSettings).contextKey)
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the full source/runtime and stable request explicitly delimit the create lifetime.
+  const lifetime = useMemo(() => ({ live: false }), [sourceKey, model.linearSelectionRequest])
+  const committed = useRef<{
+    lifetime: typeof lifetime
+    source: typeof sourceSettings
+    scope: typeof scope
+    selection: object
+    select: typeof setSelectedLinearIssue
+  } | null>(null)
+  useLayoutEffect(() => {
+    lifetime.live = true
+    return () => {
+      lifetime.live = false
+      publication.current?.release()
       publication.current = null
-    },
-    [model.linearSelectionRequest, sourceKey]
-  )
+      setNewLinearIssueSubmitting(false)
+    }
+  }, [lifetime, setNewLinearIssueSubmitting])
+  useLayoutEffect(() => {
+    committed.current = {
+      lifetime,
+      source: sourceSettings,
+      scope,
+      selection: model.linearSelectionRequest,
+      select: setSelectedLinearIssue
+    }
+  })
   const handleCreateNewLinearIssue = useCallback(async (): Promise<void> => {
     if (!newLinearIssueTargetTeam) {
       return
@@ -72,25 +88,32 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
       )
       return
     }
+    const origin = committed.current
+    if (!origin?.lifetime.live || !origin.scope.isCurrentRuntime()) {
+      return
+    }
+    const isLive = () =>
+      origin.lifetime.live &&
+      committed.current?.lifetime === origin.lifetime &&
+      committed.current.selection === origin.selection &&
+      origin.scope.isCurrentRuntime()
     setNewLinearIssueSubmitting(true)
     const submitProviderRuntimeContextKey = providerRuntimeContextKey
-    const initialSelection = selection.current
-    publication.current?.()
+    const initialSelection = origin.selection
+    publication.current?.release()
+    publication.current = null
     try {
-      const result = await linearCreateIssue(
-        linearTaskSourceContext ?? defaultScopeSource(settings),
-        {
-          teamId: newLinearIssueTargetTeam.id,
-          title,
-          description: newLinearIssueBody || undefined,
-          workspaceId: newLinearIssueTargetTeam.workspaceId,
-          stateId: newLinearIssueStateId || undefined,
-          priority: newLinearIssuePriority,
-          assigneeId: newLinearIssueAssigneeId || undefined,
-          projectId: newLinearIssueProjectId || null,
-          labelIds: newLinearIssueLabelIds.length > 0 ? newLinearIssueLabelIds : undefined
-        }
-      )
+      const result = await linearCreateIssue(origin.source, {
+        teamId: newLinearIssueTargetTeam.id,
+        title,
+        description: newLinearIssueBody || undefined,
+        workspaceId: newLinearIssueTargetTeam.workspaceId,
+        stateId: newLinearIssueStateId || undefined,
+        priority: newLinearIssuePriority,
+        assigneeId: newLinearIssueAssigneeId || undefined,
+        projectId: newLinearIssueProjectId || null,
+        labelIds: newLinearIssueLabelIds.length > 0 ? newLinearIssueLabelIds : undefined
+      })
       if (submitProviderRuntimeContextKey !== providerRuntimeContextKeyRef.current) {
         return
       }
@@ -114,6 +137,9 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
             : undefined
         }
       )
+      if (!isLive()) {
+        return
+      }
       discardNewLinearIssueDraft()
       setNewLinearIssueOpen(false)
       setNewLinearIssueTitle('')
@@ -126,18 +152,18 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
       setLinearRefreshNonce((n) => n + 1)
       useAppStore.getState().recordFeatureInteraction('linear-tasks')
 
-      publication.current = observeLinearIssueRead(
+      let release = () => {}
+      const observation = { release: () => release() }
+      publication.current = observation
+      release = observeLinearIssueRead(
         useAppStore.getState().fetchLinearIssue(result.id, newLinearIssueTargetTeam.workspaceId, {
-          scope: getLinearSourceScope(linearTaskSourceContext ?? defaultScopeSource(settings)),
+          scope: origin.scope,
           force: true
         }),
-        () =>
-          submitProviderRuntimeContextKey === providerRuntimeContextKeyRef.current &&
-          source.current === sourceKey &&
-          selection.current === initialSelection,
+        isLive,
         (lease, view) => {
-          if (view.kind === 'data' && view.data) {
-            setSelectedLinearIssue(view.data, {
+          if (view.kind === 'data' && view.data && isLive()) {
+            origin.select(view.data, {
               allowOutsideList: true,
               expectedSelection: initialSelection,
               isCurrent: () => lease.commit(view, false, () => true)
@@ -145,8 +171,11 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
           }
         }
       )
+      if (!isLive() || publication.current !== observation) {
+        release()
+      }
     } finally {
-      if (submitProviderRuntimeContextKey === providerRuntimeContextKeyRef.current) {
+      if (isLive()) {
         setNewLinearIssueSubmitting(false)
       }
     }
@@ -162,10 +191,6 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
     newLinearIssueLabelIds,
     providerRuntimeContextKey,
     selectedLinearProject,
-    setSelectedLinearIssue,
-    linearTaskSourceContext,
-    settings,
-    sourceKey,
     discardNewLinearIssueDraft,
     setNewLinearIssuePriority,
     setNewLinearIssueBody,
@@ -179,10 +204,7 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
     setNewLinearIssueSubmitting,
     setLinearRefreshNonce
   ])
-  const nextModel = model as typeof model & {
-    handleCreateNewLinearIssue: typeof handleCreateNewLinearIssue
-  }
-  nextModel.handleCreateNewLinearIssue = handleCreateNewLinearIssue
+  const nextModel = Object.assign(model, { handleCreateNewLinearIssue })
   return nextModel
 }
 export type TaskPageLinearIssueCreationModel = ReturnType<typeof useTaskPageLinearIssueCreation>

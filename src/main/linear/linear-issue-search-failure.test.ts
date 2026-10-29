@@ -25,6 +25,7 @@ function makeEntry(options?: {
   organizationName?: string
   request?: typeof rawRequest
 }): LinearClientForWorkspace {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the real search loader uses workspace metadata and rawRequest only; the SDK client fixture intentionally omits unrelated methods.
   return {
     workspace: {
       id: options?.workspaceId ?? 'workspace-1',

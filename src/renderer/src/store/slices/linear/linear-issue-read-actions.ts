@@ -82,7 +82,8 @@ export function openStoreLinearIssueRead<T extends LinearIssueData>(args: {
       if (
         canPublishLinearScopeCache(scope, get().settings) &&
         !(scope.explicitSource && args.workspaceId !== undefined) &&
-        (isIntegrationCredentialDecryptionError(failure) ||
+        (error !== undefined ||
+          isIntegrationCredentialDecryptionError(failure) ||
           looksLikeAuthError(failure) ||
           shouldRefreshStatusAfterRead(args.workspaceId, get().linearStatus))
       ) {

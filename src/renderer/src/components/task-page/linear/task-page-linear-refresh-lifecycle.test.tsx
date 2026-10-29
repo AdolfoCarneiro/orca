@@ -1,3 +1,4 @@
+import { registerLinearIssueConsumer } from '@/store/slices/linear/linear-issue-publication'
 // @vitest-environment happy-dom
 import {
   reads,
@@ -14,7 +15,6 @@ import { pendingLinearIssueWrites } from '@/store/slices/linear/linear-issue-pub
 import { writeLinearIssue } from '@/lib/linear-issue-write'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
 import { defaultScopeSource } from '@/lib/default-creation-host'
-import { useState } from 'react'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { bumpProviderRuntimeSessionGeneration } from '@/lib/provider-runtime-context'
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
@@ -33,10 +33,8 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 it.each(
-  ['list', 'search'].flatMap((kind) =>
-    ['F1', 'F2'].flatMap((timing) =>
-      [true, false].map((ok) => ({ kind: kind as 'list' | 'search', timing, ok }))
-    )
+  (['list', 'search'] as const).flatMap((kind) =>
+    ['F1', 'F2'].flatMap((timing) => [true, false].map((ok) => ({ kind, timing, ok })))
   )
 )(
   '$kind $timing protects the intermediate edit and settles ok=$ok before accepting external truth',
@@ -228,7 +226,7 @@ it('checks authority inside a delayed real loader updater after write settlement
   reads.list
     .mockResolvedValueOnce({ items: [task('Pre-edit')] })
     .mockReturnValueOnce(replacement.promise)
-  const queued: React.SetStateAction<LinearIssue[]>[] = []
+  const queued: VoidFunction[] = []
   const hook = loadingHook(s, '', {}, queued)
   await waitFor(() => expect(queued.length).toBeGreaterThan(1))
   const old = queued.splice(0)
@@ -248,13 +246,13 @@ it('checks authority inside a delayed real loader updater after write settlement
   })
   act(() => {
     for (const update of old) {
-      hook.result.current.applyRows(update)
+      update()
     }
   })
   expect(hook.result.current.rows[0].state.name).toBe('In Review')
   act(() => {
     for (const update of queued.splice(0)) {
-      hook.result.current.applyRows(update)
+      update()
     }
   })
   expect(hook.result.current.rows[0].state.name).toBe('Done')
@@ -264,7 +262,7 @@ it('checks authority inside a delayed real loader updater after write settlement
   })
   act(() => {
     for (const update of queued.splice(0)) {
-      hook.result.current.applyRows(update)
+      update()
     }
   })
   expect(hook.result.current.rows[0].state.name).toBe('External')
@@ -275,12 +273,12 @@ it('rejects a during-save loader updater consumed after failure, then accepts ex
   s.setState({ recordFeatureInteraction: vi.fn() })
   reads.list.mockResolvedValue({ items: [task()] })
   await read(s, 'list')
-  const queued: React.SetStateAction<LinearIssue[]>[] = []
+  const queued: VoidFunction[] = []
   const hook = loadingHook(s, '', {}, queued)
   const flushRows = () => {
     act(() => {
       for (const update of queued.splice(0)) {
-        hook.result.current.applyRows(update)
+        update()
       }
     })
   }
@@ -318,7 +316,7 @@ it('rejects a during-save loader updater consumed after failure, then accepts ex
   expect(reads.list).toHaveBeenCalledTimes(4)
   act(() => {
     for (const update of duringSave) {
-      hook.result.current.applyRows(update)
+      update()
     }
   })
   expect(hook.result.current.displayed.map((row) => row.state.name)).toEqual(['In Review'])
@@ -381,10 +379,12 @@ it('keeps literal identifier lookup independent of a different entity and isolat
 it('dispatches despite a broken local subscriber and clears thrown writers independently of mount', async () => {
   const s = store()
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-  const local = renderHook(() =>
-    useLinearIssuePublication(task(), defaultScopeSource(null), () => {
+  const registration = registerLinearIssueConsumer(
+    getLinearSourceScope(defaultScopeSource(null)),
+    task().id,
+    () => {
       throw new Error('subscriber bug')
-    })
+    }
   )
   const mutate = vi.fn(async () => {
     throw new Error('transport failure')
@@ -395,7 +395,7 @@ it('dispatches despite a broken local subscriber and clears thrown writers indep
     ).rejects.toThrow('transport failure')
   })
   expect(mutate).toHaveBeenCalledTimes(1)
-  local.unmount()
+  registration.release()
   reads.detail.mockResolvedValue({ ...task('External'), priority: 2 })
   expect((await s.getState().fetchLinearIssue(task().id, 'w', { force: true }))?.priority).toBe(2)
   warn.mockRestore()
@@ -466,9 +466,7 @@ it('compacts settled successors while one old writer is pending, then accepts ex
     () => pending.promise
   )
   const local = renderHook(() => {
-    const [row, setRow] = useState(task())
-    useLinearIssuePublication(row, defaultScopeSource(null), (apply) => setRow(apply))
-    return row
+    return useLinearIssuePublication(task(), defaultScopeSource(null)).issue!
   })
   for (const priority of Array.from({ length: 30 }, (_, i) => i + 1)) {
     await act(async () => {
@@ -507,6 +505,7 @@ it('captured default runtime cannot seed or patch the focused foreign runtime ca
   )
   // SAFETY: only activeRuntimeEnvironmentId is read by this captured-scope fixture.
   s.setState({
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     settings: { activeRuntimeEnvironmentId: 'remote' } as never,
     linearIssueCache: { 'w::same-uuid': { data: task('Remote'), fetchedAt: cacheTime } }
   })
@@ -592,6 +591,7 @@ it('a shared read gives explicit-runtime consumers authority after default focus
     .acquire()
   expect(reads.detail).toHaveBeenCalledTimes(1)
   // SAFETY: the fixture only reads the focused runtime selector from settings.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
   s.setState({ settings: { activeRuntimeEnvironmentId: 'elsewhere' } as never })
   await act(async () => {
     pending.resolve(task('Local'))

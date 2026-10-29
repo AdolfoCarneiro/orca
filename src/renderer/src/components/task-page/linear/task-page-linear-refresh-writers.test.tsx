@@ -1,7 +1,7 @@
-import type { LinearIssuePublication } from '@/store/slices/linear/linear-issue-publication'
 // @vitest-environment happy-dom
 import {
   reads,
+  deferredIssueSetters,
   task,
   store,
   listArgs,
@@ -58,9 +58,7 @@ it.each(
     await read(s, 'list')
     const source = defaultScopeSource(s.getState().settings)
     const local = renderHook(() => {
-      const [row, setRow] = useState(task())
-      useLinearIssuePublication(row, source, (apply) => setRow(apply))
-      return row
+      return useLinearIssuePublication(task(), source).issue!
     })
     const pending = { A: deferred<{ ok: boolean }>(), B: deferred<{ ok: boolean }>() }
     const workspaceIds =
@@ -279,14 +277,8 @@ it('confirmed workspace-board sync retires a real crossing loader and accepts it
 
 it('a consumed detail observation retires that mounted consumer queued rollback', async () => {
   const s = store()
-  const queued: LinearIssuePublication[] = []
-  const local = renderHook(() => {
-    const [row, setRow] = useState(task())
-    const { acceptRead } = useLinearIssuePublication(row, defaultScopeSource(null), (apply) => {
-      queued.push(apply)
-    })
-    return { row, setRow, acceptRead }
-  })
+  const local = renderHook(() => useLinearIssuePublication(task(), defaultScopeSource(null)))
+  deferredIssueSetters.enabled = true
   const pending = deferred<{ ok: boolean }>()
   let saving!: Promise<{ ok: boolean }>
   act(() => {
@@ -301,23 +293,15 @@ it('a consumed detail observation retires that mounted consumer queued rollback'
     pending.resolve({ ok: false })
     await saving
   })
+  const queued = deferredIssueSetters.updates.splice(0)
+  deferredIssueSetters.enabled = false
   expect(queued).toHaveLength(2)
   reads.detail.mockResolvedValueOnce({ ...task(), priority: 2 })
   const lease = s.getState().fetchLinearIssue(task().id, 'w', { force: true }).acquire()
   const view = await lease.waitForCurrentTerminal()
-  act(() =>
-    local.result.current.setRow((previous) =>
-      lease.commit(view, previous, (_, data) =>
-        data ? local.result.current.acceptRead(data) : previous
-      )
-    )
-  )
-  act(() => {
-    for (const apply of queued) {
-      local.result.current.setRow((previous) => apply(previous))
-    }
-  })
-  expect(local.result.current.row.priority).toBe(2)
+  act(() => local.result.current.read(lease, view))
+  act(() => queued.forEach((deliver) => deliver()))
+  expect(local.result.current.issue?.priority).toBe(2)
   expect(pendingLinearIssueWrites.size).toBe(0)
   lease.release()
 })
@@ -329,6 +313,7 @@ it('real board drop updates selected fallback and rolls it back through domain s
   reads.update.mockReturnValue(pending.promise)
   const hook = renderHook(() => {
     // SAFETY: only Linear routing and board-drop fields are used; other provider/page actions are inert.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const route = useTaskPageDetailRouting({
       pageData: {},
       linearTaskSourceContext: null,
@@ -337,6 +322,7 @@ it('real board drop updates selected fallback and rolls it back through domain s
     } as never)
     const [updating, setUpdating] = useState(new Set<string>())
     // SAFETY: the actual board handler receives its complete drop dependencies.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const board = useTaskPageLinearBoard({
       ...route,
       settings: null,
@@ -362,6 +348,7 @@ it('real board drop updates selected fallback and rolls it back through domain s
   act(() => {
     dropping = hook.result.current.board.handleLinearBoardDrop(
       { key: 'status:done', label: 'Done', issues: [task('Done')] },
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
       {
         preventDefault() {},
         stopPropagation() {},
@@ -391,6 +378,7 @@ it('postcreate hydration follows replacement and respects actual selection-commi
     runtime = { current: 'runtime' }
   const hook = renderHook(() => {
     // SAFETY: routing fixture supplies Linear selection only.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const route = useTaskPageDetailRouting({
       pageData: {},
       linearTaskSourceContext: null,
@@ -398,6 +386,7 @@ it('postcreate hydration follows replacement and respects actual selection-commi
       openTaskPage: noop
     } as never)
     // SAFETY: the creation hook uses this complete minimal issue-draft model; other project model fields are unused.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const model = useTaskPageLinearIssueCreation({
       ...route,
       settings: null,
@@ -476,6 +465,7 @@ it('queued Cmd-J activation loses its delivered read token and follows the actua
   const open = vi.fn(),
     close = vi.fn()
   // SAFETY: the Linear branch uses only these dependencies and the real owned preview lease.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
   const handler = createWorktreeJumpPaletteWorktreeHandler({
     createWorktreeName: 'url',
     liveQueryRef: { current: 'url' },

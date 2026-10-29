@@ -30,7 +30,12 @@ type IssueOwner = {
   fields: Map<Field, FieldGroup>
 }
 export const pendingLinearIssueWrites = new Map<string, Map<string, IssueOwner>>()
-export type LinearIssuePublication = <T extends Delta>(previous: T) => T
+export type LinearIssuePublication = {
+  <T extends Delta>(previous: T): T
+  fields: readonly Field[]
+  patch: Delta
+  current: (field: string) => boolean
+}
 type LocalConsumer = {
   tokens: Map<Field, object>
   publish: (apply: LinearIssuePublication) => void
@@ -95,7 +100,7 @@ export function registerLinearIssueConsumer(
   scope: LinearReadScope,
   id: string,
   publish: LocalConsumer['publish']
-): { release: () => void; retire: () => void } {
+): { release: () => void; capture: () => () => void } {
   let byIssue = localConsumers.get(scope.contextKey)
   if (!byIssue) {
     byIssue = new Map()
@@ -113,7 +118,16 @@ export function registerLinearIssueConsumer(
     publishConsumer(consumer, Object.assign({}, ...[...owner.fields.values()].map(value)))
   }
   return {
-    retire: () => consumer.tokens.clear(),
+    capture: () => {
+      const captured = [...consumer.tokens]
+      return () => {
+        for (const [field, token] of captured) {
+          if (consumer.tokens.get(field) === token) {
+            consumer.tokens.delete(field)
+          }
+        }
+      }
+    },
     release: () => {
       consumer.tokens.clear()
       consumers.delete(consumer)
@@ -132,13 +146,21 @@ function publishConsumer(consumer: LocalConsumer, patch: Delta) {
   for (const field of changed) {
     consumer.tokens.set(field, token)
   }
+  const apply = <T extends Delta>(previous: T): T => {
+    const current = changed.filter((field) => consumer.tokens.get(field) === token)
+    return current.length
+      ? { ...previous, ...Object.assign({}, ...current.map((field) => fieldValue(patch, field))) }
+      : previous
+  }
   notifyPublication(() =>
-    consumer.publish((previous) => {
-      const current = changed.filter((field) => consumer.tokens.get(field) === token)
-      return current.length
-        ? { ...previous, ...Object.assign({}, ...current.map((field) => fieldValue(patch, field))) }
-        : previous
-    })
+    consumer.publish(
+      Object.assign(apply, {
+        fields: changed,
+        patch,
+        current: (field: string) =>
+          changed.some((key) => key === field && consumer.tokens.get(key) === token)
+      })
+    )
   )
 }
 function publishLocal(scope: LinearReadScope, id: string, patch: Delta) {
@@ -300,6 +322,7 @@ function rows(data: LinearIssueData): LinearIssue[] {
 }
 function replaceRows<T extends LinearIssueData>(data: T, items: LinearIssue[]): T {
   // SAFETY: the adapter preserves the exact input container shape.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the adapter preserves the input container family; generic T cannot be narrowed by its runtime array/items/null discriminant.
   return (
     data === null
       ? (items[0] ?? null)

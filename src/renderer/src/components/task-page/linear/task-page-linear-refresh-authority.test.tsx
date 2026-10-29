@@ -1,3 +1,4 @@
+import { useLinearIssueResult } from '@/hooks/linear-issue-committed-state'
 // @vitest-environment happy-dom
 import {
   reads,
@@ -93,9 +94,11 @@ describe('Linear refresh failure', () => {
           handleOpenOrUseLinearItem: vi.fn()
         }
         // SAFETY: this is every input read by the actual Tasks table; loader and selection above are production.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: every rendered Tasks table input is supplied; unrelated page actions are not exercised.
+        const tableModel = model as unknown as TaskPageComposerActionsModel
         return (
           <TooltipProvider>
-            <TaskPageLinearIssueTable model={model as unknown as TaskPageComposerActionsModel} />
+            <TaskPageLinearIssueTable model={tableModel} />
           </TooltipProvider>
         )
       }
@@ -174,10 +177,19 @@ it('retains ordered linked source provenance when two hosts return the same UUID
     setLinearIssuesHasMore: vi.fn()
   }
   const hook = renderHook(() => {
-    const [rows, setLinearIssues] = useState<LinearIssue[]>([])
+    const result = useLinearIssueResult<LinearIssue[]>(
+      'two-hosts',
+      [],
+      getLinearSourceScope(defaultScopeSource(null))
+    )
     // SAFETY: fixture supplies the linked loader fields.
-    useTaskPageLinearInOrcaEffects({ ...base, setLinearIssues } as never)
-    return rows
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
+    useTaskPageLinearInOrcaEffects({
+      ...base,
+      linearIssueResult: result,
+      setLinearIssues: result.setData
+    } as never)
+    return result.data
   })
   await waitFor(() => expect(hook.result.current).toHaveLength(2))
   act(() =>
@@ -207,6 +219,7 @@ it('opens the fresh row on its origin source despite stale aliases and failed de
   reads.detail.mockRejectedValue(new Error('raw detail failure'))
   const hook = renderHook(() => {
     // SAFETY: routing fixture only opens Linear; Jira and callbacks are inert.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const route = useTaskPageDetailRouting({
       pageData: { openLinearIssue: task('Done'), openLinearSourceContext: origin },
       linearTaskSourceContext: foreign,
@@ -269,6 +282,7 @@ it.each(['project', 'custom-view'] as const)(
       linearCustomViewIssuesResult: result
     }
     // SAFETY: the fixture supplies the selection prelude fields.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const hook = renderHook(() => useTaskPageLinearListSelectionPrelude(model as never))
     expect(hook.result.current.activeLinearIssueError).toBe(
       'Unable to load Linear issues. Try again.'
@@ -310,12 +324,17 @@ it('keeps retained page two reachable after a failed refresh and a successful re
   }
   function Pages() {
     const [nonce, refresh] = useState(0)
-    const [items, setLinearIssues] = useState(rows)
-    const [error, setLinearError] = useState<string | null>(null)
+    const result = useLinearIssueResult(
+      'pagination',
+      rows,
+      getLinearSourceScope(defaultScopeSource(null))
+    )
+    const { data: items, error, setData: setLinearIssues, setError: setLinearError } = result
     const [page, setLinearIssuePage] = useState(0)
     const model = {
       ...base,
       linearRefreshNonce: nonce,
+      linearIssueResult: result,
       linearIssues: items,
       linearError: error,
       linearIssuePage: page,
@@ -324,10 +343,13 @@ it('keeps retained page two reachable after a failed refresh and a successful re
       setLinearIssuePage
     }
     // SAFETY: fixture supplies the real list loader, selection and projection dependencies.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     useTaskPageLinearListEffects(model as never)
     // SAFETY: fixture supplies selection fields; persistence is disabled.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const selection = useTaskPageLinearListSelectionPrelude(model as never)
     // SAFETY: only pagination is rendered, so presentation-only model fields are unused.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const projection = useTaskPageLinearListProjectionPrelude(selection as never)
     return (
       <>
@@ -450,10 +472,19 @@ it.each([20, 200])(
     let renders = 0
     const linked = renderHook(() => {
       renders++
-      const [current, setLinearIssues] = useState<LinearIssue[]>([])
+      const result = useLinearIssueResult<LinearIssue[]>(
+        `N${n}`,
+        [],
+        getLinearSourceScope(defaultScopeSource(null))
+      )
       // SAFETY: the fixture installs the actual linked hook's selected dependencies.
-      useTaskPageLinearInOrcaEffects({ ...base, setLinearIssues } as never)
-      return current
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
+      useTaskPageLinearInOrcaEffects({
+        ...base,
+        linearIssueResult: result,
+        setLinearIssues: result.setData
+      } as never)
+      return result.data
     })
     await waitFor(() => expect(linked.result.current).toHaveLength(n))
     expect(renders).toBeLessThanOrEqual(3)
@@ -520,6 +551,7 @@ it.each([20, 200])('bounds real write-edge and read reconciliation work at Q=P=W
   }))
   // SAFETY: only credential IDs/name and absent optional organization metadata are consumed.
   s.setState({
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     linearStatus: { connected: true, viewer: null, selectedWorkspaceId: 'w0', workspaces } as never
   })
   const rows = Array.from({ length: n }, (_, i) => ({

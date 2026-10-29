@@ -39,6 +39,11 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
     taskResumeApplied,
     linearMode,
     setLinearIssues,
+    linearIssueResult: {
+      read: consumeLinearRead,
+      setLoading: finishLinearLoading,
+      data: retainedLinearRows
+    },
     linearIssueLimit,
     setLinearIssueLimit,
     setLinearIssuePage,
@@ -223,54 +228,39 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
         lastLinearRequestRef.current?.nonce === linearRefreshNonce,
       (lease, view) => {
         if (view.kind === 'abandoned') {
-          setLinearLoading((previous) =>
-            !cancelled &&
-            lastLinearRequestRef.current?.signature === requestSignature &&
-            lastLinearRequestRef.current?.nonce === linearRefreshNonce
-              ? false
-              : previous
-          )
+          if (!cancelled) {
+            finishLinearLoading(false)
+          }
           return
         }
-        if (view.data === null && view.kind === 'loading') {
-          setLinearIssues((current) => lease.commit(view, current, () => []))
-        }
-        if (view.data !== null) {
-          setLinearIssues((current) =>
-            lease.commit(view, current, (_, result) => {
-              if (!result) {
-                return current
+        const result = view.data
+        const issues = result ? (Array.isArray(result) ? result : result.items) : null
+        consumeLinearRead(lease, view, {
+          ...(issues
+            ? {
+                data: shouldProbeOnLanding
+                  ? // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the descriptor captures landing rows; publishing a result must not restart its own read.
+                    reconcileTaskPageLinearIssuesAfterLandingRefresh(retainedLinearRows, issues)
+                  : issues
               }
-              const issues = Array.isArray(result) ? result : result.items
-              return shouldProbeOnLanding
-                ? reconcileTaskPageLinearIssuesAfterLandingRefresh(current, issues)
-                : issues
-            })
-          )
-          setLinearIssuesHasMore((current) =>
-            lease.commit(view, current, (_, result) =>
-              result ? taskPageLinearIssuesHaveMore(result, effectiveLinearIssueLimit) : false
-            )
-          )
-        }
-        if (view.kind === 'data' || view.kind === 'error') {
-          setLinearError((current) =>
-            lease.commit(view, current, (_, result) =>
-              view.kind === 'error'
-                ? linearIssueReadError(view.error)
-                : result && !Array.isArray(result) && result.errors?.length
-                  ? linearIssueReadError(result.errors[0].message)
-                  : null
-            )
-          )
-        }
-        setLinearLoading((current) =>
-          lease.commit(
-            view,
-            current,
-            () => view.kind === 'loading' && (forceRefresh || view.data === null)
-          )
-        )
+            : view.kind === 'loading'
+              ? { data: [] }
+              : {}),
+          ...(result
+            ? { hasMore: taskPageLinearIssuesHaveMore(result, effectiveLinearIssueLimit) }
+            : {}),
+          ...(view.kind === 'data' || view.kind === 'error'
+            ? {
+                error:
+                  view.kind === 'error'
+                    ? linearIssueReadError(view.error)
+                    : result && !Array.isArray(result) && result.errors?.length
+                      ? linearIssueReadError(result.errors[0].message)
+                      : null
+              }
+            : {}),
+          loading: view.kind === 'loading' && (forceRefresh || result === null)
+        })
       }
     )
     return () => {
@@ -295,6 +285,8 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
     linearAttributeFilterReadRef,
     lastLinearRequestRef,
     landingLinearRefreshKeysRef,
+    consumeLinearRead,
+    finishLinearLoading,
     setLinearError,
     setLinearIssues,
     setLinearIssuesHasMore,

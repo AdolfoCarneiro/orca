@@ -1,3 +1,8 @@
+import { useLinearIssueResult } from '@/hooks/linear-issue-committed-state'
+import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
+import { defaultScopeSource } from '@/lib/default-creation-host'
+import type { LinearIssue } from '../../../../shared/linear/issue-types'
+import { parseBoundedSmartWorkspaceLinearIssueUrlIntent } from '../../../../shared/new-workspace/smart-workspace-linear-intent'
 import React, { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
@@ -27,6 +32,7 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
     sourceSelected
   } = props
   const {
+    settings,
     checkLinearConnection,
     fetchWorkItems,
     fetchWorkItemsAcrossRepos,
@@ -44,6 +50,7 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
     searchLinearIssues
   } = useAppStore(
     useShallow((s) => ({
+      settings: s.settings,
       checkLinearConnection: s.checkLinearConnection,
       fetchWorkItems: s.fetchWorkItems,
       fetchWorkItemsAcrossRepos: s.fetchWorkItemsAcrossRepos,
@@ -147,6 +154,21 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
   const linearStatusChecked = hasLinearSearchSource
     ? linearConnection.loaded
     : defaultLinearStatusChecked
+  const linearWorkspaceIdOverride = hasLinearSearchSource
+    ? (linearStatus.selectedWorkspaceId ?? linearStatus.activeWorkspaceId ?? null)
+    : undefined
+  const source = linearSourceContext ?? defaultScopeSource(settings)
+  const scopeKey = useAppStore(() => getLinearSourceScope(source).contextKey)
+  const query =
+    parseBoundedSmartWorkspaceLinearIssueUrlIntent(value) &&
+    (state.mode === 'smart' || state.mode === 'linear')
+      ? value
+      : state.debouncedQuery
+  const linearIssueResult = useLinearIssueResult<LinearIssue[]>(
+    JSON.stringify([scopeKey, query, linearWorkspaceIdOverride]),
+    [],
+    getLinearSourceScope(source)
+  )
   const jiraConnection = useJiraSourceConnection({
     enabled: !disabled && !textOnly && jiraSourceContext !== null,
     sourceContext: jiraSourceContext
@@ -192,6 +214,15 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
   return {
     ...props,
     ...state,
+    linearIssueResult,
+    linearIssues: linearIssueResult.data,
+    setLinearIssues: linearIssueResult.setData,
+    linearLoading: linearIssueResult.loading,
+    setLinearLoading: linearIssueResult.setLoading,
+    linearReadError: linearIssueResult.error,
+    setLinearReadError: linearIssueResult.setError,
+    settledLinearUrlQuery: linearIssueResult.settledUrl,
+    setSettledLinearUrlQuery: linearIssueResult.setSettledUrl,
     ...availability,
     fetchWorkItems,
     fetchWorkItemsAcrossRepos,
@@ -199,9 +230,7 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
     getCachedWorkItems,
     linearStatus,
     linearStatusChecked,
-    linearWorkspaceIdOverride: hasLinearSearchSource
-      ? (linearStatus.selectedWorkspaceId ?? linearStatus.activeWorkspaceId ?? null)
-      : undefined,
+    linearWorkspaceIdOverride,
     listLinearIssues,
     searchJiraIssues,
     searchLinearIssues,

@@ -1,6 +1,9 @@
 import type * as ReactModule from 'react'
 import type { LinearEditState } from '../../linear-item-drawer-types'
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
+import { useLinearIssueResult } from '@/hooks/linear-issue-committed-state'
+import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
+import { defaultScopeSource } from '@/lib/default-creation-host'
 import { LinearIssueTextEditor } from '../../LinearIssueTextEditor'
 import { useLinearIssueEditController } from '../../linear-item-drawer-edit-controller'
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
@@ -15,27 +18,29 @@ import { clearLinearRequestMaps } from '../../../store/slices/linear/linear-slic
 import { useTaskPageLinearListSelectionPrelude } from './use-task-page-linear-list-selection'
 import { useTaskPageLinearListEffects } from './use-task-page-linear-list-effects'
 
-const deferredIssueSetters = vi.hoisted(() => ({ enabled: false, updates: [] as VoidFunction[] }))
+const deferredIssueSetters = vi.hoisted(() => {
+  const updates: VoidFunction[] = []
+  return { enabled: false, updates }
+})
 vi.mock('react', async (original) => {
   const actual = await original<typeof ReactModule>()
   return {
     ...actual,
-    useState<T>(initial: T | (() => T)) {
-      const [value, setValue] = actual.useState(initial)
-      const issueState = actual.useRef(
-        Boolean(
-          value === null ||
-          (value && typeof value === 'object' && 'id' in value && value.id === 'same-uuid')
-        )
-      )
-      const set = actual.useCallback((update: React.SetStateAction<T>) => {
-        if (deferredIssueSetters.enabled && issueState.current && typeof update === 'function') {
-          deferredIssueSetters.updates.push(() => setValue(update))
+    useReducer<S, A>(reducer: (previous: S, action: A) => S, initial: S) {
+      const [value, dispatch] = actual.useReducer(reducer, initial)
+      const send = actual.useCallback((action: A) => {
+        if (
+          deferredIssueSetters.enabled &&
+          typeof initial === 'object' &&
+          initial !== null &&
+          'whole' in initial
+        ) {
+          deferredIssueSetters.updates.push(() => dispatch(action))
         } else {
-          setValue(update)
+          dispatch(action)
         }
       }, [])
-      return [value, set] as const
+      return [value, send] as const
     }
   }
 })
@@ -242,15 +247,21 @@ export function display(
   const base = { ...fixture(s, rows, view), ...s.getState() }
   const noop = vi.fn()
   return renderHook(() => {
-    const [current, setRows] = useState(rows)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const scope = getLinearSourceScope(context ?? defaultScopeSource(null))
+    const projectResult = useLinearIssueResult(`${scope.contextKey}project`, { items: rows }, scope)
+    const viewResult = useLinearIssueResult(`${scope.contextKey}view`, { items: rows }, scope)
+    const result = view === 'custom-view' ? viewResult : projectResult
+    const current = view === 'project' || view === 'custom-view' ? result.data.items : rows
+    const loading = result.loading
+    const error = result.error
     const model = {
       ...base,
       linearTaskSourceContext: context,
       linearIssues: current,
-      linearProjectIssuesResult: { items: current },
-      linearCustomViewIssuesResult: { items: current },
+      linearProjectIssueResult: projectResult,
+      linearCustomViewIssueResult: viewResult,
+      linearProjectIssuesResult: projectResult.data,
+      linearCustomViewIssuesResult: viewResult.data,
       taskResumeApplied: true,
       linearProjectSearchInput: '',
       setAppliedLinearProjectSearch: noop,
@@ -263,28 +274,26 @@ export function display(
       setSelectedLinearProjectDetail: noop,
       setLinearProjectDetailLoading: noop,
       setLinearProjectDetailError: noop,
-      setLinearProjectIssuesLoading: setLoading,
-      setLinearProjectIssuesError: setError,
-      setLinearCustomViewContentsLoading: setLoading,
-      setLinearCustomViewContentsError: setError,
+      setLinearProjectIssuesLoading: projectResult.setLoading,
+      setLinearProjectIssuesError: projectResult.setError,
+      setLinearCustomViewContentsLoading: viewResult.setLoading,
+      setLinearCustomViewContentsError: viewResult.setError,
       setLinearCustomViewProjectsResult: noop,
-      setLinearProjectIssuesResult: (update: React.SetStateAction<{ items: LinearIssue[] }>) =>
-        setRows((items) => (typeof update === 'function' ? update({ items }) : update).items),
-      setLinearCustomViewIssuesResult: (update: React.SetStateAction<{ items: LinearIssue[] }>) => {
-        if (view === 'custom-view') {
-          setRows((items) => (typeof update === 'function' ? update({ items }) : update).items)
-        }
-      }
+      setLinearProjectIssuesResult: projectResult.setData,
+      setLinearCustomViewIssuesResult: viewResult.setData
     }
     // SAFETY: fixture supplies the selected collection loader's fields; unrelated persistence is disabled.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     useTaskPageLinearCollectionEffectsPrelude({
       ...model,
       selectedLinearProject: view === 'project' ? base.selectedLinearProject : null
     } as never)
     // SAFETY: fixture supplies the custom-view loader fields and no view inventory is requested.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     useTaskPageLinearCustomViewEffects({ ...model, linearMode: 'issues' } as never)
     // List/search cache notifications are exercised with the real loader in loadingHook.
     // SAFETY: fixture supplies the selection prelude fields.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     const selection = useTaskPageLinearListSelectionPrelude(model as never)
     return { ...selection, loading, error }
   })
@@ -302,12 +311,7 @@ afterEach(() => {
   clearLinearRequestMaps()
 })
 
-export function loadingHook(
-  s: Store,
-  query = '',
-  extra = {},
-  queued?: React.SetStateAction<LinearIssue[]>[]
-) {
+export function loadingHook(s: Store, query = '', extra = {}, queued?: VoidFunction[]) {
   const refs = {
     linearSearchPersistReadyRef: { current: false },
     linearViewPersistReadyRef: { current: false },
@@ -339,23 +343,35 @@ export function loadingHook(
   return renderHook(
     ({ nonce }) => {
       renderCount++
-      const [rows, setLinearIssues] = useState([task()])
-      const publishRows = useCallback(
-        (update: React.SetStateAction<LinearIssue[]>) =>
-          queued ? queued.push(update) : setLinearIssues(update),
-        []
+      const scope = getLinearSourceScope(defaultScopeSource(null))
+      const result = useLinearIssueResult(scope.contextKey + query, [task()], scope)
+      const { data: rows, error, loading, read: consumeLinearRead } = result
+      const deliver = useCallback<typeof consumeLinearRead>(
+        (lease, view, value) => {
+          if (queued && 'data' in value) {
+            queued.push(() => consumeLinearRead(lease, view, value))
+            // Preserve the original delayed-row seam: outcome consumption is immediate.
+            const { data: _rows, ...outcome } = value
+            consumeLinearRead(lease, view, outcome)
+          } else {
+            consumeLinearRead(lease, view, value)
+          }
+        },
+        [consumeLinearRead]
       )
-      const [error, setLinearError] = useState<string | null>(null)
-      const [loading, setLinearLoading] = useState(false)
       // SAFETY: fixture supplies the loader's dependencies; persistence setters are inert in this hook test.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
       useTaskPageLinearListEffects({
         ...base,
         linearRefreshNonce: nonce,
-        setLinearIssues: publishRows,
-        setLinearError,
-        setLinearLoading
+        linearIssueResult: { ...result, read: deliver },
+        setLinearIssues: result.setData,
+        setLinearError: result.setError,
+        setLinearLoading: result.setLoading,
+        setLinearIssuesHasMore: result.setHasMore
       } as never)
       // SAFETY: the same fixture supplies the rendered selection fields.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
       const selection = useTaskPageLinearListSelectionPrelude({
         ...base,
         linearIssues: rows,
@@ -366,7 +382,7 @@ export function loadingHook(
         error,
         loading,
         displayed: selection.displayedLinearIssues,
-        applyRows: setLinearIssues,
+
         renders: renderCount
       }
     },

@@ -34,6 +34,7 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
     setLinearProjectDetailError,
     linearProjectTab,
     setLinearProjectIssuesResult,
+    linearProjectIssueResult: { read: consumeLinearRead, setLoading: finishLinearLoading },
     linearProjectIssueLimit,
     setLinearProjectIssuesLoading,
     setLinearProjectIssuesError,
@@ -168,26 +169,21 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
       () => !cancelled,
       (lease, view) => {
         if (view.kind === 'abandoned') {
-          setLinearProjectIssuesLoading((previous) => (!cancelled ? false : previous))
+          if (!cancelled) {
+            finishLinearLoading(false)
+          }
           return
         }
-        if (view.data) {
-          setLinearProjectIssuesResult((current) =>
-            lease.commit(view, current, (_, data) => data ?? current)
-          )
-        }
-        setLinearProjectIssuesError((current) =>
-          lease.commit(view, current, (_, data) =>
+        consumeLinearRead(lease, view, {
+          ...(view.data ? { data: view.data } : {}),
+          error:
             view.kind === 'error'
               ? linearIssueReadError(view.error)
-              : data?.errors?.length
-                ? linearIssueReadError(data.errors[0].message)
-                : null
-          )
-        )
-        setLinearProjectIssuesLoading((current) =>
-          lease.commit(view, current, () => view.kind === 'loading')
-        )
+              : view.data?.errors?.length
+                ? linearIssueReadError(view.data.errors[0].message)
+                : null,
+          loading: view.kind === 'loading'
+        })
       }
     )
     return () => {
@@ -195,6 +191,8 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
       release()
     }
   }, [
+    consumeLinearRead,
+    finishLinearLoading,
     linearProjectIssueLimit,
     linearProjectTab,
     linearRefreshNonce,

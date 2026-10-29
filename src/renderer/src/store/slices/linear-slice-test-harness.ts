@@ -51,6 +51,7 @@ function awaitableRead<T>(read: LinearIssueRead<T>): AwaitableRead<T> {
 export function createTestStore() {
   const store = create<AppState>()((...a) => {
     const slice = createLinearSlice(...a)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture installs the real Linear slice only; awaitable decoration preserves each acquire/release contract while unrelated AppState services are absent.
     return {
       settings: null,
       ...slice,
@@ -65,6 +66,7 @@ export function createTestStore() {
     } as AppState
   })
   // SAFETY: each issue action above is decorated with acquire plus the test-only then adapter.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture installs the real Linear slice only; awaitable decoration preserves each acquire/release contract while unrelated AppState services are absent.
   return store as unknown as UseBoundStore<StoreApi<TestAppState>>
 }
 

@@ -1,3 +1,6 @@
+import { useLinearIssueResult } from '@/hooks/linear-issue-committed-state'
+import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
+import { defaultScopeSource } from '@/lib/default-creation-host'
 import {
   mapLinearIssueRead,
   type LinearIssueLease
@@ -68,7 +71,24 @@ export function useWorktreeJumpPaletteTaskUrl({
     () => (taskSourceUrl ? getCmdJTaskUrlCreatePreview(taskSourceUrl) : null),
     [taskSourceUrl]
   )
-  const [linearIssuePreview, setLinearIssuePreview] = useState<CmdJLinearIssuePreview | null>(null)
+  const creationTarget = getComposerDefaultWorkspaceTarget(useAppStore.getState())
+  const linearSource = creationTarget
+    ? buildTaskSourceContextFromRepo({
+        provider: 'linear',
+        projectId: creationTarget.projectId,
+        repo: creationTarget.repo,
+        projectHostSetupId: creationTarget.projectHostSetupId
+      })
+    : defaultScopeSource(useAppStore.getState().settings)
+  const linearScopeKey = useAppStore(() => getLinearSourceScope(linearSource).contextKey)
+  const linearResult = useLinearIssueResult<CmdJLinearIssuePreview | null>(
+    JSON.stringify([linearScopeKey, visible, createWorktreeName, linearIssueUrlIntent]),
+    null,
+    getLinearSourceScope(linearSource)
+  )
+  const { read: consumeLinearRead } = linearResult
+  const linearIssuePreview = linearResult.data
+  const setLinearIssuePreview = linearResult.setData
   const [githubWorkItemPreview, setGithubWorkItemPreview] =
     useState<CmdJGitHubWorkItemPreview | null>(null)
   const linearLookupRef = useRef<{
@@ -121,11 +141,9 @@ export function useWorktreeJumpPaletteTaskUrl({
     linearLookupRef.current = { query: createWorktreeName, lease }
     const update = () => {
       const view = lease.currentView()
-      setLinearIssuePreview((previous) =>
-        lease.commit(view, previous, (_, data) =>
-          view.kind === 'loading' ? { ...pending, issue: data?.issue ?? null } : data
-        )
-      )
+      consumeLinearRead(lease, view, {
+        data: view.kind === 'loading' ? { ...pending, issue: view.data?.issue ?? null } : view.data
+      })
     }
     const unsubscribe = lease.subscribe(update)
     update()
@@ -136,7 +154,14 @@ export function useWorktreeJumpPaletteTaskUrl({
       unsubscribe()
       lease.release()
     }
-  }, [createWorktreeName, linearIssueUrlIntent, visible])
+  }, [
+    createWorktreeName,
+    linearIssueUrlIntent,
+    visible,
+    linearScopeKey,
+    consumeLinearRead,
+    setLinearIssuePreview
+  ])
 
   useLayoutEffect(() => {
     const generation = ++githubGenerationRef.current
