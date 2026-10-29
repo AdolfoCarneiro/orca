@@ -8,7 +8,11 @@ import {
   type MutableRefObject,
   type SetStateAction
 } from 'react'
-import { translate } from '@/i18n/i18n'
+import {
+  copiedGrabToastMessage,
+  screenshottedGrabToastMessage,
+  annotationAddedGrabToastMessage
+} from './browser-page-grab-toast-messages'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useAppStore } from '@/store'
 import type {
@@ -28,22 +32,6 @@ import type {
   BrowserPageGrabToastState,
   GrabIntent
 } from '../describe-page/browser-page-types'
-
-const copiedGrabToastMessage = (): string =>
-  translate(
-    'auto.components.browser.pane.annotate.use.browser.page.grab.annotations.0c7b9b2b7a',
-    'Copied'
-  )
-const screenshottedGrabToastMessage = (): string =>
-  translate(
-    'auto.components.browser.pane.annotate.use.browser.page.grab.annotations.c937229f19',
-    'Screenshotted'
-  )
-const annotationAddedGrabToastMessage = (): string =>
-  translate(
-    'auto.components.browser.pane.annotate.use.browser.page.grab.annotations.1f5cb19034',
-    'Annotation added'
-  )
 
 export function useBrowserPageGrabAnnotations({
   browserTabId,
