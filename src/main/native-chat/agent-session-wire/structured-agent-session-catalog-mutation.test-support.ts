@@ -115,7 +115,8 @@ export async function createCatalogMutationFixture(
       environment: {
         resolveBaseEnvironment: async () => ({}),
         resolveAgentEnvironment: async () => ({}),
-        refreshAfterMissingProgram: async () => {}
+        refreshAfterMissingProgram: async () => {},
+        bindCatalogSources: () => () => {}
       }
     })
     const catalog = installed.modelCatalog

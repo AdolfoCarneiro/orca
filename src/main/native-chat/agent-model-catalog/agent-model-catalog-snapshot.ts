@@ -5,7 +5,10 @@ import {
 import { onLiveAccount } from './agent-model-catalog-running-account'
 import { agentModelCatalogFingerprintForRecord } from './agent-model-catalog-fingerprint'
 import { agentSessionPinnedLaunchDirectory } from '../../runtime/agent-session-record-launch-directory'
-import type { AgentSessionConversationView } from '../../../shared/agent-session-conversation-view'
+import {
+  agentSessionConversationView,
+  type AgentSessionConversationView
+} from '../../../shared/agent-session-conversation-view'
 import type { AgentSessionRecord } from '../../../shared/agent-session-record'
 import type { AgentSessionModelCatalogResult } from '../../../shared/agent-session-wire'
 import { agentModelCatalogResultFromEntry } from './agent-model-catalog-entry'
@@ -266,12 +269,13 @@ export function expireAgentModelCatalogBoundFailure(
   record: AgentSessionRecord,
   source?: () => boolean
 ): void {
+  const view = agentSessionConversationView(record)
   const bound = bindings.get(
     agentModelCatalogRequestKey(deps, {
       agent: record.provider,
       sessionId: record.sessionId,
       inSessionWorkspace: true,
-      records: { record, scoped: onLiveAccount(deps, record), savedOnly: false }
+      records: { record: view, scoped: onLiveAccount(deps, view), savedOnly: false }
     })
   )
   if (bound?.current() && source?.() !== false) {
