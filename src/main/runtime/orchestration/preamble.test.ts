@@ -333,7 +333,7 @@ it('preserves actual terminal/chat template input, exact display suffix and raw 
     orchestration: { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
   }
   for (const [workerHandle, taskSpec] of [
-    ['term_worker', '  🐋\n\n=== TASK ===\nMy marker.  ' + 'x'.repeat(30_000)],
+    ['term_worker', `  🐋\n\n=== TASK ===\nMy marker.  ${'x'.repeat(30_000)}`],
     ['orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37', '']
   ] as const) {
     const text = buildDispatchPreamble(baseParams({ workerHandle, taskSpec }))
