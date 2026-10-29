@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Blocks } from 'lucide-react'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
@@ -104,11 +104,16 @@ export function PluginManager({
     onRefreshInstalled,
     onOpenRequested: open
   })
+  // Why: an install counts as from a link only while the page that link opened is showing.
+  const [linkedKey, setLinkedKey] = useState<string | null>(null)
   const installLink = usePluginInstallLink({
     sources: catalog.sources,
     loading: catalog.loading,
     loadMarketplaceData: catalog.loadMarketplaceData,
-    open
+    open: (pluginKey) => {
+      setLinkedKey(pluginKey)
+      open(pluginKey)
+    }
   })
   const openEntry = (pluginKey: string): void => {
     open(pluginKey)
@@ -116,9 +121,14 @@ export function PluginManager({
       onShowLogs(pluginKey)
     }
   }
+  const isFromInstallLink = useCallback(
+    (pluginKey: string) => pluginKey === linkedKey && openKey === linkedKey,
+    [linkedKey, openKey]
+  )
   const install = usePluginInstallAction({
     fetchPreview: catalog.fetchPreview,
-    onInstalled
+    onInstalled,
+    isFromInstallLink
   })
   const prefetch = usePluginHoverPrefetch(catalog.fetchPreview)
   const orcaVersion = useOrcaVersion()
