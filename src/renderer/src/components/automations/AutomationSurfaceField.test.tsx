@@ -12,14 +12,18 @@ import { makeStoreState } from './automations-page-fixtures'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import {
   AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
-  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
+  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
 } from '../../../../shared/protocol-version'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { AutomationSurfaceField } from './AutomationSurfaceField'
-import { automationDraftSurface } from './automation-launch-surface'
+import { automationChatSupport, automationDraftSurface } from './automation-launch-surface'
 import { buildAutomationEditDraft } from './automation-edit-draft'
 import { buildProfileStateCutoverFixture } from '../../../../main/persistence/profile-state-cutover-fixture'
 
+const registryRpc = vi.hoisted(() => vi.fn())
+vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: registryRpc }))
 vi.mock('@/store', () => ({
   useAppStore: (selector: (state: typeof routeState) => unknown) => selector(routeState)
 }))
@@ -27,13 +31,37 @@ vi.mock('@/lib/host-chat-program-acquisition', () => ({ useChatProgramFacts: () 
 vi.mock('./AutomationEditorPromptEditor', () => ({ getAutomationPromptEditorRoot: () => null }))
 vi.mock('./AutomationEditorPromptSection', () => ({ AutomationEditorPromptSection: () => null }))
 vi.mock('./AutomationEditorSettingsSidebar', () => ({
-  AutomationEditorSettingsSidebar: () => null
+  AutomationEditorSettingsSidebar: ({
+    draft,
+    settings,
+    chatSupported,
+    onDraftChange
+  }: {
+    draft: AutomationDraft
+    settings: GlobalSettings | null
+    chatSupported: boolean | null
+    onDraftChange: (updater: (draft: AutomationDraft) => AutomationDraft) => void
+  }) => (
+    <AutomationSurfaceField
+      draft={draft}
+      settings={settings}
+      supported={chatSupported}
+      onDraftChange={onDraftChange}
+    />
+  )
 }))
 vi.mock('./AutomationEditorDialogHeader', () => ({ AutomationEditorDialogHeader: () => null }))
+
+import {
+  loadHostStructuredAgents,
+  resetHostStructuredAgentsForTests
+} from '@/runtime/host-structured-agents'
 
 let routeState = makeStoreState().state
 beforeEach(() => {
   routeState = makeStoreState().state
+  resetHostStructuredAgentsForTests()
+  registryRpc.mockReset()
 })
 afterEach(() => {
   setLocalRuntimeCapabilitiesForTests(null)
@@ -119,6 +147,33 @@ it('rederives unknown native preference for the current agent while explicit and
   const perAgent = { ...settings, nativeChatProviders: { claude: false } }
   expect(automationDraftSurface(draft, perAgent, null)).toBe('terminal')
   expect(automationDraftSurface({ ...draft, agentId: 'codex' }, perAgent, null)).toBe('chat')
+  const change = vi.fn()
+  const view = render(
+    <AutomationSurfaceField
+      draft={draft}
+      settings={perAgent}
+      supported={null}
+      onDraftChange={change}
+    />
+  )
+  expect(screen.getAllByRole('radio').map((radio) => radio.textContent)).toEqual([
+    'Chat',
+    'Terminal'
+  ])
+  expect(screen.getAllByRole('radio')[1].getAttribute('aria-checked')).toBe('true')
+  view.rerender(
+    <AutomationSurfaceField
+      draft={{ ...draft, agentId: 'codex' }}
+      settings={perAgent}
+      supported={null}
+      onDraftChange={change}
+    />
+  )
+  expect(screen.getAllByRole('radio').map((radio) => radio.textContent)).toEqual([
+    'Terminal',
+    'Chat'
+  ])
+  expect(screen.getAllByRole('radio')[1].getAttribute('aria-checked')).toBe('true')
   for (const supported of [null, true, false]) {
     expect(automationDraftSurface({ ...draft, surface: 'terminal' }, settings, supported)).toBe(
       'terminal'
@@ -127,7 +182,7 @@ it('rederives unknown native preference for the current agent while explicit and
   expect(automationDraftSurface({ ...draft, surface: 'chat' }, settings, false)).toBe('chat')
 })
 
-it('the real dialog footer withholds an unchosen native Chat save until support resolves', () => {
+it('the real field and footer withhold native Chat until current registration publishes', async () => {
   const fixtures = makeStoreState()
   const { surface: _legacy, ...newDraft } = buildAutomationEditDraft(
     buildProfileStateCutoverFixture('/fixture').automations[0]
@@ -145,7 +200,7 @@ it('the real dialog footer withholds an unchosen native Chat save until support 
     repoMap: fixtures.repoMap,
     worktrees: [...fixtures.worktreeMap.values()],
     settings,
-    draft: { ...newDraft, agentId: 'claude' as const },
+    draft: { ...newDraft, agentId: 'pi' as const },
     onProjectChange: vi.fn(),
     onOpenChange: vi.fn(),
     onDraftChange: vi.fn(),
@@ -153,16 +208,19 @@ it('the real dialog footer withholds an unchosen native Chat save until support 
     onApplyTemplate: vi.fn(),
     onSave
   }
-  setLocalRuntimeCapabilitiesForTests(null)
+  setLocalRuntimeCapabilitiesForTests(registeredCapabilities)
   const view = render(<AutomationEditorDialog {...props} />)
   const button = screen.getByRole('button', { name: 'Create' })
   expect(button.hasAttribute('disabled')).toBe(true)
   fireEvent.click(button)
   expect(onSave).not.toHaveBeenCalled()
-  setLocalRuntimeCapabilitiesForTests([
-    AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
-    STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
+  expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('aria-checked'))).toEqual([
+    'false',
+    'true'
   ])
+  expect(screen.getAllByRole('radio').every((radio) => radio.hasAttribute('disabled'))).toBe(true)
+  registryRpc.mockResolvedValue({ agents: [{ agent: 'pi', capabilities: {} }] })
+  await loadHostStructuredAgents('local', registeredCapabilities, null)
   view.rerender(<AutomationEditorDialog {...props} />)
   expect(button.hasAttribute('disabled')).toBe(false)
   fireEvent.click(button)
@@ -177,4 +235,74 @@ it('the real dialog footer withholds an unchosen native Chat save until support 
   setLocalRuntimeCapabilitiesForTests([])
   view.rerender(<AutomationEditorDialog {...props} draft={{ ...props.draft, surface: 'chat' }} />)
   expect(button.hasAttribute('disabled')).toBe(true)
+})
+
+const registeredCapabilities = [
+  AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
+]
+
+it('observes only established current-runtime facts and retains independent definitive blockers', async () => {
+  const pi = { ...draft, agentId: 'pi' as const }
+  const local = { kind: 'git-worktree' as const }
+  const support = () => automationChatSupport(routeState, pi, local)
+  setLocalRuntimeCapabilitiesForTests(registeredCapabilities)
+  expect(support()).toBeNull()
+  expect(automationChatSupport(routeState, draft, local)).toBe(true)
+  for (const response of [new Error('offline'), {}]) {
+    registryRpc.mockImplementation(async () => {
+      if (response instanceof Error) {
+        throw response
+      }
+      return response
+    })
+    await loadHostStructuredAgents('local', registeredCapabilities, null)
+    expect(support()).toBeNull()
+  }
+  registryRpc.mockResolvedValue({ agents: [] })
+  await loadHostStructuredAgents('local', registeredCapabilities, null)
+  expect(support()).toBe(false)
+  resetHostStructuredAgentsForTests()
+  setLocalRuntimeCapabilitiesForTests(
+    registeredCapabilities.filter(
+      (c) => c !== STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
+    )
+  )
+  expect(support()).toBe(false)
+  setLocalRuntimeCapabilitiesForTests(
+    registeredCapabilities.filter((c) => c !== STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)
+  )
+  expect(support()).toBe(false)
+  setLocalRuntimeCapabilitiesForTests(null)
+  expect(support()).toBeNull()
+  expect(automationChatSupport(routeState, pi, { ...local, executionHostId: 'ssh:remote' })).toBe(
+    false
+  )
+  const paired = { ...local, executionHostId: 'runtime:paired' }
+  routeState.runtimeStatusByEnvironmentId = new Map([
+    ['paired', { status: { runtimeId: 'A', capabilities: registeredCapabilities } }]
+  ])
+  registryRpc.mockResolvedValue({ agents: [{ agent: 'pi', capabilities: {} }] })
+  await loadHostStructuredAgents('runtime:paired', registeredCapabilities, 'A')
+  expect(automationChatSupport(routeState, pi, paired)).toBe(true)
+  routeState.runtimeStatusByEnvironmentId = new Map([
+    ['paired', { status: { runtimeId: 'B', capabilities: registeredCapabilities } }]
+  ])
+  expect(automationChatSupport(routeState, pi, paired)).toBeNull()
+  routeState.runtimeStatusByEnvironmentId = new Map([
+    [
+      'paired',
+      {
+        status: {
+          runtimeId: 'B',
+          capabilities: registeredCapabilities.filter(
+            (c) => c !== STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY
+          )
+        }
+      }
+    ]
+  ])
+  expect(automationChatSupport(routeState, pi, paired)).toBe(false)
 })

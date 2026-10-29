@@ -69,8 +69,8 @@ export function getAutomationRunViewState({
   if (run.sessionKind === 'chat' && run.chatSessionId && run.workspaceId && workspaceExists) {
     return {
       availability: 'chat',
-      actionLabel: 'View run',
-      statusLabel: 'Open run chat',
+      actionLabel: translate('auto.components.automations.runViewState.viewRun', 'View run'),
+      statusLabel: translate('auto.components.automations.runViewState.runOpen', 'Run is open'),
       canOpen: true
     }
   }

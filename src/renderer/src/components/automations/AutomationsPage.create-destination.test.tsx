@@ -22,6 +22,10 @@ import {
   settleHostQueries
 } from './automations-page-test-harness'
 import {
+  openCreateDialogFor,
+  holdRuntimeSave,
+  observeRuntimeIncarnation,
+  learnRuntimeAgents,
   addSshHost,
   addSshProject,
   capableChatDestination,
@@ -39,22 +43,6 @@ import {
 import { makeAutomation, REPO_ID, WORKSPACE_ID } from './automations-page-fixtures'
 
 installAutomationsPageHarness()
-
-async function openCreateDialogFor(projectId: string, workspaceId: string): Promise<void> {
-  await act(async () => {
-    mocks.listPanel?.openCreateDialog()
-  })
-  await act(async () => {
-    mocks.editorDialog?.onDraftChange((current) => ({
-      ...(current as Record<string, unknown>),
-      name: 'Sweep',
-      prompt: 'Do the sweep',
-      projectId,
-      workspaceMode: 'existing',
-      workspaceId
-    }))
-  })
-}
 
 describe('AutomationsPage create destination', () => {
   it.each(['default-off', 'explicit'] as const)(
@@ -109,12 +97,16 @@ describe('AutomationsPage create destination', () => {
       mocks.state.automationHostFilter = RUNTIME_SELF_FILTER
       runtimeCreateReturns(makeAutomation({ id: 'a-new' }))
       observeRuntimeChat(null)
+      if (supported) {
+        observeRuntimeIncarnation('A')
+      }
       const page = await renderPage()
       await settleHostQueries()
       await openCreateDialogFor(RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID)
       await act(async () => {
         mocks.editorDialog?.onDraftChange((current) => ({
           ...draftRecord(current),
+          agentId: supported ? 'pi' : 'claude',
           extraAgentArgs: '--model opus',
           reuseSession: false
         }))
@@ -139,6 +131,10 @@ describe('AutomationsPage create destination', () => {
       })
 
       capableChatDestination()
+      if (supported) {
+        observeRuntimeIncarnation('A')
+        await learnRuntimeAgents('A', ['pi'])
+      }
       if (!supported) {
         observeRuntimeChat(
           CHAT_CAPABILITIES.filter(
@@ -214,6 +210,104 @@ describe('AutomationsPage create destination', () => {
         mayNeedUpdate: false
       })
     }
+  })
+
+  it.each([
+    {
+      name: 'implicit Chat / unknown',
+      initial: ['pi'],
+      late: undefined,
+      surface: undefined,
+      expected: 'chat'
+    },
+    {
+      name: 'implicit Chat / exclusion',
+      initial: ['pi'],
+      late: [],
+      surface: undefined,
+      expected: 'terminal'
+    },
+    {
+      name: 'explicit Chat / exclusion',
+      initial: ['pi'],
+      late: [],
+      surface: 'chat' as const,
+      expected: 'chat'
+    },
+    {
+      name: 'admitted Terminal / unknown',
+      initial: [],
+      late: undefined,
+      surface: undefined,
+      expected: 'terminal'
+    },
+    {
+      name: 'admitted Terminal / positive',
+      initial: [],
+      late: ['pi'],
+      surface: undefined,
+      expected: 'terminal'
+    }
+  ])(
+    'preserves the admitted operation across the real await: $name',
+    async ({ initial, late, surface, expected }) => {
+      const held = await holdRuntimeSave(surface ? { surface } : {}, initial)
+      if (surface) {
+        expect(mocks.editorDialog?.draft).toHaveProperty('surface', surface)
+      } else {
+        expect(mocks.editorDialog?.draft).not.toHaveProperty('surface')
+      }
+      observeRuntimeIncarnation('B')
+      if (late) {
+        await learnRuntimeAgents('B', late)
+      }
+      await held.page.rerender()
+      await held.release()
+      expect(createRpcCalls()).toHaveLength(1)
+      expect(createRpcCalls()[0]?.[0]).toEqual({ kind: 'environment', environmentId: RUNTIME_ID })
+      expect(createRpcCalls()[0]?.[3]).toMatchObject({ expectedEnvironmentPairingRevision: 4 })
+      if (expected === 'chat') {
+        expect(createRpcCalls()[0]?.[2]).toMatchObject({ launchSetupPatch: { surface: 'chat' } })
+      } else {
+        expect(createRpcCalls()[0]?.[2]).not.toHaveProperty('launchSetupPatch')
+      }
+      if (surface) {
+        expect(mocks.editorDialog?.draft).toHaveProperty('surface', surface)
+      } else {
+        expect(mocks.editorDialog?.draft).not.toHaveProperty('surface')
+      }
+      expect(mocks.toastSuccess).toHaveBeenCalledOnce()
+    }
+  )
+
+  it('retains atomic Chat arguments through a failed current-runtime read and reaches real lower refusal', async () => {
+    const held = await holdRuntimeSave({ extraAgentArgs: '--model opus' })
+    observeRuntimeIncarnation('B')
+    const previous = mocks.callRuntimeRpc.getMockImplementation()
+    mocks.callRuntimeRpc.mockImplementation(async (target, method, params, options) => {
+      if (method === 'agentSession.agents') {
+        throw new Error('offline')
+      }
+      if (method === 'automation.create') {
+        throw new Error('host refuses create')
+      }
+      return await previous?.(target, method, params, options)
+    })
+    const { loadHostStructuredAgents } = await import('@/runtime/host-structured-agents')
+    const { REGISTERED_CHAT_CAPABILITIES } = await import('./automations-page-destination-fixtures')
+    await loadHostStructuredAgents(`runtime:${RUNTIME_ID}`, REGISTERED_CHAT_CAPABILITIES, 'B')
+    await held.page.rerender()
+    await held.release()
+    expect(createRpcCalls()).toHaveLength(1)
+    expect(createRpcCalls()[0]?.[2]).toMatchObject({
+      launchSetupPatch: {
+        surface: 'chat',
+        arguments: { kind: 'legacy-extras', value: '--model opus' }
+      }
+    })
+    expect(mocks.toastSuccess).not.toHaveBeenCalled()
+    expect(mocks.editorDialog?.open).toBe(true)
+    expect(mocks.editorDialog?.notice?.message).toBeTruthy()
   })
 
   it('refuses a desktop project for a runtime destination instead of sending its id', async () => {

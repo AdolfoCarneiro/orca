@@ -34,6 +34,7 @@ import {
   SSH_REPO_ID,
   SSH_TARGET_ID
 } from './automations-page-destination-fixtures'
+import { selfScopedList } from './automations-page-runtime-fixtures'
 import { listedRow } from './automations-page-listed-items'
 import { makeAutomation, REPO_ID } from './automations-page-fixtures'
 
@@ -111,6 +112,53 @@ describe('AutomationsPage edit fencing', () => {
     expect(api.automations.update.mock.calls[0]?.[0]?.updates).not.toHaveProperty(
       'launchSetupPatch'
     )
+  })
+
+  it('keeps saved Chat explicit through the real edit reread and atomically clears arguments', async () => {
+    const automation = makeAutomation({ surface: 'chat', extraAgentArgs: '--model opus' })
+    api.automations.list.mockResolvedValue([])
+    scopedList([automation])
+    const { setLocalRuntimeCapabilitiesForTests } =
+      await import('@/runtime/local-runtime-capabilities')
+    setLocalRuntimeCapabilitiesForTests(CHAT_CAPABILITIES)
+    const page = await renderPage()
+    await settleHostQueries()
+    await act(async () => {
+      void mocks.listPanel?.openEditDialog(listedRow(automation.id))
+    })
+    await act(async () => {
+      mocks.editorDialog?.onDraftChange((current) => ({
+        ...draftRecord(current),
+        extraAgentArgs: ''
+      }))
+    })
+    const held = Promise.withResolvers<ReturnType<typeof selfScopedList>>()
+    api.automations.listScoped.mockClear().mockReturnValueOnce(held.promise)
+    try {
+      await save()
+      expect(api.automations.listScoped).toHaveBeenCalled()
+      expect(api.automations.update).not.toHaveBeenCalled()
+      setLocalRuntimeCapabilitiesForTests(null)
+      await page.rerender()
+      await act(async () => {
+        held.resolve(selfScopedList([automation]))
+      })
+      await settleHostQueries()
+      expect(api.automations.update).toHaveBeenCalledOnce()
+      expect(api.automations.update.mock.calls[0]?.[0]).toMatchObject({
+        id: automation.id,
+        expectedOwner: { selector: { kind: 'self' } },
+        updates: {
+          launchSetupPatch: { surface: 'chat', arguments: { kind: 'legacy-extras', value: '' } }
+        }
+      })
+      expect(api.automations.update.mock.calls[0]?.[0]?.updates).not.toHaveProperty(
+        'extraAgentArgs'
+      )
+      expect(mocks.toastSuccess).toHaveBeenCalledOnce()
+    } finally {
+      held.resolve(selfScopedList([automation]))
+    }
   })
 
   it('refuses the save when nothing names the record’s host', async () => {

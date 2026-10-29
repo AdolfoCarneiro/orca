@@ -119,7 +119,7 @@ export function createAutomationSaveAction(context: AutomationSaveContext) {
           return
         }
       }
-      await saveOrcaAutomation(context, { hour, minute, now })
+      await saveOrcaAutomation(context, { hour, minute, now, surface })
     } catch (error) {
       toast.error(
         error instanceof Error

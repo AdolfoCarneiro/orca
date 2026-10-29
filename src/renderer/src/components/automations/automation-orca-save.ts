@@ -1,7 +1,6 @@
 import {
   automationChatSupport,
   automationDraftLaunchSetup,
-  automationDraftSurface,
   automationLaunchWorkspace
 } from './automation-launch-surface'
 import { toast } from 'sonner'
@@ -34,7 +33,7 @@ import type { AutomationSaveContext } from './automation-save-context'
 /** Saves an Orca automation, including destination validation and host moves. */
 export async function saveOrcaAutomation(
   context: AutomationSaveContext,
-  time: { hour: number; minute: number; now: number }
+  time: { hour: number; minute: number; now: number; surface: 'chat' | 'terminal' }
 ): Promise<void> {
   const { store, local, setup, destination, destinationForm, pageRefresh } = context
   const { repos, projectHostSetups } = store
@@ -157,15 +156,16 @@ export async function saveOrcaAutomation(
     currentAutomation = (reread.ok ? reread.value : null) ?? currentAutomation
   }
 
-  const surface = automationDraftSurface(
-    draft,
-    store.settings,
+  const surface =
+    time.surface === 'chat' &&
+    draft.surface === undefined &&
     automationChatSupport(
       useAppStore.getState(),
       draft,
       automationLaunchWorkspace(draft, setupResolution ?? undefined)
-    )
-  )
+    ) === false
+      ? 'terminal'
+      : time.surface
   const launchSetup = automationDraftLaunchSetup(draft, surface, currentAutomation)
   const updates: AutomationUpdateInput = {
     name: draft.name,

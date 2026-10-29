@@ -1,7 +1,12 @@
 import type { Automation, AutomationUpdateInput } from '../../../../shared/automations-types'
 import { hasExtraAgentArgs } from '../../../../shared/automation-extra-agent-args'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import { AUTOMATION_SURFACE_RUNTIME_CAPABILITY } from '../../../../shared/automation-runtime-capabilities'
+import {
+  AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
+} from '../../../../shared/protocol-version'
 import { isNativeChatDefaultFor } from '../../../../shared/structured-native-chat-launch-route'
 import {
   buildAgentLaunchRouteInput,
@@ -42,13 +47,30 @@ export function automationChatSupport(
   workspace: ProspectiveWorkspace
 ): boolean | null {
   const input = buildAgentLaunchRouteInput(state, { agent: draft.agentId, workspace })
-  if (input.hostCapabilities === null) {
-    return null
-  }
-  if (!input.hostCapabilities.includes(AUTOMATION_SURFACE_RUNTIME_CAPABILITY)) {
+  if (
+    input.hostCapabilities !== null &&
+    !input.hostCapabilities.includes(AUTOMATION_SURFACE_RUNTIME_CAPABILITY)
+  ) {
     return false
   }
-  return structuredAgentLaunchSupport(input).supported
+  // Satisfy only unlearned facts to expose independent blockers, never to establish support.
+  const possible = structuredAgentLaunchSupport({
+    ...input,
+    hostCapabilities: input.hostCapabilities ?? [
+      STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+      STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY,
+      STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY
+    ],
+    hostStructuredAgents: input.hostStructuredAgents ?? [input.agent]
+  })
+  if (!possible.supported) {
+    return false
+  }
+  return input.hostCapabilities === null
+    ? null
+    : structuredAgentLaunchSupport(input).supported
+      ? true
+      : null
 }
 
 export function automationDraftSurface(
