@@ -644,7 +644,13 @@ describe('mobile queued Edit captured origin', () => {
       client: transport,
       structured: true,
       hostId: 'host-a',
-      resolution: { agent: 'codex', sessionId, transcriptPath: null, agentConfirmed: true },
+      resolution: {
+        agent: 'codex',
+        sessionId,
+        transcriptPath: null,
+        agentConfirmed: true,
+        sessionLive: true
+      },
       sourceIdentity: 'host-a',
       enabled,
       connState: connected ? 'connected' : 'disconnected',
