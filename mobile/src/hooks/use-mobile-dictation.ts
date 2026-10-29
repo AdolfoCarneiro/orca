@@ -201,20 +201,20 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       const generation = generationRef.current + 1
       generationRef.current = generation
       applyStatus('processing')
+      const isCurrent = () =>
+        isCurrentMobileDictationFinish(
+          generationRef.current,
+          generation,
+          enabledRef.current,
+          activeIdRef.current,
+          dictationId
+        )
       try {
         // Keep shutdown inside try for finally cleanup; accept its tail chunks and snapshot pending sends only after end settles, or finish can overtake the last audio.
         await capture.end()
         acceptingChunksRef.current = false
         await Promise.allSettled(Array.from(pendingChunksRef.current))
-        if (
-          !isCurrentMobileDictationFinish(
-            generationRef.current,
-            generation,
-            enabledRef.current,
-            activeIdRef.current,
-            dictationId
-          )
-        ) {
+        if (!isCurrent()) {
           return
         }
         const finished = dictationSessionFinish.interpret(
@@ -226,15 +226,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
             )
           )
         )
-        if (
-          !isCurrentMobileDictationFinish(
-            generationRef.current,
-            generation,
-            enabledRef.current,
-            activeIdRef.current,
-            dictationId
-          )
-        ) {
+        if (!isCurrent()) {
           return
         }
         const transcript = rpcPayloadMember(finished, 'text')

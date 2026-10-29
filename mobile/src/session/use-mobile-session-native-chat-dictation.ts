@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react'
 import { AppState } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useMobileDictation } from '../hooks/use-mobile-dictation'
-import { triggerEdgeBump, triggerError, triggerSelection } from '../platform/haptics'
+import { triggerError } from '../platform/haptics'
 import { useClipboardWriter } from '../platform/clipboard'
 import { routeDictationTranscript } from '../terminal/terminal-live-dictation-routing'
 import { insertDictationText } from '../dictation/mobile-dictation-text-insertion'
@@ -20,6 +20,7 @@ import {
 } from '../dictation/mobile-dictation-setup'
 import { useMobileNativeChatController } from './use-mobile-native-chat-controller'
 import { useMobileDictationLeaveHold } from './mobile-dictation-leave-hold'
+import { useMobileDictationHaptics } from './use-mobile-dictation-haptics'
 import { useMobileNativeChatReadability } from './use-mobile-native-chat-readability'
 import { useMobileNativeChatInputLease } from './native-chat/use-mobile-native-chat-input-lease'
 import { useMobileNativeChatSendError } from './native-chat/use-mobile-native-chat-send-error'
@@ -219,17 +220,7 @@ export function useMobileSessionNativeChatDictation(
     showNativeChat
   ])
 
-  // Fire on the commit, not the press: starting waits on the host and may fail.
-  useEffect(() => {
-    if (dictation.isRecording) {
-      triggerEdgeBump()
-    }
-  }, [dictation.isRecording])
-
-  const stopDictation = useCallback(() => {
-    triggerSelection()
-    void dictation.stop()
-  }, [dictation])
+  const stopDictation = useMobileDictationHaptics(dictation)
 
   const cancelDictation = useCallback(() => {
     dictationRouteContextRef.current = null
