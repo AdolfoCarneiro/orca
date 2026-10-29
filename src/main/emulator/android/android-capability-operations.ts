@@ -62,9 +62,20 @@ export async function dumpAndroidAccessibilityTree(
 ): Promise<AndroidAxNode> {
   // uiautomator owns one automation connection and dump file per device.
   return runKeyedSerializedOperation(accessibilityReads, serial, async () => {
-    // uiautomator reports idle/root failures with exit 0 and leaves the previous XML untouched.
+    // Remove old XML first because uiautomator can hide file write failures.
     ensureAdbOk(
-      await runner(sdk.adb, ['-s', serial, 'shell', 'uiautomator', 'dump', UIAUTOMATOR_DUMP_PATH]),
+      await runner(sdk.adb, [
+        '-s',
+        serial,
+        'shell',
+        'rm',
+        '-f',
+        UIAUTOMATOR_DUMP_PATH,
+        '&&',
+        'uiautomator',
+        'dump',
+        UIAUTOMATOR_DUMP_PATH
+      ]),
       'uiautomator dump',
       { checkErrorOutput: true }
     )

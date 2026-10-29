@@ -47,7 +47,7 @@ describe('dumpAndroidAccessibilityTree', () => {
     let dumps = 0
     let xml = ''
     const runner: AndroidCommandRunner = async (_binary, args) => {
-      if (args[3] === 'uiautomator') {
+      if (args.includes('uiautomator')) {
         xml = `<hierarchy><node text="Snapshot ${++dumps}"/></hierarchy>`
         return ok('')
       }
@@ -75,7 +75,7 @@ describe('dumpAndroidAccessibilityTree', () => {
     let active = false
     let dumps = 0
     const runner: AndroidCommandRunner = async (_binary, args) => {
-      if (args[3] !== 'uiautomator') {
+      if (!args.includes('uiautomator')) {
         return ok('<hierarchy><node text="Recovered"/></hierarchy>')
       }
       if (active) {
@@ -125,7 +125,7 @@ describe('dumpAndroidAccessibilityTree', () => {
       releaseDump = resolve
     })
     const runner: AndroidCommandRunner = async (_binary, args) => {
-      if (args[1] === 'blocked' && args[3] === 'uiautomator') {
+      if (args[1] === 'blocked' && args.includes('uiautomator')) {
         await dumpGate
       }
       return ok(args[3] === 'cat' ? `<hierarchy><node text="${args[1]}"/></hierarchy>` : '')
