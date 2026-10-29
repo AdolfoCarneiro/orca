@@ -51,7 +51,7 @@ export abstract class OrcaRuntimeWithGetPtyRecordForPaneKey extends OrcaRuntimeW
         leaves: this.leaves,
         ptys: this.ptysById,
         leafKey: (tab, leaf) => this.getLeafKey(tab, leaf),
-        paneOf: (pty) => this.paneOfPty(pty)
+        capturePaneOf: () => this.captureTerminalPaneReader()
       },
       context
     )

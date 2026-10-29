@@ -225,6 +225,24 @@ it('retires raw main bindings on real Store-only writes with Crew as sole observ
       ).toBe('/main-source')
       read()
       expect(capture.mock.calls.length).toBeLessThanOrEqual(stable + 1)
+      runtime.seedPty('reentrant', 'term_reentrant')
+      const seen: (string | null)[] = []
+      const stopReentrant = store.onWorkspaceSessionWritten(() => {
+        seen.push(runtime.getTerminalHandleForPaneKey(pane))
+        expect(read().openTarget).toEqual({ kind: 'terminal', handle: 'term_reentrant' })
+      })
+      try {
+        const reentrant = structuredClone(store.getWorkspaceSession())
+        reentrant.terminalLayoutsByTabId['tab-main-0'].ptyIdsByLeafId = { [leaf]: 'reentrant' }
+        store.setWorkspaceSession(reentrant, 'local')
+        await store.flushPendingOrThrowAsync()
+        expect(seen).toEqual(['term_reentrant'])
+      } finally {
+        stopReentrant()
+      }
+      expect(
+        runtime.getTerminalHandleForPaneKey('absent:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+      ).toBeNull()
       console.log('main Store source contract', {
         population,
         initial,
