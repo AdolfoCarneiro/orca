@@ -1,3 +1,4 @@
+import { selectWorktreesByRepo, selectDetectedWorktreesByRepo } from '../workspace-record-selectors'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 
 export function worktreeBelongsToHost(worktree: { hostId?: string }, hostId: string): boolean {
@@ -19,12 +20,12 @@ export function getKnownRepoWorktreeIds(
   hostId?: string
 ): string[] {
   const ids = new Set<string>()
-  for (const worktree of state.worktreesByRepo[projectId] ?? []) {
+  for (const worktree of selectWorktreesByRepo(state)[projectId] ?? []) {
     if (!hostId || worktreeBelongsToHost(worktree, hostId)) {
       ids.add(worktree.id)
     }
   }
-  for (const worktree of state.detectedWorktreesByRepo[projectId]?.worktrees ?? []) {
+  for (const worktree of selectDetectedWorktreesByRepo(state)[projectId]?.worktrees ?? []) {
     if (!hostId || worktreeBelongsToHost(worktree, hostId)) {
       ids.add(worktree.id)
     }
