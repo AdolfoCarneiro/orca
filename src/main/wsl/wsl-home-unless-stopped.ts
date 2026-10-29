@@ -1,4 +1,5 @@
-import { getWslHomeAsync, listRunningWslDistrosAsync } from '../wsl'
+import { getWslHomeAsync } from '../wsl'
+import { listConfirmedRunningWslDistros } from '../wsl-background-distro-gate'
 import { getCachedWslHome } from '../wsl-home-cache'
 import { blockedWslDistroForPath } from './wsl-unc-access-gate'
 
@@ -10,10 +11,13 @@ export async function wslHomeUnlessStopped(distro: string): Promise<string | nul
   return getWslHomeAsync(distro)
 }
 
-/** UNC homes of running distros, never probing one that stopped since the list (E9). */
+/**
+ * UNC homes of distros a fresh running list confirms, never probing one that stopped since (E9).
+ * A failed probe lists none: a stale "running" answer plus a cached home would hand back a root to scan.
+ */
 export async function listRunningWslHomeDirsUnlessStopped(): Promise<string[]> {
   const homes = await Promise.all(
-    (await listRunningWslDistrosAsync()).map((distro) => wslHomeUnlessStopped(distro))
+    (await listConfirmedRunningWslDistros()).map((distro) => wslHomeUnlessStopped(distro))
   )
   return homes.filter((home): home is string => Boolean(home))
 }

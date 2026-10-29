@@ -1,3 +1,4 @@
+import { isWslUncPath } from '../../shared/wsl-paths'
 import { join } from 'node:path'
 import { claudeProfileHistoryDirs } from '../claude-accounts/claude-profile-installed-router'
 import {
@@ -80,7 +81,10 @@ export async function localAiVaultScanRoots(): Promise<
     >
 > {
   const [additionalCodexHomes, wslHomeDirs] = await Promise.all([
-    filterPathsToRunningWslDistrosAsync(configuredAdditionalCodexHomePaths()),
+    // Confirmed only: a stale list could name a distro that stopped; a failed probe drops WSL homes.
+    filterPathsToRunningWslDistrosAsync(configuredAdditionalCodexHomePaths(), {
+      requireConfirmed: true
+    }).catch(() => configuredAdditionalCodexHomePaths().filter((home) => !isWslUncPath(home))),
     getAiVaultWslHomeDirs()
   ])
   return {
@@ -178,7 +182,7 @@ export async function getAiVaultWslHomeDirs(): Promise<string[]> {
   if (process.platform !== 'win32') {
     return []
   }
-  // Trust only cached absence; a failed or new probe must not narrow WSL roots used by deletion and subagent validation.
+  // Trust cached absence; otherwise a confirmed list, so a failed probe lists no WSL roots (E9).
   if (hasCachedWslDistros() && getCachedWslDistros()?.length === 0) {
     return []
   }
