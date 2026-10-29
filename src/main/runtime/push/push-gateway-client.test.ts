@@ -291,6 +291,24 @@ describe('origin-claim rollback', () => {
     title: 'Done',
     body: ''
   }
+  it('omits admission fields when only the legacy payload fits the size limit', async () => {
+    const gateway = createFakeGateway({ originClaims: true })
+    const { origin: _origin, occurrence: _occurrence, ...legacy } = notification
+    const body = 'x'.repeat(3000 - Buffer.byteLength(JSON.stringify(legacy)))
+    expect(Buffer.byteLength(JSON.stringify({ ...legacy, body }))).toBe(3000)
+    await gateway.client.send({
+      registrationIds: ['reg-1'],
+      notification: { ...notification, body }
+    })
+    const sends = gateway.calls.filter((call) => call.url.endsWith('/v1/send'))
+    expect(sends).toHaveLength(1)
+    expect(sends[0].body).toEqual({
+      v: 1,
+      registrationIds: ['reg-1'],
+      notification: { ...legacy, body }
+    })
+  })
+
   it.each([false, true])(
     'strips a refused send once; clears support only after acceptance (legacy refused=%s)',
     async (refuseLegacy) => {

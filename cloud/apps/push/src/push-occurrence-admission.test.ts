@@ -6,8 +6,11 @@ import { declarePushRoutes } from './push-route-declarations.js'
 import { buildPushDelivery } from './push-delivery-message.js'
 import { PushDispatcher } from './push-dispatcher.js'
 import { ApnsClient } from './apns-client.js'
+import { DurablePushStore } from './durable-push-store.js'
+import { pushDestination } from './push-occurrence-admission.js'
 import {
   cleanupDurablePushFixtures,
+  durablePushTestDatabaseUrl,
   fixture,
   notification
 } from './durable-push-store.test-fixture.js'
@@ -76,6 +79,74 @@ async function setup() {
 }
 
 describe('occurrence admission', () => {
+  it.skipIf(!durablePushTestDatabaseUrl).each(['sent', 'dismissed'] as const)(
+    'waits for Postgres contention before committing %s without resending',
+    async (outcome) => {
+      const f = await setup()
+      if (outcome === 'dismissed') await f.store.defer(f.first)
+      let attempted!: () => void
+      const atAttempt = new Promise<void>((resolve) => (attempted = resolve))
+      const contended = new DurablePushStore(
+        {
+          ...f.db,
+          transaction: (run) =>
+            f.db.transaction((tx) =>
+              run({
+                ...tx,
+                lockScope: async (key) => {
+                  attempted()
+                  await tx.lockScope(key)
+                }
+              })
+            )
+        },
+        f.clock
+      )
+      const admission = contended.admission(f.first)
+      await admission.acquire(f.device(f.first))
+      let releaseAgain!: () => void
+      const blockedAgain = new Promise<void>((resolve) => (releaseAgain = resolve))
+      let heldAgain!: () => void
+      const atHeldAgain = new Promise<void>((resolve) => (heldAgain = resolve))
+      const blocker = f.db.transaction(async (tx) => {
+        await tx.lockScope(
+          `push-claim:${JSON.stringify([pushDestination(f.device(f.first)), origin, occurrence])}`
+        )
+        heldAgain()
+        await blockedAgain
+      })
+      await atHeldAgain
+      const { origin: _origin, occurrence: _occurrence, ...legacy } = f.alert
+      const completed =
+        outcome === 'sent'
+          ? admission.finalize(true)
+          : contended.accept(f.first.hostFingerprint, f.first.registrationId, {
+              ...legacy,
+              kind: 'dismiss',
+              notificationSeq: 2
+            })
+      try {
+        await atAttempt
+        expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe(
+          'inflight'
+        )
+      } finally {
+        releaseAgain()
+        await blocker
+      }
+      await completed
+      expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe(outcome)
+      if (outcome === 'dismissed') {
+        expect(
+          await f.db.query('SELECT batch_id FROM push_delivery_batches WHERE batch_id = ?', [
+            f.first.id
+          ])
+        ).toEqual([])
+      }
+      expect(await f.store.admission(f.second).acquire(f.device(f.second))).toBe('superseded')
+    }
+  )
+
   it('waits quietly, releases failed winners, and never resends a recorded receipt after removal', async () => {
     const f = await setup()
     const winner = f.store.admission(f.first)
