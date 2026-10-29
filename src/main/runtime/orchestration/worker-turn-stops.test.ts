@@ -46,7 +46,10 @@ function hookRow(overrides: Partial<AgentStatusIpcPayload>): AgentStatusIpcPaylo
   }
 }
 
-function moved(from: 'working' | 'done', to: 'done' | 'needs-you'): AgentPaneChange {
+function moved(
+  from: 'working' | 'done' | 'needs-you',
+  to: 'working' | 'done' | 'needs-you'
+): AgentPaneChange {
   return {
     kind: 'moved',
     paneKey: PANE,
@@ -54,7 +57,7 @@ function moved(from: 'working' | 'done', to: 'done' | 'needs-you'): AgentPaneCha
     from,
     to,
     at: 1,
-    transition: to === 'needs-you' ? 'needs-input' : 'turn-finished'
+    transition: to === 'needs-you' ? 'needs-input' : to === 'done' ? 'turn-finished' : null
   }
 }
 
@@ -207,7 +210,7 @@ describe('terminal worker turn stops', () => {
     expect(outcome()).toBe('finished_unverified')
     // Approved in the terminal itself: no mail reaches the Dispatch.
     current.row = hookRow({ state: 'working', stateStartedAt: 300 })
-    stops.observe({ ...moved('working', 'done'), from: 'needs-you', to: 'working' })
+    stops.observe(moved('needs-you', 'working'))
     expect(outcome()).not.toBe('finished_unverified')
     current.row = hookRow({ stateStartedAt: 400 })
     stops.observe(moved('working', 'done'))
