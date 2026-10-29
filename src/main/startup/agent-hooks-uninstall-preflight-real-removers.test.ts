@@ -31,11 +31,20 @@ beforeEach(() => {
   fixture.home = mkdtempSync(join(tmpdir(), 'orca-uninstall-hooks-home-'))
   fixture.userData = mkdtempSync(join(tmpdir(), 'orca-uninstall-hooks-data-'))
   fixture.exit.mockClear()
+  // Every path the removers resolve from the environment stays in the fixture, on any runner.
+  vi.stubEnv('HOME', fixture.home)
+  vi.stubEnv('USERPROFILE', fixture.home)
+  vi.stubEnv('ORCA_USER_DATA_PATH', fixture.userData)
+  vi.stubEnv('XDG_CONFIG_HOME', join(fixture.home, '.config'))
+  vi.stubEnv('APPDATA', join(fixture.home, 'AppData', 'Roaming'))
+  vi.stubEnv('CODEX_HOME', join(fixture.home, '.codex'))
+  vi.stubEnv('CLAUDE_CONFIG_DIR', '')
   // The uninstaller launches a fresh process: nothing has installed the app environment yet.
   Reflect.set(globalThis, APP_ENVIRONMENT_SLOT, null)
 })
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   rmSync(fixture.home, { recursive: true, force: true })
   rmSync(fixture.userData, { recursive: true, force: true })
 })
