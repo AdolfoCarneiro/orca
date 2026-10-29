@@ -1,22 +1,33 @@
 import { beforeEach, vi } from 'vitest'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
+import type { AppState } from '@/store/types'
+import type { pasteDraftWhenAgentReady } from './agent-paste-draft'
+import type { waitForAgentReady } from './agent-ready-wait'
+import type { track } from './telemetry'
+import type { toast } from 'sonner'
+import type {
+  createWebRuntimeSessionTerminal,
+  createWebRuntimeAgentSessionTerminalWithLaunchDraft
+} from '@/runtime/web-runtime-terminal-creation'
+import type { isWebRuntimeSessionActive } from '@/runtime/web-runtime-session-environment'
 import type { Project } from '../../../shared/project-types'
 
-export const mockCreateTab = vi.fn()
+export const mockCreateTab = vi.fn<(...args: Parameters<AppState['createTab']>) => { id: string }>()
 export function queuedStartups() {
   return mockCreateTab.mock.calls.flatMap((call) => call[3]?.pendingStartup ?? [])
 }
-export const mockSetActiveTabType = vi.fn()
-export const mockSetTabViewMode = vi.fn()
-export const mockSetTabBarOrder = vi.fn()
-export const mockSetAgentStatus = vi.fn()
-export const mockPasteDraftWhenAgentReady = vi.fn()
-export const mockSeedNativeChatLaunchPrompt = vi.fn()
-export const mockSeedNativeChatLaunchDraft = vi.fn()
-export const mockMarkNativeChatLaunchPromptFailed = vi.fn()
-export const mockTrack = vi.fn()
-export const mockToastMessage = vi.fn()
-export const mockWaitForAgentReady = vi.fn()
+export const mockSetActiveTabType = vi.fn<AppState['setActiveTabType']>()
+export const mockSetTabViewMode = vi.fn<AppState['setTabViewMode']>()
+export const mockSetTabBarOrder = vi.fn<AppState['setTabBarOrder']>()
+export const mockSetAgentStatus = vi.fn<AppState['setAgentStatus']>()
+export const mockPasteDraftWhenAgentReady = vi.fn<typeof pasteDraftWhenAgentReady>()
+export const mockSeedNativeChatLaunchPrompt = vi.fn<AppState['seedNativeChatLaunchPrompt']>()
+export const mockSeedNativeChatLaunchDraft = vi.fn<AppState['seedNativeChatLaunchDraft']>()
+export const mockMarkNativeChatLaunchPromptFailed =
+  vi.fn<AppState['markNativeChatLaunchPromptFailed']>()
+export const mockTrack = vi.fn<typeof track>()
+export const mockToastMessage = vi.fn<typeof toast.message>()
+export const mockWaitForAgentReady = vi.fn<typeof waitForAgentReady>()
 
 export const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -64,7 +75,9 @@ export const store = {
       }
     ]
   },
-  allWorktrees: vi.fn(() => store.worktreesByRepo['repo-1']),
+  allWorktrees: vi.fn<
+    () => { id: string; repoId: string; projectId: string; path: string; displayName: string }[]
+  >(() => store.worktreesByRepo['repo-1']),
   tabsByWorktree: {
     'wt-1': [{ id: 'tab-1' }]
   },
@@ -77,7 +90,7 @@ export const store = {
   >,
   ptyIdsByTabId: {} as Record<string, string[]>,
   createTab: mockCreateTab,
-  closeTab: vi.fn(),
+  closeTab: vi.fn<AppState['closeTab']>(),
   setActiveTabType: mockSetActiveTabType,
   setTabViewMode: mockSetTabViewMode,
   setTabBarOrder: mockSetTabBarOrder,
@@ -93,7 +106,7 @@ vi.mock('@/store', () => ({
   }
 }))
 
-export const mockToastError = vi.fn()
+export const mockToastError = vi.fn<typeof toast.error>()
 
 vi.mock('sonner', () => ({
   toast: { message: mockToastMessage, error: mockToastError }
@@ -128,12 +141,15 @@ vi.mock('@/lib/telemetry', () => ({
   tuiAgentToAgentKind: (agent: string) => agent
 }))
 
-export const mockCreateWebRuntimeSessionTerminal = vi.fn()
-export const mockCreateWebRuntimeAgentSessionTerminalWithLaunchDraft = vi.fn()
-export const mockIsWebRuntimeSessionActive = vi.fn(() => false)
+export const mockCreateWebRuntimeSessionTerminal = vi.fn<typeof createWebRuntimeSessionTerminal>()
+export const mockCreateWebRuntimeAgentSessionTerminalWithLaunchDraft =
+  vi.fn<typeof createWebRuntimeAgentSessionTerminalWithLaunchDraft>()
+export const mockIsWebRuntimeSessionActive = vi.fn<typeof isWebRuntimeSessionActive>(() => false)
 
 vi.mock('@/runtime/web-runtime-terminal-create-operation', () => ({
-  createWebRuntimeSessionTerminalResult: async (args: unknown) => ({
+  createWebRuntimeSessionTerminalResult: async (
+    args: Parameters<typeof createWebRuntimeSessionTerminal>[0]
+  ) => ({
     outcome: await mockCreateWebRuntimeSessionTerminal(args)
   })
 }))

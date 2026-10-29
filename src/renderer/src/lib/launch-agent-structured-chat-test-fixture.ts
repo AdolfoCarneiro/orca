@@ -1,43 +1,44 @@
 import { beforeEach, vi } from 'vitest'
+import type { AppState } from '@/store/types'
+import type { pasteDraftWhenAgentReady } from './agent-paste-draft'
+import type { waitForAgentReady } from './agent-ready-wait'
+import type { createStructuredAgentSessionLaunchIntent as createIntent } from './launch-structured-agent-session'
+import type { launchStructuredAgentSession } from './structured-agent-session-launch-create-call'
+import type { refreshLocalStructuredSessionTabs as refreshTabs } from '@/runtime/local-structured-session-tabs-sync/inventory-refresh'
+import type { toast } from 'sonner'
 import type * as LaunchErrors from '@/lib/structured-agent-session-launch-errors'
 
-export const mockCreateTab = vi.fn()
+export const mockCreateTab = vi.fn<(...args: Parameters<AppState['createTab']>) => { id: string }>()
 export const mockCreateUnifiedTab = vi.fn<
   (
     worktreeId: string,
     contentType: string,
-    init: {
-      id: string
-      entityId: string
+    init: Pick<UnifiedTabFixture, 'id' | 'entityId' | 'agentSessionAgent' | 'label'> & {
       targetGroupId?: string
-      agentSessionAgent?: string
-      label?: string
     }
-  ) => {
-    id: string
-    entityId: string
-    contentType: string
-    worktreeId: string
-    groupId: string
-    agentSessionAgent?: string
-    label?: string
-  }
+  ) => UnifiedTabFixture
 >()
-const mockSetTabViewMode = vi.fn()
-export const mockWaitForAgentReady = vi.fn()
-export const mockPasteDraftWhenAgentReady = vi.fn()
-const mockMarkNativeChatLaunchPromptFailed = vi.fn()
-export const mockCreateStructuredCodexSessionLaunchIntent = vi.fn()
+const mockSetTabViewMode = vi.fn<AppState['setTabViewMode']>()
+export const mockWaitForAgentReady = vi.fn<typeof waitForAgentReady>()
+export const mockPasteDraftWhenAgentReady = vi.fn<typeof pasteDraftWhenAgentReady>()
+const mockMarkNativeChatLaunchPromptFailed = vi.fn<AppState['markNativeChatLaunchPromptFailed']>()
+export const mockCreateStructuredCodexSessionLaunchIntent =
+  vi.fn<
+    (...args: Parameters<typeof createIntent>) => Omit<ReturnType<typeof createIntent>, 'agent'>
+  >()
 const mockAbandonStructuredAgentSessionLaunchIntent = vi.fn()
 export const mockRetryStructuredAgentSessionLaunchIntent =
   vi.fn<
     (intent: ReturnType<typeof structuredLaunchIntent>) => ReturnType<typeof structuredLaunchIntent>
   >()
-export const mockLaunchStructuredCodexSession = vi.fn()
-export const mockRefreshLocalStructuredSessionTabs = vi.fn()
-export const mockToastError = vi.fn()
-export const mockCallStructuredAgentSession = vi.fn()
-export const mockCreateSupport = vi.fn()
+export const mockLaunchStructuredCodexSession = vi.fn<typeof launchStructuredAgentSession>()
+type TabSnapshotFixture = { worktree: string; tabs: { type: 'agent-session'; sessionId: string }[] }
+export const mockRefreshLocalStructuredSessionTabs =
+  vi.fn<(...args: Parameters<typeof refreshTabs>) => Promise<TabSnapshotFixture[]>>()
+export const mockToastError = vi.fn<typeof toast.error>()
+export const mockCallStructuredAgentSession =
+  vi.fn<(target: unknown, method: string, params: unknown) => Promise<unknown>>()
+export const mockCreateSupport = vi.fn<() => Promise<{ supported: boolean; reason?: string }>>()
 const STRUCTURED_HOST_CAPABILITIES = ['agent-session.structured.v1']
 let hostCapabilities: readonly string[] | null = STRUCTURED_HOST_CAPABILITIES
 
@@ -93,7 +94,7 @@ export function structuredLaunchIntent(worktreeId: string, sessionId = 'codex-se
 }
 
 export const store = {
-  clearNativeChatLaunchDraft: vi.fn(),
+  clearNativeChatLaunchDraft: vi.fn<AppState['clearNativeChatLaunchDraft']>(),
   readLocalAgentInventory: () => ({ ids: null, state: 'pending' }),
   activeRepoId: 'repo-1',
   activeWorktreeId: 'wt-1',
@@ -116,7 +117,9 @@ export const store = {
     'repo-1': [{ id: 'wt-1', repoId: 'repo-1', projectId: 'repo-1', path: '/repo/worktree' }]
   },
   detectedWorktreesByRepo: {},
-  allWorktrees: vi.fn(() => store.worktreesByRepo['repo-1']),
+  allWorktrees: vi.fn<() => { id: string; repoId: string; projectId: string; path: string }[]>(
+    () => store.worktreesByRepo['repo-1']
+  ),
   tabsByWorktree: { 'wt-1': [{ id: 'tab-1' }] },
   unifiedTabsByWorktree: emptyUnifiedTabsByWorktree,
   groupsByWorktree: {},
@@ -129,16 +132,16 @@ export const store = {
   ptyIdsByTabId: {},
   createTab: mockCreateTab,
   createUnifiedTab: mockCreateUnifiedTab,
-  closeTab: vi.fn(),
-  queueTabStartupCommand: vi.fn(),
-  setActiveTabType: vi.fn(),
-  focusGroup: vi.fn(),
-  activateTab: vi.fn(),
+  closeTab: vi.fn<AppState['closeTab']>(),
+  queueTabStartupCommand: vi.fn<AppState['queueTabStartupCommand']>(),
+  setActiveTabType: vi.fn<AppState['setActiveTabType']>(),
+  focusGroup: vi.fn<AppState['focusGroup']>(),
+  activateTab: vi.fn<AppState['activateTab']>(),
   setTabViewMode: mockSetTabViewMode,
-  setTabBarOrder: vi.fn(),
-  setAgentStatus: vi.fn(),
-  seedNativeChatLaunchPrompt: vi.fn(),
-  seedNativeChatLaunchDraft: vi.fn(),
+  setTabBarOrder: vi.fn<AppState['setTabBarOrder']>(),
+  setAgentStatus: vi.fn<AppState['setAgentStatus']>(),
+  seedNativeChatLaunchPrompt: vi.fn<AppState['seedNativeChatLaunchPrompt']>(),
+  seedNativeChatLaunchDraft: vi.fn<AppState['seedNativeChatLaunchDraft']>(),
   markNativeChatLaunchPromptFailed: mockMarkNativeChatLaunchPromptFailed
 }
 

@@ -1,7 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, vi } from 'vitest'
-import type { AgentPickerEntry } from '../../../../shared/agent-launch-picker'
+import type { AgentPickerDraft, AgentPickerEntry } from '../../../../shared/agent-launch-picker'
 
 export const entry: AgentPickerEntry = {
   agent: 'claude',
@@ -16,7 +16,7 @@ export const entry: AgentPickerEntry = {
 }
 export let root: Root
 export let host: HTMLDivElement
-export const onUse = vi.fn()
+export const onUse = vi.fn<(draft: AgentPickerDraft) => void>()
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   onUse.mockClear()
