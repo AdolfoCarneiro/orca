@@ -93,7 +93,33 @@ export function pickToolbarSize<T>(entries: { size: number; value: T }[]): T | n
   return (sorted.find((entry) => entry.size >= TOOLBAR_ICON_PIXELS) ?? sorted.at(-1))?.value ?? null
 }
 
-const iconCache = new Map<string, Promise<string | null>>()
+const MAX_CACHED_ICONS = 128
+const MAX_CACHED_ICON_BYTES = 8 * 1024 * 1024
+type CachedIcon = { result: Promise<string | null>; bytes: number; settled: boolean }
+const iconCache = new Map<string, CachedIcon>()
+let cachedIconBytes = 0
+
+function removeCachedIcon(key: string, entry: CachedIcon): void {
+  iconCache.delete(key)
+  cachedIconBytes -= entry.bytes
+}
+
+function trimIconCache(addedKey: string, added: CachedIcon): void {
+  while (iconCache.size > MAX_CACHED_ICONS || cachedIconBytes > MAX_CACHED_ICON_BYTES) {
+    let oldest: [string, CachedIcon] | undefined
+    for (const entry of iconCache) {
+      if (entry[1].settled) {
+        oldest = entry
+        break
+      }
+    }
+    if (!oldest) {
+      removeCachedIcon(addedKey, added)
+      return
+    }
+    removeCachedIcon(...oldest)
+  }
+}
 
 async function readIconFile(directory: string, relativePath: string): Promise<string | null> {
   const absolute = resolveInsideExtensionDirectory(directory, relativePath)
@@ -133,19 +159,45 @@ export function resolveActionIconDataUrl(
     return Promise.resolve(null)
   }
   const key = `${extensionDirectory}\0${path}`
-  let cached = iconCache.get(key)
-  if (!cached) {
-    cached = readIconFile(extensionDirectory, path)
+  const cached = iconCache.get(key)
+  if (cached) {
+    iconCache.delete(key)
     iconCache.set(key, cached)
+    return cached.result
   }
-  return cached
+  const entry: CachedIcon = {
+    result: readIconFile(extensionDirectory, path),
+    bytes: key.length * 2,
+    settled: false
+  }
+  iconCache.set(key, entry)
+  cachedIconBytes += entry.bytes
+  trimIconCache(key, entry)
+  void entry.result.then(
+    (dataUrl) => {
+      if (iconCache.get(key) !== entry) {
+        return
+      }
+      const resultBytes = (dataUrl?.length ?? 0) * 2
+      entry.settled = true
+      entry.bytes += resultBytes
+      cachedIconBytes += resultBytes
+      trimIconCache(key, entry)
+    },
+    () => {
+      if (iconCache.get(key) === entry) {
+        removeCachedIcon(key, entry)
+      }
+    }
+  )
+  return entry.result
 }
 
 /** An unpacked folder can change on disk; reloads must not keep serving the old bytes. */
 export function forgetActionIconCache(extensionDirectory: string): void {
-  for (const key of iconCache.keys()) {
+  for (const [key, entry] of iconCache) {
     if (key.startsWith(`${extensionDirectory}\0`)) {
-      iconCache.delete(key)
+      removeCachedIcon(key, entry)
     }
   }
 }
