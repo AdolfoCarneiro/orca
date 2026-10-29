@@ -769,6 +769,30 @@
         "reconnecting": "正在重新連線…",
         "reconnection-failed": "重新連線失敗"
       }
+    },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "代理 URL 過長。",
+        "invalid": "請輸入有效的代理 URL。",
+        "unsupportedProtocol": "請使用 http、https、socks、socks4 或 socks5 代理 URL。",
+        "missingHost": "代理 URL 必須包含主機。"
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "為 25 種歐洲語言提供最高準確度。支援標點符號、大小寫及詞級時間戳記。",
+        "parakeetV2": "僅限英文。準確度與 v3 相近，速度更快。支援標點符號及大小寫。",
+        "zipformerBilingual": "中文 + 英文，支援語言混用。低延遲即時串流。",
+        "paraformerBilingual": "中文（國語 + 方言）+ 英文。擅長辨識各地口音與方言。",
+        "zipformerStreamingEn": "僅限英文。2,000 萬個參數的輕量模型，兼顧速度與大小。",
+        "zipformerStreamingZh": "僅限中文。1,400 萬個參數的超輕量模型，適合資源有限的裝置。",
+        "zipformerStreamingKo": "僅限韓文。低延遲即時串流。",
+        "parakeetJa": "僅限日文。使用超過 3.5 萬小時的自然語音訓練。支援標點符號。",
+        "whisperTiny": "支援 90 多種語言。準確度低於 Parakeet，但語言涵蓋範圍最廣。",
+        "senseVoice": "支援中文、英文、日文、韓文及粵語，並自動偵測語言。",
+        "gpt4oMiniTranscribe": "準確度高、成本低的雲端轉錄。需要 OpenAI API 金鑰。",
+        "gpt4oTranscribe": "準確度更高的雲端轉錄。需要 OpenAI API 金鑰。"
+      }
     }
   },
   "menu": {
@@ -19079,6 +19103,27 @@
         "noLiveTerminal": "沒有可用的作用中終端機。",
         "commandCanceled": "輸入框已關閉，因此已取消聊天介面命令。",
         "commandRejected": "終端機未接受此命令。"
+      },
+      "sessionOptionErrors": {
+        "startOnly": "此選項只能在工作階段啟動時設定。",
+        "modelRejected": "Claude 保留了目前的模型。",
+        "modelUnverified": "無法驗證模型變更，請開啟終端機檢查。",
+        "unknownOption": "未知的工作階段選項：{{id}}",
+        "agentPickerOnly": "此選項必須在代理程式選擇器中變更。",
+        "toggleBaselineUnknown": "目前的值未知，請改用「切換」動作。",
+        "afterStartOnly": "此選項僅在工作階段啟動後可用。",
+        "valueRequired": "此選項需要一個值。",
+        "toggleValueKnown": "此選項的值已知，請改選「開啟」或「關閉」。"
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "請在 /goal 後描述目標。",
+        "commandUnavailable": "/{{name}} 在聊天工作階段中無法使用。請使用斜線選單查看可用指令。",
+        "commandTakesNoArguments": "請使用 /{{name}}，不要附帶引數。",
+        "commandUnsupportedByHost": "此聊天主機不支援 /{{name}}。",
+        "modelPickerFailed": "無法開啟模型選擇器。",
+        "effortPickerFailed": "無法開啟推理強度選擇器。",
+        "modelApplyFailed": "無法套用模型 {{value}}。",
+        "effortApplyFailed": "無法套用推理強度 {{value}}。"
       }
     },
     "tab": {
@@ -21522,6 +21567,22 @@
         "error": "專案在所選自動化主機上設定失敗。",
         "unsupported": "所選自動化主機不支援此專案。"
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "額外引數不得超過 4 KB。",
+        "controlCharacters": "額外引數不可包含控制字元或換行字元。",
+        "invalid": "額外引數無效：{{detail}}",
+        "shellSyntax": "{{text}} 使用了額外引數不允許的 Shell 語法。",
+        "terminator": "額外引數中不允許使用「--」。",
+        "notAnOption": "「{{token}}」不是選項。{{agent}} 的額外引數僅接受：{{allowed}}。",
+        "optionNotAllowed": "{{agent}} 的額外引數中不允許使用「{{option}}」。允許的選項：{{allowed}}。",
+        "missingValue": "「{{option}}」需要一個值。",
+        "valueNotAllowed": "不允許使用「{{option}} {{value}}」。{{agent}} 的額外引數僅接受「{{option}} {{prefix}}<level>」。",
+        "modelRepeated": "額外引數重複設定了模型。",
+        "effortRepeated": "額外引數重複設定了推理強度。"
+      },
+      "hostUpdateRequired": "請更新此主機上的 Orca 以使用額外引數。"
     }
   },
   "codeHost": {
@@ -21588,6 +21649,12 @@
         "mrSourceBranchMissing": "MR !{{number}} 沒有來源分支。",
         "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 MR !{{number}} 的頂端參照。"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex 環境",
+      "packageManager": "套件管理員"
     }
   }
 }
