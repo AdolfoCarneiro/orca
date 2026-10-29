@@ -174,10 +174,23 @@ export class RuntimePtyForegroundAgent {
     return true
   }
 
+  /** The agent now in the PTY's foreground, whoever launched it; undefined only on timeout. */
+  identifyForeground(ptyId: string): Promise<TerminalAgent | null | undefined> {
+    return withTimeoutResult(
+      this.readForegroundAgent(ptyId),
+      TERMINAL_INTERACTIVE_WAIT_PROBE_TIMEOUT_MS
+    ).then((result) => (result.ok ? result.value : undefined))
+  }
+
   private async identify(ptyId: string): Promise<TerminalAgent | null> {
+    const pty = this.deps.getPty(ptyId)
+    return pty?.launchAgent ? null : await this.readForegroundAgent(ptyId)
+  }
+
+  private async readForegroundAgent(ptyId: string): Promise<TerminalAgent | null> {
     const controller = this.deps.getController()
     const pty = this.deps.getPty(ptyId)
-    if (!controller || !pty?.connected || pty.launchAgent) {
+    if (!controller || !pty?.connected) {
       return null
     }
     const result = await this.read(ptyId)
