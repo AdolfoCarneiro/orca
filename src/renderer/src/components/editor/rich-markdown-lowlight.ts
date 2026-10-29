@@ -147,8 +147,6 @@ function updateDecorations(
     return createDecorations(transaction.doc, name, lowlight, languages, defaultLanguage)
   }
 
-  // Why: mapped decorations stay valid outside code blocks touched by the transaction.
-  let next = decorationSet.map(transaction.mapping, transaction.doc)
   const oldBlocks = findCodeBlocksNearRanges(
     transaction.before,
     name,
@@ -156,15 +154,14 @@ function updateDecorations(
   )
   const staleDecorations = new Set<Decoration>()
   for (const block of oldBlocks) {
-    const from = transaction.mapping.map(block.pos, -1)
-    const to = transaction.mapping.map(block.pos + block.node.nodeSize, 1)
-    for (const decoration of next.find(Math.min(from, to), Math.max(from, to))) {
+    for (const decoration of decorationSet.find(block.pos, block.pos + block.node.nodeSize)) {
       staleDecorations.add(decoration)
     }
   }
-  if (staleDecorations.size > 0) {
-    next = next.remove([...staleDecorations])
-  }
+  const unchanged =
+    staleDecorations.size > 0 ? decorationSet.remove([...staleDecorations]) : decorationSet
+  // Why: mapped decorations stay valid outside code blocks touched by the transaction.
+  const next = unchanged.map(transaction.mapping, transaction.doc)
 
   const newBlocks = findCodeBlocksNearRanges(
     transaction.doc,
