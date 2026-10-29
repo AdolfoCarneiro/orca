@@ -331,7 +331,7 @@ describe('registerClipboardHandlers', () => {
       )
       await entered
       const text = handlers.get('clipboard:writeText')?.(makeClipboardEvent(), 'newer')
-      await vi.runAllTimersAsync()
+      await vi.advanceTimersByTimeAsync(1_000)
       const whileFilePending = [...publications]
       release()
       await expect(file).resolves.toEqual({ ok: true })
