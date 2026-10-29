@@ -26,7 +26,7 @@ describe('PostHog transport', () => {
     await capture({ effective: 'enabled' })
     expect(mainFetch).toHaveBeenCalledWith(
       expect.stringContaining('/batch'),
-      expect.objectContaining({ method: 'POST' })
+      expect.objectContaining({ method: 'POST', credentials: 'omit' })
     )
     expect(globalFetch).not.toHaveBeenCalled()
   })
