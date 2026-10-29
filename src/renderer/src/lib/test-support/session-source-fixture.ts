@@ -1,5 +1,7 @@
 import {
   editSessionSource,
+  unwrapSessionSourceWrite,
+  type SessionSourcePartial,
   type SessionSourceSet,
   type SessionSourceEdit,
   type SessionSourceWrite,
@@ -12,25 +14,29 @@ type FixtureStore<S> = { getState(): S; setState: SessionSourceSet<S> }
 /** Fixture ingress explicitly replaces source fields; actions still use the production boundary. */
 export function setSessionTestState<S extends object>(
   store: FixtureStore<S>,
-  partial: Partial<S> | ((state: S) => Partial<S>),
+  partial: Partial<S> | SessionSourceWrite<S> | ((state: S) => Partial<S>),
   replace?: false
 ): void
 export function setSessionTestState<S extends object>(
   store: FixtureStore<S>,
-  partial: S,
+  partial: S | SessionSourceWrite<S>,
   replace: true
 ): void
 export function setSessionTestState<S extends object>(
   store: FixtureStore<S>,
-  partial: Partial<S> | ((state: S) => Partial<S>),
+  partial: Partial<S> | SessionSourceWrite<S> | ((state: S) => Partial<S>),
   replace?: boolean
 ): void {
   const next = typeof partial === 'function' ? partial(store.getState()) : partial
+  // SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
+  const accepted = unwrapSessionSourceWrite(next as SessionSourcePartial<S>).receipt
+    ? (next as SessionSourceWrite<S>)
+    : replaceSessionSourceFields(next)
   if (replace) {
     // SAFETY: the replacement overload requires a complete root, just like the store setter.
-    store.setState(replaceSessionSourceFields(next as S), true)
+    store.setState(accepted, true)
   } else {
-    store.setState(replaceSessionSourceFields(next))
+    store.setState(accepted)
   }
 }
 

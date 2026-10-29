@@ -56,9 +56,11 @@ export function createBumpWorktreeActivity(
       shouldPersist = true
       // Active-worktree PTY side effects must not reorder selection; persist activity for the next background sort (PR #209).
       const isActive = s.activeWorktreeId === worktreeId
-      const nextWorktrees = applyWorktreeUpdates(s.worktreesByRepo, worktreeId, {
+      const edit = editSessionSource(s)
+      applyWorktreeUpdates(edit, worktreeId, {
         lastActivityAt: now
       })
+      const nextWorktrees = edit.read('worktreesByRepo')
       const nextDetectedWorktrees = applyDetectedWorktreeUpdates(
         s.detectedWorktreesByRepo,
         worktreeId,
@@ -66,17 +68,12 @@ export function createBumpWorktreeActivity(
           lastActivityAt: now
         }
       )
-      return {
-        ...(nextWorktrees !== s.worktreesByRepo
-          ? {
-              worktreesByRepo: nextWorktrees,
-              ...(isActive ? {} : { sortEpoch: s.sortEpoch + 1 })
-            }
-          : {}),
+      return edit.finish({
+        ...(nextWorktrees !== s.worktreesByRepo && !isActive ? { sortEpoch: s.sortEpoch + 1 } : {}),
         ...(nextDetectedWorktrees !== s.detectedWorktreesByRepo
           ? { detectedWorktreesByRepo: nextDetectedWorktrees }
           : {})
-      }
+      })
     })
 
     if (!shouldPersist) {

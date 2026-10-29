@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import {
   hasExplicitWorkspaceReviewSelection,
   getWorkspaceReviewPersistenceUpdates,
@@ -181,12 +182,9 @@ export function createUpdateWorktreeMeta(
         return undefined
       }
       didApply = true
-      const nextWorktrees = applyWorktreeUpdates(
-        s.worktreesByRepo,
-        worktreeId,
-        enriched,
-        executionHostId
-      )
+      const edit = editSessionSource(s)
+      applyWorktreeUpdates(edit, worktreeId, enriched, executionHostId)
+      const nextWorktrees = edit.read('worktreesByRepo')
       const nextDetectedWorktrees = applyDetectedWorktreeUpdates(
         s.detectedWorktreesByRepo,
         worktreeId,
@@ -237,10 +235,8 @@ export function createUpdateWorktreeMeta(
           })()
         : prCache
 
-      return {
-        ...(nextWorktrees !== s.worktreesByRepo
-          ? { worktreesByRepo: nextWorktrees, sortEpoch: s.sortEpoch + 1 }
-          : {}),
+      return edit.finish({
+        ...(nextWorktrees !== s.worktreesByRepo ? { sortEpoch: s.sortEpoch + 1 } : {}),
         ...(nextDetectedWorktrees !== s.detectedWorktreesByRepo
           ? { detectedWorktreesByRepo: nextDetectedWorktrees }
           : {}),
@@ -248,7 +244,7 @@ export function createUpdateWorktreeMeta(
           ? { hostedReviewCache: nextHostedReviewCache }
           : {}),
         ...(nextPRCache !== prCache ? { prCache: nextPRCache } : {})
-      }
+      })
     })
     if (shouldApplyUpdate && !didApply) {
       return { ok: true }

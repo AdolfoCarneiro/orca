@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import { editSessionSource } from '@/store/session-source-edits'
 import type {
   SshConnectionState,
@@ -172,12 +173,13 @@ async function loadManagedServerCatalogs(targetId: string, load: CatalogLoad): P
       toSshExecutionHostId(targetId),
       toRuntimeExecutionHostId(environmentId)
     )
-    return {
+    // Migration replaces the source host catalog and rekeys its saved workspace identities together.
+    return replaceSessionSourceFields({
       ...withoutConvertedSshHostRows(state, targetId),
       ...(lastVisitedAtByWorktreeId === state.lastVisitedAtByWorktreeId
         ? {}
         : { lastVisitedAtByWorktreeId })
-    }
+    })
   })
   rehomeActiveWorkspaceWhenKnown(targetId, environmentId, linkedRepoIds, isCurrent)
 }

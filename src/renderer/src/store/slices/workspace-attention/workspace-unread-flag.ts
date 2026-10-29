@@ -131,10 +131,12 @@ function raiseWorkspaceUnreadFlag(
       return undefined
     }
     shouldPersist = true
-    const nextWorktrees = applyWorktreeUpdates(s.worktreesByRepo, worktreeId, {
+    const edit = editSessionSource(s)
+    applyWorktreeUpdates(edit, worktreeId, {
       isUnread: true,
       ...stamp
     })
+    const nextWorktrees = edit.read('worktreesByRepo')
     const nextDetectedWorktrees = applyDetectedWorktreeUpdates(
       s.detectedWorktreesByRepo,
       worktreeId,
@@ -143,14 +145,12 @@ function raiseWorkspaceUnreadFlag(
         ...stamp
       }
     )
-    return {
-      ...(nextWorktrees !== s.worktreesByRepo
-        ? { worktreesByRepo: nextWorktrees, sortEpoch: s.sortEpoch + 1 }
-        : {}),
+    return edit.finish({
+      ...(nextWorktrees !== s.worktreesByRepo ? { sortEpoch: s.sortEpoch + 1 } : {}),
       ...(nextDetectedWorktrees !== s.detectedWorktreesByRepo
         ? { detectedWorktreesByRepo: nextDetectedWorktrees }
         : {})
-    }
+    })
   })
 
   if (!shouldPersist) {
@@ -214,7 +214,8 @@ export function clearWorkspaceUnreadFlag(
       return undefined
     }
     shouldPersist = true
-    const nextWorktrees = applyWorktreeUpdates(s.worktreesByRepo, worktreeId, {
+    const edit = editSessionSource(s)
+    applyWorktreeUpdates(edit, worktreeId, {
       isUnread: false
     })
     const nextDetectedWorktrees = applyDetectedWorktreeUpdates(
@@ -224,12 +225,11 @@ export function clearWorkspaceUnreadFlag(
         isUnread: false
       }
     )
-    return {
-      ...(nextWorktrees !== s.worktreesByRepo ? { worktreesByRepo: nextWorktrees } : {}),
-      ...(nextDetectedWorktrees !== s.detectedWorktreesByRepo
+    return edit.finish(
+      nextDetectedWorktrees !== s.detectedWorktreesByRepo
         ? { detectedWorktreesByRepo: nextDetectedWorktrees }
-        : {})
-    }
+        : {}
+    )
   })
 
   if (!shouldPersist) {

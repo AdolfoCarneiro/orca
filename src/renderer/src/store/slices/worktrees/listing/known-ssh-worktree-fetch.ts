@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
 import type { WorktreeSlice } from '../../worktree-helpers'
@@ -150,17 +151,16 @@ export async function runKnownSshWorktreeFetch(
     if (!worktreesChanged && !detectedChanged) {
       return undefined
     }
-    return {
-      ...(worktreesChanged
-        ? {
-            worktreesByRepo: { ...state.worktreesByRepo, [repoId]: worktrees },
-            sortEpoch: state.sortEpoch + 1
-          }
-        : {}),
+    const edit = editSessionSource(state)
+    if (worktreesChanged) {
+      edit.set('worktreesByRepo', repoId, worktrees)
+    }
+    return edit.finish({
+      ...(worktreesChanged ? { sortEpoch: state.sortEpoch + 1 } : {}),
       ...(detectedChanged
         ? { detectedWorktreesByRepo: { ...state.detectedWorktreesByRepo, [repoId]: detected } }
         : {})
-    }
+    })
   })
   return admitted ? known : null
 }
