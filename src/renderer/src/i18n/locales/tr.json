@@ -20170,6 +20170,38 @@
       "patch": "PR ayrıntılarını oluşturmak için kullanılan, branch'in temel branch'e göre diff'i.",
       "stagedFiles": "Commit mesajı oluşturmak için hazırlama alanına alınmış dosyaların satır sonlarıyla ayrılmış listesi.",
       "stagedPatch": "Commit mesajı oluşturmak için kullanılan, hazırlama alanına alınmış git yaması."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} istemi Windows komut satırı için çok büyük. Daha az değişikliği stage'e ekleyip yeniden deneyin.",
+        "promptTooLargeForArgument": "{{label}} istemi tek bir komut satırı argümanı olarak iletilemeyecek kadar büyük. Daha az değişikliği stage'e ekleyip yeniden deneyin.",
+        "agentCouldNotStart": "{{label}} başlatılamadı. Ayarlar bölümündeki ajan komutunu kontrol edip yeniden deneyin.",
+        "agentFailedToStart": "{{label}} başlatılamadı. Ayarlar bölümündeki ajan komutunu kontrol edip yeniden deneyin.",
+        "agentBinaryNotFound": "PATH içinde {{binary}} bulunamadı. Yapay zekâ destekli commit mesajlarını kullanmak için {{label}} yükleyin.",
+        "timedOut": "Oluşturma işlemi {{seconds}} saniye sonra zaman aşımına uğradı.",
+        "outputTooLarge": "{{label}} CLI komutu çok fazla çıktı üretti. Ajanın CLI yapılandırmasını kontrol edip yeniden deneyin.",
+        "windowsBatchUnsafeArguments": "{{label}}, çok satırlı istemi argüman olarak alamayan bir Windows toplu iş betiği üzerinden çalışır. Ayarlar bölümünde ajanın yürütülebilir dosyasını belirtin veya Orca'nın istemi stdin üzerinden göndermesi için {prompt} içermeyen özel bir komut kullanın.",
+        "cliTerminated": "{{label}} CLI komutu tamamlanmadan sonlandırıldı.",
+        "cliTerminatedWithDetail": "{{label}} CLI komutu tamamlanmadan sonlandırıldı: {{detail}}",
+        "cliFailed": "{{label}} CLI komutu {{exitCode}} hata koduyla sonlandı.",
+        "cliFailedWithDetail": "{{label}} CLI komutu {{exitCode}} hata koduyla sonlandı: {{detail}}",
+        "agentReportedError": "{{label}} bir hata bildirdi.",
+        "emptyCommitMessage": "{{label}} boş bir mesaj döndürdü.",
+        "emptyCommitMessageWithDetail": "{{label}} boş bir mesaj döndürdü. CLI çıktısı: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} boş ayrıntılar döndürdü.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} boş ayrıntılar döndürdü. CLI çıktısı: {{detail}}",
+        "emptyJiraSummary": "{{label}} boş bir özet döndürdü.",
+        "emptyJiraSummaryWithDetail": "{{label}} boş bir özet döndürdü. CLI çıktısı: {{detail}}",
+        "commitMessageUnparseable": "Oluşturulan commit mesajı ayrıştırılamadı.",
+        "pullRequestDetailsUnparseable": "Oluşturulan pull request ayrıntıları ayrıştırılamadı.",
+        "jiraSummaryEmptyAfterSanitization": "Oluşturulan özet temizleme sonrasında boş kaldı.",
+        "jiraDescriptionRequired": "Açıklama zorunludur.",
+        "jiraAccountDisconnected": "Bu ana makinede seçili Jira hesabını yeniden bağlayın.",
+        "jiraSummaryBusyInOtherDraft": "Başka bir taslakta zaten bir Jira başlığı oluşturuluyor.",
+        "stagedChangesReadFailed": "Stage'e eklenen değişiklikler okunamadı.",
+        "noStagedChanges": "Özetlenecek stage'e eklenmiş değişiklik yok.",
+        "noBranchChanges": "Özetlenecek branch değişikliği yok."
+      }
     }
   },
   "agentsSidebarIntro": {

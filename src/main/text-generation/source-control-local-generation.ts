@@ -22,7 +22,6 @@ export function runLocalPlanForAgent(input: {
   agentId: string
   plan: CommitMessagePlan
   target: LocalGenerationTarget
-  emptyResultName: string
   operation: TextGenerationOperation
   spawnAgent: SpawnSourceControlAgent
   shouldExecute?: () => boolean
@@ -38,7 +37,11 @@ export function runLocalPlanForAgent(input: {
   const start = (): LocalProcessExecution<InternalTextGenerationResult> => {
     if (input.shouldExecute && !input.shouldExecute()) {
       return {
-        result: Promise.resolve({ success: false, error: 'Generation canceled.', canceled: true }),
+        result: Promise.resolve({
+          success: false,
+          error: 'Generation canceled.',
+          canceled: true
+        }),
         processClosed: Promise.resolve()
       }
     }
@@ -46,7 +49,6 @@ export function runLocalPlanForAgent(input: {
       plan: input.plan,
       cwd: input.target.cwd,
       env: input.target.wslDistro ? input.target.env : target.env,
-      emptyResultName: input.emptyResultName,
       operation: input.operation,
       wslDistro: input.target.wslDistro,
       spawnAgent: input.spawnAgent
@@ -90,14 +92,22 @@ function runCodexLocalPlanUnderHomeLock(
   })
   const queuedCancel = (): void => {
     canceledWhileQueued = true
-    publishResult({ success: false, error: 'Generation canceled.', canceled: true })
+    publishResult({
+      success: false,
+      error: 'Generation canceled.',
+      canceled: true
+    })
   }
   setLocalGenerationCancelToken(laneKey, queuedCancel)
   const operationSettled = withCodexHomeProcessLock(
     resolveCodexHomeProcessLockKeyForSpawnEnv(target.env, target.wslDistro, commandEnv),
     async () => {
       if (canceledWhileQueued) {
-        publishResult({ success: false, error: 'Generation canceled.', canceled: true })
+        publishResult({
+          success: false,
+          error: 'Generation canceled.',
+          canceled: true
+        })
         return
       }
       const execution = start()

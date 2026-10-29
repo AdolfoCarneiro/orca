@@ -20458,6 +20458,38 @@
     "model": {
       "configDefault": "Valeur par défaut de la configuration",
       "auto": "Automatique"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "Le prompt de {{label}} est trop volumineux pour la ligne de commande Windows. Stagez moins de modifications et réessayez.",
+        "promptTooLargeForArgument": "Le prompt de {{label}} est trop volumineux pour être transmis en un seul argument de ligne de commande. Stagez moins de modifications et réessayez.",
+        "agentCouldNotStart": "Impossible de démarrer {{label}}. Vérifiez la commande de l’agent dans les Paramètres et réessayez.",
+        "agentFailedToStart": "Le démarrage de {{label}} a échoué. Vérifiez la commande de l’agent dans les Paramètres et réessayez.",
+        "agentBinaryNotFound": "{{binary}} est introuvable dans PATH. Installez {{label}} pour utiliser les messages de commit générés par IA.",
+        "timedOut": "La génération a dépassé le délai de {{seconds}} s.",
+        "outputTooLarge": "La commande CLI de {{label}} a produit trop de données en sortie. Vérifiez la configuration CLI de l’agent et réessayez.",
+        "windowsBatchUnsafeArguments": "{{label}} s’exécute via un script batch Windows qui ne peut pas recevoir le prompt multiligne en argument. Dans les Paramètres, indiquez l’exécutable de l’agent, ou utilisez une commande personnalisée sans {prompt} pour qu’Orca envoie le prompt sur stdin.",
+        "cliTerminated": "La commande CLI de {{label}} a été interrompue avant de se terminer.",
+        "cliTerminatedWithDetail": "La commande CLI de {{label}} a été interrompue avant de se terminer : {{detail}}",
+        "cliFailed": "La commande CLI de {{label}} a échoué avec le code {{exitCode}}.",
+        "cliFailedWithDetail": "La commande CLI de {{label}} a échoué avec le code {{exitCode}} : {{detail}}",
+        "agentReportedError": "{{label}} a signalé une erreur.",
+        "emptyCommitMessage": "{{label}} a renvoyé un message vide.",
+        "emptyCommitMessageWithDetail": "{{label}} a renvoyé un message vide. Sortie CLI : {{detail}}",
+        "emptyPullRequestDetails": "{{label}} n’a renvoyé aucun détail.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} n’a renvoyé aucun détail. Sortie CLI : {{detail}}",
+        "emptyJiraSummary": "{{label}} a renvoyé un résumé vide.",
+        "emptyJiraSummaryWithDetail": "{{label}} a renvoyé un résumé vide. Sortie CLI : {{detail}}",
+        "commitMessageUnparseable": "Impossible d’analyser le message de commit généré.",
+        "pullRequestDetailsUnparseable": "Impossible d’analyser les détails générés de la pull request.",
+        "jiraSummaryEmptyAfterSanitization": "Le résumé généré était vide après nettoyage.",
+        "jiraDescriptionRequired": "La description est obligatoire.",
+        "jiraAccountDisconnected": "Reconnectez le compte Jira sélectionné sur cet hôte.",
+        "jiraSummaryBusyInOtherDraft": "Un titre Jira est déjà en cours de génération dans un autre brouillon.",
+        "stagedChangesReadFailed": "Impossible de lire les modifications stagées.",
+        "noStagedChanges": "Aucune modification stagée à résumer.",
+        "noBranchChanges": "Aucune modification de branche à résumer."
+      }
     }
   },
   "agentsSidebarIntro": {

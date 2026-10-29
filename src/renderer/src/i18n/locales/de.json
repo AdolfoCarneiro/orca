@@ -20189,6 +20189,38 @@
       "patch": "Der Diff zwischen dem Branch und dem Basis-Branch für die Generierung der PR-Details.",
       "stagedFiles": "Eine durch Zeilenumbrüche getrennte Liste der vorgemerkten Dateien für die Generierung der Commit-Nachricht.",
       "stagedPatch": "Der vorgemerkte Git-Patch für die Generierung der Commit-Nachricht."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "Der Prompt für {{label}} ist für die Windows-Befehlszeile zu groß. Weniger Änderungen vormerken und erneut versuchen.",
+        "promptTooLargeForArgument": "Der Prompt für {{label}} ist zu groß, um ihn als einzelnes Befehlszeilenargument zu übergeben. Weniger Änderungen vormerken und erneut versuchen.",
+        "agentCouldNotStart": "{{label}} konnte nicht gestartet werden. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentFailedToStart": "Der Start von {{label}} ist fehlgeschlagen. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentBinaryNotFound": "{{binary}} wurde in PATH nicht gefunden. {{label}} installieren, um KI-generierte Commit-Nachrichten zu nutzen.",
+        "timedOut": "Zeitüberschreitung bei der Generierung nach {{seconds}} s.",
+        "outputTooLarge": "Der CLI-Befehl von {{label}} hat zu viel Ausgabe erzeugt. Die CLI-Konfiguration des Agenten prüfen und erneut versuchen.",
+        "windowsBatchUnsafeArguments": "{{label}} wird über ein Windows-Batchskript ausgeführt, das den mehrzeiligen Prompt nicht als Argument annehmen kann. In den Einstellungen die ausführbare Datei des Agenten angeben oder einen benutzerdefinierten Befehl ohne {prompt} verwenden, damit Orca den Prompt über stdin sendet.",
+        "cliTerminated": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet.",
+        "cliTerminatedWithDetail": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet: {{detail}}",
+        "cliFailed": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen.",
+        "cliFailedWithDetail": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen: {{detail}}",
+        "agentReportedError": "{{label}} hat einen Fehler gemeldet.",
+        "emptyCommitMessage": "{{label}} hat eine leere Nachricht zurückgegeben.",
+        "emptyCommitMessageWithDetail": "{{label}} hat eine leere Nachricht zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} hat leere Details zurückgegeben.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} hat leere Details zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyJiraSummary": "{{label}} hat eine leere Zusammenfassung zurückgegeben.",
+        "emptyJiraSummaryWithDetail": "{{label}} hat eine leere Zusammenfassung zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "commitMessageUnparseable": "Die generierte Commit-Nachricht konnte nicht geparst werden.",
+        "pullRequestDetailsUnparseable": "Die generierten Pull-Request-Details konnten nicht geparst werden.",
+        "jiraSummaryEmptyAfterSanitization": "Die generierte Zusammenfassung war nach der Bereinigung leer.",
+        "jiraDescriptionRequired": "Eine Beschreibung ist erforderlich.",
+        "jiraAccountDisconnected": "Das ausgewählte Jira-Konto auf diesem Host erneut verbinden.",
+        "jiraSummaryBusyInOtherDraft": "In einem anderen Entwurf wird bereits ein Jira-Titel generiert.",
+        "stagedChangesReadFailed": "Vorgemerkte Änderungen konnten nicht gelesen werden.",
+        "noStagedChanges": "Keine vorgemerkten Änderungen zum Zusammenfassen.",
+        "noBranchChanges": "Keine Änderungen im Branch zum Zusammenfassen."
+      }
     }
   },
   "agentsSidebarIntro": {

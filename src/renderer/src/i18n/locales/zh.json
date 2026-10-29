@@ -19892,6 +19892,38 @@
       "firstPrompt": "此工作区或聊天中的第一个用户请求。",
       "assistantMessage": "Orca 可获取的智能体初始回复。",
       "linkedIssue": "与此工作区关联的 GitHub issue 编号。未关联 GitHub issue 时为空（包括关联 GitLab 的工作区）。优先使用带指示的模板：未关联时，单独的“Fixes #{linkedIssue}”会变成“Fixes #”。"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} 的提示词过大，无法用于 Windows 命令行。请减少暂存的更改后重试。",
+        "promptTooLargeForArgument": "{{label}} 的提示词过大，无法作为单个命令行参数传递。请减少暂存的更改后重试。",
+        "agentCouldNotStart": "无法启动 {{label}}。请在设置中检查智能体命令后重试。",
+        "agentFailedToStart": "{{label}} 启动失败。请在设置中检查智能体命令后重试。",
+        "agentBinaryNotFound": "在 PATH 中找不到 {{binary}}。请安装 {{label}} 以使用 AI 提交信息。",
+        "timedOut": "生成在 {{seconds}} 秒后超时。",
+        "outputTooLarge": "{{label}} CLI 命令产生了过多输出。请检查智能体的 CLI 配置后重试。",
+        "windowsBatchUnsafeArguments": "{{label}} 通过 Windows 批处理脚本运行，该脚本无法将多行提示词作为参数接收。请在设置中指定智能体的可执行文件，或使用不含 {prompt} 的自定义命令，让 Orca 通过 stdin 发送提示词。",
+        "cliTerminated": "{{label}} CLI 命令在退出前被终止。",
+        "cliTerminatedWithDetail": "{{label}} CLI 命令在退出前被终止：{{detail}}",
+        "cliFailed": "{{label}} CLI 命令执行失败，退出码为 {{exitCode}}。",
+        "cliFailedWithDetail": "{{label}} CLI 命令执行失败，退出码为 {{exitCode}}：{{detail}}",
+        "agentReportedError": "{{label}} 报告了错误。",
+        "emptyCommitMessage": "{{label}} 返回了空消息。",
+        "emptyCommitMessageWithDetail": "{{label}} 返回了空消息。CLI 输出：{{detail}}",
+        "emptyPullRequestDetails": "{{label}} 返回了空的详细信息。",
+        "emptyPullRequestDetailsWithDetail": "{{label}} 返回了空的详细信息。CLI 输出：{{detail}}",
+        "emptyJiraSummary": "{{label}} 返回了空摘要。",
+        "emptyJiraSummaryWithDetail": "{{label}} 返回了空摘要。CLI 输出：{{detail}}",
+        "commitMessageUnparseable": "无法解析生成的提交信息。",
+        "pullRequestDetailsUnparseable": "无法解析生成的 PR 详情。",
+        "jiraSummaryEmptyAfterSanitization": "生成的摘要在清理后为空。",
+        "jiraDescriptionRequired": "描述为必填项。",
+        "jiraAccountDisconnected": "请在此主机上重新连接所选的 Jira 账户。",
+        "jiraSummaryBusyInOtherDraft": "另一个草稿中已在生成 Jira 标题。",
+        "stagedChangesReadFailed": "无法读取已暂存的更改。",
+        "noStagedChanges": "没有可供总结的已暂存更改。",
+        "noBranchChanges": "没有可供总结的分支更改。"
+      }
     }
   },
   "rendererRecovery": {

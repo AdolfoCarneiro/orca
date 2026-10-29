@@ -19905,6 +19905,38 @@
       "patch": "此分支相較於基底分支的差異，用於產生 PR 詳細資訊。",
       "stagedFiles": "以換行分隔的已暫存檔案清單，用於產生提交訊息。",
       "stagedPatch": "用於產生提交訊息的已暫存 Git 修補檔。"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} 的提示詞過大，無法用於 Windows 命令列。請減少暫存的變更後再試一次。",
+        "promptTooLargeForArgument": "{{label}} 的提示詞過大，無法作為單一命令列引數傳遞。請減少暫存的變更後再試一次。",
+        "agentCouldNotStart": "無法啟動 {{label}}。請在「設定」中檢查代理程式的命令，然後再試一次。",
+        "agentFailedToStart": "{{label}} 啟動失敗。請在「設定」中檢查代理程式的命令，然後再試一次。",
+        "agentBinaryNotFound": "在 PATH 中找不到 {{binary}}。請安裝 {{label}} 以使用 AI 提交訊息。",
+        "timedOut": "產生作業在 {{seconds}} 秒後逾時。",
+        "outputTooLarge": "{{label}} CLI 命令產生過多輸出。請檢查代理程式的 CLI 設定，然後再試一次。",
+        "windowsBatchUnsafeArguments": "{{label}} 透過 Windows 批次指令碼執行，該指令碼無法將多行提示詞作為引數接收。請在「設定」中指定代理程式的執行檔，或使用不含 {prompt} 的自訂命令，讓 Orca 透過 stdin 傳送提示詞。",
+        "cliTerminated": "{{label}} CLI 命令在結束前遭到終止。",
+        "cliTerminatedWithDetail": "{{label}} CLI 命令在結束前遭到終止：{{detail}}",
+        "cliFailed": "{{label}} CLI 命令執行失敗，結束代碼為 {{exitCode}}。",
+        "cliFailedWithDetail": "{{label}} CLI 命令執行失敗，結束代碼為 {{exitCode}}：{{detail}}",
+        "agentReportedError": "{{label}} 回報錯誤。",
+        "emptyCommitMessage": "{{label}} 傳回空白訊息。",
+        "emptyCommitMessageWithDetail": "{{label}} 傳回空白訊息。CLI 輸出：{{detail}}",
+        "emptyPullRequestDetails": "{{label}} 傳回的詳細資料為空白。",
+        "emptyPullRequestDetailsWithDetail": "{{label}} 傳回的詳細資料為空白。CLI 輸出：{{detail}}",
+        "emptyJiraSummary": "{{label}} 傳回空白摘要。",
+        "emptyJiraSummaryWithDetail": "{{label}} 傳回空白摘要。CLI 輸出：{{detail}}",
+        "commitMessageUnparseable": "無法解析產生的提交訊息。",
+        "pullRequestDetailsUnparseable": "無法解析產生的 PR 詳細資料。",
+        "jiraSummaryEmptyAfterSanitization": "產生的摘要在清理後為空白。",
+        "jiraDescriptionRequired": "必須填寫描述。",
+        "jiraAccountDisconnected": "請在此主機上重新連線所選的 Jira 帳戶。",
+        "jiraSummaryBusyInOtherDraft": "另一份草稿已在產生 Jira 標題。",
+        "stagedChangesReadFailed": "無法讀取已暫存的變更。",
+        "noStagedChanges": "沒有可供產生摘要的已暫存變更。",
+        "noBranchChanges": "沒有可供產生摘要的分支變更。"
+      }
     }
   },
   "agentsSidebarIntro": {

@@ -19892,6 +19892,38 @@
       "firstPrompt": "이 워크스페이스 또는 채팅의 첫 번째 사용자 요청입니다.",
       "assistantMessage": "Orca에서 사용할 수 있는 경우 에이전트의 첫 번째 응답입니다.",
       "linkedIssue": "이 워크스페이스에 연결된 GitHub 이슈 번호입니다. GitHub 이슈가 연결되지 않으면 비어 있습니다(GitLab에 연결된 워크스페이스 포함). 지시문이 있는 템플릿을 사용하세요. 연결이 없으면 단독 \"Fixes #{linkedIssue}\"는 \"Fixes #\"가 됩니다."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} 프롬프트가 Windows 명령줄에서 사용하기에 너무 큽니다. 스테이징할 변경 사항을 줄이고 다시 시도하세요.",
+        "promptTooLargeForArgument": "{{label}} 프롬프트가 너무 커서 단일 명령줄 인수로 전달할 수 없습니다. 스테이징할 변경 사항을 줄이고 다시 시도하세요.",
+        "agentCouldNotStart": "{{label}}을(를) 시작할 수 없습니다. 설정에서 에이전트 명령을 확인하고 다시 시도하세요.",
+        "agentFailedToStart": "{{label}} 시작에 실패했습니다. 설정에서 에이전트 명령을 확인하고 다시 시도하세요.",
+        "agentBinaryNotFound": "PATH에서 {{binary}}을(를) 찾을 수 없습니다. AI commit 메시지를 사용하려면 {{label}}을(를) 설치하세요.",
+        "timedOut": "생성 제한 시간({{seconds}}초)을 초과했습니다.",
+        "outputTooLarge": "{{label}} CLI 명령의 출력이 너무 많습니다. 에이전트 CLI 설정을 확인하고 다시 시도하세요.",
+        "windowsBatchUnsafeArguments": "{{label}}은(는) 여러 줄 프롬프트를 인수로 받을 수 없는 Windows 배치 스크립트를 통해 실행됩니다. 설정에서 에이전트 실행 파일을 지정하거나, Orca가 프롬프트를 stdin으로 보내도록 {prompt}가 없는 사용자 지정 명령을 사용하세요.",
+        "cliTerminated": "{{label}} CLI 명령이 종료되기 전에 중단되었습니다.",
+        "cliTerminatedWithDetail": "{{label}} CLI 명령이 종료되기 전에 중단되었습니다: {{detail}}",
+        "cliFailed": "{{label}} CLI 명령이 코드 {{exitCode}}로 실패했습니다.",
+        "cliFailedWithDetail": "{{label}} CLI 명령이 코드 {{exitCode}}로 실패했습니다: {{detail}}",
+        "agentReportedError": "{{label}}에서 오류를 보고했습니다.",
+        "emptyCommitMessage": "{{label}}에서 빈 메시지를 반환했습니다.",
+        "emptyCommitMessageWithDetail": "{{label}}에서 빈 메시지를 반환했습니다. CLI 출력: {{detail}}",
+        "emptyPullRequestDetails": "{{label}}에서 빈 세부 정보를 반환했습니다.",
+        "emptyPullRequestDetailsWithDetail": "{{label}}에서 빈 세부 정보를 반환했습니다. CLI 출력: {{detail}}",
+        "emptyJiraSummary": "{{label}}에서 빈 요약을 반환했습니다.",
+        "emptyJiraSummaryWithDetail": "{{label}}에서 빈 요약을 반환했습니다. CLI 출력: {{detail}}",
+        "commitMessageUnparseable": "생성된 commit 메시지를 구문 분석할 수 없습니다.",
+        "pullRequestDetailsUnparseable": "생성된 PR 세부 정보를 구문 분석할 수 없습니다.",
+        "jiraSummaryEmptyAfterSanitization": "생성된 요약이 정제 후 비어 있습니다.",
+        "jiraDescriptionRequired": "설명은 필수입니다.",
+        "jiraAccountDisconnected": "이 호스트에서 선택한 Jira 계정을 다시 연결하세요.",
+        "jiraSummaryBusyInOtherDraft": "다른 초안에서 이미 Jira 제목을 생성하고 있습니다.",
+        "stagedChangesReadFailed": "스테이징된 변경 사항을 읽을 수 없습니다.",
+        "noStagedChanges": "요약할 스테이징된 변경 사항이 없습니다.",
+        "noBranchChanges": "요약할 브랜치 변경 사항이 없습니다."
+      }
     }
   },
   "rendererRecovery": {
