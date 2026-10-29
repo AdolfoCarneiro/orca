@@ -224,12 +224,12 @@ describe('getTaskProjectPickerGroups', () => {
 
     expect(groups).toHaveLength(2)
     expect(groups[0]).toMatchObject({
-      projectKey: 'github:stablyai/orca',
+      projectKey: 'project:github:stablyai/orca',
       repo: { id: 'local-orca' }
     })
     expect(groups[0]?.sources.map((source) => source.id)).toEqual(['local-orca', 'ssh-orca'])
     expect(groups[1]).toMatchObject({
-      projectKey: 'github:stablyai/docs',
+      projectKey: 'project:github:stablyai/docs',
       repo: { id: 'docs' }
     })
   })

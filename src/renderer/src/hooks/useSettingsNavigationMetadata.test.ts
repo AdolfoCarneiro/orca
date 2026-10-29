@@ -453,7 +453,7 @@ describe('settings navigation metadata', () => {
     expect(repoSections[0].id).toBe('repo-local-1')
   })
 
-  it('renders a nav section per same-host clone, titled by the clone (#20861)', () => {
+  it('renders one nav section for same-host clones by default', () => {
     const gitRemote = {
       canonicalKey: 'gitlab.com/acme/app',
       remoteName: 'origin',
@@ -472,8 +472,7 @@ describe('settings navigation metadata', () => {
 
     const repoSections = sections.filter((section) => section.id.startsWith('repo-'))
     expect(repoSections.map((section) => [section.id, section.title])).toEqual([
-      ['repo-clone-a', 'app'],
-      ['repo-clone-b', 'app-b']
+      ['repo-clone-a', 'app']
     ])
   })
 
