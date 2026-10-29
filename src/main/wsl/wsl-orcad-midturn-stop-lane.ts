@@ -29,7 +29,7 @@ import { assistantText } from './wsl-orcad-chat-assistant-text'
 import { envelope } from './wsl-orcad-chat-envelope'
 import {
   WslChatProviderReport,
-  waitForProviderReport,
+  waitForProviderReportInLog,
   writeChatFixtureFile,
   type WslChatHost
 } from './wsl-orcad-chat-provider-fixture'
@@ -167,7 +167,7 @@ async function stopMidTurnThenContinue(
   const ackPath = `${fixture.root}/midturn-partial-observed`
   // agentDefaultEnv points the guest Claude at these.
   const scenarioPath = `${fixture.root}/scenario.json`
-  const reportPath = `${fixture.root}/report.json`
+  const reportLogPath = `${fixture.root}/report-log.jsonl`
   const items = async (): Promise<AgentJournalRenderItem[]> =>
     (
       await lane.rpc<AgentSessionHistoryResult>('agentSession.history', {
@@ -176,7 +176,7 @@ async function stopMidTurnThenContinue(
         limit: 100
       })
     ).page.items
-  await lane.guest(`rm -f ${quotePosixShell(ackPath)} ${quotePosixShell(reportPath)}`)
+  await lane.guest(`rm -f ${quotePosixShell(ackPath)} ${quotePosixShell(reportLogPath)}`)
   await writeChatFixtureFile(
     lane,
     scenarioPath,
@@ -306,9 +306,10 @@ async function stopMidTurnThenContinue(
     { timeout: 60_000, interval: 500 }
   )
   const resumedArgv = new RegExp(`--resume(?:=| )${providerId}`)
-  const resumed = await waitForProviderReport(
+  // The restarted server's model discovery relaunches the same CLI after the turn, so the log.
+  const resumed = await waitForProviderReportInLog(
     lane,
-    reportPath,
+    reportLogPath,
     WslChatProviderReport,
     (written) => resumedArgv.test(written.argv.join(' ')) && written.userMessages.length > 0,
     'the continued turn'

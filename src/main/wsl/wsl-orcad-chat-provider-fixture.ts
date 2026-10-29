@@ -124,6 +124,7 @@ export async function installWslChatFixture(lane: WslChatHost) {
       claude: {
         ORCA_SDK_CONTRACT_SCENARIO_PATH: `${root}/scenario.json`,
         ORCA_SDK_CONTRACT_REPORT_PATH: `${root}/report.json`,
+        ORCA_SDK_CONTRACT_REPORT_LOG_PATH: `${root}/report-log.jsonl`,
         ORCA_SDK_CONTRACT_TIMEOUT_MS: '120000'
       },
       codex: {
@@ -177,6 +178,52 @@ export const WslChatProviderReport = z.object({
 })
 
 const PROVIDER_REPORT_TIMEOUT_MS = 30_000
+
+/**
+ * Every report any launch of the scripted Claude wrote, oldest first. A launch after the one under
+ * test (model discovery after a restart) overwrites the single report file, so read the log.
+ */
+export async function waitForProviderReportInLog<T>(
+  host: Pick<WslChatHost, 'guest'>,
+  logPath: string,
+  schema: z.ZodType<T>,
+  settled: (report: T) => boolean,
+  awaiting: string
+): Promise<T> {
+  let lastLine = ''
+  try {
+    return await vi.waitFor(
+      async () => {
+        const lines = (await host.guest(`cat ${quotePosixShell(logPath)} 2>/dev/null || true`))
+          .split('\n')
+          .filter(Boolean)
+        lastLine = lines.at(-1) ?? ''
+        // A line being appended can be torn; skip what does not parse.
+        const found = lines
+          .map((line) => schema.safeParse(safeJson(line)))
+          .find((parsed) => parsed.success && settled(parsed.data))
+        if (!found?.success) {
+          throw new Error(`no report in the log shows ${awaiting} yet`)
+        }
+        return found.data
+      },
+      { timeout: PROVIDER_REPORT_TIMEOUT_MS, interval: 250 }
+    )
+  } catch (error) {
+    throw new Error(
+      `Provider report log ${logPath} did not show ${awaiting} within ${PROVIDER_REPORT_TIMEOUT_MS} ms; last line ${JSON.stringify(lastLine.slice(-600))}`,
+      { cause: error }
+    )
+  }
+}
+
+function safeJson(line: string): unknown {
+  try {
+    return JSON.parse(line)
+  } catch {
+    return null
+  }
+}
 
 /** Scripted providers rewrite their report in place after each act, so one read can see a torn file or a stale one. */
 export async function waitForProviderReport<T>(
