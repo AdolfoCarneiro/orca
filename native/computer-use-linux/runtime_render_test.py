@@ -370,6 +370,48 @@ class RuntimeRenderTest(unittest.TestCase):
                 runtime.run_operation({"tool": "type_text", "app": "Fixture", "text": "x", "noScreenshot": True})
         self.assertEqual(field.value, "Hello")
 
+    def test_partial_text_replacement_fails_without_typing_again(self):
+        for tool in ("type_text", "paste_text"):
+            for failure in (False, TimeoutError("provider timed out")):
+                field = FakeAccessible("text", "Message", value="Hello world")
+                field.caret, field.selection = 11, (6, 11)
+                field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
+                field.get_editable_text_iface = lambda: field
+                with self.subTest(tool=tool, failure=failure), SnapshotFixture(
+                    FakeAccessible("frame", "Editor", children=[field])
+                ) as fixture, patch.object(runtime.Atspi.EditableText, "delete_text", side_effect=failure if isinstance(failure, Exception) else None, return_value=False), \
+                     patch.object(runtime, "type_text") as keys, patch.object(runtime, "paste_text") as paste:
+                    fixture.root.get_state_set = lambda: FakeStateSet(FakeStateType.ACTIVE)
+                    with self.assertRaisesRegex(RuntimeError, "text_replacement_incomplete"):
+                        runtime.run_operation({"tool": tool, "app": "Fixture", "text": "world", "noScreenshot": True})
+                    self.assertEqual(field.value, "Hello worldworld")
+                    keys.assert_not_called()
+                    paste.assert_not_called()
+
+    def test_unconfirmed_text_insertion_does_not_fall_back_to_another_write(self):
+        write = FakeEditableText.insert_text
+        for tool in ("type_text", "paste_text"):
+            for times_out in (False, True):
+                field = FakeAccessible("text", "Message", value="Hello world")
+                field.caret, field.selection = 11, (6, 11)
+                field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
+                field.get_editable_text_iface = lambda: field
+                def insert(node, position, text, length):
+                    write(node, position, text, length)
+                    if times_out:
+                        raise TimeoutError("reply lost after insertion")
+                    return False
+                with self.subTest(tool=tool, times_out=times_out), SnapshotFixture(
+                    FakeAccessible("frame", "Editor", children=[field])
+                ) as fixture, patch.object(runtime.Atspi.EditableText, "insert_text", side_effect=insert), \
+                     patch.object(runtime, "type_text") as keys, patch.object(runtime, "paste_text") as paste:
+                    fixture.root.get_state_set = lambda: FakeStateSet(FakeStateType.ACTIVE)
+                    with self.assertRaisesRegex(RuntimeError, "text_insertion_unconfirmed"):
+                        runtime.run_operation({"tool": tool, "app": "Fixture", "text": "world", "noScreenshot": True})
+                    self.assertEqual(field.value, "Hello worldworld")
+                    keys.assert_not_called()
+                    paste.assert_not_called()
+
     def test_compacted_browser_records_keep_their_own_frames_and_indexes(self):
         tabs = [FakeAccessible("page tab", f"Tab {i}", value="1" if i == 9 else "") for i in range(10)]
         buttons = [FakeAccessible("button", f"Other {i}") for i in range(10)]

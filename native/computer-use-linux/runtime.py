@@ -1012,11 +1012,13 @@ def insert_focused_text(window, value):
         selection = attempt(lambda: Atspi.Text.get_selection(text, 0))
         if selection is not None and 0 <= selection.start_offset < selection.end_offset:
             start, end = selection.start_offset, selection.end_offset
-    if start < 0 or not attempt(lambda: Atspi.EditableText.insert_text(editable, end, value, len(value)), False):
+    if start < 0:
         return None
-    # Why insert before deleting: a failed insert then leaves the selection intact for the fallback.
-    if end > start:
-        attempt(lambda: Atspi.EditableText.delete_text(editable, start, end))
+    if not attempt(lambda: Atspi.EditableText.insert_text(editable, end, value, len(value)), False):
+        raise RuntimeError("text_insertion_unconfirmed: text insertion did not confirm success; inspect state before retrying")
+    # Why insert before deleting: an unsuccessful insert leaves the selected text intact.
+    if end > start and not attempt(lambda: Atspi.EditableText.delete_text(editable, start, end), False):
+        raise RuntimeError("text_replacement_incomplete: text was inserted but selection deletion did not confirm success; inspect state before retrying")
     caret = start + len(value)
     if attempt(lambda: Atspi.Text.get_caret_offset(text)) != caret:
         attempt(lambda: Atspi.Text.set_caret_offset(text, caret))
