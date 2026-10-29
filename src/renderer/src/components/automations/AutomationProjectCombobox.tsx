@@ -75,7 +75,11 @@ export default function AutomationProjectCombobox({
   const focusFrameRef = useRef<number | null>(null)
   const mountedRef = useMountedRef()
 
-  const groups = useMemo(() => getAutomationProjectGroups(repos, value), [repos, value])
+  const settings = useAppStore((state) => state.settings)
+  const groups = useMemo(
+    () => getAutomationProjectGroups(repos, value, settings),
+    [repos, value, settings]
+  )
   const selectedGroup = useMemo(
     () => getAutomationProjectGroupForRepo(groups, value),
     [groups, value]

@@ -177,7 +177,8 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
         repos,
         projectGrouping: {
           projects: projectHostSetupProjection.projects,
-          projectHostSetups: projectHostSetupProjection.setups
+          projectHostSetups: projectHostSetupProjection.setups,
+          settings
         }
       }),
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- translate() inside buildSettingsNavigationMetadata reads the UI language and catalogs implicitly.
@@ -195,6 +196,7 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
       isLinearConnected,
       repos,
       projectHostSetupProjection,
+      settings,
       languageRevision
     ]
   )

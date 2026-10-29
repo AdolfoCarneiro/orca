@@ -108,9 +108,10 @@ const WorktreeList = React.memo(function WorktreeList({
   const projectGrouping = useMemo(
     () => ({
       projects: projectHostSetupProjection.projects,
-      projectHostSetups: projectHostSetupProjection.setups
+      projectHostSetups: projectHostSetupProjection.setups,
+      settings
     }),
-    [projectHostSetupProjection]
+    [projectHostSetupProjection, settings]
   )
 
   const agentSendTargetWorktreeId = useAgentSendTargetWorktreeId()

@@ -1,6 +1,15 @@
+import type { Repo } from '../../../shared/repo-types'
+import {
+  getRepoProjectGroupKey,
+  type ProjectGroupingSettings
+} from '../../../shared/project-grouping'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { AgentSessionWorkspaceKind } from '../../../shared/agent-session-record'
-import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  LOCAL_EXECUTION_HOST_ID,
+  type ExecutionHostId
+} from '../../../shared/execution-host'
 import { projectGroupIdFromRepoId } from '../../../shared/folder-workspace-worktree'
 import type { RepoIcon } from '../../../shared/repo-icon'
 import type { AgentSessionRestartActivity } from '../../../shared/agent-session-restart-activity'
@@ -96,12 +105,18 @@ export function groupResumeCandidates(
 /** Group by owner in first-seen order; unresolved workspaces share one null group. */
 export function groupResumeWorkspacesByRepo(
   workspaces: readonly ResumeWorkspaceGroup[],
-  repoIdFor: (workspaceId: string) => string | null
+  repoIdFor: (workspaceId: string) => string | null,
+  repos: readonly Repo[] = [],
+  settings?: ProjectGroupingSettings | null
 ): ResumeRepoGroup[] {
   const groups = new Map<string, ResumeRepoGroup>()
   for (const workspace of workspaces) {
     const repoId = repoIdFor(workspace.workspaceId)
-    const key = repoId ?? '\0none'
+    const hostId = workspace.candidates[0]?.executionHostId ?? LOCAL_EXECUTION_HOST_ID
+    const repo = repos.find(
+      (candidate) => candidate.id === repoId && getRepoExecutionHostId(candidate) === hostId
+    )
+    const key = repo ? getRepoProjectGroupKey(repo, settings) : (repoId ?? '\0none')
     const existing = groups.get(key)
     if (existing) {
       existing.workspaces.push(workspace)
@@ -216,4 +231,13 @@ export function resolveResumeGroupHeader(
 
 export function allResumeSessionIds(candidates: readonly ResumeCandidate[]): string[] {
   return candidates.map((candidate) => candidate.sessionId)
+}
+
+export function resumeWorkspaceLookup(workspaces: readonly ResumeWorkspaceGroup[]) {
+  const byId = new Map(workspaces.map((group) => [group.workspaceId, group]))
+  return <T>(read: (group: ResumeWorkspaceGroup) => T, fallback: T) =>
+    (id: string): T => {
+      const group = byId.get(id)
+      return group ? read(group) : fallback
+    }
 }

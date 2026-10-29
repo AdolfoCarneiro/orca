@@ -89,7 +89,11 @@ export function computeRenderedSidebarRows(
     importedWorktreesByRepo: EMPTY_IMPORTED_BY_REPO,
     newExternalWorktreesInboxByRepo: EMPTY_INBOX_BY_REPO,
     pendingCreations: EMPTY_PENDING_CREATIONS,
-    projectGrouping: { projects: projection.projects, projectHostSetups: projection.setups },
+    projectGrouping: {
+      projects: projection.projects,
+      projectHostSetups: projection.setups,
+      settings: state.settings
+    },
     folderWorkspaces: filterFolderWorkspacesForVisibleHosts(
       selectFolderWorkspaces(state),
       projectGroups,

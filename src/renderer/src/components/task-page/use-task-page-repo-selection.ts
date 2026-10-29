@@ -51,14 +51,14 @@ export function useTaskPageRepoSelection(model: TaskPageStoreBindingsModel) {
     }
     const persisted = settings?.defaultRepoSelection
     if (Array.isArray(persisted)) {
-      return normalizeTaskRepoSelection(eligibleRepos, new Set(persisted))
+      return normalizeTaskRepoSelection(eligibleRepos, new Set(persisted), settings)
     }
-    return getDefaultTaskRepoSelection(eligibleRepos)
-  }, [eligibleRepos, pageData.preselectedRepoId, settings?.defaultRepoSelection])
+    return getDefaultTaskRepoSelection(eligibleRepos, settings)
+  }, [eligibleRepos, pageData.preselectedRepoId, settings])
   const [repoSelection, setRepoSelection] = useState<ReadonlySet<string>>(resolvedInitialSelection)
   const taskPickerGroups = useMemo(
-    () => getTaskProjectPickerGroups(eligibleRepos, repoSelection),
-    [eligibleRepos, repoSelection]
+    () => getTaskProjectPickerGroups(eligibleRepos, repoSelection, settings),
+    [eligibleRepos, repoSelection, settings]
   )
   const taskPickerRepos = useMemo(
     () => taskPickerGroups.map((group) => group.repo),
@@ -88,11 +88,11 @@ export function useTaskPageRepoSelection(model: TaskPageStoreBindingsModel) {
     if (pruned.size === 0 && eligibleIds.size === 0) {
       return
     }
-    const normalized = normalizeTaskRepoSelection(eligibleRepos, pruned)
+    const normalized = normalizeTaskRepoSelection(eligibleRepos, pruned, settings)
     if (!areStringSetsEqual(normalized, repoSelection)) {
       setRepoSelection(normalized)
     }
-  }, [eligibleRepos, repoSelection, taskPickerRepos])
+  }, [eligibleRepos, repoSelection, taskPickerRepos, settings])
   const selectedRepos = useMemo(
     () => eligibleRepos.filter((r) => repoSelection.has(r.id)),
     [eligibleRepos, repoSelection]

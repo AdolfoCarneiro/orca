@@ -26,6 +26,18 @@ export function getRepositoryPaneSearchEntries(
     (Boolean(options.windowsRuntimeSupported) &&
       getRepoExecutionHostId(repo) === LOCAL_EXECUTION_HOST_ID)
   return [
+    ...(!isFolder
+      ? [
+          {
+            title: translate('settings.projectGrouping.label', 'Group checkouts'),
+            description: translate(
+              'settings.projectGrouping.overrideDescription',
+              'Overrides the default in General for every checkout of this repository.'
+            ),
+            keywords: [repo.displayName, 'projects', 'repository', 'checkout', 'host', 'folder']
+          }
+        ]
+      : []),
     {
       title: translate('components.RepositoryJiraProjectSection.title', 'Default Jira project'),
       description: translate(

@@ -1,10 +1,11 @@
-import { getProjectIdentityKey } from './project-host-setup-projection'
+import { getRepoProjectGroupKey, type ProjectGroupingSettings } from './project-grouping'
 import type { Repo } from './repo-types'
 
 /** Fetched repos that name no group take the group another host's copy of the same project has. */
 export function applyInheritedProjectGroups(
   previous: readonly Repo[],
-  fetched: readonly Repo[]
+  fetched: readonly Repo[],
+  settings?: ProjectGroupingSettings | null
 ): Repo[] {
   const projectGroupIdByProject = new Map<string, string | null>()
   for (const repo of previous) {
@@ -13,7 +14,7 @@ export function applyInheritedProjectGroups(
     if (projectGroupId === undefined) {
       continue
     }
-    const projectId = getProjectIdentityKey(repo)
+    const projectId = getRepoProjectGroupKey(repo, settings)
     if (projectId.startsWith('repo:')) {
       continue
     }
@@ -28,7 +29,9 @@ export function applyInheritedProjectGroups(
     if (repo.projectGroupId !== undefined) {
       return repo
     }
-    const inheritedProjectGroupId = projectGroupIdByProject.get(getProjectIdentityKey(repo))
+    const inheritedProjectGroupId = projectGroupIdByProject.get(
+      getRepoProjectGroupKey(repo, settings)
+    )
     if (inheritedProjectGroupId === undefined) {
       return repo
     }

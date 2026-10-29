@@ -11,6 +11,15 @@ export { getGeneralSupportSearchEntries } from './general-support-search'
 
 export const getGeneralWorkspaceSearchEntries = createLocalizedCatalog(() => [
   {
+    title: translate('settings.projectGrouping.label', 'Group checkouts'),
+    description: translate(
+      'settings.projectGrouping.description',
+      'Choose which checkouts of a Git repository count as one project.'
+    ),
+    keywords: ['projects', 'repository', 'checkout', 'host', 'folder'],
+    targetSectionId: 'general-projects'
+  },
+  {
     title: translate('auto.components.settings.general.search.4c95d08fa2', 'Workspace Directory'),
     description: translate(
       'auto.components.settings.general.search.d0bc793689',

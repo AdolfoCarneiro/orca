@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback } from 'react'
+import { useProjectFilterOptions } from './use-project-filter-options'
 import { useAppStore } from '@/store'
 import {
   DropdownMenuSub,
@@ -48,31 +49,14 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
   useUiLanguageRevision()
   const workspaceFilterRepoIds = useAppStore((s) => s.filterRepoIds)
   const setWorkspaceFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
-  const repos = useAppStore((s) => s.repos)
   const filterRepoIds = filterRepoIdsProp ?? workspaceFilterRepoIds
   const setFilterRepoIds = setFilterRepoIdsProp ?? setWorkspaceFilterRepoIds
-
-  const canFilterRepos = repos.length > 1
-  // Ignore removed repo IDs so counts cannot imply a stale active filter.
-  const selectedRepoIdSet = useMemo(() => {
-    const set = new Set<string>()
-    for (const repo of repos) {
-      if (filterRepoIds.includes(repo.id)) {
-        set.add(repo.id)
-      }
-    }
-    return set
-  }, [repos, filterRepoIds])
-  const selectedCount = selectedRepoIdSet.size
+  const { repos: groupedRepos, selectedKeys, memberIds } = useProjectFilterOptions(filterRepoIds)
+  const canFilterRepos = groupedRepos.length > 1
+  const selectedCount = selectedKeys.length
   const hasRepoFilter = selectedCount > 0
-  const selectedRepos = useMemo(
-    () => repos.filter((repo) => selectedRepoIdSet.has(repo.id)),
-    [repos, selectedRepoIdSet]
-  )
-  const availableRepos = useMemo(
-    () => repos.filter((repo) => !selectedRepoIdSet.has(repo.id)),
-    [repos, selectedRepoIdSet]
-  )
+  const selectedRepos = groupedRepos.filter((repo) => selectedKeys.includes(repo.id))
+  const availableRepos = groupedRepos.filter((repo) => !selectedKeys.includes(repo.id))
   const visibilityLabel = getProjectFilterVisibilityLabel({ selectedCount, selectedRepos })
 
   const clearRepos = useCallback(() => setFilterRepoIds([]), [setFilterRepoIds])
@@ -127,8 +111,8 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
           availableRepos={availableRepos}
           selectedRepos={selectedRepos}
           hasRepoFilter={hasRepoFilter}
-          filterRepoIds={filterRepoIds}
-          setFilterRepoIds={setFilterRepoIds}
+          filterRepoIds={selectedKeys}
+          setFilterRepoIds={(ids) => setFilterRepoIds(memberIds(ids))}
         />
       </DropdownMenuSubContent>
     </DropdownMenuSub>

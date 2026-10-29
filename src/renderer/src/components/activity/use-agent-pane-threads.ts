@@ -83,6 +83,7 @@ export function useAgentPaneThreads(args: {
   visibleThreadGroups: ActivityThreadGroup[]
 } {
   const { query, readFilter, groupBy, selectedPaneKey, showChildAgents = false } = args
+  const groupingSettings = useAppStore((s) => s.settings)
   const agentsVisibleHostIds = useAppStore((s) => s.agentsVisibleHostIds)
   const agentsFilterRepoIds = useAppStore((s) => s.agentsFilterRepoIds)
   const hideWorkspacesFromOtherDevices = useAppStore((s) => s.agentsHideWorkspacesFromOtherDevices)
@@ -287,8 +288,8 @@ export function useAgentPaneThreads(args: {
   )
 
   const visibleThreadGroups = useMemo(
-    () => buildActivityThreadGroups(visibleThreads, groupBy),
-    [visibleThreads, groupBy]
+    () => buildActivityThreadGroups(visibleThreads, groupBy, groupingSettings),
+    [visibleThreads, groupBy, groupingSettings]
   )
 
   return {

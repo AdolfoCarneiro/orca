@@ -1,3 +1,5 @@
+import { projectRepoFilterMatcher } from '../../../src/shared/project-grouping'
+import { getRepoExecutionHostId } from '../../../src/shared/execution-host'
 import { orderMainWorktreeFirst } from '../../../src/shared/sidebar-list/section-order'
 import { withFolderWorkspacesLast } from './folder-workspace-lane-order'
 import { prGroupOfPsLinkedPR } from '../../../src/shared/sidebar-list/workspace-review-facts'
@@ -182,10 +184,10 @@ export function buildMobileWorkspacePlan(
   }
   const filtered = filterWorktrees(worktrees, filters, search, repoHostIdByRepoId)
   const sorted = sortWorktrees(filtered, sortMode, Date.now(), hostSortsByStamps(worktrees))
+  const matchesRepo = projectRepoFilterMatcher(filters.filterRepoIds)
+  const hostIdOf = (w: Worktree) => resolveWorktreeHostId(w, repoHostIdByRepoId)
   const childrenByParentIdentity = getMobileWorkspaceLineageChildren(
-    filters.filterRepoIds.length > 0
-      ? worktrees.filter((w) => filters.filterRepoIds.includes(w.repoId))
-      : worktrees
+    worktrees.filter((w) => matchesRepo(w.repoId, hostIdOf(w)))
   )
   const repoMap = buildSectionRepoMap(projectCatalog.repos, worktrees)
   const projectIndex = buildProjectGroupingIndex(projectCatalog.grouping ?? undefined)
@@ -196,7 +198,7 @@ export function buildMobileWorkspacePlan(
     isPinned: (worktree) => isWorktreePinned(worktree, pinnedIds),
     duplicatePinned: showPinnedInGroups,
     owningSectionOf: (worktree) =>
-      getProjectGroupingForRepo(worktree.repoId, repoMap, projectIndex),
+      getProjectGroupingForRepo(worktree.repoId, repoMap, projectIndex, hostIdOf(worktree)),
     projectIdOf: (worktree) => worktree.repoId,
     sectionsOf: ({ pinned, natural: canonicalGroupWorktrees, displayRootByIdentity }) => {
       const sections: Section[] = []
@@ -216,7 +218,7 @@ export function buildMobileWorkspacePlan(
           .filter(
             (repo) =>
               !representedRepoIds.has(repo.id) &&
-              (filters.filterRepoIds.length === 0 || filters.filterRepoIds.includes(repo.id)) &&
+              matchesRepo(repo.id, getRepoExecutionHostId(repo)) &&
               (!query || repo.displayName.toLowerCase().includes(query))
           )
           .map((repo) => repo.id)
@@ -224,6 +226,7 @@ export function buildMobileWorkspacePlan(
           buildProjectSections({
             items: canonicalGroupWorktrees,
             repoIdOf: (w) => w.repoId,
+            hostIdOf,
             displayRepoIdOf: (w) =>
               (displayRootByIdentity.get(getWorktreeRowIdentity(w)) ?? w).repoId,
             repoMap,

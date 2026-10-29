@@ -1,3 +1,4 @@
+import { ProjectGroupingSetting } from '../ProjectGroupingSetting'
 import type { GhAccountBinding } from '../../../../../shared/github/account-binding'
 import { useCallback, useRef, useState } from 'react'
 import type { OrcaHooks, RepoHookSettings } from '../../../../../shared/orca-yaml-hook-types'
@@ -99,6 +100,7 @@ export function RepositoryPane({
     [updateRepo, selectedHostId]
   )
   const searchQuery = useAppStore((state) => state.settingsSearchQuery)
+  const updateSettings = useAppStore((state) => state.updateSettings)
   const settings = useAppStore((state) => state.settings)
   const worktreeVisibilityDefaultsByHost = useAppStore(
     (state) => state.worktreeVisibilityDefaultsByHost
@@ -315,6 +317,14 @@ export function RepositoryPane({
               searchQuery={searchQuery}
               searchEntries={hostSetupEntries}
             />
+
+            {settings && project ? (
+              <ProjectGroupingSetting
+                settings={settings}
+                updateSettings={updateSettings}
+                projectId={project.id}
+              />
+            ) : null}
 
             <RepositoryWindowsRuntimeSection
               repo={repo}

@@ -1,3 +1,4 @@
+import { buildProjectGroups, type ProjectGroupingSettings } from '../../../shared/project-grouping'
 import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
 import type { ProjectGroup } from '../../../shared/project-group-types'
 import type { Project, ProjectHostSetup } from '../../../shared/project-types'
@@ -42,6 +43,7 @@ export function isNewWorkspaceProjectOptionQueryTooLarge(
 }
 
 type BuildNewWorkspaceProjectOptionsInput = {
+  settings?: ProjectGroupingSettings | null
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
   eligibleRepos: readonly Repo[]
@@ -108,17 +110,37 @@ export function buildNewWorkspaceProjectOptions(
     setupDirectoriesByProjectId.set(setup.projectId, directories)
   }
 
-  const options = projects
-    .filter((project) => (readySetupCountsByProjectId.get(project.id) ?? 0) > 0)
-    .map((project) => ({
-      kind: 'project' as const,
-      id: project.id,
-      projectId: project.id,
-      displayName: project.displayName,
-      badgeColor: project.badgeColor,
-      detail: getProjectDetail(project, readySetupCountsByProjectId.get(project.id) ?? 0),
-      detailSource: project.providerIdentity ? ('provider' as const) : ('generic' as const)
-    }))
+  const groups = buildProjectGroups({ projects, projectHostSetups }, input.settings)
+  const options = groups
+    .filter((group) =>
+      group.members.some(
+        (setup) =>
+          setup.setupState === 'ready' &&
+          eligibleRepoIds.has(setup.repoId) &&
+          (!liveHostIds || liveHostIds.has(setup.hostId))
+      )
+    )
+    .flatMap((group) => {
+      const project = projects.find((candidate) => candidate.id === group.representative.projectId)
+      if (!project) {
+        return []
+      }
+      setupDirectoriesByProjectId.set(
+        group.key,
+        group.members.map((setup) => ({ path: setup.path, hostId: setup.hostId }))
+      )
+      return [
+        {
+          kind: 'project' as const,
+          id: group.key,
+          projectId: group.key,
+          displayName: group.label,
+          badgeColor: project.badgeColor,
+          detail: getProjectDetail(project, readySetupCountsByProjectId.get(project.id) ?? 0),
+          detailSource: project.providerIdentity ? ('provider' as const) : ('generic' as const)
+        }
+      ]
+    })
 
   const duplicateProjectDetailsById = getDuplicateProjectDetailsById(
     options,

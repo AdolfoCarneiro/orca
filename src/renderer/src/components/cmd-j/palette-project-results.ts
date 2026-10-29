@@ -1,3 +1,4 @@
+import type { ProjectGroupingSettings } from '../../../../shared/project-grouping'
 import { isCmdJPaletteQueryTooLarge } from './palette-results'
 import {
   cmdJPaletteTokenScore,
@@ -66,15 +67,17 @@ function buildCmdJProjectSearchCandidates({
   repos,
   projects,
   projectHostSetups,
+  settings,
   renderableRepoIds
 }: {
   projectGroups: readonly ProjectGroup[]
   repos: readonly Repo[]
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
+  settings?: ProjectGroupingSettings | null
   renderableRepoIds?: ReadonlySet<string>
 }): CmdJProjectSearchResult[] {
-  const projectGrouping: ProjectGroupingModel = { projects, projectHostSetups }
+  const projectGrouping: ProjectGroupingModel = { projects, projectHostSetups, settings }
   const repoMap = new Map(repos.map((repo) => [repo.id, repo]))
   const candidates: CmdJProjectSearchResult[] = []
 
@@ -127,12 +130,14 @@ export function hasCmdJProjectSearchCandidates({
   repos,
   projects,
   projectHostSetups,
+  settings,
   renderableRepoIds
 }: {
   projectGroups: readonly ProjectGroup[]
   repos: readonly Repo[]
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
+  settings?: ProjectGroupingSettings | null
   renderableRepoIds?: ReadonlySet<string>
 }): boolean {
   return (
@@ -141,6 +146,7 @@ export function hasCmdJProjectSearchCandidates({
       repos,
       projects,
       projectHostSetups,
+      settings,
       renderableRepoIds
     }).length > 0
   )
@@ -188,6 +194,7 @@ export function searchCmdJProjectResults({
   repos,
   projects,
   projectHostSetups,
+  settings,
   renderableRepoIds
 }: {
   query: string
@@ -195,6 +202,7 @@ export function searchCmdJProjectResults({
   repos: readonly Repo[]
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
+  settings?: ProjectGroupingSettings | null
   renderableRepoIds?: ReadonlySet<string>
 }): CmdJRankedProjectSearchResult[] {
   // Bound pasted queries before scanning potentially private project, repo or group names.
@@ -212,6 +220,7 @@ export function searchCmdJProjectResults({
     repos,
     projects,
     projectHostSetups,
+    settings,
     renderableRepoIds
   })
     .map((candidate) => projectRankingForCandidate(normalizedQuery, queryTokens, candidate))

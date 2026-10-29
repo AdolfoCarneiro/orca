@@ -1,6 +1,9 @@
+import {
+  getRepoProjectGroupKey,
+  type ProjectGroupingSettings
+} from '../../../../shared/project-grouping'
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import {
-  getProjectIdentityKey,
   hasProjectRemoteIdentity,
   isProjectRemoteIdentityPending
 } from '../../../../shared/project-host-setup-projection'
@@ -22,10 +25,13 @@ export function getTaskEligibleRepos(repos: readonly Repo[]): Repo[] {
   )
 }
 
-export function getDefaultTaskRepoSelection(repos: readonly Repo[]): Set<string> {
+export function getDefaultTaskRepoSelection(
+  repos: readonly Repo[],
+  settings?: ProjectGroupingSettings | null
+): Set<string> {
   const selectedByProject = new Map<string, Repo>()
   for (const repo of repos) {
-    const projectKey = getTaskRepoProjectKey(repo)
+    const projectKey = getTaskRepoProjectKey(repo, settings)
     const current = selectedByProject.get(projectKey)
     if (!current || compareDefaultTaskRepoCandidate(repo, current) < 0) {
       selectedByProject.set(projectKey, repo)
@@ -36,11 +42,12 @@ export function getDefaultTaskRepoSelection(repos: readonly Repo[]): Set<string>
 
 export function getTaskProjectPickerGroups(
   repos: readonly Repo[],
-  preferredSelection: ReadonlySet<string> = new Set()
+  preferredSelection: ReadonlySet<string> = new Set(),
+  settings?: ProjectGroupingSettings | null
 ): TaskProjectPickerGroup[] {
   const groupsByProject = new Map<string, TaskProjectPickerGroup>()
   for (const repo of repos) {
-    const projectKey = getTaskRepoProjectKey(repo)
+    const projectKey = getTaskRepoProjectKey(repo, settings)
     const current = groupsByProject.get(projectKey)
     if (!current) {
       groupsByProject.set(projectKey, { projectKey, repo, sources: [repo] })
@@ -59,7 +66,8 @@ export function getTaskProjectPickerGroups(
 
 export function normalizeTaskRepoSelection(
   repos: readonly Repo[],
-  selection: ReadonlySet<string>
+  selection: ReadonlySet<string>,
+  settings?: ProjectGroupingSettings | null
 ): Set<string> {
   const selectedByProject = new Map<string, Repo>()
   const selectedIds = new Set(selection)
@@ -67,20 +75,23 @@ export function normalizeTaskRepoSelection(
     if (!selectedIds.has(repo.id)) {
       continue
     }
-    const projectKey = getTaskRepoProjectKey(repo)
+    const projectKey = getTaskRepoProjectKey(repo, settings)
     const current = selectedByProject.get(projectKey)
     if (!current || compareDefaultTaskRepoCandidate(repo, current) < 0) {
       selectedByProject.set(projectKey, repo)
     }
   }
   if (selectedByProject.size === 0) {
-    return getDefaultTaskRepoSelection(repos)
+    return getDefaultTaskRepoSelection(repos, settings)
   }
   return new Set([...selectedByProject.values()].map((repo) => repo.id))
 }
 
-export function getTaskRepoProjectKey(repo: Repo): string {
-  return getProjectIdentityKey(repo)
+export function getTaskRepoProjectKey(
+  repo: Repo,
+  settings?: ProjectGroupingSettings | null
+): string {
+  return getRepoProjectGroupKey(repo, settings)
 }
 
 function compareTaskProjectPickerCandidate(

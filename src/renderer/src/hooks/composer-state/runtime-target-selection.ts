@@ -1,3 +1,4 @@
+import { useComposerProjectOptions } from './project-group-target-options'
 import { ipcOrRuntimeTargetForHostId } from '@/runtime/runtime-client-target'
 import type { ComposerRuntimeTargetSelectionInput } from './composer-target-input-contracts'
 
@@ -20,8 +21,6 @@ import {
 } from '@/lib/execution-host-facts'
 import { useAppStore } from '@/store'
 import { repoIsRemote } from '../../../../shared/agent-launch-remote'
-import { buildProjectHostSetupOptions } from '@/lib/project-host-setup-options'
-import { buildNewWorkspaceCreateTargetOptions } from '@/lib/new-workspace-project-options'
 import { getRuntimeEnvironmentIdForRepo } from '@/lib/repo-runtime-owner'
 import { useEphemeralVmRecipeOptions } from '@/hooks/useEphemeralVmRecipeOptions'
 
@@ -30,7 +29,6 @@ export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSe
     actionableHostIds,
     activeRepoId,
     eligibleRepos,
-    hostOptions,
     initialEphemeralVmRecipeId,
     pendingInitialWorkspaceTarget,
     projectGroups,
@@ -104,6 +102,7 @@ export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSe
     () =>
       resolveWorkspaceCreationTarget({
         eligibleRepos,
+        settings,
         projects,
         projectHostSetups,
         draftRepoId: requestedRepoId,
@@ -124,6 +123,7 @@ export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSe
       projectHostSetups,
       projects,
       requestedRepoId,
+      settings,
       selectedProjectHostSetupOverrideId,
       selectedProjectHostSetupOverrideHostId,
       workspaceHostScope
@@ -196,40 +196,13 @@ export function useComposerRuntimeTargetSelection(input: ComposerRuntimeTargetSe
     settings?.terminalWindowsShell
   )
 
-  const selectedRepoProjectId =
-    selectedWorkspaceTarget.status === 'ready' ? selectedWorkspaceTarget.target.projectId : null
-
-  const selectedProjectId = selectedProjectGroup
-    ? `project-group:${selectedProjectGroup.id}`
-    : selectedRepoProjectId
-
-  const selectedProjectHostSetupId =
-    !selectedProjectGroup && selectedWorkspaceTarget.status === 'ready'
-      ? selectedWorkspaceTarget.target.projectHostSetupId
-      : null
-
-  const projectHostSetupOptions = useMemo(
-    () =>
-      buildProjectHostSetupOptions({
-        projectId: selectedRepoProjectId,
-        projectHostSetups,
-        eligibleRepos,
-        hosts: hostOptions
-      }),
-    [eligibleRepos, hostOptions, projectHostSetups, selectedRepoProjectId]
-  )
-
-  const projectOptions = useMemo(
-    () =>
-      buildNewWorkspaceCreateTargetOptions({
-        projects,
-        projectHostSetups,
-        eligibleRepos,
-        projectGroups,
-        hosts: hostOptions
-      }),
-    [eligibleRepos, hostOptions, projectGroups, projectHostSetups, projects]
-  )
+  const {
+    selectedRepoProjectId,
+    selectedProjectId,
+    selectedProjectHostSetupId,
+    projectHostSetupOptions,
+    projectOptions
+  } = useComposerProjectOptions(input, selectedWorkspaceTarget, selectedRepo)
 
   // Why: probes and attachment uploads inspect the selected repo, even though creation defaults still follow host scope.
   const selectedRepoRuntimeEnvironmentId = settings

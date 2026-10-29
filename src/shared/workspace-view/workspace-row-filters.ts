@@ -1,3 +1,4 @@
+import { projectRepoFilterMatcher } from '../project-grouping'
 import type { ExecutionHostId } from '../execution-host'
 import type { PersistedUIState } from '../persisted-ui-state-types'
 import {
@@ -88,7 +89,7 @@ function buildWorkspaceRowPredicate<Row>(
   filters: WorkspaceRowFilters,
   read: WorkspaceRowFactReader<Row>
 ): (row: Row) => boolean {
-  const repoIds = filters.filterRepoIds.length > 0 ? new Set(filters.filterRepoIds) : null
+  const matchesRepo = projectRepoFilterMatcher(filters.filterRepoIds)
   const hostIds = filters.visibleHostIds ? new Set(filters.visibleHostIds) : null
   return (row) => {
     if (read.isArchived(row)) {
@@ -109,7 +110,7 @@ function buildWorkspaceRowPredicate<Row>(
     if (isHiddenByKindSwitch(filters, (kind) => KIND_READERS[kind](read, row))) {
       return false
     }
-    if (repoIds && !repoIds.has(read.repoId(row))) {
+    if (!matchesRepo(read.repoId(row), read.hostId(row) ?? 'local')) {
       return false
     }
     // Explicit hides still win; the exemption covers only the sleeping sweep.

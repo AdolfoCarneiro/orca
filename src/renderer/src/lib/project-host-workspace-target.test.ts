@@ -206,8 +206,7 @@ describe('project-host workspace target resolution', () => {
     })
   })
 
-  it('canonicalizes a stale same-host setup id to the setup the picker shows', () => {
-    // Legacy drafts can name hidden duplicate setups; creation must use the canonical picker row/path.
+  it('preserves the explicitly selected second same-host checkout', () => {
     const repos = [makeRepo('orca-main'), makeRepo('orca-worktree')]
     const projects = [makeProject('github:stablyai/orca', ['orca-main', 'orca-worktree'])]
     const projectHostSetups = [
@@ -224,7 +223,7 @@ describe('project-host workspace target resolution', () => {
 
     expect(resolution).toMatchObject({
       status: 'ready',
-      target: { projectHostSetupId: 'orca-main', repoId: 'orca-main', hostId: 'local' }
+      target: { projectHostSetupId: 'orca-worktree', repoId: 'orca-worktree', hostId: 'local' }
     })
   })
 

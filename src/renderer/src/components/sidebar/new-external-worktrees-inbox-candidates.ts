@@ -1,3 +1,5 @@
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { projectRepoFilterMatcher } from '../../../../shared/project-grouping'
 import type {
   GlobalSettings,
   WorktreeVisibilityDefaults
@@ -21,10 +23,10 @@ export function buildNewExternalWorktreesInboxCandidates(args: {
   const visibleRepoIds = args.visibleWorktrees
     ? new Set(args.visibleWorktrees.map((worktree) => worktree.repoId))
     : null
-  const filterRepoIds = args.filterRepoIds?.length ? new Set(args.filterRepoIds) : null
+  const matchesRepo = projectRepoFilterMatcher(args.filterRepoIds ?? [])
   const candidates = new Map<string, NewExternalWorktreesInboxCandidate>()
   for (const repo of args.repos) {
-    if (filterRepoIds && !filterRepoIds.has(repo.id)) {
+    if (!matchesRepo(repo.id, getRepoExecutionHostId(repo))) {
       continue
     }
     if (visibleRepoIds && !visibleRepoIds.has(repo.id)) {

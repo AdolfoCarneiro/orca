@@ -1,3 +1,4 @@
+import { useProjectFilterOptions } from './use-project-filter-options'
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   CalendarClock,
@@ -69,7 +70,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
   )
   const filterRepoIds = useAppStore((s) => s.filterRepoIds)
   const setFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
-  const repos = useAppStore((s) => s.repos)
+  const { repos, selectedKeys, memberIds } = useProjectFilterOptions(filterRepoIds)
   const addRepo = useAppStore((s) => s.addRepo)
 
   const [open, setOpen] = useState(false)
@@ -90,25 +91,19 @@ const SidebarFilter = React.memo(function SidebarFilter({
   const handleToggleRepo = useCallback(
     (repoId: string) => {
       setFilterRepoIds(
-        filterRepoIds.includes(repoId)
-          ? filterRepoIds.filter((id) => id !== repoId)
-          : [...filterRepoIds, repoId]
+        memberIds(
+          selectedKeys.includes(repoId)
+            ? selectedKeys.filter((id) => id !== repoId)
+            : [...selectedKeys, repoId]
+        )
       )
     },
-    [filterRepoIds, setFilterRepoIds]
+    [selectedKeys, memberIds, setFilterRepoIds]
   )
 
   const canFilterRepos = repos.length > 1
   // Ignore removed repo IDs so they cannot inflate counts or imply an active filter.
-  const selectedRepoIdSet = useMemo(() => {
-    const set = new Set<string>()
-    for (const r of repos) {
-      if (filterRepoIds.includes(r.id)) {
-        set.add(r.id)
-      }
-    }
-    return set
-  }, [repos, filterRepoIds])
+  const selectedRepoIdSet = new Set(selectedKeys)
   const selectedCount = selectedRepoIdSet.size
   const hasRepoFilter = selectedCount > 0
   const { hasAnyFilter, activeFilterCount } = useWorkspaceOptionsFilterBadge()
@@ -127,8 +122,8 @@ const SidebarFilter = React.memo(function SidebarFilter({
 
   // Use current repos so Select All includes projects added while the popover stays open.
   const selectAllRepos = useCallback(() => {
-    setFilterRepoIds(repos.map((r) => r.id))
-  }, [repos, setFilterRepoIds])
+    setFilterRepoIds(memberIds(repos.map((r) => r.id)))
+  }, [repos, memberIds, setFilterRepoIds])
 
   const clearRepos = useCallback(() => setFilterRepoIds([]), [setFilterRepoIds])
 

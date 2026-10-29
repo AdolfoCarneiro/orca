@@ -1,3 +1,7 @@
+import {
+  getRepoProjectGroupKey,
+  type ProjectGroupingSettings
+} from '../../../shared/project-grouping'
 import { stripCredentialsFromMessage } from '../../../shared/git-remote-error'
 import type { Project } from '../../../shared/project-types'
 import type { Repo } from '../../../shared/repo-types'
@@ -6,13 +10,17 @@ import type { Repo } from '../../../shared/repo-types'
 export function resolveProjectCloneUrlPrefill(
   projects: readonly Project[],
   repos: readonly Repo[],
-  selectedProjectId: string | null
+  selectedProjectId: string | null,
+  settings?: ProjectGroupingSettings | null
 ): string {
   if (!selectedProjectId) {
     return ''
   }
-  const sourceRepoIds =
-    projects.find((candidate) => candidate.id === selectedProjectId)?.sourceRepoIds ?? []
+  const sourceRepoIds = selectedProjectId.startsWith('project:')
+    ? repos
+        .filter((repo) => getRepoProjectGroupKey(repo, settings) === selectedProjectId)
+        .map((repo) => repo.id)
+    : (projects.find((candidate) => candidate.id === selectedProjectId)?.sourceRepoIds ?? [])
   let reposById: Map<string, Repo> | undefined
   for (let index = 0; index < sourceRepoIds.length; index++) {
     if (index > 0 && !reposById) {

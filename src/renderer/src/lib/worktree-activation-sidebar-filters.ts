@@ -14,7 +14,7 @@ export function liftSidebarFiltersHidingWorktree(wt: Worktree): void {
   if (state.sidebarBody === 'agents') {
     return
   }
-  revealRepoInProjectFilter(state, wt.repoId)
+  revealRepoInProjectFilter(state, wt.repoId, wt.hostId ?? 'local')
   if (state.hideAutomationGeneratedWorkspaces && isAutomationGeneratedWorkspace(wt)) {
     state.setHideAutomationGeneratedWorkspaces(false)
   }

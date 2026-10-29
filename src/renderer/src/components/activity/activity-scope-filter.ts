@@ -1,3 +1,5 @@
+import { projectRepoFilterMatcher } from '../../../../shared/project-grouping'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import { getWorktreeExecutionHostId } from '../../../../shared/execution-host'
 import type { Repo } from '../../../../shared/repo-types'
@@ -87,7 +89,13 @@ export function threadMatchesActivityScope(
   }
   // Why: repo-less terminal buckets have no project, so a project scope hides them.
   if (scope.filterRepoIds.length > 0) {
-    if (!thread.repo || !scope.filterRepoIds.includes(thread.repo.id)) {
+    if (
+      !thread.repo ||
+      !projectRepoFilterMatcher(scope.filterRepoIds)(
+        thread.repo.id,
+        thread.worktree.hostId ?? getRepoExecutionHostId(thread.repo)
+      )
+    ) {
       return false
     }
   }

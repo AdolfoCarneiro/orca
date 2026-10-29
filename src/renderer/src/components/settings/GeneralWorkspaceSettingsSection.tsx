@@ -1,3 +1,4 @@
+import { ProjectGroupingSetting } from './ProjectGroupingSetting'
 import type React from 'react'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { OpenInMenuSetting } from './OpenInMenuSetting'
@@ -35,6 +36,13 @@ export function GeneralWorkspaceSettingsSection({
           'Configure where new workspaces are created.'
         )}
       />
+
+      <div id="general-projects" data-settings-section="general-projects" className="scroll-mt-6">
+        <SettingsSubsectionHeader
+          title={translate('settings.projectGrouping.projects', 'Projects')}
+        />
+        <ProjectGroupingSetting settings={settings} updateSettings={updateSettings} />
+      </div>
 
       <WorkspaceDirectorySetting settings={settings} updateSettings={updateSettings} />
 

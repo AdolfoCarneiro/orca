@@ -74,9 +74,10 @@ export function useSettingsStoreModel() {
     () =>
       buildSettingsProjectList(repos, {
         projects: projectHostSetupProjection.projects,
-        projectHostSetups: projectHostSetupProjection.setups
+        projectHostSetups: projectHostSetupProjection.setups,
+        settings
       }),
-    [repos, projectHostSetupProjection]
+    [repos, projectHostSetupProjection, settings]
   )
   const repoIdToRepresentative = useMemo(
     () => buildRepoIdToRepresentative(settingsProjectList),

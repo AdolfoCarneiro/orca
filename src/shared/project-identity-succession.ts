@@ -1,3 +1,4 @@
+import type { ProjectGroupingMode } from './project-grouping'
 import type { Project } from './project-types'
 
 export type ProjectIdentitySuccession = {
@@ -95,4 +96,18 @@ export function carryProjectStateThroughIdentityChange(
     return carryUserState(project, predecessor)
   })
   return { projects, remappedProjectIds }
+}
+
+export function carryProjectGroupingOverrides(
+  overrides: Readonly<Record<string, ProjectGroupingMode>>,
+  remappedProjectIds: ReadonlyMap<string, string>
+): Record<string, ProjectGroupingMode> {
+  const next = { ...overrides }
+  for (const [previous, current] of remappedProjectIds) {
+    if (next[previous] !== undefined) {
+      next[current] ??= next[previous]
+      delete next[previous]
+    }
+  }
+  return next
 }

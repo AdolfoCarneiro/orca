@@ -1,3 +1,4 @@
+import { getWorktreeExecutionHostId } from '../execution-host'
 import type { Repo } from '../repo-types'
 import type { ProjectOrderBy } from '../ui-chrome-types'
 import type { WorkspaceStatusDefinition, Worktree } from '../worktree/types'
@@ -58,6 +59,7 @@ export function buildOrderedGroups(args: {
     return buildProjectSections({
       items: naturalWorktrees,
       repoIdOf: (worktree) => worktree.repoId,
+      hostIdOf: (worktree) => getWorktreeExecutionHostId(worktree, repoMap.get(worktree.repoId)),
       displayRepoIdOf: (worktree) =>
         (displayRootByIdentity?.get(getWorktreeHostIdentity(worktree)) ?? worktree).repoId,
       repoMap,

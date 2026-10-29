@@ -413,6 +413,7 @@ describe('buildRows with pinned worktrees', () => {
       [],
       {
         projects: [{ ...project, sourceRepoIds: [repo.id, repoB.id] }],
+        settings: { projectGroupingMode: 'folder' },
         projectHostSetups: [projectHostSetups[0]!, localSetupB]
       }
     )
@@ -422,18 +423,18 @@ describe('buildRows with pinned worktrees', () => {
     expect(headers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          key: 'project:github:stablyai/orca::setup:repo-1',
+          key: 'project:github:stablyai/orca::host:local::local::default::setup:repo-1',
           label: 'orca'
         }),
         expect.objectContaining({
-          key: 'project:github:stablyai/orca::setup:repo-2',
+          key: 'project:github:stablyai/orca::host:local::local::default::setup:repo-2',
           label: 'orca-2'
         })
       ])
     )
   })
 
-  it('splits only the surface with duplicate checkouts', () => {
+  it('separates every checkout in folder mode', () => {
     const localRepoB: Repo = {
       ...repo,
       id: 'repo-local-b',
@@ -482,15 +483,16 @@ describe('buildRows with pinned worktrees', () => {
       [],
       {
         projects: [{ ...project, sourceRepoIds: [repo.id, localRepoB.id, remoteRepo.id] }],
+        settings: { projectGroupingMode: 'folder' },
         projectHostSetups: [projectHostSetups[0]!, localSetupB, projectHostSetups[1]!]
       }
     )
 
     const headers = rows.filter((row) => row.type === 'header')
     expect(headers.map((row) => row.key)).toEqual([
-      'project:github:stablyai/orca::setup:repo-1',
-      'project:github:stablyai/orca::setup:repo-local-b',
-      'project:github:stablyai/orca'
+      'project:github:stablyai/orca::host:local::local::default::setup:repo-1',
+      'project:github:stablyai/orca::host:local::local::default::setup:repo-local-b',
+      'project:github:stablyai/orca::host:ssh:gpu-vm::ssh:gpu-vm::default::setup:repo-remote'
     ])
   })
 
@@ -757,21 +759,28 @@ describe('buildRows with pinned worktrees', () => {
       [],
       {
         projects: [{ ...project, sourceRepoIds: [repo.id, localRepoB.id, runtimeRepoB.id] }],
+        settings: { projectGroupingMode: 'folder' },
         projectHostSetups: [projectHostSetups[0]!, localSetupB, runtimeSetupB]
       }
     )
 
     const headers = rows.filter((row) => row.type === 'header')
     expect(headers.map((row) => row.key).sort()).toEqual([
-      'project:github:stablyai/orca',
-      'project:github:stablyai/orca::setup:repo-1',
-      'project:github:stablyai/orca::setup:repo-local-b'
+      'project:github:stablyai/orca::host:local::local::default',
+      'project:github:stablyai/orca::host:local::local::default::setup:repo-1',
+      'project:github:stablyai/orca::host:local::local::default::setup:repo-local-b'
     ])
     // Only real checkouts receive setup-scoped headers; provisioned copies retain the project label.
     expect(
-      headers.some((row) => row.key === 'project:github:stablyai/orca::setup:repo-runtime-b')
+      headers.some(
+        (row) =>
+          row.key ===
+          'project:github:stablyai/orca::host:local::local::default::setup:repo-runtime-b'
+      )
     ).toBe(false)
-    expect(headers.find((row) => row.key === 'project:github:stablyai/orca')).toMatchObject({
+    expect(
+      headers.find((row) => row.key === 'project:github:stablyai/orca::host:local::local::default')
+    ).toMatchObject({
       label: 'Orca',
       count: 1
     })

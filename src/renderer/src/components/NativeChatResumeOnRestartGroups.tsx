@@ -34,6 +34,7 @@ import {
   groupResumeCandidates,
   groupResumeCandidatesByHost,
   groupResumeWorkspacesByRepo,
+  resumeWorkspaceLookup,
   nestResumeWorkspaces,
   resolveResumeGroupHeader,
   resumeSelectionState,
@@ -250,42 +251,40 @@ function MachineContents({
   depth: number
   tree: TreeProps
 }): React.JSX.Element {
-  const byId = new Map(workspaces.map((group) => [group.workspaceId, group]))
-  const lookup =
-    <T,>(read: (group: ResumeWorkspaceGroup) => T, fallback: T) =>
-    (id: string) => {
-      const group = byId.get(id)
-      return group ? read(group) : fallback
-    }
+  const repos = useAppStore((state) => state.repos)
+  const settings = useAppStore((state) => state.settings)
+  const lookup = resumeWorkspaceLookup(workspaces)
   const ancestorsOf = lookup(tree.ancestorsOf, [])
   return (
     <>
-      {groupResumeWorkspacesByRepo(workspaces, lookup(tree.repoIdOf, null)).map((repoGroup) => {
-        const nodes = nestResumeWorkspaces(repoGroup.workspaces, ancestorsOf)
-        const fallbackDisplays = workspaceDisplay.deriveFallbacks(repoGroup)
-        // A group the store cannot place has no project to name or select; Select all covers it.
-        return repoGroup.repoId === null ? (
-          nodes.map((node) => (
-            <WorkspaceNode
-              key={node.group.workspaceId}
-              node={node}
+      {groupResumeWorkspacesByRepo(workspaces, lookup(tree.repoIdOf, null), repos, settings).map(
+        (repoGroup) => {
+          const nodes = nestResumeWorkspaces(repoGroup.workspaces, ancestorsOf)
+          const fallbackDisplays = workspaceDisplay.deriveFallbacks(repoGroup)
+          // A group the store cannot place has no project to name or select; Select all covers it.
+          return repoGroup.repoId === null ? (
+            nodes.map((node) => (
+              <WorkspaceNode
+                key={node.group.workspaceId}
+                node={node}
+                hostId={hostId}
+                depth={depth}
+                tree={tree}
+                fallbackDisplays={fallbackDisplays}
+              />
+            ))
+          ) : (
+            <ProjectNode
+              key={repoGroup.repoId}
+              repoId={repoGroup.repoId}
               hostId={hostId}
+              workspaces={nodes}
               depth={depth}
               tree={tree}
-              fallbackDisplays={fallbackDisplays}
             />
-          ))
-        ) : (
-          <ProjectNode
-            key={repoGroup.repoId}
-            repoId={repoGroup.repoId}
-            hostId={hostId}
-            workspaces={nodes}
-            depth={depth}
-            tree={tree}
-          />
-        )
-      })}
+          )
+        }
+      )}
     </>
   )
 }

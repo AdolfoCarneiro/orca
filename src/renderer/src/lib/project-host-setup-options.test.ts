@@ -219,8 +219,7 @@ describe('buildProjectHostSetupOptions', () => {
     )
   })
 
-  it('collapses duplicate ready setups on one host to the setup creation actually uses', () => {
-    // Linked worktrees added as projects can duplicate ready Local Mac rows distinguished only by path.
+  it('keeps distinct same-host checkout paths available for explicit selection', () => {
     const options = buildProjectHostSetupOptions({
       projectId: 'project-1',
       eligibleRepos: [repo('main-checkout'), repo('worktree-a'), repo('worktree-b')],
@@ -235,11 +234,13 @@ describe('buildProjectHostSetupOptions', () => {
     })
 
     expect(options).toEqual([
-      expect.objectContaining({ id: 'main', kind: 'ready', label: LOCAL_HOST_LABEL })
+      expect.objectContaining({ id: 'main', kind: 'ready', label: LOCAL_HOST_LABEL }),
+      expect.objectContaining({ id: 'dup-a', kind: 'ready' }),
+      expect.objectContaining({ id: 'dup-b', kind: 'ready' })
     ])
   })
 
-  it('keeps one ready choice per host when a project is set up on several hosts', () => {
+  it('keeps all checkouts when a project is set up on several hosts', () => {
     const options = buildProjectHostSetupOptions({
       projectId: 'project-1',
       eligibleRepos: [repo('local-repo'), repo('local-dup'), repo('remote-repo')],
@@ -251,7 +252,7 @@ describe('buildProjectHostSetupOptions', () => {
       ]
     })
 
-    expect(options.map((option) => option.id)).toEqual(['local', 'remote'])
+    expect(options.map((option) => option.id)).toEqual(['local-dup', 'local', 'remote'])
   })
 
   it('includes known hosts that still need project setup', () => {

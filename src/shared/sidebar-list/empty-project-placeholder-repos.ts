@@ -1,3 +1,5 @@
+import { getRepoExecutionHostId } from '../execution-host'
+import { projectRepoFilterMatcher } from '../project-grouping'
 import type { Repo } from '../repo-types'
 import type { Worktree } from '../worktree/types'
 import type { WorktreeGroupBy } from './row-types'
@@ -13,11 +15,11 @@ export function getEmptyProjectPlaceholderRepoIds(args: {
     return new Set()
   }
 
-  const filterSet = args.filterRepoIds.length > 0 ? new Set(args.filterRepoIds) : null
+  const matchesRepo = projectRepoFilterMatcher(args.filterRepoIds)
   const visibleRepoIds = new Set(args.visibleWorktrees.map((worktree) => worktree.repoId))
   const placeholderRepoIds = new Set<string>()
   for (const repo of args.repos) {
-    if (filterSet && !filterSet.has(repo.id)) {
+    if (!matchesRepo(repo.id, getRepoExecutionHostId(repo))) {
       continue
     }
     const hasNoWorktrees = (args.worktreesByRepo[repo.id]?.length ?? 0) === 0

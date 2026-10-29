@@ -37,6 +37,8 @@ export type WslMoveUiRoutingState = Pick<
   | 'workspaceHostOrder'
   | 'setupScriptPromptDismissedRepoIds'
   | 'collapsedGroups'
+  | 'filterRepoIds'
+  | 'agentsFilterRepoIds'
 >
 
 // Mirrors the renderer's keys (setup-script-prompt.ts, group-keys.ts); main cannot import them.
@@ -103,7 +105,22 @@ export function rewriteWslMoveUiRouting(
   if (setupDismissals) {
     updates.setupScriptPromptDismissedRepoIds = setupDismissals
   }
-  const collapsed = addHostLineageGroups(ui.collapsedGroups, scope)
+  for (const field of ['filterRepoIds', 'agentsFilterRepoIds'] as const) {
+    const ids = ui[field] ?? []
+    const moved = ids.flatMap((id) => {
+      if (!id.startsWith('local\0') || !scope.repoInScope(id.slice(6))) {
+        return []
+      }
+      const hostId = getRepoHostIdentityForParts(id.slice(6), scope.destinationHostId)
+      return ids.includes(hostId) ? [] : [hostId]
+    })
+    if (moved.length) {
+      updates[field] = [...ids, ...moved]
+    }
+  }
+  const projectGroups = addHostProjectGroups(ui.collapsedGroups, scope)
+  const collapsed =
+    addHostLineageGroups(projectGroups ?? ui.collapsedGroups, scope) ?? projectGroups
   if (collapsed) {
     updates.collapsedGroups = collapsed
   }
@@ -288,4 +305,27 @@ function addHostLineageGroups(
     }
   }
   return added.length > 0 ? [...groups, ...added] : null
+}
+
+function addHostProjectGroups(
+  groups: string[] | undefined,
+  scope: WslMoveRewriteScope
+): string[] | null {
+  const added: string[] = []
+  for (const key of groups ?? []) {
+    const match = /^(project:.+?)::host:local::local::wsl:[^:]+(::setup:(.+))?$/.exec(key)
+    if (
+      !match ||
+      (match[3]
+        ? !scope.repoInScope(match[3])
+        : !scope.projectInScope?.(match[1].slice('project:'.length)))
+    ) {
+      continue
+    }
+    const hostKey = `${match[1]}::host:${scope.destinationHostId}::${scope.destinationHostId}::default${match[2] ?? ''}`
+    if (!groups?.includes(hostKey)) {
+      added.push(hostKey)
+    }
+  }
+  return added.length ? [...(groups ?? []), ...added] : null
 }

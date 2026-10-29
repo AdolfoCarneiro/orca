@@ -75,7 +75,7 @@ describe('new workspace project targets', () => {
     })
   })
 
-  it('shows one target per host when the project has multiple local worktrees', () => {
+  it('keeps every checkout selectable when a host has multiple folders', () => {
     const upstream = { owner: 'stablyai', repo: 'orca' }
     const repos = [
       { id: 'local-a', displayName: 'orca-a', path: '/src/orca-a', upstream },
@@ -91,9 +91,18 @@ describe('new workspace project targets', () => {
     const projectId = buildNewWorkspaceProjectOptions(repos)[0]?.id ?? null
 
     expect(buildNewWorkspaceRunTargetOptions(repos, projectId, 'darwin')).toEqual([
-      expect.objectContaining({ id: 'local', label: LOCAL_HOST_LABEL, detail: '/src/orca-a' }),
       expect.objectContaining({
-        id: 'ssh:build-server',
+        id: 'local::local-a',
+        label: LOCAL_HOST_LABEL,
+        detail: '/src/orca-a'
+      }),
+      expect.objectContaining({
+        id: 'local::local-b',
+        label: LOCAL_HOST_LABEL,
+        detail: '/src/orca-b'
+      }),
+      expect.objectContaining({
+        id: 'ssh:build-server::ssh',
         label: 'build-server',
         detail: '/home/dev/orca'
       })

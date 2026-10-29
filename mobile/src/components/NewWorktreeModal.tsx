@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Keyboard } from 'react-native'
 import { getComposerRepoWorktreeBranches } from '../../../src/shared/composer-branch-selection'
 import { getRepoExecutionHostId, parseExecutionHostId } from '../../../src/shared/execution-host'
-import { getProjectIdentityKey } from '../../../src/shared/project-host-setup-projection'
+import { getRepoProjectGroupKey } from '../../../src/shared/project-grouping'
 import { shouldPreserveWorkspaceSourceOnRepoChange } from '../../../src/shared/new-workspace/workspace-source'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import type { SmartModeAvailabilityInput } from '../tasks/mobile-smart-source-modes'
@@ -181,13 +181,25 @@ function NewWorktreeModalContent(props: NewWorktreeModalProps) {
       })),
     [hostRepos]
   )
-  const projectPickerItems = useMemo(() => buildNewWorkspaceProjectOptions(repos), [repos, t])
-  const selectedProjectId = selectedRepo ? getProjectIdentityKey(selectedRepo) : null
+  const projectPickerItems = useMemo(
+    () => buildNewWorkspaceProjectOptions(repos, runtime.runtimeSettings),
+    [repos, runtime.runtimeSettings, t]
+  )
+  const selectedProjectId = selectedRepo
+    ? getRepoProjectGroupKey(selectedRepo, runtime.runtimeSettings)
+    : null
   const selectedProject =
     projectPickerItems.find((project) => project.id === selectedProjectId) ?? null
   const runTargetPickerItems = useMemo(
-    () => buildNewWorkspaceRunTargetOptions(repos, selectedProjectId, hostPlatform, hostLabelById),
-    [hostLabelById, hostPlatform, repos, selectedProjectId, t]
+    () =>
+      buildNewWorkspaceRunTargetOptions(
+        repos,
+        selectedProjectId,
+        hostPlatform,
+        hostLabelById,
+        runtime.runtimeSettings
+      ),
+    [hostLabelById, hostPlatform, repos, selectedProjectId, runtime.runtimeSettings, t]
   )
   const selectedRunTarget = selectedRepo
     ? getNewWorkspaceRunTarget(selectedRepo, hostPlatform, hostLabelById)

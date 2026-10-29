@@ -1,3 +1,4 @@
+import { getProjectCheckoutPathKey } from '../../../shared/project-grouping'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { ExecutionHostRegistryEntry } from '../../../shared/execution-host-registry'
 import type {
@@ -5,22 +6,26 @@ import type {
   ReadyProjectHostSetupOption
 } from './project-host-setup-options'
 
-/** Collapses ready setup rows to one per host, then one per checkout on a merged machine. */
+/** Collapses equivalent checkout registrations, including aliases of a merged machine. */
 export function dedupeReadySetupRows(
   options: readonly ReadyProjectHostSetupOption[],
   hostById: ReadonlyMap<ExecutionHostId, ExecutionHostRegistryEntry>
 ): ReadyProjectHostSetupOption[] {
-  return collapseMergedHostCheckouts(options.filter(dedupeByHost()), hostById)
+  return collapseMergedHostCheckouts(options.filter(dedupeByCheckout()), hostById)
 }
 
-// Creation uses the first project+host setup, so display that same row; legacy duplicates (e.g. linked worktree projects) are otherwise identical and unreachable.
-function dedupeByHost(): (option: ReadyProjectHostSetupOption) => boolean {
-  const seenHosts = new Set<ExecutionHostId>()
+function dedupeByCheckout(): (option: ReadyProjectHostSetupOption) => boolean {
+  const seen = new Set<string>()
   return (option) => {
-    if (seenHosts.has(option.hostId)) {
+    const key = getProjectCheckoutPathKey({
+      ...option,
+      displayName: option.detail,
+      setupMethod: 'legacy-repo'
+    })
+    if (seen.has(key)) {
       return false
     }
-    seenHosts.add(option.hostId)
+    seen.add(key)
     return true
   }
 }

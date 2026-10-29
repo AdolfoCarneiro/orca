@@ -1,3 +1,7 @@
+import {
+  getExecutionHostLabel,
+  normalizeExecutionHostId
+} from '../../../../../shared/execution-host'
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { Repo } from '../../../../../shared/repo-types'
@@ -8,16 +12,17 @@ import { SearchableSetting } from '../SearchableSetting'
 import { translate } from '@/i18n/i18n'
 
 function getRemoveProjectDescription(scope: SettingsProjectRemovalScope): string {
+  if (scope.startsWith('host:')) {
+    return translate(
+      'settings.projectGrouping.removeHost',
+      'Remove this project from Orca on {{host}}.',
+      { host: getExecutionHostLabel(normalizeExecutionHostId(scope.slice(5))) }
+    )
+  }
   if (scope === 'checkout') {
     return translate(
       'auto.components.settings.RepositoryPane.removeProjectCheckout',
       'Remove this checkout from Orca. Other checkouts of this project stay.'
-    )
-  }
-  if (scope === 'split-project') {
-    return translate(
-      'auto.components.settings.RepositoryPane.removeProjectKeepCheckouts',
-      'Remove this project from Orca. Checkouts that have their own settings stay.'
     )
   }
   return translate(

@@ -1,38 +1,43 @@
+import { getRepoExecutionHostId } from './execution-host'
 // The desktop sidebar's Project sections; the paired phone calls these same functions.
 import type { ExecutionHostId } from './execution-host'
 import { orderProjectSections, type ActivityItem } from './project-section-order'
 import type { ProjectOrderBy } from './ui-chrome-types'
-import { toSshExecutionHostId } from './execution-host'
+import {
+  buildProjectGroups,
+  getProjectCheckoutPathKey,
+  type ProjectGroupingSettings,
+  type CheckoutProjectGroup,
+  type GroupingSetup
+} from './project-grouping'
 import type { Project, ProjectHostSetup } from './project-types'
 import type { Repo } from './repo-types'
-import { parseWslUncPath } from './wsl-paths'
-import { isWindowsAbsolutePathLike, normalizeRuntimePathForComparison } from './cross-platform-path'
 
 /** The project fields grouping reads. */
 export type ProjectSectionProject = Pick<Project, 'id' | 'displayName'>
 
 /** The host-setup fields grouping and host labels read. */
-export type ProjectSectionSetup = Pick<
-  ProjectHostSetup,
-  'id' | 'projectId' | 'hostId' | 'repoId' | 'path' | 'displayName' | 'setupMethod'
-> &
-  Partial<Pick<ProjectHostSetup, 'kind' | 'connectionId' | 'executionHostId'>>
+export type ProjectSectionSetup = GroupingSetup
 
 export type ProjectGroupingModel = {
   projects: readonly Project[]
   projectHostSetups: readonly ProjectHostSetup[]
+  settings?: ProjectGroupingSettings | null
 }
 
 /** What grouping reads of a model; a paired phone receives only this much. */
 export type ProjectSectionModel = {
   projects: readonly ProjectSectionProject[]
   projectHostSetups: readonly ProjectSectionSetup[]
+  settings?: ProjectGroupingSettings | null
 }
 
 export type ProjectGroupingIndex = {
   projectById: Map<string, ProjectSectionProject>
   setupByRepoId: Map<string, ProjectSectionSetup>
-  surfaceKeysRequiringSetupGroups: Set<string>
+  groupByRepoId: Map<string, CheckoutProjectGroup>
+  groupByRepoHost: Map<string, CheckoutProjectGroup>
+  setupByRepoHost: Map<string, ProjectSectionSetup>
 }
 
 /** The repo fields section grouping, labelling and ordering read. */
@@ -55,41 +60,10 @@ export type ProjectSectionEntry<Item, R extends ProjectSectionRepo = Repo> = {
   repoIds: Set<string>
 }
 
-const projectGroupingIndexCache = new WeakMap<ProjectSectionModel, ProjectGroupingIndex | null>()
-
-// Why: provisioned and folder setups are not independent Git checkouts.
-function isDistinctUserCheckout(setup: ProjectSectionSetup): boolean {
-  return setup.setupMethod !== 'provisioned' && setup.kind !== 'folder'
-}
-
-// Why: execution target and filesystem namespace independently identify a surface.
-function getProjectSetupSurfaceKey(setup: ProjectSectionSetup): string {
-  return `${setup.projectId}::${setup.hostId}::${getExecutionSurface(setup)}::${getPathSurface(setup)}`
-}
-
-function getExecutionSurface(setup: ProjectSectionSetup): string {
-  const connectionId = setup.connectionId?.trim()
-  if (connectionId) {
-    return toSshExecutionHostId(connectionId)
-  }
-  return setup.executionHostId?.trim() || setup.hostId
-}
-
-// Why: projection twins differ by row identity, not checkout directory.
-function getCheckoutIdentity(setup: ProjectSectionSetup): string {
-  return normalizeRuntimePathForComparison(setup.path.trim()) || setup.repoId || setup.id
-}
-
-function getPathSurface(setup: ProjectSectionSetup): string {
-  const wslPath = parseWslUncPath(setup.path)
-  if (wslPath) {
-    return `wsl:${wslPath.distro.toLowerCase()}`
-  }
-  if (isWindowsAbsolutePathLike(setup.path)) {
-    return 'windows-host'
-  }
-  return 'default'
-}
+const indexCache = new WeakMap<
+  ProjectSectionModel,
+  { groups: CheckoutProjectGroup[]; index: ProjectGroupingIndex }
+>()
 
 export function buildProjectGroupingIndex(
   model?: ProjectSectionModel
@@ -97,69 +71,61 @@ export function buildProjectGroupingIndex(
   if (!model) {
     return null
   }
-  const cached = projectGroupingIndexCache.get(model)
-  if (cached !== undefined) {
-    return cached
+  const groups = buildProjectGroups(model)
+  const cached = indexCache.get(model)
+  if (cached?.groups === groups) {
+    return cached.index
   }
-  const projects = model.projects ?? []
-  const projectHostSetups = model.projectHostSetups ?? []
-  if (projects.length === 0 || projectHostSetups.length === 0) {
-    projectGroupingIndexCache.set(model, null)
-    return null
+  const groupByCheckout = new Map(
+    groups.flatMap((group) =>
+      group.members.map((member) => [getProjectCheckoutPathKey(member), group] as const)
+    )
+  )
+  const index: ProjectGroupingIndex = {
+    projectById: new Map(model.projects.map((project) => [project.id, project])),
+    setupByRepoHost: new Map(
+      model.projectHostSetups.map((setup) => [`${setup.hostId}\0${setup.repoId}`, setup])
+    ),
+    groupByRepoHost: new Map(
+      model.projectHostSetups.flatMap((setup) => {
+        const group = groupByCheckout.get(getProjectCheckoutPathKey(setup))
+        return group ? [[`${setup.hostId}\0${setup.repoId}`, group] as const] : []
+      })
+    ),
+    setupByRepoId: new Map(model.projectHostSetups.map((setup) => [setup.repoId, setup])),
+    groupByRepoId: new Map(
+      model.projectHostSetups.flatMap((setup) => {
+        const group = groupByCheckout.get(getProjectCheckoutPathKey(setup))
+        return group ? [[setup.repoId, group] as const] : []
+      })
+    )
   }
-  const checkoutsByProjectSurface = new Map<string, Set<string>>()
-  for (const setup of projectHostSetups) {
-    if (!isDistinctUserCheckout(setup)) {
-      continue
-    }
-    const key = getProjectSetupSurfaceKey(setup)
-    const existing = checkoutsByProjectSurface.get(key)
-    if (existing) {
-      existing.add(getCheckoutIdentity(setup))
-    } else {
-      checkoutsByProjectSurface.set(key, new Set([getCheckoutIdentity(setup)]))
-    }
-  }
-  const surfaceKeysRequiringSetupGroups = new Set<string>()
-  for (const [surfaceKey, checkouts] of checkoutsByProjectSurface) {
-    if (checkouts.size > 1) {
-      surfaceKeysRequiringSetupGroups.add(surfaceKey)
-    }
-  }
-  const index = {
-    projectById: new Map(projects.map((project) => [project.id, project])),
-    setupByRepoId: new Map(projectHostSetups.map((setup) => [setup.repoId, setup])),
-    surfaceKeysRequiringSetupGroups
-  }
-  projectGroupingIndexCache.set(model, index)
+  indexCache.set(model, { groups, index })
   return index
 }
 
-// Why: Settings splits projects by this same rule so it matches the sidebar headers.
-export function isCheckoutScopedProjectSetup(
-  setup: ProjectSectionSetup,
-  projectIndex: ProjectGroupingIndex
-): boolean {
-  return (
-    projectIndex.surfaceKeysRequiringSetupGroups.has(getProjectSetupSurfaceKey(setup)) &&
-    isDistinctUserCheckout(setup)
-  )
-}
-
-export type ProjectHeaderRevealTarget<R extends Pick<ProjectSectionRepo, 'displayName'> = Repo> = {
+export type ProjectHeaderRevealTarget<
+  R extends Pick<ProjectSectionRepo, 'displayName'> & Partial<ProjectSectionRepo> = Repo
+> = {
   key: string
   label: string
   repo?: R
   projectId?: string
 }
 
-export function getProjectGroupingForRepo<R extends Pick<ProjectSectionRepo, 'displayName'>>(
+export function getProjectGroupingForRepo<
+  R extends Pick<ProjectSectionRepo, 'displayName'> & Partial<ProjectSectionRepo>
+>(
   repoId: string,
   repoMap: ReadonlyMap<string, R>,
-  projectIndex: ProjectGroupingIndex | null
+  projectIndex: ProjectGroupingIndex | null,
+  hostId?: string
 ): ProjectHeaderRevealTarget<R> {
   const repo = repoMap.get(repoId)
-  const setup = projectIndex?.setupByRepoId.get(repoId)
+  const repoHost = hostId ?? (repo ? getRepoExecutionHostId(repo) : undefined)
+  const identity = `${repoHost}\0${repoId}`
+  const setup =
+    projectIndex?.setupByRepoHost.get(identity) ?? projectIndex?.setupByRepoId.get(repoId)
   const project = setup ? projectIndex?.projectById.get(setup.projectId) : undefined
   if (!setup || !project) {
     return {
@@ -168,19 +134,11 @@ export function getProjectGroupingForRepo<R extends Pick<ProjectSectionRepo, 'di
       repo
     }
   }
-  if (projectIndex && isCheckoutScopedProjectSetup(setup, projectIndex)) {
-    // Why: only the ambiguous surface needs checkout-specific headers.
-    return {
-      key: `project:${project.id}::setup:${repoId}`,
-      label: repo?.displayName ?? setup.displayName,
-      repo,
-      projectId: project.id
-    }
-  }
-  // Provisioned copies and unambiguous checkouts share project identity rather than path-scoped setup identity.
+  const group =
+    projectIndex?.groupByRepoHost.get(identity) ?? projectIndex?.groupByRepoId.get(repoId)
   return {
-    key: `project:${project.id}`,
-    label: project.displayName,
+    key: group?.key ?? `project:${project.id}`,
+    label: group?.label ?? project.displayName,
     repo,
     projectId: project.id
   }
@@ -198,13 +156,19 @@ export function getProjectHeaderRevealTarget(
 export function buildProjectOwnershipIndex<Item, R extends ProjectSectionRepo>(args: {
   items: readonly Item[]
   repoIdOf: (item: Item) => string
+  hostIdOf?: (item: Item) => string | undefined
   repoMap: ReadonlyMap<string, R>
   projectIndex: ProjectGroupingIndex | null
 }): Map<string, { items: Item[]; repoIds: Set<string> }> {
   const ownership = new Map<string, { items: Item[]; repoIds: Set<string> }>()
   for (const item of args.items) {
     const repoId = args.repoIdOf(item)
-    const key = getProjectGroupingForRepo(repoId, args.repoMap, args.projectIndex).key
+    const key = getProjectGroupingForRepo(
+      repoId,
+      args.repoMap,
+      args.projectIndex,
+      args.hostIdOf?.(item)
+    ).key
     const entry = ownership.get(key) ?? { items: [], repoIds: new Set<string>() }
     entry.items.push(item)
     entry.repoIds.add(repoId)
@@ -218,9 +182,10 @@ function addItemToProjectSection<Item, R extends ProjectSectionRepo>(
   item: Item,
   repoId: string,
   repoMap: ReadonlyMap<string, R>,
-  projectIndex: ProjectGroupingIndex | null
+  projectIndex: ProjectGroupingIndex | null,
+  hostId?: string
 ): void {
-  const grouping = getProjectGroupingForRepo(repoId, repoMap, projectIndex)
+  const grouping = getProjectGroupingForRepo(repoId, repoMap, projectIndex, hostId)
   let section = sections.get(grouping.key)
   if (!section) {
     section = { label: grouping.label, items: [], repo: grouping.repo, repoIds: new Set() }
@@ -263,6 +228,7 @@ export function buildProjectSections<
 >(args: {
   items: readonly Item[]
   repoIdOf: (item: Item) => string
+  hostIdOf?: (item: Item) => string | undefined
   displayRepoIdOf?: (item: Item) => string
   repoMap: ReadonlyMap<string, R>
   projectIndex: ProjectGroupingIndex | null
@@ -282,7 +248,8 @@ export function buildProjectSections<
       item,
       args.displayRepoIdOf?.(item) ?? repoId,
       repoMap,
-      projectIndex
+      projectIndex,
+      args.hostIdOf?.(item)
     )
   }
   // Repos may precede scans; ignore stale placeholder IDs instead of rendering Unknown headers.

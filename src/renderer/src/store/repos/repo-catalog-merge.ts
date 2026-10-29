@@ -1,3 +1,4 @@
+import type { ProjectGroupingSettings } from '../../../../shared/project-grouping'
 import type { AppState } from '../types'
 import type { SshRepoReadoption } from '../../../../shared/ssh-types'
 import type { ProjectHostSetup } from '../../../../shared/project-types'
@@ -49,7 +50,8 @@ export async function fetchRepoCatalogForTarget(
 
 export function mergeFetchedRepoCatalog(
   catalog: FetchedRepoCatalog,
-  currentRepos: readonly Repo[]
+  currentRepos: readonly Repo[],
+  settings?: ProjectGroupingSettings | null
 ): {
   repos: readonly Repo[]
   projectHostSetupCompatibility: ProjectHostSetupProjection
@@ -58,7 +60,8 @@ export function mergeFetchedRepoCatalog(
   const repos = mergeFetchedReposForHost(
     currentRepos,
     withoutPendingRuntimeRepoRemovals(catalog.repos, catalog.hostId),
-    catalog.hostId
+    catalog.hostId,
+    settings
   )
   return {
     repos,

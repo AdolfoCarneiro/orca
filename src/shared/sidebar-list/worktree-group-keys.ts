@@ -1,3 +1,4 @@
+import { getWorktreeExecutionHostId } from '../execution-host'
 import type { ProjectGroup } from '../project-group-types'
 import type { Repo } from '../repo-types'
 import type { WorkspaceStatusDefinition, Worktree } from '../worktree/types'
@@ -30,7 +31,8 @@ export function getGroupKeyForWorktree(
     return getProjectGroupingForRepo(
       worktree.repoId,
       repoMap,
-      buildProjectGroupingIndex(projectGrouping)
+      buildProjectGroupingIndex(projectGrouping),
+      getWorktreeExecutionHostId(worktree, repoMap.get(worktree.repoId))
     ).key
   }
   return getPRLaneKey(prGroupOf?.(worktree) ?? 'in-progress')

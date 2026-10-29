@@ -22,6 +22,7 @@ type WorktreeJumpPaletteProjectTargetsInput = WorktreeJumpPaletteStoreState &
   Pick<WorktreeJumpPaletteWorktrees, 'hasQuery'>
 
 export function useWorktreeJumpPaletteProjectTargets({
+  settings,
   settingsSections,
   pluginCommands,
   workspaces,
@@ -89,9 +90,10 @@ export function useWorktreeJumpPaletteProjectTargets({
         repos,
         projects,
         projectHostSetups,
+        settings,
         renderableRepoIds: renderableProjectRepoIds
       }),
-    [projectGroups, projectHostSetups, projects, renderableProjectRepoIds, repos]
+    [projectGroups, projectHostSetups, projects, renderableProjectRepoIds, repos, settings]
   )
   const projectTargetItems = useMemo<ProjectTargetPaletteItem[]>(
     () =>
@@ -102,6 +104,7 @@ export function useWorktreeJumpPaletteProjectTargets({
             repos,
             projects,
             projectHostSetups,
+            settings,
             renderableRepoIds: renderableProjectRepoIds
           })
             .filter((result) => {
@@ -126,6 +129,7 @@ export function useWorktreeJumpPaletteProjectTargets({
       projectGroups,
       projectHostSetups,
       projects,
+      settings,
       renderableProjectRepoIds,
       repos
     ]

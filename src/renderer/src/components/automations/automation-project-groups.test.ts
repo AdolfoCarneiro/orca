@@ -49,7 +49,7 @@ describe('getAutomationProjectGroups', () => {
 
     expect(groups).toHaveLength(2)
     expect(groups[0]).toMatchObject({
-      projectKey: 'github:realiti4/claude-swap',
+      projectKey: 'project:github:realiti4/claude-swap',
       repo: { id: 'ssh' }
     })
     expect(groups[0]?.sources.map((source) => source.id)).toEqual(['local', 'ssh'])

@@ -1,9 +1,10 @@
+import {
+  getRepoProjectGroupKey,
+  type ProjectGroupingSettings
+} from '../../../src/shared/project-grouping'
 import type { Repo } from '../../../src/shared/repo-types'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../src/shared/execution-host'
-import {
-  getProjectIdentityKey,
-  getProjectProviderIdentity
-} from '../../../src/shared/project-host-setup-projection'
+import { getProjectProviderIdentity } from '../../../src/shared/project-host-setup-projection'
 import { getHostContextLabel } from '../../../src/shared/worktree/host-context-labels'
 
 type WorkspaceRepo = Pick<Repo, 'id' | 'displayName' | 'path'> &
@@ -27,12 +28,13 @@ export type NewWorkspaceRunTargetOption<TRepo extends WorkspaceRepo> = {
 }
 
 export function buildNewWorkspaceProjectOptions<TRepo extends WorkspaceRepo>(
-  repos: readonly TRepo[]
+  repos: readonly TRepo[],
+  settings?: ProjectGroupingSettings | null
 ): NewWorkspaceProjectOption<TRepo>[] {
   const options = new Map<string, NewWorkspaceProjectOption<TRepo>>()
   const hostIdsByProject = new Map<string, Set<string>>()
   for (const repo of repos) {
-    const id = getProjectIdentityKey(repo)
+    const id = getRepoProjectGroupKey(repo, settings)
     const hostIds = hostIdsByProject.get(id) ?? new Set<string>()
     hostIds.add(getRepoExecutionHostId(repo))
     hostIdsByProject.set(id, hostIds)
@@ -80,21 +82,22 @@ export function buildNewWorkspaceRunTargetOptions<TRepo extends WorkspaceRepo>(
   repos: readonly TRepo[],
   projectId: string | null,
   localPlatform: NodeJS.Platform | null = null,
-  hostLabelById?: ReadonlyMap<ExecutionHostId, string>
+  hostLabelById?: ReadonlyMap<ExecutionHostId, string>,
+  settings?: ProjectGroupingSettings | null
 ): NewWorkspaceRunTargetOption<TRepo>[] {
   if (!projectId) {
     return []
   }
   const options = new Map<string, NewWorkspaceRunTargetOption<TRepo>>()
   for (const repo of repos) {
-    if (getProjectIdentityKey(repo) !== projectId) {
+    if (getRepoProjectGroupKey(repo, settings) !== projectId) {
       continue
     }
     const hostId = getRepoExecutionHostId(repo)
-    if (!options.has(hostId)) {
-      // Keyed by host: a repo id names one repo per host, so two hosts can share one.
-      options.set(hostId, {
-        id: hostId,
+    const key = `${hostId}::${repo.id}`
+    if (!options.has(key)) {
+      options.set(key, {
+        id: key,
         ...getNewWorkspaceRunTarget(repo, localPlatform, hostLabelById),
         repo
       })

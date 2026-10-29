@@ -1,3 +1,4 @@
+import { buildProjectGroups, type ProjectGroupingSettings } from '../../../shared/project-grouping'
 import {
   getExecutionHostLabel,
   isRuntimeOwnedSshTargetId,
@@ -73,6 +74,8 @@ type BuildNeedsSetupOptionsInput = {
 }
 
 type BuildProjectHostSetupOptionsInput = {
+  groupKey?: string | null
+  settings?: ProjectGroupingSettings | null
   projectId: string | null
   projectHostSetups: readonly ProjectHostSetup[]
   eligibleRepos: readonly Repo[]
@@ -80,6 +83,8 @@ type BuildProjectHostSetupOptionsInput = {
 }
 
 export function buildProjectHostSetupOptions({
+  groupKey,
+  settings,
   projectId,
   projectHostSetups,
   eligibleRepos,
@@ -88,9 +93,16 @@ export function buildProjectHostSetupOptions({
   if (!projectId) {
     return []
   }
+  const group = groupKey
+    ? buildProjectGroups(
+        { projects: [{ id: projectId, displayName: '' }], projectHostSetups },
+        settings
+      ).find((candidate) => candidate.key === groupKey)
+    : undefined
+  const groupedSetups = group?.members ?? projectHostSetups
   const readyOptions = buildReadySetupOptions({
     projectId,
-    projectHostSetups,
+    projectHostSetups: groupedSetups,
     eligibleRepos,
     hosts
   })

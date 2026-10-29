@@ -1,4 +1,9 @@
 import {
+  buildProjectGroups,
+  selectProjectGroupTarget,
+  type ProjectGroupingSettings
+} from '../../../shared/project-grouping'
+import {
   ALL_EXECUTION_HOSTS_SCOPE,
   getRepoExecutionHostId,
   type ExecutionHostId,
@@ -55,6 +60,8 @@ export type WorkspaceCreationTargetResolution =
     }
 
 type ProjectHostWorkspaceTargetInput = {
+  settings?: ProjectGroupingSettings | null
+  path?: string | null
   eligibleRepos: readonly Repo[]
   projects?: readonly Project[]
   projectHostSetups?: readonly ProjectHostSetup[]
@@ -183,57 +190,52 @@ export function resolveWorkspaceCreationTarget(
     if (!isReadySetup(setup)) {
       return { status: 'unavailable', reason: 'setup-not-ready' }
     }
-    // Canonicalize legacy same-host duplicate drafts to the picker’s first setup so displayed and created paths match.
-    const canonical =
-      findReadySetupTarget(
-        setups,
-        reposById,
-        (entry) => entry.projectId === setup.projectId && entry.hostId === setup.hostId
-      ) ?? createTarget(setup, reposById)
-    if (canonical) {
-      return { status: 'ready', target: canonical }
+    const explicit = createTarget(setup, reposById)
+    if (explicit) {
+      return { status: 'ready', target: explicit }
     }
     return { status: 'unavailable', reason: 'setup-not-found' }
   }
 
-  if (projectId && !model?.projects.some((project) => project.id === projectId)) {
-    return { status: 'unavailable', reason: 'project-not-found' }
-  }
-
-  if (projectId && hostId) {
-    const hostSetup = setups.find(
-      (setup) => setup.projectId === projectId && setup.hostId === hostId
+  if (projectId && model) {
+    const groups = buildProjectGroups(
+      { projects: model.projects, projectHostSetups: setups },
+      input.settings
     )
-    if (hostSetup && !isReadySetup(hostSetup)) {
+    const group = groups.find((candidate) => candidate.key === projectId)
+    const projectSetups = group?.members ?? setups.filter((setup) => setup.projectId === projectId)
+    if (!group && !model.projects.some((project) => project.id === projectId)) {
+      return { status: 'unavailable', reason: 'project-not-found' }
+    }
+    const requestedHost =
+      hostId ??
+      (focusedHostScope && focusedHostScope !== ALL_EXECUTION_HOSTS_SCOPE ? focusedHostScope : null)
+    const ready = projectSetups.filter(isReadySetup)
+    if (hostId && !projectSetups.some((setup) => setup.hostId === hostId)) {
+      return { status: 'unavailable', reason: 'project-not-set-up-on-host' }
+    }
+    if (hostId && !ready.some((setup) => setup.hostId === hostId)) {
       return { status: 'unavailable', reason: 'setup-not-ready' }
     }
-    const target = findReadySetupTarget(
-      setups,
-      reposById,
-      (setup) => setup.projectId === projectId && setup.hostId === hostId
-    )
-    if (target) {
-      return { status: 'ready', target }
-    }
-    return { status: 'unavailable', reason: 'project-not-set-up-on-host' }
-  }
-
-  if (projectId) {
-    const focusedHostId =
-      focusedHostScope && focusedHostScope !== ALL_EXECUTION_HOSTS_SCOPE ? focusedHostScope : null
-    const focusedTarget = focusedHostId
-      ? findReadySetupTarget(
-          setups,
-          reposById,
-          (setup) => setup.projectId === projectId && setup.hostId === focusedHostId
-        )
-      : null
-    if (focusedTarget) {
-      return { status: 'ready', target: focusedTarget }
-    }
-    const target = findReadySetupTarget(setups, reposById, (setup) => setup.projectId === projectId)
-    if (target) {
-      return { status: 'ready', target }
+    const candidates = hostId ? ready.filter((setup) => setup.hostId === hostId) : ready
+    if (candidates.length > 0) {
+      const selected = selectProjectGroupTarget(
+        {
+          key: group?.key ?? projectId,
+          label: '',
+          members: candidates,
+          representative: candidates[0]
+        },
+        {
+          path: input.path,
+          contextualRepoId: input.draftRepoId ?? input.initialRepoId ?? input.activeRepoId,
+          hostId: requestedHost
+        }
+      )
+      const target = createTarget(selected, reposById)
+      if (target) {
+        return { status: 'ready', target }
+      }
     }
     return { status: 'unavailable', reason: 'project-has-no-ready-setup' }
   }

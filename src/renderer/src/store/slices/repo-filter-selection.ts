@@ -3,7 +3,6 @@ export function retainValidFilterRepoIds(
   filterRepoIds: readonly string[],
   validRepoIds: ReadonlySet<string>
 ): readonly string[] {
-  return filterRepoIds.every((repoId) => validRepoIds.has(repoId))
-    ? filterRepoIds
-    : filterRepoIds.filter((repoId) => validRepoIds.has(repoId))
+  const valid = (id: string) => validRepoIds.has(id.slice(id.indexOf('\0') + 1))
+  return filterRepoIds.every(valid) ? filterRepoIds : filterRepoIds.filter(valid)
 }

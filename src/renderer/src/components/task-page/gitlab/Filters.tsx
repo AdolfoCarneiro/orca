@@ -14,6 +14,7 @@ export function TaskPageGitLabFilters({
 }): React.JSX.Element | null {
   const {
     updateSettings,
+    settings,
     eligibleRepos,
     repoSelection,
     setRepoSelection,
@@ -65,7 +66,7 @@ export function TaskPageGitLabFilters({
             selected={repoSelection}
             getRepoHostLabel={getTaskPickerRepoHostLabel}
             onChange={(next) => {
-              const normalized = normalizeTaskRepoSelection(eligibleRepos, next)
+              const normalized = normalizeTaskRepoSelection(eligibleRepos, next, settings)
               setRepoSelection(normalized)
               void updateSettings({
                 defaultRepoSelection: [...normalized]

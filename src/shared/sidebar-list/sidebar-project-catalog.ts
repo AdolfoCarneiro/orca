@@ -1,3 +1,4 @@
+import type { ProjectGroupingSettings } from '../project-grouping'
 import {
   LOCAL_EXECUTION_HOST_ID,
   toSshExecutionHostId,
@@ -39,13 +40,14 @@ export type OwnProjectCatalog = {
 export function buildSidebarProjectCatalog(
   own: OwnProjectCatalog,
   servers: readonly PairedServerCatalog[],
-  ui: Pick<PersistedUIState, 'manualRepoOrder' | 'projectOrderBy'> | undefined
+  ui: Pick<PersistedUIState, 'manualRepoOrder' | 'projectOrderBy'> | undefined,
+  settings?: ProjectGroupingSettings | null
 ): MobileProjectSectionCatalog {
   const local = { kind: 'local' } as const
   // Fold each server into project groups established by earlier copies, matching mergeFetchedReposForHost.
   let merged: Repo[] = own.repos.map((repo) => adoptEndpointRepo(local, repo))
   for (const server of servers) {
-    merged = [...merged, ...applyInheritedProjectGroups(merged, server.repos)]
+    merged = [...merged, ...applyInheritedProjectGroups(merged, server.repos, settings)]
   }
   const repos = applyManualRepoOrder(merged, ui?.manualRepoOrder)
   const hosts = [
@@ -71,6 +73,7 @@ export function buildSidebarProjectCatalog(
           : LOCAL_EXECUTION_HOST_ID
       })),
       ...servers.flatMap((server) => server.projectGroups)
-    ]
+    ],
+    settings
   )
 }

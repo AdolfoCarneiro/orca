@@ -1,3 +1,4 @@
+import { getRepoProjectGroupKey } from '../../../../shared/project-grouping'
 import type { AppState } from '@/store/types'
 import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/runtime-terminal-stream'
 import {
@@ -97,7 +98,7 @@ export function collectActiveDashboardWorkspaces(
         ? resolveHostLabel(getWorktreeExecutionHostId(worktree, repo))
         : undefined
       workspaces.push({
-        projectId: repo.id,
+        projectId: includeMapMetadata ? getRepoProjectGroupKey(repo, state.settings) : repo.id,
         projectName: repo.displayName,
         repo,
         repoIcon: repo.repoIcon ?? null,

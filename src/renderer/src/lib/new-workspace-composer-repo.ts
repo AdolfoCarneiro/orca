@@ -4,7 +4,10 @@ import {
   resolveNewWorkspaceDialogGitRepoId,
   resolveNewWorkspaceDialogRepoId
 } from '../../../shared/new-workspace-dialog-repo'
-import { getProjectIdentityKey } from '../../../shared/project-host-setup-projection'
+import {
+  getRepoProjectGroupKey,
+  type ProjectGroupingSettings
+} from '../../../shared/project-grouping'
 import type { Repo } from '../../../shared/repo-types'
 
 export function getComposerEligibleRepos(repos: readonly Repo[]): Repo[] {
@@ -15,7 +18,8 @@ export function getComposerEligibleRepos(repos: readonly Repo[]): Repo[] {
 export function resolveComposerActiveRepoId(
   repos: readonly Repo[],
   eligibleRepos: readonly Repo[],
-  activeRepoId: string | null | undefined
+  activeRepoId: string | null | undefined,
+  settings?: ProjectGroupingSettings | null
 ): string | null {
   if (!activeRepoId) {
     return activeRepoId ?? null
@@ -24,8 +28,10 @@ export function resolveComposerActiveRepoId(
   if (!activeRepo || !isRuntimeOwnedSshTargetId(activeRepo.connectionId)) {
     return activeRepoId
   }
-  const projectKey = getProjectIdentityKey(activeRepo)
-  const sibling = eligibleRepos.find((repo) => getProjectIdentityKey(repo) === projectKey)
+  const projectKey = getRepoProjectGroupKey(activeRepo, settings)
+  const sibling = eligibleRepos.find(
+    (repo) => getRepoProjectGroupKey(repo, settings) === projectKey
+  )
   return sibling?.id ?? activeRepoId
 }
 

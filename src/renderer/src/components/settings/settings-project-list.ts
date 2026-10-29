@@ -6,24 +6,19 @@ import {
   type ExecutionHostId
 } from '../../../../shared/execution-host'
 import { projectHostSetupProjectionFromRepos } from '../../../../shared/project-host-setup-projection'
-import { getRepoHostIdentityForParts } from '../../../../shared/repo-host-identity'
-import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
-import {
-  buildProjectGroupingIndex,
-  isCheckoutScopedProjectSetup,
-  type ProjectGroupingModel
-} from '../../../../shared/project-section-grouping'
+import { buildProjectGroups, getProjectGroupKey } from '../../../../shared/project-grouping'
+import type { ProjectGroupingModel } from '../../../../shared/project-section-grouping'
 
 export type SettingsProject = {
   projectId: string
   project: Project
   setups: ProjectHostSetup[]
   representativeRepoId: string
-  /** Keys this entry's host selection: the project id, or the clone's own key when split. */
+  /** Resolved group key used by this entry's host selection. */
   selectionKey: string
-  /** Only set when same-host clones split the project. */
+  /** Label for a host or folder group. */
   checkoutLabel?: string
-  /** Set on every entry of a split project; each holds only its own part. */
+  /** This entry holds a host or folder subset of its repository. */
   splitProject?: boolean
 }
 
@@ -41,7 +36,10 @@ export function getSettingsEntryHostSelection(
   const keys = new Set([
     selectionKey,
     projectId,
-    ...setups.map((setup) => getCheckoutSelectionKey(projectId, setup.repoId))
+    ...setups.map((setup) => getCheckoutSelectionKey(projectId, setup.repoId)),
+    ...setups.flatMap((setup) =>
+      (['repository', 'host', 'folder'] as const).map((mode) => getProjectGroupKey(setup, mode))
+    )
   ])
   // Selection records are ordered by the store's last explicit pick, including alias keys.
   for (const key of Object.keys(hostSelection).toReversed()) {
@@ -57,16 +55,21 @@ export function getSettingsEntryHostSelection(
   return { hostId: undefined, setupId: undefined }
 }
 
-/** What a pane's "Remove Project" removes: the project, one clone, or a split project's remainder. */
-export type SettingsProjectRemovalScope = 'project' | 'checkout' | 'split-project'
+export type SettingsProjectRemovalScope = 'project' | 'checkout' | `host:${string}`
 
 export function getSettingsProjectRemovalScope(
   settingsProject: SettingsProject
 ): SettingsProjectRemovalScope {
-  if (settingsProject.checkoutLabel !== undefined) {
+  if (
+    settingsProject.selectionKey.includes('::host:') &&
+    !settingsProject.selectionKey.includes('::setup:')
+  ) {
+    return `host:${settingsProject.setups[0]?.hostId ?? ''}`
+  }
+  if (settingsProject.selectionKey.includes('::setup:')) {
     return 'checkout'
   }
-  return settingsProject.splitProject ? 'split-project' : 'project'
+  return 'project'
 }
 
 /** Prefer local, then lowest repo ID, to keep navigation and pane identity stable until that repo is removed. */
@@ -89,70 +92,36 @@ export function getSettingsProjectRepresentativeRepoId(
   return lowest
 }
 
-/** Match sidebar clone splitting; derive navigation and panes from the same repo list. */
+/** Settings and the sidebar use the same project membership. */
 export function buildSettingsProjectList(
   repos: readonly Repo[],
   projectGrouping?: ProjectGroupingModel
 ): SettingsProject[] {
   const projection = projectHostSetupProjectionFromRepos(repos)
   const projectById = new Map(projection.projects.map((project) => [project.id, project]))
-  const groupingIndex = buildProjectGroupingIndex(
-    projectGrouping ?? { projects: projection.projects, projectHostSetups: projection.setups }
-  )
-  const suppliedSetupByCheckout = new Map(
-    projectGrouping?.projectHostSetups.map((setup) => [getSettingsSetupCheckoutKey(setup), setup])
-  )
-  // Index once per refresh to avoid quadratic scans across projects.
-  const entriesByKey = new Map<string, Omit<SettingsProject, 'representativeRepoId'>>()
-  // Same-ID host twins must join one clone entry to avoid duplicate repo section IDs.
-  const checkoutRepoIds = new Set(
-    groupingIndex === null
-      ? []
-      : projection.setups
-          .filter((setup) =>
-            isCheckoutScopedProjectSetup(
-              suppliedSetupByCheckout.get(getSettingsSetupCheckoutKey(setup)) ?? setup,
-              groupingIndex
-            )
-          )
-          .map((setup) => setup.repoId)
-  )
-  for (const setup of projection.setups) {
-    const project = projectById.get(setup.projectId)
+  const model = projectGrouping ?? {
+    projects: projection.projects,
+    projectHostSetups: projection.setups
+  }
+  return buildProjectGroups(model).flatMap((group) => {
+    const projectId = group.representative.projectId
+    const project =
+      projectGrouping?.projects.find((candidate) => candidate.id === projectId) ??
+      projectById.get(projectId)
     if (!project) {
-      continue
+      return []
     }
-    const checkoutScoped = checkoutRepoIds.has(setup.repoId)
-    const key = checkoutScoped ? getCheckoutSelectionKey(project.id, setup.repoId) : project.id
-    const entry = entriesByKey.get(key)
-    if (entry) {
-      entry.setups.push(setup)
-    } else {
-      entriesByKey.set(key, {
-        projectId: project.id,
-        selectionKey: key,
+    return [
+      {
+        projectId,
+        selectionKey: group.key,
         project,
-        setups: [setup],
-        ...(checkoutScoped ? { checkoutLabel: setup.displayName } : {})
-      })
-    }
-  }
-  const entryCountByProjectId = new Map<string, number>()
-  for (const entry of entriesByKey.values()) {
-    entryCountByProjectId.set(
-      entry.projectId,
-      (entryCountByProjectId.get(entry.projectId) ?? 0) + 1
-    )
-  }
-  return [...entriesByKey.values()].map((entry) => ({
-    ...entry,
-    representativeRepoId: getSettingsProjectRepresentativeRepoId(entry.setups),
-    ...((entryCountByProjectId.get(entry.projectId) ?? 0) > 1 ? { splitProject: true } : {})
-  }))
-}
-
-function getSettingsSetupCheckoutKey(setup: ProjectHostSetup): string {
-  return `${getRepoHostIdentityForParts(setup.repoId, setup.hostId)}\0${normalizeRuntimePathForComparison(setup.path.trim())}`
+        setups: group.members,
+        representativeRepoId: group.representative.repoId,
+        ...(group.key.includes('::host:') ? { checkoutLabel: group.label, splitProject: true } : {})
+      }
+    ]
+  })
 }
 
 /** Validate saved host selection against live setups; fall back to local, ready, then first. */

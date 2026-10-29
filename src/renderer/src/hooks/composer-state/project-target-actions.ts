@@ -14,6 +14,9 @@ type ProjectTargetActionsInput = Pick<
   | 'projectGroups'
   | 'projectHostSetups'
   | 'projects'
+  | 'settings'
+  | 'setSelectedProjectHostSetupOverrideId'
+  | 'setSelectedProjectHostSetupOverrideHostId'
   | 'repos'
   | 'setBaseBranch'
   | 'setBranchNameOverride'
@@ -48,7 +51,7 @@ import {
 } from '@/lib/new-workspace-project-options'
 import { translate } from '@/i18n/i18n'
 import { getFolderSourceRepos } from '@/components/sidebar/folder-workspace-composer-helpers'
-import { resolveWorkspaceCreationRepoId } from '@/lib/project-host-workspace-target'
+import { resolveWorkspaceCreationTarget } from '@/lib/project-host-workspace-target'
 
 export function useProjectTargetActions(input: ProjectTargetActionsInput) {
   const {
@@ -61,6 +64,9 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
     projectGroups,
     projectHostSetups,
     projects,
+    settings,
+    setSelectedProjectHostSetupOverrideId,
+    setSelectedProjectHostSetupOverrideHostId,
     repos,
     setBaseBranch,
     setBranchNameOverride,
@@ -191,7 +197,8 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
       const preferredHostId =
         selectedWorkspaceTarget.status === 'ready' ? selectedWorkspaceTarget.target.hostId : null
       // Prefer focusedHostScope rather than hard-pin hostId, so projects available only on another host remain selectable.
-      const nextRepoId = resolveWorkspaceCreationRepoId({
+      const next = resolveWorkspaceCreationTarget({
+        settings,
         eligibleRepos,
         projects,
         projectHostSetups,
@@ -199,10 +206,12 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
         focusedHostScope: preferredHostId ?? workspaceHostScope,
         actionableHostIds
       })
-      if (!nextRepoId) {
+      if (next.status !== 'ready') {
         return
       }
-      handleRepoChange(nextRepoId, { forceResetStartFrom: isProjectGroupTarget })
+      handleRepoChange(next.target.repoId, { forceResetStartFrom: isProjectGroupTarget })
+      setSelectedProjectHostSetupOverrideId(next.target.projectHostSetupId)
+      setSelectedProjectHostSetupOverrideHostId(next.target.hostId)
     },
     [
       applyProjectGroupSelection,
@@ -214,6 +223,9 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
       projectHostSetups,
       projects,
       repos,
+      settings,
+      setSelectedProjectHostSetupOverrideId,
+      setSelectedProjectHostSetupOverrideHostId,
       selectedWorkspaceTarget,
       workspaceHostScope,
       initialProjectGroupAppliedRef,

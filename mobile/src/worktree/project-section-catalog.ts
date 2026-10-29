@@ -1,3 +1,4 @@
+import { withLegacyProjectGroupKeys } from '../../../src/shared/project-section-legacy-grouping'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../src/shared/execution-host'
 import { getLogicalRepoOrderRankById } from '../../../src/shared/project-section-order'
 import type { ProjectOrderBy } from '../../../src/shared/ui-chrome-types'
@@ -33,7 +34,10 @@ export function buildProjectSectionCatalog(
   })
   return {
     repos: shown(repos),
-    grouping: { projects: served.projects, projectHostSetups: served.setups },
+    grouping: {
+      projects: served.projects,
+      projectHostSetups: withLegacyProjectGroupKeys(served.setups)
+    },
     // Why: served repos come in the sidebar's header order, cross-host manual order included.
     repoOrder: getLogicalRepoOrderRankById(served.repos.map((repo) => repo.id)),
     projectOrderBy: projectOrderBy ?? served.projectOrderBy

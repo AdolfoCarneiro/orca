@@ -223,6 +223,27 @@ describe('WSL move UI routing rewrite', () => {
     ])
   })
 
+  it('carries host and folder project collapse keys only for the moved project', () => {
+    const project = 'project:github:org/app'
+    const host = `${project}::host:local::local::wsl:ubuntu`
+    const folder = `${host}::setup:repo-a`
+    const other = 'project:github:org/other::host:local::local::wsl:ubuntu'
+    const scoped = { ...scope, projectInScope: (id: string) => id === 'github:org/app' }
+    const original = {
+      ...EMPTY_UI,
+      collapsedGroups: [host, folder, other, 'lineage:unrelated'],
+      filterRepoIds: ['repo-a', 'local\0repo-a', 'local\0repo-b']
+    }
+    const updates = rewriteWslMoveUiRouting(original, scoped)
+    expect(updates.filterRepoIds).toEqual([...original.filterRepoIds, `${HOST}\0repo-a`])
+    expect(updates.collapsedGroups).toEqual([
+      ...original.collapsedGroups,
+      `${project}::host:${HOST}::${HOST}::default`,
+      `${project}::host:${HOST}::${HOST}::default::setup:repo-a`
+    ])
+    expect(rewriteWslMoveUiRouting({ ...original, ...updates }, scoped)).toEqual({})
+  })
+
   it('changes nothing on a second run', () => {
     const first = {
       ...profileUi(),

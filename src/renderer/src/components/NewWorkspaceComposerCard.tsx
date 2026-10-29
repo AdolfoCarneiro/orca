@@ -96,8 +96,6 @@ export default function NewWorkspaceComposerCard(
     (state) => state.settings?.disabledTuiAgents ?? DEFAULT_DISABLED_TUI_AGENTS
   )
   const updateSettings = useAppStore((state) => state.updateSettings)
-  const projects = useAppStore((state) => state.projects)
-  const repos = useAppStore((state) => state.repos)
   const nameInputFocusFrameRef = React.useRef<number | null>(null)
   const branchNameInputId = React.useId()
   const projectDescriptionId = React.useId()
@@ -114,7 +112,9 @@ export default function NewWorkspaceComposerCard(
   const selectedProjectName =
     projectOptions.find((candidate) => candidate.id === selectedProjectId)?.displayName ??
     selectedRepoName
-  const defaultCloneUrl = resolveProjectCloneUrlPrefill(projects, repos, selectedProjectId)
+  const defaultCloneUrl = useAppStore((state) =>
+    resolveProjectCloneUrlPrefill(state.projects, state.repos, selectedProjectId, state.settings)
+  )
   const readyProjectHostSetupOptions = projectHostSetupOptions.filter(
     (option) => option.kind === 'ready'
   )

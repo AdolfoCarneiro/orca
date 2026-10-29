@@ -1,3 +1,4 @@
+import { buildProjectGroups } from '../../../../../../shared/project-grouping'
 import type { ProjectGroup } from '../../../../../../shared/project-group-types'
 import type { Repo } from '../../../../../../shared/repo-types'
 import { getProjectGroupHeaderKey } from '../../../../../../shared/sidebar-list/group-keys'
@@ -8,7 +9,7 @@ function getProjectIdFromHeaderRowKey(rowKey: string): string | null {
     return null
   }
   const withoutPrefix = rowKey.slice('project:'.length)
-  const setupSeparator = withoutPrefix.indexOf('::setup:')
+  const setupSeparator = withoutPrefix.indexOf('::host:')
   return setupSeparator === -1 ? withoutPrefix : withoutPrefix.slice(0, setupSeparator)
 }
 
@@ -17,6 +18,12 @@ function getRepoIdsFromHeaderRowKey(
   repoMap: Map<string, Repo>,
   projectGrouping?: ProjectGroupingModel
 ): string[] {
+  if (projectGrouping) {
+    const group = buildProjectGroups(projectGrouping).find((candidate) => candidate.key === rowKey)
+    if (group) {
+      return group.members.map((setup) => setup.repoId)
+    }
+  }
   if (rowKey.startsWith('repo:')) {
     return [rowKey.slice('repo:'.length)]
   }

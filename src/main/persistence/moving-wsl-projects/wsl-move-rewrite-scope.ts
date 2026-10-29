@@ -1,3 +1,4 @@
+import { getProjectIdentityKey } from '../../../shared/project-host-setup-projection'
 /**
  * What a committed WSL move's desktop rewrite stores ask of a row: is it one of the moved
  * projects, and what are its id and path on the host. Ids keep their repo; only a UNC path of the
@@ -15,6 +16,7 @@ export type WslMoveRewriteScope = {
   /** A worktree id, workspace key or host-qualified identity of a moved project. */
   inScope: (owner: string) => boolean
   repoInScope: (repoId: string) => boolean
+  projectInScope?: (projectId: string) => boolean
   /** The host's id for a moved worktree id; anything else is returned unchanged. */
   worktreeId: (worktreeId: string) => string
   /** The host's path for an absolute UNC path of the moved distro; anything else unchanged. */
@@ -36,6 +38,10 @@ export function wslMoveRewriteScope(context: WslMoveDesktopRewriteContext): WslM
       return folderWorkspaceIds.has(id) || repoIds.has(getRepoIdFromWorktreeId(id))
     },
     repoInScope: (repoId) => repoIds.has(repoId),
+    projectInScope: (projectId) =>
+      context.cutover.manifest.payload.repositories.some(
+        (repo) => repoIds.has(repo.id) && getProjectIdentityKey(repo) === projectId
+      ),
     worktreeId: (worktreeId) => rewriteOrcadMigrationWorktreeId(worktreeId, context.rewritePath),
     path: (value) => context.rewritePath.path(value, 'absolute'),
     destinationHostId: context.destinationHostId
