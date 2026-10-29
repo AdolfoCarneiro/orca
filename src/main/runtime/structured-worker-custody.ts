@@ -20,7 +20,19 @@ import {
 } from './structured-worker-identity'
 
 /** Judge ownership on the resolved successor session; absent host returns null because reading storage would install it. */
-export function structuredWorkerOwned(running: RunningStructuredSession): boolean | null {
+export function structuredWorkerOwned(
+  running: RunningStructuredSession,
+  visibility?: ReturnType<typeof captureStructuredWorkerTabVisibility>
+): boolean | null {
+  if (visibility) {
+    return visibility.installed
+      ? structuredWorkerRecordIsCurrent(
+          running.record,
+          running.record.ownerObservation.claimStatus === 'released' &&
+            visibility.isListed(running.sessionId)
+        )
+      : null
+  }
   const host = getStructuredAgentSessionHost()
   if (!host) {
     return null
@@ -76,9 +88,10 @@ function ownerState(
 export function structuredWorkerAddressable(
   db: OrchestrationDb | null | undefined,
   running: RunningStructuredSession,
-  row: CustodyRow | undefined
+  row: CustodyRow | undefined,
+  visibility?: ReturnType<typeof captureStructuredWorkerTabVisibility>
 ): boolean | null {
-  const owned = structuredWorkerOwned(running)
+  const owned = structuredWorkerOwned(running, visibility)
   if (owned === null) {
     return null
   }
@@ -161,4 +174,23 @@ function ownedWorkerIncarnation(
     )
     .get(incarnation, JSON.stringify(hostScope))
   return owned === undefined ? null : incarnation
+}
+
+/** Finite captured membership; unreadable visibility never proves an open released session. */
+export function captureStructuredWorkerTabVisibility() {
+  const host = getStructuredAgentSessionHost()
+  let listed: ReadonlySet<string> | undefined
+  return {
+    installed: Boolean(host),
+    isListed: (sessionId: string): boolean => {
+      if (!listed) {
+        try {
+          listed = new Set(host?.getPersistedVisibleSessionTabIndex?.().sessionIds ?? [])
+        } catch {
+          listed = new Set()
+        }
+      }
+      return listed.has(sessionId)
+    }
+  }
 }

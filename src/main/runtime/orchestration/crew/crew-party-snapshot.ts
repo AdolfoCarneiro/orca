@@ -1,3 +1,4 @@
+import type { TerminalIdentityReadContext } from '../../terminal/query/terminal-identity-read-context'
 import type { AgentMessageSender } from '../../../../shared/agent-session/agent-session-message-source'
 import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status-freshness'
 import {
@@ -10,7 +11,7 @@ import type { FleetAgentStatusEvidence } from '../../../../shared/orchestration-
 import { isPublicOrchestrationAddress } from '../../../../shared/orchestration-agent-reference'
 import type { OrchestrationDb } from '../db'
 import {
-  resolveLineageRunningSession,
+  createLineageRunningSessionResolver,
   type AgentSessionRecordReader
 } from '../structured-session-lineage'
 import { crewDisplayName, crewTaskDisplay } from './crew-rules'
@@ -42,7 +43,14 @@ export type CrewReadDependencies = {
   processForHandle?: (handle: string) => string | null
   statuses: readonly FleetAgentStatusEvidence[]
   now?: number
+  openIdentityRead?: () => CrewIdentityRead
+  openRuntimeIdentityRead?: () => TerminalIdentityReadContext
 }
+
+export type CrewIdentityRead = Pick<
+  CrewReadDependencies,
+  'liveHandle' | 'handleForPane' | 'paneForHandle' | 'processForHandle' | 'name'
+>
 
 function preview(body: string): string {
   const bytes = Buffer.from(body)
@@ -66,9 +74,14 @@ export function buildCrewSnapshot(
   }
   const now = deps.now ?? Date.now()
   const cutoff = new Date(now - AGENT_STATUS_STALE_AFTER_MS).toISOString()
-  const registry = host.registry.fork()
+  const identity = deps.openIdentityRead?.()
+  if (identity) {
+    deps = { ...deps, ...identity }
+  }
+  const registry = host.registry.fork(identity)
   const { party, alias, addressOf, getParty, aliasesFor } = registry
   const records = host.deps.records
+  const runningSession = createLineageRunningSessionResolver(records)
   const hydrate = (addresses: string[], panes: string[] = []) => {
     const provenance = host.sourceInputs.provenance(addresses, panes)
     for (const family of [provenance.local, provenance.remote]) {
@@ -117,9 +130,7 @@ export function buildCrewSnapshot(
   ): OrchestrationCrewRow => {
     const display = crewTaskDisplay(assignment)
     const title = display.taskTitle || display.displayName
-    const live = target.orcaSessionId
-      ? resolveLineageRunningSession(records, target.orcaSessionId)
-      : null
+    const live = target.orcaSessionId ? runningSession(target.orcaSessionId) : null
     const worker = assignment ? host.workersById.get(assignment.id) : undefined
     const evidence =
       worker && !target.orcaSessionId

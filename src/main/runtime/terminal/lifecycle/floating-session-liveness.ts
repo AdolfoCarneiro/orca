@@ -57,14 +57,22 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
           })
         }
         if (pty) {
+          const wasConnected = pty.connected
           pty.connected = true
           pty.disconnectedAt = null
+          if (!wasConnected) {
+            this.crewChanges.notify()
+          }
           this.markPtyLivenessLive(ptyId)
           this.refreshPtyForegroundAgent(ptyId)
         }
       } else if (pty && !this.leafExistsForPty(ptyId)) {
+        const wasConnected = pty.connected
         pty.connected = false
         pty.disconnectedAt ??= Date.now()
+        if (wasConnected) {
+          this.crewChanges.notify()
+        }
       }
     }
     this.pruneDisconnectedPtyRecords()
@@ -113,7 +121,9 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
     }
     this.advancePtyLifecycleGeneration(ptyId)
     this.pairedRendererSessionOwnedPtyIds.delete(ptyId)
-    this.ptysById.delete(ptyId)
+    if (this.ptysById.delete(ptyId)) {
+      this.crewChanges.notify()
+    }
     this.pendingPtyHandleReplacementFences.delete(ptyId)
     this.recentPtyOutputById.delete(ptyId)
     this.setupCompletionTokenByPtyId.delete(ptyId)

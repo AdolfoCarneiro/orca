@@ -1,5 +1,6 @@
 import type { TerminalIdentityReadContext } from '../query/terminal-identity-read-context'
 import { OrcaRuntimeWithBuildPtyTerminalSummary } from '../query/pty-terminal-summary'
+import type { TerminalHandleRecord } from '../../runtime-terminal-contracts'
 import type { PtyIncarnationHandleRecord } from '../../orca-runtime-core'
 import type {
   RuntimeLeafRecord,
@@ -17,6 +18,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     retained: PtyIncarnationHandleRecord,
     leaf: RuntimeLeafRecord
   ): void {
+    const before = this.handles.get(retained.handle)
     const leafKey = this.getLeafKey(leaf.tabId, leaf.leafId)
     if (retained.leafKey !== leafKey) {
       if (this.handleByLeafKey.get(retained.leafKey) === retained.handle) {
@@ -35,6 +37,9 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       ptyGeneration: leaf.ptyGeneration
     })
     this.handleByLeafKey.set(leafKey, retained.handle)
+    if (!sameCrewHandle(before, this.handles.get(retained.handle))) {
+      this.crewChanges.notify()
+    }
   }
 
   protected invalidatePtyIncarnationHandle(ptyId: string): void {
@@ -49,6 +54,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     this.handles.delete(retained.handle)
     this.syntheticTerminalHandles.delete(retained.handle)
     this.rejectWaitersForHandle(retained.handle, 'terminal_handle_stale')
+    this.crewChanges.notify()
   }
 
   protected clearPtyIncarnationHandles(): void {
@@ -85,6 +91,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       return null
     }
     const leafKey = this.getLeafKey(leaf.tabId, leaf.leafId)
+    const before = this.handles.get(preAllocated)
     this.handles.set(preAllocated, {
       handle: preAllocated,
       runtimeId: this.runtimeId,
@@ -96,6 +103,9 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       ptyGeneration: leaf.ptyGeneration
     })
     this.handleByLeafKey.set(leafKey, preAllocated)
+    if (!sameCrewHandle(before, this.handles.get(preAllocated))) {
+      this.crewChanges.notify()
+    }
     return preAllocated
   }
 
@@ -103,6 +113,8 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     pty: RuntimePtyWorktreeRecord,
     context?: TerminalIdentityReadContext
   ): string {
+    const previousHandle = this.handleByPtyId.get(pty.ptyId)
+    const before = previousHandle ? this.handles.get(previousHandle) : undefined
     const handle = this.issuePtyHandleRecord(pty, context)
     // An unbound terminal retains its issued pane stamp for recovery, including after replacement.
     const record = ORCA_LAYOUT_OWNER_IS_MAIN ? this.handles.get(handle) : undefined
@@ -112,6 +124,9 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     }
     context?.changedHandle(handle)
     context?.changedReverseBinding(pty.ptyId)
+    if (previousHandle !== handle || !sameCrewHandle(before, this.handles.get(handle))) {
+      this.crewChanges.notify()
+    }
     return handle
   }
 
@@ -196,6 +211,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     this.handles.delete(handle)
     this.syntheticTerminalHandles.delete(handle)
     this.rejectWaitersForHandle(handle, 'terminal_handle_stale')
+    this.crewChanges.notify()
   }
 
   protected adoptFirstPtyForLeafHandle(
@@ -209,6 +225,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       return false
     }
     this.handles.set(handle, { ...record, ptyId, ptyGeneration })
+    this.crewChanges.notify()
     return true
   }
 
@@ -222,11 +239,17 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
   }
   protected issueHandle(leaf: RuntimeLeafRecord, context?: TerminalIdentityReadContext): string {
     const retained = leaf.ptyId ? this.handleByPtyIncarnation.get(leaf.ptyId)?.handle : undefined
+    const previousHandle =
+      this.handleByLeafKey.get(this.getLeafKey(leaf.tabId, leaf.leafId)) ?? retained
+    const before = previousHandle ? this.handles.get(previousHandle) : undefined
     const handle = this.issueLeafHandleRecord(leaf)
     if (retained) {
       context?.changedHandle(retained)
     }
     context?.changedHandle(handle)
+    if (!sameCrewHandle(before, this.handles.get(handle))) {
+      this.crewChanges.notify()
+    }
     return handle
   }
 
@@ -275,4 +298,24 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     }
     return handle
   }
+}
+
+function sameCrewHandle(
+  a: TerminalHandleRecord | undefined,
+  b: TerminalHandleRecord | undefined
+): boolean {
+  if (!a || !b) {
+    return a === b
+  }
+  return (
+    a.handle === b.handle &&
+    a.runtimeId === b.runtimeId &&
+    a.rendererGraphEpoch === b.rendererGraphEpoch &&
+    a.worktreeId === b.worktreeId &&
+    a.tabId === b.tabId &&
+    a.leafId === b.leafId &&
+    a.ptyId === b.ptyId &&
+    a.ptyGeneration === b.ptyGeneration &&
+    a.issuedForPaneKey === b.issuedForPaneKey
+  )
 }

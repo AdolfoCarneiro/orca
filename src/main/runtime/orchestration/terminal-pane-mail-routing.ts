@@ -32,6 +32,15 @@ import { OPERATOR_CLOSE_EXIT_CAUSE } from '../../../shared/terminal-exit-cause'
 import { resolveTerminalIdentityFromProbes } from '../terminal-identity-probe'
 
 export abstract class OrcaRuntimeWithGetPtyRecordForPaneKey extends OrcaRuntimeWithPruneMobileSessionTabGroupLayout {
+  protected terminalIdentitySources = () => ({
+    handles: this.handles,
+    sshTerminals: this.orchestrationCompatibilitySshTerminals,
+    reverse: this.handleByPtyId,
+    leaves: this.leaves,
+    ptys: this.ptysById,
+    capturePaneOf: () => this.captureTerminalPaneReader()
+  })
+
   protected getPtyRecordForPaneKey(
     paneKey: string,
     context?: TerminalIdentityReadContext

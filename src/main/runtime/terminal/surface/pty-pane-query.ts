@@ -1,3 +1,7 @@
+import type { WorkspaceSessionState } from '../../../../shared/workspace-session-state-types'
+import { collectLayoutLeafIdsInOrder } from '../../../../shared/workspace-layout/terminal-pane-tree'
+import type { WorkspaceLayoutLoadContext } from '../../../../shared/workspace-layout/workspace-layout-load-types'
+import { isPaneSleepRecord } from '../../../../shared/agent-session-resume'
 import {
   pairedRuntimeHostOfBinding,
   terminalHoldsPane,
@@ -100,4 +104,53 @@ export function findMainTerminalPane(
         terminalHoldsPane(terminal, leaf, facts.get(`${leaf.tabId}::${leaf.leafId}`)))
   )
   return pane ? { worktreeId: pane.worktreeId, tabId: pane.tabId, leafId: pane.leafId } : null
+}
+
+/** Raw invalidation inputs only; main's loader and pane qualifier still select every binding. */
+export function mainTerminalSourceInputs(
+  session: WorkspaceSessionState | null | undefined,
+  context: WorkspaceLayoutLoadContext
+) {
+  if (!session) {
+    return null
+  }
+  return structuredClone({
+    tabs: Object.entries(session.tabsByWorktree ?? {}).map(([key, rows]) => [
+      key,
+      rows.map((row) => [row.id, row.worktreeId, row.ptyId, row.sortOrder, row.createdAt])
+    ]),
+    tabBar: Object.entries(session.unifiedTabs ?? {}).map(([key, rows]) => [
+      key,
+      rows.map((row) => [
+        row.id,
+        row.contentType,
+        row.entityId,
+        row.groupId,
+        row.sortOrder,
+        row.createdAt
+      ])
+    ]),
+    groups: Object.entries(session.tabGroups ?? {}).map(([key, groups]) => [
+      key,
+      groups.map((group) => [group.id, group.tabOrder])
+    ]),
+    groupLayouts: session.tabGroupLayouts,
+    layouts: Object.entries(session.terminalLayoutsByTabId ?? {}).map(([id, layout]) => [
+      id,
+      collectLayoutLeafIdsInOrder(layout.root),
+      layout.ptyIdsByLeafId,
+      collectLayoutLeafIdsInOrder(layout.root).map((leaf) => [
+        leaf,
+        context.ptyGenerationOf?.(leaf)
+      ])
+    ]),
+    incarnations: session.terminalPtyIncarnationsByPaneKey,
+    sleeping: Object.entries(session.sleepingAgentSessionsByPaneKey ?? {}).map(([key, record]) => [
+      key,
+      isPaneSleepRecord(record)
+    ]),
+    retired: session.terminalSurfaceTombstonesByPaneKey,
+    closedTabs: session.closedTerminalTabTombstonesByTabId,
+    closedPanes: session.closedTerminalPanesByPaneKey
+  })
 }

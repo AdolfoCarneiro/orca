@@ -130,8 +130,12 @@ export abstract class OrcaRuntimeWithOnPtyData extends OrcaRuntimeWithPreparePty
     let ptyTailAfter: ReturnType<typeof appendNormalizedToTailBuffer> | null = null
     let ptyNormalized: ReturnType<typeof normalizeTerminalChunk> | null = null
     if (pty) {
+      const wasConnected = pty.connected
       pty.connected = true
       pty.disconnectedAt = null
+      if (!wasConnected) {
+        this.crewChanges.notify()
+      }
       pty.lastOutputAt = at
       const normalized = normalizeTerminalChunk(data, pty.tailPendingAnsi)
       ptyNormalized = normalized

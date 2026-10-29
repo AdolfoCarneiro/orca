@@ -123,7 +123,7 @@ export abstract class OrcaRuntimeWithAdoptTerminalOrphansFromInventory extends O
   ): Promise<string> {
     if (this.graphStatus !== 'ready') {
       const targetWorktreeId = worktreeSelector
-        ? (await this.resolveWorktreeSelector(worktreeSelector)).id
+        ? (await this.resolveWorkspaceSelector(worktreeSelector)).id
         : null
       const snapshots = targetWorktreeId
         ? [this.getMobileSessionTabsForWorktree(targetWorktreeId)]
@@ -157,7 +157,7 @@ export abstract class OrcaRuntimeWithAdoptTerminalOrphansFromInventory extends O
     this.assertGraphReady()
 
     const targetWorktreeId = worktreeSelector
-      ? (await this.resolveWorktreeSelector(worktreeSelector)).id
+      ? (await this.resolveWorkspaceSelector(worktreeSelector)).id
       : null
 
     // Prefer last-focused panes only outside identity claims.
@@ -200,8 +200,11 @@ export abstract class OrcaRuntimeWithAdoptTerminalOrphansFromInventory extends O
   // Dispatch uses remint-stable pane keys; unresolved handles return null so best-effort dispatch can proceed.
   getTerminalPaneKey(handle: string, context?: TerminalIdentityReadContext): string | null {
     return (
-      resolveStructuredWorkerAuthority(handle, this.getOrchestrationDbIfAvailable?.() ?? null)
-        ?.identity.paneKey ??
+      resolveStructuredWorkerAuthority(
+        handle,
+        this.getOrchestrationDbIfAvailable?.() ?? null,
+        context?.structured
+      )?.identity.paneKey ??
       this.getPaneKeyForTerminalHandle(handle, context) ??
       this.getOrchestrationCompatibilitySshTerminal(handle, context)?.paneKey ??
       null

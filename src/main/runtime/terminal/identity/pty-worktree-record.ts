@@ -31,10 +31,14 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
   /** An inventory's connection verdict; main's panes that bind the terminal re-compose. */
   protected setPtyConnected(pty: RuntimePtyWorktreeRecord, connected: boolean): void {
     const prior = mainPaneRecordFacts(pty)
+    const changed = pty.connected !== connected
     pty.connected = connected
     pty.disconnectedAt = connected ? null : (pty.disconnectedAt ?? Date.now())
     if (ORCA_LAYOUT_OWNER_IS_MAIN) {
       noteMainPaneRecordChange(this, prior, pty)
+    }
+    if (changed) {
+      this.crewChanges.notify()
     }
   }
 
@@ -78,6 +82,19 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       state = withoutPaneClaim(state)
     }
     let pty = this.ptysById.get(ptyId)
+    const identityMayChange =
+      !pty ||
+      pty.worktreeId !== worktreeId ||
+      state.connected !== undefined ||
+      state.tabId !== undefined ||
+      state.paneKey !== undefined ||
+      state.surfaceRecordedAtGraphSequence !== undefined ||
+      state.connectionId !== undefined ||
+      state.incarnationId !== undefined ||
+      state.wslDistro !== undefined ||
+      state.isWsl !== undefined
+    const previousCrewIdentity = identityMayChange ? crewPtyIdentity(pty) : undefined
+    const previousTitle = pty?.title
     if (!pty) {
       const titleObservedAt = state.title ? this.nextTitleObservationSequence() : null
       const connectionId = state.connectionId ?? parseAppSshPtyId(ptyId)?.connectionId ?? null
@@ -161,6 +178,7 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       if (prior !== null) {
         noteMainPaneRecordChange(this, prior, pty)
       }
+      this.crewChanges.notify()
       return pty
     }
 
@@ -253,6 +271,11 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
     if (prior !== null) {
       noteMainPaneRecordChange(this, prior, pty)
     }
+    if (identityMayChange && previousCrewIdentity !== crewPtyIdentity(pty)) {
+      this.crewChanges.notify()
+    } else if (previousTitle !== pty.title) {
+      this.crewChanges.notify(new Set(['names']))
+    }
     return pty
   }
 
@@ -281,4 +304,19 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
     // Worktree-prefixed daemon ids preserve mobile summaries across graph gaps/reloads.
     return this.recordPtyWorktree(ptyId, inferredWorktreeId)
   }
+}
+
+function crewPtyIdentity(pty: RuntimePtyWorktreeRecord | undefined): string | undefined {
+  const facts = pty && [
+    pty.worktreeId,
+    pty.connected,
+    pty.tabId,
+    pty.paneKey,
+    pty.surfaceRecordedAtGraphSequence,
+    pty.connectionId,
+    pty.incarnationId,
+    pty.wslDistro,
+    pty.isWsl
+  ]
+  return facts && JSON.stringify(facts)
 }

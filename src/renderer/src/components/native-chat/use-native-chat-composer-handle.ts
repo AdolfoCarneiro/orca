@@ -58,8 +58,10 @@ export function useNativeChatComposerHandle(
         input.focus()
         return true
       },
+      isComposing,
       focus,
       insertTypedText,
+      insertPastedText: insertPastedTextOrFile,
       acceptsText,
       appendText,
       handlePasteEvent,
@@ -71,6 +73,7 @@ export function useNativeChatComposerHandle(
       isComposing,
       focus,
       insertTypedText,
+      insertPastedTextOrFile,
       acceptsText,
       appendText,
       handlePasteEvent,

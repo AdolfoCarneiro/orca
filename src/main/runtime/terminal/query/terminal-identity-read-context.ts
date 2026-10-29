@@ -1,3 +1,10 @@
+import type { AgentSessionRecordReader } from '../../orchestration/structured-session-lineage'
+import {
+  captureAgentSessionRecordInputs,
+  captureStructuredWorkerReadInputs,
+  createStructuredWorkerReadContext,
+  type StructuredWorkerReadContext
+} from '../../structured-worker-authority'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import type {
   OrchestrationCompatibilitySshTerminal,
@@ -18,21 +25,47 @@ type IdentitySources = {
   capturePaneOf: () => (pty: RuntimePtyWorktreeRecord) => PtyPane
 }
 
-type OrderedKeys = Map<string, number>
+type OrderedKeys = ReadonlyMap<string, number>
+type IndexedKeys = Map<string, Map<string, number>>
 
-/** Finite owner-read scratch: candidates retain source order; the existing getters select and repair. */
-export class TerminalIdentityReadContext {
-  private ssh: Map<string, string[]> | undefined
-  private reverse: Map<string, OrderedKeys> | undefined
-  private synthetic: Map<string, OrderedKeys> | undefined
+function add(index: IndexedKeys, key: string, value: string, order: number): void {
+  const bucket = index.get(key) ?? new Map()
+  bucket.set(value, order)
+  index.set(key, bucket)
+}
+
+function ordered(keys: OrderedKeys | undefined): string[] {
+  return [...(keys ?? [])].sort((a, b) => a[1] - b[1]).map(([key]) => key)
+}
+
+/** Lazy immutable candidate facts, shared only within the existing observed input generation. */
+export class TerminalIdentityRawInputs {
+  private structuredInputs: ReturnType<typeof captureStructuredWorkerReadInputs> | undefined
+  private projectionRecords: AgentSessionRecordReader | null | undefined
+
+  captureProjectionRecords(
+    read: () => AgentSessionRecordReader | null
+  ): AgentSessionRecordReader | null {
+    if (this.projectionRecords === undefined) {
+      this.projectionRecords = captureAgentSessionRecordInputs(read())
+    }
+    return this.projectionRecords
+  }
+
+  openStructured(): StructuredWorkerReadContext {
+    this.structuredInputs ??= captureStructuredWorkerReadInputs()
+    return createStructuredWorkerReadContext(this.structuredInputs)
+  }
+  private reverse: IndexedKeys | undefined
+  private synthetic: IndexedKeys | undefined
   private leafKeys: Map<string, string[]> | undefined
-  private panePtys: Map<string, OrderedKeys> | undefined
-  private leafPtys: Map<string, OrderedKeys> | undefined
+  private panePtys: IndexedKeys | undefined
+  private leafPtys: IndexedKeys | undefined
+  private ssh: Map<string, string[]> | undefined
   private paneReader: ((pty: RuntimePtyWorktreeRecord) => PtyPane) | undefined
-  private readonly reverseOrder = new Map<string, number>()
-  private readonly handleOrder = new Map<string, number>()
-  private readonly reverseFacts = new Map<string, string>()
-  private readonly handleFacts = new Map<string, string>()
+  private readonly reverseFacts = new Map<string, { handle: string; order: number }>()
+  private handleCount = 0
+  private readonly handleFacts = new Map<string, { ptyId: string; order: number }>()
 
   constructor(private readonly source: IdentitySources) {}
 
@@ -41,39 +74,51 @@ export class TerminalIdentityReadContext {
     return this.paneReader(pty)
   }
 
-  sshAttachmentIds(handle: string): Iterable<string> {
-    if (!this.ssh) {
-      this.ssh = new Map()
-      for (const [id, terminal] of this.source.sshTerminals) {
-        const ids = this.ssh.get(terminal.handle) ?? []
-        ids.push(id)
-        this.ssh.set(terminal.handle, ids)
-      }
-    }
-    return this.ssh.get(handle) ?? []
+  get reverseCaptured(): boolean {
+    return this.reverse !== undefined
+  }
+  get reverseSize(): number {
+    return this.reverseFacts.size
+  }
+  get handlesSize(): number {
+    return this.handleCount
+  }
+  get handlesCaptured(): boolean {
+    return this.synthetic !== undefined
+  }
+  reverseFact(ptyId: string) {
+    return this.reverseFacts.get(ptyId)
+  }
+  handleFact(handle: string) {
+    return this.handleFacts.get(handle)
   }
 
-  reversePtyIds(handle: string): readonly string[] {
+  reverseKeys(handle: string): OrderedKeys | undefined {
     if (!this.reverse) {
       this.reverse = new Map()
       for (const [ptyId, mapped] of this.source.reverse) {
-        this.reverseOrder.set(ptyId, this.reverseOrder.size)
-        this.reverseFacts.set(ptyId, mapped)
-        this.add(this.reverse, mapped, ptyId, this.reverseOrder.get(ptyId)!)
+        const order = this.reverseFacts.size
+        this.reverseFacts.set(ptyId, { handle: mapped, order })
+        add(this.reverse, mapped, ptyId, order)
       }
     }
-    return this.ordered(this.reverse.get(handle))
+    return this.reverse.get(handle)
   }
 
-  syntheticHandles(ptyId: string): Iterable<string> {
+  syntheticKeys(ptyId: string): OrderedKeys | undefined {
     if (!this.synthetic) {
       this.synthetic = new Map()
+      let order = 0
       for (const [handle, record] of this.source.handles) {
-        this.handleOrder.set(handle, this.handleOrder.size)
-        this.indexHandle(handle, record)
+        if (record.ptyId && record.tabId.startsWith('pty:')) {
+          this.handleFacts.set(handle, { ptyId: record.ptyId, order })
+          add(this.synthetic, record.ptyId, handle, order)
+        }
+        order++
       }
+      this.handleCount = order
     }
-    return this.ordered(this.synthetic.get(ptyId))
+    return this.synthetic.get(ptyId)
   }
 
   leavesForId(leafId: string): Iterable<string> {
@@ -96,10 +141,10 @@ export class TerminalIdentityReadContext {
       for (const [ptyId, pty] of this.source.ptys) {
         const pane = this.paneOf(pty).paneKey
         if (pane !== null) {
-          this.add(this.panePtys, pane, ptyId, order)
+          add(this.panePtys, pane, ptyId, order)
           const parsed = parsePaneKey(pane)
           if (parsed) {
-            this.add(this.leafPtys, parsed.leafId, ptyId, order)
+            add(this.leafPtys, parsed.leafId, ptyId, order)
           }
         }
         order++
@@ -108,63 +153,119 @@ export class TerminalIdentityReadContext {
     const exact = this.panePtys.get(paneKey)
     const parsed = parsePaneKey(paneKey)
     const suffix = parsed ? this.leafPtys?.get(parsed.leafId) : undefined
-    return this.ordered(new Map([...(exact ?? []), ...(suffix ?? [])]))
+    return ordered(new Map([...(exact ?? []), ...(suffix ?? [])]))
   }
 
-  /** Only keys written by the issuing owner are reconciled; no inventory rebuild follows repair. */
+  sshAttachmentIds(handle: string): Iterable<string> {
+    if (!this.ssh) {
+      this.ssh = new Map()
+      for (const [id, terminal] of this.source.sshTerminals) {
+        const ids = this.ssh.get(terminal.handle) ?? []
+        ids.push(id)
+        this.ssh.set(terminal.handle, ids)
+      }
+    }
+    return this.ssh.get(handle) ?? []
+  }
+}
+
+/** Finite owner-read scratch; retained inputs contain raw candidates, never a selected answer. */
+export class TerminalIdentityReadContext {
+  private structuredContext: StructuredWorkerReadContext | undefined
+  private readonly reverseEdits: IndexedKeys = new Map()
+  private readonly handleEdits: IndexedKeys = new Map()
+  private readonly reverseFacts = new Map<string, { handle: string; order: number } | undefined>()
+  private readonly handleFacts = new Map<string, { ptyId: string; order: number } | undefined>()
+  private nextReverseOrder: number | undefined
+  private nextHandleOrder: number | undefined
+
+  constructor(
+    private readonly source: IdentitySources,
+    private readonly inputs = new TerminalIdentityRawInputs(source)
+  ) {}
+
+  get structured(): StructuredWorkerReadContext {
+    return (this.structuredContext ??= this.inputs.openStructured())
+  }
+
+  paneOf = (pty: RuntimePtyWorktreeRecord): PtyPane => this.inputs.paneOf(pty)
+  captureProjectionRecords = (read: () => AgentSessionRecordReader | null) =>
+    this.inputs.captureProjectionRecords(read)
+
+  leavesForId = (id: string): Iterable<string> => this.inputs.leavesForId(id)
+  ptysForPane = (pane: string): Iterable<string> => this.inputs.ptysForPane(pane)
+  sshAttachmentIds = (handle: string): Iterable<string> => this.inputs.sshAttachmentIds(handle)
+  reversePtyIds = (handle: string): readonly string[] =>
+    ordered(this.reverseEdits.get(handle) ?? this.inputs.reverseKeys(handle))
+  syntheticHandles = (ptyId: string): Iterable<string> =>
+    ordered(this.handleEdits.get(ptyId) ?? this.inputs.syntheticKeys(ptyId))
+
   changedReverseBinding(ptyId: string): void {
-    if (!this.reverse) {
+    if (!this.inputs.reverseCaptured) {
       return
     }
-    const prior = this.reverseFacts.get(ptyId)
-    if (prior !== undefined) {
-      this.reverse.get(prior)?.delete(ptyId)
-    }
+    const prior = this.reverseFacts.has(ptyId)
+      ? this.reverseFacts.get(ptyId)
+      : this.inputs.reverseFact(ptyId)
     const handle = this.source.reverse.get(ptyId)
+    if (prior?.handle === handle) {
+      return
+    }
+    if (prior) {
+      this.edit(this.reverseEdits, prior.handle, this.inputs.reverseKeys(prior.handle)).delete(
+        ptyId
+      )
+    }
     if (handle !== undefined) {
-      if (!this.reverseOrder.has(ptyId)) {
-        this.reverseOrder.set(ptyId, this.reverseOrder.size)
-      }
-      this.add(this.reverse, handle, ptyId, this.reverseOrder.get(ptyId)!)
-      this.reverseFacts.set(ptyId, handle)
+      this.nextReverseOrder ??= this.inputs.reverseSize
+      const order = prior?.order ?? this.nextReverseOrder++
+      this.edit(this.reverseEdits, handle, this.inputs.reverseKeys(handle)).set(ptyId, order)
+      this.reverseFacts.set(ptyId, { handle, order })
     } else {
-      this.reverseFacts.delete(ptyId)
+      this.reverseFacts.set(ptyId, undefined)
     }
   }
 
   changedHandle(handle: string): void {
-    if (!this.synthetic) {
+    if (!this.inputs.handlesCaptured) {
       return
     }
-    const prior = this.handleFacts.get(handle)
-    if (prior !== undefined) {
-      this.synthetic.get(prior)?.delete(handle)
-      this.handleFacts.delete(handle)
-    }
+    const prior = this.handleFacts.has(handle)
+      ? this.handleFacts.get(handle)
+      : this.inputs.handleFact(handle)
     const record = this.source.handles.get(handle)
-    if (record) {
-      if (!this.handleOrder.has(handle)) {
-        this.handleOrder.set(handle, this.handleOrder.size)
-      }
-      this.indexHandle(handle, record)
+    if (prior?.ptyId === record?.ptyId && record?.tabId.startsWith('pty:')) {
+      return
+    }
+    if (prior) {
+      this.edit(this.handleEdits, prior.ptyId, this.inputs.syntheticKeys(prior.ptyId)).delete(
+        handle
+      )
+    }
+    if (record?.ptyId && record.tabId.startsWith('pty:')) {
+      this.nextHandleOrder ??= this.inputs.handlesSize
+      const order = prior?.order ?? this.nextHandleOrder++
+      this.edit(this.handleEdits, record.ptyId, this.inputs.syntheticKeys(record.ptyId)).set(
+        handle,
+        order
+      )
+      this.handleFacts.set(handle, { ptyId: record.ptyId, order })
+    } else {
+      this.handleFacts.set(handle, undefined)
     }
   }
 
-  private indexHandle(handle: string, record: TerminalHandleRecord): void {
-    if (record.ptyId && record.tabId.startsWith('pty:')) {
-      this.add(this.synthetic!, record.ptyId, handle, this.handleOrder.get(handle)!)
-      this.handleFacts.set(handle, record.ptyId)
+  private edit(
+    index: IndexedKeys,
+    key: string,
+    base: OrderedKeys | undefined
+  ): Map<string, number> {
+    let values = index.get(key)
+    if (!values) {
+      values = new Map(base)
+      index.set(key, values)
     }
-  }
-
-  private add(index: Map<string, OrderedKeys>, key: string, value: string, order: number): void {
-    const bucket = index.get(key) ?? new Map()
-    bucket.set(value, order)
-    index.set(key, bucket)
-  }
-
-  private ordered(keys: OrderedKeys | undefined): string[] {
-    return [...(keys ?? [])].sort((a, b) => a[1] - b[1]).map(([key]) => key)
+    return values
   }
 }
 

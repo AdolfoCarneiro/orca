@@ -11,7 +11,10 @@ import type { CrewReadDependencies } from './crew-read-model'
 export function createCrewHostDerivation(deps: CrewReadDependencies, now: number) {
   const { statuses, ...sources } = captureCrewIdentityInputs(deps)
   const registry = createCrewPartyRegistry({ ...sources, statuses })
-  const { party, alias } = registry
+  const { alias } = registry
+  const identity = deps.openIdentityRead?.()
+  const party: typeof registry.party = (session, handle, pane, fallback, process) =>
+    registry.party(session, handle, pane, fallback, process, identity)
   const selected = (rows: CrewAssignmentRow[]) =>
     rows.sort(
       (a, b) =>
