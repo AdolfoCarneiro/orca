@@ -333,8 +333,9 @@ describe('orchestration worker automatic release', () => {
       return dispatchId
     }
 
+    // By session, as clients report; it resolves through the durable row with no live lease.
     const touch = (): Promise<unknown> =>
-      h.call('orchestration.workerChatTouch', { paneKey: chatPaneKey })
+      h.call('orchestration.workerChatTouch', { sessionId: 's1' })
 
     it.each([
       ['every connected client reports touches', [[CHAT_TOUCH]], '2026-10-27 12:02:00'],
