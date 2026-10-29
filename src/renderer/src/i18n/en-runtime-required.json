@@ -2312,7 +2312,9 @@
       "errors": {
         "agentNotRun": "Orca could not run the chat-name agent.",
         "noAgentAvailable": "No chat-name agent can run in this workspace.",
-        "noName": "The chat-name agent returned no name."
+        "noName": "The chat-name agent returned no name.",
+        "grokFailed": "Grok could not name this chat. Try generating the name again.",
+        "antigravityFailed": "Antigravity could not name this chat. Try generating the name again."
       }
     }
   },

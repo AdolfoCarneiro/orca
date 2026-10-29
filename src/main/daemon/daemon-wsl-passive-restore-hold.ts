@@ -1,5 +1,5 @@
 import { readWslDistroRunningState } from '../wsl-background-distro-gate'
-import { wslDistroStoppedHoldMessage } from '../../shared/wsl-distro-stopped-hold'
+import { wslDistroHoldMessage } from '../../shared/wsl-distro-stopped-hold'
 import type { PtySpawnOptions } from '../providers/pty-provider-contract'
 
 /**
@@ -20,7 +20,8 @@ export async function holdPassiveRestoreOfStoppedWslDistro(
   ) {
     return
   }
-  if ((await readWslDistroRunningState(wslDistro, { retryUnverifiable: true })) !== 'running') {
-    throw new Error(wslDistroStoppedHoldMessage(wslDistro))
+  const state = await readWslDistroRunningState(wslDistro, { retryUnverifiable: true })
+  if (state !== 'running') {
+    throw new Error(wslDistroHoldMessage(wslDistro, state))
   }
 }

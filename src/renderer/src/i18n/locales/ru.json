@@ -8778,7 +8778,8 @@
           "issueCommandDescription": "Необязательное переопределение. Используйте <artifactUrl>{{artifact_url}}</artifactUrl> для URL связанной задачи или PR.",
           "issueCommandSharedDefault": "Оставьте пустым, чтобы использовать настройки репозитория из <yaml>orca.yaml</yaml>.",
           "issueCommandOptionalDefault": "Оставьте пустым, чтобы использовать настройки репозитория из <yaml>orca.yaml</yaml>, если они заданы.",
-          "commandSourceDescription": "Если есть и <yaml>orca.yaml</yaml>, и локальные команды, выберите, что запускать."
+          "commandSourceDescription": "Если есть и <yaml>orca.yaml</yaml>, и локальные команды, выберите, что запускать.",
+          "issueCommandWslStopped": "Дистрибутив WSL {{distro}} остановлен. Откройте в нём терминал, чтобы просмотреть или изменить эту команду."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "Использовать цвет репозитория {{value0}}",
@@ -19903,7 +19904,10 @@
       "hostOutage": {
         "offline": "{{hostName}} не в сети",
         "reconnecting": "Повторное подключение к {{hostName}}…",
-        "reconnect": "Подключиться снова"
+        "reconnect": "Подключиться снова",
+        "stopped": "{{distro}} остановлен",
+        "start": "Запустить",
+        "unverifiable": "Orca не удалось проверить, запущен ли {{distro}}"
       },
       "interruptedContinue": {
         "continue": "Продолжить",
@@ -21758,7 +21762,9 @@
       "errors": {
         "noName": "Агент названия чата не вернул название.",
         "agentNotRun": "Orca не удалось запустить агента названия чата.",
-        "noAgentAvailable": "В этом рабочем пространстве нельзя запустить ни одного агента названия чата."
+        "noAgentAvailable": "В этом рабочем пространстве нельзя запустить ни одного агента названия чата.",
+        "grokFailed": "Grok не удалось назвать этот чат. Попробуйте сгенерировать название ещё раз.",
+        "antigravityFailed": "Antigravity не удалось назвать этот чат. Попробуйте сгенерировать название ещё раз."
       }
     }
   },
