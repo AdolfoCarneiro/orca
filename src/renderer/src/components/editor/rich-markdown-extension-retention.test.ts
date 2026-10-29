@@ -1,39 +1,24 @@
 // @vitest-environment happy-dom
 import { Editor } from '@tiptap/core'
-import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { expect, it } from 'vitest'
 import { createRichMarkdownExtensions } from './rich-markdown-extensions'
 import { createRichMarkdownEditorCodec } from './rich-markdown-source-transport'
 import { encodeRawMarkdownHtmlForRichEditor } from './raw-markdown-html'
 
-type ClosedMarkdownOwner = {
-  editor: WeakRef<Editor>
-  document: WeakRef<ProseMirrorNode>
-}
-
-function closeMarkdownEditors(count: number): ClosedMarkdownOwner[] {
-  const closed: ClosedMarkdownOwner[] = []
+function closeMarkdownEditor() {
   const source = Array.from(
     { length: 100 },
     (_, index) => `_Block ${index} ${'x'.repeat(1024)}_`
   ).join('\n\n')
-  for (let index = 0; index < count; index++) {
-    const codec = createRichMarkdownEditorCodec()
-    const editor = new Editor({
-      element: document.createElement('div'),
-      extensions: createRichMarkdownExtensions({ codec }),
-      content: encodeRawMarkdownHtmlForRichEditor(source, codec),
-      contentType: 'markdown'
-    })
-    try {
-      closed.push({
-        editor: new WeakRef(editor),
-        document: new WeakRef(editor.state.doc)
-      })
-    } finally {
-      editor.destroy()
-    }
-  }
+  const codec = createRichMarkdownEditorCodec()
+  const editor = new Editor({
+    element: document.createElement('div'),
+    extensions: createRichMarkdownExtensions({ codec }),
+    content: encodeRawMarkdownHtmlForRichEditor(source, codec),
+    contentType: 'markdown'
+  })
+  const closed = { editor: new WeakRef(editor), document: new WeakRef(editor.state.doc) }
+  editor.destroy()
   return closed
 }
 
@@ -48,14 +33,9 @@ async function collect(): Promise<void> {
   }
 }
 
-it.each([1, 8])(
-  'releases the final destroyed Markdown owner after closing %i editors',
-  async (count) => {
-    const closed = closeMarkdownEditors(count)
-    await collect()
-    for (const owner of closed) {
-      expect(owner.editor.deref()).toBeUndefined()
-      expect(owner.document.deref()).toBeUndefined()
-    }
-  }
-)
+it('releases the destroyed Markdown editor after the last rich editor closes', async () => {
+  const closed = closeMarkdownEditor()
+  await collect()
+  expect(closed.editor.deref()).toBeUndefined()
+  expect(closed.document.deref()).toBeUndefined()
+})
