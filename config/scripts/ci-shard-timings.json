@@ -9029,7 +9029,6 @@
       "src/renderer/src/components/sidebar/sleep-worktree-activation-race.test.ts": 554,
       "src/renderer/src/components/sidebar/sleep-worktree-flow.test.ts": 562,
       "src/renderer/src/components/sidebar/ssh-host-remove-resolution.test.ts": 26,
-      "src/renderer/src/components/sidebar/ssh-workspace-forget-resolution.test.ts": 39,
       "src/renderer/src/components/sidebar/stale-agent-row-unverifiable.test.ts": 1488,
       "src/renderer/src/components/sidebar/subagent-child-row-fallback-pixels.test.tsx": 2140,
       "src/renderer/src/components/sidebar/truncated-sidebar-label.test.tsx": 269,
