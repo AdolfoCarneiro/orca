@@ -433,6 +433,23 @@
         "conflictingOverrides": "競合するカスタムショートカットは無視されました: {{actions}}。",
         "readFailed": "キーバインドファイルを読み取れませんでした: {{reason}}"
       }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "確認用ファイルの作成は無効になっています",
+        "sendingDisabled": "診断情報の送信は無効になっています",
+        "sendingNotConfigured": "このビルドでは診断情報の送信が設定されていません",
+        "expiredBeforeSending": "確認用ファイルの有効期限が切れています。送信する前に新しく作成してください",
+        "expiredBeforeOpening": "確認用ファイルの有効期限が切れています。開く前に新しく作成してください",
+        "previewNotOpened": "送信する前に確認用ファイルを開いてください",
+        "previewOpenFailed": "確認用ファイルを開けませんでした",
+        "deleteNotConfigured": "このビルドでは診断情報のアップロード先エンドポイントが設定されていません",
+        "createFailed": "確認用ファイルを作成できませんでした",
+        "openFailed": "確認用ファイルを開けませんでした",
+        "sendFailed": "診断情報を送信できませんでした",
+        "discardFailed": "確認用ファイルを破棄できませんでした",
+        "deleteFailed": "送信済みの診断情報を削除できませんでした"
+      }
     }
   },
   "menu": {
@@ -19948,6 +19965,12 @@
       "searching": "検索中…",
       "searchFailed": "検索を完了できませんでした。もう一度お試しください。",
       "refreshFailed": "プレビューの更新に失敗しました。以前のバージョンを表示しています。現在の内容はソース表示で確認してください。"
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "エクスポートする内容がありません",
+        "timedOut": "エクスポートがタイムアウトしました"
+      }
     }
   },
   "featureTips": {
@@ -21888,6 +21911,40 @@
         "mrSourceBranchMissing": "MR !{{number}} にソースブランチがありません。",
         "forkHeadUnresolved": "フェッチ後にフォークの MR !{{number}} のヘッドを解決できませんでした。"
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "モバイルエミュレータは設定で無効になっています。",
+      "notAvailable": "モバイルエミュレータは利用できません。",
+      "noSession": "アクティブなエミュレータセッションがありません",
+      "noDeviceSpecified": "エミュレータのデバイスが指定されていません。設定 > モバイルエミュレータでデフォルトのデバイスを選択するか、デバイスを指定してください。",
+      "workspaceChanged": "エミュレータの起動中にワークスペースが変更されました。エミュレータを再接続してください。",
+      "noIosSimulators": "iOS シミュレーターが見つかりません。Xcode Settings > Platforms で追加してください。",
+      "simctlUnavailable": "xcrun simctl を利用できません。",
+      "simulatorToolsUnavailable": "Xcode Simulator のツールを利用できません。Xcode の完全版をインストールし、一度開いてから `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` で選択してください。",
+      "requiresMacosXcode": "iOS シミュレーターには、Xcode Command Line Tools をインストールした macOS が必要です。",
+      "simulatorNotFound": "シミュレーター {{udid}} が見つかりません。Xcode > Window > Devices and Simulators で作成してください。",
+      "serveSimUnavailable": "serve-sim を利用できません。",
+      "serveSimNoEndpoints": "serve-sim からストリームのエンドポイントが返されませんでした。",
+      "serveSimEndpointUnreachable": "serve-sim は起動しましたが、ストリームのエンドポイントにアクセスできません。",
+      "androidSdkMissing": "Android SDK が見つかりません。Android Studio をインストールし、ANDROID_HOME を設定してください。",
+      "adbUnavailable": "adb を利用できません。",
+      "noAndroidDevices": "Android デバイスも AVD も見つかりません。Android Studio で作成してください。",
+      "androidDeviceNotRunning": "Android デバイス「{{device}}」は起動していません。先に起動してください。",
+      "unknownDeviceOrAvd": "「{{device}}」は起動中のデバイスでも既知の AVD でもありません。",
+      "avdBootTimeout": "AVD「{{avdName}}」の起動が時間内に完了しませんでした。",
+      "scrcpyDownloadFailed": "scrcpy サーバーをダウンロードできませんでした: {{detail}}",
+      "scrcpyServerInvalid": "ダウンロードした scrcpy サーバーは無効または不完全でした。"
+    },
+    "pane": {
+      "listDevicesFailed": "エミュレータのデバイス一覧を取得できませんでした。",
+      "noDevices": "エミュレータのデバイスが見つかりません。Xcode で iOS シミュレーターを追加するか、Android Studio で Android 仮想デバイスを追加してください。",
+      "startFailed": "エミュレータを起動できませんでした。Xcode（iOS）または Android Studio（Android）が設定されていることを確認してから、別のデバイスを試してください。",
+      "shutdownFailed": "エミュレータを終了できませんでした。再試行するか、エミュレータマネージャーから停止してください。"
+    },
+    "settings": {
+      "availabilityCheckFailed": "エミュレータが利用可能か確認できませんでした。"
     }
   }
 }

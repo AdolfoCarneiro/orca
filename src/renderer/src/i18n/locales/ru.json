@@ -355,6 +355,12 @@
     "fileLoad": {
       "hostUnresolved": "Сервер не смог найти рабочее пространство этого файла. Возможно, оно удалено или ещё не известно серверу. Повторите попытку или закройте эту вкладку на панели вкладок.",
       "remoteTooLarge": "Этот файл слишком велик для открытия с его сервера."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "Нет содержимого для экспорта",
+        "timedOut": "Время ожидания экспорта истекло"
+      }
     }
   },
   "githubChecks": {
@@ -779,6 +785,23 @@
         "disconnected": "Отключён",
         "reconnecting": "Повторное подключение…",
         "reconnection-failed": "Не удалось восстановить подключение"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "создание файлов для проверки отключено",
+        "sendingDisabled": "отправка диагностики отключена",
+        "sendingNotConfigured": "отправка диагностики не настроена для этой сборки",
+        "expiredBeforeSending": "срок действия файла для проверки истёк; перед отправкой создайте новый",
+        "expiredBeforeOpening": "срок действия файла для проверки истёк; перед открытием создайте новый",
+        "previewNotOpened": "откройте файл для проверки перед отправкой",
+        "previewOpenFailed": "не удалось открыть файл для проверки",
+        "deleteNotConfigured": "конечная точка отправки диагностики не настроена для этой сборки",
+        "createFailed": "Не удалось создать файл для проверки",
+        "openFailed": "Не удалось открыть файл для проверки",
+        "sendFailed": "Не удалось отправить диагностику",
+        "discardFailed": "Не удалось удалить файл для проверки",
+        "deleteFailed": "Не удалось удалить отправленную диагностику"
       }
     }
   },
@@ -22558,6 +22581,40 @@
         "mrSourceBranchMissing": "У MR !{{number}} нет исходной ветки.",
         "forkHeadUnresolved": "Не удалось определить вершину MR !{{number}} из форка после получения изменений."
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "Мобильный эмулятор отключён в настройках.",
+      "notAvailable": "Мобильный эмулятор недоступен.",
+      "noSession": "Нет активной сессии эмулятора",
+      "noDeviceSpecified": "Устройство эмулятора не указано. Выберите устройство по умолчанию в разделе «Настройки > Мобильный эмулятор» или укажите устройство.",
+      "workspaceChanged": "Рабочее пространство изменилось во время запуска эмулятора. Подключите эмулятор заново.",
+      "noIosSimulators": "Симуляторы iOS не найдены. Добавьте симулятор в Xcode Settings > Platforms.",
+      "simctlUnavailable": "Команда xcrun simctl недоступна.",
+      "simulatorToolsUnavailable": "Инструменты Xcode Simulator недоступны. Установите полную версию Xcode, откройте её один раз, затем выберите её командой `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "requiresMacosXcode": "Симулятор iOS требует macOS с Xcode Command Line Tools.",
+      "simulatorNotFound": "Симулятор {{udid}} не найден. Создайте симулятор через Xcode > Window > Devices and Simulators.",
+      "serveSimUnavailable": "serve-sim недоступен.",
+      "serveSimNoEndpoints": "serve-sim не вернул конечные точки потоковой передачи.",
+      "serveSimEndpointUnreachable": "serve-sim запущен, но его конечная точка потоковой передачи недоступна.",
+      "androidSdkMissing": "Android SDK не найден. Установите Android Studio и задайте ANDROID_HOME.",
+      "adbUnavailable": "adb недоступен.",
+      "noAndroidDevices": "Устройства Android и AVD не найдены. Создайте устройство в Android Studio.",
+      "androidDeviceNotRunning": "Устройство Android «{{device}}» не запущено. Сначала запустите его.",
+      "unknownDeviceOrAvd": "«{{device}}» не является ни запущенным устройством, ни известным AVD.",
+      "avdBootTimeout": "AVD «{{avdName}}» не завершил загрузку вовремя.",
+      "scrcpyDownloadFailed": "Не удалось скачать сервер scrcpy: {{detail}}",
+      "scrcpyServerInvalid": "Скачанный сервер scrcpy оказался некорректным или неполным."
+    },
+    "pane": {
+      "listDevicesFailed": "Не удалось получить список устройств эмулятора.",
+      "noDevices": "Устройства эмулятора не найдены. Добавьте симулятор iOS в Xcode или виртуальное устройство Android в Android Studio.",
+      "startFailed": "Не удалось запустить эмулятор. Убедитесь, что Xcode (iOS) или Android Studio (Android) настроены, затем попробуйте другое устройство.",
+      "shutdownFailed": "Не удалось выключить эмулятор. Повторите попытку или остановите его через менеджер эмуляторов."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Не удалось проверить доступность эмулятора."
     }
   }
 }

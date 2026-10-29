@@ -353,6 +353,12 @@
     "fileLoad": {
       "hostUnresolved": "Sunucu bu dosyanın çalışma alanını bulamadı. Kaldırılmış olabilir veya sunucu henüz bundan haberdar olmayabilir. Yeniden deneyin veya bu sekmeyi sekme çubuğundan kapatın.",
       "remoteTooLarge": "Bu dosya sunucusundan açılamayacak kadar büyük."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "Dışa aktarılacak içerik yok",
+        "timedOut": "Dışa aktarma zaman aşımına uğradı"
+      }
     }
   },
   "githubChecks": {
@@ -769,6 +775,23 @@
         "disconnected": "Bağlantı kesildi",
         "reconnecting": "Yeniden bağlanıyor…",
         "reconnection-failed": "Yeniden bağlanılamadı"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "inceleme dosyası oluşturma devre dışı",
+        "sendingDisabled": "tanılama bilgisi gönderme devre dışı",
+        "sendingNotConfigured": "bu derleme için tanılama bilgisi gönderme yapılandırılmamış",
+        "expiredBeforeSending": "inceleme dosyasının süresi doldu; göndermeden önce yeni bir dosya oluşturun",
+        "expiredBeforeOpening": "inceleme dosyasının süresi doldu; açmadan önce yeni bir dosya oluşturun",
+        "previewNotOpened": "göndermeden önce inceleme dosyasını açın",
+        "previewOpenFailed": "inceleme dosyası açılamadı",
+        "deleteNotConfigured": "bu derleme için tanılama bilgisi yükleme uç noktası yapılandırılmamış",
+        "createFailed": "İnceleme dosyası oluşturulamadı",
+        "openFailed": "İnceleme dosyası açılamadı",
+        "sendFailed": "Tanılama bilgileri gönderilemedi",
+        "discardFailed": "İnceleme dosyası atılamadı",
+        "deleteFailed": "Gönderilen tanılama bilgileri silinemedi"
       }
     }
   },
@@ -21866,6 +21889,40 @@
         "mrSourceBranchMissing": "MR !{{number}} için kaynak branch yok.",
         "forkHeadUnresolved": "Getirme işleminden sonra fork MR !{{number}} için head çözümlenemedi."
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "Mobil Emülatör, Ayarlar bölümünde devre dışı.",
+      "notAvailable": "Mobil Emülatör kullanılamıyor.",
+      "noSession": "Etkin emülatör oturumu yok",
+      "noDeviceSpecified": "Emülatör cihazı belirtilmedi. Ayarlar > Mobil Emülatör bölümünden varsayılan bir cihaz seçin veya bir cihaz belirtin.",
+      "workspaceChanged": "Emülatör başlatılırken çalışma alanı değişti. Emülatörü yeniden bağlayın.",
+      "noIosSimulators": "Hiç iOS Simulator bulunamadı. Xcode Settings > Platforms bölümünden bir tane ekleyin.",
+      "simctlUnavailable": "xcrun simctl kullanılamıyor.",
+      "simulatorToolsUnavailable": "Xcode Simulator araçları kullanılamıyor. Xcode'un tam sürümünü yükleyin, bir kez açın, ardından `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` komutuyla seçin.",
+      "requiresMacosXcode": "iOS Simulator için macOS ve Xcode Command Line Tools gerekir.",
+      "simulatorNotFound": "Simülatör {{udid}} bulunamadı. Xcode > Window > Devices and Simulators üzerinden bir tane oluşturun.",
+      "serveSimUnavailable": "serve-sim kullanılamıyor.",
+      "serveSimNoEndpoints": "serve-sim, akış uç noktalarını döndürmedi.",
+      "serveSimEndpointUnreachable": "serve-sim başladı ancak akış uç noktasına erişilemiyor.",
+      "androidSdkMissing": "Android SDK bulunamadı. Android Studio'yu yükleyin ve ANDROID_HOME değişkenini ayarlayın.",
+      "adbUnavailable": "adb kullanılamıyor.",
+      "noAndroidDevices": "Android cihazı veya AVD bulunamadı. Android Studio'da bir tane oluşturun.",
+      "androidDeviceNotRunning": "\"{{device}}\" adlı Android cihazı çalışmıyor. Önce başlatın.",
+      "unknownDeviceOrAvd": "\"{{device}}\", çalışan bir cihaz veya bilinen bir AVD değil.",
+      "avdBootTimeout": "\"{{avdName}}\" adlı AVD'nin açılışı zamanında tamamlanmadı.",
+      "scrcpyDownloadFailed": "scrcpy sunucusu indirilemedi: {{detail}}",
+      "scrcpyServerInvalid": "İndirilen scrcpy sunucusu geçersizdi veya eksikti."
+    },
+    "pane": {
+      "listDevicesFailed": "Emülatör cihazları listelenemedi.",
+      "noDevices": "Emülatör cihazı bulunamadı. Xcode'da bir iOS Simulator veya Android Studio'da bir Android Virtual Device ekleyin.",
+      "startFailed": "Emülatör başlatılamadı. Xcode (iOS) veya Android Studio (Android) kurulumunun tamamlandığından emin olun, ardından başka bir cihaz deneyin.",
+      "shutdownFailed": "Emülatör kapatılamadı. Yeniden deneyin veya emülatör yöneticinizden durdurun."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Emülatörün kullanılabilirliği kontrol edilemedi."
     }
   }
 }

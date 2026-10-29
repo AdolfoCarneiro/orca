@@ -372,6 +372,12 @@
     "diffTooLarge": {
       "title": "File too large to diff",
       "detail": "One version of this file is over 10 MB, so Orca doesn’t load it for a text diff."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "No content to export",
+        "timedOut": "Export timed out"
+      }
     }
   },
   "githubChecks": {
@@ -806,6 +812,23 @@
     "openInApp": {
       "preset": {
         "devinDesktop": "Devin Desktop"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "creating review files is disabled",
+        "sendingDisabled": "sending diagnostics is disabled",
+        "sendingNotConfigured": "sending diagnostics is not configured for this build",
+        "expiredBeforeSending": "review file has expired; create a new one before sending",
+        "expiredBeforeOpening": "review file has expired; create a new one before opening",
+        "previewNotOpened": "open the review file before sending",
+        "previewOpenFailed": "could not open review file",
+        "deleteNotConfigured": "diagnostic upload endpoint is not configured for this build",
+        "createFailed": "Could not create review file",
+        "openFailed": "Could not open review file",
+        "sendFailed": "Could not send diagnostics",
+        "discardFailed": "Could not discard review file",
+        "deleteFailed": "Could not delete sent diagnostics"
       }
     }
   },
@@ -22319,6 +22342,40 @@
         "mrSourceBranchMissing": "MR !{{number}} has no source branch.",
         "forkHeadUnresolved": "Could not resolve fork MR !{{number}} head after fetch."
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "Mobile Emulator is disabled in Settings.",
+      "notAvailable": "Mobile Emulator is not available.",
+      "noSession": "No emulator session is active",
+      "noDeviceSpecified": "No emulator device specified. Choose a default device in Settings > Mobile Emulator or pass a device.",
+      "workspaceChanged": "The workspace changed while the emulator was starting. Reattach the emulator.",
+      "noIosSimulators": "No iOS simulators found. Add one in Xcode Settings > Platforms.",
+      "simctlUnavailable": "xcrun simctl is unavailable.",
+      "simulatorToolsUnavailable": "Xcode Simulator tools are unavailable. Install full Xcode, open it once, then select it with `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "requiresMacosXcode": "iOS Simulator requires macOS with Xcode Command Line Tools.",
+      "simulatorNotFound": "Simulator {{udid}} not found. Create one via Xcode > Window > Devices and Simulators.",
+      "serveSimUnavailable": "serve-sim is unavailable.",
+      "serveSimNoEndpoints": "serve-sim did not return stream endpoints.",
+      "serveSimEndpointUnreachable": "serve-sim started but its stream endpoint is not reachable.",
+      "androidSdkMissing": "Android SDK not found. Install Android Studio and set ANDROID_HOME.",
+      "adbUnavailable": "adb is unavailable.",
+      "noAndroidDevices": "No Android devices or AVDs found. Create one in Android Studio.",
+      "androidDeviceNotRunning": "Android device \"{{device}}\" is not running. Boot it first.",
+      "unknownDeviceOrAvd": "\"{{device}}\" is not a running device or a known AVD.",
+      "avdBootTimeout": "AVD \"{{avdName}}\" did not finish booting in time.",
+      "scrcpyDownloadFailed": "Could not download scrcpy server: {{detail}}",
+      "scrcpyServerInvalid": "Downloaded scrcpy server was invalid or truncated."
+    },
+    "pane": {
+      "listDevicesFailed": "Could not list emulator devices.",
+      "noDevices": "No emulator devices found. Add an iOS Simulator in Xcode, or an Android Virtual Device in Android Studio.",
+      "startFailed": "Could not start the emulator. Make sure Xcode (iOS) or Android Studio (Android) is set up, then try another device.",
+      "shutdownFailed": "Could not shut down the emulator. Try again, or stop it from your emulator manager."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Could not check emulator availability."
     }
   }
 }

@@ -352,6 +352,12 @@
     "fileLoad": {
       "hostUnresolved": "主機找不到該檔案的工作區。它可能已被刪除，或者主機可能還不知道。重試，或從分頁欄關閉此分頁。",
       "remoteTooLarge": "此檔案過大，無法從主機開啟。"
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "沒有可匯出的內容",
+        "timedOut": "匯出逾時"
+      }
     }
   },
   "githubChecks": {
@@ -768,6 +774,23 @@
         "disconnected": "已中斷連線",
         "reconnecting": "正在重新連線…",
         "reconnection-failed": "重新連線失敗"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "已停用建立檢視檔案",
+        "sendingDisabled": "已停用傳送診斷資訊",
+        "sendingNotConfigured": "此建置版本未設定診斷資訊傳送功能",
+        "expiredBeforeSending": "檢視檔案已過期；請在傳送前建立新檔案",
+        "expiredBeforeOpening": "檢視檔案已過期；請在開啟前建立新檔案",
+        "previewNotOpened": "請在傳送前開啟檢視檔案",
+        "previewOpenFailed": "無法開啟檢視檔案",
+        "deleteNotConfigured": "此建置版本未設定診斷資訊上傳端點",
+        "createFailed": "無法建立檢視檔案",
+        "openFailed": "無法開啟檢視檔案",
+        "sendFailed": "無法傳送診斷資訊",
+        "discardFailed": "無法丟棄檢視檔案",
+        "deleteFailed": "無法刪除已傳送的診斷資訊"
       }
     }
   },
@@ -21588,6 +21611,40 @@
         "mrSourceBranchMissing": "MR !{{number}} 沒有來源分支。",
         "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 MR !{{number}} 的頂端參照。"
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "手機模擬器已在設定中停用。",
+      "notAvailable": "手機模擬器無法使用。",
+      "noSession": "沒有作用中的模擬器工作階段",
+      "noDeviceSpecified": "未指定模擬器裝置。請在設定 > 手機模擬器中選擇預設裝置，或傳入裝置。",
+      "workspaceChanged": "模擬器啟動期間工作區已變更。請重新連接模擬器。",
+      "noIosSimulators": "找不到 iOS 模擬器。請在 Xcode Settings > Platforms 中新增一個。",
+      "simctlUnavailable": "無法使用 xcrun simctl。",
+      "simulatorToolsUnavailable": "無法使用 Xcode Simulator 工具。請安裝完整版 Xcode，開啟一次，然後使用 `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` 選取它。",
+      "requiresMacosXcode": "iOS 模擬器需要已安裝 Xcode Command Line Tools 的 macOS。",
+      "simulatorNotFound": "找不到模擬器 {{udid}}。請透過 Xcode > Window > Devices and Simulators 建立一個。",
+      "serveSimUnavailable": "無法使用 serve-sim。",
+      "serveSimNoEndpoints": "serve-sim 未傳回串流端點。",
+      "serveSimEndpointUnreachable": "serve-sim 已啟動，但無法連線至其串流端點。",
+      "androidSdkMissing": "找不到 Android SDK。請安裝 Android Studio 並設定 ANDROID_HOME。",
+      "adbUnavailable": "無法使用 adb。",
+      "noAndroidDevices": "找不到 Android 裝置或 AVD。請在 Android Studio 中建立一個。",
+      "androidDeviceNotRunning": "Android 裝置「{{device}}」尚未執行。請先啟動它。",
+      "unknownDeviceOrAvd": "「{{device}}」不是正在執行的裝置，也不是已知的 AVD。",
+      "avdBootTimeout": "AVD「{{avdName}}」未在時限內完成啟動。",
+      "scrcpyDownloadFailed": "無法下載 scrcpy 伺服器：{{detail}}",
+      "scrcpyServerInvalid": "下載的 scrcpy 伺服器無效或不完整。"
+    },
+    "pane": {
+      "listDevicesFailed": "無法列出模擬器裝置。",
+      "noDevices": "找不到模擬器裝置。請在 Xcode 中新增 iOS 模擬器，或在 Android Studio 中新增 Android 虛擬裝置。",
+      "startFailed": "無法啟動模擬器。請確認已設定好 Xcode（iOS）或 Android Studio（Android），然後嘗試其他裝置。",
+      "shutdownFailed": "無法關閉模擬器。請重試，或從模擬器管理程式停止它。"
+    },
+    "settings": {
+      "availabilityCheckFailed": "無法檢查模擬器是否可用。"
     }
   }
 }

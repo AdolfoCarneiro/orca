@@ -219,6 +219,12 @@
       "searching": "Buscando…",
       "searchFailed": "Não foi possível concluir a busca. Tente novamente.",
       "refreshFailed": "Falha ao atualizar a prévia. Mostrando a versão anterior; abra o código-fonte para ver o conteúdo atual."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "Nenhum conteúdo para exportar",
+        "timedOut": "O tempo limite da exportação foi excedido"
+      }
     }
   },
   "notifications": {
@@ -1318,6 +1324,23 @@
         "unknownPlatform": "A plataforma desconhecida \"{{platform}}\" foi ignorada.",
         "conflictingOverrides": "Atalhos personalizados conflitantes foram ignorados: {{actions}}.",
         "readFailed": "Não foi possível ler o arquivo de atalhos: {{reason}}"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "a criação de arquivos de revisão está desativada",
+        "sendingDisabled": "o envio de diagnósticos está desativado",
+        "sendingNotConfigured": "o envio de diagnósticos não está configurado para este build",
+        "expiredBeforeSending": "o arquivo de revisão expirou; crie um novo antes de enviá-lo",
+        "expiredBeforeOpening": "o arquivo de revisão expirou; crie um novo antes de abri-lo",
+        "previewNotOpened": "abra o arquivo de revisão antes de enviá-lo",
+        "previewOpenFailed": "não foi possível abrir o arquivo de revisão",
+        "deleteNotConfigured": "o endpoint de upload de diagnósticos não está configurado para este build",
+        "createFailed": "Não foi possível criar o arquivo de revisão",
+        "openFailed": "Não foi possível abrir o arquivo de revisão",
+        "sendFailed": "Não foi possível enviar os diagnósticos",
+        "discardFailed": "Não foi possível descartar o arquivo de revisão",
+        "deleteFailed": "Não foi possível excluir os diagnósticos enviados"
       }
     }
   },
@@ -22317,6 +22340,40 @@
         "mrSourceBranchMissing": "O MR !{{number}} não tem uma branch de origem.",
         "forkHeadUnresolved": "Não foi possível resolver o head do MR !{{number}} de um fork após o fetch."
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "O Emulador Mobile está desativado nas Configurações.",
+      "notAvailable": "O Emulador Mobile não está disponível.",
+      "noSession": "Nenhuma sessão de emulador está ativa",
+      "noDeviceSpecified": "Nenhum dispositivo de emulador especificado. Escolha um dispositivo padrão em Configurações > Emulador Mobile ou informe um dispositivo.",
+      "workspaceChanged": "O espaço de trabalho mudou durante a inicialização do emulador. Reconecte o emulador.",
+      "noIosSimulators": "Nenhum simulador iOS encontrado. Adicione um em Xcode Settings > Platforms.",
+      "simctlUnavailable": "xcrun simctl não está disponível.",
+      "simulatorToolsUnavailable": "As ferramentas do Xcode Simulator não estão disponíveis. Instale a versão completa do Xcode, abra-o uma vez e selecione-o com `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "requiresMacosXcode": "O Simulador iOS requer macOS com Xcode Command Line Tools.",
+      "simulatorNotFound": "Simulador {{udid}} não encontrado. Crie um em Xcode > Window > Devices and Simulators.",
+      "serveSimUnavailable": "serve-sim não está disponível.",
+      "serveSimNoEndpoints": "serve-sim não retornou endpoints de streaming.",
+      "serveSimEndpointUnreachable": "serve-sim foi iniciado, mas seu endpoint de streaming não está acessível.",
+      "androidSdkMissing": "Android SDK não encontrado. Instale o Android Studio e defina ANDROID_HOME.",
+      "adbUnavailable": "adb não está disponível.",
+      "noAndroidDevices": "Nenhum dispositivo Android ou AVD encontrado. Crie um no Android Studio.",
+      "androidDeviceNotRunning": "O dispositivo Android \"{{device}}\" não está em execução. Inicie-o primeiro.",
+      "unknownDeviceOrAvd": "\"{{device}}\" não é um dispositivo em execução nem um AVD conhecido.",
+      "avdBootTimeout": "O AVD \"{{avdName}}\" não terminou de inicializar a tempo.",
+      "scrcpyDownloadFailed": "Não foi possível baixar o servidor scrcpy: {{detail}}",
+      "scrcpyServerInvalid": "O servidor scrcpy baixado era inválido ou estava incompleto."
+    },
+    "pane": {
+      "listDevicesFailed": "Não foi possível listar os dispositivos de emulador.",
+      "noDevices": "Nenhum dispositivo de emulador encontrado. Adicione um Simulador iOS no Xcode ou um dispositivo virtual Android no Android Studio.",
+      "startFailed": "Não foi possível iniciar o emulador. Verifique se o Xcode (iOS) ou o Android Studio (Android) está configurado e tente outro dispositivo.",
+      "shutdownFailed": "Não foi possível desligar o emulador. Tente novamente ou encerre-o pelo gerenciador de emuladores."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Não foi possível verificar a disponibilidade do emulador."
     }
   }
 }

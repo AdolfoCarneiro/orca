@@ -437,6 +437,23 @@
         "conflictingOverrides": "Se ignoraron los atajos personalizados en conflicto: {{actions}}.",
         "readFailed": "No se pudo leer el archivo de combinaciones de teclas: {{reason}}"
       }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "la creación de archivos de revisión está desactivada",
+        "sendingDisabled": "el envío de diagnósticos está desactivado",
+        "sendingNotConfigured": "el envío de diagnósticos no está configurado para esta compilación",
+        "expiredBeforeSending": "el archivo de revisión ha caducado; crea uno nuevo antes de enviarlo",
+        "expiredBeforeOpening": "el archivo de revisión ha caducado; crea uno nuevo antes de abrirlo",
+        "previewNotOpened": "abre el archivo de revisión antes de enviarlo",
+        "previewOpenFailed": "no se pudo abrir el archivo de revisión",
+        "deleteNotConfigured": "el punto de conexión para subir diagnósticos no está configurado para esta compilación",
+        "createFailed": "No se pudo crear el archivo de revisión",
+        "openFailed": "No se pudo abrir el archivo de revisión",
+        "sendFailed": "No se pudieron enviar los diagnósticos",
+        "discardFailed": "No se pudo descartar el archivo de revisión",
+        "deleteFailed": "No se pudieron eliminar los diagnósticos enviados"
+      }
     }
   },
   "menu": {
@@ -20569,6 +20586,12 @@
     "fileLoad": {
       "hostUnresolved": "El host no pudo encontrar el espacio de trabajo de este archivo. Puede que se haya eliminado o que el host aún no lo conozca. Reintenta o cierra esta pestaña desde la barra de pestañas.",
       "remoteTooLarge": "Este archivo es demasiado grande para abrirlo desde su host."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "No hay contenido para exportar",
+        "timedOut": "Se agotó el tiempo de exportación"
+      }
     }
   },
   "accounts": {
@@ -22502,6 +22525,40 @@
         "mrSourceBranchMissing": "La MR !{{number}} no tiene rama de origen.",
         "forkHeadUnresolved": "No se pudo resolver el head de la MR !{{number}} de un fork tras el fetch."
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "El emulador móvil está desactivado en Ajustes.",
+      "notAvailable": "El emulador móvil no está disponible.",
+      "noSession": "No hay ninguna sesión de emulador activa",
+      "noDeviceSpecified": "No se ha especificado ningún dispositivo emulador. Elige un dispositivo predeterminado en Ajustes > Emulador móvil o indica un dispositivo.",
+      "workspaceChanged": "El espacio de trabajo cambió mientras se iniciaba el emulador. Vuelve a conectar el emulador.",
+      "noIosSimulators": "No se encontraron simuladores de iOS. Añade uno en Xcode Settings > Platforms.",
+      "simctlUnavailable": "xcrun simctl no está disponible.",
+      "simulatorToolsUnavailable": "Las herramientas de Xcode Simulator no están disponibles. Instala la versión completa de Xcode, abre Xcode una vez y selecciónalo con `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "requiresMacosXcode": "iOS Simulator requiere macOS con Xcode Command Line Tools.",
+      "simulatorNotFound": "No se encontró el simulador {{udid}}. Crea uno desde Xcode > Window > Devices and Simulators.",
+      "serveSimUnavailable": "serve-sim no está disponible.",
+      "serveSimNoEndpoints": "serve-sim no devolvió puntos de conexión de transmisión.",
+      "serveSimEndpointUnreachable": "serve-sim se inició, pero no se puede acceder a su punto de conexión de transmisión.",
+      "androidSdkMissing": "No se encontró el SDK de Android. Instala Android Studio y configura ANDROID_HOME.",
+      "adbUnavailable": "adb no está disponible.",
+      "noAndroidDevices": "No se encontraron dispositivos Android ni AVD. Crea uno en Android Studio.",
+      "androidDeviceNotRunning": "El dispositivo Android \"{{device}}\" no está en ejecución. Inícialo primero.",
+      "unknownDeviceOrAvd": "\"{{device}}\" no es un dispositivo en ejecución ni un AVD conocido.",
+      "avdBootTimeout": "El AVD \"{{avdName}}\" no terminó de iniciarse a tiempo.",
+      "scrcpyDownloadFailed": "No se pudo descargar el servidor de scrcpy: {{detail}}",
+      "scrcpyServerInvalid": "El servidor de scrcpy descargado no era válido o estaba incompleto."
+    },
+    "pane": {
+      "listDevicesFailed": "No se pudieron enumerar los dispositivos emuladores.",
+      "noDevices": "No se encontraron dispositivos emuladores. Añade un simulador de iOS en Xcode o un dispositivo virtual Android en Android Studio.",
+      "startFailed": "No se pudo iniciar el emulador. Asegúrate de que Xcode (iOS) o Android Studio (Android) esté configurado y prueba con otro dispositivo.",
+      "shutdownFailed": "No se pudo apagar el emulador. Vuelve a intentarlo o detenlo desde tu gestor de emuladores."
+    },
+    "settings": {
+      "availabilityCheckFailed": "No se pudo comprobar la disponibilidad del emulador."
     }
   }
 }

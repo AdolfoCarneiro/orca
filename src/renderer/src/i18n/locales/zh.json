@@ -433,6 +433,23 @@
         "conflictingOverrides": "有冲突的自定义快捷键已被忽略：{{actions}}。",
         "readFailed": "无法读取键绑定文件：{{reason}}"
       }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "已禁用创建查看文件",
+        "sendingDisabled": "已禁用发送诊断信息",
+        "sendingNotConfigured": "此构建版本未配置诊断信息发送功能",
+        "expiredBeforeSending": "查看文件已过期；请在发送前创建新文件",
+        "expiredBeforeOpening": "查看文件已过期；请在打开前创建新文件",
+        "previewNotOpened": "请在发送前打开查看文件",
+        "previewOpenFailed": "无法打开查看文件",
+        "deleteNotConfigured": "此构建版本未配置诊断信息上传端点",
+        "createFailed": "无法创建查看文件",
+        "openFailed": "无法打开查看文件",
+        "sendFailed": "无法发送诊断信息",
+        "discardFailed": "无法丢弃查看文件",
+        "deleteFailed": "无法删除已发送的诊断信息"
+      }
     }
   },
   "menu": {
@@ -19948,6 +19965,12 @@
       "searching": "正在搜索…",
       "searchFailed": "搜索未能完成，请重试。",
       "refreshFailed": "预览更新失败，正在显示上一版本。请打开源码视图查看当前内容。"
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "没有可导出的内容",
+        "timedOut": "导出超时"
+      }
     }
   },
   "featureTips": {
@@ -21888,6 +21911,40 @@
         "mrSourceBranchMissing": "MR !{{number}} 没有源分支。",
         "forkHeadUnresolved": "获取后，无法解析来自 fork 的 MR !{{number}} 的头部引用。"
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "手机模拟器已在设置中禁用。",
+      "notAvailable": "手机模拟器不可用。",
+      "noSession": "没有活动的模拟器会话",
+      "noDeviceSpecified": "未指定模拟器设备。请在设置 > 手机模拟器中选择默认设备，或传入设备。",
+      "workspaceChanged": "模拟器启动期间工作区已更改。请重新连接模拟器。",
+      "noIosSimulators": "未找到 iOS 模拟器。请在 Xcode Settings > Platforms 中添加一个。",
+      "simctlUnavailable": "xcrun simctl 不可用。",
+      "simulatorToolsUnavailable": "Xcode Simulator 工具不可用。请安装完整版 Xcode，打开一次，然后使用 `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` 选择它。",
+      "requiresMacosXcode": "iOS 模拟器需要安装了 Xcode Command Line Tools 的 macOS。",
+      "simulatorNotFound": "未找到模拟器 {{udid}}。请通过 Xcode > Window > Devices and Simulators 创建一个。",
+      "serveSimUnavailable": "serve-sim 不可用。",
+      "serveSimNoEndpoints": "serve-sim 未返回流端点。",
+      "serveSimEndpointUnreachable": "serve-sim 已启动，但无法访问其流端点。",
+      "androidSdkMissing": "未找到 Android SDK。请安装 Android Studio 并设置 ANDROID_HOME。",
+      "adbUnavailable": "adb 不可用。",
+      "noAndroidDevices": "未找到 Android 设备或 AVD。请在 Android Studio 中创建一个。",
+      "androidDeviceNotRunning": "Android 设备“{{device}}”未运行。请先启动它。",
+      "unknownDeviceOrAvd": "“{{device}}”不是正在运行的设备，也不是已知的 AVD。",
+      "avdBootTimeout": "AVD “{{avdName}}”未能及时完成启动。",
+      "scrcpyDownloadFailed": "无法下载 scrcpy 服务器：{{detail}}",
+      "scrcpyServerInvalid": "下载的 scrcpy 服务器无效或不完整。"
+    },
+    "pane": {
+      "listDevicesFailed": "无法列出模拟器设备。",
+      "noDevices": "未找到模拟器设备。请在 Xcode 中添加 iOS 模拟器，或在 Android Studio 中添加 Android 虚拟设备。",
+      "startFailed": "无法启动模拟器。请确保已配置好 Xcode（iOS）或 Android Studio（Android），然后尝试其他设备。",
+      "shutdownFailed": "无法关闭模拟器。请重试，或通过模拟器管理器停止它。"
+    },
+    "settings": {
+      "availabilityCheckFailed": "无法检查模拟器可用性。"
     }
   }
 }

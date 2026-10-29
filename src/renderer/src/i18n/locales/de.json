@@ -357,6 +357,12 @@
     "diffTooLarge": {
       "title": "Datei zu groß für einen Diff",
       "detail": "Eine Version dieser Datei ist größer als 10 MB, daher lädt Orca sie nicht für einen Text-Diff."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "Kein Inhalt zum Exportieren",
+        "timedOut": "Zeitüberschreitung beim Export"
+      }
     }
   },
   "githubChecks": {
@@ -791,6 +797,23 @@
         "disconnected": "Getrennt",
         "reconnecting": "Verbindung wird wiederhergestellt…",
         "reconnection-failed": "Wiederherstellen der Verbindung fehlgeschlagen"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "das Erstellen von Dateien zur Prüfung ist deaktiviert",
+        "sendingDisabled": "das Senden von Diagnosedaten ist deaktiviert",
+        "sendingNotConfigured": "das Senden von Diagnosedaten ist für diesen Build nicht konfiguriert",
+        "expiredBeforeSending": "die Datei zur Prüfung ist abgelaufen; vor dem Senden eine neue erstellen",
+        "expiredBeforeOpening": "die Datei zur Prüfung ist abgelaufen; vor dem Öffnen eine neue erstellen",
+        "previewNotOpened": "die Datei zur Prüfung vor dem Senden öffnen",
+        "previewOpenFailed": "die Datei zur Prüfung konnte nicht geöffnet werden",
+        "deleteNotConfigured": "der Upload-Endpunkt für Diagnosedaten ist für diesen Build nicht konfiguriert",
+        "createFailed": "Datei zur Prüfung konnte nicht erstellt werden",
+        "openFailed": "Datei zur Prüfung konnte nicht geöffnet werden",
+        "sendFailed": "Diagnosedaten konnten nicht gesendet werden",
+        "discardFailed": "Datei zur Prüfung konnte nicht verworfen werden",
+        "deleteFailed": "Gesendete Diagnosedaten konnten nicht gelöscht werden"
       }
     }
   },
@@ -21885,6 +21908,40 @@
         "mrSourceBranchMissing": "MR !{{number}} hat keinen Quell-Branch.",
         "forkHeadUnresolved": "Der Head von Fork-MR !{{number}} konnte nach dem Fetch nicht aufgelöst werden."
       }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "Der Mobilgeräte-Emulator ist in den Einstellungen deaktiviert.",
+      "notAvailable": "Der Mobilgeräte-Emulator ist nicht verfügbar.",
+      "noSession": "Keine Emulator-Sitzung aktiv",
+      "noDeviceSpecified": "Kein Emulator-Gerät angegeben. Unter Einstellungen > Mobilgeräte-Emulator ein Standardgerät auswählen oder ein Gerät übergeben.",
+      "workspaceChanged": "Der Arbeitsbereich hat sich beim Start des Emulators geändert. Den Emulator erneut verbinden.",
+      "noIosSimulators": "Keine iOS-Simulatoren gefunden. Einen unter Xcode Settings > Platforms hinzufügen.",
+      "simctlUnavailable": "xcrun simctl ist nicht verfügbar.",
+      "simulatorToolsUnavailable": "Die Tools für Xcode Simulator sind nicht verfügbar. Die Vollversion von Xcode installieren, einmal öffnen und dann mit `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` auswählen.",
+      "requiresMacosXcode": "iOS Simulator erfordert macOS mit den Xcode Command Line Tools.",
+      "simulatorNotFound": "Simulator {{udid}} nicht gefunden. Einen über Xcode > Window > Devices and Simulators erstellen.",
+      "serveSimUnavailable": "serve-sim ist nicht verfügbar.",
+      "serveSimNoEndpoints": "serve-sim hat keine Stream-Endpunkte zurückgegeben.",
+      "serveSimEndpointUnreachable": "serve-sim wurde gestartet, aber der Stream-Endpunkt ist nicht erreichbar.",
+      "androidSdkMissing": "Android SDK nicht gefunden. Android Studio installieren und ANDROID_HOME setzen.",
+      "adbUnavailable": "adb ist nicht verfügbar.",
+      "noAndroidDevices": "Keine Android-Geräte oder AVDs gefunden. Eines in Android Studio erstellen.",
+      "androidDeviceNotRunning": "Android-Gerät „{{device}}“ läuft nicht. Zuerst starten.",
+      "unknownDeviceOrAvd": "„{{device}}“ ist weder ein laufendes Gerät noch ein bekanntes AVD.",
+      "avdBootTimeout": "AVD „{{avdName}}“ wurde nicht rechtzeitig vollständig gestartet.",
+      "scrcpyDownloadFailed": "scrcpy-Server konnte nicht heruntergeladen werden: {{detail}}",
+      "scrcpyServerInvalid": "Der heruntergeladene scrcpy-Server war ungültig oder unvollständig."
+    },
+    "pane": {
+      "listDevicesFailed": "Emulator-Geräte konnten nicht aufgelistet werden.",
+      "noDevices": "Keine Emulator-Geräte gefunden. In Xcode einen iOS Simulator oder in Android Studio ein Android Virtual Device hinzufügen.",
+      "startFailed": "Emulator konnte nicht gestartet werden. Sicherstellen, dass Xcode (iOS) oder Android Studio (Android) eingerichtet ist, dann ein anderes Gerät ausprobieren.",
+      "shutdownFailed": "Emulator konnte nicht heruntergefahren werden. Erneut versuchen oder im Emulator-Manager stoppen."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Emulator-Verfügbarkeit konnte nicht geprüft werden."
     }
   }
 }

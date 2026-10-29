@@ -249,6 +249,13 @@
               "notice": "This file changed on disk since your edits. Use the banner to compare, reload, or overwrite."
             }
           }
+        },
+        "export": {
+          "active": {
+            "markdown": {
+              "eda2cea3ad": "Failed to export PDF"
+            }
+          }
         }
       },
       "github": {
@@ -1798,6 +1805,39 @@
       "subagents_other": "{{count}} subagents"
     }
   },
+  "editor": {
+    "pdfExport": {
+      "errors": {
+        "noContent": "No content to export",
+        "timedOut": "Export timed out"
+      }
+    }
+  },
+  "emulator": {
+    "errors": {
+      "adbUnavailable": "adb is unavailable.",
+      "androidDeviceNotRunning": "Android device \"{{device}}\" is not running. Boot it first.",
+      "androidSdkMissing": "Android SDK not found. Install Android Studio and set ANDROID_HOME.",
+      "avdBootTimeout": "AVD \"{{avdName}}\" did not finish booting in time.",
+      "disabled": "Mobile Emulator is disabled in Settings.",
+      "noAndroidDevices": "No Android devices or AVDs found. Create one in Android Studio.",
+      "noDeviceSpecified": "No emulator device specified. Choose a default device in Settings > Mobile Emulator or pass a device.",
+      "noIosSimulators": "No iOS simulators found. Add one in Xcode Settings > Platforms.",
+      "noSession": "No emulator session is active",
+      "notAvailable": "Mobile Emulator is not available.",
+      "requiresMacosXcode": "iOS Simulator requires macOS with Xcode Command Line Tools.",
+      "scrcpyDownloadFailed": "Could not download scrcpy server: {{detail}}",
+      "scrcpyServerInvalid": "Downloaded scrcpy server was invalid or truncated.",
+      "serveSimEndpointUnreachable": "serve-sim started but its stream endpoint is not reachable.",
+      "serveSimNoEndpoints": "serve-sim did not return stream endpoints.",
+      "serveSimUnavailable": "serve-sim is unavailable.",
+      "simctlUnavailable": "xcrun simctl is unavailable.",
+      "simulatorNotFound": "Simulator {{udid}} not found. Create one via Xcode > Window > Devices and Simulators.",
+      "simulatorToolsUnavailable": "Xcode Simulator tools are unavailable. Install full Xcode, open it once, then select it with `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "unknownDeviceOrAvd": "\"{{device}}\" is not a running device or a known AVD.",
+      "workspaceChanged": "The workspace changed while the emulator was starting. Reattach the emulator."
+    }
+  },
   "jira": {
     "workspace": {
       "linkedCount_one": "{{count}} workspace linked to {{key}}",
@@ -1853,6 +1893,18 @@
       "permissionOverridesFollow_other": "{{count}} agents now follow {{mode}}",
       "permissionOverridesKept_one": "{{count}} agent still uses their own permission setting:",
       "permissionOverridesKept_other": "{{count}} agents still use their own permission setting:"
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "creating review files is disabled",
+        "deleteNotConfigured": "diagnostic upload endpoint is not configured for this build",
+        "expiredBeforeOpening": "review file has expired; create a new one before opening",
+        "expiredBeforeSending": "review file has expired; create a new one before sending",
+        "previewNotOpened": "open the review file before sending",
+        "previewOpenFailed": "could not open review file",
+        "sendingDisabled": "sending diagnostics is disabled",
+        "sendingNotConfigured": "sending diagnostics is not configured for this build"
+      }
     },
     "mcp": {
       "serverCount_one": "{{count}} server",
