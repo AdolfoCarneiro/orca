@@ -240,17 +240,19 @@ describe('OSC 7 file URIs from existing senders', () => {
   })
 })
 
-// No control byte is rejected: tab and newline are stripped by the URL parser, encoded ones decode.
 // The OSC 7 scanner ends a report at BEL or ESC, so raw ESC/BEL never reach this parser.
-describe('OSC 7 file URIs with control bytes, as before', () => {
+describe('OSC 7 file URIs with control bytes', () => {
   it.each([
-    ['file:///tmp/%00x', '/tmp/\u0000x'],
-    ['file:///tmp/a\u0000b', '/tmp/a\u0000b'],
-    ['file:///tmp/%01x', '/tmp/\u0001x'],
+    // A decoded C0 control is refused: node-pty truncates a NUL cwd, and execFile can throw.
+    ['file:///tmp/%00x', null],
+    ['file:///tmp/a\u0000b', null],
+    ['file:///tmp/%01x', null],
+    ['file:///tmp/%0Ax', null],
+    ['file:///tmp/%1Bx', null],
+    // The URL parser strips a raw tab or newline before decoding, so nothing is left to refuse.
     ['file:///tmp/a\tb', '/tmp/ab'],
-    ['file:///tmp/%0Ax', '/tmp/\nx'],
-    ['file:///tmp/%7Fx', '/tmp/\u007fx'],
-    ['file:///tmp/%1Bx', '/tmp/\u001bx']
+    // DEL is not a C0 control.
+    ['file:///tmp/%7Fx', '/tmp/\u007fx']
   ])('%j', (uri, path) => {
     expect(parseFileUriPathParts(uri, { pathFlavor: 'posix' })?.path ?? null).toBe(path)
   })

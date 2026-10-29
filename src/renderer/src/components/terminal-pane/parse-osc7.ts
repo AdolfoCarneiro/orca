@@ -1,4 +1,5 @@
 // xterm strips OSC 7 framing; the payload is a file:// URI reporting the shell’s current directory.
+import { escapeLiteralPercent, hasControlCharacter } from '../../../../shared/osc7-path-text'
 
 const OSC7_URI = /^file:\/\/([^/]*)(\/.*)$/
 
@@ -19,11 +20,11 @@ export function parseOsc7(data: string, options: ParseOsc7Options = {}): string 
   const host = match[1]
   let path: string
   try {
-    path = decodeURIComponent(match[2])
+    path = decodeURIComponent(escapeLiteralPercent(match[2]))
   } catch {
     return null
   }
-  if (!path) {
+  if (!path || hasControlCharacter(path)) {
     return null
   }
   const isWindowsDrivePath = /^\/[A-Za-z]:/.test(path)

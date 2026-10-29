@@ -1,4 +1,5 @@
 import { toWindowsWslPath } from '../../shared/wsl-paths'
+import { escapeLiteralPercent, hasControlCharacter } from '../../shared/osc7-path-text'
 
 export type ParsedFileUriPath = {
   path: string
@@ -22,17 +23,15 @@ const FILE_URI_AUTHORITY = /^file:\/\/[^/]*/i
 
 /**
  * Some shells (nushell) send `#`, `?` and a lone `%` raw in the path, which a URL parser would cut
- * at or reject. A properly encoded URI never contains them there, so encoding them first leaves its
- * result unchanged. A raw `%41` stays ambiguous and decodes to `A`, as it always has.
+ * at or reject. A properly encoded URI from a sender that never sends a query or fragment has none
+ * of them there, so its result is unchanged. A raw `%41` stays ambiguous and decodes to `A`.
  */
 function encodeRawPathDelimiters(uri: string): string {
   const authority = FILE_URI_AUTHORITY.exec(uri)
   if (!authority) {
     return uri
   }
-  const path = uri
-    .slice(authority[0].length)
-    .replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
+  const path = escapeLiteralPercent(uri.slice(authority[0].length))
     .replace(/#/g, '%23')
     .replace(/\?/g, '%3F')
   return authority[0] + path
@@ -49,6 +48,9 @@ export function parseFileUriPathParts(
     }
 
     const decodedPath = decodeURIComponent(url.pathname)
+    if (hasControlCharacter(decodedPath)) {
+      return null
+    }
     const hostname = url.hostname.toLowerCase()
     if (options.wslDistro) {
       return { path: toWindowsWslPath(decodedPath, options.wslDistro), hostname }
