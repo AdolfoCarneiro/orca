@@ -16944,7 +16944,8 @@
                     "annotations": {
                       "0c7b9b2b7a": "Kopyalandı",
                       "c937229f19": "Ekran görüntüsü alındı",
-                      "1f5cb19034": "Ek açıklama eklendi"
+                      "1f5cb19034": "Ek açıklama eklendi",
+                      "limitReached": "{{value0}} ek açıklama sınırına ulaşıldı. Daha fazla eklemek için bunları gönderin, kopyalayın veya temizleyin."
                     }
                   }
                 }

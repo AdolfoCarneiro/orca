@@ -10,7 +10,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { BrowserAnnotationSendMenuContent } from '../annotate/BrowserAnnotationSendMenuContent'
-import type { BrowserGrabPayload } from '../../../../../shared/browser-grab-types'
+import { browserAnnotationLimitMessage } from '../annotate/use-browser-page-grab-annotations'
+import { GRAB_BUDGET, type BrowserGrabPayload } from '../../../../../shared/browser-grab-types'
 import type { GrabModeHook } from '../annotate/useGrabMode'
 import { preventAgentSendTargetOutsideDismiss } from '../annotate/prevent-agent-send-target-outside-dismiss'
 import type { GrabIntent } from '../describe-page/browser-page-types'
@@ -97,22 +98,24 @@ export function BrowserPageChromeBanners({
                       'auto.components.browser.pane.BrowserPane.b733a91bd9',
                       'Add feedback for the selected element.'
                     )
-                  : browserAnnotationsLength === 1
-                    ? translate(
-                        'auto.components.browser.pane.BrowserPane.074f0ed10b',
-                        '{{value0}} annotation ready. Select another element or copy all feedback.',
-                        { value0: browserAnnotationsLength }
-                      )
-                    : browserAnnotationsLength > 0
+                  : browserAnnotationsLength >= GRAB_BUDGET.annotationsMaxPerPage
+                    ? browserAnnotationLimitMessage()
+                    : browserAnnotationsLength === 1
                       ? translate(
-                          'auto.components.browser.pane.BrowserPane.a2164a6e5a',
-                          '{{value0}} annotations ready. Select another element or copy all feedback.',
+                          'auto.components.browser.pane.BrowserPane.074f0ed10b',
+                          '{{value0}} annotation ready. Select another element or copy all feedback.',
                           { value0: browserAnnotationsLength }
                         )
-                      : translate(
-                          'auto.components.browser.pane.BrowserPane.777b5bc4ec',
-                          'Click an element to add feedback for the agent.'
-                        )
+                      : browserAnnotationsLength > 0
+                        ? translate(
+                            'auto.components.browser.pane.BrowserPane.a2164a6e5a',
+                            '{{value0}} annotations ready. Select another element or copy all feedback.',
+                            { value0: browserAnnotationsLength }
+                          )
+                        : translate(
+                            'auto.components.browser.pane.BrowserPane.777b5bc4ec',
+                            'Click an element to add feedback for the agent.'
+                          )
                 : grab.state === 'confirming'
                   ? translate(
                       'auto.components.browser.pane.BrowserPane.e852e20cea',
