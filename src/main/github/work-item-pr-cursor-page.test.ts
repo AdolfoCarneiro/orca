@@ -85,7 +85,7 @@ it('forces cursor traversal on a manual refresh of a later page', async () => {
   await page(2)
   const before = api.graphqlCalls
   expect((await page(2, true))[0].number).toBe(9976)
-  expect(api.graphqlCalls - before).toBe(2)
+  expect(api.graphqlCalls - before).toBe(1)
 })
 
 it.each(['labels', 'reviewRequests', 'unavailable'])(
@@ -140,7 +140,7 @@ it('does not share PR cursors across credentials', async () => {
   vi.stubEnv('GH_TOKEN', 'fixture-new')
   const before = api.graphqlCalls
   expect((await page(2))[0].number).toBe(9976)
-  expect(api.graphqlCalls - before).toBe(2)
+  expect(api.graphqlCalls - before).toBe(1)
 })
 
 it('routes sequential production PR pages through cursor reads', async () => {
@@ -194,4 +194,11 @@ it('keeps Boolean search operators inside the repository and PR constraints', as
     })
   ).toHaveLength(24)
   expect(api.calls.some(({ args }) => args[0] === 'pr')).toBe(false)
+})
+
+it('combines a cold short prefix with the requested PR page', async () => {
+  api.specialNodes = rows()
+  expect((await page(2))[0].number).toBe(9976)
+  expect(api.graphqlCalls).toBe(1)
+  expect(api.calls[0].args.join(' ')).toContain('first: 48')
 })

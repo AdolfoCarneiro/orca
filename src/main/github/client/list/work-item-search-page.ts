@@ -88,7 +88,7 @@ export async function searchWorkItemPage<T>(args: {
       cursors.set(`${scope}:${position}`, { at, cursor: info.endCursor })
     }
   }
-  while (position < offset) {
+  while (offset - position + limit > 100) {
     const first = Math.min(100, offset - position)
     const { value: skipped, at } = await requestWorkItemSearch<SearchConnection<never>>({
       search,
@@ -114,7 +114,7 @@ export async function searchWorkItemPage<T>(args: {
   }
   const { value: result, at } = await requestWorkItemSearch<SearchConnection<T>>({
     search,
-    first: limit,
+    first: offset - position + limit,
     after,
     selection: `issueCount pageInfo { endCursor hasNextPage } nodes { ${args.nodeSelection} }`,
     options,
@@ -124,6 +124,6 @@ export async function searchWorkItemPage<T>(args: {
   if (!Array.isArray(result.nodes) || !result.pageInfo) {
     throw new Error('GitHub search response missing page')
   }
-  remember(offset + result.nodes.length, result.pageInfo, at)
-  return result.nodes
+  remember(position + result.nodes.length, result.pageInfo, at)
+  return result.nodes.slice(offset - position, offset - position + limit)
 }
