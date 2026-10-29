@@ -1,3 +1,4 @@
+import type { Editor } from '@tiptap/core'
 import type { Locator, Page } from '@stablyai/playwright-test'
 import { expect, test } from './helpers/orca-app'
 import { pressShortcut } from './helpers/shortcuts'
@@ -160,6 +161,64 @@ test('Find preserves Shift-click, double-click, and multi-paragraph copy selecti
   expect((await selectedText(orcaPage)).trim()).toBe('First xy paragraph for pointer selection.')
 })
 
+test('backward native selection completes before focused copy and an inside-range Find handoff', async ({
+  orcaPage
+}) => {
+  const editor = orcaPage.locator('.rich-markdown-editor')
+  const first = editor.getByText(FIRST, { exact: true })
+  const second = editor.getByText(SECOND, { exact: true })
+  const search = await find(orcaPage)
+  await centered(first)
+  await drag(orcaPage, second, first, 11, 6)
+  const copied = await editor.evaluate((element) => {
+    const instance = document.querySelector<HTMLElement & { editor?: Editor }>(
+      '.rich-markdown-editor'
+    )?.editor
+    if (!instance) throw new Error('Expected editor instance')
+    const native = document.getSelection()
+    if (!native?.anchorNode || !native.focusNode) throw new Error('Expected native range')
+    const anchor = instance.view.posAtDOM(native.anchorNode, native.anchorOffset)
+    const head = instance.view.posAtDOM(native.focusNode, native.focusOffset)
+    const clipboard = new DataTransfer()
+    element.dispatchEvent(
+      new ClipboardEvent('copy', { bubbles: true, cancelable: true, clipboardData: clipboard })
+    )
+    return {
+      plain: clipboard.getData('text/plain'),
+      anchor,
+      head,
+      model: instance.state.selection.toJSON()
+    }
+  })
+  expect(copied.anchor).toBeGreaterThan(copied.head)
+  expect(copied.model).toEqual({ type: 'text', anchor: copied.anchor, head: copied.head })
+  expect(copied.plain).toBe(`${FIRST.slice(6)}\n\n${SECOND.slice(0, 11)}`)
+  await expect(editor).toBeFocused()
+  const inside = await textPoint(first, 12)
+  await orcaPage.mouse.click(inside.x, inside.y)
+  await search.focus()
+  const caret = await first.evaluate((element) => {
+    const instance = document.querySelector<HTMLElement & { editor?: Editor }>(
+      '.rich-markdown-editor'
+    )?.editor
+    if (!instance || !element.firstChild) throw new Error('Expected editor paragraph')
+    return {
+      expected: instance.view.posAtDOM(element.firstChild, 12),
+      model: instance.state.selection.toJSON()
+    }
+  })
+  expect(caret.model).toEqual({ type: 'text', anchor: caret.expected, head: caret.expected })
+  const end = await textPoint(second, 11)
+  await orcaPage.keyboard.down('Shift')
+  await orcaPage.mouse.click(end.x, end.y)
+  await orcaPage.keyboard.up('Shift')
+  expect(await selectedText(orcaPage)).toBe(`${FIRST.slice(12)}\n\n${SECOND.slice(0, 11)}`)
+  await orcaPage.keyboard.type('xy')
+  await expect(
+    editor.getByText(`${FIRST.slice(0, 12)}xy${SECOND.slice(11)}`, { exact: true })
+  ).toBeVisible()
+})
+
 test('Replace input returns to a multi-paragraph drag and explicit next-match navigation', async ({
   orcaPage
 }, testInfo) => {
@@ -270,6 +329,7 @@ test('Find preserves embedded task, details, and code editing', async ({ orcaPag
   const codePoint = await textPoint(code, 6)
   const language = editor.locator('.rich-markdown-code-block-lang')
   await search.focus()
+  await language.focus()
   await language.selectOption('typescript')
   await expect(language).toHaveValue('typescript')
   await search.focus()

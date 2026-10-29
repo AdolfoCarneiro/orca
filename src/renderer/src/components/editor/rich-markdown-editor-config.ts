@@ -23,6 +23,10 @@ import {
 } from './rich-markdown-editor-click-routing'
 import { createRichMarkdownKeyHandler } from './rich-markdown-key-handler'
 import { focusRichMarkdownEditorFromSearch } from './rich-markdown-search-focus'
+import {
+  completeRichMarkdownSelection,
+  richMarkdownSelectionCompletionEvents
+} from './drag-selection-guard'
 import { staleViewEditEpoch } from './editor-stale-view-edit'
 import {
   createRichMarkdownImageResolverContext,
@@ -165,11 +169,16 @@ export function createRichMarkdownEditorConfig(params: EditorConfigParams): UseE
         spellcheck: getRichMarkdownSpellcheckAttribute(richMarkdownSpellcheckEnabled)
       },
       handleDOMEvents: {
+        ...richMarkdownSelectionCompletionEvents,
         mousedown: (view, event) => {
+          completeRichMarkdownSelection(view)
           focusRichMarkdownEditorFromSearch(event, view)
           return false
         },
-        cut: handleRichMarkdownCut,
+        cut: (view, event) => {
+          completeRichMarkdownSelection(view)
+          return handleRichMarkdownCut(view, event)
+        },
         // ProseMirror skips handleClick for Shift gestures to extend the selection.
         click: (view, event) => {
           if (

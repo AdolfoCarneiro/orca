@@ -3,7 +3,11 @@ import { Editor, Node } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { TableKit } from '@tiptap/extension-table'
 import { Plugin } from '@tiptap/pm/state'
-import { DragSelectionGuard } from './drag-selection-guard'
+import {
+  DragSelectionGuard,
+  completeRichMarkdownSelection,
+  richMarkdownSelectionCompletionEvents
+} from './drag-selection-guard'
 import { CellSelection } from '@tiptap/pm/tables'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { focusRichMarkdownEditorFromSearch } from './rich-markdown-search-focus'
@@ -32,7 +36,9 @@ function createSurface(content: string) {
     content,
     editorProps: {
       handleDOMEvents: {
+        ...richMarkdownSelectionCompletionEvents,
         mousedown: (view, event) => {
+          completeRichMarkdownSelection(view)
           focusRichMarkdownEditorFromSearch(event, view)
           return false
         }
@@ -56,6 +62,44 @@ afterEach(() => {
 })
 
 describe('Find focus with editor-owned selection', () => {
+  it.each(['find', 'replace'] as const)(
+    'publishes undelivered native selections before %s takes focus and before immediate copy',
+    (field) => {
+      const { editor, input, replace } = createSurface('<p>first</p><p>lower caret</p>')
+      const text = editor.view.dom.querySelector('p:last-child')?.firstChild
+      if (!text) throw new Error('Expected lower paragraph text')
+      const lower = findTextPosition(editor, 'lower caret')
+      try {
+        editor.view.focus()
+        const updates = vi.fn()
+        editor.on('update', updates)
+        const doc = editor.state.doc
+        for (const [anchor, head] of [
+          [2, 7],
+          [7, 2],
+          [6, 6]
+        ]) {
+          document.getSelection()?.setBaseAndExtent(text, anchor, text, head)
+          // No selectionchange is delivered before the direct focus transfer.
+          ;(field === 'find' ? input : replace).focus()
+          expect(editor.state.selection.anchor).toBe(lower + anchor)
+          expect(editor.state.selection.head).toBe(lower + head)
+          editor.view.focus()
+          expect(document.getSelection()?.anchorOffset).toBe(anchor)
+          expect(document.getSelection()?.focusOffset).toBe(head)
+        }
+        document.getSelection()?.setBaseAndExtent(text, 7, text, 2)
+        editor.view.dom.dispatchEvent(new Event('copy', { bubbles: true, cancelable: true }))
+        expect(editor.state.selection.anchor).toBe(lower + 7)
+        expect(editor.state.selection.head).toBe(lower + 2)
+        expect(editor.state.doc).toBe(doc)
+        expect(updates).not.toHaveBeenCalled()
+      } finally {
+        editor.destroy()
+      }
+    }
+  )
+
   it.each(['find', 'replace'] as const)(
     'restores the anchor before editor pointer handling from %s',
     (field) => {
