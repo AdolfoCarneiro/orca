@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { Editor } from '@tiptap/react'
 import type * as EditorInstance from './useRichMarkdownEditorInstance'
 import RichMarkdownEditor from './RichMarkdownEditor'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 const live = vi.hoisted((): { editor: Editor | null } => ({ editor: null }))
 vi.mock('./useRichMarkdownEditorInstance', async (importOriginal) => {
@@ -138,7 +139,8 @@ it.each([
       onContentChange={() => {}}
       onDirtyStateHint={() => {}}
       onSave={() => {}}
-    />
+    />,
+    { wrapper: TooltipProvider }
   )
   await act(async () => {})
   const editor = live.editor
@@ -175,6 +177,11 @@ it.each([
       action === 'dragstart'
         ? new DragEvent(action, { bubbles: true, cancelable: true, dataTransfer: data })
         : new ClipboardEvent(action, { bubbles: true, cancelable: true, clipboardData: data })
+    if (action === 'dragstart') {
+      // The DOM emulator aliases DragEvent to Event and drops its dataTransfer initializer.
+      Object.defineProperty(event, 'dataTransfer', { value: data })
+      expect(Reflect.get(event, 'dataTransfer')).toBe(data)
+    }
     fireEvent(editor.view.dom, event)
     if (action === 'paste') {
       expect(editor.view.dom.querySelector('p:last-child')?.textContent).toBe('lower replacement')
@@ -249,7 +256,8 @@ it('publishes a held native range on outside release and exposes its review-note
       onContentChange={() => {}}
       onDirtyStateHint={() => {}}
       onSave={() => {}}
-    />
+    />,
+    { wrapper: TooltipProvider }
   )
   await act(async () => {})
   const editor = live.editor

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest'
 import { Editor, type JSONContent } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -33,7 +34,7 @@ function createMarkdownEditor(markdown: string, element: HTMLElement | null = nu
   })
 }
 
-/** Use the node shapes HTML paste produces because this DOM-less fixture cannot parse the reported pasted HTML. */
+/** Use the node shapes HTML paste produces without relying on DOM parsing. */
 function createNodeEditor(content: JSONContent): Editor {
   return new Editor({
     element: null,
@@ -262,7 +263,14 @@ describe('rich markdown Tab key handler', () => {
       if (!text) {
         throw new Error('Expected second list item')
       }
-      document.getSelection()?.setBaseAndExtent(text, 2, text, 2)
+      // Hold setup's synchronous DOM-emulator notification so Tab receives pending native input.
+      const holdNotification = (event: Event) => event.stopImmediatePropagation()
+      document.addEventListener('selectionchange', holdNotification, true)
+      try {
+        document.getSelection()?.setBaseAndExtent(text, 2, text, 2)
+      } finally {
+        document.removeEventListener('selectionchange', holdNotification, true)
+      }
       expect(editor.state.selection.from).not.toBe(editor.view.posAtDOM(text, 2))
       const event = keyEvent('Tab')
       expect(createRichMarkdownKeyHandler(createContext(editor))(null, event)).toBe(true)
