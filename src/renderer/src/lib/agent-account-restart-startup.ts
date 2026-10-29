@@ -1,6 +1,7 @@
 import { useAppStore, type AppState } from '@/store'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import {
+  resolveRuntimeHostReportedPlatform,
   resolveSshHostReportedPlatform,
   resolveAgentResumeLaunchTarget,
   type AgentResumeLaunchTarget
@@ -100,6 +101,7 @@ export function resolveAgentAccountRestartResumeStartup(
       ? { ompResumeFilePath: launchConfig.ompResumeFilePath }
       : {}),
     platform: resumeTarget.platform,
+    agentHostPlatform: resumeTarget.agentHostPlatform,
     shell: resumeTarget.shell,
     // Both restart executors spawn in the tab's start folder.
     launchCwd:
@@ -145,6 +147,7 @@ export function buildCodexAccountRestartStartup(
     agent: 'codex',
     cmdOverrides: state.settings?.agentCmdOverrides ?? {},
     platform: target.platform,
+    agentHostPlatform: target.agentHostPlatform,
     shell: resolveStartupShell(target.platform, target.shell)
   })
   if (!command.ok) {
@@ -178,6 +181,7 @@ function resolveAccountRestartLaunchTarget(
       state,
       executionHostId,
       runtimeEnvironmentIdUnlessTwin(state, args.worktreeId)
-    )
+    ),
+    runtimeHostPlatform: resolveRuntimeHostReportedPlatform(state, executionHostId)
   })
 }

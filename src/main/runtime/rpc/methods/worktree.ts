@@ -95,7 +95,8 @@ export const WORKTREE_METHODS = [
           authority: runtime,
           repoSelector: params.repo,
           repo,
-          request: params.automationProvenanceRequest
+          request: params.automationProvenanceRequest,
+          ignoreUnknownAutomation: true
         })
         // Reserve provenance before create for recovery, but release failed reservations so retry is safe.
         try {

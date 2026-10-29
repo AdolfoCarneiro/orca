@@ -59,7 +59,8 @@ export function agentLaunchWorkspaceFactory(
         authority: runtime,
         repoSelector: params.repo,
         repo,
-        request: params.automationProvenanceRequest
+        request: params.automationProvenanceRequest,
+        ignoreUnknownAutomation: true
       })
       // Reserved before creation so a retry can recover; a failed attempt has to release it.
       try {

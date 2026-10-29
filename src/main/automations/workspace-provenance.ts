@@ -28,6 +28,14 @@ export function invalidAutomationProvenanceRequest(): never {
   ])
 }
 
+/** This host does not hold the automation, or keeps no automations at all. */
+function isUnownedAutomationError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message.startsWith('Automation not found') || error.message === 'runtime_unavailable')
+  )
+}
+
 function repoSelectorMatchesAutomation(selector: string, repoId: string): boolean {
   return selector === repoId || selector === `id:${repoId}`
 }
@@ -37,6 +45,8 @@ export function resolveAutomationWorkspaceProvenance(args: {
   repoSelector: string
   repo: Repo
   request: AutomationWorkspaceProvenanceRequest | undefined
+  /** A runtime host only verifies its own automations; another owner's token is unverifiable here. */
+  ignoreUnknownAutomation?: boolean
 }): AutomationWorkspaceProvenance | undefined {
   const { authority, repoSelector, repo, request } = args
   if (!request) {
@@ -46,7 +56,14 @@ export function resolveAutomationWorkspaceProvenance(args: {
   let automation: Automation
   try {
     automation = authority.showAutomation(request.automationId)
-  } catch {
+  } catch (error) {
+    // Why: an older desktop sends its own unverifiable token (#34433); store failures still surface.
+    if (args.ignoreUnknownAutomation) {
+      if (isUnownedAutomationError(error)) {
+        return undefined
+      }
+      throw error
+    }
     invalidAutomationProvenanceRequest()
   }
   const run = authority
