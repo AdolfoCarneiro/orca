@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as hostInstaller from '../../structured-agent-session-runtime'
 import { partialRuntimeStore } from '../../runtime-store-partial-fixture'
@@ -7,6 +8,7 @@ import { MailDebts } from '../../orchestration/structured-mail-source-discovery'
 import { MessageWaitScope } from '../../runtime-message-waiters'
 import { ordinaryMailCreationId } from '../../orchestration/structured-mailbox-pointer-delivery'
 import { observeMailSqlWork } from '../../orchestration/mail-sql-work.test-support'
+import { mailCheckTransport } from '../../orchestration/mail-check-transport.test-fixture'
 import { queuedMessagesPublishedBytes } from '../../../native-chat/agent-session-wire/structured-agent-session-queued-published-bytes'
 import {
   agentJournalSubmissionKey,
@@ -574,13 +576,22 @@ it('protects H, actual A and Dispatch through a paged pane-alias check and real 
     }
     return result
   })
-  const check = (ack?: string) =>
-    harness.call(
-      'orchestration.check',
-      { terminal: H, types: 'question', ...(ack ? { ack } : {}) },
-      state.ctx
-    )
-  const result = await check()
+  const transport = await mailCheckTransport(state.runtime)
+  const requestId = randomUUID()
+  const check = (ack?: string, retry?: string) => {
+    const flags = new Map<string, string | boolean>([
+      ['terminal', H],
+      ['types', 'question']
+    ])
+    if (ack) {
+      flags.set('ack', ack)
+    }
+    if (retry) {
+      flags.set('retry-request', retry)
+    }
+    return transport.cli(flags)
+  }
+  const result = await check(undefined, requestId)
   await deleted
   expect(scopes).toEqual([expect.arrayContaining([H, identity.handle, `dispatch:${dispatchId}`])])
   expect(result).toMatchObject({
@@ -599,6 +610,11 @@ it('protects H, actual A and Dispatch through a paged pane-alias check and real 
     throw new Error('missing delivery receipt')
   }
   const first = receipt(result)
+  expect(await transport.rpc('orchestration.requestShow', { request: requestId })).toMatchObject({
+    ok: true,
+    result: { state: 'completed', method: 'orchestration.check' }
+  })
+  expect(await check(undefined, requestId)).toMatchObject({ deliveryId: first })
   expect(await check()).toMatchObject({ deliveryId: first, replayed: true })
   const tail = await check(first)
   expect(tail).toMatchObject({ count: 2 })
@@ -613,4 +629,54 @@ it('protects H, actual A and Dispatch through a paged pane-alias check and real 
     store.readCommandReceipt({ kind: 'global' }, ordinaryMailCreationId(source))
   ).toMatchObject({ verdict: 'absent' })
   expect(worker.journal.queuedMessages.get(ordinaryMailCreationId(source))).toBeNull()
+  expect(
+    await transport.cli(
+      new Map<string, string | boolean>([
+        ['terminal', H],
+        ['peek', true],
+        ['types', 'question']
+      ])
+    )
+  ).toMatchObject({ count: 0 })
+  const aliases = [H, identity.handle, `dispatch:${dispatchId}`]
+  const cancelled = transport.wait({ terminal: H, wait: true, types: 'question', timeoutMs: 10000 })
+  await vi.waitFor(() =>
+    expect(aliases.every((key) => state.runtime.messageWaitersByHandle.has(key))).toBe(true)
+  )
+  cancelled.socket.destroy()
+  await cancelled.done
+  await vi.waitFor(() => expect(transport.active()).toBe(0))
+  expect(aliases.every((key) => !state.runtime.messageWaitersByHandle.has(key))).toBe(true)
+  const timeout = await transport.check({
+    terminal: H,
+    wait: true,
+    types: 'question',
+    timeoutMs: 20
+  })
+  expect(timeout).toMatchObject({ ok: true, result: { timedOut: true } })
+  expect(aliases.every((key) => !state.runtime.messageWaitersByHandle.has(key))).toBe(true)
+  const waiting = transport.wait({ terminal: H, wait: true, types: 'question', timeoutMs: 10000 })
+  await vi.waitFor(() =>
+    expect(aliases.every((key) => state.runtime.messageWaitersByHandle.has(key))).toBe(true)
+  )
+  // The actual send handler commits and notifies; consuming delivery remains FIFO despite --types.
+  expect(
+    await transport.rpc('orchestration.send', {
+      from: 'term_coord',
+      to: H,
+      subject: 'legitimate transported wake'
+    })
+  ).toMatchObject({ ok: true })
+  await waiting.done
+  const delivered = waiting.frames.find((frame) => frame.ok === true)
+  expect(delivered).toMatchObject({
+    result: {
+      count: 1,
+      messages: [expect.objectContaining({ subject: 'legitimate transported wake' })]
+    }
+  })
+  const delivery = receipt(delivered?.result)
+  expect(await check()).toMatchObject({ deliveryId: delivery, replayed: true })
+  expect(await check(delivery)).toMatchObject({ count: 0 })
+  expect(aliases.every((key) => !state.runtime.messageWaitersByHandle.has(key))).toBe(true)
 })

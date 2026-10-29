@@ -63,8 +63,12 @@ export async function createQueuedMessageTestRig(
 ) {
   const root = await mkdtemp(join(tmpdir(), 'orca-queued-messages-'))
   resetHostTestOperationIds()
-  const store = await openTestAgentSessionRecordStore(root)
-  const provider = createQueuedRigProvider(store, options, () => host)
+  let store = await openTestAgentSessionRecordStore(root)
+  const provider = createQueuedRigProvider(
+    { getRecord: (id) => store.getRecord(id) },
+    options,
+    () => host
+  )
   const { dispatch, compact, cancelTurn, closeSession, setOption } = provider
   const makeHost = () =>
     new StructuredAgentSessionHost({
@@ -237,6 +241,19 @@ export async function createQueuedMessageTestRig(
     crashRestartHostProcess()
   }
 
+  async function coldReopenNativeDatabase(): Promise<void> {
+    await host.flushAllStreamedEvents()
+    for (const session of host.collaboratorsForTests().sessions.values()) {
+      await session.journal.close()
+    }
+    const previous = host.deps.journalDatabase
+    closeTestJournalHostDatabase(root)
+    expect(previous.isClosed).toBe(true)
+    store = await openTestAgentSessionRecordStore(root)
+    host = makeHost()
+    expect(host.deps.journalDatabase).not.toBe(previous)
+  }
+
   async function queuePause(sessionId = SESSION): Promise<AgentSessionQueuePause | null> {
     const page = await host.history({ sessionId, direction: 'tail' })
     if (!page.ok) {
@@ -275,7 +292,9 @@ export async function createQueuedMessageTestRig(
 
   return {
     root,
-    store,
+    get store() {
+      return store
+    },
     get host() {
       return host
     },
@@ -304,6 +323,7 @@ export async function createQueuedMessageTestRig(
     restartHostProcess,
     crashRestartHostProcess,
     quitRestartHostProcess,
+    coldReopenNativeDatabase,
     queuePause,
     restartOffers,
     resume,

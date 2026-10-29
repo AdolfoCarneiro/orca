@@ -23,6 +23,7 @@ vi.mock('../../../src/shared/agent-session-visible-failures', async (importOrigi
 })
 import {
   measurePhoneQueueConsumerFrames,
+  mountPhoneQueuePopulation,
   CAPABLE,
   LEGACY,
   SESSION_ID,
@@ -171,43 +172,36 @@ describe('mobile structured queued messages', () => {
   })
 
   it.each([100, 1000])(
-    'measures reducer/parent/projection/child work for two phone hosts with N=%i cards',
+    'measures reducer/parent/projection/child work for N=%i mounted phone conversations across hosts',
     async (count) => {
       const cards = Array.from({ length: count }, (_, position) =>
         queuedDraft({ messageId: `report-${position}`, position })
       )
       await mountSession(CAPABLE, snapshotEvent({ queuedMessages: cards }))
-      let otherListener: ((value: unknown) => void) | undefined
-      const otherClient: RpcClient = {
-        ...client,
-        subscribe: vi.fn((_method, _params, onData) => {
-          otherListener = onData
-          return vi.fn()
-        })
-      }
-      let other: ReactTestRenderer | undefined
-      await act(async () => {
-        other = create(
+      const population = await mountPhoneQueuePopulation(
+        count,
+        client,
+        cards,
+        (sessionId, transport, sourceIdentity) =>
           createElement(Harness, {
+            key: sourceIdentity,
+            sessionId,
+            transport,
+            sourceIdentity,
             hostSupport: CAPABLE,
-            transport: otherClient,
-            sourceIdentity: 'host-b\0workspace-b',
             observe: () => {}
           })
-        )
-      })
-      await vi.waitFor(() => expect(otherListener).toEqual(expect.any(Function)))
-      await act(async () => otherListener?.(snapshotEvent({ queuedMessages: cards })))
+      )
       await measurePhoneQueueConsumerFrames({
         count,
         cards,
         queueRender,
         parentRender,
         own: (event) => listener?.(event),
-        other: (event) => otherListener?.(event),
+        other: population.other,
         currentCards: () => hook?.queued.cards
       })
-      await act(async () => other?.unmount())
+      await population.unmount()
     }
   )
 

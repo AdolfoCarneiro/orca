@@ -11,6 +11,10 @@ import {
 } from '../runtime/orchestration/structured-mailbox-pointer-host'
 import { mintAgentSessionOperationId } from '../runtime/orchestration/structured-pointer-operation-id'
 import type { AgentJournalMessageItem } from '../../shared/agent-session-journal-types'
+import {
+  CALLER,
+  envelope
+} from '../native-chat/agent-session-wire/structured-agent-session-host-test-harness'
 
 afterEach(async () => {
   setStructuredAgentSessionHost(null)
@@ -21,8 +25,8 @@ it('queues mail without interrupting an answerable ACP question', async () => {
   const { host, rig } = await openAttachedHostRig()
   setStructuredAgentSessionHost(host)
   await send(host, 'work')
-  await rig.frame('session/prompt')
-  void rig.child().agent.request(601, 'x.ai/ask_user_question', {
+  const working = await rig.frame('session/prompt')
+  const asked = rig.child().agent.request(601, 'x.ai/ask_user_question', {
     sessionId: PROVIDER_SESSION,
     toolCallId: 'question-1',
     questions: [{ question: 'Which file?', options: [{ label: 'a.ts' }] }]
@@ -67,5 +71,42 @@ it('queues mail without interrupting an answerable ACP question', async () => {
     receipt: { status: 'accepted', result: { kind: 'queued-draft', messageId: operationId } }
   })
   expect(framesOf(rig.child(), 'session/cancel')).toHaveLength(0)
+  const question = questions[0]!
+  const fields = {
+    itemId: question.itemId,
+    expectedRevision: question.revision,
+    answers: [{ questionId: 'q1', optionIds: ['o1'] }]
+  }
+  expect(
+    await host.respondToPrompt(CALLER, {
+      ...fields,
+      kind: 'question',
+      envelope: envelope('agentSession.respondTo:question', fields)
+    })
+  ).toMatchObject({ ok: true })
+  expect(await asked).toMatchObject({
+    result: { outcome: 'accepted', answers: { 'Which file?': 'a.ts' } }
+  })
+  expect((await host.journalSnapshot(SESSION)).submissions).toEqual(before.submissions)
+  expect(framesOf(rig.child(), 'session/prompt')).toHaveLength(1)
+  rig.child().agent.reply(working, { stopReason: 'end_turn' })
+  const report = await rig.frame('session/prompt', 1)
+  const submission = (await host.journalSnapshot(SESSION)).submissions.find(
+    (row) => row.queuedMessageId === operationId
+  )
+  expect(submission).toBeDefined()
+  expect(submission?.clientMessageId).not.toBe(operationId)
+  expect(framesOf(rig.child(), 'session/prompt')).toHaveLength(2)
+  rig.child().agent.reply(report, { stopReason: 'end_turn' })
+  await waitFor(async () =>
+    expect(
+      (await host.journalSnapshot(SESSION)).items.filter(
+        (row) => row.body.kind === 'turn' && row.body.state === 'completed'
+      )
+    ).toHaveLength(2)
+  )
+  expect(
+    (await host.journalSnapshot(SESSION)).items.find((row) => row.itemId === question.itemId)?.body
+  ).toMatchObject({ kind: 'question', resolution: { state: 'resolved', answers: fields.answers } })
   await host.close(SESSION, 'user-close')
 })

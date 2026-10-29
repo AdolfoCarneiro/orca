@@ -25,6 +25,7 @@ import {
   dispatcher,
   request,
   host,
+  installDefaultMailHost,
   observationClock,
   openChat,
   restartRuntime,
@@ -226,6 +227,12 @@ it('actual typed timeout and aborted checks release hidden mail without another 
 it.each(['immediate preamble', 'idle task', 'person send'] as const)(
   'real %s failure in a carried Run enters the ordinary report queue and completes its whole turn',
   async (creator) => {
+    if (creator === 'immediate preamble') {
+      await installDefaultMailHost()
+      expect(vi.isMockFunction(runtime.ensureStructuredAgentSessionHost)).toBe(false)
+      expect(host.deps.onRequestFailure).toBeTypeOf('function')
+      expect(host.deps.onSessionMailActivity).toBeTypeOf('function')
+    }
     const coordinator = await openChat(COORDINATOR)
     const worker = await openChat(PEER_CHAT)
     const { runId, taskId } = await coordinatorRunAndTask()
@@ -241,8 +248,9 @@ it.each(['immediate preamble', 'idle task', 'person send'] as const)(
         .all()
         .some((column) => column.name === 'mail_creation_domain')
     ).toBe(false)
-    // The host failure feed reaches the runtime handler; this rig scripts its provider and host installer.
-    vi.spyOn(runtime, 'isChatWorkerErrorEscalationEnabled').mockReturnValue(true)
+    if (creator !== 'immediate preamble') {
+      vi.spyOn(runtime, 'isChatWorkerErrorEscalationEnabled').mockReturnValue(true)
+    }
     const from = dispatchTaskSource({ db, dispatch, from: `run:${runId}`, senderName: () => null })
     if (creator === 'immediate preamble') {
       expect(

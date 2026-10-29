@@ -12,11 +12,13 @@ export function createChatPersonActions(deps: {
   host: () => StructuredAgentSessionHost
   connectionFor: (sessionId: string) => FakeConnection
   startTurn: (sessionId: string, turnIndex: number, text?: string) => Promise<void>
+  attachParams?: (sessionId: string) => Parameters<StructuredAgentSessionHost['attach']>[1]
 }) {
+  const paramsFor = (id: string) => deps.attachParams?.(id) ?? attachParams(id)
   async function attachChat(sessionId: string) {
     const host = deps.host()
     if (!host.deps.store.getRecord(sessionId)) {
-      const fresh = attachParams(sessionId)
+      const fresh = paramsFor(sessionId)
       fresh.envelope.payloadFingerprint = computeAgentSessionPayloadFingerprint({
         method: 'agentSession.create',
         sessionId,
@@ -24,7 +26,7 @@ export function createChatPersonActions(deps: {
       })
       expect(await host.create({ callerKey: 'test-surface' }, fresh)).toMatchObject({ ok: true })
     }
-    const params: Parameters<StructuredAgentSessionHost['attach']>[1] = attachParams(sessionId)
+    const params = paramsFor(sessionId)
     params.envelope.expectedRuntimeFence = host.deps.store.getRecord(sessionId)!.lease.runtimeFence
     params.envelope.payloadFingerprint = computeAgentSessionPayloadFingerprint({
       method: 'agentSession.attach',

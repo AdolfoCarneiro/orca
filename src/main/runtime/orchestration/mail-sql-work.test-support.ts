@@ -3,6 +3,133 @@ import { z } from 'zod'
 import { expect, vi } from 'vitest'
 import type SyncDatabase from '../../sqlite/sync-database'
 
+/** Observe the real generation's collections, including copies through iterators and reverse edges. */
+export function observeMailHistoryWork(owner: object) {
+  const seen = new WeakSet<object>()
+  const restores: (() => void)[] = []
+  const counts = {
+    reads: 0,
+    writes: 0,
+    visits: 0,
+    selections: 0,
+    serializations: 0,
+    bytes: 0,
+    sorted: 0
+  }
+  const wrap = (
+    value: object,
+    key: PropertyKey,
+    invoke: (fn: (...args: unknown[]) => unknown, args: unknown[]) => unknown
+  ) => {
+    const fn = Reflect.get(value, key)
+    if (typeof fn !== 'function') {
+      throw new Error(`missing observed method ${String(key)}`)
+    }
+    const prior = Object.getOwnPropertyDescriptor(value, key)
+    Object.defineProperty(value, key, {
+      configurable: true,
+      value: (...args: unknown[]) => invoke(fn, args)
+    })
+    restores.push(() => {
+      if (prior) {
+        Object.defineProperty(value, key, prior)
+      } else {
+        Reflect.deleteProperty(value, key)
+      }
+    })
+  }
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== 'object' || seen.has(value)) {
+      return
+    }
+    seen.add(value)
+    if (value instanceof Map || value instanceof Set) {
+      for (const item of value.values()) {
+        visit(item)
+      }
+      for (const key of ['has', ...(value instanceof Map ? ['get'] : [])]) {
+        wrap(value, key, (fn, args) => {
+          counts.reads++
+          const result = Reflect.apply(fn, value, args)
+          visit(result)
+          return result
+        })
+      }
+      for (const key of ['delete', 'clear', value instanceof Map ? 'set' : 'add']) {
+        wrap(value, key, (fn, args) => {
+          counts.writes++
+          args.forEach(visit)
+          return Reflect.apply(fn, value, args)
+        })
+      }
+      for (const key of ['entries', 'keys', 'values', Symbol.iterator]) {
+        wrap(value, key, function* (fn, args) {
+          const iterator = Reflect.apply(fn, value, args)
+          if (!iterator || typeof iterator !== 'object' || !(Symbol.iterator in iterator)) {
+            throw new Error('missing collection iterator')
+          }
+          // SAFETY: these are native Map/Set iterator methods, wrapped without replacing their results.
+          for (const item of iterator as Iterable<unknown>) {
+            counts.visits++
+            visit(item)
+            yield item
+          }
+        })
+      }
+    } else {
+      Object.values(value).forEach(visit)
+    }
+  }
+  for (const key of [
+    'originals',
+    'drafts',
+    'evidence',
+    'references',
+    'sessions',
+    'roots',
+    'lineages',
+    'counts',
+    'members',
+    'wake'
+  ]) {
+    visit(Reflect.get(owner, key))
+  }
+  wrap(owner, 'updateOperation', (fn, args) => {
+    counts.selections++
+    return Reflect.apply(fn, owner, args)
+  })
+  const stringify = JSON.stringify
+  const json = vi.spyOn(JSON, 'stringify').mockImplementation((...args) => {
+    const result = Reflect.apply(stringify, JSON, args)
+    counts.serializations++
+    counts.bytes += typeof result === 'string' ? Buffer.byteLength(result) : 0
+    return result
+  })
+  const sort = Array.prototype.sort
+  const sorting = vi.spyOn(Array.prototype, 'sort').mockImplementation(function (
+    this: unknown[],
+    ...args
+  ) {
+    counts.sorted += this.length
+    return Reflect.apply(sort, this, args)
+  })
+  return {
+    snapshot: () => ({ ...counts }),
+    reset: () => {
+      for (const key of Object.keys(counts)) {
+        Reflect.set(counts, key, 0)
+      }
+    },
+    restore: () => {
+      sorting.mockRestore()
+      json.mockRestore()
+      for (const restore of restores.toReversed()) {
+        restore()
+      }
+    }
+  }
+}
+
 /** Count indexed candidates; retain every binding and bytecode, rather than inferring visits from SEARCH. */
 export function observeMailSqlWork(
   database: SyncDatabase,

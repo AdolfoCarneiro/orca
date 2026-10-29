@@ -454,7 +454,7 @@ it('reconciles a saved random multi-member batch after ordinary Delete and sourc
   bridge.resetForDatabaseChange()
   db.close()
   openMailQueueSource(join(root, 'source.db'))
-  await rig.restartHostProcess()
+  await rig.coldReopenNativeDatabase()
   setStructuredAgentSessionHost(rig.host)
   await rig.host.history({ sessionId: SESSION, direction: 'tail' })
   const sends = vi.spyOn(rig.host, 'send')

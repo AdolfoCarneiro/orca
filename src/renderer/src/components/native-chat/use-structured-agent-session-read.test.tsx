@@ -677,7 +677,7 @@ describe('useStructuredAgentSessionRead stream failures', () => {
 describe('mounted queue publication consumers', () => {
   afterEach(cleanup)
   it.each([100, 1000])(
-    'measures parent/reducer and memo-child work for two desktop owners with N=%i cards and other-host controls',
+    'measures parent/reducer and memo-child work for N=%i mounted desktop owners with populated and other-host controls',
     async (count) => {
       resetStructuredAgentSessionReadOwnersForTests()
       vi.clearAllMocks()
@@ -725,13 +725,19 @@ describe('mounted queue publication consumers', () => {
         })
         return <Queue sessionId={sessionId} cards={state.queuedMessages} pause={state.queuePause} />
       }
+      const ids = [
+        'queue-a',
+        'queue-b',
+        ...Array.from({ length: count - 2 }, (_, i) => `idle-${i}`)
+      ]
       const view = render(
         <>
-          <Reader sessionId="queue-a" />
-          <Reader sessionId="queue-b" />
+          {ids.map((id) => (
+            <Reader key={id} sessionId={id} />
+          ))}
         </>
       )
-      await waitFor(() => expect(emits.size).toBe(2))
+      await waitFor(() => expect(emits.size).toBe(count))
       const cards: AgentSessionQueuedMessage[] = Array.from({ length: count }, (_, position) => ({
         messageId: `report-${position}`,
         position,
@@ -783,8 +789,9 @@ describe('mounted queue publication consumers', () => {
           ).toBe('token-only')
         )
         expect([...renders.values()].reduce((a, b) => a + b, 0)).toBe(0)
-        const other = sessionId === 'queue-a' ? 'queue-b' : 'queue-a'
-        expect(parents.get(other) ?? 0).toBe(0)
+        expect(ids.filter((id) => id !== sessionId).map((id) => parents.get(id) ?? 0)).toEqual(
+          Array(count - 1).fill(0)
+        )
         expect(parents.get(sessionId)).toBeGreaterThan(0)
         expect(reduce).toHaveBeenCalled()
         work.push({
@@ -807,11 +814,12 @@ describe('mounted queue publication consumers', () => {
       expect(renders.get('queue-a')).toBe(1)
       expect(renders.get('queue-b') ?? 0).toBe(0)
       expect(parents.get('queue-b') ?? 0).toBe(0)
+      expect(ids.slice(2).map((id) => parents.get(id) ?? 0)).toEqual(Array(count - 2).fill(0))
       console.info(
         'desktop-queue-consumer-work',
         JSON.stringify({
           count,
-          owners: 2,
+          owners: count,
           tokenFrames: work,
           changedParents: Object.fromEntries(parents),
           changedChildren: Object.fromEntries(renders)

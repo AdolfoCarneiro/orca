@@ -44,7 +44,9 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
         const wake = new Set<string>()
         for (const mutation of mutations) {
           if (mutation.state === null) {
-            this.work.forget(mutation.id)
+            this.work.forget(mutation.id, (mailbox) =>
+              this.interests.get(mailbox)?.deferred.delete(mutation.id)
+            )
             for (const mailbox of new Set([
               ...mutation.previousMailboxes,
               mutation.previousMailbox

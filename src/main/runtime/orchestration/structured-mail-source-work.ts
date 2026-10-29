@@ -37,8 +37,9 @@ export class MailSourceWork {
     }
     this.mailboxes.delete(mailbox)
   }
-  forget(id: string): void {
+  forget(id: string, retire: (mailbox: string) => void): void {
     for (const mailbox of this.scopes.get(id) ?? []) {
+      retire(mailbox)
       this.mailboxes.get(mailbox)?.delete(id)
     }
   }

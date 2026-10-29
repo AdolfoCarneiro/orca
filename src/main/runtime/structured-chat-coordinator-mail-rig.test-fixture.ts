@@ -1,3 +1,7 @@
+import {
+  createDefaultMailHost,
+  mailChatAttachParams
+} from './structured-chat-default-mail-host.test-fixture'
 import { createChatPersonActions } from './structured-chat-mail-person-fixture'
 // The coordinator-mail rig, shared by every suite that drives a worker's result into a structured
 // chat end to end in one process.
@@ -47,6 +51,7 @@ export let db: OrchestrationDb
 export let host: StructuredAgentSessionHost
 export let dispatcher: RpcDispatcher
 export let requests = 0
+let defaultInstallation = false
 export const observationClock = createCoordinatorMailObservationClock(() => host, COORDINATOR)
 
 export function request(
@@ -127,7 +132,8 @@ export async function startTurn(sessionId: string, turnIndex: number, text = 'po
 export const { attachChat, envelope, finishTurn, settleTurn } = createChatPersonActions({
   host: () => host,
   connectionFor,
-  startTurn
+  startTurn,
+  attachParams: (id) => mailChatAttachParams(id, root, defaultInstallation)
 })
 
 /** A user message typed into the chat, as the chat surface sends it. */
@@ -245,6 +251,7 @@ export async function startClearedContext(sessionId: string): Promise<void> {
 }
 
 beforeEach(async () => {
+  defaultInstallation = false
   resetProviderFaults()
   root = await mkdtemp(join(tmpdir(), 'orca-structured-coordinator-mail-'))
   codex = fakeCodex()
@@ -287,6 +294,12 @@ export function startRuntime(): OrcaRuntimeService {
     handle === 'term_worker' || handle === 'term_worker_2' ? `runtime_test:${handle}:1` : null
   )
   return started
+}
+
+export async function installDefaultMailHost(): Promise<void> {
+  defaultInstallation = true
+  ;({ runtime, host } = await createDefaultMailHost(root, db, codex))
+  dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
 }
 
 afterEach(async () => {
