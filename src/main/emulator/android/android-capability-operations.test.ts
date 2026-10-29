@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AndroidCommandResult, AndroidCommandRunner } from './android-command-runner'
 import type { AndroidSdkPaths } from './android-sdk-discovery'
-import { dumpAndroidAccessibilityTree, installAndroidApk } from './android-capability-operations'
+import {
+  dumpAndroidAccessibilityTree,
+  installAndroidApk,
+  launchAndroidApp
+} from './android-capability-operations'
 
 const SDK: AndroidSdkPaths = {
   sdkRoot: '/sdk',
@@ -59,5 +63,43 @@ describe('dumpAndroidAccessibilityTree', () => {
     const tree = await dumpAndroidAccessibilityTree(runner, SDK, 's')
     expect(tree.children[0]).toMatchObject({ text: 'Current screen' })
     expect(runner).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('launchAndroidApp', () => {
+  it.each([
+    { stdout: '', stderr: 'Error type 3\nError: Activity class {com.x/.Missing} does not exist.' },
+    {
+      stdout: '',
+      stderr: 'Error: Activity not started, unable to resolve Intent { cmp=com.x/.Main }'
+    },
+    { stdout: '', stderr: 'Error: Activity not started, you do not have permission to access it.' },
+    {
+      stdout: 'Error: Activity class {com.x/.Missing} does not exist.',
+      stderr: 'WARNING: diagnostic output'
+    }
+  ])('rejects a zero-exit activity launch failure: %j', async (diagnostic) => {
+    const runner = vi.fn<AndroidCommandRunner>().mockResolvedValue({ ...diagnostic, code: 0 })
+
+    await expect(launchAndroidApp(runner, SDK, 's', 'com.x', '.Missing')).rejects.toMatchObject({
+      code: 'emulator_error',
+      message: expect.stringContaining('Error:')
+    })
+  })
+
+  it.each([
+    '',
+    'Warning: Activity not started, intent has been delivered to currently running top-most instance.',
+    'Warning: Activity not started, its current task has been brought to the front'
+  ])('accepts successful activity launches with diagnostics: %s', async (stderr) => {
+    const runner = vi.fn<AndroidCommandRunner>().mockResolvedValue({
+      code: 0,
+      stdout: 'Starting: Intent { cmp=com.Error/.ErrorActivity }',
+      stderr
+    })
+
+    await expect(
+      launchAndroidApp(runner, SDK, 's', 'com.Error', '.ErrorActivity')
+    ).resolves.toBeUndefined()
   })
 })
