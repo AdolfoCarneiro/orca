@@ -31,7 +31,9 @@ it.each([
   'is:pr is:closed',
   'is:pr is:draft label:bug',
   'is:pr fix OR feat',
-  'is:pr (github OR terminal) AND fix'
+  'is:pr (github OR terminal) AND fix',
+  'is:pr "fix ) OR ("',
+  String.raw`is:pr "fix \" ) OR ( \" feat"`
 ])('reuses a rich PR page total for matching counts: %s', async (query) => {
   api.specialNodes = []
   api.reportedCount = 2748
@@ -47,6 +49,18 @@ it.each([
   expect(api.graphqlCalls).toBe(1)
   expect(api.restSearches).toBe(0)
 })
+
+it.each(['fix ) OR (', '( fix', '"fix ) OR (', String.raw`fix \") OR (\" open`])(
+  'keeps malformed PR count text on the original scoped query: %s',
+  async (text) => {
+    api.expectedSearch = `repo:fixture/repo is:pull-request ${text}`
+    api.reportedCount = 17
+    expect(await countWorkItems('fixture/repo', `is:pr ${text}`)).toBe(17)
+    expect(api.graphqlCalls).toBe(1)
+    expect(api.calls.at(-1)?.args.join(' ')).toContain('search(type: ISSUE,')
+    expect(api.restSearches).toBe(0)
+  }
+)
 
 it('removes count-only aliases before applying the existing batch limit', async () => {
   const pairs = Array.from({ length: 25 }, (_, index) => {
