@@ -57,6 +57,7 @@ const WORKER_THREAD_ENTRY_NAMES = [
   'worker-thread-child-process-entry',
   'usage-scan-worker-entry',
   'workspace-space-scan-worker-entry',
+  'diagnostic-bundle-worker-entry',
   'claude-profile-setup-worker-entry',
   'profile-state-backup-worker-entry',
   'profile-state-writer-worker-entry'

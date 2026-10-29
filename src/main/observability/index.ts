@@ -10,11 +10,8 @@ import {
 } from './local-file-sink'
 import { getDaemonLogFilePath, getTraceFilePath } from './logs-directory'
 import { DAEMON_LOG_MAX_FILES } from '../daemon/daemon-file-log'
-import {
-  collectBundle as _collectBundle,
-  type CollectBundleOptions,
-  type CollectedBundle
-} from './bundle'
+import type { CollectBundleOptions, CollectedBundle } from './bundle'
+import { collectBundleViaWorker, shutdownBundleWorker } from './bundle-worker-client'
 import {
   deleteBundle as _deleteBundle,
   uploadBundle as _uploadBundle,
@@ -148,6 +145,7 @@ export function closeObservabilityOnExit(): void {
 }
 
 export async function shutdownObservability(): Promise<void> {
+  shutdownBundleWorker()
   setSecurePathHardeningReporter(null)
   // Stop new tracer writes before closing and flushing the sink.
   setActiveSink(null)
@@ -190,7 +188,7 @@ export async function collectDiagnosticBundle(
 ): Promise<CollectedBundle> {
   // Flush before collection so the bundle includes the user’s latest action.
   await sink?.flushAsync()
-  return _collectBundle({
+  return collectBundleViaWorker({
     traceFilePath: getTraceFilePath(),
     maxFiles: DEFAULT_MAX_FILES,
     // The daemon writes a separate file; collection does not glob the directory.
