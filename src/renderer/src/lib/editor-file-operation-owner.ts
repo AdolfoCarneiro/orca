@@ -28,6 +28,7 @@ import {
 export { assertEditorFileOwnerCurrent } from './editor-file-child-owner'
 import {
   selectDetectedWorktreesByRepo,
+  selectFolderWorkspaces,
   selectWorktreesByRepo
 } from '@/store/workspace-record-selectors'
 
@@ -184,6 +185,13 @@ export function acquireEditorFileOperation(
     throw new Error(OWNER_CHANGED_MESSAGE)
   }
   const resolveOwnerDirectory = (current: AppState): string | null => {
+    const scope = parseWorkspaceKey(captured.worktreeId)
+    if (provenance.childRepo && scope?.type === 'folder') {
+      const folders = selectFolderWorkspaces(current).filter(
+        (folder) => folder.id === scope.folderWorkspaceId
+      )
+      return folders.length === 1 ? folders[0].folderPath : null
+    }
     const qualified = resolveWorkspaceDirectory(
       current,
       captured.worktreeId,

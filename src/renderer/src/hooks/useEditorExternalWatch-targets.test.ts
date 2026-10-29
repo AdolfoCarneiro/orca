@@ -479,14 +479,18 @@ describe('getEditorExternalWatchTargets', () => {
     }
 
     expect(
-      getEditorExternalWatchTargets(
-        makeState({
+      getEditorExternalWatchTargets({
+        ...makeState({
           repo,
           worktree,
           openFiles: [localFile, runtimeFile],
           runtimeEnvironmentId: null
-        })
-      ).targets
+        }),
+        repos: [repo, { ...repo, executionHostId: 'runtime:env-1' }],
+        worktreesByRepo: {
+          [repo.id]: [worktree, { ...worktree, hostId: 'runtime:env-1' }]
+        }
+      }).targets
     ).toEqual([
       {
         worktreeId: 'wt-mixed',
@@ -518,14 +522,18 @@ describe('getEditorExternalWatchTargets', () => {
     }
 
     expect(
-      getEditorExternalWatchTargets(
-        makeState({
+      getEditorExternalWatchTargets({
+        ...makeState({
           repo,
           worktree,
           openFiles: [restoredLocalFile, runtimeFile],
           runtimeEnvironmentId: 'env-1'
-        })
-      ).targets
+        }),
+        repos: [repo, { ...repo, executionHostId: 'runtime:env-1' }],
+        worktreesByRepo: {
+          [repo.id]: [worktree, { ...worktree, hostId: 'runtime:env-1' }]
+        }
+      }).targets
     ).toEqual([
       {
         worktreeId: 'wt-restored',

@@ -6,7 +6,8 @@ import {
   getRepoSshConnectionId,
   parseExecutionHostId
 } from '../../../shared/execution-host'
-import { getFileConnectionOwnerFromState } from './connection-owner-resolution'
+import { getFolderFileConnectionOwnerFromState } from './connection-owner-resolution'
+import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import {
   assertEditorFileOperationCurrent,
   getExpectedSshConnectionGeneration,
@@ -51,7 +52,11 @@ export function assertEditorFileOwnerCurrent(
   if (!provenance.childRepo) {
     return assertEditorFileOperationCurrent(state, file.worktreeId, provenance)
   }
-  const child = getFileConnectionOwnerFromState(state, file.worktreeId, file.filePath)?.repo
+  const scope = parseWorkspaceKey(file.worktreeId)
+  const child =
+    scope?.type === 'folder'
+      ? getFolderFileConnectionOwnerFromState(state, scope.folderWorkspaceId, file.filePath)?.repo
+      : undefined
   if (!child || child.id !== provenance.childRepo.id || child.path !== provenance.childRepo.path) {
     throw new Error(OWNER_CHANGED_MESSAGE)
   }

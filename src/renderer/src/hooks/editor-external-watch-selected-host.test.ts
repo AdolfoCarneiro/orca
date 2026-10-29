@@ -288,3 +288,34 @@ it('never watches a sibling repo host when the requested worktree owner is absen
       .targets
   ).toMatchObject([{ connectionId: 'builder', worktreePath: '/repo' }])
 })
+
+it('resolves an unstamped watch row before matching SSH or local consumers and refuses repo ambiguity', () => {
+  const repo: Repo = {
+    id: 'repo',
+    path: '/remote/repo',
+    displayName: 'Repo',
+    badgeColor: 'blue',
+    addedAt: 1,
+    connectionId: 'box'
+  }
+  const state: SelectedHostState = {
+    ...makeState('worktree'),
+    activeWorkspaceExecutionHostId: 'ssh:box',
+    repos: [repo],
+    worktreesByRepo: {
+      repo: [
+        makeWorktree({ id: 'same-worktree', repoId: 'repo', path: repo.path, hostId: undefined })
+      ]
+    }
+  }
+  expect(selectEditorExternalWatchTargets(state).targets).toMatchObject([
+    { connectionId: 'box', worktreePath: '/remote/repo' }
+  ])
+  expect(
+    selectEditorExternalWatchTargets({ ...state, activeWorkspaceExecutionHostId: 'local' }).targets
+  ).toEqual([])
+  expect(
+    selectEditorExternalWatchTargets({ ...state, repos: [repo, { ...repo, connectionId: null }] })
+      .targets
+  ).toEqual([])
+})

@@ -124,10 +124,20 @@ export function getFileConnectionOwnerFromState(
   if (parsedWorkspaceKey?.type !== 'folder') {
     return undefined
   }
-  const candidateRepos = getFolderWorkspaceCandidateRepos(
+  return getFolderFileConnectionOwnerFromState(
     state,
-    parsedWorkspaceKey.folderWorkspaceId
+    parsedWorkspaceKey.folderWorkspaceId,
+    filePath
   )
+}
+
+/** Path-specific child ownership remains meaningful when sibling removal resolves the whole folder. */
+export function getFolderFileConnectionOwnerFromState(
+  state: ConnectionOwnerState,
+  folderWorkspaceId: string,
+  filePath: string
+): { connectionId: string | null; repo?: Repo } | undefined {
+  const candidateRepos = getFolderWorkspaceCandidateRepos(state, folderWorkspaceId)
   const matchingRepos = candidateRepos
     .filter((repo) => isPathInsideOrEqual(repo.path, filePath))
     .map((repo) => ({ repo, normalizedPath: normalizeRuntimePathForComparison(repo.path) }))

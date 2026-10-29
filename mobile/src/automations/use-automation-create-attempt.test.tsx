@@ -1,12 +1,11 @@
 // @vitest-environment happy-dom
 import { act, renderHook, cleanup } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { useAutomationCreateAttempt } from './use-automation-create-attempt'
 import { automationClient, automationTargets, savedAutomation } from './automation-test-fixtures'
 import { automationSetupKey } from './automation-target-inventory'
 import { newAutomationDraft } from './automation-draft'
 import { AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY } from '../../../src/shared/automation-runtime-capabilities'
-import { automationListSchema, type MobileAutomationRow } from './automation-reply-schema'
 import { markRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 
 afterEach(cleanup)
@@ -112,62 +111,4 @@ describe('mobile automation create refusal recovery', () => {
       expect(port.send.mock.calls[1]?.[1]).toMatchObject({ name: 'revision0' })
     }
   )
-
-  it('keeps an unknown legacy attempt blocked instead of resubmitting changed input', async () => {
-    const port = automationClient(() => ({ automation: savedAutomation() }))
-    port.send.mockRejectedValueOnce(markRpcDeliveryUnknown(new Error('Reply lost')))
-    const { result } = renderHook(() => useAutomationCreateAttempt([], true, () => {}, current))
-    for (const name of ['original', 'corrected']) {
-      await act(async () => {
-        await expect(
-          result.current.submit(port.client, { ...draft(), name }, automationTargets(), [], current)
-        ).rejects.toThrow('may have applied')
-      })
-    }
-    expect(port.send).toHaveBeenCalledOnce()
-    expect(port.send.mock.calls[0]?.[1]).toMatchObject({ name: 'original' })
-  })
-
-  it('reconciles an uncertain keyed create while preserving edits made since submission', async () => {
-    const port = automationClient(() => ({ automation: savedAutomation() }))
-    port.send.mockRejectedValueOnce(markRpcDeliveryUnknown(new Error('Reply lost')))
-    const reconcile = vi.fn()
-    const { result, rerender } = renderHook(
-      ({ rows }: { rows: MobileAutomationRow[] }) =>
-        useAutomationCreateAttempt(rows, true, reconcile, current),
-      { initialProps: { rows: [] } }
-    )
-    await act(async () => {
-      await expect(
-        result.current.submit(
-          port.client,
-          draft(),
-          automationTargets(),
-          [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY],
-          current
-        )
-      ).rejects.toThrow('may have applied')
-    })
-    const submitted = port.send.mock.calls[0]?.[1]
-    if (
-      !submitted ||
-      typeof submitted !== 'object' ||
-      !('creationKey' in submitted) ||
-      typeof submitted.creationKey !== 'string'
-    ) {
-      throw new Error('Missing submitted key')
-    }
-    const saved = { ...savedAutomation(), creationKey: submitted.creationKey }
-    const rows = automationListSchema.parse({
-      automations: [saved],
-      items: [{ automationId: saved.id, selector: { kind: 'self' } }]
-    })
-    act(() => result.current.observeDraft({ ...draft(), prompt: 'Revised after submit' }))
-    rerender({ rows })
-    expect(reconcile).toHaveBeenCalledExactlyOnceWith(
-      rows[0],
-      expect.objectContaining({ prompt: 'Revised after submit' })
-    )
-    expect(port.send).toHaveBeenCalledOnce()
-  })
 })

@@ -115,7 +115,7 @@ function edit(id: string, draft: string) {
 }
 
 describe('loaded child-file save ownership', () => {
-  it('autosaves then drains a queued restart to the acquired local child', async () => {
+  it('autosaves then drains a queued restart to the acquired child after unrelated sibling removal', async () => {
     const id = await loadChild()
     let finish!: (result: FileWriteResult) => void
     io.write.mockReturnValueOnce(
@@ -128,6 +128,7 @@ describe('loaded child-file save ownership', () => {
     await vi.waitFor(() => expect(io.write).toHaveBeenCalledOnce())
     edit(id, 'restart text')
     const pending = queue.queueSave(live(id), 'restart text', 'restart')
+    useAppStore.setState((state) => ({ repos: state.repos.filter((repo) => repo.id !== 'remote') }))
     finish({ ok: true })
     await expect(pending).resolves.toBe('written')
     expect(io.write).toHaveBeenCalledTimes(2)
