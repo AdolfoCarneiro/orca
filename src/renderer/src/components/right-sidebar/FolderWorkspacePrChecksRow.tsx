@@ -108,7 +108,7 @@ export function FolderWorkspacePrChecksRow({
                 aria-label={openExternalLabel}
                 onClick={(event) => {
                   event.stopPropagation()
-                  openAppHttpLink(row.reviewUrl!, { worktreeId: row.worktree.id, event })
+                  openAppHttpLink(row.reviewUrl!, { event })
                 }}
                 onKeyDown={(event) => event.stopPropagation()}
               >

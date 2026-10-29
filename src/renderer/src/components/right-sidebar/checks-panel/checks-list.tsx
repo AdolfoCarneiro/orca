@@ -174,7 +174,7 @@ export function ChecksList(props: ChecksListProps): React.JSX.Element {
                               )}
                               onClick={(event) => {
                                 event.stopPropagation()
-                                openAppHttpLink(openUrl, { worktreeId: resolvedWorktreeId, event })
+                                openAppHttpLink(openUrl, { event })
                               }}
                             >
                               <ExternalLink className="size-3" />
