@@ -86,6 +86,7 @@ describe('a phone pick while the agent from the last turn is still running', () 
         fence: 1,
         mutate,
         optionStamp: 'claude-live|ask',
+        turnId: null,
         hostSupport: { permissionModes: true, permissionOwn: true, statusFeed: true }
       })
       return null
