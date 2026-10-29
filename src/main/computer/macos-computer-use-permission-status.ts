@@ -17,11 +17,16 @@ import { stopMacOSPermissionStatusHelper } from './macos-computer-use-permission
 
 const PERMISSION_STATUS_HELPER_LAUNCH_TIMEOUT_MS = 5_000
 
-export function getComputerUsePermissionStatus(): Promise<ComputerUsePermissionStatusResult> {
-  return getComputerUsePermissionStatusAsync()
+// onHelperSpawn fires when `open` actually starts, so launch budgets measure real spawns.
+export function getComputerUsePermissionStatus(
+  onHelperSpawn: () => void = () => {}
+): Promise<ComputerUsePermissionStatusResult> {
+  return getComputerUsePermissionStatusAsync(onHelperSpawn)
 }
 
-async function getComputerUsePermissionStatusAsync(): Promise<ComputerUsePermissionStatusResult> {
+async function getComputerUsePermissionStatusAsync(
+  onHelperSpawn: () => void
+): Promise<ComputerUsePermissionStatusResult> {
   if (process.platform !== 'darwin') {
     return {
       platform: process.platform,
@@ -43,7 +48,7 @@ async function getComputerUsePermissionStatusAsync(): Promise<ComputerUsePermiss
     )
   }
 
-  const raw = await readPermissionStatusFromHelperApp(helperAppPath)
+  const raw = await readPermissionStatusFromHelperApp(helperAppPath, onHelperSpawn)
 
   return {
     platform: process.platform,
@@ -84,13 +89,14 @@ function createUnavailablePermissionStatus(
 }
 
 async function readPermissionStatusFromHelperApp(
-  helperAppPath: string
+  helperAppPath: string,
+  onHelperSpawn: () => void
 ): Promise<Partial<Record<ComputerUsePermissionId, ComputerUsePermissionStatus>>> {
   const tempDir = await mkdtemp(join(tmpdir(), 'orca-computer-use-permissions-'))
   const statusPath = join(tempDir, 'status.json')
   try {
     // Launch the helper app so TCC checks its identity instead of inheriting the parent's grants.
-    await launchPermissionStatusHelper(helperAppPath, statusPath)
+    await launchPermissionStatusHelper(helperAppPath, statusPath, onHelperSpawn)
 
     for (let attempt = 0; attempt < 50; attempt++) {
       if (await fileExists(statusPath)) {
@@ -108,7 +114,11 @@ async function readPermissionStatusFromHelperApp(
   }
 }
 
-function launchPermissionStatusHelper(helperAppPath: string, statusPath: string): Promise<void> {
+function launchPermissionStatusHelper(
+  helperAppPath: string,
+  statusPath: string,
+  onHelperSpawn: () => void
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const launch = spawn(
       '/usr/bin/open',
@@ -117,6 +127,7 @@ function launchPermissionStatusHelper(helperAppPath: string, statusPath: string)
         stdio: ['ignore', 'pipe', 'pipe']
       }
     )
+    onHelperSpawn()
     let stdout = ''
     let stderr = ''
 

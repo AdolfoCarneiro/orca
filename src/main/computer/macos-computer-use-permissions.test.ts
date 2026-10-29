@@ -21,8 +21,8 @@ const helperAppPath = '/Applications/Orca Computer Use.app'
 const helperInfoPlistPath = join(helperAppPath, 'Contents', 'Info.plist')
 
 const plistBuddyStdout = vi.hoisted(() => ({ value: 'com.example.orca.computer-use\n' }))
+let monotonicOffset = 0
 const gate = vi.hoisted((): { current: PermissionStatusGate | null } => ({ current: null }))
-let testClock = 0
 
 // A fresh gate per test so one test's floor or cached grant never leaks into the next.
 vi.mock('./macos-computer-use-permission-status-gate', async (importOriginal) => ({
@@ -78,8 +78,9 @@ describe('openComputerUsePermissions', () => {
     vi.mocked(stat).mockResolvedValue({} as Awaited<ReturnType<typeof stat>>)
     mockPermissionStatus('{"accessibility":"granted","screenshots":"granted"}')
     setPlatform('darwin')
-    // Jump past the previous test's setup window instead of resetting module state.
-    vi.useFakeTimers({ now: (testClock += 600_000) })
+    // Fake timers restart the monotonic clock; step past any earlier test's setup window.
+    vi.useFakeTimers()
+    vi.advanceTimersByTime((monotonicOffset += 600_000))
     gate.current = createPermissionStatusGate(getComputerUsePermissionStatus)
   })
 
@@ -285,7 +286,8 @@ describe('setup helper launch window', () => {
     )
     mockPermissionStatus('{"accessibility":"not-granted","screenshots":"not-granted"}')
     setPlatform('darwin')
-    vi.useFakeTimers({ now: (testClock += 600_000) })
+    vi.useFakeTimers()
+    vi.advanceTimersByTime((monotonicOffset += 600_000))
     gate.current = createPermissionStatusGate(getComputerUsePermissionStatus)
   })
 
@@ -362,14 +364,63 @@ describe('setup helper launch window', () => {
     expect(setupLaunches()).toEqual([['--permissions'], ['--permission', 'accessibility']])
   })
 
-  it('cancels a queued setup launch when permissions are reset', async () => {
-    vi.mocked(spawnSync).mockReturnValue({ status: 0 } as ReturnType<typeof spawnSync>)
+  it('lets an A that arrives after A launches queue and win over B', async () => {
+    let reentered = true
+    vi.mocked(spawn).mockImplementation((program, args) => {
+      // The second A lands while the first A's launch is still on the stack.
+      if (
+        program === '/usr/bin/open' &&
+        !reentered &&
+        Array.isArray(args) &&
+        !args.includes('--permission-status-file')
+      ) {
+        reentered = true
+        void openComputerUsePermissions('accessibility')
+      }
+      return fakeSpawnDispatch(() => ({}))(program, Array.isArray(args) ? args : [])
+    })
     await openComputerUsePermissions()
-    await openComputerUsePermissions('accessibility')
-    const reset = resetComputerUsePermissions()
     await vi.advanceTimersByTimeAsync(5_000)
-    await reset
-    expect(setupLaunches()).toEqual([['--permissions']])
+    reentered = false
+    await Promise.all([
+      openComputerUsePermissions('accessibility'),
+      openComputerUsePermissions('screenshots')
+    ])
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(setupLaunches().slice(1)).toEqual([
+      ['--permission', 'accessibility'],
+      ['--permission', 'accessibility']
+    ])
+  })
+
+  it('spaces real setup spawns 5s apart even when pkill is slow', async () => {
+    const spawnedAt: number[] = []
+    let pkillDelayMs = 100
+    const pkillResult: ReturnType<typeof spawnSync> = {
+      pid: 0,
+      output: [],
+      stdout: Buffer.alloc(0),
+      stderr: Buffer.alloc(0),
+      status: 0,
+      signal: null
+    }
+    vi.mocked(spawnSync).mockImplementation(() => {
+      vi.advanceTimersByTime(pkillDelayMs)
+      return pkillResult
+    })
+    vi.mocked(spawn).mockImplementation((program, args) => {
+      if (program === '/usr/bin/open') {
+        spawnedAt.push(performance.now())
+      }
+      return fakeSpawnDispatch(() => ({}))(program, Array.isArray(args) ? args : [])
+    })
+    await openComputerUsePermissions('accessibility')
+    pkillDelayMs = 0
+    await openComputerUsePermissions('screenshots')
+    await vi.advanceTimersByTimeAsync(6_000)
+    const setupSpawns = spawnedAt.slice(-2)
+    expect(setupSpawns).toHaveLength(2)
+    expect(setupSpawns[1]! - setupSpawns[0]!).toBeGreaterThanOrEqual(5_000)
   })
 
   it('never serves a seeded grant after a partial reset failure', async () => {

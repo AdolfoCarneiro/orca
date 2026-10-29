@@ -1,6 +1,7 @@
 import type { ComputerUsePermissionStatusResult } from '../../shared/computer-use-permissions-types'
 
-// Each macOS probe launches a helper that settles TCC for ~2s; one launch per 5s caps every path at 12/min.
+// Each macOS probe launches a helper that settles TCC for ~2s; 5s between real spawns allows 12 per 60s window.
+// performance.now is monotonic, so a wall-clock step can't stretch or skip the floor.
 const PERMISSION_STATUS_LAUNCH_FLOOR_MS = 5_000
 // A probe older than this may predate a grant, so a denial from it sends the reader to the next probe.
 const PERMISSION_STATUS_FRESH_JOIN_MS = 300
@@ -14,14 +15,15 @@ export type PermissionStatusGate = {
   invalidate: () => void
 }
 
+// probe calls markSpawned when its helper actually starts; the floor counts from the later of claim and spawn.
 export function createPermissionStatusGate(
-  probe: () => Promise<StatusResult>
+  probe: (markSpawned: () => void) => Promise<StatusResult>
 ): PermissionStatusGate {
   let inFlight: { promise: Promise<StatusResult>; joinable: boolean } | null = null
   let lastLaunchAt = Number.NEGATIVE_INFINITY
   // Only grants are cached; a denial or error is never served, so a fresh grant shows within one floor.
   let granted: StatusResult | null = null
-  // Setup may reuse a denial until the floor expires: it launches the helper either way.
+  // Setup may reuse a denial until the floor expires, so it never acts on one older than a floor.
   let lastDenied: StatusResult | null = null
   let waiters: {
     promise: Promise<StatusResult>
@@ -38,24 +40,29 @@ export function createPermissionStatusGate(
     trailingTimer = setTimeout(
       () => {
         trailingTimer = null
-        if (waiters && !inFlight && Date.now() >= floorExpiresAt()) {
+        if (waiters && !inFlight && performance.now() >= floorExpiresAt()) {
           void launch().catch(() => {})
         } else {
           armTrailing()
         }
       },
-      Math.max(0, floorExpiresAt() - Date.now())
+      Math.max(0, floorExpiresAt() - performance.now())
     )
     trailingTimer.unref?.()
   }
 
   const launch = (): Promise<StatusResult> => {
-    lastLaunchAt = Date.now()
+    lastLaunchAt = performance.now()
     if (trailingTimer) {
       clearTimeout(trailingTimer)
       trailingTimer = null
     }
-    const entry = { promise: probe(), joinable: true }
+    const entry = {
+      promise: probe(() => {
+        lastLaunchAt = Math.max(lastLaunchAt, performance.now())
+      }),
+      joinable: true
+    }
     inFlight = entry
     entry.promise
       .then(
@@ -67,6 +74,7 @@ export function createPermissionStatusGate(
         },
         () => {
           granted = null
+          lastDenied = null
         }
       )
       .finally(() => {
@@ -95,17 +103,17 @@ export function createPermissionStatusGate(
   }
 
   const read = (): Promise<StatusResult> => {
-    if (granted && Date.now() < floorExpiresAt()) {
+    if (granted && performance.now() < floorExpiresAt()) {
       return Promise.resolve(granted)
     }
     if (inFlight?.joinable) {
       const joined = inFlight.promise
-      if (Date.now() - lastLaunchAt <= PERMISSION_STATUS_FRESH_JOIN_MS) {
+      if (performance.now() - lastLaunchAt <= PERMISSION_STATUS_FRESH_JOIN_MS) {
         return joined
       }
       return joined.then((result) => (isCacheable(result) ? result : waitForNextProbe()))
     }
-    if (!inFlight && Date.now() >= floorExpiresAt()) {
+    if (!inFlight && performance.now() >= floorExpiresAt()) {
       return launch()
     }
     return waitForNextProbe()
@@ -117,10 +125,12 @@ export function createPermissionStatusGate(
       if (inFlight?.joinable) {
         return inFlight.promise
       }
-      if (granted && Date.now() < floorExpiresAt()) {
+      if (granted && performance.now() < floorExpiresAt()) {
         return Promise.resolve(granted)
       }
-      return lastDenied && Date.now() < floorExpiresAt() ? Promise.resolve(lastDenied) : read()
+      return lastDenied && performance.now() < floorExpiresAt()
+        ? Promise.resolve(lastDenied)
+        : read()
     },
     invalidate: () => {
       granted = null
@@ -140,9 +150,9 @@ function isCacheable(result: StatusResult): boolean {
   )
 }
 
-async function probeStatus(): Promise<StatusResult> {
+async function probeStatus(markSpawned: () => void = () => {}): Promise<StatusResult> {
   const { getComputerUsePermissionStatus } = await import('./macos-computer-use-permissions')
-  return getComputerUsePermissionStatus()
+  return getComputerUsePermissionStatus(markSpawned)
 }
 
 const macosGate = createPermissionStatusGate(probeStatus)

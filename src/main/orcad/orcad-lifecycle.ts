@@ -105,6 +105,10 @@ export async function startOrcadWithLifecycle<T extends object>(
   const cleanup = createIdempotentOrcadCleanup(async () => {
     // Stamp quit before awaiting teardown so dying chat agents read as restart rather than crash.
     recordAgentSessionRuntimeEnd('quit')
+    // Quit handlers run after runtime teardown; stop queued setup helpers before it starts.
+    void import('../computer/macos-computer-use-permissions').then((permissions) =>
+      permissions.stopComputerUseSetupForShutdown()
+    )
     let runtimeCleanupSucceeded = false
     try {
       await runtime.stop()

@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { RuntimeClientError } from './runtime-client-error'
+import { getAppEnvironment, hasAppEnvironment } from '../../shared/app-environment'
 import { readMacosBundleId, resetMacosTccPermission } from '../macos-tcc-reset'
 import { resolveMacOSComputerUseAppPath } from './macos-native-provider-paths'
 import { resolveComputerUseHelperUnavailableReason } from './macos-computer-use-permission-status'
@@ -15,7 +16,7 @@ const DEFAULT_COMPUTER_USE_BUNDLE_ID = 'com.stablyai.orca.computer-use'
 
 export { getComputerUsePermissionStatus } from './macos-computer-use-permission-status'
 
-// One setup-helper launch per 5s across every permission; the window is claimed synchronously.
+// One setup-helper spawn per 5s across every permission, on the monotonic clock; claimed synchronously.
 const SETUP_HELPER_LAUNCH_WINDOW_MS = 5_000
 // Requests are numbered when they arrive so latest-wins holds even for ones that coalesce.
 type SetupLaunchRequest = { seq: number; helperAppPath: string; helperArgs: string[] }
@@ -24,14 +25,20 @@ let lastLaunchedSeq = 0
 let lastSetupLaunchAt = Number.NEGATIVE_INFINITY
 let queuedSetupLaunch: SetupLaunchRequest | null = null
 let queuedSetupTimer: ReturnType<typeof setTimeout> | null = null
+// Bumped by reset and shutdown so Opens still waiting on status never launch afterwards.
+let setupGeneration = 0
+let setupShuttingDown = false
+let shutdownHookInstalled = false
+type PendingSetupRequest = { seq: number; key: string; generation: number }
 const setupInFlight = new Map<
   string,
-  { request: { seq: number }; promise: Promise<ComputerUsePermissionSetupResult> }
+  { request: PendingSetupRequest; promise: Promise<ComputerUsePermissionSetupResult> }
 >()
 
 export function openComputerUsePermissions(
   permissionId?: ComputerUsePermissionId
 ): Promise<ComputerUsePermissionSetupResult> {
+  installSetupShutdownHook()
   const key = permissionId ?? 'all'
   const seq = ++setupRequestSeq
   const existing = setupInFlight.get(key)
@@ -39,16 +46,37 @@ export function openComputerUsePermissions(
     existing.request.seq = seq
     return existing.promise
   }
-  const request = { seq }
-  const promise = openComputerUsePermissionsAsync(permissionId, () => request.seq).finally(() =>
-    setupInFlight.delete(key)
-  )
+  const request: PendingSetupRequest = { seq, key, generation: setupGeneration }
+  const promise = openComputerUsePermissionsAsync(permissionId, request).finally(() => {
+    if (setupInFlight.get(key)?.request === request) {
+      setupInFlight.delete(key)
+    }
+  })
   setupInFlight.set(key, { request, promise })
   return promise
 }
 
-// Drops a queued launch, e.g. on quit or reset, so no helper appears after the user moved on.
+// Drops queued and still-preflighting launches, e.g. on reset, so no helper appears after the user moved on.
 export function cancelQueuedSetupHelperLaunch(): void {
+  setupGeneration += 1
+  clearQueuedSetupLaunch()
+}
+
+export function stopComputerUseSetupForShutdown(): void {
+  setupShuttingDown = true
+  cancelQueuedSetupHelperLaunch()
+}
+
+// Every host (desktop, headless Electron serve, orcad) runs AppEnvironment quit handlers.
+function installSetupShutdownHook(): void {
+  if (shutdownHookInstalled || !hasAppEnvironment()) {
+    return
+  }
+  shutdownHookInstalled = true
+  getAppEnvironment().onWillQuit(stopComputerUseSetupForShutdown)
+}
+
+function clearQueuedSetupLaunch(): void {
   if (queuedSetupTimer) {
     clearTimeout(queuedSetupTimer)
     queuedSetupTimer = null
@@ -58,7 +86,7 @@ export function cancelQueuedSetupHelperLaunch(): void {
 
 // Launches now, or queues for when the window reopens; a later request supersedes a queued one.
 function requestSetupHelperLaunch(request: SetupLaunchRequest): 'launched' | 'queued' {
-  const waitMs = lastSetupLaunchAt + SETUP_HELPER_LAUNCH_WINDOW_MS - Date.now()
+  const waitMs = lastSetupLaunchAt + SETUP_HELPER_LAUNCH_WINDOW_MS - performance.now()
   if (waitMs <= 0 && !queuedSetupLaunch) {
     launchSetupHelper(request)
     return 'launched'
@@ -70,7 +98,7 @@ function requestSetupHelperLaunch(request: SetupLaunchRequest): 'launched' | 'qu
     queuedSetupTimer = setTimeout(
       () => {
         const queued = queuedSetupLaunch
-        cancelQueuedSetupHelperLaunch()
+        clearQueuedSetupLaunch()
         // A launch that started after this request already showed what the user asked for last.
         if (queued && queued.seq > lastLaunchedSeq) {
           launchSetupHelper(queued)
@@ -84,7 +112,9 @@ function requestSetupHelperLaunch(request: SetupLaunchRequest): 'launched' | 'qu
 }
 
 function launchSetupHelper(request: SetupLaunchRequest): void {
-  lastSetupLaunchAt = Date.now()
+  if (setupShuttingDown) {
+    return
+  }
   lastLaunchedSeq = Math.max(lastLaunchedSeq, request.seq)
   // Kill and relaunch so a repeated click always brings the helper back to the front.
   closeExistingPermissionHelpers()
@@ -93,12 +123,14 @@ function launchSetupHelper(request: SetupLaunchRequest): void {
     ['-n', request.helperAppPath, '--args', ...request.helperArgs],
     { detached: true, stdio: 'ignore' }
   )
+  // Measured after the spawn so a slow pkill can't pull the next spawn inside the window.
+  lastSetupLaunchAt = performance.now()
   helper.unref()
 }
 
 async function openComputerUsePermissionsAsync(
   permissionId: ComputerUsePermissionId | undefined,
-  currentSeq: () => number
+  pending: PendingSetupRequest
 ): Promise<ComputerUsePermissionSetupResult> {
   if (process.platform !== 'darwin') {
     return {
@@ -137,8 +169,23 @@ async function openComputerUsePermissionsAsync(
     }
   }
 
+  if (pending.generation !== setupGeneration || setupShuttingDown) {
+    return {
+      platform: process.platform,
+      helperAppPath,
+      permissionId,
+      openedSettings: false,
+      launchedHelper: false,
+      permissions: status.permissions,
+      nextStep
+    }
+  }
+  // A later Open for this key must queue behind this launch rather than coalesce into it.
+  if (setupInFlight.get(pending.key)?.request === pending) {
+    setupInFlight.delete(pending.key)
+  }
   const helperArgs = permissionId ? ['--permission', permissionId] : ['--permissions']
-  const launch = requestSetupHelperLaunch({ seq: currentSeq(), helperAppPath, helperArgs })
+  const launch = requestSetupHelperLaunch({ seq: pending.seq, helperAppPath, helperArgs })
 
   return {
     platform: process.platform,
@@ -157,6 +204,8 @@ export function resetComputerUsePermissions(): Promise<ComputerUsePermissionRese
 }
 
 async function resetComputerUsePermissionsAsync(): Promise<ComputerUsePermissionResetResult> {
+  // Before any await, so a queued or preflighting Open can't slip a helper in during the reset.
+  cancelQueuedSetupHelperLaunch()
   if (process.platform !== 'darwin') {
     return {
       platform: process.platform,
@@ -181,7 +230,6 @@ async function resetComputerUsePermissionsAsync(): Promise<ComputerUsePermission
   }
 
   const bundleId = (await readMacosBundleId(helperAppPath)) ?? DEFAULT_COMPUTER_USE_BUNDLE_ID
-  cancelQueuedSetupHelperLaunch()
   closeExistingPermissionHelpers()
   try {
     await resetTccPermission('Accessibility', bundleId)

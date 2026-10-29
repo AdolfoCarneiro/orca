@@ -29,6 +29,16 @@ function statusWith(accessibility: ComputerUsePermissionStatus): ComputerUsePerm
 const denied = statusWith('not-granted')
 const granted = statusWith('granted')
 
+// Most spawns inside any half-open window [t, t + windowMs).
+function maxSpawnsInAnyWindow(spawnedAt: number[], windowMs: number): number {
+  return Math.max(
+    0,
+    ...spawnedAt.map(
+      (start) => spawnedAt.filter((at) => at >= start && at < start + windowMs).length
+    )
+  )
+}
+
 describe('createPermissionStatusGate', () => {
   beforeEach(() => {
     vi.useFakeTimers({ now: 0 })
@@ -46,27 +56,33 @@ describe('createPermissionStatusGate', () => {
     expect(probe).toHaveBeenCalledTimes(1)
   })
 
-  it('caps focus spam and awaited Refresh/RPC loops at one launch per 5s while denied', async () => {
-    const probe = vi.fn(async () => denied)
+  it('allows at most 12 real spawns in any 60s window, even with a slow pre-spawn step', async () => {
+    const spawnedAt: number[] = []
+    let preSpawnDelayMs = 100
+    const probe = vi.fn(async (markSpawned: () => void) => {
+      // ast-grep-ignore: test-no-real-time-wait -- fake timers drive this simulated mkdtemp delay
+      await new Promise((resolve) => setTimeout(resolve, preSpawnDelayMs))
+      preSpawnDelayMs = 0
+      markSpawned()
+      spawnedAt.push(performance.now())
+      return denied
+    })
     const gate = createPermissionStatusGate(probe)
 
-    // Fire-and-forget focus reads every 500ms.
-    for (let elapsed = 0; elapsed < 60_000; elapsed += 500) {
+    // Fire-and-forget focus reads every 500ms, then a caller that re-reads as each answer lands.
+    for (let elapsed = 0; elapsed < 120_000; elapsed += 500) {
       void gate.read()
       await vi.advanceTimersByTimeAsync(500)
     }
-    expect(probe).toHaveBeenCalledTimes(13)
-
-    // A caller that re-reads as soon as each answer lands.
-    const loopEnd = Date.now() + 60_000
-    while (Date.now() < loopEnd) {
+    const loopEnd = performance.now() + 120_000
+    while (performance.now() < loopEnd) {
       let answered = false
       void gate.read().then(() => (answered = true))
       while (!answered) {
         await vi.advanceTimersByTimeAsync(100)
       }
     }
-    expect(probe.mock.calls.length - 13).toBeLessThanOrEqual(13)
+    expect(maxSpawnsInAnyWindow(spawnedAt, 60_000)).toBeLessThanOrEqual(12)
   })
 
   it('never serves a denial or error from cache, so a grant shows within one floor', async () => {
@@ -144,15 +160,16 @@ describe('createPermissionStatusGate', () => {
     await gate.read()
     await vi.advanceTimersByTimeAsync(1_000)
     void gate.read()
-    // The trailing timer is late: a reader past the floor launches before it fires.
-    vi.setSystemTime(5_001)
+    // The trailing timer runs late: a reader that sees the floor expired launches first.
+    const lateClock = vi.spyOn(performance, 'now').mockReturnValue(5_001)
     await gate.read()
     await vi.advanceTimersByTimeAsync(0)
+    lateClock.mockRestore()
     void gate.read()
     expect(probe).toHaveBeenCalledTimes(2)
-    await vi.advanceTimersByTimeAsync(4_999)
+    await vi.advanceTimersByTimeAsync(8_999)
     expect(probe).toHaveBeenCalledTimes(2)
-    await vi.advanceTimersByTimeAsync(1_100)
+    await vi.advanceTimersByTimeAsync(100)
     expect(probe).toHaveBeenCalledTimes(3)
   })
 
