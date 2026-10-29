@@ -7,10 +7,7 @@ import {
   useSyncExternalStore
 } from 'react'
 import { mobileStructuredSessionStatusFeed } from './mobile-structured-session-status-feed'
-import {
-  projectRuntimePermission,
-  runtimePermissionReportKey
-} from '../../../src/shared/structured-agent-session-permission-option'
+import { projectRuntimePermission } from '../../../src/shared/structured-agent-session-permission-option'
 import type { AgentSessionConversationCommand } from '../../../src/shared/agent-session/agent-session-conversation-command'
 import type {
   AgentSessionOptionsResult,
@@ -26,6 +23,7 @@ import { cloneStructuredAgentSessionOptionRecord } from '../../../src/shared/str
 import {
   createStructuredOptionPickBook,
   observeStructuredPermissionReport,
+  structuredPermissionPickStands,
   resetStructuredOptionPickBook
 } from '../../../src/shared/structured-agent-session-option-pick-book'
 import {
@@ -84,15 +82,20 @@ export function useMobileStructuredOptionState(args: {
   const optionStateRef = useRef(optionState)
   const activeOptionRecordRef = useRef(optionState.record)
   const optionPicks = useRef(createStructuredOptionPickBook())
-  const permissionReport = runtimePermissionReportKey(summary, fence)
   useLayoutEffect(() => {
-    observeStructuredPermissionReport(optionPicks.current, permissionReport)
-  }, [permissionReport])
+    observeStructuredPermissionReport(optionPicks.current, summary, fence)
+  }, [summary, fence])
   const projectPermission = <
     T extends { reportedPermissionMode?: string | null; permissionMode?: string | null }
   >(
     state: T
-  ): T => projectRuntimePermission(state, summary, fence, optionPicks.current.permissionPickedOver)
+  ): T =>
+    projectRuntimePermission(
+      state,
+      summary,
+      fence,
+      structuredPermissionPickStands(optionPicks.current, summary, fence)
+    )
   const updateOptionState = useCallback(
     (update: (current: StructuredAgentSessionOptionState) => StructuredAgentSessionOptionState) => {
       const next = update(optionStateRef.current)

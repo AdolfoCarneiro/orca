@@ -5,7 +5,8 @@ import {
   observeStructuredPermissionReport,
   resetStructuredOptionPickBook,
   settleStructuredOptionPick,
-  structuredOptionPickCommit
+  structuredOptionPickCommit,
+  structuredPermissionPickStands
 } from './structured-agent-session-option-pick-book'
 
 describe('structured option pick commits', () => {
@@ -29,32 +30,58 @@ describe('structured option pick commits', () => {
 })
 
 describe('a permission pick over the agent report', () => {
+  const reporting = (mode: string | null) => ({ runtimePermission: { fence: 1, mode } })
+  const gone = { runtimePermission: null }
+  const pickMode = (book: ReturnType<typeof createStructuredOptionPickBook>, mode: string) =>
+    beginStructuredOptionPick(book, 'permissionMode', mode, true)
+  const observe = (book: ReturnType<typeof createStructuredOptionPickBook>, summary: unknown) => {
+    const stands = structuredPermissionPickStands(book, summary, 1)
+    observeStructuredPermissionReport(book, summary, 1)
+    // A render before the observation must agree with one after it.
+    expect(structuredPermissionPickStands(book, summary, 1)).toBe(stands)
+    return stands
+  }
+
   it('stands over the report it was made over until a different report arrives', () => {
     const book = createStructuredOptionPickBook()
-    observeStructuredPermissionReport(book, '1:ask')
+    observe(book, reporting('ask'))
     beginStructuredOptionPick(book, 'model', 'opus', false)
-    expect(book.permissionPickedOver).toBeNull()
-    beginStructuredOptionPick(book, 'permissionMode', 'full-access', true)
-    expect(book.permissionPickedOver).toBe('1:ask')
-    observeStructuredPermissionReport(book, '1:ask')
-    expect(book.permissionPickedOver).toBe('1:ask')
-    observeStructuredPermissionReport(book, null)
-    observeStructuredPermissionReport(book, '1:ask')
-    expect(book.permissionPickedOver).toBeNull()
+    expect(structuredPermissionPickStands(book, reporting('ask'), 1)).toBe(false)
+    pickMode(book, 'full-access')
+    expect(observe(book, reporting('ask'))).toBe(true)
+    expect(observe(book, gone)).toBe(false)
+    expect(observe(book, reporting('ask'))).toBe(false)
+  })
+
+  it('a report that disagrees with the pick wins', () => {
+    const book = createStructuredOptionPickBook()
+    observe(book, reporting('ask'))
+    pickMode(book, 'full-access')
+    expect(observe(book, reporting('accept-edits'))).toBe(false)
+  })
+
+  it('keeps the latest of two quick picks standing while the agent takes the first', () => {
+    const book = createStructuredOptionPickBook()
+    observe(book, reporting('ask'))
+    pickMode(book, 'accept-edits')
+    pickMode(book, 'auto')
+    expect(observe(book, reporting('accept-edits'))).toBe(true)
+    expect(observe(book, reporting('accept-edits'))).toBe(true)
+    expect(observe(book, reporting('auto'))).toBe(false)
   })
 
   it('drops a refused pick, but not one a newer pick replaced, and on a new fence', () => {
     const book = createStructuredOptionPickBook()
-    observeStructuredPermissionReport(book, '1:ask')
-    const first = beginStructuredOptionPick(book, 'permissionMode', 'full-access', true)
-    beginStructuredOptionPick(book, 'permissionMode', 'accept-edits', true)
+    observe(book, reporting('ask'))
+    const first = pickMode(book, 'full-access')
+    pickMode(book, 'accept-edits')
     settleStructuredOptionPick(book, first, false)
-    expect(book.permissionPickedOver).toBe('1:ask')
-    const latest = beginStructuredOptionPick(book, 'permissionMode', 'auto', true)
+    expect(structuredPermissionPickStands(book, reporting('ask'), 1)).toBe(true)
+    const latest = pickMode(book, 'auto')
     settleStructuredOptionPick(book, latest, false)
-    expect(book.permissionPickedOver).toBeNull()
-    beginStructuredOptionPick(book, 'permissionMode', 'auto', true)
+    expect(structuredPermissionPickStands(book, reporting('ask'), 1)).toBe(false)
+    pickMode(book, 'auto')
     resetStructuredOptionPickBook(book)
-    expect(book.permissionPickedOver).toBeNull()
+    expect(structuredPermissionPickStands(book, reporting('ask'), 1)).toBe(false)
   })
 })

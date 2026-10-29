@@ -108,36 +108,24 @@ describe('the permission mode picker', () => {
 })
 
 describe('the reported permission mode after a pick', () => {
-  const reporting = (mode: string | null, fence = 1) => ({ runtimePermission: { fence, mode } })
+  const reporting = (mode: string | null) => ({ runtimePermission: { fence: 1, mode } })
   const picked = { permissionMode: 'full-access', reportedPermissionMode: undefined }
 
-  it('shows the pick while the agent still reports the mode it was made over', () => {
-    const over = runtimePermissionReportKey(reporting('ask'), 1)
-    expect(projectRuntimePermission(picked, reporting('ask'), 1, over)).toMatchObject({
+  it('shows a standing pick over the report, and the report otherwise', () => {
+    expect(projectRuntimePermission(picked, reporting('ask'), 1, true)).toMatchObject({
       reportedPermissionMode: 'full-access'
     })
     expect(projectRuntimePermission(picked, reporting('ask'), 1)).toMatchObject({
       reportedPermissionMode: 'ask'
     })
-  })
-
-  it("shows the agent's next report, or none, once it differs", () => {
-    const over = runtimePermissionReportKey(reporting('ask'), 1)
-    expect(projectRuntimePermission(picked, reporting('accept-edits'), 1, over)).toMatchObject({
-      reportedPermissionMode: 'accept-edits'
-    })
-    expect(projectRuntimePermission(picked, reporting('ask', 2), 2, over)).toMatchObject({
-      reportedPermissionMode: 'ask'
-    })
     expect(
-      projectRuntimePermission(picked, { runtimePermission: null }, 1, over).reportedPermissionMode
+      projectRuntimePermission(picked, { runtimePermission: null }, 1).reportedPermissionMode
     ).toBeUndefined()
   })
 
   it('never shows own settings as a running mode', () => {
-    const over = runtimePermissionReportKey(reporting('ask'), 1)
     expect(
-      projectRuntimePermission({ ...picked, permissionMode: 'own' }, reporting('ask'), 1, over)
+      projectRuntimePermission({ ...picked, permissionMode: 'own' }, reporting('ask'), 1, true)
     ).toMatchObject({ reportedPermissionMode: 'ask' })
     expect(runtimePermissionReportKey({ runtimePermission: null }, 1)).toBeNull()
     expect(runtimePermissionReportKey({}, 1)).toBeNull()

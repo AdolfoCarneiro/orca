@@ -5,14 +5,16 @@ import { isRootAgentJournalItem } from '../../../shared/agent-session-journal-pr
 import type { AgentJournalSubmission } from '../../../shared/agent-session-journal-types'
 import type { AgentChildWorkView } from '../../../shared/agent-status-child-work-view'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
-import type { StructuredAgentSessionHostSession } from './structured-agent-session-host-types'
+import type {
+  StructuredAgentSessionHostDeps,
+  StructuredAgentSessionHostSession
+} from './structured-agent-session-host-types'
 import {
   structuredAgentSessionChildHasOpenWork,
   type StructuredAgentSessionChildWorkReads
 } from './structured-agent-session-idle-sweep'
 import type { StructuredAgentSessionLogger } from './structured-agent-session-logger'
 import type { StructuredAgentSessionClientDelivery } from './structured-agent-session-client-delivery'
-import type { StructuredAgentSessionHostDeps } from './structured-agent-session-host-types'
 import { hostStructuredAgentSessionCurrentWork } from './structured-agent-session-host-current-work'
 import type { AgentChatPermissionChoice } from '../../../shared/agent-chat-permission-mode'
 import { agentJournalSubmissionKey } from '../../../shared/agent-session-journal-item-key'

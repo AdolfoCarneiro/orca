@@ -207,7 +207,7 @@ export class ClaudeStructuredSessionAdapter implements StructuredAgentSessionAda
   applyPermissionMode: NonNullable<StructuredAgentSessionAdapter['applyPermissionMode']> = (
     sessionId,
     mode
-  ) => applyClaudeLivePermissionMode(this.sessions.get(sessionId), mode, this.deps.requestTimeoutMs)
+  ) => applyClaudeLivePermissionMode(this.sessions.get(sessionId), mode)
   setOption: StructuredAgentSessionAdapter['setOption'] = (input) =>
     claudeOptions.setClaudeStructuredSessionOption(
       this.session(input.sessionId),
