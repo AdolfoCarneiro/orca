@@ -1,5 +1,6 @@
 import { normalizeGitHubPRMergeMethodSettings } from '../../../../shared/github/pull-request-merge-methods'
 import { ghExecFileAsync } from '../../gh-utils'
+import { githubReadExecutionScope } from '../../github-read-execution-scope'
 import { githubHostExecOptions, type GitHubApiRepository } from '../../github-api-repository'
 import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
 import { noteRepositoryRateLimitSpend, repositoryRateLimitGuard } from '../../rate-limit'
@@ -18,13 +19,14 @@ export async function detectRepositoryMergeMetadata(
   ghOptions: GhExecOptions,
   executionScope: string | undefined = 'default'
 ): Promise<GitHubRepositoryMergeMetadata> {
-  const cacheKey = `${executionScope ?? 'default'}\0${githubRepoIdentityKey(ownerRepo)}:${branchName ?? '__repo__'}`
+  const execution = { ...ghOptions, ...githubHostExecOptions(ownerRepo) }
+  const cacheKey = `${executionScope ?? 'default'}\0${githubReadExecutionScope(execution)}\0${githubRepoIdentityKey(ownerRepo)}:${branchName ?? '__repo__'}`
   pruneRepositoryMergeMetadataCache()
   const cached = repositoryMergeMetadataCache.get(cacheKey)
   if (cached) {
     return cached.value
   }
-  const guard = repositoryRateLimitGuard(ownerRepo, 'graphql', ghOptions)
+  const guard = repositoryRateLimitGuard(ownerRepo, 'graphql', execution)
   if (guard.blocked) {
     return { mergeQueueRequired: null, autoMergeAllowed: null }
   }
@@ -52,7 +54,7 @@ export async function detectRepositoryMergeMetadata(
     }
   }`
   try {
-    noteRepositoryRateLimitSpend(ownerRepo, 'graphql', 1, ghOptions)
+    noteRepositoryRateLimitSpend(ownerRepo, 'graphql', 1, execution)
     const args = [
       'api',
       'graphql',
@@ -67,10 +69,7 @@ export async function detectRepositoryMergeMetadata(
       args.push('-f', `branch=${branchName}`)
       args.push('-f', `qualified=refs/heads/${branchName}`)
     }
-    const { stdout } = await ghExecFileAsync(args, {
-      ...ghOptions,
-      ...githubHostExecOptions(ownerRepo)
-    })
+    const { stdout } = await ghExecFileAsync(args, execution)
     const parsed = JSON.parse(stdout) as {
       data?: {
         repository?: {

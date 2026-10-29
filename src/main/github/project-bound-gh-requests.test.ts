@@ -17,13 +17,9 @@ vi.mock('./github-api-repository', () => ({
   githubHostExecOptions: () => ({ host: 'github.com' })
 }))
 
-import { ghExecFileAsync } from '../git/runner'
 import { _resetGhRateLimitBreaker } from '../git/gh-rate-limit-breaker'
-import { ghRepoExecOptions, githubRepoContext } from './github-repository-identity'
-import { hostedReviewOptionArgs } from './pr-refresh-candidate-policy'
 import { installGitHubProjectAccounts } from './github-project-account'
 import { createGitHubPullRequest } from './client/create/create-github-pull-request'
-import { registerGitHubStackedPullRequest } from './stacked-pr-creation'
 import { clearGhAccountTokenCacheForTests } from './gh-account-token'
 import { clearGhCapabilityStateForTests } from './gh-capability-state'
 import { runGraphql } from './project-view/internals'
@@ -66,25 +62,6 @@ function complete(child: ReturnType<typeof createFakeSpawnedChild>, stdout: stri
   child.emit('exit', 0, null)
   child.emit('close', 0, null)
 }
-
-it('uses the saved project account at the child boundary after refresh drops caller account options', async () => {
-  let childToken: string | undefined
-  requestMock.mockImplementation((_args, options: { env: NodeJS.ProcessEnv }) => {
-    childToken = options.env.GH_TOKEN
-    const child = createFakeSpawnedChild()
-    queueMicrotask(() => complete(child, '[]'))
-    return child
-  })
-  const localGitOptions = { ghAccount: repo.ghAccount, wslDistro: undefined }
-  const [refresh] = hostedReviewOptionArgs({ localGitOptions })
-  expect(refresh?.localGitExecOptions?.ghAccount).toBeUndefined()
-  await ghExecFileAsync(['api', 'repos/acme/widgets/pulls'], {
-    ...ghRepoExecOptions(githubRepoContext(repo.path, null, refresh?.localGitExecOptions)),
-    host: 'github.com',
-    env: { GH_TOKEN: 'personal-token' }
-  })
-  expect(childToken).toBe('Alice-token')
-})
 
 it('keeps Project View ambient even with a bound project cwd', async () => {
   vi.stubEnv('GH_TOKEN', 'personal-token')
@@ -141,36 +118,4 @@ it('keeps creation recovery on its original account while the next operation rea
     number: 43
   })
   expect(tokens.at(-1)).toBe('Bob-token')
-})
-
-it('keeps stack registration reads and its write on the same account across a rebind', async () => {
-  const tokens: (string | undefined)[] = []
-  let startRead: (finish: () => void) => void = () => {}
-  const started = new Promise<() => void>((resolve) => {
-    startRead = resolve
-  })
-  let firstRead = true
-  requestMock.mockImplementation((args: string[], options: { env: NodeJS.ProcessEnv }) => {
-    tokens.push(options.env.GH_TOKEN)
-    const child = createFakeSpawnedChild()
-    if (firstRead) {
-      firstRead = false
-      startRead(() => complete(child, '[]'))
-    } else {
-      queueMicrotask(() => complete(child, args.includes('POST') ? '{"number":50}' : '[]'))
-    }
-    return child
-  })
-  const pending = registerGitHubStackedPullRequest({
-    repoPath: repo.path,
-    repository: { owner: 'acme', repo: 'widgets', host: 'github.com' },
-    parentReview: { number: 41, url: 'https://github.com/acme/widgets/pull/41' },
-    currentReview: { number: 42, url: 'https://github.com/acme/widgets/pull/42' },
-    executionHostId: 'local'
-  })
-  const finish = await started
-  repo = { ...repo, ghAccount: { host: 'github.com', user: 'Bob' } }
-  finish()
-  await expect(pending).resolves.toMatchObject({ ok: true, stackNumber: 50 })
-  expect(tokens).toEqual(['Alice-token', 'Alice-token', 'Alice-token'])
 })

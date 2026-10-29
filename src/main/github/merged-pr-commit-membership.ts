@@ -1,4 +1,5 @@
 import { ghExecFileAsync } from './gh-utils'
+import { githubReadExecutionScope } from './github-read-execution-scope'
 import { noteRepositoryRateLimitSpend, repositoryRateLimitGuard } from './rate-limit'
 import { githubHostExecOptions } from './github-api-repository'
 import { githubRepoIdentityKey } from '../../shared/github/repository-identity-key'
@@ -50,8 +51,8 @@ export async function isCommitPartOfMergedPR(args: {
   }
   const owner = args.ownerRepo.owner
   const repo = args.ownerRepo.repo
-  const cacheKey = `${githubRepoIdentityKey(args.ownerRepo)}#${args.prNumber}@${oid}`
   const ghOptions = { ...args.ghOptions, ...githubHostExecOptions(args.ownerRepo) }
+  const cacheKey = `${githubReadExecutionScope(ghOptions)}\0${githubRepoIdentityKey(args.ownerRepo)}#${args.prNumber}@${oid}`
   const now = Date.now()
   pruneMergedPRCommitMembershipCache(now)
   const cached = membershipCache.get(cacheKey)

@@ -1,11 +1,7 @@
 import { afterEach, expect, it } from 'vitest'
 import type { Project } from '../../shared/project-types'
 import type { Repo } from '../../shared/repo-types'
-import {
-  ghRepoExecOptions,
-  githubRepoContext,
-  withGitHubRepoExecution
-} from './github-repository-identity'
+import { ghRepoExecOptions, githubRepoContext } from './github-repository-identity'
 import { installGitHubProjectAccounts } from './github-project-account'
 import { githubReadExecutionScope } from './github-read-execution-scope'
 import { resolveGitHubRepoExecution } from './github-api-repository'
@@ -92,25 +88,6 @@ it('keeps folder cards on their git child account and plain folders outside proj
   })
   expect(options('/folder/repo').ghAccount).toEqual(bob)
   expect(options('/folder').ghAccount).toBeUndefined()
-})
-
-it('isolates concurrent operations and ends their immutable account snapshots', async () => {
-  let current = repo()
-  release = installGitHubProjectAccounts({ getRepos: () => [current] })
-  let resume: () => void = () => {}
-  const waiting = new Promise<void>((resolve) => {
-    resume = resolve
-  })
-  const pending = withGitHubRepoExecution('/repo', null, {}, async () => {
-    expect(Object.isFrozen(githubRepoContext('/repo'))).toBe(true)
-    await waiting
-    return options('/repo')
-  })
-  current = repo({ ghAccount: bob })
-  expect(options('/repo').ghAccount).toEqual(bob)
-  resume()
-  expect((await pending).ghAccount).toEqual(alice)
-  expect(options('/repo').ghAccount).toEqual(bob)
 })
 
 it('does not let an earlier owner release a replacement installation', () => {

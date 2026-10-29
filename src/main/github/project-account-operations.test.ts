@@ -60,6 +60,15 @@ import { _resetGhRateLimitBreaker } from '../git/gh-rate-limit-breaker'
 import { getPRForBranchOutcome } from './client/lookup/pr-for-branch-outcome'
 import { createStackedHostedReview } from '../source-control/stacked-hosted-review-creation'
 import { hostedReviewOptionArgs } from './pr-refresh-candidate-policy'
+import { fetchPullRequestWorkItem } from './client/fetch/work-item-fetch'
+import { repositoryMergeMetadataCache } from './client/detect/repository-merge-metadata-cache'
+import {
+  getCachedGitHubPRStackSummary,
+  _resetPRStackSummaryCacheForTests
+} from './client/lookup/pr-stack-summary-cache'
+import { hydrateGitHubPRStack, _resetGitHubPRStackCacheForTests } from './github-pr-stack'
+import { resetMergedPRCommitMembershipCacheForTest } from './merged-pr-commit-membership'
+import { ghRepoExecOptions, githubRepoContext } from './github-repository-identity'
 
 const alice = { host: 'github.com', user: 'Alice' }
 const bob = { host: 'github.com', user: 'Bob' }
@@ -150,6 +159,10 @@ beforeEach(() => {
   clearGhAccountTokenCacheForTests()
   clearGhCapabilityStateForTests()
   _resetGhRateLimitBreaker()
+  repositoryMergeMetadataCache.clear()
+  _resetPRStackSummaryCacheForTests()
+  _resetGitHubPRStackCacheForTests()
+  resetMergedPRCommitMembershipCacheForTest()
   requests = []
   onRead = () => {}
   release = installGitHubProjectAccounts({
@@ -181,6 +194,7 @@ beforeEach(() => {
 })
 afterEach(async () => {
   release()
+  vi.unstubAllEnvs()
   _resetGhRateLimitBreaker()
   await closeTestStores()
   rmSync(testState.dir, { recursive: true, force: true })
@@ -328,6 +342,7 @@ it('carries reloaded selection through runtime work-item details/list/count and 
 })
 
 it('returns the branch review and worktree start point from account-free refresh inputs', async () => {
+  vi.stubEnv('GH_TOKEN', 'personal-token')
   request = (args, child, token) => {
     const output =
       args[0] === 'pr'
@@ -357,7 +372,8 @@ it('returns the branch review and worktree start point from account-free refresh
       )
     )
   }
-  const [refresh] = hostedReviewOptionArgs({ localGitOptions: { ghAccount: alice } })
+  const localGitOptions = { ghAccount: alice, wslDistro: undefined }
+  const [refresh] = hostedReviewOptionArgs({ localGitOptions })
   expect(refresh?.localGitExecOptions?.ghAccount).toBeUndefined()
   const outcome = await getPRForBranchOutcome('/work', 'feature', null, null, null, refresh)
   expect(outcome).toMatchObject({ kind: 'found', pr: { title: 'Alice-token', number: 42 } })
@@ -426,4 +442,275 @@ it('settles stack prepare/create/register with one saved selection after a pendi
   expect(requests.some((r) => r.args[0] === 'pr' && r.args[1] === 'create')).toBe(true)
   expect(requests.some((r) => r.args.includes('POST'))).toBe(true)
   expect(requests.every((r) => r.token === 'Alice-token')).toBe(true)
+})
+
+it('returns each saved viewer merge preference with omitted detector scope and reuses only that viewer', async () => {
+  request = (args, child, token) =>
+    queueMicrotask(() =>
+      complete(
+        child,
+        JSON.stringify(
+          args.includes('graphql')
+            ? {
+                data: {
+                  repository: {
+                    viewerDefaultMergeMethod: token === 'Alice-token' ? 'MERGE' : 'SQUASH',
+                    mergeCommitAllowed: true,
+                    rebaseMergeAllowed: true,
+                    squashMergeAllowed: true
+                  }
+                }
+              }
+            : pr(token ?? 'ambient')
+        )
+      )
+    )
+  const read = () => fetchPullRequestWorkItem('/work', repository, 42)
+  await expect(read()).resolves.toMatchObject({
+    title: 'Alice-token',
+    mergeMethodSettings: { defaultMethod: 'merge' }
+  })
+  await expect(read()).resolves.toMatchObject({ mergeMethodSettings: { defaultMethod: 'merge' } })
+  rebind()
+  await expect(read()).resolves.toMatchObject({
+    title: 'Bob-token',
+    mergeMethodSettings: { defaultMethod: 'squash' }
+  })
+  await expect(read()).resolves.toMatchObject({ mergeMethodSettings: { defaultMethod: 'squash' } })
+  expect(requests.filter((r) => r.args.includes('graphql')).map((r) => r.token)).toEqual([
+    'Alice-token',
+    'Bob-token'
+  ])
+})
+
+it.each(['error', 'absent'] as const)(
+  'separates pending and retained %s stack summaries by held account, joining and reusing identical reads',
+  async (mode) => {
+    let finish: () => void = () => {}
+    let started: () => void = () => {}
+    const dispatched = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    const summary = { number: 51, position: 1, size: 2, baseRefName: 'main' }
+    request = (_args, child, token) => {
+      const respond = () => {
+        if (token === 'Alice-token' && mode === 'error') {
+          child.stderr?.emit('data', Buffer.from('request failed'))
+          child.emit('exit', 1, null)
+          child.emit('close', 1, null)
+        } else {
+          complete(
+            child,
+            `HTTP/2.0 200 OK\r\n\r\n${JSON.stringify({
+              number: 42,
+              title: token,
+              state: 'open',
+              ...(token === 'Bob-token'
+                ? { stack: { number: 51, position: 1, size: 2, base: { ref: 'main' } } }
+                : {})
+            })}`
+          )
+        }
+      }
+      if (token === 'Alice-token') {
+        finish = respond
+        started()
+      } else {
+        queueMicrotask(respond)
+      }
+    }
+    const read = () =>
+      getCachedGitHubPRStackSummary(
+        repository,
+        42,
+        ghRepoExecOptions(githubRepoContext('/work')),
+        'local:host'
+      )
+    const first = read().then(
+      (value) => value,
+      () => 'failed'
+    )
+    await dispatched
+    const same = read().then(
+      (value) => value,
+      () => 'failed'
+    )
+    rebind()
+    let bobSettled = false
+    const second = read().then(
+      (value) => {
+        bobSettled = true
+        return value
+      },
+      () => 'failed'
+    )
+    const secondJoin = read().then(
+      (value) => value,
+      () => 'failed'
+    )
+    // Let Bob's real child settle while Alice remains pending.
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    const independent = bobSettled
+    finish()
+    expect(await first).toEqual(mode === 'error' ? 'failed' : undefined)
+    expect(await same).toEqual(mode === 'error' ? 'failed' : undefined)
+    await expect(second).resolves.toEqual(summary)
+    await expect(secondJoin).resolves.toEqual(summary)
+    expect(independent).toBe(true)
+    await expect(read()).resolves.toEqual(summary)
+    store.updateRepo({ id: 'work' }, { ghAccount: alice })
+    expect(
+      await read().then(
+        (value) => value,
+        () => 'failed'
+      )
+    ).toEqual(mode === 'error' ? 'failed' : undefined)
+    expect(requests.map((r) => r.token)).toEqual(['Alice-token', 'Bob-token'])
+  }
+)
+
+it.each(['error', 'absent'] as const)(
+  'separates pending and retained %s stack details by held account, joining and reusing identical reads',
+  async (mode) => {
+    let finish: () => void = () => {}
+    let started: () => void = () => {}
+    const dispatched = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    const summary = { number: 51, position: 1, size: 2, baseRefName: 'main' }
+    request = (_args, child, token) => {
+      const respond = () => {
+        if (token === 'Alice-token' && mode === 'error') {
+          child.stderr?.emit('data', Buffer.from('request failed'))
+          child.emit('exit', 1, null)
+          child.emit('close', 1, null)
+        } else {
+          complete(
+            child,
+            JSON.stringify({
+              data: {
+                repository: {
+                  pullRequest: {
+                    stack:
+                      token === 'Alice-token'
+                        ? null
+                        : {
+                            ...summary,
+                            entries: { nodes: [{ position: 1, pullRequest: pr('Bob stack') }] }
+                          }
+                  }
+                }
+              }
+            })
+          )
+        }
+      }
+      if (token === 'Alice-token') {
+        finish = respond
+        started()
+      } else {
+        queueMicrotask(respond)
+      }
+    }
+    const read = () =>
+      hydrateGitHubPRStack(repository, 42, summary, ghRepoExecOptions(githubRepoContext('/work')))
+    const first = read()
+    await dispatched
+    const same = read()
+    rebind()
+    let bobSettled = false
+    const second = read().then((value) => {
+      bobSettled = true
+      return value
+    })
+    const secondJoin = read()
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    const independent = bobSettled
+    finish()
+    await expect(first).resolves.toEqual(summary)
+    await expect(same).resolves.toEqual(summary)
+    for (const result of [second, secondJoin, read()]) {
+      await expect(result).resolves.toMatchObject({
+        entries: [{ title: 'Bob stack', number: 42, position: 1 }]
+      })
+    }
+    expect(independent).toBe(true)
+    store.updateRepo({ id: 'work' }, { ghAccount: alice })
+    await expect(read()).resolves.toEqual(summary)
+    expect(requests.map((r) => r.token)).toEqual(['Alice-token', 'Bob-token'])
+  }
+)
+
+it('recovers visible merged review through Bob complete membership iteration after Alice error and reuses Bob confirmation', async () => {
+  request = (args, child, token) =>
+    queueMicrotask(() => {
+      const membership = args.find((arg) => arg.includes('/commits/'))
+      if (membership && token === 'Alice-token') {
+        child.stderr?.emit('data', Buffer.from('request failed'))
+        child.emit('exit', 1, null)
+        child.emit('close', 1, null)
+        return
+      }
+      const merged = { ...pr(token ?? 'ambient'), state: 'MERGED', headRefOid: 'aaaa1111aaaa1111' }
+      const restMerged = {
+        number: 42,
+        title: token,
+        state: 'closed',
+        merged_at: '2026-10-01T00:00:00Z',
+        html_url: merged.url,
+        head: {
+          ref: 'feature',
+          sha: 'aaaa1111aaaa1111',
+          repo: { name: 'widgets', owner: { login: 'acme' } }
+        },
+        base: { ref: 'main' }
+      }
+      const output = membership
+        ? membership.endsWith('page=1')
+          ? Array.from({ length: 100 }, (_, i) => ({ number: 1000 + i }))
+          : [{ number: 42 }]
+        : args.includes('graphql')
+          ? { data: { repository: {} } }
+          : args.some((arg) => arg.includes('/pulls?'))
+            ? [restMerged]
+            : args[1] === 'list'
+              ? [merged]
+              : merged
+      complete(
+        child,
+        (args.includes('--include') ? 'HTTP/2.0 200 OK\r\n\r\n' : '') + JSON.stringify(output)
+      )
+    })
+  const read = () =>
+    getPRForBranchOutcome('/work', 'feature', null, null, null, {
+      currentHeadOid: 'bbbb2222bbbb2222'
+    })
+  await expect(read()).resolves.toMatchObject({ kind: 'no-pr' })
+  rebind()
+  await expect(read()).resolves.toMatchObject({
+    kind: 'found',
+    pr: { title: 'Bob-token', state: 'merged', confirmedContainedHeadOid: 'bbbb2222bbbb2222' }
+  })
+  await expect(read()).resolves.toMatchObject({
+    kind: 'found',
+    pr: { confirmedContainedHeadOid: 'bbbb2222bbbb2222' }
+  })
+  expect(
+    requests
+      .filter((r) => r.args.some((arg) => arg.includes('/commits/')))
+      .map((r) => ({ endpoint: r.args.find((arg) => arg.includes('/commits/')), token: r.token }))
+  ).toEqual([
+    {
+      endpoint: 'repos/acme/widgets/commits/bbbb2222bbbb2222/pulls?per_page=100&page=1',
+      token: 'Alice-token'
+    },
+    {
+      endpoint: 'repos/acme/widgets/commits/bbbb2222bbbb2222/pulls?per_page=100&page=1',
+      token: 'Bob-token'
+    },
+    {
+      endpoint: 'repos/acme/widgets/commits/bbbb2222bbbb2222/pulls?per_page=100&page=2',
+      token: 'Bob-token'
+    }
+  ])
 })
