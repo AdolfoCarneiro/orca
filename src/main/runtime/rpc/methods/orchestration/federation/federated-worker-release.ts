@@ -8,7 +8,7 @@ import { getOrchestrationPeerCapabilityCache } from '../../../../orchestration/o
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
 import type { OrchestrationDb } from '../../../../orchestration/db'
 import type { FederatedDispatchRow } from '../../../../orchestration/types'
-import type { OrcaRuntimeService } from '../../../../orca-runtime'
+import type { WorkerTerminalReleaseRuntime } from '../../../../orchestration/worker-terminal-release-runtime'
 import {
   releaseUnknownRecovery,
   type WorkerReleaseReceipt
@@ -43,14 +43,14 @@ const RemoteReleaseReceiptSchema = z
   .passthrough()
 
 type FederatedWorkerMutationArgs = {
-  runtime: OrcaRuntimeService
+  runtime: WorkerTerminalReleaseRuntime
   server: ReturnType<typeof resolvePinnedFederatedServer>
   federated: FederatedDispatchRow
   dispatchId: string
   requestId: string
 }
 
-async function resolveExecutionHostCapability(
+export async function resolveExecutionHostCapability(
   args: FederatedWorkerMutationArgs,
   capability: string
 ): Promise<{ supported: boolean; runtimeEpoch: string }> {

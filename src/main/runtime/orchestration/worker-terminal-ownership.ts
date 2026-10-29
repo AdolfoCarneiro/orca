@@ -1,4 +1,4 @@
-import type { WorkerDispatchState } from './types'
+import type { FederatedDispatchRow, WorkerDispatchState } from './types'
 import { exposeUtcTimestamp } from './db/utc-timestamp'
 
 export type WorkerTerminalOwnershipState =
@@ -179,5 +179,16 @@ export function liveWorkerTerminalAutoReleaseAt(
     resource.ownership_state === 'owned' &&
     resource.release_state === 'not_requested'
     ? exposeUtcTimestamp(resource.auto_release_at)
+    : null
+}
+
+export function liveFederatedHomeAutoReleaseAt(
+  federated:
+    | Pick<FederatedDispatchRow, 'home_auto_release_at' | 'home_auto_release_state'>
+    | null
+    | undefined
+): string | null {
+  return federated?.home_auto_release_state === 'armed'
+    ? exposeUtcTimestamp(federated.home_auto_release_at)
     : null
 }

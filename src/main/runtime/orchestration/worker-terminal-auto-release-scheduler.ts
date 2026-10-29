@@ -1,5 +1,6 @@
 import type { WorkerTerminalReleaseRuntime } from './worker-terminal-release-runtime'
 import { reconcileRequestedWorkerTerminalReleases } from './worker-terminal-release-reconciliation'
+import { releaseFederatedWorkerAtHomeDeadline } from '../rpc/methods/orchestration/federation/federated-worker-home-auto-release'
 
 const MAX_TIMER_DELAY_MS = 2_147_483_647
 
@@ -20,7 +21,7 @@ export function getWorkerTerminalAutoReleaseScheduler(
   return scheduler
 }
 
-/** One timer for the nearest settled-worker deadline; claimed rows finish through release recovery. */
+/** One timer for the nearest settled-worker deadline, local or one the home keeps for an older host. */
 export class WorkerTerminalAutoReleaseScheduler {
   private timer: ReturnType<typeof setTimeout> | undefined
   private timerDeadlineMs: number | undefined
@@ -62,6 +63,20 @@ export class WorkerTerminalAutoReleaseScheduler {
       }
     } catch (error) {
       // Claimed rows stay requested, so release recovery retries them after the next inventory.
+      warnAutoReleaseFailure(error)
+    }
+    try {
+      const federated = this.runtime
+        .getOrchestrationDb()
+        .claimDueFederatedHomeAutoReleases(Date.now())
+      await Promise.all(
+        federated.map((dispatchId) =>
+          releaseFederatedWorkerAtHomeDeadline(this.runtime, dispatchId).catch(
+            warnAutoReleaseFailure
+          )
+        )
+      )
+    } catch (error) {
       warnAutoReleaseFailure(error)
     }
     try {

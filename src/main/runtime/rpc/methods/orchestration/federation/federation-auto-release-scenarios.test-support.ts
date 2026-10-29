@@ -5,13 +5,15 @@ import type { OrchestrationDb } from '../../../../orchestration/db'
 import { getWorkerTerminalAutoReleaseScheduler } from '../../../../orchestration/worker-terminal-auto-release-scheduler'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import type { RpcRequest } from '../../../core'
+import { registerHomeAutoReleaseScenarios } from './federation-home-auto-release-scenarios.test-support'
 
-type AutoReleaseScenarioHarness = {
+export type AutoReleaseScenarioHarness = {
   startRemoteWorker: () => Promise<string>
   dispatchHome: (request: RpcRequest) => Promise<RuntimeRpcResponse<unknown>>
   dispatchWorker: (request: RpcRequest) => Promise<RuntimeRpcResponse<unknown>>
   syncHome: (dispatchId: string) => Promise<unknown>
   workerRuntime: () => OrcaRuntimeService
+  homeRuntime: () => OrcaRuntimeService
   homeDb: () => OrchestrationDb
   workerDb: () => OrchestrationDb
   remoteCalls: () => string[]
@@ -20,11 +22,12 @@ type AutoReleaseScenarioHarness = {
   setHomeOmitsAutoRelease: (omitted: boolean) => void
 }
 
-const GRACE_MS = 2 * 60_000
+export const GRACE_MS = 2 * 60_000
 
 export function registerFederatedAutoReleaseScenarios(harness: AutoReleaseScenarioHarness): void {
   afterEach(() => {
     getWorkerTerminalAutoReleaseScheduler(harness.workerRuntime()).clear()
+    getWorkerTerminalAutoReleaseScheduler(harness.homeRuntime()).clear()
     vi.useRealTimers()
   })
 
@@ -315,6 +318,8 @@ export function registerFederatedAutoReleaseScenarios(harness: AutoReleaseScenar
     })
     expect(harness.workerRuntime().closeTerminal).not.toHaveBeenCalled()
   })
+
+  registerHomeAutoReleaseScenarios({ harness, settleRemotely, listFromHome, retainFromHome })
 
   it('keeps worker-retain home-only for a host that predates automatic release', async () => {
     harness.setWorkerAdvertisesAutoRelease(false)

@@ -699,6 +699,7 @@ describe('orchestration federated worker output', () => {
     dispatchWorker: (request) => workerDispatcher.dispatch(request),
     syncHome: (dispatchId) => homeRuntime.syncOrchestrationFederatedDispatch(dispatchId),
     workerRuntime: () => workerRuntime,
+    homeRuntime: () => homeRuntime,
     homeDb: () => homeDb,
     workerDb: () => workerDb,
     remoteCalls: () => remoteCalls,

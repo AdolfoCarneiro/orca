@@ -34,6 +34,7 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
             'Remote worker-release requires a durable retry request.'
           )
         }
+        db.endFederatedHomeAutoRelease(params.dispatch)
         return releaseFederatedWorker({
           runtime,
           server: resolvePinnedFederatedServer(runtime, federated),
@@ -106,6 +107,7 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
             'Remote worker-retain requires a durable retry request.'
           )
         }
+        db.endFederatedHomeAutoRelease(params.dispatch)
         const forwarded = await retainFederatedWorker({
           runtime,
           server: resolvePinnedFederatedServer(runtime, federated),

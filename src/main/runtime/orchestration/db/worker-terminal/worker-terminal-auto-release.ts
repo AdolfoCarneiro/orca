@@ -102,12 +102,78 @@ export function admitWorkerChatReleaseClose(this: OrchestrationDb, resourceId: s
   }
 }
 
+/** Only for a host that cannot release on its own; arms once, so a retain or release before settlement still wins. */
+export function armFederatedHomeAutoRelease(
+  this: OrchestrationDb,
+  dispatchId: string,
+  nowMs = Date.now()
+): void {
+  const { changes } = this.db
+    .prepare(
+      `UPDATE federated_dispatches
+          SET home_auto_release_at = ?, home_auto_release_state = 'armed', updated_at = datetime('now')
+        WHERE dispatch_id = ? AND home_auto_release_state IS NULL`
+    )
+    .run(toSqliteUtcTimestamp(nowMs + WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS), dispatchId)
+  if (changes > 0) {
+    this.workerTerminalAutoReleaseListener?.()
+  }
+}
+
+/** A retain, an explicit release or a finished attempt ends the home deadline for good. */
+export function endFederatedHomeAutoRelease(this: OrchestrationDb, dispatchId: string): void {
+  this.db
+    .prepare(
+      `UPDATE federated_dispatches
+          SET home_auto_release_at = NULL, home_auto_release_state = 'ended', updated_at = datetime('now')
+        WHERE dispatch_id = ? AND home_auto_release_state IS NOT 'ended'`
+    )
+    .run(dispatchId)
+}
+
+export function claimDueFederatedHomeAutoReleases(this: OrchestrationDb, nowMs: number): string[] {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the SELECT names exactly this one column.
+  const due = this.db
+    .prepare(
+      `SELECT dispatch_id FROM federated_dispatches
+        WHERE home_auto_release_state = 'armed' AND home_auto_release_at <= ?`
+    )
+    .all(toSqliteUtcTimestamp(nowMs)) as { dispatch_id: string }[]
+  const claim = this.db.prepare(
+    `UPDATE federated_dispatches
+        SET home_auto_release_at = NULL, home_auto_release_state = 'releasing',
+            updated_at = datetime('now')
+      WHERE dispatch_id = ? AND home_auto_release_state = 'armed'`
+  )
+  return due.flatMap(({ dispatch_id }) => (claim.run(dispatch_id).changes > 0 ? [dispatch_id] : []))
+}
+
+/** An unreachable host retries later, unless a retain or explicit release ended the deadline meanwhile. */
+export function retryFederatedHomeAutoRelease(
+  this: OrchestrationDb,
+  dispatchId: string,
+  nowMs = Date.now()
+): void {
+  this.db
+    .prepare(
+      `UPDATE federated_dispatches
+          SET home_auto_release_at = ?, home_auto_release_state = 'armed', updated_at = datetime('now')
+        WHERE dispatch_id = ? AND home_auto_release_state = 'releasing'`
+    )
+    .run(toSqliteUtcTimestamp(nowMs + WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS), dispatchId)
+}
+
 export function nextWorkerTerminalAutoReleaseAtMs(this: OrchestrationDb): number | null {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: an aggregate SELECT always returns exactly this one-column row.
   const row = this.db
     .prepare(
-      `SELECT MIN(auto_release_at) AS at FROM worker_terminal_resources
-        WHERE ${WORKER_TERMINAL_AUTO_RELEASE_LIVE_SQL}`
+      `SELECT MIN(at) AS at FROM (
+         SELECT MIN(auto_release_at) AS at FROM worker_terminal_resources
+          WHERE ${WORKER_TERMINAL_AUTO_RELEASE_LIVE_SQL}
+         UNION ALL
+         SELECT MIN(home_auto_release_at) FROM federated_dispatches
+          WHERE home_auto_release_state = 'armed'
+       )`
     )
     .get() as { at: string | null }
   return row.at ? Date.parse(exposeUtcTimestamp(row.at) ?? row.at) : null
@@ -126,6 +192,10 @@ export type WorkerTerminalAutoReleaseMethods = {
   claimDueWorkerTerminalAutoReleases: typeof claimDueWorkerTerminalAutoReleases
   admitWorkerChatReleaseClose: typeof admitWorkerChatReleaseClose
   nextWorkerTerminalAutoReleaseAtMs: typeof nextWorkerTerminalAutoReleaseAtMs
+  armFederatedHomeAutoRelease: typeof armFederatedHomeAutoRelease
+  endFederatedHomeAutoRelease: typeof endFederatedHomeAutoRelease
+  claimDueFederatedHomeAutoReleases: typeof claimDueFederatedHomeAutoReleases
+  retryFederatedHomeAutoRelease: typeof retryFederatedHomeAutoRelease
 }
 
 export function attachWorkerTerminalAutoRelease(ctor: { prototype: object }): void {
@@ -134,6 +204,10 @@ export function attachWorkerTerminalAutoRelease(ctor: { prototype: object }): vo
     armWorkerTerminalAutoReleaseStatement,
     claimDueWorkerTerminalAutoReleases,
     admitWorkerChatReleaseClose,
-    nextWorkerTerminalAutoReleaseAtMs
+    nextWorkerTerminalAutoReleaseAtMs,
+    armFederatedHomeAutoRelease,
+    endFederatedHomeAutoRelease,
+    claimDueFederatedHomeAutoReleases,
+    retryFederatedHomeAutoRelease
   })
 }

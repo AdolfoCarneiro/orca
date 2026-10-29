@@ -1,6 +1,7 @@
 import type { OrchestrationFleetWorker } from '../../../../../../shared/orchestration-fleet-projection'
 import type { OrchestrationDb } from '../../../../orchestration/db'
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
+import { liveFederatedHomeAutoReleaseAt } from '../../../../orchestration/worker-terminal-ownership'
 import type { DispatchContextRow, FederatedDispatchRow } from '../../../../orchestration/types'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import {
@@ -97,7 +98,9 @@ export async function showFederatedWorker(args: {
   }
   const observation = exposeFederatedWorkerObservation(remote.observation, observationProjected)
   // A deadline from an observation the fence rejected is as stale as the observation.
-  const autoReleaseAt = observationProjected ? (remote.autoReleaseAt ?? null) : null
+  const autoReleaseAt =
+    (observationProjected ? remote.autoReleaseAt : null) ??
+    liveFederatedHomeAutoReleaseAt(db.getFederatedDispatch(dispatchId))
   return {
     dispatch: exposeDispatchContext(db.getDispatchContextById(dispatchId) ?? args.dispatch),
     worker: exposeWorker(worker),
