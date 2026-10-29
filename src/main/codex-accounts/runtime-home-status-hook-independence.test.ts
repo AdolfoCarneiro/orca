@@ -292,3 +292,56 @@ it('shutdown retires queued family maintenance before the actual writer enters',
   expect(readOptional(hooksPath())).toBe(before)
   _internals.resetForTesting()
 })
+
+it('removed current account cannot be resurrected by its already-started family pass', async () => {
+  const { createManagedAuth, createCodexAuthJson, createCodexAccountRecord } =
+    await import('./runtime-home-service-test-harness')
+  const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+  const { runExclusivelyForCodexTrustConfig } =
+    await import('../codex/codex-trust-config-mutation-queue')
+  const H = createManagedAuth(
+    testState.userDataDir,
+    'account-1',
+    createCodexAuthJson('fixture@example.com', 'fixture', 'fixture')
+  )
+  const store = createStore(
+    createSettings({
+      realHomeRoutable: true,
+      codexSessionSourceHome: { host: getSystemCodexHomePath() },
+      codexManagedAccounts: [
+        createCodexAccountRecord('account-1', 'fixture@example.com', 'fixture', H)
+      ],
+      activeCodexManagedAccountId: 'account-1',
+      activeCodexManagedAccountIdsByRuntime: { host: 'account-1', wsl: {} }
+    })
+  )
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the service uses only the harness store ports.
+  const service = new CodexRuntimeHomeService(store as never)
+  const O = service.prepareForCodexLaunch()!
+  expect(fs.existsSync(join(O, 'hooks.json'))).toBe(false)
+  const target = service
+    .getRetainedHostCodexHookHomePaths([])
+    .find((home) => fs.realpathSync(home) === fs.realpathSync(O))!
+  let release!: () => void
+  const blocker = runExclusivelyForCodexTrustConfig(
+    join(target, 'config.toml'),
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve
+      })
+  )
+  await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+  const before = readFileSync(join(O, 'config.toml'), 'utf8')
+  const pass = service.reconcileRetainedHostCodexHooks()
+  await vi.waitFor(() => expect(fs.existsSync(join(H, 'hooks.json'))).toBe(true))
+  store.updateSettings({
+    codexManagedAccounts: [],
+    activeCodexManagedAccountId: null,
+    activeCodexManagedAccountIdsByRuntime: { host: null, wsl: {} }
+  })
+  release()
+  await blocker
+  expect(await pass).toBe(true)
+  expect(fs.existsSync(join(O, 'hooks.json'))).toBe(false)
+  expect(readFileSync(join(O, 'config.toml'), 'utf8')).toBe(before)
+})

@@ -424,3 +424,43 @@ it('real failed receipt rename preserves the latest live birth through cache res
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+it.each(['binding', 'registration'] as const)(
+  'rejected modern %s publishes no actual-home truth',
+  async (failure) => {
+    const root = mkdtempSync(join(tmpdir(), 'orca-rejected-receipt-'))
+    vi.stubEnv('ORCA_USER_DATA_PATH', root)
+    _internals.resetProcess()
+    try {
+      const binding =
+        failure === 'binding'
+          ? vi.fn().mockRejectedValue(new Error('fixture failed binding'))
+          : vi.fn().mockResolvedValue(true)
+      await commit(binding, (ctx) => {
+        ctx.isDaemonHostSpawn = true
+        ctx.selectedCodexHomePath = join(root, 'actual-O')
+        ctx.preparedCodexHome = {
+          home: ctx.selectedCodexHomePath,
+          loginHome: root,
+          store: root,
+          family: root,
+          disposition: 'layered',
+          selectionKey: 'host',
+          accountId: null
+        }
+        if (failure === 'registration') {
+          ctx.metadataLeafId = 'leaf-1'
+          ctx.deps.runtime!.registerPty = vi.fn(() => {
+            throw new Error('agent_session_exited_during_start')
+          })
+        }
+      })
+      expect(getObservedCodexPaneHome(PTY_ID)).toBeNull()
+      expect(getCodexPaneAccount(PTY_ID)).toBeNull()
+    } finally {
+      _internals.resetProcess()
+      vi.unstubAllEnvs()
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+)
