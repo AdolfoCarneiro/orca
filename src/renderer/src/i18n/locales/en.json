@@ -18924,6 +18924,7 @@
         "codexManagedNotSignedIn": "This Codex account isn't signed in. Sign in again in Codex Accounts settings.",
         "antigravityNotSignedIn": "Antigravity isn't signed in. Sign in under Settings → Accounts → Antigravity. Then send your message again.",
         "cliMissing": "{{agent}} wasn't found on the computer running this chat. Install it, or check its Command in Settings → Agents.",
+        "cliMissingInWslDistro": "{{agent}} isn't installed in the WSL distro {{distro}}. Install it inside {{distro}}, or check its Command in Settings → Agents.",
         "signInFirst": "Sign in first.",
         "signInThenRunCommand": "Sign in, then run /{{command}} again.",
         "signInThenSend": "Sign in, then send your message again.",
