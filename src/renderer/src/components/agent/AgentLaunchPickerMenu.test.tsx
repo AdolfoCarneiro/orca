@@ -197,6 +197,7 @@ it.each([
         return style
       }
       // happy-dom has no Tailwind layout; resolve only the consumer's sizing rules and CSS alias.
+      const isStyleProperty = (key: PropertyKey): key is keyof CSSStyleDeclaration => key in style
       return new Proxy(style, {
         get(target, property) {
           if (property === 'minWidth' && element.classList.contains('min-w-64')) {
@@ -213,7 +214,10 @@ it.each([
               return target.getPropertyValue(name)
             }
           }
-          const value = Reflect.get(target, property, target)
+          if (!isStyleProperty(property)) {
+            return undefined
+          }
+          const value = target[property]
           return typeof value === 'function' ? value.bind(target) : value
         }
       })
