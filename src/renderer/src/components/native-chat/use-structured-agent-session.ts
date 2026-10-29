@@ -168,8 +168,8 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
   })
   const isWorking = transportState.isWorking || transportState.queueSendsNext
   // readCurrent drops on lost contact and returns on resume, so a touch lost to a disconnect is sent again.
-  const atRest = transportEnabled && state.status === 'ready' && readCurrent && !isWorking
-  useStructuredSessionTouchReport(sessionId, target, args.isVisible, atRest)
+  const readable = transportEnabled && state.status === 'ready' && readCurrent
+  useStructuredSessionTouchReport(sessionId, target, args.isVisible, readable, isWorking)
   const send = (...input: Parameters<typeof sends.send>) =>
     // Legacy: an older host refuses sends while a command runs; removable once those hosts age out.
     (!commandPending.current || hostStatesTurnScopes(journalItems)) &&

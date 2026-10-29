@@ -98,7 +98,8 @@ export function MobileNativeChatOverlay({
   useMobileStructuredSessionTouchReport(
     controller.nativeChatVisualSource,
     controller.showNativeChat,
-    session.status === 'ready' && !controller.nativeChatTurnActive
+    session.status === 'ready',
+    controller.nativeChatTurnActive
   )
   const replyReveals = useMobileNativeChatReplyReveals(folded, streaming !== null, sendSurfaceId)
   const itemSource = controller.nativeChatItemSource

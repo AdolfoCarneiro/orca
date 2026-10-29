@@ -1,20 +1,22 @@
 import { useEffect } from 'react'
 import type { MobileNativeChatVisualSource } from './visual/mobile-native-chat-visual-read'
 
-/** Report when the user sees this chat at rest: it comes on screen idle and read, or its turn ends on screen.
+/** Report when the user sees this chat: it comes on screen read, or its turn starts or ends on screen.
+ *  Opening a working chat counts, since its worker may already have reported done.
  *  A reconnect re-reads the chat, so a report lost to a dropped connection is sent again.
  *  The owning host keeps a finished worker's chat on such a report instead of closing it. */
 export function useMobileStructuredSessionTouchReport(
   source: MobileNativeChatVisualSource | null,
   shown: boolean,
-  atRest: boolean
+  readable: boolean,
+  working: boolean
 ): void {
   // Shown counts as seen even under another screen or a backgrounded app: keeping a chat is the safe error.
-  const seenAtRest = shown && atRest
+  const seen = shown && readable
   const client = source?.client
   const sessionId = source?.sessionId
   useEffect(() => {
-    if (seenAtRest && client && sessionId) {
+    if (seen && client && sessionId) {
       void client
         .sendRequest(
           'orchestration.workerChatTouch',
@@ -23,5 +25,5 @@ export function useMobileStructuredSessionTouchReport(
         )
         .catch(() => {})
     }
-  }, [seenAtRest, client, sessionId])
+  }, [seen, working, client, sessionId])
 }
