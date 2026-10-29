@@ -214,6 +214,24 @@ describe('terminal worker turn stops', () => {
     await settle()
     expect(waiting.mail()).toHaveLength(0)
   })
+
+  it('reports a killed agent whose shell lives once, but not after worker_done', () => {
+    const ctx = setup()
+    // A wait the killed agent was blocked in does not hide its death.
+    ctx.waiting.add(`dispatch:${ctx.dispatch.id}`)
+    const stops = terminal(ctx, { row: hookRow({ state: 'working' }) })
+    stops.observeAgentExit(PANE)
+    stops.observeAgentExit(PANE)
+    const [message, ...rest] = ctx.mail()
+    expect(rest).toHaveLength(0)
+    expect(message).toMatchObject({ subject: 'Worker exited without reporting', priority: 'high' })
+    expect(ctx.notify).toHaveBeenCalledWith(message.to_handle, 'escalation')
+
+    const settled = setup()
+    settled.db.completeDispatch(settled.dispatch.id)
+    terminal(settled, { row: hookRow({}) }).observeAgentExit(PANE)
+    expect(settled.mail()).toHaveLength(0)
+  })
 })
 
 describe('chat worker turn stops', () => {

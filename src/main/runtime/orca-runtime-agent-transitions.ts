@@ -56,6 +56,12 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
     readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 })
   })
 
+  protected observeLaunchedAgentCommandEnded(paneKeys: ReadonlySet<string>): void {
+    for (const paneKey of paneKeys) {
+      this.terminalWorkerTurnStops.observeAgentExit(paneKey)
+    }
+  }
+
   private readonly externalConversations = installExternalConversations(this.store, this)
 
   /** The connector seam while `experimentalConnectors` is on; null refuses every connector call. */

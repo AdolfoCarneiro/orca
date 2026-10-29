@@ -47,6 +47,26 @@ export class TerminalWorkerTurnStops {
     this.news.observe(change)
   }
 
+  /** The launched agent's command ended while its shell lives; a killed agent sends no stop hook and its PTY never exits. */
+  observeAgentExit(paneKey: string): void {
+    const resolved = this.resolve(paneKey)
+    if (!resolved) {
+      return
+    }
+    reportWorkerTurnStop(
+      resolved.db,
+      resolved.target,
+      {
+        from: resolved.handle,
+        stopKey: `agent-exit:${this.deps.getProcessIncarnation(resolved.handle)}`,
+        reason: 'exited',
+        lastOutput: undefined,
+        exitCause: 'the agent process ended; its terminal is still open'
+      },
+      this.deps
+    )
+  }
+
   private async report(stop: PreparedStop): Promise<void> {
     const stopped = this.stillStopped(stop)
     if (!stopped) {
