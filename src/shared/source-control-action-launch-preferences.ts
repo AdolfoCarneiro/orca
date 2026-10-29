@@ -78,8 +78,6 @@ export function sourceControlActionOptions(
     const terminals = Boolean(option.apply.launchArgs || option.apply.composedIntoModel)
     if (
       (!chats && !terminals) ||
-      // Fallback CLI carriers do not advertise model-dependent action controls.
-      (!model && option.category === 'mode') ||
       (option.kind.type === 'select' && option.kind.choices.length === 0)
     ) {
       return []

@@ -5,8 +5,10 @@ import { fireEvent } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
+import * as shell from '../../../../shared/tui-agent-startup-shell'
 import {
   agentPickerDraft,
+  agentPickerChoiceSeeds,
   agentPickerLaunchInputs,
   type AgentPickerEntry
 } from '../../../../shared/agent-launch-picker'
@@ -549,6 +551,68 @@ it.each(['chat', 'terminal'] as const)(
     expect(agentPickerLaunchInputs(onUse.mock.calls[0][0], own).sessionOptions?.fastMode).toBe(
       'true'
     )
+  }
+)
+
+it.each(['chat', 'terminal'] as const)(
+  'keeps saved Fast Args removable for an unlisted model with a %s default',
+  (surface) => {
+    const args = `--model host-private --settings '{"fastMode":true,"theme":"light"}' --add-dir docs`
+    const own: AgentPickerEntry = {
+      ...entry,
+      defaultSurface: surface,
+      ...agentPickerChoiceSeeds('claude', {
+        agentPermissionDefault: 'own',
+        agentDefaultArgs: { claude: args }
+      })
+    }
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <AgentLaunchSetupPanel entry={own} onUse={onUse} />
+        </TooltipProvider>
+      )
+    )
+    if (surface === 'chat') {
+      fireEvent.click(host.querySelector('button[aria-label="Toggle Arguments"]')!)
+    }
+    const chip = host.querySelector<HTMLButtonElement>('button[aria-label*="Remove --settings"]')
+    expect(chip).not.toBeNull()
+    const input = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Arguments"]')!
+    expect(input.parentElement?.contains(chip)).toBe(true)
+    expect(input.value).toContain('--model host-private')
+    expect(input.value).toContain('"theme":"light"')
+    expect(input.value).toContain('--add-dir docs')
+    for (const way of ['Open chat', 'Open terminal']) {
+      onUse.mockClear()
+      fireEvent.click(
+        [...host.querySelectorAll('button')].find((button) => button.textContent === way)!
+      )
+      expect(agentPickerLaunchInputs(onUse.mock.calls[0][0], own)).not.toHaveProperty('agentArgs')
+    }
+    fireEvent.click(chip!)
+    expect(host.querySelector('button[aria-label*="Remove --settings"]')).toBeNull()
+    for (const way of ['Open chat', 'Open terminal']) {
+      onUse.mockClear()
+      fireEvent.click(
+        [...host.querySelectorAll('button')].find((button) => button.textContent === way)!
+      )
+      const launch = agentPickerLaunchInputs(onUse.mock.calls[0][0], own)
+      expect(launch.sessionOptions?.fastMode).toBe('false')
+      if (way === 'Open terminal') {
+        expect(shell.tokenizeStartupCommand(launch.agentArgs ?? '', 'posix')).toMatchObject({
+          ok: true,
+          tokens: [
+            '--model',
+            'host-private',
+            '--settings',
+            '{"theme":"light","fastMode":false}',
+            '--add-dir',
+            'docs'
+          ]
+        })
+      }
+    }
   }
 )
 

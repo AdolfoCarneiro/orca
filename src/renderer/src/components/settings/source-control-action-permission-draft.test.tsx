@@ -456,6 +456,49 @@ it.each([
   expect(screen.getByRole('textbox', { name: 'Arguments' })).toHaveProperty('value', '--verbose')
 })
 
+it('keeps a saved unlisted-model Fast badge removable without offering a Fast select', async () => {
+  write.mockClear()
+  const saved = {
+    value: normalizeSourceControlAiSettings({
+      ...initial,
+      actions: {
+        fixChecks: {
+          agentId: 'claude',
+          agentArgs: `--settings '{"theme":"light"}' --add-dir docs`,
+          launchPreferences: {
+            agentId: 'claude',
+            model: 'host-private',
+            options: { fastMode: 'true' }
+          }
+        }
+      }
+    })
+  }
+  render(<GlobalHarness saved={saved} />)
+  expect(screen.getByRole('combobox', { name: 'host-private' })).toBeDefined()
+  expect(screen.queryByText('Fast mode')).toBeNull()
+  expect(screen.getAllByRole('combobox')).toHaveLength(2)
+  fireEvent.click(screen.getByRole('button', { name: /Remove --settings/ }))
+  expect(screen.queryByRole('button', { name: /Remove --settings/ })).toBeNull()
+  fireEvent.click(screen.getByText('Save'))
+  await waitFor(() => expect(write).toHaveBeenCalledTimes(1))
+  const recipe = saved.value.actions?.fixChecks
+  expect(sourceControlActionSelectedPreferences(recipe ?? {}, 'claude')).toMatchObject({
+    model: 'host-private'
+  })
+  expect(
+    sourceControlActionSelectedPreferences(recipe ?? {}, 'claude')?.options?.fastMode
+  ).toBeUndefined()
+  const args = sourceControlActionAgentArgs(recipe ?? {}, 'claude', null)
+  expect(shell.tokenizeStartupCommand(args ?? '', 'posix')).toMatchObject({
+    ok: true,
+    tokens: ['--settings', '{"theme":"light"}', '--add-dir', 'docs']
+  })
+  expect(args).toContain('"theme":"light"')
+  expect(args).toContain('--add-dir docs')
+  expect(args).not.toContain('"fastMode":true')
+})
+
 it('edits and saves a sparse repository model without authoring the inherited permission', async () => {
   write.mockClear()
   const source = {
