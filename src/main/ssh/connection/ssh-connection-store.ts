@@ -176,7 +176,12 @@ export class SshConnectionStore {
       for (const alias of restoredAliases) {
         routeDuplicates.delete(alias)
       }
-      return this.reconcileSshConfig(snapshot.configHosts, routeDuplicates)
+      const result = this.reconcileSshConfig(snapshot.configHosts, routeDuplicates)
+      if (result.targets.length > 0) {
+        // Its own changes outdate the snapshot; rebuild next so the picker keeps the flags it just acted on.
+        void this.refreshSshRouteSnapshot().catch(() => {})
+      }
+      return result
     })
   }
 
@@ -184,6 +189,7 @@ export class SshConnectionStore {
   currentSshRouteSnapshot(): SshRouteSnapshot | null {
     const snapshot = this.latestRouteSnapshot
     return snapshot &&
+      Date.now() - snapshot.builtAt < ROUTE_SNAPSHOT_TTL_MS &&
       snapshot.fingerprint === this.routeSnapshotFingerprint(loadUserSshConfigWithText().text)
       ? snapshot
       : null

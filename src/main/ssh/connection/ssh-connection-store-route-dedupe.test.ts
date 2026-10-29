@@ -217,6 +217,16 @@ describe('SshConnectionStore import route de-duplication', () => {
     expect(resolveConfig.mock.calls.length + systemRoute.mock.calls.length).toBe(oneRun)
   })
 
+  it('rebuilds the snapshot after an import changes targets, so the picker keeps the skipped alias flagged', async () => {
+    sshConfigHostsToTargetsMock.mockReturnValue([configCandidate('aimp'), configCandidate('via-b')])
+
+    expect((await sshStore.importFromSshConfig()).targets).toHaveLength(1)
+
+    await vi.waitFor(() =>
+      expect(sshStore.currentSshRouteSnapshot()?.duplicateOf.has('aimp')).toBe(true)
+    )
+  })
+
   it('imports the same address behind a different jump host', async () => {
     sshConfigHostsToTargetsMock.mockReturnValue([configCandidate('via-b')])
 

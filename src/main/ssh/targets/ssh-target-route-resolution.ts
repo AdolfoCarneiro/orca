@@ -80,7 +80,10 @@ async function resolveRouteKey(target: SshTarget, resolvers: SshRouteResolvers):
   // Reuse only when `ssh -G` read the config system ssh will: a divergent HOME adds -F.
   const sameConfigAsSystemSsh = !sshGArgsForHost(target.configHost || target.label).includes('-F')
   const system =
-    isOpenSshConfigBackedTarget(target) && aliasClaimed && sameConfigAsSystemSsh
+    Boolean(target.configHost) &&
+    isOpenSshConfigBackedTarget(target) &&
+    aliasClaimed &&
+    sameConfigAsSystemSsh
       ? resolved
       : await (resolvers.systemRoute ?? resolveSystemSshRoute)(
           target,
