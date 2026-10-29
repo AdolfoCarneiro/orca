@@ -1,29 +1,43 @@
 import type { GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+
 import type { ParsedTaskQuery } from '../../../../../shared/task-query'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
-import { applyTaskPageGitHubListOps } from './task-page-github-work-item-mutation-patches'
+
 import {
   familiesFromPendingOp,
-  freezeTaskPageGitHubUsers,
   getRegistryMergedTaskPageGitHubWorkItem,
   establishTaskPageGitHubMembership
 } from './task-page-github-work-item-mutation-composition'
+
 import {
   deletePendingTaskPageGitHubOp,
-  getConfirmedListSnapshot,
+  getListEntry,
+  listInput,
+  confirmListOperation,
+  completedListClaim,
+  deleteConfirmedListSnapshot,
   getPendingTaskPageGitHubOp,
   listPendingTaskPageGitHubOpsForItem,
   notifyTaskPageGitHubMutationRegistry,
-  setConfirmedListSnapshot,
   setLastConfirmedClientValue,
   isTaskPageGitHubMutationQueryKeyCurrent
 } from './task-page-github-work-item-mutation-registry'
+
 import { markTaskPageGitHubFamiliesDirty } from './task-page-github-work-item-quiet-state'
+
 import { taskPageGitHubOwnedItemKey } from './task-page-github-work-item-mutation-keys'
+
 import type { TaskPageGitHubMutationKey } from './task-page-github-work-item-registry-types'
-import type { TaskPageGitHubPatchWorkItem } from './task-page-github-work-item-mutation-types'
+
+import type {
+  CurrentListInputResolver,
+  TaskPageGitHubPatchWorkItem
+} from './task-page-github-work-item-mutation-types'
 
 export function confirmTaskPageGitHubWorkItemMutation(
   key: TaskPageGitHubMutationKey,
@@ -34,7 +48,7 @@ export function confirmTaskPageGitHubWorkItemMutation(
     queryKey: string
     viewerLogin: string | null
     item: GitHubWorkItem
-    serverEntity?: Partial<GitHubWorkItem>
+    resolveCurrentListInput?: CurrentListInputResolver
     patchWorkItem?: TaskPageGitHubPatchWorkItem
     sourceContext?: TaskSourceContext | null
     scheduleQuiet?: boolean
@@ -46,30 +60,17 @@ export function confirmTaskPageGitHubWorkItemMutation(
   }
   const { skipMeQualifiers, listOp, next } = pending
   if (listOp) {
-    const snapshot =
-      getConfirmedListSnapshot(
-        key.sourceScope,
-        key.repoId,
-        key.itemId,
-        listOp.family,
-        key.observation,
-        key.itemType
-      ) ??
-      freezeTaskPageGitHubUsers(
-        listOp.family === 'assignees'
-          ? (opts.item.assignees ?? [])
-          : (opts.item.reviewRequests ?? [])
-      )
-    // Confirm list ops into snapshots immediately; lastConfirmedClientValue stores scalar authority only.
-    const applied = applyTaskPageGitHubListOps(snapshot, [listOp])
-    setConfirmedListSnapshot(
-      key.sourceScope,
-      key.repoId,
-      key.itemId,
-      listOp.family,
-      applied,
-      key.observation,
-      key.itemType
+    const address = { ...key, family: listOp.family }
+    const fallback = {
+      ...opts.item,
+      ...pending.previous,
+      githubValueOrigins: pending.previousOrigins
+    }
+    confirmListOperation(
+      key,
+      generation,
+      opts.resolveCurrentListInput?.(address, fallback) ??
+        listInput(fallback, listOp.family, key.observation)
     )
   } else {
     if (next.state !== undefined) {
@@ -96,31 +97,19 @@ export function confirmTaskPageGitHubWorkItemMutation(
     }
   }
   deletePendingTaskPageGitHubOp(key)
-  applyServerEntityIfPresent(key, opts)
-  const remaining = listPendingTaskPageGitHubOpsForItem(
-    key.repoId,
-    key.itemId,
-    key.sourceScope,
-    key.observation
-  )
   const merged = getRegistryMergedTaskPageGitHubWorkItem(
     opts.item,
     key.sourceScope,
     key.observation
   )
-  if (opts.patchWorkItem && remaining.some((op) => op.listOp)) {
-    opts.patchWorkItem(
-      opts.item.id,
-      { assignees: merged.assignees, reviewRequests: merged.reviewRequests },
-      key.repoId,
-      {
-        sourceContext: opts.sourceContext,
-        ownerRepo:
-          opts.item.type === 'issue' ? parseGitHubIssueOrPRLink(opts.item.url)?.slug : undefined,
-        observation: key.observation,
-        valueOrigins: merged.githubValueOrigins
-      }
-    )
+  if (opts.patchWorkItem && listOp) {
+    opts.patchWorkItem(opts.item.id, {}, key.repoId, {
+      sourceContext: opts.sourceContext,
+      ownerRepo:
+        opts.item.type === 'issue' ? parseGitHubIssueOrPRLink(opts.item.url)?.slug : undefined,
+      observation: key.observation,
+      listComposition: [{ address: { ...key, family: listOp.family } }]
+    })
   }
   if (
     isTaskPageGitHubMutationQueryKeyCurrent(opts.queryKey) &&
@@ -133,11 +122,6 @@ export function confirmTaskPageGitHubWorkItemMutation(
       skipMeQualifiers,
       observation: key.observation
     })
-  }
-  if (
-    isTaskPageGitHubMutationQueryKeyCurrent(opts.queryKey) &&
-    key.observation?.key === opts.currentObservation?.key
-  ) {
     markTaskPageGitHubFamiliesDirty(
       opts.queryKey,
       taskPageGitHubOwnedItemKey(
@@ -162,6 +146,7 @@ export function rollbackTaskPageGitHubWorkItemMutation(args: {
   queryKey: string
   viewerLogin: string | null
   item: GitHubWorkItem
+  resolveCurrentListInput?: CurrentListInputResolver
 }): 'rolled_back' | 'stale' {
   const pending = getPendingTaskPageGitHubOp(args.key)
   if (!pending || pending.generation !== args.generation) {
@@ -169,26 +154,38 @@ export function rollbackTaskPageGitHubWorkItemMutation(args: {
   }
   const { skipMeQualifiers, listOp } = pending
   deletePendingTaskPageGitHubOp(args.key)
-  const merged = getRegistryMergedTaskPageGitHubWorkItem(
-    args.item,
-    args.key.sourceScope,
-    args.key.observation
-  )
   if (listOp) {
-    args.patchWorkItem(
-      args.item.id,
-      listOp.family === 'assignees'
-        ? { assignees: merged.assignees }
-        : { reviewRequests: merged.reviewRequests },
+    const address = { ...args.key, family: listOp.family }
+    const entry = getListEntry(address)
+    const remaining = listPendingTaskPageGitHubOpsForItem(
       args.key.repoId,
-      {
-        sourceContext: args.sourceContext,
-        ownerRepo:
-          args.item.type === 'issue' ? parseGitHubIssueOrPRLink(args.item.url)?.slug : undefined,
-        observation: args.key.observation,
-        valueOrigins: listOp ? merged.githubValueOrigins : pending.previousOrigins
-      }
+      args.key.itemId,
+      args.key.sourceScope,
+      args.key.observation
     )
+    const retired =
+      entry &&
+      !completedListClaim(entry) &&
+      !remaining.some((op) => op.listOp?.family === listOp.family)
+        ? entry
+        : undefined
+    const retirement =
+      retired &&
+      deleteConfirmedListSnapshot(
+        address.sourceScope,
+        address.repoId,
+        address.itemId,
+        address.family,
+        address.observation,
+        address.itemType
+      )
+    args.patchWorkItem(args.item.id, {}, args.key.repoId, {
+      sourceContext: args.sourceContext,
+      ownerRepo:
+        args.item.type === 'issue' ? parseGitHubIssueOrPRLink(args.item.url)?.slug : undefined,
+      observation: args.key.observation,
+      listComposition: [{ address, retirement }]
+    })
   } else {
     const recomposed = getRegistryMergedTaskPageGitHubWorkItem(
       { ...args.item, ...pending.previous },
@@ -207,7 +204,7 @@ export function rollbackTaskPageGitHubWorkItemMutation(args: {
         ownerRepo:
           args.item.type === 'issue' ? parseGitHubIssueOrPRLink(args.item.url)?.slug : undefined,
         observation: args.key.observation,
-        valueOrigins: listOp ? merged.githubValueOrigins : pending.previousOrigins
+        valueOrigins: pending.previousOrigins
       }
     )
   }
@@ -231,5 +228,3 @@ export function rollbackTaskPageGitHubWorkItemMutation(args: {
   notifyTaskPageGitHubMutationRegistry()
   return 'rolled_back'
 }
-
-import { applyServerEntityIfPresent } from './task-page-github-work-item-server-entity'

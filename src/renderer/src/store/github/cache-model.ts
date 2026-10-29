@@ -1,12 +1,23 @@
+import type { ListComposition } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import type { GitHubTaskValueOrigin, GitHubTaskFamily } from '@/lib/github-task-observation'
+
 import type { GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
+
 import type { ExecutionHostId } from '../../../../shared/execution-host'
+
 import type { GitHubTaskRead } from './request-coordination'
+
 import type { ClassifiedError } from '../../../../shared/classified-error'
+
 import type { GitHubOwnerRepo } from '../../../../shared/github/pull-request-types'
+
 import type { GitHubPRRefreshAlias } from '../../../../shared/github/pull-request-refresh-types'
+
 import type { GitHubProjectViewError } from '../../../../shared/github/project-result-types'
+
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 
 export type WorkItemsCacheSources = {
@@ -68,6 +79,7 @@ export type ProjectRowContentPatch = {
 }
 
 export type GitHubPatchWorkItemOptions = {
+  listComposition?: readonly ListComposition[]
   observation?: GitHubTaskObservation
   valueOrigins?: Partial<Record<GitHubTaskFamily, GitHubTaskValueOrigin | undefined>>
   sourceContexts?: readonly TaskSourceContext[]
@@ -83,6 +95,6 @@ export type GitHubWorkItemPatch = {
   patch: Partial<GitHubWorkItem>
   options?: Pick<
     GitHubPatchWorkItemOptions,
-    'sourceContext' | 'observation' | 'ownerRepo' | 'valueOrigins'
+    'sourceContext' | 'observation' | 'ownerRepo' | 'valueOrigins' | 'listComposition'
   >
 }

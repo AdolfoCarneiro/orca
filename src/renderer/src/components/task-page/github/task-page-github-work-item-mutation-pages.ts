@@ -1,25 +1,41 @@
+import { observeExistingListBases } from './task-page-github-work-item-mutation-registry'
+
+import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
+
+import type { ListComposition } from './task-page-github-work-item-mutation-registry'
+
 import type { Repo } from '../../../../../shared/repo-types'
+
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
+
 import {
   createGitHubTaskObservationIndex,
   captureGitHubTaskObservation
 } from '@/lib/github-task-observation'
+
 import type { GitHubTaskRead } from '@/store/github/request-coordination'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import { parseTaskQuery, type ParsedTaskQuery } from '../../../../../shared/task-query'
+
 import {
   getGitHubTaskObservation,
   patchObservedGitHubWorkItem,
   type ObservedGitHubWorkItem,
   type GitHubTaskObservation
 } from '@/lib/github-task-observation'
+
 import { githubTaskIdentity, githubTaskSourceKey } from '@/lib/github-task-target'
+
 import {
   createTaskPageGitHubAuthorityProjection,
   createTaskPageGitHubMembershipProjection,
   adoptTaskPageGitHubMembershipFamilies
 } from './task-page-github-work-item-mutation-composition'
+
 import type { GitHubWorkItemPatch } from '@/store/github/cache-model'
 
 export type TaskPageGitHubProjectionContext = {
@@ -53,6 +69,18 @@ export function createTaskPageGitHubProjectionContext(
     )
   }
 }
+export function admitTaskPageGitHubListInputs(
+  items: readonly GitHubWorkItem[],
+  context?: TaskPageGitHubProjectionContext,
+  fillOnly = false
+): void {
+  const current = items.filter((item) => {
+    const owner = getGitHubTaskObservation(item)
+    const actual = context?.ownerOf?.(item)
+    return !!owner && (!context?.ownerOf || actual?.key === owner.key)
+  })
+  observeExistingListBases(current, fillOnly)
+}
 export function taskPageGitHubObservedRowKey(item: GitHubWorkItem): string {
   const owner = getGitHubTaskObservation(item)
   return JSON.stringify([
@@ -66,8 +94,10 @@ export function patchTaskPageGitHubWorkItemPages(
   pages: readonly (GitHubWorkItem[] | null)[],
   itemKey: { id: string; repoId: string },
   patch: Partial<ObservedGitHubWorkItem>,
-  shouldPatch?: (item: GitHubWorkItem) => boolean
+  shouldPatch?: (item: GitHubWorkItem) => boolean,
+  listComposition: readonly ListComposition[] = []
 ): (GitHubWorkItem[] | null)[] {
+  const projection = createTaskPageGitHubAuthorityProjection()
   let nextPages: (GitHubWorkItem[] | null)[] | undefined
   pages.forEach((page, pageIndex) => {
     if (!page) {
@@ -81,10 +111,17 @@ export function patchTaskPageGitHubWorkItemPages(
       ) {
         return
       }
+      let updated = Object.keys(patch).length
+        ? patchObservedGitHubWorkItem(item, patch, patch.githubValueOrigins ?? {})
+        : item
+      for (const plan of listComposition) {
+        updated = projection.list(updated, plan)
+      }
+      if (updated === item) {
+        return
+      }
       nextPage ??= page.slice()
-      nextPage[itemIndex] = patch.githubValueOrigins
-        ? patchObservedGitHubWorkItem(item, patch, patch.githubValueOrigins)
-        : { ...item, ...patch }
+      nextPage[itemIndex] = updated
     })
     if (nextPage) {
       nextPages ??= pages.slice()
@@ -109,6 +146,7 @@ export function reapplyPendingTaskPageGitHubMutationsToCache(args: {
   patchWorkItems: (patches: readonly GitHubWorkItemPatch[]) => void
   context?: TaskPageGitHubProjectionContext
 }): void {
+  admitTaskPageGitHubListInputs(args.items, args.context, true)
   const compose = createTaskPageGitHubAuthorityProjection()
   const patches: GitHubWorkItemPatch[] = []
   for (const item of args.items) {
@@ -121,15 +159,26 @@ export function reapplyPendingTaskPageGitHubMutationsToCache(args: {
       itemId: item.id,
       patch: {
         state: merged.state,
-        assignees: merged.assignees,
-        reviewRequests: merged.reviewRequests,
         autoMergeEnabled: merged.autoMergeEnabled
       },
       repoId: item.repoId,
       options: {
         sourceContext: owner?.source,
         observation: owner,
-        valueOrigins: merged.githubValueOrigins,
+        valueOrigins: {
+          state: merged.githubValueOrigins?.state,
+          autoMerge: merged.githubValueOrigins?.autoMerge
+        },
+        listComposition: (['assignees', 'reviewRequests'] as const).map((family) => ({
+          address: {
+            sourceScope: owner ? githubTaskSourceKey(owner.source) : null,
+            repoId: item.repoId,
+            itemId: taskPageGitHubMutationItemId(item),
+            itemType: item.type,
+            observation: owner,
+            family
+          }
+        })),
         ownerRepo: item.type === 'issue' ? parseGitHubIssueOrPRLink(item.url)?.slug : undefined
       }
     })
@@ -258,3 +307,5 @@ export function restoreTaskPageGitHubReadPage(
     )[0] ?? []
   return next
 }
+
+export { transitionTaskPageGitHubMutationQuery } from './task-page-github-work-item-query-transition'

@@ -1,21 +1,31 @@
 import type { GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
-import type { GitHubAssignableUser } from '../../../../../shared/github/pull-request-types'
+
 import { githubTaskSourceKey } from '@/lib/github-task-target'
+
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+
 import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
+
 import {
   createTaskPageGitHubScalarAuthorityIndex,
   deleteLastConfirmedClientValue
 } from './task-page-github-confirmed-client-values'
+
 import {
+  createListEntryRetirement,
   getTaskPageGitHubMutationQueryKey,
   batchTaskPageGitHubMutationRegistry,
-  getConfirmedListSnapshot,
+  getListEntry,
+  completedListClaim,
+  matchesListClaim,
   deleteConfirmedListSnapshot,
   notifyTaskPageGitHubMutationRegistry
 } from './task-page-github-work-item-mutation-registry'
+
 /** Only the exact completed masks observed before this read may be retired. */
 export function captureTaskPageGitHubRefreshMasks(
   item: GitHubWorkItem,
@@ -35,14 +45,17 @@ export function captureTaskPageGitHubRefreshMasks(
       scalars: aliases.map((alias) =>
         scalarIndex({ ...item, id: alias }, scope, observations[index], 'state')
       ),
-      list: getConfirmedListSnapshot(scope, item.repoId, id, 'assignees', observations[index])
+      list: completedListClaim(
+        getListEntry({
+          sourceScope: scope,
+          repoId: item.repoId,
+          itemId: id,
+          family: 'assignees',
+          observation: observations[index]
+        })
+      )
     }
   })
-  const logins = (users: readonly GitHubAssignableUser[] = []) =>
-    users
-      .map((u) => u.login.toLowerCase())
-      .sort()
-      .join('\0')
   return (accepted: Pick<GitHubWorkItem, 'state' | 'assignees'>): boolean =>
     batchTaskPageGitHubMutationRegistry(() => {
       const currentIndex = createTaskPageGitHubScalarAuthorityIndex()
@@ -51,12 +64,14 @@ export function captureTaskPageGitHubRefreshMasks(
         currentScalars: aliases.map((alias) =>
           currentIndex({ ...item, id: alias }, capture.scope, capture.observation, 'state')
         ),
-        currentList: getConfirmedListSnapshot(
-          capture.scope,
-          item.repoId,
-          id,
-          'assignees',
-          capture.observation
+        currentList: completedListClaim(
+          getListEntry({
+            sourceScope: capture.scope,
+            repoId: item.repoId,
+            itemId: id,
+            family: 'assignees',
+            observation: capture.observation
+          })
         )
       }))
       const sameQuery = query === getTaskPageGitHubMutationQueryKey()
@@ -73,12 +88,14 @@ export function captureTaskPageGitHubRefreshMasks(
         }
         if (
           entry.currentList &&
-          logins(entry.currentList) !== logins(accepted.assignees) &&
+          accepted.assignees !== undefined &&
+          !matchesListClaim(entry.currentList, accepted.assignees ?? []) &&
           (!sameQuery || entry.currentList !== entry.list)
         ) {
           return false
         }
       }
+      const retire = createListEntryRetirement()
       for (const entry of entries) {
         for (const scalar of entry.currentScalars) {
           if (scalar && scalar.value !== accepted.state) {
@@ -91,8 +108,20 @@ export function captureTaskPageGitHubRefreshMasks(
             )
           }
         }
-        if (entry.currentList && logins(entry.currentList) !== logins(accepted.assignees)) {
-          deleteConfirmedListSnapshot(entry.scope, item.repoId, id, 'assignees', entry.observation)
+        if (
+          entry.currentList &&
+          accepted.assignees !== undefined &&
+          !matchesListClaim(entry.currentList, accepted.assignees ?? [])
+        ) {
+          deleteConfirmedListSnapshot(
+            entry.scope,
+            item.repoId,
+            id,
+            'assignees',
+            entry.observation,
+            'issue',
+            retire
+          )
         }
       }
       notifyTaskPageGitHubMutationRegistry()

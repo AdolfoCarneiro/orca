@@ -1,37 +1,49 @@
-import { getGitHubTaskObservation, type GitHubTaskObservation } from '@/lib/github-task-observation'
+import {
+  gitHubTaskFamilyOrigin,
+  getGitHubTaskObservation,
+  type GitHubTaskObservation
+} from '@/lib/github-task-observation'
+
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+
 import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import {
   getTaskSourceCacheScope,
   type TaskSourceContext
 } from '../../../../../shared/task-source-context'
+
 import {
   buildTaskPageGitHubWorkItemMutationPatch,
   type TaskPageGitHubMutationIntent
 } from './task-page-github-work-item-mutation-patches'
+
 import {
   createTaskPageGitHubAuthorityProjection,
   familiesFromPendingOp,
   getRegistryMergedTaskPageGitHubWorkItem,
-  establishTaskPageGitHubMembership,
-  stripFamilyPendingFromList
+  establishTaskPageGitHubMembership
 } from './task-page-github-work-item-mutation-composition'
+
 import {
-  getConfirmedListSnapshot,
+  beginListEntry,
+  listInput,
   getPendingTaskPageGitHubOp,
-  listPendingTaskPageGitHubOpsForItem,
   nextTaskPageGitHubMutationGeneration,
   notifyTaskPageGitHubMutationRegistry,
-  setConfirmedListSnapshot,
   setPendingTaskPageGitHubOp,
   setTaskPageGitHubMutationQueryKey
 } from './task-page-github-work-item-mutation-registry'
+
 import { taskPageGitHubItemKey } from './task-page-github-work-item-mutation-keys'
+
 import type {
   PendingOp,
   TaskPageGitHubMutationKey
 } from './task-page-github-work-item-registry-types'
+
 import type {
   BeginTaskPageGitHubWorkItemMutationArgs,
   BeginTaskPageGitHubWorkItemMutationResult
@@ -99,7 +111,7 @@ export function canStartTaskPageGitHubWorkItemMutation(args: {
 export function beginTaskPageGitHubWorkItemMutation(
   args: BeginTaskPageGitHubWorkItemMutationArgs
 ): BeginTaskPageGitHubWorkItemMutationResult {
-  setTaskPageGitHubMutationQueryKey(args.queryKey)
+  ;(args.transitionQuery ?? setTaskPageGitHubMutationQueryKey)(args.queryKey)
   const { sourceScope, built } = resolveTaskPageGitHubMutation(args)
   const itemId = taskPageGitHubMutationItemId(args.item)
   const skipMeQualifiers = args.skipMeQualifiers ?? false
@@ -113,44 +125,29 @@ export function beginTaskPageGitHubWorkItemMutation(
   }
   const generation = nextTaskPageGitHubMutationGeneration(key)
 
+  const previousItem = getRegistryMergedTaskPageGitHubWorkItem(
+    args.item,
+    sourceScope,
+    key.observation
+  )
   if (built.kind === 'list') {
-    const existing = getConfirmedListSnapshot(
-      sourceScope,
-      args.item.repoId,
-      itemId,
-      built.family,
-      args.observation,
-      args.item.type
+    const address = { ...key, family: built.family }
+    beginListEntry(
+      address,
+      args.resolveCurrentListInput?.(address, args.item) ??
+        listInput(args.item, built.family, key.observation)
     )
-    if (!existing) {
-      const ops = listPendingTaskPageGitHubOpsForItem(
-        args.item.repoId,
-        itemId,
-        sourceScope,
-        args.observation
-      )
-      const snapshot = stripFamilyPendingFromList(args.item, built.family, ops)
-      setConfirmedListSnapshot(
-        sourceScope,
-        args.item.repoId,
-        itemId,
-        built.family,
-        snapshot,
-        args.observation,
-        args.item.type
-      )
-    }
   }
-
   const op: PendingOp = {
     generation,
     key,
     previous: built.previous,
-    previousOrigins: getRegistryMergedTaskPageGitHubWorkItem(
-      args.item,
-      sourceScope,
-      key.observation
-    ).githubValueOrigins,
+    previousOrigins: Object.fromEntries(
+      (['state', 'autoMerge', 'assignees', 'reviewRequests'] as const).map((family) => [
+        family,
+        gitHubTaskFamilyOrigin(previousItem, family)
+      ])
+    ),
     next: built.next,
     listOp: built.kind === 'list' ? built.listOp : undefined,
     skipMeQualifiers,
@@ -159,19 +156,14 @@ export function beginTaskPageGitHubWorkItemMutation(
   setPendingTaskPageGitHubOp(op)
 
   const merged = getRegistryMergedTaskPageGitHubWorkItem(args.item, sourceScope, args.observation)
-  const composedFields: Partial<GitHubWorkItem> =
-    built.kind === 'list'
-      ? built.family === 'assignees'
-        ? { assignees: merged.assignees }
-        : { reviewRequests: merged.reviewRequests }
-      : built.next
-
-  args.patchWorkItem(args.item.id, composedFields, args.item.repoId, {
+  args.patchWorkItem(args.item.id, built.kind === 'list' ? {} : built.next, args.item.repoId, {
     sourceContext: args.sourceContext,
     ownerRepo:
       args.item.type === 'issue' ? parseGitHubIssueOrPRLink(args.item.url)?.slug : undefined,
     observation: key.observation,
-    valueOrigins: merged.githubValueOrigins
+    ...(built.kind === 'list'
+      ? { listComposition: [{ address: { ...key, family: built.family } }] }
+      : { valueOrigins: merged.githubValueOrigins })
   })
 
   establishTaskPageGitHubMembership({

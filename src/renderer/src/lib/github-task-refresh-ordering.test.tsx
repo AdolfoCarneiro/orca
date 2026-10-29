@@ -1,10 +1,14 @@
-import './github-task-refresh.test-fixture'
+import { confirmListForTest } from './github-task-refresh.test-fixture'
 
+import './github-task-refresh.test-fixture'
 import { parseTaskQuery } from '../../../shared/task-query'
+
 import { createTaskPageGitHubMembershipProjection } from '@/components/task-page/github/task-page-github-work-item-mutation-composition'
 
 import { captureGitHubTaskObservation } from './github-task-observation'
+
 import { githubTaskSourceKey } from './github-task-target'
+
 import {
   repo,
   source,
@@ -17,6 +21,7 @@ import {
   table,
   request
 } from './github-task-refresh-data.test-fixture'
+
 // @vitest-environment happy-dom
 import {
   context,
@@ -36,23 +41,32 @@ import {
 } from './github-task-refresh.test-fixture'
 
 import type * as ProjectViewModule from '@/components/github-project/ProjectViewWrapper'
+
 import React, { act } from 'react'
+
 import { createRoot } from 'react-dom/client'
 
 import { expect, it, vi } from 'vitest'
+
 import type { AppState } from '@/store/types'
+
 import type { Repo } from '../../../shared/repo-types'
+
 import type { GitHubWorkItem, GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
+
 import type { GitHubProjectTable } from '../../../shared/github/project-types'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
+
 import { getTaskPageRepoSourceContext } from '@/components/task-page/task-page-source-context'
+
 import { getTaskSourceCacheScope } from '../../../shared/task-source-context'
+
 import { workItemsCacheKey } from '@/store/github/cache-identity'
 
 import {
-  setConfirmedListSnapshot,
   getConfirmedListSnapshot,
+  getListEntry,
   getTaskPageGitHubMembershipBases
 } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
 
@@ -62,7 +76,9 @@ import {
 } from '@/components/github-item-dialog/load-item-details/work-item-details-cache'
 
 import { createCompatibleRuntimeStatusResponse } from '@/runtime/runtime-compatibility-test-fixture'
+
 import { clearRuntimeCompatibilityCacheForTests } from '@/runtime/runtime-rpc-client'
+
 import { GITHUB_CANONICAL_DETAILS_RUNTIME_CAPABILITY } from '../../../shared/task-source-runtime-capabilities'
 
 import { taskPageGitHubMutationItemId } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
@@ -322,7 +338,7 @@ it('retires only captured contradictions through actual Tasks settlement and pre
   expect(getTaskPageGitHubMembershipBases().size).toBeGreaterThan(0)
   const scope = getTaskSourceCacheScope(source),
     id = taskPageGitHubMutationItemId(seed)
-  setConfirmedListSnapshot(
+  confirmListForTest(
     scope,
     repo.id,
     id,
@@ -330,8 +346,31 @@ it('retires only captured contradictions through actual Tasks settlement and pre
     [user('old')],
     captureGitHubTaskObservation(repo, source)
   )
-  direct.mockResolvedValue(returned)
+  const observation = captureGitHubTaskObservation(repo, source)
+  const address = {
+    sourceScope: scope,
+    repoId: repo.id,
+    itemId: id,
+    family: 'assignees' as const,
+    observation
+  }
+  const capturedClaim = getListEntry(address)!.protection
+  const held = Promise.withResolvers<GitHubWorkItemDetails | null>()
+  direct.mockReturnValueOnce(held.promise)
   await click()
+  list.mockResolvedValueOnce({
+    items: [{ ...seed, assignees: [user('provider')] }],
+    sources: { issues: { owner: 'o', repo: 'r' }, prs: null }
+  })
+  await act(async () => {
+    await store
+      .getState()
+      .fetchWorkItems(repo.id, repo.path, 30, '', { sourceContext: source, force: true })
+  })
+  expect(getListEntry(address)!.protection).toBe(capturedClaim)
+  await act(async () => held.resolve(returned))
+  expect(container.querySelectorAll('[role="alert"]')).toHaveLength(0)
+  direct.mockResolvedValue(returned)
   expect(
     createTaskPageGitHubMembershipProjection({
       query: parseTaskQuery('is:open'),
@@ -348,7 +387,7 @@ it('retires only captured contradictions through actual Tasks settlement and pre
       captureGitHubTaskObservation(repo, source)
     )
   ).toBeUndefined()
-  setConfirmedListSnapshot(
+  confirmListForTest(
     scope,
     repo.id,
     id,
@@ -359,7 +398,7 @@ it('retires only captured contradictions through actual Tasks settlement and pre
   const pending = Promise.withResolvers<GitHubWorkItemDetails | null>()
   direct.mockReturnValueOnce(pending.promise)
   await click()
-  setConfirmedListSnapshot(
+  confirmListForTest(
     scope,
     repo.id,
     id,
@@ -387,7 +426,7 @@ it('retires only captured contradictions through actual Tasks settlement and pre
   const contradiction = Promise.withResolvers<GitHubWorkItemDetails | null>()
   direct.mockReturnValueOnce(contradiction.promise)
   await click()
-  setConfirmedListSnapshot(
+  confirmListForTest(
     scope,
     repo.id,
     id,

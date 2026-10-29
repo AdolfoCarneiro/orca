@@ -1,16 +1,28 @@
+import {
+  batchTaskPageGitHubMutationRegistry,
+  observeExistingListBase
+} from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import type { StateCreator } from 'zustand'
+
 import type { AppState } from '../types'
+
 import type { GitHubSlice } from './slice-types'
 
 import { toast } from 'sonner'
 
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
+
 import { translate } from '@/i18n/i18n'
+
 import { repoMatchesHostIdentity } from '../slices/repo-host-identity'
 
 import { evictRepoCacheEntries, repoCacheEviction, type RepoCacheEviction } from './cache-identity'
+
 import { ERROR_TOAST_DURATION } from './cache-policy'
+
 import { clearInflightWorkItemsForRepo } from './request-coordination'
+
 import { findRepoForGitHubOwner } from './repository-routing'
 
 // Why: the row's own host is the bucket to drop; a same-id twin on another host keeps its own.
@@ -32,10 +44,22 @@ export const createWorkItemMutationActions = (
   GitHubSlice,
   'patchWorkItem' | 'patchWorkItems' | 'setIssueSourcePreference' | 'evictGitHubRepoCaches'
 > => ({
-  patchWorkItems: (patches) => set((s) => reduceWorkItemPatches(s, patches, true)),
-  patchWorkItem: (itemId, patch, repoId, options) => {
-    set((s) => reduceWorkItemPatches(s, [{ itemId, patch, repoId, options }], false))
-  },
+  patchWorkItems: (patches) =>
+    batchTaskPageGitHubMutationRegistry(() => {
+      const prepared = prepareWorkItemPatches(get(), patches, true)
+      for (const { address, input } of prepared.existingEntryBaseObservations) {
+        observeExistingListBase(address, input, true)
+      }
+      set(prepared.storePatch)
+    }),
+  patchWorkItem: (itemId, patch, repoId, options) =>
+    batchTaskPageGitHubMutationRegistry(() => {
+      const prepared = prepareWorkItemPatches(get(), [{ itemId, patch, repoId, options }], false)
+      for (const { address, input } of prepared.existingEntryBaseObservations) {
+        observeExistingListBase(address, input, true)
+      }
+      set(prepared.storePatch)
+    }),
 
   setIssueSourcePreference: async (repoId, repoPath, preference, hostId) => {
     // Why: map 'auto' to undefined so persistence drops the key entirely (see main/persistence.ts#updateRepo).
@@ -102,5 +126,4 @@ export const createWorkItemMutationActions = (
     })
   }
 })
-
-import { reduceWorkItemPatches } from './work-item-cache-patches'
+import { prepareWorkItemPatches } from './work-item-cache-patches'

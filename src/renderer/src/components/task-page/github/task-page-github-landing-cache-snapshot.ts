@@ -1,7 +1,8 @@
 import type { TaskPageGitHubSearchPaginationModel } from './use-task-page-github-search-pagination'
-import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
+import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import { sortWorkItemsByNumber } from '../../../../../shared/work-items'
+
 export function readTaskPageGitHubLandingCache(
   {
     selectedRepos,
@@ -37,4 +38,23 @@ export function readTaskPageGitHubLandingCache(
     preMerged.length > 0 ? sortWorkItemsByNumber(preMerged).slice(0, githubPageSize) : []
 
   return { page0Raw, anyUncached, anyRepoCached }
+}
+
+export function countTaskPageGitHubLandingPages(
+  model: TaskPageGitHubSearchPaginationModel,
+  q: string,
+  onCounted: (result: { totalPages: number }) => void
+): void {
+  void model
+    .countWorkItemsAcrossRepos(
+      model.selectedRepos.map((r) => ({
+        repoId: r.id,
+        path: r.path,
+        executionHostId: r.executionHostId,
+        sourceContext: getTaskPageRepoSourceContext(r, 'github')
+      })),
+      q,
+      model.githubPerRepoPageLimit
+    )
+    .then(onCounted)
 }

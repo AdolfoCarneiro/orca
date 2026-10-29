@@ -1,291 +1,197 @@
 // @vitest-environment happy-dom
 import './github-task-refresh.test-fixture'
-
 import { parseTaskQuery } from '../../../shared/task-query'
+
 import {
   context,
   store,
   mount,
-  click,
   direct,
   list,
+  update,
   taskMutation,
   harnessSetPages,
   container
 } from './github-task-refresh.test-fixture'
-import { repo, source, seed, returned, user } from './github-task-refresh-data.test-fixture'
+
+import {
+  repo,
+  source,
+  seed,
+  user,
+  key as initialCacheKey
+} from './github-task-refresh-data.test-fixture'
+
 import React, { act } from 'react'
+
 import { expect, it, vi } from 'vitest'
 
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
+
 import { useTaskPageGitHubWorkItemMutation } from '@/hooks/useTaskPageGitHubWorkItemMutation'
-import { assertTaskPageGitHubDialogStateAuthority } from '@/components/task-page/github/task-page-github-dialog-state-authority'
+
 import { getTaskPageRepoSourceContext } from '@/lib/task-repo-source-context'
-import {
-  buildTaskSourceContextFromRepo,
-  getTaskSourceCacheScope
-} from '../../../shared/task-source-context'
-import {
-  captureGitHubTaskObservation,
-  observeGitHubWorkItem,
-  getGitHubTaskObservation
-} from './github-task-observation'
+
+import { getGitHubTaskObservation } from './github-task-observation'
+
+import { gitHubTaskFamilyOrigin } from './github-task-observation'
+
+import { createTaskPageGitHubReviewerActions } from '@/components/task-page/github/task-page-github-reviewer-actions'
+
 import {
   createTaskPageGitHubProjectionContext,
   materializeTaskPageItemList
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
-import { taskPageGitHubAuthorityItemKeys } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
-import { clearTaskPageGitHubAuthorityAbsentFromLoadedItems } from '@/components/task-page/github/task-page-github-work-item-authority-refresh'
-import {
-  deleteLastConfirmedClientValue,
-  getLastConfirmedClientEntry
-} from '@/components/task-page/github/task-page-github-confirmed-client-values'
-import { settleQuietSearchRevalidate } from '@/components/task-page/github/task-page-github-work-item-quiet-revalidate'
-import { getOrCreateQuietRevalidateState } from '@/components/task-page/github/task-page-github-work-item-quiet-state'
+
+import { reconcileTaskPagePagesWithWorkItemsCache } from '@/components/task-page/task-page-cache-selectors'
+
+import { applyPendingTaskPageGitHubMutationsToItems } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import { VisibleReaders } from './github-task-refresh-visible-readers.test-fixture'
 
-it('preserves the single raw scalar source/replacement/revert and ownerless PR lifetime through actual final filtering, ordinary adoption and reset', async () => {
-  const local = observeGitHubWorkItem(
-    { ...seed, id: 'issue:5', title: 'Fork', assignees: [user('bob')] },
-    captureGitHubTaskObservation(repo, source)
-  )
-  const upstream = { ...local, title: 'Upstream', url: 'https://github.com/upstream/r/issues/5' }
-  const legacy = buildTaskSourceContextFromRepo({ provider: 'github', projectId: repo.id, repo })!
-  const scope = getTaskSourceCacheScope(legacy)
-  context.pages = [null, null, [local, upstream]]
-  let query = 'is:open',
-    kind: 'issues' | 'prs' = 'issues'
-  let queryKey = ''
-  const outputs = (
-    pages: (GitHubWorkItem[] | null)[],
-    mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>,
-    key: string,
-    viewerLogin: string | null
-  ) => {
-    queryKey = key
-    return (
-      <VisibleReaders
-        pages={pages}
-        mutation={mutation}
-        queryKey={key}
-        viewerLogin={viewerLogin}
-        query={query}
-        kind={kind}
-      />
-    )
-  }
-  await mount(false, outputs, query, true)
-  const visible = () =>
-    [...container.querySelectorAll('[data-tasks] h3')].map((row) => row.textContent)
-  const close = (owner: string, state: 'open' | 'closed' | 'merged' = 'closed') =>
-    assertTaskPageGitHubDialogStateAuthority({
-      repoId: repo.id,
-      itemId: local.id,
-      sourceContext: legacy,
-      ownerRepo: { owner, repo: 'r', host: 'github.com' },
-      state
-    })
-  let oldFork: ReturnType<typeof close>
-  await act(async () => {
-    close('upstream')
-  })
-  expect(visible()).toEqual(['Fork'])
-  await act(async () => {
-    oldFork = close('o')
-  })
-  expect(visible()).toEqual(['Upstream'])
-  await act(async () => {
-    close('upstream')
-  })
-  await act(async () => {
-    expect(oldFork!.revert()).toBe(false)
-  })
-  expect(visible()).toEqual(['Fork'])
-  expect(getLastConfirmedClientEntry(scope, repo.id, local.id, 'state')?.ownerRepo?.owner).toBe(
-    'upstream'
-  )
-  const adopt = async (rows: GitHubWorkItem[]) => {
-    await act(async () => {
-      settleQuietSearchRevalidate({
-        queryKey,
-        networkItems: rows,
-        fetchStartedAtGeneration: getOrCreateQuietRevalidateState(queryKey).dirtyGeneration,
-        patchWorkItems: store.getState().patchWorkItems
-      })
-      harnessSetPages((current) => [
-        null,
-        null,
-        materializeTaskPageItemList({
-          networkItems: rows,
-          previousItems: current[2] ?? [],
-          queryKey,
-          context: createTaskPageGitHubProjectionContext(
-            store.getState().repos,
-            parseTaskQuery(query),
-            queryKey,
-            'alice'
-          )
-        })
-      ])
-    })
-  }
-  await adopt([local, { ...upstream, state: 'closed' }])
-  expect(getLastConfirmedClientEntry(scope, repo.id, local.id, 'state')).toBeUndefined()
-  expect(visible()).toEqual(['Fork']) // matching adoption owns closed after the slot is gone
-  await adopt([local, upstream])
-  expect(visible()).toEqual(['Fork', 'Upstream'])
-  await act(async () => {
-    close('o')
-    harnessSetPages((current) => [
-      null,
-      null,
-      materializeTaskPageItemList({
-        networkItems: [local, upstream],
-        previousItems: current[2] ?? [],
-        queryKey,
-        context: createTaskPageGitHubProjectionContext(
-          store.getState().repos,
-          parseTaskQuery(query),
-          queryKey,
-          'alice'
-        )
-      })
-    ])
-  })
-  expect(context.pages[2]?.[0].state).toBe('closed')
-  expect(visible()).toEqual(['Upstream'])
-  await act(async () => {
-    deleteLastConfirmedClientValue(scope, repo.id, local.id, 'state')
-  })
-  expect(visible()).toEqual(['Fork', 'Upstream'])
-  // A real query reset and subsequent list edit must not certify the dead scalar-written state.
-  query = 'is:open assignee:bob'
-  await mount(false, outputs, query, true)
-  await act(async () => {
-    await taskMutation.run({
-      item: context.pages[2]![0],
-      sourceContext: source,
-      intent: { type: 'toggleAssignee', user: user('cora') },
-      mutate: async () => ({ ok: true }),
-      errorToast: 'Rejected'
-    })
-  })
-  expect(visible()).toEqual(['Fork', 'Upstream'])
-  await adopt([local, upstream])
-  expect(visible()).toEqual(['Fork', 'Upstream'])
-  // Ownerless ordinary PR authority uses the same raw slot through cleanup and stale materialization.
-  query = 'is:pr is:open'
-  kind = 'prs'
-  const pr = observeGitHubWorkItem(
+it.each(
+  (['assignees', 'reviewRequests'] as const).flatMap((family) => [
+    { family, login: 'cora', succeeds: true, remove: false },
+    { family, login: 'cora', succeeds: false, remove: false },
+    { family, login: 'bob', succeeds: true, remove: false },
+    { family, login: 'bob', succeeds: true, remove: true },
+    { family, login: 'bob', succeeds: false, remove: true },
+    { family, login: 'cora', succeeds: false, remove: false, fullBeforeFailure: 'bob' },
+    { family, login: 'cora', succeeds: false, remove: false, fullBeforeFailure: 'bob,cora' },
     {
-      ...local,
-      id: 'pr:5',
-      type: 'pr',
-      url: 'https://github.com/o/r/pull/5',
-      title: 'Pull request',
-      checksSummary: { state: 'success', total: 1, failed: 0, pending: 0, neutral: 0 }
+      family,
+      login: 'cora',
+      succeeds: false,
+      remove: false,
+      fullBeforeFailure: 'bob',
+      resetBeforeFull: true
     },
-    captureGitHubTaskObservation(repo, source)
-  )
-  await act(async () => harnessSetPages([null, null, [pr]]))
-  await mount(false, outputs, query, true)
-  for (const state of ['closed', 'merged'] as const) {
-    await act(async () => {
-      assertTaskPageGitHubDialogStateAuthority({
-        repoId: repo.id,
-        itemId: pr.id,
-        state,
-        sourceContext: legacy
-      })
-      clearTaskPageGitHubAuthorityAbsentFromLoadedItems(
-        new Set(taskPageGitHubAuthorityItemKeys(pr))
-      )
-      harnessSetPages((current) => [
-        null,
-        null,
-        materializeTaskPageItemList({
-          networkItems: [pr],
-          previousItems: current[2] ?? [],
-          queryKey,
-          context: createTaskPageGitHubProjectionContext(
-            store.getState().repos,
-            parseTaskQuery(query),
-            queryKey,
-            'alice'
-          )
-        })
-      ])
-    })
-    expect(context.pages[2]?.[0].state).toBe(state)
-    expect(visible()).toEqual([])
-  }
-})
-it.each([true, false])(
-  'captures account observations and preserves raw lifetime over binding-only activation with old write success=%s',
-  async (oldWriteSucceeds) => {
-    let query = 'is:open assignee:@me'
+    {
+      family,
+      login: 'cora',
+      succeeds: false,
+      remove: false,
+      fullBeforeFailure: 'bob,cora',
+      resetBeforeFull: true
+    },
+    { family, login: 'cora', succeeds: false, remove: false, resetBeforeFull: true },
+    { family, login: 'cora', succeeds: true, remove: false, resetBeforeFull: true }
+  ])
+)(
+  'traces a new B-owned $family edit of $login (remove=$remove, success=$succeeds) before B adopts its A seed',
+  async ({ family, login, succeeds, remove, fullBeforeFailure, resetBeforeFull }) => {
+    const isIssue = family === 'assignees'
+    let query = `is:open ${isIssue ? 'assignee' : 'review-requested'}:@me`
     window.api.gh.viewer = vi.fn().mockResolvedValue({ login: 'bob' })
     const sources = {
       issues: { owner: 'o', repo: 'r' },
-      prs: null,
-      originCandidate: { owner: 'o', repo: 'r' },
-      upstreamCandidate: null
+      prs: { owner: 'o', repo: 'r' }
     }
-    const opening = { ...seed, id: 'issue:5', title: 'Account A', assignees: [user('alice')] }
-    list.mockResolvedValueOnce({ items: [opening], sources })
-    const aRows = await store
+    const opening: GitHubWorkItem = {
+      ...seed,
+      type: isIssue ? 'issue' : 'pr',
+      id: isIssue ? 'issue:5' : 'pr:5',
+      url: `https://github.com/o/r/${isIssue ? 'issues' : 'pull'}/5`,
+      title: 'Retained account A seed',
+      ...(!isIssue
+        ? {
+            checksSummary: {
+              state: 'success' as const,
+              total: 0,
+              passed: 0,
+              failed: 0,
+              pending: 0,
+              neutral: 0
+            }
+          }
+        : {}),
+      [family]: [user('alice'), ...(remove ? [user('bob')] : [])]
+    }
+    const control: GitHubWorkItem = {
+      ...opening,
+      id: isIssue ? 'issue:6' : 'pr:6',
+      number: 6,
+      url: `https://github.com/o/r/${isIssue ? 'issues' : 'pull'}/6`,
+      title: 'Untouched neighboring control'
+    }
+    list.mockResolvedValueOnce({ items: [opening, control], sources })
+    const admitted = await store
       .getState()
       .fetchWorkItems(repo.id, repo.path, 30, query, { sourceContext: source })
-    const cacheKey = Object.keys(store.getState().workItemsCache).find((key) =>
-      key.endsWith(query)
-    )!
-    context.pages = [null, null, [...aRows]]
+    let cacheKey = Object.keys(store.getState().workItemsCache).find((key) => key.endsWith(query))!
+    const aOwner = getGitHubTaskObservation(admitted[0])!
+    const foreign = admitted[1]
+    const foreignCacheRow = store.getState().workItemsCache[initialCacheKey].data![1]
+    const originalControlData = JSON.stringify(foreign)
+    const originalForeignData = JSON.stringify(foreignCacheRow)
+    context.pages = [null, null, admitted]
+    let queryKey = '',
+      viewer: string | null = null
     const outputs = (
       pages: (GitHubWorkItem[] | null)[],
       mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>,
       key: string,
       viewerLogin: string | null
-    ) => (
-      <VisibleReaders
-        pages={pages}
-        mutation={mutation}
-        queryKey={key}
-        viewerLogin={viewerLogin}
-        query={query}
-      />
-    )
+    ) => {
+      queryKey = key
+      viewer = viewerLogin
+      return (
+        <VisibleReaders
+          pages={pages}
+          mutation={mutation}
+          queryKey={key}
+          viewerLogin={viewerLogin}
+          query={query}
+          kind={isIssue ? 'issues' : 'prs'}
+        />
+      )
+    }
     await mount(false, outputs, query, true)
-    const visible = () =>
-      [...container.querySelectorAll('[data-tasks] h3')].map((node) => node.textContent)
-    let aAuthority: ReturnType<typeof assertTaskPageGitHubDialogStateAuthority>
-    await act(async () => {
-      aAuthority = assertTaskPageGitHubDialogStateAuthority({
-        repoId: repo.id,
-        itemId: opening.id,
-        state: 'closed',
-        sourceContext: source,
-        ownerRepo: { owner: 'o', repo: 'r' }
+    const snapshots: unknown[] = []
+    const snapshot = (stage: string) => {
+      const entry = store.getState().workItemsCache[cacheKey]
+      const describe = (row: GitHubWorkItem) => ({
+        id: row.id,
+        url: row.url,
+        family: row[family]?.map((u) => u.login),
+        observation: getGitHubTaskObservation(row),
+        origin: gitHubTaskFamilyOrigin(row, family)
       })
-    })
-    const scope = getTaskSourceCacheScope(source)
-    const originalSlot = getLastConfirmedClientEntry(scope, repo.id, opening.id, 'state')
-    expect(visible()).toEqual([])
-    const old = Promise.withResolvers<{ items: GitHubWorkItem[]; sources: typeof sources }>()
-    list.mockReturnValueOnce(old.promise)
-    const oldRead = store
-      .getState()
-      .fetchWorkItems(repo.id, repo.path, 30, query, { sourceContext: source, force: true })
-    const lateWrite = Promise.withResolvers<{ ok: boolean }>()
-    let oldMutation: Promise<unknown>
-    await act(async () => {
-      oldMutation = taskMutation.run({
-        item: aRows[0],
-        sourceContext: source,
-        intent: { type: 'toggleAssignee', user: user('cora') },
-        mutate: () => lateWrite.promise,
-        errorToast: 'Rejected'
-      })
-    })
+      const visible = [...container.querySelectorAll('[data-tasks] h3')].map(
+        (node) => node.textContent
+      )
+      const result = {
+        stage,
+        viewer,
+        registeredAccount: store.getState().repos[0].ghAccount,
+        visible,
+        count: container.querySelector('[data-visible-count]')?.textContent,
+        avatars: [...container.querySelectorAll('[data-tasks] img')].map(
+          (img) => img.getAttribute('title') ?? img.getAttribute('alt')
+        ),
+        reviewerLabels: [...container.querySelectorAll('[data-tasks] button[title]')].map(
+          (button) => button.getAttribute('title')
+        ),
+        page: context.pages[2]?.map(describe),
+        cache: entry.data?.map(describe),
+        fullFetchObservation: entry.fullFetchObservation
+      }
+      snapshots.push(result)
+      if (
+        !fullBeforeFailure ||
+        stage === 'A admitted' ||
+        stage === 'B active, B list held, no B adoption' ||
+        stage === 'new B edit pending'
+      ) {
+        expect(context.pages[2]![1], stage).toBe(foreign)
+        expect(entry.data![1], stage).toBe(foreign)
+      }
+      expect(store.getState().workItemsCache[initialCacheKey].data![1], stage).toBe(foreignCacheRow)
+      expect(JSON.stringify(foreign), stage).toBe(originalControlData)
+      expect(JSON.stringify(foreignCacheRow), stage).toBe(originalForeignData)
+      return result
+    }
+    const initial = snapshot('A admitted')
     await act(async () => {
       expect(
         await store
@@ -297,85 +203,235 @@ it.each([true, false])(
           )
       ).toBe(true)
     })
-    expect(getLastConfirmedClientEntry(scope, repo.id, opening.id, 'state')).toBe(originalSlot)
-    expect(visible()).toEqual(['Account A'])
-    const b = Promise.withResolvers<{ items: GitHubWorkItem[]; sources: typeof sources }>()
-    list.mockReturnValueOnce(b.promise)
+    const bList = Promise.withResolvers<{ items: GitHubWorkItem[]; sources: typeof sources }>()
+    list.mockReturnValueOnce(bList.promise)
     const bRead = store
       .getState()
       .fetchWorkItems(repo.id, repo.path, 30, query, { sourceContext: source })
     await act(async () => {
       await Promise.resolve()
     })
-    expect(list).toHaveBeenCalledTimes(3) // B neither reuses the fresh A cache nor joins the A promise.
-    expect(
-      getGitHubTaskObservation(store.getState().workItemsCache[cacheKey].data![0])?.binding
-    ).toBe(getGitHubTaskObservation(aRows[0])?.binding)
-    direct.mockResolvedValue({ ...returned, item: { ...returned.item, title: 'Account B' } })
-    await click()
-    expect(
-      container.querySelector<HTMLButtonElement>('[aria-label="Refresh task"]')?.disabled
-    ).toBe(true)
-    await act(async () => {
-      lateWrite.resolve({ ok: oldWriteSucceeds })
-      await oldMutation!
+    const before = snapshot('B active, B list held, no B adoption')
+    expect(list).toHaveBeenCalledTimes(2)
+    expect(viewer).toBe('bob')
+    expect(store.getState().workItemsCache[cacheKey].fullFetchObservation).toBe(aOwner)
+    const ordinaryDirects = direct.mock.calls.length
+    const response = Promise.withResolvers<{ ok: boolean; error?: string }>()
+    const dispatch = vi.fn((_args: unknown) => {
+      expect(store.getState().repos[0].ghAccount?.user).toBe('bob')
+      return response.promise
     })
-    expect(visible()).toEqual(['Account B'])
-    const accepted = store.getState().workItemsCache[cacheKey].data![0]
-    expect(getGitHubTaskObservation(accepted)?.binding).not.toBe(
-      getGitHubTaskObservation(aRows[0])?.binding
-    )
-    expect(store.getState().workItemsCache[cacheKey].fullFetchObservation?.binding).toBe(
-      getGitHubTaskObservation(aRows[0])?.binding
-    )
+    update.mockImplementation(dispatch)
+    Object.assign(window.api.gh, { requestPRReviewers: dispatch, removePRReviewers: dispatch })
+    let operation: Promise<unknown>
     await act(async () => {
-      old.resolve({ items: [{ ...opening, title: 'Late A' }], sources })
-      await oldRead
+      const item = context.pages[2]![0]
+      const currentRepo = store.getState().repos[0]
+      operation = isIssue
+        ? taskMutation.run({
+            item,
+            sourceContext: source,
+            intent: { type: 'toggleAssignee', user: user(login) },
+            mutate: () =>
+              window.api.gh.updateIssue({
+                repoPath: currentRepo.path,
+                repoId: currentRepo.id,
+                sourceContext: source,
+                number: item.number,
+                updates: remove ? { removeAssignees: [login] } : { addAssignees: [login] }
+              }),
+            errorToast: 'Rejected'
+          })
+        : createTaskPageGitHubReviewerActions({
+            item,
+            repo: currentRepo,
+            localReviewRequests: item.reviewRequests ?? [],
+            reviewRepo: { owner: 'o', repo: 'r' },
+            reviewerCandidates: [user(login)],
+            reviewerInput: '',
+            selectedReviewerLogins: new Set(item.reviewRequests?.map((u) => u.login)),
+            setLocalReviewRequests: () => {},
+            setOpen: () => {},
+            setReviewerInput: () => {},
+            setSubmitting: () => {},
+            sourceContext: source,
+            ownerTarget: { kind: 'local' },
+            submitting: false,
+            workItemMutation: taskMutation
+          }).requestReviewer(user(login))
+      await Promise.resolve()
     })
-    expect(store.getState().workItemsCache[cacheKey].data![0]).toBe(accepted)
-    await act(async () => {
-      b.resolve({ items: [{ ...opening, title: 'Old B search' }], sources })
-      await bRead
-    })
-    expect(store.getState().workItemsCache[cacheKey].data![0].title).toBe('Account B')
-    await act(async () => {
-      expect(
+    const pending = snapshot('new B edit pending')
+    if (resetBeforeFull) {
+      query = 'is:open'
+      await mount(false, outputs, query, true)
+    }
+    if (fullBeforeFailure) {
+      await act(async () => {
+        bList.reject(new Error('B list unavailable'))
+        await expect(bRead).rejects.toThrow('B list unavailable')
+      })
+      const providerUsers = fullBeforeFailure.split(',').map(user)
+      list.mockResolvedValueOnce({
+        items: [{ ...opening, [family]: providerUsers }, control],
+        sources
+      })
+      await act(async () => {
         await store
           .getState()
-          .updateRepo(repo.id, { ghAccount: repo.ghAccount }, { hostId: 'local' })
-      ).toBe(true)
-    })
-    expect(getLastConfirmedClientEntry(scope, repo.id, opening.id, 'state')).toBe(originalSlot)
-    expect(visible()).toEqual([]) // A's same actual raw slot applies again.
-    await act(async () => {
-      await store
-        .getState()
-        .updateRepo(
-          repo.id,
-          { ghAccount: { host: 'github.com', user: 'bob' } },
-          { hostId: 'local' }
+          .fetchWorkItems(repo.id, repo.path, 30, query, { sourceContext: source, force: true })
+        cacheKey = Object.keys(store.getState().workItemsCache).find((key) => key.endsWith(query))!
+        harnessSetPages((current) =>
+          reconcileTaskPagePagesWithWorkItemsCache(current, [
+            store.getState().workItemsCache[cacheKey]
+          ]).map((page) =>
+            page
+              ? applyPendingTaskPageGitHubMutationsToItems(
+                  page,
+                  createTaskPageGitHubProjectionContext(
+                    store.getState().repos,
+                    parseTaskQuery(query),
+                    queryKey,
+                    viewer
+                  )
+                )
+              : null
+          )
         )
-    })
-    await act(async () => {
-      assertTaskPageGitHubDialogStateAuthority({
-        repoId: repo.id,
-        itemId: opening.id,
-        state: 'closed',
-        sourceContext: source,
-        ownerRepo: { owner: 'o', repo: 'r' }
       })
-    })
-    const replaced = getLastConfirmedClientEntry(scope, repo.id, opening.id, 'state')
-    expect(replaced).not.toBe(originalSlot)
+      const fullPending = snapshot(
+        resetBeforeFull
+          ? 'B full after query reset, Cora still pending'
+          : 'B full admitted, Cora still pending'
+      )
+      expect
+        .soft(
+          context.pages[2]?.[0][family]?.map((u) => u.login),
+          'pending output after genuine full admission'
+        )
+        .toContain('cora')
+      if (isIssue) {
+        expect.soft(fullPending.avatars, 'actual pending row avatars').toContain('cora (cora)')
+      } else {
+        expect.soft(fullPending.reviewerLabels, 'actual pending reviewer chip').toContain('bob +1')
+      }
+      expect
+        .soft(
+          container.querySelector('[data-tasks]')?.textContent,
+          'actual row remains visible while writing'
+        )
+        .toContain(opening.title)
+    }
     await act(async () => {
-      await store.getState().updateRepo(repo.id, { ghAccount: repo.ghAccount }, { hostId: 'local' })
+      response.resolve(succeeds ? { ok: true } : { ok: false, error: 'Denied' })
+      await operation!
     })
-    expect(getLastConfirmedClientEntry(scope, repo.id, opening.id, 'state')).toBe(replaced)
-    expect(visible()).toEqual(['Account B']) // Returning A cannot revive the replaced A entry.
-    expect(aAuthority!.revert()).toBe(true) // main raw current-value/revert domain is unchanged
-    query = 'is:open assignee:cora'
-    await mount(false, outputs, query, true)
-    expect(visible()).toEqual(['Account B']) // New server-admitted query has no prior local basis.
+    const settled = snapshot(
+      succeeds ? 'B per-login success only' : 'B per-login failure rolled back'
+    )
+    if (!fullBeforeFailure) {
+      await act(async () => {
+        bList.reject(new Error('B list unavailable'))
+        await expect(bRead).rejects.toThrow('B list unavailable')
+      })
+    }
+    const failedRead = snapshot('B list failed, A full-fetch descriptor retained')
+    expect(store.getState().workItemsCache[cacheKey].fullFetchObservation?.account?.user).toBe(
+      fullBeforeFailure ? 'bob' : 'alice'
+    )
+    if (fullBeforeFailure) {
+      expect(context.pages[2]?.[0][family]?.map((u) => u.login)).toEqual(
+        fullBeforeFailure.split(',')
+      )
+      expect(
+        store.getState().workItemsCache[cacheKey].data?.[0][family]?.map((u) => u.login)
+      ).toEqual(fullBeforeFailure.split(','))
+      expect(gitHubTaskFamilyOrigin(context.pages[2]![0], family)?.kind).toBe('ordinary')
+    }
+    expect(dispatch).toHaveBeenCalledOnce()
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repoId: repo.id,
+        repoPath: repo.path,
+        sourceContext: source,
+        ...(isIssue
+          ? { updates: remove ? { removeAssignees: [login] } : { addAssignees: [login] } }
+          : { reviewers: [login] })
+      })
+    )
+    expect(direct).toHaveBeenCalledTimes(ordinaryDirects)
+    // A genuine B list response (after Bob is added back for the remove control) supplies the first complete B family.
+    const bItem = {
+      ...opening,
+      [family]: [user('bob'), ...(login === 'cora' && succeeds ? [user('cora')] : [])]
+    }
+    list.mockResolvedValueOnce({
+      items: [bItem, { ...control, [family]: [user('alice'), user('bob')] }],
+      sources
+    })
+    await act(async () => {
+      const rows = await store
+        .getState()
+        .fetchWorkItems(repo.id, repo.path, 30, query, { sourceContext: source, force: true })
+      cacheKey = Object.keys(store.getState().workItemsCache).find((key) => key.endsWith(query))!
+      harnessSetPages((pages) => [
+        null,
+        null,
+        materializeTaskPageItemList({
+          networkItems: rows,
+          previousItems: pages[2] ?? [],
+          queryKey,
+          context: createTaskPageGitHubProjectionContext(
+            store.getState().repos,
+            parseTaskQuery(query),
+            queryKey,
+            viewer
+          )
+        })
+      ])
+    })
+    // A real full read may legitimately replace the control's observation metadata.
+    const after = {
+      visible: [...container.querySelectorAll('[data-tasks] h3')].map((node) => node.textContent),
+      count: container.querySelector('[data-visible-count]')?.textContent,
+      page: context.pages[2]?.map((row) => ({
+        id: row.id,
+        family: row[family]?.map((u) => u.login),
+        observation: getGitHubTaskObservation(row),
+        origin: gitHubTaskFamilyOrigin(row, family)
+      })),
+      cache: store.getState().workItemsCache[cacheKey],
+      viewer
+    }
+    console.info(
+      'BSEED_TRACE',
+      JSON.stringify({
+        family,
+        login,
+        succeeds,
+        remove,
+        route: dispatch.mock.calls,
+        snapshots,
+        genuineB: after
+      })
+    )
+    expect(initial.visible).toContain(opening.title)
+    expect(before.visible).toContain(opening.title)
+    if (!remove) {
+      expect.soft(after.visible, 'genuine B full observation/reentry').toContain(opening.title)
+    }
+    expect(store.getState().workItemsCache[cacheKey].fullFetchObservation?.account?.user).toBe(
+      'bob'
+    )
+    expect(list).toHaveBeenCalledTimes(fullBeforeFailure ? 4 : 3)
+    for (const state of [pending, settled, failedRead]) {
+      expect
+        .soft(state.visible.includes(opening.title), state.stage)
+        .toBe(!remove || (!succeeds && state !== pending))
+      expect
+        .soft(state.count, state.stage)
+        .toBe(remove && (succeeds || state === pending) ? '1' : '2')
+    }
   }
 )
 it('keeps the existing owner-selected registry subscription quiet for unrelated and foreign updates in separate act turns', async () => {
@@ -458,3 +514,222 @@ it('keeps the existing owner-selected registry subscription quiet for unrelated 
   expect(counts[0]).toBe(beforeForeign[0])
   expect(counts[1]).toBeGreaterThan(beforeForeign[1])
 })
+
+it.each([false, true])(
+  'hands repeated resets and a real aggregate composed fallback through delayed final setters (provider Cora=%s)',
+  async (providerCora) => {
+    const { beginGitHubTaskRead } = await import('@/store/github/request-coordination')
+    const { restoreTaskPageGitHubReadPage } =
+      await import('@/components/task-page/github/task-page-github-work-item-mutation-pages')
+    const { taskPageGitHubResumeCache } =
+      await import('@/components/task-page/github/task-page-github-resume-cache')
+    const sources = { issues: { owner: 'o', repo: 'r' }, prs: { owner: 'o', repo: 'r' } }
+    await store
+      .getState()
+      .updateRepo(repo.id, { ghAccount: { host: 'github.com', user: 'bob' } }, { hostId: 'local' })
+    const ordinary = { ...seed, assignees: [user('bob')] }
+    list.mockResolvedValueOnce({ items: [ordinary], sources })
+    const rows = await store
+      .getState()
+      .fetchWorkItems(repo.id, repo.path, 30, 'is:open', { sourceContext: source })
+    const foreign = store.getState().workItemsCache[initialCacheKey].data![1]
+    const foreignData = JSON.stringify(foreign)
+    context.pages = [null, null, rows]
+    const outputs = (
+      pages: (GitHubWorkItem[] | null)[],
+      mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>,
+      queryKey: string,
+      viewerLogin: string | null
+    ) => (
+      <VisibleReaders
+        pages={pages}
+        mutation={mutation}
+        queryKey={queryKey}
+        viewerLogin={viewerLogin}
+        query="is:open"
+        kind="issues"
+      />
+    )
+    await mount(false, outputs, 'is:open', true)
+    await act(async () => {
+      await taskMutation.run({
+        item: context.pages[2]![0],
+        sourceContext: source,
+        intent: { type: 'toggleAssignee', user: user('bob') },
+        mutate: async () => ({ ok: true }),
+        errorToast: 'Rejected'
+      })
+    })
+    const response = Promise.withResolvers<{ ok: boolean }>()
+    let writing: Promise<unknown>
+    await act(async () => {
+      writing = taskMutation.run({
+        item: context.pages[2]![0],
+        sourceContext: source,
+        intent: { type: 'toggleAssignee', user: user('cora') },
+        mutate: () => response.promise,
+        errorToast: 'Rejected'
+      })
+    })
+    const composed = context.pages[2]![0]
+    expect(composed.assignees?.map((user) => user.login)).toEqual(['cora'])
+    taskPageGitHubResumeCache.write('held-output', 2, [composed], 10)
+    const read = beginGitHubTaskRead(
+      [{ repoId: repo.id, path: repo.path, sourceContext: source }],
+      undefined,
+      store.getState()
+    )
+    const failed = Promise.withResolvers<never>()
+    list.mockReturnValueOnce(failed.promise)
+    const aggregate = store
+      .getState()
+      .fetchWorkItemsAcrossRepos(
+        [{ repoId: repo.id, path: repo.path, sourceContext: source }],
+        30,
+        30,
+        'is:open',
+        { force: true, taskRead: read }
+      )
+    let fallback: Awaited<typeof aggregate>
+    await act(async () => {
+      failed.reject(new Error('Expected fallback'))
+      fallback = await aggregate
+    })
+    expect(fallback!.items[0].assignees?.map((user) => user.login)).toEqual(['cora'])
+    context.holdPageUpdates()
+    await mount(false, outputs, 'is:open assignee:cora', true)
+    await mount(false, outputs, 'is:open', true)
+    const provider = [user('bob'), ...(providerCora ? [user('cora')] : [])]
+    list.mockResolvedValueOnce({ items: [{ ...ordinary, assignees: provider }], sources })
+    await act(async () => {
+      await store
+        .getState()
+        .fetchWorkItems(repo.id, repo.path, 30, 'is:open', { sourceContext: source, force: true })
+      response.resolve({ ok: false })
+      await writing!
+    })
+    // The actual aggregate raw fallback outlives the two resets and final acknowledgement.
+    harnessSetPages((current) => restoreTaskPageGitHubReadPage(read, current, fallback!.items, 2))
+    read.dispose()
+    await act(async () => context.flushPageUpdates())
+    expect(context.pages[2]![0].assignees).toEqual(provider)
+    expect(container.querySelector('[data-tasks]')?.textContent).toContain(ordinary.title)
+    const avatars = [...container.querySelectorAll('[data-tasks] img')].map((img) =>
+      img.getAttribute('title')
+    )
+    expect(avatars).toContain('bob (bob)')
+    expect(avatars.includes('cora (cora)')).toBe(providerCora)
+    expect(gitHubTaskFamilyOrigin(context.pages[2]![0], 'assignees')?.kind).toBe('ordinary')
+    expect(taskPageGitHubResumeCache.read('held-output', 2, 11)?.items[0].assignees).toEqual(
+      provider
+    )
+    expect(store.getState().workItemsCache[initialCacheKey].data![1]).toBe(foreign)
+    expect(JSON.stringify(foreign)).toBe(foreignData)
+    expect(list).toHaveBeenCalledTimes(3)
+  }
+)
+
+it.each(
+  [false, true].flatMap((bobSucceeds) =>
+    [false, true].map((bobFirst) => ({ bobSucceeds, bobFirst }))
+  )
+)(
+  'settles overlapping Bob removal and Cora addition from a foreign-account display without losing independent facts (Bob success=$bobSucceeds, first=$bobFirst)',
+  async ({ bobSucceeds, bobFirst }) => {
+    const query = 'is:open assignee:@me'
+    const sources = { issues: { owner: 'o', repo: 'r' }, prs: null }
+    window.api.gh.viewer = vi.fn().mockResolvedValue({ login: 'bob' })
+    list.mockResolvedValueOnce({
+      items: [{ ...seed, assignees: [user('alice'), user('bob')] }],
+      sources
+    })
+    const rows = await store
+      .getState()
+      .fetchWorkItems(repo.id, repo.path, 30, query, { sourceContext: source })
+    const foreign = store.getState().workItemsCache[initialCacheKey].data![1]
+    const foreignData = JSON.stringify(foreign)
+    context.pages = [null, null, rows]
+    const outputs = (
+      pages: (GitHubWorkItem[] | null)[],
+      mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>,
+      queryKey: string,
+      viewerLogin: string | null
+    ) => (
+      <VisibleReaders
+        pages={pages}
+        mutation={mutation}
+        queryKey={queryKey}
+        viewerLogin={viewerLogin}
+        query={query}
+      />
+    )
+    await mount(false, outputs, query, true)
+    await act(async () => {
+      await store
+        .getState()
+        .updateRepo(
+          repo.id,
+          { ghAccount: { host: 'github.com', user: 'bob' } },
+          { hostId: 'local' }
+        )
+    })
+    const openingReads = direct.mock.calls.length
+    const bob = Promise.withResolvers<{ ok: boolean }>()
+    const cora = Promise.withResolvers<{ ok: boolean }>()
+    let bobWrite: Promise<unknown>, coraWrite: Promise<unknown>
+    await act(async () => {
+      bobWrite = taskMutation.run({
+        item: context.pages[2]![0],
+        sourceContext: source,
+        intent: { type: 'toggleAssignee', user: user('bob') },
+        mutate: () => bob.promise,
+        errorToast: 'Rejected'
+      })
+      coraWrite = taskMutation.run({
+        item: context.pages[2]![0],
+        sourceContext: source,
+        intent: { type: 'toggleAssignee', user: user('cora') },
+        mutate: () => cora.promise,
+        errorToast: 'Rejected'
+      })
+    })
+    const settleBob = async () => {
+      bob.resolve({ ok: bobSucceeds })
+      await bobWrite!
+    }
+    const settleCora = async () => {
+      cora.resolve({ ok: !bobSucceeds })
+      await coraWrite!
+    }
+    await act(async () => {
+      await (bobFirst ? settleBob() : settleCora())
+    })
+    expect(context.pages[2]![0].assignees?.map((user) => user.login)).toContain(
+      bobFirst ? 'cora' : 'alice'
+    )
+    await act(async () => {
+      await (bobFirst ? settleCora() : settleBob())
+    })
+    const expected = bobSucceeds ? ['alice'] : ['alice', 'bob', 'cora']
+    expect(context.pages[2]![0].assignees?.map((user) => user.login)).toEqual(expected)
+    const cacheKey = Object.keys(store.getState().workItemsCache).find((key) =>
+      key.endsWith(query)
+    )!
+    const cache = store.getState().workItemsCache[cacheKey]
+    expect(cache.data![0].assignees?.map((user) => user.login)).toEqual(expected)
+    expect(cache.fullFetchObservation).toBe(getGitHubTaskObservation(rows[0]))
+    const visible = [...container.querySelectorAll('[data-tasks] h3')].map(
+      (node) => node.textContent
+    )
+    expect(visible).toEqual(bobSucceeds ? [] : [seed.title])
+    const avatars = [...container.querySelectorAll('[data-tasks] img')].map((img) =>
+      img.getAttribute('title')
+    )
+    expect(avatars.includes('cora (cora)')).toBe(!bobSucceeds)
+    expect(getGitHubTaskObservation(rows[0])?.binding).toContain('alice')
+    expect(store.getState().workItemsCache[initialCacheKey].data![1]).toBe(foreign)
+    expect(JSON.stringify(foreign)).toBe(foreignData)
+    expect(list).toHaveBeenCalledTimes(1)
+    expect(direct).toHaveBeenCalledTimes(openingReads)
+  }
+)

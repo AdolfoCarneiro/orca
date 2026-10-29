@@ -1,9 +1,17 @@
+import type { ListAddress, ListInput } from './task-page-github-work-item-mutation-registry'
+
 import type { GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import type { ParsedTaskQuery } from '../../../../../shared/task-query'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
+
 import type { GitHubPatchWorkItemOptions } from '../../../store/github/cache-model'
+
 import type { TaskPageGitHubMutationIntent } from './task-page-github-work-item-mutation-patches'
+
 import type { TaskPageGitHubMutationKey } from './task-page-github-work-item-registry-types'
 
 export type TaskPageGitHubPatchWorkItem = (
@@ -24,7 +32,13 @@ export type BeginTaskPageGitHubWorkItemMutationArgs = {
   /** Derived inside begin from item sourceContext if omitted. */
   skipMeQualifiers?: boolean
   patchWorkItem: TaskPageGitHubPatchWorkItem
+  resolveCurrentListInput?: CurrentListInputResolver
+  transitionQuery?: (queryKey: string) => void
 }
+export type CurrentListInputResolver = (
+  address: ListAddress,
+  clickedRow: GitHubWorkItem
+) => ListInput
 
 export type BeginTaskPageGitHubWorkItemMutationResult = {
   generation: number

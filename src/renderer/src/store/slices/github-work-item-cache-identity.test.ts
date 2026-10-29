@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { workItemsCacheKey } from '../github/cache-identity'
+
 import {
   createTestStore,
   githubSourceContext,
   mockApi,
   resetRemoteRuntimeMocks
 } from './github-slice-test-harness'
+
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
+
 import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
 
 describe('createGitHubSlice.patchWorkItem', () => {
@@ -422,4 +426,104 @@ it('folds exact population selectors in order while retaining ordinary first-mat
   ).toEqual([['accepted'], ['accepted'], ['accepted']])
   expect(store.getState().workItemsCache[foreignKey]).toBe(foreign)
   off()
+})
+
+it('keeps single and indexed static/composition ordering, checked family provenance and explicit undefined equivalent', async () => {
+  const { repo, source, seed, user } = await import('@/lib/github-task-refresh-data.test-fixture')
+  const { captureGitHubTaskObservation, observeGitHubWorkItem } =
+    await import('@/lib/github-task-observation')
+  const { beginTaskPageGitHubWorkItemMutation } =
+    await import('@/components/task-page/github/task-page-github-work-item-mutations')
+  const { resetTaskPageGitHubMutationRegistryForTests } =
+    await import('@/components/task-page/github/task-page-github-work-item-mutation-registry')
+  const { taskPageGitHubMutationItemId } =
+    await import('@/components/task-page/github/task-page-github-work-item-mutation-keys')
+  const { parseTaskQuery } = await import('../../../../shared/task-query')
+  const results: unknown[] = []
+  for (const indexed of [false, true]) {
+    resetTaskPageGitHubMutationRegistryForTests()
+    const store = createTestStore()
+    const owner = captureGitHubTaskObservation(repo, source)!
+    const row = observeGitHubWorkItem(seed, owner)
+    const twin = { ...row, url: 'https://github.com/upstream/r/issues/5' }
+    const bucket = workItemsCacheKey(repo.id, 30, '', getTaskSourceCacheScope(source))
+    store.setState({
+      repos: [repo],
+      workItemsCache: { [bucket]: { data: [row, twin], fetchedAt: 7 } }
+    })
+    beginTaskPageGitHubWorkItemMutation({
+      item: row,
+      observation: owner,
+      intent: { type: 'toggleAssignee', user: user('cora') },
+      query: parseTaskQuery('is:open'),
+      queryKey: 'ordered',
+      viewerLogin: 'alice',
+      sourceContext: source,
+      patchWorkItem: store.getState().patchWorkItem
+    })
+    const address = {
+      repoId: repo.id,
+      itemId: taskPageGitHubMutationItemId(row),
+      itemType: 'issue' as const,
+      sourceScope: getTaskSourceCacheScope(source),
+      observation: owner,
+      family: 'assignees' as const
+    }
+    const options = {
+      sourceContext: source,
+      observation: owner,
+      ownerRepo: { owner: 'o', repo: 'r' }
+    }
+    const full = observeGitHubWorkItem({ ...seed, assignees: [user('bob')] }, owner, true)
+    const requests = [
+      {
+        itemId: row.id,
+        repoId: repo.id,
+        patch: { assignees: full.assignees },
+        options: { ...options, valueOrigins: full.githubValueOrigins }
+      },
+      {
+        itemId: row.id,
+        repoId: repo.id,
+        patch: {},
+        options: { ...options, listComposition: [{ address }] }
+      },
+      { itemId: row.id, repoId: repo.id, patch: { assignees: [user('dora')] }, options },
+      {
+        itemId: row.id,
+        repoId: repo.id,
+        patch: {},
+        options: { ...options, listComposition: [{ address }] }
+      }
+    ]
+    if (indexed) {
+      store.getState().patchWorkItems(requests)
+    } else {
+      for (const request of requests) {
+        store
+          .getState()
+          .patchWorkItem(request.itemId, request.patch, request.repoId, request.options)
+      }
+    }
+    const composed = store.getState().workItemsCache[bucket].data![0]
+    expect(composed.assignees?.map((user) => user.login)).toEqual(['bob', 'cora'])
+    expect(store.getState().workItemsCache[bucket].data![1]).toBe(twin)
+    const clear = {
+      itemId: row.id,
+      repoId: repo.id,
+      patch: { assignees: undefined },
+      options: { ...options, valueOrigins: { assignees: undefined } }
+    }
+    if (indexed) {
+      store.getState().patchWorkItems([clear])
+    } else {
+      store.getState().patchWorkItem(clear.itemId, clear.patch, clear.repoId, clear.options)
+    }
+    const result = store.getState().workItemsCache[bucket]
+    expect(result.data![0].assignees).toBeUndefined()
+    expect(result.fetchedAt).toBe(7)
+    results.push(JSON.stringify(result))
+  }
+  expect(results[0]).toEqual(results[1])
+  resetTaskPageGitHubMutationRegistryForTests()
 })

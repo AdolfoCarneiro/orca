@@ -1,15 +1,24 @@
+import { qualifyGitHubTaskLists } from './github-task-observation'
+
+import { observeExistingListBases } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import { useAppStore } from '@/store'
+
 import { areTaskSourceContextsEqual } from '../../../shared/task-source-context'
+
 import type { GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
+
 import {
   githubTaskContent,
   type captureGitHubTaskTarget,
   type GitHubTaskRefreshHandler
 } from './github-task-target'
+
 import {
   taskPageGitHubResumeCache,
   taskPageResumeContextHasSource
 } from '@/components/task-page/github/task-page-github-resume-cache'
+
 import { markGitHubTaskReads } from '@/store/github/request-coordination'
 
 export function publishGitHubTaskRefresh(
@@ -17,12 +26,32 @@ export function publishGitHubTaskRefresh(
   details: GitHubWorkItemDetails,
   onItem?: GitHubTaskRefreshHandler
 ) {
+  const accepted = qualifyGitHubTaskLists(
+    {
+      ...target.item,
+      ...githubTaskContent(details.item),
+      githubObservation: target.observation,
+      githubValueOrigins: {}
+    },
+    target.observation
+  )
   const patch = {
     ...githubTaskContent(details.item),
     githubObservation: target.observation,
-    githubValueOrigins: {}
+    githubValueOrigins: accepted.githubValueOrigins
   }
-  const accepted = { ...target.item, ...patch }
+  observeExistingListBases(
+    target.observations.flatMap((owner) =>
+      owner
+        ? [
+            qualifyGitHubTaskLists(
+              { ...accepted, githubObservation: owner, githubValueOrigins: {} },
+              owner
+            )
+          ]
+        : []
+    )
+  )
   markGitHubTaskReads(target, accepted, details.body)
   const state = useAppStore.getState()
   state.patchWorkItem(target.item.id, patch, target.item.repoId, {
@@ -31,7 +60,8 @@ export function publishGitHubTaskRefresh(
     sourceContexts: target.sources,
     hostId: target.hostId,
     ownerRepo: target.ownerRepo,
-    matches: target.matches
+    matches: target.matches,
+    valueOrigins: patch.githubValueOrigins
   })
   state.patchProjectTaskContent(accepted, details.body, target.source)
   useAppStore.setState((current) => {

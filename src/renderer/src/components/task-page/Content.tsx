@@ -1,19 +1,35 @@
 import { captureGitHubTaskObservation, observeGitHubWorkItem } from '@/lib/github-task-observation'
+
 import { getTaskPageRepoSourceContext } from './task-page-source-context'
+
 import { areTaskSourceContextsEqual } from '../../../../shared/task-source-context'
+
 import { githubTaskContent, type GitHubTaskRefreshHandler } from '@/lib/github-task-target'
+
 import { establishTaskPageGitHubMembership } from './github/task-page-github-work-item-mutation-composition'
+
 import { notifyTaskPageGitHubMutationRegistry } from './github/task-page-github-work-item-mutation-registry'
+
 import { githubTaskSourceKey } from '@/lib/github-task-target'
+
 import { shouldSkipLocalViewerQualifiers } from '@/hooks/useTaskPageGitHubWorkItemMutation'
+
 import type { TaskPageComposerActionsModel } from './use-task-page-composer-actions'
+
 import PullRequestPage from '@/components/PullRequestPage'
+
 import GitHubItemDialog from '@/components/GitHubItemDialog'
+
 import ProjectViewWrapper from '@/components/github-project/ProjectViewWrapper'
+
 import { TaskPageGitHubList } from './github/List'
+
 import { TaskPageGitLabTodoList } from './gitlab/TodoList'
+
 import { TaskPageGitLabItemList } from './gitlab/ItemList'
+
 import { TaskPageJiraContent } from './jira/Content'
+
 export function TaskPageContent({
   model
 }: {
@@ -47,14 +63,15 @@ export function TaskPageContent({
     }
     const source = getTaskPageRepoSourceContext(row, 'github')
     const observation = captureGitHubTaskObservation(row, source)
+    const accepted = observeGitHubWorkItem(item, observation, true)
     const patch = {
-      ...githubTaskContent(item),
+      ...githubTaskContent(accepted),
       githubObservation: observation,
-      githubValueOrigins: {}
+      githubValueOrigins: accepted.githubValueOrigins
     }
     model.patchTaskPageWorkItemRows(item, patch, target.matches)
     establishTaskPageGitHubMembership({
-      item: observeGitHubWorkItem(item, observation),
+      item: accepted,
       sourceScope: githubTaskSourceKey(source),
       queryKey: model.githubWorkItemMutationQueryKey,
       skipMeQualifiers: shouldSkipLocalViewerQualifiers(source),

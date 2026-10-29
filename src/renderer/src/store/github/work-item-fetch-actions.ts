@@ -1,21 +1,37 @@
+import { observeExistingListBases } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import {
   captureGitHubTaskObservation,
   observeGitHubWorkItem,
   isGitHubTaskObservationCurrent
 } from '@/lib/github-task-observation'
+
 import { beginGitHubTaskRead } from './request-coordination'
+
 import type { StateCreator } from 'zustand'
+
 import type { AppState } from '../types'
+
 import type { GitHubSlice } from './slice-types'
+
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
+
 import type { WorkItemsCacheError } from './cache-model'
+
 import { isGitHubWorkItemsSshRemoteRequiredError } from '../../../../shared/work-items'
+
 import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
+
 import { isGitHubWorkItemsQueryTooLarge } from '../slices/github-work-items-query-bounds'
+
 import { reconcileCatalogRows } from '../../../../shared/catalog-row-reconcile'
+
 import { structuralValuesEqual } from '../../../../shared/structural-value-equality'
+
 import { workItemsCacheKey, workItemsInflightRequestKey } from './cache-identity'
+
 import { isFresh, withBoundedCacheEntry, WORK_ITEMS_CACHE_TTL } from './cache-policy'
+
 import {
   acquireProviderRequestSlot as acquireWorkItemSlot,
   inflightWorkItemsRequests,
@@ -23,7 +39,9 @@ import {
   ownsInflightRequest,
   releaseProviderRequestSlot as releaseWorkItemSlot
 } from './request-coordination'
+
 import { findRepoForGitHubOwner } from './repository-routing'
+
 import {
   getGitHubWorkItemRequestContext,
   getGitHubWorkItemSourceCacheScope,
@@ -170,7 +188,8 @@ export const createWorkItemFetchActions = (
               repoId,
               ...(repoHostId ? { repoHostId } : {})
             },
-            observation
+            observation,
+            true
           )
         )
         if (options?.requireComplete && (envelope.errors?.issues || envelope.errors?.prs)) {
@@ -207,6 +226,7 @@ export const createWorkItemFetchActions = (
         if (!ownsInflightRequest(inflightWorkItemsRequests, inflightKey, requestId)) {
           return items
         }
+        observeExistingListBases(items)
         // TaskPage shallow-selects entries; fresh wrappers remap rows even on no-op. IPC clones nested records, so reconcile structurally and preserve unchanged refs, mutating only fetchedAt for equal data.
         set((s) => {
           const previousEntry = s.workItemsCache[key]

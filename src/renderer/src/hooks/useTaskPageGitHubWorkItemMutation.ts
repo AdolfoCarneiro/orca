@@ -1,35 +1,56 @@
+import { transitionTaskPageGitHubMutationQuery } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import { shouldSkipLocalViewerQualifiers } from '@/lib/task-repo-source-context'
+
 export { shouldSkipLocalViewerQualifiers } from '@/lib/task-repo-source-context'
 import type { Repo } from '../../../shared/repo-types'
+
 import { createTaskPageGitHubAuthorityProjection } from '@/components/task-page/github/task-page-github-work-item-mutation-composition'
+
 import {
   captureGitHubTaskObservation,
   createGitHubTaskObservationIndex,
   type GitHubTaskObservation
 } from '@/lib/github-task-observation'
+
 import { getTaskPageRepoSourceContext } from '@/components/task-page/task-page-source-context'
+
 import { githubWorkItemWriteKey, withGitHubWorkItemWrite } from '@/lib/github-work-item-writes'
+
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+
 import { toast } from 'sonner'
+
 import type { ParsedTaskQuery } from '../../../shared/task-query'
+
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
+
 import type { TaskSourceContext } from '../../../shared/task-source-context'
+
 import { useAppStore } from '@/store'
+
 import {
   beginTaskPageGitHubWorkItemMutation,
   canStartTaskPageGitHubWorkItemMutation
 } from '@/components/task-page/github/task-page-github-work-item-mutations'
+
 import {
   confirmTaskPageGitHubWorkItemMutation,
   rollbackTaskPageGitHubWorkItemMutation
 } from '@/components/task-page/github/task-page-github-work-item-mutation-lifecycle'
+
 import type { TaskPageGitHubMutationIntent } from '@/components/task-page/github/task-page-github-work-item-mutation-patches'
-import type { TaskPageGitHubPatchWorkItem } from '@/components/task-page/github/task-page-github-work-item-mutation-types'
+
+import type {
+  CurrentListInputResolver,
+  TaskPageGitHubPatchWorkItem
+} from '@/components/task-page/github/task-page-github-work-item-mutation-types'
+
 import {
   subscribeTaskPageGitHubMutationRegistry,
-  setTaskPageGitHubMutationQueryKey,
   getTaskPageGitHubMutationSnapshot
 } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import { useMountedRef } from './useMountedRef'
 
 export type UseTaskPageGitHubWorkItemMutationArgs = {
@@ -38,6 +59,8 @@ export type UseTaskPageGitHubWorkItemMutationArgs = {
   query: ParsedTaskQuery
   viewerLogin: string | null
   patchWorkItem: TaskPageGitHubPatchWorkItem
+  resolveCurrentListInput?: CurrentListInputResolver
+  transitionQuery?: (queryKey: string) => void
 }
 
 export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkItemMutationArgs): {
@@ -48,7 +71,6 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
     mutate: () => Promise<{ ok?: boolean; error?: string | { message?: string } } | void>
     successToast?: string
     errorToast: string
-    serverEntityFromResult?: (result: unknown) => Partial<GitHubWorkItem> | undefined
   }) => Promise<'confirmed' | 'rolled_back' | 'stale'>
   isIntentPending: (input: {
     item: GitHubWorkItem
@@ -58,6 +80,18 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
   registryVersion: number
 } {
   const patchWorkItem = args.patchWorkItem
+  const resolveCurrentListInput = args.resolveCurrentListInput
+  const suppliedTransition = args.transitionQuery
+  const transitionQuery = useCallback(
+    (queryKey: string) => {
+      if (suppliedTransition) {
+        suppliedTransition(queryKey)
+      } else {
+        transitionTaskPageGitHubMutationQuery(queryKey, useAppStore.getState())
+      }
+    },
+    [suppliedTransition]
+  )
   const repos = useAppStore.getState().repos ?? []
   const observationForItem = createGitHubTaskObservationIndex(repos, (repo) =>
     getTaskPageRepoSourceContext(repo, 'github')
@@ -87,8 +121,8 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
   }
   const [registryVersion, setRegistryVersion] = useState(0)
   useEffect(() => {
-    setTaskPageGitHubMutationQueryKey(args.queryKey)
-  }, [args.queryKey])
+    transitionQuery(args.queryKey)
+  }, [args.queryKey, transitionQuery])
   const snapshotRef = useRef<readonly unknown[]>([])
   // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
   snapshotRef.current = getTaskPageGitHubMutationSnapshot(owners)
@@ -133,7 +167,6 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
       mutate: () => Promise<{ ok?: boolean; error?: string | { message?: string } } | void>
       successToast?: string
       errorToast: string
-      serverEntityFromResult?: (result: unknown) => Partial<GitHubWorkItem> | undefined
     }): Promise<'confirmed' | 'rolled_back' | 'stale'> => {
       const skipMeQualifiers = shouldSkipLocalViewerQualifiers(input.sourceContext)
       const began = beginTaskPageGitHubWorkItemMutation({
@@ -145,7 +178,9 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
         queryKey,
         viewerLogin,
         skipMeQualifiers,
-        patchWorkItem
+        patchWorkItem,
+        resolveCurrentListInput,
+        transitionQuery
       })
 
       try {
@@ -157,6 +192,7 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
             key: began.key,
             generation: began.generation,
             patchWorkItem,
+            resolveCurrentListInput,
             sourceContext: input.sourceContext,
             query: activeQuery.query,
             queryKey: activeQuery.queryKey,
@@ -174,15 +210,14 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
           return rolled
         }
 
-        const serverEntity = input.serverEntityFromResult?.(result)
         const confirmed = confirmTaskPageGitHubWorkItemMutation(began.key, began.generation, {
           query: activeQuery.query,
           queryKey: activeQuery.queryKey,
           viewerLogin: activeQuery.viewerLogin,
           item: input.item,
           currentObservation: activeQuery.observationForItem(input.item),
-          serverEntity,
           patchWorkItem,
+          resolveCurrentListInput,
           sourceContext: input.sourceContext,
           // The separately registered TaskPage runner performs the revalidation.
           scheduleQuiet: false
@@ -200,6 +235,7 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
           key: began.key,
           generation: began.generation,
           patchWorkItem,
+          resolveCurrentListInput,
           sourceContext: input.sourceContext,
           query: activeQuery.query,
           queryKey: activeQuery.queryKey,
@@ -213,7 +249,15 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
         return rolled
       }
     },
-    [query, queryKey, viewerLogin, mountedRef, patchWorkItem]
+    [
+      query,
+      queryKey,
+      viewerLogin,
+      mountedRef,
+      patchWorkItem,
+      resolveCurrentListInput,
+      transitionQuery
+    ]
   )
 
   const run = useCallback(

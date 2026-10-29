@@ -1,3 +1,5 @@
+import { confirmListForTest } from './github-task-refresh.test-fixture'
+
 // @vitest-environment happy-dom
 import './github-task-refresh.test-fixture'
 import {
@@ -5,13 +7,19 @@ import {
   materializeTaskPageItemList,
   reapplyPendingTaskPageGitHubMutationsToCache
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import { getLastConfirmedClientEntries } from '@/components/task-page/github/task-page-github-confirmed-client-values'
+
 import { parseTaskQuery } from '../../../shared/task-query'
+
 import { createTaskPageGitHubMembershipProjection } from '@/components/task-page/github/task-page-github-work-item-mutation-composition'
+
 import { runTaskPageGitHubQuietRefresh } from '@/components/task-page/github/task-page-github-quiet-refresh-run'
+
 import { captureGitHubTaskObservation } from './github-task-observation'
 
 import { repo, source, key, user, returned } from './github-task-refresh-data.test-fixture'
+
 import {
   context,
   store,
@@ -24,26 +32,31 @@ import {
 } from './github-task-refresh.test-fixture'
 
 import React, { act } from 'react'
+
 import { createRoot } from 'react-dom/client'
+
 import { expect, it, vi } from 'vitest'
 
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
 
 import { getTaskPageRepoSourceContext } from '@/components/task-page/task-page-source-context'
+
 import { getTaskSourceCacheScope } from '../../../shared/task-source-context'
 
 import {
-  setConfirmedListSnapshot,
   setPendingTaskPageGitHubOp,
   setLastConfirmedClientValue,
   getTaskPageGitHubPendingEntries,
   getTaskPageGitHubListEntries,
+  getListEntry,
   resetTaskPageGitHubMutationRegistryForTests,
   setTaskPageGitHubMutationQueryKey
 } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import { workItemDetailsCache } from '@/components/github-item-dialog/load-item-details/work-item-details-cache'
 
 import { taskPageGitHubMutationItemId } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
+
 import { beginGitHubTaskRead } from '@/store/github/request-coordination'
 
 it('bounds actual acceptance, owned row projection/admission and final completion as rows, owners, authority and reads vary independently', async () => {
@@ -109,7 +122,7 @@ it('bounds actual acceptance, owned row projection/admission and final completio
         startedAt: i,
         skipMeQualifiers: false
       })
-      setConfirmedListSnapshot(
+      confirmListForTest(
         pendingKey.sourceScope,
         repo.id,
         itemId,
@@ -259,11 +272,21 @@ it('bounds real ordinary cache reapplication after accepted publication when app
     quietScans: number
     s: number
     ownerReads: number
+    p: number
+    r: number
+    retiredReads: number
+    pendingVisits: number
+    l: number
+    loginReads: number
   }[] = []
-  for (const [n, s] of [
-    [100, 1],
-    [1000, 1],
-    [100, 1000]
+  for (const [n, s, p, r, l] of [
+    [100, 1, 1, 1, 1],
+    [1000, 1, 1, 1, 1],
+    [100, 1000, 1, 1, 1],
+    [100, 1, 1000, 1, 1],
+    [100, 1, 1, 1000, 1],
+    [100, 1, 1, 1, 100],
+    [100, 1, 1, 1, 1000]
   ]) {
     resetTaskPageGitHubMutationRegistryForTests()
     setTaskPageGitHubMutationQueryKey('q')
@@ -279,19 +302,83 @@ it('bounds real ordinary cache reapplication after accepted publication when app
     store.setState({ repos })
     const rows = store.getState().workItemsCache[key].data!
     const observation = captureGitHubTaskObservation(repo, source)
+    const last = rows.at(-1)!
+    const profiles = Array.from({ length: l }, (_, i) => user(i ? `member-${i}` : 'bob'))
     for (const row of rows.slice(2)) {
-      setConfirmedListSnapshot(
+      confirmListForTest(
         getTaskSourceCacheScope(source),
         repo.id,
         taskPageGitHubMutationItemId(row),
         'assignees',
-        [user('bob')],
+        row === last ? profiles : [user('bob')],
         observation
       )
     }
     await mount()
     direct.mockResolvedValue(returned)
     await click()
+    for (let i = 0; i < p; i++) {
+      setPendingTaskPageGitHubOp({
+        key: {
+          repoId: repo.id,
+          itemId: `unrelated-${i}`,
+          itemType: 'issue',
+          sourceScope: getTaskSourceCacheScope(source),
+          observation,
+          opKey: 'state'
+        },
+        generation: 1,
+        previous: { state: 'open' },
+        next: { state: 'closed' },
+        startedAt: i,
+        skipMeQualifiers: false
+      })
+    }
+    let loginReads = 0
+    const lastEntry = getListEntry({
+      repoId: repo.id,
+      itemId: taskPageGitHubMutationItemId(last),
+      itemType: 'issue',
+      sourceScope: getTaskSourceCacheScope(source),
+      observation,
+      family: 'assignees'
+    })!
+    const counted = new Set([
+      ...profiles,
+      ...lastEntry.base.users,
+      ...(lastEntry.protection.kind === 'whole' ? lastEntry.protection.expectedUsers : [])
+    ])
+    for (const profile of counted) {
+      const login = profile.login
+      Object.defineProperty(profile, 'login', {
+        enumerable: true,
+        configurable: true,
+        get: () => {
+          loginReads++
+          return login
+        }
+      })
+    }
+    let retiredReads = 0,
+      pendingVisits = 0
+    const pendingEntries = getTaskPageGitHubPendingEntries()
+    const pendingValues = pendingEntries.values.bind(pendingEntries)
+    const pendingScan = vi.spyOn(pendingEntries, 'values').mockImplementation(function* () {
+      for (const entry of pendingValues()) {
+        pendingVisits++
+        yield entry
+      }
+    })
+    const reads = Array.from({ length: r }, () =>
+      beginGitHubTaskRead([{ repoId: repo.id, sourceContext: source }], undefined, { repos })
+    )
+    const readSpies = reads.map((read) => {
+      const retire = read.retire
+      return vi.spyOn(read, 'retire').mockImplementation((index) => {
+        retiredReads++
+        retire(index)
+      })
+    })
     let visits = 0,
       writes = 0,
       scans = 0,
@@ -351,7 +438,10 @@ it('bounds real ordinary cache reapplication after accepted publication when app
     writes = 0
     scans = 0
     const searchBeforeQuiet = list.mock.calls.length
-    const networkItems = rows.map((row) => ({ ...row, assignees: [user('bob')] }))
+    const networkItems = rows.map((row) => ({
+      ...row,
+      assignees: row === last ? profiles : [user('bob')]
+    }))
     list.mockResolvedValue({
       items: networkItems,
       sources: { issues: { owner: 'o', repo: 'r' }, prs: null }
@@ -402,6 +492,14 @@ it('bounds real ordinary cache reapplication after accepted publication when app
     cleanup?.()
     mounted.current = false
     batch.mockRestore()
+    readSpies.forEach((spy) => spy.mockRestore())
+    reads.forEach((read) => read.dispose())
+    pendingScan.mockRestore()
+    expect(retiredReads, 'one shared retirement program per already-live read').toBe(r)
+    expect(
+      pendingVisits,
+      'pending index is built per pass, never per cache row'
+    ).toBeLessThanOrEqual(40 * p + 100)
     scan.mockRestore()
     unsubscribe()
     expect(list.mock.calls.length - searchBeforeQuiet).toBe(1)
@@ -412,11 +510,20 @@ it('bounds real ordinary cache reapplication after accepted publication when app
     expect(getTaskPageGitHubListEntries().size).toBe(0)
     const cached = store.getState().workItemsCache[key].data!
     expect(cached[0].title).toBe('Accepted title')
-    expect(cached.at(-1)?.assignees).toEqual([user('bob')])
+    expect(cached.at(-1)?.assignees).toEqual(profiles)
+    expect(loginReads, 'matched list work is linear in real user inputs').toBeLessThanOrEqual(
+      60 * l + 100
+    )
     measured.push({
       n,
       s,
       ownerReads,
+      p,
+      r,
+      retiredReads,
+      pendingVisits,
+      l,
+      loginReads,
       visits,
       writes: reapplyWrites,
       scans: reapplyScans,

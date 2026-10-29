@@ -1,6 +1,13 @@
-import { useTaskPageGitHubMutationState } from '@/components/task-page/github/use-task-page-github-mutation-state'
-import type { TaskPageLinearCreationStateModel } from '@/components/task-page/linear/use-task-page-linear-creation-state'
+import {
+  Harness,
+  ProductionHarness,
+  holdPageUpdates,
+  flushPageUpdates,
+  resetPageUpdates
+} from './github-task-refresh-harness.test-fixture'
+
 import { createRepoUpdateActions } from '@/store/repos/repo-update'
+
 import {
   createTaskRefreshApi,
   repo,
@@ -11,36 +18,50 @@ import {
   oldDetails,
   table
 } from './github-task-refresh-data.test-fixture'
+
 // @vitest-environment happy-dom
 import type * as I18nModule from '@/i18n/i18n'
 
-import React, { act, useState, useLayoutEffect } from 'react'
+import React, { act, useLayoutEffect } from 'react'
+
 import { createRoot, type Root } from 'react-dom/client'
+
 import { createStore, useStore, type StoreApi } from 'zustand'
+
 import { afterEach, beforeEach, expect, vi } from 'vitest'
+
 import type { AppState } from '@/store/types'
 
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
+
 import type { GitHubProjectTable, GitHubProjectRow } from '../../../shared/github/project-types'
+
 import { createGitHubSlice } from '@/store/slices/github'
+
 import GitHubItemDialog from '@/components/github-item-dialog/open-dialog/github-item-dialog'
+
 import { TaskPageContent } from '@/components/task-page/Content'
+
 import type { TaskPageComposerActionsModel } from '@/components/task-page/use-task-page-composer-actions'
+
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { parseTaskQuery } from '../../../shared/task-query'
+
 import { patchTaskPageGitHubWorkItemPages } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import {
   resetTaskPageGitHubMutationRegistryForTests,
   setTaskPageGitHubMutationQueryKey
 } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import { taskPageGitHubResumeCache } from '@/components/task-page/github/task-page-github-resume-cache'
 
 import { workItemDetailsCache } from '@/components/github-item-dialog/load-item-details/work-item-details-cache'
 
 import { clearRuntimeCompatibilityCacheForTests } from '@/runtime/runtime-rpc-client'
 
-import { useTaskPageGitHubWorkItemMutation } from '@/hooks/useTaskPageGitHubWorkItemMutation'
+import type { useTaskPageGitHubWorkItemMutation } from '@/hooks/useTaskPageGitHubWorkItemMutation'
 
 import {
   createRuntimeStatusSlice,
@@ -198,13 +219,13 @@ function fixture(n = 1) {
   pages = [null, null, [{ ...seed, id: 'issue:5' }, twin, ...others]]
   return { others, twin }
 }
-type OutputRenderer = (
+export type OutputRenderer = (
   pages: (GitHubWorkItem[] | null)[],
   mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>,
   queryKey: string,
   viewerLogin: string | null
 ) => React.ReactNode
-function HarnessView({
+export function HarnessView({
   standalone = false,
   outputs,
   query = 'is:open',
@@ -227,7 +248,7 @@ function HarnessView({
     taskMutation = mutation
     pages = localPages
     harnessSetPages = setPages
-  }, [mutation, localPages])
+  }, [mutation, localPages, setPages])
   const model = {
     taskSource: 'github',
     dialogWorkItem: openedItem,
@@ -264,53 +285,6 @@ function HarnessView({
     </TooltipProvider>
   ) // SAFETY: this fixture deliberately renders only the issue branch with its production accepted callback.
 }
-type HarnessProps = { standalone?: boolean; outputs?: OutputRenderer; query?: string }
-function Harness(props: HarnessProps) {
-  const [localPages, setPages] = useState(pages)
-  useStore(store, (state) => state.repos)
-  const mutation = useTaskPageGitHubWorkItemMutation({
-    queryKey: 'q',
-    query: parseTaskQuery(props.query ?? 'is:open'),
-    viewerLogin: 'alice',
-    patchWorkItem: store.getState().patchWorkItem
-  })
-  return <HarnessView {...props} localPages={localPages} setPages={setPages} mutation={mutation} />
-}
-function ProductionHarness(props: HarnessProps) {
-  const selectedRepos = useStore(store, (state) => state.repos)
-  const [localPages, setPages] = useState(pages)
-  const [viewer, setViewer] = useState<string | null>(null)
-  const [, setQuiet] = useState(0)
-  // SAFETY: the actual mutation owner reads only this declared slice; no lifecycle is mocked.
-  const input = {
-    selectedRepos,
-    taskSource: 'github',
-    githubMode: 'items',
-    appliedTaskSearch: props.query ?? 'is:open',
-    activeTaskPreset: null,
-    setQuietRefreshNonce: setQuiet,
-    githubViewerLogin: viewer,
-    setGitHubViewerLogin: setViewer,
-    pages: localPages,
-    perRepoSourceState: [],
-    patchTaskPageWorkItemRows: (
-      item: GitHubWorkItem,
-      patch: Partial<GitHubWorkItem>,
-      matches?: (row: GitHubWorkItem) => boolean
-    ) => setPages((current) => patchTaskPageGitHubWorkItemPages(current, item, patch, matches))
-  } as TaskPageLinearCreationStateModel
-  const owner = useTaskPageGitHubMutationState(input)
-  return (
-    <HarnessView
-      {...props}
-      localPages={localPages}
-      setPages={setPages}
-      mutation={owner.githubWorkItemMutation}
-      queryKey={owner.githubWorkItemMutationQueryKey}
-      viewerLogin={viewer}
-    />
-  )
-}
 async function mount(
   standalone = false,
   outputs?: OutputRenderer,
@@ -340,6 +314,7 @@ async function draft(label: string, value: string) {
   })
 }
 beforeEach(() => {
+  resetPageUpdates()
   openedItem = seed
   openedSource = source
   clearRuntimeCompatibilityCacheForTests()
@@ -384,6 +359,8 @@ export {
   draft
 }
 export const context = {
+  holdPageUpdates,
+  flushPageUpdates,
   get pages() {
     return pages
   },
@@ -411,3 +388,5 @@ export const context = {
 }
 
 export { fieldsRenders } from './github-task-refresh-renderers.test-fixture'
+
+export { confirmListForTest } from './github-task-refresh-data.test-fixture'

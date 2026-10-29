@@ -1,13 +1,27 @@
+import { inheritScalarOrigins } from './work-item-patch-selectors'
+
 import {
-  getLastConfirmedClientEntry,
-  getLastConfirmedClientValue
-} from '@/components/task-page/github/task-page-github-confirmed-client-values'
-import { taskPageGitHubLastConfirmedKey } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
+  bucketMatchesPatch,
+  rowMatchesPatch,
+  type PatchRequest,
+  type PreparedPatch
+} from './work-item-patch-selectors'
+
+import { createTaskPageGitHubAuthorityProjection } from '@/components/task-page/github/task-page-github-work-item-mutation-composition'
+
+import {
+  listInput,
+  type ListAddress,
+  type ListInput
+} from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import type { GitHubTaskFamily, GitHubTaskValueOrigin } from '@/lib/github-task-observation'
+
 import {
   patchObservedGitHubWorkItem,
   createGitHubTaskObservationIndex
 } from '@/lib/github-task-observation'
+
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 
 import type { AppState } from '../types'
@@ -15,58 +29,18 @@ import type { AppState } from '../types'
 import type { GitHubPatchWorkItemOptions } from './cache-model'
 
 import { parseGitHubIssueOrPRLink } from '../../../../shared/github/links'
+
 import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
+
 import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
 
-import { repoCacheKeyHostId } from '../../../../shared/github/github-cache-key'
-
-type PatchRequest = {
-  itemId: string
-  patch: Partial<GitHubWorkItem>
-  repoId?: string | null
-  options?: GitHubPatchWorkItemOptions
-}
-type PreparedPatch = PatchRequest & {
-  order: number
-  sourceScope: string | null
-  sourceScopes: readonly string[]
-  repositoryKey: string | null
-  fields: Map<string, { order: number; value: unknown }>
-  origins: Map<GitHubTaskFamily, { order: number; value: GitHubTaskValueOrigin | undefined }>
-}
-function bucketMatchesPatch(key: string, request: PreparedPatch): boolean {
-  const { repoId, options, sourceScope, sourceScopes, repositoryKey } = request
-  if (options?.hostId && repoId && repoCacheKeyHostId(key, [repoId]) !== options.hostId) {
-    return false
-  }
-  if (options?.hostId && !sourceScope && key.startsWith('github:')) {
-    return false
-  }
-  return (
-    !sourceScopes.length ||
-    sourceScopes.some((scope) => key === scope || key.startsWith(`${scope}::`)) ||
-    (!key.startsWith('github:') &&
-      !!(repoId && options?.hostId && repositoryKey && options?.matches))
-  )
-}
-function rowMatchesPatch(item: GitHubWorkItem, request: PreparedPatch): boolean {
-  if (
-    (request.repoId && item.repoId !== request.repoId) ||
-    (request.options?.matches ? !request.options.matches(item) : item.id !== request.itemId)
-  ) {
-    return false
-  }
-  const repository = request.repositoryKey ? parseGitHubIssueOrPRLink(item.url)?.slug : undefined
-  return (
-    !request.repositoryKey ||
-    (!!repository && githubRepoIdentityKey(repository) === request.repositoryKey)
-  )
-}
-export function reduceWorkItemPatches(
+export function prepareWorkItemPatches(
   s: AppState,
   requests: readonly PatchRequest[],
   indexed: boolean
 ) {
+  const projection = createTaskPageGitHubAuthorityProjection()
+  const existingEntryBaseObservations: { address: ListAddress; input: ListInput }[] = []
   const observationFor = createGitHubTaskObservationIndex(s.repos, () => null)
   const validated = new Map<
     NonNullable<GitHubPatchWorkItemOptions['observation']>,
@@ -76,10 +50,11 @@ export function reduceWorkItemPatches(
   // Scope -> renderer repo -> raw row -> canonical restriction. All indexes die with this call.
   const scopes = new Map<
     string | null,
-    Map<string, Map<string, Map<string | null, PreparedPatch>>>
+    Map<string, Map<string, Map<string | null, PreparedPatch[]>>>
   >()
   requests.forEach((request, order) => {
     const { options } = request
+    let currentObservation = true
     const sourceScope =
       options?.sourceContext?.provider === 'github'
         ? getTaskSourceCacheScope(options.sourceContext)
@@ -99,15 +74,22 @@ export function reduceWorkItemPatches(
           )?.key === options.observation.key
         )
       }
-      if (!owners.get(sourceKey)) {
+      currentObservation = !!owners.get(sourceKey)
+      if (
+        !currentObservation &&
+        !(
+          options.listComposition?.length &&
+          options.listComposition.every((plan) => plan.retirement) &&
+          !Object.keys(request.patch).length
+        )
+      ) {
         return
       }
     }
     const sourceScopes =
       options?.sourceContexts?.map(getTaskSourceCacheScope) ?? (sourceScope ? [sourceScope] : [])
     const repositoryKey = options?.ownerRepo ? githubRepoIdentityKey(options.ownerRepo) : null
-    let previous: PreparedPatch | undefined
-    let restrictions: Map<string | null, PreparedPatch> | undefined
+    let restrictions: Map<string | null, PreparedPatch[]> | undefined
     if (indexed && request.repoId) {
       let repos = scopes.get(sourceScope)
       if (!repos) {
@@ -121,33 +103,56 @@ export function reduceWorkItemPatches(
       if (!restrictions) {
         rows.set(request.itemId, (restrictions = new Map()))
       }
-      previous = restrictions.get(repositoryKey)
     }
-    const next = previous ?? {
+    const next: PreparedPatch = {
       ...request,
       order,
+      currentObservation,
       sourceScope,
       sourceScopes,
       repositoryKey,
       fields: new Map(),
-      origins: new Map()
+      origins: new Map(),
+      lists: []
     }
     for (const [field, value] of Object.entries(request.patch)) {
-      next.fields.set(field, { order, value })
+      if (field !== 'assignees' && field !== 'reviewRequests') {
+        next.fields.set(field, { order, value })
+      }
     }
-    for (const family of ['state', 'autoMerge', 'assignees', 'reviewRequests'] as const) {
+    for (const family of ['assignees', 'reviewRequests'] as const) {
+      const assigned = family in request.patch
+      const hasOrigin = !!options?.valueOrigins && family in options.valueOrigins
+      if (assigned || hasOrigin) {
+        next.lists.push({
+          order,
+          family,
+          assigned,
+          hasOrigin,
+          value: request.patch[family],
+          origin: options?.valueOrigins?.[family]
+        })
+      }
+    }
+    for (const plan of options?.listComposition ?? []) {
+      next.lists.push({ order, family: plan.address.family, plan })
+    }
+    for (const family of ['state', 'autoMerge'] as const) {
       if (options?.valueOrigins && family in options.valueOrigins) {
         next.origins.set(family, { order, value: options.valueOrigins[family] })
       }
     }
-    if (!previous) {
-      prepared.push(next)
-      restrictions?.set(repositoryKey, next)
+    prepared.push(next)
+    if (restrictions) {
+      const selectors = restrictions.get(repositoryKey) ?? []
+      selectors.push(next)
+      restrictions.set(repositoryKey, selectors)
     }
   })
   if (!prepared.length) {
-    return s
+    return { storePatch: s, existingEntryBaseObservations }
   }
+  const destinations: (() => void)[] = []
   let nextCache: AppState['workItemsCache'] | undefined
   for (const [key, entry] of Object.entries(s.workItemsCache)) {
     if (!entry?.data) {
@@ -181,9 +186,7 @@ export function reduceWorkItemPatches(
             const restricted = repository
               ? restrictions.get(githubRepoIdentityKey(repository))
               : undefined
-            return [unrestricted, restricted].filter(
-              (candidate): candidate is PreparedPatch => !!candidate
-            )
+            return [...(unrestricted ?? []), ...(restricted ?? [])]
           })
         : prepared
       const applicable = candidates.filter(
@@ -220,49 +223,62 @@ export function reduceWorkItemPatches(
         Object.fromEntries([...originFields].map(([family, { value }]) => [family, value]))
       if (!indexed) {
         const request = applicable[0]
-        for (const family of ['state', 'autoMerge'] as const) {
-          const value = family === 'state' ? patch.state : patch.autoMergeEnabled
-          if (value === undefined || family in origins) {
-            continue
+        inheritScalarOrigins(item, request, patch, origins)
+      }
+      const program = applicable
+        .flatMap((request) => request.lists)
+        .sort((a, b) => a.order - b.order)
+      let ordinary = patchObservedGitHubWorkItem(item, patch, origins)
+      for (const instruction of program) {
+        const { family, plan } = instruction
+        if (plan) {
+          const input = listInput(ordinary, family, plan.address.observation)
+          if (input.kind === 'full') {
+            existingEntryBaseObservations.push({ address: plan.address, input })
+            projection.observe(plan.address, input)
           }
-          const scalar = getLastConfirmedClientEntry(
-            request.sourceScope,
-            item.repoId,
-            request.itemId,
-            family
+        } else {
+          ordinary = patchObservedGitHubWorkItem(
+            ordinary,
+            instruction.assigned ? { [family]: instruction.value } : {},
+            instruction.hasOrigin ? { [family]: instruction.origin } : {}
           )
-          if (
-            scalar &&
-            getLastConfirmedClientValue(
-              request.sourceScope,
-              item.repoId,
-              request.itemId,
-              family,
-              parseGitHubIssueOrPRLink(item.url)?.slug
-            ) === value
-          ) {
-            origins[family] = {
-              kind: 'scalar',
-              owner: scalar.observation,
-              coordinate: taskPageGitHubLastConfirmedKey(
-                request.sourceScope,
-                item.repoId,
-                request.itemId,
-                family
-              )
-            }
-          }
         }
       }
-      updatedItems ??= [...entry.data!]
-      updatedItems[index] = Object.keys(origins).length
-        ? patchObservedGitHubWorkItem(item, patch, origins)
-        : { ...item, ...patch }
+      destinations.push(() => {
+        let updated =
+          Object.keys(patch).length || Object.keys(origins).length
+            ? patchObservedGitHubWorkItem(item, patch, origins)
+            : item
+        for (const instruction of program) {
+          const { family, plan } = instruction
+          updated = plan
+            ? projection.list(updated, plan)
+            : patchObservedGitHubWorkItem(
+                updated,
+                instruction.assigned ? { [family]: instruction.value } : {},
+                instruction.hasOrigin ? { [family]: instruction.origin } : {}
+              )
+        }
+        if (updated === item) {
+          return
+        }
+        updatedItems ??= [...entry.data!]
+        updatedItems[index] = updated
+        nextCache ??= { ...s.workItemsCache }
+        nextCache[key] = { ...entry, data: updatedItems }
+      })
     })
-    if (updatedItems) {
-      nextCache ??= { ...s.workItemsCache }
-      nextCache[key] = { ...entry, data: updatedItems }
-    }
   }
-  return nextCache ? { workItemsCache: nextCache } : s
+  for (const commit of destinations) {
+    commit()
+  }
+  return {
+    storePatch: nextCache ? { workItemsCache: nextCache } : s,
+    existingEntryBaseObservations
+  }
+}
+
+export function reduceWorkItemPatches(...args: Parameters<typeof prepareWorkItemPatches>) {
+  return prepareWorkItemPatches(...args).storePatch
 }

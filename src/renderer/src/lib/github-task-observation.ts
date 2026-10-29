@@ -1,18 +1,29 @@
 import { normalizeGhAccountBinding } from '../../../shared/github/account-binding'
+
 import { getTaskPageRepoSourceContext } from './task-repo-source-context'
+
 import { getGitHubRepoLookupIndex } from '@/store/slices/github-repo-lookup-index'
+
 import type { Repo } from '../../../shared/repo-types'
+
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
+
 import type { TaskSourceContext } from '../../../shared/task-source-context'
+
 import {
   buildTaskSourceContextFromRepo,
   getTaskSourceCacheScope,
   areTaskSourceContextsEqual
 } from '../../../shared/task-source-context'
+
 import { getRepoExecutionHostId } from '../../../shared/execution-host'
+
 import { parseHostAuthorityKey } from '../../../shared/host-authority'
+
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
+
 import { hostRouteForAuthority } from '@/runtime/runtime-client-target'
+
 import { captureHostIdentityFence, isHostIdentityFenceCurrent } from '@/store/host-catalog-fencing'
 
 export function githubTaskBinding(repo: Repo): string {
@@ -98,6 +109,8 @@ export type GitHubTaskValueOrigin = {
   owner?: GitHubTaskObservation
   coordinate?: string
   generation?: number
+  completeFamily?: true
+  listLifetime?: object
 }
 export type ObservedGitHubWorkItem = GitHubWorkItem & {
   githubObservation?: GitHubTaskObservation
@@ -119,9 +132,30 @@ export function isGitHubTaskObservationCurrent(
 
 export function observeGitHubWorkItem(
   item: GitHubWorkItem,
+  owner: GitHubTaskObservation | undefined,
+  full = false
+): ObservedGitHubWorkItem {
+  if (!owner) {
+    return item
+  }
+  const observed = { ...item, githubObservation: owner }
+  return full ? qualifyGitHubTaskLists(observed, owner) : observed
+}
+
+export function qualifyGitHubTaskLists(
+  item: ObservedGitHubWorkItem,
   owner: GitHubTaskObservation | undefined
 ): ObservedGitHubWorkItem {
-  return owner ? { ...item, githubObservation: owner } : item
+  if (!owner) {
+    return item
+  }
+  const origins = { ...item.githubValueOrigins }
+  for (const family of ['assignees', 'reviewRequests'] as const) {
+    if (item[family] !== undefined && (!origins[family] || origins[family]?.kind === 'ordinary')) {
+      origins[family] = { kind: 'ordinary', owner, completeFamily: true }
+    }
+  }
+  return { ...item, githubValueOrigins: origins }
 }
 
 export function gitHubTaskFamilyOrigin(
@@ -139,7 +173,14 @@ export function patchObservedGitHubWorkItem(
   patch: Partial<GitHubWorkItem>,
   origins: Partial<Record<GitHubTaskFamily, GitHubTaskValueOrigin | undefined>>
 ): ObservedGitHubWorkItem {
-  return { ...item, ...patch, githubValueOrigins: { ...item.githubValueOrigins, ...origins } }
+  const nextOrigins = { ...item.githubValueOrigins, ...origins }
+  for (const family of ['assignees', 'reviewRequests'] as const) {
+    if (family in patch && !(family in origins)) {
+      const previous = gitHubTaskFamilyOrigin(item, family)
+      nextOrigins[family] = { kind: 'ordinary', owner: previous?.owner }
+    }
+  }
+  return { ...item, ...patch, githubValueOrigins: nextOrigins }
 }
 
 export function plainGitHubWorkItem(item: ObservedGitHubWorkItem): GitHubWorkItem {

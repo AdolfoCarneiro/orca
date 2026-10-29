@@ -3,32 +3,45 @@ import {
   gitHubTaskFamilyOrigin,
   type GitHubTaskObservation
 } from '@/lib/github-task-observation'
+
 import {
   createTaskPageGitHubAuthorityProjection,
   adoptTaskPageGitHubMembershipFamilies
 } from './task-page-github-work-item-mutation-composition'
+
 import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
+
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
-import { loginSetOfUsers, loginSetsEqual } from './task-page-github-work-item-mutation-patches'
+
 import {
   familiesFromPendingOp,
   freezeTaskPageGitHubUsers
 } from './task-page-github-work-item-mutation-composition'
+
 import {
-  getConfirmedListSnapshot,
+  type createListEntryRetirement,
+  getListEntry,
+  completedListClaim,
+  matchesListClaim,
   deleteConfirmedListSnapshot
 } from './task-page-github-work-item-mutation-registry'
+
 import {
   createTaskPageGitHubScalarAuthorityIndex,
   deleteLastConfirmedClientValue
 } from './task-page-github-confirmed-client-values'
+
 import { getOrCreateQuietRevalidateState } from './task-page-github-work-item-quiet-state'
+
 import {
   taskPageGitHubFamilyDirtyKey,
   taskPageGitHubOwnedItemKey
 } from './task-page-github-work-item-mutation-keys'
+
 import type { TaskPageGitHubPatchWorkItem } from './task-page-github-work-item-mutation-types'
 
 export const MAX_LAG_TRAILS = 5
@@ -37,6 +50,7 @@ export const LAG_BACKOFF_MS = [500, 1000, 2000, 4000, 8000] as const
 
 /** Adopt search field by field without regressing confirmed values; never force-accept lagging data. */
 export function adoptQuietSearchFieldsForItem(args: {
+  retireListEntry?: ReturnType<typeof createListEntryRetirement>
   scalarFor?: ReturnType<typeof createTaskPageGitHubScalarAuthorityIndex>
   projection?: ReturnType<typeof createTaskPageGitHubAuthorityProjection>
   item: GitHubWorkItem
@@ -213,28 +227,29 @@ export function adoptQuietSearchFieldsForItem(args: {
         )
       },
       () => {
-        const snapshot = getConfirmedListSnapshot(
-          args.sourceScope,
-          args.item.repoId,
-          itemId,
-          family,
-          observation,
-          args.item.type
+        const claim = completedListClaim(
+          getListEntry({
+            sourceScope: args.sourceScope,
+            repoId: args.item.repoId,
+            itemId,
+            family,
+            observation,
+            itemType: args.item.type
+          })
         )
-        if (!snapshot) {
-          return true
-        }
-        return loginSetsEqual(loginSetOfUsers(snapshot), loginSetOfUsers(serverListValue))
+        return !claim || matchesListClaim(claim, serverListValue)
       },
       () =>
-        getConfirmedListSnapshot(
-          args.sourceScope,
-          args.item.repoId,
-          itemId,
-          family,
-          observation,
-          args.item.type
-        ) !== undefined,
+        !!completedListClaim(
+          getListEntry({
+            sourceScope: args.sourceScope,
+            repoId: args.item.repoId,
+            itemId,
+            family,
+            observation,
+            itemType: args.item.type
+          })
+        ),
       () =>
         deleteConfirmedListSnapshot(
           args.sourceScope,
@@ -242,7 +257,8 @@ export function adoptQuietSearchFieldsForItem(args: {
           itemId,
           family,
           observation,
-          args.item.type
+          args.item.type,
+          args.retireListEntry
         )
     )
   }

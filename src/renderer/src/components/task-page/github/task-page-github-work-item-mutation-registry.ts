@@ -1,3 +1,39 @@
+import {
+  getTaskPageGitHubListEntries,
+  clearTaskPageGitHubListEntries,
+  createListEntryRetirement,
+  deleteConfirmedListSnapshot
+} from './task-page-github-work-item-list-registry'
+
+import type { ListRetirement, ListQueryTransition } from './task-page-github-work-item-list-model'
+
+export type {
+  ListInput,
+  ListProtection,
+  ListEntry,
+  ListAddress,
+  ListRetirement,
+  ListComposition,
+  ListQueryTransition
+} from './task-page-github-work-item-list-model'
+export {
+  listInput,
+  completedListClaim,
+  matchesListClaim
+} from './task-page-github-work-item-list-model'
+export {
+  getTaskPageGitHubListEntries,
+  getListEntry,
+  beginListEntry,
+  observeExistingListBase,
+  observeExistingListBases,
+  confirmListOperation,
+  createListEntryRetirement,
+  retireListEntry,
+  deleteConfirmedListSnapshot
+} from './task-page-github-work-item-list-registry'
+import { markGitHubTaskListRetirements } from '@/store/github/request-coordination'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 
 import {
@@ -6,37 +42,27 @@ import {
   getLastConfirmedClientEntry,
   setLastConfirmedClientValue as storeLastConfirmedClientValue
 } from './task-page-github-confirmed-client-values'
-import type {
-  GitHubAssignableUser,
-  GitHubOwnerRepo
-} from '../../../../../shared/github/pull-request-types'
+
+import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
+
 import type { GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import type {
   PendingOp,
   TaskPageGitHubMembershipBasis,
-  TaskPageGitHubListFamily,
   TaskPageGitHubMutationKey
 } from './task-page-github-work-item-registry-types'
+
 import {
   serializeTaskPageGitHubMutationKey,
-  taskPageGitHubOwnedItemKey,
-  taskPageGitHubSnapshotKey
+  taskPageGitHubOwnedItemKey
 } from './task-page-github-work-item-mutation-keys'
+
 import { clearTaskPageGitHubQuietStates } from './task-page-github-work-item-quiet-state'
 
 const listeners = new Set<() => void>()
 const pendingByKey = new Map<string, PendingOp>()
 const generations = new Map<string, number>()
-type ListSnapshot = {
-  sourceScope: string | null
-  repoId: string
-  itemId: string
-  family: TaskPageGitHubListFamily
-  itemType: GitHubWorkItem['type']
-  observation?: GitHubTaskObservation
-  users: GitHubAssignableUser[]
-}
-const confirmedSnapshots = new Map<string, ListSnapshot>()
 const membershipBases = new Map<string, TaskPageGitHubMembershipBasis>()
 let mutationQueryKey: string | null = null
 let activationKey: string | null = null
@@ -49,12 +75,25 @@ export function subscribeTaskPageGitHubMutationRegistry(listener: () => void): (
 }
 let notificationDepth = 0
 let notificationPending = false
+let batchRetirements: ListRetirement[] = []
+export function publishListRetirements(retirements: readonly ListRetirement[]): void {
+  if (notificationDepth) {
+    batchRetirements.push(...retirements)
+  } else {
+    markGitHubTaskListRetirements(retirements)
+  }
+}
 export function batchTaskPageGitHubMutationRegistry<T>(operation: () => T): T {
   notificationDepth++
   try {
     return operation()
   } finally {
     notificationDepth--
+    if (!notificationDepth && batchRetirements.length) {
+      const retirements = batchRetirements
+      batchRetirements = []
+      markGitHubTaskListRetirements(retirements)
+    }
     if (!notificationDepth && notificationPending) {
       notificationPending = false
       notifyTaskPageGitHubMutationRegistry()
@@ -72,9 +111,6 @@ export function notifyTaskPageGitHubMutationRegistry(): void {
 }
 export function getTaskPageGitHubPendingEntries(): ReadonlyMap<string, PendingOp> {
   return pendingByKey
-}
-export function getTaskPageGitHubListEntries(): ReadonlyMap<string, ListSnapshot> {
-  return confirmedSnapshots
 }
 export function getTaskPageGitHubMembershipBases(): ReadonlyMap<
   string,
@@ -107,23 +143,35 @@ export function deleteTaskPageGitHubMembershipBasis(key: string): void {
   membershipBases.delete(key)
 }
 export function clearTaskPageGitHubConfirmedAuthority(): void {
-  confirmedSnapshots.clear()
+  clearTaskPageGitHubListEntries()
   clearLastConfirmedClientValues()
 }
-function setTaskPageGitHubMutationQueryKeyNow(queryKey: string): void {
+function setTaskPageGitHubMutationQueryKeyNow(
+  queryKey: string,
+  transition?: ListQueryTransition
+): void {
   if (mutationQueryKey === queryKey) {
     return
   }
   mutationQueryKey = queryKey
   activationKey = null
   membershipBases.clear()
-  clearTaskPageGitHubConfirmedAuthority()
+  const entries = [...getTaskPageGitHubListEntries().values()]
+  const inputs = transition?.resolve?.(entries)
+  const retire = createListEntryRetirement()
+  const plans = entries.flatMap((entry) => {
+    const retirement = retire(entry, inputs?.get(entry))
+    return retirement ? [{ address: retirement.address, retirement }] : []
+  })
+  clearLastConfirmedClientValues()
   clearTaskPageGitHubQuietStates()
   for (const serialized of generations.keys()) {
     if (!pendingByKey.has(serialized)) {
       generations.delete(serialized)
     }
   }
+  publishListRetirements(plans.flatMap((plan) => (plan.retirement ? [plan.retirement] : [])))
+  transition?.publish(plans)
   notifyTaskPageGitHubMutationRegistry()
 }
 export function setTaskPageGitHubMembershipActivation(key: string): void {
@@ -185,62 +233,6 @@ export function hasPendingTaskPageGitHubOpsForItem(
 ): boolean {
   return listPendingTaskPageGitHubOpsForItem(repoId, itemId, sourceScope, observation).length > 0
 }
-function snapshotKey(
-  sourceScope: string | null,
-  repoId: string,
-  itemId: string,
-  family: TaskPageGitHubListFamily,
-  observation?: GitHubTaskObservation,
-  itemType: GitHubWorkItem['type'] = 'issue'
-): string {
-  const raw = taskPageGitHubSnapshotKey(sourceScope, repoId, itemId, family)
-  return itemType === 'issue' && observation ? JSON.stringify([raw, observation.key]) : raw
-}
-export function getConfirmedListSnapshot(
-  sourceScope: string | null,
-  repoId: string,
-  itemId: string,
-  family: TaskPageGitHubListFamily,
-  observation?: GitHubTaskObservation,
-  itemType: GitHubWorkItem['type'] = 'issue'
-): GitHubAssignableUser[] | undefined {
-  const entry = confirmedSnapshots.get(
-    snapshotKey(sourceScope, repoId, itemId, family, observation, itemType)
-  )
-  return entry?.observation?.key === observation?.key ? entry?.users : undefined
-}
-export function setConfirmedListSnapshot(
-  sourceScope: string | null,
-  repoId: string,
-  itemId: string,
-  family: TaskPageGitHubListFamily,
-  users: readonly GitHubAssignableUser[],
-  observation?: GitHubTaskObservation,
-  itemType: GitHubWorkItem['type'] = 'issue'
-): void {
-  confirmedSnapshots.set(snapshotKey(sourceScope, repoId, itemId, family, observation, itemType), {
-    sourceScope,
-    repoId,
-    itemId,
-    family,
-    itemType,
-    observation,
-    users: [...users]
-  })
-}
-export function deleteConfirmedListSnapshot(
-  sourceScope: string | null,
-  repoId: string,
-  itemId: string,
-  family: TaskPageGitHubListFamily,
-  observation?: GitHubTaskObservation,
-  itemType: GitHubWorkItem['type'] = 'issue'
-): void {
-  const key = snapshotKey(sourceScope, repoId, itemId, family, observation, itemType)
-  if (confirmedSnapshots.get(key)?.observation?.key === observation?.key) {
-    confirmedSnapshots.delete(key)
-  }
-}
 export function setLastConfirmedClientValue(
   sourceScope: string | null,
   repoId: string,
@@ -258,10 +250,11 @@ export function clearConfirmedAuthorityForItem(
   itemId: string,
   sourceScope: string | null,
   observation?: GitHubTaskObservation,
-  itemType?: GitHubWorkItem['type']
+  itemType?: GitHubWorkItem['type'],
+  retire = createListEntryRetirement()
 ): void {
   for (const family of ['assignees', 'reviewRequests'] as const) {
-    deleteConfirmedListSnapshot(sourceScope, repoId, itemId, family, observation, itemType)
+    deleteConfirmedListSnapshot(sourceScope, repoId, itemId, family, observation, itemType, retire)
   }
   for (const family of ['state', 'autoMerge']) {
     const entry = getLastConfirmedClientEntry(sourceScope, repoId, itemId, family)
@@ -273,7 +266,7 @@ export function clearConfirmedAuthorityForItem(
 export function resetTaskPageGitHubMutationRegistryForTests(): void {
   pendingByKey.clear()
   generations.clear()
-  confirmedSnapshots.clear()
+  clearTaskPageGitHubListEntries()
   membershipBases.clear()
   clearLastConfirmedClientValues()
   clearTaskPageGitHubQuietStates()
@@ -282,8 +275,13 @@ export function resetTaskPageGitHubMutationRegistryForTests(): void {
   listeners.clear()
 }
 
-export function setTaskPageGitHubMutationQueryKey(queryKey: string): void {
-  batchTaskPageGitHubMutationRegistry(() => setTaskPageGitHubMutationQueryKeyNow(queryKey))
+export function setTaskPageGitHubMutationQueryKey(
+  queryKey: string,
+  transition?: ListQueryTransition
+): void {
+  batchTaskPageGitHubMutationRegistry(() =>
+    setTaskPageGitHubMutationQueryKeyNow(queryKey, transition)
+  )
 }
 
 export type { TaskPageGitHubAuthority } from './task-page-github-work-item-authority-read'
@@ -293,3 +291,5 @@ export {
   getTaskPageGitHubMutationSnapshot,
   getTaskPageGitHubPendingOwnerKeys
 } from './task-page-github-work-item-authority-read'
+
+export { getConfirmedListSnapshot } from './task-page-github-work-item-authority-read'

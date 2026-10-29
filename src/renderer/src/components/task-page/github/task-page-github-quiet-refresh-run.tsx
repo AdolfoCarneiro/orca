@@ -1,37 +1,53 @@
+import { admitTaskPageGitHubListInputs } from './task-page-github-work-item-mutation-pages'
+
 import { beginGitHubTaskRead } from '@/store/github/request-coordination'
+
 import { taskPageGitHubAuthorityKeysForObservation } from './task-page-github-work-item-mutation-keys'
+
 import type { TaskPageGitHubQuietRefreshPreludeModel } from './use-task-page-github-quiet-refresh'
+
 import {
   getOrCreateQuietRevalidateState,
   beginTaskPageQuietRevalidateRun,
   finishTaskPageQuietRevalidateRun
 } from '@/components/task-page/github/task-page-github-work-item-quiet-state'
+
 import { getTaskPageGitHubConfirmedAuthorities } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
+
 import {
   clearTaskPageGitHubAuthorityAbsentFromLoadedItems,
   getTaskPageGitHubRevalidatableAuthorityItemKeys
 } from '@/components/task-page/github/task-page-github-work-item-authority-refresh'
+
 import {
   isTaskPageQuietRevalidateScopeCurrent,
   isTaskPageQuietRevalidateRunCurrent,
   processTaskPageQuietRevalidateSettle,
   getTaskPageQuietRevalidateBackoffAttempt
 } from '@/components/task-page/github/task-page-github-work-item-quiet-revalidate'
+
 import {
   createTaskPageGitHubProjectionContext,
   reapplyPendingTaskPageGitHubMutationsToCache,
   reconcileTaskPagePagesAfterQuietRefresh
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import {
   LAG_WALL_BUDGET_MS,
   MAX_LAG_TRAILS,
   LAG_BACKOFF_MS
 } from '@/components/task-page/github/task-page-github-work-item-quiet-adopt'
+
 import { stripRepoQualifiers } from '../../../../../shared/task-query'
+
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import { taskPageToGitHubApiPage } from '../../../../../shared/work-items'
+
 import { useAppStore } from '@/store/index'
+
 export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshPreludeModel) {
   const {
     fetchWorkItemsAcrossRepos,
@@ -213,6 +229,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
         ...(visibleItems ?? []),
         ...(fetchedVisiblePage === visiblePage ? [] : (fetchedVisibleItems ?? []))
       ]
+      admitTaskPageGitHubListInputs(revalidatedItems, context)
       reapplyPendingTaskPageGitHubMutationsToCache({
         items: revalidatedItems,
         context,

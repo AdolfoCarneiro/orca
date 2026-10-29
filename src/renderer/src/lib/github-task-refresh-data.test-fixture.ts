@@ -1,16 +1,35 @@
-import { vi } from 'vitest'
-import { captureGitHubTaskObservation } from './github-task-observation'
-// @vitest-environment happy-dom
+import {
+  beginListEntry,
+  confirmListOperation,
+  deleteConfirmedListSnapshot,
+  listInput,
+  setPendingTaskPageGitHubOp,
+  type ListAddress
+} from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
 
+import { observeGitHubWorkItem, type GitHubTaskObservation } from './github-task-observation'
+
+import type { GitHubAssignableUser } from '../../../shared/github/pull-request-types'
+
+import { vi } from 'vitest'
+
+import { captureGitHubTaskObservation } from './github-task-observation'
+
+// @vitest-environment happy-dom
 import type { Repo } from '../../../shared/repo-types'
+
 import type { GitHubWorkItem, GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
+
 import type { GitHubProjectTable, GitHubProjectRow } from '../../../shared/github/project-types'
 
 import { getTaskPageRepoSourceContext } from '@/components/task-page/task-page-source-context'
+
 import { getTaskSourceCacheScope } from '../../../shared/task-source-context'
+
 import { workItemsCacheKey, projectViewCacheKey } from '@/store/github/cache-identity'
 
 import { buildTaskPageGitHubResumeContextKey } from '@/components/task-page/github/task-page-github-resume-cache'
+
 import { buildSelectedReposKey } from '@/components/task-page/task-page-work-item-pagination'
 
 export const repo: Repo = {
@@ -144,4 +163,39 @@ export function createTaskRefreshApi({
     shell: { openUrl: vi.fn() },
     ui: { writeClipboardText: vi.fn().mockResolvedValue(undefined) }
   }
+}
+export function confirmListForTest(
+  sourceScope: string | null,
+  repoId: string,
+  itemId: string,
+  family: 'assignees' | 'reviewRequests',
+  users: GitHubAssignableUser[],
+  observation?: GitHubTaskObservation
+) {
+  const address: ListAddress = {
+    sourceScope,
+    repoId,
+    itemId,
+    family,
+    observation,
+    itemType: 'issue'
+  }
+  deleteConfirmedListSnapshot(sourceScope, repoId, itemId, family, observation)
+  const input = listInput(
+    observeGitHubWorkItem({ ...seed, repoId, [family]: users }, observation, true),
+    family,
+    observation
+  )
+  beginListEntry(address, input)
+  const key = { ...address, opKey: 'fixture-list' }
+  setPendingTaskPageGitHubOp({
+    key,
+    generation: 1,
+    previous: {},
+    next: {},
+    listOp: { family, kind: 'add', logins: users.map((user) => user.login.toLowerCase()), users },
+    startedAt: 0,
+    skipMeQualifiers: false
+  })
+  confirmListOperation(key, 1, input)
 }

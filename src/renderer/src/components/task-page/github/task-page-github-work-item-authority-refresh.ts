@@ -1,9 +1,12 @@
 import type { GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import {
   taskPageGitHubFamilyDirtyKey,
   taskPageGitHubOwnedItemKey
 } from './task-page-github-work-item-mutation-keys'
+
 import {
+  createListEntryRetirement,
   clearConfirmedAuthorityForItem,
   deleteConfirmedListSnapshot,
   getTaskPageGitHubConfirmedAuthorities,
@@ -11,17 +14,21 @@ import {
   getTaskPageGitHubPendingOwnerKeys,
   notifyTaskPageGitHubMutationRegistry
 } from './task-page-github-work-item-mutation-registry'
+
 import {
   deleteLastConfirmedClientValue,
   getLastConfirmedClientEntry
 } from './task-page-github-confirmed-client-values'
+
 import { getQuietRevalidateState } from './task-page-github-work-item-quiet-state'
+
 import { MAX_LAG_TRAILS } from './task-page-github-work-item-quiet-adopt'
 
 function clearTaskPageGitHubAuthorityAbsentFromLoadedItemsNow(
   loadedItemKeys: ReadonlySet<string>,
   owns?: (owner: GitHubTaskObservation | undefined) => boolean
 ): void {
+  const retire = createListEntryRetirement()
   const pendingKeys = getTaskPageGitHubPendingOwnerKeys()
   let changed = false
   for (const record of getTaskPageGitHubConfirmedAuthorities()) {
@@ -37,7 +44,7 @@ function clearTaskPageGitHubAuthorityAbsentFromLoadedItemsNow(
     ) {
       continue
     }
-    clearConfirmedAuthorityForItem(repoId, itemId, sourceScope, observation, itemType)
+    clearConfirmedAuthorityForItem(repoId, itemId, sourceScope, observation, itemType, retire)
     changed = true
   }
   if (changed) {
@@ -74,6 +81,7 @@ function clearTaskPageGitHubAuthorityThroughGenerationNow(
   owns?: (owner: GitHubTaskObservation | undefined) => boolean
 ): void {
   const quiet = getQuietRevalidateState(queryKey)
+  const retire = createListEntryRetirement()
   for (const {
     sourceScope,
     repoId,
@@ -91,7 +99,15 @@ function clearTaskPageGitHubAuthorityThroughGenerationNow(
         continue
       }
       if (family === 'assignees' || family === 'reviewRequests') {
-        deleteConfirmedListSnapshot(sourceScope, repoId, itemId, family, observation, itemType)
+        deleteConfirmedListSnapshot(
+          sourceScope,
+          repoId,
+          itemId,
+          family,
+          observation,
+          itemType,
+          retire
+        )
       } else if (
         getLastConfirmedClientEntry(sourceScope, repoId, itemId, family)?.observation?.key ===
         observation?.key

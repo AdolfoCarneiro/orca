@@ -1,18 +1,26 @@
 import { createTaskPageGitHubScalarAuthorityIndex } from './task-page-github-confirmed-client-values'
+
 import { createTaskPageGitHubAuthorityProjection } from './task-page-github-work-item-mutation-composition'
+
 import {
   taskPageGitHubAuthorityItemKeys,
   taskPageGitHubOwnedItemKey,
   taskPageGitHubFamilyDirtyKey
 } from './task-page-github-work-item-mutation-keys'
+
 import { getGitHubTaskObservation } from '@/lib/github-task-observation'
+
 import { githubTaskSourceKey } from '@/lib/github-task-target'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import {
   adoptQuietSearchFieldsForItem,
   MAX_LAG_TRAILS
 } from './task-page-github-work-item-quiet-adopt'
+
 import {
+  createListEntryRetirement,
   clearConfirmedAuthorityForItem,
   getTaskPageGitHubConfirmedAuthorities,
   getTaskPageGitHubPendingEntries,
@@ -22,7 +30,9 @@ import {
   getTaskPageGitHubPendingOwnerKeys,
   notifyTaskPageGitHubMutationRegistry
 } from './task-page-github-work-item-mutation-registry'
+
 import { getOrCreateQuietRevalidateState } from './task-page-github-work-item-quiet-state'
+
 import type { GitHubWorkItemPatch } from '@/store/github/cache-model'
 
 export type TaskPageQuietRevalidateScope = { queryKey: string; generation: number }
@@ -67,6 +77,7 @@ function settleQuietSearchRevalidateNow(args: {
   patchWorkItems: (patches: readonly GitHubWorkItemPatch[]) => void
   revalidatedItemKeys?: ReadonlySet<string>
 }): { needTrailing: boolean } {
+  const retireListEntry = createListEntryRetirement()
   const patches: GitHubWorkItemPatch[] = []
   let needTrailing = false
   const scalarFor = createTaskPageGitHubScalarAuthorityIndex()
@@ -76,6 +87,7 @@ function settleQuietSearchRevalidateNow(args: {
     const observation = getGitHubTaskObservation(serverItem)
     const result = adoptQuietSearchFieldsForItem({
       scalarFor,
+      retireListEntry,
       projection,
       item: serverItem,
       serverItem,
@@ -96,7 +108,14 @@ function settleQuietSearchRevalidateNow(args: {
     const { sourceScope, repoId, itemId, observation, itemType } = record
     const key = taskPageGitHubOwnedItemKey(sourceScope, repoId, itemId, observation?.key)
     if (!pageKeys.has(key) && args.revalidatedItemKeys?.has(key) && !pendingKeys.has(key)) {
-      clearConfirmedAuthorityForItem(repoId, itemId, sourceScope, observation, itemType)
+      clearConfirmedAuthorityForItem(
+        repoId,
+        itemId,
+        sourceScope,
+        observation,
+        itemType,
+        retireListEntry
+      )
     } else {
       safeKeys.add(key)
     }

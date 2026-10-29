@@ -1,7 +1,9 @@
 import { shouldSkipLocalViewerQualifiers } from '@/lib/task-repo-source-context'
+
 import type { ParsedTaskQuery } from '../../../../../shared/task-query'
 
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+
 import { shouldSoftHideTaskPageGitHubWorkItem } from './task-page-github-work-item-filter-membership'
 
 import {
@@ -11,14 +13,17 @@ import {
   membershipBasisKey,
   setTaskPageGitHubMembershipBasis
 } from './task-page-github-work-item-mutation-registry'
+
 import {
   getLastConfirmedClientEntries,
   getLastConfirmedClientValue
 } from './task-page-github-confirmed-client-values'
+
 import {
   taskPageGitHubMutationItemId,
   taskPageGitHubOwnedItemKey
 } from './task-page-github-work-item-mutation-keys'
+
 import {
   getGitHubTaskObservation,
   sameGitHubTaskObservation,
@@ -33,6 +38,7 @@ import {
   createTaskPageGitHubAuthorityProjection,
   getRegistryMergedTaskPageGitHubWorkItem
 } from './task-page-github-work-item-mutation-composition'
+
 export function establishTaskPageGitHubMembership(args: {
   item: ObservedGitHubWorkItem
   sourceScope: string | null
@@ -114,7 +120,7 @@ export function createTaskPageGitHubMembershipProjection(args: {
   viewerLogin: string | null
 }) {
   const compose = createTaskPageGitHubAuthorityProjection()
-  const liveLists = new Set<string>()
+  const liveLists = new Map<string, { full: boolean; logins: Set<string> }>()
   const listCoordinate = (
     entry: {
       sourceScope: string | null
@@ -134,11 +140,21 @@ export function createTaskPageGitHubMembershipProjection(args: {
       family
     ])
   for (const entry of getTaskPageGitHubListEntries().values()) {
-    liveLists.add(listCoordinate(entry, entry.family))
+    liveLists.set(listCoordinate(entry, entry.family), {
+      full: entry.base.kind === 'full' || entry.protection.kind === 'whole',
+      logins: new Set(entry.protection.kind === 'addressed' ? entry.protection.facts.keys() : [])
+    })
   }
   for (const op of getTaskPageGitHubPendingEntries().values()) {
     if (op.listOp) {
-      liveLists.add(listCoordinate(op.key, op.listOp.family))
+      const key = listCoordinate(op.key, op.listOp.family)
+      let knowledge = liveLists.get(key)
+      if (!knowledge) {
+        liveLists.set(key, (knowledge = { full: false, logins: new Set() }))
+      }
+      for (const login of op.listOp.logins) {
+        knowledge.logins.add(login)
+      }
     }
   }
   return (
@@ -161,6 +177,13 @@ export function createTaskPageGitHubMembershipProjection(args: {
       bases.get(membershipBasisKey({ ...address, rawItemId: '*' }))
     const activeBasis = basis?.queryKey === args.queryKey ? basis : undefined
     const hasAuthority = merged !== item
+    const viewerLogin =
+      observation?.account === null
+        ? args.viewerLogin
+        : observation?.account?.host === 'github.com' &&
+            parseGitHubIssueOrPRLink(item.url)?.slug.host?.toLowerCase() === 'github.com'
+          ? observation.account.user
+          : null
     const eligible = (family: GitHubTaskFamily) => {
       const actual = gitHubTaskFamilyOrigin(merged, family)
       const origin =
@@ -191,7 +214,12 @@ export function createTaskPageGitHubMembershipProjection(args: {
         )
       }
       if (origin.kind === 'list') {
-        return !!origin.coordinate && liveLists.has(origin.coordinate)
+        const knowledge = origin.coordinate ? liveLists.get(origin.coordinate) : undefined
+        const qualifier = family === 'assignees' ? args.query.assignee : args.query.reviewRequested
+        const login = qualifier === '@me' ? viewerLogin : qualifier?.replace(/^@/, '').toLowerCase()
+        return (
+          !!knowledge && (knowledge.full || (!!login && knowledge.logins.has(login.toLowerCase())))
+        )
       }
       const op = origin.coordinate && getTaskPageGitHubPendingEntries().get(origin.coordinate)
       return (
@@ -210,13 +238,7 @@ export function createTaskPageGitHubMembershipProjection(args: {
       hide: shouldSoftHideTaskPageGitHubWorkItem({
         item: merged,
         query,
-        viewerLogin:
-          observation?.account === null
-            ? args.viewerLogin
-            : observation?.account?.host === 'github.com' &&
-                parseGitHubIssueOrPRLink(item.url)?.slug.host?.toLowerCase() === 'github.com'
-              ? observation.account.user
-              : null,
+        viewerLogin,
         skipMeQualifiers: activeBasis?.skipMeQualifiers ?? skipMeQualifiers
       }),
       hasAuthority,

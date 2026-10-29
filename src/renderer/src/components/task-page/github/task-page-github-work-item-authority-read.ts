@@ -1,5 +1,15 @@
+import { getListEntry } from './task-page-github-work-item-list-registry'
+
+import { applyTaskPageGitHubListOps } from './task-page-github-work-item-mutation-patches'
+
+import type { GitHubAssignableUser } from '../../../../../shared/github/pull-request-types'
+
+import type { TaskPageGitHubListFamily } from './task-page-github-work-item-registry-types'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import { githubTaskSourceKey } from '@/lib/github-task-target'
+
 import {
   getLastConfirmedClientEntries,
   getLastConfirmedClientEntry,
@@ -14,8 +24,9 @@ import {
   getTaskPageGitHubPendingEntries,
   getTaskPageGitHubListEntries,
   getTaskPageGitHubMembershipBases,
-  getConfirmedListSnapshot
+  completedListClaim
 } from './task-page-github-work-item-mutation-registry'
+
 export type TaskPageGitHubAuthority = {
   sourceScope: string | null
   repoId: string
@@ -30,6 +41,9 @@ export function getTaskPageGitHubConfirmedAuthorities(): TaskPageGitHubAuthority
     ...getTaskPageGitHubListEntries().values(),
     ...getLastConfirmedClientEntries().values()
   ]) {
+    if ('protection' in entry && !completedListClaim(entry)) {
+      continue
+    }
     const key = taskPageGitHubOwnedItemKey(
       entry.sourceScope,
       entry.repoId,
@@ -110,4 +124,28 @@ export function getTaskPageGitHubPendingOwnerKeys(): ReadonlySet<string> {
       taskPageGitHubOwnedItemKey(key.sourceScope, key.repoId, key.itemId, key.observation?.key)
     )
   )
+}
+export function getConfirmedListSnapshot(
+  sourceScope: string | null,
+  repoId: string,
+  itemId: string,
+  family: TaskPageGitHubListFamily,
+  observation?: GitHubTaskObservation,
+  itemType?: GitHubWorkItem['type']
+): GitHubAssignableUser[] | undefined {
+  const entry = getListEntry({ sourceScope, repoId, itemId, family, observation, itemType })
+  if (!entry || !completedListClaim(entry)) {
+    return undefined
+  }
+  return entry.protection.kind === 'whole'
+    ? entry.protection.expectedUsers
+    : applyTaskPageGitHubListOps(
+        entry.base.users,
+        [...entry.protection.facts].map(([login, fact]) => ({
+          family,
+          logins: [login],
+          kind: fact.user ? 'add' : 'remove',
+          users: fact.user ? [fact.user] : undefined
+        }))
+      )
 }

@@ -1,23 +1,37 @@
+import { admitTaskPageGitHubListInputs } from './task-page-github-work-item-mutation-pages'
+
 import { beginGitHubTaskRead, type GitHubTaskRead } from '@/store/github/request-coordination'
+
 import type { TaskPageGitHubListProjectionModel } from './use-task-page-github-list-projection'
+
 import { useCallback, useEffect, useRef } from 'react'
+
 import { stripRepoQualifiers } from '../../../../../shared/task-query'
+
 import { taskPageToGitHubApiPage } from '../../../../../shared/work-items'
+
 import {
   resolveEmptyPageOutcome,
   applyWindowPageLimit,
   applyEmptyPageClamp
 } from '@/components/task-page/task-page-work-item-pagination'
+
 import { toast } from 'sonner'
+
 import { translate } from '@/i18n/i18n'
+
 import {
   createTaskPageGitHubProjectionContext,
   overlayPendingOnTaskPagePages,
   restoreTaskPageGitHubReadPage
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import { scopeGitHubTaskSearch } from '../../../../../shared/task-github-search'
+
 import { useGitHubTaskSearchCommit } from '@/components/use-github-task-search-commit'
+
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
+
 export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProjectionModel) {
   const {
     setTaskResumeState,
@@ -154,6 +168,13 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
           }
           return
         }
+        admitTaskPageGitHubListInputs(
+          read.apply(
+            items,
+            pagesRef.current.flatMap((page) => page ?? [])
+          ),
+          context
+        )
         const nextPages = [...pagesRef.current]
         while (nextPages.length <= target) {
           nextPages.push(null)

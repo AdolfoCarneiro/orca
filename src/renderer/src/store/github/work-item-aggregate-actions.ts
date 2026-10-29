@@ -1,29 +1,43 @@
 import { captureGitHubTaskObservation, observeGitHubWorkItem } from '@/lib/github-task-observation'
+
 import { beginGitHubTaskRead } from './request-coordination'
+
 import type { StateCreator } from 'zustand'
+
 import type { AppState } from '../types'
+
 import type { GitHubSlice } from './slice-types'
+
 import type { ClassifiedError } from '../../../../shared/classified-error'
+
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
+
 import {
   getWorkItemCountedTotalPages,
   isGitHubWorkItemsSshRemoteRequiredError,
   sortWorkItemsByNumber,
   PER_REPO_FETCH_LIMIT
 } from '../../../../shared/work-items'
+
 import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
+
 import {
   GITHUB_SEARCH_RESULT_WINDOW_ERROR_PATTERN,
   isGitHubWorkItemsQueryTooLarge
 } from '../slices/github-work-items-query-bounds'
+
 import { workItemsCacheKey, workItemsInflightRequestKey } from './cache-identity'
+
 import { isFresh, WORK_ITEMS_CACHE_TTL } from './cache-policy'
+
 import {
   acquireProviderRequestSlot as acquireWorkItemSlot,
   inflightWorkItemsRequests,
   releaseProviderRequestSlot as releaseWorkItemSlot
 } from './request-coordination'
+
 import { findRepoForGitHubOwner } from './repository-routing'
+
 import {
   countGitHubWorkItemsForRepo,
   getGitHubWorkItemRequestContext,
@@ -191,7 +205,8 @@ export const createWorkItemAggregateActions = (
                 repoId: r.repoId,
                 ...(repoHostId ? { repoHostId } : {})
               },
-              observation
+              observation,
+              true
             )
           )
         } catch (err) {

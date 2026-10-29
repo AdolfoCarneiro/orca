@@ -1,15 +1,27 @@
+import { countTaskPageGitHubLandingPages } from './task-page-github-landing-cache-snapshot'
+import { admitTaskPageGitHubListInputs } from './task-page-github-work-item-mutation-pages'
+
 import { clearDispatchedTaskSourceRetries } from '../task-page-work-item-pagination'
+
 import { beginGitHubTaskRead, type GitHubTaskRead } from '@/store/github/request-coordination'
+
 import type { TaskPageGitHubSearchPaginationModel } from './use-task-page-github-search-pagination'
+
 import { stripRepoQualifiers } from '../../../../../shared/task-query'
+
 import { useAppStore } from '@/store/index'
+
 import {
   taskPageGitHubResumeCache,
   TASK_PAGE_GITHUB_RESUME_FRESH_MS
 } from '@/components/task-page/github/task-page-github-resume-cache'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
+
 import { taskPageToGitHubApiPage } from '../../../../../shared/work-items'
+
 import {
   createTaskPageGitHubProjectionContext,
   materializeTaskPageItemList,
@@ -18,15 +30,20 @@ import {
   overlayPendingOnTaskPagePages,
   reapplyPendingTaskPageGitHubMutationsToCache
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+
 import { clearTaskPageGitHubAuthorityThroughGeneration } from '@/components/task-page/github/task-page-github-work-item-authority-refresh'
+
 import { getOrCreateQuietRevalidateState } from '@/components/task-page/github/task-page-github-work-item-quiet-state'
+
 import { resolveEmptyPageOutcome } from '@/components/task-page/task-page-work-item-pagination'
+
 import {
   deriveTaskPageGitHubWorkItemsFetchOptions,
   shouldReplaceTaskPageItemsAfterRefresh,
   shouldResetTaskPagePaginationAfterLandingRefresh,
   reconcileTaskPagePagesAfterLandingRefresh
 } from '@/components/task-page/task-page-cache-selectors'
+
 export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPaginationModel) {
   const {
     fetchWorkItemsAcrossRepos,
@@ -65,7 +82,6 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     countedTotalPagesRef,
     hardRefreshEpochRef,
     fetchWorkItemsNextPage,
-    countWorkItemsAcrossRepos,
     retryingSourceKeys,
     setRetryingSourceKeys,
     githubWorkItemMutationQueryKey
@@ -87,7 +103,7 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     return
   } // unreachable — multi-combobox forbids empty
 
-  // Why: strip repo:owner/name qualifiers before fan-out — cross-repo they'd pin every fetch to one repo. See stripRepoQualifiers.
+  // Why: strip repo:owner/name qualifiers before fan-out — cross-repo they would pin every fetch to one repo.
   const context = createTaskPageGitHubProjectionContext(
     selectedRepos,
     model.appliedTaskQuery,
@@ -129,6 +145,7 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     { selectedRepos, getCachedWorkItems, githubPerRepoPageLimit, githubPageSize },
     q
   )
+  admitTaskPageGitHubListInputs([...page0Raw, ...(cachedTargetPage?.items ?? [])], context, true)
   // Why: pre-paint must still overlay in-flight mutations (K4/K18).
   const landingPages: (GitHubWorkItem[] | null)[] = Array.from(
     {
@@ -288,6 +305,7 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
           returnedItems,
           pagesRef.current.flatMap((page) => page ?? [])
         )
+        admitTaskPageGitHubListInputs(items, context)
         // Hard refresh releases confirmed authority for non-pending fields; quiet refresh must retain it.
         if (
           forcedFetchAuthorityGeneration !== null &&
@@ -390,19 +408,8 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
       reads.delete(landingRead)
     })
 
-  // Why: fire-and-forget count query alongside the items fetch; the search API is cached 120s server-side so it adds little cost.
-  void countWorkItemsAcrossRepos(
-    selectedRepos.map((r) => ({
-      repoId: r.id,
-      path: r.path,
-      executionHostId: r.executionHostId,
-      sourceContext: getTaskPageRepoSourceContext(r, 'github')
-    })),
-    q,
-    githubPerRepoPageLimit
-  ).then(({ totalPages: countedPages }) => {
+  countTaskPageGitHubLandingPages(model, q, ({ totalPages: countedPages }) => {
     if (!cancelled) {
-      // Keep proven window limits separate so late real counts replace speculation without resurrecting unreachable pages.
       countedTotalPagesRef.current = countedPages
       setCountedTotalPages(countedPages)
     }
@@ -414,5 +421,4 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     }
   }
 }
-
 import { readTaskPageGitHubLandingCache } from './task-page-github-landing-cache-snapshot'

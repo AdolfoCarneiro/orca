@@ -1,18 +1,33 @@
+import { composeListDestination } from './task-page-github-work-item-list-output'
+
+export {
+  dependsOnTaskPageGitHubListRetirement,
+  restoreTaskPageGitHubListOutput
+} from './task-page-github-work-item-list-output'
+import { getTaskSourceCacheScope } from '../../../../../shared/task-source-context'
+
 import type { GitHubAssignableUser } from '../../../../../shared/github/pull-request-types'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 
-import { applyTaskPageGitHubListOps } from './task-page-github-work-item-mutation-patches'
 import {
   getTaskPageGitHubPendingEntries,
-  getTaskPageGitHubListEntries
+  getTaskPageGitHubListEntries,
+  type ListEntry,
+  type ListAddress,
+  type ListInput,
+  type ListComposition
 } from './task-page-github-work-item-mutation-registry'
+
 import { createTaskPageGitHubScalarAuthorityIndex } from './task-page-github-confirmed-client-values'
+
 import {
   taskPageGitHubMutationItemId,
   taskPageGitHubOwnedItemKey,
   taskPageGitHubLastConfirmedKey,
   serializeTaskPageGitHubMutationKey
 } from './task-page-github-work-item-mutation-keys'
+
 import {
   getGitHubTaskObservation,
   patchObservedGitHubWorkItem,
@@ -21,6 +36,7 @@ import {
   type GitHubTaskValueOrigin,
   type ObservedGitHubWorkItem
 } from '@/lib/github-task-observation'
+
 import type {
   PendingListOp,
   PendingOp,
@@ -64,32 +80,6 @@ export function pendingListOpsForFamily(
     }, [])
 }
 
-export function stripFamilyPendingFromList(
-  item: GitHubWorkItem,
-  family: TaskPageGitHubListFamily,
-  ops: readonly PendingOp[]
-): GitHubAssignableUser[] {
-  const current = freezeTaskPageGitHubUsers(
-    family === 'assignees' ? (item.assignees ?? []) : (item.reviewRequests ?? [])
-  )
-  let list = current
-  const familyOps = pendingListOpsForFamily(ops, family)
-  // Reverse pending adds/removes so lazy snapshots exclude in-flight intent.
-  for (let i = familyOps.length - 1; i >= 0; i--) {
-    const op = familyOps[i]
-    for (let j = 0; j < op.logins.length; j++) {
-      const login = op.logins[j]
-      if (op.kind === 'add') {
-        list = list.filter((user) => user.login.toLowerCase() !== login)
-      } else if (!list.some((user) => user.login.toLowerCase() === login)) {
-        const restored = op.users?.[j] ?? { login, name: null, avatarUrl: '' }
-        list.push(restored)
-      }
-    }
-  }
-  return list
-}
-
 export function createTaskPageGitHubAuthorityProjection() {
   const groups = new Map<
     string,
@@ -98,7 +88,7 @@ export function createTaskPageGitHubAuthorityProjection() {
       next: Partial<GitHubWorkItem>
       origins: Partial<Record<GitHubTaskFamily, GitHubTaskValueOrigin>>
       familyOps: Partial<Record<TaskPageGitHubListFamily, PendingListOp[]>>
-      lists: Partial<Record<TaskPageGitHubListFamily, GitHubAssignableUser[]>>
+      lists: Partial<Record<TaskPageGitHubListFamily, ListEntry>>
     }
   >()
   const groupFor = (
@@ -120,7 +110,7 @@ export function createTaskPageGitHubAuthorityProjection() {
   }
   for (const entry of getTaskPageGitHubListEntries().values()) {
     groupFor(entry.sourceScope, entry.repoId, entry.itemId, entry.observation).lists[entry.family] =
-      entry.users
+      entry
   }
   for (const group of groups.values()) {
     group.ops.sort((a, b) => a.startedAt - b.startedAt)
@@ -145,7 +135,6 @@ export function createTaskPageGitHubAuthorityProjection() {
     }
   }
   const scalarFor = createTaskPageGitHubScalarAuthorityIndex()
-  const composedLists = new Map<string, GitHubAssignableUser[]>()
   const compose = (
     item: ObservedGitHubWorkItem,
     sourceScope: string | null,
@@ -184,32 +173,55 @@ export function createTaskPageGitHubAuthorityProjection() {
     }
     Object.assign(patch, group?.next)
     Object.assign(origins, group?.origins)
+    let merged = Object.keys(patch).length
+      ? patchObservedGitHubWorkItem(item, patch, origins)
+      : item
     for (const family of ['assignees', 'reviewRequests'] as const) {
-      const ops = group?.ops ?? []
-      const familyOps = group?.familyOps[family] ?? []
-      const snapshot = group?.lists[family]
-      if (!snapshot && !familyOps.length) {
-        continue
-      }
-      const cacheKey = JSON.stringify([coordinate, family])
-      let composed = composedLists.get(cacheKey)
-      if (!composed) {
-        composed = applyTaskPageGitHubListOps(
-          snapshot ?? stripFamilyPendingFromList(item, family, ops),
-          familyOps
-        )
-        composedLists.set(cacheKey, composed)
-      }
-      if (family === 'assignees') {
-        patch.assignees = composed
-      } else {
-        patch.reviewRequests = composed
-      }
-      origins[family] = { kind: 'list', owner: observation, coordinate: cacheKey }
+      merged = composeListDestination(
+        merged,
+        family,
+        group?.lists[family],
+        group?.familyOps[family] ?? []
+      )
     }
-    return Object.keys(patch).length ? patchObservedGitHubWorkItem(item, patch, origins) : item
+    return merged
   }
   return Object.assign(compose, {
+    observe: (address: ListAddress, input: ListInput) => {
+      const group = groups.get(
+        taskPageGitHubOwnedItemKey(
+          address.sourceScope,
+          address.repoId,
+          address.itemId,
+          address.observation?.key
+        )
+      )
+      const entry = group?.lists[address.family]
+      if (group && entry && input.kind === 'full' && entry.base.kind !== 'full') {
+        group.lists[address.family] = { ...entry, base: input }
+      }
+    },
+    list: (item: ObservedGitHubWorkItem, plan: ListComposition) => {
+      const { address } = plan
+      if (item.repoId !== address.repoId || taskPageGitHubMutationItemId(item) !== address.itemId) {
+        return item
+      }
+      const group = groups.get(
+        taskPageGitHubOwnedItemKey(
+          address.sourceScope,
+          address.repoId,
+          address.itemId,
+          address.observation?.key
+        )
+      )
+      return composeListDestination(
+        item,
+        address.family,
+        group?.lists[address.family],
+        group?.familyOps[address.family] ?? [],
+        plan.retirement
+      )
+    },
     pending: (
       item: GitHubWorkItem,
       sourceScope: string | null,
@@ -224,6 +236,48 @@ export function createTaskPageGitHubAuthorityProjection() {
         )
       )?.ops ?? []
   })
+}
+
+export function createTaskPageGitHubListCompositionProgram(plans: readonly ListComposition[]) {
+  const byLifetime = new Map<object, ListComposition[]>()
+  const byAddress = new Map<string, ListComposition[]>()
+  for (const plan of plans) {
+    const { address } = plan
+    const key =
+      taskPageGitHubOwnedItemKey(
+        address.sourceScope,
+        address.repoId,
+        address.itemId,
+        address.observation?.key
+      ) + address.family
+    const group = byAddress.get(key) ?? []
+    group.push(plan)
+    byAddress.set(key, group)
+    if (plan.retirement) {
+      byLifetime.set(plan.retirement.fromLifetime, group)
+    }
+  }
+  const projection = createTaskPageGitHubAuthorityProjection()
+  return (item: ObservedGitHubWorkItem): ObservedGitHubWorkItem => {
+    let result = item
+    for (const family of ['assignees', 'reviewRequests'] as const) {
+      const origin = item.githubValueOrigins?.[family]
+      const owner = origin?.owner ?? getGitHubTaskObservation(item)
+      const key =
+        taskPageGitHubOwnedItemKey(
+          owner ? getTaskSourceCacheScope(owner.source) : null,
+          item.repoId,
+          taskPageGitHubMutationItemId(item),
+          owner?.key
+        ) + family
+      const group =
+        (origin?.listLifetime && byLifetime.get(origin.listLifetime)) || byAddress.get(key)
+      for (const plan of group ?? []) {
+        result = projection.list(result, plan)
+      }
+    }
+    return result
+  }
 }
 
 export function getRegistryMergedTaskPageGitHubWorkItem(
