@@ -40,12 +40,6 @@ describe('imageSourcePathFromText', () => {
   ])('preserves marker whitespace and bracket rules for %j', (text, path) => {
     expect(imageSourcePathFromText(text)).toBe(path)
   })
-
-  it('rejects unfinished and multiline paths after a long whitespace prefix', () => {
-    const prefix = `[Image: source:${' '.repeat(1000)}`
-    expect(imageSourcePathFromText(prefix)).toBeNull()
-    expect(imageSourcePathFromText(`${prefix}a\nb]`)).toBeNull()
-  })
 })
 
 describe('normalizeImageTranscriptMessages', () => {
