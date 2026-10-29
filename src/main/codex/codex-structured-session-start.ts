@@ -53,7 +53,7 @@ type CodexOpenContext = {
   subagentExecutions: CodexSubagentExecutions
   setPrimaryThreadId: (threadId: string) => void
   forceCloseUnexpected: CodexStructuredSessionTeardown['forceCloseUnexpected']
-  unbindReadingControl?: () => void
+  bindReadingControl: () => (() => void) | undefined
 }
 
 /** The host owns the open promise and closes the spawned child if this rejects. */
@@ -189,8 +189,7 @@ export async function openCodexStructuredSession(
       codexChildWorkSink(sessionId, deps, input.events)
     ),
     forceCloseUnexpected: (reason) =>
-      start.forceCloseUnexpected(sessionId, input.fence, generation, reason),
-    ...(start.unbindReadingControl ? { unbindReadingControl: start.unbindReadingControl } : {})
+      start.forceCloseUnexpected(sessionId, input.fence, generation, reason)
   }
   current()
   sessions.set(sessionId, session)
@@ -198,6 +197,7 @@ export async function openCodexStructuredSession(
     event()
   }
   current()
+  session.unbindReadingControl = start.bindReadingControl()
   acquisitions.deleteIfCurrent(sessionId, attempt)
   session.skillReport = new CodexSkillReport({
     connection,

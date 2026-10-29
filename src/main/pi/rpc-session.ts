@@ -80,6 +80,7 @@ export class PiRpcSession {
   private failedCause?: Error
   private exitDelivery: Promise<void> = Promise.resolve()
   private releaseAfterExit?: () => void
+  private unbindReadingControl?: () => void
 
   constructor(
     readonly input: StructuredAgentSessionAcquireInput,
@@ -100,8 +101,6 @@ export class PiRpcSession {
       agent: 'pi',
       generation,
       namespace: input.identity.sessionId,
-      pauseReading: () => this.connection?.pauseReading(),
-      resumeReading: () => this.connection?.resumeReading(),
       onFailed: (reason) => this.fail(new Error(reason)),
       onInputAccepted: (clientMessageId) =>
         this.settle(clientMessageId, {
@@ -187,6 +186,12 @@ export class PiRpcSession {
 
   async open(signal: AbortSignal): Promise<StructuredAgentSessionProviderOpenResult> {
     const result = await this.startup.run(this.resolvedLaunch, signal)
+    if (!this.publishedExit) {
+      this.unbindReadingControl = this.input.events?.bindReadingControl?.({
+        pauseReading: () => this.connection.pauseReading(),
+        resumeReading: () => this.connection.resumeReading()
+      })
+    }
     this.openedLink = result.link ?? null
     this.history.start(this.startup.historyAnchor)
     this.startup.reportAfterOpen(this.generation, result.reportedOptions)
@@ -256,6 +261,8 @@ export class PiRpcSession {
       return
     }
     this.publishedExit = true
+    this.unbindReadingControl?.()
+    this.unbindReadingControl = undefined
     const observedAt = Date.now()
     this.input.events?.observeExit?.(this.heldSends, observedAt)
     this.failedCause ??= error
@@ -266,24 +273,7 @@ export class PiRpcSession {
       type: 'session.ended',
       verdict: { state: 'interrupted', completedAt: observedAt }
     })
-    let timer: ReturnType<typeof setTimeout> | undefined
-    try {
-      await Promise.race([
-        this.lane.drained(),
-        new Promise<void>((resolve) => {
-          timer = setTimeout(() => {
-            this.deps.logger.warn('Pi final timeline did not drain before exit publication', {
-              scope: 'pi-exit-drain',
-              sessionId: this.input.identity.sessionId
-            })
-            resolve()
-          }, 2_000)
-          timer.unref()
-        })
-      ])
-    } finally {
-      clearTimeout(timer)
-    }
+    await this.lane.drained()
     const cause = this.failedCause ?? error
     this.deps.onLifecycle({
       type: 'ended',

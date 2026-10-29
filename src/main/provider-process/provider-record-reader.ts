@@ -9,6 +9,7 @@ type RecordReaderStream = Pick<Readable, 'on' | 'pause' | 'resume' | 'setEncodin
 export type ProviderRecordReader = {
   pause: () => void
   resume: () => void
+  drain: () => void
 }
 
 export function createProviderRecordReader(input: {
@@ -33,6 +34,7 @@ export function createProviderRecordReader(input: {
   })
 
   return {
+    drain: () => framer.drain(),
     pause: () => {
       paused = true
       input.stdout.pause()

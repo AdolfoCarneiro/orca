@@ -1,6 +1,13 @@
+import { createCodexJournalTranslator } from './codex-structured-journal-translation'
+import {
+  openProviderTimelineRig,
+  closeProviderTimelineRigs,
+  SESSION
+} from '../native-chat/agent-session-timeline/provider-timeline-assembler-test-support'
+afterEach(closeProviderTimelineRigs)
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { spawnProcess } from '@orca/process-host'
 import { openCodexAppServerConnection } from './codex-app-server-connection'
 
@@ -43,4 +50,84 @@ describe('Codex app-server exit order', () => {
     expect(exits[0]).toContain('codex crashed')
     await connection.close()
   })
+})
+
+it('transfers complete paused provider records before root exit retires the translator', async () => {
+  const rig = await openProviderTimelineRig()
+  const translator = createCodexJournalTranslator({
+    sink: rig.eventSink,
+    sessionId: SESSION,
+    primaryThreadId: () => 'thread'
+  })
+  const { child, spawnImpl } = stubChild()
+  const delivered: string[] = []
+  const connection = await openCodexAppServerConnection(
+    { command: 'codex', args: ['app-server'] },
+    {
+      onNotification: (method, params) => {
+        delivered.push(method)
+        translator.handle({
+          type: 'notification',
+          sessionId: SESSION,
+          threadId: 'thread',
+          method,
+          params
+        })
+        connection.pauseReading?.()
+      },
+      onExit: () => {
+        delivered.push('exit')
+        translator.dispose()
+      }
+    },
+    spawnImpl
+  )
+  try {
+    child.stdout.write(
+      [
+        {
+          method: 'item/started',
+          params: {
+            threadId: 'thread',
+            turnId: 'turn',
+            item: {
+              id: 'tool',
+              type: 'commandExecution',
+              command: 'echo result',
+              status: 'inProgress'
+            }
+          }
+        },
+        {
+          method: 'item/completed',
+          params: {
+            threadId: 'thread',
+            turnId: 'turn',
+            item: {
+              id: 'tool',
+              type: 'commandExecution',
+              command: 'echo result',
+              status: 'completed',
+              aggregatedOutput: 'complete paused result',
+              exitCode: 0
+            }
+          }
+        }
+      ]
+        .map((frame) => `${JSON.stringify(frame)}\n`)
+        .join('')
+    )
+    expect(delivered).toEqual(['item/started'])
+    child.emit('exit', 0, null)
+    expect(delivered).toEqual(['item/started', 'item/completed', 'exit'])
+    const reopened = await rig.reopenJournal()
+    const tools = reopened.snapshot().items.filter((row) => row.body.kind === 'tool-call')
+    expect(tools).toHaveLength(1)
+    expect(JSON.stringify(tools[0].body)).toContain('complete paused result')
+    await connection.close()
+    expect(delivered).toHaveLength(3)
+  } finally {
+    await connection.close()
+    translator.dispose()
+  }
 })

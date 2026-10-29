@@ -1,7 +1,3 @@
-import {
-  bindClaudeContextUsageCapture,
-  type ClaudeContextUsageCaptureOptions
-} from './claude-context-usage'
 import type {
   StructuredAgentSessionEventSink,
   StructuredAgentSessionSinkAdmission
@@ -23,7 +19,7 @@ export function createClaudeSessionJournalTranslator(
   currentSession: () => ClaudeSession | null
 ): ClaudeJournalTranslator | null {
   const { attempt } = failure
-  return sink
+  const translator = sink
     ? createClaudeJournalTranslator({
         sink,
         account: () => attempt.account,
@@ -44,6 +40,13 @@ export function createClaudeSessionJournalTranslator(
           attempt.prompts.bindJournalItemId(itemId, promptKey)
       })
     : null
+  attempt.dispose = () => {
+    for (const event of attempt.buffered.splice(0)) {
+      event()
+    }
+    translator?.dispose()
+  }
+  return translator
 }
 
 export function createClaudeJournalFailureHandler(input: {
@@ -100,23 +103,4 @@ export function bindClaudeJournalReadingControl(
       }
     }
   })
-}
-
-export function bindClaudeConnectionJournalControls(
-  sink: StructuredAgentSessionEventSink | undefined,
-  connection: ClaudeStreamJsonConnection,
-  translator: ClaudeJournalTranslator | null,
-  capture: ClaudeContextUsageCaptureOptions
-): (() => void) | undefined {
-  const unbinds = [
-    bindClaudeJournalReadingControl(sink, connection, translator),
-    bindClaudeContextUsageCapture(connection, translator, capture)
-  ].filter((unbind): unbind is () => void => unbind !== undefined)
-  return unbinds.length === 0
-    ? undefined
-    : () => {
-        for (const unbind of unbinds) {
-          unbind()
-        }
-      }
 }

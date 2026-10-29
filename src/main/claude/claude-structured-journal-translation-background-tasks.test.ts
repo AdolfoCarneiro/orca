@@ -165,7 +165,7 @@ function persistedTarget(
 }
 
 describe('claude journal translation — background task rows', () => {
-  it('persists one terminal row at the hard watermark without an opcode fallback', async () => {
+  it('persists one terminal row under pacing pressure without an opcode fallback', async () => {
     const persisted = new Map<string, AgentJournalItemBody>()
     const appendEntered = Promise.withResolvers<void>()
     const appendGate = Promise.withResolvers<void>()
@@ -180,9 +180,7 @@ describe('claude journal translation — background task rows', () => {
       ...testEventSinkLogging(),
       watermarks: {
         pauseQueuedOperations: 1,
-        maxQueuedOperations: 4,
-        lowQueuedOperations: 0,
-        maxQueuedBytes: 1_000_000
+        lowQueuedOperations: 0
       }
     })
     const translator = createClaudeJournalTranslator({
@@ -221,16 +219,15 @@ describe('claude journal translation — background task rows', () => {
 
     translator.handle(notification)
     translator.handle(notification)
-    expect(deferred.state().queuedOperations).toBe(4)
+    expect(deferred.state().queuedOperations).toBe(5)
     expect(translator.retryPendingTaskRows?.()).toEqual({
-      accepted: false,
-      reason: 'backpressure'
+      accepted: true
     })
     expect(
       [...persisted.values()].filter(
         (body) => body.kind === 'message' && blockOf(body)?.taskId === 'hard-watermark-task'
       )
-    ).toEqual([])
+    ).toHaveLength(1)
 
     appendGate.resolve()
     await vi.waitFor(() => expect(providerResume).toHaveBeenCalledOnce())

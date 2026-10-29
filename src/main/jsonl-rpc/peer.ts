@@ -62,6 +62,7 @@ export class JsonlRpcPeer {
   private readonly framer: ReturnType<typeof createIncrementalNdjsonFramer>
   private nextId = 0
   private nextOptionalId = 0
+  private closing = false
   private terminalError?: Error
   private inputEndError?: Error
   private readingPaused = false
@@ -120,7 +121,7 @@ export class JsonlRpcPeer {
   }
 
   get closed(): boolean {
-    return this.terminalError !== undefined
+    return this.closing || this.terminalError !== undefined
   }
 
   /** A process exit can precede the last bytes already written to stdout. */
@@ -153,8 +154,8 @@ export class JsonlRpcPeer {
     params: Record<string, unknown> = {},
     options: JsonlRpcRequestOptions = {}
   ): Promise<unknown> {
-    if (this.terminalError) {
-      return Promise.reject(this.terminalError)
+    if (this.closed) {
+      return Promise.reject(this.terminalError ?? new Error('Agent JSON-lines RPC stream closed'))
     }
     if (this.pending.size >= this.limits.maxPendingRequests) {
       return Promise.reject(new Error('JSON-lines RPC pending request capacity exceeded'))
@@ -198,8 +199,8 @@ export class JsonlRpcPeer {
 
   /** The dialect may track acknowledgements independently of transport correlation. */
   send(record: JsonlRpcRecord, signal?: AbortSignal): Promise<void> {
-    if (this.terminalError) {
-      return Promise.reject(this.terminalError)
+    if (this.closed) {
+      return Promise.reject(this.terminalError ?? new Error('Agent JSON-lines RPC stream closed'))
     }
     try {
       return this.writer.write(encodeNdjson(record, this.limits.maxLineBytes), signal)
@@ -209,8 +210,15 @@ export class JsonlRpcPeer {
   }
 
   close(error: Error = new Error('Agent JSON-lines RPC stream closed')): void {
-    if (this.terminalError) {
+    if (this.closed) {
       return
+    }
+    this.closing = true
+    // Transfer the retained complete tail before close observers retire its timeline lane.
+    try {
+      this.framer.drain()
+    } catch (cause) {
+      error = cause instanceof Error ? cause : new Error(String(cause))
     }
     this.terminalError = error
     this.input.removeListener('data', this.onData)
@@ -262,7 +270,7 @@ export class JsonlRpcPeer {
   }
 
   private dispatch(value: unknown): void {
-    if (this.closed) {
+    if (this.terminalError) {
       return
     }
     const parsed = recordSchema.safeParse(value)

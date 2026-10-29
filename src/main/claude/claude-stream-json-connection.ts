@@ -173,14 +173,19 @@ export async function openClaudeStreamJsonConnection(
       terminalError = withProviderSpawnAbsence(error, managed.spawnAbsence)
     }
     inbox.fail(terminalError)
-    if (!closing && !faultReported) {
-      faultReported = true
-      handlers.onFault?.(terminalError)
-    }
-    if (managed.rootExitObserved && !exitReported) {
-      exitReported = true
-      handlers.onExit?.(terminalError, { expected: closing })
-    }
+    // A resolved next() already owns a delivery continuation. Let it transfer before teardown;
+    // an unresolved read does not hold exit publication or a later send hostage.
+    const error = terminalError
+    queueMicrotask(() => {
+      if (!closing && !faultReported) {
+        faultReported = true
+        handlers.onFault?.(error)
+      }
+      if (managed.rootExitObserved && !exitReported) {
+        exitReported = true
+        handlers.onExit?.(error, { expected: closing })
+      }
+    })
   }
 
   const readerDone = (async () => {
@@ -190,12 +195,14 @@ export async function openClaudeStreamJsonConnection(
       try {
         for (;;) {
           await waitUntilReadable()
+          if (terminalError) {
+            break
+          }
           const next = await iterator.next()
           if (next.done) {
             completed = true
             break
           }
-          await waitUntilReadable()
           if (!isRecord(next.value)) {
             throw new Error('claude stream-json yielded a non-object message')
           }

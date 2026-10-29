@@ -36,6 +36,7 @@ import {
 import type { CodexStructuredSessionTeardown } from './codex-structured-session-teardown'
 import type { CodexStructuredNotificationRetry } from './codex-structured-notification-retry'
 import type { deliverCodexServerRequest } from './codex-structured-provider-events'
+import { readCodexThreadId } from './codex-structured-thread-facts'
 import { codexAcquisitionNotificationHandler } from './codex-structured-acquisition-notification'
 
 export async function acquireCodexStructuredSession(input: {
@@ -47,8 +48,7 @@ export async function acquireCodexStructuredSession(input: {
   deliver: (
     acquisition: CodexAcquisitionAttempt['window'],
     sessionId: string,
-    event: () => unknown,
-    retainedBytes?: number
+    event: () => unknown
   ) => void
   handleServerRequest: (
     sessionId: string,
@@ -84,6 +84,19 @@ export async function acquireCodexStructuredSession(input: {
     subagentExecutions,
     prompts: acquisition.prompts
   })
+  let disposed = false
+  attempt.dispose = () => {
+    if (disposed) {
+      return
+    }
+    disposed = true
+    unbindReadingControl?.()
+    // Retired callbacks use the acquisition translator, never the published-session lookup.
+    acquisition.retire()
+    acquisition.prompts.clear()
+    translator?.flush()
+    translator?.dispose()
+  }
   const open = deps.openConnection ?? spawnCodexAppServerConnection
   const spawnIdentity = codexSpawnedProcessIdentity(acquireInput, deps.readProcessStartTime)
   try {
@@ -139,23 +152,47 @@ export async function acquireCodexStructuredSession(input: {
           dispatchEchoes,
           primaryThreadId: () => primaryThreadId,
           notificationRetries,
+          onRetired: (method, params, observedAt, dispatchSequenceAtReceipt) => {
+            const threadId = readCodexThreadId(params) ?? primaryThreadId
+            if (threadId) {
+              translator?.handle({
+                type: 'notification',
+                sessionId,
+                threadId,
+                method,
+                params,
+                ...(observedAt === undefined ? {} : { observedAt }),
+                ...(dispatchSequenceAtReceipt === undefined ? {} : { dispatchSequenceAtReceipt })
+              })
+            }
+          },
           deliver: input.deliver,
           now: deps.now ?? Date.now
         }),
         onServerRequest: (request) =>
-          input.deliver(
-            acquisition,
-            sessionId,
-            () => input.handleServerRequest(sessionId, request),
-            Buffer.byteLength(JSON.stringify(request), 'utf8')
-          ),
+          input.deliver(acquisition, sessionId, () => {
+            const threadId = readCodexThreadId(request.params) ?? primaryThreadId
+            if (acquisition.isRetired && threadId) {
+              translator?.handle({
+                type: 'server-request',
+                sessionId,
+                threadId,
+                method: request.method,
+                params: request.params
+              })
+            } else {
+              input.handleServerRequest(sessionId, request)
+            }
+          }),
         onUnhandledFrame: (kind, payload) =>
-          input.deliver(
-            acquisition,
-            sessionId,
-            () => input.handleUnhandledFrame(sessionId, kind, payload),
-            Buffer.byteLength(JSON.stringify(payload ?? null), 'utf8')
-          ),
+          input.deliver(acquisition, sessionId, () => {
+            const threadId = readCodexThreadId(payload) ?? primaryThreadId
+            if (acquisition.isRetired && threadId) {
+              translator?.handle({ type: 'provider-frame', sessionId, threadId, kind, payload })
+            } else {
+              input.handleUnhandledFrame(sessionId, kind, payload)
+            }
+          }),
         onSpawned: spawnIdentity.onSpawned,
         onExit: (error, exit) => {
           acquisition.appliedSettings.end()
@@ -207,31 +244,11 @@ export async function acquireCodexStructuredSession(input: {
       }
     )
     acquisition.connection = connection
-    if (connection.pauseReading && connection.resumeReading) {
-      unbindReadingControl = acquireInput.events?.bindReadingControl?.({
-        pauseReading: connection.pauseReading,
-        resumeReading: () => {
-          connection.resumeReading?.()
-          notificationRetries.retry(sessionId, connection)
-        }
-      })
-    }
     acquisitions.assertCurrent(sessionId, attempt)
     const process = await spawnIdentity.read(connection.pid)
     acquisitions.assertCurrent(sessionId, attempt)
     assertCodexConnectionOpen(connection, sessionId)
     attempt.acquisitionGeneration = acquisitionGeneration
-    let disposed = false
-    attempt.dispose = () => {
-      if (disposed) {
-        return
-      }
-      disposed = true
-      unbindReadingControl?.()
-      acquisition.prompts.clear()
-      acquisition.drain()
-      translator?.dispose()
-    }
     attempt.open = (openInput) =>
       openCodexStructuredSession(
         {
@@ -250,7 +267,18 @@ export async function acquireCodexStructuredSession(input: {
             primaryThreadId = threadId
           },
           forceCloseUnexpected: input.forceCloseUnexpected,
-          ...(unbindReadingControl ? { unbindReadingControl } : {})
+          bindReadingControl: () => {
+            if (connection.pauseReading && connection.resumeReading) {
+              unbindReadingControl = acquireInput.events?.bindReadingControl?.({
+                pauseReading: connection.pauseReading,
+                resumeReading: () => {
+                  connection.resumeReading?.()
+                  notificationRetries.retry(sessionId, connection)
+                }
+              })
+            }
+            return unbindReadingControl
+          }
         },
         openInput
       )
@@ -263,8 +291,7 @@ export async function acquireCodexStructuredSession(input: {
         attempt,
         cause: error,
         dispose: () => {
-          unbindReadingControl?.()
-          translator?.dispose()
+          attempt.dispose?.()
         }
       })
     }

@@ -55,11 +55,19 @@ export async function resolveClaudeAcquisitionError(input: {
 }): Promise<unknown> {
   let acquisitionError = input.error
   if (input.sessions.get(input.sessionId)?.connection !== input.attempt.connection) {
-    input.translator?.dispose()
+    input.attempt.cancelled = true
+    for (const event of input.attempt.buffered.splice(0)) {
+      event()
+    }
     for (const prompt of input.prompts.clear()) {
       prompt.settle(null)
     }
     const closed = (await input.attempt.connection?.close()) ?? true
+    // close transfers any resolved SDK read before the translator releases its body state.
+    input.translator?.flush()
+    if (closed) {
+      input.attempt.dispose?.()
+    }
     if (input.attempt.connection?.exitVerdict.processless === true) {
       acquisitionError = new AgentSessionPreSpawnError(input.error)
     } else if (!closed) {
@@ -198,10 +206,7 @@ export async function closeClaudePublishedSession(
   input: CloseClaudePublishedSessionInput
 ): Promise<boolean> {
   const session = input.sessions.get(input.sessionId)
-  if (!session) {
-    return true
-  }
-  if (session.closeFinalized) {
+  if (!session || session.closeFinalized) {
     return true
   }
   if (session.closeFinalization) {

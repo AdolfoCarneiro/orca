@@ -12,7 +12,10 @@ import {
   CodexAppServerUnsupportedError
 } from './codex-app-server-session'
 import { createCodexAppServerRecordDispatcher } from './codex-app-server-record-dispatch'
-import { createProviderRecordReader } from '../provider-process/provider-record-reader'
+import {
+  createProviderRecordReader,
+  type ProviderRecordReader
+} from '../provider-process/provider-record-reader'
 import { withProviderRequestTimeout } from '../provider-process/provider-request-timeout'
 import type {
   CodexAppServerConnection,
@@ -42,6 +45,7 @@ async function connectCodexAppServer(
     exited: () => managed.rootVerdict === 'exited'
   })
 
+  let recordReader: ProviderRecordReader | undefined
   let nextRequestId = 1
   let closing = false
   let closesInFlight = 0
@@ -65,6 +69,7 @@ async function connectCodexAppServer(
 
   // Fail pending calls immediately, but notify the owner only once root exit is proven.
   function handleUnexpectedEnd(cause?: Error): void {
+    recordReader?.drain()
     if (!terminalError) {
       terminalError = buildExitError(cause)
       dispatcher.failPending(terminalError)
@@ -89,7 +94,7 @@ async function connectCodexAppServer(
     void managed.close()
   })
 
-  const recordReader = createProviderRecordReader({
+  recordReader = createProviderRecordReader({
     stdout: child.stdout,
     onRecord: (parsed, line) => {
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
@@ -192,6 +197,7 @@ async function connectCodexAppServer(
     return managed
       .close(tree)
       .then((result) => {
+        recordReader?.drain()
         if (result.root === 'exited' && !exitReported) {
           exitReported = true
           handlers.onExit?.(terminalError ?? buildExitError(), { expected: closing })

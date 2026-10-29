@@ -98,8 +98,8 @@ export async function initializeAcpStructuredSession(
     liveLane?.dispose()
     input.lanes.clear()
     started = await connection.start({ cwd: launch.cwd, mcpServers: [], ...setup })
-    assertStarting()
     liveLane = input.lanes.create(started.sessionId)
+    assertStarting()
   }
   // Only a load that reopened the chat's own conversation catches up, and only from what that
   // conversation replayed; a replacement session has no history of the chat's to add.

@@ -14,7 +14,6 @@ import {
   isAcpReadySession,
   type AcpStructuredChild
 } from './acp-structured-child'
-import type { AcpSessionEvent } from './acp-session-runtime'
 import type { AcpStructuredConnection } from './acp-structured-connection'
 import { acpAgentName } from './acp-structured-agent-definitions'
 import { AcpStructuredLane, acpLaneChildWorkDelivery } from './acp-structured-lane'
@@ -28,8 +27,6 @@ import type { AcpStructuredSessionAdapterDeps } from './acp-structured-session-a
 import type { AcpStructuredTurnsDeps } from './acp-structured-turns'
 import { RequestPermissionResponseSchema } from './generated/acp-protocol.generated'
 import { createStructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
-
-const MAX_EARLY_FRAMES = 2_048
 
 export async function acquireAcpStructuredSession(input: {
   acquire: StructuredAgentSessionAcquireInput
@@ -83,10 +80,11 @@ export async function acquireAcpStructuredSession(input: {
         (!session.turns.running && !session.turns.stopped && session.lane.openTurnId !== null))
   )
   const early: (() => void)[] = []
+  let earlySessionId: string | null = launch.resume?.sessionId ?? null
   const whenLane = (deliver: () => void): void => {
     if (slot.lane) {
       deliver()
-    } else if (early.length < MAX_EARLY_FRAMES) {
+    } else {
       early.push(deliver)
     }
   }
@@ -123,7 +121,15 @@ export async function acquireAcpStructuredSession(input: {
           .then((reply) => RequestPermissionResponseSchema.parse(reply))
       },
       onRequest: (method, params, context) => prompts.handle(method, params, context),
-      onExtensionNotification: (method, params) =>
+      onExtensionNotification: (method, params) => {
+        if (
+          typeof params === 'object' &&
+          params !== null &&
+          'sessionId' in params &&
+          typeof params.sessionId === 'string'
+        ) {
+          earlySessionId ??= params.sessionId
+        }
         whenLane(() => {
           if (slot.reattaching) {
             slot.history?.keep(method, params)
@@ -135,7 +141,8 @@ export async function acquireAcpStructuredSession(input: {
               now()
             )
           )
-        }),
+        })
+      },
       onDiagnostic: (message) =>
         deps.logger?.warn('ACP agent protocol diagnostic', {
           scope: 'acp-diagnostic',
@@ -153,7 +160,8 @@ export async function acquireAcpStructuredSession(input: {
   }
   // From here, cancellation closes this connection even before exit is proven.
   input.track(connection)
-  connection.subscribe((event: AcpSessionEvent) =>
+  connection.subscribe((event) => {
+    earlySessionId ??= event.kind === 'known' ? event.notification.sessionId : event.sessionId
     whenLane(() => {
       if (slot.lane) {
         if (slot.reattaching) {
@@ -186,7 +194,7 @@ export async function acquireAcpStructuredSession(input: {
         })
       }
     })
-  )
+  })
   const identity = providerSpawnedProcessIdentity(
     acquire,
     `${spec.agent} ACP agent`,
@@ -234,67 +242,74 @@ export async function acquireAcpStructuredSession(input: {
     }
     return lane
   }
-  await connection.spawned
-  const pid = connection.pid
-  if (pid === undefined) {
-    throw new AgentSessionPreSpawnError(
-      new Error(connection.stderrTail() || `${launch.command} could not be started`)
-    )
-  }
-  await identity.onSpawned(pid)
-  const process = await identity.read(pid)
-  const child: AcpStructuredChild = {
-    events,
-    sessionId,
-    fence: acquire.fence,
-    acquisitionGeneration: generation,
-    spec,
-    connection,
-    lane: null,
-    turns: null,
-    options,
-    prompts,
-    childStops: undefined,
-    closeRequested: false,
-    journalClosed: null,
-    ended: false,
-    exitObservedAt: null,
-    open: (signal) =>
-      initializeAcpStructuredSession({
-        acquire,
-        deps,
-        generation,
-        launch,
-        connection,
-        options,
-        prompts,
-        child,
-        abandoned: () => signal.aborted,
-        lanes: {
-          create: makeLane,
-          clear: () => {
-            slot.lane = null
-            slot.history = null
-          },
-          finishLoad: () => {
-            slot.reattaching = false
-            const replayed = slot.history?.frames() ?? null
-            slot.history = null
-            return replayed
-          }
-        },
-        onSettled: input.onSettled,
-        onSessionLost: (error) => input.onConnectionLost(child, error)
-      }),
-    dispose: () => {
-      slot.lane?.dispose()
-      early.length = 0
+  const dispose = (): void => {
+    // A received update supplies its provider identity even if the initialization reply lost the race.
+    if (!slot.lane && earlySessionId) {
+      makeLane(earlySessionId)
     }
+    slot.lane?.flush()
+    slot.lane?.dispose()
+    early.length = 0
   }
-  session = child
-  assertAcpStartingSession(child, input.abandoned)
-  return {
-    acquisition: { process, acquisitionGeneration: generation },
-    session: child
+  try {
+    await connection.spawned
+    const pid = connection.pid
+    if (pid === undefined) {
+      throw new AgentSessionPreSpawnError(
+        new Error(connection.stderrTail() || `${launch.command} could not be started`)
+      )
+    }
+    await identity.onSpawned(pid)
+    const process = await identity.read(pid)
+    const child: AcpStructuredChild = {
+      events,
+      sessionId,
+      fence: acquire.fence,
+      acquisitionGeneration: generation,
+      spec,
+      connection,
+      lane: null,
+      turns: null,
+      options,
+      prompts,
+      closeRequested: false,
+      journalClosed: null,
+      ended: false,
+      exitObservedAt: null,
+      open: (signal) =>
+        initializeAcpStructuredSession({
+          acquire,
+          deps,
+          generation,
+          launch,
+          connection,
+          options,
+          prompts,
+          child,
+          abandoned: () => signal.aborted,
+          lanes: {
+            create: makeLane,
+            clear: () => {
+              slot.lane = null
+              slot.history = null
+            },
+            finishLoad: () => {
+              slot.reattaching = false
+              const replayed = slot.history?.frames() ?? null
+              slot.history = null
+              return replayed
+            }
+          },
+          onSettled: input.onSettled,
+          onSessionLost: (error) => input.onConnectionLost(child, error)
+        }),
+      dispose
+    }
+    session = child
+    assertAcpStartingSession(child, input.abandoned)
+    return { acquisition: { process, acquisitionGeneration: generation }, session: child }
+  } catch (error) {
+    dispose()
+    throw error
   }
 }

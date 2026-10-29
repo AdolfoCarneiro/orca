@@ -282,9 +282,8 @@ describe('deferred structured agent-session event sink', () => {
     const deferred = createDeferredStructuredAgentSessionEventSink({
       ...testEventSinkLogging(),
       watermarks: {
-        maxQueuedBytes: 1_000_000,
         lowQueuedBytes: 0,
-        maxQueuedOperations: 2,
+        pauseQueuedOperations: 2,
         lowQueuedOperations: 0
       },
       readingControl,
@@ -300,10 +299,9 @@ describe('deferred structured agent-session event sink', () => {
     expect(
       deferred.sink.tryAppendItem?.(identity(2), BODY, { turnScope: AGENT_JOURNAL_THREAD_SCOPE })
     ).toEqual({
-      accepted: false,
-      reason: 'backpressure'
+      accepted: true
     })
-    expect(deferred.state()).toMatchObject({ backpressured: true, queuedOperations: 2 })
+    expect(deferred.state()).toMatchObject({ backpressured: true, queuedOperations: 3 })
 
     deferred.bind(target(5, log))
     await deferred.drained()
@@ -311,18 +309,16 @@ describe('deferred structured agent-session event sink', () => {
     expect(changes).toEqual([true, false])
     expect(readingControl.pauseReading).toHaveBeenCalledOnce()
     expect(readingControl.resumeReading).toHaveBeenCalledOnce()
-    expect(log).toHaveLength(2)
+    expect(log).toHaveLength(3)
   })
 
-  it('admits a resolved append and publication as one bounded operation', async () => {
+  it('admits a resolved append and publication in issuance order under pressure', async () => {
     const log: Recorded[] = []
     const deferred = createDeferredStructuredAgentSessionEventSink({
       ...testEventSinkLogging(),
       watermarks: {
         pauseQueuedOperations: 1,
-        maxQueuedOperations: 2,
-        lowQueuedOperations: 0,
-        maxQueuedBytes: 1_000_000
+        lowQueuedOperations: 0
       }
     })
 
@@ -337,8 +333,7 @@ describe('deferred structured agent-session event sink', () => {
     expect(
       deferred.sink.tryAppendItem?.(identity(2), BODY, { turnScope: AGENT_JOURNAL_THREAD_SCOPE })
     ).toEqual({
-      accepted: false,
-      reason: 'backpressure'
+      accepted: true
     })
 
     deferred.bind(target(5, log))
@@ -346,11 +341,12 @@ describe('deferred structured agent-session event sink', () => {
     expect(log).toEqual([
       { call: 'appendItem', fence: 5, ordinal: 0 },
       { call: 'appendItem', fence: 5, ordinal: 1 },
+      { call: 'appendItem', fence: 5, ordinal: 2 },
       { call: 'publish', fence: 5 }
     ])
   })
 
-  it('pauses provider reading at the soft byte watermark before rejecting writes', async () => {
+  it('pauses provider reading at the byte watermark without refusing received writes', async () => {
     const log: Recorded[] = []
     const changes: boolean[] = []
     const readingControl = { pauseReading: vi.fn(), resumeReading: vi.fn() }
@@ -358,10 +354,8 @@ describe('deferred structured agent-session event sink', () => {
       ...testEventSinkLogging(),
       watermarks: {
         pauseQueuedBytes: 1,
-        maxQueuedBytes: 1_000_000,
         lowQueuedBytes: 0,
         pauseQueuedOperations: 1_000,
-        maxQueuedOperations: 1_000,
         lowQueuedOperations: 0
       },
       readingControl,
@@ -382,7 +376,7 @@ describe('deferred structured agent-session event sink', () => {
     expect(log).toEqual([{ call: 'appendItem', fence: 8, ordinal: 0 }])
   })
 
-  it('backpressures lifecycle publication at the hard operation watermark', async () => {
+  it('admits lifecycle publication after crossing the pacing watermark', async () => {
     const log: Recorded[] = []
     const errors: unknown[] = []
     const deferred = createDeferredStructuredAgentSessionEventSink({
@@ -390,12 +384,9 @@ describe('deferred structured agent-session event sink', () => {
       onFailed: (error) => errors.push(error),
       watermarks: {
         pauseQueuedBytes: 1,
-        maxQueuedBytes: 1,
         lowQueuedBytes: 0,
         pauseQueuedOperations: 1,
-        maxQueuedOperations: 0,
-        lowQueuedOperations: 0,
-        maxLifecycleQueuedOperations: 1
+        lowQueuedOperations: 0
       }
     })
 
@@ -405,16 +396,18 @@ describe('deferred structured agent-session event sink', () => {
       { lifecycle: true }
     )
     expect(deferred.sink.tryPublish?.({ lifecycle: true })).toEqual({
-      accepted: false,
-      reason: 'backpressure'
+      accepted: true
     })
-    expect(deferred.state()).toMatchObject({ queuedOperations: 1, backpressured: true })
+    expect(deferred.state()).toMatchObject({ queuedOperations: 2, backpressured: true })
     expect(errors).toHaveLength(0)
 
     deferred.bind(target(8, log))
     await expect(deferred.lifecycleBarrier()).resolves.toEqual({ ok: true })
 
-    expect(log).toEqual([{ call: 'appendLifecycleBatch', fence: 8, settlementId: 'settlement-1' }])
+    expect(log).toEqual([
+      { call: 'appendLifecycleBatch', fence: 8, settlementId: 'settlement-1' },
+      { call: 'publish', fence: 8 }
+    ])
   })
 
   it('ignores stale reading-control cleanup after a newer provider stream binds', async () => {
@@ -425,10 +418,8 @@ describe('deferred structured agent-session event sink', () => {
       ...testEventSinkLogging(),
       watermarks: {
         pauseQueuedBytes: 1,
-        maxQueuedBytes: 1_000_000,
         lowQueuedBytes: 0,
         pauseQueuedOperations: 1_000,
-        maxQueuedOperations: 1_000,
         lowQueuedOperations: 0
       }
     })

@@ -374,3 +374,31 @@ describe('JSON-lines RPC peer', () => {
     expect(input.listenerCount('data')).toBe(0)
   })
 })
+
+it.each(['close', 'input-end', 'reentrant-close'] as const)(
+  'transfers complete paused records before %s notifies the owner',
+  async (ending) => {
+    const seen: string[] = []
+    const { peer, input } = fixture({
+      onRecord: (record) => {
+        seen.push(record.type)
+        peer.pauseReading()
+        if (ending === 'reentrant-close' && record.type === 'first') {
+          peer.close()
+        }
+      },
+      onClose: () => seen.push('closed')
+    })
+    input.write(
+      '{"type":"first"}\n{"type":"complete-tool-result","text":"whole output"}\n{"partial":'
+    )
+    if (ending === 'input-end') {
+      input.emit('end')
+    } else {
+      peer.close()
+    }
+    expect(seen).toEqual(['first', 'complete-tool-result', 'closed'])
+    peer.resumeReading()
+    expect(seen).toHaveLength(3)
+  }
+)

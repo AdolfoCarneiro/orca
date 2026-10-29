@@ -99,8 +99,7 @@ export class CodexStructuredSessionAdapter implements StructuredAgentSessionAdap
       sessions: this.sessions,
       acquisitions: this.acquisitions,
       notificationRetries: this.notificationRetries,
-      deliver: (acquisition, sessionId, event, retainedBytes) =>
-        this.deliver(acquisition, sessionId, event, retainedBytes),
+      deliver: (acquisition, sessionId, event) => this.deliver(acquisition, sessionId, event),
       handleServerRequest: (sessionId, request) => this.handleServerRequest(sessionId, request),
       handleUnhandledFrame: (sessionId, kind, payload) =>
         this.handleUnhandledFrame(sessionId, kind, payload),
@@ -120,17 +119,13 @@ export class CodexStructuredSessionAdapter implements StructuredAgentSessionAdap
   private deliver(
     acquisition: CodexAcquisitionAttempt['window'],
     sessionId: string,
-    event: () => unknown,
-    retainedBytes?: number
+    event: () => unknown
   ): void {
-    if (acquisition.buffer(event, retainedBytes)) {
+    if (acquisition.buffer(event)) {
       return
     }
     if (this.sessions.get(sessionId)?.connection === acquisition.connection) {
       event()
-    } else if (acquisition.isOverflowed) {
-      // Overflow fails acquisition; close the child so callers can retry.
-      void acquisition.connection?.close()
     }
   }
 

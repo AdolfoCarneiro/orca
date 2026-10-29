@@ -1,3 +1,15 @@
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { claudeProviderHandle } from '../../shared/agent-session-provider-handle-encoding'
+import { openAgentSessionJournal } from '../native-chat/agent-session-journal/journal-store-factory'
+import {
+  closeTestJournalHostDatabase,
+  openTestJournalHostDatabase
+} from '../native-chat/agent-session-journal/journal-host-database-test-support'
+import { createDeferredStructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
+import { testEventSinkLogging } from '../native-chat/agent-session-wire/structured-agent-session-logger-test-support'
+import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
@@ -133,10 +145,10 @@ describe('Claude stream-json close ordering', () => {
     connection.pauseReading?.()
     first.resolve({ type: 'task_notification' })
     await vi.waitFor(() => expect(next).toHaveBeenCalledOnce())
-    expect(events).toEqual([])
+    await vi.waitFor(() => expect(events).toEqual(['message:task_notification']))
 
     child.emit('exit', 1, null)
-    await vi.waitFor(() => expect(events).toEqual(['exit', 'message:task_notification']))
+    await vi.waitFor(() => expect(events).toEqual(['message:task_notification', 'exit']))
     await expect(connection.close()).resolves.toBe(true)
   })
 
@@ -326,7 +338,7 @@ describe('Claude stream-json close ordering', () => {
 
     child.emit('exit', 0, 'SIGTERM')
 
-    expect(exits).toEqual([true])
+    await vi.waitFor(() => expect(exits).toEqual([true]))
   })
 
   it('waits for the live tree refresh before ending stdin', async () => {
@@ -416,3 +428,112 @@ describe('Claude stream-json close ordering', () => {
     expect(child.stdin.writableEnded).toBe(true)
   })
 })
+
+it.each(['root-exit', 'requested-close'] as const)(
+  'saves a resolved SDK next exactly once before %s retires its translator',
+  async (ending) => {
+    mocks.refresh.mockReset().mockResolvedValue(undefined)
+    mocks.proveClaudeChildExit.mockReset().mockResolvedValue(true)
+    const child = fakeChild()
+    const pulled = Promise.withResolvers<IteratorResult<Record<string, unknown>>>()
+    const next = vi
+      .fn<() => Promise<IteratorResult<Record<string, unknown>>>>()
+      .mockReturnValueOnce(pulled.promise)
+      .mockResolvedValue({ done: true, value: undefined })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this query supplies exactly the spawn and iterator protocol exercised by the production reader.
+    const queryImpl = ((params: Parameters<typeof query>[0]) => {
+      params.options?.spawnClaudeCodeProcess?.({
+        command: 'claude',
+        args: [],
+        env: {},
+        signal: new AbortController().signal
+      })
+      return { [Symbol.asyncIterator]: () => ({ next }) }
+    }) as unknown as typeof query
+    const root = await mkdtemp(join(tmpdir(), 'orca-received-sdk-tail-'))
+    const identity = {
+      sessionId: 'session-1',
+      workspaceId: 'workspace',
+      hostId: 'host',
+      agent: 'claude' as const,
+      providerHandle: claudeProviderHandle('provider-session')
+    }
+    let journal = await openAgentSessionJournal({
+      identity,
+      database: openTestJournalHostDatabase(root)
+    })
+    const sink = createDeferredStructuredAgentSessionEventSink(testEventSinkLogging())
+    sink.bind({ journal, fence: 1, publish: () => {} })
+    const translator = createClaudeJournalTranslator({ sink: sink.sink })
+    const delivered: string[] = []
+    let connection: Awaited<ReturnType<typeof openClaudeStreamJsonConnection>> | undefined
+    try {
+      connection = await openClaudeStreamJsonConnection(
+        { pathToClaudeCodeExecutable: 'claude', options: {}, cwd: '/work/repo' },
+        {
+          onMessage: (message) => {
+            delivered.push('message')
+            translator.handle({ type: 'message', sessionId: 'session-1', message })
+          },
+          onExit: () => {
+            delivered.push('exit')
+            translator.handle({
+              type: 'ended',
+              sessionId: 'session-1',
+              reason: 'exit',
+              observedAt: 2
+            })
+            translator.dispose()
+          }
+        },
+        () => child,
+        queryImpl
+      )
+      expect(next).toHaveBeenCalledOnce()
+      connection.pauseReading?.()
+      // Resolve the actual next() promise, then exit in the same stack before its await runs.
+      pulled.resolve({
+        done: false,
+        value: {
+          type: 'user',
+          session_id: 'provider-session',
+          uuid: 'resolved-result',
+          message: {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'resolved-tool',
+                content: 'the complete received tool result'
+              }
+            ]
+          }
+        }
+      })
+      const closing = ending === 'requested-close' ? connection.close() : undefined
+      child.emit('exit', 0, null)
+      connection.pauseReading?.()
+      await vi.waitFor(() => expect(delivered).toEqual(['message', 'exit']))
+      if (closing) {
+        await closing
+      }
+      await expect(sink.drained()).resolves.toEqual({ ok: true })
+      await journal.close()
+      closeTestJournalHostDatabase(root)
+      journal = await openAgentSessionJournal({
+        identity,
+        database: openTestJournalHostDatabase(root)
+      })
+      const tools = journal.snapshot().items.filter((item) => item.body.kind === 'tool-call')
+      expect(tools).toHaveLength(1)
+      expect(JSON.stringify(tools[0].body)).toContain('the complete received tool result')
+    } finally {
+      await connection?.close()
+      translator.dispose()
+      sink.close()
+      await journal.close()
+      closeTestJournalHostDatabase(root)
+      await rm(root, { recursive: true, force: true })
+    }
+  }
+)

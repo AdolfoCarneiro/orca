@@ -251,6 +251,7 @@ export type ClaudeAcquisitionAttempt = {
   connection: ClaudeStreamJsonConnection | null
   prompts: ClaudePromptRegistry
   buffered: (() => void)[]
+  dispose?: () => void
   published: boolean
   cancelled: boolean
   exitProven: boolean
@@ -344,7 +345,7 @@ export async function cancelClaudeAcquisitionAttempt(
   if (!attempt) {
     return true
   }
-  return cancelProcessAcquisition({
+  const closed = await cancelProcessAcquisition({
     cancel: () => {
       attempt.cancelled = true
     },
@@ -352,6 +353,10 @@ export async function cancelClaudeAcquisitionAttempt(
     exitProven: () => attempt.exitProven,
     finished: attempt.finished
   })
+  if (closed && !attempt.published) {
+    attempt.dispose?.()
+  }
+  return closed
 }
 
 export type ClaudeAcquireCallbacks = {
