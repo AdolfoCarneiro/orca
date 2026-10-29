@@ -700,10 +700,8 @@
       "permissionSameAsAll": "Same as all agents",
       "permissionChipRemove": "Remove {{flag}} and use {{agent}}'s own settings",
       "permissionChipTooltip": "Added by Permissions. Remove it to use {{agent}}’s own settings.",
-      "permissionOverridesKept": "{{count}} agents still use their own permission setting:",
       "permissionOverridesKept_one": "{{count}} agent still uses their own permission setting:",
       "permissionOverridesKept_other": "{{count}} agents still use their own permission setting:",
-      "permissionOverridesFollow": "{{count}} agents now follow {{mode}}",
       "permissionOverridesFollow_one": "{{count}} agent now follows {{mode}}",
       "permissionOverridesFollow_other": "{{count}} agents now follow {{mode}}",
       "permissionOverrideFollows": "{{agent}} now follows {{mode}}",
@@ -1724,7 +1722,6 @@
         "folderWorkspaceCreateFailedMessage": "The folder workspace could not be created. Check the error details above, then try again.",
         "setupAgentStartupPolicySaveFailed": "Failed to save setup startup behavior.",
         "5f3d2c8a1b": "Failed to resolve MR base.",
-        "dropPartiallyAttached": "{{failureCount}} of {{count}} items could not be attached.",
         "dropPartiallyAttached_one": "{{failureCount}} of {{count}} item could not be attached.",
         "dropPartiallyAttached_other": "{{failureCount}} of {{count}} items could not be attached."
       },
@@ -1741,7 +1738,6 @@
         "workspaceOpenFailed": "Could not open {{fileName}}. Open it from its source workspace and try again.",
         "nativeDropUnresolvedPathsDescription": "Save them to disk first, then drop the saved files.",
         "nativeDropUnresolvedPaths": "Orca couldn't read a path for the dropped files.",
-        "nativeDropTempCopyFailed": "Orca couldn't copy {{count}} dropped files.",
         "nativeDropTempCopyFailed_one": "Orca couldn't copy {{count}} dropped file.",
         "nativeDropTempCopyFailed_other": "Orca couldn't copy {{count}} dropped files."
       },
@@ -5217,7 +5213,8 @@
           "description": "Update {{value0}} so agents follow the current instructions for this version of Orca.",
           "updateOne": "Update skill",
           "updateMany": "Update skills",
-          "title_other": "{{count}} installed Orca skills are out of date"
+          "title_other": "{{count}} installed Orca skills are out of date",
+          "title_one": "{{count}} installed Orca skill is out of date"
         },
         "SkillFreshnessRow": {},
         "SkillFreshnessUpdateDialog": {
@@ -5248,7 +5245,8 @@
           "update_one": "{{count}} update available",
           "current_one": "{{count}} skill is up to date",
           "updated_one": "Updated {{count}} skill",
-          "updateAction_one": "Update {{count}} skill"
+          "updateAction_one": "Update {{count}} skill",
+          "upToDate_one": "{{count}} skill is up to date."
         },
         "SkillUpdateResultRows": {},
         "SkillUpdateRow": {
@@ -5606,7 +5604,8 @@
           "placementSummaryParts": "Removes {{parts}} across {{roots}}.",
           "placementJoin": " and ",
           "retainedSource": "The skill itself stays at {{path}}.",
-          "nothing_other": "None of the {{count}} selected skills can be deleted from here."
+          "nothing_other": "None of the {{count}} selected skills can be deleted from here.",
+          "nothing_one": "The {{count}} selected skill cannot be deleted from here."
         },
         "skillPlanOpCopy": {
           "busy": "Another install is still running",
@@ -6117,7 +6116,8 @@
         "sidebarHostOptions": {
           "3e102f111c": "All hosts",
           "hosts": "Hosts",
-          "visibleHosts_other": "{{count}} hosts"
+          "visibleHosts_other": "{{count}} hosts",
+          "visibleHosts_one": "{{count}} host"
         },
         "SidebarWorkspaceOptionsMenu": {
           "hosts": "Hosts",
@@ -6893,23 +6893,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git kept {{count}} local branches because they may contain unmerged commits. Kept branches do not retain workspace folders; their commits remain in the repository. Orca may continue freeing workspace disk space in the background.",
                 "a3cdd9d9e6_one": "Git kept {{count}} local branch because it may contain unmerged commits. Kept branches do not retain workspace folders; their commits remain in the repository. Orca may continue freeing workspace disk space in the background.",
                 "a3cdd9d9e6_other": "Git kept {{count}} local branches because they may contain unmerged commits. Kept branches do not retain workspace folders; their commits remain in the repository. Orca may continue freeing workspace disk space in the background.",
-                "6310412304": "Review {{count}} Branches",
                 "6310412304_one": "Review {{count}} Branch",
                 "6310412304_other": "Review {{count}} Branches",
-                "cea24c2b7d": "{{count}} workspaces removed",
                 "cea24c2b7d_one": "{{count}} workspace removed",
                 "cea24c2b7d_other": "{{count}} workspaces removed",
-                "0e0379f24a": "{{count}} branches kept",
                 "0e0379f24a_one": "{{count}} branch kept",
                 "0e0379f24a_other": "{{count}} branches kept",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "Deleting local branches: {{value0}}",
                 "1e1a5f6763": "Local branches deleted: {{value0}}",
                 "43d9395605": "{{value0}} deleted, {{value1}} not deleted",
-                "d42f1f14e0": "Retry {{count}} Branches",
                 "d42f1f14e0_one": "Retry {{count}} Branch",
                 "d42f1f14e0_other": "Retry {{count}} Branches"
               }
@@ -6924,7 +6919,6 @@
           "ee39e872d5": "May be unmerged",
           "676db406fd": "Head unavailable",
           "285e1e4882": "Cancel",
-          "a0f9863597": "Force Delete {{count}} Branches",
           "a0f9863597_one": "Force Delete {{count}} Branch",
           "a0f9863597_other": "Force Delete {{count}} Branches"
         },
@@ -12488,10 +12482,8 @@
           "olderTerminalsUnverifiable": "Orca couldn’t confirm that terminals started by an older version of Orca have exited. Reconnect to try again.",
           "olderTerminals_one": "{{count}} terminal started by an older version of Orca is still running on this host, and it doesn’t stop on its own. Close it in that version of Orca or end it on the host, then reconnect.",
           "olderTerminals_other": "{{count}} terminals started by an older version of Orca are still running on this host, and they don’t stop on their own. Close them in that version of Orca or end them on the host, then reconnect.",
-          "olderTerminals": "{{count}} terminals started by an older version of Orca are still running on this host, and they don’t stop on their own. Close them in that version of Orca or end them on the host, then reconnect.",
           "linkedProjects_one": "This host’s Orca server already had {{paths}}, so this desktop now uses the server’s copy. This desktop’s tabs and {{count}} automation there were not moved, and worktrees it created there show as external worktrees.",
           "linkedProjects_other": "This host’s Orca server already had {{paths}}, so this desktop now uses the server’s copy. This desktop’s tabs and {{count}} automations there were not moved, and worktrees it created there show as external worktrees.",
-          "linkedProjects": "This host’s Orca server already had {{paths}}, so this desktop now uses the server’s copy. This desktop’s tabs and {{count}} automations there were not moved, and worktrees it created there show as external worktrees.",
           "linkedProjectsNoAutomations": "This host’s Orca server already had {{paths}}, so this desktop now uses the server’s copy. This desktop’s tabs there were not moved, and worktrees it created there show as external worktrees.",
           "automationsLeftDisabled_one": "This host’s Orca server took over {{count}} automation but couldn’t turn it back on. Turn it on in Automations.",
           "automationsLeftDisabled_other": "This host’s Orca server took over {{count}} automations but couldn’t turn them back on. Turn them on in Automations.",
@@ -12510,8 +12502,7 @@
           "refusedLeaveBehind": "Some saved items for this host can’t move to its Orca server: {{items}}. Move anyway connects the host and keeps them on this computer.",
           "refusedLeaveBehindUnnamed": "Some saved items for this host can’t move to its Orca server. Move anyway connects the host and keeps them on this computer.",
           "windowsBuildUnsupported": "This host runs a version of Windows older than Windows 10 and Windows Server 2016, so it can’t run Orca’s server. Use a host with a newer version of Windows, or a Linux or macOS host.",
-          "windowsNoExtractor": "This Windows host has neither tar.exe nor PowerShell’s Expand-Archive, so Orca can’t unpack its server there. Install Windows PowerShell 5.1 on the host, then connect again.",
-          "automationsLeftDisabled": "This host’s Orca server took over {{count}} automations but couldn’t turn them back on. Turn them on in Automations."
+          "windowsNoExtractor": "This Windows host has neither tar.exe nor PowerShell’s Expand-Archive, so Orca can’t unpack its server there. Install Windows PowerShell 5.1 on the host, then connect again."
         },
         "ZcodeCliSetupSection": {
           "title": "Use GLM with ZCode",
@@ -14323,7 +14314,9 @@
             "deleteItems_other": "Delete {{count}} items?",
             "permanentlyDeleteItems_other": "Permanently delete {{count}} items?",
             "mixedRecycleBin": "Remote items are permanently deleted and cannot be undone. Local items move to the Recycle Bin.",
-            "mixedTrash": "Remote items are permanently deleted and cannot be undone. Local items move to the Trash."
+            "mixedTrash": "Remote items are permanently deleted and cannot be undone. Local items move to the Trash.",
+            "deleteItems_one": "Delete {{count}} item?",
+            "permanentlyDeleteItems_one": "Permanently delete {{count}} item?"
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "Cannot open symlink target",
@@ -15839,7 +15832,6 @@
           "0f806a2ab1": "Cancel",
           "b6c3b84476": "Show file tree",
           "39f8007549": "Review conflicts",
-          "skippedConflictsExcluded": "{{count}} unresolved conflicts were excluded from this diff view.",
           "skippedConflictsExcluded_one": "{{count}} unresolved conflict was excluded from this diff view.",
           "skippedConflictsExcluded_other": "{{count}} unresolved conflicts were excluded from this diff view.",
           "820ec01f24": "Conflicted files are reviewed separately",
@@ -17911,10 +17903,7 @@
           "markManyUnread_one": "Mark {{count}} Agent Unread",
           "markManyUnread_other": "Mark {{count}} Agents Unread",
           "clearMany_one": "Clear {{count}} Agent from List",
-          "clearMany_other": "Clear {{count}} Agents from List",
-          "markManyRead": "Mark {{count}} Agents Read",
-          "markManyUnread": "Mark {{count}} Agents Unread",
-          "clearMany": "Clear {{count}} Agents from List"
+          "clearMany_other": "Clear {{count}} Agents from List"
         }
       },
       "confirmation": {
@@ -19312,7 +19301,11 @@
         "runLiveIntegration_one": "Using {{count}} integration",
         "runLiveAgent_one": "Running {{count}} agent",
         "runLiveTool_one": "Using {{count}} tool",
-        "callCount_one": "{{count}} tool call"
+        "callCount_one": "{{count}} tool call",
+        "runBrowser_one": "Used the browser {{count}} time",
+        "runPlan_one": "Updated the plan {{count}} time",
+        "runLiveBrowser_one": "Using the browser {{count}} time",
+        "runLivePlan_one": "Updating the plan {{count}} time"
       },
       "providerFrame": {
         "byteCount_one": "{{count}} byte",
@@ -19615,7 +19608,6 @@
         "editFailed": "This message can't be edited.",
         "editGone": "This message was already sent or removed. Your edit is in the chat box.",
         "editGonePrompt": "This message was already sent or removed. Your edit will be in the chat box after you answer the agent.",
-        "imageCount": "{{count}} images",
         "imageCount_one": "{{count}} image",
         "imageCount_other": "{{count}} images",
         "collapse": "Collapse",
@@ -20475,7 +20467,9 @@
       "discardAll": "Discard all",
       "deleteUntrackedTitle_one": "Delete {{count}} untracked file?",
       "deleteUntrackedTitle_other": "Delete {{count}} untracked files?",
-      "deleteCount": "Delete {{count}}"
+      "deleteCount": "Delete {{count}}",
+      "deleteUntrackedFilesDescription_one": "This will permanently delete {{count}} untracked file. This cannot be undone.",
+      "unstagedFilesIncludingUntrackedDescription_one": "This will revert unstaged changes and permanently delete any untracked files among {{count}} file. This cannot be undone."
     },
     "unlinkedPr": {
       "status": "PR #{{number}} unlinked"
@@ -20508,7 +20502,25 @@
       "existingReview": "A {{reviewLabel}} already exists for this branch.",
       "creationUnconfirmed": "{{shortLabel}} creation may have completed. Refreshing branch review state...",
       "withDetail": "Create {{shortLabel}} failed: {{detail}}",
-      "pushFailed": "Push failed. Resolve the push error, then try again."
+      "pushFailed": "Push failed. Resolve the push error, then try again.",
+      "stacked": {
+        "stackGithubOnly": "Stacked pull request creation is available only for GitHub repositories.",
+        "stackGithubComOnly": "GitHub stacked pull requests are available only on GitHub.com.",
+        "stackSameParent": "Choose a different parent branch before creating a stacked pull request.",
+        "stackParentWithoutReview": "The parent branch {{base}} does not have an open pull request. Create that pull request first.",
+        "stackParentAmbiguous": "Orca found multiple open pull requests for the parent branch {{base}}.",
+        "stackHeadAmbiguous": "Orca found multiple open pull requests for the current branch {{head}}.",
+        "stackParentMultipleStacks": "The selected parent pull request belongs to multiple stacks.",
+        "stackParentClosed": "The selected parent belongs to a closed stack.",
+        "stackParentNotTop": "Choose the top pull request in the stack as the base branch before adding another layer.",
+        "stackConflict": "The pull request already belongs to a different GitHub stack.",
+        "stacksUnavailable": "GitHub stacked pull requests are not available for this repository.",
+        "stackParentUnverified": "Orca could not verify the parent pull request. Retry in a moment.",
+        "stackExistingReviewOtherBase": "An open pull request already exists for this branch but does not target the selected parent branch.",
+        "stackCreationUnconfirmed": "Pull request creation may have completed. Retry to finish stack registration.",
+        "stackRegistrationUnavailable": "The pull request was created, but GitHub stacks are not available for this repository.",
+        "stackRegistrationFailed": "The pull request was created, but GitHub could not add it to the stack. Retry to finish stack registration."
+      }
     },
     "variables": {
       "basePrompt": "Orca’s built-in prompt for this action, including the context Orca knows how to gather safely.",
@@ -20537,6 +20549,58 @@
       "high": "High",
       "xhigh": "Extra High",
       "max": "Max"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} prompt is too large for the Windows command line. Stage fewer changes and try again.",
+        "promptTooLargeForArgument": "{{label}} prompt is too large to pass as a single command-line argument. Stage fewer changes and try again.",
+        "agentCouldNotStart": "{{label}} could not be started. Check the agent command in Settings and try again.",
+        "agentFailedToStart": "{{label}} failed to start. Check the agent command in Settings and try again.",
+        "agentBinaryNotFound": "{{binary}} not found on PATH. Install {{label}} to use AI commit messages.",
+        "timedOut": "Generation timed out after {{seconds}}s.",
+        "outputTooLarge": "{{label}} CLI command produced too much output. Check the agent CLI configuration and try again.",
+        "windowsBatchUnsafeArguments": "{{label}} runs through a Windows batch script that cannot take the multi-line prompt as an argument. Point Settings at the agent's executable, or use a custom command without {prompt} so Orca sends the prompt on stdin.",
+        "cliTerminated": "{{label}} CLI command was terminated before exiting.",
+        "cliTerminatedWithDetail": "{{label}} CLI command was terminated before exiting: {{detail}}",
+        "cliFailed": "{{label}} CLI command failed with code {{exitCode}}.",
+        "cliFailedWithDetail": "{{label}} CLI command failed with code {{exitCode}}: {{detail}}",
+        "agentReportedError": "{{label}} reported an error.",
+        "emptyCommitMessage": "{{label}} returned an empty message.",
+        "emptyCommitMessageWithDetail": "{{label}} returned an empty message. CLI output: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} returned an empty details.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} returned an empty details. CLI output: {{detail}}",
+        "emptyJiraSummary": "{{label}} returned an empty summary.",
+        "emptyJiraSummaryWithDetail": "{{label}} returned an empty summary. CLI output: {{detail}}",
+        "commitMessageUnparseable": "Generated commit message could not be parsed.",
+        "pullRequestDetailsUnparseable": "Generated pull request details could not be parsed.",
+        "jiraSummaryEmptyAfterSanitization": "Generated summary was empty after sanitization.",
+        "jiraDescriptionRequired": "Description is required.",
+        "jiraAccountDisconnected": "Reconnect the selected Jira account on this host.",
+        "jiraSummaryBusyInOtherDraft": "A Jira title is already being generated in another draft.",
+        "stagedChangesReadFailed": "Failed to read staged changes.",
+        "noStagedChanges": "No staged changes to summarize.",
+        "noBranchChanges": "No branch changes to summarize.",
+        "commandTemplateEmptyCommitMessage": "Command template is empty for commit messages.",
+        "commandTemplateEmptyPullRequest": "Command template is empty for pull request details.",
+        "commandTemplateEmptyBranchName": "Command template is empty for branch names.",
+        "commandTemplateEmptyChatName": "Command template is empty for chat names.",
+        "sourceControlAgentUnsupported": "Choose a supported Source Control AI agent for this action in Settings -> Git -> Source Control AI. Supported agents: {{agents}}, or Custom command.",
+        "chatNameAgentUnsupported": "Choose a supported chat name agent for this action in Settings -> Chat -> Chat names. Supported agents: {{agents}}, or Custom command.",
+        "sourceControlCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Git -> Source Control AI.",
+        "chatNameCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Chat -> Chat names.",
+        "agentCannotGenerateCommitMessage": "Agent \"{{agent}}\" does not support Source Control AI commit messages. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGeneratePullRequest": "Agent \"{{agent}}\" does not support Source Control AI pull request details. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGenerateBranchName": "Agent \"{{agent}}\" does not support Source Control AI branch names. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGenerateChatName": "Agent \"{{agent}}\" does not support chat names. Supported agents: {{agents}}, or Custom command.",
+        "noModelForAgent": "No model is available for {{label}}.",
+        "planCustomCommandEmpty": "Custom command is empty. Add one in Settings → Git → AI Commit Messages.",
+        "planAgentUnsupported": "Agent \"{{agent}}\" does not support AI commit messages.",
+        "planModelUnavailable": "Model \"{{model}}\" is not available for {{label}}.",
+        "planModelWithoutThinking": "Model \"{{model}}\" does not support a thinking effort level.",
+        "planThinkingLevelInvalid": "Thinking level \"{{level}}\" is not valid for {{model}}."
+      },
+      "enableSourceControlAi": "Enable Source Control AI in Settings -> Git.",
+      "chooseBaseBranch": "Choose a base branch before generating."
     }
   },
   "agentsSidebarIntro": {
@@ -20780,13 +20844,10 @@
       "resumableBody": "Reopen it here to keep working. Your agent session will resume.",
       "reopening": "Reopening…",
       "tryAgain": "Try again",
-      "reopenTerminal": "Reopen {{count}} terminals",
       "reopenTerminal_one": "Reopen terminal",
       "reopenTerminal_other": "Reopen {{count}} terminals",
-      "reopened": "Reopened {{count}} terminals",
       "reopened_one": "Reopened {{count}} terminal",
       "reopened_other": "Reopened {{count}} terminals",
-      "resumed": "{{count}} agent sessions resumed.",
       "resumed_one": "{{count}} agent session resumed.",
       "resumed_other": "{{count}} agent sessions resumed."
     },
@@ -20797,7 +20858,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "its running terminals",
-      "count": "{{count}} running terminals",
       "unverifiable": "Orca could not verify the terminal service process, so nothing was stopped.",
       "alreadyReplaced": "The terminal service was already replaced; nothing was stopped.",
       "restarted": "Terminal service restarted.",
@@ -22196,6 +22256,72 @@
         "settingUp": "The project is still being set up on the selected automation host.",
         "error": "Project setup failed on the selected automation host.",
         "unsupported": "The selected automation host does not support this project."
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Title is required",
+      "networkError": "Network error — check your connection.",
+      "invalidUpdate": "Invalid update — {{detail}}",
+      "invalidRequest": "Invalid request — {{detail}}",
+      "issueNotFound": "Issue not found — it may have been deleted.",
+      "issueUpdateFailed": "Failed to update issue: {{detail}}",
+      "github": {
+        "repoUnresolved": "Could not resolve GitHub owner/repo for this repository",
+        "unexpectedResponse": "Unexpected response from GitHub",
+        "pullRequestIdUnresolved": "Could not resolve GitHub pull request ID",
+        "reviewerRequired": "Enter at least one reviewer",
+        "stackAutoMergeUnsupported": "GitHub does not support auto-merge for stacked pull requests.",
+        "autoMergeAlreadyMergeable": "This pull request can already be merged. Use Merge instead of auto-merge.",
+        "noFailedChecks": "No failed GitHub Actions checks to rerun.",
+        "noRerunnableChecks": "No rerunnable checks found.",
+        "stackMergeInvalidResponse": "GitHub returned an invalid stack merge response.",
+        "stackMergePending": "GitHub is still merging this stack. Refresh to check its status.",
+        "rateLimited": "GitHub rate limit hit. Try again in a few minutes.",
+        "issuePermissionDenied": "You don't have permission to edit this issue. Check your GitHub token scopes.",
+        "issuesDisabled": "Issues are disabled on this repository.",
+        "pullRequestPermissionDenied": "You don't have permission to edit this pull request. Check your GitHub token scopes.",
+        "pullRequestNotFound": "Pull request not found — it may have been deleted.",
+        "pullRequestUpdateFailed": "Failed to update pull request: {{detail}}",
+        "autoMergeEnableFailed": "Failed to enable auto-merge for pull request: {{detail}}",
+        "autoMergeDisableFailed": "Failed to disable auto-merge for pull request: {{detail}}",
+        "mergeQueueAddFailed": "Failed to add pull request to the merge queue: {{detail}}",
+        "rerunPermissionDenied": "You don't have permission to rerun checks on this repository. Check your GitHub token scopes.",
+        "rerunTargetNotFound": "GitHub resource to rerun was not found — it may have expired or been deleted.",
+        "rerunRejected": "Could not rerun checks — {{detail}}",
+        "rerunFailed": "Failed to rerun checks: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Could not resolve GitLab project for this repository",
+        "unexpectedResponse": "Unexpected response from GitLab",
+        "commentBodyRequired": "Comment body is required",
+        "discussionIdRequired": "Discussion id is required",
+        "readyTitleConflict": "Cannot update the title while marking a merge request ready",
+        "mergeRequestTitleUnreadable": "Could not read the current merge request title",
+        "rateLimited": "GitLab rate limit hit. Try again in a few minutes.",
+        "issuePermissionDenied": "You don't have permission to edit this issue. Check your GitLab token scopes.",
+        "jobLogPermissionDenied": "You don't have permission to read this job's log. Check your GitLab token scopes.",
+        "jobProjectNotFound": "Could not find this job's GitLab project.",
+        "jobLogFailed": "Failed to load the job log: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repo not found",
+      "folderUnsupported": "Folder mode does not support creating worktrees.",
+      "fetchFailed": "Failed to fetch {{ref}}: {{detail}}",
+      "remoteRefMissing": "Remote ref {{ref}} does not exist after fetch.",
+      "github": {
+        "prNotFound": "PR #{{number}} not found.",
+        "prHeadBranchMissing": "PR #{{number}} has no head branch.",
+        "forkHeadUnresolved": "Could not resolve fork PR #{{number}} head after fetch.",
+        "headShaEmpty": "Empty SHA resolving PR #{{number}} head."
+      },
+      "gitlab": {
+        "projectNotFound": "No GitLab project found for this repository.",
+        "mrNotFound": "MR !{{number}} not found.",
+        "mrSourceBranchMissing": "MR !{{number}} has no source branch.",
+        "forkHeadUnresolved": "Could not resolve fork MR !{{number}} head after fetch."
       }
     }
   }

@@ -1,3 +1,4 @@
+import type { StackedReviewFailureReason } from './stacked-hosted-review-failure-copy'
 import type {
   CheckStatus,
   GitHubRepositoryIdentity,
@@ -124,6 +125,7 @@ export type CreateHostedReviewFailureReason =
   | 'repository_not_found'
   | 'create_failed'
   | 'creation_unconfirmed'
+  | StackedReviewFailureReason
 
 export type CreateHostedReviewResult =
   | { ok: true; number: number; url: string }
@@ -151,9 +153,11 @@ export type CreateStackedHostedReviewResult =
       ok: false
       code: CreateHostedReviewErrorCode
       error: string
-      /** Set when the failure comes from the plain create step. */
+      /** Plain create-step reason or a stacked `stack_*` reason; absent from older hosts. */
       reason?: CreateHostedReviewFailureReason
       base?: string
+      /** The current branch named by `stack_head_ambiguous`. */
+      head?: string
       createdReview?: HostedReviewSummary
     }
 

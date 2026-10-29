@@ -22,6 +22,7 @@ import type { CombinedDiffLoadRequest } from './combined-diff-load-scheduler'
 export function useCombinedDiffSectionLoader({
   entrySet,
   file,
+  generation,
   registry,
   sectionCount,
   setSectionHeights,
@@ -29,6 +30,7 @@ export function useCombinedDiffSectionLoader({
 }: {
   entrySet: CombinedDiffEntrySet
   file: OpenFile
+  generation: number
   registry: CombinedDiffSectionLoadRegistry
   sectionCount: number
   setSectionHeights: React.Dispatch<React.SetStateAction<Record<number, number>>>
@@ -167,20 +169,21 @@ export function useCombinedDiffSectionLoader({
           modifiedContent: storedContent.modifiedContent
         })
       ) {
-        if (
+        const provenanceChanged =
           JSON.stringify(current.operation?.provenance) !== JSON.stringify(operation?.provenance)
-        ) {
-          setSections((prev) => {
-            try {
-              operation?.assertCurrent()
-            } catch {
-              return prev
-            }
-            return prev.map((section, i) =>
-              i === index && !section.dirty ? { ...section, operation } : section
-            )
-          })
-        }
+        // Persist the loaded index while retaining unchanged bodies and their models.
+        setSections((prev) => {
+          try {
+            operation?.assertCurrent()
+          } catch {
+            return prev
+          }
+          return provenanceChanged
+            ? prev.map((section, i) =>
+                i === index && !section.dirty ? { ...section, operation } : section
+              )
+            : [...prev]
+        })
         return
       }
       if (wasShowingContent) {
@@ -223,6 +226,7 @@ export function useCombinedDiffSectionLoader({
       commitEntries,
       file.filePath,
       file.runtimeEnvironmentId,
+      file.worktreeId,
       isAllMode,
       isBranchMode,
       isCommitMode,
@@ -278,7 +282,7 @@ export function useCombinedDiffSectionLoader({
         loadSection(index, { viewportOnly: false })
       }
     }
-  }, [entrySignature, loadSection, loadedIndicesRef, sectionCount, sectionsRef])
+  }, [entrySignature, generation, loadSection, loadedIndicesRef, sectionCount, sectionsRef])
 
   return { loadSection, loadDeferredSection }
 }

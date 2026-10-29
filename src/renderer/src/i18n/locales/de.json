@@ -685,10 +685,8 @@
       "permissionSameAsAll": "Wie alle Agenten",
       "permissionChipRemove": "{{flag}} entfernen und eigene Einstellungen von {{agent}} verwenden",
       "permissionChipTooltip": "Durch „Berechtigungen“ hinzugefügt. Entfernen, um die eigenen Einstellungen von {{agent}} zu verwenden.",
-      "permissionOverridesKept": "{{count}} Agenten verwenden weiterhin ihre eigene Berechtigungseinstellung:",
       "permissionOverridesKept_one": "{{count}} Agent verwendet weiterhin seine eigene Berechtigungseinstellung:",
       "permissionOverridesKept_other": "{{count}} Agenten verwenden weiterhin ihre eigene Berechtigungseinstellung:",
-      "permissionOverridesFollow": "{{count}} Agenten verwenden jetzt {{mode}}",
       "permissionOverridesFollow_one": "{{count}} Agent verwendet jetzt {{mode}}",
       "permissionOverridesFollow_other": "{{count}} Agenten verwenden jetzt {{mode}}",
       "permissionOverrideFollows": "{{agent}} verwendet jetzt {{mode}}",
@@ -1697,7 +1695,6 @@
         "folderWorkspaceCreateFailedMessage": "Der Ordner-Arbeitsbereich konnte nicht erstellt werden. Die Fehlerdetails oben prüfen und erneut versuchen.",
         "setupAgentStartupPolicySaveFailed": "Das Startverhalten bei der Einrichtung konnte nicht gespeichert werden.",
         "5f3d2c8a1b": "Die MR-Basis konnte nicht ermittelt werden.",
-        "dropPartiallyAttached": "{{failureCount}} von {{count}} Elementen konnten nicht angehängt werden.",
         "dropPartiallyAttached_one": "{{failureCount}} von {{count}} Element konnte nicht angehängt werden.",
         "dropPartiallyAttached_other": "{{failureCount}} von {{count}} Elementen konnten nicht angehängt werden."
       },
@@ -1714,7 +1711,6 @@
         "workspaceOpenFailed": "{{fileName}} konnte nicht geöffnet werden. Die Datei aus ihrem ursprünglichen Arbeitsbereich öffnen und erneut versuchen.",
         "nativeDropUnresolvedPathsDescription": "Die Dateien zuerst auf dem Datenträger speichern und dann die gespeicherten Dateien ablegen.",
         "nativeDropUnresolvedPaths": "Orca konnte keinen Pfad für die abgelegten Dateien lesen.",
-        "nativeDropTempCopyFailed": "Orca konnte {{count}} abgelegte Dateien nicht kopieren.",
         "nativeDropTempCopyFailed_one": "Orca konnte {{count}} abgelegte Datei nicht kopieren.",
         "nativeDropTempCopyFailed_other": "Orca konnte {{count}} abgelegte Dateien nicht kopieren."
       },
@@ -6853,23 +6849,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git hat {{count}} lokale Branches beibehalten, da sie möglicherweise nicht gemergte Commits enthalten. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
                 "a3cdd9d9e6_one": "Git hat {{count}} lokalen Branch beibehalten, da er möglicherweise nicht gemergte Commits enthält. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
                 "a3cdd9d9e6_other": "Git hat {{count}} lokale Branches beibehalten, da sie möglicherweise nicht gemergte Commits enthalten. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
-                "6310412304": "{{count}} Branches prüfen",
                 "6310412304_one": "{{count}} Branch prüfen",
                 "6310412304_other": "{{count}} Branches prüfen",
-                "cea24c2b7d": "{{count}} Arbeitsbereiche entfernt",
                 "cea24c2b7d_one": "{{count}} Arbeitsbereich entfernt",
                 "cea24c2b7d_other": "{{count}} Arbeitsbereiche entfernt",
-                "0e0379f24a": "{{count}} Branches beibehalten",
                 "0e0379f24a_one": "{{count}} Branch beibehalten",
                 "0e0379f24a_other": "{{count}} Branches beibehalten",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "Lokale Branches werden gelöscht: {{value0}}",
                 "1e1a5f6763": "Lokale Branches gelöscht: {{value0}}",
                 "43d9395605": "{{value0}} gelöscht, {{value1}} nicht gelöscht",
-                "d42f1f14e0": "Für {{count}} Branches erneut versuchen",
                 "d42f1f14e0_one": "Für {{count}} Branch erneut versuchen",
                 "d42f1f14e0_other": "Für {{count}} Branches erneut versuchen"
               }
@@ -6884,7 +6875,6 @@
           "ee39e872d5": "Möglicherweise nicht gemergt",
           "676db406fd": "HEAD nicht verfügbar",
           "285e1e4882": "Abbrechen",
-          "a0f9863597": "Löschen von {{count}} Branches erzwingen",
           "a0f9863597_one": "Löschen von {{count}} Branch erzwingen",
           "a0f9863597_other": "Löschen von {{count}} Branches erzwingen"
         },
@@ -12428,10 +12418,8 @@
           "olderTerminalsUnverifiable": "Orca konnte nicht bestätigen, dass die von einer älteren Orca-Version gestarteten Terminals beendet wurden. Zum erneuten Versuch wieder verbinden.",
           "olderTerminals_one": "Auf diesem Host läuft noch {{count}} Terminal, das von einer älteren Orca-Version gestartet wurde und nicht von selbst endet. Dieses in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
           "olderTerminals_other": "Auf diesem Host laufen noch {{count}} Terminals, die von einer älteren Orca-Version gestartet wurden und nicht von selbst enden. Diese in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
-          "olderTerminals": "Auf diesem Host laufen noch {{count}} Terminals, die von einer älteren Orca-Version gestartet wurden und nicht von selbst enden. Diese in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
           "linkedProjects_one": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierung dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "linkedProjects_other": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierungen dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
-          "linkedProjects": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierungen dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "linkedProjectsNoAutomations": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "automationsLeftDisabled_one": "Der Orca-Server dieses Hosts hat {{count}} Automatisierung übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren.",
           "automationsLeftDisabled_other": "Der Orca-Server dieses Hosts hat {{count}} Automatisierungen übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren.",
@@ -12450,8 +12438,7 @@
           "refusedLeaveBehind": "Einige gespeicherte Elemente für diesen Host können nicht auf seinen Orca-Server verschoben werden: {{items}}. „Trotzdem verschieben“ verbindet den Host und behält diese Elemente auf diesem Computer.",
           "refusedLeaveBehindUnnamed": "Einige gespeicherte Elemente für diesen Host können nicht auf seinen Orca-Server verschoben werden. „Trotzdem verschieben“ verbindet den Host und behält diese Elemente auf diesem Computer.",
           "windowsBuildUnsupported": "Auf diesem Host läuft eine ältere Windows-Version als Windows 10 bzw. Windows Server 2016. Daher kann er den Orca-Server nicht ausführen. Einen Host mit einer neueren Windows-Version oder einen Linux- oder macOS-Host verwenden.",
-          "windowsNoExtractor": "Dieser Windows-Host verfügt weder über tar.exe noch über Expand-Archive von PowerShell. Daher kann Orca seinen Server dort nicht entpacken. Windows PowerShell 5.1 auf dem Host installieren und anschließend erneut verbinden.",
-          "automationsLeftDisabled": "Der Orca-Server dieses Hosts hat {{count}} Automatisierungen übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren."
+          "windowsNoExtractor": "Dieser Windows-Host verfügt weder über tar.exe noch über Expand-Archive von PowerShell. Daher kann Orca seinen Server dort nicht entpacken. Windows PowerShell 5.1 auf dem Host installieren und anschließend erneut verbinden."
         },
         "ZcodeCliSetupSection": {
           "title": "GLM mit ZCode verwenden",
@@ -15474,7 +15461,6 @@
           "0f806a2ab1": "Abbrechen",
           "b6c3b84476": "Dateibaum anzeigen",
           "39f8007549": "Konflikte prüfen",
-          "skippedConflictsExcluded": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
           "skippedConflictsExcluded_one": "{{count}} ungelöster Konflikt wurde aus dieser Diff-Ansicht ausgeschlossen.",
           "skippedConflictsExcluded_other": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
           "820ec01f24": "Dateien mit Konflikten werden separat geprüft",
@@ -17522,10 +17508,7 @@
           "markManyUnread_one": "{{count}} Agenten als ungelesen markieren",
           "markManyUnread_other": "{{count}} Agenten als ungelesen markieren",
           "clearMany_one": "{{count}} Agenten aus der Liste entfernen",
-          "clearMany_other": "{{count}} Agenten aus der Liste entfernen",
-          "markManyRead": "{{count}} Agenten als gelesen markieren",
-          "markManyUnread": "{{count}} Agenten als ungelesen markieren",
-          "clearMany": "{{count}} Agenten aus der Liste entfernen"
+          "clearMany_other": "{{count}} Agenten aus der Liste entfernen"
         }
       },
       "confirmation": {
@@ -19211,7 +19194,6 @@
         "editFailed": "Diese Nachricht kann nicht bearbeitet werden.",
         "editGone": "Diese Nachricht wurde bereits gesendet oder entfernt. Die bearbeitete Fassung steht im Chat-Eingabefeld.",
         "editGonePrompt": "Diese Nachricht wurde bereits gesendet oder entfernt. Die bearbeitete Fassung steht nach der Antwort an den Agenten im Chat-Eingabefeld.",
-        "imageCount": "{{count}} Bilder",
         "imageCount_one": "{{count}} Bild",
         "imageCount_other": "{{count}} Bilder",
         "collapse": "Einklappen",
@@ -20106,7 +20088,25 @@
       "existingReview": "Für diesen Branch gibt es bereits einen {{reviewLabel}}.",
       "creationUnconfirmed": "{{shortLabel}} wurde möglicherweise erstellt. Der Review-Status des Branches wird aktualisiert…",
       "withDetail": "Erstellen von {{shortLabel}} fehlgeschlagen: {{detail}}",
-      "pushFailed": "Push fehlgeschlagen. Den Push-Fehler beheben und erneut versuchen."
+      "pushFailed": "Push fehlgeschlagen. Den Push-Fehler beheben und erneut versuchen.",
+      "stacked": {
+        "stackGithubOnly": "Das Erstellen von Pull Requests in einem Stack ist nur für GitHub-Repositorys verfügbar.",
+        "stackGithubComOnly": "Pull Requests in einem GitHub-Stack sind nur auf GitHub.com verfügbar.",
+        "stackSameParent": "Vor dem Erstellen eines Pull Requests in einem Stack einen anderen übergeordneten Branch auswählen.",
+        "stackParentWithoutReview": "Der übergeordnete Branch {{base}} hat keinen offenen Pull Request. Diesen Pull Request zuerst erstellen.",
+        "stackParentAmbiguous": "Orca hat mehrere offene Pull Requests für den übergeordneten Branch {{base}} gefunden.",
+        "stackHeadAmbiguous": "Orca hat mehrere offene Pull Requests für den aktuellen Branch {{head}} gefunden.",
+        "stackParentMultipleStacks": "Der ausgewählte übergeordnete Pull Request gehört zu mehreren Stacks.",
+        "stackParentClosed": "Der ausgewählte übergeordnete Pull Request gehört zu einem geschlossenen Stack.",
+        "stackParentNotTop": "Vor dem Hinzufügen einer weiteren Ebene den obersten Pull Request im Stack als Basis-Branch auswählen.",
+        "stackConflict": "Der Pull Request gehört bereits zu einem anderen GitHub-Stack.",
+        "stacksUnavailable": "Pull Requests in einem GitHub-Stack sind für dieses Repository nicht verfügbar.",
+        "stackParentUnverified": "Orca konnte den übergeordneten Pull Request nicht überprüfen. In Kürze erneut versuchen.",
+        "stackExistingReviewOtherBase": "Für diesen Branch gibt es bereits einen offenen Pull Request, der aber nicht auf den ausgewählten übergeordneten Branch zielt.",
+        "stackCreationUnconfirmed": "Der Pull Request wurde möglicherweise bereits erstellt. Erneut versuchen, um die Stack-Registrierung abzuschließen.",
+        "stackRegistrationUnavailable": "Der Pull Request wurde erstellt, aber GitHub-Stacks sind für dieses Repository nicht verfügbar.",
+        "stackRegistrationFailed": "Der Pull Request wurde erstellt, aber GitHub konnte ihn nicht zum Stack hinzufügen. Erneut versuchen, um die Stack-Registrierung abzuschließen."
+      }
     },
     "model": {
       "auto": "Automatisch",
@@ -20135,6 +20135,58 @@
       "patch": "Der Diff zwischen dem Branch und dem Basis-Branch für die Generierung der PR-Details.",
       "stagedFiles": "Eine durch Zeilenumbrüche getrennte Liste der vorgemerkten Dateien für die Generierung der Commit-Nachricht.",
       "stagedPatch": "Der vorgemerkte Git-Patch für die Generierung der Commit-Nachricht."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "Der Prompt für {{label}} ist für die Windows-Befehlszeile zu groß. Weniger Änderungen vormerken und erneut versuchen.",
+        "promptTooLargeForArgument": "Der Prompt für {{label}} ist zu groß, um ihn als einzelnes Befehlszeilenargument zu übergeben. Weniger Änderungen vormerken und erneut versuchen.",
+        "agentCouldNotStart": "{{label}} konnte nicht gestartet werden. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentFailedToStart": "Der Start von {{label}} ist fehlgeschlagen. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentBinaryNotFound": "{{binary}} wurde in PATH nicht gefunden. {{label}} installieren, um KI-generierte Commit-Nachrichten zu nutzen.",
+        "timedOut": "Zeitüberschreitung bei der Generierung nach {{seconds}} s.",
+        "outputTooLarge": "Der CLI-Befehl von {{label}} hat zu viel Ausgabe erzeugt. Die CLI-Konfiguration des Agenten prüfen und erneut versuchen.",
+        "windowsBatchUnsafeArguments": "{{label}} wird über ein Windows-Batchskript ausgeführt, das den mehrzeiligen Prompt nicht als Argument annehmen kann. In den Einstellungen die ausführbare Datei des Agenten angeben oder einen benutzerdefinierten Befehl ohne {prompt} verwenden, damit Orca den Prompt über stdin sendet.",
+        "cliTerminated": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet.",
+        "cliTerminatedWithDetail": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet: {{detail}}",
+        "cliFailed": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen.",
+        "cliFailedWithDetail": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen: {{detail}}",
+        "agentReportedError": "{{label}} hat einen Fehler gemeldet.",
+        "emptyCommitMessage": "{{label}} hat eine leere Nachricht zurückgegeben.",
+        "emptyCommitMessageWithDetail": "{{label}} hat eine leere Nachricht zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} hat leere Details zurückgegeben.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} hat leere Details zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyJiraSummary": "{{label}} hat eine leere Zusammenfassung zurückgegeben.",
+        "emptyJiraSummaryWithDetail": "{{label}} hat eine leere Zusammenfassung zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "commitMessageUnparseable": "Die generierte Commit-Nachricht konnte nicht geparst werden.",
+        "pullRequestDetailsUnparseable": "Die generierten Pull-Request-Details konnten nicht geparst werden.",
+        "jiraSummaryEmptyAfterSanitization": "Die generierte Zusammenfassung war nach der Bereinigung leer.",
+        "jiraDescriptionRequired": "Eine Beschreibung ist erforderlich.",
+        "jiraAccountDisconnected": "Das ausgewählte Jira-Konto auf diesem Host erneut verbinden.",
+        "jiraSummaryBusyInOtherDraft": "In einem anderen Entwurf wird bereits ein Jira-Titel generiert.",
+        "stagedChangesReadFailed": "Vorgemerkte Änderungen konnten nicht gelesen werden.",
+        "noStagedChanges": "Keine vorgemerkten Änderungen zum Zusammenfassen.",
+        "noBranchChanges": "Keine Änderungen im Branch zum Zusammenfassen.",
+        "commandTemplateEmptyCommitMessage": "Die Befehlsvorlage für Commit-Nachrichten ist leer.",
+        "commandTemplateEmptyPullRequest": "Die Befehlsvorlage für Pull-Request-Details ist leer.",
+        "commandTemplateEmptyBranchName": "Die Befehlsvorlage für Branch-Namen ist leer.",
+        "commandTemplateEmptyChatName": "Die Befehlsvorlage für Chat-Namen ist leer.",
+        "sourceControlAgentUnsupported": "Für diese Aktion unter Einstellungen -> Git -> KI für die Quellcodeverwaltung einen unterstützten Agenten auswählen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "chatNameAgentUnsupported": "Für diese Aktion unter Einstellungen -> Chat -> Chat-Namen einen unterstützten Agenten für Chat-Namen auswählen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "sourceControlCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen -> Git -> KI für die Quellcodeverwaltung einen hinzufügen.",
+        "chatNameCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen -> Chat -> Chat-Namen einen hinzufügen.",
+        "agentCannotGenerateCommitMessage": "Agent „{{agent}}“ unterstützt keine Commit-Nachrichten über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGeneratePullRequest": "Agent „{{agent}}“ unterstützt keine Pull-Request-Details über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGenerateBranchName": "Agent „{{agent}}“ unterstützt keine Branch-Namen über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGenerateChatName": "Agent „{{agent}}“ unterstützt keine Chat-Namen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "noModelForAgent": "Für {{label}} ist kein Modell verfügbar.",
+        "planCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen → Git → KI-Commit-Nachrichten einen hinzufügen.",
+        "planAgentUnsupported": "Agent „{{agent}}“ unterstützt keine KI-generierten Commit-Nachrichten.",
+        "planModelUnavailable": "Modell „{{model}}“ ist für {{label}} nicht verfügbar.",
+        "planModelWithoutThinking": "Modell „{{model}}“ unterstützt keine Einstellung des Denkaufwands.",
+        "planThinkingLevelInvalid": "Die Denkstufe „{{level}}“ ist für {{model}} nicht gültig."
+      },
+      "enableSourceControlAi": "KI für die Quellcodeverwaltung unter Einstellungen -> Git aktivieren.",
+      "chooseBaseBranch": "Vor dem Generieren einen Basis-Branch auswählen."
     }
   },
   "agentsSidebarIntro": {
@@ -20378,13 +20430,10 @@
       "resumableBody": "Hier erneut öffnen, um weiterzuarbeiten. Die Agentensitzung wird fortgesetzt.",
       "reopening": "Wird erneut geöffnet…",
       "tryAgain": "Erneut versuchen",
-      "reopenTerminal": "{{count}} Terminals erneut öffnen",
       "reopenTerminal_one": "Terminal erneut öffnen",
       "reopenTerminal_other": "{{count}} Terminals erneut öffnen",
-      "reopened": "{{count}} Terminals erneut geöffnet",
       "reopened_one": "{{count}} Terminal erneut geöffnet",
       "reopened_other": "{{count}} Terminals erneut geöffnet",
-      "resumed": "{{count}} Agentensitzungen fortgesetzt.",
       "resumed_one": "{{count}} Agentensitzung fortgesetzt.",
       "resumed_other": "{{count}} Agentensitzungen fortgesetzt."
     },
@@ -20395,7 +20444,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "seine laufenden Terminals",
-      "count": "{{count}} laufende Terminals",
       "unverifiable": "Orca konnte den Prozess des Terminaldienstes nicht verifizieren. Daher wurde nichts gestoppt.",
       "alreadyReplaced": "Der Terminaldienst wurde bereits ersetzt. Es wurde nichts gestoppt.",
       "restarted": "Terminaldienst neu gestartet.",
@@ -21774,6 +21822,72 @@
         "settingUp": "Das Projekt wird auf dem ausgewählten Automatisierungs-Host noch eingerichtet.",
         "error": "Die Projekteinrichtung auf dem ausgewählten Automatisierungs-Host ist fehlgeschlagen.",
         "unsupported": "Der ausgewählte Automatisierungs-Host unterstützt dieses Projekt nicht."
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Titel ist erforderlich",
+      "networkError": "Netzwerkfehler — Verbindung überprüfen.",
+      "invalidUpdate": "Ungültige Aktualisierung — {{detail}}",
+      "invalidRequest": "Ungültige Anfrage — {{detail}}",
+      "issueNotFound": "Issue nicht gefunden — es wurde möglicherweise gelöscht.",
+      "issueUpdateFailed": "Issue konnte nicht aktualisiert werden: {{detail}}",
+      "github": {
+        "repoUnresolved": "owner/repo für dieses Repository auf GitHub konnte nicht ermittelt werden",
+        "unexpectedResponse": "Unerwartete Antwort von GitHub",
+        "pullRequestIdUnresolved": "GitHub-Pull-Request-ID konnte nicht ermittelt werden",
+        "reviewerRequired": "Mindestens einen Prüfer eingeben",
+        "stackAutoMergeUnsupported": "GitHub unterstützt keinen automatischen Merge für Pull Requests in einem Stack.",
+        "autoMergeAlreadyMergeable": "Dieser Pull Request kann bereits gemergt werden. Statt automatischem Merge „Mergen“ verwenden.",
+        "noFailedChecks": "Keine fehlgeschlagenen Checks von GitHub Actions zum erneuten Ausführen.",
+        "noRerunnableChecks": "Keine erneut ausführbaren Checks gefunden.",
+        "stackMergeInvalidResponse": "GitHub hat eine ungültige Antwort zum Stack-Merge zurückgegeben.",
+        "stackMergePending": "GitHub mergt diesen Stack noch. Zum Prüfen des Status aktualisieren.",
+        "rateLimited": "GitHub-Ratenlimit erreicht. In einigen Minuten erneut versuchen.",
+        "issuePermissionDenied": "Keine Berechtigung zum Bearbeiten dieses Issues. GitHub-Token-Berechtigungen prüfen.",
+        "issuesDisabled": "Issues sind für dieses Repository deaktiviert.",
+        "pullRequestPermissionDenied": "Keine Berechtigung zum Bearbeiten dieses Pull Requests. GitHub-Token-Berechtigungen prüfen.",
+        "pullRequestNotFound": "Pull Request nicht gefunden — er wurde möglicherweise gelöscht.",
+        "pullRequestUpdateFailed": "Pull Request konnte nicht aktualisiert werden: {{detail}}",
+        "autoMergeEnableFailed": "Automatischer Merge für den Pull Request konnte nicht aktiviert werden: {{detail}}",
+        "autoMergeDisableFailed": "Automatischer Merge für den Pull Request konnte nicht deaktiviert werden: {{detail}}",
+        "mergeQueueAddFailed": "Pull Request konnte nicht zur Merge-Warteschlange hinzugefügt werden: {{detail}}",
+        "rerunPermissionDenied": "Keine Berechtigung zum erneuten Ausführen von Checks in diesem Repository. GitHub-Token-Berechtigungen prüfen.",
+        "rerunTargetNotFound": "GitHub-Ressource zum erneuten Ausführen nicht gefunden — sie ist möglicherweise abgelaufen oder wurde gelöscht.",
+        "rerunRejected": "Checks konnten nicht erneut ausgeführt werden — {{detail}}",
+        "rerunFailed": "Checks konnten nicht erneut ausgeführt werden: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "GitLab-Projekt für dieses Repository konnte nicht ermittelt werden",
+        "unexpectedResponse": "Unerwartete Antwort von GitLab",
+        "commentBodyRequired": "Kommentartext ist erforderlich",
+        "discussionIdRequired": "Diskussions-ID ist erforderlich",
+        "readyTitleConflict": "Beim Markieren eines Merge Requests als bereit kann der Titel nicht aktualisiert werden",
+        "mergeRequestTitleUnreadable": "Aktueller Merge-Request-Titel konnte nicht gelesen werden",
+        "rateLimited": "GitLab-Ratenlimit erreicht. In einigen Minuten erneut versuchen.",
+        "issuePermissionDenied": "Keine Berechtigung zum Bearbeiten dieses Issues. GitLab-Token-Berechtigungen prüfen.",
+        "jobLogPermissionDenied": "Keine Berechtigung zum Lesen dieses Job-Protokolls. GitLab-Token-Berechtigungen prüfen.",
+        "jobProjectNotFound": "GitLab-Projekt dieses Jobs konnte nicht gefunden werden.",
+        "jobLogFailed": "Job-Protokoll konnte nicht geladen werden: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repo nicht gefunden",
+      "folderUnsupported": "Im Ordnermodus können keine Worktrees erstellt werden.",
+      "fetchFailed": "{{ref}} konnte nicht gefetcht werden: {{detail}}",
+      "remoteRefMissing": "Remote-Ref {{ref}} ist nach dem Fetch nicht vorhanden.",
+      "github": {
+        "prNotFound": "PR #{{number}} nicht gefunden.",
+        "prHeadBranchMissing": "PR #{{number}} hat keinen Quell-Branch.",
+        "forkHeadUnresolved": "Der Head von Fork-PR #{{number}} konnte nach dem Fetch nicht aufgelöst werden.",
+        "headShaEmpty": "Leerer SHA-Wert beim Auflösen des Heads von PR #{{number}}."
+      },
+      "gitlab": {
+        "projectNotFound": "Kein GitLab-Projekt für dieses Repository gefunden.",
+        "mrNotFound": "MR !{{number}} nicht gefunden.",
+        "mrSourceBranchMissing": "MR !{{number}} hat keinen Quell-Branch.",
+        "forkHeadUnresolved": "Der Head von Fork-MR !{{number}} konnte nach dem Fetch nicht aufgelöst werden."
       }
     }
   }

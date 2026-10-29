@@ -677,10 +677,8 @@
       "permissionSameAsAll": "Tüm ajanlarla aynı",
       "permissionChipRemove": "{{flag}} seçeneğini kaldır ve {{agent}} ajanının kendi ayarlarını kullan",
       "permissionChipTooltip": "İzinler bölümünden eklendi. {{agent}} ajanının kendi ayarlarını kullanmak için kaldırın.",
-      "permissionOverridesKept": "{{count}} ajan hâlâ kendi izin ayarını kullanıyor:",
       "permissionOverridesKept_one": "{{count}} ajan hâlâ kendi izin ayarını kullanıyor:",
       "permissionOverridesKept_other": "{{count}} ajan hâlâ kendi izin ayarını kullanıyor:",
-      "permissionOverridesFollow": "{{count}} ajan artık {{mode}} ayarını kullanıyor",
       "permissionOverridesFollow_one": "{{count}} ajan artık {{mode}} ayarını kullanıyor",
       "permissionOverridesFollow_other": "{{count}} ajan artık {{mode}} ayarını kullanıyor",
       "permissionOverrideFollows": "{{agent}} artık {{mode}} ayarını kullanıyor",
@@ -1675,7 +1673,6 @@
         "folderWorkspaceCreateFailedMessage": "Klasör çalışma alanı oluşturulamadı. Yukarıdaki hata ayrıntılarını kontrol edip tekrar deneyin.",
         "setupAgentStartupPolicySaveFailed": "Kurulum başlangıç davranışı kaydedilemedi.",
         "5f3d2c8a1b": "MR tabanı belirlenemedi.",
-        "dropPartiallyAttached": "{{count}} öğeden {{failureCount}} tanesi eklenemedi.",
         "dropPartiallyAttached_one": "{{count}} öğeden {{failureCount}} tanesi eklenemedi.",
         "dropPartiallyAttached_other": "{{count}} öğeden {{failureCount}} tanesi eklenemedi."
       },
@@ -1692,7 +1689,6 @@
         "workspaceOpenFailed": "{{fileName}} açılamadı. Kaynak çalışma alanından açıp tekrar deneyin.",
         "nativeDropUnresolvedPathsDescription": "Önce diske kaydedin, ardından kaydedilen dosyaları bırakın.",
         "nativeDropUnresolvedPaths": "Orca, bırakılan dosyalar için bir yol okuyamadı.",
-        "nativeDropTempCopyFailed": "Orca, bırakılan {{count}} dosyayı kopyalayamadı.",
         "nativeDropTempCopyFailed_one": "Orca, bırakılan {{count}} dosyayı kopyalayamadı.",
         "nativeDropTempCopyFailed_other": "Orca, bırakılan {{count}} dosyayı kopyalayamadı."
       },
@@ -6839,23 +6835,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git, merge edilmemiş commit'ler içerebileceği için {{count}} yerel branch'i korudu. Korunan branch'ler çalışma alanı klasörlerini tutmaz; commit'leri repoda kalır. Orca, arka planda çalışma alanı disk alanını boşaltmaya devam edebilir.",
                 "a3cdd9d9e6_one": "Git, merge edilmemiş commit'ler içerebileceği için {{count}} yerel branch'i korudu. Korunan branch'ler çalışma alanı klasörlerini tutmaz; commit'leri repoda kalır. Orca, arka planda çalışma alanı disk alanını boşaltmaya devam edebilir.",
                 "a3cdd9d9e6_other": "Git, merge edilmemiş commit'ler içerebileceği için {{count}} yerel branch'i korudu. Korunan branch'ler çalışma alanı klasörlerini tutmaz; commit'leri repoda kalır. Orca, arka planda çalışma alanı disk alanını boşaltmaya devam edebilir.",
-                "6310412304": "{{count}} Branch'i İncele",
                 "6310412304_one": "{{count}} Branch'i İncele",
                 "6310412304_other": "{{count}} Branch'i İncele",
-                "cea24c2b7d": "{{count}} çalışma alanı kaldırıldı",
                 "cea24c2b7d_one": "{{count}} çalışma alanı kaldırıldı",
                 "cea24c2b7d_other": "{{count}} çalışma alanı kaldırıldı",
-                "0e0379f24a": "{{count}} branch korundu",
                 "0e0379f24a_one": "{{count}} branch korundu",
                 "0e0379f24a_other": "{{count}} branch korundu",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "Yerel branch'ler siliniyor: {{value0}}",
                 "1e1a5f6763": "Silinen yerel branch'ler: {{value0}}",
                 "43d9395605": "{{value0}} silindi, {{value1}} silinmedi",
-                "d42f1f14e0": "{{count}} Branch'i Yeniden Dene",
                 "d42f1f14e0_one": "{{count}} Branch'i Yeniden Dene",
                 "d42f1f14e0_other": "{{count}} Branch'i Yeniden Dene"
               }
@@ -6870,7 +6861,6 @@
           "ee39e872d5": "Merge edilmemiş olabilir",
           "676db406fd": "HEAD kullanılamıyor",
           "285e1e4882": "İptal",
-          "a0f9863597": "{{count}} Branch'i Zorla Sil",
           "a0f9863597_one": "{{count}} Branch'i Zorla Sil",
           "a0f9863597_other": "{{count}} Branch'i Zorla Sil"
         },
@@ -12414,10 +12404,8 @@
           "olderTerminalsUnverifiable": "Orca, eski bir sürümünün başlattığı terminallerin kapandığını doğrulayamadı. Yeniden denemek için tekrar bağlanın.",
           "olderTerminals_one": "Orca'nın eski bir sürümünün başlattığı {{count}} terminal bu ana makinede hâlâ çalışıyor ve kendiliğinden durmuyor. İlgili Orca sürümünde kapatın veya ana makinede sonlandırın, ardından yeniden bağlanın.",
           "olderTerminals_other": "Orca'nın eski bir sürümünün başlattığı {{count}} terminal bu ana makinede hâlâ çalışıyor ve kendiliğinden durmuyor. İlgili Orca sürümünde kapatın veya ana makinede sonlandırın, ardından yeniden bağlanın.",
-          "olderTerminals": "Orca'nın eski bir sürümünün başlattığı {{count}} terminal bu ana makinede hâlâ çalışıyor ve kendiliğinden durmuyor. İlgili Orca sürümünde kapatın veya ana makinede sonlandırın, ardından yeniden bağlanın.",
           "linkedProjects_one": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri ve {{count}} otomasyonu taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
           "linkedProjects_other": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri ve {{count}} otomasyonu taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
-          "linkedProjects": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri ve {{count}} otomasyonu taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
           "linkedProjectsNoAutomations": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
           "automationsLeftDisabled_one": "Bu sunucunun Orca sunucusuna devredilen {{count}} otomasyon yeniden etkinleştirilemedi. Otomasyonlar bölümünden etkinleştirin.",
           "automationsLeftDisabled_other": "Bu sunucunun Orca sunucusuna devredilen {{count}} otomasyon yeniden etkinleştirilemedi. Otomasyonlar bölümünden etkinleştirin.",
@@ -12436,8 +12424,7 @@
           "refusedLeaveBehind": "Bu sunucuya ait bazı kayıtlı öğeler sunucunun Orca sunucusuna taşınamıyor: {{items}}. Yine de taşı seçeneğiyle sunucuya bağlanılır ve bu öğeler bu bilgisayarda tutulur.",
           "refusedLeaveBehindUnnamed": "Bu sunucuya ait bazı kayıtlı öğeler sunucunun Orca sunucusuna taşınamıyor. Yine de taşı seçeneğiyle sunucuya bağlanılır ve bu öğeler bu bilgisayarda tutulur.",
           "windowsBuildUnsupported": "Bu sunucuda Windows 10 ve Windows Server 2016'dan eski bir Windows sürümü çalışıyor; bu nedenle Orca sunucusu çalıştırılamaz. Daha yeni bir Windows sürümü olan bir sunucu ya da Linux veya macOS sunucusu kullanın.",
-          "windowsNoExtractor": "Bu Windows sunucusunda ne tar.exe ne de PowerShell'in Expand-Archive komutu var; bu yüzden Orca sunucusunun paketi burada açılamıyor. Sunucuya Windows PowerShell 5.1 yükleyin, ardından yeniden bağlanın.",
-          "automationsLeftDisabled": "Bu sunucunun Orca sunucusuna devredilen {{count}} otomasyon yeniden etkinleştirilemedi. Otomasyonlar bölümünden etkinleştirin."
+          "windowsNoExtractor": "Bu Windows sunucusunda ne tar.exe ne de PowerShell'in Expand-Archive komutu var; bu yüzden Orca sunucusunun paketi burada açılamıyor. Sunucuya Windows PowerShell 5.1 yükleyin, ardından yeniden bağlanın."
         },
         "ZcodeCliSetupSection": {
           "title": "GLM'yi ZCode ile kullanın",
@@ -15460,7 +15447,6 @@
           "0f806a2ab1": "İptal",
           "b6c3b84476": "Dosya ağacını göster",
           "39f8007549": "Conflict'leri incele",
-          "skippedConflictsExcluded": "{{count}} çözülmemiş conflict bu diff görünümünden hariç tutuldu.",
           "skippedConflictsExcluded_one": "{{count}} çözülmemiş conflict bu diff görünümünden hariç tutuldu.",
           "skippedConflictsExcluded_other": "{{count}} çözülmemiş conflict bu diff görünümünden hariç tutuldu.",
           "820ec01f24": "Conflict'li dosyalar ayrı incelenir",
@@ -17508,10 +17494,7 @@
           "markManyUnread_one": "{{count}} ajanı okunmadı olarak işaretle",
           "markManyUnread_other": "{{count}} ajanı okunmadı olarak işaretle",
           "clearMany_one": "{{count}} ajanı listeden kaldır",
-          "clearMany_other": "{{count}} ajanı listeden kaldır",
-          "markManyRead": "{{count}} ajanı okundu olarak işaretle",
-          "markManyUnread": "{{count}} ajanı okunmadı olarak işaretle",
-          "clearMany": "{{count}} ajanı listeden kaldır"
+          "clearMany_other": "{{count}} ajanı listeden kaldır"
         }
       },
       "confirmation": {
@@ -19198,7 +19181,6 @@
         "editFailed": "Bu mesaj düzenlenemiyor.",
         "editGone": "Bu mesaj zaten gönderildi veya kaldırıldı. Düzenlediğiniz metin sohbet kutusunda.",
         "editGonePrompt": "Bu mesaj zaten gönderildi veya kaldırıldı. Ajana yanıt verdikten sonra düzenlediğiniz metin sohbet kutusuna getirilecek.",
-        "imageCount": "{{count}} görsel",
         "imageCount_one": "{{count}} görsel",
         "imageCount_other": "{{count}} görsel",
         "collapse": "Daralt",
@@ -20087,7 +20069,25 @@
       "existingReview": "Bu branch için zaten bir {{reviewLabel}} var.",
       "creationUnconfirmed": "{{shortLabel}} oluşturma işlemi tamamlanmış olabilir. Branch'in inceleme durumu yenileniyor…",
       "withDetail": "{{shortLabel}} oluşturulamadı: {{detail}}",
-      "pushFailed": "Gönderme işlemi yapılamadı. Gönderme hatasını giderip tekrar deneyin."
+      "pushFailed": "Gönderme işlemi yapılamadı. Gönderme hatasını giderip tekrar deneyin.",
+      "stacked": {
+        "stackGithubOnly": "Yığındaki pull request'ler yalnızca GitHub repository'lerinde oluşturulabilir.",
+        "stackGithubComOnly": "Yığındaki GitHub pull request'leri yalnızca GitHub.com'da kullanılabilir.",
+        "stackSameParent": "Yığındaki bir pull request oluşturmadan önce farklı bir üst branch seçin.",
+        "stackParentWithoutReview": "{{base}} üst branch'i için açık bir pull request yok. Önce bu pull request'i oluşturun.",
+        "stackParentAmbiguous": "Orca, {{base}} üst branch'i için birden fazla açık pull request buldu.",
+        "stackHeadAmbiguous": "Orca, mevcut {{head}} branch'i için birden fazla açık pull request buldu.",
+        "stackParentMultipleStacks": "Seçilen üst pull request birden fazla yığına ait.",
+        "stackParentClosed": "Seçilen üst pull request kapalı bir yığına ait.",
+        "stackParentNotTop": "Yeni bir katman eklemeden önce yığının en üstündeki pull request'i temel branch olarak seçin.",
+        "stackConflict": "Pull request zaten farklı bir GitHub yığınına ait.",
+        "stacksUnavailable": "Bu repository için GitHub pull request yığınları kullanılamıyor.",
+        "stackParentUnverified": "Orca üst pull request'i doğrulayamadı. Birazdan yeniden deneyin.",
+        "stackExistingReviewOtherBase": "Bu branch için zaten açık bir pull request var, ancak seçilen üst branch'i hedeflemiyor.",
+        "stackCreationUnconfirmed": "Pull request oluşturulmuş olabilir. Yığın kaydını tamamlamak için yeniden deneyin.",
+        "stackRegistrationUnavailable": "Pull request oluşturuldu, ancak bu repository için GitHub yığınları kullanılamıyor.",
+        "stackRegistrationFailed": "Pull request oluşturuldu, ancak GitHub bunu yığına ekleyemedi. Yığın kaydını tamamlamak için yeniden deneyin."
+      }
     },
     "model": {
       "auto": "Otomatik",
@@ -20116,6 +20116,58 @@
       "patch": "PR ayrıntılarını oluşturmak için kullanılan, branch'in temel branch'e göre diff'i.",
       "stagedFiles": "Commit mesajı oluşturmak için hazırlama alanına alınmış dosyaların satır sonlarıyla ayrılmış listesi.",
       "stagedPatch": "Commit mesajı oluşturmak için kullanılan, hazırlama alanına alınmış git yaması."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} istemi Windows komut satırı için çok büyük. Daha az değişikliği stage'e ekleyip yeniden deneyin.",
+        "promptTooLargeForArgument": "{{label}} istemi tek bir komut satırı argümanı olarak iletilemeyecek kadar büyük. Daha az değişikliği stage'e ekleyip yeniden deneyin.",
+        "agentCouldNotStart": "{{label}} başlatılamadı. Ayarlar bölümündeki ajan komutunu kontrol edip yeniden deneyin.",
+        "agentFailedToStart": "{{label}} başlatılamadı. Ayarlar bölümündeki ajan komutunu kontrol edip yeniden deneyin.",
+        "agentBinaryNotFound": "PATH içinde {{binary}} bulunamadı. Yapay zekâ destekli commit mesajlarını kullanmak için {{label}} yükleyin.",
+        "timedOut": "Oluşturma işlemi {{seconds}} saniye sonra zaman aşımına uğradı.",
+        "outputTooLarge": "{{label}} CLI komutu çok fazla çıktı üretti. Ajanın CLI yapılandırmasını kontrol edip yeniden deneyin.",
+        "windowsBatchUnsafeArguments": "{{label}}, çok satırlı istemi argüman olarak alamayan bir Windows toplu iş betiği üzerinden çalışır. Ayarlar bölümünde ajanın yürütülebilir dosyasını belirtin veya Orca'nın istemi stdin üzerinden göndermesi için {prompt} içermeyen özel bir komut kullanın.",
+        "cliTerminated": "{{label}} CLI komutu tamamlanmadan sonlandırıldı.",
+        "cliTerminatedWithDetail": "{{label}} CLI komutu tamamlanmadan sonlandırıldı: {{detail}}",
+        "cliFailed": "{{label}} CLI komutu {{exitCode}} hata koduyla sonlandı.",
+        "cliFailedWithDetail": "{{label}} CLI komutu {{exitCode}} hata koduyla sonlandı: {{detail}}",
+        "agentReportedError": "{{label}} bir hata bildirdi.",
+        "emptyCommitMessage": "{{label}} boş bir mesaj döndürdü.",
+        "emptyCommitMessageWithDetail": "{{label}} boş bir mesaj döndürdü. CLI çıktısı: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} boş ayrıntılar döndürdü.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} boş ayrıntılar döndürdü. CLI çıktısı: {{detail}}",
+        "emptyJiraSummary": "{{label}} boş bir özet döndürdü.",
+        "emptyJiraSummaryWithDetail": "{{label}} boş bir özet döndürdü. CLI çıktısı: {{detail}}",
+        "commitMessageUnparseable": "Oluşturulan commit mesajı ayrıştırılamadı.",
+        "pullRequestDetailsUnparseable": "Oluşturulan pull request ayrıntıları ayrıştırılamadı.",
+        "jiraSummaryEmptyAfterSanitization": "Oluşturulan özet temizleme sonrasında boş kaldı.",
+        "jiraDescriptionRequired": "Açıklama zorunludur.",
+        "jiraAccountDisconnected": "Bu ana makinede seçili Jira hesabını yeniden bağlayın.",
+        "jiraSummaryBusyInOtherDraft": "Başka bir taslakta zaten bir Jira başlığı oluşturuluyor.",
+        "stagedChangesReadFailed": "Stage'e eklenen değişiklikler okunamadı.",
+        "noStagedChanges": "Özetlenecek stage'e eklenmiş değişiklik yok.",
+        "noBranchChanges": "Özetlenecek branch değişikliği yok.",
+        "commandTemplateEmptyCommitMessage": "Commit mesajları için komut şablonu boş.",
+        "commandTemplateEmptyPullRequest": "Pull request ayrıntıları için komut şablonu boş.",
+        "commandTemplateEmptyBranchName": "Branch adları için komut şablonu boş.",
+        "commandTemplateEmptyChatName": "Sohbet adları için komut şablonu boş.",
+        "sourceControlAgentUnsupported": "Bu eylem için Ayarlar -> Git -> Kaynak Kontrolü AI bölümünde desteklenen bir ajan seçin. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "chatNameAgentUnsupported": "Bu eylem için Ayarlar -> Sohbet -> Sohbet adları bölümünde desteklenen bir sohbet adı oluşturma ajanı seçin. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "sourceControlCustomCommandEmpty": "Özel komut boş. Ayarlar -> Git -> Kaynak Kontrolü AI bölümünde bir komut ekleyin.",
+        "chatNameCustomCommandEmpty": "Özel komut boş. Ayarlar -> Sohbet -> Sohbet adları bölümünde bir komut ekleyin.",
+        "agentCannotGenerateCommitMessage": "\"{{agent}}\" ajanı Kaynak Kontrolü AI commit mesajlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGeneratePullRequest": "\"{{agent}}\" ajanı Kaynak Kontrolü AI pull request ayrıntılarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGenerateBranchName": "\"{{agent}}\" ajanı Kaynak Kontrolü AI branch adlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGenerateChatName": "\"{{agent}}\" ajanı sohbet adlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "noModelForAgent": "{{label}} için kullanılabilir model yok.",
+        "planCustomCommandEmpty": "Özel komut boş. Ayarlar → Git → Yapay Zekâ Destekli Commit Mesajları bölümünde bir komut ekleyin.",
+        "planAgentUnsupported": "\"{{agent}}\" ajanı yapay zekâ destekli commit mesajlarını desteklemiyor.",
+        "planModelUnavailable": "\"{{model}}\" modeli {{label}} için kullanılamıyor.",
+        "planModelWithoutThinking": "\"{{model}}\" modeli düşünme çabası düzeyini desteklemiyor.",
+        "planThinkingLevelInvalid": "\"{{level}}\" düşünme düzeyi {{model}} için geçerli değil."
+      },
+      "enableSourceControlAi": "Ayarlar -> Git bölümünde Kaynak Kontrolü AI özelliğini etkinleştirin.",
+      "chooseBaseBranch": "Oluşturmadan önce bir temel branch seçin."
     }
   },
   "agentsSidebarIntro": {
@@ -20359,13 +20411,10 @@
       "resumableBody": "Çalışmaya devam etmek için burada yeniden açın. Ajan oturumunuz sürdürülecek.",
       "reopening": "Yeniden açılıyor…",
       "tryAgain": "Yeniden dene",
-      "reopenTerminal": "{{count}} terminali yeniden aç",
       "reopenTerminal_one": "Terminali yeniden aç",
       "reopenTerminal_other": "{{count}} terminali yeniden aç",
-      "reopened": "{{count}} terminal yeniden açıldı",
       "reopened_one": "{{count}} terminal yeniden açıldı",
       "reopened_other": "{{count}} terminal yeniden açıldı",
-      "resumed": "{{count}} ajan oturumu sürdürüldü.",
       "resumed_one": "{{count}} ajan oturumu sürdürüldü.",
       "resumed_other": "{{count}} ajan oturumu sürdürüldü."
     },
@@ -20376,7 +20425,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "hizmetin çalışan terminalleri",
-      "count": "{{count}} çalışan terminal",
       "unverifiable": "Orca terminal hizmeti sürecini doğrulayamadığı için hiçbir şey durdurulmadı.",
       "alreadyReplaced": "Terminal hizmeti zaten değiştirilmiş; hiçbir şey durdurulmadı.",
       "restarted": "Terminal hizmeti yeniden başlatıldı.",
@@ -21755,6 +21803,72 @@
         "settingUp": "Proje seçili otomasyon sunucusunda hâlâ kuruluyor.",
         "error": "Proje seçili otomasyon sunucusunda kurulamadı.",
         "unsupported": "Seçili otomasyon sunucusu bu projeyi desteklemiyor."
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Başlık zorunludur",
+      "networkError": "Ağ hatası — bağlantınızı kontrol edin.",
+      "invalidUpdate": "Geçersiz güncelleme — {{detail}}",
+      "invalidRequest": "Geçersiz istek — {{detail}}",
+      "issueNotFound": "Sorun bulunamadı — silinmiş olabilir.",
+      "issueUpdateFailed": "Sorun güncellenemedi: {{detail}}",
+      "github": {
+        "repoUnresolved": "Bu repository için GitHub owner/repo bilgisi belirlenemedi",
+        "unexpectedResponse": "GitHub'dan beklenmeyen yanıt",
+        "pullRequestIdUnresolved": "GitHub pull request ID'si belirlenemedi",
+        "reviewerRequired": "En az bir inceleyen belirtin",
+        "stackAutoMergeUnsupported": "GitHub, yığındaki pull request'ler için otomatik merge'i desteklemiyor.",
+        "autoMergeAlreadyMergeable": "Bu pull request zaten merge edilebilir. Otomatik merge yerine Merge kullanın.",
+        "noFailedChecks": "Yeniden çalıştırılacak başarısız GitHub Actions kontrolü yok.",
+        "noRerunnableChecks": "Yeniden çalıştırılabilir kontrol bulunamadı.",
+        "stackMergeInvalidResponse": "GitHub geçersiz bir yığın merge yanıtı döndürdü.",
+        "stackMergePending": "GitHub hâlâ bu yığını merge ediyor. Durumunu kontrol etmek için yenileyin.",
+        "rateLimited": "GitHub istek sınırına ulaşıldı. Birkaç dakika sonra tekrar deneyin.",
+        "issuePermissionDenied": "Bu sorunu düzenleme izniniz yok. GitHub belirtecinizin kapsamlarını kontrol edin.",
+        "issuesDisabled": "Bu repository'de sorunlar devre dışı.",
+        "pullRequestPermissionDenied": "Bu pull request'i düzenleme izniniz yok. GitHub belirtecinizin kapsamlarını kontrol edin.",
+        "pullRequestNotFound": "Pull request bulunamadı — silinmiş olabilir.",
+        "pullRequestUpdateFailed": "Pull request güncellenemedi: {{detail}}",
+        "autoMergeEnableFailed": "Pull request için otomatik merge etkinleştirilemedi: {{detail}}",
+        "autoMergeDisableFailed": "Pull request için otomatik merge devre dışı bırakılamadı: {{detail}}",
+        "mergeQueueAddFailed": "Pull request merge queue'suna eklenemedi: {{detail}}",
+        "rerunPermissionDenied": "Bu repository'de kontrolleri yeniden çalıştırma izniniz yok. GitHub belirtecinizin kapsamlarını kontrol edin.",
+        "rerunTargetNotFound": "Yeniden çalıştırılacak GitHub kaynağı bulunamadı — süresi dolmuş veya silinmiş olabilir.",
+        "rerunRejected": "Kontroller yeniden çalıştırılamadı — {{detail}}",
+        "rerunFailed": "Kontroller yeniden çalıştırılamadı: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Bu repository için GitLab projesi belirlenemedi",
+        "unexpectedResponse": "GitLab'dan beklenmeyen yanıt",
+        "commentBodyRequired": "Yorum metni gerekli",
+        "discussionIdRequired": "Tartışma ID'si gerekli",
+        "readyTitleConflict": "Bir merge request hazır olarak işaretlenirken başlık güncellenemez",
+        "mergeRequestTitleUnreadable": "Merge request'in mevcut başlığı okunamadı",
+        "rateLimited": "GitLab istek sınırına ulaşıldı. Birkaç dakika sonra tekrar deneyin.",
+        "issuePermissionDenied": "Bu sorunu düzenleme izniniz yok. GitLab belirtecinizin kapsamlarını kontrol edin.",
+        "jobLogPermissionDenied": "Bu işin günlüğünü okuma izniniz yok. GitLab belirtecinizin kapsamlarını kontrol edin.",
+        "jobProjectNotFound": "Bu işin GitLab projesi bulunamadı.",
+        "jobLogFailed": "İş günlüğü yüklenemedi: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repo bulunamadı",
+      "folderUnsupported": "Klasör modu worktree oluşturmayı desteklemiyor.",
+      "fetchFailed": "{{ref}} getirilemedi: {{detail}}",
+      "remoteRefMissing": "Getirme işleminden sonra remote ref {{ref}} mevcut değil.",
+      "github": {
+        "prNotFound": "PR #{{number}} bulunamadı.",
+        "prHeadBranchMissing": "PR #{{number}} için head branch yok.",
+        "forkHeadUnresolved": "Getirme işleminden sonra fork PR #{{number}} için head çözümlenemedi.",
+        "headShaEmpty": "PR #{{number}} için head çözümlenirken boş SHA alındı."
+      },
+      "gitlab": {
+        "projectNotFound": "Bu repository için GitLab projesi bulunamadı.",
+        "mrNotFound": "MR !{{number}} bulunamadı.",
+        "mrSourceBranchMissing": "MR !{{number}} için kaynak branch yok.",
+        "forkHeadUnresolved": "Getirme işleminden sonra fork MR !{{number}} için head çözümlenemedi."
       }
     }
   }

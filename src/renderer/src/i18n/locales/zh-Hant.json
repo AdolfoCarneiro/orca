@@ -676,10 +676,8 @@
       "permissionSameAsAll": "與所有代理程式相同",
       "permissionChipRemove": "移除 {{flag}} 並使用 {{agent}} 自身的設定",
       "permissionChipTooltip": "由「權限」設定加入。移除後會使用 {{agent}} 自身的設定。",
-      "permissionOverridesKept": "{{count}} 個代理程式仍使用自身的權限設定：",
       "permissionOverridesKept_one": "{{count}} 個代理程式仍使用自身的權限設定：",
       "permissionOverridesKept_other": "{{count}} 個代理程式仍使用自身的權限設定：",
-      "permissionOverridesFollow": "{{count}} 個代理程式現已改用 {{mode}}",
       "permissionOverridesFollow_one": "{{count}} 個代理程式現已改用 {{mode}}",
       "permissionOverridesFollow_other": "{{count}} 個代理程式現已改用 {{mode}}",
       "permissionOverrideFollows": "{{agent}} 現已改用 {{mode}}",
@@ -1674,7 +1672,6 @@
         "folderWorkspaceCreateFailedMessage": "無法建立資料夾工作區。請檢視上方錯誤詳情，然後重試。",
         "setupAgentStartupPolicySaveFailed": "儲存設定啟動行為失敗",
         "5f3d2c8a1b": "解析 MR 基礎分支失敗",
-        "dropPartiallyAttached": "無法附加 {{count}} 項中的 {{failureCount}} 項。",
         "dropPartiallyAttached_one": "{{count}} 項中有 {{failureCount}} 項無法附加。",
         "dropPartiallyAttached_other": "無法附加 {{count}} 項中的 {{failureCount}} 項。"
       },
@@ -1691,7 +1688,6 @@
         "workspaceOpenFailed": "無法開啟 {{fileName}}。請從其來源工作區開啟後再試一次。",
         "nativeDropUnresolvedPathsDescription": "首先將它們儲存到磁碟，然後拖放已儲存的檔案。",
         "nativeDropUnresolvedPaths": "Orca 無法讀取拖放檔案的路徑。",
-        "nativeDropTempCopyFailed": "Orca 無法複製 {{count}} 個拖放的檔案。",
         "nativeDropTempCopyFailed_one": "Orca 無法複製 {{count}} 個拖放的檔案。",
         "nativeDropTempCopyFailed_other": "Orca 無法複製 {{count}} 個拖放的檔案。"
       },
@@ -6710,23 +6706,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git 已保留 {{count}} 個本機分支，因為其中可能含有未合併的提交。保留分支不會一併保留工作區資料夾；提交仍會留在存放庫中。Orca 可能會繼續在背景釋放工作區的磁碟空間。",
                 "a3cdd9d9e6_one": "Git 已保留 {{count}} 個本機分支，因為其中可能含有未合併的提交。保留分支不會一併保留工作區資料夾；提交仍會留在存放庫中。Orca 可能會繼續在背景釋放工作區的磁碟空間。",
                 "a3cdd9d9e6_other": "Git 已保留 {{count}} 個本機分支，因為其中可能含有未合併的提交。保留分支不會一併保留工作區資料夾；提交仍會留在存放庫中。Orca 可能會繼續在背景釋放工作區的磁碟空間。",
-                "6310412304": "審查 {{count}} 個分支",
                 "6310412304_one": "審查 {{count}} 個分支",
                 "6310412304_other": "審查 {{count}} 個分支",
-                "cea24c2b7d": "已移除 {{count}} 個工作區",
                 "cea24c2b7d_one": "已移除 {{count}} 個工作區",
                 "cea24c2b7d_other": "已移除 {{count}} 個工作區",
-                "0e0379f24a": "已保留 {{count}} 個分支",
                 "0e0379f24a_one": "已保留 {{count}} 個分支",
                 "0e0379f24a_other": "已保留 {{count}} 個分支",
                 "4cf75caab7": "{{value0}}，{{value1}}",
                 "e61d78054f": "刪除本機分支：{{value0}}",
                 "1e1a5f6763": "已刪除本機分支：{{value0}}",
                 "43d9395605": "{{value0}} 已刪除，{{value1}} 未刪除",
-                "d42f1f14e0": "重試刪除 {{count}} 個分支",
                 "d42f1f14e0_one": "重試刪除 {{count}} 個分支",
                 "d42f1f14e0_other": "重試刪除 {{count}} 個分支"
               }
@@ -6741,7 +6732,6 @@
           "ee39e872d5": "可能尚未合併",
           "676db406fd": "無法取得分支頂端提交",
           "285e1e4882": "取消",
-          "a0f9863597": "強制刪除 {{count}} 個分支",
           "a0f9863597_one": "強制刪除 {{count}} 個分支",
           "a0f9863597_other": "強制刪除 {{count}} 個分支"
         },
@@ -12282,10 +12272,8 @@
           "olderTerminalsUnverifiable": "Orca 無法確認由舊版本 Orca 啟動的終端機是否已結束執行。請重新連線後重試。",
           "olderTerminals_one": "由舊版本 Orca 啟動的 {{count}} 個終端機仍在此主機上執行，且不會自行停止。請在該版本的 Orca 中關閉它，或在主機上結束它，然後重新連線。",
           "olderTerminals_other": "由舊版本 Orca 啟動的 {{count}} 個終端機仍在此主機上執行，且不會自行停止。請在該版本的 Orca 中關閉它們，或在主機上結束它們，然後重新連線。",
-          "olderTerminals": "由舊版本 Orca 啟動的 {{count}} 個終端機仍在此主機上執行，且不會自行停止。請在該版本的 Orca 中關閉它們，或在主機上結束它們，然後重新連線。",
           "linkedProjects_one": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁和 {{count}} 個自動化未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
           "linkedProjects_other": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁和 {{count}} 個自動化未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
-          "linkedProjects": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁和 {{count}} 個自動化未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
           "linkedProjectsNoAutomations": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
           "automationsLeftDisabled_one": "此主機的 Orca 伺服器已接管 {{count}} 項自動化，但無法重新啟用。請在「自動化」中啟用。",
           "automationsLeftDisabled_other": "此主機的 Orca 伺服器已接管 {{count}} 項自動化，但無法重新啟用。請在「自動化」中啟用。",
@@ -12304,8 +12292,7 @@
           "refusedLeaveBehind": "此主機的部分已儲存內容無法遷移至其 Orca 伺服器：{{items}}。選擇「仍要遷移」會連線至主機，並將這些內容保留在這臺電腦上。",
           "refusedLeaveBehindUnnamed": "此主機的部分已儲存內容無法遷移至其 Orca 伺服器。選擇「仍要遷移」會連線至主機，並將這些內容保留在這臺電腦上。",
           "windowsBuildUnsupported": "此主機的 Windows 版本早於 Windows 10 與 Windows Server 2016，因此無法執行 Orca 伺服器。請使用 Windows 版本較新的主機，或改用 Linux 或 macOS 主機。",
-          "windowsNoExtractor": "此 Windows 主機既沒有 tar.exe，也沒有 PowerShell 的 Expand-Archive，因此 Orca 無法在該處解壓縮伺服器。請在主機上安裝 Windows PowerShell 5.1，再重新連線。",
-          "automationsLeftDisabled": "此主機的 Orca 伺服器已接管 {{count}} 項自動化，但無法重新啟用。請在「自動化」中啟用。"
+          "windowsNoExtractor": "此 Windows 主機既沒有 tar.exe，也沒有 PowerShell 的 Expand-Archive，因此 Orca 無法在該處解壓縮伺服器。請在主機上安裝 Windows PowerShell 5.1，再重新連線。"
         },
         "ZcodeCliSetupSection": {
           "title": "透過 ZCode 使用 GLM",
@@ -15293,7 +15280,6 @@
           "0f806a2ab1": "取消",
           "b6c3b84476": "顯示檔案樹",
           "39f8007549": "審查衝突",
-          "skippedConflictsExcluded": "{{count}} 個未解決的衝突已被排除在此差異檢視之外。",
           "skippedConflictsExcluded_one": "{{count}} 個未解決的衝突已被排除在此差異檢視之外。",
           "skippedConflictsExcluded_other": "{{count}} 個未解決的衝突已被排除在此差異檢視之外。",
           "820ec01f24": "衝突檔案單獨審查",
@@ -17313,10 +17299,7 @@
           "markManyUnread_one": "將 {{count}} 個代理程式標記為未讀",
           "markManyUnread_other": "將 {{count}} 個代理程式標記為未讀",
           "clearMany_one": "從清單中清除 {{count}} 個代理程式",
-          "clearMany_other": "從清單中清除 {{count}} 個代理程式",
-          "markManyRead": "將 {{count}} 個代理程式標記為已讀",
-          "markManyUnread": "將 {{count}} 個代理程式標記為未讀",
-          "clearMany": "從清單中清除 {{count}} 個代理程式"
+          "clearMany_other": "從清單中清除 {{count}} 個代理程式"
         }
       },
       "confirmation": {
@@ -18941,7 +18924,6 @@
         "editFailed": "此訊息無法編輯。",
         "editGone": "此訊息已傳送或移除。你編輯的內容已放入聊天輸入框。",
         "editGonePrompt": "此訊息已傳送或移除。回答代理程式後，你編輯的內容會出現在聊天輸入框中。",
-        "imageCount": "{{count}} 張圖片",
         "imageCount_one": "{{count}} 張圖片",
         "imageCount_other": "{{count}} 張圖片",
         "collapse": "收合",
@@ -19821,7 +19803,25 @@
       "existingReview": "此分支已有 {{reviewLabel}}。",
       "creationUnconfirmed": "{{shortLabel}} 可能已建立完成。正在重新整理分支審查狀態...",
       "withDetail": "建立 {{shortLabel}} 失敗：{{detail}}",
-      "pushFailed": "推送失敗。請解決推送錯誤後再試一次。"
+      "pushFailed": "推送失敗。請解決推送錯誤後再試一次。",
+      "stacked": {
+        "stackGithubOnly": "只有 GitHub 存放庫支援建立堆疊中的 PR。",
+        "stackGithubComOnly": "GitHub 堆疊中的 PR 只能在 GitHub.com 上使用。",
+        "stackSameParent": "建立堆疊中的 PR 前，請選擇其他父分支。",
+        "stackParentWithoutReview": "父分支 {{base}} 沒有開啟中的 PR。請先建立該 PR。",
+        "stackParentAmbiguous": "Orca 發現父分支 {{base}} 有多個開啟中的 PR。",
+        "stackHeadAmbiguous": "Orca 發現目前分支 {{head}} 有多個開啟中的 PR。",
+        "stackParentMultipleStacks": "所選的父 PR 屬於多個堆疊。",
+        "stackParentClosed": "所選的父 PR 屬於已關閉的堆疊。",
+        "stackParentNotTop": "新增另一層前，請選擇堆疊最上層的 PR 作為基礎分支。",
+        "stackConflict": "此 PR 已屬於另一個 GitHub 堆疊。",
+        "stacksUnavailable": "此存放庫無法使用 GitHub 堆疊中的 PR。",
+        "stackParentUnverified": "Orca 無法驗證父 PR。請稍後重試。",
+        "stackExistingReviewOtherBase": "此分支已有開啟中的 PR，但目標不是所選的父分支。",
+        "stackCreationUnconfirmed": "PR 可能已建立完成。請重試以完成堆疊註冊。",
+        "stackRegistrationUnavailable": "PR 已建立，但此存放庫無法使用 GitHub 堆疊。",
+        "stackRegistrationFailed": "PR 已建立，但 GitHub 無法將其加入堆疊。請重試以完成堆疊註冊。"
+      }
     },
     "model": {
       "auto": "自動",
@@ -19850,6 +19850,58 @@
       "patch": "此分支相較於基底分支的差異，用於產生 PR 詳細資訊。",
       "stagedFiles": "以換行分隔的已暫存檔案清單，用於產生提交訊息。",
       "stagedPatch": "用於產生提交訊息的已暫存 Git 修補檔。"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} 的提示詞過大，無法用於 Windows 命令列。請減少暫存的變更後再試一次。",
+        "promptTooLargeForArgument": "{{label}} 的提示詞過大，無法作為單一命令列引數傳遞。請減少暫存的變更後再試一次。",
+        "agentCouldNotStart": "無法啟動 {{label}}。請在「設定」中檢查代理程式的命令，然後再試一次。",
+        "agentFailedToStart": "{{label}} 啟動失敗。請在「設定」中檢查代理程式的命令，然後再試一次。",
+        "agentBinaryNotFound": "在 PATH 中找不到 {{binary}}。請安裝 {{label}} 以使用 AI 提交訊息。",
+        "timedOut": "產生作業在 {{seconds}} 秒後逾時。",
+        "outputTooLarge": "{{label}} CLI 命令產生過多輸出。請檢查代理程式的 CLI 設定，然後再試一次。",
+        "windowsBatchUnsafeArguments": "{{label}} 透過 Windows 批次指令碼執行，該指令碼無法將多行提示詞作為引數接收。請在「設定」中指定代理程式的執行檔，或使用不含 {prompt} 的自訂命令，讓 Orca 透過 stdin 傳送提示詞。",
+        "cliTerminated": "{{label}} CLI 命令在結束前遭到終止。",
+        "cliTerminatedWithDetail": "{{label}} CLI 命令在結束前遭到終止：{{detail}}",
+        "cliFailed": "{{label}} CLI 命令執行失敗，結束代碼為 {{exitCode}}。",
+        "cliFailedWithDetail": "{{label}} CLI 命令執行失敗，結束代碼為 {{exitCode}}：{{detail}}",
+        "agentReportedError": "{{label}} 回報錯誤。",
+        "emptyCommitMessage": "{{label}} 傳回空白訊息。",
+        "emptyCommitMessageWithDetail": "{{label}} 傳回空白訊息。CLI 輸出：{{detail}}",
+        "emptyPullRequestDetails": "{{label}} 傳回的詳細資料為空白。",
+        "emptyPullRequestDetailsWithDetail": "{{label}} 傳回的詳細資料為空白。CLI 輸出：{{detail}}",
+        "emptyJiraSummary": "{{label}} 傳回空白摘要。",
+        "emptyJiraSummaryWithDetail": "{{label}} 傳回空白摘要。CLI 輸出：{{detail}}",
+        "commitMessageUnparseable": "無法解析產生的提交訊息。",
+        "pullRequestDetailsUnparseable": "無法解析產生的 PR 詳細資料。",
+        "jiraSummaryEmptyAfterSanitization": "產生的摘要在清理後為空白。",
+        "jiraDescriptionRequired": "必須填寫描述。",
+        "jiraAccountDisconnected": "請在此主機上重新連線所選的 Jira 帳戶。",
+        "jiraSummaryBusyInOtherDraft": "另一份草稿已在產生 Jira 標題。",
+        "stagedChangesReadFailed": "無法讀取已暫存的變更。",
+        "noStagedChanges": "沒有可供產生摘要的已暫存變更。",
+        "noBranchChanges": "沒有可供產生摘要的分支變更。",
+        "commandTemplateEmptyCommitMessage": "提交訊息的命令範本為空白。",
+        "commandTemplateEmptyPullRequest": "PR 詳細資料的命令範本為空白。",
+        "commandTemplateEmptyBranchName": "分支名稱的命令範本為空白。",
+        "commandTemplateEmptyChatName": "聊天名稱的命令範本為空白。",
+        "sourceControlAgentUnsupported": "請在「設定 -> Git -> 原始碼控制 AI」中，為此操作選擇支援的代理程式。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "chatNameAgentUnsupported": "請在「設定 -> 聊天 -> 聊天名稱」中，為此操作選擇支援的聊天命名代理程式。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "sourceControlCustomCommandEmpty": "自訂命令為空白。請在「設定 -> Git -> 原始碼控制 AI」中新增。",
+        "chatNameCustomCommandEmpty": "自訂命令為空白。請在「設定 -> 聊天 -> 聊天名稱」中新增。",
+        "agentCannotGenerateCommitMessage": "代理程式「{{agent}}」不支援原始碼控制 AI 提交訊息。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "agentCannotGeneratePullRequest": "代理程式「{{agent}}」不支援原始碼控制 AI PR 詳細資料。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "agentCannotGenerateBranchName": "代理程式「{{agent}}」不支援原始碼控制 AI 分支名稱。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "agentCannotGenerateChatName": "代理程式「{{agent}}」不支援聊天名稱。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "noModelForAgent": "{{label}} 沒有可用的模型。",
+        "planCustomCommandEmpty": "自訂命令為空白。請在「設定 → Git → AI 提交訊息」中新增。",
+        "planAgentUnsupported": "代理程式「{{agent}}」不支援 AI 提交訊息。",
+        "planModelUnavailable": "模型「{{model}}」無法用於 {{label}}。",
+        "planModelWithoutThinking": "模型「{{model}}」不支援設定思考強度。",
+        "planThinkingLevelInvalid": "思考強度「{{level}}」不適用於 {{model}}。"
+      },
+      "enableSourceControlAi": "請在「設定 -> Git」中啟用原始碼控制 AI。",
+      "chooseBaseBranch": "產生前請先選擇基礎分支。"
     }
   },
   "agentsSidebarIntro": {
@@ -20090,13 +20142,10 @@
       "resumableBody": "在此重新開啟以繼續工作。您的代理程式工作階段將會恢復。",
       "reopening": "正在重新開啟…",
       "tryAgain": "重試",
-      "reopenTerminal": "重新開啟 {{count}} 個終端機",
       "reopenTerminal_one": "重新開啟終端機",
       "reopenTerminal_other": "重新開啟 {{count}} 個終端機",
-      "reopened": "已重新開啟 {{count}} 個終端機",
       "reopened_one": "已重新開啟 {{count}} 個終端機",
       "reopened_other": "已重新開啟 {{count}} 個終端機",
-      "resumed": "已恢復 {{count}} 個代理程式工作階段。",
       "resumed_one": "已恢復 {{count}} 個代理程式工作階段。",
       "resumed_other": "已恢復 {{count}} 個代理程式工作階段。"
     },
@@ -20107,7 +20156,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "其正在執行的終端機",
-      "count": "{{count}} 個正在執行的終端機",
       "unverifiable": "Orca 無法驗證終端機服務行程，因此未停止任何行程。",
       "alreadyReplaced": "終端機服務已被替換；未停止任何行程。",
       "restarted": "終端機服務已重新啟動。",
@@ -21477,6 +21525,72 @@
         "settingUp": "專案仍在所選自動化主機上進行設定。",
         "error": "專案在所選自動化主機上設定失敗。",
         "unsupported": "所選自動化主機不支援此專案。"
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "標題為必填欄位",
+      "networkError": "網路錯誤，請檢查連線。",
+      "invalidUpdate": "無效的更新 — {{detail}}",
+      "invalidRequest": "無效的請求 — {{detail}}",
+      "issueNotFound": "找不到議題 — 可能已遭刪除。",
+      "issueUpdateFailed": "無法更新議題：{{detail}}",
+      "github": {
+        "repoUnresolved": "無法確認此存放庫的 GitHub 擁有者和存放庫名稱",
+        "unexpectedResponse": "GitHub 傳回非預期的回應",
+        "pullRequestIdUnresolved": "無法確認 GitHub PR ID",
+        "reviewerRequired": "請至少輸入一位審查人",
+        "stackAutoMergeUnsupported": "GitHub 不支援堆疊中 PR 的自動合併。",
+        "autoMergeAlreadyMergeable": "此 PR 已可合併。請使用「合併」而非自動合併。",
+        "noFailedChecks": "沒有失敗的 GitHub Actions 檢查可重新執行。",
+        "noRerunnableChecks": "找不到可重新執行的檢查。",
+        "stackMergeInvalidResponse": "GitHub 傳回無效的堆疊合併回應。",
+        "stackMergePending": "GitHub 仍在合併此堆疊。請重新整理以查看狀態。",
+        "rateLimited": "已達 GitHub 速率限制。請稍候幾分鐘再試。",
+        "issuePermissionDenied": "你沒有權限編輯此議題。請檢查 GitHub 權杖範圍。",
+        "issuesDisabled": "此存放庫已停用議題。",
+        "pullRequestPermissionDenied": "你沒有權限編輯此 PR。請檢查 GitHub 權杖範圍。",
+        "pullRequestNotFound": "找不到 PR — 可能已遭刪除。",
+        "pullRequestUpdateFailed": "無法更新 PR：{{detail}}",
+        "autoMergeEnableFailed": "無法為 PR 啟用自動合併：{{detail}}",
+        "autoMergeDisableFailed": "無法為 PR 停用自動合併：{{detail}}",
+        "mergeQueueAddFailed": "無法將 PR 新增至合併佇列：{{detail}}",
+        "rerunPermissionDenied": "你沒有權限在此存放庫重新執行檢查。請檢查 GitHub 權杖範圍。",
+        "rerunTargetNotFound": "找不到要重新執行的 GitHub 資源 — 可能已過期或遭刪除。",
+        "rerunRejected": "無法重新執行檢查 — {{detail}}",
+        "rerunFailed": "無法重新執行檢查：{{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "無法確認此存放庫的 GitLab 專案",
+        "unexpectedResponse": "GitLab 傳回非預期的回應",
+        "commentBodyRequired": "必須填寫留言內容",
+        "discussionIdRequired": "必須提供討論 ID",
+        "readyTitleConflict": "將合併請求標記為可供審查時無法更新標題",
+        "mergeRequestTitleUnreadable": "無法讀取合併請求的目前標題",
+        "rateLimited": "已達 GitLab 速率限制。請稍候幾分鐘再試。",
+        "issuePermissionDenied": "你沒有權限編輯此議題。請檢查 GitLab 權杖範圍。",
+        "jobLogPermissionDenied": "你沒有權限讀取此作業的日誌。請檢查 GitLab 權杖範圍。",
+        "jobProjectNotFound": "找不到此作業的 GitLab 專案。",
+        "jobLogFailed": "無法載入作業日誌：{{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "找不到存放庫",
+      "folderUnsupported": "資料夾模式不支援建立工作樹。",
+      "fetchFailed": "無法擷取 {{ref}}：{{detail}}",
+      "remoteRefMissing": "擷取後，遠端參照 {{ref}} 不存在。",
+      "github": {
+        "prNotFound": "找不到 PR #{{number}}。",
+        "prHeadBranchMissing": "PR #{{number}} 沒有來源分支。",
+        "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 PR #{{number}} 的頂端參照。",
+        "headShaEmpty": "解析 PR #{{number}} 的頂端參照時取得空白 SHA。"
+      },
+      "gitlab": {
+        "projectNotFound": "找不到此存放庫對應的 GitLab 專案。",
+        "mrNotFound": "找不到 MR !{{number}}。",
+        "mrSourceBranchMissing": "MR !{{number}} 沒有來源分支。",
+        "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 MR !{{number}} 的頂端參照。"
       }
     }
   }
