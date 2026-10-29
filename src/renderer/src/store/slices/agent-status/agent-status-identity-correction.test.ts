@@ -45,7 +45,7 @@ describe('process-backed compatible status identity correction', () => {
     const old = store.getState()
     const entry = old.agentStatusByPaneKey[PANE]
     const foreground = old.paneForegroundAgentByPaneKey[PANE]
-    store.getState().setAgentStatus(PANE, { state: 'working', agentType: 'codex', prompt: '' })
+    store.setState({ agentStatusByPaneKey: { [PANE]: { ...entry, agentType: 'codex' } } })
     expect(store.getState().correctAgentStatusIdentity(PANE, entry, foreground)).toBe(false)
     const row = store.getState().agentStatusByPaneKey[PANE]
     expect(store.getState().correctAgentStatusIdentity(PANE, row, foreground)).toBe(false)

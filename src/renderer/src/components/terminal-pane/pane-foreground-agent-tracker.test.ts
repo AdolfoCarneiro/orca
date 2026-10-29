@@ -246,11 +246,15 @@ describe('createPaneForegroundAgentTracker', () => {
       tracker.onAcceptedCommandBoundary()
       tracker.onAcceptedCommandBoundary()
       expect(publish).not.toHaveBeenCalled()
-      if (inFlight) await flushSettleRead(COMMAND_SETTLE_MS)
+      if (inFlight) {
+        await flushSettleRead(COMMAND_SETTLE_MS)
+      }
       tracker.onCommandStarted(true)
       tracker.onVisiblePtyBound()
       expect(publish).toHaveBeenCalledExactlyOnceWith({ agent: null, shellForeground: false })
-      if (!inFlight) await flushSettleRead(COMMAND_SETTLE_MS)
+      if (!inFlight) {
+        await flushSettleRead(COMMAND_SETTLE_MS)
+      }
       finishFirstRead(null)
       await flushSettleRead(0)
       await flushSettleRead(WRAPPER_RESOLVE_RETRY_MS + SECOND_WRAPPER_RETRY_MS)

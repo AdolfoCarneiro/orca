@@ -191,12 +191,9 @@ export function useTerminalPaneContextMenu({
 
   const onCopyAgentSessionId = async (): Promise<void> => {
     const pane = resolveMenuPane()
-    const sessionId = pane
-      ? resolvePaneAgentSessionId(
-          useAppStore.getState(),
-          makePaneKey(tabId, pane.leafId),
-          'retained'
-        )
+    const paneKey = pane ? makePaneKey(tabId, pane.leafId) : null
+    const sessionId = paneKey
+      ? resolvePaneAgentSessionId(useAppStore.getState(), paneKey, 'retained')
       : null
     return copyTerminalPaneMenuAgentSessionId(pane, sessionId)
   }

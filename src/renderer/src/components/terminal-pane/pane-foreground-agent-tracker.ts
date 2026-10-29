@@ -1,39 +1,26 @@
 import {
   isAgentForegroundWrapperProcess,
-  recognizeAgentProcess,
-  type RecognizedAgentProcess
+  recognizeAgentProcess
 } from '../../../../shared/agent-process-recognition'
 import { resolveCompatibleAgentTypeForOwner } from '../../../../shared/agent-title-owner'
 import { isShellProcess } from '../../../../shared/shell-process-detection'
+import { PaneForegroundReadScheduler } from './pane-foreground-read-scheduler'
 import { createPaneForegroundProcessReader } from './pane-foreground-process-reader'
 import { FOREGROUND_COMMAND_READS } from '../../../../shared/foreground-command-settle'
 import type {
   ForegroundReadReason,
+  PaneForegroundAgentTracker,
   PaneForegroundAgentTrackerDeps
 } from './pane-foreground-agent-tracker-contract'
 
 const VISIBLE_PTY_SETTLE_MS = 350
 
 /** Read foreground identity at command boundaries; confirm 133;D before clearing known agents because nested shells can leak that marker. */
-export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTrackerDeps): {
-  /** True while any read is scheduled or running, whatever its authority. */
-  hasReadInFlight: () => boolean
-  onVisiblePtyBound: (expectsAgent?: boolean) => boolean
-  onCommandStarted: (requireConfirmation?: boolean) => void
-  /** Accepted input requests evidence without asserting a shell lifecycle boundary. */
-  onAcceptedCommandBoundary: () => void
-  onAgentStartupObserved: () => void
-  /** True when pane identity must remain visible until an async shell confirmation. */
-  onCommandFinished: () => boolean
-  /** The process monitor confirmed this agent exited (no agent, no children, settled). */
-  onProcessExitConfirmed: (process: RecognizedAgentProcess) => void
-  dispose: () => void
-} {
+export function createPaneForegroundAgentTracker(
+  deps: PaneForegroundAgentTrackerDeps
+): PaneForegroundAgentTracker {
   let disposed = false
-  let readTimer: ReturnType<typeof setTimeout> | null = null
-  let scheduledReadReason: ForegroundReadReason | null = null
-  let activeReadReason: ForegroundReadReason | null = null
-  let readGeneration = 0
+  const reads = new PaneForegroundReadScheduler(readForeground)
   // Nested agent shells leak 133;D onto the main PTY; confirm foreground before treating it as prompt return.
   let hasForegroundAgentEvidence = false
   // Latch launch/hook evidence through confirmation so cleanup cannot disarm the bounded retry ladder.
@@ -52,46 +39,21 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     return ptyId && deps.isTrackablePtyId(ptyId) ? ptyId : null
   }
 
-  const cancelPendingRead = (): void => {
-    readGeneration += 1
-    if (readTimer !== null) {
-      clearTimeout(readTimer)
-      readTimer = null
-    }
-    scheduledReadReason = null
-    activeReadReason = null
-  }
+  const cancelPendingRead = (): void => reads.cancel()
+  const scheduleRead = (delay: number, retryIndex: number, reason: ForegroundReadReason): void =>
+    reads.schedule(delay, retryIndex, reason)
 
-  const scheduleRead = (
-    delayMs: number,
-    retryIndex: number,
-    reason: ForegroundReadReason
-  ): void => {
-    const generation = readGeneration
-    scheduledReadReason = reason
-    readTimer = setTimeout(() => {
-      readTimer = null
-      const startedReason = scheduledReadReason ?? reason
-      scheduledReadReason = null
-      activeReadReason = startedReason
-      void readForeground(generation, retryIndex, startedReason).finally(() => {
-        if (generation === readGeneration) {
-          activeReadReason = null
-        }
-      })
-    }, delayMs)
-  }
-
-  const hasPendingRead = (): boolean => scheduledReadReason !== null || activeReadReason !== null
+  const hasPendingRead = (): boolean =>
+    reads.scheduledReason !== null || reads.activeReason !== null
   const hasCommandReadInFlight = (): boolean =>
-    scheduledReadReason === 'command' ||
-    activeReadReason === 'command' ||
-    scheduledReadReason === 'command-finished' ||
-    activeReadReason === 'command-finished'
+    reads.scheduledReason === 'command' ||
+    reads.activeReason === 'command' ||
+    reads.scheduledReason === 'command-finished' ||
+    reads.activeReason === 'command-finished'
   const hasBoundaryReadInFlight = (): boolean =>
     hasCommandReadInFlight() ||
-    scheduledReadReason === 'accepted-input' ||
-    activeReadReason === 'accepted-input'
+    reads.scheduledReason === 'accepted-input' ||
+    reads.activeReason === 'accepted-input'
 
   // Release retained capabilities when a read ends; superseded reads delegate settlement to their successor.
   const releaseRetainedCapability = (hadReadInFlight: boolean): void => {
@@ -101,7 +63,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
   }
 
   const settleAbortedRead = (generation: number): void => {
-    if (!disposed && generation === readGeneration) {
+    if (!disposed && generation === reads.generation) {
       deps.onVisibleForegroundSettled?.('inconclusive')
     }
   }
@@ -112,7 +74,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     reason: ForegroundReadReason
   ): Promise<void> {
     const ptyId = trackablePtyId()
-    if (disposed || generation !== readGeneration || !ptyId) {
+    if (disposed || generation !== reads.generation || !ptyId) {
       settleAbortedRead(generation)
       return
     }
@@ -129,14 +91,14 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     // Fence pending inspection so an old PTY cannot publish identity into its replacement.
     if (
       disposed ||
-      generation !== readGeneration ||
+      generation !== reads.generation ||
       trackablePtyId() !== ptyId ||
       (remote && deps.getExpectedIncarnationId?.() !== expectedIncarnationId)
     ) {
       settleAbortedRead(generation)
       return
     }
-    const settledReason = activeReadReason ?? reason
+    const settledReason = reads.activeReason ?? reason
     const recognized =
       remoteEvidenceVerdict === 'live'
         ? recognizeAgentProcess(processName)
@@ -233,9 +195,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
 
   return {
     // A higher-authority command read still promises confirmation when visibility schedules nothing.
-    hasReadInFlight(): boolean {
-      return hasPendingRead()
-    },
+    hasReadInFlight: hasPendingRead,
     onVisiblePtyBound(expectsAgent = false) {
       // Lower-authority visibility recovery must not cancel command-boundary reads that own the exit decision.
       if (hasBoundaryReadInFlight()) {
@@ -269,7 +229,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       startupSampled = false
       // Keep an accepted submit's read while applying the actual OSC lifecycle boundary.
       const acceptedReadPending =
-        scheduledReadReason === 'accepted-input' || activeReadReason === 'accepted-input'
+        reads.scheduledReason === 'accepted-input' || reads.activeReason === 'accepted-input'
       const hadReadBeforeCommandStart = hasPendingRead()
       if (!acceptedReadPending) {
         cancelPendingRead()
@@ -282,11 +242,11 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       }
       const alreadyHasKnownIdentity = deps.hasKnownAgentIdentity?.() === true
       hasAgentExpectation = requireConfirmation || acceptedReadPending
-      if (scheduledReadReason === 'accepted-input') {
-        scheduledReadReason = 'command'
+      if (reads.scheduledReason === 'accepted-input') {
+        reads.scheduledReason = 'command'
       }
-      if (activeReadReason === 'accepted-input') {
-        activeReadReason = 'command'
+      if (reads.activeReason === 'accepted-input') {
+        reads.activeReason = 'command'
       }
       if (alreadyHasKnownIdentity) {
         hasKnownAgentEvidence = true

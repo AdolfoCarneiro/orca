@@ -32,3 +32,18 @@ export type PaneForegroundAgentTrackerDeps = {
   onCommandFinishedUnavailable?: () => void
   onVisibleForegroundSettled?: (outcome: 'agent' | 'shell' | 'inconclusive') => void
 }
+
+export type PaneForegroundAgentTracker = {
+  /** True while any read is scheduled or running, whatever its authority. */
+  hasReadInFlight: () => boolean
+  onVisiblePtyBound: (expectsAgent?: boolean) => boolean
+  onCommandStarted: (requireConfirmation?: boolean) => void
+  /** Accepted input requests evidence without asserting a shell lifecycle boundary. */
+  onAcceptedCommandBoundary: () => void
+  onAgentStartupObserved: () => void
+  /** True when pane identity must remain visible until an async shell confirmation. */
+  onCommandFinished: () => boolean
+  /** The process monitor confirmed this agent exited (no agent, no children, settled). */
+  onProcessExitConfirmed: (process: RecognizedAgentProcess) => void
+  dispose: () => void
+}

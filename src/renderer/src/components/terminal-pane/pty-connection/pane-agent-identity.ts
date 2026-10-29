@@ -290,7 +290,7 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
     session.visibleForegroundSamplePending = false
     session.visibleForegroundSampleSettled = false
     // Hooks can suppress display sampling but cannot restore explicitly revoked byte authority.
-    session.paneForegroundAgentTracker.onAcceptedCommandBoundary()
+    session.sampleVisiblePaneForegroundAgent(true)
     if (session.paneForegroundAgentTracker.hasReadInFlight()) {
       useAppStore.getState().setPaneForegroundAgent(session.cacheKey, {
         agent: foreground.agent,
