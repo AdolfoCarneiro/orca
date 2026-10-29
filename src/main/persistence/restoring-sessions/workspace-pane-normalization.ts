@@ -1,5 +1,5 @@
 import type { LegacyPaneKeyAliasEntry } from '../../../shared/persisted-state-types'
-import type { TerminalLayoutSnapshot } from '../../../shared/terminal-tab-types'
+import type { TerminalLayoutSnapshot, TerminalTab } from '../../../shared/terminal-tab-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import type { MigrationUnsupportedPtyEntry } from '../../../shared/agent-status-types'
 
@@ -10,14 +10,16 @@ export {
   remapSshRemotePtyLeaseLeafIds,
   normalizePersistedPaneIdentityState
 } from './persisted-pane-identity-state'
-import { SessionUnitIndex } from '../../../shared/session-unit-index'
-import { SessionUnitReader } from '../../../shared/session-unit-reader'
+import type { SessionUnitReader } from '../../../shared/session-unit-reader'
 
 import { rememberSessionPaneAliasRecipes } from './session-pane-alias-recipes'
 
 import { agentHookServer } from '../../agent-hooks/server'
 
-import { collectLegacyPaneKeyAliasesForTab } from './pane-identity-migration'
+import {
+  createLazyTerminalTabLookup,
+  collectLegacyPaneKeyAliasesForTab
+} from './pane-identity-migration'
 import { normalizeTerminalLayoutSnapshotForPersistence } from './terminal-layout-normalization'
 
 export {
@@ -38,14 +40,32 @@ export function normalizeWorkspaceSessionPaneIdentities(
   migrationUnsupportedEntries: MigrationUnsupportedPtyEntry[]
   legacyPaneKeyAliasEntries: LegacyPaneKeyAliasEntry[]
 } {
-  const reader = new SessionUnitReader(session, new SessionUnitIndex(session))
-  const result = normalizeSessionPaneUnits(
-    reader,
+  const lookup = createLazyTerminalTabLookup(session)
+  let layouts = session.terminalLayoutsByTabId
+  const result = normalizePaneIdentityUnits(
+    {
+      layout: (tabId) => session.terminalLayoutsByTabId[tabId],
+      prior: (tabId) => priorLayoutsByTabId[tabId],
+      tab: (tabId) => lookup.get(tabId),
+      write: (tabId, layout) => {
+        if (layout !== layouts[tabId]) {
+          if (layouts === session.terminalLayoutsByTabId) {
+            layouts = { ...layouts }
+          }
+          layouts[tabId] = layout
+        }
+      }
+    },
     Object.keys(session.terminalLayoutsByTabId ?? {}),
-    options,
-    priorLayoutsByTabId
+    options
   )
-  return { ...result, session: reader.snapshot() }
+  return {
+    ...result,
+    session:
+      layouts === session.terminalLayoutsByTabId
+        ? session
+        : { ...session, terminalLayoutsByTabId: layouts }
+  }
 }
 
 export function normalizeSessionPaneUnits(
@@ -54,30 +74,48 @@ export function normalizeSessionPaneUnits(
   options: PaneAliasNormalizationOptions & { skipAliasTabIds?: ReadonlySet<string> } = {},
   priorLayoutsByTabId?: Record<string, TerminalLayoutSnapshot>
 ) {
+  return normalizePaneIdentityUnits(
+    {
+      layout: (tabId) => reader.unit('terminalLayoutsByTabId', tabId).value,
+      prior: (tabId) =>
+        priorLayoutsByTabId
+          ? priorLayoutsByTabId[tabId]
+          : reader.unit('terminalLayoutsByTabId', tabId, 'prior').value,
+      tab: (tabId) => reader.terminalTab(tabId),
+      write: (tabId, layout) =>
+        reader.write('terminalLayoutsByTabId', tabId, { present: true, value: layout })
+    },
+    tabIds,
+    options
+  )
+}
+
+type PaneIdentityInputs = {
+  layout: (tabId: string) => TerminalLayoutSnapshot | undefined
+  prior: (tabId: string) => TerminalLayoutSnapshot | undefined
+  tab: (tabId: string) => TerminalTab | undefined
+  write: (tabId: string, layout: TerminalLayoutSnapshot) => void
+}
+
+function normalizePaneIdentityUnits(
+  inputs: PaneIdentityInputs,
+  tabIds: Iterable<string>,
+  options: PaneAliasNormalizationOptions & { skipAliasTabIds?: ReadonlySet<string> }
+) {
   let changed = false
   const leafIdByInputLeafIdByTabId = new Map<string, Map<string, string>>()
   const leafIdByPtyIdByTabId = new Map<string, Map<string, string>>()
   const legacyPaneKeyAliasEntries: LegacyPaneKeyAliasEntry[] = []
   for (const tabId of tabIds) {
-    const layout = reader.unit('terminalLayoutsByTabId', tabId).value
+    const layout = inputs.layout(tabId)
     if (!layout) {
       continue
     }
-    const normalized = normalizeTerminalLayoutSnapshotForPersistence(
-      layout,
-      priorLayoutsByTabId
-        ? priorLayoutsByTabId[tabId]
-        : reader.unit('terminalLayoutsByTabId', tabId, 'prior').value
-    )
-    reader.write('terminalLayoutsByTabId', tabId, { present: true, value: normalized.snapshot })
+    const normalized = normalizeTerminalLayoutSnapshotForPersistence(layout, inputs.prior(tabId))
+    inputs.write(tabId, normalized.snapshot)
     leafIdByInputLeafIdByTabId.set(tabId, normalized.leafIdByInputLeafId)
     if (!options.skipAliasTabIds?.has(tabId)) {
-      const owner = reader
-        .references('tab', tabId)
-        .find((unit) => unit.field === 'tabsByWorktree')?.key
-      const tab = owner
-        ? reader.unit('tabsByWorktree', owner).value?.find((row) => row.id === tabId)
-        : undefined
+      const tab = inputs.tab(tabId)
       const tabAliasEntries = collectLegacyPaneKeyAliasesForTab({
         tabId,
         tab,

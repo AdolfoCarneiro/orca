@@ -35,17 +35,17 @@ import type {
   WorkspaceLayoutRecords
 } from './workspace-layout-model'
 
+const WORKSPACE_SOURCE_FIELDS = [
+  'tabsByWorktree',
+  'unifiedTabs',
+  'tabGroups',
+  'tabGroupLayouts',
+  'openFilesByWorktree',
+  'browserTabsByWorktree'
+] as const
+
 function workspaceKeys(session: WorkspaceSessionState): string[] {
-  return [
-    ...new Set([
-      ...Object.keys(session.tabsByWorktree ?? {}),
-      ...Object.keys(session.unifiedTabs ?? {}),
-      ...Object.keys(session.tabGroups ?? {}),
-      ...Object.keys(session.tabGroupLayouts ?? {}),
-      ...Object.keys(session.openFilesByWorktree ?? {}),
-      ...Object.keys(session.browserTabsByWorktree ?? {})
-    ])
-  ]
+  return [...new Set(WORKSPACE_SOURCE_FIELDS.flatMap((field) => Object.keys(session[field] ?? {})))]
 }
 
 /** Keep a terminal row in the workspace whose tab bar/group names it, falling back to its first occurrence. */
@@ -217,6 +217,9 @@ export function loadWorkspaceLayoutUnits(
   selected: ReadonlyMap<SessionMapField, ReadonlySet<string>>,
   context: WorkspaceLayoutLoadContext
 ): LoadedWorkspaceLayout {
+  owners = owners.filter((key) =>
+    WORKSPACE_SOURCE_FIELDS.some((field) => reader.unit(field, key).present)
+  )
   const desktopView: DesktopLayoutView = {
     ...readBesideFields(reader, VIEW_SESSION_FIELDS, selected),
     activeRepoId: reader.field('activeRepoId').value ?? null,

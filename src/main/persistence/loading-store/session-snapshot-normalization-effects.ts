@@ -9,7 +9,13 @@ import {
 
 import { normalizeBrowserHistoryEntries } from '../../../shared/workspace-session-browser-history'
 
-import { isWslMoveWorkspaceSessionFrozen } from '../moving-wsl-projects/wsl-move-scope-guard'
+import {
+  isWslMoveWorkspaceSessionFrozen,
+  isWslMoveWorkspaceHostOwned
+} from '../moving-wsl-projects/wsl-move-scope-guard'
+import { hostOwnedChatOwnerRows } from '../moving-wsl-projects/wsl-move-host-owned-chat-tabs'
+import { normalizeWorkspaceSessionKeyToWorkspaceId } from '../../../shared/workspace-scope'
+import type { SessionUnitAddress } from '../../../shared/session-unit-index'
 import {
   type normalizeSessionPaneUnits,
   remapAcknowledgedAgentPaneKeys,
@@ -36,11 +42,66 @@ export function keepFrozenSnapshotUnits(
   reader: SessionUnitReader,
   selection: SessionUnitSelection
 ): void {
+  const chats = new Map<string, ReturnType<typeof hostOwnedChatOwnerRows>>()
+  const protectedUnits: SessionUnitAddress[] = []
   for (const [field, keys] of selection) {
     for (const key of keys) {
-      if ([...reader.ids(field, key, 'owner')].some(isWslMoveWorkspaceSessionFrozen)) {
-        reader.write(field, key, reader.unit(field, key, 'prior'))
+      const frozenOwners = new Set(
+        [reader.dataOwner(field, key, 'prior'), reader.dataOwner(field, key)]
+          .filter((owner): owner is string => owner != null)
+          .map(normalizeWorkspaceSessionKeyToWorkspaceId)
+          .filter(isWslMoveWorkspaceSessionFrozen)
+      )
+      if (!frozenOwners.size) {
+        continue
       }
+      protectedUnits.push({ field, key })
+      for (const owner of frozenOwners) {
+        if (!chats.has(owner) && isWslMoveWorkspaceHostOwned(owner)) {
+          chats.set(
+            owner,
+            hostOwnedChatOwnerRows(
+              {
+                tabs: reader.unit('unifiedTabs', owner, 'prior').value,
+                groups: reader.unit('tabGroups', owner, 'prior').value
+              },
+              {
+                tabs: reader.unit('unifiedTabs', owner).value,
+                groups: reader.unit('tabGroups', owner).value,
+                layout: reader.unit('tabGroupLayouts', owner).value
+              }
+            )
+          )
+        }
+      }
+    }
+  }
+  for (const { field, key } of protectedUnits) {
+    reader.write(field, key, reader.unit(field, key, 'prior'))
+  }
+  for (const [owner, rows] of chats) {
+    if (!rows) {
+      continue
+    }
+    reader.write('unifiedTabs', owner, { present: true, value: rows.tabs })
+    reader.write('tabGroups', owner, { present: true, value: rows.groups })
+    if (rows.layout) {
+      reader.write('tabGroupLayouts', owner, { present: true, value: rows.layout })
+    }
+  }
+  if (reader.touches('activeWorktreeIdsOnShutdown')) {
+    const next = reader.field('activeWorktreeIdsOnShutdown')
+    const prior = reader.field('activeWorktreeIdsOnShutdown', 'prior')
+    const kept = (prior.value ?? []).filter(isWslMoveWorkspaceSessionFrozen)
+    const removed = (next.value ?? []).some(isWslMoveWorkspaceSessionFrozen)
+    if (kept.length || removed) {
+      reader.replace('activeWorktreeIdsOnShutdown', {
+        present: true,
+        value: [
+          ...(next.value ?? []).filter((owner) => !isWslMoveWorkspaceSessionFrozen(owner)),
+          ...kept
+        ]
+      })
     }
   }
 }

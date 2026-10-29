@@ -1,8 +1,7 @@
 import { publishSessionChanges, sessionPublication } from '../loading-store/session-publication'
 import { readSessionOperation } from '../loading-store/session-operation'
 import { SessionUnitReader } from '../../../shared/session-unit-reader'
-import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
-import { isWslMoveWorkspaceSessionFrozen } from '../moving-wsl-projects/wsl-move-scope-guard'
+import { keepFrozenSnapshotUnits } from '../loading-store/session-snapshot-normalization-effects'
 // Apply routed-partition commands first while carrying in-memory editor views through saved-session loads.
 
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
@@ -47,13 +46,7 @@ export function keepFrozen(
   if (!(source instanceof SessionUnitReader)) {
     return keepWslMoveFrozenSessionsForStore(source, context.getSession(hostId))
   }
-  for (const field of SESSION_MAP_FIELDS) {
-    for (const key of source.changedKeys(field)) {
-      if ([...source.ids(field, key, 'owner')].some(isWslMoveWorkspaceSessionFrozen)) {
-        source.write(field, key, source.unit(field, key, 'prior'))
-      }
-    }
-  }
+  keepFrozenSnapshotUnits(source, source.selection())
   return source
 }
 

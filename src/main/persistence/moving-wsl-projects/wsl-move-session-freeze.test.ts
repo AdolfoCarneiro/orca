@@ -89,6 +89,25 @@ describe('WSL move session freeze', () => {
       expect(titles(store)).toEqual({ moving: ['slept'], staying: ['edited'] })
     })
 
+    it('preserves a frozen tab layout when only its tab-keyed unit is patched', () => {
+      const prior = store.getWorkspaceSession().terminalLayoutsByTabId['moving-tab']
+      const leafId = '11111111-1111-4111-8111-111111111111'
+      store.patchWorkspaceSession({
+        mapDeltas: {
+          terminalLayoutsByTabId: {
+            set: {
+              'moving-tab': {
+                root: { type: 'leaf', leafId },
+                activeLeafId: leafId,
+                expandedLeafId: null
+              }
+            }
+          }
+        }
+      })
+      expect(store.getWorkspaceSession().terminalLayoutsByTabId['moving-tab']).toBe(prior)
+    })
+
     it('keeps it through a patch and the before-unload stage', () => {
       store.patchWorkspaceSession({
         activeTabTypeByWorktree: { [MOVING]: 'editor', [STAYING]: 'editor' }

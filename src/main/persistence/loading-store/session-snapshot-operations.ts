@@ -1,3 +1,4 @@
+import { workspaceSessionPatchNeedsFullNormalization } from './terminal-session-cleanup'
 import {
   SessionUnitReader,
   selectSessionUnits,
@@ -174,7 +175,15 @@ export class SessionSnapshotOperations {
     if (window) {
       reduceWindowSessionPatch(reader, resolved, selected, window, full)
     }
-    publishWorkspaceSessionSnapshot(context, resolved, reader, full, false, selected)
+    publishWorkspaceSessionSnapshot(
+      context,
+      resolved,
+      reader,
+      full,
+      false,
+      selected,
+      workspaceSessionPatchNeedsFullNormalization(patch)
+    )
     return { applied: true, partitionGeneration: publication.generation(resolved) }
   }
 

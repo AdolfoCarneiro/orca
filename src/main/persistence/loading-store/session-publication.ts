@@ -151,12 +151,8 @@ export class SessionPublication {
     }
     const next = admission.root
     const units = admission.units
-    const owners = new Set<string>(),
-      tabs = new Set<string>(),
-      panes = new Set<string>()
-    const files = new Set<string>(),
-      pages = new Set<string>(),
-      repos = new Set<string>()
+    const { tabs, panes, files, pages, repos } = admission.affected
+    const owners = new Set(admission.affected.owners)
     const addresses: SessionUnitAddress[] = units.flatMap((unit) =>
       unit.key === null ? [] : [{ field: unit.field, key: unit.key }]
     )
@@ -185,23 +181,8 @@ export class SessionPublication {
       const id = JSON.stringify([field, key])
       partition.versions.set(id, (partition.versions.get(id) ?? 0) + 1)
     }
-    const collect = (index: SessionUnitIndex, address: SessionUnitAddress): void => {
-      for (const [kind, target] of [
-        ['owner', owners],
-        ['tab', tabs],
-        ['pane', panes],
-        ['file', files],
-        ['page', pages],
-        ['repo', repos]
-      ] as const) {
-        for (const id of index.ids(address.field, address.key, kind)) {
-          target.add(id)
-        }
-      }
-    }
     const refDeltas = new Map<string, number>()
     for (const address of addresses) {
-      collect(partition.index, address)
       for (const ref of partition.index.ids(address.field, address.key, 'scrollback')) {
         refDeltas.set(
           ref,
@@ -217,9 +198,6 @@ export class SessionPublication {
     }
     for (const [field, keys] of admission.orders) {
       partition.index.orderField(field, keys)
-    }
-    for (const address of addresses) {
-      collect(partition.index, address)
     }
     for (const address of addresses) {
       for (const ref of partition.index.ids(address.field, address.key, 'scrollback')) {

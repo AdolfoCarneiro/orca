@@ -1,13 +1,9 @@
 export { type SessionUnitSelection, selectSessionUnits } from './session-unit-selection'
 
+import { getRepoIdFromWorktreeId } from './worktree/id'
 import type { WorkspaceSessionState } from './workspace-session-state-types'
-import type {
-  SessionUnitIndex,
-  SessionReferenceKind,
-  SessionUnitAddress
-} from './session-unit-index'
+import type { SessionUnitIndex, SessionUnitAddress } from './session-unit-index'
 import {
-  SESSION_MAP_FIELDS,
   isSessionMapField,
   type SessionAdmissionKind,
   type SessionUnitChange,
@@ -27,10 +23,11 @@ export type {
   SessionPolicyField,
   PreparedSession
 } from './session-reader-types'
-import { SessionFieldReader } from './session-reader-fields'
+import { SessionReaderQueries } from './session-reader-queries'
+import { resolveSessionUnits, type SessionUnitSelection } from './session-unit-selection'
 export { isSessionUnitView } from './session-reader-types'
 
-export class SessionUnitReader extends SessionFieldReader {
+export class SessionUnitReader extends SessionReaderQueries {
   static between(
     prior: WorkspaceSessionState,
     candidate: WorkspaceSessionState,
@@ -79,84 +76,39 @@ export class SessionUnitReader extends SessionFieldReader {
     }
   }
 
-  keys(field: SessionMapField): readonly string[] {
-    const transition = this.transitions.get(field)
-    const keys = transition?.complete ? this.candidateIndex.keys(field) : this.index.keys(field)
-    return this.ordered(field, new Set([...keys, ...(transition?.entries?.keys() ?? [])]))
-  }
+  private dependencyCache?: { revision: number; full: boolean; units: SessionUnitSelection }
+  private readonly dependencySeeds = new Map<SessionMapField, Set<string>>()
 
-  ids(field: SessionMapField, key: string, kind: SessionReferenceKind): ReadonlySet<string> {
-    return new Set([
-      ...this.index.ids(field, key, kind),
-      ...this.candidateIndex.ids(field, key, kind)
-    ])
-  }
-
-  ordered(field: SessionMapField, keys: Iterable<string>): readonly string[] {
-    return this.orderSelection(
-      field,
-      [...keys].filter((key) => this.unit(field, key).present)
+  selection(extra: readonly SessionUnitAddress[] = [], full = false): SessionUnitSelection {
+    for (const { field, key } of extra) {
+      const keys = this.dependencySeeds.get(field) ?? new Set<string>()
+      if (!keys.has(key)) {
+        keys.add(key)
+        this.dependencySeeds.set(field, keys)
+        this.dependencyCache = undefined
+      }
+    }
+    if (this.dependencyCache?.revision === this.revision && this.dependencyCache.full === full) {
+      return this.dependencyCache.units
+    }
+    const seeds = [...this.dependencySeeds].flatMap(([field, keys]) =>
+      [...keys].map((key) => ({ field, key }))
     )
+    const units = resolveSessionUnits(this, seeds, full)
+    this.dependencyCache = { revision: this.revision, full, units }
+    return units
   }
 
-  orderSelection(field: SessionMapField, keys: Iterable<string>): readonly string[] {
-    return this.candidateIndex.ordered(field, keys)
-  }
-
-  terminalOwner(tabId: string, selection: 'first' | 'last' = 'last'): string | undefined {
-    const units = this.references('tab', tabId).filter((unit) => unit.field === 'tabsByWorktree')
-    return selection === 'first' ? units[0]?.key : units.at(-1)?.key
-  }
-
-  references(
-    kind: SessionReferenceKind,
-    id: string,
-    phase: 'prior' | 'candidate' = 'candidate'
-  ): readonly SessionUnitAddress[] {
-    if (phase === 'prior') {
-      return this.index.references(kind, id)
-    }
-    const combined = [
-      ...this.index
-        .references(kind, id)
-        .filter((unit) => !this.changed.get(unit.field)?.has(unit.key)),
-      ...this.candidateIndex.references(kind, id)
-    ]
-    return combined.sort((a, b) => {
-      if (a.field !== b.field) {
-        return SESSION_MAP_FIELDS.indexOf(a.field) - SESSION_MAP_FIELDS.indexOf(b.field)
-      }
-      if (a.key === b.key) {
-        return 0
-      }
-      return this.orderSelection(a.field, [a.key, b.key])[0] === a.key ? -1 : 1
-    })
-  }
-
-  map<F extends SessionMapField>(
-    field: F,
-    keys: Iterable<string>
-  ): NonNullable<WorkspaceSessionState[F]> {
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: every value is read from this exact typed session map field.
-    return Object.fromEntries(
-      this.ordered(field, keys).flatMap((key) => {
-        const entry = this.unit(field, key)
-        return entry.present ? [[key, entry.value]] : []
-      })
-    ) as NonNullable<WorkspaceSessionState[F]>
-  }
-
-  terminalOccurrenceCount(tabId: string, phase: 'prior' | 'candidate' = 'candidate'): number {
-    if (phase === 'prior') {
-      return this.index.terminalOccurrenceCount(tabId)
-    }
-    let count = this.candidateIndex.terminalOccurrenceCount(tabId)
-    for (const unit of this.index.references('tab', tabId)) {
-      if (unit.field === 'tabsByWorktree' && !this.changed.get(unit.field)?.has(unit.key)) {
-        count += this.index.terminalUnitOccurrenceCount(unit.field, unit.key, tabId)
+  affectedOwners(selection = this.selection()): ReadonlySet<string> {
+    const owners = new Set<string>()
+    for (const [field, keys] of selection) {
+      for (const key of keys) {
+        for (const owner of this.ids(field, key, 'owner')) {
+          owners.add(owner)
+        }
       }
     }
-    return count
+    return owners
   }
 
   prepare(options: {
@@ -223,6 +175,33 @@ export class SessionUnitReader extends SessionFieldReader {
         nextPresent: Object.hasOwn(root, field)
       })
     }
+    const affected = {
+      owners: this.affectedOwners(),
+      tabs: new Set<string>(),
+      panes: new Set<string>(),
+      files: new Set<string>(),
+      pages: new Set<string>(),
+      repos: new Set<string>()
+    }
+    for (const unit of units) {
+      if (unit.key === null) {
+        continue
+      }
+      for (const [kind, target] of [
+        ['tab', affected.tabs],
+        ['pane', affected.panes],
+        ['file', affected.files],
+        ['page', affected.pages],
+        ['repo', affected.repos]
+      ] as const) {
+        for (const id of this.ids(unit.field, unit.key, kind)) {
+          target.add(id)
+        }
+      }
+    }
+    for (const owner of affected.owners) {
+      affected.repos.add(getRepoIdFromWorktreeId(owner))
+    }
     this.sealed = true
     return {
       prior: this.prior,
@@ -231,6 +210,7 @@ export class SessionUnitReader extends SessionFieldReader {
       fullReplacement: options.fullReplacement ?? false,
       partitionDeleted: options.partitionDeleted ?? false,
       units,
+      affected,
       orders,
       effects: options.effects ?? []
     }

@@ -88,6 +88,49 @@ describe('immutable session publication', () => {
     expect(publication.take()).toEqual([])
   })
 
+  it('announces the owning workspace when only its pane order changes', () => {
+    const owner = 'repo::/a'
+    const first = '11111111-1111-4111-8111-111111111111'
+    const second = '22222222-2222-4222-8222-222222222222'
+    const session = getDefaultWorkspaceSession()
+    session.tabsByWorktree = { [owner]: [tab('a', owner)] }
+    session.terminalLayoutsByTabId = {
+      a: {
+        root: {
+          type: 'split',
+          direction: 'vertical',
+          first: { type: 'leaf', leafId: first },
+          second: { type: 'leaf', leafId: second }
+        },
+        activeLeafId: first,
+        expandedLeafId: null
+      }
+    }
+    const prior = freeze(session)
+    const state = { workspaceSession: prior }
+    const publication = sessionPublication(state)
+    const { root, index } = publication.partition('local')
+    const reader = new SessionUnitReader(root, index)
+    reader.write('terminalLayoutsByTabId', 'a', {
+      present: true,
+      value: {
+        ...session.terminalLayoutsByTabId.a,
+        root: {
+          type: 'split',
+          direction: 'vertical',
+          first: { type: 'leaf', leafId: second },
+          second: { type: 'leaf', leafId: first }
+        }
+      }
+    })
+    expect([...(selectSessionUnits(reader).get('tabsByWorktree') ?? [])]).toEqual([owner])
+    publishSessionChanges(state, 'local', reader.prepare({ kind: 'renderer' }))
+    expect(state.workspaceSession.terminalLayoutsByTabId.a.root).not.toBe(
+      prior.terminalLayoutsByTabId.a.root
+    )
+    expect([...publication.take('local')[0].owners]).toEqual([owner])
+  })
+
   it('matches rebuilt ownership, order, duplicate and scrollback counts after keyed edits', () => {
     const state = { workspaceSession: getDefaultWorkspaceSession() }
     const publication = sessionPublication(state)

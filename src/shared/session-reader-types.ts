@@ -1,6 +1,7 @@
 import type { WorkspaceSessionState } from './workspace-session-state-types'
 
 import type {
+  SessionChangeSet,
   SessionFieldPresenceIntent,
   SessionAdmissionKind,
   SessionUnitChange,
@@ -45,6 +46,7 @@ export type PreparedSession = {
   kind: SessionAdmissionKind
   fullReplacement: boolean
   partitionDeleted: boolean
+  affected: Pick<SessionChangeSet, 'owners' | 'tabs' | 'panes' | 'files' | 'pages' | 'repos'>
   units: readonly SessionUnitChange[]
   orders: ReadonlyMap<SessionMapField, readonly string[]>
   relatedViews?: ReadonlyMap<string, { prior: unknown; next: unknown }>

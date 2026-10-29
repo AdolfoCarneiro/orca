@@ -17,7 +17,6 @@ import { migrateWorkspaceSessionTerminalScrollbackSnapshotsAsync } from '../../t
 import { reduceRuntimeAuthoredSessionFields } from '../runtime-authored-workspace-session-fields'
 import { reduceClosedTerminalTabFence } from '../closed-terminal-tab-write-fence'
 import { reduceSessionTerminalRetirements } from '../../runtime/mobile-session-terminal-persistence-retirement'
-import { keepWslMoveFrozenSessionsForStore } from '../moving-wsl-projects/wsl-move-session-freeze'
 
 import { normalizeSessionPaneUnits } from '../restoring-sessions/workspace-pane-normalization'
 import {
@@ -52,11 +51,7 @@ export function setLocalWorkspaceSession(
   const { root, index } = sessionPublication(context.runtime.state).partition(
     LOCAL_EXECUTION_HOST_ID
   )
-  const reader = SessionUnitReader.between(
-    root,
-    keepWslMoveFrozenSessionsForStore(session, root),
-    index
-  )
+  const reader = SessionUnitReader.between(root, session, index)
   publishWorkspaceSessionSnapshot(
     context,
     LOCAL_EXECUTION_HOST_ID,
@@ -76,7 +71,8 @@ export function publishWorkspaceSessionSnapshot(
   reader: SessionUnitReader,
   full: boolean,
   deferSnapshotFiles = false,
-  selection = selectSessionUnits(reader, [], full)
+  selection = selectSessionUnits(reader, [], full),
+  normalizeTopology = true
 ): void {
   const { state } = context.runtime
   const local = hostId === LOCAL_EXECUTION_HOST_ID
@@ -96,16 +92,22 @@ export function publishWorkspaceSessionSnapshot(
     ...(selection.get('terminalPtyIncarnationsByPaneKey') ?? []),
     ...(selection.get('sleepingAgentSessionsByPaneKey') ?? [])
   ])
-  reduceRuntimeAuthoredSessionFields(reader, owners, panes)
-  reduceClosedTerminalTabFence(reader, selection.get('closedTerminalTabTombstonesByTabId') ?? [])
-  const revisions = runtimePartitionFenceRevisions(
-    context.runtime,
-    hostId,
-    reader,
-    selection.get('terminalTopologyRevisionByRepoId') ?? [],
-    selection.get('terminalSurfaceTombstonesByPaneKey') ?? []
-  )
-  reduceSessionTerminalRetirements(reader, selection, revisions)
+  if (normalizeTopology) {
+    reduceRuntimeAuthoredSessionFields(reader, owners, panes)
+  }
+  if (normalizeTopology || reader.touches('unifiedTabs')) {
+    reduceClosedTerminalTabFence(reader, selection.get('closedTerminalTabTombstonesByTabId') ?? [])
+  }
+  if (normalizeTopology) {
+    const revisions = runtimePartitionFenceRevisions(
+      context.runtime,
+      hostId,
+      reader,
+      selection.get('terminalTopologyRevisionByRepoId') ?? [],
+      selection.get('terminalSurfaceTombstonesByPaneKey') ?? []
+    )
+    reduceSessionTerminalRetirements(reader, selection, revisions)
+  }
   const tabs = new Set([
     ...(selection.get('terminalLayoutsByTabId') ?? []),
     ...(selection.get('localOnlyScrollbackByTabId') ?? [])
@@ -114,31 +116,35 @@ export function publishWorkspaceSessionSnapshot(
     sessionNormalizationRepos(state.repos, selection).map((repo) => [repo.id, repo])
   )
   let normalized: ReturnType<typeof normalizeSessionPaneUnits> | undefined
-  if (local) {
+  normalizeSnapshotHistory(reader)
+  if (local && normalizeTopology) {
     reduceTerminalScrollbackBuffers(reader, tabs, repos)
-    normalizeSnapshotHistory(reader)
     normalized = normalizeSessionPaneUnits(reader, tabs, { registerAliases: false })
   }
-  reduceMissingSessionTerminalBindings(
-    reader,
-    owners,
-    tabs,
-    context.bindingRecovery,
-    local
-      ? {}
-      : { executionHostId: hostId, targetIdForWorktree: sshTargetIdForWorkspaceSessionHost(hostId) }
-  )
-  reduceTerminalScrollbackBuffers(reader, tabs, repos)
-  if (!local) {
-    normalizeSnapshotHistory(reader)
-    for (const field of HOST_PARTITION_REDUNDANT_GLOBAL_FIELDS) {
-      if (state.workspaceSession[field] !== undefined) {
-        reader.replace(field, { present: false, value: undefined })
+  if (normalizeTopology) {
+    reduceMissingSessionTerminalBindings(
+      reader,
+      owners,
+      tabs,
+      context.bindingRecovery,
+      local
+        ? {}
+        : {
+            executionHostId: hostId,
+            targetIdForWorktree: sshTargetIdForWorkspaceSessionHost(hostId)
+          }
+    )
+    reduceTerminalScrollbackBuffers(reader, tabs, repos)
+    if (!local) {
+      for (const field of HOST_PARTITION_REDUNDANT_GLOBAL_FIELDS) {
+        if (state.workspaceSession[field] !== undefined) {
+          reader.replace(field, { present: false, value: undefined })
+        }
       }
     }
   }
   // File writes finish before the root can point at their refs.
-  if (local && !deferSnapshotFiles) {
+  if (local && normalizeTopology && !deferSnapshotFiles) {
     for (const tabId of tabs) {
       const layout = reader.unit('terminalLayoutsByTabId', tabId).value
       if (layout) {

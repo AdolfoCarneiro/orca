@@ -4,7 +4,7 @@ import { SESSION_MAP_FIELDS, type SessionMapField } from './session-change-set'
 import type { SessionUnitReader } from './session-unit-reader'
 export type SessionUnitSelection = Map<SessionMapField, Set<string>>
 
-export function selectSessionUnits(
+export function resolveSessionUnits(
   reader: SessionUnitReader,
   extra: readonly SessionUnitAddress[] = [],
   full = false
@@ -70,4 +70,12 @@ export function selectSessionUnits(
     selected.set(field, new Set(reader.orderSelection(field, keys)))
   }
   return selected
+}
+
+export function selectSessionUnits(
+  reader: SessionUnitReader,
+  extra: readonly SessionUnitAddress[] = [],
+  full = false
+): SessionUnitSelection {
+  return reader.selection(extra, full)
 }

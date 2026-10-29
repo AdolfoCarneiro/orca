@@ -1,3 +1,4 @@
+import type { TerminalTab } from './terminal-tab-types'
 import { SessionFieldOrder } from './session-field-order'
 import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from './workspace-session-host-field-ownership'
 import { getRepoIdFromWorktreeId } from './worktree/id'
@@ -19,7 +20,7 @@ export type SessionReferenceKind =
 export type SessionUnitAddress = { field: SessionMapField; key: string }
 type Contribution = SessionUnitAddress & {
   references: Map<SessionReferenceKind, Set<string>>
-  terminalOccurrences: Map<string, number>
+  terminalOccurrences: Map<string, { count: number; first: unknown }>
   scrollbackOccurrences: Map<string, number>
   sourceFiles?: readonly unknown[]
 }
@@ -38,7 +39,6 @@ function rawOwner(key: string): string {
   return scope?.type === 'worktree' ? scope.worktreeId : unqualified
 }
 
-/** One mutable, rebuildable index owner; retained snapshots contain values, never these Maps. */
 export class SessionUnitIndex {
   private readonly units = new Map<SessionMapField, Map<string, Contribution>>()
   private readonly reverse = new Map<SessionReferenceKind, Map<string, Set<Contribution>>>()
@@ -109,7 +109,6 @@ export class SessionUnitIndex {
     const ownership = WORKSPACE_SESSION_FIELD_OWNERSHIP[field]
     if (ownership === 'worktreeKeyed') {
       addOwner(key)
-      add('repo', getRepoIdFromWorktreeId(rawOwner(key)))
     } else if (ownership === 'tabKeyed') {
       add('tab', key)
     } else if (ownership === 'browserWorkspaceKeyed') {
@@ -122,6 +121,10 @@ export class SessionUnitIndex {
       ownership === 'surfaceTombstoneKeyed'
     ) {
       add('pane', key)
+      const separator = key.indexOf(':')
+      if (separator > 0) {
+        add('tab', key.slice(0, separator))
+      }
       const pane = parsePaneKey(key)
       if (pane) {
         add('tab', pane.tabId)
@@ -138,13 +141,18 @@ export class SessionUnitIndex {
         for (const row of value) {
           const tab = record(row)
           addOwner(tab?.worktreeId)
-          add('tab', tab?.id)
+          const tabId = tab?.id
+          add('tab', tabId)
           if (tab?.contentType === 'terminal') {
             add('tab', tab.entityId)
           }
           add('pty', tab?.ptyId)
-          if (field === 'tabsByWorktree' && typeof tab?.id === 'string') {
-            unit.terminalOccurrences.set(tab.id, (unit.terminalOccurrences.get(tab.id) ?? 0) + 1)
+          if (field === 'tabsByWorktree' && typeof tabId === 'string') {
+            const occurrence = unit.terminalOccurrences.get(tabId)
+            unit.terminalOccurrences.set(tabId, {
+              count: (occurrence?.count ?? 0) + 1,
+              first: occurrence?.first ?? row
+            })
           }
         }
       }
@@ -165,7 +173,6 @@ export class SessionUnitIndex {
             add('browser', item?.id)
           } else {
             add('page', item?.id)
-            addOwner(record(item?.docLocation)?.worktreeId)
           }
         }
       }
@@ -267,14 +274,21 @@ export class SessionUnitIndex {
     return selection === 'first' ? units[0]?.key : units.at(-1)?.key
   }
 
+  terminalRow(owner: string, tabId: string): TerminalTab | undefined {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: tabsByWorktree contributions retain the original admitted terminal DTO row.
+    return this.units.get('tabsByWorktree')?.get(owner)?.terminalOccurrences.get(tabId)?.first as
+      | TerminalTab
+      | undefined
+  }
+
   terminalUnitOccurrenceCount(field: SessionMapField, key: string, tabId: string): number {
-    return this.units.get(field)?.get(key)?.terminalOccurrences.get(tabId) ?? 0
+    return this.units.get(field)?.get(key)?.terminalOccurrences.get(tabId)?.count ?? 0
   }
 
   terminalOccurrenceCount(tabId: string): number {
     let count = 0
     for (const unit of this.reverse.get('tab')?.get(tabId) ?? []) {
-      count += unit.terminalOccurrences.get(tabId) ?? 0
+      count += unit.terminalOccurrences.get(tabId)?.count ?? 0
     }
     return count
   }
