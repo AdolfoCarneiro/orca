@@ -123,7 +123,7 @@ describe('store identity churn probe', () => {
     const store = createProbeStore()
     armStoreIdentityChurnProbe()
 
-    store.setState((state) => state)
+    setSessionTestState(store, (state) => state)
 
     expect(readStoreIdentityChurnReport()).toEqual([])
   })

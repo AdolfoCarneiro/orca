@@ -1,4 +1,4 @@
-import { editSessionSource } from '@/store/session-source-edits'
+import { editSessionSource, type OrdinarySourcePartial } from '@/store/session-source-edits'
 import type { BrowserSlice, BrowserSliceGet, BrowserSliceSet } from './browser-slice-contract'
 import type { AppState } from '../../types'
 import { ORCA_BROWSER_BLANK_URL } from '../../../../../shared/constants'
@@ -74,34 +74,32 @@ export function createBrowserPageStateActions(
         if (pageStateUnchanged && !unifiedLabelNeedsRepair && !workspaceNeedsRepair) {
           return undefined
         }
+        const edit = editSessionSource(s)
         if (pageStateUnchanged) {
-          const nextState: Partial<AppState> = {}
           if (workspaceNeedsRepair && mirroredWorkspace) {
-            nextState.browserTabsByWorktree = {
-              ...s.browserTabsByWorktree,
-              [workspace.worktreeId]: (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map(
-                (tab) => (tab.id === workspace.id ? mirroredWorkspace : tab)
+            edit.set(
+              'browserTabsByWorktree',
+              workspace.worktreeId,
+              (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map((tab) =>
+                tab.id === workspace.id ? mirroredWorkspace : tab
               )
-            }
+            )
           }
           if (unifiedLabelNeedsRepair) {
-            nextState.unifiedTabsByWorktree = {
-              ...s.unifiedTabsByWorktree,
-              [workspace.worktreeId]: unifiedTabs.map((entry, index) =>
+            edit.set(
+              'unifiedTabsByWorktree',
+              workspace.worktreeId,
+              unifiedTabs.map((entry, index) =>
                 index === unifiedIndex ? { ...entry, label: nextPage.title } : entry
               )
-            }
+            )
           }
-          return nextState
+          return edit.finish()
         }
         const nextPages = currentPages.map((entry) => (entry.id === pageId ? nextPage : entry))
         const nextWorkspace = mirrorWorkspaceFromActivePage(workspace, nextPages)
-        const nextState: Partial<AppState> = {
-          browserPagesByWorkspace: {
-            ...s.browserPagesByWorkspace,
-            [workspace.id]: nextPages
-          }
-        }
+        edit.set('browserPagesByWorkspace', workspace.id, nextPages)
+        const nextState: OrdinarySourcePartial<AppState> = {}
         if (updates.faviconUrl !== undefined && updates.faviconUrl !== page.faviconUrl) {
           const historyIndex = s.browserUrlHistory.findIndex(
             (entry) => entry.normalizedUrl === normalizeBrowserHistoryUrl(page.url)
@@ -114,12 +112,13 @@ export function createBrowserPageStateActions(
           }
         }
         if (!browserWorkspaceMirrorFieldsEqual(workspace, nextWorkspace)) {
-          nextState.browserTabsByWorktree = {
-            ...s.browserTabsByWorktree,
-            [workspace.worktreeId]: (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map(
-              (tab) => (tab.id === workspace.id ? nextWorkspace : tab)
+          edit.set(
+            'browserTabsByWorktree',
+            workspace.worktreeId,
+            (s.browserTabsByWorktree[workspace.worktreeId] ?? []).map((tab) =>
+              tab.id === workspace.id ? nextWorkspace : tab
             )
-          }
+          )
         }
         if (
           workspace.activePageId === pageId &&
@@ -127,15 +126,16 @@ export function createBrowserPageStateActions(
           unifiedIndex !== -1
         ) {
           if (unifiedLabelNeedsRepair || unifiedTabs[unifiedIndex]?.label !== nextWorkspace.title) {
-            nextState.unifiedTabsByWorktree = {
-              ...s.unifiedTabsByWorktree,
-              [workspace.worktreeId]: unifiedTabs.map((entry, index) =>
+            edit.set(
+              'unifiedTabsByWorktree',
+              workspace.worktreeId,
+              unifiedTabs.map((entry, index) =>
                 index === unifiedIndex ? { ...entry, label: nextWorkspace.title } : entry
               )
-            }
+            )
           }
         }
-        return nextState
+        return edit.finish(nextState)
       })
       if (updates.loadError === null) {
         get().setBrowserPageCertificateFailure(pageId, null)

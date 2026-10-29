@@ -75,7 +75,7 @@ export function seedEmptyActivatableWorktree(
 ): { revealWorktreeInSidebar: ReturnType<typeof vi.fn> } {
   const revealWorktreeInSidebar = vi.fn()
 
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     ...baseSeedState(worktree, [...(options.extraWorktrees ?? []), worktree]),
     markWorktreeVisited: vi.fn(),
     recordWorktreeVisit: vi.fn(),

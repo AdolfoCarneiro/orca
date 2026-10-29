@@ -25,7 +25,7 @@ afterEach(() => {
 
 function setStoreState(partial: Record<string, unknown>): void {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixtures set only the slices the wake sweep reads; the rest stay at the real initial state.
-  useAppStore.setState(partial as Partial<ReturnType<typeof useAppStore.getState>>)
+  setSessionTestState(useAppStore, partial as Partial<ReturnType<typeof useAppStore.getState>>)
 }
 
 function makeRecord(

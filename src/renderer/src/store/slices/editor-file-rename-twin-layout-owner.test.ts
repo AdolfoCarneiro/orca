@@ -33,31 +33,28 @@ let main: TabsDrawnFromMain
 beforeEach(async () => {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   const twinRow = { id: TWIN, repoId: 'repo-a', path: '/repo-a-twin', hostId: 'local', branch: '' }
-  useAppStore.setState(
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial catalog with only the fields editor opens, owner routes and frames read.
-    {
-      activeWorktreeId: WT,
-      settings: { editorAutoSave: false },
-      repos: [{ id: 'repo-a', path: '/repo-a', kind: 'git', executionHostId: 'local' }],
-      worktreesByRepo: {
-        'repo-a': [
-          { id: WT, repoId: 'repo-a', path: '/repo-a', hostId: 'local', branch: '' },
-          // Published by this host and by a paired server: a twin.
-          twinRow,
-          { ...twinRow, runtimeOwnerEnvironmentId: 'runtime-1' }
-        ]
-      },
-      detectedWorktreesByRepo: {},
-      runtimeEnvironments: [],
-      runtimeEnvironmentCatalogHydrated: true,
-      removedRuntimeEnvironmentIds: new Set(),
-      sshConnectionStates: new Map(),
-      sshStateByEnvironment: new Map(),
-      folderWorkspaces: [],
-      projectGroups: [],
-      gitStatusHugeByWorktree: {}
-    } as unknown as Partial<AppState>
-  )
+  setSessionTestState(useAppStore, {
+    activeWorktreeId: WT,
+    settings: { editorAutoSave: false },
+    repos: [{ id: 'repo-a', path: '/repo-a', kind: 'git', executionHostId: 'local' }],
+    worktreesByRepo: {
+      'repo-a': [
+        { id: WT, repoId: 'repo-a', path: '/repo-a', hostId: 'local', branch: '' },
+        // Published by this host and by a paired server: a twin.
+        twinRow,
+        { ...twinRow, runtimeOwnerEnvironmentId: 'runtime-1' }
+      ]
+    },
+    detectedWorktreesByRepo: {},
+    runtimeEnvironments: [],
+    runtimeEnvironmentCatalogHydrated: true,
+    removedRuntimeEnvironmentIds: new Set(),
+    sshConnectionStates: new Map(),
+    sshStateByEnvironment: new Map(),
+    folderWorkspaces: [],
+    projectGroups: [],
+    gitStatusHugeByWorktree: {}
+  } as unknown as Partial<AppState>)
   main = await drawTabsFromMain(useAppStore)
   // Main routes the twin to the paired server.
   layoutApplyTestTransport.answerWith((command) =>

@@ -18,7 +18,7 @@ afterEach(() => {
 })
 
 function seedLiveLocalCodexPane(): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: WORKTREE_ID,
     tabsByWorktree: {
       [WORKTREE_ID]: [
@@ -108,7 +108,7 @@ describe('a finished local agent', () => {
     expect(record?.interrupted).toBe(true)
     expect(activationTreatsNoteAsFinished(record!)).toBe(false)
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { [WORKTREE_ID]: [] },
       ptyIdsByTabId: {},
       terminalLayoutsByTabId: {}
@@ -127,7 +127,7 @@ describe('a finished local agent', () => {
     seedLiveLocalCodexPane()
     reportTurnFinished()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { [WORKTREE_ID]: [] },
       ptyIdsByTabId: {},
       terminalLayoutsByTabId: {}

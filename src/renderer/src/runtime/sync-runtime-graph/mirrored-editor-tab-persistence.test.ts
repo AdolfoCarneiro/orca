@@ -73,7 +73,10 @@ it('does not republish a mirrored editor after persistence and hydration', () =>
   )
   expect(restored.getState().openFiles[0]).toHaveProperty('mirroredFromRuntimeSession', true)
 
-  restored.setState(applyWebSessionTabsSnapshot(restored.getState(), snapshot, ENV, NOW + 1))
+  setSessionTestState(
+    restored,
+    applyWebSessionTabsSnapshot(restored.getState(), snapshot, ENV, NOW + 1)
+  )
   expect(buildMobileSessionTabSnapshots(restored.getState(), false).flatMap((s) => s.tabs)).toEqual(
     []
   )

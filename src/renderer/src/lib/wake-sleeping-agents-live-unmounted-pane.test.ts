@@ -121,7 +121,7 @@ afterEach(() => {
 
 describe('background wake of a pane whose PTY the host still holds', () => {
   it('does not resume a second writer onto the live conversation', async () => {
-    useAppStore.setState(unmountedLivePaneState())
+    setSessionTestState(useAppStore, unmountedLivePaneState())
     listedSessions = [
       {
         id: LIVE_PTY_ID,
@@ -139,7 +139,7 @@ describe('background wake of a pane whose PTY the host still holds', () => {
   })
 
   it('declines the resume and keeps the record when the host inventory cannot be read', async () => {
-    useAppStore.setState(unmountedLivePaneState())
+    setSessionTestState(useAppStore, unmountedLivePaneState())
     listSessions.mockRejectedValue(new Error('daemon unreachable'))
 
     expect(await wakeAndSettle()).toBe('blocked')
@@ -149,7 +149,7 @@ describe('background wake of a pane whose PTY the host still holds', () => {
   })
 
   it('still resumes once the host inventory shows the PTY exited', async () => {
-    useAppStore.setState(unmountedLivePaneState())
+    setSessionTestState(useAppStore, unmountedLivePaneState())
 
     expect(await wakeAndSettle()).toBe('resumed')
 

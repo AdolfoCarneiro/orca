@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -14,11 +15,13 @@ import { useWorkspaceCleanupBrowseState } from './use-workspace-cleanup-browse-s
 import type { WorkspaceCleanupBrowseController } from './use-workspace-cleanup-browse-state'
 
 const store = create<AppState>()(
-  (...a) =>
-    ({
-      workspaceCleanupDismissals: {},
-      ...createWorkspaceCleanupBrowseSlice(...a)
-    }) as unknown as AppState
+  withSessionSourceWrites(
+    (...a) =>
+      ({
+        workspaceCleanupDismissals: {},
+        ...createWorkspaceCleanupBrowseSlice(...a)
+      }) as unknown as AppState
+  )
 )
 
 vi.mock('@/store', () => ({

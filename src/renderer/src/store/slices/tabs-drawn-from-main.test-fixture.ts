@@ -1,5 +1,6 @@
 // With main layout ownership, emulate command replies and frames; install runtimeRpcClientWithLayoutApply/runtimeLayoutClientWithTestFrames mocks first. Inert for window-owned layouts.
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { buildWorkspaceSessionPayload } from '@/lib/workspace-session'
 import { layoutApplyTestTransport } from '@/runtime/layout-apply-test-transport.test-fixture'
@@ -67,7 +68,7 @@ export async function drawTabsFromMain(store: DrawnStore): Promise<TabsDrawnFrom
   _resetPendingTabFactsForTests()
   _resetContentRekeysForTests()
   layoutApplyTestTransport.answerWith('apply')
-  store.setState(missingFrameSlices(store.getState()))
+  setSessionTestState(store, missingFrameSlices(store.getState()))
   layoutApplyTestTransport.useMainModel(
     loadMainLayoutModel('local', buildWorkspaceSessionPayload(store.getState()))
   )

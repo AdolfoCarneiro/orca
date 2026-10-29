@@ -152,7 +152,8 @@ function makeSurvivingAgentRecord(index: number): SleepingAgentSessionRecord {
 /** Match promoted-renderer state: persisted layouts/daemon bindings before live PTY hydration, unless reattach has already completed. */
 function hydratePromotedRenderer(options: { reattached: boolean }): SleepingAgentSessionRecord[] {
   const records = AGENT_PANES.map((_, index) => makeSurvivingAgentRecord(index))
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     {
       activeWorktreeId: WORKTREE_ID,
       activeTabType: 'terminal',

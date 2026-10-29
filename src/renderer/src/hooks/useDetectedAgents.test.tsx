@@ -146,7 +146,7 @@ describe('Floating Workspace authority', () => {
     const activeResult: { current: UseDetectedAgentsResult | null } = { current: null }
     const floatingResult: { current: UseDetectedAgentsResult | null } = { current: null }
     useAppStore.getState().clearLocalDetectedAgents()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       activeRepoId: 'repo-wsl',
       activeWorktreeId: 'worktree-wsl',
       projects: [

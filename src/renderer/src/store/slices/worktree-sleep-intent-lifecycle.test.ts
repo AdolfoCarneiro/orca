@@ -165,7 +165,8 @@ describe('worktree sleep intent lifecycle', () => {
     const woke = vi.fn()
     intent.onWorktreeSleepIntentCleared(WORKTREE_ID, woke)
 
-    store.setState(
+    setSessionTestState(
+      store,
       sessionTestEdit(store.getState(), (edit) => buildWorktreePurgeState(edit, [WORKTREE_ID]))
     )
 
@@ -187,7 +188,8 @@ describe('worktree sleep intent lifecycle', () => {
         activate: false
       })
       const dispose = vi.spyOn(owner, 'dispose')
-      store.setState(
+      setSessionTestState(
+        store,
         sessionTestEdit(store.getState(), (edit) => buildWorktreePurgeState(edit, [workspaceId]))
       )
       expect(findStructuredAgentSessionReadOwner('created-chat', target)).toBeUndefined()

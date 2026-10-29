@@ -25,7 +25,7 @@ describe('whenCodexTerminalAppears', () => {
     const onAppear = vi.fn()
     whenCodexTerminalAppears(onAppear)
 
-    noticeTestStore.setState(patch)
+    setSessionTestState(noticeTestStore, patch)
     setSessionTestState(noticeTestStore, { tabsByWorktree: { 'wt-2': [{ launchAgent: 'codex' }] } })
 
     expect(onAppear).toHaveBeenCalledTimes(1)

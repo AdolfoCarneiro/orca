@@ -1,4 +1,5 @@
-import { createStore, type StoreApi } from 'zustand/vanilla'
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { createStore } from 'zustand/vanilla'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { AppState } from '../types'
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
@@ -32,16 +33,21 @@ function makeWorktree(id: string): Worktree {
 
 function createHistoryStore(worktreeIds: string[] = []): StoreApi<MinimalState> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createStore<any>()((set, get, api) => ({
-    worktreesByRepo: {
-      'repo-1': worktreeIds.map(makeWorktree)
-    },
-    ...createWorktreeNavHistorySlice(
-      set as Parameters<typeof createWorktreeNavHistorySlice>[0],
-      get as Parameters<typeof createWorktreeNavHistorySlice>[1],
-      api as Parameters<typeof createWorktreeNavHistorySlice>[2]
+  return createStore<AppState>()(
+    withSessionSourceWrites(
+      (set, get, api) =>
+        ({
+          worktreesByRepo: {
+            'repo-1': worktreeIds.map(makeWorktree)
+          },
+          ...createWorktreeNavHistorySlice(
+            set as Parameters<typeof createWorktreeNavHistorySlice>[0],
+            get as Parameters<typeof createWorktreeNavHistorySlice>[1],
+            api as Parameters<typeof createWorktreeNavHistorySlice>[2]
+          )
+        }) as AppState
     )
-  })) as unknown as StoreApi<MinimalState>
+  ) as unknown as StoreApi<MinimalState>
 }
 
 const viewCases: { entry: WorktreeNavHistorySimpleViewEntry; label: string }[] = [

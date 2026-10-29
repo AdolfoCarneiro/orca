@@ -311,7 +311,7 @@ it.each([10, 100])(
     for (const replacement of replacements) {
       work.lookups = 0
       identity.mockClear()
-      await act(async () => useAppStore.setState(replacement))
+      await act(async () => setSessionTestState(useAppStore, replacement))
       expect(identity).toHaveBeenCalledTimes(2)
       expect(work.lookups).toBeGreaterThan(0)
       // Two shown buttons; existing folder candidates/groups and git lookups are linear in records.
@@ -323,7 +323,7 @@ it.each([10, 100])(
         })
       )
       expect(screen.queryAllByRole('button')).toHaveLength(expected.length)
-      await act(async () => useAppStore.setState(restore))
+      await act(async () => setSessionTestState(useAppStore, restore))
       expect(screen.getAllByRole('button')).toHaveLength(2)
     }
     identity.mockClear()

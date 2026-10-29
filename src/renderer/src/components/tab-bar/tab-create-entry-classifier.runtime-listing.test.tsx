@@ -63,7 +63,7 @@ function seedLocalWorkspace(): void {
     repos: [],
     worktreesByRepo: {}
   }
-  useAppStore.setState(seeded)
+  setSessionTestState(useAppStore, seeded)
 }
 
 function HookProbe({

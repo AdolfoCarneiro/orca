@@ -54,7 +54,7 @@ describe('worktree remote runtime mutations', () => {
         hostId: 'runtime:env-1',
         firstAgentMessageRenameError: 'Name agent failed'
       })
-      store.setState({ worktreesByRepo: { repo1: [wt] } })
+      setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } })
       const status = createCompatibleRuntimeStatusResponse()
       if (!capable) {
         status.result.capabilities = status.result.capabilities?.filter(

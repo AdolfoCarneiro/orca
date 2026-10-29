@@ -116,7 +116,7 @@ function publishProfileSnapshot(profileId: string | undefined): void {
     activeTabType: 'browser',
     activeTabId: null
   })
-  useAppStore.setState((state) =>
+  setSessionTestState(useAppStore, (state) =>
     applyWebSessionTabsSnapshot(state, snapshot, ENV, NOW + snapshotVersion)
   )
 }

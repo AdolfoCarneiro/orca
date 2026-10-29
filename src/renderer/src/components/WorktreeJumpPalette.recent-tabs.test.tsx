@@ -152,7 +152,7 @@ async function flushEffects(): Promise<void> {
 }
 
 async function renderPalette(overrides: Partial<AppState>): Promise<void> {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeModal: 'worktree-palette',
     activeWorktreeId: null,
     repos: [makeRepo()],
@@ -327,7 +327,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
 
     // Narrowing away the first page must expose later ranked rows rather than an empty section.
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: {
           'wt-many': (useAppStore.getState().unifiedTabsByWorktree['wt-many'] ?? []).filter(
             (tab) => !before.includes(tab.id)
@@ -509,7 +509,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     await flushEffects()
 
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         tabsByWorktree: hydrated.tabsByWorktree,
         unifiedTabsByWorktree: hydrated.unifiedTabsByWorktree
       } as Partial<AppState>)
@@ -553,7 +553,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     await flushEffects()
 
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         tabsByWorktree: hydrated.tabsByWorktree,
         unifiedTabsByWorktree: hydrated.unifiedTabsByWorktree
       } as Partial<AppState>)
@@ -594,7 +594,9 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     })
     await flushEffects()
     await act(async () => {
-      useAppStore.setState({ tabsByWorktree: hydrated.tabsByWorktree } as Partial<AppState>)
+      setSessionTestState(useAppStore, {
+        tabsByWorktree: hydrated.tabsByWorktree
+      } as Partial<AppState>)
     })
     await flushEffects()
     expect(getTabRowIds()).toEqual(['tab-beta', 'tab-alpha'])
@@ -617,7 +619,9 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toEqual(['tab-beta'])
 
     await act(async () => {
-      useAppStore.setState({ tabsByWorktree: hydrated.tabsByWorktree } as Partial<AppState>)
+      setSessionTestState(useAppStore, {
+        tabsByWorktree: hydrated.tabsByWorktree
+      } as Partial<AppState>)
     })
     await flushEffects()
 

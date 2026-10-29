@@ -30,7 +30,7 @@ describe('stale structured sleeping session', () => {
       capturedAt: 1,
       updatedAt: 1
     }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { [WORKTREE_ID]: [] },
       sleepingAgentSessionsByPaneKey: { [paneKey]: record }
     } as never)

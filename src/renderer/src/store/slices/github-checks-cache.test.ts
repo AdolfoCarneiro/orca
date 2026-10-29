@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 
@@ -36,11 +37,13 @@ function deferred<T>(): Deferred<T> {
 
 function createTestStore() {
   return create<AppState>()(
-    (...a) =>
-      ({
-        ...createGitHubSlice(...a),
-        ...createHostedReviewSlice(...a)
-      }) as AppState
+    withSessionSourceWrites(
+      (...a) =>
+        ({
+          ...createGitHubSlice(...a),
+          ...createHostedReviewSlice(...a)
+        }) as AppState
+    )
   )
 }
 

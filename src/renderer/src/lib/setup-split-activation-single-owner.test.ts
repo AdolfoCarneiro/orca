@@ -234,7 +234,7 @@ describe('old-host split of an unmounted tab, then first activation', () => {
     const worktree = makeWorktree()
     const primaryPtyId = `${worktree.id}@@primary`
     const setupPtyId = `${worktree.id}@@setup`
-    useAppStore.setState(baseState())
+    setSessionTestState(useAppStore, baseState())
     const host = stubHost(primaryPtyId, setupPtyId)
     registerTerminalPresentationIpcBridge([])
     seedRevealedPrimaryTab(worktree.id, primaryPtyId)
@@ -272,7 +272,7 @@ describe('old-host split of an unmounted tab, then first activation', () => {
         const primaryPtyId = `${worktree.id}@@primary-${run}`
         const setupPtyId = `${worktree.id}@@setup-${run}`
         setSessionTestState(useAppStore, initialState, true)
-        useAppStore.setState(baseState())
+        setSessionTestState(useAppStore, baseState())
         const host = stubHost(primaryPtyId, setupPtyId)
         registerTerminalPresentationIpcBridge([])
         seedRevealedPrimaryTab(worktree.id, primaryPtyId)
@@ -292,7 +292,7 @@ describe('old-host split of an unmounted tab, then first activation', () => {
 
   it('rejects a split into a tab it lacks without switching to that workspace', () => {
     const worktree = makeWorktree()
-    useAppStore.setState({ ...baseState(), activeWorktreeId: null })
+    setSessionTestState(useAppStore, { ...baseState(), activeWorktreeId: null })
     const host = stubHost(`${worktree.id}@@primary`, `${worktree.id}@@setup`)
     registerTerminalPresentationIpcBridge([])
 

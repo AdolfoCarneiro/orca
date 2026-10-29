@@ -116,7 +116,7 @@ describe('tab-strip close of a client-dirty mirrored file after a host republish
       ENV,
       NOW
     )
-    useAppStore.setState(patch)
+    setSessionTestState(useAppStore, patch)
 
     createWorkspaceTabCloseCommands({ worktreeId: WT, groupTabs: [notesUnifiedTab] }).closeItem(
       notesUnifiedTab.id

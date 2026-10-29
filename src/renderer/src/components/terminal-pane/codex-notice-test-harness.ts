@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { useStore } from 'zustand'
@@ -33,5 +34,5 @@ export function unmountHooks(): void {
 
 /** Applies a store write and lets the hook re-render before returning. */
 export async function setNoticeState(patch: NoticeTestState): Promise<void> {
-  await act(async () => noticeTestStore.setState(patch))
+  await act(async () => setSessionTestState(noticeTestStore, patch))
 }

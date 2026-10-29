@@ -134,7 +134,7 @@ afterEach(() => {
 describe('runtime-owned worktree activation with an unhydrated host mirror', () => {
   it('does not relaunch a resume tab while remote PTY liveness is unknown', () => {
     const worktree = makeRuntimeOwnedWorktree()
-    useAppStore.setState(baseState(worktree))
+    setSessionTestState(useAppStore, baseState(worktree))
     const paneKey = seedSleepingRecord(worktree.id, 'codex-session-live-1')
 
     activateAndRevealWorktree(worktree.id, { notifyHostRuntime: false })
@@ -152,7 +152,7 @@ describe('runtime-owned worktree activation with an unhydrated host mirror', () 
     const worktree = makeRuntimeOwnedWorktree()
     const state = baseState(worktree)
     state.ptyIdsByTabId = { [WEB_TAB_ID]: ['pty-host-old-1'] }
-    useAppStore.setState(state)
+    setSessionTestState(useAppStore, state)
     const paneKey = seedSleepingRecord(worktree.id, 'codex-session-live-2')
 
     activateAndRevealWorktree(worktree.id, { notifyHostRuntime: false })
@@ -203,7 +203,7 @@ describe('runtime-owned worktree activation with an unhydrated host mirror', () 
         activeLeafId: LEAF_ID
       } as never
     }
-    useAppStore.setState(state)
+    setSessionTestState(useAppStore, state)
     const paneKey = makePaneKey(localTabId, LEAF_ID)
     setSessionTestState(useAppStore, (s) => ({
       sleepingAgentSessionsByPaneKey: {

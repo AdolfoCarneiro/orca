@@ -1,5 +1,6 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
-import { createStore, type StoreApi } from 'zustand/vanilla'
+import { createStore } from 'zustand/vanilla'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { AppState } from '../types'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
@@ -54,17 +55,22 @@ function createHistoryStore(
   folderWorkspaceIds: string[] = []
 ): StoreApi<MinimalState> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createStore<any>()((set, get, api) => ({
-    worktreesByRepo: {
-      'repo-1': worktreeIds.map(makeWorktree)
-    },
-    folderWorkspaces: folderWorkspaceIds.map(makeFolderWorkspace),
-    ...createWorktreeNavHistorySlice(
-      set as Parameters<typeof createWorktreeNavHistorySlice>[0],
-      get as Parameters<typeof createWorktreeNavHistorySlice>[1],
-      api as Parameters<typeof createWorktreeNavHistorySlice>[2]
+  return createStore<AppState>()(
+    withSessionSourceWrites(
+      (set, get, api) =>
+        ({
+          worktreesByRepo: {
+            'repo-1': worktreeIds.map(makeWorktree)
+          },
+          folderWorkspaces: folderWorkspaceIds.map(makeFolderWorkspace),
+          ...createWorktreeNavHistorySlice(
+            set as Parameters<typeof createWorktreeNavHistorySlice>[0],
+            get as Parameters<typeof createWorktreeNavHistorySlice>[1],
+            api as Parameters<typeof createWorktreeNavHistorySlice>[2]
+          )
+        }) as AppState
     )
-  })) as unknown as StoreApi<MinimalState>
+  ) as unknown as StoreApi<MinimalState>
 }
 
 describe('worktree-nav-history slice: recordWorktreeVisit', () => {

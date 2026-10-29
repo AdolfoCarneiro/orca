@@ -146,7 +146,7 @@ describe('ActivityThreadOptionsMenu', () => {
       expect(useAppStore.getState().hideCliCreatedWorkspaces).toBe(false)
       expect(persist).toHaveBeenCalledWith({ agentsHideCliCreatedWorkspaces: true })
     } finally {
-      act(() => useAppStore.setState(originalState))
+      act(() => setSessionTestState(useAppStore, originalState))
       vi.unstubAllGlobals()
     }
   })
@@ -224,7 +224,7 @@ describe('ActivityThreadOptionsMenu', () => {
         expect(persist).toHaveBeenCalledWith({ agentsFilterRepoIds: [] })
         expect(container.querySelector('[data-options-filter-count]')).toBeNull()
       } finally {
-        act(() => useAppStore.setState(originalState))
+        act(() => setSessionTestState(useAppStore, originalState))
         vi.unstubAllGlobals()
       }
     }

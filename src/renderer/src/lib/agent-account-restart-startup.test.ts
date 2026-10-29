@@ -364,7 +364,7 @@ describe('buildPaneAccountRestartStartup for Claude', () => {
         })
       )
     } finally {
-      useAppStore.setState(original)
+      setSessionTestState(useAppStore, original)
     }
   })
 

@@ -123,7 +123,11 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult(repoA.id, [live]))
     )
-    store.setState({ repos: [repoA], hydrationSucceeded: false, workspaceSessionReady: false })
+    setSessionTestState(store, {
+      repos: [repoA],
+      hydrationSucceeded: false,
+      workspaceSessionReady: false
+    })
     const results = await store.getState().fetchAllWorktrees({
       visibilityOwnerHostId: 'local',
       hydrationPurge: 'defer'
@@ -141,7 +145,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       sortOrder: 0,
       createdAt: 0
     }
-    store.setState({
+    setSessionTestState(store, {
       hydrationSucceeded: true,
       workspaceSessionReady: true,
       wslMovedProjects: [

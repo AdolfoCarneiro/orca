@@ -211,7 +211,7 @@ export function installFrameOrderingHarness(options: { fakeTimers?: boolean } = 
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     replaceRuntimeEnvironmentRevisions([])
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetHostSessionMirrorHydrationForTests()

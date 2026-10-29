@@ -67,7 +67,7 @@ describe('removed workspace diff memory', () => {
     const renamed = 'repo::/workspace/renamed'
     const store = createTestStore()
     const sections = readCombinedDiffViewMemory(key)?.view?.sections
-    store.setState(buildWorktreeRenameState(store.getState(), removed, renamed))
+    setSessionTestState(store, buildWorktreeRenameState(store.getState(), removed, renamed))
     expect(readCombinedDiffViewMemory(key)).toMatchObject({
       worktreeId: renamed,
       scrollTop: 42,
@@ -89,7 +89,8 @@ describe('removed workspace diff memory', () => {
       const overlappingKey = seedDiff(`${removed}::all-diffs::nested-directory`)
       const store = createTestStore()
       if (path === 'listing') {
-        store.setState(
+        setSessionTestState(
+          store,
           sessionTestEdit(store.getState(), (edit) => buildWorktreePurgeState(edit, [removed]))
         )
       } else {

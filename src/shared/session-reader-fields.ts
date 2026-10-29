@@ -103,7 +103,7 @@ export class SessionFieldReader extends SessionReaderState {
     }
     transition.entries ??= new Map()
     const base = transition.base.value
-    const basePresent = base !== undefined && Object.hasOwn(base, key)
+    const basePresent = base != null && Object.hasOwn(base, key)
     if (basePresent === value.present && Reflect.get(base ?? {}, key) === value.value) {
       transition.entries.delete(key)
     } else {

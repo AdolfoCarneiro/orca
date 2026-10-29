@@ -103,7 +103,7 @@ function deferred<T>() {
 }
 
 function focusWorktree(store: ReturnType<typeof createTestStore>, path: string): void {
-  store.setState({
+  setSessionTestState(store, {
     repos: [makeRepo({ id: 'repo-1', path: 'C:\\repo' })],
     worktreesByRepo: { 'repo-1': [makeWorktree({ id: 'wt-1', repoId: 'repo-1', path })] },
     activeRepoId: 'repo-1',

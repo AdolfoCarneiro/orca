@@ -92,7 +92,7 @@ function desktopList(
   state: Partial<AppState>,
   useListModel?: Parameters<typeof useGoldenSidebarPipeline>[0]
 ): string[] {
-  useAppStore.setState(state)
+  setSessionTestState(useAppStore, state)
   const { result, unmount } = renderHook(() => useGoldenSidebarPipeline(useListModel))
   const { sectionRows } = result.current.rowModel
   const lines = projectParityRows(
@@ -104,7 +104,7 @@ function desktopList(
 }
 
 async function installFeed(state: Partial<AppState>) {
-  useAppStore.setState(state)
+  setSessionTestState(useAppStore, state)
   const full = useAppStore.getState()
   const feed = new SidebarInputsFeed(
     () => feedDomainsFromWindowState(full),

@@ -257,7 +257,7 @@ async function flushEffects(): Promise<void> {
 }
 
 async function renderPalette(overrides: Partial<AppState>): Promise<void> {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeModal: 'worktree-palette',
     activeWorktreeId: null,
     repos: [makeRepo()],

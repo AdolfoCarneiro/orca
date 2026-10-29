@@ -31,7 +31,7 @@ describe('Pi live session does not spawn a duplicate resume tab', () => {
       updatedAt: 1,
       origin: 'live'
     }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       activeWorktreeId: 'wt-1',
       activeTabType: 'editor',
       activeTabId: null,

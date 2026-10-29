@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import type { AppState } from '../types'
@@ -51,11 +52,13 @@ const viewer = {
 
 function createTestStore() {
   return create<AppState>()(
-    (...a) =>
-      ({
-        settings: null,
-        ...createLinearSlice(...a)
-      }) as AppState
+    withSessionSourceWrites(
+      (...a) =>
+        ({
+          settings: null,
+          ...createLinearSlice(...a)
+        }) as AppState
+    )
   )
 }
 

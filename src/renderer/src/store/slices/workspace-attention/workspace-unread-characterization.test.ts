@@ -480,7 +480,7 @@ describe('manual, inbound and restart', () => {
       }
     })
 
-    store.setState(rowsWith(false))
+    setSessionTestState(store, rowsWith(false))
     expect(observe(store, persists)).toMatchInlineSnapshot(`
       [
         "rows a@local:read:1000 b@local:read:0 sortEpoch=1",
@@ -504,7 +504,7 @@ describe('manual, inbound and restart', () => {
     `)
 
     typeInPane(store, pane)
-    store.setState(rowsWith(true))
+    setSessionTestState(store, rowsWith(true))
     expect(observe(store, persists)).toMatchInlineSnapshot(`
       [
         "rows a@local:UNREAD:1000 b@local:read:0 sortEpoch=2",

@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -29,20 +30,22 @@ globalThis.window = {
 } as never
 
 function createTestStore() {
-  return create<AppState>()((...args) => {
-    const slice = createDiffCommentsSlice(...args)
-    return {
-      ...slice,
-      settings: null,
-      activeWorktreeId: null,
-      activeWorkspaceExecutionHostId: null,
-      folderWorkspaces: [],
-      projectGroups: [],
-      runtimeEnvironments: [],
-      restoredRuntimeHostIdByWorkspaceSessionKey: {},
-      worktreesByRepo: {}
-    } as unknown as AppState
-  })
+  return create<AppState>()(
+    withSessionSourceWrites((...args) => {
+      const slice = createDiffCommentsSlice(...args)
+      return {
+        ...slice,
+        settings: null,
+        activeWorktreeId: null,
+        activeWorkspaceExecutionHostId: null,
+        folderWorkspaces: [],
+        projectGroups: [],
+        runtimeEnvironments: [],
+        restoredRuntimeHostIdByWorkspaceSessionKey: {},
+        worktreesByRepo: {}
+      } as unknown as AppState
+    })
+  )
 }
 
 function makeFolderWorkspace(overrides: Partial<FolderWorkspace> = {}): FolderWorkspace {

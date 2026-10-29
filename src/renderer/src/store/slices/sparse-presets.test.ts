@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { create } from 'zustand'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SparsePreset } from '../../../../shared/worktree/create-types'
@@ -23,7 +24,9 @@ const mockApi = {
 globalThis.window = { api: mockApi }
 
 function createTestStore() {
-  return create<AppState>()((...a) => ({ ...createSparsePresetsSlice(...a) }) as AppState)
+  return create<AppState>()(
+    withSessionSourceWrites((...a) => ({ ...createSparsePresetsSlice(...a) }) as AppState)
+  )
 }
 
 function makePreset(

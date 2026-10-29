@@ -434,7 +434,8 @@ it.each(['expiry', 'purge'])('created pane publication: %s', async (order) => {
     groupId
   })
   if (order === 'purge') {
-    useAppStore.setState(
+    setSessionTestState(
+      useAppStore,
       sessionTestEdit(store(), (edit) => buildFullWorktreePurgeState(edit, [{ id: 'wt-1' }]))
     )
   }

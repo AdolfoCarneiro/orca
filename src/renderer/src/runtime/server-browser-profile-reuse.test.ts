@@ -47,7 +47,7 @@ function mirrorOnClient(snapshot: ReturnType<typeof desktopSnapshot>) {
       repo1: [makeWorktree({ id: WORKSPACE, repoId: 'repo1', hostId: 'runtime:server' })]
     }
   })
-  client.setState(applyWebSessionTabsSnapshot(client.getState(), snapshot, 'server'))
+  setSessionTestState(client, applyWebSessionTabsSnapshot(client.getState(), snapshot, 'server'))
   return client
 }
 
@@ -113,7 +113,8 @@ describe('server browser profile publication and link reuse', () => {
   it('clears a previously known identity when an old peer republishes without it', () => {
     const snapshot = desktopSnapshot('isolated-login')
     const client = mirrorOnClient(snapshot)
-    client.setState(
+    setSessionTestState(
+      client,
       applyWebSessionTabsSnapshot(
         client.getState(),
         {

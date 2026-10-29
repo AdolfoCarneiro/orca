@@ -68,7 +68,7 @@ function deferredPaneState(): Partial<AppState> {
 
 describe('wake sweep and a pane whose restore the host deferred', () => {
   it('neither launches nor clears the record the deferred pane will resume', () => {
-    useAppStore.setState(deferredPaneState())
+    setSessionTestState(useAppStore, deferredPaneState())
     setPaneSpawnDeferral(PANE_KEY, { reason: 'live_cap', resume: () => {} })
 
     expect(resumeSleepingAgentSessionsForWorktree('wt-1')).toBe(0)

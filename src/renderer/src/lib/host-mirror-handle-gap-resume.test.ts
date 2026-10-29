@@ -79,7 +79,7 @@ function seedMirroredWorkspace(worktree: ReturnType<typeof makeCreatedAgentWorkt
     automaticAgentResumeClaimsByTabId: {},
     agentStatusByPaneKey: {}
   }
-  useAppStore.setState(state)
+  setSessionTestState(useAppStore, state)
 }
 
 /** A cold split mirror whose sibling is ready before this leaf has ever held a binding. */
@@ -273,7 +273,8 @@ describe('resume across the mirror handle gap', () => {
       ],
       { worktree: worktree.id }
     )
-    useAppStore.setState(
+    setSessionTestState(
+      useAppStore,
       applyWebSessionTabsSnapshot(useAppStore.getState(), snapshot, RUNTIME_ENV_ID, Date.now())
     )
 

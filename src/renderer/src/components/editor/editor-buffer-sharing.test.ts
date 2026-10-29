@@ -91,7 +91,10 @@ function restore(
       workspaces.map((workspace, i) => [workspace, [entry(workspace, drafts[i])]])
     )
   }
-  store.setState(buildHydratedEditorSessionState(session, new Set(workspaces), workspaces[0]).state)
+  setSessionTestState(
+    store,
+    buildHydratedEditorSessionState(session, new Set(workspaces), workspaces[0]).state
+  )
   const [a, b] = store.getState().openFiles
   expect([a?.worktreeId, b?.worktreeId]).toEqual(workspaces)
   return [a, b]
@@ -247,7 +250,7 @@ describe('restored floating and ordinary views', () => {
       const recordOf = (id: string) => store.getState().editorBufferIdOf[id]
       if (late) {
         expect(recordOf(ordinary.id)).not.toBe(recordOf(floating.id))
-        store.setState(catalog)
+        setSessionTestState(store, catalog)
       }
       expect(recordOf(ordinary.id)).toBe(recordOf(floating.id))
       expect(store.getState().editorDrafts[ordinary.id]).toBe('restored draft')

@@ -122,7 +122,7 @@ describe('native chat ownership selectors', () => {
       unifiedTabsByWorktree: { 'chat-owner': [counted(structured('chat'))] },
       worktreesByRepo: { repo: [worktree('chat-owner')] }
     })
-    useAppStore.setState(state)
+    setSessionTestState(useAppStore, state)
     const { result } = renderHook(() => ({
       owner: useNativeChatTabOwnerWorktreeId(id),
       context: useNativeChatFileLinkContext(id)
@@ -146,7 +146,7 @@ describe('native chat ownership selectors', () => {
         repo: ['first', 'second', 'returned'].map((owner) => worktree(owner, `/${owner}`))
       }
     })
-    useAppStore.setState(state)
+    setSessionTestState(useAppStore, state)
     const { result, rerender, unmount } = renderHook(
       ({ id }) => ({
         owner: useNativeChatTabOwnerWorktreeId(id),
@@ -214,7 +214,7 @@ describe('native chat ownership selectors', () => {
       runtimeEnvironmentId: 'owning-runtime',
       sourceTabId: 'chat'
     })
-    useAppStore.setState(current)
+    setSessionTestState(useAppStore, current)
     expect(select(initial)?.worktreePath).toBe('/before')
   })
 

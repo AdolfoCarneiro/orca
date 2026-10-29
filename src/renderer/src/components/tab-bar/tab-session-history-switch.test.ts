@@ -342,7 +342,7 @@ describe('resolveTabSessionHistorySubject', () => {
     'offers nothing from a %s record once the agent has exited, though the tab title keeps it',
     (kind) => {
       makeState()
-      useAppStore.setState(exitedAgentRecords[kind])
+      setSessionTestState(useAppStore, exitedAgentRecords[kind])
       const state = useAppStore.getState()
       expect(
         resolveTabSessionHistorySubject(state, { tab: { id: 'term-1', worktreeId: WORKTREE_ID } })
@@ -543,7 +543,7 @@ describe('one pane of a terminal tab', () => {
     'offers nothing once the agent exited and only a %s record remains, as the tab menu does',
     (kind) => {
       makeState()
-      useAppStore.setState(exitedAgentRecords[kind])
+      setSessionTestState(useAppStore, exitedAgentRecords[kind])
       const exited = useAppStore.getState()
       expect(paneSubject(exited, claudePane)).toBeNull()
       expect(paneGate(exited, claudePane)).toBe(false)

@@ -232,5 +232,9 @@ export function readSessionUnit<F extends SessionMapField>(
   field: F,
   key: string
 ): SessionEntry<F> | undefined {
-  return isSessionUnitView(source) ? source.unit(field, key).value : source[field]?.[key]
+  if (isSessionUnitView(source)) {
+    return source.unit(field, key).value
+  }
+  // SAFETY: the selected map F and its string key retain the same entry type.
+  return source[field]?.[key] as SessionEntry<F> | undefined
 }

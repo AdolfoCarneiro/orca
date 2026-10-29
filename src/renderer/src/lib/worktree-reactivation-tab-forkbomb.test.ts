@@ -122,7 +122,7 @@ afterEach(() => {
 describe('STA-1111 worktree reopen does not fork-bomb tabs', () => {
   it('defers packaged-startup resume until restored PTYs finish reconnecting', async () => {
     const worktree = { ...makeWorktree(), createdWithAgent: undefined }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ...baseState(worktree),
       workspaceSessionReady: false,
       terminalStartupRestorationReady: false
@@ -243,7 +243,7 @@ describe('STA-1111 worktree reopen does not fork-bomb tabs', () => {
 
   it('re-captured sleeping codex session resumes once, not once per reopen', async () => {
     const worktree = { ...makeWorktree(), createdWithAgent: undefined }
-    useAppStore.setState(baseState(worktree))
+    setSessionTestState(useAppStore, baseState(worktree))
     const layoutApply = layoutApplyTestDouble()
     vi.stubGlobal('window', {
       api: {

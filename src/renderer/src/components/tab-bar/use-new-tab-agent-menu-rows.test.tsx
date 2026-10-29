@@ -173,7 +173,7 @@ beforeEach(() => {
     .mockReset()
     .mockReturnValue({ detectedIds: ['claude', 'codex', 'opencode', 'gemini'] })
   setLocalRuntimeCapabilitiesForTests([CHAT, CLIENT, CATALOG])
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     ...initial,
     activeWorktreeId: 'one',
     settings: {

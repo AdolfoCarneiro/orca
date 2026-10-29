@@ -68,7 +68,7 @@ function useElectronActivationGate(): ReturnType<typeof vi.spyOn> {
 }
 
 function seedEmptyFolderWorkspace(): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     folderWorkspaces: [
       {
         id: FOLDER_ID,

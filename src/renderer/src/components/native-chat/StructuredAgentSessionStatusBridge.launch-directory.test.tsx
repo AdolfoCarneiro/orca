@@ -792,7 +792,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
     sleepSetter.mockRestore()
     directorySetter.mockRestore()
     directoryClear.mockRestore()
-    useAppStore.setState(originalActions)
+    setSessionTestState(useAppStore, originalActions)
   })
 
   it('records nothing when an older host omits the field', async () => {

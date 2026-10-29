@@ -227,7 +227,7 @@ describe('useRuntimeSessionMirrorEnvironmentKeys', () => {
     const hook = renderHook(() => useRuntimeSessionMirrorEnvironmentKeys())
 
     expect(hook.result.current.environmentKey).toBe('')
-    act(() => useAppStore.setState(change(useAppStore.getState())))
+    act(() => setSessionTestState(useAppStore, change(useAppStore.getState())))
 
     expect(hook.result.current.environmentKey).toBe('env-b\u0001runtime-b\u00012\u0001201')
     expect(getMirrorTargets).toHaveBeenCalledTimes(2)

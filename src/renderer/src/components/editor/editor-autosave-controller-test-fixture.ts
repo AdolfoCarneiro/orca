@@ -95,37 +95,37 @@ export function stubEditorWindow(): ReturnType<typeof vi.fn> {
   return stubEditorWindowWithDisk().fs.writeFile
 }
 
-export function createEditorStore(): StoreApi<AppState> {
+export function createEditorStore() {
   // Use the app’s record middleware so views of one file share a buffer.
-  // oxlint-disable-next-line typescript/no-explicit-any -- a partial store; tests read only the slices it builds.
-  const create = withEditorBufferRecords<any>(
-    (...args: any[]) => ({
-      ...emptyTabLayoutState(),
-      activeWorktreeId: 'wt-1',
-      repos: [],
-      worktreesByRepo: {
-        'repo-1': [{ id: 'wt-1', repoId: 'repo-1', hostId: 'local' }]
-      },
-      detectedWorktreesByRepo: {},
-      runtimeEnvironments: [],
-      runtimeEnvironmentCatalogHydrated: true,
-      removedRuntimeEnvironmentIds: new Set(),
-      sshConnectionStates: {},
-      sshStateByEnvironment: {},
-      settings: {
-        editorAutoSave: true,
-        editorAutoSaveDelayMs: 1000
-      },
-      ...createEditorSlice(...(args as Parameters<typeof createEditorSlice>))
-    }),
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the editor slices under test.
+  const create = withEditorBufferRecords<AppState>(
+    (...args) =>
+      ({
+        ...emptyTabLayoutState(),
+        activeWorktreeId: 'wt-1',
+        repos: [],
+        worktreesByRepo: {
+          'repo-1': [{ id: 'wt-1', repoId: 'repo-1', hostId: 'local' }]
+        },
+        detectedWorktreesByRepo: {},
+        runtimeEnvironments: [],
+        runtimeEnvironmentCatalogHydrated: true,
+        removedRuntimeEnvironmentIds: new Set(),
+        sshConnectionStates: {},
+        sshStateByEnvironment: {},
+        settings: {
+          editorAutoSave: true,
+          editorAutoSaveDelayMs: 1000
+        },
+        ...createEditorSlice(...args)
+      }) as AppState,
     true
   )
-  // oxlint-disable-next-line typescript/no-explicit-any, typescript/consistent-type-assertions -- SAFETY: as above.
-  return createStore<any>()(create) as unknown as StoreApi<AppState>
+  return createStore<AppState>()(create)
 }
 
 /** Store with a local worktree at /repo and an open, untouched untitled note at /repo/`fileName`. */
-export function createUntitledNoteStore(fileName: string): StoreApi<AppState> {
+export function createUntitledNoteStore(fileName: string) {
   const store = createEditorStore()
   setSessionTestState(store, {
     worktreesByRepo: {

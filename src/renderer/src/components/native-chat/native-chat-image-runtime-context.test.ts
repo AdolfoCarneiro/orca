@@ -442,10 +442,10 @@ describe('resolveNativeChatImageRuntimeContext', () => {
       observed = useNativeChatImageRuntimeContext('tab-1')
       return null
     }
-    useAppStore.setState(base)
+    setSessionTestState(useAppStore, base)
     render(createElement(Probe))
     for (const [name, snapshot, expected] of cases) {
-      act(() => useAppStore.setState(snapshot))
+      act(() => setSessionTestState(useAppStore, snapshot))
       expect(observed, name).toEqual(resolveNativeChatImageRuntimeContext(snapshot, 'tab-1'))
       if (expected === null) {
         expect(observed, name).toBeNull()

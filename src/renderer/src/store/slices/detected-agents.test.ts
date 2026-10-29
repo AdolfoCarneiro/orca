@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import type { AppState } from '../types'
@@ -38,11 +39,13 @@ globalThis.window = {
 
 function createTestStore(initial?: Partial<AppState>) {
   const store = create<AppState>()(
-    (...a) =>
-      ({
-        ...createDetectedAgentsSlice(...a),
-        ...createRuntimeDetectedAgentsSlice(...a)
-      }) as AppState
+    withSessionSourceWrites(
+      (...a) =>
+        ({
+          ...createDetectedAgentsSlice(...a),
+          ...createRuntimeDetectedAgentsSlice(...a)
+        }) as AppState
+    )
   )
   store.setState({
     repos: [],

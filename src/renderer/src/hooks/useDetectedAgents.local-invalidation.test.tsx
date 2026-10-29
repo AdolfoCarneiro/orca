@@ -153,7 +153,7 @@ it('recovers mounted native consumers after availability changes alongside WSL l
     experimentalNativeChat: true,
     localWindowsRuntimeDefault: { kind: 'windows-host' } as const
   }
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeRepoId: TEST_REPO.id,
     repos: [{ ...TEST_REPO, path: 'C:\\project' }],
     projects: [project],

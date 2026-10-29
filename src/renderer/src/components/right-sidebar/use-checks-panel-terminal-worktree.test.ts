@@ -74,7 +74,7 @@ beforeEach(() => {
   ;(window as any).api = { pty: { getCwd: getCwdMock } }
 
   setSessionTestState(useAppStore, initialAppState, true)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: PARENT_ID,
     worktreesByRepo: { [REPO_ID]: [parentWorktree, childWorktree] },
     repos: [repo],
@@ -121,7 +121,9 @@ describe('useChecksPanelTerminalWorktree', () => {
   })
 
   it('does not poll remote-runtime terminals', async () => {
-    useAppStore.setState({ ptyIdsByTabId: { 'tab-1': ['remote:host:pty-1'] } } as Partial<AppState>)
+    setSessionTestState(useAppStore, {
+      ptyIdsByTabId: { 'tab-1': ['remote:host:pty-1'] }
+    } as Partial<AppState>)
 
     await renderHook(parentWorktree)
     await flushMicrotasks()
@@ -206,7 +208,9 @@ describe('useChecksPanelTerminalWorktree', () => {
     expect(latest?.worktree).toBe(childWorktree)
 
     await act(async () => {
-      useAppStore.setState({ ptyIdsByTabId: { 'tab-1': ['pty-2'] } } as Partial<AppState>)
+      setSessionTestState(useAppStore, {
+        ptyIdsByTabId: { 'tab-1': ['pty-2'] }
+      } as Partial<AppState>)
     })
     await flushMicrotasks()
 
@@ -216,7 +220,7 @@ describe('useChecksPanelTerminalWorktree', () => {
   })
 
   it('does not poll an SSH terminal (its cwd is on the relay host)', async () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'tab-1': ['ssh:target-1@@pty-9'] }
     } as Partial<AppState>)
 
@@ -244,7 +248,7 @@ describe('useChecksPanelTerminalWorktree', () => {
       path: '/runtime-repo/app',
       hostId: 'local'
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       worktreesByRepo: { [REPO_ID]: [parentWorktree], [RUNTIME_REPO_ID]: [localOnRuntime] },
       repos: [repo, runtimeRepo]
     } as Partial<AppState>)
@@ -272,7 +276,7 @@ describe('useChecksPanelTerminalWorktree', () => {
       repoId: SSH_REPO_ID,
       path: SSH_PATH
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       worktreesByRepo: { [REPO_ID]: [parentWorktree, childWorktree], [SSH_REPO_ID]: [sshWorktree] },
       repos: [repo, sshRepo]
     } as Partial<AppState>)

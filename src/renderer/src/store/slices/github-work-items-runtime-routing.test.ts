@@ -363,7 +363,10 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
     const store = createTestStore()
     const error = new Error('Access denied: unknown repository path')
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    store.setState(runtimeOwnedRepoState('env-1', 'runtime-repo-id', '/server/known-repo'))
+    setSessionTestState(
+      store,
+      runtimeOwnedRepoState('env-1', 'runtime-repo-id', '/server/known-repo')
+    )
     mockApi.gh.listWorkItems.mockRejectedValueOnce(error)
 
     try {
@@ -423,12 +426,13 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       _meta: { runtimeId: 'remote-runtime' }
     })
 
-    store.setState(runtimeOwnedRepoState('env-start', 'repo-start', '/server/repo'))
+    setSessionTestState(store, runtimeOwnedRepoState('env-start', 'repo-start', '/server/repo'))
     const queued = store
       .getState()
       .fetchWorkItems('caller-repo-id', '/server/repo', 24, 'is:open', { force: true })
 
-    store.setState(
+    setSessionTestState(
+      store,
       runtimeOwnedRepoState('env-switched', 'repo-switched', '/server/repo', {
         workItemsCache: {}
       })
@@ -487,13 +491,14 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
           })
       )
 
-    store.setState(runtimeOwnedRepoState('env-old', 'repo-old-runtime', '/server/repo'))
+    setSessionTestState(store, runtimeOwnedRepoState('env-old', 'repo-old-runtime', '/server/repo'))
     const oldFetch = store
       .getState()
       .fetchWorkItems('caller-repo-id', '/server/repo', 24, 'is:open')
     await vi.waitFor(() => expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(1))
 
-    store.setState(
+    setSessionTestState(
+      store,
       runtimeOwnedRepoState('env-new', 'repo-new-runtime', '/server/repo', {
         workItemsCache: {}
       })

@@ -146,7 +146,7 @@ describe('useComposerState integrated lifecycle', () => {
       configurable: true,
       value: { ...window.api, gh, worktrees: { ...window.api.worktrees, create } }
     })
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     const repo: Repo = {
       id: 'branch-repo',
       path: '/branch-repo',
@@ -155,7 +155,7 @@ describe('useComposerState integrated lifecycle', () => {
       addedAt: 0
     }
     const projection = projectHostSetupProjectionFromRepos([repo])
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [repo],
       projects: [...projection.projects],
       projectHostSetups: [...projection.setups],
@@ -215,7 +215,7 @@ describe('useComposerState integrated lifecycle', () => {
     } finally {
       view?.unmount()
       setLocalRuntimeCapabilitiesForTests(null)
-      useAppStore.setState(original, true)
+      setSessionTestState(useAppStore, original, true)
     }
   })
 

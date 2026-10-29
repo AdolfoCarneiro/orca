@@ -253,7 +253,9 @@ describe('StructuredAgentSessionAttentionBridge', () => {
           paneKey: structuredAgentSessionPaneKey(id, sessionId)
         }
       })
-      store.setState({ unifiedTabsByWorktree: { [WORKSPACE]: rows.map((row) => row.tab) } })
+      setSessionTestState(store, {
+        unifiedTabsByWorktree: { [WORKSPACE]: rows.map((row) => row.tab) }
+      })
       let comparisons = 0
       const stopCounting = subscribeAgentSubjectReads((reads) => {
         for (const read of reads) {
@@ -582,7 +584,8 @@ describe('StructuredAgentSessionAttentionBridge', () => {
         }
       ]
     })
-    store.setState(
+    setSessionTestState(
+      store,
       applyWebSessionTabsSnapshot(
         store.getState(),
         {
@@ -688,7 +691,8 @@ describe('StructuredAgentSessionAttentionBridge', () => {
           }
         ]
       })
-      store.setState(
+      setSessionTestState(
+        store,
         applyWebSessionTabsSnapshot(
           store.getState(),
           {

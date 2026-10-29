@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, vi } from 'vitest'
 import type { Mock } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
@@ -31,7 +32,7 @@ export function registerWorktreeActivationReset(): void {
     }))
     setLegacySetupScriptLaunchMode(null)
     resetHookCommandDelayedDeliveryForTests()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: initialTabsByWorktree,
       worktreesByRepo: initialWorktreesByRepo,
       getKnownWorktreeById: initialGetKnownWorktreeById,

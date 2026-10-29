@@ -68,7 +68,8 @@ function terminalTab(title: string): TerminalTab {
 
 /** An ordinary agent spinner frame: re-mints tabsByWorktree, changes no agent signal. */
 function publishRuntimeTitle(revision: number): void {
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     (state) =>
       ({
         tabsByWorktree: {
@@ -95,7 +96,7 @@ describe('useTabAgent observed-signal dispatch', () => {
   let root: Root | undefined
 
   beforeEach(() => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       agentStatusByPaneKey: { [PANE_KEY]: workingAgentStatus() },
       terminalLayoutsByTabId: { [TAB_ID]: paneLayout('pty-a') },
       ptyIdsByTabId: { [TAB_ID]: ['pty-a'] },
@@ -128,7 +129,7 @@ describe('useTabAgent observed-signal dispatch', () => {
 
   it('still re-arms the observed signal after a pty respawn', () => {
     act(() => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         agentStatusByPaneKey: {},
         terminalLayoutsByTabId: { [TAB_ID]: paneLayout('pty-b') },
         ptyIdsByTabId: { [TAB_ID]: ['pty-b'] },
@@ -138,7 +139,7 @@ describe('useTabAgent observed-signal dispatch', () => {
     expect(latestAgent).toBeNull()
 
     act(() => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         agentStatusByPaneKey: { [PANE_KEY]: workingAgentStatus() },
         tabsByWorktree: { [WORKTREE_ID]: [terminalTab('⠋ codex 1')] }
       } as never)

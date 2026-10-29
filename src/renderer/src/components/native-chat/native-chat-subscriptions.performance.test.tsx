@@ -188,7 +188,7 @@ function corpus(scale: number, dense = false) {
               })
             }
       Object.assign(work, emptyWork())
-      act(() => useAppStore.setState(patch))
+      act(() => setSessionTestState(useAppStore, patch))
       return { ...work }
     },
     replaceOwnList(rename: boolean) {

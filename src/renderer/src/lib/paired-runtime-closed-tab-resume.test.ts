@@ -53,7 +53,7 @@ function seedPairedWorkspace(paired = true): string {
     automaticAgentResumeClaimsByTabId: {},
     agentStatusByPaneKey: {}
   }
-  useAppStore.setState(seed)
+  setSessionTestState(useAppStore, seed)
   markHostSessionMirrorHydrated(ENV_ID)
   return worktree.id
 }
@@ -96,7 +96,8 @@ function applyHostTabs(worktreeId: string, hostTabIds: readonly string[], versio
     })),
     { worktree: worktreeId, snapshotVersion: version }
   )
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     applyWebSessionTabsSnapshot(useAppStore.getState(), snapshot, ENV_ID, Date.now())
   )
 }

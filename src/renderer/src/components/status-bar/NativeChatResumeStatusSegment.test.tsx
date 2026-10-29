@@ -72,7 +72,7 @@ describe('NativeChatResumeStatusSegment', () => {
     rpc.mockReset()
     _resetNativeChatRestartOffer()
     consumeNativeChatResumeOnRestartDialogRequest()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ...useAppStore.getInitialState(),
       settings: { ...getDefaultSettings(''), experimentalNativeChat: true }
     })

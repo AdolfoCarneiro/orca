@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '../session-source-write-boundary'
 import { create } from 'zustand'
 import { vi } from 'vitest'
 import type { AppState } from '../types'
@@ -65,21 +66,23 @@ export function makeState(overrides: Partial<AppState> = {}): AppState {
 
 export function createCleanupTestStore(removeWorktree: ReturnType<typeof vi.fn> = vi.fn()) {
   return create<AppState>()(
-    (...a) =>
-      ({
-        tabsByWorktree: {},
-        ptyIdsByTabId: {},
-        openFiles: [],
-        editorDrafts: {},
-        browserTabsByWorktree: {},
-        retainedAgentsByPaneKey: {},
-        activeWorktreeId: null,
-        agentStatusByPaneKey: {},
-        runtimePaneTitlesByTabId: {},
-        lastVisitedAtByWorktreeId: {},
-        removeWorktree,
-        ...createWorkspaceCleanupSlice(...a)
-      }) as unknown as AppState
+    withSessionSourceWrites(
+      (...a) =>
+        ({
+          tabsByWorktree: {},
+          ptyIdsByTabId: {},
+          openFiles: [],
+          editorDrafts: {},
+          browserTabsByWorktree: {},
+          retainedAgentsByPaneKey: {},
+          activeWorktreeId: null,
+          agentStatusByPaneKey: {},
+          runtimePaneTitlesByTabId: {},
+          lastVisitedAtByWorktreeId: {},
+          removeWorktree,
+          ...createWorkspaceCleanupSlice(...a)
+        }) as unknown as AppState
+    )
   )
 }
 

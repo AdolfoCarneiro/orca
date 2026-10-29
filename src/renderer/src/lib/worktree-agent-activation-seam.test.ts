@@ -262,7 +262,7 @@ describe('worktree agent activation seam', () => {
 
   it('spawns a fallback when the workspace has no agent', async () => {
     const worktree = makeWorktree()
-    useAppStore.setState(baseState())
+    setSessionTestState(useAppStore, baseState())
     stubInventory()
 
     expect(activateAndRevealWorktree(worktree.id)).toEqual({ primaryTabId: null })
@@ -293,7 +293,7 @@ describe('worktree agent activation seam', () => {
 
   it('does not race an explicitly promised surface with a fallback terminal', async () => {
     const worktree = makeWorktree()
-    useAppStore.setState(baseState())
+    setSessionTestState(useAppStore, baseState())
     stubInventory()
 
     expect(activateAndRevealWorktree(worktree.id, { providesInitialSurface: true })).toEqual({
@@ -308,7 +308,7 @@ describe('worktree agent activation seam', () => {
   it('still seeds a usable pane when the census cannot prove who owns a live PTY', async () => {
     const worktree = makeWorktree()
     const livePtyId = `${worktree.id}@@live-codex`
-    useAppStore.setState(baseState())
+    setSessionTestState(useAppStore, baseState())
     stubInventory({ livePtyId, unverifiableCensus: true })
 
     expect(activateAndRevealWorktree(worktree.id)).toEqual({ primaryTabId: null })
@@ -321,7 +321,7 @@ describe('worktree agent activation seam', () => {
 
   it('does not spawn before a structured chat tab hydrates', async () => {
     const worktree = makeWorktree()
-    useAppStore.setState(baseState())
+    setSessionTestState(useAppStore, baseState())
     const { runtimeCall, listSessions } = stubInventory({ structured: true })
 
     expect(activateAndRevealWorktree(worktree.id)).toEqual({ primaryTabId: null })

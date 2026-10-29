@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { performance } from 'node:perf_hooks'
 import { create } from 'zustand'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -29,7 +30,9 @@ async function flushImmediatePromises(): Promise<void> {
 }
 
 function createCodexOnlyStore() {
-  return create<AppState>()((...args) => createCodexUsageSlice(...args) as AppState)
+  return create<AppState>()(
+    withSessionSourceWrites((...args) => createCodexUsageSlice(...args) as AppState)
+  )
 }
 
 function createScanState(overrides: Partial<CodexUsageScanState> = {}): CodexUsageScanState {

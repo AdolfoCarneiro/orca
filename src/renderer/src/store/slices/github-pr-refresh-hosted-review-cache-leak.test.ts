@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 /** GitHub refresh must apply HOSTED_REVIEW_CACHE_MAX too; branch-keyed syncHostedReviewCacheFromGitHubPRResult otherwise bypasses the normal capped writer. */
 import { describe, it, expect, vi } from 'vitest'
 import { create } from 'zustand'
@@ -29,11 +30,13 @@ globalThis.window = { api: mockApi }
 
 function createTestStore() {
   return create<AppState>()(
-    (...a) =>
-      ({
-        ...createGitHubSlice(...a),
-        ...createHostedReviewSlice(...a)
-      }) as AppState
+    withSessionSourceWrites(
+      (...a) =>
+        ({
+          ...createGitHubSlice(...a),
+          ...createHostedReviewSlice(...a)
+        }) as AppState
+    )
   )
 }
 

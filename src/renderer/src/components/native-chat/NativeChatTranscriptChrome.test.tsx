@@ -87,7 +87,7 @@ describe('NativeChatImageAttachments', () => {
     const original = useAppStore.getState()
     const fixture = nativeChatFanoutFixture(1, 1, 0)
     const workspaceId = nativeChatFanoutWorkspace(0)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ...useAppStore.getInitialState(),
       ...fixture,
       activeWorktreeId: null,

@@ -60,7 +60,7 @@ function entry(key: string, worktreeId: string): AgentStatusEntry {
   }
 }
 function patch(update: Partial<AppState>) {
-  act(() => useAppStore.setState(update))
+  act(() => setSessionTestState(useAppStore, update))
 }
 
 beforeEach(() => {

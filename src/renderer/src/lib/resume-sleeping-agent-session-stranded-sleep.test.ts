@@ -35,7 +35,7 @@ it('reopens a slept agent whose tab is gone in a fresh tab and retires main’s 
     origin: 'worktree-sleep',
     restoreOnTabOpenOnly: true
   }
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: { 'wt-1': [] },
     sleepingAgentSessionsByPaneKey: { [record.paneKey]: record }
   } as never)

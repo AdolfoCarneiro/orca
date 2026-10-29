@@ -147,7 +147,7 @@ export async function renderProbe(args: {
 }
 
 beforeEach(() => {
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   listRuntimeFilesMock.mockReset().mockResolvedValue(['packages/app/package.json'])
   cancelRuntimeFileListMock.mockReset()
   searchRuntimeFilePathsMock.mockReset().mockResolvedValue({ files: [], truncated: false })
@@ -160,7 +160,7 @@ afterEach(async () => {
     })
   }
   roots.length = 0
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
 })
 
 export { listRuntimeFilesMock, cancelRuntimeFileListMock, searchRuntimeFilePathsMock }

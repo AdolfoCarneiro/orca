@@ -1,4 +1,5 @@
-import { createStore, type StoreApi } from 'zustand/vanilla'
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
+import { createStore } from 'zustand/vanilla'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultUIState } from '../../../shared/constants'
 import type { ChangelogData, UpdateStatus } from '../../../shared/update-status-types'
@@ -10,13 +11,18 @@ import {
   isUpdateCardVisible
 } from './maintenance/update-card/update-card-visibility'
 
-function createTestStore(): StoreApi<AppState> {
+function createTestStore() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createStore<any>()((...args: any[]) => ({
-    repos: [],
-    rightSidebarWidth: 280,
-    ...createUISlice(...(args as Parameters<typeof createUISlice>))
-  })) as unknown as StoreApi<AppState>
+  return createStore<AppState>()(
+    withSessionSourceWrites(
+      (...args) =>
+        ({
+          repos: [],
+          rightSidebarWidth: 280,
+          ...createUISlice(...args)
+        }) as AppState
+    )
+  )
 }
 
 const RICH_CHANGELOG: ChangelogData = {

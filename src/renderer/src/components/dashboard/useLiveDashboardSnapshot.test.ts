@@ -229,7 +229,7 @@ it('publishes real chat options to main and popout, retaining card candidates an
   await vi.waitFor(() => expect(lastPublished()?.['wt-1']).toEqual(['claude', 'grok']))
   for (const route of [{ projects: [] }, { activeWorkspaceExecutionHostId: 'local' as const }]) {
     const [live, published] = [view.result.current, publishSnapshot.mock.calls.length]
-    act(() => useAppStore.setState(route))
+    act(() => setSessionTestState(useAppStore, route))
     expect(view.result.current).not.toBe(live)
     await vi.waitFor(() => expect(publishSnapshot.mock.calls.length).toBeGreaterThan(published))
   }

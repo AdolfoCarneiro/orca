@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '../session-source-write-boundary'
 import { create } from 'zustand'
 import type { AppState } from '../types'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
@@ -6,11 +7,13 @@ import { createLinearSlice } from './linear'
 
 export function createTestStore() {
   return create<AppState>()(
-    (...a) =>
-      ({
-        settings: null,
-        ...createLinearSlice(...a)
-      }) as AppState
+    withSessionSourceWrites(
+      (...a) =>
+        ({
+          settings: null,
+          ...createLinearSlice(...a)
+        }) as AppState
+    )
   )
 }
 

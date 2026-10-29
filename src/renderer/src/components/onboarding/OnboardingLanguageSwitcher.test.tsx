@@ -21,7 +21,10 @@ const { submit, telemetryTrack } = vi.hoisted(() => ({ submit: vi.fn(), telemetr
 beforeEach(async () => {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   useAppStore.setState({ settings: getDefaultSettings('/tmp') })
-  useLanguageReadiness.setState({ ...useLanguageReadiness.getInitialState(), ready: true })
+  setSessionTestState(useLanguageReadiness, {
+    ...useLanguageReadiness.getInitialState(),
+    ready: true
+  })
   usePluginLanguagePackStore.setState({ entries: [], loaded: true })
   vi.spyOn(languageReadiness, 'initializeLanguageDetection').mockResolvedValue(
     detectUiLanguage(['it-IT'], 'native')

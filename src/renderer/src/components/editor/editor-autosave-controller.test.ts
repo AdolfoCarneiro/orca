@@ -1,6 +1,7 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createStore, type StoreApi } from 'zustand/vanilla'
+import { createStore } from 'zustand/vanilla'
 import { createEditorSlice } from '@/store/slices/editor'
 import type { AppState } from '@/store'
 import {
@@ -45,27 +46,32 @@ type WindowStub = {
   }
 }
 
-function createEditorStore(): StoreApi<AppState> {
+function createEditorStore() {
   // oxlint-disable-next-line typescript/no-explicit-any, typescript/consistent-type-assertions -- SAFETY: a partial store; tests read only the slices it builds.
-  return createStore<any>()((...args: any[]) => ({
-    ...emptyTabLayoutState(),
-    activeWorktreeId: 'wt-1',
-    settings: {
-      editorAutoSave: true,
-      editorAutoSaveDelayMs: 1000
-    },
-    repos: [],
-    worktreesByRepo: {
-      'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }]
-    },
-    detectedWorktreesByRepo: {},
-    runtimeEnvironments: [],
-    runtimeEnvironmentCatalogHydrated: true,
-    removedRuntimeEnvironmentIds: new Set(),
-    sshConnectionStates: new Map(),
-    sshStateByEnvironment: new Map(),
-    ...createEditorSlice(...(args as Parameters<typeof createEditorSlice>))
-  })) as unknown as StoreApi<AppState>
+  return createStore<AppState>()(
+    withSessionSourceWrites(
+      (...args) =>
+        ({
+          ...emptyTabLayoutState(),
+          activeWorktreeId: 'wt-1',
+          settings: {
+            editorAutoSave: true,
+            editorAutoSaveDelayMs: 1000
+          },
+          repos: [],
+          worktreesByRepo: {
+            'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }]
+          },
+          detectedWorktreesByRepo: {},
+          runtimeEnvironments: [],
+          runtimeEnvironmentCatalogHydrated: true,
+          removedRuntimeEnvironmentIds: new Set(),
+          sshConnectionStates: new Map(),
+          sshStateByEnvironment: new Map(),
+          ...createEditorSlice(...args)
+        }) as AppState
+    )
+  )
 }
 
 async function requestDirtyFileSave(): Promise<void> {
@@ -605,7 +611,7 @@ describe('attachEditorAutosaveController', () => {
     } satisfies WindowStub)
 
     const store = createEditorStore()
-    store.setState(makeSessionReadyState())
+    setSessionTestState(store, makeSessionReadyState())
     store.getState().openFile({
       filePath: '/repo/file.md',
       relativePath: 'file.md',
@@ -646,7 +652,7 @@ describe('attachEditorAutosaveController', () => {
     } satisfies WindowStub)
 
     const store = createEditorStore()
-    store.setState(makeSessionReadyState())
+    setSessionTestState(store, makeSessionReadyState())
     store.getState().openFile({
       filePath: '/repo/file.md',
       relativePath: 'file.md',

@@ -48,7 +48,7 @@ beforeEach(() => {
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
   readFile.mockResolvedValue({ content: 'AA==', isBinary: true, mimeType: 'image/png' })
   vi.stubGlobal('api', { ...window.api, fs: { ...window.api?.fs, readFile } })
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     ...useAppStore.getInitialState(),
     ...nativeChatFanoutFixture(0, 1, 1),
     activeWorktreeId: null,

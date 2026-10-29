@@ -78,7 +78,7 @@ function seedWorkspaces(): void {
     repos: [],
     worktreesByRepo: {}
   }
-  useAppStore.setState(workspaces)
+  setSessionTestState(useAppStore, workspaces)
 }
 
 async function settle(): Promise<void> {

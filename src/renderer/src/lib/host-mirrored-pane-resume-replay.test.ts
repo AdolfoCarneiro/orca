@@ -98,7 +98,7 @@ function seedState(worktree: ReturnType<typeof makeCreatedAgentWorktree>): void 
     refreshGitHubForWorktreeIfStale: vi.fn(),
     revealWorktreeInSidebar: vi.fn()
   }
-  useAppStore.setState(state)
+  setSessionTestState(useAppStore, state)
 }
 
 function seedSleepingRecord(worktreeId: string, sessionId: string): string {
