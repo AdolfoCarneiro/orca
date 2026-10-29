@@ -1,13 +1,20 @@
 // @vitest-environment happy-dom
-import { StrictMode } from 'react'
+import { StrictMode, useContext, useState } from 'react'
+import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { NativeChatTextAttachments } from './NativeChatTextAttachments'
+import {
+  NativeChatTextAttachments,
+  NativeChatTextAttachmentScope,
+  NativeChatTextAttachmentOpener
+} from './NativeChatTextAttachments'
 import { NativeChatTextAttachmentPreview } from './NativeChatTextAttachmentPreview'
 import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from '../../../../shared/agent-session-runtime-capabilities'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
 
 const mocks = vi.hoisted(() => ({
+  context: null as RuntimeFileOperationArgs | null,
+  web: false,
   rpc: vi.fn(),
   write: vi.fn(),
   start: vi.fn(),
@@ -17,8 +24,9 @@ const mocks = vi.hoisted(() => ({
 }))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.rpc }))
 vi.mock('./native-chat-image-runtime-context', () => ({
-  useNativeChatImageRuntimeContext: () => null
+  useNativeChatImageRuntimeContext: () => mocks.context
 }))
+vi.mock('@/lib/web-client-location', () => ({ isWebClientLocation: () => mocks.web }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 const path =
   '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/orca-paste-123-abc.txt'
@@ -28,6 +36,9 @@ let capable = true
 
 beforeEach(() => {
   capable = true
+  mocks.context = null
+  mocks.web = false
+  mocks.cancel.mockReset().mockResolvedValue(undefined)
   replaceRuntimeEnvironmentRevisions([{ id: 'env-text', createdAt: 1 }])
   mocks.rpc.mockReset().mockImplementation(async (_target, method, request) => {
     if (method === 'status.get') {
@@ -168,4 +179,161 @@ it('opens and copies the live paste before upload even while its host route is u
   fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
   await waitFor(() => expect(mocks.write).toHaveBeenCalledWith(text))
   expect(mocks.rpc).not.toHaveBeenCalled()
+})
+
+it('cancels a source during status admission and lets a newly opened successor read', async () => {
+  const { AttachmentTextSource } = await import('../../../../shared/attachment-text-source')
+  const { createChatAttachmentReader } = await import('./native-chat-text-attachment-read')
+  for (const count of [1, 10]) {
+    const gates = Array.from({ length: count }, () => Promise.withResolvers<unknown>())
+    const started = Promise.withResolvers<void>()
+    let probes = 0
+    const normal = mocks.rpc.getMockImplementation()!
+    mocks.rpc.mockImplementation((...args) => {
+      if (args[1] === 'status.get' && probes < count) {
+        const gate = gates[probes++]!
+        if (probes === count) {
+          started.resolve()
+        }
+        return gate.promise
+      }
+      return normal(...args)
+    })
+    const sources = gates.map(
+      () => new AttachmentTextSource(path, createChatAttachmentReader(target))
+    )
+    const pending = sources.map((source) =>
+      source.page(0).then(
+        () => false,
+        () => true
+      )
+    )
+    await started.promise
+    sources.forEach((source) => source.dispose())
+    const before = mocks.rpc.mock.calls.filter((call) => call[1] !== 'status.get').length
+    gates.forEach((gate) =>
+      gate.resolve({ capabilities: [AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY] })
+    )
+    expect(await Promise.all(pending)).toEqual(Array(count).fill(true))
+    expect(mocks.rpc.mock.calls.filter((call) => call[1] !== 'status.get')).toHaveLength(before)
+    const successor = new AttachmentTextSource(path, createChatAttachmentReader(target))
+    expect(await successor.copyText()).toBe(bytes.toString('utf8'))
+    mocks.rpc.mockImplementation(normal)
+  }
+})
+
+it.each([true, false])(
+  'keeps focused stateful composer descendants mounted when owner context changes (structured=%s)',
+  async (enabled) => {
+    mocks.context = { target: { kind: 'local' }, worktreeId: 'w', worktreePath: '/repo' }
+    function Child() {
+      const [value, setValue] = useState('')
+      const open = useContext(NativeChatTextAttachmentOpener)
+      return (
+        <>
+          <input
+            aria-label="draft"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <button onClick={() => open?.(path)}>Open source</button>
+        </>
+      )
+    }
+    const ui = () => (
+      <NativeChatTextAttachmentScope enabled={enabled} tabId="tab">
+        <Child />
+      </NativeChatTextAttachmentScope>
+    )
+    const view = render(ui())
+    const input = screen.getByRole('textbox', { name: 'draft' })
+    fireEvent.change(input, { target: { value: 'local editor state' } })
+    input.focus()
+    mocks.context = { ...mocks.context, worktreePath: '/renamed' }
+    view.rerender(ui())
+    expect(screen.getByRole('textbox', { name: 'draft', hidden: true })).toBe(input)
+    expect(document.activeElement).toBe(input)
+    expect(input.getAttribute('value')).toBe('local editor state')
+    if (!enabled) {
+      expect(mocks.rpc).not.toHaveBeenCalled()
+      return
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Open source' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
+        false
+      )
+    )
+    const gate = Promise.withResolvers<unknown>()
+    const normal = mocks.rpc.getMockImplementation()!
+    mocks.rpc.mockImplementationOnce(() => gate.promise)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
+    await act(async () => {})
+    mocks.context = { ...mocks.context, expectedSshConnectionGeneration: 2 }
+    view.rerender(ui())
+    expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+    await act(async () =>
+      gate.resolve(
+        await normal(target, 'agentSessionAttachment.readTextChunk', {
+          offset: 0,
+          length: bytes.length
+        })
+      )
+    )
+    expect(mocks.write).not.toHaveBeenCalled()
+    expect(mocks.finish).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Open source' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
+        false
+      )
+    )
+    expect(screen.getByRole('textbox', { name: 'draft', hidden: true })).toBe(input)
+    const picker = Promise.withResolvers<{ canceled: false; transferId: string }>()
+    mocks.start.mockReturnValueOnce(picker.promise)
+    fireEvent.click(screen.getByRole('button', { name: 'Save file' }))
+    await act(async () => {})
+    mocks.context = { ...mocks.context, worktreePath: '/changed-again' }
+    view.rerender(ui())
+    await act(async () => picker.resolve({ canceled: false, transferId: 'late-output' }))
+    expect(mocks.cancel).toHaveBeenCalledWith({ transferId: 'late-output' })
+    expect(mocks.append).not.toHaveBeenCalled()
+    expect(mocks.finish).not.toHaveBeenCalled()
+  }
+)
+
+it('exports all raw web bytes and cancels desktop picker/output failures', async () => {
+  mocks.web = true
+  const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:35636')
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  const view = render(
+    <NativeChatTextAttachmentPreview path={path} target={target} onClose={() => {}} />
+  )
+  const save = () => screen.getByRole('button', { name: 'Save file' })
+  await waitFor(() => expect(save().hasAttribute('disabled')).toBe(false))
+  fireEvent.click(save())
+  await waitFor(() => expect(click).toHaveBeenCalledOnce())
+  const blob = create.mock.calls[0]![0]
+  if (!(blob instanceof Blob)) {
+    throw new Error('Expected a complete file Blob')
+  }
+  expect(Buffer.from(await blob.arrayBuffer())).toEqual(bytes)
+  expect(mocks.start).not.toHaveBeenCalled()
+  create.mockRestore()
+  click.mockRestore()
+  view.unmount()
+  mocks.web = false
+  mocks.start.mockResolvedValueOnce({ canceled: true })
+  render(<NativeChatTextAttachmentPreview path={path} target={target} onClose={() => {}} />)
+  await waitFor(() => expect(save().hasAttribute('disabled')).toBe(false))
+  fireEvent.click(save())
+  await waitFor(() => expect(mocks.start).toHaveBeenCalledOnce())
+  await waitFor(() => expect(save().hasAttribute('disabled')).toBe(false))
+  expect(mocks.append).not.toHaveBeenCalled()
+  expect(mocks.finish).not.toHaveBeenCalled()
+  mocks.append.mockRejectedValueOnce(new Error('Output failed'))
+  fireEvent.click(save())
+  await screen.findByText('Output failed')
+  expect(mocks.cancel).toHaveBeenCalledWith({ transferId: 'output' })
+  expect(mocks.finish).not.toHaveBeenCalled()
 })

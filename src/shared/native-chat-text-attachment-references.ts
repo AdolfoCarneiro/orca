@@ -55,3 +55,27 @@ export function chatTextAttachmentName(path: string): string {
   const name = path.split(/[\\/]/).at(-1) ?? path
   return /^orca-paste-.*\.txt$/.test(name) ? 'Pasted text' : name
 }
+
+type AttachmentMarkdownNode = {
+  type: string
+  value?: string
+  children?: readonly AttachmentMarkdownNode[]
+}
+
+/** Attachment actions follow parsed prose; literal code remains an ordinary part of the document. */
+export function nativeChatTextAttachmentPaths(tree: AttachmentMarkdownNode): string[] {
+  const paths = new Set<string>()
+  const visit = (node: typeof tree) => {
+    if (node.type === 'text' && node.value) {
+      for (const part of nativeChatTextAttachmentParts(node.value, true)) {
+        if (part.path) {
+          paths.add(part.path)
+        }
+      }
+    } else if (node.type !== 'code' && node.type !== 'inlineCode') {
+      node.children?.forEach(visit)
+    }
+  }
+  visit(tree)
+  return [...paths]
+}

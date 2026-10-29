@@ -34,15 +34,35 @@ export function selectDetectedWorktreesByRepo<TState extends { detectedWorktrees
   return state.detectedWorktreesByRepo
 }
 
-function findFolderWorkspaceForTarget(
+const folderRecordsById = new WeakMap<
+  readonly FolderWorkspace[],
+  ReadonlyMap<string, readonly FolderWorkspace[]>
+>()
+
+/** Directory readers preserve catalog order, including unqualified twin rows. */
+export function findFolderWorkspaceRecord(
   folderWorkspaces: readonly FolderWorkspace[],
   folderWorkspaceId: string,
-  hostId: ExecutionHostId
+  hostId?: ExecutionHostId
 ): FolderWorkspace | undefined {
-  return folderWorkspaces.find(
-    (workspace) =>
-      workspace.id === folderWorkspaceId && folderWorkspaceMatchesHost(workspace, hostId)
-  )
+  let index = folderRecordsById.get(folderWorkspaces)
+  if (!index) {
+    const rows = new Map<string, FolderWorkspace[]>()
+    for (const folder of folderWorkspaces) {
+      const matches = rows.get(folder.id)
+      if (matches) {
+        matches.push(folder)
+      } else {
+        rows.set(folder.id, [folder])
+      }
+    }
+    index = rows
+    folderRecordsById.set(folderWorkspaces, index)
+  }
+  const matches = index.get(folderWorkspaceId)
+  return hostId
+    ? matches?.find((folder) => folderWorkspaceMatchesHost(folder, hostId))
+    : matches?.[0]
 }
 
 /**
@@ -55,7 +75,7 @@ export function selectWorkspaceByHostTarget(
 ): Worktree | undefined {
   const scope = parseWorkspaceKey(target.id)
   if (scope?.type === 'folder') {
-    const folder = findFolderWorkspaceForTarget(
+    const folder = findFolderWorkspaceRecord(
       state.folderWorkspaces,
       scope.folderWorkspaceId,
       target.hostId

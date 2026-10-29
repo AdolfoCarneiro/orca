@@ -139,3 +139,29 @@ it('recognizes exact committed references while leaving terminal messages and su
     expect(nativeChatTextAttachmentParts(path, true)).toEqual([{ text: path }])
   }
 })
+
+it('bounds preview and complete output operations at N and 10N on realistic text shapes', async () => {
+  for (const size of [100_000, 1_000_000]) {
+    for (const text of ['x'.repeat(size), '\n'.repeat(size), '🙂é\r\n'.repeat(size / 8)]) {
+      const bytes = Buffer.from(text)
+      const { source, requests } = sourceFor(bytes)
+      await source.page(0)
+      expect(requests).toHaveLength(1)
+      expect(requests[0]!.length).toBeLessThanOrEqual(16 * 1024)
+      const last = await source.page(source.pageCount - 1, Number.MAX_SAFE_INTEGER)
+      expect(requests).toHaveLength(2)
+      expect(last.segments.length).toBeLessThanOrEqual(256)
+      expect(last.segments.every((segment) => Array.from(segment).length <= 256)).toBe(true)
+      const before = requests.length
+      const saved: Uint8Array[] = []
+      for await (const chunk of source.bytes()) {
+        saved.push(chunk)
+      }
+      expect(requests.length - before).toBe(Math.ceil(bytes.length / (256 * 1024)))
+      expect(Buffer.concat(saved)).toEqual(bytes)
+      const beforeCopy = requests.length
+      expect(await source.copyText()).toBe(text)
+      expect(requests.length - beforeCopy).toBe(Math.ceil(bytes.length / (256 * 1024)))
+    }
+  }
+})

@@ -1,8 +1,11 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { unified } from 'unified'
+import remarkParse from 'remark-parse'
+import remarkGfm from 'remark-gfm'
+import { createContext, useCallback, useContext, useState, useMemo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
 import {
-  nativeChatTextAttachmentParts,
+  nativeChatTextAttachmentPaths,
   chatTextAttachmentName
 } from '../../../../shared/native-chat-text-attachment-references'
 import { NativeChatTextAttachmentPreview } from './NativeChatTextAttachmentPreview'
@@ -30,22 +33,21 @@ export function NativeChatTextAttachmentScope({
 
 function StructuredAttachmentScope({ tabId, children }: { tabId: string; children: ReactNode }) {
   const context = useNativeChatImageRuntimeContext(tabId)
-  return (
-    <AttachmentScopeForOwner key={JSON.stringify(context)} context={context}>
-      {children}
-    </AttachmentScopeForOwner>
+  const owner = JSON.stringify(context)
+  const [selection, setSelection] = useState<{
+    owner: string
+    path: string
+    text?: string
+  } | null>(null)
+  // A changed owner cancels only the preview; the editor and its focus stay mounted.
+  if (selection && selection.owner !== owner) {
+    setSelection(null)
+  }
+  const selected = selection?.owner === owner ? selection : null
+  const open = useCallback(
+    (path: string, text?: string) => setSelection({ owner, path, text }),
+    [owner]
   )
-}
-
-function AttachmentScopeForOwner({
-  context,
-  children
-}: {
-  context: RuntimeFileOperationArgs | null
-  children: ReactNode
-}) {
-  const [selected, setSelected] = useState<{ path: string; text?: string } | null>(null)
-  const open = useCallback((path: string, text?: string) => setSelected({ path, text }), [])
   return (
     <NativeChatTextAttachmentOpener.Provider value={open}>
       {children}
@@ -54,7 +56,7 @@ function AttachmentScopeForOwner({
           key={JSON.stringify([selected.path, context])}
           {...selected}
           target={context?.target ?? null}
-          onClose={() => setSelected(null)}
+          onClose={() => setSelection(null)}
         />
       ) : null}
     </NativeChatTextAttachmentOpener.Provider>
@@ -91,6 +93,8 @@ function AttachmentButton({
   )
 }
 
+const attachmentMarkdown = unified().use(remarkParse).use(remarkGfm)
+
 export function NativeChatTextAttachments({
   content,
   structured,
@@ -102,23 +106,19 @@ export function NativeChatTextAttachments({
   runtimeContext?: RuntimeFileOperationArgs | null
   renderText: (text: string) => ReactNode
 }) {
-  if (!structured) {
-    return <>{renderText(content)}</>
-  }
+  const paths = useMemo(
+    () => (structured ? nativeChatTextAttachmentPaths(attachmentMarkdown.parse(content)) : []),
+    [content, structured]
+  )
   return (
     <>
-      {nativeChatTextAttachmentParts(content, structured).map((part, index) => (
-        <div key={index}>
-          {part.path ? (
-            <AttachmentButton
-              key={JSON.stringify(runtimeContext)}
-              path={part.path}
-              runtimeContext={runtimeContext}
-            />
-          ) : (
-            renderText(part.text)
-          )}
-        </div>
+      {renderText(content)}
+      {paths.map((path) => (
+        <AttachmentButton
+          key={JSON.stringify([path, runtimeContext])}
+          path={path}
+          runtimeContext={runtimeContext}
+        />
       ))}
     </>
   )

@@ -64,3 +64,74 @@ it('reads the owning host, validates replies, re-probes on Retry and fences reco
   )
   await expect(replaced.page(0)).rejects.toThrow()
 })
+
+it('does not admit a body read after disposal during status and preserves a same-reader Retry successor', async () => {
+  for (const count of [1, 10]) {
+    const gates = Array.from({ length: count }, () => Promise.withResolvers<RpcResponse>())
+    const started = Promise.withResolvers<void>()
+    let probes = 0
+    const sendRequest = vi.fn(async (method: string): Promise<RpcResponse> => {
+      if (method === 'status.get') {
+        if (probes < count) {
+          const gate = gates[probes++]!
+          if (probes === count) {
+            started.resolve()
+          }
+          return gate.promise
+        }
+        return {
+          id: 's',
+          ok: true,
+          result: { capabilities: [AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY] },
+          _meta: { runtimeId: 'successor' }
+        }
+      }
+      return {
+        id: 'b',
+        ok: true,
+        result: {
+          snapshot: 'a'.repeat(64),
+          size: 1,
+          bytesRead: 1,
+          contentBase64: 'eA==',
+          eof: true
+        },
+        _meta: { runtimeId: 'successor' }
+      }
+    })
+    const client = {
+      sendRequest,
+      getState: () => 'connected' as const,
+      getLastConnectedAt: () => 1
+    }
+    const readers = gates.map(() => createMobileChatAttachmentReader(client))
+    const sources = readers.map((read) => new AttachmentTextSource('/file', read))
+    const pending = sources.map((source) =>
+      source.page(0).then(
+        () => false,
+        () => true
+      )
+    )
+    await started.promise
+    sources.forEach((source) => source.dispose())
+    const successors = readers.map((read) => new AttachmentTextSource('/file', read))
+    await Promise.all(successors.map((source) => source.page(0)))
+    const bodiesBefore = sendRequest.mock.calls.filter(([method]) => method !== 'status.get').length
+    expect(bodiesBefore).toBe(count)
+    gates.forEach((gate) =>
+      gate.resolve({
+        id: 's',
+        ok: true,
+        result: { capabilities: [AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY] },
+        _meta: { runtimeId: 'disposed' }
+      })
+    )
+    expect(await Promise.all(pending)).toEqual(Array(count).fill(true))
+    expect(sendRequest.mock.calls.filter(([method]) => method !== 'status.get')).toHaveLength(
+      bodiesBefore
+    )
+    expect(await Promise.all(successors.map((source) => source.copyText()))).toEqual(
+      Array(count).fill('x')
+    )
+  }
+})

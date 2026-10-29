@@ -1,5 +1,6 @@
+import { parseMobileMarkdownTree } from '../../../components/mobile-markdown-tree'
 import {
-  nativeChatTextAttachmentParts,
+  nativeChatTextAttachmentPaths,
   chatTextAttachmentName
 } from '../../../../../src/shared/native-chat-text-attachment-references'
 import { memo, useCallback, useContext, useLayoutEffect, useMemo, useRef } from 'react'
@@ -249,28 +250,15 @@ function MobileNativeChatMessageImpl({
       />
     ) : isSystem ? null : isUser && structuredActivityUi && isTextBlock(block) ? (
       <View key={index}>
-        {nativeChatTextAttachmentParts(text, true).map((part, partIndex) =>
-          part.path ? (
-            <Text
-              key={partIndex}
-              accessibilityRole="button"
-              onPress={() => onOpenFile?.(part.path!)}
-              style={styles.agentAttribution}
-            >
-              {chatTextAttachmentName(part.path)}
-            </Text>
-          ) : (
-            <Prose
-              key={partIndex}
-              block={block}
-              userMessage
-              fontScale={fontScale}
-              onOpenFile={onOpenFile}
-              onLongPress={onLongPress}
-              text={part.text}
-            />
-          )
-        )}
+        <Prose
+          block={block}
+          userMessage
+          fontScale={fontScale}
+          onOpenFile={onOpenFile}
+          onLongPress={onLongPress}
+          text={text}
+        />
+        <TextAttachmentActions text={text} onOpenFile={onOpenFile} />
       </View>
     ) : (
       <Prose
@@ -380,3 +368,26 @@ function MobileNativeChatMessageImpl({
 }
 
 export const MobileNativeChatMessage = memo(MobileNativeChatMessageImpl)
+
+const TextAttachmentActions = memo(function TextAttachmentActions({
+  text,
+  onOpenFile
+}: {
+  text: string
+  onOpenFile?: (path: string) => void
+}) {
+  const paths = useMemo(
+    () => nativeChatTextAttachmentPaths(parseMobileMarkdownTree(text, false)),
+    [text]
+  )
+  return paths.map((path) => (
+    <Text
+      key={path}
+      accessibilityRole="button"
+      onPress={() => onOpenFile?.(path)}
+      style={styles.agentAttribution}
+    >
+      {chatTextAttachmentName(path)}
+    </Text>
+  ))
+})

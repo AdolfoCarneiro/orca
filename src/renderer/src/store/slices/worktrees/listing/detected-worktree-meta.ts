@@ -21,6 +21,7 @@ import { worktreeMatchesHost } from './worktree-host-ownership'
 import { hostWorktreeTarget } from '../../../../../../shared/worktree/host-qualified-identity'
 import {
   selectFolderWorkspaces,
+  findFolderWorkspaceRecord,
   selectWorkspaceByHostTarget,
   selectWorktreesByRepo
 } from '../../../workspace-record-selectors'
@@ -108,10 +109,10 @@ export function findKnownWorktreeById(
   }
   const workspaceScope = parseWorkspaceKey(worktreeId)
   if (workspaceScope?.type === 'folder') {
-    const folderWorkspace = selectFolderWorkspaces(state).find(
-      (workspace) =>
-        workspace.id === workspaceScope.folderWorkspaceId &&
-        (!executionHostId || folderWorkspaceMatchesHost(workspace, executionHostId))
+    const folderWorkspace = findFolderWorkspaceRecord(
+      selectFolderWorkspaces(state),
+      workspaceScope.folderWorkspaceId,
+      executionHostId
     )
     return folderWorkspace ? getFolderWorkspaceWorktree(folderWorkspace) : undefined
   }

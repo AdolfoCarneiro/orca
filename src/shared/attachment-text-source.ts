@@ -16,7 +16,10 @@ export const attachmentTextChunkSchema = z.object({
   eof: z.boolean()
 })
 export type AttachmentTextChunk = z.infer<typeof attachmentTextChunkSchema>
-export type AttachmentTextRead = ((request: AttachmentTextRequest) => Promise<unknown>) & {
+export type AttachmentTextRead = ((
+  request: AttachmentTextRequest,
+  signal?: AbortSignal
+) => Promise<unknown>) & {
   assertCurrent?: () => void
 }
 export const ATTACHMENT_TEXT_PAGE_BYTES = 16 * 1024 - 8
@@ -80,12 +83,15 @@ export class AttachmentTextSource {
       await previous.catch(() => {})
       this.assertCurrent()
       const parsed = attachmentTextChunkSchema.safeParse(
-        await this.read({
-          path: this.path,
-          offset,
-          length,
-          ...(this.snapshot ? { expectedSnapshot: this.snapshot } : {})
-        })
+        await this.read(
+          {
+            path: this.path,
+            offset,
+            length,
+            ...(this.snapshot ? { expectedSnapshot: this.snapshot } : {})
+          },
+          this.abort.signal
+        )
       )
       this.assertCurrent()
       if (!parsed.success) {

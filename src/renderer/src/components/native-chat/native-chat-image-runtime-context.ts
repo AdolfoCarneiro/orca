@@ -18,6 +18,7 @@ import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-wor
 import { resolveNativeChatTabDirectory } from './native-chat-tab-directory'
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { shallow } from 'zustand/shallow'
 import {
   selectDetectedWorktreesByRepo,
   selectFolderWorkspaces,
@@ -189,21 +190,26 @@ export function createNativeChatImageOwnerSelector(tabId: string) {
 }
 
 export function useNativeChatImageRuntimeContext(tabId: string): NativeChatImageRuntimeContext {
-  const selectOwnerState = useMemo(() => createNativeChatImageOwnerSelector(tabId), [tabId])
-  const ownerState = useAppStore(useShallow(selectOwnerState))
-  return useMemo(() => {
-    // This view serves only the existing floating-directory predicate, never an owner index.
-    const unifiedTabsByWorktree =
-      ownerState.owner && ownerState.floatingTabs
-        ? { [ownerState.owner]: ownerState.floatingTabs }
-        : {}
-    return resolveNativeChatImageRuntimeContextForOwner(
-      {
-        ...ownerState,
-        unifiedTabsByWorktree
-      },
-      tabId,
-      ownerState.owner
-    )
-  }, [ownerState, tabId])
+  const selectContext = useMemo(() => {
+    const selectOwner = createNativeChatImageOwnerSelector(tabId)
+    let previousInputs: ReturnType<typeof selectOwner> | undefined
+    let context: NativeChatImageRuntimeContext = null
+    return (state: AppState) => {
+      const ownerState = selectOwner(state)
+      if (!previousInputs || !shallow(previousInputs, ownerState)) {
+        previousInputs = ownerState
+        const unifiedTabsByWorktree =
+          ownerState.owner && ownerState.floatingTabs
+            ? { [ownerState.owner]: ownerState.floatingTabs }
+            : {}
+        context = resolveNativeChatImageRuntimeContextForOwner(
+          { ...ownerState, unifiedTabsByWorktree },
+          tabId,
+          ownerState.owner
+        )
+      }
+      return context
+    }
+  }, [tabId])
+  return useAppStore(useShallow(selectContext))
 }

@@ -637,3 +637,94 @@ describe('MobileNativeChatMessage', () => {
     })
   })
 })
+
+it('keeps the complete phone Markdown document and excludes code literals from attachment actions', () => {
+  const path = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/report.txt'
+  const content =
+    '```text\n@' + path + '\nKEEP CODE\n```\n\nOUTSIDE\n\n**Read @' + path + ' then stop**'
+  const onOpenFile = vi.fn()
+  let tree: ReactTestRenderer
+  act(() => {
+    tree = create(
+      createElement(MobileNativeChatMessage, {
+        message: userMessage([{ type: 'text', text: content }]),
+        structuredActivityUi: true,
+        onOpenFile
+      })
+    )
+  })
+  try {
+    const markdown = findAllByHostType(tree!.root, 'MobileMarkdown')
+    expect(markdown).toHaveLength(1)
+    expect(markdown[0]!.props.content).toBe(content)
+    const actions = tree!.root.findAll(
+      (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
+    )
+    expect(actions).toHaveLength(1)
+    act(() => actions[0]!.props.onPress())
+    expect(onOpenFile).toHaveBeenCalledWith(path)
+    act(() =>
+      tree!.update(
+        createElement(MobileNativeChatMessage, {
+          message: userMessage([
+            { type: 'text', text: '```text\n@' + path + '\n```\n\n`@' + path + '`' }
+          ]),
+          structuredActivityUi: true,
+          onOpenFile
+        })
+      )
+    )
+    expect(
+      tree!.root.findAll(
+        (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
+      )
+    ).toHaveLength(0)
+  } finally {
+    act(() => tree!.unmount())
+  }
+})
+
+it('bounds phone row recognition at N and 10N during unchanged and one-row updates', async () => {
+  const references =
+    await import('../../../../../src/shared/native-chat-text-attachment-references')
+  const recognize = vi.spyOn(references, 'nativeChatTextAttachmentPaths')
+  const path = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/report.txt'
+  for (const count of [10, 100]) {
+    let rows = Array.from({ length: count }, (_, index) => ({
+      ...userMessage([
+        { type: 'text', text: `row ${index} **Read @${path} then stop** ` + 'prose '.repeat(100) }
+      ]),
+      id: `row-${index}`
+    }))
+    const ui = () =>
+      createElement(
+        'Rows',
+        null,
+        rows.map((message) =>
+          createElement(MobileNativeChatMessage, {
+            key: message.id,
+            message,
+            structuredActivityUi: true
+          })
+        )
+      )
+    recognize.mockClear()
+    let tree: ReactTestRenderer
+    act(() => {
+      tree = create(ui())
+    })
+    expect(recognize).toHaveBeenCalledTimes(count)
+    recognize.mockClear()
+    for (let update = 0; update < 3; update++) {
+      act(() => tree!.update(ui()))
+    }
+    expect(recognize).not.toHaveBeenCalled()
+    rows = rows.map((message, index) =>
+      index === 0 ? { ...message, blocks: [{ type: 'text', text: `changed @${path}` }] } : message
+    )
+    act(() => tree!.update(ui()))
+    expect(recognize).toHaveBeenCalledTimes(1)
+    act(() => tree!.unmount())
+  }
+  recognize.mockRestore()
+})

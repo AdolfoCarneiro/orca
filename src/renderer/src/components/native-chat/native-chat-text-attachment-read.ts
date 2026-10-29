@@ -44,7 +44,8 @@ export function createChatAttachmentReader(
     }
   }
   return Object.assign(
-    async (request: Parameters<AttachmentTextRead>[0]) => {
+    async (request: Parameters<AttachmentTextRead>[0], signal?: AbortSignal) => {
+      signal?.throwIfAborted()
       assertCurrent()
       if (!request.expectedSnapshot) {
         status = undefined
@@ -53,6 +54,8 @@ export function createChatAttachmentReader(
         expectedEnvironmentPairingRevision
       })
       const host = await status
+      signal?.throwIfAborted()
+      assertCurrent()
       if (!host.capabilities?.includes(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY)) {
         throw new Error(
           'This host cannot open text attachments yet. Update Orca on that host, then retry.'

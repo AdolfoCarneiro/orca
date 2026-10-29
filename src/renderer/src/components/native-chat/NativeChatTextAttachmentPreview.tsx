@@ -69,6 +69,9 @@ export function NativeChatTextAttachmentPreview({
         try {
           for await (const bytes of source.bytes()) {
             source.assertCurrent()
+            if (!bytes.length) {
+              continue
+            }
             await window.api.fs.appendDownloadedFileChunk({
               transferId: output.transferId,
               contentBase64: btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))

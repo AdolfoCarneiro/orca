@@ -27,8 +27,7 @@ export function createMobileChatAttachmentReader(
 ): AttachmentTextRead {
   const connectedAt = client?.getLastConnectedAt()
   const generation = client?.getGeneration?.()
-  let runtimeId: string | undefined
-  let status: Promise<ReturnType<typeof hostStatusProbe.interpret>> | undefined
+  let status: ReturnType<typeof hostStatusProbe.request> | undefined
   const assertCurrent = () => {
     if (
       !client ||
@@ -40,16 +39,18 @@ export function createMobileChatAttachmentReader(
     }
   }
   return Object.assign(
-    async (request: Parameters<typeof textRead.request>[1]) => {
+    async (request: Parameters<typeof textRead.request>[1], signal?: AbortSignal) => {
+      signal?.throwIfAborted()
       assertCurrent()
       if (!request.expectedSnapshot) {
         status = undefined
       }
-      status ??= hostStatusProbe.request(client!).then((reply) => {
-        runtimeId = reply._meta?.runtimeId
-        return hostStatusProbe.interpret(reply)
-      })
-      const host = await status
+      status ??= hostStatusProbe.request(client!)
+      const statusReply = await status
+      signal?.throwIfAborted()
+      assertCurrent()
+      const runtimeId = statusReply._meta?.runtimeId
+      const host = hostStatusProbe.interpret(statusReply)
       if (
         !host.accepted ||
         !host.value?.capabilities?.includes(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY)

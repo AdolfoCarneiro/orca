@@ -5,6 +5,7 @@ import type { AppState } from './types'
 import { makeFolderWorkspace, makeWorktree } from './slices/worktrees-slice-test-fixtures'
 import {
   selectDetectedWorktreesByRepo,
+  findFolderWorkspaceRecord,
   selectFolderWorkspaces,
   selectWorkspaceByHostTarget,
   selectWorktreesByRepo
@@ -86,4 +87,19 @@ describe('selectWorkspaceByHostTarget bucket keys', () => {
       selectWorkspaceByHostTarget(state, hostWorktreeTarget({ id: 'wt-9', hostId: 'ssh:remote' }))
     ).toBe(row)
   })
+})
+
+it('preserves first matching folder and host semantics across indexed reads and catalog replacement', () => {
+  const remote = makeFolderWorkspace({
+    id: folder.id,
+    folderPath: '/remote',
+    executionHostId: 'ssh:build-box'
+  })
+  const laterLocal = { ...folder, folderPath: '/later' }
+  const rows = [remote, folder, laterLocal]
+  expect(findFolderWorkspaceRecord(rows, folder.id)).toBe(remote)
+  expect(findFolderWorkspaceRecord(rows, folder.id, 'local')).toBe(folder)
+  expect(findFolderWorkspaceRecord(rows, folder.id, 'ssh:build-box')).toBe(remote)
+  expect(findFolderWorkspaceRecord(rows, folder.id, 'runtime:missing')).toBeUndefined()
+  expect(findFolderWorkspaceRecord([laterLocal, remote], folder.id, 'local')).toBe(laterLocal)
 })
