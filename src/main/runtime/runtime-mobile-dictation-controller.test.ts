@@ -18,18 +18,20 @@ const stopDictation = vi.fn(async (_owner: string, options?: { discard?: boolean
     await transcription
   }
 })
+const feedAudio = vi.fn()
 
 beforeEach(() => {
   vi.useFakeTimers()
   stopDictation.mockClear()
   transcription = Promise.resolve()
+  feedAudio.mockClear()
   const factories = {
     createModelManager: () => ({ getModelState: async () => ({ status: 'ready' }) }),
     createSttService: () => ({
       startDictation: async (_modelId: string, next: Sink) => {
         sink = next
       },
-      feedAudio: () => {},
+      feedAudio,
       stopDictation
     })
   }
@@ -81,6 +83,36 @@ describe('mobile dictation across a phone reconnect', () => {
     expect(stopDictation).toHaveBeenCalledOnce()
     expect(() => controller.feed(chunk)).toThrow('dictation_stream_not_started')
   })
+
+  it('feeds resent audio once and in the order it was spoken', async () => {
+    const controller = await startPhoneDictation()
+    const spoken = (seq: number) => ({
+      ...chunk,
+      seq,
+      audioBase64: Buffer.from(Int16Array.of(seq).buffer).toString('base64')
+    })
+
+    // 1 is resent after 2 overtook it; 0 and 1 arrive twice; 3 never comes.
+    for (const seq of [0, 2, 0, 1, 1, 4]) {
+      controller.feed(spoken(seq))
+    }
+    await controller.finish({ dictationId: 'd-1', clientId: 'phone-a' })
+
+    const fed = feedAudio.mock.calls.map(([samples]) => Math.round(samples[0] * 32768))
+    expect(fed).toEqual([0, 1, 2, 4])
+  })
+
+  it('stops waiting for a chunk that never comes', async () => {
+    const controller = await startPhoneDictation()
+    // 35s of speech behind a chunk that never comes is more than a reconnect holds back.
+    const longChunk = { ...chunk, audioBase64: Buffer.alloc(160_000).toString('base64') }
+
+    for (let seq = 1; seq <= 7; seq += 1) {
+      controller.feed({ ...longChunk, seq })
+    }
+
+    expect(feedAudio).toHaveBeenCalledTimes(7)
+  })
 })
 
 describe('mobile dictation cancel', () => {
@@ -92,6 +124,6 @@ describe('mobile dictation cancel', () => {
 
     await expect(
       controller.start({ dictationId: 'd-2', modelId: 'test-model', clientId: 'phone-a' })
-    ).resolves.toEqual({ dictationId: 'd-2', modelId: 'test-model' })
+    ).resolves.toEqual({ dictationId: 'd-2', modelId: 'test-model', dedupesResentChunks: true })
   })
 })

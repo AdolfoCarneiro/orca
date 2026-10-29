@@ -52,18 +52,26 @@ export function useMobileDictationTranscriptSoFar() {
 }
 
 // A request refused or still waiting while the connection moved never reached the host; send it again on the new one, within the host's grace.
+// With resendWhile the host dedupes, so a request whose reply a drop lost goes again after each reconnect too, while it still holds.
 export async function sendAcrossConnectionMove<T>(
   client: RpcClient,
-  send: () => Promise<T>
+  send: () => Promise<T>,
+  resendWhile?: () => boolean
 ): Promise<T> {
+  const again = () => (resendWhile ? sendAcrossConnectionMove(client, send, resendWhile) : send())
   try {
     return await send()
   } catch (err) {
     if (isLogicalClientCutoverError(err) && !isRpcDeliveryUnknown(err)) {
-      return send()
+      return again()
     }
-    if (isLogicalClientSuspendedError(err) && (await waitForReconnect(client))) {
-      return send()
+    // A timeout on a connection still up gets no second try there; a reply lost to a drop does.
+    const lostToDrop = isLogicalClientCutoverError(err) || client.getState() !== 'connected'
+    const resend =
+      isLogicalClientSuspendedError(err) ||
+      (resendWhile !== undefined && isRpcDeliveryUnknown(err) && lostToDrop)
+    if (resend && (await waitForReconnect(client)) && (resendWhile?.() ?? true)) {
+      return again()
     }
     throw err
   }
@@ -130,13 +138,18 @@ export function enqueueMobileDictationAudioChunk(
   const params = {
     dictationId,
     audioBase64: bytesToBase64(bytes),
-    sampleRate: MOBILE_DICTATION_PCM_SAMPLE_RATE
+    sampleRate: MOBILE_DICTATION_PCM_SAMPLE_RATE,
+    seq: queue.pendingAudioBudget.nextSeq()
   }
-  const sendChunk = sendAcrossConnectionMove(client, () =>
-    // Wait for a reconnect only as long as the host keeps the session; past that, fail and keep the text so far.
-    dictationAudioChunkSend.request(client, params, {
-      timeoutMs: MOBILE_DICTATION_RECONNECT_GRACE_MS
-    })
+  const sendChunk = sendAcrossConnectionMove(
+    client,
+    () =>
+      // Wait for a reconnect only as long as the host keeps the session; past that, fail and keep the text so far.
+      dictationAudioChunkSend.request(client, params, {
+        timeoutMs: MOBILE_DICTATION_RECONNECT_GRACE_MS
+      }),
+    // A recording cancelled during the outage must not reach the host when it comes back.
+    queue.pendingAudioBudget.hostDedupesResends ? () => queue.isActive(dictationId) : undefined
   )
     .then((reply) => {
       // Only newer hosts send the text, and only when it changed; any other result still acknowledges the chunk.
@@ -147,7 +160,7 @@ export function enqueueMobileDictationAudioChunk(
       }
     })
     .catch((err) => {
-      // The host keeps the session through a reconnect; only audio in flight at the drop is lost.
+      // The host keeps the session through a reconnect; a host that cannot dedupe loses only the audio in flight at the drop.
       if (!isRpcDeliveryUnknown(err)) {
         queue.failActiveDictation(dictationId, err)
       }

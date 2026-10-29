@@ -8,6 +8,7 @@ import {
   type SentRequest
 } from '../mobile-web-shell/bridge-host-test-fakes'
 import { markRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
+import { rpcPayloadMember } from '../transport/rpc-reader-payload'
 import { LogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
 import type { ConnectionState } from '../transport/types'
 import type {
@@ -179,6 +180,71 @@ describe('dictation through a reconnect', () => {
 
     expect(transcripts).toEqual(['hello'])
     expect(errors).toEqual(['Connection closed'])
+  })
+})
+
+describe('audio sent on a connection that died', () => {
+  async function dropMidChunk(
+    startResult: Record<string, unknown>,
+    { cancelOffline = false } = {}
+  ) {
+    let state: ConnectionState = 'connected'
+    const rpc = createFakeRpcClient({ getState: () => state })
+    const sent: SentRequest[] = []
+    mount(rpc, [], [])
+    await act(async () => {
+      const started = dictation().start()
+      while (rpc.requests.length === 0) {
+        await Promise.resolve()
+      }
+      rpc.requests.splice(0)[0].resolve({ id: 'desktop', ok: true, result: startResult })
+      await started
+    })
+    const speak = () => {
+      for (const handler of seam.chunkHandlers) {
+        handler({ data: Uint8Array.from([1, 2]), droppedBytes: 0 })
+      }
+    }
+    await act(async () => {
+      speak()
+      speak()
+      const [answered, lost] = rpc.requests.splice(0)
+      sent.push(answered, lost)
+      answered.resolve({ id: 'desktop', ok: true, result: {} })
+      state = 'reconnecting'
+      lost.reject(markRpcDeliveryUnknown(new Error('Connection interrupted')))
+      await Promise.resolve()
+      speak()
+    })
+    if (cancelOffline) {
+      await act(async () => {
+        const cancelled = dictation().cancel()
+        await pump(rpc, sent, [])
+        await cancelled
+      })
+    }
+    await act(async () => {
+      state = 'connected'
+      rpc.pushState('connected')
+      await pump(rpc, sent, [])
+    })
+    return sent
+      .filter((request) => request.method === 'speech.dictation.chunk')
+      .map((request) => rpcPayloadMember(request.args[1], 'seq'))
+  }
+
+  it('goes again to a host that feeds each chunk once', async () => {
+    await expect(dropMidChunk({ dedupesResentChunks: true })).resolves.toEqual([0, 1, 2, 1])
+  })
+
+  it('is not resent once the recording was cancelled during the outage', async () => {
+    await expect(
+      dropMidChunk({ dedupesResentChunks: true }, { cancelOffline: true })
+    ).resolves.toEqual([0, 1, 2])
+  })
+
+  it('never goes twice to a host that would feed it twice', async () => {
+    await expect(dropMidChunk({})).resolves.toEqual([0, 1, 2])
   })
 })
 
