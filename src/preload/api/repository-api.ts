@@ -87,8 +87,6 @@ export type RepositoryApi = {
   getBaseRefDefault: (args: {
     repoId: string
     hostId?: ExecutionHostId
-    /** A user act (explicit refresh) may start the repo's stopped WSL distro. */
-    wakeWslDistro?: boolean
   }) => Promise<BaseRefDefaultResult>
   searchBaseRefs: (args: {
     repoId: string

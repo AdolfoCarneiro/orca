@@ -47,8 +47,6 @@ export const reposApi = {
   getBaseRefDefault: (args: {
     repoId: string
     hostId?: ExecutionHostId
-    /** A user act (explicit refresh) may start the repo's stopped WSL distro. */
-    wakeWslDistro?: boolean
   }): Promise<BaseRefDefaultResult> => ipcRenderer.invoke('repos:getBaseRefDefault', args),
 
   searchBaseRefs: (args: {
