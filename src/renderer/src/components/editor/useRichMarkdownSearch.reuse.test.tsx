@@ -40,6 +40,7 @@ function createDoc(atomLabel = 'locked') {
 function mountSearch() {
   let state = EditorState.create({ doc: createDoc() })
   const listeners = new Set<() => void>()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This cache fixture supplies a real state/transaction with only the editor operations under test.
   const editor = {
     get state() {
       return state

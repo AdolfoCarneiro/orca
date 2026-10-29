@@ -10,6 +10,7 @@ function createEditor(): { editor: Editor; emitUpdate: () => void } {
   const transaction = {
     setMeta: vi.fn().mockReturnThis()
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This subscription-only fixture implements the hook's tested editor surface.
   const editor = {
     commands: { focus: vi.fn() },
     off: vi.fn((event: string, listener: () => void) => {

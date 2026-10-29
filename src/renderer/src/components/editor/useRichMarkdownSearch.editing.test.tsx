@@ -236,7 +236,7 @@ describe('rich markdown editing with Find open', () => {
         document.addEventListener('selectionchange', holdSelectionChange, true)
         try {
           // Model a native notification that has not arrived before the next captured key/action.
-          document.getSelection()?.setBaseAndExtent(text, 7, text, 2)
+          document.getSelection()?.setBaseAndExtent(text, 2, text, 7)
         } finally {
           document.removeEventListener('selectionchange', holdSelectionChange, true)
         }
@@ -247,8 +247,8 @@ describe('rich markdown editing with Find open', () => {
         } else {
           act(() => search().searchActions.closeSearch())
         }
-        expect(editor.state.selection.anchor).toBe(to)
-        expect(editor.state.selection.head).toBe(from)
+        expect(editor.state.selection.anchor).toBe(from)
+        expect(editor.state.selection.head).toBe(to)
         const clipboardData = new DataTransfer()
         editor.view.dom.dispatchEvent(
           new ClipboardEvent('copy', { clipboardData, bubbles: true, cancelable: true })
