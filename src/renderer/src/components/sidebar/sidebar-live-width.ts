@@ -1,16 +1,27 @@
 const LIVE_WIDTH_PROPERTY = '--workspace-sidebar-live-width'
 
-let liveWidthCss: string | null = null
-const targets = new Set<HTMLElement>()
+type SidebarLiveWidthState = { width: string | null; targets: Set<HTMLElement> }
+type SidebarLiveWidthHotData = { sidebarLiveWidth?: SidebarLiveWidthState }
+
+// Why: Radix keeps open drawers' refs stable across HMR, so registrations must survive module re-evaluation.
+function sharedState(hotData?: SidebarLiveWidthHotData): SidebarLiveWidthState {
+  const state = hotData?.sidebarLiveWidth ?? { width: null, targets: new Set<HTMLElement>() }
+  if (hotData) {
+    hotData.sidebarLiveWidth = state
+  }
+  return state
+}
+
+const state = sharedState(import.meta.hot?.data)
 
 // Why: a custom property on :root restyles the whole document every drag frame; only the drawers read it.
 export function setSidebarLiveWidth(width: number): void {
   const next = `${width}px`
-  if (next === liveWidthCss) {
+  if (next === state.width) {
     return
   }
-  liveWidthCss = next
-  for (const target of targets) {
+  state.width = next
+  for (const target of state.targets) {
     target.style.setProperty(LIVE_WIDTH_PROPERTY, next)
   }
 }
@@ -20,11 +31,11 @@ export function trackSidebarLiveWidth(element: HTMLElement | null): (() => void)
   if (!element) {
     return undefined
   }
-  if (liveWidthCss !== null) {
-    element.style.setProperty(LIVE_WIDTH_PROPERTY, liveWidthCss)
+  if (state.width !== null) {
+    element.style.setProperty(LIVE_WIDTH_PROPERTY, state.width)
   }
-  targets.add(element)
+  state.targets.add(element)
   return () => {
-    targets.delete(element)
+    state.targets.delete(element)
   }
 }
