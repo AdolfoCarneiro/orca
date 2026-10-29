@@ -1,5 +1,9 @@
 import type { WorktreeMetaBatchUpdate } from '../../worktree-helpers'
 import type { WorktreeSliceGet } from '../listing/worktree-slice-types'
+import {
+  selectWorktreesByRepo,
+  selectDetectedWorktreesByRepo
+} from '../../../workspace-record-selectors'
 import type { Repo } from '../../../../../../shared/repo-types'
 import { applyWorktreeUpdates } from '../../worktree-helpers'
 import { applyDetectedWorktreeUpdates } from '../listing/detected-worktree-meta'
@@ -15,14 +19,11 @@ export function buildWorktreeMetaStateUpdate(
   s: ReturnType<WorktreeSliceGet>,
   { worktreeId, updates, executionHostId, reviewRepo, reviewBranch }: WorktreeMetaStateUpdate
 ) {
-  const nextWorktrees = applyWorktreeUpdates(
-    s.worktreesByRepo,
-    worktreeId,
-    updates,
-    executionHostId
-  )
+  const worktreesByRepo = selectWorktreesByRepo(s)
+  const detectedWorktreesByRepo = selectDetectedWorktreesByRepo(s)
+  const nextWorktrees = applyWorktreeUpdates(worktreesByRepo, worktreeId, updates, executionHostId)
   const nextDetectedWorktrees = applyDetectedWorktreeUpdates(
-    s.detectedWorktreesByRepo,
+    detectedWorktreesByRepo,
     worktreeId,
     updates,
     executionHostId
@@ -45,8 +46,8 @@ export function buildWorktreeMetaStateUpdate(
   const hostedReviewCache = s.hostedReviewCache ?? {}
   const prCache = s.prCache ?? {}
   if (
-    nextWorktrees === s.worktreesByRepo &&
-    nextDetectedWorktrees === s.detectedWorktreesByRepo &&
+    nextWorktrees === worktreesByRepo &&
+    nextDetectedWorktrees === detectedWorktreesByRepo &&
     !cacheKey &&
     !prCacheKey
   ) {
@@ -72,10 +73,10 @@ export function buildWorktreeMetaStateUpdate(
     : prCache
 
   return {
-    ...(nextWorktrees !== s.worktreesByRepo
+    ...(nextWorktrees !== worktreesByRepo
       ? { worktreesByRepo: nextWorktrees, sortEpoch: s.sortEpoch + 1 }
       : {}),
-    ...(nextDetectedWorktrees !== s.detectedWorktreesByRepo
+    ...(nextDetectedWorktrees !== detectedWorktreesByRepo
       ? { detectedWorktreesByRepo: nextDetectedWorktrees }
       : {}),
     ...(nextHostedReviewCache !== hostedReviewCache
