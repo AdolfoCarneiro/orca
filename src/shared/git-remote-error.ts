@@ -152,7 +152,7 @@ export function normalizeGitErrorMessage(error: unknown, operation?: GitRemoteOp
   }
 
   // Why: scrub credentials up-front so every downstream branch operates on already-redacted text.
-  const raw = stripCredentialsFromMessage(error.message)
+  const raw = stripCredentialsFromMessage(stripAnsiEscapeSequences(error.message))
 
   const submodulePushFailureDetail = formatSubmodulePushFailureDetail(raw)
   if ((operation === 'push' || operation === undefined) && submodulePushFailureDetail) {
@@ -167,10 +167,7 @@ export function normalizeGitErrorMessage(error: unknown, operation?: GitRemoteOp
     return 'Push rejected: remote has newer commits (non-fast-forward). Please pull or sync first.'
   }
 
-  if (
-    operation === 'push' &&
-    (STALE_LEASE_REJECTION_PATTERN.test(stripAnsiEscapeSequences(raw)) || isPushHookFailure(raw))
-  ) {
+  if (operation === 'push' && (STALE_LEASE_REJECTION_PATTERN.test(raw) || isPushHookFailure(raw))) {
     // Lease rejection and pre-push hook details precede Git's generic "failed to push some refs" tail line.
     return raw.trim()
   }

@@ -1,4 +1,5 @@
 import { translate } from '@/i18n/i18n'
+import { stripAnsiEscapeSequences } from '../../../shared/ansi-escape-sequences'
 import {
   GIT_AUTHENTICATION_FAILED_MESSAGE,
   formatSubmodulePushFailureDetail,
@@ -87,8 +88,9 @@ function isNonFastForwardRemoteError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false
   }
+  const message = stripAnsiEscapeSequences(error.message)
   return (
-    /non-fast-forward|fetch first|updates were rejected|stale info/i.test(error.message) ||
+    /non-fast-forward|fetch first|updates were rejected|stale info/i.test(message) ||
     formatSubmodulePushFailureDetail(error.message)?.includes('has remote changes') === true
   )
 }
@@ -208,10 +210,12 @@ export function resolveRemoteOperationErrorMessage(
     return pushHookBlockedMessage(operation, summarizePushFailure(error.message))
   }
 
+  const rejectionMessage = stripAnsiEscapeSequences(error.message)
+
   // Sync already pulled; NFF means the remote raced before its inner push. Choose sync wording before the shared push path, never misleading Pull first advice.
   if (
     options?.isSync &&
-    /non-fast-forward|fetch first|updates were rejected/i.test(error.message)
+    /non-fast-forward|fetch first|updates were rejected/i.test(rejectionMessage)
   ) {
     return translate(
       'sourceControl.remoteError.syncRemoteMoved',
@@ -222,7 +226,7 @@ export function resolveRemoteOperationErrorMessage(
   // Lease rejection means remote changed since our snapshot; Pull first could reintroduce commits the explicit force-push meant to replace.
   if (
     options?.isForcePush &&
-    /non-fast-forward|fetch first|updates were rejected|stale info/i.test(error.message)
+    /non-fast-forward|fetch first|updates were rejected|stale info/i.test(rejectionMessage)
   ) {
     return translate(
       'sourceControl.remoteError.forcePushRejected',
@@ -231,7 +235,7 @@ export function resolveRemoteOperationErrorMessage(
   }
 
   // Share rejected/NFF handling across publish and push for consistent actions.
-  if (/non-fast-forward|fetch first|updates were rejected/i.test(error.message)) {
+  if (/non-fast-forward|fetch first|updates were rejected/i.test(rejectionMessage)) {
     return translate(
       'sourceControl.remoteError.pushRejected',
       'Push rejected — remote has changes. Pull first, then try again.'

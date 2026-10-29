@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { i18n } from '@/i18n/i18n'
 import es from '@/i18n/locales/es.json'
-import { resolveRemoteOperationErrorMessage } from './source-control-remote-error'
+import {
+  isNonFastForwardRemoteError,
+  resolveRemoteOperationErrorMessage
+} from './source-control-remote-error'
 
 const originalLanguage = i18n.language
 
@@ -11,6 +14,17 @@ afterEach(async () => {
 })
 
 describe('source-control remote error formatting', () => {
+  it('recognizes split colored stale lease markers from remote hosts', () => {
+    const error = new Error(
+      " ! [rejected] main -> main (stale\x1b[31m info\x1b[m)\nerror: failed to push some refs to 'origin'"
+    )
+
+    expect(resolveRemoteOperationErrorMessage(error, { isForcePush: true })).toBe(
+      'Force push rejected — remote changed since last fetch. Fetch first, then try again.'
+    )
+    expect(isNonFastForwardRemoteError(error)).toBe(true)
+  })
+
   it('prefers fatal detail over an earlier remote detail for publish failures', () => {
     const error = new Error('remote: protected branch\r\nfatal: Authentication failed\r\n')
 

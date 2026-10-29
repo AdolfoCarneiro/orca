@@ -27,9 +27,35 @@ describe('normalizeGitErrorMessage', () => {
       ].join(newline)
 
       expect(normalizeGitErrorMessage(new Error(output), 'push')).toBe(
-        output.replace('user:secret@', '').replace('token@', '')
+        output
+          .replace('user:secret@', '')
+          .replace('token@', '')
+          .replaceAll('\x1b[31m', '')
+          .replaceAll('\x1b[m', '')
+          .replaceAll('\x1b[0m', '')
       )
     }
+  })
+
+  it.each([
+    'https://user:sec\x1b[1 qret@example.com/repo.git',
+    'https://sec\x1b]8;;https://example.org\x07ret\x1b]8;;\x07@example.com/repo.git'
+  ])('redacts ANSI-bearing URL userinfo in stale lease diagnostics: %s', (url) => {
+    const error = new Error(
+      [
+        `Command failed: git push ${url}`,
+        ' ! [rejected] main -> main (stale\x1b[31m info\x1b[m)',
+        "error: failed to push some refs to 'origin'"
+      ].join('\n')
+    )
+
+    expect(normalizeGitErrorMessage(error, 'push')).toBe(
+      [
+        'Command failed: git push https://example.com/repo.git',
+        ' ! [rejected] main -> main (stale info)',
+        "error: failed to push some refs to 'origin'"
+      ].join('\n')
+    )
   })
 
   it('does not classify a rejection marker on a separate line as a stale lease rejection', () => {
