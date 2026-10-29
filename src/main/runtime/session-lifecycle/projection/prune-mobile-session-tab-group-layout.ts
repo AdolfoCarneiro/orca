@@ -1,3 +1,4 @@
+import { pruneGroupLayout } from '../../../../shared/workspace-session-terminal-tab-close'
 import { selectFreshAgentRowForMobileTab } from '../../runtime-hook-agent-row-selection'
 import { OrcaRuntimeWithScheduleMobileSessionTabsChanged } from '../../session-tabs/session-tabs-change-publication'
 import type { TabGroupLayoutNode } from '../../../../shared/tab-types'
@@ -47,18 +48,7 @@ export abstract class OrcaRuntimeWithPruneMobileSessionTabGroupLayout extends Or
     layout: TabGroupLayoutNode | null | undefined,
     validGroupIds: ReadonlySet<string>
   ): TabGroupLayoutNode | null {
-    if (!layout) {
-      return null
-    }
-    if (layout.type === 'leaf') {
-      return validGroupIds.has(layout.groupId) ? layout : null
-    }
-    const first = this.pruneMobileSessionTabGroupLayout(layout.first, validGroupIds)
-    const second = this.pruneMobileSessionTabGroupLayout(layout.second, validGroupIds)
-    if (first && second) {
-      return { ...layout, first, second }
-    }
-    return first ?? second
+    return pruneGroupLayout(layout ?? undefined, validGroupIds) ?? null
   }
 
   protected mergeMobileSessionTabGroups(
@@ -128,6 +118,7 @@ export abstract class OrcaRuntimeWithPruneMobileSessionTabGroupLayout extends Or
       leaves: this.leaves,
       ptysById: this.ptysById,
       getLiveBrowserTabs: (worktreeId) => this.getListedBrowserTabsByPageId(worktreeId),
+      isRendererOwnedMobileBrowserTab: (...args) => this.isRendererOwnedMobileBrowserTab(...args),
       getProviderSessionRows: (paneKey) => this.getAgentProviderSessionRowsForPaneFn?.(paneKey),
       getProviderSessionSnapshot: () => this.getAgentProviderSessionSnapshotFn?.() ?? [],
       getStatusSnapshot: () => this.getAgentStatusSnapshotFn?.() ?? [],

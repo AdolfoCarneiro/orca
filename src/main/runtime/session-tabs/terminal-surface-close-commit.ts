@@ -11,6 +11,7 @@ import { closeLeafOrTab } from '../../persistence/terminal-topology/terminal-top
 import {
   resolveTerminalCloseTarget,
   type PaneCloseResolution,
+  type RendererTerminalClose,
   captureTerminalCloseRequest,
   type TerminalSurfaceCloseOptions
 } from '../terminal-surface-close'
@@ -21,6 +22,12 @@ export abstract class OrcaRuntimeWithTerminalSurfaceCloseCommit extends OrcaRunt
     command: WindowLayoutCommand,
     options?: LayoutCommandRunOptions
   ): Promise<LayoutApplyReply>
+  /** The desktop renderer's close intent: it already guarded, removed and killed; this only reports. */
+  async closeTerminalSurfaceFromRenderer({ worktreeId, target, reason }: RendererTerminalClose) {
+    const options = { allowMissing: true, force: true, closedByLayoutOwner: true, reason }
+    await this.closeTerminalSurface(worktreeId, target, options)
+  }
+
   protected originalTerminalExecutionMatches(source: TerminalSurfaceCloseIdentity): boolean {
     const current = source.ptyId ? this.ptysById.get(source.ptyId) : null
     const replacing = source.ptyId ? this.pendingPtyHandleReplacementFences.get(source.ptyId) : null

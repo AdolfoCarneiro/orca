@@ -1,9 +1,7 @@
-import type { StructuredRewindRecoveryEvidence } from './structured-rewind-recovery'
 import {
   publishAttachedChild,
   readBoundChildRewind,
-  type AttachCandidate,
-  type BoundAttach
+  type AttachAttempt
 } from './structured-agent-session-attach-publish'
 import { agentSessionLeaseAdmitsWriter } from '../../../shared/agent-session-lease-adjudication'
 import { refuse } from '../../../shared/agent-session-wire-refusals'
@@ -24,13 +22,14 @@ import {
 import { refuseAgentSessionMutation } from './structured-agent-session-mutation-admission'
 import { settleStaleStructuredAgentSessionState } from './structured-agent-session-dead-generation-settlement'
 import { structuredAgentSessionFailureWordsContext } from './structured-agent-session-send-preparation'
-import type { StructuredAgentSessionAttachContext } from './structured-agent-session-attach-context'
+import type {
+  StructuredAgentSessionAttachContext,
+  StructuredAgentSessionAttachOptions
+} from './structured-agent-session-attach-context'
+export type { StructuredAgentSessionAttachOptions } from './structured-agent-session-attach-context'
 import { structuredAgentSessionConversationFence } from './structured-agent-session-provider-child'
 import { structuredAgentSessionAttachPermission } from './structured-agent-session-launch-permission'
-import {
-  isStructuredAgentSessionStartupExpired,
-  type StructuredAgentSessionStartupAttempt
-} from './structured-agent-session-startup-attempt-contract'
+import { isStructuredAgentSessionStartupExpired } from './structured-agent-session-startup-attempt-contract'
 import {
   addAgentSessionCreatePhaseAttributes,
   withAgentSessionCreatePhase,
@@ -41,8 +40,9 @@ import {
   heldStructuredAgentSessionAttachLock,
   type StructuredAgentSessionAttachLock
 } from './structured-agent-session-attach-lock'
-import type { StructuredAgentSessionAttachOptions } from './structured-agent-session-attach-options'
 
+/** The attach an agent start runs under its own lock (`structured-agent-session-start-flight`);
+ *  `attachStructuredAgentSession` runs the same steps inside one `serialize`, for a client. */
 export function attachStructuredAgentSessionForStart(
   context: StructuredAgentSessionAttachContext,
   callerKey: string,
@@ -175,13 +175,17 @@ async function runAttachUnderAbort(
   }
   // Attempt sinks become session-owned only on successful attach; failures close their buffered writes.
   const attemptSink = context.runtimeState.mintEventSink(sessionId)
-  const attempt: {
-    candidate: AttachCandidate | null
-    committed: boolean
-    startup: StructuredAgentSessionStartupAttempt | null
-    bound: BoundAttach | null
-    rewind: StructuredRewindRecoveryEvidence
-  } = { candidate: null, committed: false, startup: null, bound: null, rewind: null }
+  const attempt: AttachAttempt = {
+    candidate: null,
+    committed: false,
+    startup: null,
+    bound: null,
+    rewind: null,
+    catalogSource: context.deps.modelCatalog?.captureSource?.({
+      provider: params.agent,
+      location: params.location
+    })
+  }
   const { startupAttempts } = context.runtimeState
   try {
     const attached = await performAttach({
@@ -218,6 +222,10 @@ async function runAttachUnderAbort(
       lock,
       ...(options.startupAttemptId ? { startupAttemptId: options.startupAttemptId } : {}),
       onStartupAttempt: (startup) => {
+        const record = context.deps.store.getRecord(sessionId)
+        if (record) {
+          attempt.catalogSource?.bind?.(record)
+        }
         attempt.startup = startup
         return startupAttempts.track(sessionId, startup)
       },
@@ -291,6 +299,7 @@ async function runAttachUnderAbort(
     return stampFailedCreateOwnerVerdict(context.deps.store, callerKey, params.envelope, attached)
   } finally {
     if (!attempt.committed) {
+      attempt.catalogSource?.release?.()
       attemptSink.close()
       if (attempt.startup) {
         startupAttempts.abandon(sessionId, attempt.startup.attemptId)
@@ -298,5 +307,3 @@ async function runAttachUnderAbort(
     }
   }
 }
-
-export type { StructuredAgentSessionAttachOptions } from './structured-agent-session-attach-options'

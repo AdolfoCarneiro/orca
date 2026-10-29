@@ -9,12 +9,12 @@ import {
 } from './daemon-protocol-version'
 import { emitPtyListeners, createPtyExitPayload } from './daemon-pty-listener-emission'
 import type { DaemonPtyRouterExitEvent } from './daemon-pty-router-events'
+import { logWslPaneDiagnostic } from './daemon-wsl-diagnostic-log'
 import { classifyWslBridgeExit, WSL_DISTRO_LOSS_EXIT_CODE } from './daemon-wsl-bridge-exit'
 import { isProvenProcessExit } from '../../shared/terminal-exit-cause'
 import { DaemonPtyDaemonRecovery } from './daemon-pty-daemon-recovery'
 import type { DaemonPtyAdapterOptions } from './daemon-pty-runtime-state'
 import { supportsMode2031UnsubscribeFact, type DaemonEvent } from './types'
-import type { DaemonEndpointIdentity } from './daemon-hello-protocol'
 import type { IPtyProvider } from '../providers/pty-provider-contract'
 import type { DeveloperPermissionStatus } from '../../shared/developer-permissions-types'
 import {
@@ -132,11 +132,6 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
       // Older daemons and lost host contact cannot establish a permission verdict.
     }
     return 'unknown'
-  }
-
-  /** Identity of the daemon behind this adapter; null until hello completes or after a disconnect. */
-  getDaemonIdentity(): DaemonEndpointIdentity | null {
-    return this.client.getDaemonIdentity()
   }
 
   protected setupEventRouting(): void {
@@ -268,8 +263,14 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
     )
     // Lost, or booted again since the spawn, keeps the tab; an unanswered check reads as an exit.
     // The code shows a verify run which codes a terminate yields.
-    console.info(
-      `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${Math.round(performance.now() - exitAt)}ms)`
+    const probeMs = Math.round(performance.now() - exitAt)
+    logWslPaneDiagnostic(
+      'wsl.bridge-exit',
+      {
+        console: `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${probeMs}ms)`,
+        trace: `[pty] WSL bridge exit: ${verdict} (code ${exit.code}, probe ${probeMs}ms)`
+      },
+      { verdict, code: exit.code, probeMs }
     )
     // A spawn that replaced this incarnation meanwhile owns the session now.
     const current = this.sessionIncarnations.get(sessionId)

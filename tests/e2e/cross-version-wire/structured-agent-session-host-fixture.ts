@@ -141,7 +141,7 @@ export function installableHost(
     ...hostCalls,
     // The catalog read checks the session's record for a floating chat's own folder; none here.
     deps: {
-      modelCatalog: { read: hostCalls.modelCatalog },
+      modelCatalog: { read: hostCalls.modelCatalog, demand: vi.fn(async () => {}) },
       store: {
         getRecord: hostCalls.getRecord,
         getConversation: () => null,

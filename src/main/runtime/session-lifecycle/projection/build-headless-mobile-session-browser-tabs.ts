@@ -2,6 +2,7 @@ import { windowListsTab } from '../../terminal/surface/main-terminal-surfaces'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { matchesTerminalSurfaceCapture } from '../../../../shared/terminal-tab-close'
 import { OrcaRuntimeWithTerminalSurfaceCloseCommit } from '../../session-tabs/terminal-surface-close-commit'
+import type { OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab as BrowserOwnership } from '../../session-tabs/mobile-session-publication-preservation'
 import type {
   RuntimeMobileSessionBrowserTab,
   RuntimeMobileSessionTabsResult,
@@ -12,7 +13,6 @@ import { parseAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import { getRuntimeBrowserPageRegistry } from '../../runtime-browser-page-registry'
 import { holdAgentSessionInventory } from '../../structured-agent-session-inventory-hold'
 import type { Tab } from '../../../../shared/tab-types'
-import type { RendererTerminalClose } from '../../terminal-surface-close'
 import type { TerminalPaneCloseTarget } from '../../../../shared/terminal-surface-close-target'
 import { retireTerminalSurfacesFromSnapshot } from '../../mobile-session-terminal-retirement'
 import type { PtyControllerInventory } from '../../runtime-pty-controller-contract'
@@ -27,6 +27,9 @@ type TerminalPaneRetirementOptions = Pick<
 >
 
 export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs extends OrcaRuntimeWithTerminalSurfaceCloseCommit {
+  protected abstract getRendererOwnedBrowserPageIds(
+    ...args: Parameters<BrowserOwnership['getRendererOwnedBrowserPageIds']>
+  ): ReturnType<BrowserOwnership['getRendererOwnedBrowserPageIds']>
   // Why: headless serve backs browser panes with offscreen WebContents that live
   // only in the BrowserManager, never in a renderer graph. Without surfacing them
   // as session tabs, a session.tabs snapshot (e.g. on terminal open) prunes the
@@ -35,13 +38,17 @@ export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs exten
   protected buildHeadlessMobileSessionBrowserTabs(
     worktreeId: string
   ): RuntimeMobileSessionBrowserTab[] {
+    const backend = this.offscreenBrowserBackend
+    const rendererPageIds = this.getRendererOwnedBrowserPageIds(worktreeId)
     // Saved tabs whose page starts on first use are listed as running ones are.
     const serverTabs =
-      this.offscreenBrowserBackend && this.agentBrowserBridge?.tabList
+      backend && this.agentBrowserBridge?.tabList
         ? [
-            ...this.agentBrowserBridge.tabList(worktreeId).tabs,
+            ...this.agentBrowserBridge
+              .tabList(worktreeId)
+              .tabs.filter((tab) => backend.ownsTab(tab.browserPageId)),
             ...this.serveBrowserTabs.listUnstarted(worktreeId)
-          ]
+          ].filter((tab) => !rendererPageIds.has(tab.browserPageId))
         : []
     const publishedServerTabs = serverTabs.map((tab) => {
       const persistedProps = this.getPersistedUnifiedSessionTabProps(
@@ -96,12 +103,6 @@ export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs exten
         (candidate) => candidate.id === tabId || candidate.entityId === tabId
       ) ?? null
     return tab ? { color: tab.color, isPinned: tab.isPinned } : null
-  }
-
-  /** The desktop renderer's close intent: it already guarded, removed and killed; this only reports. */
-  async closeTerminalSurfaceFromRenderer({ worktreeId, target, reason }: RendererTerminalClose) {
-    const options = { allowMissing: true, force: true, closedByLayoutOwner: true, reason }
-    await this.closeTerminalSurface(worktreeId, target, options)
   }
 
   /**

@@ -254,6 +254,11 @@ export abstract class DaemonPtyRuntimeState {
     return this.historyManager
   }
 
+  /** Identity of the daemon behind this adapter; null until hello completes or after a disconnect. */
+  getDaemonIdentity(): DaemonEndpointIdentity | null {
+    return this.client.getDaemonIdentity()
+  }
+
   getLastAuthenticatedDaemonIdentity(): DaemonEndpointIdentity | null {
     return this.lastAuthenticatedIdentity ? { ...this.lastAuthenticatedIdentity } : null
   }
