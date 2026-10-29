@@ -736,7 +736,14 @@
       "overrideDescription": "Overrides the default in General for every checkout of this repository.",
       "description": "Choose which checkouts of a Git repository count as one project.",
       "useDefault": "Use default ({{mode}})",
-      "removeHost": "Remove this project from Orca on {{host}}."
+      "removeHost": "Remove this project from Orca on {{host}}.",
+      "search": {
+        "projects": "projects",
+        "repository": "repository",
+        "checkout": "checkout",
+        "host": "host",
+        "folder": "folder"
+      }
     }
   },
   "menu": {
