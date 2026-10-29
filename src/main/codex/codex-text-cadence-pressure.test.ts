@@ -52,7 +52,7 @@ async function pressureRig(primaryThreadId?: string) {
     })
   }
   const fatal = vi.fn()
-  // SAFETY: retry reads only these session fields; translation and queue admission are real.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: retry reads only connection, ended and forceCloseUnexpected; the injected translation ignores the partial session and uses the real translator/queue.
   const session = { connection, ended: false, forceCloseUnexpected: fatal } as CodexSession
   const retries = createCodexStructuredNotificationRetry({
     sessionFor: () => session,
