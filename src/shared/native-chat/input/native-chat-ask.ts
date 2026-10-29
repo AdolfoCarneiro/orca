@@ -162,7 +162,7 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
   let pendingDepth = -1
   // Each async question stays open past its immediate result until the agent receives a message.
   let asyncQuestions: AskQuestion[] = []
-  let asyncOccurrences: [string, string | number][] = []
+  let asyncOccurrences: string[] = []
   const asyncCallIds = new Set<string>()
   for (const message of messages) {
     // New user turns/interrupts abandon unresolved calls. Decoding drops tool_use_id, so orphan results cannot match by id;
@@ -178,7 +178,7 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
         asyncCallIds.clear()
       }
     }
-    for (const [blockIndex, block] of message.blocks.entries()) {
+    for (const block of message.blocks) {
       if (block.type === 'tool-call') {
         const parsed = QUESTION_TOOL_PARSERS.has(block.name)
           ? parseAskFromToolInput(block.name, block.input)
@@ -186,8 +186,8 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
         if (parsed?.replyAsMessage) {
           if (block.callId === undefined || !asyncCallIds.has(block.callId)) {
             asyncQuestions = [...asyncQuestions, ...parsed.questions]
-            // Provider call IDs survive block reshaping; row IDs separate reused calls in later turns.
-            asyncOccurrences.push([message.id, block.callId ?? blockIndex])
+            // Canonical rows survive provider renumbering/block reshaping and distinguish later items.
+            asyncOccurrences.push(message.id)
           }
           if (block.callId !== undefined) {
             asyncCallIds.add(block.callId)

@@ -337,6 +337,7 @@ describe('Codex transcript history modes', () => {
 
     expect(extractPendingAsk(messages)).toEqual({
       replyAsMessage: true,
+      occurrenceKey: JSON.stringify(['line-0']),
       questions: [
         {
           question: 'Which color?',

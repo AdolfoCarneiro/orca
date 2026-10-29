@@ -86,17 +86,21 @@ describe('NativeChatStructuredAsyncQuestion', () => {
       )
       expect(container.textContent).not.toContain('Which color?')
       expect(send).not.toHaveBeenCalled()
-      // Settled readbacks replace row objects without creating another occurrence.
-      render([
-        {
-          ...first,
-          blocks:
-            callId === undefined
-              ? [...first.blocks]
-              : [{ type: 'text', text: 'More context' }, ...first.blocks]
-        }
-      ])
-      expect(container.textContent).not.toContain('Which color?')
+      // Same canonical row stays dismissed through renamed/removed IDs and block reshaping.
+      for (const readbackId of ['resumed-call', undefined]) {
+        render([
+          {
+            ...first,
+            blocks: [
+              { type: 'text', text: 'More context' },
+              ...first.blocks.map((block) =>
+                block.type === 'tool-call' ? { ...block, callId: readbackId } : block
+              )
+            ]
+          }
+        ])
+        expect(container.textContent).not.toContain('Which color?')
+      }
 
       const answer: NativeChatMessage = {
         id: 'delivered-answer',

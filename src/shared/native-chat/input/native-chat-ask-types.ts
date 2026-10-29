@@ -11,7 +11,7 @@ export type AskPrompt = {
   questions: AskQuestion[]
   /** The agent kept working after asking, so the answer goes back as an ordinary message. */
   replyAsMessage?: true
-  /** Transcript coordinates of the calls contributing to this async question. */
+  /** Ordered canonical transcript rows, one per contributing async call. */
   occurrenceKey?: string
 }
 

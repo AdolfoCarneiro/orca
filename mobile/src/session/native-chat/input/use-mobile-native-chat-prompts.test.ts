@@ -222,8 +222,20 @@ describe('structured async question occurrences', () => {
       TestRenderer.act(() => dismissal.dismissAsk())
       expect(dismissal!.showAsk).toBe(false)
       expect(sendWithOutcome).not.toHaveBeenCalled()
-      update([{ ...first, blocks: [...first.blocks] }])
-      expect(dismissal!.showAsk).toBe(false)
+      for (const readbackId of ['resumed-call', undefined]) {
+        update([
+          {
+            ...first,
+            blocks: [
+              { type: 'text', text: 'More context' },
+              ...first.blocks.map((block) =>
+                block.type === 'tool-call' ? { ...block, callId: readbackId } : block
+              )
+            ]
+          }
+        ])
+        expect(dismissal!.showAsk).toBe(false)
+      }
 
       const answer: NativeChatMessage = {
         id: 'answer',
