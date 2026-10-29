@@ -249,6 +249,9 @@ const WorktreeList = React.memo(function WorktreeList({
         onConfirmSuppressExternalWorktreeInbox={() => {
           void externalWorktreeCards.handleConfirmSuppressExternalWorktreeInbox()
         }}
+        onKeepExternalWorktreeInboxHidden={() => {
+          void externalWorktreeCards.handleKeepExternalWorktreeInboxHidden()
+        }}
         onOpenWorktreeVisibility={handleOpenWorktreeVisibility}
       />
       <VirtualizedWorktreeViewport

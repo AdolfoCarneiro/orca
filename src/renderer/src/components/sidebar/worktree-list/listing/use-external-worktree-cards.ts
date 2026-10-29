@@ -3,6 +3,7 @@ import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 import type { Repo } from '../../../../../../shared/repo-types'
 import {
+  keepNewExternalWorktreeInboxHidden,
   suppressNewExternalWorktreeInbox,
   type NewExternalWorktreesInboxActionState
 } from '../../new-external-worktrees-inbox-actions'
@@ -62,34 +63,48 @@ export function useSidebarExternalWorktreeCards(args: {
     setSuppressExternalWorktreeInboxRepoId(projectId)
   }, [])
 
-  const handleConfirmSuppressExternalWorktreeInbox = useCallback(async () => {
-    if (!suppressExternalWorktreeInboxRepoId) {
-      return
-    }
-    const projectId = suppressExternalWorktreeInboxRepoId
-    const repo = repos.find((candidate) => candidate.id === projectId)
-    if (!repo) {
-      setSuppressExternalWorktreeInboxRepoId(null)
-      return
-    }
-    const inboxWorktrees = newExternalWorktreesInboxByRepo.get(projectId)?.inboxWorktrees ?? []
-    const suppressed = await suppressNewExternalWorktreeInbox({
-      projectId,
-      repo,
-      worktreePaths: inboxWorktrees.map((worktree) => worktree.path),
-      updateRepo,
-      setInboxState: setNewExternalWorktreeInboxState
-    })
-    if (suppressed) {
-      setSuppressExternalWorktreeInboxRepoId(null)
-    }
-  }, [
-    newExternalWorktreesInboxByRepo,
-    repos,
-    setNewExternalWorktreeInboxState,
-    suppressExternalWorktreeInboxRepoId,
-    updateRepo
-  ])
+  const resolveExternalWorktreeInboxDismissal = useCallback(
+    async (dismiss: typeof suppressNewExternalWorktreeInbox) => {
+      if (!suppressExternalWorktreeInboxRepoId) {
+        return
+      }
+      const projectId = suppressExternalWorktreeInboxRepoId
+      const repo = repos.find((candidate) => candidate.id === projectId)
+      if (!repo) {
+        setSuppressExternalWorktreeInboxRepoId(null)
+        return
+      }
+      const inboxWorktrees = newExternalWorktreesInboxByRepo.get(projectId)?.inboxWorktrees ?? []
+      const dismissed = await dismiss({
+        projectId,
+        repo,
+        worktreePaths: inboxWorktrees.map((worktree) => worktree.path),
+        updateRepo,
+        setInboxState: setNewExternalWorktreeInboxState
+      })
+      if (dismissed) {
+        setSuppressExternalWorktreeInboxRepoId(null)
+      }
+    },
+    [
+      newExternalWorktreesInboxByRepo,
+      repos,
+      setNewExternalWorktreeInboxState,
+      suppressExternalWorktreeInboxRepoId,
+      updateRepo
+    ]
+  )
+
+  const handleConfirmSuppressExternalWorktreeInbox = useCallback(
+    () => resolveExternalWorktreeInboxDismissal(suppressNewExternalWorktreeInbox),
+    [resolveExternalWorktreeInboxDismissal]
+  )
+
+  // Baselines the current batch so only worktrees created later surface again.
+  const handleKeepExternalWorktreeInboxHidden = useCallback(
+    () => resolveExternalWorktreeInboxDismissal(keepNewExternalWorktreeInboxHidden),
+    [resolveExternalWorktreeInboxDismissal]
+  )
 
   return {
     newExternalWorktreeInboxActionState,
@@ -97,6 +112,7 @@ export function useSidebarExternalWorktreeCards(args: {
     suppressExternalWorktreeInboxRepoId,
     setSuppressExternalWorktreeInboxRepoId,
     handleOpenSuppressExternalWorktreeInbox,
-    handleConfirmSuppressExternalWorktreeInbox
+    handleConfirmSuppressExternalWorktreeInbox,
+    handleKeepExternalWorktreeInboxHidden
   }
 }

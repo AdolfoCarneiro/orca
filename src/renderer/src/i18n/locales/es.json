@@ -6501,7 +6501,9 @@
           "1f8a5d9e73": "Puedes volver a activarlo más tarde desde los ajustes del proyecto.",
           "8c0b2e7a41": "Abrir ajustes de worktrees que no son de Orca",
           "5d1c9f0a82": "Cancelar",
-          "3b7e4a1c96": "Ocultar worktrees externos"
+          "3b7e4a1c96": "Ocultar worktrees externos",
+          "0d6b8f3e5c": "Para ocultar solo los actuales y seguir viendo los worktrees que se creen más adelante, elige Mantener estos ocultos.",
+          "e5a9c27d14": "Mantener estos ocultos"
         },
         "useAddRepoHostSelection": {
           "connectionFailed": "La conexión SSH falló.",

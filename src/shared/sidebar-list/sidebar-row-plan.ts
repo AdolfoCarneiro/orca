@@ -46,7 +46,7 @@ import type {
   SidebarPRGroupReader,
   WorktreeGroupBy
 } from './row-types'
-import { orderMainWorktreeFirst } from './section-order'
+import { orderMainWorktreeFirst, getRenderedNaturalAnchorRepoIds } from './section-order'
 import { withRepoSectionDisplayLabels } from '../project-section-order'
 import { buildOrderedGroups } from './worktree-grouping'
 
@@ -195,13 +195,26 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
       projectIndex,
       hostLabelById
     )
+    const renderedNaturalAnchorRepoIds = getRenderedNaturalAnchorRepoIds({
+      groupBy,
+      worktrees: naturalWorktrees,
+      repoMap,
+      prGroupOf,
+      collapsedGroups,
+      workspaceStatuses,
+      projectGrouping
+    })
     emitPinnedGroup(
       pinnedSectionWorktrees,
       repoOf,
       defaultHostId,
       collapsedGroups,
+      renderedNaturalAnchorRepoIds,
+      newExternalWorktreesInboxByRepo,
+      groupBy !== 'repo',
       result,
       occurrencePlan,
+      noticeHostContextLabelByRepoId,
       mixedWorktreeHostContextLabels
     )
     if (groupBy === 'none') {
