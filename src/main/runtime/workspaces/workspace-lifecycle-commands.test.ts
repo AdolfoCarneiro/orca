@@ -43,6 +43,22 @@ const removal = {
 }
 
 describe('workspace lifecycle commands', () => {
+  it.each([undefined, false, true])(
+    'forwards branch intent %s without changing legacy omission',
+    async (deleteBranch) => {
+      const requested = { ...removal, ...(deleteBranch !== undefined ? { deleteBranch } : {}) }
+      await queueWorkspaceDelete(
+        runtime(new WorkspaceLifecycleQueue()),
+        'feature',
+        'local',
+        requested,
+        async (forwarded) => {
+          expect(forwarded).toEqual({ ...requested, hostId: 'local' })
+        }
+      )
+    }
+  )
+
   it('runs directly in a build with no queue', async () => {
     let ran = false
     const reply = await queueTerminalWorkspaceCommand(runtime(null), 'id:repo-local::/a', {

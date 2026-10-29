@@ -177,50 +177,58 @@ describe('durable worktree removal records', () => {
     expect(job.publish).toHaveBeenCalledTimes(1)
   })
 
-  it('marks the row as removing after a restart and finishes it with the same job', async () => {
-    const job = interruptedJob()
-    void startBackgroundWorktreeRemoval({ removal, ...job })
-    await vi.waitFor(() => expect(job.started()).toBe(true))
-    stopBackgroundWorktreeRemovals()
-    await _settlePendingWorktreeRemovalsForTests()
+  it.each([false, true])(
+    'resumes the accepted branch choice %s after restart',
+    async (deleteBranch) => {
+      const job = interruptedJob()
+      void startBackgroundWorktreeRemoval({ removal: { ...removal, deleteBranch }, ...job })
+      await vi.waitFor(() => expect(job.started()).toBe(true))
+      stopBackgroundWorktreeRemovals()
+      await _settlePendingWorktreeRemovalsForTests()
 
-    _resetPendingWorktreeRemovalsForTests()
-    expect(isPending()).toBe(false)
-    await loadWorktreeRemovalRecords(directory)
-    const joined = waitForPendingWorktreeRemoval(removal.worktreeId)
-    const rows: { id: string; hostId?: undefined }[] = [
-      { id: removal.worktreeId },
-      { id: 'repo-1::/work/other' }
-    ]
-    expect(
-      projectPendingWorktreeRemovals(rows, (row) => row.id, true, snapshotPendingWorktreeRemovals())
-    ).toEqual([{ id: removal.worktreeId, removing: true }, { id: 'repo-1::/work/other' }])
-    expect(
-      projectPendingWorktreeRemovals(
-        rows,
-        (row) => row.id,
-        false,
-        snapshotPendingWorktreeRemovals()
-      )
-    ).toEqual([{ id: 'repo-1::/work/other' }])
+      _resetPendingWorktreeRemovalsForTests()
+      expect(isPending()).toBe(false)
+      await loadWorktreeRemovalRecords(directory)
+      const joined = waitForPendingWorktreeRemoval(removal.worktreeId)
+      const rows: { id: string; hostId?: undefined }[] = [
+        { id: removal.worktreeId },
+        { id: 'repo-1::/work/other' }
+      ]
+      expect(
+        projectPendingWorktreeRemovals(
+          rows,
+          (row) => row.id,
+          true,
+          snapshotPendingWorktreeRemovals()
+        )
+      ).toEqual([{ id: removal.worktreeId, removing: true }, { id: 'repo-1::/work/other' }])
+      expect(
+        projectPendingWorktreeRemovals(
+          rows,
+          (row) => row.id,
+          false,
+          snapshotPendingWorktreeRemovals()
+        )
+      ).toEqual([{ id: 'repo-1::/work/other' }])
 
-    const publish = vi.fn()
-    const resumed: string[] = []
-    resumeInterruptedWorktreeRemovals((record) => ({
-      run: async () => {
-        resumed.push(`${record.worktreePath} ${record.branch} ${record.deleteBranch}`)
-        return {}
-      },
-      publish
-    }))
-    await _settlePendingWorktreeRemovalsForTests()
+      const publish = vi.fn()
+      const resumed: string[] = []
+      resumeInterruptedWorktreeRemovals((record) => ({
+        run: async () => {
+          resumed.push(`${record.worktreePath} ${record.branch} ${record.deleteBranch}`)
+          return {}
+        },
+        publish
+      }))
+      await _settlePendingWorktreeRemovalsForTests()
 
-    expect(resumed).toEqual(['/work/feature feature true'])
-    expect(isPending()).toBe(false)
-    expect(await readWorktreeRemovalRecords(directory)).toEqual([])
-    await expect(joined).resolves.toEqual({})
-    expect(publish).toHaveBeenCalledTimes(1)
-  })
+      expect(resumed).toEqual([`/work/feature feature ${deleteBranch}`])
+      expect(isPending()).toBe(false)
+      expect(await readWorktreeRemovalRecords(directory)).toEqual([])
+      await expect(joined).resolves.toEqual({})
+      expect(publish).toHaveBeenCalledTimes(1)
+    }
+  )
 
   it('does not start a second job for a removal that is still running', async () => {
     void startBackgroundWorktreeRemoval({ removal, ...interruptedJob() })

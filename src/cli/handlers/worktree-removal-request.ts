@@ -1,4 +1,5 @@
-import type { RuntimeWorktreeRemoveResult } from '../../shared/runtime-types'
+import { WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY } from '../../shared/worktree-runtime-capabilities'
+import type { RuntimeStatus, RuntimeWorktreeRemoveResult } from '../../shared/runtime-types'
 import { worktreeRemovalReplyTimeoutMs } from '../../shared/worktree/archive-hook-removal-gate'
 import { RuntimeClientError, type RuntimeClient, type RuntimeRpcSuccess } from '../runtime-client'
 
@@ -6,6 +7,7 @@ export type WorktreeRemovalRequest = {
   worktree: string
   hostId: string
   force: boolean
+  deleteBranch: boolean
   runHooks: boolean
   allowFailedArchiveHook: boolean
 }
@@ -15,6 +17,13 @@ export async function requestWorktreeRemoval(
   client: RuntimeClient,
   request: WorktreeRemovalRequest
 ): Promise<RuntimeRpcSuccess<RuntimeWorktreeRemoveResult>> {
+  const status = await client.call<RuntimeStatus>('status.get')
+  if (!status.result.capabilities?.includes(WORKTREE_REMOVE_BRANCH_POLICY_RUNTIME_CAPABILITY)) {
+    throw new RuntimeClientError(
+      'incompatible_runtime',
+      'This Orca host cannot honor the requested branch choice. Update Orca on the execution host before removing this worktree.'
+    )
+  }
   try {
     return await client.call<RuntimeWorktreeRemoveResult>(
       'worktree.rm',
