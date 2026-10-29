@@ -10,7 +10,7 @@ import { nodeRuntimePool } from './scripts/vitest-node-runtime-pool'
 import { readRunFilters } from './scripts/vitest-run-filters.mjs'
 import { createWorkspaceSourceResolver } from './scripts/workspace-source-exports.mjs'
 import { moduleCacheResolutionKey } from './scripts/vitest-module-cache-resolution-key'
-import { localeCatalogTestAssets } from './scripts/locale-catalog-test-assets'
+import { rendererTestAssets } from './scripts/renderer-test-assets'
 
 const nodeRuntimeInclude = process.versions.bun
   ? getNodeRuntimeInclude({ filters: readRunFilters() })
@@ -62,7 +62,7 @@ const transforms = {
       }
     } satisfies Plugin,
     ...(moduleCachePath ? [moduleCacheResolutionKey()] : []),
-    localeCatalogTestAssets()
+    rendererTestAssets()
   ],
   define: {
     ORCA_FEATURE_WALL_ENABLED: 'true',

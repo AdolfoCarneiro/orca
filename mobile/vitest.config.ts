@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
-import { localeCatalogTestAssets } from '../config/scripts/locale-catalog-test-assets'
+import { rendererTestAssets } from '../config/scripts/renderer-test-assets'
 
 const vitestOxcConfig = { tsconfig: false } as never
 
@@ -8,7 +8,14 @@ export default defineConfig({
   root: import.meta.dirname,
   // Tests are excluded from the app tsconfig; disable that config for OXC so test modules still transform.
   oxc: vitestOxcConfig,
-  plugins: [localeCatalogTestAssets()],
+  plugins: [
+    rendererTestAssets(
+      ['claude', 'opencode', 'gremlin'].map((name) => ({
+        url: new URL(`../resources/${name}.webp`, import.meta.url),
+        contentType: 'image/webp'
+      }))
+    )
+  ],
   resolve: {
     // A faithful Node stand-in for the native module, rather than a mock in every test that reaches it.
     alias: {
