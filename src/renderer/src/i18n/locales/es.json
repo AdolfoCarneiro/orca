@@ -351,7 +351,13 @@
       "permissionOverrideMore_one": "y {{count}} más",
       "permissionOverrideMore_other": "y {{count}} más",
       "permissionOverridesUse": "Usar {{mode}}",
-      "approveForMe": "aprobar por mí"
+      "approveForMe": "aprobar por mí",
+      "codexHistorySharing": {
+        "title": "Compartir el historial de Codex entre cuentas",
+        "description": "Permite que cada cuenta de Codex, y tu propio ~/.codex, reanude conversaciones iniciadas en las demás. Desactívalo para mantener separado el historial de cada cuenta. Desactivarlo no elimina nada de lo que ya se compartió.",
+        "unsupported": "Actualiza Orca en {{host}} para cambiar este ajuste allí.",
+        "updateFailed": "No se pudo actualizar el ajuste en {{host}}."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "enlace simbólico",

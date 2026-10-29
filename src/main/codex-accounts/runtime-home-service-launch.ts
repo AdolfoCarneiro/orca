@@ -1,6 +1,9 @@
 import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source-home'
 import { startSystemCodexSessionBridgeInBackground } from '../codex/codex-session-bridge'
+import { startCodexAccountSessionBridgeInBackground } from '../codex/codex-account-session-bridge'
+import { isCodexHistorySharedAcrossAccounts } from './codex-history-sharing'
 import {
+  getSystemCodexHomePath,
   resolveOrcaManagedCodexHomePath,
   syncSystemCodexResourcesIntoManagedHome
 } from '../codex/codex-home-paths'
@@ -66,11 +69,29 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
     syncSystemCodexResourcesIntoManagedHome()
     syncSystemConfigIntoManagedCodexHome()
     // Keep large history scans off the launch path.
-    void startSystemCodexSessionBridgeInBackground(
-      {},
-      resolveHostCodexSessionSourceHome(this.store.getSettings())
-    )
+    if (isCodexHistorySharedAcrossAccounts(this.store.getSettings())) {
+      void startSystemCodexSessionBridgeInBackground(
+        {},
+        resolveHostCodexSessionSourceHome(this.store.getSettings())
+      )
+    }
     return this.getRuntimeHomePath()
+  }
+
+  // Real-home launches see managed-account history too, or switching back to system default hides it (#25000).
+  private startSystemDefaultSessionBridgeForLaunch(): void {
+    const sourceCodexHomePaths = this.getManagedHostAccountHomesForSessionDiscovery()
+    if (
+      sourceCodexHomePaths.length === 0 ||
+      !isCodexHistorySharedAcrossAccounts(this.store.getSettings())
+    ) {
+      return
+    }
+    void startCodexAccountSessionBridgeInBackground({
+      targetCodexHomePath:
+        resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath(),
+      sourceCodexHomePaths
+    })
   }
 
   /** Resolve the launch home without side effects for catalog reads; null means real ~/.codex. */

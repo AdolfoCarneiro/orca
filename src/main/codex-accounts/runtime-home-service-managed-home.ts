@@ -8,6 +8,7 @@ import {
 } from '../codex/codex-home-paths'
 import { syncSystemConfigIntoManagedCodexHome } from '../codex/codex-config-mirror'
 import { startCodexAccountSessionBridgeInBackground } from '../codex/codex-account-session-bridge'
+import { isCodexHistorySharedAcrossAccounts } from './codex-history-sharing'
 import {
   resolveHostCodexSessionSourceHome,
   resolveWslCodexSessionSourceHome
@@ -135,6 +136,9 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
 
   // Bridge history in the background: /resume only sees launch-home rollouts, and scans can be large.
   protected startSelfContainedSessionBridgeForLaunch(perAccountHome: string): void {
+    if (!isCodexHistorySharedAcrossAccounts(this.store.getSettings())) {
+      return
+    }
     void startCodexAccountSessionBridgeInBackground({
       targetCodexHomePath: perAccountHome,
       sourceCodexHomePaths: this.getSelfContainedSessionBridgeSourceHomes()
@@ -149,19 +153,6 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
       resolveOrcaManagedCodexHomePath(),
       ...this.getManagedHostAccountHomesForSessionDiscovery()
     ]
-  }
-
-  // Real-home launches see managed-account history too, or switching back to system default hides it (#25000).
-  protected startSystemDefaultSessionBridgeForLaunch(): void {
-    const sourceCodexHomePaths = this.getManagedHostAccountHomesForSessionDiscovery()
-    if (sourceCodexHomePaths.length === 0) {
-      return
-    }
-    void startCodexAccountSessionBridgeInBackground({
-      targetCodexHomePath:
-        resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath(),
-      sourceCodexHomePaths
-    })
   }
 
   // Per-account homes own auth refreshes in place; selection needs no shared-mirror read-back.
@@ -263,7 +254,11 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
     target: CodexAccountSelectionTarget,
     runtimeHomePath: string | null
   ): void {
-    if (process.platform !== 'win32' || !runtimeHomePath) {
+    if (
+      process.platform !== 'win32' ||
+      !runtimeHomePath ||
+      !isCodexHistorySharedAcrossAccounts(this.store.getSettings())
+    ) {
       return
     }
     const runtimeHomeWsl = parseWslUncPath(runtimeHomePath)

@@ -627,7 +627,13 @@
       "permissionOverrideMore_one": "ve {{count}} ajan daha",
       "permissionOverrideMore_other": "ve {{count}} ajan daha",
       "permissionOverridesUse": "{{mode}} ayarını kullan",
-      "approveForMe": "benim için onayla"
+      "approveForMe": "benim için onayla",
+      "codexHistorySharing": {
+        "title": "Codex geçmişini hesaplar arasında paylaş",
+        "description": "Her Codex hesabının ve kendi ~/.codex dizininin, diğerlerinde başlatılan konuşmaları sürdürmesine izin verir. Her hesabın geçmişini ayrı tutmak için kapatın. Kapatmak, zaten paylaşılmış hiçbir şeyi kaldırmaz.",
+        "unsupported": "Bu ayarı orada değiştirmek için {{host}} üzerindeki Orca'yı güncelleyin.",
+        "updateFailed": "{{host}} üzerindeki ayar güncellenemedi."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "sembolik bağlantı",
