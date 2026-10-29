@@ -315,7 +315,16 @@ vi.mock('../../wsl/wsl-unc-access-gate', async (importOriginal) => {
         }
         return access()
       }
-    )
+    ),
+    assertWslUncPathRunning: vi.fn(async (path: string, wslDistro?: string | null) => {
+      const blocked = await blockedWslDistroForPath(path, wslDistro)
+      if (blocked?.state === 'stopped') {
+        throw new actual.WslDistroStoppedError(blocked.distro)
+      }
+      if (blocked) {
+        throw new actual.WslDistroUnverifiableError(blocked.distro)
+      }
+    })
   }
 })
 

@@ -9,6 +9,11 @@ import {
   getFolderWorkspacePathStatus,
   inferFolderWorkspacePathConnection
 } from '../../project-groups/folder-workspace-path-status'
+import {
+  assertWslUncPathRunning,
+  runAsWslUserAct,
+  wslDistroForPath
+} from '../../wsl/wsl-unc-access-gate'
 import type { TerminalWorkspaceLaunchScope } from '../runtime-legacy-worker-terminal-recovery-types'
 import { folderWorkspaceKey, parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { ResolvedWorktree } from '../runtime-worktree-path-identity'
@@ -117,8 +122,10 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     return connection.kind === 'ssh' ? connection.connectionId : null
   }
 
+  /** `wslUserAct`: the user's start, so its folder check may start a stopped WSL distro (E9). */
   protected async resolveFolderWorkspaceLaunchScope(
-    selector: string
+    selector: string,
+    options: { wslUserAct?: boolean } = {}
   ): Promise<(TerminalWorkspaceLaunchScope & { folderWorkspace: FolderWorkspace }) | null> {
     const workspace = this.resolveFolderWorkspaceSelector(selector)
     if (!workspace) {
@@ -127,11 +134,21 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     if (!this.store) {
       throw new Error('runtime_unavailable')
     }
-    const status = await getFolderWorkspacePathStatus(this.store, {
-      scope: 'folder-workspace',
-      folderWorkspaceId: workspace.id
-    })
-    assertFolderWorkspacePathUsable(status)
+    const store = this.store
+    const readStatus = () =>
+      getFolderWorkspacePathStatus(store, {
+        scope: 'folder-workspace',
+        folderWorkspaceId: workspace.id
+      })
+    if (options.wslUserAct) {
+      assertFolderWorkspacePathUsable(
+        await runAsWslUserAct(wslDistroForPath(workspace.folderPath), readStatus)
+      )
+    } else {
+      // Background work names the stopped distro rather than a vague "folder unavailable".
+      await assertWslUncPathRunning(workspace.folderPath)
+      assertFolderWorkspacePathUsable(await readStatus())
+    }
     return {
       id: folderWorkspaceKey(workspace.id),
       path: workspace.folderPath,
