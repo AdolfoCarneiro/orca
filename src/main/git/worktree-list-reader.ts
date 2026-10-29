@@ -22,6 +22,7 @@ import {
   translateWorktreePath
 } from './worktree-path-comparison'
 import { gitExecFileAsync } from './runner'
+import { readCheckedOutBranchRefResult } from './checked-out-branch-ref'
 
 const PRUNABLE_EXISTENCE_PROBE_CONCURRENCY = 8
 
@@ -136,15 +137,11 @@ export async function readCheckedOutBranchRef(
   worktreePath: string,
   options: GitWorktreeExecOptions = {}
 ): Promise<string | undefined> {
-  try {
-    const { stdout } = await gitExecFileAsync(
-      ['symbolic-ref', '--quiet', 'HEAD'],
-      gitExecOptions(worktreePath, options)
-    )
-    return stdout.trim() || undefined
-  } catch {
-    return undefined
-  }
+  const branch = await readCheckedOutBranchRefResult(
+    worktreePath,
+    gitExecOptions(worktreePath, options)
+  )
+  return branch.kind === 'symbolic' ? branch.stdout.trim() || undefined : undefined
 }
 
 export async function readWorktreeHeadOid(

@@ -60,11 +60,17 @@ function pruneRemoteNameListingCache(now: number): void {
 function listingGitConfigContext(
   repoPath: string,
   localGitOptions: RemoteNameListingGitOptions = {}
-): { repoPath: string; connectionId: null; wslDistro?: string } {
+): {
+  repoPath: string
+  connectionId: null
+  wslDistro?: string
+  admissionTier?: GitAdmissionTier
+} {
   return {
     repoPath,
     connectionId: null,
-    ...(localGitOptions.wslDistro ? { wslDistro: localGitOptions.wslDistro } : {})
+    ...(localGitOptions.wslDistro ? { wslDistro: localGitOptions.wslDistro } : {}),
+    ...(localGitOptions.admissionTier ? { admissionTier: localGitOptions.admissionTier } : {})
   }
 }
 

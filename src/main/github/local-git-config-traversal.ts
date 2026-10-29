@@ -5,7 +5,12 @@ const LEGACY_CONFIG_PATH_MODE = 2
 const ALL_CONFIG_PATH_MODES = LITERAL_CONFIG_PATH_MODE | LEGACY_CONFIG_PATH_MODE
 
 export type IncludedGitConfigPath = { current: string; legacy?: string }
-export type LocalGitConfigNode = { signature: string; includedPaths: IncludedGitConfigPath[] }
+export type LocalGitConfigNode = {
+  signature: string
+  includedPaths: IncludedGitConfigPath[]
+  hasConditionalIncludes: boolean
+}
+type LocalGitConfigGraph = { signatures: string[]; hasConditionalIncludes: boolean }
 
 type LocalGitConfigRead = {
   configPath: string
@@ -19,7 +24,7 @@ export function readLocalGitConfigSignatures(
   configPaths: string[],
   deadlineAt: number,
   readNode: (configPath: string, isActive: () => boolean) => Promise<LocalGitConfigNode>
-): Promise<string[] | undefined> {
+): Promise<LocalGitConfigGraph | undefined> {
   const pending: LocalGitConfigRead[] = configPaths
     .map((configPath) => ({
       configPath,
@@ -30,6 +35,7 @@ export function readLocalGitConfigSignatures(
     }))
     .toReversed()
   const signatures: string[] = []
+  let hasConditionalIncludes = false
   let active = 0
   let declined = false
   const isActive = (): boolean => !declined && Date.now() < deadlineAt
@@ -69,6 +75,7 @@ export function readLocalGitConfigSignatures(
               decline()
               return
             }
+            hasConditionalIncludes ||= node.hasConditionalIncludes
             if (previousModes === 0) {
               signatures.push(node.signature)
             }
@@ -101,7 +108,7 @@ export function readLocalGitConfigSignatures(
           })
       }
       if (active === 0 && (declined || pending.length === 0)) {
-        settle(declined ? undefined : signatures)
+        settle(declined ? undefined : { signatures, hasConditionalIncludes })
       }
     }
     drain()

@@ -3,15 +3,8 @@ import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { runCoalescedProbe, type CoalescedProbes } from '../git/coalesced-probe'
 import type { GitHubRepoContext } from './github-repository-identity'
-import { resolveLocalGitConfigPaths } from './local-git-config-paths'
-import {
-  readLocalGitConfigSignatures,
-  type IncludedGitConfigPath,
-  type LocalGitConfigNode
-} from './local-git-config-traversal'
-
-// A dead mount can stall stat before the bounded Git probe; missing signatures use shorter cache lifetimes.
-const CONFIG_SIGNATURE_DEADLINE_MS = 2_000
+import { CONFIG_SIGNATURE_DEADLINE_MS, readLocalGitConfigScan } from './local-git-config-scan'
+import type { IncludedGitConfigPath, LocalGitConfigNode } from './local-git-config-traversal'
 
 const localGitConfigSignatureInFlight: CoalescedProbes<string | undefined> = new Map()
 
@@ -25,7 +18,7 @@ export async function readLocalGitConfigSignature(
   // Keep timed-out reads shared while their started filesystem work settles.
   return withConfigSignatureDeadline(
     runCoalescedProbe(localGitConfigSignatureInFlight, context.repoPath, () =>
-      readUncachedLocalGitConfigSignature(context.repoPath)
+      readLocalGitConfigScan(context, readLocalGitConfigNode)
     )
   )
 }
@@ -55,36 +48,21 @@ export function __resetLocalGitConfigSignatureCacheForTests(): void {
   localGitConfigSignatureInFlight.clear()
 }
 
-async function readUncachedLocalGitConfigSignature(repoPath: string): Promise<string | undefined> {
-  const deadlineAt = Date.now() + CONFIG_SIGNATURE_DEADLINE_MS
-  const configPaths = await resolveLocalGitConfigPaths(repoPath)
-  if (!configPaths) {
-    return undefined
-  }
-  const signatures = await readLocalGitConfigSignatures(
-    [configPaths.commonConfigPath, configPaths.worktreeConfigPath],
-    deadlineAt,
-    readLocalGitConfigNode
-  )
-  return signatures?.sort().join('\0')
-}
-
 async function readLocalGitConfigNode(
   configPath: string,
   isActive: () => boolean = () => true
 ): Promise<LocalGitConfigNode> {
   const signature = await readConfigPathSignature(configPath)
   if (!isActive()) {
-    return { signature, includedPaths: [] }
+    return { signature, includedPaths: [], hasConditionalIncludes: false }
   }
   try {
     const configText = await readFile(configPath, 'utf8')
-    return {
-      signature,
-      includedPaths: isActive() ? parseIncludedConfigPaths(configText, dirname(configPath)) : []
-    }
+    return isActive()
+      ? { signature, ...parseIncludedConfigPaths(configText, dirname(configPath)) }
+      : { signature, includedPaths: [], hasConditionalIncludes: false }
   } catch {
-    return { signature, includedPaths: [] }
+    return { signature, includedPaths: [], hasConditionalIncludes: false }
   }
 }
 
@@ -97,9 +75,14 @@ async function readConfigPathSignature(configPath: string): Promise<string> {
   }
 }
 
-function parseIncludedConfigPaths(configText: string, baseDir: string): IncludedGitConfigPath[] {
+function parseIncludedConfigPaths(
+  configText: string,
+  baseDir: string
+): { includedPaths: IncludedGitConfigPath[]; hasConditionalIncludes: boolean } {
   const includedPaths: IncludedGitConfigPath[] = []
   let inIncludeSection = false
+  let inConditionalIncludeSection = false
+  let hasConditionalIncludes = false
   const lines = configText.split(/\r?\n/).values()
   for (const rawLine of lines) {
     const line = rawLine.trimStart()
@@ -115,6 +98,7 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): Included
       inIncludeSection =
         (section.name === 'include' && !section.hasSubsection) ||
         (section.name === 'includeif' && section.hasSubsection)
+      inConditionalIncludeSection = section.name === 'includeif' && section.hasSubsection
       offset = section.end
       while (line[offset] === ' ' || line[offset] === '\t') {
         offset += 1
@@ -126,6 +110,7 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): Included
     }
     const value = parseConfigValue(assignment[2], lines)
     if (inIncludeSection && assignment[1].toLowerCase() === 'path' && value) {
+      hasConditionalIncludes ||= inConditionalIncludeSection
       const current = resolveIncludedConfigPath(value.value, baseDir)
       const legacy =
         value.legacyValue === undefined
@@ -136,7 +121,7 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): Included
       )
     }
   }
-  return includedPaths
+  return { includedPaths, hasConditionalIncludes }
 }
 
 function parseConfigSectionHeader(
