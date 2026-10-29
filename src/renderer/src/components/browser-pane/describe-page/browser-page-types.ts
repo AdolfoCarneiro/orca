@@ -113,25 +113,3 @@ export type ClientHostedBrowserPagePaneProps = {
   onUpdatePageState: (tabId: string, updates: BrowserTabPageState) => void
   onSetUrl: BrowserPageUrlSetter
 }
-
-export type BrowserPageGrabAnnotations = {
-  grabIntent: GrabIntent
-  startGrabIntent: (nextIntent: GrabIntent) => void
-  pendingAnnotationPayload: BrowserGrabPayload | null
-  setPendingAnnotationPayload: Dispatch<SetStateAction<BrowserGrabPayload | null>>
-  grabToast: BrowserPageGrabToastState | null
-  setGrabToast: Dispatch<SetStateAction<BrowserPageGrabToastState | null>>
-  grabToastTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | undefined>
-  dismissGrabToast: () => void
-  handleGrabCopy: () => void
-  handleGrabCopyScreenshot: () => void
-  grabMenuActionTakenRef: MutableRefObject<boolean>
-  handleAddBrowserAnnotation: (
-    comment: string,
-    intent: BrowserAnnotationIntent,
-    imagePaths?: string[]
-  ) => void
-  handleCancelPendingBrowserAnnotation: () => void
-  cancelPendingBrowserCapture: () => void
-  handleGrabActionShortcut: (key: 'c' | 's') => void
-}
