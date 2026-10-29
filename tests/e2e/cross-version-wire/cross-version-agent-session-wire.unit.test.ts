@@ -61,7 +61,7 @@ import {
   type RpcClientIdentity,
   type RpcReply
 } from './versioned-agent-session-wire'
-import { openTestJournalHostDatabase } from '../../../src/main/native-chat/agent-session-journal/journal-host-database-test-support'
+import * as journalHostDatabase from '../../../src/main/native-chat/agent-session-journal/journal-host-database-test-support'
 import { createStructuredAgentSessionLogger } from '../../../src/main/native-chat/agent-session-wire/structured-agent-session-logger'
 import { codexProviderHandle } from '../../../src/shared/agent-session-provider-handle-encoding'
 import { NO_STRUCTURED_AGENTS } from '../../../src/main/native-chat/agent-session-wire/structured-agent-session-adapter-router-test-support'
@@ -485,7 +485,7 @@ describe('cross-version structured agent sessions', () => {
           spawnToken: 'spawn-vault',
           host: () => host
         }),
-        journalDatabase: openTestJournalHostDatabase(root),
+        journalDatabase: journalHostDatabase.openTestJournalHostDatabase(root),
         claimKeyId: 'key-1',
         mintSpawnToken: () => 'spawn-vault',
         now: () => NOW
@@ -531,6 +531,7 @@ describe('cross-version structured agent sessions', () => {
 
     afterEach(async () => {
       setStructuredAgentSessionHost(null)
+      await journalHostDatabase.closeTestJournalHostDatabase(root)
       await rm(root, { recursive: true, force: true })
     })
 
@@ -716,7 +717,7 @@ describe('cross-version structured agent sessions', () => {
         logger: createStructuredAgentSessionLogger(),
         store,
         adapter: adapter(() => host),
-        journalDatabase: openTestJournalHostDatabase(root),
+        journalDatabase: journalHostDatabase.openTestJournalHostDatabase(root),
         claimKeyId: 'key-1',
         mintSpawnToken: () => `spawn-${generation}`,
         // The provider died with the host that spawned it, which is what makes
@@ -789,6 +790,7 @@ describe('cross-version structured agent sessions', () => {
 
     afterEach(async () => {
       setStructuredAgentSessionHost(null)
+      await journalHostDatabase.closeTestJournalHostDatabase(root)
       await rm(root, { recursive: true, force: true })
     })
 
