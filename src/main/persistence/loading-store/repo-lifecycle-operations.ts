@@ -18,6 +18,7 @@ import { RepoOrderPersistenceOperations } from '../tracking-repos/repo-order-ope
 import { pruneWorktreeStateForRepo as pruneWorktreeStateForRepoOperation } from '../tracking-repos/repo-worktree-pruning'
 import { collectDeregisteredRepoIds } from '../tracking-repos/deregistered-repo-residue'
 import { retireLocalWorktreeMetadataPruneStateForRepo } from '../../local-worktree-metadata-prune-gate'
+import { releaseWslStoppedWorktreeRescan } from '../../wsl-stopped-worktree-rescan-registry'
 import { hydrateRepo as hydrateRepoOperation } from '../tracking-repos/repo-hydration'
 import { RepoUpdatePersistenceOperations } from '../tracking-repos/repo-update-operations'
 import { ProjectHostSetupPersistenceOperations } from '../tracking-repos/project-host-setup-update'
@@ -29,10 +30,14 @@ import {
 import type { StoreRuntimeState } from './store-runtime-state'
 import type { WriteSchedulingOperations } from './write-scheduling'
 import { scheduleSave } from './write-scheduling'
-import { pruneDeregisteredRepoUiResidue } from './repo-lifecycle-ui-residue'
+import {
+  pruneDeregisteredRepoUiResidue,
+  retireRemovedProjectGroupingState
+} from './repo-lifecycle-ui-residue'
 import { isWslMoveProjectSessionFrozen } from '../moving-wsl-projects/wsl-move-scope-guard'
 import { dropOrcadTerminalRestoreHintsForWorktrees } from '../migrating-orcad-catalog/orcad-terminal-restore-hint-store'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
+import { applyNewWindowsDriveProjectDefault } from '../../wsl/wsl-drive-project-new-default'
 
 // A paused WSL move keeps its local rows for a downgrade.
 function removeLocalRepoSession(
@@ -69,6 +74,10 @@ export class RepoLifecycleOperations {
   addRepo(repo: Repo): void {
     bumpLocalWorktreeScanGeneration(repo.id)
     getRepoOrderOperations(this).addRepo(repo)
+    const context = this[repoLifecycleOperationsContext]
+    if (applyNewWindowsDriveProjectDefault(context.runtime.state, repo)) {
+      scheduleSave(context.scheduling)
+    }
   }
 
   reorderRepos(orderedIds: string[]): boolean {
@@ -105,22 +114,13 @@ export class RepoLifecycleOperations {
     )
     if (!idStillPresent) {
       retireLocalWorktreeScanGeneration(id)
+      releaseWslStoppedWorktreeRescan(id)
       dropRepoRestoreHints(this, id)
       delete this[repoLifecycleOperationsContext].runtime.state.sparsePresetsByRepo[id]
       delete this[repoLifecycleOperationsContext].runtime.state.retiredWorktreeNamesByRepo?.[id]
     }
     syncProjectHostSetupCompatibilityState(this)
-    for (const projectId of removedProjectIds) {
-      if (!state.projects?.some((project) => project.id === projectId)) {
-        delete state.settings.projectGroupingOverrides?.[projectId]
-        if (state.ui?.collapsedGroups) {
-          state.ui.collapsedGroups = state.ui.collapsedGroups.filter(
-            (key) =>
-              key !== `project:${projectId}` && !key.startsWith(`project:${projectId}::host:`)
-          )
-        }
-      }
-    }
+    retireRemovedProjectGroupingState(state, removedProjectIds)
     // Paired repos may be absent locally while same-ID rows remain on another host; prune only this host.
     const pairedHost = parseExecutionHostId(hostId)?.kind === 'runtime'
     pruneWorktreeStateForRepo(this, id, idStillPresent || pairedHost ? hostId : null)
@@ -156,6 +156,7 @@ export class RepoLifecycleOperations {
     }
     for (const repoId of orphanRepoIds) {
       retireLocalWorktreeScanGeneration(repoId)
+      releaseWslStoppedWorktreeRescan(repoId)
       dropRepoRestoreHints(this, repoId)
       pruneWorktreeStateForRepo(this, repoId, null)
       state.workspaceSession = removeLocalRepoSession(state.workspaceSession, repoId)

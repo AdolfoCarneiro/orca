@@ -7,7 +7,9 @@ import type { TerminalLiveInputSender } from './terminal-live-input-sender'
 import { writeTerminalLiveInputText } from './terminal-live-input-text-write'
 import { normalizeTerminalTextInput } from './terminal-text-input-normalization'
 import { useTerminalLivePendingInputFlush } from './use-terminal-live-pending-input-flush'
+import type { TerminalLiveInputFailure } from './terminal-live-pending-flush-state'
 import {
+  readLiveInputSelection,
   useTerminalLiveAccessoryInputCommit,
   type TerminalLiveAccessoryInputCommitResult
 } from './use-terminal-live-accessory-input-commit'
@@ -35,6 +37,8 @@ type TerminalLiveInputCommitOptions<TTabType extends string> = {
   readonly activeHandleRef: RefObject<string | null>
   readonly activeSessionTabType: TTabType | null | undefined
   readonly activeSessionTabTypeRef: RefObject<TTabType | null>
+  readonly framesLivePaste?: (handle: string) => boolean
+  readonly onSendFailure?: (failure: TerminalLiveInputFailure) => void
   readonly connected: boolean
   readonly liveInputRef: RefObject<TextInput | null>
   readonly liveInputTerminalHandles: ReadonlySet<string>
@@ -61,6 +65,8 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   activeHandleRef,
   activeSessionTabType,
   activeSessionTabTypeRef,
+  framesLivePaste,
+  onSendFailure,
   connected,
   liveInputRef,
   liveInputTerminalHandles,
@@ -86,6 +92,13 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   const advanceLiveInputInteractionGeneration = useCallback(() => {
     liveInputInteractionGenerationRef.current += 1
   }, [])
+  // Drop the cleared field's late native echo of whatever session just ended.
+  const recordEndedSession = useCallback((handle: string) => {
+    const fieldText = liveInputTextRef.current
+    if (fieldText.length > 0) {
+      endedSessionTextRef.current = { handle, text: fieldText, at: Date.now() }
+    }
+  }, [])
   const {
     applyLiveInputMirror,
     clearPendingLiveInputCommit,
@@ -100,8 +113,11 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   } = useTerminalLivePendingInputFlush({
     activeHandleRef,
     activeSessionTabTypeRef,
+    framesLivePaste,
     liveInputRef,
     liveInputTerminalHandlesRef,
+    onFieldSessionEnded: recordEndedSession,
+    onSendFailure,
     sendLiveTerminalInputRef,
     setLiveInputCapture: updateLiveInputCapture
   })
@@ -155,12 +171,10 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
   const endFieldSessionThenSend = useCallback(
     (handle: string, bytes: string): Promise<boolean> => {
       advanceLiveInputInteractionGeneration()
-      const fieldText = liveInputTextRef.current
-      endedSessionTextRef.current =
-        fieldText.length > 0 ? { handle, text: fieldText, at: Date.now() } : null
+      recordEndedSession(handle)
       return endLiveInputSessionThenSend(handle, bytes)
     },
-    [advanceLiveInputInteractionGeneration, endLiveInputSessionThenSend]
+    [advanceLiveInputInteractionGeneration, endLiveInputSessionThenSend, recordEndedSession]
   )
 
   // Ignore the cleared field’s native echo or it would retype old text at the new cursor.
@@ -236,10 +250,15 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
       if (pendingLiveInputHandleRef.current && !ownsPendingState) {
         clearPendingLiveInputCommit()
       }
+      const fieldText = liveInputTextRef.current
+      // Key events precede the caret move, so this is where the key starts from.
+      const selection = readLiveInputSelection(liveInputRef.current, fieldText)
       const decision = getTerminalLiveSpecialKeyDecision({
         key: event.nativeEvent.key,
         heldText: ownsPendingState ? heldLiveInputTextRef.current : '',
-        sentText: ownsPendingState ? sentLiveInputTextRef.current : ''
+        sentText: ownsPendingState ? sentLiveInputTextRef.current : '',
+        caretAtFieldEnd:
+          !selection || (selection.start === fieldText.length && selection.end === fieldText.length)
       })
       switch (decision.kind) {
         case 'ignore':
@@ -260,6 +279,7 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
       advanceLiveInputInteractionGeneration,
       clearPendingLiveInputCommit,
       endFieldSessionThenSend,
+      liveInputRef,
       liveInputTerminalHandles,
       queueLiveInputControl
     ]
@@ -273,6 +293,7 @@ export function useTerminalLiveInputCommit<TTabType extends string>({
     heldLiveInputTextRef,
     liveInputComposingRef,
     liveInputRef,
+    liveInputTextRef,
     liveInputTerminalHandles,
     onInteraction: advanceLiveInputInteractionGeneration,
     pendingLiveInputHandleRef,

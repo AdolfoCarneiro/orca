@@ -96,6 +96,9 @@ export type UiCommandEventApi = {
   quitAfterStoppingAllSessions?: () => Promise<boolean>
   onOpenSkillShare: (callback: (shareId: string) => void) => () => void
   consumePendingSkillShare: () => Promise<string | null>
+  /** Raw `orca://plugins/...` link; the renderer validates it. */
+  onOpenPluginInstallLink: (callback: (link: string) => void) => () => void
+  consumePendingPluginInstallLink: () => Promise<string | null>
   /** OS "Open With" Markdown/CSV/TSV documents; the local IPC name is retained. */
   onOpenMarkdownFiles: (callback: (documents: MarkdownDocument[]) => void) => () => void
   consumePendingMarkdownFileOpens: () => Promise<MarkdownDocument[]>
@@ -178,10 +181,6 @@ export type UiCommandEventApi = {
   onCtrlTabKeyUp: (callback: () => void) => () => void
   onToggleStatusBar: (callback: () => void) => () => void
   onDictationKeyDown: (callback: () => void) => () => void
-  onExportPdfRequested: (callback: () => void) => () => void
-  onAppMenuPaste: (callback: () => void) => () => void
-  onAppMenuSelectionAction: (callback: (action: 'copy' | 'select-all') => void) => () => void
-  onEditableContextPaste: (callback: (data: { plainTextOnly: boolean }) => void) => () => void
   onActivateWorktree: (
     callback: (data: {
       repoId: string

@@ -7,7 +7,8 @@ import {
   applyServerWorkspaces,
   NO_SERVER_WORKSPACES,
   serverHostHealthLabel,
-  serverHostHealthLabels
+  serverHostHealthLabels,
+  type ServerWorkspaces
 } from './server-workspaces'
 import { relayHostsListRead } from './server-workspace-operations'
 import { applyWorktreeHostContextLabels } from './worktree-host-context-labels'
@@ -20,11 +21,11 @@ const host: MobileRelayHost = {
   relay: 'ready'
 }
 
-function row(worktreeId: string): Worktree {
+function row(worktreeId: string, hostId: MobileRelayHost['hostId'] = host.hostId): Worktree {
   return {
     worktreeId,
     repoId: 'repo-1',
-    hostId: host.hostId,
+    hostId,
     repo: 'orca',
     branch: 'main',
     displayName: worktreeId,
@@ -61,6 +62,36 @@ describe('applyServerWorkspaces', () => {
         rows: [[row('a'), row('b')]]
       })
     ).toBe(next)
+  })
+
+  it('keeps cached rows for failed servers with one ownership read per row', () => {
+    const hosts = Array.from({ length: 20 }, (_, index): MobileRelayHost => ({
+      ...host,
+      hostId: `runtime:env-${index}`
+    }))
+    let ownershipReads = 0
+    const previous: ServerWorkspaces = {
+      hosts,
+      worktrees: hosts.flatMap((server) =>
+        ['a', 'b'].map((slot) => ({
+          ...row(`${server.hostId}-${slot}`, server.hostId),
+          get hostId() {
+            ownershipReads += 1
+            return server.hostId
+          }
+        }))
+      )
+    }
+    const recovered = row('recovered', hosts[0]!.hostId)
+    const nextHosts = hosts.slice(0, -1).map((server) => ({ ...server }))
+    const next = applyServerWorkspaces(previous, {
+      hosts: nextHosts,
+      rows: nextHosts.map((_, index) => (index === 0 ? [recovered] : null))
+    })
+    const expected = [recovered, ...previous.worktrees.slice(2, -2)]
+    expect(next.worktrees).toHaveLength(expected.length)
+    expected.forEach((entry, index) => expect(next.worktrees[index]).toBe(entry))
+    expect(ownershipReads).toBeLessThanOrEqual(previous.worktrees.length)
   })
 })
 

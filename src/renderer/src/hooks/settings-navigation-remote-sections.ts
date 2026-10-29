@@ -2,7 +2,10 @@ import { getRepoExecutionHostId } from '../../../shared/execution-host'
 import { getAdvancedPaneSearchEntries } from '@/components/settings/advanced-search'
 import { getDeveloperPermissionsPaneSearchEntries } from '@/components/settings/developer-permissions-search'
 import { getExperimentalPaneSearchEntries } from '@/components/settings/experimental-search'
-import { getPluginsPaneSearchEntries } from '@/components/settings/plugins-search'
+import {
+  getPluginsPaneSearchEntries,
+  getPluginsSectionPresentation
+} from '@/components/settings/plugins-search'
 import { getPrivacyPaneSearchEntries } from '@/components/settings/privacy-search'
 import { getRepositoryPaneSearchEntries } from '@/components/settings/repository/repository-search'
 import { buildSettingsProjectList } from '@/components/settings/settings-project-list'
@@ -152,11 +155,12 @@ export function buildRemoteSettingsSections(
             title: translate('auto.hooks.useSettingsNavigationMetadata.pluginsTitle', 'Plugins'),
             description: translate(
               'auto.hooks.useSettingsNavigationMetadata.pluginsDescription',
-              'Install and manage experimental Orca plugins.'
+              'Install and manage Orca plugins (Alpha).'
             ),
             icon: Blocks,
             searchEntries: getPluginsPaneSearchEntries(),
-            group: 'experimental'
+            group: 'experimental',
+            badge: getPluginsSectionPresentation().badge
           }
         ]
       : []),
