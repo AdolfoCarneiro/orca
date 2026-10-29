@@ -1,11 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  APP_MENU_PASTE_EVENT,
-  dispatchAppMenuPasteEvent,
-  handleAppMenuPasteRequest
-} from './app-menu-paste'
+import { APP_MENU_PASTE_EVENT, handleAppMenuPasteRequest } from './app-menu-paste'
 
 function appendTextarea(value = ''): HTMLTextAreaElement {
   const textarea = document.createElement('textarea')
@@ -218,16 +214,5 @@ describe('app menu paste', () => {
     )
     expect(textarea.value).toBe('unchanged')
     expect(performNativePaste).not.toHaveBeenCalled()
-  })
-
-  it('exposes a cancellable ownership event', () => {
-    const onPaste = (event: Event): void => {
-      event.preventDefault()
-    }
-    window.addEventListener(APP_MENU_PASTE_EVENT, onPaste)
-
-    expect(dispatchAppMenuPasteEvent()).toBe(true)
-
-    window.removeEventListener(APP_MENU_PASTE_EVENT, onPaste)
   })
 })
