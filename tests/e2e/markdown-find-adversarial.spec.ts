@@ -174,9 +174,13 @@ test('backward native selection completes before focused copy and an inside-rang
     const instance = document.querySelector<HTMLElement & { editor?: Editor }>(
       '.rich-markdown-editor'
     )?.editor
-    if (!instance) throw new Error('Expected editor instance')
+    if (!instance) {
+      throw new Error('Expected editor instance')
+    }
     const native = document.getSelection()
-    if (!native?.anchorNode || !native.focusNode) throw new Error('Expected native range')
+    if (!native?.anchorNode || !native.focusNode) {
+      throw new Error('Expected native range')
+    }
     const anchor = instance.view.posAtDOM(native.anchorNode, native.anchorOffset)
     const head = instance.view.posAtDOM(native.focusNode, native.focusOffset)
     const clipboard = new DataTransfer()
@@ -201,7 +205,9 @@ test('backward native selection completes before focused copy and an inside-rang
     const instance = document.querySelector<HTMLElement & { editor?: Editor }>(
       '.rich-markdown-editor'
     )?.editor
-    if (!instance || !element.firstChild) throw new Error('Expected editor paragraph')
+    if (!instance || !element.firstChild) {
+      throw new Error('Expected editor paragraph')
+    }
     return {
       expected: instance.view.posAtDOM(element.firstChild, 12),
       model: instance.state.selection.toJSON()

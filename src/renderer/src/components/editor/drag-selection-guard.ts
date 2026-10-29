@@ -45,7 +45,9 @@ export function completeRichMarkdownSelection(editorView: EditorView): false {
     focusOffset: native.focusOffset
   }
   observer.forceFlush()
-  if (view.state.doc !== beforeFlush) range = view.domSelectionRange()
+  if (view.state.doc !== beforeFlush) {
+    range = view.domSelectionRange()
+  }
   const { anchorNode, anchorOffset, focusNode, focusOffset } = range
   if (
     !anchorNode ||
@@ -92,9 +94,13 @@ export function completeRichMarkdownSelection(editorView: EditorView): false {
         .getSelection()
         ?.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset)
     }
-    if (!view.isDestroyed) observer.setCurSelection()
+    if (!view.isDestroyed) {
+      observer.setCurSelection()
+    }
   } finally {
-    if (!view.isDestroyed) observer.start()
+    if (!view.isDestroyed) {
+      observer.start()
+    }
   }
   return false
 }
@@ -137,7 +143,9 @@ export const DragSelectionGuard = Extension.create({
               observer.setCurSelection()
               return
             }
-            if (editorView.hasFocus()) completeRichMarkdownSelection(editorView)
+            if (editorView.hasFocus()) {
+              completeRichMarkdownSelection(editorView)
+            }
             originalOnSelectionChange()
           }
           observer.onSelectionChange = patchedOnSelectionChange

@@ -67,7 +67,9 @@ describe('Find focus with editor-owned selection', () => {
     (field) => {
       const { editor, input, replace } = createSurface('<p>first</p><p>lower caret</p>')
       const text = editor.view.dom.querySelector('p:last-child')?.firstChild
-      if (!text) throw new Error('Expected lower paragraph text')
+      if (!text) {
+        throw new Error('Expected lower paragraph text')
+      }
       const lower = findTextPosition(editor, 'lower caret')
       try {
         editor.view.focus()
