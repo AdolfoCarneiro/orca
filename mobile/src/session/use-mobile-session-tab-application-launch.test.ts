@@ -78,7 +78,7 @@ function scope(pending: PendingSessionSelection | null) {
       setTerminals: vi.fn(),
       terminalsRef: { current: [] },
       setSessionTabs: vi.fn(),
-      sessionTabsRef: { current: [] },
+      sessionTabsRef: mutableRef<MobileSessionTab[]>([]),
       appliedSnapshotMarkerRef: { current: { epoch: null, version: -1 } },
       appliedSessionTabsRevisionRef: { current: 0 },
       closedTabTombstonesRef: { current: new Map() },
@@ -258,6 +258,26 @@ it.each([
   expect(destination.active).toBe(false)
   expect(readMobileNativeChatDraftEditGeneration(key)).toBe(0)
   expect(mobileNativeChatLaunchDraftSeeds.has(key)).toBe(false)
+})
+
+it('keeps a phone-created tab draft through host snapshots that have not listed it yet', () => {
+  const { state } = scope(null)
+  const apply = mount(state)
+  const live = terminalTab('live', 'term-live', true)
+  expect(apply(snapshot([live])).accepted).toBe(true)
+  const created = terminalTab('created', 'term-created', true)
+  const key = 'host\0workspace-1\0created'
+  state.sessionTabsRef.current = [...state.sessionTabsRef.current, created]
+  state.pendingSelectionRef.current = { kind: 'terminal', handle: 'term-created', tabId: 'created' }
+  setMobileNativeChatDraftText(key, 'typed before the host listed it')
+  expect(apply(snapshot([live])).accepted).toBe(true)
+  state.pendingSelectionRef.current = null
+  state.activeSessionTabIdRef.current = 'live'
+  expect(apply(snapshot([live])).accepted).toBe(true)
+  expect(readMobileNativeChatDraftEditGeneration(key)).toBe(1)
+  expect(apply(snapshot([live, created])).accepted).toBe(true)
+  expect(apply(snapshot([live])).accepted).toBe(true)
+  expect(readMobileNativeChatDraftEditGeneration(key)).toBe(0)
 })
 
 describe('landing on a launched tab', () => {
