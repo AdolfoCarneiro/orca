@@ -44,6 +44,7 @@ async function launched(mode: AgentChatPermissionChoice) {
         providerSessionId,
         resumeLeafUuid: null,
         resumesTranscript: false,
+        cliFlag: async () => 'supported' as const,
         continuesChain: false
       }
     },
