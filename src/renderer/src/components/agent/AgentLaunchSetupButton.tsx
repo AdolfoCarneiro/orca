@@ -1,7 +1,7 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type RefObject } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { translate } from '@/i18n/i18n'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
 import type { AgentPickerDraft, AgentPickerEntry } from '../../../../shared/agent-launch-picker'
@@ -27,12 +27,14 @@ function setupKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
 export function AgentLaunchSetupButton({
   entry,
   initial,
+  anchorRef,
   disabled,
   onOpenChange,
   onUse
 }: {
   entry: AgentPickerEntry
   initial?: AgentPickerDraft
+  anchorRef?: RefObject<HTMLDivElement | null>
   disabled?: boolean
   onOpenChange?: (open: boolean) => void
   onUse: (draft: AgentPickerDraft) => void
@@ -44,6 +46,7 @@ export function AgentLaunchSetupButton({
   }
   return (
     <Popover open={open} onOpenChange={changeOpen}>
+      {anchorRef ? <PopoverAnchor virtualRef={anchorRef} /> : null}
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -62,6 +65,7 @@ export function AgentLaunchSetupButton({
       <PopoverContent
         side="right"
         align="start"
+        sideOffset={6}
         className="w-auto"
         onClick={(event) => event.stopPropagation()}
       >

@@ -188,6 +188,7 @@ function AgentPickerMenuRow({
         </span>
       ) : null}
       <AgentLaunchSetupButton
+        anchorRef={item}
         entry={entry}
         initial={initial}
         disabled={disabled}

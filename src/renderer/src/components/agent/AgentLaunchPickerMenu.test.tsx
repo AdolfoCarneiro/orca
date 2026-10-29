@@ -77,8 +77,88 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   host.remove()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+it.each([
+  { menuLeft: 700, side: 'left' },
+  { menuLeft: 20, side: 'right' }
+])(
+  'places setup beside the whole menu at x=$menuLeft, flipping $side',
+  async ({ menuLeft, side }) => {
+    // Supply missing browser layout only; the real Popover/Popper computes collision and placement.
+    const menu = new DOMRect(menuLeft, 80, 280, 240)
+    const row = new DOMRect(menuLeft + 5, 128, 270, 32)
+    const trigger = new DOMRect(menuLeft + 248, 132, 24, 24)
+    const panel = new DOMRect(0, 0, 384, 480)
+    function geometry(element: Element): DOMRect {
+      if (
+        element.matches('[data-slot="popover-content"]') ||
+        (element.hasAttribute('data-radix-popper-content-wrapper') &&
+          element.querySelector('[data-slot="popover-content"]'))
+      ) {
+        return panel
+      }
+      if (element.matches('[role="menuitem"]')) {
+        return row
+      }
+      if (element.matches('[data-slot="popover-trigger"]')) {
+        return trigger
+      }
+      if (
+        element.matches('[role="menu"]') ||
+        element.hasAttribute('data-radix-popper-content-wrapper')
+      ) {
+        return menu
+      }
+      if (element === document.documentElement || element === document.body) {
+        return new DOMRect(0, 0, 1000, 800)
+      }
+      return new DOMRect()
+    }
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element
+    ) {
+      return geometry(this)
+    })
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return geometry(this).width
+    })
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return geometry(this).height
+    })
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000)
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(800)
+    act(() =>
+      document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!.click()
+    )
+    const content = document.querySelector<HTMLElement>('[data-slot="popover-content"]')!
+    await waitFor(() => {
+      expect(content.dataset.side).toBe(side)
+      const transform = content.parentElement!.style.transform.match(
+        /translate\(([-\d.]+)px, ([-\d.]+)px\)/
+      )
+      expect(transform).not.toBeNull()
+      const x = Number(transform![1])
+      const y = Number(transform![2])
+      expect(x).toBeGreaterThanOrEqual(0)
+      expect(x + panel.width).toBeLessThanOrEqual(1000)
+      expect(y).toBeGreaterThanOrEqual(0)
+      expect(y + panel.height).toBeLessThanOrEqual(800)
+      if (side === 'left') {
+        expect(x + panel.width).toBeLessThanOrEqual(menu.left)
+      } else {
+        expect(x).toBeGreaterThanOrEqual(menu.right)
+      }
+    })
+    expect(launch).not.toHaveBeenCalled()
+  }
+)
 
 it('opens setup with a clicked chevron without launching, then dispatches its selected surface once', () => {
   const configure = document.querySelector<HTMLButtonElement>(
