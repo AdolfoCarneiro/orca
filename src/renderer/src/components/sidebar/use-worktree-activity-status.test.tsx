@@ -5,6 +5,7 @@ import { structuredAgentSessionPaneKey } from '../../../../shared/structured-age
 import type { Tab } from '../../../../shared/tab-types'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
 import type { TerminalLayoutSnapshot, TerminalTab } from '../../../../shared/terminal-tab-types'
+import { toRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import { useWorktreeActivityStatus } from './use-worktree-activity-status'
 
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
@@ -181,6 +182,15 @@ describe('useWorktreeActivityStatus', () => {
     }
     expect(renderToStaticMarkup(<StatusProbe worktreeId={worktreeId} />)).toBe(
       '<span>inactive</span>'
+    )
+
+    // e9-reviewer: a pane bound to another, running server is the card's exception too.
+    mockState = {
+      ...mockState,
+      ptyIdsByTabId: { 'tab-1': [toRemoteRuntimePtyId('h1', 'ssh:desk')] }
+    }
+    expect(renderToStaticMarkup(<StatusProbe worktreeId={worktreeId} />)).toBe(
+      '<span>active</span>'
     )
   })
 

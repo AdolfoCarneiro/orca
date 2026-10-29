@@ -57,6 +57,8 @@ export const AGENT_SESSION_FAILURE_COPY = {
   agentNotSignedIn: 'Sign in to {{agent}}.',
   cliMissing:
     "{{agent}} wasn't found on the computer running this chat. Install it, or check its Command in Settings → Agents.",
+  cliMissingInWslDistro:
+    "{{agent}} isn't installed in the WSL distro {{distro}}. Install it inside {{distro}}, or check its Command in Settings → Agents.",
   signInFirst: 'Sign in first.',
   signInThenRunCommand: 'Sign in, then run /{{command}} again.',
   signInThenSend: 'Sign in, then send your message again.',
@@ -182,6 +184,8 @@ export type AgentSessionFailureCopyValues = {
   loginCommand?: string
   slashCommand?: string
   detail?: string
+  /** The WSL distro a WSL host runs in, as its host record names it. */
+  distro?: string
   /** A usage limit's name, from the `usageLimitWindow*` pieces. */
   window?: string
   /** When a usage limit resets, in the reader's clock. */

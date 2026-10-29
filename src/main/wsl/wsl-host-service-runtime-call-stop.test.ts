@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { RemoteRuntimeClientError } from '../../shared/remote-runtime/remote-runtime-client-error'
 import type { WslHostStatus } from '../../shared/wsl-host-types'
 import { WslHostService, type WslHostConnector } from './wsl-host-service'
 import { UBUNTU, makeConnector } from './wsl-host-service-test-connector'
@@ -83,5 +84,32 @@ describe('a runtime call that finds the WSL host stopped', () => {
     deferred.get('Ubuntu:wsl-host-parked:wsl:ubuntu')?.()
     await Promise.resolve()
     expect(connector.connect).not.toHaveBeenCalled()
+  })
+
+  // e9-reviewer: the stop can land after liveness already reconnected and said ready.
+  it('says ready again when the host was already back by the time the distro ran', async () => {
+    const { connector, service } = await stoppedUnderVisibleWork()
+    await expect(service.ensureForRuntimeCall('wsl:ubuntu')).rejects.toThrow('Ubuntu was stopped')
+    connector.distro.state = 'running'
+    // Liveness reconnected on its own.
+    await connector.connect('Ubuntu')
+    connector.connect.mockClear()
+    deferred.get('Ubuntu:wsl-host-parked:wsl:ubuntu')?.()
+    await vi.waitFor(() =>
+      expect(published.at(-1)).toMatchObject({ environmentId: 'wsl:ubuntu', state: 'ready' })
+    )
+    expect(connector.connect).not.toHaveBeenCalled()
+  })
+
+  // What wsl-move-host-connect and wsl-host-automation-enable read: unchanged by this fix.
+  it('keeps the refusal a plain, final Error with the same words', async () => {
+    const { service } = await stoppedUnderVisibleWork()
+    const refusal = await service.ensureForRuntimeCall('wsl:ubuntu').catch((error) => error)
+    expect(refusal).toBeInstanceOf(Error)
+    expect(refusal).not.toBeInstanceOf(RemoteRuntimeClientError)
+    expect(refusal).toMatchObject({
+      message:
+        'Ubuntu was stopped. Switch to one of its projects, or reconnect it in Settings → Remote Orca Servers, to start it again.'
+    })
   })
 })
