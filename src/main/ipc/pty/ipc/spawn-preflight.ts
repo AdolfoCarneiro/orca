@@ -34,7 +34,8 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     const admission = ctx.deps.assertWorkspaceAcceptsNewPty(
       args.worktreeId,
       args.sessionId,
-      localPtySpawnCwd(args)
+      localPtySpawnCwd(args),
+      args.wslPassiveRestore === true
     )
     if (admission) {
       await admission
@@ -47,7 +48,8 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     const admission = ctx.deps.assertWorkspaceAcceptsNewPty(
       args.worktreeId,
       args.sessionId,
-      localPtySpawnCwd(args)
+      localPtySpawnCwd(args),
+      args.wslPassiveRestore === true
     )
     if (admission) {
       await admission
