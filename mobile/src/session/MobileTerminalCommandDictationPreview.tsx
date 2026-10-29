@@ -20,7 +20,7 @@ export function MobileTerminalCommandDictationPreview({
   useMobileColorScheme()
   const { before, after } = splitDraftForDictation(draft, preview.text, preview.anchor)
   return (
-    <View pointerEvents="none" style={styles.layer}>
+    <View pointerEvents="none" aria-hidden style={styles.layer}>
       <TailClippedText style={styles.text} after={after}>
         {before}
         <Text style={styles.heard}>{preview.text}</Text>
