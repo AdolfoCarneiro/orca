@@ -1,4 +1,4 @@
-import { WslOrcadBridgeActivity } from './wsl-orcad-bridge-activity'
+import { WslOrcadBridgeActivity, wslHostBridgeEvents } from './wsl-orcad-bridge-activity'
 import { listenWslOrcadStdioBridge } from './wsl-orcad-stdio-bridge'
 import { createWslOrcadPairingRecovery } from './wsl-orcad-pairing-repair'
 import {
@@ -77,7 +77,7 @@ export function createWslHostConnector(options: {
     listen: (transport, listenOptions) =>
       listenWslOrcadStdioBridge(transport, {
         ...listenOptions,
-        events: bridgeActivity.events(listenOptions.environmentId)
+        events: wslHostBridgeEvents(bridgeActivity, listenOptions)
       }),
     pairingRecovery,
     getPairingOffer: (environmentId) =>

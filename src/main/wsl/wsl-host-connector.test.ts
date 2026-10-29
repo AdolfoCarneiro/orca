@@ -26,6 +26,7 @@ vi.mock('../wsl-background-distro-gate', () => ({
   // Settled per distro: a list taken while it stops still names it (E9).
   readSettledConfirmedRunningWslDistros: mocks.readRunning,
   wasWslDistroLastSeenRunningSettled: mocks.lastSeenRunning,
+  noteWslDistroMayHaveStopped: vi.fn(),
   listConfirmedRunningWslDistros: vi.fn(async () => [])
 }))
 vi.mock('../managed-server/lifecycle/orcad-managed-tunnel-identity', async (importOriginal) => ({

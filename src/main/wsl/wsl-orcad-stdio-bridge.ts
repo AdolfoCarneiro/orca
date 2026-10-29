@@ -11,7 +11,6 @@ import {
 } from '../managed-server/lifecycle/orcad-stdio-bridge-provider'
 import type { StartedPortForward } from '../ssh/port-forwarding/ssh-port-forward-provider'
 import { assertWslUncPathRunning } from './wsl-unc-access-gate'
-import { noteWslDistroMayHaveStopped } from '../wsl-background-distro-gate'
 
 export type WslOrcadStdioBridgeOptions = {
   environmentId: string
@@ -49,16 +48,8 @@ export function listenWslOrcadStdioBridge(
         // A dial (a client's reconnect, a runtime call, the watch) is never a user act, and each
         // spawns wsl.exe, which boots a stopped distro. A user act boots it by connecting first.
         await assertWslUncPathRunning('', distro)
-        return observeWslOrcadBridgeChannel(await dependencies.openChannel(conn, bridge), {
-          opened: () => events?.opened(),
-          ended: (byGuest) => {
-            // The guest ending a bridge is the first sign it may have stopped: later dials re-read.
-            if (byGuest) {
-              noteWslDistroMayHaveStopped(distro)
-            }
-            events?.ended(byGuest)
-          }
-        })
+        const channel = await dependencies.openChannel(conn, bridge)
+        return events ? observeWslOrcadBridgeChannel(channel, events) : channel
       }
     }
   )

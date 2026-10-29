@@ -31,13 +31,22 @@ vi.mock('@orca/process-host', async (importOriginal) => {
 })
 
 import { _resetWslCachesForTests } from '../wsl'
-import { _resetWslBackgroundDistroGateForTests } from '../wsl-background-distro-gate'
+import {
+  _resetWslBackgroundDistroGateForTests,
+  wasWslDistroLastSeenRunningSettled
+} from '../wsl-background-distro-gate'
+import { WslOrcadBridgeActivity, wslHostBridgeEvents } from './wsl-orcad-bridge-activity'
 import { createWslOrcadHostTransport } from './wsl-orcad-host-transport'
 import { listenWslOrcadStdioBridge } from './wsl-orcad-stdio-bridge'
 import { startOrcadStdioBridge } from '../managed-server/lifecycle/orcad-stdio-bridge-provider'
 
 /** Echoes, and lets a test end every connection from the guest side. */
-function startGuestServer(): Promise<{ server: Server; port: number; endAll: () => void }> {
+function startGuestServer(): Promise<{
+  server: Server
+  port: number
+  endAll: () => void
+  endOne: (index: number) => void
+}> {
   const sockets = new Set<Socket>()
   const server = createServer((socket) => {
     sockets.add(socket)
@@ -48,7 +57,12 @@ function startGuestServer(): Promise<{ server: Server; port: number; endAll: () 
     server.listen(0, '127.0.0.1', () => {
       const address = server.address()
       const port = typeof address === 'object' && address ? address.port : 0
-      resolve({ server, port, endAll: () => sockets.forEach((socket) => socket.destroy()) })
+      resolve({
+        server,
+        port,
+        endAll: () => sockets.forEach((socket) => socket.destroy()),
+        endOne: (index: number) => [...sockets][index]?.destroy()
+      })
     })
   })
 }
@@ -93,7 +107,12 @@ async function startBridge() {
       distro: 'Ubuntu',
       remotePort: guest.port,
       localPort: 0,
-      label: 'Ubuntu'
+      label: 'Ubuntu',
+      // Wired as the connector wires it.
+      events: wslHostBridgeEvents(new WslOrcadBridgeActivity(), {
+        environmentId: 'wsl:ubuntu',
+        distro: 'Ubuntu'
+      })
     },
     {
       resolveBridge: async (_conn, port) => posixOrcadStdioBridge(port),
@@ -168,6 +187,26 @@ describe('WSL bridge dials never start a stopped distro (E9)', () => {
     await closed(redial)
     expect(probe.calls).toBeGreaterThan(readsWhileUp)
     expect(children.commands).toHaveLength(spawnedBefore)
+  })
+
+  it('a normal one-shot close while the control socket stays open costs the next dial nothing', async () => {
+    probe.running = ['Ubuntu']
+    const { forward, guest } = await startBridge()
+    const control = await dial(forward.entry.localPort)
+    expect(await echoOf(control, 'control')).toBe('control')
+    const oneShot = await dial(forward.entry.localPort)
+    expect(await echoOf(oneShot, 'rpc')).toBe('rpc')
+    const readsBefore = probe.calls
+
+    // The guest finishes the one-shot request first, as a WebSocket or RPC close does.
+    guest.endOne(1)
+    await closed(oneShot)
+    // No stop note: the cached running read still answers, so no settle wait and no probe.
+    expect(wasWslDistroLastSeenRunningSettled('Ubuntu')).toBe(true)
+    const next = await dial(forward.entry.localPort)
+    expect(await echoOf(next, 'again')).toBe('again')
+    expect(probe.calls).toBe(readsBefore)
+    expect(await echoOf(control, 'still')).toBe('still')
   })
 
   it('a user act that starts the distro is not refused by the read taken before it', async () => {
