@@ -1,5 +1,6 @@
+import { getGitHubRepoLookupIndex } from '@/store/slices/github-repo-lookup-index'
+import { taskPageWorkItemKey } from '../task-page-work-item-signatures'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
-import { getWorkItemRepo } from '@/lib/work-item-repo-row'
 import { findGithubWorkItemWorkspaceAttachment } from '@/lib/github-work-item-workspace-attachment'
 import { getWorktreeAttachmentLabel } from '@/lib/worktree-attachment-label'
 import { formatPRDelta } from '../task-page-pr-delta-summary'
@@ -62,11 +63,12 @@ export function TaskPageGitHubRows({
     handleUseWorkItem,
     handleOpenOrUseGitHubWorkItem
   } = model
+  const repoIndex = getGitHubRepoLookupIndex(repos)
   return (
     <div className="divide-y divide-border/40">
       {!showGitHubTaskSkeletons &&
         filteredWorkItems.map((item) => {
-          const itemRepo = getWorkItemRepo(repos, item) ?? null
+          const itemRepo = repoIndex.findForWorkItem(item) ?? null
           const attachedWorkspace = findGithubWorkItemWorkspaceAttachment(
             allWorktrees,
             item.repoId,
@@ -106,7 +108,7 @@ export function TaskPageGitHubRows({
             // Why: clickable div not a <button> — it nests buttons, and button-in-button is invalid HTML that breaks hydration.
             <div
               // Scope React keys by repo, host and item because twins and shared upstreams repeat item IDs.
-              key={`${item.repoId}:${item.repoHostId ?? ''}:${item.id}`}
+              key={taskPageWorkItemKey(item)}
               role="button"
               tabIndex={0}
               onClick={() => openGitHubDetailPage(item)}

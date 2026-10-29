@@ -343,7 +343,10 @@ describe('opened issue assignee ownership', () => {
         item.repoId,
         {
           sourceContext: undefined,
-          ownerRepo: { owner: 'upstream', repo: 'widgets', host: 'github.com' }
+          ownerRepo: { owner: 'upstream', repo: 'widgets', host: 'github.com' },
+          ...(field === 'state'
+            ? { observation: undefined, valueOrigins: { state: undefined } }
+            : {})
         }
       )
     }

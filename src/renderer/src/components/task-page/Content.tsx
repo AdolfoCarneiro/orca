@@ -1,7 +1,8 @@
+import { captureGitHubTaskObservation, observeGitHubWorkItem } from '@/lib/github-task-observation'
 import { getTaskPageRepoSourceContext } from './task-page-source-context'
 import { areTaskSourceContextsEqual } from '../../../../shared/task-source-context'
 import { githubTaskContent, type GitHubTaskRefreshHandler } from '@/lib/github-task-target'
-import { recomputeSoftHideForItem } from './github/task-page-github-work-item-mutation-composition'
+import { establishTaskPageGitHubMembership } from './github/task-page-github-work-item-mutation-composition'
 import { notifyTaskPageGitHubMutationRegistry } from './github/task-page-github-work-item-mutation-registry'
 import { githubTaskSourceKey } from '@/lib/github-task-target'
 import { shouldSkipLocalViewerQualifiers } from '@/hooks/useTaskPageGitHubWorkItemMutation'
@@ -44,31 +45,22 @@ export function TaskPageContent({
     if (!row) {
       return
     }
-    model.patchTaskPageWorkItemRows(item, githubTaskContent(item), target.matches)
-    for (const source of target.sources) {
-      for (const alias of new Set([item.id, `issue:${item.number}`, item.url])) {
-        recomputeSoftHideForItem({
-          item: { ...item, id: alias },
-          sourceScope: githubTaskSourceKey(source),
-          query: model.appliedTaskQuery,
-          queryKey: model.githubWorkItemMutationQueryKey,
-          viewerLogin: model.githubViewerLogin,
-          skipMeQualifiers: shouldSkipLocalViewerQualifiers(target.source),
-          updateSticky: true,
-          listFamily: false
-        })
-      }
-      recomputeSoftHideForItem({
-        item,
-        sourceScope: githubTaskSourceKey(source),
-        query: model.appliedTaskQuery,
-        queryKey: model.githubWorkItemMutationQueryKey,
-        viewerLogin: model.githubViewerLogin,
-        skipMeQualifiers: shouldSkipLocalViewerQualifiers(target.source),
-        updateSticky: true,
-        listFamily: true
-      })
+    const source = getTaskPageRepoSourceContext(row, 'github')
+    const observation = captureGitHubTaskObservation(row, source)
+    const patch = {
+      ...githubTaskContent(item),
+      githubObservation: observation,
+      githubValueOrigins: {}
     }
+    model.patchTaskPageWorkItemRows(item, patch, target.matches)
+    establishTaskPageGitHubMembership({
+      item: observeGitHubWorkItem(item, observation),
+      sourceScope: githubTaskSourceKey(source),
+      queryKey: model.githubWorkItemMutationQueryKey,
+      skipMeQualifiers: shouldSkipLocalViewerQualifiers(source),
+      observation,
+      accepted: true
+    })
     notifyTaskPageGitHubMutationRegistry()
   }
   return taskSource === 'github' && dialogWorkItem ? (

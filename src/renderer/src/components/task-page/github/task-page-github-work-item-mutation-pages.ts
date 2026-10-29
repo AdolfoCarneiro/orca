@@ -1,22 +1,71 @@
-import type { GitHubTaskRead } from '@/store/github/request-coordination'
-import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
-import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
-import type { TaskSourceContext } from '../../../../../shared/task-source-context'
+import type { Repo } from '../../../../../shared/repo-types'
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
-import { getRegistryMergedTaskPageGitHubWorkItem } from './task-page-github-work-item-mutation-composition'
+import { getTaskPageRepoSourceContext } from '../task-page-source-context'
 import {
-  getStickyHideEntry,
-  hasConfirmedAuthorityForItem,
-  hasPendingTaskPageGitHubOpsForItem,
-  resolveItemSourceScope
-} from './task-page-github-work-item-mutation-registry'
-import { taskPageGitHubItemKey } from './task-page-github-work-item-mutation-keys'
-import type { TaskPageGitHubPatchWorkItem } from './task-page-github-work-item-mutation-types'
+  createGitHubTaskObservationIndex,
+  captureGitHubTaskObservation
+} from '@/lib/github-task-observation'
+import type { GitHubTaskRead } from '@/store/github/request-coordination'
+import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+import { parseTaskQuery, type ParsedTaskQuery } from '../../../../../shared/task-query'
+import {
+  getGitHubTaskObservation,
+  patchObservedGitHubWorkItem,
+  type ObservedGitHubWorkItem,
+  type GitHubTaskObservation
+} from '@/lib/github-task-observation'
+import { githubTaskIdentity, githubTaskSourceKey } from '@/lib/github-task-target'
+import {
+  createTaskPageGitHubAuthorityProjection,
+  createTaskPageGitHubMembershipProjection,
+  adoptTaskPageGitHubMembershipFamilies
+} from './task-page-github-work-item-mutation-composition'
+import type { GitHubWorkItemPatch } from '@/store/github/cache-model'
 
+export type TaskPageGitHubProjectionContext = {
+  query: ParsedTaskQuery
+  queryKey: string
+  viewerLogin: string | null
+  ownerOf?: (
+    item: Pick<GitHubWorkItem, 'repoId' | 'repoHostId'>
+  ) => GitHubTaskObservation | undefined
+  owns?: (owner: GitHubTaskObservation | undefined) => boolean
+}
+export function createTaskPageGitHubProjectionContext(
+  repos: readonly Repo[],
+  query: ParsedTaskQuery,
+  queryKey: string,
+  viewerLogin: string | null
+): TaskPageGitHubProjectionContext {
+  const keys = new Set(
+    repos.map(
+      (repo) =>
+        captureGitHubTaskObservation(repo, getTaskPageRepoSourceContext(repo, 'github'))?.key
+    )
+  )
+  return {
+    query,
+    queryKey,
+    viewerLogin,
+    owns: (owner) => !owner || owner.aliases.some((key) => keys.has(key)),
+    ownerOf: createGitHubTaskObservationIndex(repos, (repo) =>
+      getTaskPageRepoSourceContext(repo, 'github')
+    )
+  }
+}
+export function taskPageGitHubObservedRowKey(item: GitHubWorkItem): string {
+  const owner = getGitHubTaskObservation(item)
+  return JSON.stringify([
+    owner?.key ?? item.repoHostId ?? null,
+    item.repoId,
+    githubTaskIdentity(item),
+    item.id
+  ])
+}
 export function patchTaskPageGitHubWorkItemPages(
   pages: readonly (GitHubWorkItem[] | null)[],
   itemKey: { id: string; repoId: string },
-  patch: Partial<GitHubWorkItem>,
+  patch: Partial<ObservedGitHubWorkItem>,
   shouldPatch?: (item: GitHubWorkItem) => boolean
 ): (GitHubWorkItem[] | null)[] {
   let nextPages: (GitHubWorkItem[] | null)[] | undefined
@@ -33,7 +82,9 @@ export function patchTaskPageGitHubWorkItemPages(
         return
       }
       nextPage ??= page.slice()
-      nextPage[itemIndex] = { ...item, ...patch }
+      nextPage[itemIndex] = patch.githubValueOrigins
+        ? patchObservedGitHubWorkItem(item, patch, patch.githubValueOrigins)
+        : { ...item, ...patch }
     })
     if (nextPage) {
       nextPages ??= pages.slice()
@@ -43,87 +94,84 @@ export function patchTaskPageGitHubWorkItemPages(
   return nextPages ?? (pages as (GitHubWorkItem[] | null)[])
 }
 
-/** Match each item to pending/confirmed authority by repoId + itemId + remembered sourceScope. */
 export function applyPendingTaskPageGitHubMutationsToItems(
-  items: readonly GitHubWorkItem[]
+  items: readonly GitHubWorkItem[],
+  context?: TaskPageGitHubProjectionContext
 ): GitHubWorkItem[] {
+  const compose = createTaskPageGitHubAuthorityProjection()
   return items.map((item) => {
-    const sourceScope = resolveItemSourceScope(item.repoId, taskPageGitHubMutationItemId(item))
-    return getRegistryMergedTaskPageGitHubWorkItem(item, sourceScope)
+    const owner = context?.ownerOf?.(item) ?? getGitHubTaskObservation(item)
+    return compose(item, owner ? githubTaskSourceKey(owner.source) : null, owner)
   })
 }
-
 export function reapplyPendingTaskPageGitHubMutationsToCache(args: {
   items: readonly GitHubWorkItem[]
-  patchWorkItem: TaskPageGitHubPatchWorkItem
-  sourceContextByRepoId?: ReadonlyMap<string, TaskSourceContext | null | undefined>
+  patchWorkItems: (patches: readonly GitHubWorkItemPatch[]) => void
+  context?: TaskPageGitHubProjectionContext
 }): void {
+  const compose = createTaskPageGitHubAuthorityProjection()
+  const patches: GitHubWorkItemPatch[] = []
   for (const item of args.items) {
-    const itemId = taskPageGitHubMutationItemId(item)
-    const sourceScope = resolveItemSourceScope(item.repoId, itemId)
-    const hasAuthority =
-      hasPendingTaskPageGitHubOpsForItem(item.repoId, itemId) ||
-      hasConfirmedAuthorityForItem(item.repoId, itemId) ||
-      hasConfirmedAuthorityForItem(item.repoId, item.id)
-    if (!hasAuthority) {
+    const owner = args.context?.ownerOf?.(item) ?? getGitHubTaskObservation(item)
+    const merged = compose(item, owner ? githubTaskSourceKey(owner.source) : null, owner)
+    if (merged === item) {
       continue
     }
-    const merged = getRegistryMergedTaskPageGitHubWorkItem(item, sourceScope)
-    args.patchWorkItem(
-      item.id,
-      {
+    patches.push({
+      itemId: item.id,
+      patch: {
         state: merged.state,
         assignees: merged.assignees,
         reviewRequests: merged.reviewRequests,
         autoMergeEnabled: merged.autoMergeEnabled
       },
-      item.repoId,
-      {
-        sourceContext: args.sourceContextByRepoId?.get(item.repoId),
-        ownerRepo: parseGitHubIssueOrPRLink(item.url)?.slug
+      repoId: item.repoId,
+      options: {
+        sourceContext: owner?.source,
+        observation: owner,
+        valueOrigins: merged.githubValueOrigins,
+        ownerRepo: item.type === 'issue' ? parseGitHubIssueOrPRLink(item.url)?.slug : undefined
       }
-    )
+    })
   }
+  args.patchWorkItems(patches)
 }
-
-/** Full-replace flat list: overlay + retain pending/confirmed-omitted rows (K18). */
 export function materializeTaskPageItemList(args: {
   networkItems: readonly GitHubWorkItem[]
   previousItems: readonly GitHubWorkItem[]
   queryKey: string
+  context?: TaskPageGitHubProjectionContext
 }): GitHubWorkItem[] {
-  const overlaid = applyPendingTaskPageGitHubMutationsToItems(args.networkItems)
-  const byKey = new Map(
-    overlaid.map((item) => [
-      taskPageGitHubItemKey(item.repoId, taskPageGitHubMutationItemId(item)),
-      item
-    ])
-  )
+  const context = args.context ?? {
+    query: parseTaskQuery(''),
+    queryKey: args.queryKey,
+    viewerLogin: null
+  }
+  const compose = createTaskPageGitHubAuthorityProjection()
+  const project = createTaskPageGitHubMembershipProjection(context)
+  const byKey = new Map<string, GitHubWorkItem>()
+  for (const item of args.networkItems) {
+    const owner = context.ownerOf?.(item) ?? getGitHubTaskObservation(item)
+    const scope = owner ? githubTaskSourceKey(owner.source) : null
+    adoptTaskPageGitHubMembershipFamilies(item, scope, args.queryKey, owner)
+    byKey.set(taskPageGitHubObservedRowKey(item), compose(item, scope, owner))
+  }
   for (const item of args.previousItems) {
-    const itemId = taskPageGitHubMutationItemId(item)
-    const k = taskPageGitHubItemKey(item.repoId, itemId)
-    if (byKey.has(k)) {
+    const key = taskPageGitHubObservedRowKey(item)
+    if (byKey.has(key)) {
       continue
     }
-    // Retain pending rows for rollback and query-sticky confirmed exits for search lag; other confirms must not become stale ghosts.
-    const hasPending = hasPendingTaskPageGitHubOpsForItem(item.repoId, itemId)
-    const sticky =
-      getStickyHideEntry(k) ?? getStickyHideEntry(taskPageGitHubItemKey(item.repoId, item.id))
-    const hasConfirmedStickyHide =
-      (hasConfirmedAuthorityForItem(item.repoId, itemId) ||
-        hasConfirmedAuthorityForItem(item.repoId, item.id)) &&
-      sticky?.queryKey === args.queryKey
-    if (!hasPending && !hasConfirmedStickyHide) {
-      continue
+    const owner = context.ownerOf?.(item) ?? getGitHubTaskObservation(item)
+    const scope = owner ? githubTaskSourceKey(owner.source) : null
+    const projected = project(item, scope, owner)
+    if (compose.pending(item, scope, owner).length || (projected.hide && projected.hasKnowledge)) {
+      byKey.set(key, projected.item)
     }
-    const scope = resolveItemSourceScope(item.repoId, itemId)
-    byKey.set(k, getRegistryMergedTaskPageGitHubWorkItem(item, scope))
   }
   return [...byKey.values()].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )
 }
-
 export function reconcileTaskPagePagesAfterQuietRefresh(args: {
   pages: readonly (GitHubWorkItem[] | null)[]
   queryKey: string
@@ -132,6 +180,7 @@ export function reconcileTaskPagePagesAfterQuietRefresh(args: {
   membershipChanged: boolean
   visiblePage?: number
   visibleItems?: readonly GitHubWorkItem[]
+  context?: TaskPageGitHubProjectionContext
 }): (GitHubWorkItem[] | null)[] {
   const next = [...args.pages]
   const lastPage = args.visiblePage ?? args.authorityPage
@@ -141,7 +190,8 @@ export function reconcileTaskPagePagesAfterQuietRefresh(args: {
   next[args.authorityPage] = materializeTaskPageItemList({
     networkItems: args.authorityItems,
     previousItems: args.pages[args.authorityPage] ?? [],
-    queryKey: args.queryKey
+    queryKey: args.queryKey,
+    context: args.context
   })
   if (args.visiblePage !== undefined && args.visibleItems !== undefined) {
     if (args.membershipChanged) {
@@ -152,7 +202,8 @@ export function reconcileTaskPagePagesAfterQuietRefresh(args: {
     next[args.visiblePage] = materializeTaskPageItemList({
       networkItems: args.visibleItems,
       previousItems: args.pages[args.visiblePage] ?? [],
-      queryKey: args.queryKey
+      queryKey: args.queryKey,
+      context: args.context
     })
   }
   if (args.membershipChanged) {
@@ -163,40 +214,47 @@ export function reconcileTaskPagePagesAfterQuietRefresh(args: {
 
 /** In-place overlay per page; preserves multi-page structure; no retain. */
 export function overlayPendingOnTaskPagePages(
-  pages: readonly GitHubWorkItem[][]
+  pages: readonly GitHubWorkItem[][],
+  context?: TaskPageGitHubProjectionContext
 ): GitHubWorkItem[][] {
-  return pages.map((page) => applyPendingTaskPageGitHubMutationsToItems(page))
+  return pages.map((page) => applyPendingTaskPageGitHubMutationsToItems(page, context))
 }
 
 export function materializeTaskPageGitHubRead(
   read: GitHubTaskRead,
   pages: readonly (GitHubWorkItem[] | null)[],
   items: readonly GitHubWorkItem[],
-  queryKey: string
+  queryKey: string,
+  context?: TaskPageGitHubProjectionContext
 ): GitHubWorkItem[] {
   const current = pages.flatMap((page) => page ?? [])
   return materializeTaskPageItemList({
     networkItems: read.apply(items, current),
     previousItems: current,
-    queryKey
+    queryKey,
+    context
   })
 }
 export function restoreTaskPageGitHubReadPage(
   read: GitHubTaskRead,
   pages: readonly (GitHubWorkItem[] | null)[],
   items: readonly GitHubWorkItem[],
-  page: number
+  page: number,
+  context?: TaskPageGitHubProjectionContext
 ): (GitHubWorkItem[] | null)[] {
   const next = [...pages]
   while (next.length <= page) {
     next.push(null)
   }
   next[page] =
-    overlayPendingOnTaskPagePages([
-      read.apply(
-        items,
-        pages.flatMap((p) => p ?? [])
-      )
-    ])[0] ?? []
+    overlayPendingOnTaskPagePages(
+      [
+        read.apply(
+          items,
+          pages.flatMap((p) => p ?? [])
+        )
+      ],
+      context
+    )[0] ?? []
   return next
 }

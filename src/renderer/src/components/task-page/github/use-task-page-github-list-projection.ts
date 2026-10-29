@@ -1,9 +1,11 @@
-import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
+import { createTaskPageGitHubMembershipProjection } from './task-page-github-work-item-mutation-composition'
+import { createGitHubTaskObservationIndex } from '@/lib/github-task-observation'
+import { githubTaskSourceKey } from '@/lib/github-task-target'
+import { shouldSkipLocalViewerQualifiers } from '@/hooks/useTaskPageGitHubWorkItemMutation'
 import type { TaskPageJiraCreationMetadataModel } from '../../use-task-page-jira-creation-metadata'
 import { getWorkItemRepo } from '@/lib/work-item-repo-row'
 import { useCallback, useMemo, useEffect } from 'react'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
-import { taskPageGitHubItemKey } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
 import { deriveTaskPagePRCheckSummary } from '../task-page-pr-check-summary'
 import { deriveAdvertisedTotalPages } from '@/components/task-page/task-page-work-item-pagination'
 import {
@@ -45,20 +47,33 @@ export function useTaskPageGitHubListProjection(model: TaskPageJiraCreationMetad
     () => applyTypeFilter(currentPageItems),
     [applyTypeFilter, currentPageItems]
   )
-  // Retain membership-exit rows for rollback/cursors while sticky and pending hides remove them from display.
-  const filteredWorkItems = useMemo(
-    () =>
-      typeFilteredCurrentPageItems.filter(
-        (workItem) =>
-          !githubWorkItemMutation.softHiddenItemKeys.has(
-            taskPageGitHubItemKey(workItem.repoId, workItem.id)
-          ) &&
-          !githubWorkItemMutation.softHiddenItemKeys.has(
-            taskPageGitHubItemKey(workItem.repoId, taskPageGitHubMutationItemId(workItem))
-          )
-      ),
-    [githubWorkItemMutation.softHiddenItemKeys, typeFilteredCurrentPageItems]
-  )
+  const filteredWorkItems = useMemo(() => {
+    const ownerOf = createGitHubTaskObservationIndex(repos, (repo) =>
+      getTaskPageRepoSourceContext(repo, 'github')
+    )
+    const project = createTaskPageGitHubMembershipProjection({
+      query: model.appliedTaskQuery,
+      queryKey: model.githubWorkItemMutationQueryKey,
+      viewerLogin: model.githubViewerLogin
+    })
+    return typeFilteredCurrentPageItems.flatMap((item) => {
+      const owner = ownerOf(item)
+      const projected = project(
+        item,
+        owner ? githubTaskSourceKey(owner.source) : null,
+        owner,
+        shouldSkipLocalViewerQualifiers(owner?.source)
+      )
+      return projected.hide ? [] : [projected.item]
+    })
+  }, [
+    githubWorkItemMutation.registryVersion,
+    typeFilteredCurrentPageItems,
+    repos,
+    model.appliedTaskQuery,
+    model.githubWorkItemMutationQueryKey,
+    model.githubViewerLogin
+  ])
   const softHiddenVisibleCount = useMemo(
     () => typeFilteredCurrentPageItems.length - filteredWorkItems.length,
     [filteredWorkItems.length, typeFilteredCurrentPageItems.length]

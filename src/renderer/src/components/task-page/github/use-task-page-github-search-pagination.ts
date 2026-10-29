@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import {
+  createTaskPageGitHubProjectionContext,
   overlayPendingOnTaskPagePages,
   restoreTaskPageGitHubReadPage
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
@@ -60,6 +61,12 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
       if (paginationLoading || selectedRepos.length === 0) {
         return
       }
+      const context = createTaskPageGitHubProjectionContext(
+        selectedRepos,
+        model.appliedTaskQuery,
+        model.githubWorkItemMutationQueryKey,
+        model.githubViewerLogin
+      )
       const q = stripRepoQualifiers(appliedTaskSearch.trim())
       const repoArgs = selectedRepos.map((r) => ({
         repoId: r.id,
@@ -67,7 +74,7 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
         executionHostId: r.executionHostId,
         sourceContext: getTaskPageRepoSourceContext(r, 'github')
       }))
-      const read = beginGitHubTaskRead(repoArgs)
+      const read = beginGitHubTaskRead(repoArgs, undefined, { repos: selectedRepos })
       activeReads.current.add(read)
       const requestGeneration = paginationGenerationRef.current
       const target = targetPage ?? currentPage + 1
@@ -152,15 +159,18 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
           nextPages.push(null)
         }
         nextPages[target] =
-          overlayPendingOnTaskPagePages([
-            read.apply(
-              items,
-              pagesRef.current.flatMap((page) => page ?? [])
-            )
-          ])[0] ?? []
+          overlayPendingOnTaskPagePages(
+            [
+              read.apply(
+                items,
+                pagesRef.current.flatMap((page) => page ?? [])
+              )
+            ],
+            context
+          )[0] ?? []
         pagesRef.current = nextPages
         currentPageRef.current = target
-        setPages((current) => restoreTaskPageGitHubReadPage(read, current, items, target))
+        setPages((current) => restoreTaskPageGitHubReadPage(read, current, items, target, context))
         setCurrentPage(target)
       } catch (err) {
         console.error('Failed to load next page:', err)
@@ -174,6 +184,9 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
       }
     },
     [
+      model.appliedTaskQuery,
+      model.githubWorkItemMutationQueryKey,
+      model.githubViewerLogin,
       paginationLoading,
       selectedRepos,
       currentPage,

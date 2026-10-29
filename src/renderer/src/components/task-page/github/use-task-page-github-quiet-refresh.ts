@@ -8,19 +8,19 @@ export type TaskPageGitHubQuietRefreshPreludeModel = ReturnType<
   typeof useTaskPageGitHubQuietRefreshPrelude
 >
 export function useTaskPageGitHubQuietRefreshPrelude(model: TaskPageGitHubLandingRefreshModel) {
-  const { githubWorkItemMutationQueryKey } = model
+  const { githubWorkItemMutationQueryKey, selectedReposKey } = model
   // Nonce rerenders must preserve shared in-flight/trailing bookkeeping; track true unmount only.
   const quietRevalidateMountedRef = useMountedRef()
   const quietRevalidateOwnerRef = useRef<QuietRevalidateRunOwner>({})
   const quietRevalidateScopeRef = useRef({
-    queryKey: githubWorkItemMutationQueryKey,
+    queryKey: githubWorkItemMutationQueryKey + selectedReposKey,
     generation: 0
   })
   // Revalidation may run before a passive effect observes a new key.
   // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
   quietRevalidateScopeRef.current = advanceTaskPageQuietRevalidateScope(
     quietRevalidateScopeRef.current,
-    githubWorkItemMutationQueryKey
+    githubWorkItemMutationQueryKey + selectedReposKey
   )
 
   // Why: dedicated quiet revalidate path (K23) — never tasksFiltering / skeleton,

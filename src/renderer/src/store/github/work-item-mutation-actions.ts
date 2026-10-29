@@ -1,15 +1,13 @@
-import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
+
 import { toast } from 'sonner'
-import { parseGitHubIssueOrPRLink } from '../../../../shared/github/links'
-import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
-import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
+
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
 import { translate } from '@/i18n/i18n'
 import { repoMatchesHostIdentity } from '../slices/repo-host-identity'
-import { repoCacheKeyHostId } from '../../../../shared/github/github-cache-key'
+
 import { evictRepoCacheEntries, repoCacheEviction, type RepoCacheEviction } from './cache-identity'
 import { ERROR_TOAST_DURATION } from './cache-policy'
 import { clearInflightWorkItemsForRepo } from './request-coordination'
@@ -30,67 +28,13 @@ function repoCacheEvictionForRow(
 export const createWorkItemMutationActions = (
   set: Parameters<StateCreator<AppState>>[0],
   get: Parameters<StateCreator<AppState>>[1]
-): Pick<GitHubSlice, 'patchWorkItem' | 'setIssueSourcePreference' | 'evictGitHubRepoCaches'> => ({
+): Pick<
+  GitHubSlice,
+  'patchWorkItem' | 'patchWorkItems' | 'setIssueSourcePreference' | 'evictGitHubRepoCaches'
+> => ({
+  patchWorkItems: (patches) => set((s) => reduceWorkItemPatches(s, patches, true)),
   patchWorkItem: (itemId, patch, repoId, options) => {
-    set((s) => {
-      const nextCache = { ...s.workItemsCache }
-      let changed = false
-      const sourceScope =
-        options?.sourceContext?.provider === 'github'
-          ? getTaskSourceCacheScope(options.sourceContext)
-          : null
-      const sourceScopes =
-        options?.sourceContexts?.map(getTaskSourceCacheScope) ?? (sourceScope ? [sourceScope] : [])
-      const repositoryKey = options?.ownerRepo ? githubRepoIdentityKey(options.ownerRepo) : null
-      for (const key of Object.keys(nextCache)) {
-        if (options?.hostId && repoId && repoCacheKeyHostId(key, [repoId]) !== options.hostId) {
-          continue
-        }
-        // A legacy refresh cannot publish into a project/account-scoped cache it did not read.
-        if (options?.hostId && !sourceScope && key.startsWith('github:')) {
-          continue
-        }
-        // Why: don't patch another host/account's visually identical issue/PR cache entry.
-        if (
-          sourceScopes.length &&
-          !sourceScopes.some((scope) => key === scope || key.startsWith(`${scope}::`)) &&
-          (key.startsWith('github:') ||
-            !(repoId && options?.hostId && repositoryKey && options?.matches))
-        ) {
-          continue
-        }
-        const entry = nextCache[key]
-        if (!entry?.data) {
-          continue
-        }
-        // Why: issue/PR ids are only unique within a repo; cross-repo views can share `pr:42`.
-        let updatedItems: GitHubWorkItem[] | undefined
-        entry.data.forEach((item, index) => {
-          if (
-            (!options?.matches && updatedItems) ||
-            (repoId && item.repoId !== repoId) ||
-            (options?.matches ? !options.matches(item) : item.id !== itemId)
-          ) {
-            return
-          }
-          const repository = repositoryKey ? parseGitHubIssueOrPRLink(item.url)?.slug : undefined
-          if (
-            repositoryKey &&
-            (!repository || githubRepoIdentityKey(repository) !== repositoryKey)
-          ) {
-            return
-          }
-          updatedItems ??= [...entry.data]
-          updatedItems[index] = { ...item, ...patch }
-        })
-        if (!updatedItems) {
-          continue
-        }
-        nextCache[key] = { ...entry, data: updatedItems }
-        changed = true
-      }
-      return changed ? { workItemsCache: nextCache } : s
-    })
+    set((s) => reduceWorkItemPatches(s, [{ itemId, patch, repoId, options }], false))
   },
 
   setIssueSourcePreference: async (repoId, repoPath, preference, hostId) => {
@@ -158,3 +102,5 @@ export const createWorkItemMutationActions = (
     })
   }
 })
+
+import { reduceWorkItemPatches } from './work-item-cache-patches'

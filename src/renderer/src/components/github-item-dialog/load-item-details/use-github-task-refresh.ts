@@ -185,7 +185,11 @@ export function useGitHubTaskRefresh({
         const interrupted = new Promise<null>((resolve) => {
           wake = () => resolve(null)
         })
-        const retire = captureTaskPageGitHubRefreshMasks(target.item, target.sources)
+        const retire = captureTaskPageGitHubRefreshMasks(
+          target.item,
+          target.sources,
+          target.observations
+        )
         const accepts = () => live && target.current() && !writes.changed()
         attempt = startWorkItemDetailsFetch(
           canonicalCacheKey,

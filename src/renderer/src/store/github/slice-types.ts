@@ -32,6 +32,7 @@ import type {
   CacheEntry,
   FetchOptions,
   GitHubPatchWorkItemOptions,
+  GitHubWorkItemPatch,
   GitHubPRFallbackSource,
   ProjectRowContentPatch,
   ProjectRowContentUpdate,
@@ -232,6 +233,7 @@ export type GitHubSlice = {
     query?: string,
     options?: { sourceContext?: TaskSourceContext | null }
   ) => void
+  patchWorkItems: (patches: readonly GitHubWorkItemPatch[]) => void
   patchWorkItem: (
     itemId: string,
     patch: Partial<GitHubWorkItem>,

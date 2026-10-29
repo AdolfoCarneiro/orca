@@ -1,5 +1,11 @@
+import {
+  captureGitHubTaskObservation,
+  getGitHubTaskObservation,
+  type ObservedGitHubWorkItem
+} from '@/lib/github-task-observation'
+import { getGitHubRepoLookupIndex } from '../slices/github-repo-lookup-index'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
-import { getGitHubWorkItemRowHostId } from './work-item-routing'
+
 import { getGitHubSourceRuntimeTarget } from '@/lib/github-source-runtime-context'
 import {
   githubTaskIdentity,
@@ -112,7 +118,7 @@ export function clearInflightWorkItemsForRepo(eviction: RepoCacheEviction): void
 }
 
 type RefreshTarget = NonNullable<ReturnType<typeof captureGitHubTaskTarget>>
-type ReadPatch = { target: RefreshTarget; item: GitHubWorkItem; body: string }
+type ReadPatch = { target: RefreshTarget; item: ObservedGitHubWorkItem; body: string }
 const liveTaskReads = new Set<GitHubTaskRead>()
 const rowKey = (row: GitHubWorkItem, host = row.repoHostId ?? '') =>
   `${row.repoId}\0${host}\0${githubTaskIdentity(row)}`
@@ -123,23 +129,33 @@ export function beginGitHubTaskRead(
   projectTarget?: RuntimeClientTarget,
   state?: Pick<AppState, 'repos'>
 ) {
-  const scopes = new Set(sources.map((s) => `${s.repoId}\0${githubTaskSourceKey(s.sourceContext)}`))
+  const lookup = getGitHubRepoLookupIndex(state?.repos)
+  const owners = sources.map((source) => {
+    const repo = source.sourceContext?.hostId
+      ? source.path
+        ? lookup.findOnHost(source.sourceContext.hostId, source.repoId, source.path)
+        : lookup.findByHostAndId(source.sourceContext.hostId, source.repoId)
+      : lookup.findByIdOrPath(source.repoId, source.path ?? '')
+    return { source, observation: repo && captureGitHubTaskObservation(repo, source.sourceContext) }
+  })
+  const scopes = new Set(
+    owners.flatMap((owner) => (owner.observation ? [owner.observation.key] : []))
+  )
   const legacy = new Set(
-    sources
-      .filter((s) => !s.sourceContext)
-      .map(
-        (s) =>
-          `${s.repoId}\0${state ? (getGitHubWorkItemRowHostId(state, s.repoId, s.path ?? '') ?? '') : ''}`
+    owners
+      .filter((owner) => !owner.observation)
+      .map((owner) =>
+        JSON.stringify([owner.source.repoId, githubTaskSourceKey(owner.source.sourceContext)])
       )
   )
   const patches = new Map<string, ReadPatch>()
   const read = {
     mark(target: RefreshTarget, item: GitHubWorkItem, body: string) {
       if (
+        target.observations.some((owner) => owner && scopes.has(owner.key)) ||
         target.sources.some((source) =>
-          scopes.has(`${target.item.repoId}\0${githubTaskSourceKey(source)}`)
+          legacy.has(JSON.stringify([target.item.repoId, githubTaskSourceKey(source)]))
         ) ||
-        legacy.has(`${target.item.repoId}\0${target.hostId}`) ||
         (projectTarget &&
           JSON.stringify(projectTarget) ===
             JSON.stringify(getGitHubSourceRuntimeTarget(target.source)))
@@ -164,17 +180,28 @@ export function beginGitHubTaskRead(
           valid.set(rowKey(patch.item, ''), patch)
         }
       }
-      const latest = new Map(current.map((row) => [rowKey(row), row]))
+      const latest = new Map(current.map((row: ObservedGitHubWorkItem) => [rowKey(row), row]))
       return items.map((row) => {
         const patch =
           valid.get(rowKey(row)) ?? (!row.repoHostId ? valid.get(rowKey(row, '')) : undefined)
         if (!patch || !patch.target.matches(row)) {
           return row
         }
-        const present = latest.get(rowKey(row, patch.target.hostId)) ?? latest.get(rowKey(row, ''))
+        const candidate =
+          latest.get(rowKey(row, patch.target.hostId)) ?? latest.get(rowKey(row, ''))
+        const present =
+          candidate &&
+          (!getGitHubTaskObservation(candidate) ||
+            patch.target.observations.some(
+              (owner) => owner?.key === getGitHubTaskObservation(candidate)?.key
+            ))
+            ? candidate
+            : undefined
         return {
           ...row,
-          ...githubTaskContent(present && patch.target.matches(present) ? present : patch.item)
+          ...githubTaskContent(present && patch.target.matches(present) ? present : patch.item),
+          githubObservation: getGitHubTaskObservation(present ?? patch.item),
+          githubValueOrigins: (present ?? patch.item).githubValueOrigins
         }
       })
     },

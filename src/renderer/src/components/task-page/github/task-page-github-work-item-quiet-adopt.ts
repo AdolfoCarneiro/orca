@@ -1,3 +1,12 @@
+import {
+  getGitHubTaskObservation,
+  gitHubTaskFamilyOrigin,
+  type GitHubTaskObservation
+} from '@/lib/github-task-observation'
+import {
+  createTaskPageGitHubAuthorityProjection,
+  adoptTaskPageGitHubMembershipFamilies
+} from './task-page-github-work-item-mutation-composition'
 import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
@@ -9,17 +18,16 @@ import {
 } from './task-page-github-work-item-mutation-composition'
 import {
   getConfirmedListSnapshot,
-  listPendingTaskPageGitHubOpsForItem,
   deleteConfirmedListSnapshot
 } from './task-page-github-work-item-mutation-registry'
 import {
-  getLastConfirmedClientValue,
+  createTaskPageGitHubScalarAuthorityIndex,
   deleteLastConfirmedClientValue
 } from './task-page-github-confirmed-client-values'
 import { getOrCreateQuietRevalidateState } from './task-page-github-work-item-quiet-state'
 import {
   taskPageGitHubFamilyDirtyKey,
-  taskPageGitHubItemKey
+  taskPageGitHubOwnedItemKey
 } from './task-page-github-work-item-mutation-keys'
 import type { TaskPageGitHubPatchWorkItem } from './task-page-github-work-item-mutation-types'
 
@@ -27,28 +35,14 @@ export const MAX_LAG_TRAILS = 5
 export const LAG_WALL_BUDGET_MS = 90_000
 export const LAG_BACKOFF_MS = [500, 1000, 2000, 4000, 8000] as const
 
-function hasPendingForFamily(
-  sourceScope: string | null,
-  repoId: string,
-  itemId: string,
-  family: string
-): boolean {
-  for (const op of listPendingTaskPageGitHubOpsForItem(repoId, itemId, sourceScope)) {
-    if (op.listOp?.family === family) {
-      return true
-    }
-    if (!op.listOp && familiesFromPendingOp(op).includes(family)) {
-      return true
-    }
-  }
-  return false
-}
-
 /** Adopt search field by field without regressing confirmed values; never force-accept lagging data. */
 export function adoptQuietSearchFieldsForItem(args: {
+  scalarFor?: ReturnType<typeof createTaskPageGitHubScalarAuthorityIndex>
+  projection?: ReturnType<typeof createTaskPageGitHubAuthorityProjection>
   item: GitHubWorkItem
   serverItem: GitHubWorkItem
   sourceScope: string | null
+  observation?: GitHubTaskObservation
   queryKey: string
   fetchStartedAtGeneration: number
   patchWorkItem: TaskPageGitHubPatchWorkItem
@@ -56,8 +50,25 @@ export function adoptQuietSearchFieldsForItem(args: {
 }): { needTrailing: boolean } {
   const state = getOrCreateQuietRevalidateState(args.queryKey)
   const itemId = taskPageGitHubMutationItemId(args.item)
-  const itemKey = taskPageGitHubItemKey(args.item.repoId, itemId)
+  const observation = args.observation ?? getGitHubTaskObservation(args.serverItem)
+  const itemKey = taskPageGitHubOwnedItemKey(
+    args.sourceScope,
+    args.item.repoId,
+    itemId,
+    observation?.key
+  )
   const ownerRepo = parseGitHubIssueOrPRLink(args.item.url)?.slug ?? null
+  const scalarFor = args.scalarFor ?? createTaskPageGitHubScalarAuthorityIndex()
+  const scalars = {
+    state: scalarFor(args.item, args.sourceScope, observation, 'state'),
+    autoMerge: scalarFor(args.item, args.sourceScope, observation, 'autoMerge')
+  }
+  const pending = (args.projection ?? createTaskPageGitHubAuthorityProjection()).pending(
+    args.item,
+    args.sourceScope,
+    observation
+  )
+  const pendingFamilies = new Set(pending.flatMap(familiesFromPendingOp))
   let needTrailing = false
   const G0 = args.fetchStartedAtGeneration
   const tryFamily = (
@@ -67,12 +78,18 @@ export function adoptQuietSearchFieldsForItem(args: {
     hasClientAuthority: () => boolean,
     releaseClientAuthority: () => void
   ): void => {
-    if (hasPendingForFamily(args.sourceScope, args.item.repoId, itemId, family)) {
+    if (pendingFamilies.has(family)) {
       return
     }
+    const scalar = family === 'state' || family === 'autoMerge' ? scalars[family] : undefined
     const familyItemKey =
       family === 'state' || family === 'autoMerge'
-        ? taskPageGitHubItemKey(args.item.repoId, args.item.id)
+        ? taskPageGitHubOwnedItemKey(
+            scalar?.sourceScope ?? args.sourceScope,
+            args.item.repoId,
+            args.item.id,
+            scalar?.observation?.key ?? observation?.key
+          )
         : itemKey
     const dirtyAt =
       state.familyDirtyAt.get(taskPageGitHubFamilyDirtyKey(familyItemKey, family)) ?? 0
@@ -93,6 +110,14 @@ export function adoptQuietSearchFieldsForItem(args: {
       return
     }
     adopt()
+    adoptTaskPageGitHubMembershipFamilies(
+      args.serverItem,
+      args.sourceScope,
+      args.queryKey,
+      observation,
+      [family],
+      hasAuthority
+    )
     if (hasAuthority) {
       releaseClientAuthority()
     }
@@ -103,36 +128,30 @@ export function adoptQuietSearchFieldsForItem(args: {
     () => {
       args.patchWorkItem(args.item.id, { state: args.serverItem.state }, args.item.repoId, {
         sourceContext: args.sourceContext,
+        observation,
+        valueOrigins: {
+          state: gitHubTaskFamilyOrigin(args.serverItem, 'state') ?? {
+            kind: 'ordinary',
+            owner: observation
+          }
+        },
         ownerRepo
       })
     },
+    () => !scalars.state || args.serverItem.state === scalars.state.value,
+    () => !!scalars.state,
     () => {
-      const last = getLastConfirmedClientValue(
-        args.sourceScope,
-        args.item.repoId,
-        args.item.id,
-        'state',
-        ownerRepo
-      )
-      return last === undefined || args.serverItem.state === last
-    },
-    () =>
-      getLastConfirmedClientValue(
-        args.sourceScope,
-        args.item.repoId,
-        args.item.id,
-        'state',
-        ownerRepo
-      ) !== undefined,
-    () =>
+      const entry = scalars.state!
       deleteLastConfirmedClientValue(
-        args.sourceScope,
-        args.item.repoId,
-        args.item.id,
+        entry.sourceScope,
+        entry.repoId,
+        entry.itemId,
         'state',
         ownerRepo
       )
+    }
   )
+
   tryFamily(
     'autoMerge',
     () => {
@@ -140,23 +159,31 @@ export function adoptQuietSearchFieldsForItem(args: {
         args.item.id,
         { autoMergeEnabled: args.serverItem.autoMergeEnabled },
         args.item.repoId,
-        { sourceContext: args.sourceContext, ownerRepo }
+        {
+          sourceContext: args.sourceContext,
+          ownerRepo,
+          observation,
+          valueOrigins: {
+            autoMerge: gitHubTaskFamilyOrigin(args.serverItem, 'autoMerge') ?? {
+              kind: 'ordinary',
+              owner: observation
+            }
+          }
+        }
       )
     },
+    () => !scalars.autoMerge || args.serverItem.autoMergeEnabled === scalars.autoMerge.value,
+    () => !!scalars.autoMerge,
     () => {
-      const last = getLastConfirmedClientValue(
-        args.sourceScope,
-        args.item.repoId,
-        args.item.id,
-        'autoMerge'
+      const entry = scalars.autoMerge!
+      deleteLastConfirmedClientValue(
+        entry.sourceScope,
+        entry.repoId,
+        entry.itemId,
+        'autoMerge',
+        ownerRepo
       )
-      return last === undefined || args.serverItem.autoMergeEnabled === last
-    },
-    () =>
-      getLastConfirmedClientValue(args.sourceScope, args.item.repoId, args.item.id, 'autoMerge') !==
-      undefined,
-    () =>
-      deleteLastConfirmedClientValue(args.sourceScope, args.item.repoId, args.item.id, 'autoMerge')
+    }
   )
   for (const family of ['assignees', 'reviewRequests'] as const) {
     const serverListValue =
@@ -172,7 +199,17 @@ export function adoptQuietSearchFieldsForItem(args: {
           args.item.id,
           family === 'assignees' ? { assignees: serverList } : { reviewRequests: serverList },
           args.item.repoId,
-          { sourceContext: args.sourceContext, ownerRepo }
+          {
+            sourceContext: args.sourceContext,
+            ownerRepo,
+            observation,
+            valueOrigins: {
+              [family]: gitHubTaskFamilyOrigin(args.serverItem, family) ?? {
+                kind: 'ordinary',
+                owner: observation
+              }
+            }
+          }
         )
       },
       () => {
@@ -180,7 +217,9 @@ export function adoptQuietSearchFieldsForItem(args: {
           args.sourceScope,
           args.item.repoId,
           itemId,
-          family
+          family,
+          observation,
+          args.item.type
         )
         if (!snapshot) {
           return true
@@ -188,8 +227,23 @@ export function adoptQuietSearchFieldsForItem(args: {
         return loginSetsEqual(loginSetOfUsers(snapshot), loginSetOfUsers(serverListValue))
       },
       () =>
-        getConfirmedListSnapshot(args.sourceScope, args.item.repoId, itemId, family) !== undefined,
-      () => deleteConfirmedListSnapshot(args.sourceScope, args.item.repoId, itemId, family)
+        getConfirmedListSnapshot(
+          args.sourceScope,
+          args.item.repoId,
+          itemId,
+          family,
+          observation,
+          args.item.type
+        ) !== undefined,
+      () =>
+        deleteConfirmedListSnapshot(
+          args.sourceScope,
+          args.item.repoId,
+          itemId,
+          family,
+          observation,
+          args.item.type
+        )
     )
   }
   return { needTrailing }

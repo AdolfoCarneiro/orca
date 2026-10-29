@@ -1,3 +1,8 @@
+import {
+  captureGitHubTaskObservation,
+  observeGitHubWorkItem,
+  isGitHubTaskObservationCurrent
+} from '@/lib/github-task-observation'
 import { beginGitHubTaskRead } from './request-coordination'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
@@ -95,10 +100,6 @@ export const createWorkItemFetchActions = (
     const cacheScope = getGitHubWorkItemSourceCacheScope(repo, options?.sourceContext)
     const key = workItemsCacheKey(repoId, limit, query, cacheScope)
     const cached = get().workItemsCache[key]
-    if (!options?.force && isFresh(cached, WORK_ITEMS_CACHE_TTL)) {
-      return cached.data ?? []
-    }
-
     const requestInvalidationNonce = requestState.workItemsInvalidationNonce
     const requestContext = getGitHubWorkItemRequestContext(
       requestState,
@@ -107,7 +108,16 @@ export const createWorkItemFetchActions = (
       repoPath,
       options?.sourceContext
     )
-    const inflightKey = workItemsInflightRequestKey(key, requestContext.target)
+    const observation =
+      repo && captureGitHubTaskObservation(repo, options?.sourceContext, requestContext.target)
+    if (
+      !options?.force &&
+      observation?.key === cached?.fullFetchObservation?.key &&
+      isFresh(cached, WORK_ITEMS_CACHE_TTL)
+    ) {
+      return cached.data ?? []
+    }
+    const inflightKey = `${workItemsInflightRequestKey(key, requestContext.target)}::${observation?.key ?? ''}`
     const read = beginGitHubTaskRead(
       [{ repoId, path: repoPath, sourceContext: options?.sourceContext }],
       undefined,
@@ -153,11 +163,16 @@ export const createWorkItemFetchActions = (
           repoPath,
           options?.sourceContext
         )
-        let items: GitHubWorkItem[] = envelope.items.map((item) => ({
-          ...item,
-          repoId,
-          ...(repoHostId ? { repoHostId } : {})
-        }))
+        let items: GitHubWorkItem[] = envelope.items.map((item) =>
+          observeGitHubWorkItem(
+            {
+              ...item,
+              repoId,
+              ...(repoHostId ? { repoHostId } : {})
+            },
+            observation
+          )
+        )
         if (options?.requireComplete && (envelope.errors?.issues || envelope.errors?.prs)) {
           throw new Error('GitHub work-item fetch returned a partial result.')
         }
@@ -178,7 +193,10 @@ export const createWorkItemFetchActions = (
         const currentRepo = findRepoForGitHubOwner(get(), repoId, repoPath)
         const currentHostId = getGitHubWorkItemSourceHostId(currentRepo, options?.sourceContext)
         // Why: repo ownership changed, so this response belongs to an older execution-host bucket (host focus changes alone are fine).
-        if ((currentHostId ?? null) !== (ownerHostId ?? null)) {
+        if (
+          (currentHostId ?? null) !== (ownerHostId ?? null) ||
+          (observation && !isGitHubTaskObservationCurrent(observation, currentRepo))
+        ) {
           return items
         }
         // Why: the old promise can still settle after the in-flight clear; don't let pre-flip source data repopulate the cache once the invalidation nonce changed.
@@ -204,6 +222,7 @@ export const createWorkItemFetchActions = (
           const fellBackUnchanged = previousEntry?.issueSourceFellBack === nextFellBack
           if (
             previousEntry &&
+            previousEntry.fullFetchObservation?.key === observation?.key &&
             reconciled === previousData &&
             sourcesUnchanged &&
             errorUnchanged &&
@@ -218,6 +237,7 @@ export const createWorkItemFetchActions = (
             workItemsCache: withBoundedCacheEntry(s.workItemsCache, key, {
               // reconcileCatalogRows returns previous array on structural match.
               data: reconciled,
+              fullFetchObservation: observation,
               fetchedAt: Date.now(),
               sources:
                 sourcesUnchanged && previousSources !== undefined

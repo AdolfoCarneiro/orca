@@ -1,16 +1,25 @@
+import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
+import { getRepoExecutionHostId } from '../../../../../shared/execution-host'
+import { getGitHubRepoLookupIndex } from '@/store/slices/github-repo-lookup-index'
+import {
+  captureGitHubTaskObservation,
+  getGitHubTaskObservation,
+  createGitHubTaskObservationIndex
+} from '@/lib/github-task-observation'
+import { setTaskPageGitHubMembershipActivation } from './task-page-github-work-item-mutation-registry'
 import type { TaskPageLinearCreationStateModel } from '../linear/use-task-page-linear-creation-state'
 import { getGitHubTaskKind } from '../../../../../shared/task-github-search'
 import { useMemo, useLayoutEffect, useEffect, useCallback, useRef } from 'react'
 import { parseTaskQuery } from '../../../../../shared/task-query'
 import {
   setTaskPageGitHubMutationQueryKey,
-  getTaskPageGitHubConfirmedAuthorityItemKeys
+  getTaskPageGitHubConfirmedAuthorities
 } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
 import { getOrCreateQuietRevalidateState } from '@/components/task-page/github/task-page-github-work-item-quiet-state'
 import type { TaskPageGitHubPatchWorkItem } from '@/components/task-page/github/task-page-github-work-item-mutation-types'
 import { useAppStore } from '@/store/index'
 import { useTaskPageGitHubWorkItemMutation } from '@/hooks/useTaskPageGitHubWorkItemMutation'
-import { rebuildSoftHiddenKeysFromPendingAndSticky } from '@/components/task-page/github/task-page-github-work-item-mutation-composition'
 import { buildGitHubRepoUrl } from '../../../../../shared/github/links'
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
 export function useTaskPageGitHubMutationState(model: TaskPageLinearCreationStateModel) {
@@ -23,7 +32,6 @@ export function useTaskPageGitHubMutationState(model: TaskPageLinearCreationStat
     setQuietRefreshNonce,
     githubViewerLogin,
     setGitHubViewerLogin,
-    pages,
     patchTaskPageWorkItemRows,
     perRepoSourceState
   } = model
@@ -70,33 +78,64 @@ export function useTaskPageGitHubMutationState(model: TaskPageLinearCreationStat
   const patchCoordinatedGitHubWorkItem = useCallback(
     (...args: Parameters<TaskPageGitHubPatchWorkItem>): void => {
       const [id, patch, repoId, options] = args
+      const ownerKey = options?.ownerRepo ? githubRepoIdentityKey(options.ownerRepo) : undefined
+      const registered = getGitHubRepoLookupIndex(useAppStore.getState().repos)
       useAppStore.getState().patchWorkItem(id, patch, repoId, options)
-      if (repoId) {
+      const currentOwner =
+        options?.observation &&
+        createGitHubTaskObservationIndex(
+          useAppStore.getState().repos,
+          () => options.sourceContext ?? null
+        )(
+          { repoId: options.observation.repoId, repoHostId: options.observation.hostId },
+          options.sourceContext
+        )
+      if (repoId && (!options?.observation || currentOwner?.key === options.observation.key)) {
         patchTaskPageWorkItemRows(
           {
             id,
             repoId
           },
-          patch
+          options?.valueOrigins ? { ...patch, githubValueOrigins: options.valueOrigins } : patch,
+          (item) => {
+            const repository = ownerKey ? parseGitHubIssueOrPRLink(item.url)?.slug : undefined
+            const legacyRepo =
+              !item.repoHostId && !getGitHubTaskObservation(item)
+                ? registered.findForWorkItem(item)
+                : undefined
+            const hostId =
+              item.repoHostId ??
+              getGitHubTaskObservation(item)?.hostId ??
+              (legacyRepo && getRepoExecutionHostId(legacyRepo))
+            return (
+              item.id === id &&
+              (!options?.observation || hostId === options.observation.hostId) &&
+              (!ownerKey || (!!repository && githubRepoIdentityKey(repository) === ownerKey))
+            )
+          }
         )
       }
     },
     [patchTaskPageWorkItemRows]
   )
   const githubWorkItemMutation = useTaskPageGitHubWorkItemMutation({
+    repos: selectedRepos,
     queryKey: githubWorkItemMutationQueryKey,
     query: appliedTaskQuery,
     viewerLogin: githubViewerLogin,
     patchWorkItem: patchCoordinatedGitHubWorkItem
   })
+  const membershipActivation = JSON.stringify(
+    selectedRepos
+      .map(
+        (repo) =>
+          captureGitHubTaskObservation(repo, getTaskPageRepoSourceContext(repo, 'github'))?.key
+      )
+      .sort()
+  )
   useLayoutEffect(() => {
-    rebuildSoftHiddenKeysFromPendingAndSticky({
-      query: appliedTaskQuery,
-      queryKey: githubWorkItemMutationQueryKey,
-      viewerLogin: githubViewerLogin,
-      items: pages.flatMap((page) => page ?? [])
-    })
-  }, [appliedTaskQuery, githubViewerLogin, githubWorkItemMutationQueryKey, pages])
+    setTaskPageGitHubMembershipActivation(membershipActivation)
+  }, [githubWorkItemMutationQueryKey, membershipActivation])
   const observedQuietScopeRef = useRef({
     queryKey: '',
     dirtyGeneration: -1
@@ -116,15 +155,12 @@ export function useTaskPageGitHubMutationState(model: TaskPageLinearCreationStat
       queryKey: githubWorkItemMutationQueryKey,
       dirtyGeneration: quietState.dirtyGeneration
     }
-    if (
-      getTaskPageGitHubConfirmedAuthorityItemKeys().size > 0 &&
-      (enteringScope || dirtyAdvanced)
-    ) {
+    if (getTaskPageGitHubConfirmedAuthorities().length > 0 && (enteringScope || dirtyAdvanced)) {
       scheduleQuietRevalidate()
     }
   }, [
     githubMode,
-    githubWorkItemMutation.softHiddenItemKeys,
+    githubWorkItemMutation.registryVersion,
     githubWorkItemMutationQueryKey,
     scheduleQuietRevalidate,
     taskSource

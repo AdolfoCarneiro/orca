@@ -1,4 +1,8 @@
+import { useTaskPageGitHubMutationState } from '@/components/task-page/github/use-task-page-github-mutation-state'
+import type { TaskPageLinearCreationStateModel } from '@/components/task-page/linear/use-task-page-linear-creation-state'
+import { createRepoUpdateActions } from '@/store/repos/repo-update'
 import {
+  createTaskRefreshApi,
   repo,
   source,
   key,
@@ -119,70 +123,29 @@ vi.mock('@/hooks/useGitHubSlugMetadata', () => ({
 vi.mock('@/components/github/github-duplicate-issue-candidates', () => ({
   useGitHubDuplicateIssueCandidates: () => []
 }))
-vi.mock('@/components/github-item-dialog/edit-item-fields/gh-edit-section-top-columns', () => ({
-  GHEditSectionTopColumns: (p: {
-    item: GitHubWorkItem
-    localAssignees: string[]
-    localLabels: string[]
-    isLabelsPending: boolean
-    onLabelToggle: (label: string) => void
-    onAssigneeToggle: (login: string) => void
-  }) => (
-    <>
-      <output data-assignees data-render={++fieldsRenders}>
-        {p.localAssignees.join(',')}
-      </output>
-      <output data-editor-item>{JSON.stringify(p.item)}</output>
-      <output data-labels>{p.localLabels.join(',')}</output>
-      <button disabled={p.isLabelsPending} onClick={() => p.onLabelToggle('bug')}>
-        Add bug
-      </button>
-      <button onClick={() => p.onAssigneeToggle('bob')}>Add Bob</button>
-    </>
-  )
+vi.mock(
+  '@/components/github-item-dialog/edit-item-fields/gh-edit-section-top-columns',
+  async () => ({
+    GHEditSectionTopColumns: (await import('./github-task-refresh-renderers.test-fixture'))
+      .GHEditSectionTopColumns
+  })
+)
+vi.mock('@/components/github-item-dialog/discuss-item/conversation-tab-description', async () => ({
+  ConversationTabDescription: (await import('./github-task-refresh-renderers.test-fixture'))
+    .ConversationTabDescription
 }))
-vi.mock('@/components/github-item-dialog/discuss-item/conversation-tab-description', () => ({
-  ConversationTabDescription: (p: {
-    item: GitHubWorkItem
-    body: string
-    resolvedBodyDraft: string
-    setBodyDraft: (v: string) => void
-    setBodyEditing: (v: boolean) => void
-    onSaveBody: () => void
-  }) => (
-    <>
-      <output data-body>{p.body}</output>
-      <output data-conversation-item>{JSON.stringify(p.item)}</output>
-      <input
-        aria-label="Body draft"
-        value={p.resolvedBodyDraft}
-        onChange={(e) => {
-          p.setBodyEditing(true)
-          p.setBodyDraft(e.target.value)
-        }}
-      />
-      <button onClick={p.onSaveBody}>Save body</button>
-    </>
-  )
+vi.mock('@/components/github-item-dialog/discuss-item/conversation-tab-activity', async () => ({
+  ConversationTabActivity: (await import('./github-task-refresh-renderers.test-fixture'))
+    .ConversationTabActivity
 }))
-vi.mock('@/components/github-item-dialog/discuss-item/conversation-tab-activity', () => ({
-  ConversationTabActivity: (p: { comments: { body: string }[] }) => (
-    <output data-comments>{p.comments.map((c) => c.body).join(',')}</output>
-  )
-}))
-vi.mock('@/components/github/GitHubMarkdownComposer', () => ({
-  GitHubMarkdownComposer: (p: { value: string; onChange: (value: string) => void }) => (
-    <input
-      aria-label="Comment draft"
-      value={p.value}
-      onChange={(e) => p.onChange(e.target.value)}
-    />
-  )
+vi.mock('@/components/github/GitHubMarkdownComposer', async () => ({
+  GitHubMarkdownComposer: (await import('./github-task-refresh-renderers.test-fixture'))
+    .GitHubMarkdownComposer
 }))
 
 let harnessSetPages: React.Dispatch<React.SetStateAction<(GitHubWorkItem[] | null)[]>>
 let taskMutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>
-let fieldsRenders = 0
+
 let openedItem = seed,
   openedSource = source
 let root: Root,
@@ -213,8 +176,11 @@ function fixture(n = 1) {
       ({
         ...createGitHubSlice(...args),
         ...createRuntimeStatusSlice(...args),
+        ...createRepoUpdateActions(args[0], args[1]),
         repos: [repo],
         settings: null,
+        endpointProjects: [],
+        endpointProjectHostSetups: [],
         runtimeStatusByEnvironmentId: new Map(),
         taskPageData: { openGitHubWorkItem: seed, openGitHubSourceContext: source },
         githubTaskDrawerWorkItem: seed,
@@ -232,14 +198,31 @@ function fixture(n = 1) {
   pages = [null, null, [{ ...seed, id: 'issue:5' }, twin, ...others]]
   return { others, twin }
 }
-function Harness({ standalone = false }: { standalone?: boolean }) {
-  const mutation = useTaskPageGitHubWorkItemMutation({
-    queryKey: 'q',
-    query: parseTaskQuery('is:open'),
-    viewerLogin: 'alice',
-    patchWorkItem: store.getState().patchWorkItem
-  })
-  const [localPages, setPages] = useState(pages)
+type OutputRenderer = (
+  pages: (GitHubWorkItem[] | null)[],
+  mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>,
+  queryKey: string,
+  viewerLogin: string | null
+) => React.ReactNode
+function HarnessView({
+  standalone = false,
+  outputs,
+  query = 'is:open',
+  localPages,
+  setPages,
+  mutation,
+  queryKey = 'q',
+  viewerLogin = 'alice'
+}: {
+  standalone?: boolean
+  outputs?: OutputRenderer
+  query?: string
+  queryKey?: string
+  viewerLogin?: string | null
+  localPages: (GitHubWorkItem[] | null)[]
+  setPages: React.Dispatch<React.SetStateAction<(GitHubWorkItem[] | null)[]>>
+  mutation: ReturnType<typeof useTaskPageGitHubWorkItemMutation>
+}) {
   useLayoutEffect(() => {
     taskMutation = mutation
     pages = localPages
@@ -252,9 +235,9 @@ function Harness({ standalone = false }: { standalone?: boolean }) {
     dialogSourceContext: openedSource,
     dialogInitialTab: undefined,
     selectedRepos: store.getState().repos,
-    appliedTaskQuery: parseTaskQuery('is:open'),
-    githubWorkItemMutationQueryKey: 'q',
-    githubViewerLogin: 'alice',
+    appliedTaskQuery: parseTaskQuery(query),
+    githubWorkItemMutationQueryKey: queryKey,
+    githubViewerLogin: viewerLogin,
     setDialogWorkItem: vi.fn(),
     handleUseWorkItem: useItem,
     closeTaskDetailPage: vi.fn(),
@@ -266,6 +249,7 @@ function Harness({ standalone = false }: { standalone?: boolean }) {
   }
   return (
     <TooltipProvider>
+      {outputs?.(localPages, mutation, queryKey, viewerLogin)}
       {standalone ? (
         <GitHubItemDialog
           workItem={openedItem}
@@ -280,9 +264,62 @@ function Harness({ standalone = false }: { standalone?: boolean }) {
     </TooltipProvider>
   ) // SAFETY: this fixture deliberately renders only the issue branch with its production accepted callback.
 }
-async function mount(standalone = false) {
+type HarnessProps = { standalone?: boolean; outputs?: OutputRenderer; query?: string }
+function Harness(props: HarnessProps) {
+  const [localPages, setPages] = useState(pages)
+  useStore(store, (state) => state.repos)
+  const mutation = useTaskPageGitHubWorkItemMutation({
+    queryKey: 'q',
+    query: parseTaskQuery(props.query ?? 'is:open'),
+    viewerLogin: 'alice',
+    patchWorkItem: store.getState().patchWorkItem
+  })
+  return <HarnessView {...props} localPages={localPages} setPages={setPages} mutation={mutation} />
+}
+function ProductionHarness(props: HarnessProps) {
+  const selectedRepos = useStore(store, (state) => state.repos)
+  const [localPages, setPages] = useState(pages)
+  const [viewer, setViewer] = useState<string | null>(null)
+  const [, setQuiet] = useState(0)
+  // SAFETY: the actual mutation owner reads only this declared slice; no lifecycle is mocked.
+  const input = {
+    selectedRepos,
+    taskSource: 'github',
+    githubMode: 'items',
+    appliedTaskSearch: props.query ?? 'is:open',
+    activeTaskPreset: null,
+    setQuietRefreshNonce: setQuiet,
+    githubViewerLogin: viewer,
+    setGitHubViewerLogin: setViewer,
+    pages: localPages,
+    perRepoSourceState: [],
+    patchTaskPageWorkItemRows: (
+      item: GitHubWorkItem,
+      patch: Partial<GitHubWorkItem>,
+      matches?: (row: GitHubWorkItem) => boolean
+    ) => setPages((current) => patchTaskPageGitHubWorkItemPages(current, item, patch, matches))
+  } as TaskPageLinearCreationStateModel
+  const owner = useTaskPageGitHubMutationState(input)
+  return (
+    <HarnessView
+      {...props}
+      localPages={localPages}
+      setPages={setPages}
+      mutation={owner.githubWorkItemMutation}
+      queryKey={owner.githubWorkItemMutationQueryKey}
+      viewerLogin={viewer}
+    />
+  )
+}
+async function mount(
+  standalone = false,
+  outputs?: OutputRenderer,
+  query?: string,
+  production = false
+) {
   await act(async () => {
-    root.render(<Harness standalone={standalone} />)
+    const Component = production ? ProductionHarness : Harness
+    root.render(<Component standalone={standalone} outputs={outputs} query={query} />)
   })
 }
 async function click(label = 'Refresh task') {
@@ -313,22 +350,7 @@ beforeEach(() => {
   setTaskPageGitHubMutationQueryKey('q')
   fixture()
   Object.assign(window, {
-    api: {
-      gh: {
-        workItemDetails: direct,
-        updateIssue: update,
-        updatePRState: update,
-        mergePR: update,
-        updateIssueBySlug: update,
-        addIssueComment: postComment,
-        listWorkItems: list,
-        countWorkItems: vi.fn().mockResolvedValue(0),
-        getProjectViewTable: projectRead,
-        updateIssueTypeBySlug: issueType
-      },
-      shell: { openUrl: vi.fn() },
-      ui: { writeClipboardText: vi.fn().mockResolvedValue(undefined) }
-    }
+    api: createTaskRefreshApi({ direct, update, list, issueType, projectRead, postComment })
   })
   direct.mockResolvedValue(oldDetails)
   update.mockResolvedValue({ ok: true })
@@ -347,7 +369,6 @@ afterEach(async () => {
 export {
   useItem,
   store,
-  fieldsRenders,
   container,
   taskMutation,
   harnessSetPages,
@@ -388,3 +409,5 @@ export const context = {
     openedSource = value
   }
 }
+
+export { fieldsRenders } from './github-task-refresh-renderers.test-fixture'

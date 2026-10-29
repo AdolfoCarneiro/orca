@@ -17,11 +17,16 @@ export function publishGitHubTaskRefresh(
   details: GitHubWorkItemDetails,
   onItem?: GitHubTaskRefreshHandler
 ) {
-  const patch = githubTaskContent(details.item)
+  const patch = {
+    ...githubTaskContent(details.item),
+    githubObservation: target.observation,
+    githubValueOrigins: {}
+  }
   const accepted = { ...target.item, ...patch }
   markGitHubTaskReads(target, accepted, details.body)
   const state = useAppStore.getState()
   state.patchWorkItem(target.item.id, patch, target.item.repoId, {
+    observation: target.observation,
     sourceContext: target.source,
     sourceContexts: target.sources,
     hostId: target.hostId,
@@ -51,7 +56,12 @@ export function publishGitHubTaskRefresh(
   taskPageGitHubResumeCache.patch(
     (key) =>
       target.sources.some((source) =>
-        taskPageResumeContextHasSource(key, target.item.repoId, source)
+        taskPageResumeContextHasSource(
+          key,
+          target.item.repoId,
+          source,
+          target.observations.find((owner) => owner?.source === source)?.key
+        )
       ),
     (row) => (target.matches(row) ? { ...row, ...patch } : row)
   )

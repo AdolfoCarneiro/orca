@@ -1,3 +1,4 @@
+import { githubTaskBinding, captureGitHubTaskObservation } from './github-task-observation'
 import type { GitHubWorkItem, GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
 import type { Repo } from '../../../shared/repo-types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
@@ -11,7 +12,7 @@ import { githubRepoIdentityKey } from '../../../shared/github/repository-identit
 import { getRepoExecutionHostId } from '../../../shared/execution-host'
 import { parseHostAuthorityKey } from '../../../shared/host-authority'
 import type { AppState } from '@/store/types'
-import { getWorkItemRepo } from './work-item-repo-row'
+import { getGitHubRepoLookupIndex } from '@/store/slices/github-repo-lookup-index'
 import { getGitHubSourceRuntimeTarget } from './github-source-runtime-context'
 import { hostRouteForAuthority } from '@/runtime/runtime-client-target'
 import { captureHostIdentityFence, isHostIdentityFenceCurrent } from '@/store/host-catalog-fencing'
@@ -70,7 +71,7 @@ export function captureGitHubTaskTarget(
   taskPageSource: TaskSourceContext | null
 ) {
   const resolve = () =>
-    getWorkItemRepo(get().repos, {
+    getGitHubRepoLookupIndex(get().repos).findForWorkItem({
       repoId: item.repoId,
       repoHostId: item.repoHostId ?? source.hostId
     })
@@ -83,23 +84,13 @@ export function captureGitHubTaskTarget(
   if (hostId !== source.hostId) {
     return null
   }
-  const unstamped = getWorkItemRepo(get().repos, { repoId: item.repoId })
+  const unstamped = getGitHubRepoLookupIndex(get().repos).findForWorkItem({ repoId: item.repoId })
   const authority = parseHostAuthorityKey(hostId)
   if (!authority) {
     return null
   }
   const fence = captureHostIdentityFence(hostRouteForAuthority(authority))
-  const binding = (row: typeof repo | undefined) =>
-    row &&
-    JSON.stringify([
-      row.id,
-      row.path,
-      row.connectionId,
-      row.executionHostId,
-      row.ghAccount?.host,
-      row.ghAccount?.user,
-      row.projectHostSetupMethod
-    ])
+  const binding = (row: typeof repo | undefined) => row && githubTaskBinding(row)
   const legacySource = buildTaskSourceContextFromRepo({
     provider: 'github',
     projectId: repo.id,
@@ -116,6 +107,8 @@ export function captureGitHubTaskTarget(
     item,
     source,
     sources,
+    observations: sources.map((context) => captureGitHubTaskObservation(repo, context)),
+    observation: captureGitHubTaskObservation(repo, source),
     repo,
     ownerRepo,
     hostId,

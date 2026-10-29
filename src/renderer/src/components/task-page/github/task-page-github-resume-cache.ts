@@ -35,7 +35,8 @@ export function buildTaskPageGitHubResumeContextKey(args: {
 export function taskPageResumeContextHasSource(
   key: string,
   repoId: string,
-  source: TaskSourceContext
+  source: TaskSourceContext,
+  observationKey?: string
 ): boolean {
   try {
     const context: unknown = JSON.parse(key)
@@ -47,7 +48,10 @@ export function taskPageResumeContextHasSource(
       Array.isArray(repos) &&
       repos.some(
         (row) =>
-          Array.isArray(row) && row[0] === repoId && areTaskSourceContextsEqual(row[4], source)
+          Array.isArray(row) &&
+          row[0] === repoId &&
+          areTaskSourceContextsEqual(row[4], source) &&
+          (!observationKey || row[5] === observationKey)
       )
     )
   } catch {

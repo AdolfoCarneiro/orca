@@ -1,3 +1,4 @@
+import { captureGitHubTaskObservation, observeGitHubWorkItem } from '@/lib/github-task-observation'
 import { beginGitHubTaskRead } from './request-coordination'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
@@ -139,6 +140,8 @@ export const createWorkItemAggregateActions = (
           r.path,
           r.sourceContext
         )
+        const observation =
+          repo && captureGitHubTaskObservation(repo, r.sourceContext, requestContext.target)
         await acquireWorkItemSlot()
         try {
           const envelope = await listGitHubWorkItemsForRepo(requestContext, {
@@ -181,11 +184,16 @@ export const createWorkItemAggregateActions = (
             r.path,
             r.sourceContext
           )
-          return envelope.items.map((item): GitHubWorkItem => ({
-            ...item,
-            repoId: r.repoId,
-            ...(repoHostId ? { repoHostId } : {})
-          }))
+          return envelope.items.map((item): GitHubWorkItem =>
+            observeGitHubWorkItem(
+              {
+                ...item,
+                repoId: r.repoId,
+                ...(repoHostId ? { repoHostId } : {})
+              },
+              observation
+            )
+          )
         } catch (err) {
           if (isGitHubWorkItemsSshRemoteRequiredError(err)) {
             if (options?.requireComplete) {
@@ -225,17 +233,17 @@ export const createWorkItemAggregateActions = (
     const counts = await Promise.all(
       repos.map(async (r) => {
         // Share fetch admission cap: a 90-repo count otherwise floods main before rate-limit guard observes the first 403.
+        const requestState = get()
+        const repo = findRepoForGitHubOwner(requestState, r.repoId, r.path)
+        const requestContext = getGitHubWorkItemRequestContext(
+          requestState,
+          getGitHubSourceTarget(requestState, repo, r.sourceContext),
+          r.repoId,
+          r.path,
+          r.sourceContext
+        )
         await acquireWorkItemSlot()
         try {
-          const requestState = get()
-          const repo = findRepoForGitHubOwner(requestState, r.repoId, r.path)
-          const requestContext = getGitHubWorkItemRequestContext(
-            requestState,
-            getGitHubSourceTarget(requestState, repo, r.sourceContext),
-            r.repoId,
-            r.path,
-            r.sourceContext
-          )
           return await countGitHubWorkItemsForRepo(requestContext, { query: query || undefined })
         } catch {
           return 0
@@ -268,8 +276,14 @@ export const createWorkItemAggregateActions = (
       repoPath,
       options?.sourceContext
     )
-    const inflightKey = workItemsInflightRequestKey(key, requestContext.target)
-    if (isFresh(cached, WORK_ITEMS_CACHE_TTL) || inflightWorkItemsRequests.has(inflightKey)) {
+    const observation =
+      repo && captureGitHubTaskObservation(repo, options?.sourceContext, requestContext.target)
+    const inflightKey = `${workItemsInflightRequestKey(key, requestContext.target)}::${observation?.key ?? ''}`
+    if (
+      (observation?.key === cached?.fullFetchObservation?.key &&
+        isFresh(cached, WORK_ITEMS_CACHE_TTL)) ||
+      inflightWorkItemsRequests.has(inflightKey)
+    ) {
       return
     }
     void get()

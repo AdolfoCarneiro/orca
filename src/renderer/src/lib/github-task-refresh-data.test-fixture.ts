@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+import { captureGitHubTaskObservation } from './github-task-observation'
 // @vitest-environment happy-dom
 
 import type { Repo } from '../../../shared/repo-types'
@@ -104,7 +106,42 @@ export const request = {
   viewId: 'view'
 }
 export const resume = buildTaskPageGitHubResumeContextKey({
-  selectedReposKey: buildSelectedReposKey([repo], () => source),
+  selectedReposKey: buildSelectedReposKey(
+    [repo],
+    () => source,
+    (row) => captureGitHubTaskObservation(row, source)?.key
+  ),
   query: '',
   pageSize: 30
 })
+
+export function createTaskRefreshApi({
+  direct,
+  update,
+  list,
+  issueType,
+  projectRead,
+  postComment
+}: Record<
+  'direct' | 'update' | 'list' | 'issueType' | 'projectRead' | 'postComment',
+  ReturnType<typeof vi.fn>
+>) {
+  return {
+    gh: {
+      viewer: vi.fn().mockResolvedValue({ login: 'alice' }),
+      workItemDetails: direct,
+      updateIssue: update,
+      updatePRState: update,
+      mergePR: update,
+      updateIssueBySlug: update,
+      addIssueComment: postComment,
+      listWorkItems: list,
+      countWorkItems: vi.fn().mockResolvedValue(0),
+      getProjectViewTable: projectRead,
+      updateIssueTypeBySlug: issueType
+    },
+    repos: { update: vi.fn().mockResolvedValue(undefined) },
+    shell: { openUrl: vi.fn() },
+    ui: { writeClipboardText: vi.fn().mockResolvedValue(undefined) }
+  }
+}

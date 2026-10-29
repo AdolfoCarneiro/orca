@@ -1,3 +1,4 @@
+import { parseTaskQuery } from '../../../shared/task-query'
 import {
   repo,
   source,
@@ -279,6 +280,9 @@ it('reconciles a real aggregate held leaf at landing final commit against a newe
     taskResumeApplied: true,
     githubMode: 'items',
     appliedTaskSearch: '',
+    appliedTaskQuery: parseTaskQuery('is:open'),
+    githubViewerLogin: 'alice',
+    selectedReposKey: '',
     taskRefreshNonce: 1,
     lastFetchedNonceRef: { current: 0 },
     lastFetchedInvalidationNonceRef: { current: 0 },

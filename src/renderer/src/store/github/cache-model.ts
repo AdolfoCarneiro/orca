@@ -1,3 +1,5 @@
+import type { GitHubTaskValueOrigin, GitHubTaskFamily } from '@/lib/github-task-observation'
+import type { GitHubTaskObservation } from '@/lib/github-task-observation'
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { GitHubTaskRead } from './request-coordination'
@@ -19,6 +21,7 @@ export type WorkItemsCacheSources = {
 export type WorkItemsCacheError = ClassifiedError & { source: GitHubOwnerRepo }
 
 export type CacheEntry<T> = {
+  fullFetchObservation?: GitHubTaskObservation
   data: T | null
   fetchedAt: number
   fetchedHeadOid?: string | null
@@ -65,9 +68,21 @@ export type ProjectRowContentPatch = {
 }
 
 export type GitHubPatchWorkItemOptions = {
+  observation?: GitHubTaskObservation
+  valueOrigins?: Partial<Record<GitHubTaskFamily, GitHubTaskValueOrigin | undefined>>
   sourceContexts?: readonly TaskSourceContext[]
   sourceContext?: TaskSourceContext | null
   ownerRepo?: GitHubOwnerRepo | null
   matches?: (item: GitHubWorkItem) => boolean
   hostId?: ExecutionHostId
+}
+
+export type GitHubWorkItemPatch = {
+  itemId: string
+  repoId: string
+  patch: Partial<GitHubWorkItem>
+  options?: Pick<
+    GitHubPatchWorkItemOptions,
+    'sourceContext' | 'observation' | 'ownerRepo' | 'valueOrigins'
+  >
 }

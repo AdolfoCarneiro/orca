@@ -308,3 +308,118 @@ describe('createGitHubSlice.fetchWorkItems cache identity', () => {
     expect(nextEntry?.sources).toBe(previousEntry?.sources)
   })
 })
+
+it('folds exact population selectors in order while retaining ordinary first-match, explicit aliases and strict source policy', () => {
+  const store = createTestStore()
+  const source = githubSourceContext('local', 'repo-1')
+  const otherSource = { ...source, accountLabel: 'foreign:account' }
+  const sourceKey = workItemsCacheKey(
+    'repo-1',
+    30,
+    'is:open assignee:@me',
+    getTaskSourceCacheScope(source)
+  )
+  const foreignKey = workItemsCacheKey('repo-1', 30, '', getTaskSourceCacheScope(otherSource))
+  const legacyKey = workItemsCacheKey('repo-1', 30, 'legacy')
+  const row: GitHubWorkItem = {
+    id: 'issue:42',
+    repoId: 'repo-1',
+    type: 'issue',
+    number: 42,
+    url: 'https://github.com/fork/widgets/issues/42',
+    title: 'Fork',
+    state: 'open',
+    labels: [],
+    author: null,
+    updatedAt: ''
+  }
+  const upstream = { ...row, url: 'https://github.com/upstream/widgets/issues/42' }
+  const duplicate = { ...row, title: 'Duplicate' }
+  const alias = { ...row, id: row.url }
+  const enterprise = { ...row, url: 'https://ghe.example/fork/widgets/issues/42' }
+  const entry = { data: [upstream, row, duplicate, alias, enterprise], fetchedAt: 7 }
+  const foreign = { data: [row], fetchedAt: 8 }
+  store.setState({
+    workItemsCache: { [sourceKey]: entry, [foreignKey]: foreign, [legacyKey]: entry }
+  })
+  const subscriber = vi.fn()
+  const off = store.subscribe(subscriber)
+  store.getState().patchWorkItems([
+    {
+      itemId: row.id,
+      repoId: row.repoId,
+      patch: { title: 'First', state: 'closed' },
+      options: { sourceContext: source }
+    },
+    {
+      itemId: row.id,
+      repoId: row.repoId,
+      patch: { state: 'closed', assignees: [] },
+      options: {
+        sourceContext: source,
+        ownerRepo: { owner: 'fork', repo: 'widgets' },
+        valueOrigins: { state: { kind: 'ordinary' } }
+      }
+    },
+    {
+      itemId: row.id,
+      repoId: row.repoId,
+      patch: { state: undefined },
+      options: { sourceContext: source }
+    },
+    {
+      itemId: row.id,
+      repoId: row.repoId,
+      patch: { title: 'Last' },
+      options: {
+        sourceContext: source,
+        ownerRepo: { owner: 'fork', repo: 'widgets' },
+        valueOrigins: { state: undefined }
+      }
+    }
+  ])
+  const rows = store.getState().workItemsCache[sourceKey].data!
+  expect(rows[0]).toMatchObject({ title: 'First', state: undefined })
+  expect(rows[1]).toMatchObject({
+    title: 'Last',
+    state: 'closed',
+    assignees: [],
+    githubValueOrigins: { state: undefined }
+  })
+  expect(rows.slice(2)).toEqual([duplicate, alias, enterprise])
+  expect(rows[2]).toBe(duplicate)
+  expect(store.getState().workItemsCache[sourceKey].fetchedAt).toBe(7)
+  expect(store.getState().workItemsCache[legacyKey]).toBe(entry)
+  expect(store.getState().workItemsCache[foreignKey]).toBe(foreign)
+  expect(subscriber).toHaveBeenCalledOnce()
+  store.getState().patchWorkItems([
+    {
+      itemId: 'missing',
+      repoId: row.repoId,
+      patch: { title: 'Missing' },
+      options: { sourceContext: source }
+    }
+  ])
+  expect(subscriber).toHaveBeenCalledOnce()
+  const matches = (item: GitHubWorkItem) => item.url === row.url
+  store.getState().patchWorkItem(row.id, { labels: ['accepted'] }, row.repoId, {
+    sourceContext: source,
+    hostId: 'local',
+    ownerRepo: { owner: 'fork', repo: 'widgets' },
+    matches
+  })
+  expect(
+    store
+      .getState()
+      .workItemsCache[sourceKey].data?.slice(1, 4)
+      .map((item) => item.labels)
+  ).toEqual([['accepted'], ['accepted'], ['accepted']])
+  expect(
+    store
+      .getState()
+      .workItemsCache[legacyKey].data?.slice(1, 4)
+      .map((item) => item.labels)
+  ).toEqual([['accepted'], ['accepted'], ['accepted']])
+  expect(store.getState().workItemsCache[foreignKey]).toBe(foreign)
+  off()
+})

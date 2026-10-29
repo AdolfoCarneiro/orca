@@ -1,3 +1,4 @@
+import type { GitHubTaskObservation } from '@/lib/github-task-observation'
 import type { ParsedTaskQuery } from '../../../../../shared/task-query'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
@@ -14,6 +15,7 @@ export type TaskPageGitHubPatchWorkItem = (
 
 export type BeginTaskPageGitHubWorkItemMutationArgs = {
   item: GitHubWorkItem
+  observation?: GitHubTaskObservation
   intent: TaskPageGitHubMutationIntent
   sourceContext?: TaskSourceContext | null
   query: ParsedTaskQuery

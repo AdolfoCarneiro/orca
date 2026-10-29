@@ -1,3 +1,4 @@
+import { createTaskPageGitHubMembershipProjection } from './task-page-github-work-item-mutation-composition'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ParsedTaskQuery } from '../../../../../shared/task-query'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
@@ -18,8 +19,7 @@ import {
 } from './task-page-github-work-item-mutation-pages'
 import {
   beginTaskPageGitHubWorkItemMutation,
-  canStartTaskPageGitHubWorkItemMutation,
-  rebuildSoftHiddenFromItemsForTests
+  canStartTaskPageGitHubWorkItemMutation
 } from './task-page-github-work-item-mutations'
 import {
   clearTaskPageGitHubAuthorityAbsentFromLoadedItems,
@@ -34,14 +34,13 @@ import {
   finishTaskPageQuietRevalidateRun
 } from './task-page-github-work-item-quiet-state'
 import {
-  getTaskPageGitHubSoftHiddenItemKeys,
   resetTaskPageGitHubMutationRegistryForTests,
   setTaskPageGitHubMutationQueryKey,
   subscribeTaskPageGitHubMutationRegistry
 } from './task-page-github-work-item-mutation-registry'
 import {
   taskPageGitHubFamilyDirtyKey,
-  taskPageGitHubItemKey
+  taskPageGitHubOwnedItemKey
 } from './task-page-github-work-item-mutation-keys'
 
 function query(): ParsedTaskQuery {
@@ -132,16 +131,16 @@ describe('TaskPage GitHub mutation regressions', () => {
     }
     confirmState('closed')
     const familyKey = taskPageGitHubFamilyDirtyKey(
-      taskPageGitHubItemKey(base.repoId, base.id),
+      taskPageGitHubOwnedItemKey(null, base.repoId, base.id),
       'state'
     )
     getOrCreateQuietRevalidateState('q').lagSkipAttempts.set(familyKey, MAX_LAG_TRAILS)
     expect(getTaskPageGitHubRevalidatableAuthorityItemKeys('q')).not.toContain(
-      taskPageGitHubItemKey(base.repoId, base.id)
+      taskPageGitHubOwnedItemKey(null, base.repoId, base.id)
     )
     confirmState('open')
     expect(getTaskPageGitHubRevalidatableAuthorityItemKeys('q')).toContain(
-      taskPageGitHubItemKey(base.repoId, base.id)
+      taskPageGitHubOwnedItemKey(null, base.repoId, base.id)
     )
   })
 
@@ -200,7 +199,7 @@ describe('TaskPage GitHub mutation regressions', () => {
     )
   })
 
-  it('does not notify subscribers when a soft-hide rebuild is unchanged', () => {
+  it('derives membership without notifying registry subscribers', () => {
     const base = item()
     beginTaskPageGitHubWorkItemMutation({
       item: base,
@@ -214,12 +213,13 @@ describe('TaskPage GitHub mutation regressions', () => {
     const unsubscribe = subscribeTaskPageGitHubMutationRegistry(() => {
       notifications += 1
     })
-    rebuildSoftHiddenFromItemsForTests({
-      query: query(),
-      queryKey: 'q',
-      viewerLogin: 'me',
-      items: [base]
-    })
+    expect(
+      createTaskPageGitHubMembershipProjection({
+        query: query(),
+        queryKey: 'q',
+        viewerLogin: 'me'
+      })(base, null).hide
+    ).toBe(true)
     unsubscribe()
     expect(notifications).toBe(0)
   })
@@ -240,38 +240,31 @@ describe('TaskPage GitHub mutation regressions', () => {
     expect(next[2]?.[0].id).toBe('issue:4')
   })
 
-  it('does not apply an old query soft-hide after mutation completion', () => {
-    const patchWorkItem = (): void => {}
-    const base = item({ state: 'open' })
+  it('does not mark a successor quiet query dirty from an old callback', () => {
+    const base = item()
     const began = beginTaskPageGitHubWorkItemMutation({
       item: base,
       intent: { type: 'setState', state: 'closed' },
       query: query(),
-      queryKey: 'open-query',
+      queryKey: 'old',
       viewerLogin: 'me',
-      patchWorkItem
+      patchWorkItem: () => {}
     })
-    setTaskPageGitHubMutationQueryKey('current-open-query')
+    setTaskPageGitHubMutationQueryKey('current')
     confirmTaskPageGitHubWorkItemMutation(began.key, began.generation, {
-      query: query(),
-      queryKey: 'open-query',
-      viewerLogin: 'me',
       item: base,
-      patchWorkItem
-    })
-    expect(getTaskPageGitHubSoftHiddenItemKeys()).not.toContain(
-      taskPageGitHubItemKey(base.repoId, base.id)
-    )
-    expect(getOrCreateQuietRevalidateState('current-open-query').dirtyGeneration).toBe(1)
-    rebuildSoftHiddenFromItemsForTests({
       query: query(),
-      queryKey: 'current-open-query',
-      viewerLogin: 'me',
-      items: [base]
+      queryKey: 'old',
+      viewerLogin: 'me'
     })
-    expect(getTaskPageGitHubSoftHiddenItemKeys()).toContain(
-      taskPageGitHubItemKey(base.repoId, base.id)
-    )
+    expect(getOrCreateQuietRevalidateState('current').dirtyGeneration).toBe(0)
+    expect(
+      createTaskPageGitHubMembershipProjection({
+        query: query(),
+        queryKey: 'current',
+        viewerLogin: 'me'
+      })(base, null).hide
+    ).toBe(true)
   })
 
   it('hard refresh clears only authority that predates its request', () => {
@@ -313,9 +306,13 @@ describe('TaskPage GitHub mutation regressions', () => {
 
     expect(getLastConfirmedClientValue(null, base.repoId, base.id, 'state')).toBeUndefined()
     expect(getLastConfirmedClientValue(null, base.repoId, base.id, 'autoMerge')).toBe(true)
-    expect(getTaskPageGitHubSoftHiddenItemKeys()).not.toContain(
-      taskPageGitHubItemKey(base.repoId, base.id)
-    )
+    expect(
+      createTaskPageGitHubMembershipProjection({
+        query: query(),
+        queryKey: 'q',
+        viewerLogin: 'me'
+      })(base, null).hide
+    ).toBe(false)
   })
 
   it('releases confirmed authority for rows no longer present on loaded pages', () => {
@@ -336,7 +333,7 @@ describe('TaskPage GitHub mutation regressions', () => {
     })
     clearTaskPageGitHubAuthorityAbsentFromLoadedItems(new Set())
     expect(getTaskPageGitHubRevalidatableAuthorityItemKeys('q')).not.toContain(
-      taskPageGitHubItemKey(base.repoId, base.id)
+      taskPageGitHubOwnedItemKey(null, base.repoId, base.id)
     )
   })
 

@@ -1,3 +1,4 @@
+import { getGitHubTaskObservation, gitHubTaskFamilyOrigin } from '@/lib/github-task-observation'
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import { parseGitHubIssueOrPRLink } from '../../../../shared/github/links'
 import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
@@ -21,6 +22,11 @@ function sortedLogins(users: readonly { login: string | null | undefined }[] | u
 
 export function taskPageWorkItemStatusSignature(item: GitHubWorkItem): string {
   return JSON.stringify([
+    getGitHubTaskObservation(item)?.key,
+    ...(['state', 'autoMerge', 'assignees', 'reviewRequests'] as const).map((family) => {
+      const origin = gitHubTaskFamilyOrigin(item, family)
+      return origin && [origin.kind, origin.owner?.key, origin.coordinate, origin.generation]
+    }),
     item.type,
     item.number,
     item.title,

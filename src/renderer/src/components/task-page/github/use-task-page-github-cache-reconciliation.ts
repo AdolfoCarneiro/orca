@@ -1,3 +1,4 @@
+import type { ObservedGitHubWorkItem } from '@/lib/github-task-observation'
 import type { TaskPageGitHubDetailModel } from './use-task-page-github-detail'
 import { useCallback, useMemo, useEffect, useRef, useState } from 'react'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
@@ -30,7 +31,7 @@ export function useTaskPageGitHubCacheReconciliation(model: TaskPageGitHubDetail
         id: string
         repoId: string
       },
-      patch: Partial<GitHubWorkItem>,
+      patch: Partial<ObservedGitHubWorkItem>,
       shouldPatch?: (item: GitHubWorkItem) => boolean
     ): void => {
       setPages((current) => {

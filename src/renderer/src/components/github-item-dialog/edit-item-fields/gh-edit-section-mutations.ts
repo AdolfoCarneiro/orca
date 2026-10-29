@@ -1,3 +1,4 @@
+import type { GitHubTaskValueOrigin } from '@/lib/github-task-observation'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import type { useImmediateMutation } from '@/hooks/useIssueMetadata'
@@ -40,6 +41,7 @@ export function runGHEditStateChange({
   newState,
   closeAction,
   localState,
+  previousOrigin,
   itemId,
   itemNumber,
   itemRepoId,
@@ -57,6 +59,7 @@ export function runGHEditStateChange({
   newState: 'open' | 'closed'
   closeAction?: TaskPageGitHubCloseAction
   localState: GitHubWorkItem['state']
+  previousOrigin?: GitHubTaskValueOrigin
   onStateChange: (state: GitHubWorkItem['state']) => void
   patchWorkItem: (
     id: string,
@@ -71,7 +74,14 @@ export function runGHEditStateChange({
   }
   const prevState = localState
   // Keep registry authority so search-lagged Tasks refetches cannot revert this mutation.
-  let authority: { revert: () => boolean } | null = null
+  let authority: ReturnType<typeof assertTaskPageGitHubDialogStateAuthority> | null = null
+  const patchState = (state: GitHubWorkItem['state']) =>
+    patchWorkItem(itemId, { state }, itemRepoId, {
+      sourceContext,
+      ownerRepo: projectOrigin ?? issueRepo,
+      observation: authority?.observation,
+      valueOrigins: { state: authority?.origin() }
+    })
   void run('state', {
     mutate: () =>
       runIssueUpdate({
@@ -91,32 +101,24 @@ export function runGHEditStateChange({
         repoId: itemRepoId,
         itemId,
         state: newState,
+        previousOrigin,
         sourceContext,
         ownerRepo: projectOrigin ?? issueRepo
       })
       onStateChange(newState)
-      patchWorkItem(itemId, { state: newState }, itemRepoId, {
-        sourceContext,
-        ownerRepo: projectOrigin ?? issueRepo
-      })
+      patchState(newState)
       patchProjectRowIfNeeded({ state: newState })
     },
     onRevert: () => {
       if (authority?.revert()) {
         onStateChange(prevState)
-        patchWorkItem(itemId, { state: prevState }, itemRepoId, {
-          sourceContext,
-          ownerRepo: projectOrigin ?? issueRepo
-        })
+        patchState(prevState)
         patchProjectRowIfNeeded({ state: prevState })
       }
     },
     onSuccess: () => {
       useAppStore.getState().recordFeatureInteraction('github-tasks')
-      patchWorkItem(itemId, { state: newState }, itemRepoId, {
-        sourceContext,
-        ownerRepo: projectOrigin ?? issueRepo
-      })
+      patchState(newState)
       patchProjectRowIfNeeded({ state: newState })
       onMutated()
     },

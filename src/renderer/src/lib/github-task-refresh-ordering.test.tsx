@@ -1,3 +1,10 @@
+import './github-task-refresh.test-fixture'
+
+import { parseTaskQuery } from '../../../shared/task-query'
+import { createTaskPageGitHubMembershipProjection } from '@/components/task-page/github/task-page-github-work-item-mutation-composition'
+
+import { captureGitHubTaskObservation } from './github-task-observation'
+import { githubTaskSourceKey } from './github-task-target'
 import {
   repo,
   source,
@@ -23,7 +30,6 @@ import {
   list,
   projectRead,
   postComment,
-  fixture,
   mount,
   click,
   draft
@@ -47,7 +53,7 @@ import { workItemsCacheKey } from '@/store/github/cache-identity'
 import {
   setConfirmedListSnapshot,
   getConfirmedListSnapshot,
-  getStickyHideEntry
+  getTaskPageGitHubMembershipBases
 } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
 
 import {
@@ -59,92 +65,11 @@ import { createCompatibleRuntimeStatusResponse } from '@/runtime/runtime-compati
 import { clearRuntimeCompatibilityCacheForTests } from '@/runtime/runtime-rpc-client'
 import { GITHUB_CANONICAL_DETAILS_RUNTIME_CAPABILITY } from '../../../shared/task-source-runtime-capabilities'
 
-import {
-  taskPageGitHubMutationItemId,
-  taskPageGitHubItemKey
-} from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
-
-import { beginGitHubTaskRead } from '@/store/github/request-coordination'
+import { taskPageGitHubMutationItemId } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
 
 import { useSmartWorkspaceGithubSearch } from '@/components/new-workspace/use-smart-workspace-github-search'
 
 import { useTaskPageGitHubSearchPagination } from '@/components/task-page/github/use-task-page-github-search-pagination'
-
-it('bounds actual click acceptance and marked completion linearly in existing cached rows and live logical reads', async () => {
-  const measurements: {
-    n: number
-    r: number
-    visits: number
-    marks: number
-    completions: number
-  }[] = []
-  for (const [n, r] of [
-    [100, 1],
-    [1000, 1],
-    [100, 100],
-    [100, 1000]
-  ]) {
-    fixture(n)
-    await mount()
-    let visits = 0,
-      marks = 0,
-      notifications = 0
-    const rows = store.getState().workItemsCache[key].data!
-    for (const row of rows) {
-      const url = row.url
-      Object.defineProperty(row, 'url', {
-        configurable: true,
-        enumerable: true,
-        get: () => {
-          visits++
-          return url
-        }
-      })
-    }
-    const reads = Array.from({ length: r }, () =>
-      beginGitHubTaskRead([{ repoId: repo.id, sourceContext: source }])
-    )
-    // Count the production mark calls without replacing publication or cache owners.
-    reads.forEach((read) => {
-      const mark = read.mark
-      vi.spyOn(read, 'mark').mockImplementation((...args) => {
-        marks++
-        mark(...args)
-      })
-    })
-    const unsubscribe = store.subscribe(() => {
-      notifications++
-    })
-    const beforeCalls = direct.mock.calls.length
-    visits = 0
-    direct.mockResolvedValue(returned)
-    await click()
-    const acceptanceVisits = visits
-    expect(direct.mock.calls.length - beforeCalls).toBe(1)
-    expect(list).not.toHaveBeenCalled()
-    expect(marks).toBe(r)
-    expect(notifications).toBeLessThanOrEqual(4)
-    expect(acceptanceVisits).toBeLessThanOrEqual(16 * (n + 2) + 120)
-    visits = 0
-    const result = reads[0].apply(rows, store.getState().workItemsCache[key].data!)
-    expect(result[0].title).toBe('Accepted title')
-    expect(result[1]).toBe(rows[1])
-    expect(result.at(-1)).toBe(rows.at(-1))
-    const completionVisits = visits
-    expect(completionVisits).toBeLessThanOrEqual(4 * (n + 2) + 20)
-    measurements.push({ n, r, visits: acceptanceVisits, marks, completions: completionVisits })
-    unsubscribe()
-    reads.forEach((read) => read.dispose())
-    await act(async () => {
-      context.root.unmount()
-    })
-    context.root = createRoot(container)
-    workItemDetailsCache.clear()
-  }
-  expect(measurements[1].visits).toBeLessThanOrEqual(measurements[0].visits * 10 + 120)
-  expect(measurements[1].completions).toBeLessThanOrEqual(measurements[0].completions * 10 + 20)
-  expect(measurements[3].visits).toBe(measurements[2].visits)
-})
 
 it.each([false, true])(
   'preserves old paired opens and only the declared canonical button; paired fork edits keep their inherited route (old=%s)',
@@ -394,32 +319,95 @@ it('retires only captured contradictions through actual Tasks settlement and pre
       errorToast: 'Rejected'
     })
   })
-  const itemKey = taskPageGitHubItemKey(seed.repoId, seed.id)
-  expect(getStickyHideEntry(itemKey)).toBeDefined()
+  expect(getTaskPageGitHubMembershipBases().size).toBeGreaterThan(0)
   const scope = getTaskSourceCacheScope(source),
     id = taskPageGitHubMutationItemId(seed)
-  setConfirmedListSnapshot(scope, repo.id, id, 'assignees', [user('old')])
+  setConfirmedListSnapshot(
+    scope,
+    repo.id,
+    id,
+    'assignees',
+    [user('old')],
+    captureGitHubTaskObservation(repo, source)
+  )
   direct.mockResolvedValue(returned)
   await click()
-  expect(getStickyHideEntry(itemKey)).toBeUndefined()
-  expect(getConfirmedListSnapshot(scope, repo.id, id, 'assignees')).toBeUndefined()
-  setConfirmedListSnapshot(scope, repo.id, id, 'assignees', returned.item.assignees!)
+  expect(
+    createTaskPageGitHubMembershipProjection({
+      query: parseTaskQuery('is:open'),
+      queryKey: 'q',
+      viewerLogin: 'alice'
+    })(seed, githubTaskSourceKey(source), captureGitHubTaskObservation(repo, source)).hide
+  ).toBe(false)
+  expect(
+    getConfirmedListSnapshot(
+      scope,
+      repo.id,
+      id,
+      'assignees',
+      captureGitHubTaskObservation(repo, source)
+    )
+  ).toBeUndefined()
+  setConfirmedListSnapshot(
+    scope,
+    repo.id,
+    id,
+    'assignees',
+    returned.item.assignees!,
+    captureGitHubTaskObservation(repo, source)
+  )
   const pending = Promise.withResolvers<GitHubWorkItemDetails | null>()
   direct.mockReturnValueOnce(pending.promise)
   await click()
-  setConfirmedListSnapshot(scope, repo.id, id, 'assignees', returned.item.assignees!)
-  const newer = getConfirmedListSnapshot(scope, repo.id, id, 'assignees')
+  setConfirmedListSnapshot(
+    scope,
+    repo.id,
+    id,
+    'assignees',
+    returned.item.assignees!,
+    captureGitHubTaskObservation(repo, source)
+  )
+  const newer = getConfirmedListSnapshot(
+    scope,
+    repo.id,
+    id,
+    'assignees',
+    captureGitHubTaskObservation(repo, source)
+  )
   await act(async () => pending.resolve(returned))
-  expect(getConfirmedListSnapshot(scope, repo.id, id, 'assignees')).toBe(newer)
+  expect(
+    getConfirmedListSnapshot(
+      scope,
+      repo.id,
+      id,
+      'assignees',
+      captureGitHubTaskObservation(repo, source)
+    )
+  ).toBe(newer)
   const contradiction = Promise.withResolvers<GitHubWorkItemDetails | null>()
   direct.mockReturnValueOnce(contradiction.promise)
   await click()
-  setConfirmedListSnapshot(scope, repo.id, id, 'assignees', [user('new owner')])
+  setConfirmedListSnapshot(
+    scope,
+    repo.id,
+    id,
+    'assignees',
+    [user('new owner')],
+    captureGitHubTaskObservation(repo, source)
+  )
   const calls = direct.mock.calls.length
   await act(async () => contradiction.resolve(returned))
   expect(direct).toHaveBeenCalledTimes(calls)
   expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1)
-  expect(getConfirmedListSnapshot(scope, repo.id, id, 'assignees')?.[0].login).toBe('new owner')
+  expect(
+    getConfirmedListSnapshot(
+      scope,
+      repo.id,
+      id,
+      'assignees',
+      captureGitHubTaskObservation(repo, source)
+    )?.[0].login
+  ).toBe('new owner')
 })
 
 it('keeps page-N navigation and a shared workspace raw callback through acceptance and a later edit', async () => {

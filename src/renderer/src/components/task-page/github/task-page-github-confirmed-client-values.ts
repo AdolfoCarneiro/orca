@@ -1,11 +1,27 @@
+import { notifyTaskPageGitHubMutationRegistry } from './task-page-github-work-item-mutation-registry'
+import {
+  sameGitHubTaskObservation,
+  type GitHubTaskObservation
+} from '@/lib/github-task-observation'
+import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
 import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
 import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
 import { taskPageGitHubLastConfirmedKey } from './task-page-github-work-item-mutation-keys'
 
-const lastConfirmedClientValues = new Map<
-  string,
-  { value: unknown; ownerRepo?: GitHubOwnerRepo | null }
->()
+export type ConfirmedClientEntry = {
+  sourceScope: string | null
+  repoId: string
+  itemId: string
+  family: string
+  value: unknown
+  ownerRepo?: GitHubOwnerRepo | null
+  observation?: GitHubTaskObservation
+}
+const lastConfirmedClientValues = new Map<string, ConfirmedClientEntry>()
+export function getLastConfirmedClientEntries(): ReadonlyMap<string, ConfirmedClientEntry> {
+  return lastConfirmedClientValues
+}
 
 export function getLastConfirmedClientEntry(
   sourceScope: string | null,
@@ -42,12 +58,14 @@ export function setLastConfirmedClientValue(
   itemId: string,
   family: string,
   value: unknown,
-  ownerRepo?: GitHubOwnerRepo | null
+  ownerRepo?: GitHubOwnerRepo | null,
+  observation?: GitHubTaskObservation
 ): void {
   lastConfirmedClientValues.set(
     taskPageGitHubLastConfirmedKey(sourceScope, repoId, itemId, family),
-    { value, ownerRepo }
+    { sourceScope, repoId, itemId, family, value, ownerRepo, observation }
   )
+  notifyTaskPageGitHubMutationRegistry()
 }
 export function deleteLastConfirmedClientValue(
   sourceScope: string | null,
@@ -62,10 +80,57 @@ export function deleteLastConfirmedClientValue(
   ) {
     return
   }
-  lastConfirmedClientValues.delete(
-    taskPageGitHubLastConfirmedKey(sourceScope, repoId, itemId, family)
-  )
+  if (
+    lastConfirmedClientValues.delete(
+      taskPageGitHubLastConfirmedKey(sourceScope, repoId, itemId, family)
+    )
+  ) {
+    notifyTaskPageGitHubMutationRegistry()
+  }
 }
 export function clearLastConfirmedClientValues(): void {
+  const changed = lastConfirmedClientValues.size > 0
   lastConfirmedClientValues.clear()
+  if (changed) {
+    notifyTaskPageGitHubMutationRegistry()
+  }
+}
+
+/** Index the actual one-slot entries; aliases affect applicability, never storage or lifetime. */
+export function createTaskPageGitHubScalarAuthorityIndex() {
+  const entries = new Map<string, ConfirmedClientEntry>()
+  const keyFor = (
+    owner: string | undefined,
+    scope: string | null,
+    repoId: string,
+    itemId: string,
+    family: string
+  ) => JSON.stringify([owner ?? scope, repoId, itemId, family])
+  for (const entry of lastConfirmedClientValues.values()) {
+    for (const key of entry.observation?.aliases ?? [undefined]) {
+      const address = keyFor(key, entry.sourceScope, entry.repoId, entry.itemId, entry.family)
+      if (!entries.has(address) || (key === entry.observation?.key && entry.sourceScope !== null)) {
+        entries.set(address, entry)
+      }
+    }
+  }
+  return (
+    item: GitHubWorkItem,
+    sourceScope: string | null,
+    observation: GitHubTaskObservation | undefined,
+    family: string
+  ) => {
+    const entry = entries.get(keyFor(observation?.key, sourceScope, item.repoId, item.id, family))
+    return entry &&
+      sameGitHubTaskObservation(entry.observation, observation) &&
+      getLastConfirmedClientValue(
+        entry.sourceScope,
+        entry.repoId,
+        entry.itemId,
+        family,
+        parseGitHubIssueOrPRLink(item.url)?.slug ?? null
+      ) !== undefined
+      ? entry
+      : undefined
+  }
 }

@@ -1,3 +1,5 @@
+import { getGitHubTaskObservation, type GitHubTaskObservation } from '@/lib/github-task-observation'
+
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
@@ -11,7 +13,10 @@ export function taskPageGitHubItemKey(repoId: string, itemId: string): string {
   return `${repoId}\0${itemId}`
 }
 export function serializeTaskPageGitHubMutationKey(key: TaskPageGitHubMutationKey): string {
-  return `${key.sourceScope ?? ''}\0${key.repoId}\0${key.itemId}\0${key.opKey}`
+  const raw = `${key.sourceScope ?? ''}\0${key.repoId}\0${key.itemId}\0${key.opKey}`
+  return key.itemType === 'issue' && key.observation
+    ? JSON.stringify([raw, key.observation.key])
+    : raw
 }
 export function taskPageGitHubSnapshotKey(
   sourceScope: string | null,
@@ -62,5 +67,26 @@ export function taskPageGitHubMutationItemKey(item: GitHubWorkItem): string {
   return taskPageGitHubItemKey(item.repoId, taskPageGitHubMutationItemId(item))
 }
 export function taskPageGitHubAuthorityItemKeys(item: GitHubWorkItem): string[] {
-  return [taskPageGitHubItemKey(item.repoId, item.id), taskPageGitHubMutationItemKey(item)]
+  return taskPageGitHubAuthorityKeysForObservation(item, getGitHubTaskObservation(item))
+}
+export function taskPageGitHubAuthorityKeysForObservation(
+  item: GitHubWorkItem,
+  owner: GitHubTaskObservation | undefined
+): string[] {
+  const associations = owner?.associations ?? [{ scope: null, key: undefined }]
+  return associations.flatMap(({ scope, key }) =>
+    [item.id, taskPageGitHubMutationItemId(item)].flatMap((id) => [
+      taskPageGitHubOwnedItemKey(scope, item.repoId, id, key),
+      taskPageGitHubOwnedItemKey(null, item.repoId, id, key)
+    ])
+  )
+}
+
+export function taskPageGitHubOwnedItemKey(
+  sourceScope: string | null,
+  repoId: string,
+  itemId: string,
+  observationKey?: string
+): string {
+  return JSON.stringify([sourceScope, observationKey ?? null, repoId, itemId])
 }

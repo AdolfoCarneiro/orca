@@ -1,84 +1,138 @@
+import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+
 import {
   clearLastConfirmedClientValues,
   deleteLastConfirmedClientValue,
-  getLastConfirmedClientValue,
+  getLastConfirmedClientEntry,
   setLastConfirmedClientValue as storeLastConfirmedClientValue
 } from './task-page-github-confirmed-client-values'
 import type {
   GitHubAssignableUser,
   GitHubOwnerRepo
 } from '../../../../../shared/github/pull-request-types'
+import type { GitHubTaskObservation } from '@/lib/github-task-observation'
 import type {
   PendingOp,
-  StickyHideEntry,
+  TaskPageGitHubMembershipBasis,
   TaskPageGitHubListFamily,
   TaskPageGitHubMutationKey
 } from './task-page-github-work-item-registry-types'
 import {
   serializeTaskPageGitHubMutationKey,
-  taskPageGitHubItemKey,
+  taskPageGitHubOwnedItemKey,
   taskPageGitHubSnapshotKey
 } from './task-page-github-work-item-mutation-keys'
 import { clearTaskPageGitHubQuietStates } from './task-page-github-work-item-quiet-state'
-type Listener = () => void
-const listeners = new Set<Listener>()
+
+const listeners = new Set<() => void>()
 const pendingByKey = new Map<string, PendingOp>()
 const generations = new Map<string, number>()
-const confirmedSnapshots = new Map<string, GitHubAssignableUser[]>()
-/** Remember source scope after pending clears so overlays can still resolve confirmed authority. */
-const itemSourceScopeByItemKey = new Map<string, string | null>()
-const stickyHideByItemKey = new Map<string, StickyHideEntry>()
-const softHiddenItemKeys = new Set<string>()
+type ListSnapshot = {
+  sourceScope: string | null
+  repoId: string
+  itemId: string
+  family: TaskPageGitHubListFamily
+  itemType: GitHubWorkItem['type']
+  observation?: GitHubTaskObservation
+  users: GitHubAssignableUser[]
+}
+const confirmedSnapshots = new Map<string, ListSnapshot>()
+const membershipBases = new Map<string, TaskPageGitHubMembershipBasis>()
 let mutationQueryKey: string | null = null
-export function subscribeTaskPageGitHubMutationRegistry(listener: Listener): () => void {
+let activationKey: string | null = null
+
+export function subscribeTaskPageGitHubMutationRegistry(listener: () => void): () => void {
   listeners.add(listener)
   return () => {
     listeners.delete(listener)
   }
 }
+let notificationDepth = 0
+let notificationPending = false
+export function batchTaskPageGitHubMutationRegistry<T>(operation: () => T): T {
+  notificationDepth++
+  try {
+    return operation()
+  } finally {
+    notificationDepth--
+    if (!notificationDepth && notificationPending) {
+      notificationPending = false
+      notifyTaskPageGitHubMutationRegistry()
+    }
+  }
+}
 export function notifyTaskPageGitHubMutationRegistry(): void {
+  if (notificationDepth) {
+    notificationPending = true
+    return
+  }
   for (const listener of listeners) {
     listener()
   }
 }
-export function getTaskPageGitHubSoftHiddenItemKeys(): ReadonlySet<string> {
-  return softHiddenItemKeys
+export function getTaskPageGitHubPendingEntries(): ReadonlyMap<string, PendingOp> {
+  return pendingByKey
 }
-export function getTaskPageGitHubConfirmedAuthorityItemKeys(): ReadonlySet<string> {
-  const keys = new Set<string>()
-  for (const itemKey of itemSourceScopeByItemKey.keys()) {
-    const separator = itemKey.indexOf('\0')
-    if (
-      separator !== -1 &&
-      hasConfirmedAuthorityForItem(itemKey.slice(0, separator), itemKey.slice(separator + 1))
-    ) {
-      keys.add(itemKey)
-    }
+export function getTaskPageGitHubListEntries(): ReadonlyMap<string, ListSnapshot> {
+  return confirmedSnapshots
+}
+export function getTaskPageGitHubMembershipBases(): ReadonlyMap<
+  string,
+  TaskPageGitHubMembershipBasis
+> {
+  return membershipBases
+}
+export function membershipBasisKey(
+  basis: Pick<
+    TaskPageGitHubMembershipBasis,
+    'sourceScope' | 'repoId' | 'itemId' | 'rawItemId' | 'observation'
+  >
+): string {
+  return JSON.stringify([
+    taskPageGitHubOwnedItemKey(
+      basis.sourceScope,
+      basis.repoId,
+      basis.itemId,
+      basis.observation?.key
+    ),
+    basis.rawItemId
+  ])
+}
+export function setTaskPageGitHubMembershipBasis(basis: TaskPageGitHubMembershipBasis): void {
+  if (basis.queryKey === mutationQueryKey) {
+    membershipBases.set(membershipBasisKey(basis), basis)
   }
-  return keys
 }
-/** Hard refresh drops confirmed authority while retaining in-flight operations. */
+export function deleteTaskPageGitHubMembershipBasis(key: string): void {
+  membershipBases.delete(key)
+}
 export function clearTaskPageGitHubConfirmedAuthority(): void {
   confirmedSnapshots.clear()
   clearLastConfirmedClientValues()
-  itemSourceScopeByItemKey.clear()
 }
-/** Clear query-scoped sticky hides and confirmed authority when the query/repo set changes. */
-export function setTaskPageGitHubMutationQueryKey(queryKey: string): void {
+function setTaskPageGitHubMutationQueryKeyNow(queryKey: string): void {
   if (mutationQueryKey === queryKey) {
     return
   }
   mutationQueryKey = queryKey
-  stickyHideByItemKey.clear()
-  softHiddenItemKeys.clear()
+  activationKey = null
+  membershipBases.clear()
   clearTaskPageGitHubConfirmedAuthority()
-  // Bound per-query state growth; retain generation counters for live ops so staleness checks remain valid.
   clearTaskPageGitHubQuietStates()
   for (const serialized of generations.keys()) {
     if (!pendingByKey.has(serialized)) {
       generations.delete(serialized)
     }
   }
+  notifyTaskPageGitHubMutationRegistry()
+}
+export function setTaskPageGitHubMembershipActivation(key: string): void {
+  if (activationKey === key) {
+    return
+  }
+  activationKey = key
+  membershipBases.clear()
+  clearTaskPageGitHubQuietStates()
   notifyTaskPageGitHubMutationRegistry()
 }
 export function isTaskPageGitHubMutationQueryKeyCurrent(queryKey: string): boolean {
@@ -97,119 +151,95 @@ export function nextTaskPageGitHubMutationGeneration(key: TaskPageGitHubMutation
   return next
 }
 export function setPendingTaskPageGitHubOp(op: PendingOp): void {
-  const serialized = serializeTaskPageGitHubMutationKey(op.key)
-  // Whole-field supersession abandons old pending values without rollback; list ops share entries only for matching per-login/batch keys.
-  pendingByKey.set(serialized, op)
-  rememberItemSourceScope(op.key.repoId, op.key.itemId, op.key.sourceScope)
-}
-
-export function rememberItemSourceScope(
-  repoId: string,
-  itemId: string,
-  sourceScope: string | null
-): void {
-  itemSourceScopeByItemKey.set(taskPageGitHubItemKey(repoId, itemId), sourceScope)
-}
-
-/** Resolve confirmed authority from live pending scope, then the last remembered begin/confirm scope. */
-export function resolveItemSourceScope(repoId: string, itemId: string): string | null {
-  const fromPending = getSourceScopeFromPendingOps(repoId, itemId)
-  if (fromPending !== undefined) {
-    return fromPending
-  }
-  const itemKey = taskPageGitHubItemKey(repoId, itemId)
-  const remembered = itemSourceScopeByItemKey.has(itemKey)
-    ? itemSourceScopeByItemKey.get(itemKey)
-    : itemSourceScopeByItemKey.get(taskPageGitHubItemKey(repoId, itemId.split('\u0001')[0]))
-  return remembered !== undefined ? remembered : null
-}
-
-export function hasConfirmedAuthorityForItem(repoId: string, itemId: string): boolean {
-  const sourceScope = resolveItemSourceScope(repoId, itemId)
-  return (
-    getConfirmedListSnapshot(sourceScope, repoId, itemId, 'assignees') !== undefined ||
-    getConfirmedListSnapshot(sourceScope, repoId, itemId, 'reviewRequests') !== undefined ||
-    getLastConfirmedClientValue(sourceScope, repoId, itemId, 'state') !== undefined ||
-    getLastConfirmedClientValue(sourceScope, repoId, itemId, 'autoMerge') !== undefined
-  )
+  pendingByKey.set(serializeTaskPageGitHubMutationKey(op.key), op)
 }
 export function deletePendingTaskPageGitHubOp(
   key: TaskPageGitHubMutationKey
 ): PendingOp | undefined {
   const serialized = serializeTaskPageGitHubMutationKey(key)
   const existing = pendingByKey.get(serialized)
-  if (existing) {
-    pendingByKey.delete(serialized)
-  }
+  pendingByKey.delete(serialized)
   return existing
-}
-
-function matchesMutationItemId(candidate: string, itemId: string): boolean {
-  return (
-    candidate === itemId || (!itemId.includes('\u0001') && candidate.startsWith(`${itemId}\u0001`))
-  )
 }
 export function listPendingTaskPageGitHubOpsForItem(
   repoId: string,
   itemId: string,
-  sourceScope?: string | null
+  sourceScope: string | null,
+  observation?: GitHubTaskObservation
 ): PendingOp[] {
-  const ops: PendingOp[] = []
-  for (const op of pendingByKey.values()) {
-    if (op.key.repoId !== repoId || !matchesMutationItemId(op.key.itemId, itemId)) {
-      continue
-    }
-    if (sourceScope !== undefined && op.key.sourceScope !== sourceScope) {
-      continue
-    }
-    ops.push(op)
-  }
-  return ops.sort((a, b) => a.startedAt - b.startedAt)
+  return [...pendingByKey.values()]
+    .filter(
+      (op) =>
+        op.key.repoId === repoId &&
+        op.key.itemId === itemId &&
+        op.key.sourceScope === sourceScope &&
+        op.key.observation?.key === observation?.key
+    )
+    .sort((a, b) => a.startedAt - b.startedAt)
 }
-export function hasPendingTaskPageGitHubOpsForItem(repoId: string, itemId: string): boolean {
-  for (const op of pendingByKey.values()) {
-    if (op.key.repoId === repoId && matchesMutationItemId(op.key.itemId, itemId)) {
-      return true
-    }
-  }
-  return false
-}
-export function getSourceScopeFromPendingOps(
+export function hasPendingTaskPageGitHubOpsForItem(
   repoId: string,
-  itemId: string
-): string | null | undefined {
-  for (const op of pendingByKey.values()) {
-    if (op.key.repoId === repoId && matchesMutationItemId(op.key.itemId, itemId)) {
-      return op.key.sourceScope
-    }
-  }
-  return undefined
+  itemId: string,
+  sourceScope: string | null,
+  observation?: GitHubTaskObservation
+): boolean {
+  return listPendingTaskPageGitHubOpsForItem(repoId, itemId, sourceScope, observation).length > 0
+}
+function snapshotKey(
+  sourceScope: string | null,
+  repoId: string,
+  itemId: string,
+  family: TaskPageGitHubListFamily,
+  observation?: GitHubTaskObservation,
+  itemType: GitHubWorkItem['type'] = 'issue'
+): string {
+  const raw = taskPageGitHubSnapshotKey(sourceScope, repoId, itemId, family)
+  return itemType === 'issue' && observation ? JSON.stringify([raw, observation.key]) : raw
 }
 export function getConfirmedListSnapshot(
   sourceScope: string | null,
   repoId: string,
   itemId: string,
-  family: TaskPageGitHubListFamily
+  family: TaskPageGitHubListFamily,
+  observation?: GitHubTaskObservation,
+  itemType: GitHubWorkItem['type'] = 'issue'
 ): GitHubAssignableUser[] | undefined {
-  return confirmedSnapshots.get(taskPageGitHubSnapshotKey(sourceScope, repoId, itemId, family))
+  const entry = confirmedSnapshots.get(
+    snapshotKey(sourceScope, repoId, itemId, family, observation, itemType)
+  )
+  return entry?.observation?.key === observation?.key ? entry?.users : undefined
 }
 export function setConfirmedListSnapshot(
   sourceScope: string | null,
   repoId: string,
   itemId: string,
   family: TaskPageGitHubListFamily,
-  users: readonly GitHubAssignableUser[]
+  users: readonly GitHubAssignableUser[],
+  observation?: GitHubTaskObservation,
+  itemType: GitHubWorkItem['type'] = 'issue'
 ): void {
-  rememberItemSourceScope(repoId, itemId, sourceScope)
-  confirmedSnapshots.set(taskPageGitHubSnapshotKey(sourceScope, repoId, itemId, family), [...users])
+  confirmedSnapshots.set(snapshotKey(sourceScope, repoId, itemId, family, observation, itemType), {
+    sourceScope,
+    repoId,
+    itemId,
+    family,
+    itemType,
+    observation,
+    users: [...users]
+  })
 }
 export function deleteConfirmedListSnapshot(
   sourceScope: string | null,
   repoId: string,
   itemId: string,
-  family: TaskPageGitHubListFamily
+  family: TaskPageGitHubListFamily,
+  observation?: GitHubTaskObservation,
+  itemType: GitHubWorkItem['type'] = 'issue'
 ): void {
-  confirmedSnapshots.delete(taskPageGitHubSnapshotKey(sourceScope, repoId, itemId, family))
+  const key = snapshotKey(sourceScope, repoId, itemId, family, observation, itemType)
+  if (confirmedSnapshots.get(key)?.observation?.key === observation?.key) {
+    confirmedSnapshots.delete(key)
+  }
 }
 export function setLastConfirmedClientValue(
   sourceScope: string | null,
@@ -217,54 +247,26 @@ export function setLastConfirmedClientValue(
   itemId: string,
   family: string,
   value: unknown,
-  ownerRepo?: GitHubOwnerRepo | null
+  ownerRepo?: GitHubOwnerRepo | null,
+  observation?: GitHubTaskObservation
 ): void {
-  rememberItemSourceScope(repoId, itemId, sourceScope)
-  storeLastConfirmedClientValue(sourceScope, repoId, itemId, family, value, ownerRepo)
+  storeLastConfirmedClientValue(sourceScope, repoId, itemId, family, value, ownerRepo, observation)
 }
-export function clearConfirmedAuthorityForItem(repoId: string, itemId: string): void {
-  const sourceScope = resolveItemSourceScope(repoId, itemId)
-  deleteConfirmedListSnapshot(sourceScope, repoId, itemId, 'assignees')
-  deleteConfirmedListSnapshot(sourceScope, repoId, itemId, 'reviewRequests')
-  deleteLastConfirmedClientValue(sourceScope, repoId, itemId, 'state')
-  deleteLastConfirmedClientValue(sourceScope, repoId, itemId, 'autoMerge')
-}
-export function getStickyHideEntry(itemKey: string): StickyHideEntry | undefined {
-  return stickyHideByItemKey.get(itemKey)
-}
-export function setStickyHideEntry(entry: StickyHideEntry): void {
-  stickyHideByItemKey.set(entry.itemKey, entry)
-}
-export function deleteStickyHideEntry(itemKey: string): void {
-  stickyHideByItemKey.delete(itemKey)
-}
-export function getAllStickyHideEntries(): ReadonlyMap<string, StickyHideEntry> {
-  return stickyHideByItemKey
-}
-export function setSoftHiddenItemKeys(keys: Iterable<string>): void {
-  softHiddenItemKeys.clear()
-  for (const key of keys) {
-    softHiddenItemKeys.add(key)
-  }
-}
-export function updateSoftHiddenItemKey(itemKey: string, hide: boolean): void {
-  if (hide) {
-    softHiddenItemKeys.add(itemKey)
-  } else {
-    softHiddenItemKeys.delete(itemKey)
-  }
-}
-export function gcStickyHidesAbsentFromPages(
-  pageItemKeys: ReadonlySet<string>,
-  queryKey: string
+
+export function clearConfirmedAuthorityForItem(
+  repoId: string,
+  itemId: string,
+  sourceScope: string | null,
+  observation?: GitHubTaskObservation,
+  itemType?: GitHubWorkItem['type']
 ): void {
-  for (const [itemKey, entry] of stickyHideByItemKey) {
-    if (entry.queryKey !== queryKey) {
-      continue
-    }
-    if (!pageItemKeys.has(itemKey)) {
-      stickyHideByItemKey.delete(itemKey)
-      softHiddenItemKeys.delete(itemKey)
+  for (const family of ['assignees', 'reviewRequests'] as const) {
+    deleteConfirmedListSnapshot(sourceScope, repoId, itemId, family, observation, itemType)
+  }
+  for (const family of ['state', 'autoMerge']) {
+    const entry = getLastConfirmedClientEntry(sourceScope, repoId, itemId, family)
+    if (entry?.observation?.key === observation?.key) {
+      deleteLastConfirmedClientValue(sourceScope, repoId, itemId, family)
     }
   }
 }
@@ -272,11 +274,22 @@ export function resetTaskPageGitHubMutationRegistryForTests(): void {
   pendingByKey.clear()
   generations.clear()
   confirmedSnapshots.clear()
+  membershipBases.clear()
   clearLastConfirmedClientValues()
-  itemSourceScopeByItemKey.clear()
-  stickyHideByItemKey.clear()
-  softHiddenItemKeys.clear()
   clearTaskPageGitHubQuietStates()
   mutationQueryKey = null
+  activationKey = null
   listeners.clear()
 }
+
+export function setTaskPageGitHubMutationQueryKey(queryKey: string): void {
+  batchTaskPageGitHubMutationRegistry(() => setTaskPageGitHubMutationQueryKeyNow(queryKey))
+}
+
+export type { TaskPageGitHubAuthority } from './task-page-github-work-item-authority-read'
+export {
+  getTaskPageGitHubConfirmedAuthorities,
+  hasConfirmedAuthorityForItem,
+  getTaskPageGitHubMutationSnapshot,
+  getTaskPageGitHubPendingOwnerKeys
+} from './task-page-github-work-item-authority-read'

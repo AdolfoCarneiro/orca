@@ -9,8 +9,9 @@ import {
 } from '@/components/task-page/github/task-page-github-resume-cache'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
-import { sortWorkItemsByNumber, taskPageToGitHubApiPage } from '../../../../../shared/work-items'
+import { taskPageToGitHubApiPage } from '../../../../../shared/work-items'
 import {
+  createTaskPageGitHubProjectionContext,
   materializeTaskPageItemList,
   materializeTaskPageGitHubRead,
   restoreTaskPageGitHubReadPage,
@@ -87,6 +88,12 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   } // unreachable — multi-combobox forbids empty
 
   // Why: strip repo:owner/name qualifiers before fan-out — cross-repo they'd pin every fetch to one repo. See stripRepoQualifiers.
+  const context = createTaskPageGitHubProjectionContext(
+    selectedRepos,
+    model.appliedTaskQuery,
+    githubWorkItemMutationQueryKey,
+    model.githubViewerLogin
+  )
   const q = stripRepoQualifiers(appliedTaskSearch.trim())
   let cancelled = false
   const contextChanged = githubResumeContextRef.current !== githubResumeContextKey
@@ -118,27 +125,10 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   }
 
   // Why: paint cached rows synchronously before the fan-out so a selection change doesn't leave the prior rows on screen for a frame.
-  const preMerged: GitHubWorkItem[] = []
-  let anyUncached = false
-  let anyRepoCached = false
-  for (const r of selectedRepos) {
-    const cached = getCachedWorkItems(
-      r.id,
-      githubPerRepoPageLimit,
-      q,
-      r.path,
-      getTaskPageRepoSourceContext(r, 'github')
-    )
-    if (cached === null) {
-      anyUncached = true
-    } else {
-      anyRepoCached = true
-      preMerged.push(...cached)
-    }
-  }
-  // Why: page-one metadata and the restored numbered page have independent lifecycles.
-  const page0Raw =
-    preMerged.length > 0 ? sortWorkItemsByNumber(preMerged).slice(0, githubPageSize) : []
+  const { page0Raw, anyUncached, anyRepoCached } = readTaskPageGitHubLandingCache(
+    { selectedRepos, getCachedWorkItems, githubPerRepoPageLimit, githubPageSize },
+    q
+  )
   // Why: pre-paint must still overlay in-flight mutations (K4/K18).
   const landingPages: (GitHubWorkItem[] | null)[] = Array.from(
     {
@@ -149,10 +139,12 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   landingPages[0] = materializeTaskPageItemList({
     networkItems: page0Raw,
     previousItems: pagesRef.current.flatMap((page) => page ?? []),
-    queryKey: githubWorkItemMutationQueryKey
+    queryKey: githubWorkItemMutationQueryKey,
+    context
   })
   if (targetPage > 0 && cachedTargetPage) {
-    landingPages[targetPage] = overlayPendingOnTaskPagePages([cachedTargetPage.items])[0] ?? []
+    landingPages[targetPage] =
+      overlayPendingOnTaskPagePages([cachedTargetPage.items], context)[0] ?? []
   }
   pagesRef.current = landingPages
   currentPageRef.current = targetPage
@@ -186,7 +178,7 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     sourceContext: getTaskPageRepoSourceContext(r, 'github')
   }))
   const reads = new Set<GitHubTaskRead>()
-  const landingRead = beginGitHubTaskRead(repoArgs)
+  const landingRead = beginGitHubTaskRead(repoArgs, undefined, { repos: selectedRepos })
   reads.add(landingRead)
   const landingRefreshKey = `${repoArgs.map((r) => `${r.repoId}:${r.path}`).join('|')}::${q}`
   const shouldProbeOnLanding =
@@ -203,7 +195,7 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   // Why: manual refresh keeps cached rows (tasksLoading stays false), so track forced fetch separately for the toolbar spinner.
   setTasksRefreshing(forcedFetch)
   if (targetPage > 0 && (!cachedTargetIsFresh || forcedFetch)) {
-    const restoredRead = beginGitHubTaskRead(repoArgs)
+    const restoredRead = beginGitHubTaskRead(repoArgs, undefined, { repos: selectedRepos })
     reads.add(restoredRead)
     const requestGeneration = paginationGenerationRef.current
     if (!cachedTargetPage) {
@@ -244,12 +236,13 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
           restoredRead,
           pagesRef.current,
           items,
-          targetPage
+          targetPage,
+          context
         )
         taskPageGitHubResumeCache.write(githubResumeContextKey, targetPage, next[targetPage] ?? [])
         pagesRef.current = next
         setPages((current) =>
-          restoreTaskPageGitHubReadPage(restoredRead, current, items, targetPage)
+          restoreTaskPageGitHubReadPage(restoredRead, current, items, targetPage, context)
         )
       })
       .catch((error) => {
@@ -304,24 +297,23 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
         ) {
           clearTaskPageGitHubAuthorityThroughGeneration(
             githubWorkItemMutationQueryKey,
-            forcedFetchAuthorityGeneration
+            forcedFetchAuthorityGeneration,
+            context.owns
           )
         }
         // Why: best-effort cache re-apply after wholesale list replace (K4).
-        const sourceContextByRepoId = new Map(
-          repoArgs.map((r) => [r.repoId, r.sourceContext] as const)
-        )
         reapplyPendingTaskPageGitHubMutationsToCache({
           items,
-          patchWorkItem: useAppStore.getState().patchWorkItem,
-          sourceContextByRepoId
+          patchWorkItems: useAppStore.getState().patchWorkItems,
+          context
         })
         if (targetPage > 0) {
           const next = [...pagesRef.current]
           next[0] = materializeTaskPageItemList({
             networkItems: items,
             previousItems: next.flatMap((page) => page ?? []),
-            queryKey: githubWorkItemMutationQueryKey
+            queryKey: githubWorkItemMutationQueryKey,
+            context
           })
           pagesRef.current = next
           setPages((current) => {
@@ -330,7 +322,8 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
               landingRead,
               current,
               returnedItems,
-              githubWorkItemMutationQueryKey
+              githubWorkItemMutationQueryKey,
+              context
             )
             return next
           })
@@ -344,7 +337,9 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
                 returnedItems,
                 current.flatMap((page) => page ?? [])
               )
-            ).map((page) => (page ? (overlayPendingOnTaskPagePages([page])[0] ?? []) : null))
+            ).map((page) =>
+              page ? (overlayPendingOnTaskPagePages([page], context)[0] ?? []) : null
+            )
           )
           if (replaceFirstPage || resetPagination) {
             currentPageRef.current = 0
@@ -356,7 +351,8 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
               landingRead,
               previous,
               returnedItems,
-              githubWorkItemMutationQueryKey
+              githubWorkItemMutationQueryKey,
+              context
             )
           ])
           currentPageRef.current = 0
@@ -418,3 +414,5 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     }
   }
 }
+
+import { readTaskPageGitHubLandingCache } from './task-page-github-landing-cache-snapshot'

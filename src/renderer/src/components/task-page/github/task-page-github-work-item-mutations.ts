@@ -1,3 +1,5 @@
+import { getGitHubTaskObservation, type GitHubTaskObservation } from '@/lib/github-task-observation'
+import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
 import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import {
@@ -9,16 +11,15 @@ import {
   type TaskPageGitHubMutationIntent
 } from './task-page-github-work-item-mutation-patches'
 import {
+  createTaskPageGitHubAuthorityProjection,
   familiesFromPendingOp,
   getRegistryMergedTaskPageGitHubWorkItem,
-  recomputeSoftHideForItem,
-  rebuildSoftHiddenKeysFromPendingAndSticky,
+  establishTaskPageGitHubMembership,
   stripFamilyPendingFromList
 } from './task-page-github-work-item-mutation-composition'
 import {
   getConfirmedListSnapshot,
   getPendingTaskPageGitHubOp,
-  getStickyHideEntry,
   listPendingTaskPageGitHubOpsForItem,
   nextTaskPageGitHubMutationGeneration,
   notifyTaskPageGitHubMutationRegistry,
@@ -35,7 +36,6 @@ import type {
   BeginTaskPageGitHubWorkItemMutationArgs,
   BeginTaskPageGitHubWorkItemMutationResult
 } from './task-page-github-work-item-mutation-types'
-import type { ParsedTaskQuery } from '../../../../../shared/task-query'
 
 function resolveSourceScope(sourceContext?: TaskSourceContext | null): string | null {
   if (sourceContext?.provider === 'github') {
@@ -46,34 +46,42 @@ function resolveSourceScope(sourceContext?: TaskSourceContext | null): string | 
 
 function resolveTaskPageGitHubMutation(args: {
   item: GitHubWorkItem
+  observation?: GitHubTaskObservation
+  projection?: ReturnType<typeof createTaskPageGitHubAuthorityProjection>
   intent: TaskPageGitHubMutationIntent
   sourceContext?: TaskSourceContext | null
 }) {
   const sourceScope = resolveSourceScope(args.sourceContext)
-  const base = getRegistryMergedTaskPageGitHubWorkItem(args.item, sourceScope)
+  const projection = args.projection ?? createTaskPageGitHubAuthorityProjection()
+  const base = projection(args.item, sourceScope, args.observation)
   return {
     sourceScope,
+    projection,
     built: buildTaskPageGitHubWorkItemMutationPatch(base, args.intent)
   }
 }
 
 export function canStartTaskPageGitHubWorkItemMutation(args: {
   item: GitHubWorkItem
+  observation?: GitHubTaskObservation
+  projection?: ReturnType<typeof createTaskPageGitHubAuthorityProjection>
   intent: TaskPageGitHubMutationIntent
   sourceContext?: TaskSourceContext | null
 }): boolean {
-  const { sourceScope, built } = resolveTaskPageGitHubMutation(args)
+  const { sourceScope, built, projection } = resolveTaskPageGitHubMutation(args)
   const itemId = taskPageGitHubMutationItemId(args.item)
   const key = {
     sourceScope,
+    observation: args.observation ?? getGitHubTaskObservation(args.item),
     repoId: args.item.repoId,
     itemId,
+    itemType: args.item.type,
     opKey: built.opKey
   }
   if (isTaskPageGitHubMutationPendingKey(key)) {
     return false
   }
-  const pending = listPendingTaskPageGitHubOpsForItem(args.item.repoId, itemId, sourceScope)
+  const pending = projection.pending(args.item, sourceScope, args.observation)
   if (built.kind === 'list') {
     const affectedLogins = new Set(built.listOp.logins)
     return !pending.some(
@@ -97,18 +105,40 @@ export function beginTaskPageGitHubWorkItemMutation(
   const skipMeQualifiers = args.skipMeQualifiers ?? false
   const key = {
     sourceScope,
+    observation: args.observation ?? getGitHubTaskObservation(args.item),
     repoId: args.item.repoId,
     itemId,
+    itemType: args.item.type,
     opKey: built.opKey
   }
   const generation = nextTaskPageGitHubMutationGeneration(key)
 
   if (built.kind === 'list') {
-    const existing = getConfirmedListSnapshot(sourceScope, args.item.repoId, itemId, built.family)
+    const existing = getConfirmedListSnapshot(
+      sourceScope,
+      args.item.repoId,
+      itemId,
+      built.family,
+      args.observation,
+      args.item.type
+    )
     if (!existing) {
-      const ops = listPendingTaskPageGitHubOpsForItem(args.item.repoId, itemId, sourceScope)
+      const ops = listPendingTaskPageGitHubOpsForItem(
+        args.item.repoId,
+        itemId,
+        sourceScope,
+        args.observation
+      )
       const snapshot = stripFamilyPendingFromList(args.item, built.family, ops)
-      setConfirmedListSnapshot(sourceScope, args.item.repoId, itemId, built.family, snapshot)
+      setConfirmedListSnapshot(
+        sourceScope,
+        args.item.repoId,
+        itemId,
+        built.family,
+        snapshot,
+        args.observation,
+        args.item.type
+      )
     }
   }
 
@@ -116,6 +146,11 @@ export function beginTaskPageGitHubWorkItemMutation(
     generation,
     key,
     previous: built.previous,
+    previousOrigins: getRegistryMergedTaskPageGitHubWorkItem(
+      args.item,
+      sourceScope,
+      key.observation
+    ).githubValueOrigins,
     next: built.next,
     listOp: built.kind === 'list' ? built.listOp : undefined,
     skipMeQualifiers,
@@ -123,7 +158,7 @@ export function beginTaskPageGitHubWorkItemMutation(
   }
   setPendingTaskPageGitHubOp(op)
 
-  const merged = getRegistryMergedTaskPageGitHubWorkItem(args.item, sourceScope)
+  const merged = getRegistryMergedTaskPageGitHubWorkItem(args.item, sourceScope, args.observation)
   const composedFields: Partial<GitHubWorkItem> =
     built.kind === 'list'
       ? built.family === 'assignees'
@@ -132,18 +167,19 @@ export function beginTaskPageGitHubWorkItemMutation(
       : built.next
 
   args.patchWorkItem(args.item.id, composedFields, args.item.repoId, {
-    sourceContext: args.sourceContext
+    sourceContext: args.sourceContext,
+    ownerRepo:
+      args.item.type === 'issue' ? parseGitHubIssueOrPRLink(args.item.url)?.slug : undefined,
+    observation: key.observation,
+    valueOrigins: merged.githubValueOrigins
   })
 
-  recomputeSoftHideForItem({
-    item: { ...args.item, ...merged },
+  establishTaskPageGitHubMembership({
+    item: merged,
     sourceScope,
-    query: args.query,
     queryKey: args.queryKey,
-    viewerLogin: args.viewerLogin,
     skipMeQualifiers,
-    listFamily: built.kind === 'list',
-    updateSticky: false
+    observation: args.observation
   })
   notifyTaskPageGitHubMutationRegistry()
 
@@ -158,17 +194,4 @@ export function beginTaskPageGitHubWorkItemMutation(
 
 export function isTaskPageGitHubMutationPendingKey(key: TaskPageGitHubMutationKey): boolean {
   return getPendingTaskPageGitHubOp(key) !== undefined
-}
-
-export function getTaskPageGitHubStickyHideForTests(itemKey: string) {
-  return getStickyHideEntry(itemKey)
-}
-
-export function rebuildSoftHiddenFromItemsForTests(args: {
-  query: ParsedTaskQuery
-  queryKey: string
-  viewerLogin: string | null
-  items: readonly GitHubWorkItem[]
-}): void {
-  rebuildSoftHiddenKeysFromPendingAndSticky(args)
 }

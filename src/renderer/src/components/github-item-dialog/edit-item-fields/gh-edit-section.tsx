@@ -1,3 +1,4 @@
+import { gitHubTaskFamilyOrigin } from '@/lib/github-task-observation'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { githubWorkItemWriteKey } from '@/lib/github-work-item-writes'
 import { useShallow } from 'zustand/react/shallow'
@@ -180,6 +181,7 @@ function GHEditSectionItem({
         newState,
         closeAction,
         localState,
+        previousOrigin: gitHubTaskFamilyOrigin(item, 'state'),
         itemId: item.id,
         itemNumber: item.number,
         itemRepoId: item.repoId,

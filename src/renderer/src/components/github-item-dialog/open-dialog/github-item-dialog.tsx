@@ -1,3 +1,4 @@
+import { plainGitHubWorkItem } from '@/lib/github-task-observation'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useAllWorktrees } from '@/store/selectors'
@@ -66,7 +67,7 @@ export default function GitHubItemDialog({
         item.url
       )
       if (!currentAttached) {
-        onUse(item)
+        onUse(plainGitHubWorkItem(item))
         return
       }
 
