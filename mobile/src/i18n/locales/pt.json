@@ -1046,6 +1046,11 @@
       "folder": "Pasta",
       "project": "Projeto {{repo}}",
       "remoteHost": "Host remoto"
+    },
+    "nativeScreenRecovery": {
+      "title": "Algo deu errado",
+      "tryAgain": "Tentar novamente",
+      "home": "Início"
     }
   },
   "connection": {

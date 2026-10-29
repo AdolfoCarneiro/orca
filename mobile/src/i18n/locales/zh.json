@@ -999,6 +999,11 @@
       "folder": "文件夹",
       "project": "项目 {{repo}}",
       "remoteHost": "远程主机"
+    },
+    "nativeScreenRecovery": {
+      "title": "出了点问题",
+      "tryAgain": "重试",
+      "home": "首页"
     }
   },
   "connection": {

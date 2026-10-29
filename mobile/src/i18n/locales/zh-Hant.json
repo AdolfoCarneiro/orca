@@ -999,6 +999,11 @@
       "folder": "資料夾",
       "project": "專案 {{repo}}",
       "remoteHost": "遠端主機"
+    },
+    "nativeScreenRecovery": {
+      "title": "發生錯誤",
+      "tryAgain": "再試一次",
+      "home": "首頁"
     }
   },
   "connection": {

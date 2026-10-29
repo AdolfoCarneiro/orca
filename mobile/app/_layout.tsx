@@ -33,6 +33,8 @@ import { useFollowDeviceUiLocale } from '../src/i18n/use-follow-device-ui-locale
 import { startMobileUiLanguage } from '../src/i18n/ui-language-preference'
 import { subscribeMobileUiLanguage } from '../src/i18n/mobile-i18n'
 
+export { NativeScreenRecovery as ErrorBoundary } from '../src/components/NativeScreenRecovery'
+
 // Keep splash visible until React content is ready to avoid a blank frame.
 SplashScreen.preventAutoHideAsync()
 // Apply the phone's scheme before the first render; the saved choice lands under the splash.

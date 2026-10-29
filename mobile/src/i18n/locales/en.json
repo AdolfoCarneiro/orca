@@ -1275,6 +1275,11 @@
       "detailsChangedMessage": "The account or reset offer changed before the host contacted Codex. Review the updated details, then confirm again.",
       "resetFailed": "Could not reset rate limits",
       "confirmTitle": "Use a rate-limit reset?"
+    },
+    "nativeScreenRecovery": {
+      "title": "Something went wrong",
+      "tryAgain": "Try again",
+      "home": "Home"
     }
   },
   "pullRequest": {

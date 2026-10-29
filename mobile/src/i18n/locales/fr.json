@@ -1046,6 +1046,11 @@
       "folder": "Dossier",
       "project": "Projet {{repo}}",
       "remoteHost": "Hôte distant"
+    },
+    "nativeScreenRecovery": {
+      "title": "Une erreur est survenue",
+      "tryAgain": "Réessayer",
+      "home": "Accueil"
     }
   },
   "connection": {

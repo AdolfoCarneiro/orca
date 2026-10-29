@@ -1046,6 +1046,11 @@
       "folder": "Carpeta",
       "project": "Proyecto {{repo}}",
       "remoteHost": "Host remoto"
+    },
+    "nativeScreenRecovery": {
+      "title": "Algo salió mal",
+      "tryAgain": "Volver a intentar",
+      "home": "Inicio"
     }
   },
   "connection": {

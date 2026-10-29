@@ -999,6 +999,11 @@
       "folder": "フォルダー",
       "project": "プロジェクト {{repo}}",
       "remoteHost": "リモートホスト"
+    },
+    "nativeScreenRecovery": {
+      "title": "問題が発生しました",
+      "tryAgain": "再試行",
+      "home": "ホーム"
     }
   },
   "connection": {

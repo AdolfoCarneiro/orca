@@ -1003,6 +1003,11 @@
       "folder": "Ordner",
       "project": "Projekt {{repo}}",
       "remoteHost": "Remote-Host"
+    },
+    "nativeScreenRecovery": {
+      "title": "Etwas ist schiefgelaufen",
+      "tryAgain": "Erneut versuchen",
+      "home": "Startseite"
     }
   },
   "connection": {

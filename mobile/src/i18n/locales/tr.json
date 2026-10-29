@@ -1003,6 +1003,11 @@
       "folder": "Klasör",
       "project": "{{repo}} projesi",
       "remoteHost": "Uzak sunucu"
+    },
+    "nativeScreenRecovery": {
+      "title": "Bir sorun oluştu",
+      "tryAgain": "Tekrar dene",
+      "home": "Ana sayfa"
     }
   },
   "connection": {
