@@ -3,6 +3,17 @@
 /** Choose, display and revalidate the storage destination explicitly; workspace execution cannot infer authority, and stale destinations must preserve the refused form. */
 
 import { act } from 'react'
+import { getDefaultSettings } from '../../../../shared/constants'
+import {
+  AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
+  AUTOMATION_EXTRA_AGENT_ARGS_RUNTIME_CAPABILITY,
+  AUTOMATION_OWNER_FENCING_RUNTIME_CAPABILITY,
+  AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY,
+  AUTOMATION_LIST_HOST_SCOPE_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY
+} from '../../../../shared/protocol-version'
+import type { HookCheckResult } from '@/runtime/runtime-hooks-client'
 import { describe, expect, it, vi } from 'vitest'
 import type { Automation } from '../../../../shared/automations-types'
 import { hostStableKey } from '../../../../shared/automation-owner-key'
@@ -26,6 +37,34 @@ import { makeAutomation, REPO_ID, WORKSPACE_ID } from './automations-page-fixtur
 import type { Repo } from '../../../../shared/repo-types'
 
 installAutomationsPageHarness()
+
+const CHAT_CAPABILITIES = [
+  AUTOMATION_LIST_HOST_SCOPE_RUNTIME_CAPABILITY,
+  AUTOMATION_OWNER_FENCING_RUNTIME_CAPABILITY,
+  AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY,
+  AUTOMATION_SURFACE_RUNTIME_CAPABILITY,
+  AUTOMATION_EXTRA_AGENT_ARGS_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_CLIENT_LAUNCH_MODE_CAPABILITY
+]
+
+function draftRecord(current: unknown): object {
+  if (current === null || typeof current !== 'object') {
+    throw new Error('Missing editor draft')
+  }
+  return current
+}
+
+function observeRuntimeChat(capabilities: string[] | null): void {
+  mocks.state.runtimeStatusByEnvironmentId = new Map(
+    capabilities === null ? [] : [[RUNTIME_ID, { status: { capabilities } }]]
+  )
+}
+
+function capableChatDestination(): void {
+  observeRuntimeChat(CHAT_CAPABILITIES)
+  mocks.getRuntimeEnvironmentStatus.mockResolvedValue({ capabilities: CHAT_CAPABILITIES })
+}
 
 const SSH_TARGET_ID = 'ssh-target-1'
 const SSH_REPO_ID = 'repo-ssh'
@@ -150,31 +189,163 @@ function createRpcCalls(): unknown[][] {
 }
 
 describe('AutomationsPage create destination', () => {
-  it('creates Terminal on the selected runtime while Chat capability observation is unavailable', async () => {
+  it.each(['default-off', 'explicit'] as const)(
+    'creates %s Terminal on the selected runtime while Chat observation is unavailable',
+    async (selection) => {
+      api.automations.list.mockResolvedValue([])
+      scopedList([])
+      runtimeHost([], [])
+      runtimeCreateReturns(makeAutomation({ id: 'a-new', name: 'Sweep' }))
+      mocks.state.runtimeStatusByEnvironmentId = new Map()
+      addRuntimeProject()
+      if (selection === 'explicit') {
+        mocks.state.settings = { ...getDefaultSettings('/tmp'), experimentalNativeChat: true }
+      }
+      mocks.state.automationHostFilter = RUNTIME_SELF_FILTER
+
+      await renderPage()
+      await settleHostQueries()
+      await openCreateDialogFor(RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID)
+      if (selection === 'explicit') {
+        await act(async () => {
+          mocks.editorDialog?.onDraftChange((current) => ({
+            ...draftRecord(current),
+            surface: 'terminal'
+          }))
+        })
+      }
+      await save()
+
+      // Send the runtime’s own repo ID to its authority; the desktop is always the client authority, not the selected host.
+      expect(api.automations.create).not.toHaveBeenCalled()
+      expect(createRpcCalls()).toHaveLength(1)
+      expect(createRpcCalls()[0]?.[0]).toEqual({ kind: 'environment', environmentId: RUNTIME_ID })
+      expect(createRpcCalls()[0]?.[2]).not.toHaveProperty('launchSetupPatch')
+      expect(createRpcCalls()[0]?.[3]).toMatchObject({ expectedEnvironmentPairingRevision: 4 })
+      expect(createRpcCalls()[0]?.[2]).toMatchObject({
+        repo: `id:${RUNTIME_REPO_ID}`,
+        workspace: `id:${RUNTIME_WORKSPACE_ID}`,
+        destination: { selector: { kind: 'self' } }
+      })
+    }
+  )
+
+  it.each([true, false])(
+    'retains native intent through unknown support, then saves the known %s outcome',
+    async (supported) => {
+      api.automations.list.mockResolvedValue([])
+      scopedList([])
+      runtimeHost([], [])
+      addRuntimeProject()
+      mocks.state.settings = { ...getDefaultSettings('/tmp'), experimentalNativeChat: true }
+      mocks.state.automationHostFilter = RUNTIME_SELF_FILTER
+      runtimeCreateReturns(makeAutomation({ id: 'a-new' }))
+      observeRuntimeChat(null)
+      const page = await renderPage()
+      await settleHostQueries()
+      await openCreateDialogFor(RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID)
+      await act(async () => {
+        mocks.editorDialog?.onDraftChange((current) => ({
+          ...draftRecord(current),
+          extraAgentArgs: '--model opus',
+          reuseSession: false
+        }))
+      })
+      await save()
+      expect(createRpcCalls()).toHaveLength(0)
+      expect(api.automations.create).not.toHaveBeenCalled()
+      expect(mocks.editorDialog?.open).toBe(true)
+      await act(async () => {
+        mocks.editorDialog?.onDraftChange((current) => ({
+          ...draftRecord(current),
+          surface: 'chat'
+        }))
+      })
+      await save()
+      expect(createRpcCalls()).toHaveLength(0)
+      await act(async () => {
+        mocks.editorDialog?.onDraftChange((current) => ({
+          ...draftRecord(current),
+          surface: undefined
+        }))
+      })
+
+      capableChatDestination()
+      if (!supported) {
+        observeRuntimeChat(
+          CHAT_CAPABILITIES.filter(
+            (capability) => capability !== STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
+          )
+        )
+      }
+      await page.rerender()
+      await save()
+      expect(mocks.toastError.mock.calls).toEqual([])
+      expect(mocks.editorDialog?.notice).toBeFalsy()
+      expect(createRpcCalls()).toHaveLength(1)
+      if (supported) {
+        expect(createRpcCalls()[0]?.[2]).toMatchObject({
+          launchSetupPatch: {
+            surface: 'chat',
+            arguments: { kind: 'legacy-extras', value: '--model opus' }
+          }
+        })
+      } else {
+        expect(createRpcCalls()[0]?.[2]).not.toHaveProperty('launchSetupPatch')
+        expect(createRpcCalls()[0]?.[2]).toMatchObject({ extraAgentArgs: '--model opus' })
+      }
+    }
+  )
+
+  it('retains admitted native Chat when support becomes unknown during the actual hook await', async () => {
     api.automations.list.mockResolvedValue([])
     scopedList([])
     runtimeHost([], [])
-    runtimeCreateReturns(makeAutomation({ id: 'a-new', name: 'Sweep' }))
-    mocks.state.runtimeStatusByEnvironmentId = new Map()
     addRuntimeProject()
+    capableChatDestination()
+    mocks.state.settings = { ...getDefaultSettings('/tmp'), experimentalNativeChat: true }
     mocks.state.automationHostFilter = RUNTIME_SELF_FILTER
-
-    await renderPage()
-    await settleHostQueries()
-    await openCreateDialogFor(RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID)
-    await save()
-
-    // Send the runtime’s own repo ID to its authority; the desktop is always the client authority, not the selected host.
-    expect(api.automations.create).not.toHaveBeenCalled()
-    expect(createRpcCalls()).toHaveLength(1)
-    expect(createRpcCalls()[0]?.[0]).toEqual({ kind: 'environment', environmentId: RUNTIME_ID })
-    expect(createRpcCalls()[0]?.[2]).not.toHaveProperty('launchSetupPatch')
-    expect(createRpcCalls()[0]?.[3]).toMatchObject({ expectedEnvironmentPairingRevision: 4 })
-    expect(createRpcCalls()[0]?.[2]).toMatchObject({
-      repo: `id:${RUNTIME_REPO_ID}`,
-      workspace: `id:${RUNTIME_WORKSPACE_ID}`,
-      destination: { selector: { kind: 'self' } }
-    })
+    runtimeCreateReturns(makeAutomation({ id: 'a-new', surface: 'chat' }))
+    const { checkRuntimeHooks } = await import('@/runtime/runtime-hooks-client')
+    const held = Promise.withResolvers<HookCheckResult>()
+    vi.mocked(checkRuntimeHooks).mockReturnValue(held.promise)
+    try {
+      const page = await renderPage()
+      await settleHostQueries()
+      await openCreateDialogFor(RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID)
+      await act(async () => {
+        mocks.editorDialog?.onDraftChange((current) => ({
+          ...draftRecord(current),
+          workspaceMode: 'new_per_run',
+          workspaceId: '',
+          extraAgentArgs: '--model opus'
+        }))
+      })
+      await save()
+      expect(checkRuntimeHooks).toHaveBeenCalledWith(`runtime:${RUNTIME_ID}`, RUNTIME_REPO_ID)
+      expect(createRpcCalls()).toHaveLength(0)
+      observeRuntimeChat(null)
+      await page.rerender()
+      await act(async () => {
+        held.resolve({ status: 'ok', hasHooks: false, hooks: null, mayNeedUpdate: false })
+      })
+      await settleHostQueries()
+      expect(createRpcCalls()).toHaveLength(1)
+      expect(createRpcCalls()[0]?.[2]).toMatchObject({
+        launchSetupPatch: {
+          surface: 'chat',
+          arguments: { kind: 'legacy-extras', value: '--model opus' }
+        }
+      })
+    } finally {
+      held.resolve({ status: 'ok', hasHooks: false, hooks: null, mayNeedUpdate: false })
+      vi.mocked(checkRuntimeHooks).mockResolvedValue({
+        status: 'ok',
+        hasHooks: false,
+        hooks: null,
+        mayNeedUpdate: false
+      })
+    }
   })
 
   it('refuses a desktop project for a runtime destination instead of sending its id', async () => {
@@ -379,6 +550,10 @@ describe('AutomationsPage edit fencing', () => {
 
   it('fences the save even when the record cannot be re-read', async () => {
     const automation = makeAutomation({ id: 'a-1' })
+    mocks.state.settings = { ...getDefaultSettings('/tmp'), experimentalNativeChat: true }
+    const { setLocalRuntimeCapabilitiesForTests } =
+      await import('@/runtime/local-runtime-capabilities')
+    setLocalRuntimeCapabilitiesForTests(null)
     api.automations.list.mockResolvedValue([])
     scopedList([automation])
 
@@ -390,6 +565,12 @@ describe('AutomationsPage edit fencing', () => {
 
     expect(api.automations.update).toHaveBeenCalled()
     expect(updatePreconditions()).not.toContain(undefined)
+    expect(api.automations.update.mock.calls[0]?.[0]).toMatchObject({
+      updates: { name: 'Renamed' }
+    })
+    expect(api.automations.update.mock.calls[0]?.[0]?.updates).not.toHaveProperty(
+      'launchSetupPatch'
+    )
   })
 
   it('refuses the save when nothing names the record’s host', async () => {
@@ -456,43 +637,146 @@ describe('AutomationsPage edit destination', () => {
     expect(mocks.editorDialog?.editDestination?.moveWarning).toBeFalsy()
   })
 
-  it('moves the record across authorities by creating there and deleting here', async () => {
-    const automation = makeAutomation({ id: 'a-1' })
-    api.automations.list.mockResolvedValue([])
-    scopedList([automation])
-    runtimeHost([], [])
-    addRuntimeProject()
-    runtimeCreateReturns(makeAutomation({ id: 'a-moved', projectId: RUNTIME_REPO_ID }))
+  it.each(['legacy', 'chat'] as const)(
+    'moves the saved %s record across authorities by creating there and deleting here',
+    async (surface) => {
+      const automation = makeAutomation({
+        id: 'a-1',
+        ...(surface === 'chat' ? { surface, extraAgentArgs: '--model opus' } : {})
+      })
+      api.automations.list.mockResolvedValue([])
+      scopedList([automation])
+      runtimeHost([], [])
+      addRuntimeProject()
+      if (surface === 'chat') {
+        capableChatDestination()
+      }
+      const removed = Promise.withResolvers<void>()
+      api.automations.delete.mockReturnValueOnce(removed.promise)
+      runtimeCreateReturns(
+        makeAutomation({
+          id: 'a-moved',
+          projectId: RUNTIME_REPO_ID,
+          ...(surface === 'chat' ? { surface, extraAgentArgs: '--model opus' } : {})
+        })
+      )
 
-    await renderPage()
-    await settleHostQueries()
-    await act(async () => {
-      void mocks.listPanel?.openEditDialog(listedRow(automation.id))
-    })
-    await act(async () => {
-      mocks.editorDialog?.editDestination?.onSelect(RUNTIME_SELF_KEY)
-    })
+      await renderPage()
+      await settleHostQueries()
+      await act(async () => {
+        void mocks.listPanel?.openEditDialog(listedRow(automation.id))
+      })
+      await act(async () => {
+        mocks.editorDialog?.editDestination?.onSelect(RUNTIME_SELF_KEY)
+      })
 
-    expect(mocks.editorDialog?.editDestination?.moveWarning).toBeTruthy()
+      expect(mocks.editorDialog?.editDestination?.moveWarning).toBeTruthy()
 
-    await act(async () => {
-      mocks.editorDialog?.onDraftChange((current) => ({
-        ...(current as Record<string, unknown>),
-        projectId: RUNTIME_REPO_ID,
-        workspaceMode: 'existing',
-        workspaceId: RUNTIME_WORKSPACE_ID
-      }))
-    })
-    await save()
+      await act(async () => {
+        mocks.editorDialog?.onDraftChange((current) => ({
+          ...(current as Record<string, unknown>),
+          projectId: RUNTIME_REPO_ID,
+          workspaceMode: 'existing',
+          workspaceId: RUNTIME_WORKSPACE_ID
+        }))
+      })
+      await save()
 
-    expect(api.automations.update).not.toHaveBeenCalled()
-    expect(createRpcCalls()).toHaveLength(1)
-    expect(createRpcCalls()[0]?.[2]).toMatchObject({
-      repo: `id:${RUNTIME_REPO_ID}`,
-      dtstart: automation.dtstart
-    })
-    expect(api.automations.delete).toHaveBeenCalledWith(expect.objectContaining({ id: 'a-1' }))
-  })
+      expect(api.automations.update).not.toHaveBeenCalled()
+      expect(createRpcCalls()).toHaveLength(1)
+      expect(createRpcCalls()[0]?.[2]).toMatchObject({
+        repo: `id:${RUNTIME_REPO_ID}`,
+        dtstart: automation.dtstart
+      })
+      if (surface === 'chat') {
+        expect(createRpcCalls()[0]?.[2]).toMatchObject({
+          launchSetupPatch: {
+            surface: 'chat',
+            arguments: { kind: 'legacy-extras', value: '--model opus' }
+          }
+        })
+      }
+      expect(api.automations.delete).toHaveBeenCalledWith(expect.objectContaining({ id: 'a-1' }))
+      const createIndex = mocks.callRuntimeRpc.mock.calls.findIndex(
+        (call) => call[1] === 'automation.create'
+      )
+      expect(mocks.callRuntimeRpc.mock.invocationCallOrder[createIndex]).toBeLessThan(
+        api.automations.delete.mock.invocationCallOrder[0]
+      )
+      expect(mocks.toastSuccess).not.toHaveBeenCalled()
+      await act(async () => {
+        removed.resolve()
+      })
+      await settleHostQueries()
+      expect(mocks.toastSuccess).toHaveBeenCalledWith(expect.stringContaining('moved'))
+    }
+  )
+
+  it.each(['old', 'unknown', 'refused'] as const)(
+    'preserves the saved Chat source when destination creation is %s',
+    async (outcome) => {
+      const automation = makeAutomation({
+        id: 'a-1',
+        surface: 'chat',
+        extraAgentArgs: '--model opus'
+      })
+      api.automations.list.mockResolvedValue([])
+      scopedList([automation])
+      runtimeHost([], [])
+      addRuntimeProject()
+      capableChatDestination()
+      runtimeCreateReturns(makeAutomation({ id: 'a-moved', surface: 'chat' }))
+      await renderPage()
+      await settleHostQueries()
+      await act(async () => {
+        void mocks.listPanel?.openEditDialog(listedRow(automation.id))
+      })
+      await act(async () => {
+        mocks.editorDialog?.editDestination?.onSelect(RUNTIME_SELF_KEY)
+      })
+      await act(async () => {
+        mocks.editorDialog?.onDraftChange((current) => ({
+          ...draftRecord(current),
+          projectId: RUNTIME_REPO_ID,
+          workspaceMode: 'existing',
+          workspaceId: RUNTIME_WORKSPACE_ID
+        }))
+      })
+      const { resetAutomationCapabilityProbes } = await import('./automation-scoped-list-client')
+      resetAutomationCapabilityProbes()
+      mocks.getRuntimeEnvironmentStatus.mockClear()
+      if (outcome === 'old') {
+        mocks.getRuntimeEnvironmentStatus.mockResolvedValue({
+          capabilities: CHAT_CAPABILITIES.filter(
+            (capability) => capability !== AUTOMATION_SURFACE_RUNTIME_CAPABILITY
+          )
+        })
+      } else if (outcome === 'unknown') {
+        mocks.getRuntimeEnvironmentStatus.mockRejectedValue(new Error('capabilities unavailable'))
+      } else {
+        const previous = mocks.callRuntimeRpc.getMockImplementation()
+        mocks.callRuntimeRpc.mockImplementation(async (...args) => {
+          if (args[1] === 'automation.create') {
+            throw new Error('destination refused create')
+          }
+          return await previous?.(...args)
+        })
+      }
+      await save()
+      expect(mocks.getRuntimeEnvironmentStatus).toHaveBeenCalled()
+      expect(createRpcCalls()).toHaveLength(outcome === 'refused' ? 1 : 0)
+      if (outcome === 'old') {
+        expect(mocks.editorDialog?.notice?.message).toContain('run automations in Chat')
+      }
+      if (outcome === 'refused') {
+        expect(createRpcCalls()[0]?.[2]).toMatchObject({ launchSetupPatch: { surface: 'chat' } })
+      }
+      expect(api.automations.delete).not.toHaveBeenCalled()
+      expect(mocks.toastSuccess).not.toHaveBeenCalled()
+      expect(mocks.editorDialog?.open).toBe(true)
+      expect(mocks.editorDialog?.notice?.message).toBeTruthy()
+    }
+  )
 
   it('moves when the destination project has the same host-local id', async () => {
     const automation = makeAutomation({ id: 'a-1' })
@@ -579,13 +863,25 @@ describe('AutomationsPage edit destination', () => {
     expect(api.automations.delete).toHaveBeenCalledWith(expect.objectContaining({ id: 'a-1' }))
   })
 
-  it('reports a kept original as two live copies, never as a completed move', async () => {
-    const automation = makeAutomation({ id: 'a-1' })
+  it('reports a kept saved-Chat original as two live copies, never as a completed move', async () => {
+    const automation = makeAutomation({
+      id: 'a-1',
+      surface: 'chat',
+      extraAgentArgs: '--model opus'
+    })
     api.automations.list.mockResolvedValue([])
     scopedList([automation])
     runtimeHost([], [])
     addRuntimeProject()
-    runtimeCreateReturns(makeAutomation({ id: 'a-moved', projectId: RUNTIME_REPO_ID }))
+    capableChatDestination()
+    runtimeCreateReturns(
+      makeAutomation({
+        id: 'a-moved',
+        projectId: RUNTIME_REPO_ID,
+        surface: 'chat',
+        extraAgentArgs: '--model opus'
+      })
+    )
     api.automations.delete.mockRejectedValue(new Error('gone away'))
 
     await renderPage()
@@ -607,6 +903,12 @@ describe('AutomationsPage edit destination', () => {
     await save()
 
     expect(createRpcCalls()).toHaveLength(1)
+    expect(createRpcCalls()[0]?.[2]).toMatchObject({
+      launchSetupPatch: {
+        surface: 'chat',
+        arguments: { kind: 'legacy-extras', value: '--model opus' }
+      }
+    })
     expect(api.automations.delete).toHaveBeenCalled()
     expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('could not be deleted'))
     expect(mocks.toastSuccess).not.toHaveBeenCalled()

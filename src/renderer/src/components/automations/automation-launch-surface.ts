@@ -58,7 +58,9 @@ export function automationDraftSurface(
 ): 'chat' | 'terminal' {
   return (
     draft.surface ??
-    (chatSupported && isNativeChatDefaultFor(settings, draft.agentId) ? 'chat' : 'terminal')
+    (chatSupported !== false && isNativeChatDefaultFor(settings, draft.agentId)
+      ? 'chat'
+      : 'terminal')
   )
 }
 
