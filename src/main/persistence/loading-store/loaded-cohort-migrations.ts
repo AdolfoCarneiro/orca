@@ -4,6 +4,7 @@ import {
   parseChatUiLaunchTipAudience,
   type ChatUiLaunchTipAudience
 } from '../../../shared/native-chat/chat-ui-launch-tip-audience'
+import { terminalNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
 import { savedChatUiWithTerminalDefaultView } from '../applying-settings/terminal-settings-migrations'
 
 import type { StoreRuntimeState } from './store-runtime-state'
@@ -53,6 +54,30 @@ export class LoadedCohortMigrationOperations {
     return chatUiOn
       ? { version: 1, membership: 'excluded', basis: 'chat-ui-on' }
       : { version: 1, membership: 'eligible', basis: 'chat-ui-off' }
+  }
+
+  /** Runs with the audience capture that first records the profile, so it applies once and in the same save. */
+  keepChatUiOffLaunchesOnTerminal(
+    state: PersistedState,
+    savedProfile: unknown,
+    audience: ChatUiLaunchTipAudience
+  ): PersistedState {
+    if (
+      !isRecord(savedProfile) ||
+      savedProfile.chatUiLaunchTipAudience !== undefined ||
+      audience.basis !== 'chat-ui-off'
+    ) {
+      return state
+    }
+    const saved = isRecord(savedProfile.settings) ? savedProfile.settings : undefined
+    this.runtime.loadNeedsSave = true
+    return {
+      ...state,
+      settings: {
+        ...state.settings,
+        nativeChatProviders: terminalNativeChatProviderChoices(saved?.nativeChatProviders)
+      }
+    }
   }
 
   migrateTelemetry(state: PersistedState, fileExistedOnLoad: boolean): PersistedState {

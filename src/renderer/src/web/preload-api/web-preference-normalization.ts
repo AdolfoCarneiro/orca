@@ -1,5 +1,6 @@
 import { isAgentChatPermissionMode } from '../../../../shared/agent-chat-permission-mode'
 import { normalizeNativeChatAppearanceSettings } from '../../../../shared/native-chat/native-chat-appearance-settings'
+import { terminalNativeChatProviderChoices } from '../../../../shared/native-chat/native-chat-providers'
 import { normalizeAutoRenameBranchFromWorkDefaultOn } from '../../../../shared/auto-rename-branch-from-work-settings'
 import {
   getDefaultSettings,
@@ -147,9 +148,14 @@ export function mergeOsc52ClipboardNoticePending(
 }
 
 /** A browser-saved settings blob with each load-time migration applied. */
-export function migrateStoredWebSettings(stored: Partial<GlobalSettings>): Partial<GlobalSettings> {
+export function migrateStoredWebSettings(
+  stored: Partial<GlobalSettings> & RetiredWebSettings
+): Partial<GlobalSettings> {
+  const { experimentalNativeChat: _retiredChatUi, ...current } = stored
+  void _retiredChatUi
   return {
-    ...stored,
+    ...current,
+    ...keepChatUiOffLaunchesOnTerminal(stored),
     ...migrateBrowserSavedAgentPermission(stored),
     ...normalizeAutoRenameBranchFromWorkDefaultOn(stored),
     ...normalizeTerminalCursorStyleDefault(stored),
@@ -157,6 +163,15 @@ export function migrateStoredWebSettings(stored: Partial<GlobalSettings>): Parti
     terminalCustomThemes: normalizeTerminalCustomThemes(stored.terminalCustomThemes),
     ...migratePortugueseUiLanguageOnLoad(stored)
   }
+}
+
+type RetiredWebSettings = { experimentalNativeChat?: unknown }
+
+/** A browser profile saved with Chat UI off keeps its launches on the terminal; dropping the key marks this done. */
+function keepChatUiOffLaunchesOnTerminal(stored: Partial<GlobalSettings> & RetiredWebSettings) {
+  return Object.hasOwn(stored, 'experimentalNativeChat') && stored.experimentalNativeChat !== true
+    ? { nativeChatProviders: terminalNativeChatProviderChoices(stored.nativeChatProviders) }
+    : {}
 }
 
 /** Move legacy browser-saved permission flags so stored defaults cannot duplicate them; missing keys used the shipped default. */

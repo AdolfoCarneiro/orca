@@ -3,7 +3,7 @@
 import { isAgentSessionHandleProvider } from '../agent-session-provider-handle'
 import type { GlobalSettings } from '../global-settings-types'
 import type { TuiAgent } from '../tui-agent'
-import { isTuiAgent } from '../tui-agent-config'
+import { isTuiAgent, TUI_AGENT_CONFIG } from '../tui-agent-config'
 
 export type NativeChatProviderChoices = Partial<Record<TuiAgent, boolean>>
 
@@ -45,4 +45,19 @@ export function buildNativeChatProviderUpdate(
       [agent]: on
     }
   }
+}
+
+/**
+ * CLI for every agent known now and every agent the profile already chose for. Keeps launches on
+ * the terminal for a profile whose Chat UI was off when it left Experimental; the old switch masked
+ * saved chat choices, so those turn CLI too.
+ */
+export function terminalNativeChatProviderChoices(savedChoices: unknown): Record<string, false> {
+  const saved =
+    savedChoices && typeof savedChoices === 'object' && !Array.isArray(savedChoices)
+      ? Object.keys(savedChoices)
+      : []
+  return Object.fromEntries(
+    [...new Set([...Object.keys(TUI_AGENT_CONFIG), ...saved])].map((agent) => [agent, false])
+  )
 }

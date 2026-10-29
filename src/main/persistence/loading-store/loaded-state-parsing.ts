@@ -263,13 +263,18 @@ export class LoadedStateParsingOperations {
     if (retiredUpgradeTipAudience !== undefined) {
       this.runtime.loadNeedsSave = true
     }
+    const audience =
+      chatUiLaunchTipAudience ?? this.cohorts.captureChatUiLaunchTipAudience(undefined)
     const migrated = {
-      ...this.cohorts.migrateTabSwitchKeybindings(
-        this.cohorts.migrateTelemetry(current, fileExistedOnLoad),
-        fileExistedOnLoad
+      ...this.cohorts.keepChatUiOffLaunchesOnTerminal(
+        this.cohorts.migrateTabSwitchKeybindings(
+          this.cohorts.migrateTelemetry(current, fileExistedOnLoad),
+          fileExistedOnLoad
+        ),
+        parsed,
+        audience
       ),
-      chatUiLaunchTipAudience:
-        chatUiLaunchTipAudience ?? this.cohorts.captureChatUiLaunchTipAudience(undefined)
+      chatUiLaunchTipAudience: audience
     }
 
     // Legacy inline caches seed the session, then move to the cache sidecar.

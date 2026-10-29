@@ -46,6 +46,7 @@ export function getStoredSettings(): GlobalSettings {
         migratedStored.terminalAllowOsc52ClipboardDefaultedOnForAllUsers ||
       stored.terminalCustomThemes !== migratedStored.terminalCustomThemes ||
       stored.uiLanguage !== migratedStored.uiLanguage ||
+      Object.hasOwn(stored, 'experimentalNativeChat') ||
       stored.uiLanguagePortugueseMigrationApplied !== true)
   ) {
     try {
