@@ -1242,6 +1242,7 @@
       "chooseWorkspaceFile": "Bu çalışma alanından bir dosya seçin.",
       "discard": "Vazgeç",
       "discardMessage": "Kaydedilmemiş düzenlemeler kaybolacak.",
+      "discardMessageSaving": "Devam eden kaydetme işlemi tamamlanmayabilir. Kaydedilmemiş düzenlemeler kaybolacak.",
       "discardTitle": "Değişiklikler geri alınsın mı?",
       "fileTitle": "Dosya",
       "loadFailed": "Önizleme yüklenemedi",
