@@ -139,6 +139,7 @@ describe('main-i18n lazy locale loading', () => {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
         pluginKey,
+        coverage: 100,
         locale: 'pt-BR',
         catalog: { menu: { file: pluginKey } }
       }
