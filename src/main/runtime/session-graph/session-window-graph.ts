@@ -9,7 +9,6 @@ import { HEADLESS_RUNTIME_WINDOW_ID } from '../../../shared/runtime-types'
 import type { RuntimeLeafRecord } from '../runtime-terminal-state-records'
 
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
-import { isMailboxLeafTakingInput } from '../orchestration/mailbox-owner'
 
 type Graph = RuntimeSyncWindowGraph
 
@@ -301,17 +300,14 @@ export abstract class OrcaRuntimeWithSyncWindowGraph extends OrcaRuntimeWithAtta
     for (const leaf of this.leaves.values()) {
       this.adoptPreAllocatedHandle(leaf)
       const previousLeaf = previousLeaves.get(this.getLeafKey(leaf.tabId, leaf.leafId))
+      // A pane newly showing a terminal can bind it to the pane's Run or Dispatch mailbox.
       if (
         this._orchestrationDb &&
-        isMailboxLeafTakingInput(leaf) &&
-        this.checkDeliverySettledAndArmRecheck(leaf) &&
+        leaf.ptyId &&
         leaf.writable &&
-        (!graphWasReady ||
-          previousLeaf?.ptyId !== leaf.ptyId ||
-          !previousLeaf.writable ||
-          !isMailboxLeafTakingInput(previousLeaf))
+        (!graphWasReady || previousLeaf?.ptyId !== leaf.ptyId || !previousLeaf.writable)
       ) {
-        this.deliverPendingMessagesForLeaf(leaf)
+        this.deliverPendingMessagesForPty(leaf.ptyId)
       }
     }
 

@@ -282,7 +282,7 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
     return isTuiAgent(agent) ? agent : null
   }
 
-  protected deliveryRecheckTimersByLeafKey = new Map<string, ReturnType<typeof setTimeout>>()
+  protected deliveryRecheckTimersByPtyId = new Map<string, ReturnType<typeof setTimeout>>()
 
   // Sequence authoritative graph statements to distinguish absent surfaces from unpublished ones.
   protected graphSequence = 0
@@ -334,16 +334,13 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
   // Every tui-idle site must rank the same pane evidence identically.
   protected readonly tuiIdleEvidenceSource: TuiIdleEvidenceSource = {
     quiescenceMs: TUI_IDLE_QUIESCENCE_MS,
-    getTabTitle: (tabId) => this.tabs.get(tabId)?.title ?? null,
     getAdoptedPtyIdleStatus: (pty) => this.getAdoptedPtyExplicitIdleStatus(pty),
     getPaneAgent: (ptyId) => this.getPaneAgentForTuiIdle(ptyId),
     getFirstPartyAgentStatus: (ptyId) =>
       (ptyId ? this.ptysById.get(ptyId)?.lastExplicitAgentStatus : null) ?? null,
     getHookTurn: (ptyId, agent) => this.readTuiIdleHookTurnForPty(ptyId, agent),
     readScreenLines: (ptyId) => this.readLiveTerminalScreenLines(ptyId),
-    readRuledScreen: (ptyId) => this.readRuledScreen(ptyId),
-    getTitleObservedAtEpochMs: (ptyId) =>
-      (ptyId ? this.ptysById.get(ptyId)?.lastOscTitleEpochMs : null) ?? null
+    readRuledScreen: (ptyId) => this.readRuledScreen(ptyId)
   }
 
   protected readonly terminalIdlePolls = new RuntimeTerminalIdlePolls({
@@ -361,7 +358,6 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
             (screen) => screen?.lines.join('\n') ?? null
           )
         : null,
-    getLiveLeaf: (leaf) => this.leaves.get(this.getLeafKey(leaf.tabId, leaf.leafId)) ?? leaf,
     resolve: (waiter, result) => this.terminalWaiters.resolve(waiter, result)
   })
 
@@ -369,11 +365,10 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
     {
       ...this.tuiIdleEvidenceSource,
       defaultTimeoutMs: TUI_IDLE_DEFAULT_TIMEOUT_MS,
-      getLivePty: (handle) => this.getLivePtyForHandle(handle),
+      getTerminalPty: (handle) => this.getTerminalPtyForHandle(handle),
       exitUnsettled: (pty) =>
         pty.lastExitCode === null &&
         mainBindsUnendedTerminal(this, pty.ptyId, this.ptyLivenessVerdictByPtyId.get(pty.ptyId)),
-      getLiveLeaf: (handle) => this.getLiveLeafForHandle(handle),
       startVisibleReadProbe: (waiter, waiterTimeoutMs, agent) =>
         this.startTuiIdleVisibleReadProbe(waiter, waiterTimeoutMs, agent)
     },
