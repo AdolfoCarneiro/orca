@@ -212,7 +212,9 @@ export const WorktreeResolvePrBase = z.object({
     .pipe(z.number().int().positive('Missing PR number')),
   headRefName: OptionalString,
   baseRefName: OptionalString,
-  isCrossRepository: OptionalBoolean
+  isCrossRepository: OptionalBoolean,
+  /** The user creating or launching from the PR; older hosts drop it. */
+  wakeWslDistro: OptionalBoolean
 })
 
 export const WorktreeResolveMrBase = z.object({

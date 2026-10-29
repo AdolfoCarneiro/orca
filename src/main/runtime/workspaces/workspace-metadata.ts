@@ -10,7 +10,10 @@ import {
   persistRuntimeManagedWorktreeSortOrder,
   updateRuntimeManagedWorktreeMetadata
 } from '../runtime-managed-worktree-metadata'
-import { resolveRuntimeGitHubWorktreeBase } from '../runtime-github-worktree-base'
+import {
+  resolveRuntimeGitHubWorktreeBase,
+  type RuntimeGitHubWorktreeBaseArgs
+} from '../runtime-github-worktree-base'
 import { resolveRuntimeGitLabWorktreeBase } from '../runtime-gitlab-worktree-base'
 import { listWorktreesStrict } from '../../git/worktree-listing'
 import {
@@ -181,13 +184,9 @@ export abstract class OrcaRuntimeWithCreateManagedRemoteWorktree extends OrcaRun
     })
   }
 
-  async resolveManagedPrBase(args: {
-    repoSelector: string
-    prNumber: number
-    headRefName?: string
-    baseRefName?: string
-    isCrossRepository?: boolean
-  }): Promise<GitHubPrStartPoint | { error: string }> {
+  async resolveManagedPrBase(
+    args: RuntimeGitHubWorktreeBaseArgs
+  ): Promise<GitHubPrStartPoint | { error: string }> {
     return resolveRuntimeGitHubWorktreeBase(args, {
       store: this.store ? this.requireStore() : null,
       resolveRepo: (selector) => this.resolveRepoSelector(selector)

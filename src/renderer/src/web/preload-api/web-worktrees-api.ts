@@ -122,13 +122,21 @@ export function createWorktreesApi(): NonNullable<Partial<PreloadApi>['worktrees
         baseBranch
       })
     },
-    resolvePrBase: async ({ repoId, prNumber, headRefName, baseRefName, isCrossRepository }) =>
+    resolvePrBase: async ({
+      repoId,
+      prNumber,
+      headRefName,
+      baseRefName,
+      isCrossRepository,
+      wakeWslDistro
+    }) =>
       callRuntimeResult('worktree.resolvePrBase', {
         repo: repoId,
         prNumber,
         headRefName,
         baseRefName,
-        isCrossRepository
+        isCrossRepository,
+        ...(wakeWslDistro ? { wakeWslDistro } : {})
       }),
     resolveMrBase: async ({ repoId, mrIid, sourceBranch, targetBranch, isCrossRepository }) =>
       callRuntimeResult('worktree.resolveMrBase', {
