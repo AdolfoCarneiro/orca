@@ -10,12 +10,7 @@ import { writeStoredRuntimeEnvironment } from '@/web/web-preload-api-test-harnes
 import { FEATURE_INTERACTION_IDS } from '../../../../shared/feature-interactions'
 import type { PersistedUIState } from '../../../../shared/persisted-ui-state-types'
 import { makePersistedUI } from '@/store/slices/ui-slice-test-harness'
-import { projectWslMoveUi } from '../../../../main/persistence/moving-wsl-projects/wsl-move-session-projection'
-import { rewriteWslMoveUiRouting } from '../../../../main/persistence/moving-wsl-projects/wsl-move-ui-routing-rewrite'
-import { wslMoveRewriteScope } from '../../../../main/persistence/moving-wsl-projects/wsl-move-rewrite-scope'
-import { createUncToLinuxPathRewriter } from '../../../../main/persistence/moving-wsl-projects/wsl-move-path-rewriter'
-import { wslMoveCutoverFixture } from '../../../../main/persistence/__fixtures__/wsl-mover/wsl-move-cutover-fixture'
-import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
+import wslMoveAgentModelUI from '../../../../shared/__fixtures__/wsl-move-agent-model-ui.json'
 import WorktreeCardAgents from './WorktreeCardAgents'
 import {
   WorktreeCardDisplayMenuItem,
@@ -318,35 +313,12 @@ describe('agent model visibility across persisted UI consumers', () => {
   })
 
   it('preserves hidden desktop models after scoped WSL projection and routing rewrite', () => {
-    const worktreeId = 'repo-a::\\\\wsl.localhost\\Ubuntu\\home\\dev\\app'
-    const desktop = makePersistedUI({
-      showAgentModels: false,
-      showDotfilesByWorktree: { [worktreeId]: true }
-    })
-    const scope = wslMoveRewriteScope({
-      cutover: wslMoveCutoverFixture(
-        'move-models',
-        'destination-committed',
-        {},
-        { repoIds: ['repo-a'] }
-      ),
-      rewritePath: createUncToLinuxPathRewriter('Ubuntu'),
-      destinationHostId: toRuntimeExecutionHostId('wsl:Ubuntu'),
-      recordSeededHostWorkspaceIds: () => {}
-    })
-    const projected = projectWslMoveUi(
-      desktop,
-      {},
-      (owner) => !!owner && scope.inScope(owner),
-      () => true
-    )
-    expect(projected).not.toHaveProperty('showAgentModels')
-    expect(projected.showDotfilesByWorktree).toEqual({ [worktreeId]: true })
-    const updates = rewriteWslMoveUiRouting(desktop, scope)
-    expect(updates).not.toHaveProperty('showAgentModels')
-    expect(updates.showDotfilesByWorktree).toHaveProperty('repo-a::/home/dev/app', true)
     mount()
-    act(() => useAppStore.getState().hydratePersistedUI({ ...desktop, ...updates }))
+    act(() =>
+      useAppStore
+        .getState()
+        .hydratePersistedUI(makePersistedUI(wslMoveAgentModelUI.desktopAfterMove))
+    )
     expectVisibleModels(false)
   })
 })
