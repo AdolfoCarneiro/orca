@@ -1,5 +1,6 @@
 import { writeDurableSecureJsonFile, writeSecureJsonFile } from '../../shared/secure-file'
 import type { DeviceEntry } from './device-entry'
+import { quarantineCorruptRegistry } from './device-registry-corruption'
 import { readDeviceRegistryFile, type DeviceRegistryFileRead } from './device-registry-file-read'
 
 /**
@@ -29,13 +30,21 @@ export function mergeDeviceRegistrySave(
  * Writes saves merged over the file as it is now (atomically, through the secure-file stage and
  * rename). Remembers every id this process removed, recorded before the write so a failed save
  * (such as the load-time cleanup of session-only rows) still counts: a stale writer putting one of
- * those back must not get it re-adopted. A file that became unreadable or corrupt proves nothing
- * about removals, so then the save is written as is, as before.
+ * those back must not get it re-adopted. A file that became unreadable or corrupt, or that this
+ * process quarantined itself, proves nothing about removals, so then the save is written as is.
  */
 export class DeviceRegistryWriter {
   private readonly removedIds = new Set<string>()
+  /** This process moved the file aside and no write has landed since: its absence is ours, not a revoke. */
+  private quarantinedUntilWritten = false
 
   constructor(private readonly registryPath: string) {}
+
+  quarantineCorrupt(): void {
+    if (quarantineCorruptRegistry(this.registryPath)) {
+      this.quarantinedUntilWritten = true
+    }
+  }
 
   /** Returns what was written. Security transitions pass `durable`. */
   write(
@@ -49,13 +58,14 @@ export class DeviceRegistryWriter {
         this.removedIds.add(deviceId)
       }
     }
-    const disk = readDeviceRegistryFile(this.registryPath)
+    const disk = this.quarantinedUntilWritten ? null : readDeviceRegistryFile(this.registryPath)
     const merged =
-      disk.unreadable || disk.corruptFilePending
+      !disk || disk.unreadable || disk.corruptFilePending
         ? [...next]
         : mergeDeviceRegistrySave(before, next, disk, this.removedIds)
     const write = options.durable ? writeDurableSecureJsonFile : writeSecureJsonFile
     write(this.registryPath, merged)
+    this.quarantinedUntilWritten = false
     return merged
   }
 }
