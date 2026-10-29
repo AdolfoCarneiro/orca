@@ -73,7 +73,7 @@ function verify(
   expect(prior).toStrictEqual(saved)
   const publication = sessionPublication(state)
   for (const event of publication.take('local')) {
-    expect(event.owners).toEqual(nativeAffectedOwners(prior, expected, event.units))
+    expect(event.owners).toEqual(nativeAffectedOwners(prior, state.workspaceSession))
   }
   const actual = publication.partition('local').index
   const rebuilt = new SessionUnitIndex(expected)

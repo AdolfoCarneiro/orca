@@ -1,10 +1,7 @@
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
-import {
-  SESSION_MAP_FIELDS,
-  type SessionMapField,
-  type SessionUnitChange
-} from '../../../shared/session-change-set'
+import { SESSION_MAP_FIELDS, type SessionMapField } from '../../../shared/session-change-set'
 import type { SessionReferenceKind, SessionUnitAddress } from '../../../shared/session-unit-index'
+import type { SessionOperationRoot } from '../../../shared/session-unit-selection'
 import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from '../../../shared/workspace-session-host-field-ownership'
 import { normalizeWorkspaceSessionKeyToWorkspaceId } from '../../../shared/workspace-scope'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
@@ -127,10 +124,23 @@ export function nativeSessionReferences(
   return refs
 }
 
-export function nativeAffectedOwners(
+export function nativeChangedUnits(prior: WorkspaceSessionState, next: WorkspaceSessionState) {
+  return SESSION_MAP_FIELDS.flatMap((field) => {
+    const before = prior[field] ?? {},
+      after = next[field] ?? {}
+    return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+      .filter(
+        (key) =>
+          Object.hasOwn(before, key) !== Object.hasOwn(after, key) || before[key] !== after[key]
+      )
+      .map((key) => ({ field, key }))
+  })
+}
+
+export function nativeDependencyScope(
   prior: WorkspaceSessionState,
   next: WorkspaceSessionState,
-  changes: readonly SessionUnitChange[]
+  roots: readonly SessionOperationRoot[] = []
 ) {
   const entries = [prior, next].flatMap((root) =>
     SESSION_MAP_FIELDS.flatMap((field) =>
@@ -141,38 +151,82 @@ export function nativeAffectedOwners(
       }))
     )
   )
-  const queue: SessionUnitAddress[] = changes.flatMap((unit) =>
-    unit.key === null ? [] : [{ field: unit.field, key: unit.key }]
-  )
-  const seen = new Set<string>(),
+  const changes = nativeChangedUnits(prior, next)
+  const impactedRepos = new Set([
+    ...changes
+      .filter((unit) => unit.field === 'terminalTopologyRevisionByRepoId')
+      .map((unit) => unit.key),
+    ...roots.filter((root) => root.kind === 'repo').map((root) => root.id)
+  ])
+  const queue: SessionUnitAddress[] = [...changes]
+  for (const { kind, id } of roots) {
+    queue.push(...entries.filter((entry) => entry.refs.get(kind)?.has(id)))
+    if (kind === 'owner' || kind === 'tab') {
+      queue.push(
+        ...SESSION_MAP_FIELDS.filter(
+          (field) =>
+            WORKSPACE_SESSION_FIELD_OWNERSHIP[field] ===
+            (kind === 'owner' ? 'worktreeKeyed' : 'tabKeyed')
+        ).map((field) => ({ field, key: id }))
+      )
+    } else if (kind === 'repo') {
+      queue.push({ field: 'terminalTopologyRevisionByRepoId', key: id })
+    }
+  }
+  const selected = new Map<SessionMapField, Set<string>>(),
     owners = new Set<string>()
+  const followed = new Map<SessionReferenceKind, Set<string>>()
+  const follow = (kind: SessionReferenceKind, id: string) => {
+    const ids = followed.get(kind) ?? new Set<string>()
+    if (ids.has(id)) {
+      return
+    }
+    ids.add(id)
+    followed.set(kind, ids)
+    queue.push(...entries.filter((entry) => entry.refs.get(kind)?.has(id)))
+  }
   for (let i = 0; i < queue.length; i++) {
-    const unit = queue[i],
-      id = JSON.stringify([unit.field, unit.key])
-    if (seen.has(id)) {
+    const { field, key } = queue[i],
+      keys = selected.get(field) ?? new Set<string>()
+    if (keys.has(key)) {
       continue
     }
-    seen.add(id)
+    keys.add(key)
+    selected.set(field, keys)
+    if (WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'worktreeKeyed') {
+      owners.add(key)
+    }
     for (const root of [prior, next]) {
-      const refs = nativeSessionReferences(root, unit.field, unit.key)
+      const refs = nativeSessionReferences(root, field, key)
       for (const owner of refs.get('owner') ?? []) {
         owners.add(owner)
       }
       for (const [kind, ids] of refs) {
-        if (
-          kind === 'scrollback' ||
-          (kind === 'repo' &&
-            !changes.some((change) => change.field === 'terminalTopologyRevisionByRepoId'))
-        ) {
+        if (kind === 'scrollback') {
           continue
         }
-        for (const entry of entries) {
-          if ([...ids].some((name) => entry.refs.get(kind)?.has(name))) {
-            queue.push(entry)
+        if (kind === 'repo') {
+          for (const id of ids) {
+            queue.push({ field: 'terminalTopologyRevisionByRepoId', key: id })
+          }
+        } else {
+          for (const id of ids) {
+            follow(kind, id)
           }
         }
       }
     }
+    if (field === 'terminalTopologyRevisionByRepoId' && impactedRepos.has(key)) {
+      follow('repo', key)
+    }
   }
-  return owners
+  return { selected, owners, changes }
+}
+
+export function nativeAffectedOwners(
+  prior: WorkspaceSessionState,
+  next: WorkspaceSessionState,
+  roots: readonly SessionOperationRoot[] = []
+) {
+  return nativeDependencyScope(prior, next, roots).owners
 }

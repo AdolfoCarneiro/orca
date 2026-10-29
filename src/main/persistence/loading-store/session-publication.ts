@@ -257,7 +257,7 @@ export class SessionPublication {
     for (const effect of admission.effects) {
       effect()
     }
-    publishReconnectRoot(next, partition.index, event)
+    publishReconnectRoot(next, partition.index, event, admission.orders.has('tabsByWorktree'))
     const pending = this.pending.get(hostId) ?? []
     pending.push(event)
     this.pending.set(hostId, pending)

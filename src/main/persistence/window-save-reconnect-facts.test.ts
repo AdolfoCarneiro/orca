@@ -16,7 +16,7 @@ import {
   type ReconnectFactSources,
   deriveShutdownReconnectFacts
 } from '../runtime/terminal/recovery/shutdown-reconnect-facts'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { toSshExecutionHostId } from '../../shared/execution-host'
 import type { SshConnectionStatus } from '../../shared/ssh-types'
 import {
@@ -451,4 +451,117 @@ describe('reconnect dependency transitions', () => {
     })
     compare('tabsByWorktree', SSH_KEY, { present: false, value: undefined })
   })
+})
+
+it('refreshes only sealed affected reconnect owners, retaining genuine order and full invalidation', () => {
+  const root = emptySession()
+  for (let i = 0; i < 50; i++) {
+    addWorkspace(root, `repo::/${i}`, [
+      {
+        id: `group-${i}`,
+        tabs: [
+          {
+            id: `tab-${i}`,
+            leaves: [[`${i.toString(16).padStart(8, '0')}-1111-4111-8111-111111111111`, `pty-${i}`]]
+          }
+        ]
+      }
+    ])
+  }
+  root.terminalTopologyRevisionByRepoId = {}
+  const state = { workspaceSession: root },
+    publication = sessionPublication(state)
+  const calls: string[] = []
+  const sources: ReconnectFactSources = {
+    factOwner: {},
+    isLiveLocalPty: (pty) => {
+      calls.push(pty)
+      return true
+    },
+    isKnownExited: () => false,
+    sshStatusByTargetId: new Map()
+  }
+  const derive = () => {
+    const { root: current, index } = publication.partition('local')
+    const reader = new SessionUnitReader(current, index)
+    return deriveIndexedShutdownReconnectFacts(reader, reader.selection(), sources)
+  }
+  derive()
+  calls.length = 0
+  const { index } = publication.partition('local')
+  const keys = vi.spyOn(index, 'keys')
+  try {
+    const reader = new SessionUnitReader(root, index)
+    reader.write('tabsByWorktree', 'repo::/0', {
+      present: true,
+      value: root.tabsByWorktree['repo::/0'].map((row) => ({ ...row, title: 'later' }))
+    })
+    reader.reconcileField('terminalTopologyRevisionByRepoId', {
+      kind: 'output',
+      present: true,
+      explicitEmpty: true
+    })
+    publishSessionChanges(state, 'local', reader.prepare({ kind: 'renderer' }))
+    derive()
+    expect(calls).toEqual(['pty-0'])
+    expect(keys).not.toHaveBeenCalled()
+    calls.length = 0
+    const reorder = new SessionUnitReader(state.workspaceSession, index)
+    reorder.replace('tabsByWorktree', {
+      present: true,
+      value: Object.fromEntries(Object.entries(state.workspaceSession.tabsByWorktree).toReversed())
+    })
+    const prepared = reorder.prepare({ kind: 'authoritative' })
+    expect(prepared.orders.has('tabsByWorktree')).toBe(true)
+    publishSessionChanges(state, 'local', prepared)
+    const actual = derive()
+    expect(keys).toHaveBeenCalledWith('tabsByWorktree')
+    expect(calls).toHaveLength(50)
+    expect(actual).toStrictEqual(deriveShutdownReconnectFacts(state.workspaceSession, sources))
+    calls.length = 0
+    keys.mockClear()
+    const full = new SessionUnitReader(state.workspaceSession, index)
+    publishSessionChanges(
+      state,
+      'local',
+      full.prepare({ kind: 'fullReplacement', fullReplacement: true })
+    )
+    derive()
+    expect(keys).toHaveBeenCalledWith('tabsByWorktree')
+    expect(calls).toHaveLength(50)
+  } finally {
+    keys.mockRestore()
+  }
+})
+
+it('does not reset reconnect contributions for an empty tabs presence transition', () => {
+  const root = emptySession()
+  Object.assign(root, { tabsByWorktree: undefined })
+  const state = { workspaceSession: root },
+    publication = sessionPublication(state)
+  const { index } = publication.partition('local')
+  const sources: ReconnectFactSources = {
+    factOwner: {},
+    isLiveLocalPty: () => false,
+    isKnownExited: () => false,
+    sshStatusByTargetId: new Map()
+  }
+  const first = new SessionUnitReader(root, index)
+  deriveIndexedShutdownReconnectFacts(first, first.selection(), sources)
+  const reader = new SessionUnitReader(root, index)
+  reader.replace('tabsByWorktree', { present: true, value: {} })
+  const prepared = reader.prepare({ kind: 'renderer' })
+  expect(prepared.orders.has('tabsByWorktree')).toBe(false)
+  expect(prepared.units.some((unit) => unit.field === 'tabsByWorktree' && unit.key === null)).toBe(
+    true
+  )
+  publishSessionChanges(state, 'local', prepared)
+  const keys = vi.spyOn(index, 'keys')
+  try {
+    const next = new SessionUnitReader(state.workspaceSession, index)
+    deriveIndexedShutdownReconnectFacts(next, next.selection(), sources)
+    expect(keys).not.toHaveBeenCalled()
+  } finally {
+    keys.mockRestore()
+  }
 })

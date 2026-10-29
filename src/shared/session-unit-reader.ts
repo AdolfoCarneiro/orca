@@ -10,7 +10,6 @@ import type {
 } from './session-unit-index'
 import {
   isSessionMapField,
-  SESSION_MAP_FIELDS,
   type SessionAdmissionKind,
   type SessionUnitChange,
   type SessionMapField
@@ -30,7 +29,11 @@ export type {
   PreparedSession
 } from './session-reader-types'
 import { SessionReaderQueries } from './session-reader-queries'
-import { resolveSessionUnits, type SessionUnitSelection } from './session-unit-selection'
+import {
+  resolveSessionUnits,
+  type SessionUnitSelection,
+  type SessionOperationRoot
+} from './session-unit-selection'
 export { isSessionUnitView } from './session-reader-types'
 
 export class SessionUnitReader extends SessionReaderQueries {
@@ -86,11 +89,37 @@ export class SessionUnitReader extends SessionReaderQueries {
   private ownerSelectionRevision = -1
   private ownerSelections = new WeakMap<SessionUnitSelection, ReadonlySet<string>>()
   private readonly dependencySeeds = new Map<SessionMapField, Set<string>>()
+  private readonly operationRoots = new Map<SessionReferenceKind, Set<string>>()
+  private impactRevision = -1
+  private readonly impacts = new Map<SessionMapField, Map<string, boolean>>()
+
+  unitChanged(field: SessionMapField, key: string): boolean {
+    if (this.impactRevision !== this.revision) {
+      this.impacts.clear()
+      this.impactRevision = this.revision
+    }
+    const fieldImpacts = this.impacts.get(field) ?? new Map<string, boolean>()
+    const cached = fieldImpacts.get(key)
+    if (cached !== undefined) {
+      return cached
+    }
+    const prior = this.unit(field, key, 'prior'),
+      candidate = this.unit(field, key)
+    const changed = prior.present !== candidate.present || prior.value !== candidate.value
+    fieldImpacts.set(key, changed)
+    this.impacts.set(field, fieldImpacts)
+    return changed
+  }
+
+  private typedRoots(): SessionOperationRoot[] {
+    return [...this.operationRoots].flatMap(([kind, ids]) => [...ids].map((id) => ({ kind, id })))
+  }
 
   selection(extra: readonly SessionUnitAddress[] = [], full = false): SessionUnitSelection {
     for (const { field, key } of extra) {
       const keys = this.dependencySeeds.get(field) ?? new Set<string>()
       if (!keys.has(key)) {
+        this.mutate()
         keys.add(key)
         this.dependencySeeds.set(field, keys)
         this.dependencyCache = undefined
@@ -102,7 +131,7 @@ export class SessionUnitReader extends SessionReaderQueries {
     const seeds = [...this.dependencySeeds].flatMap(([field, keys]) =>
       [...keys].map((key) => ({ field, key }))
     )
-    const units = resolveSessionUnits(this, seeds, full)
+    const units = resolveSessionUnits(this, seeds, full, true, this.typedRoots())
     this.dependencyCache = { revision: this.revision, full, units }
     return units
   }
@@ -111,22 +140,15 @@ export class SessionUnitReader extends SessionReaderQueries {
     identities: readonly { kind: SessionReferenceKind; id: string }[],
     full = false
   ): SessionUnitSelection {
-    const seeds = identities.flatMap(({ kind, id }) => [
-      ...this.references(kind, id, 'prior'),
-      ...this.references(kind, id),
-      ...(kind === 'owner'
-        ? SESSION_MAP_FIELDS.filter(
-            (field) => WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'worktreeKeyed'
-          ).map((field) => ({ field, key: id }))
-        : []),
-      ...(kind === 'tab'
-        ? SESSION_MAP_FIELDS.filter(
-            (field) => WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'tabKeyed'
-          ).map((field) => ({ field, key: id }))
-        : []),
-      ...(kind === 'repo' ? [{ field: 'terminalTopologyRevisionByRepoId' as const, key: id }] : [])
-    ])
-    return this.selection(seeds, full)
+    for (const { kind, id } of identities) {
+      const ids = this.operationRoots.get(kind) ?? new Set<string>()
+      if (!ids.has(id)) {
+        this.mutate()
+        ids.add(id)
+        this.operationRoots.set(kind, ids)
+      }
+    }
+    return this.selection([], full)
   }
 
   affectedOwners(selection = this.selection()): ReadonlySet<string> {
@@ -168,7 +190,7 @@ export class SessionUnitReader extends SessionReaderQueries {
         for (const key of this.changedKeys(field)) {
           const before = this.unit(field, key, 'prior'),
             after = this.unit(field, key)
-          if (before.present !== after.present || before.value !== after.value) {
+          if (this.unitChanged(field, key)) {
             units.push({
               field,
               key,
@@ -180,27 +202,21 @@ export class SessionUnitReader extends SessionReaderQueries {
           }
         }
         if (transition.complete) {
-          orders.set(field, this.keys(field))
+          const priorKeys = [...this.index.keys(field)],
+            nextKeys = this.keys(field)
+          if (
+            priorKeys.length !== nextKeys.length ||
+            priorKeys.some((key, position) => key !== nextKeys[position])
+          ) {
+            orders.set(field, nextKeys)
+          }
         }
         if (
           Object.hasOwn(this.prior, field) === Object.hasOwn(root, field) &&
           (this.prior[field] === undefined) === (root[field] === undefined) &&
-          !transition.complete
+          !orders.has(field)
         ) {
           continue
-        }
-        if (
-          Object.hasOwn(this.prior, field) === Object.hasOwn(root, field) &&
-          (this.prior[field] === undefined) === (root[field] === undefined)
-        ) {
-          const priorKeys = [...this.index.keys(field)],
-            nextKeys = orders.get(field) ?? this.keys(field)
-          if (
-            priorKeys.length === nextKeys.length &&
-            priorKeys.every((key, position) => key === nextKeys[position])
-          ) {
-            continue
-          }
         }
       } else if (
         this.prior[field] === root[field] &&
@@ -228,8 +244,10 @@ export class SessionUnitReader extends SessionReaderQueries {
         )
       ],
       false,
-      false
+      false,
+      this.typedRoots()
     )
+    this.dependencyCache = { revision: this.revision, full: false, units: dependencyUnits }
     const affected = {
       units: dependencyUnits,
       owners: this.affectedOwners(dependencyUnits),

@@ -60,6 +60,14 @@ function seed(): WorkspaceSessionState {
       }
     ]
   }
+  for (const [index, owner] of ['repo-1::/second', 'repo-1::/third', 'repo-2::/second'].entries()) {
+    addWorkspace(root, owner, [
+      {
+        id: `extra-group-${index}`,
+        tabs: [{ id: `extra-${index}`, leaves: [[leaf(index + 5), `extra-pty-${index}`]] }]
+      }
+    ])
+  }
   return root
 }
 
@@ -107,9 +115,7 @@ describe('reader dependency answers over native roots', () => {
       policyOracle(reader, root, 'prior')
       policyOracle(reader, reader.snapshot(), 'candidate')
       const prepared = reader.prepare({ kind: 'authoritative' })
-      expect(prepared.affected.owners).toEqual(
-        nativeAffectedOwners(root, prepared.root, prepared.units)
-      )
+      expect(prepared.affected.owners).toEqual(nativeAffectedOwners(root, prepared.root))
       const event = publishSessionChanges(state, 'local', prepared)
       expect(event.owners).toEqual(prepared.affected.owners)
       expect(event.pages.size).toBe(

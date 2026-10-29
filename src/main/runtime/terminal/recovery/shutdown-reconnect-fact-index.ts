@@ -40,7 +40,8 @@ export function invalidateShutdownReconnectPty(
 export function publishReconnectRoot(
   root: WorkspaceSessionState,
   index: SessionUnitIndex,
-  event: SessionChangeSet
+  event: SessionChangeSet,
+  orderChanged: boolean
 ): void {
   registerReconnectRoot(root, index)
   const caches = cachesByIndex.get(index)
@@ -51,10 +52,7 @@ export function publishReconnectRoot(
       continue
     }
     cache.root = root
-    if (
-      event.fullReplacement ||
-      event.units.some((unit) => unit.key === null && unit.field === 'tabsByWorktree')
-    ) {
+    if (event.fullReplacement || orderChanged) {
       cache.initialized = false
     }
     for (const owner of event.owners) {

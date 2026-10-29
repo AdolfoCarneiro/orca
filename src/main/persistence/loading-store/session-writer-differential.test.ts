@@ -178,6 +178,19 @@ describe('shared writer normalization differential', () => {
       const seed = addWorkspace(emptySession(), GIT_KEY, [
         { id: 'group-a', tabs: [{ id: 'tab-a', leaves: [[leaf(1), 'pty-a']] }] }
       ])
+      for (const [index, owner] of [
+        'repo-1::/second',
+        'repo-1::/third',
+        'repo-2::/second',
+        'repo-2::/third'
+      ].entries()) {
+        addWorkspace(seed, owner, [
+          {
+            id: `extra-group-${index}`,
+            tabs: [{ id: `extra-${index}`, leaves: [[leaf(index + 5), `extra-pty-${index}`]] }]
+          }
+        ])
+      }
       if (name === 'last sleep removal') {
         seed.sleepingAgentSessionsByPaneKey = {
           [`tab-a:${leaf(1)}`]: {
@@ -225,7 +238,7 @@ describe('shared writer normalization differential', () => {
       const installed = keyed.runtime.state.workspaceSession
       const notices = publication.take('local')
       for (const event of notices) {
-        expect(event.owners).toEqual(nativeAffectedOwners(prior, installed, event.units))
+        expect(event.owners).toEqual(nativeAffectedOwners(prior, installed))
       }
       const actual = publication.partition('local').index
       const rebuilt = new SessionUnitIndex(installed)
