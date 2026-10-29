@@ -22,6 +22,8 @@ export type OrcaI18n = {
   resolveResourceLanguage: (locale: string) => string
 }
 
+const ENGLISH_PLURAL_RULES = new Intl.PluralRules(DEFAULT_UI_LOCALE)
+
 /** Main and renderer share one setup; only how a built-in catalog loads differs. */
 export function createOrcaI18n(options: {
   /** Undefined for English and unknown locales, which use caller fallbacks. */
@@ -71,10 +73,15 @@ export function createOrcaI18n(options: {
   return {
     i18n,
     translate: (key, fallback, translateOptions) => {
-      const value = i18n.t(resolvePluralFamilyKey(key, translateOptions), {
-        defaultValue: fallback,
-        ...translateOptions
-      })
+      const { defaultValue_one: one, ...rest } = translateOptions ?? {}
+      // i18next would pick the English default by the active language's rule (ru 21 -> _one); English text needs English's.
+      const defaultValue =
+        typeof one === 'string' &&
+        typeof rest.count === 'number' &&
+        ENGLISH_PLURAL_RULES.select(rest.count) === 'one'
+          ? one
+          : fallback
+      const value = i18n.t(resolvePluralFamilyKey(key, rest), { defaultValue, ...rest })
       return isPseudoLocalizationLocale(i18n.language) ? pseudoLocalizeString(value) : value
     },
     setPluginLanguagePacks: (packs) => {
