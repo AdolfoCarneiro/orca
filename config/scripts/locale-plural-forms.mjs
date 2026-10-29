@@ -15,9 +15,19 @@ export function resolveLocaleSourceKey(enEntries, localeName, key) {
   return pluralCategories(localeName).includes(plural[2]) ? `${plural[1]}_other` : undefined
 }
 
-// i18next always passes count to plural forms, so a locale may show it where English does not (ru 21 uses _one).
-export function isComparableVariable(sourceKey, variable) {
-  return !PLURAL_KEY_RE.test(sourceKey) || !/^\{\{\s*count\s*[,}]/.test(variable)
+const COUNT_PLACEHOLDER_RE = /^\{\{\s*count\s*[,}]/
+
+// i18next always passes count to plural forms, so a locale may add it where English omits it (ru 21 uses _one).
+export function interpolationVariablesMatch(sourceKey, enVariables, localeVariables) {
+  if (enVariables.join('|') === localeVariables.join('|')) {
+    return true
+  }
+  const withoutCount = (variable) => !COUNT_PLACEHOLDER_RE.test(variable)
+  return (
+    PLURAL_KEY_RE.test(sourceKey) &&
+    !enVariables.some((variable) => COUNT_PLACEHOLDER_RE.test(variable)) &&
+    enVariables.join('|') === localeVariables.filter(withoutCount).join('|')
+  )
 }
 
 function pluralCategories(localeName) {

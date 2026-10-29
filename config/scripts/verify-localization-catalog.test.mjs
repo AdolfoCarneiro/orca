@@ -209,6 +209,15 @@ describe('verify-localization-catalog', () => {
       ['name', 'Nom']
     ])
     await expect(verifyLocalizationCatalog(root, { fix: false })).resolves.toBe(0)
+
+    // Only an English form without {{count}} lets the locale add it; dropping it is still a mismatch.
+    writeJson(frenchPath, { files_other: 'fichiers', files_one: 'fichier', files_many: 'fichiers' })
+    const mismatch = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await expect(verifyLocalizationCatalog(root, { fix: false })).resolves.toBe(1)
+    } finally {
+      mismatch.mockRestore()
+    }
   })
 
   it('reports partial plugin catalog gaps but rejects malformed interpolation', async () => {

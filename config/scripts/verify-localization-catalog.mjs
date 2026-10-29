@@ -10,7 +10,7 @@ import { canonicalGenericRenderings } from './locale-generic-ui-terms.mjs'
 import { LOCALIZATION_SURFACES, readLocalizationSurface } from './localization-surfaces.mjs'
 import { repairTranslatedValue } from './locale-translation-policy.mjs'
 import {
-  isComparableVariable,
+  interpolationVariablesMatch,
   resolveLocaleSourceKey,
   syncLocalePluralForms
 } from './locale-plural-forms.mjs'
@@ -302,10 +302,9 @@ function collectLocaleParityIssues(enCatalog, localeCatalog, localeName) {
     if (!sourceKey) {
       continue
     }
-    const comparable = (variable) => isComparableVariable(sourceKey, variable)
-    const enVariables = collectInterpolationVariables(enEntries.get(sourceKey)).filter(comparable)
-    const localeVariables = collectInterpolationVariables(localeValue).filter(comparable)
-    if (enVariables.join('|') !== localeVariables.join('|')) {
+    const enVariables = collectInterpolationVariables(enEntries.get(sourceKey))
+    const localeVariables = collectInterpolationVariables(localeValue)
+    if (!interpolationVariablesMatch(sourceKey, enVariables, localeVariables)) {
       interpolationMismatches.push(key)
     }
   }
