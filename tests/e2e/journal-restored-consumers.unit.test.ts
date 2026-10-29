@@ -13,7 +13,6 @@ import {
 } from '../../src/shared/agent-session-journal-types'
 import { AGENT_SESSION_CURRENT_REQUESTS_CLIENT_CAPABILITY } from '../../src/shared/agent-session-current-requests-capability'
 import {
-  AGENT_SESSION_HISTORY_DEFAULT_LIMIT,
   AGENT_SESSION_HISTORY_MAX_LIMIT,
   type AgentSessionHistoryRequest,
   type AgentSessionHistoryResult,
@@ -231,7 +230,7 @@ it.each(clients)(
       return { response, turnScope }
     }
     await completedTurn('older', OLDER, OLDER_ANSWER)
-    for (let index = 0; index < AGENT_SESSION_HISTORY_DEFAULT_LIMIT; index += 1) {
+    for (let index = 0; index < AGENT_SESSION_HISTORY_MAX_LIMIT; index += 1) {
       await journal.appendItem(
         { provider: 'orca', clientMessageId: `context-${index}` },
         message(`Context ${index}`),
@@ -420,6 +419,9 @@ it.each(clients)(
         initial
       )
       expect(state.status).toBe('ready')
+      expect(state.hasOlder).toBe(true)
+      expect(JSON.stringify(state.items)).not.toContain(OLDER)
+      expect(JSON.stringify(state.items)).not.toContain(OLDER_ANSWER)
       const cursor = oldestStructuredAgentSessionCursor(state)
       if (!cursor) {
         throw new Error('Missing older-history cursor')
@@ -430,6 +432,7 @@ it.each(clients)(
         limit: AGENT_SESSION_HISTORY_MAX_LIMIT
       })
       expect(JSON.stringify(before.items)).toContain(OLDER)
+      expect(JSON.stringify(before.items)).toContain(OLDER_ANSWER)
       state = reduceStructuredAgentSession(
         state,
         { type: 'older-page', requestedCursor: cursor, page: before },
