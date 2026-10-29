@@ -11725,8 +11725,8 @@
           "managedOverSshHelp": "Ce bureau met à jour ce serveur via SSH. Utilisez Mettre à jour sur sa ligne dans Serveurs Orca distants."
         },
         "BrowserLinkRoutingSetting": {
-          "description": "Ouvre les liens http(s) dans le navigateur intégré d'Orca — depuis le terminal, le markdown et l'éditeur. {{shortcut}} utilise toujours votre navigateur système.",
-          "descriptionBase": "Ouvre les liens http(s) dans le navigateur intégré d'Orca — depuis le terminal, le markdown et l'éditeur."
+          "description": "Ouvre les liens http(s) de tout Orca dans son navigateur intégré. Les pages de connexion et {{shortcut}} utilisent toujours votre navigateur système.",
+          "descriptionBase": "Ouvre les liens http(s) de tout Orca dans son navigateur intégré. Les pages de connexion s'ouvrent toujours dans votre navigateur système."
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "Maintenez Shift pour ouvrir dans votre navigateur web",
