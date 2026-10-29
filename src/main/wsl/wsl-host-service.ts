@@ -3,9 +3,9 @@
  * Add/Connect, or when the user switches to one of its workspaces. After a confirmed stop the host is
  * parked: polls and visible work keep it down until the user acts or the distro runs again.
  */
-import { assertWslHostRunAllowed, wslHostRuntimeCallGuard } from './wsl-host-gate'
+import { assertWslHostRunAllowed } from './wsl-host-gate'
 import { focusReachability } from './wsl-host-focus-reachability'
-import { rethrowRetryable, settlingConnectFailure } from './wsl-host-connect-failure'
+import { ensureWslHostForRuntimeCall } from './wsl-host-runtime-call'
 import type { WslHostDeploymentRecord } from '../../shared/wsl-host-deployment-store'
 import type {
   WslHostAddResult,
@@ -21,12 +21,7 @@ import {
   readWslHostRecordsQuietly,
   toWslHostStatus
 } from './wsl-host-connection-record'
-import {
-  sameWslDistro,
-  wslHostNotConnectedMessage,
-  wslHostStoppedMessage,
-  wslHostRunRefusal
-} from './wsl-host-add-admission'
+import { sameWslDistro, wslHostRunRefusal } from './wsl-host-add-admission'
 import type { WslOrcadConnection } from './wsl-orcad-connection'
 import { registerWslHost } from './wsl-host-registration'
 import { WslHostStatusBoard } from './wsl-host-status-board'
@@ -207,38 +202,21 @@ export class WslHostService {
     await this.wsl.connect(record.distro, options)
   }
 
-  /**
-   * A runtime call (a poll, a fetch) never boots a distro (E9). It reconnects only to a distro
-   * confirmed running and only for visible work; a confirmed stop parks the host.
-   */
+  /** A runtime call (a poll, a fetch) never boots a distro (E9); see ensureWslHostForRuntimeCall. */
   async ensureForRuntimeCall(environmentId: string): Promise<void> {
-    const record = this.recordForEnvironment(environmentId)
-    const connector = this.connector
-    if (!record || !connector) {
-      return
-    }
-    const reachability = await connector.reachability(record.distro, environmentId)
-    if (reachability === 'available') {
-      return
-    }
-    assertWslHostRunAllowed(this.deps, this.removing, environmentId)
-    // A pending host never reconnects for a runtime call.
-    admitConnectToPendingHost(this.deps.userDataPath(), record, false)
-    if (reachability === 'stopped') {
-      this.parked.add(environmentId)
-    }
-    if (this.parked.has(environmentId)) {
-      throw wslHostRuntimeCallGuard(wslHostStoppedMessage(record.distro), 'parked')
-    }
-    // Unconfirmed (running list unreadable, or possibly stale right after an exit) or not
-    // visible: refuse rather than risk a boot; liveness publishes the verdict.
-    if (reachability !== 'unreachable' || !this.visible.has(environmentId)) {
-      throw wslHostRuntimeCallGuard(wslHostNotConnectedMessage(record.distro), 'unavailable')
-    }
-    if (connector.isSettling(record.distro)) {
-      throw settlingConnectFailure(record.distro)
-    }
-    await connector.connect(record.distro, { noBoot: true }).catch(rethrowRetryable(record.distro))
+    await ensureWslHostForRuntimeCall(environmentId, {
+      record: this.recordForEnvironment(environmentId),
+      connector: this.connector,
+      deps: this.deps,
+      removing: this.removing,
+      parked: this.parked,
+      isVisible: () => this.visible.has(environmentId),
+      publishStopped: (record) =>
+        this.setStatus(record, { state: 'distro-stopped', terminals: 'exited', recovering: false }),
+      publishReady: (record, connection) =>
+        this.setStatus(record, { state: 'ready', census: null }, connection),
+      retry: () => this.ensureForRuntimeCall(environmentId)
+    })
   }
 
   /**
