@@ -53,6 +53,7 @@ vi.mock('./cdp-bridge', () => ({
 }))
 
 import { AgentBrowserBridge } from './agent-browser-bridge'
+import { runWithActiveRpcCaller } from '../runtime/rpc/rpc-active-caller'
 import {
   answerAgentBrowserCommands,
   mockBrowserManager,
@@ -245,6 +246,53 @@ describe('AgentBrowserBridge', () => {
 
     expect(b.getActiveWebContentsId()).toBe(200)
     expect(b.tabList('wt-1').tabs).toMatchObject([{ browserPageId: 'tab-a', active: true }])
+  })
+
+  describe('while an agent drives a tab', () => {
+    const agentPages = new Set<string>()
+    const agentOnTabA = (): AgentBrowserBridge => {
+      const tabs = new Map([
+        ['tab-a', 1],
+        ['tab-b', 2]
+      ])
+      const worktrees = new Map([
+        ['tab-a', 'wt-1'],
+        ['tab-b', 'wt-1']
+      ])
+      const wc1 = mockWebContents(1, 'https://a.com', 'A')
+      const wc2 = mockWebContents(2, 'https://b.com', 'B')
+      webContentsFromIdMock.mockImplementation((id: number) => (id === 1 ? wc1 : wc2))
+      const b = new AgentBrowserBridge(
+        mockBrowserManager(tabs, worktrees, {
+          isAgentUsingPage: (id: string) => agentPages.has(id)
+        })
+      )
+      b.onTabChanged(1, 'wt-1')
+      agentPages.clear()
+      agentPages.add('tab-a')
+      return b
+    }
+
+    it('keeps unpinned commands on that tab until it goes idle when the user picks another', () => {
+      const b = agentOnTabA()
+
+      b.onTabChanged(2, 'wt-1')
+      expect(b.getActivePageId('wt-1')).toBe('tab-a')
+
+      agentPages.clear()
+      expect(b.getActivePageId('wt-1')).toBe('tab-b')
+    })
+
+    it.each([
+      [{ kind: 'paired-device', deviceId: 'phone' } as const, 'tab-a'],
+      [{ kind: 'local-cli' } as const, 'tab-b']
+    ])('a tab created by %o routes unpinned commands to %s', (caller, expected) => {
+      const b = agentOnTabA()
+
+      runWithActiveRpcCaller(caller, () => b.setActiveTab(2, 'wt-1'))
+
+      expect(b.getActivePageId('wt-1')).toBe(expected)
+    })
   })
 
   it('updates the owning worktree active tab when switching by browser page id', async () => {

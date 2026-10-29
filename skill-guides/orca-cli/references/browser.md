@@ -1,15 +1,16 @@
 # Built-in browser commands
 
-Use a snapshot-interact-re-snapshot loop:
+Pin one page, then use a snapshot-interact-re-snapshot loop on it:
 
 ```text
-ORCA goto --url https://example.com --json
-ORCA snapshot --json
-ORCA click --element @e3 --json
-ORCA snapshot --json
+ORCA tab current --json
+ORCA goto --page <browserPageId> --url https://example.com --json
+ORCA snapshot --page <browserPageId> --json
+ORCA click --page <browserPageId> --element @e3 --json
+ORCA snapshot --page <browserPageId> --json
 ```
 
-Common commands:
+Common commands (every command that acts on a page also takes `--page <browserPageId>`; pass it):
 
 ```text
 ORCA goto --url <url> --json
@@ -51,8 +52,9 @@ Browser rules:
 
 - Re-snapshot after navigation, tab switches, clicks that change the page, and any `browser_stale_ref`.
 - Refs like `@e1` are assigned by `snapshot`, scoped to one tab, and invalidated by navigation or tab switch.
-- Browser commands default to the current worktree and its active tab. Use `--worktree all` only intentionally.
-- For concurrent browser work, run `ORCA tab list --json`, read `tabs[].browserPageId`, and pass `--page <browserPageId>` on later commands.
+- Always pass `--page <browserPageId>`. Take it from `tab.browserPageId` in `ORCA tab current --json` (the tab the user has open) or `browserPageId` in `ORCA tab create --json`, then reuse it on every command. Without `--page`, a command goes to whichever tab the user selected last, and that changes when they click or open a tab.
+- After `ORCA tab switch`, pass the new page's `browserPageId`.
+- Browser commands default to the current worktree. Use `--worktree all` only intentionally.
 - Use typed tab commands (`ORCA tab list/create/close/switch`), not `ORCA exec --command "tab ..."`, so Orca keeps UI state synchronized.
 - Use `ORCA set device` or `ORCA viewport --mobile`, not `ORCA exec --command "set device ..."`, so the page also gets touch input and `pointer: coarse`. Each page load (reload, `goto`, link click) resets it, so run it again after navigating.
 - Prefer `wait --text`, `--url`, `--selector`, or `--load` after async page changes instead of bare timeouts.
