@@ -192,10 +192,10 @@ describe('federated worker release ownership', () => {
     dispatchId: string,
     params: Record<string, unknown> = { dispatchId }
   ): Promise<unknown> {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((candidate) => candidate.name === name)
-    if (!method) {
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (candidate) => candidate.name === name
+    )
+    if (!method || isStreamingMethod(method)) {
       throw new Error(`Method not found: ${name}`)
     }
     return method.handler(method.params!.parse(params), {
