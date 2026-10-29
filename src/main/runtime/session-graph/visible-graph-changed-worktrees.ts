@@ -2,10 +2,10 @@ import type { RuntimeSyncedTab } from '../../../shared/runtime-types'
 import type { RuntimeLeafRecord } from '../runtime-terminal-state-records'
 
 export function visibleGraphChangedWorktrees(
-  previousTabs: Map<string, RuntimeSyncedTab>,
-  previousLeaves: Map<string, RuntimeLeafRecord>,
-  tabs: Map<string, RuntimeSyncedTab>,
-  leaves: Map<string, RuntimeLeafRecord>
+  previousTabs: ReadonlyMap<string, RuntimeSyncedTab>,
+  previousLeaves: ReadonlyMap<string, RuntimeLeafRecord>,
+  tabs: ReadonlyMap<string, RuntimeSyncedTab>,
+  leaves: ReadonlyMap<string, RuntimeLeafRecord>
 ): Set<string> {
   const changed = new Set<string>()
   for (const [tabId, tab] of tabs) {

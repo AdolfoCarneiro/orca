@@ -187,7 +187,7 @@ export type HookLiveAgentRow = Pick<
   | 'programStatus'
 >
 
-export type TerminalHandleRecord = {
+export type TerminalHandleRecord = Readonly<{
   handle: string
   runtimeId: string
   rendererGraphEpoch: number
@@ -198,7 +198,7 @@ export type TerminalHandleRecord = {
   ptyGeneration: number
   /** Issue-time stamp of the pane main bound a terminal handle for; read only by recoverTerminalPane. */
   issuedForPaneKey?: string
-}
+}>
 
 export type OrchestrationCompatibilityTerminalAuthority = {
   runtimeId: string

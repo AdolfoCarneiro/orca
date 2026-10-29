@@ -1,3 +1,4 @@
+import type { AgentTransitionDetector } from '../../../agent-hooks/agent-transition-detector'
 import {
   readCrewRuntimeInputs,
   watchCrewRuntimeSources
@@ -35,6 +36,9 @@ import { makePaneKey } from '../../../../shared/stable-pane-id'
 import { worktreeIdsEqual } from '../../../../shared/worktree/id'
 
 export abstract class OrcaRuntimeWithAutomationOperations extends OrcaRuntimeWithPtyForegroundProcessReads {
+  abstract readonly agentTransitions: Pick<AgentTransitionDetector, 'subscribe'>
+  protected abstract crewRuntimeReaders(): Parameters<typeof readCrewRuntimeInputs>[0]
+
   abstract notifyAutomationsChanged(payload?: AutomationsChangedPayload): void
   abstract ensureOrchestrationFederationRelay(runId?: string): void
   protected abstract scheduleRestoredMessageRepoints(): void
@@ -198,7 +202,7 @@ export abstract class OrcaRuntimeWithAutomationOperations extends OrcaRuntimeWit
   private readonly crewReadModel = new CrewReadModel(
     (previous) =>
       readCrewRuntimeInputs(
-        this,
+        this.crewRuntimeReaders(),
         this._orchestrationDb,
         existsSync(this.orchestrationDbPath()),
         getPublishedHostDescriptor(this.runtimeId)?.installationId ?? this.runtimeId,
