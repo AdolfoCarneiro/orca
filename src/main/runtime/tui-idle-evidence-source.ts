@@ -32,6 +32,27 @@ export type TuiIdleEvidenceSource = {
   /** The painted grid on the PTY's own size, which only agents whose rules read the trusted
    *  screen, and screen vetoes, use. Absent, they have no trustworthy screen. */
   readRuledScreen?(ptyId: string | null | undefined): RuledScreen | null
+  /** The PTY's quiet clock: its last output, else when main began receiving its silent stream. */
+  getOutputClockAt?(ptyId: string | null | undefined): number | null
+}
+
+/** One clock per terminal, read by ptyId. */
+export function outputClockOf(
+  source: Pick<TuiIdleEvidenceSource, 'getOutputClockAt'>,
+  record: { ptyId: string | null; lastOutputAt: number | null }
+): number | null {
+  return source.getOutputClockAt?.(record.ptyId) ?? record.lastOutputAt
+}
+
+function evidenceRecord(
+  source: TuiIdleEvidenceSource,
+  record: TuiIdleEvidenceRecord & { ptyId: string | null }
+): TuiIdleEvidenceRecord {
+  return {
+    lastAgentStatus: record.lastAgentStatus,
+    lastOscTitle: record.lastOscTitle,
+    lastOutputAt: outputClockOf(source, record)
+  }
 }
 
 // Why per agent: every other agent keeps the live screen its rules were recorded against.
@@ -102,17 +123,18 @@ export function ptyTuiIdleEvidence(
   const waitText = lazyWaitText(readWaitText)
   const agent = source.getPaneAgent(pty.ptyId)
   const readScreen = screenReader(source, agent, pty.ptyId)
+  const record = evidenceRecord(source, pty)
   return {
-    record: pty,
+    record,
     readTailBlockedReason: () => detectTerminalWaitBlockedReason(waitText()),
     readPositiveBodyEvidence: () =>
       (agent !== 'qoder' &&
         agent !== 'qoder-cn' &&
         agent !== 'hermes' &&
         source.getAdoptedPtyIdleStatus(pty) === 'idle') ||
-      isKnownReadyPromptBody(waitText(), agent, readScreen, pty.lastOutputAt !== null),
+      isKnownReadyPromptBody(waitText(), agent, readScreen, record.lastOutputAt !== null),
     readQuietReadyBodyEvidence: () => isQuietReadyScreenBody(waitText(), agent, readScreen),
-    readAgentRuleVerdict: () => readAgentRuleVerdict(agent, pty, readScreen, waitText),
+    readAgentRuleVerdict: () => readAgentRuleVerdict(agent, record, readScreen, waitText),
     readScreenInputVeto: screenInputVetoReader(source, agent, pty.ptyId),
     titleObservedAtEpochMs: pty.lastOscTitleEpochMs,
     agent,

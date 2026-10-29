@@ -14,7 +14,11 @@ import {
   type QuietForegroundLane,
   type TuiIdleVerdict
 } from '../../tui-idle-evidence'
-import { ptyTuiIdleEvidence, type TuiIdleEvidenceSource } from '../../tui-idle-evidence-source'
+import {
+  outputClockOf,
+  ptyTuiIdleEvidence,
+  type TuiIdleEvidenceSource
+} from '../../tui-idle-evidence-source'
 
 /** Open lanes accept missing clocks as uncorroborated quiet for unseen daemon output; caller timeouts remain and delivery cannot use this lane.
  * Known agents on after-paint lanes must first paint their own command output, excluding shell prompts/echo. */
@@ -125,7 +129,7 @@ export class RuntimeTerminalIdlePolls {
       ready: () => buildPtyTerminalWaitResult(handle, 'tui-idle', pty),
       blocked: (reason) => buildPtyTerminalWaitBlockedResult(handle, 'tui-idle', pty, reason),
       isQuiet: (lane) =>
-        isQuietForQuiescence(pty.lastOutputAt, this.deps.quiescenceMs, lane, () =>
+        isQuietForQuiescence(outputClockOf(this.deps, pty), this.deps.quiescenceMs, lane, () =>
           this.deps.hasCommandPainted(pty.ptyId)
         )
     }

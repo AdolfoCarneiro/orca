@@ -108,6 +108,7 @@ export abstract class RuntimeConstructionServices {
   protected abstract readCaughtUpRuledScreen(ptyId: string): RuledScreen | null
   protected abstract clearWaitBlockedStamp(ptyId: string): void
   protected abstract readRuledScreen(ptyId: string | null | undefined): RuledScreen | null
+  protected abstract readOutputClockAt(ptyId: string | null | undefined): number | null
   protected abstract headlessTerminals: Map<string, RuntimeHeadlessTerminal>
   protected abstract readHeadlessVisibleTerminalState(
     ptyId: string
