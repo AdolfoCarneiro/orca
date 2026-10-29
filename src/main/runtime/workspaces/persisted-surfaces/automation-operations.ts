@@ -37,7 +37,6 @@ import { worktreeIdsEqual } from '../../../../shared/worktree/id'
 
 export abstract class OrcaRuntimeWithAutomationOperations extends OrcaRuntimeWithPtyForegroundProcessReads {
   abstract readonly agentTransitions: Pick<AgentTransitionDetector, 'subscribe'>
-  protected abstract crewRuntimeReaders(): Parameters<typeof readCrewRuntimeInputs>[0]
 
   abstract notifyAutomationsChanged(payload?: AutomationsChangedPayload): void
   abstract ensureOrchestrationFederationRelay(runId?: string): void
