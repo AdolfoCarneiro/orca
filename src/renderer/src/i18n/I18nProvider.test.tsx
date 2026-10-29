@@ -263,6 +263,7 @@ it("re-applies a plugin language only when the selected pack's content changes",
     id,
     resourceLanguage: pluginLanguageResourceId(id),
     pluginKey: 'example.german',
+    coverage: 100,
     locale: 'de-DE',
     catalog: { common: { save } }
   })
