@@ -4,6 +4,7 @@ import { act, createElement, StrictMode, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, type Mock, vi } from 'vitest'
 import type { Automation, AutomationRun } from '../../../../shared/automations-types'
+import type { Worktree } from '../../../../shared/worktree/types'
 import {
   AUTOMATION_LIST_HOST_SCOPE_RUNTIME_CAPABILITY as LIST_HOST_SCOPE,
   AUTOMATION_OWNER_FENCING_RUNTIME_CAPABILITY as OWNER_FENCING,
@@ -79,6 +80,7 @@ export type EditorDialogProps = {
   notice?: { message: string; recovery: string | null } | null
   onNoticeRecover?: (action: string) => void
   repos?: { id: string }[]
+  worktrees: Worktree[]
   draft?: { projectId: string; workspaceId: string }
   canSave?: boolean
   onSave: () => void

@@ -5,6 +5,7 @@ import type {
 } from '../../../../shared/automation-owner-ref'
 import {
   getRepoExecutionHostId,
+  normalizeExecutionHostId,
   toSshExecutionHostId,
   toRuntimeExecutionHostId
 } from '../../../../shared/execution-host'
@@ -119,13 +120,15 @@ export function useAutomationsPageDestinationState({
       : null
   const createResolution = createDestination.control.resolution
   const createDestinationHostId =
-    createResolution.status !== 'ready'
-      ? undefined
-      : createResolution.authority.kind === 'runtime'
-        ? toRuntimeExecutionHostId(createResolution.authority.environmentId)
-        : createResolution.destination.selector.kind === 'ssh'
-          ? toSshExecutionHostId(createResolution.destination.selector.targetId)
-          : 'local'
+    normalizeExecutionHostId(
+      createResolution.status !== 'ready'
+        ? undefined
+        : createResolution.authority.kind === 'runtime'
+          ? toRuntimeExecutionHostId(createResolution.authority.environmentId)
+          : createResolution.destination.selector.kind === 'ssh'
+            ? toSshExecutionHostId(createResolution.destination.selector.targetId)
+            : 'local'
+    ) ?? undefined
   useEffect(() => {
     if (createDestinationRuntimeEnvironmentId) {
       void fetchRuntimeEnvironmentRepos(createDestinationRuntimeEnvironmentId)
