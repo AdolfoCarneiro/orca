@@ -375,7 +375,8 @@ it.each(['settling', 'bound', 'failed'] as const)(
   'restores only durable Stop facts from a %s checkpoint, including prior v1 payloads',
   async (mode) => {
     write([{ ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }])
-    const journal = await journals.open({ identity, stateDirectory: root })
+    const now = () => 2_000
+    const journal = await journals.open({ identity, stateDirectory: root, now })
     await journal.appendStopEvent({ reason: 'user-stop' }, 1)
     const settle = journal.stopMarks.beginSettle(true)
     expect(settle).not.toBeNull()
@@ -400,7 +401,7 @@ it.each(['settling', 'bound', 'failed'] as const)(
 
     const full = requireState(replayJournal(database.db, identity.sessionId)?.state)
     const replayMarks = new JournalStopMarks({ state: () => full })
-    const reopened = await journals.open({ identity, stateDirectory: root })
+    const reopened = await journals.open({ identity, stateDirectory: root, now })
     expectSameState(requireState(restoreJournal(database.db, identity.sessionId)?.state), full)
     expect(reopened.stopMarks.latest()).toStrictEqual(replayMarks.latest())
     expect(structuredAgentSessionStopping(reopened, reopened.snapshot().items)).toBe(false)
@@ -428,7 +429,7 @@ it.each(['settling', 'bound', 'failed'] as const)(
     expect(reopened.stopMarks.personStopDecides('new-turn')).toBe(false)
     await reopened.appendItem(
       turn,
-      { kind: 'turn', turnId: 'new-turn', state: 'interrupted', completedAt: Date.now() },
+      { kind: 'turn', turnId: 'new-turn', state: 'interrupted', completedAt: 2_001 },
       { fence: 1 }
     )
     expect(reopened.itemBody(agentJournalItemKey(turn))).not.toHaveProperty('outcome')

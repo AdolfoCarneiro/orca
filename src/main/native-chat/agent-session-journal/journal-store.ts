@@ -272,8 +272,9 @@ export class AgentSessionJournal {
   }
 
   /** Assign revisions here so callers cannot publish reducer-stale upserts. */
-  appendItem = (...args: Parameters<JournalItemAppender['append']>) =>
-    this.itemAppender.append(...args)
+  appendItem(...args: Parameters<JournalItemAppender['append']>) {
+    return this.itemAppender.append(...args)
+  }
 
   appendClaimingAttachments: JournalItemAppender['appendClaimingAttachments'] = (...args) =>
     this.itemAppender.appendClaimingAttachments(...args)
@@ -375,9 +376,7 @@ export class AgentSessionJournal {
     return this.epochController.roll(reason, fence)
   }
 
-  replaceEpochItems(
-    ...args: Parameters<JournalEpochController['replace']>
-  ): Promise<AgentJournalCursor> {
+  replaceEpochItems(...args: Parameters<JournalEpochController['replace']>) {
     return this.epochController.replace(...args)
   }
 }
