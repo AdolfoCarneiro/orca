@@ -8,7 +8,10 @@ import {
   captureAgentGenerationFailureOutput,
   type AgentGenerationFailureOutput
 } from './agent-failure-output'
-import type { InternalTextGenerationResult } from './source-control-text-generation-types'
+import type {
+  InternalTextGenerationResult,
+  TextGenerationOperation
+} from './source-control-text-generation-types'
 import { parseOpenCodeGenerationOutput } from '../../shared/opencode-generation-output'
 import { parseAntigravityGenerationOutput } from '../../shared/antigravity-generation-stream'
 import {
@@ -21,7 +24,6 @@ import {
   textGenerationFailure,
   type TextGenerationFailureFields
 } from '../../shared/text-generation-failure-copy'
-import type { TextGenerationOperation } from './source-control-text-generation-types'
 
 type AgentCliFailureOptions = {
   includeLocalMacDnsHint?: boolean
