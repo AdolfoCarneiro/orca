@@ -259,6 +259,15 @@ function measureImageSubscriptions(scale: number) {
   expect(data.work).toEqual(emptyWork())
   expect(renders - baseline).toBe(0)
 
+  // Rank patches and host timestamp refreshes replace owner inputs without moving any chat.
+  act(() =>
+    useAppStore.setState({
+      worktreesByRepo: { unrelated: [] },
+      runtimeEnvironments: [...useAppStore.getState().runtimeEnvironments]
+    })
+  )
+  expect(renders - baseline).toBe(0)
+
   const destination = data.moveLastChat()
   expect(contexts.get(`chat-${data.mounted - 1}`)).toMatchObject({
     worktreeId: destination,

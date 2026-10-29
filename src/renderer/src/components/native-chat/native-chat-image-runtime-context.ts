@@ -17,7 +17,7 @@ import { parseExecutionHostId, toRuntimeExecutionHostId } from '../../../../shar
 import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-worktree'
 import { resolveNativeChatTabDirectory } from './native-chat-tab-directory'
 import { useMemo } from 'react'
-import { useShallow } from 'zustand/react/shallow'
+import { shallow } from 'zustand/shallow'
 import {
   selectDetectedWorktreesByRepo,
   selectFolderWorkspaces,
@@ -188,22 +188,31 @@ export function createNativeChatImageOwnerSelector(tabId: string) {
   }
 }
 
-export function useNativeChatImageRuntimeContext(tabId: string): NativeChatImageRuntimeContext {
-  const selectOwnerState = useMemo(() => createNativeChatImageOwnerSelector(tabId), [tabId])
-  const ownerState = useAppStore(useShallow(selectOwnerState))
-  return useMemo(() => {
+/** Resolve inside the selector and keep an equal result's identity, so catalog/rank writes cannot rerender retained chats. */
+export function createNativeChatImageRuntimeContextSelector(tabId: string) {
+  const selectOwnerState = createNativeChatImageOwnerSelector(tabId)
+  let ownerState: ReturnType<typeof selectOwnerState> | null = null
+  let context: NativeChatImageRuntimeContext = null
+  return (state: AppState): NativeChatImageRuntimeContext => {
+    const next = selectOwnerState(state)
+    if (ownerState && shallow(ownerState, next)) {
+      return context
+    }
+    ownerState = next
     // This view serves only the existing floating-directory predicate, never an owner index.
     const unifiedTabsByWorktree =
-      ownerState.owner && ownerState.floatingTabs
-        ? { [ownerState.owner]: ownerState.floatingTabs }
-        : {}
-    return resolveNativeChatImageRuntimeContextForOwner(
-      {
-        ...ownerState,
-        unifiedTabsByWorktree
-      },
+      next.owner && next.floatingTabs ? { [next.owner]: next.floatingTabs } : {}
+    const resolved = resolveNativeChatImageRuntimeContextForOwner(
+      { ...next, unifiedTabsByWorktree },
       tabId,
-      ownerState.owner
+      next.owner
     )
-  }, [ownerState, tabId])
+    context = shallow(context, resolved) ? context : resolved
+    return context
+  }
+}
+
+export function useNativeChatImageRuntimeContext(tabId: string): NativeChatImageRuntimeContext {
+  const selectContext = useMemo(() => createNativeChatImageRuntimeContextSelector(tabId), [tabId])
+  return useAppStore(selectContext)
 }
