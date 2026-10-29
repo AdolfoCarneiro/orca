@@ -21931,10 +21931,37 @@
       "automationHistory": "Histórico de automações",
       "onboarding": "Progresso da integração",
       "other": "Outro estado salvo do app"
+    },
+    "startupFailure": {
+      "noneFound": "(nada encontrado)",
+      "sqlitePath": "Caminho do SQLite: {{path}}",
+      "sectionsDamaged": "Parte do estado salvo deste perfil está danificada: {{sections}}. Todo o restante está intacto.",
+      "repairCommand": "Feche o Orca e execute `{{command}}` para substituir apenas as partes danificadas a partir dos backups e manter todo o restante. O Orca guarda uma cópia do arquivo danificado.",
+      "restoreWholeBackup": "Para restaurar um backup completo em vez disso, execute `{{exportsCommand}}` e depois `{{rollbackCommand}}`.",
+      "sqliteUnreadable": "O Orca não consegue abrir o perfil ativo com segurança porque seu estado SQLite está ilegível.",
+      "legacyJsonPath": "Caminho do JSON legado: {{path}}",
+      "retainedBackups": "Backups do SQLite mantidos:",
+      "retainedExports": "Exportações JSON mantidas:",
+      "chooseRecoveryArtifact": "Feche o Orca, execute `{{command}}` e escolha um artefato de recuperação comprovadamente íntegro.",
+      "restoreCommands": "Restaure o SQLite com `{{backupCommand}}` ou uma exportação JSON com `{{revisionCommand}}`.",
+      "authorityAmbiguous": "O Orca não consegue determinar com segurança qual estado do perfil é o válido: {{detail}}",
+      "authorityBothPreserved": "Uma compilação mais antiga pode ter alterado o arquivo JSON. As duas cópias são preservadas; nenhuma é selecionada automaticamente.",
+      "authorityCopyFirst": "Feche o Orca e copie o diretório do perfil antes de escolher qual estado manter.",
+      "authorityKeepJson": "Para manter o JSON atual, incluindo edições de uma compilação mais antiga, execute `{{command}}`. Isso arquiva as duas cópias sem mesclar o conteúdo delas.",
+      "authorityInspect": "Execute `{{command}}` para inspecionar os pontos de recuperação mantidos.",
+      "authorityRestore": "Use `{{backupCommand}}` ou `{{revisionCommand}}` somente depois de selecionar o estado que deseja restaurar.",
+      "newerSchema": "Este perfil foi salvo por uma versão mais recente do Orca. Abra-o com essa versão ou uma posterior. Seu perfil não foi alterado.",
+      "revisionConflict": "O perfil ativo foi alterado enquanto o Orca iniciava. Feche os outros processos do Orca que usam este perfil e reinicie o Orca.",
+      "writerUnavailable": "O Orca não conseguiu iniciar o salvamento do perfil. Reinicie o Orca; se o problema continuar, repare ou reinstale esta compilação.",
+      "publicationUnavailable": "O Orca não conseguiu salvar o estado do perfil com segurança em {{directory}}.",
+      "publicationNeedsHardLinks": "Este local precisa oferecer suporte a links físicos, e o Orca precisa de permissão para criá-los.",
+      "publicationMoveData": "Feche o Orca e o orcad antes de verificar as permissões da pasta ou mover todo o diretório de dados do Orca para um sistema de arquivos local gravável que ofereça suporte a links físicos, como APFS, NTFS ou ext4.",
+      "publicationKeepFiles": "Mantenha o diretório original e todos os arquivos de recuperação."
     }
   },
   "startupFailure": {
-    "title": "Não foi possível iniciar o Orca"
+    "title": "Não foi possível iniciar o Orca",
+    "finishFailed": "O Orca não conseguiu concluir a inicialização: {{detail}}"
   },
   "browserExtensions": {
     "permission": {
@@ -22620,5 +22647,12 @@
       "recipeExitedWithoutCode": "A receita terminou com um código desconhecido.",
       "destroyExitedWithoutCode": "A destruição terminou com um código desconhecido."
     }
+  },
+  "installDirAcl": {
+    "cause": "As permissões do Windows na pasta de instalação do Orca impedem que os próprios processos em sandbox leiam os arquivos distribuídos com o aplicativo.",
+    "repaired": "O Orca corrigiu as permissões. Recarregue para aplicá-las.",
+    "repairing": "O Orca está corrigindo as permissões.",
+    "repairFailed": "O Orca não conseguiu corrigi-las, o que geralmente significa que a pasta exige permissões de administrador.",
+    "runCommands": "Execute estes comandos em um Prompt de Comando como administrador e abra o Orca novamente:"
   }
 }

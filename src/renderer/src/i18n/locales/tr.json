@@ -21546,10 +21546,37 @@
       "automationHistory": "Otomasyon geçmişi",
       "onboarding": "Başlangıç adımlarındaki ilerleme",
       "other": "Uygulamanın diğer kayıtlı durumu"
+    },
+    "startupFailure": {
+      "noneFound": "(bulunamadı)",
+      "sqlitePath": "SQLite yolu: {{path}}",
+      "sectionsDamaged": "Bu profilin kayıtlı durumunun bir bölümü hasarlı: {{sections}}. Diğer her şey sağlam.",
+      "repairCommand": "Orca'yı kapatın, ardından yalnızca hasarlı bölümleri yedeklerden değiştirip diğer her şeyi korumak için `{{command}}` komutunu çalıştırın. Orca hasarlı dosyanın bir kopyasını saklar.",
+      "restoreWholeBackup": "Bunun yerine bir yedeği bütünüyle geri yüklemek için önce `{{exportsCommand}}`, ardından `{{rollbackCommand}}` komutunu çalıştırın.",
+      "sqliteUnreadable": "SQLite durumu okunamadığı için etkin profil Orca'da güvenli bir şekilde açılamadı.",
+      "legacyJsonPath": "Eski JSON yolu: {{path}}",
+      "retainedBackups": "Saklanan SQLite yedekleri:",
+      "retainedExports": "Saklanan JSON dışa aktarımları:",
+      "chooseRecoveryArtifact": "Orca'yı kapatın, ardından `{{command}}` komutunu çalıştırın ve sağlam olduğu bilinen bir kurtarma öğesi seçin.",
+      "restoreCommands": "SQLite'ı `{{backupCommand}}` ile veya bir JSON dışa aktarımını `{{revisionCommand}}` ile geri yükleyin.",
+      "authorityAmbiguous": "Profil durumunun esas alınacak kaynağı Orca'da güvenli bir şekilde seçilemedi: {{detail}}",
+      "authorityBothPreserved": "Eski bir derleme JSON dosyasını değiştirmiş olabilir. Her iki kopya da korunur; hiçbiri otomatik olarak seçilmez.",
+      "authorityCopyFirst": "Hangi durumun korunacağını seçmeden önce Orca'yı kapatın ve profil dizinini kopyalayın.",
+      "authorityKeepJson": "Eski bir derlemede yapılan düzenlemeler dahil mevcut JSON'u korumak için `{{command}}` komutunu çalıştırın. Bu işlem her iki kopyayı arşivler ve içeriklerini birleştirmez.",
+      "authorityInspect": "Saklanan kurtarma noktalarını incelemek için `{{command}}` komutunu çalıştırın.",
+      "authorityRestore": "`{{backupCommand}}` veya `{{revisionCommand}}` komutunu yalnızca geri yüklemek istediğiniz durumu seçtikten sonra kullanın.",
+      "newerSchema": "Bu profil Orca'nın daha yeni bir sürümünde kaydedilmiş. O sürümle veya daha yeni bir sürümle açın. Profiliniz değiştirilmedi.",
+      "revisionConflict": "Orca başlatılırken etkin profil değişti. Bu profili kullanan diğer Orca işlemlerini kapatın, ardından Orca'yı yeniden başlatın.",
+      "writerUnavailable": "Orca'da profil kaydı başlatılamadı. Orca'yı yeniden başlatın; sorun devam ederse bu derlemeyi onarın veya yeniden yükleyin.",
+      "publicationUnavailable": "Profil durumu Orca tarafından {{directory}} konumuna güvenli bir şekilde kaydedilemedi.",
+      "publicationNeedsHardLinks": "Bu konum sabit bağlantıları desteklemeli ve Orca'nın bunları oluşturma izni olmalıdır.",
+      "publicationMoveData": "Klasör izinlerini kontrol etmeden veya Orca veri dizininin tamamını APFS, NTFS ya da ext4 gibi sabit bağlantıları destekleyen yazılabilir bir yerel dosya sistemine taşımadan önce Orca ve orcad uygulamalarını kapatın.",
+      "publicationKeepFiles": "Özgün dizini ve tüm kurtarma dosyalarını saklayın."
     }
   },
   "startupFailure": {
-    "title": "Orca başlatılamadı"
+    "title": "Orca başlatılamadı",
+    "finishFailed": "Orca'nın başlatılması tamamlanamadı: {{detail}}"
   },
   "native": {
     "about": {
@@ -22171,5 +22198,12 @@
       "recipeExitedWithoutCode": "Tarif bilinmeyen bir kodla sonlandı.",
       "destroyExitedWithoutCode": "Yok etme işlemi bilinmeyen bir kodla sonlandı."
     }
+  },
+  "installDirAcl": {
+    "cause": "Orca'nın kurulum klasöründeki Windows izinleri, kendi korumalı alan süreçlerinin uygulamayla birlikte gelen dosyaları okumasını engelliyor.",
+    "repaired": "Orca izinleri onardı. Uygulamak için yenileyin.",
+    "repairing": "Orca şu anda izinleri onarıyor.",
+    "repairFailed": "İzinler Orca tarafından onarılamadı. Bu genellikle klasör için yönetici yetkisi gerektiği anlamına gelir.",
+    "runCommands": "Yönetici olarak açılan Komut İstemi penceresinde bu komutları çalıştırın, ardından Orca'yı yeniden başlatın:"
   }
 }

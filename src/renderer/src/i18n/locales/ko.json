@@ -21499,10 +21499,37 @@
       "automationHistory": "자동화 기록",
       "onboarding": "온보딩 진행 상황",
       "other": "기타 저장된 앱 상태"
+    },
+    "startupFailure": {
+      "noneFound": "(찾을 수 없음)",
+      "sqlitePath": "SQLite 경로: {{path}}",
+      "sectionsDamaged": "이 프로필의 저장된 상태 중 일부가 손상되었습니다: {{sections}}. 나머지는 모두 정상입니다.",
+      "repairCommand": "Orca를 종료한 다음 `{{command}}`를 실행하면 손상된 부분만 백업에서 교체하고 나머지는 모두 유지할 수 있습니다. Orca는 손상된 파일의 사본을 보관합니다.",
+      "restoreWholeBackup": "대신 백업 전체를 복원하려면 `{{exportsCommand}}`를 실행한 다음 `{{rollbackCommand}}`를 실행하세요.",
+      "sqliteUnreadable": "SQLite 상태를 읽을 수 없어 Orca가 활성 프로필을 안전하게 열 수 없습니다.",
+      "legacyJsonPath": "기존 JSON 경로: {{path}}",
+      "retainedBackups": "보관된 SQLite 백업:",
+      "retainedExports": "보관된 JSON 내보내기 파일:",
+      "chooseRecoveryArtifact": "Orca를 종료한 다음 `{{command}}`를 실행하고 정상임이 확인된 복구 자료를 선택하세요.",
+      "restoreCommands": "`{{backupCommand}}`로 SQLite를 복원하거나 `{{revisionCommand}}`로 JSON 내보내기 파일을 복원하세요.",
+      "authorityAmbiguous": "Orca가 어떤 프로필 상태를 기준으로 삼을지 안전하게 판단할 수 없습니다: {{detail}}",
+      "authorityBothPreserved": "이전 빌드가 JSON 파일을 변경했을 수 있습니다. 두 사본 모두 보관되며 어느 쪽도 자동으로 선택되지 않습니다.",
+      "authorityCopyFirst": "유지할 상태를 선택하기 전에 Orca를 종료하고 프로필 디렉터리를 복사하세요.",
+      "authorityKeepJson": "이전 빌드에서 편집한 내용을 포함한 현재 JSON을 유지하려면 `{{command}}`를 실행하세요. 두 사본 모두 보관되며 내용은 병합되지 않습니다.",
+      "authorityInspect": "`{{command}}`를 실행하여 보관된 복구 지점을 확인하세요.",
+      "authorityRestore": "복원할 상태를 선택한 후에만 `{{backupCommand}}` 또는 `{{revisionCommand}}`를 사용하세요.",
+      "newerSchema": "이 프로필은 더 최신 버전의 Orca에서 저장되었습니다. 해당 버전이나 그 이후 버전으로 여세요. 프로필은 변경되지 않았습니다.",
+      "revisionConflict": "Orca가 시작되는 동안 활성 프로필이 변경되었습니다. 이 프로필을 사용하는 다른 Orca 프로세스를 종료한 다음 Orca를 다시 시작하세요.",
+      "writerUnavailable": "Orca가 프로필 저장을 시작하지 못했습니다. Orca를 다시 시작하세요. 문제가 계속되면 이 빌드를 복구하거나 다시 설치하세요.",
+      "publicationUnavailable": "Orca가 {{directory}}에 프로필 상태를 안전하게 저장하지 못했습니다.",
+      "publicationNeedsHardLinks": "이 위치는 하드 링크를 지원해야 하며 Orca에 하드 링크를 만들 권한이 있어야 합니다.",
+      "publicationMoveData": "폴더 권한을 확인하거나 Orca 데이터 디렉터리 전체를 APFS, NTFS, ext4 등 하드 링크를 지원하고 쓰기 가능한 로컬 파일 시스템으로 이동하기 전에 Orca와 orcad를 종료하세요.",
+      "publicationKeepFiles": "원본 디렉터리와 모든 복구 파일을 보관하세요."
     }
   },
   "startupFailure": {
-    "title": "Orca를 시작할 수 없음"
+    "title": "Orca를 시작할 수 없음",
+    "finishFailed": "Orca가 시작을 완료하지 못했습니다: {{detail}}"
   },
   "localBuild": {
     "chooseTitle": "로컬 Orca 빌드 선택",
@@ -22191,5 +22218,12 @@
       "recipeExitedWithoutCode": "레시피가 알 수 없는 코드로 종료되었습니다.",
       "destroyExitedWithoutCode": "삭제 작업이 알 수 없는 코드로 종료되었습니다."
     }
+  },
+  "installDirAcl": {
+    "cause": "Orca 설치 폴더의 Windows 권한 때문에 Orca 자체 샌드박스 프로세스가 함께 배포된 파일을 읽지 못하고 있습니다.",
+    "repaired": "Orca가 권한을 복구했습니다. 적용하려면 새로고침하세요.",
+    "repairing": "Orca가 권한을 복구하고 있습니다.",
+    "repairFailed": "Orca가 권한을 복구하지 못했습니다. 일반적으로 해당 폴더에 관리자 권한이 필요하다는 뜻입니다.",
+    "runCommands": "관리자 권한으로 연 명령 프롬프트에서 다음 명령을 실행한 후 Orca를 다시 실행하세요:"
   }
 }

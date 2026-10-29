@@ -22103,10 +22103,37 @@
       "automationHistory": "Historique des automatisations",
       "onboarding": "Progression de la prise en main",
       "other": "Autre état enregistré de l'application"
+    },
+    "startupFailure": {
+      "noneFound": "(aucun élément trouvé)",
+      "sqlitePath": "Chemin SQLite : {{path}}",
+      "sectionsDamaged": "Une partie de l'état enregistré de ce profil est endommagée : {{sections}}. Tout le reste est intact.",
+      "repairCommand": "Quittez Orca, puis exécutez `{{command}}` pour remplacer uniquement les parties endommagées à partir des sauvegardes et conserver tout le reste. Orca conserve une copie du fichier endommagé.",
+      "restoreWholeBackup": "Pour restaurer plutôt une sauvegarde complète, exécutez `{{exportsCommand}}`, puis `{{rollbackCommand}}`.",
+      "sqliteUnreadable": "Orca ne peut pas ouvrir le profil actif en toute sécurité, car son état SQLite est illisible.",
+      "legacyJsonPath": "Chemin de l'ancien fichier JSON : {{path}}",
+      "retainedBackups": "Sauvegardes SQLite conservées :",
+      "retainedExports": "Exports JSON conservés :",
+      "chooseRecoveryArtifact": "Quittez Orca, puis exécutez `{{command}}` et choisissez un élément de récupération dont l'intégrité est confirmée.",
+      "restoreCommands": "Restaurez SQLite avec `{{backupCommand}}`, ou un export JSON avec `{{revisionCommand}}`.",
+      "authorityAmbiguous": "Orca ne peut pas déterminer en toute sécurité quel état du profil fait foi : {{detail}}",
+      "authorityBothPreserved": "Une ancienne version a peut-être modifié le fichier JSON. Les deux copies sont conservées ; aucune n'est sélectionnée automatiquement.",
+      "authorityCopyFirst": "Quittez Orca et copiez le répertoire du profil avant de choisir quel état conserver.",
+      "authorityKeepJson": "Pour conserver le JSON actuel, y compris les modifications d'une ancienne version, exécutez `{{command}}`. Les deux copies sont archivées sans fusionner leur contenu.",
+      "authorityInspect": "Exécutez `{{command}}` pour examiner les points de récupération conservés.",
+      "authorityRestore": "Utilisez `{{backupCommand}}` ou `{{revisionCommand}}` uniquement après avoir sélectionné l'état à restaurer.",
+      "newerSchema": "Ce profil a été enregistré par une version plus récente d'Orca. Ouvrez-le avec cette version ou une version ultérieure. Votre profil n'a pas été modifié.",
+      "revisionConflict": "Le profil actif a changé pendant le démarrage d'Orca. Fermez les autres processus Orca qui utilisent ce profil, puis redémarrez Orca.",
+      "writerUnavailable": "Orca n'a pas pu démarrer l'enregistrement du profil. Redémarrez Orca ; si le problème persiste, réparez ou réinstallez cette version.",
+      "publicationUnavailable": "Orca n'a pas pu enregistrer l'état du profil en toute sécurité dans {{directory}}.",
+      "publicationNeedsHardLinks": "Cet emplacement doit prendre en charge les liens physiques, et Orca doit avoir l'autorisation de les créer.",
+      "publicationMoveData": "Fermez Orca et orcad avant de vérifier les autorisations du dossier ou de déplacer tout le répertoire de données d'Orca vers un système de fichiers local accessible en écriture et prenant en charge les liens physiques, comme APFS, NTFS ou ext4.",
+      "publicationKeepFiles": "Conservez le répertoire d'origine et tous les fichiers de récupération."
     }
   },
   "startupFailure": {
-    "title": "Orca n'a pas pu démarrer"
+    "title": "Orca n'a pas pu démarrer",
+    "finishFailed": "Orca n'a pas pu terminer son démarrage : {{detail}}"
   },
   "localBuild": {
     "chooseTitle": "Choisir une build locale d'Orca",
@@ -22807,5 +22834,12 @@
       "recipeExitedWithoutCode": "La recette s’est terminée avec un code inconnu.",
       "destroyExitedWithoutCode": "La destruction s’est terminée avec un code inconnu."
     }
+  },
+  "installDirAcl": {
+    "cause": "Les autorisations Windows du dossier d'installation d'Orca empêchent ses propres processus isolés de lire les fichiers fournis avec l'application.",
+    "repaired": "Orca a corrigé les autorisations. Rechargez pour les appliquer.",
+    "repairing": "Orca corrige les autorisations.",
+    "repairFailed": "Orca n'a pas pu les corriger, ce qui signifie généralement que le dossier nécessite des droits d'administrateur.",
+    "runCommands": "Exécutez ces commandes dans une invite de commandes ouverte en tant qu'administrateur, puis relancez Orca :"
   }
 }

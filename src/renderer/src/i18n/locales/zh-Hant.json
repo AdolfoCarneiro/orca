@@ -21267,10 +21267,37 @@
       "automationHistory": "自動化歷程",
       "onboarding": "入門導覽進度",
       "other": "其他已儲存的應用程式狀態"
+    },
+    "startupFailure": {
+      "noneFound": "（找不到）",
+      "sqlitePath": "SQLite 路徑：{{path}}",
+      "sectionsDamaged": "此設定檔儲存的部分狀態已損毀：{{sections}}。其餘內容皆完好無損。",
+      "repairCommand": "關閉 Orca，然後執行 `{{command}}`，僅從備份取代損毀的部分，並保留其餘所有內容。Orca 會保留損毀檔案的副本。",
+      "restoreWholeBackup": "若要改為還原整份備份，請先執行 `{{exportsCommand}}`，再執行 `{{rollbackCommand}}`。",
+      "sqliteUnreadable": "Orca 無法安全地開啟目前使用的設定檔，因為其 SQLite 狀態無法讀取。",
+      "legacyJsonPath": "舊版 JSON 路徑：{{path}}",
+      "retainedBackups": "保留的 SQLite 備份：",
+      "retainedExports": "保留的 JSON 匯出：",
+      "chooseRecoveryArtifact": "關閉 Orca，然後執行 `{{command}}`，選擇一份已確認完好的復原資料。",
+      "restoreCommands": "使用 `{{backupCommand}}` 還原 SQLite，或使用 `{{revisionCommand}}` 還原 JSON 匯出。",
+      "authorityAmbiguous": "Orca 無法安全地確定要以哪份設定檔狀態為準：{{detail}}",
+      "authorityBothPreserved": "舊版可能變更過 JSON 檔案。兩份副本皆已保留，不會自動選取任何一份。",
+      "authorityCopyFirst": "請先關閉 Orca 並複製設定檔目錄，再選擇要保留的狀態。",
+      "authorityKeepJson": "若要保留目前的 JSON（包含舊版中的編輯內容），請執行 `{{command}}`。這會封存兩份副本，不會合併其內容。",
+      "authorityInspect": "執行 `{{command}}` 以檢視保留的復原點。",
+      "authorityRestore": "請先選擇要還原的狀態，再使用 `{{backupCommand}}` 或 `{{revisionCommand}}`。",
+      "newerSchema": "此設定檔是由較新版的 Orca 儲存。請使用該版本或更新版本開啟。設定檔未經變更。",
+      "revisionConflict": "Orca 啟動期間，目前使用的設定檔發生變更。請關閉使用此設定檔的其他 Orca 行程，然後重新啟動 Orca。",
+      "writerUnavailable": "Orca 無法啟動設定檔儲存功能。請重新啟動 Orca；若問題持續發生，請修復或重新安裝此版本。",
+      "publicationUnavailable": "Orca 無法將設定檔狀態安全地儲存至 {{directory}}。",
+      "publicationNeedsHardLinks": "此位置必須支援硬連結，且 Orca 需要建立硬連結的權限。",
+      "publicationMoveData": "在檢查資料夾權限，或將整個 Orca 資料目錄移至支援硬連結的可寫入本機檔案系統（例如 APFS、NTFS 或 ext4）之前，請關閉 Orca 和 orcad。",
+      "publicationKeepFiles": "請保留原始目錄和所有復原檔案。"
     }
   },
   "startupFailure": {
-    "title": "Orca 無法啟動"
+    "title": "Orca 無法啟動",
+    "finishFailed": "Orca 無法完成啟動：{{detail}}"
   },
   "native": {
     "about": {
@@ -21892,5 +21919,12 @@
       "recipeExitedWithoutCode": "環境範本已結束，結束代碼未知。",
       "destroyExitedWithoutCode": "銷燬作業已結束，結束代碼未知。"
     }
+  },
+  "installDirAcl": {
+    "cause": "Orca 安裝資料夾的 Windows 權限阻止 Orca 自身的沙箱行程讀取隨附的檔案。",
+    "repaired": "Orca 已修復權限。請重新載入以套用。",
+    "repairing": "Orca 正在修復權限。",
+    "repairFailed": "Orca 無法修復權限，這通常表示該資料夾需要系統管理員權限。",
+    "runCommands": "在以系統管理員身分開啟的命令提示字元中執行以下指令，然後重新啟動 Orca："
   }
 }

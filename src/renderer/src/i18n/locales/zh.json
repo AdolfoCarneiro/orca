@@ -21552,10 +21552,37 @@
       "automationHistory": "自动化历史",
       "onboarding": "入门引导进度",
       "other": "其他已保存的应用状态"
+    },
+    "startupFailure": {
+      "noneFound": "（未找到）",
+      "sqlitePath": "SQLite 路径：{{path}}",
+      "sectionsDamaged": "此配置文件已保存状态的一部分已损坏：{{sections}}。其余内容均完好无损。",
+      "repairCommand": "关闭 Orca，然后运行 `{{command}}`，仅从备份中替换损坏的部分，并保留其余所有内容。Orca 会保留损坏文件的副本。",
+      "restoreWholeBackup": "如需改为恢复整份备份，请先运行 `{{exportsCommand}}`，再运行 `{{rollbackCommand}}`。",
+      "sqliteUnreadable": "Orca 无法安全地打开当前配置文件，因为其 SQLite 状态无法读取。",
+      "legacyJsonPath": "旧版 JSON 路径：{{path}}",
+      "retainedBackups": "保留的 SQLite 备份：",
+      "retainedExports": "保留的 JSON 导出：",
+      "chooseRecoveryArtifact": "关闭 Orca，然后运行 `{{command}}`，选择一份确认完好的恢复数据。",
+      "restoreCommands": "使用 `{{backupCommand}}` 恢复 SQLite，或使用 `{{revisionCommand}}` 恢复 JSON 导出。",
+      "authorityAmbiguous": "Orca 无法安全地确定以哪份配置文件状态为准：{{detail}}",
+      "authorityBothPreserved": "旧版本可能修改过 JSON 文件。两个副本均已保留，不会自动选择任何一个。",
+      "authorityCopyFirst": "关闭 Orca 并复制配置文件目录，然后再选择要保留的状态。",
+      "authorityKeepJson": "如需保留当前 JSON（包括旧版本中的修改），请运行 `{{command}}`。此操作会归档两个副本，不会合并其内容。",
+      "authorityInspect": "运行 `{{command}}` 以查看保留的恢复点。",
+      "authorityRestore": "请先选择要恢复的状态，再使用 `{{backupCommand}}` 或 `{{revisionCommand}}`。",
+      "newerSchema": "此配置文件由较新版本的 Orca 保存。请使用该版本或更新版本打开。你的配置文件未被更改。",
+      "revisionConflict": "Orca 启动期间，当前配置文件发生了更改。请关闭使用此配置文件的其他 Orca 进程，然后重新启动 Orca。",
+      "writerUnavailable": "Orca 无法启动配置文件保存功能。请重新启动 Orca；如果问题仍然存在，请修复或重新安装此版本。",
+      "publicationUnavailable": "Orca 无法将配置文件状态安全地保存到 {{directory}}。",
+      "publicationNeedsHardLinks": "此位置必须支持硬链接，且 Orca 需要创建硬链接的权限。",
+      "publicationMoveData": "在检查文件夹权限，或将整个 Orca 数据目录移动到支持硬链接的可写本地文件系统（如 APFS、NTFS 或 ext4）之前，请关闭 Orca 和 orcad。",
+      "publicationKeepFiles": "请保留原始目录和所有恢复文件。"
     }
   },
   "startupFailure": {
-    "title": "Orca 无法启动"
+    "title": "Orca 无法启动",
+    "finishFailed": "Orca 无法完成启动：{{detail}}"
   },
   "localBuild": {
     "chooseTitle": "选择本地 Orca 构建",
@@ -22191,5 +22218,12 @@
       "recipeExitedWithoutCode": "环境模板已退出，退出码未知。",
       "destroyExitedWithoutCode": "销毁操作已退出，退出码未知。"
     }
+  },
+  "installDirAcl": {
+    "cause": "Orca 安装文件夹的 Windows 权限阻止了 Orca 自身的沙箱进程读取随应用附带的文件。",
+    "repaired": "Orca 已修复权限。请重新加载以应用。",
+    "repairing": "Orca 正在修复权限。",
+    "repairFailed": "Orca 无法修复权限，这通常意味着该文件夹需要管理员权限。",
+    "runCommands": "在以管理员身份运行的命令提示符中执行以下命令，然后重新启动 Orca："
   }
 }

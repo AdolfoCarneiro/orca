@@ -21499,10 +21499,37 @@
       "automationHistory": "自動化の履歴",
       "onboarding": "オンボーディングの進行状況",
       "other": "その他の保存済みアプリ状態"
+    },
+    "startupFailure": {
+      "noneFound": "（見つかりません）",
+      "sqlitePath": "SQLite パス: {{path}}",
+      "sectionsDamaged": "このプロファイルの保存状態の一部が破損しています: {{sections}}。それ以外はすべて正常です。",
+      "repairCommand": "Orca を終了し、`{{command}}` を実行すると、破損した部分だけをバックアップから置き換え、それ以外をすべて維持できます。Orca は破損したファイルのコピーを保持します。",
+      "restoreWholeBackup": "代わりにバックアップ全体を復元するには、`{{exportsCommand}}`、次に `{{rollbackCommand}}` を実行してください。",
+      "sqliteUnreadable": "SQLite の状態を読み取れないため、Orca はアクティブなプロファイルを安全に開けません。",
+      "legacyJsonPath": "従来の JSON パス: {{path}}",
+      "retainedBackups": "保持されている SQLite バックアップ:",
+      "retainedExports": "保持されている JSON エクスポート:",
+      "chooseRecoveryArtifact": "Orca を終了し、`{{command}}` を実行して、正常であることが確認済みの復旧用データを選択してください。",
+      "restoreCommands": "`{{backupCommand}}` で SQLite を復元するか、`{{revisionCommand}}` で JSON エクスポートを復元してください。",
+      "authorityAmbiguous": "Orca はどのプロファイル状態を正とするか安全に判断できません: {{detail}}",
+      "authorityBothPreserved": "古いビルドが JSON ファイルを変更した可能性があります。両方のコピーは保持され、どちらも自動では選択されません。",
+      "authorityCopyFirst": "どの状態を保持するか選択する前に、Orca を終了してプロファイルディレクトリをコピーしてください。",
+      "authorityKeepJson": "古いビルドでの編集を含む現在の JSON を保持するには、`{{command}}` を実行してください。両方のコピーがアーカイブされ、内容は統合されません。",
+      "authorityInspect": "`{{command}}` を実行して、保持されている復旧ポイントを確認してください。",
+      "authorityRestore": "復元する状態を選択してから、`{{backupCommand}}` または `{{revisionCommand}}` を使用してください。",
+      "newerSchema": "このプロファイルは新しいバージョンの Orca で保存されています。そのバージョン以降の Orca で開いてください。プロファイルは変更されていません。",
+      "revisionConflict": "Orca の起動中にアクティブなプロファイルが変更されました。このプロファイルを使用している他の Orca プロセスを終了し、Orca を再起動してください。",
+      "writerUnavailable": "Orca はプロファイルの保存処理を開始できませんでした。Orca を再起動してください。問題が続く場合は、このビルドを修復するか再インストールしてください。",
+      "publicationUnavailable": "Orca はプロファイル状態を {{directory}} に安全に保存できませんでした。",
+      "publicationNeedsHardLinks": "この場所はハードリンクをサポートしている必要があり、Orca にはその作成権限が必要です。",
+      "publicationMoveData": "フォルダーの権限を確認したり、Orca のデータディレクトリ全体を、APFS、NTFS、ext4 などのハードリンクをサポートする書き込み可能なローカルファイルシステムに移動したりする前に、Orca と orcad を終了してください。",
+      "publicationKeepFiles": "元のディレクトリとすべての復旧用ファイルを保持してください。"
     }
   },
   "startupFailure": {
-    "title": "Orca を起動できませんでした"
+    "title": "Orca を起動できませんでした",
+    "finishFailed": "Orca は起動を完了できませんでした: {{detail}}"
   },
   "localBuild": {
     "chooseTitle": "ローカルの Orca ビルドを選択",
@@ -22191,5 +22218,12 @@
       "recipeExitedWithoutCode": "レシピは不明なコードで終了しました。",
       "destroyExitedWithoutCode": "破棄処理は不明なコードで終了しました。"
     }
+  },
+  "installDirAcl": {
+    "cause": "Orca のインストールフォルダーに設定された Windows の権限により、Orca 自身のサンドボックス内のプロセスが同梱ファイルを読み取れません。",
+    "repaired": "Orca が権限を修復しました。適用するにはリロードしてください。",
+    "repairing": "Orca が権限を修復しています。",
+    "repairFailed": "Orca は権限を修復できませんでした。通常、フォルダーへの操作に管理者権限が必要な場合に発生します。",
+    "runCommands": "管理者権限のコマンドプロンプトで次のコマンドを実行し、Orca を再起動してください:"
   }
 }

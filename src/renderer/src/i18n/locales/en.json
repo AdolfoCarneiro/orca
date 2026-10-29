@@ -22137,10 +22137,37 @@
       "automationHistory": "Automation history",
       "onboarding": "Onboarding progress",
       "other": "Other saved app state"
+    },
+    "startupFailure": {
+      "noneFound": "(none found)",
+      "sqlitePath": "SQLite path: {{path}}",
+      "sectionsDamaged": "Part of this profile's saved state is damaged: {{sections}}. Everything else is intact.",
+      "repairCommand": "Stop Orca, then run `{{command}}` to replace only the damaged parts from backups and keep everything else. Orca keeps a copy of the damaged file.",
+      "restoreWholeBackup": "To restore a whole backup instead, run `{{exportsCommand}}`, then `{{rollbackCommand}}`.",
+      "sqliteUnreadable": "Orca cannot safely open the active profile because its SQLite state is unreadable.",
+      "legacyJsonPath": "Legacy JSON path: {{path}}",
+      "retainedBackups": "Retained SQLite backups:",
+      "retainedExports": "Retained JSON exports:",
+      "chooseRecoveryArtifact": "Stop Orca, then run `{{command}}` and choose a known-good recovery artifact.",
+      "restoreCommands": "Restore SQLite with `{{backupCommand}}`, or restore a JSON export with `{{revisionCommand}}`.",
+      "authorityAmbiguous": "Orca cannot safely choose a profile-state authority: {{detail}}",
+      "authorityBothPreserved": "An older build may have changed the JSON file. Both copies are preserved; neither is selected automatically.",
+      "authorityCopyFirst": "Stop Orca and copy the profile directory before choosing which state to keep.",
+      "authorityKeepJson": "To keep the current JSON, including edits from an older build, run `{{command}}`. This archives both copies and does not merge their contents.",
+      "authorityInspect": "Run `{{command}}` to inspect retained recovery points.",
+      "authorityRestore": "Use `{{backupCommand}}` or `{{revisionCommand}}` only after selecting the state you want to restore.",
+      "newerSchema": "This profile was saved by a newer version of Orca. Open it with that version or a newer release. Your profile has not been changed.",
+      "revisionConflict": "The active profile changed while Orca was starting. Close other Orca processes using this profile, then restart Orca.",
+      "writerUnavailable": "Orca could not start profile persistence. Restart Orca; if the problem continues, repair or reinstall this build.",
+      "publicationUnavailable": "Orca could not safely publish profile state in {{directory}}.",
+      "publicationNeedsHardLinks": "This location must support hard links, and Orca needs permission to create them.",
+      "publicationMoveData": "Close Orca and orcad before checking folder permissions or moving the complete Orca data directory to a writable local filesystem that supports hard links, such as APFS, NTFS, or ext4.",
+      "publicationKeepFiles": "Keep the original directory and all recovery files."
     }
   },
   "startupFailure": {
-    "title": "Orca could not start"
+    "title": "Orca could not start",
+    "finishFailed": "Orca could not finish starting: {{detail}}"
   },
   "wslDriveProject": {
     "label": "Git",
@@ -22649,5 +22676,12 @@
       "recipeExitedWithoutCode": "Recipe exited with code unknown.",
       "destroyExitedWithoutCode": "Destroy exited with code unknown."
     }
+  },
+  "installDirAcl": {
+    "cause": "Windows permissions on Orca's install folder are blocking its own sandboxed processes from reading the files it shipped with.",
+    "repaired": "Orca repaired the permissions. Reload to use them.",
+    "repairing": "Orca is repairing the permissions now.",
+    "repairFailed": "Orca could not repair them, which usually means the folder needs an administrator.",
+    "runCommands": "Run these in an Administrator Command Prompt, then relaunch Orca:"
   }
 }
