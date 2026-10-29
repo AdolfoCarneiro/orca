@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { AppState } from '../types'
 import { createTestStore, makeTab } from './store-test-helpers'
@@ -18,7 +19,7 @@ const ROUTING = { tabId: 'tab-1', worktreeId: 'wt-bg', connectionId: null }
 const PROVIDER_SESSION = { key: 'session_id' as const, id: 'claude-session-1' }
 
 function seedWorkspace(store: ReturnType<typeof createTestStore>): void {
-  store.setState({
+  setSessionTestState(store, {
     activeWorktreeId: 'wt-active',
     tabsByWorktree: { 'wt-bg': [makeTab({ id: 'tab-1', worktreeId: 'wt-bg' })] },
     terminalLayoutsByTabId: {

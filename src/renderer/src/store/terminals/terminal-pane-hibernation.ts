@@ -221,12 +221,8 @@ export function createTerminalPaneHibernationActions(
           for (const ptyId of exitGuardPtyIds) {
             delete nextCodexRestartNoticeByPtyId[ptyId]
           }
-          const nextLastKnownRelay =
-            remainingPtyIds.length === 0
-              ? { ...s.lastKnownRelayPtyIdByTabId }
-              : s.lastKnownRelayPtyIdByTabId
           if (remainingPtyIds.length === 0) {
-            delete nextLastKnownRelay[opts.tabId]
+            sourceEdit.remove('lastKnownRelayPtyIdByTabId', opts.tabId)
           }
           let nextRuntimePaneTitlesByTabId = s.runtimePaneTitlesByTabId
           const numericPaneId = Number(opts.leafId)
@@ -245,12 +241,8 @@ export function createTerminalPaneHibernationActions(
           }
           const nextLastTerminalInputAtByPaneKey = { ...s.lastTerminalInputAtByPaneKey }
           delete nextLastTerminalInputAtByPaneKey[opts.paneKey]
+          sourceEdit.set('ptyIdsByTabId', opts.tabId, remainingPtyIds)
           return sourceEdit.finish({
-            ptyIdsByTabId: {
-              ...s.ptyIdsByTabId,
-              [opts.tabId]: remainingPtyIds
-            },
-            lastKnownRelayPtyIdByTabId: nextLastKnownRelay,
             suppressedPtyExitIds: {
               ...s.suppressedPtyExitIds,
               ...Object.fromEntries(exitGuardPtyIds.map((ptyId) => [ptyId, true] as const))
