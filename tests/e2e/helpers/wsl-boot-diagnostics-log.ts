@@ -35,10 +35,17 @@ export async function recordMainProcessWslDiagnostics(
       return
     }
     const append = (file: string, args: unknown[]): void => {
-      const stack = (new Error('e9 diagnostics caller').stack ?? '')
+      // Deep enough to reach the IPC handler past async hops; node internals add nothing.
+      const limit = Error.stackTraceLimit
+      Error.stackTraceLimit = 60
+      const raw = new Error('e9 diagnostics caller').stack ?? ''
+      Error.stackTraceLimit = limit
+      const stack = raw
         .split('\n')
-        .slice(3, 15)
+        .slice(3)
         .map((line) => line.trim())
+        .filter((line) => !/\((node:|<anonymous>)|^at (new Promise|process\.)/.test(line))
+        .slice(0, 30)
       fs.appendFileSync(
         logFile,
         `${JSON.stringify({ file, args: args.map(String), at: Date.now(), stack })}\n`

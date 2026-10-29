@@ -33,10 +33,16 @@ export function notifySpawnObserver(
   if (log) {
     try {
       // The caller's stack lets a guard name what launched a spawn it flags.
-      const stack = (new Error('spawn-log caller').stack ?? '')
+      const limit = Error.stackTraceLimit
+      Error.stackTraceLimit = 60
+      const raw = new Error('spawn-log caller').stack ?? ''
+      Error.stackTraceLimit = limit
+      const stack = raw
         .split('\n')
-        .slice(2, 14)
+        .slice(2)
         .map((line) => line.trim())
+        .filter((line) => !/\((node:|<anonymous>)|^at (new Promise|process\.)/.test(line))
+        .slice(0, 30)
       appendFileSync(log, `${JSON.stringify({ file: command, args, at: Date.now(), stack })}\n`)
     } catch {
       // A diagnostics write must never fail the spawn it describes.
