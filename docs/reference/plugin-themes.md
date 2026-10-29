@@ -38,7 +38,7 @@ Each entry is `{ "id", "label", "path" }` pointing at a JSON file of at most 16 
 ### Code colors
 
 An app theme also colors the code editor: its background, text, line numbers, cursor and
-selection follow the theme's tokens. To color code itself, add `tokenColors` (Orca 1.4.244 and
+selection follow the theme's tokens. To color code itself, add `tokenColors` (Orca 1.4.245 and
 later) in the same shape as a VS Code theme's, so most VS Code theme lists paste in unchanged (`validate:plugin` flags entries without a `scope` and any setting other than these two):
 
 ```json

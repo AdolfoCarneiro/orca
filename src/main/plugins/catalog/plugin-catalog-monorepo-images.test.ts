@@ -45,7 +45,7 @@ function catalog(url: string, images?: Record<string, unknown>): PluginMarketpla
             commit: 'c'.repeat(40),
             contentHash: 'f'.repeat(64),
             execution: 'data',
-            minimumOrca: '1.4.244',
+            minimumOrca: '1.4.245',
             ...(images ? { images } : {})
           }
         ]

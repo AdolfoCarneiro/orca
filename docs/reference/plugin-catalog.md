@@ -11,11 +11,11 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `$schema` | string | no | 1.4.244 | JSON Schema URL for editor completion. Ignored by Orca. |
-| `catalogVersion` | `2` | yes | 1.4.244 | Catalog format. Raised only for a change older Orca cannot ignore; a newer Orca reads this one. |
-| `name` | string | yes | 1.4.244 | Catalog display name. Example: `"Orca Plugins"` |
-| `owner` | string | yes | 1.4.244 | Account that publishes the catalog. Example: `"stablyai"` |
-| `plugins` | [CatalogEntry](#catalogentry)[] | yes | 1.4.244 | Listed plugins, at most 2048. Each `id` should appear once; Orca keeps the first. An entry this Orca cannot read is skipped, never fatal. |
+| `$schema` | string | no | 1.4.245 | JSON Schema URL for editor completion. Ignored by Orca. |
+| `catalogVersion` | `2` | yes | 1.4.245 | Catalog format. Raised only for a change older Orca cannot ignore; a newer Orca reads this one. |
+| `name` | string | yes | 1.4.245 | Catalog display name. Example: `"Orca Plugins"` |
+| `owner` | string | yes | 1.4.245 | Account that publishes the catalog. Example: `"stablyai"` |
+| `plugins` | [CatalogEntry](#catalogentry)[] | yes | 1.4.245 | Listed plugins, at most 2048. Each `id` should appear once; Orca keeps the first. An entry this Orca cannot read is skipped, never fatal. |
 
 ## CatalogEntry
 
@@ -23,11 +23,11 @@ One installable plugin.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `id` | string | yes | 1.4.244 | `<publisher>.<id>`, matching the plugin's manifest. Each half is at most 64 characters, and the reserved names `constructor` and `prototype` are refused. Example: `"acme.gleam-syntax"` |
+| `id` | string | yes | 1.4.245 | `<publisher>.<id>`, matching the plugin's manifest. Each half is at most 64 characters, and the reserved names `constructor` and `prototype` are refused. Example: `"acme.gleam-syntax"` |
 | `source` | [CatalogGitSource](#cataloggitsource) | yes |  | Where the plugin source lives. |
-| `description` | string | no | 1.4.244 | Listing text shown in the catalog. |
-| `categories` | string[] | no | 1.4.244 | Lowercase slugs used to filter the catalog, each listed once. At most 16; extras are ignored. |
-| `releases` | [CatalogRelease](#catalogrelease)[] | yes | 1.4.244 | Installable releases, newest first. Orca installs the first one whose `minimumOrca` it meets, so keep older releases listed when you raise `engines.orca`. At most 32. |
+| `description` | string | no | 1.4.245 | Listing text shown in the catalog. |
+| `categories` | string[] | no | 1.4.245 | Lowercase slugs used to filter the catalog, each listed once. At most 16; extras are ignored. |
+| `releases` | [CatalogRelease](#catalogrelease)[] | yes | 1.4.245 | Installable releases, newest first. Orca installs the first one whose `minimumOrca` it meets, so keep older releases listed when you raise `engines.orca`. At most 32. |
 
 ## CatalogGitSource
 
@@ -35,10 +35,10 @@ Where the plugin source lives.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `kind` | `"git"` | yes | 1.4.244 | Source kind. Only `git` is supported. |
-| `url` | string | yes | 1.4.244 | HTTPS or SSH URL of the plugin repository. Example: `"https://github.com/acme/orca-gleam-syntax.git"` |
-| `ref` | string | yes | 1.4.244 | Branch or tag the author publishes from. Each release pins an exact commit. Example: `"main"` |
-| `path` | string | no | 1.4.244 | Directory inside the repository that holds `orca-plugin.json`, so one repository can publish many plugins. Use `/` separators, with no leading `/`, `.` or `..`. Omit when the plugin is the repository root. Example: `"plugins/gleam-syntax"` |
+| `kind` | `"git"` | yes | 1.4.245 | Source kind. Only `git` is supported. |
+| `url` | string | yes | 1.4.245 | HTTPS or SSH URL of the plugin repository. Example: `"https://github.com/acme/orca-gleam-syntax.git"` |
+| `ref` | string | yes | 1.4.245 | Branch or tag the author publishes from. Each release pins an exact commit. Example: `"main"` |
+| `path` | string | no | 1.4.245 | Directory inside the repository that holds `orca-plugin.json`, so one repository can publish many plugins. Use `/` separators, with no leading `/`, `.` or `..`. Omit when the plugin is the repository root. Example: `"plugins/gleam-syntax"` |
 
 ## CatalogRelease
 
@@ -46,24 +46,24 @@ The exact release the catalog vouches for. Orca refuses bytes that differ.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `version` | string | yes | 1.4.244 | The manifest's `version` for this release. Example: `"1.2.0"` |
-| `commit` | string | yes | 1.4.244 | Full SHA-1 commit Orca checks out for this release. |
-| `contentHash` | string | yes | 1.4.244 | SHA-256 of the plugin's installed files, as Orca computes it at install. |
-| `execution` | `"data"` \| `"declarative"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | The manifest's `execution` profile. Example: `"data"` |
-| `minimumOrca` | string | yes | 1.4.244 | The manifest's `engines.orca` without `>=`. Older Orca lists the plugin but will not install it. Example: `"1.4.244"` |
-| `types` | (`"interface-language"` \| `"app-theme"` \| `"terminal-theme"` \| `"icon-theme"` \| `"syntax"` \| `"instructions"` \| `"panel"` \| `"editor"` \| `"worker"`)[] | no | 1.4.244 | Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` and `editor` need `sandboxed-ui`, and `worker` needs `trusted-worker`. Example: `["syntax"]` |
-| `name` | string | no | 1.4.244 | The manifest's `name`, so Orca can suggest the plugin before downloading it. Example: `"Gleam"` |
-| `license` | string | no | 1.4.244 | SPDX license expression. Example: `"MIT"` |
-| `repository` | string | no | 1.4.244 | Source repository page, https only. Example: `"https://github.com/acme/orca-gleam-syntax"` |
-| `homepage` | string | no | 1.4.244 | Project homepage, https only. Example: `"https://example.com/gleam"` |
-| `updatedAt` | string | no | 1.4.244 | When this release was published, as an ISO 8601 date or date-time. Example: `"2026-10-20"` |
-| `changelog` | string | no | 1.4.244 | What changed in this release, as plain text. At most 2000 characters. Example: `"Adds highlighting for use expressions."` |
-| `images` | [CatalogImages](#catalogimages) | no | 1.4.244 | Images extracted from the release by catalog CI, which re-encodes them and strips metadata. Same rules as the manifest: icon PNG, WEBP, static, at least 128×128, square, at most 256 KB. Cover PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Screenshots PNG, JPEG, WEBP, static, at least 1280×800, at most 1536 KB. Images must not imitate Orca's trust badges. |
-| `themePreview` | [CatalogThemePreview](#catalogthemepreview)[] | no | 1.4.244 | Up to 4 theme palettes for listing art. Display only; the installed theme files decide the real colors. |
-| `contributes` | [CatalogContribution](#catalogcontribution)[] | no | 1.4.244 | What the release adds, as the listing shows it. Generate it with the catalog tooling; Orca refuses an install whose manifest says otherwise. |
-| `capabilities` | (`"workspace:read"` \| `"agent:read"` \| `"terminal:send"` \| `"notifications:show"` \| `"storage:own"` \| `"secrets:own"` \| `"settings:own"`)[] | no | 1.4.244 | Every capability the release asks for. Orca refuses an install whose manifest asks for different ones. Example: `["notifications:show"]` |
-| `fileTypes` | string[] | no | 1.4.244 | Extensions, without the dot, that this release opens. Orca suggests the plugin when such a file has no viewer. |
-| `editorFileTypes` | string[] | no | 1.4.244 | The `fileTypes` this release opens in a custom editor. Orca suggests the plugin for such a file even when it already opens it as text. |
+| `version` | string | yes | 1.4.245 | The manifest's `version` for this release. Example: `"1.2.0"` |
+| `commit` | string | yes | 1.4.245 | Full SHA-1 commit Orca checks out for this release. |
+| `contentHash` | string | yes | 1.4.245 | SHA-256 of the plugin's installed files, as Orca computes it at install. |
+| `execution` | `"data"` \| `"declarative"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.245 | The manifest's `execution` profile. Example: `"data"` |
+| `minimumOrca` | string | yes | 1.4.245 | The manifest's `engines.orca` without `>=`. Older Orca lists the plugin but will not install it. Example: `"1.4.245"` |
+| `types` | (`"interface-language"` \| `"app-theme"` \| `"terminal-theme"` \| `"icon-theme"` \| `"syntax"` \| `"instructions"` \| `"panel"` \| `"editor"` \| `"worker"`)[] | no | 1.4.245 | Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` and `editor` need `sandboxed-ui`, and `worker` needs `trusted-worker`. Example: `["syntax"]` |
+| `name` | string | no | 1.4.245 | The manifest's `name`, so Orca can suggest the plugin before downloading it. Example: `"Gleam"` |
+| `license` | string | no | 1.4.245 | SPDX license expression. Example: `"MIT"` |
+| `repository` | string | no | 1.4.245 | Source repository page, https only. Example: `"https://github.com/acme/orca-gleam-syntax"` |
+| `homepage` | string | no | 1.4.245 | Project homepage, https only. Example: `"https://example.com/gleam"` |
+| `updatedAt` | string | no | 1.4.245 | When this release was published, as an ISO 8601 date or date-time. Example: `"2026-10-20"` |
+| `changelog` | string | no | 1.4.245 | What changed in this release, as plain text. At most 2000 characters. Example: `"Adds highlighting for use expressions."` |
+| `images` | [CatalogImages](#catalogimages) | no | 1.4.245 | Images extracted from the release by catalog CI, which re-encodes them and strips metadata. Same rules as the manifest: icon PNG, WEBP, static, at least 128×128, square, at most 256 KB. Cover PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Screenshots PNG, JPEG, WEBP, static, at least 1280×800, at most 1536 KB. Images must not imitate Orca's trust badges. |
+| `themePreview` | [CatalogThemePreview](#catalogthemepreview)[] | no | 1.4.245 | Up to 4 theme palettes for listing art. Display only; the installed theme files decide the real colors. |
+| `contributes` | [CatalogContribution](#catalogcontribution)[] | no | 1.4.245 | What the release adds, as the listing shows it. Generate it with the catalog tooling; Orca refuses an install whose manifest says otherwise. |
+| `capabilities` | (`"workspace:read"` \| `"agent:read"` \| `"terminal:send"` \| `"notifications:show"` \| `"storage:own"` \| `"secrets:own"` \| `"settings:own"`)[] | no | 1.4.245 | Every capability the release asks for. Orca refuses an install whose manifest asks for different ones. Example: `["notifications:show"]` |
+| `fileTypes` | string[] | no | 1.4.245 | Extensions, without the dot, that this release opens. Orca suggests the plugin when such a file has no viewer. |
+| `editorFileTypes` | string[] | no | 1.4.245 | The `fileTypes` this release opens in a custom editor. Orca suggests the plugin for such a file even when it already opens it as text. |
 
 ## CatalogImages
 
@@ -73,7 +73,7 @@ Images extracted from the release by catalog CI, which re-encodes them and strip
 | --- | --- | --- | --- | --- |
 | `icon` | [CatalogImage](#catalogimage) | no |  | An image stored in the catalog repository. |
 | `cover` | [CatalogImage](#catalogimage) | no |  | An image stored in the catalog repository. |
-| `screenshots` | [CatalogImage](#catalogimage)[] | no | 1.4.244 | Screenshots, at most 6. |
+| `screenshots` | [CatalogImage](#catalogimage)[] | no | 1.4.245 | Screenshots, at most 6. |
 
 ## CatalogImage
 
@@ -81,11 +81,11 @@ An image stored in the catalog repository.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `path` | string | yes | 1.4.244 | File in the catalog repository, relative to its root. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"assets/acme.gleam/cover.png"` |
-| `alt` | string | yes | 1.4.244 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
-| `sha256` | string | yes | 1.4.244 | SHA-256 of the file's bytes; Orca refuses bytes that differ. |
-| `width` | integer | yes | 1.4.244 | Width in pixels. Example: `1600` |
-| `height` | integer | yes | 1.4.244 | Height in pixels. Example: `1000` |
+| `path` | string | yes | 1.4.245 | File in the catalog repository, relative to its root. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"assets/acme.gleam/cover.png"` |
+| `alt` | string | yes | 1.4.245 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
+| `sha256` | string | yes | 1.4.245 | SHA-256 of the file's bytes; Orca refuses bytes that differ. |
+| `width` | integer | yes | 1.4.245 | Width in pixels. Example: `1600` |
+| `height` | integer | yes | 1.4.245 | Height in pixels. Example: `1000` |
 
 ## CatalogThemePreview
 
@@ -93,12 +93,12 @@ Colors to draw a theme card before install.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `label` | string | yes | 1.4.244 | Theme name. Example: `"Dusk"` |
-| `base` | `"light"` \| `"dark"` | yes | 1.4.244 | Light or dark theme. |
-| `background` | string | yes | 1.4.244 | Window background. Example: `"#1b1430"` |
-| `foreground` | string | yes | 1.4.244 | Main text. Example: `"#1b1430"` |
-| `accent` | string | yes | 1.4.244 | Accent, such as buttons. Example: `"#1b1430"` |
-| `surface` | string | yes | 1.4.244 | Cards and sidebars. Example: `"#1b1430"` |
+| `label` | string | yes | 1.4.245 | Theme name. Example: `"Dusk"` |
+| `base` | `"light"` \| `"dark"` | yes | 1.4.245 | Light or dark theme. |
+| `background` | string | yes | 1.4.245 | Window background. Example: `"#1b1430"` |
+| `foreground` | string | yes | 1.4.245 | Main text. Example: `"#1b1430"` |
+| `accent` | string | yes | 1.4.245 | Accent, such as buttons. Example: `"#1b1430"` |
+| `surface` | string | yes | 1.4.245 | Cards and sidebars. Example: `"#1b1430"` |
 
 ## CatalogContribution
 
@@ -106,9 +106,9 @@ One thing the release adds to Orca.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `kind` | `"panels"` \| `"commands"` \| `"events"` \| `"languagePacks"` \| `"keybindings"` \| `"vmRecipes"` \| `"themes"` \| `"terminalThemes"` \| `"iconThemes"` \| `"syntaxes"` \| `"customEditors"` \| `"newFiles"` | yes | 1.4.244 | Contribution point. Example: `"themes"` |
-| `name` | string | yes | 1.4.244 | What the item is called in Orca. Example: `"Dusk"` |
-| `detail` | string | no | 1.4.244 | Extra context, such as file extensions. |
+| `kind` | `"panels"` \| `"commands"` \| `"events"` \| `"languagePacks"` \| `"keybindings"` \| `"vmRecipes"` \| `"themes"` \| `"terminalThemes"` \| `"iconThemes"` \| `"syntaxes"` \| `"customEditors"` \| `"newFiles"` | yes | 1.4.245 | Contribution point. Example: `"themes"` |
+| `name` | string | yes | 1.4.245 | What the item is called in Orca. Example: `"Dusk"` |
+| `detail` | string | no | 1.4.245 | Extra context, such as file extensions. |
 
 ## Versions and compatibility
 

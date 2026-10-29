@@ -76,7 +76,7 @@ describe('buildPluginList contribution icons', () => {
       publisher: 'samples',
       name: 'Draw',
       version: '1.0.0',
-      engines: { orca: '>=1.4.244' },
+      engines: { orca: '>=1.4.245' },
       contributes: {
         customEditors: [
           { id: 'draw', title: 'Draw', extensions: ['.draw'], entry: 'e.html', icon: 'tab.png' }
