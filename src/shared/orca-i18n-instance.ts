@@ -6,7 +6,6 @@ import i18next, {
   type ReadCallback,
   type TOptions
 } from 'i18next'
-import { resolvePluralFamilyKey } from './i18n-plural-family'
 import { isPseudoLocalizationLocale, pseudoLocalizeString } from './pseudo-localization'
 import { DEFAULT_UI_LOCALE } from './ui-locale'
 import type { PluginLanguagePackRegistration } from './plugins/plugin-language-pack-artifact'
@@ -71,10 +70,7 @@ export function createOrcaI18n(options: {
   return {
     i18n,
     translate: (key, fallback, translateOptions) => {
-      const value = i18n.t(resolvePluralFamilyKey(key, translateOptions), {
-        defaultValue: fallback,
-        ...translateOptions
-      })
+      const value = i18n.t(key, { defaultValue: fallback, ...translateOptions })
       return isPseudoLocalizationLocale(i18n.language) ? pseudoLocalizeString(value) : value
     },
     setPluginLanguagePacks: (packs) => {

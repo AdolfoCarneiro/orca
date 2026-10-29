@@ -536,7 +536,9 @@
             }
           },
           "useFileDeletion": {
+            "deleteItems_one": "Delete {{count}} item?",
             "deleteItems_other": "Delete {{count}} items?",
+            "permanentlyDeleteItems_one": "Permanently delete {{count}} item?",
             "permanentlyDeleteItems_other": "Permanently delete {{count}} items?"
           },
           "useFileExplorerImport": {
@@ -857,6 +859,7 @@
           }
         },
         "sidebarHostOptions": {
+          "visibleHosts_one": "{{count}} host",
           "visibleHosts_other": "{{count}} hosts"
         },
         "workspaceBatchActionLabels": {
@@ -876,14 +879,17 @@
           "selectedChecked_other": "{{count}} selected skills checked."
         },
         "SkillDelete": {
+          "nothing_one": "The {{count}} selected skill cannot be deleted from here.",
           "nothing_other": "None of the {{count}} selected skills can be deleted from here."
         },
         "SkillFreshnessNudge": {
+          "title_one": "{{count}} installed Orca skill is out of date",
           "title_other": "{{count}} installed Orca skills are out of date"
         },
         "SkillFreshnessUpdateDialog": {
           "current_one": "{{count}} skill is up to date",
           "current_other": "{{count}} skills are up to date",
+          "upToDate_one": "{{count}} skill is up to date.",
           "upToDate_other": "{{count}} skills are up to date.",
           "updateAction_one": "Update {{count}} skill",
           "updateAction_other": "Update {{count}} skills",
@@ -1452,6 +1458,7 @@
         "result": "Result",
         "runAgent_one": "Ran {{count}} agent",
         "runAgent_other": "Ran {{count}} agents",
+        "runBrowser_one": "Used the browser {{count}} time",
         "runBrowser_other": "Used the browser {{count}} times",
         "runCommand_one": "Ran {{count}} command",
         "runCommand_other": "Ran {{count}} commands",
@@ -1463,6 +1470,7 @@
         "runListFiles_other": "Listed {{count}} directories",
         "runLiveAgent_one": "Running {{count}} agent",
         "runLiveAgent_other": "Running {{count}} agents",
+        "runLiveBrowser_one": "Using the browser {{count}} time",
         "runLiveBrowser_other": "Using the browser {{count}} times",
         "runLiveCommand_one": "Running {{count}} command",
         "runLiveCommand_other": "Running {{count}} commands",
@@ -1472,6 +1480,7 @@
         "runLiveIntegration_other": "Using {{count}} integrations",
         "runLiveListFiles_one": "Listing {{count}} directory",
         "runLiveListFiles_other": "Listing {{count}} directories",
+        "runLivePlan_one": "Updating the plan {{count}} time",
         "runLivePlan_other": "Updating the plan {{count}} times",
         "runLiveRead_one": "Reading {{count}} file",
         "runLiveRead_other": "Reading {{count}} files",
@@ -1481,6 +1490,7 @@
         "runLiveTool_other": "Using {{count}} tools",
         "runLiveWebSearch_one": "Searching the web {{count}} time",
         "runLiveWebSearch_other": "Searching the web {{count}} times",
+        "runPlan_one": "Updated the plan {{count}} time",
         "runPlan_other": "Updated the plan {{count}} times",
         "runRead_one": "Read {{count}} file",
         "runRead_other": "Read {{count}} files",
@@ -1703,9 +1713,11 @@
   },
   "sourceControl": {
     "discard": {
+      "deleteUntrackedFilesDescription_one": "This will permanently delete {{count}} untracked file. This cannot be undone.",
       "deleteUntrackedFilesDescription_other": "This will permanently delete these {{count}} untracked files. This cannot be undone.",
       "deleteUntrackedTitle_one": "Delete {{count}} untracked file?",
       "deleteUntrackedTitle_other": "Delete {{count}} untracked files?",
+      "unstagedFilesIncludingUntrackedDescription_one": "This will revert unstaged changes and permanently delete any untracked files among {{count}} file. This cannot be undone.",
       "unstagedFilesIncludingUntrackedDescription_other": "This will revert unstaged changes and permanently delete any untracked files among these {{count}} files. This cannot be undone."
     }
   },

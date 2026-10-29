@@ -5116,7 +5116,8 @@
           "description": "Update {{value0}} so agents follow the current instructions for this version of Orca.",
           "updateOne": "Update skill",
           "updateMany": "Update skills",
-          "title_other": "{{count}} installed Orca skills are out of date"
+          "title_other": "{{count}} installed Orca skills are out of date",
+          "title_one": "{{count}} installed Orca skill is out of date"
         },
         "SkillFreshnessRow": {},
         "SkillFreshnessUpdateDialog": {
@@ -5147,7 +5148,8 @@
           "update_one": "{{count}} update available",
           "current_one": "{{count}} skill is up to date",
           "updated_one": "Updated {{count}} skill",
-          "updateAction_one": "Update {{count}} skill"
+          "updateAction_one": "Update {{count}} skill",
+          "upToDate_one": "{{count}} skill is up to date."
         },
         "SkillUpdateResultRows": {},
         "SkillUpdateRow": {
@@ -5505,7 +5507,8 @@
           "placementSummaryParts": "Removes {{parts}} across {{roots}}.",
           "placementJoin": " and ",
           "retainedSource": "The skill itself stays at {{path}}.",
-          "nothing_other": "None of the {{count}} selected skills can be deleted from here."
+          "nothing_other": "None of the {{count}} selected skills can be deleted from here.",
+          "nothing_one": "The {{count}} selected skill cannot be deleted from here."
         },
         "skillPlanOpCopy": {
           "busy": "Another install is still running",
@@ -5989,7 +5992,8 @@
         "sidebarHostOptions": {
           "3e102f111c": "All hosts",
           "hosts": "Hosts",
-          "visibleHosts_other": "{{count}} hosts"
+          "visibleHosts_other": "{{count}} hosts",
+          "visibleHosts_one": "{{count}} host"
         },
         "SidebarWorkspaceOptionsMenu": {
           "hosts": "Hosts",
@@ -13943,7 +13947,9 @@
             "deleteItems_other": "Delete {{count}} items?",
             "permanentlyDeleteItems_other": "Permanently delete {{count}} items?",
             "mixedRecycleBin": "Remote items are permanently deleted and cannot be undone. Local items move to the Recycle Bin.",
-            "mixedTrash": "Remote items are permanently deleted and cannot be undone. Local items move to the Trash."
+            "mixedTrash": "Remote items are permanently deleted and cannot be undone. Local items move to the Trash.",
+            "deleteItems_one": "Delete {{count}} item?",
+            "permanentlyDeleteItems_one": "Permanently delete {{count}} item?"
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "Cannot open symlink target",
@@ -18893,7 +18899,11 @@
         "runLiveIntegration_one": "Using {{count}} integration",
         "runLiveAgent_one": "Running {{count}} agent",
         "runLiveTool_one": "Using {{count}} tool",
-        "callCount_one": "{{count}} tool call"
+        "callCount_one": "{{count}} tool call",
+        "runBrowser_one": "Used the browser {{count}} time",
+        "runPlan_one": "Updated the plan {{count}} time",
+        "runLiveBrowser_one": "Using the browser {{count}} time",
+        "runLivePlan_one": "Updating the plan {{count}} time"
       },
       "providerFrame": {
         "byteCount_one": "{{count}} byte",
@@ -20034,7 +20044,9 @@
       "discardAll": "Discard all",
       "deleteUntrackedTitle_one": "Delete {{count}} untracked file?",
       "deleteUntrackedTitle_other": "Delete {{count}} untracked files?",
-      "deleteCount": "Delete {{count}}"
+      "deleteCount": "Delete {{count}}",
+      "deleteUntrackedFilesDescription_one": "This will permanently delete {{count}} untracked file. This cannot be undone.",
+      "unstagedFilesIncludingUntrackedDescription_one": "This will revert unstaged changes and permanently delete any untracked files among {{count}} file. This cannot be undone."
     },
     "unlinkedPr": {
       "status": "PR #{{number}} unlinked"
