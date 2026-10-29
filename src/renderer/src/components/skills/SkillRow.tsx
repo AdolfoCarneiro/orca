@@ -13,6 +13,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
+import { formatClipboardFilePath } from '@/lib/clipboard-file-path'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { DiscoveredSkill, SkillProvider } from '../../../../shared/skills'
 import { sourceKindLabel } from './skill-display-labels'
 import {
@@ -54,6 +56,7 @@ export function SkillRow({
   onShare,
   onDelete,
   onReveal,
+  ownerHostId,
   onFocus,
   onKeyDown
 }: {
@@ -75,6 +78,8 @@ export function SkillRow({
   onShare: () => void
   onDelete: () => void
   onReveal: () => void
+  /** Host the skill file lives on. */
+  ownerHostId: ExecutionHostId
   onFocus: () => void
   onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void
 }): React.JSX.Element {
@@ -85,7 +90,9 @@ export function SkillRow({
   const showReason = selectionBlocked && disabledReason !== null
 
   const copyPath = async (): Promise<void> => {
-    await window.api.ui.writeClipboardText(skill.skillFilePath)
+    await window.api.ui.writeClipboardText(
+      formatClipboardFilePath(skill.skillFilePath, ownerHostId)
+    )
     toast.success(translate('auto.components.skills.SkillRow.pathCopied', 'Path copied'))
   }
 
