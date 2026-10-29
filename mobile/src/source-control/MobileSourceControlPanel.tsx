@@ -313,8 +313,9 @@ export function MobileSourceControlPanel({
           conflictBusy={busyAction !== null}
           conflictAborting={conflictAborting}
           onAbortConflict={(operation) => void abortConflictOperation(operation)}
+          // Failures render in the Changes body, so offer completion only where they can be read.
           onCompleteMerge={
-            conflictOperation === 'merge' && !hasUnresolvedConflicts
+            activeTab === 'changes' && conflictOperation === 'merge' && !hasUnresolvedConflicts
               ? () => void completeMerge()
               : null
           }

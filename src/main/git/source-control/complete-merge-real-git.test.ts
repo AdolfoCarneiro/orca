@@ -79,6 +79,16 @@ describe('delete/modify merge resolved through resolveConflict and completeMerge
     expect(existsSync(join(repoPath, 'gone.txt'))).toBe(true)
   })
 
+  it('refuses to keep a file that is gone from disk instead of staging its deletion', async () => {
+    const { repoPath, git } = createDeleteModifyConflict()
+    rmSync(join(repoPath, 'gone.txt'))
+
+    await expect(resolveConflict(repoPath, 'gone.txt', 'keep_file')).rejects.toThrow(
+      'no longer on disk'
+    )
+    expect(git('status', '--porcelain')).toBe('DU gone.txt\n')
+  })
+
   it('refuses without a merge in progress instead of committing staged changes', async () => {
     const { repoPath, git } = createDeleteModifyConflict()
     git('merge', '--abort')

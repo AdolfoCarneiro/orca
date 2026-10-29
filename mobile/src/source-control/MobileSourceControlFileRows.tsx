@@ -68,13 +68,15 @@ export function makeRenderFileRow(state: RowState, t: Translate) {
     const rowDisabled =
       !item.canOpen || busyAction !== null || openingPath !== null || openingBranchPath !== null
     const ioBusy = busyAction !== null || openingPath !== null || openingBranchPath !== null
+    const hasConflictActions = item.conflictResolutions.length > 0
     return (
       <Pressable
         style={({ pressed }) => [
           styles.fileRow,
           pressed && item.canOpen && styles.fileRowPressed,
-          rowDisabled && styles.fileRowDisabled,
-          !item.canOpen && styles.fileRowUnavailable
+          // Conflict rows cannot open but carry live actions; their buttons dim themselves while busy.
+          rowDisabled && !hasConflictActions && styles.fileRowDisabled,
+          !item.canOpen && !hasConflictActions && styles.fileRowUnavailable
         ]}
         onPress={() => void openFile(item)}
         disabled={rowDisabled}
@@ -112,7 +114,7 @@ export function makeRenderFileRow(state: RowState, t: Translate) {
               {conflictKindLabel(item.conflictKind, t)}
             </Text>
           ) : null}
-          {!rowBusy && item.conflictResolutions.length > 0 ? (
+          {!rowBusy && hasConflictActions ? (
             <View style={styles.conflictActions}>
               {item.conflictResolutions.map((resolution) => (
                 <Pressable

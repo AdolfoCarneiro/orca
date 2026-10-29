@@ -12,6 +12,7 @@ import {
 } from '../../../shared/git-stage-worktree-scope'
 import { findExistingWorktreeSymlinkPaths } from '../worktree-symlink-detection'
 import { redoWriteForDriveCheckoutSuspects } from './drive-checkout-suspect-writes'
+import { runWithGitWorktreeOperationLock } from '../../../shared/git-worktree-operation-lock'
 
 const STAGE_WRITE = ['add', '--update'] as const
 
@@ -33,34 +34,42 @@ export async function stageFile(
 }
 
 /** Git's own resolution: add keeps the worktree file; rm records the deletion and removes any leftover copy. */
-export async function resolveConflict(
+export function resolveConflict(
   worktreePath: string,
   filePath: string,
   resolution: ConflictResolution,
   options: GitRuntimeOptions = {}
 ): Promise<void> {
-  const pathspec = literalPathspec(filePath, worktreePath, options)
-  // A stale row (phone poll, another client) must not overwrite a resolution someone already staged.
-  const { stdout: unmerged } = await gitExecFileAsync(
-    ['ls-files', '--unmerged', '-z', '--', pathspec],
-    gitOptionsForWorktree(worktreePath, options)
-  )
-  if (!unmerged) {
-    throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
-  }
-  if (resolution !== 'keep_deletion') {
-    await stageFile(worktreePath, filePath, options)
-    return
-  }
-  invalidateGitReadCaches()
-  try {
-    await gitExecFileAsync(
-      ['rm', '--force', '--quiet', '--', pathspec],
+  // Two clients resolving one path must each re-check after the other's change lands.
+  return runWithGitWorktreeOperationLock(worktreePath, undefined, async () => {
+    const pathspec = literalPathspec(filePath, worktreePath, options)
+    // Re-read the path: a stale row (phone poll, another client) must not override what is there now.
+    const { stdout } = await gitExecFileAsync(
+      ['status', '--porcelain=v2', '-z', '--untracked-files=no', '--', pathspec],
       gitOptionsForWorktree(worktreePath, options)
     )
-  } finally {
+    const unmerged = stdout.split('\0').find((record) => record.startsWith('u '))
+    if (!unmerged) {
+      throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
+    }
+    // Worktree mode 000000: git add would stage a deletion, the opposite of keeping the file.
+    if (resolution !== 'keep_deletion' && unmerged.split(' ')[6] === '000000') {
+      throw new Error(`${filePath} is no longer on disk. Refresh to see its current state.`)
+    }
+    if (resolution !== 'keep_deletion') {
+      await stageFile(worktreePath, filePath, options)
+      return
+    }
     invalidateGitReadCaches()
-  }
+    try {
+      await gitExecFileAsync(
+        ['rm', '--force', '--quiet', '--', pathspec],
+        gitOptionsForWorktree(worktreePath, options)
+      )
+    } finally {
+      invalidateGitReadCaches()
+    }
+  })
 }
 
 export async function unstageFile(
