@@ -2,7 +2,6 @@ import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source
 import { startSystemCodexSessionBridgeInBackground } from '../codex/codex-session-bridge'
 import { startCodexAccountSessionBridgeInBackground } from '../codex/codex-account-session-bridge'
 import { isCodexHistorySharedAcrossAccounts } from './codex-history-sharing'
-import { parseWslUncPath } from '../../shared/wsl-paths'
 import {
   getSystemCodexHomePath,
   resolveOrcaManagedCodexHomePath,
@@ -70,7 +69,10 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
     syncSystemCodexResourcesIntoManagedHome()
     syncSystemConfigIntoManagedCodexHome()
     // Keep large history scans off the launch path.
-    if (isCodexHistorySharedAcrossAccounts(this.store.getSettings())) {
+    if (
+      isCodexHistorySharedAcrossAccounts(this.store.getSettings()) &&
+      !this.isHostHistorySourceInWsl()
+    ) {
       void startSystemCodexSessionBridgeInBackground(
         {},
         resolveHostCodexSessionSourceHome(this.store.getSettings())
@@ -88,8 +90,7 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
     if (
       sourceCodexHomePaths.length === 0 ||
       !isCodexHistorySharedAcrossAccounts(settings) ||
-      // A history source inside a distro would boot it over 9P; the WSL lane owns those homes.
-      parseWslUncPath(targetCodexHomePath)
+      this.isHostHistorySourceInWsl()
     ) {
       return
     }
@@ -162,13 +163,17 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
   isHostSystemDefaultSessionMigrationEligible(): boolean {
     return (
       normalizeCodexRuntimeSelection(this.store.getSettings()).host === null &&
-      !hasCustomCodexHomeOverrideForLaunch()
+      !hasCustomCodexHomeOverrideForLaunch() &&
+      !this.isHostHistorySourceInWsl()
     )
   }
 
   prepareHostSystemDefaultSessionMigrationPass(
     scanDates: readonly CodexSessionBackfillDate[] = []
   ): boolean {
+    if (this.isHostHistorySourceInWsl()) {
+      return false
+    }
     const paths = resolveCodexSessionBackfillPaths(
       resolveHostCodexSessionSourceHome(this.store.getSettings())
     )

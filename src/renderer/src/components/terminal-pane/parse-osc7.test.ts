@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { Terminal } from '@xterm/headless'
 import { OSC7_PARSER_AGREEMENT_CASES } from '../../../../shared/osc7-parser-agreement-cases'
 import { parseOsc7 } from './parse-osc7'
 
@@ -68,7 +69,29 @@ describe('parseOsc7', () => {
 })
 
 describe('OSC 7 payloads both parsers must agree on (renderer side)', () => {
-  it.each(OSC7_PARSER_AGREEMENT_CASES)('%s', (_case, uri, path) => {
-    expect(parseOsc7(uri)).toBe(path)
+  it.each(OSC7_PARSER_AGREEMENT_CASES)('$name, as a payload', ({ uri, folder }) => {
+    expect(parseOsc7(uri)).toBe(folder)
   })
+
+  // Real traffic: the renderer only sees what xterm's OSC parser delivers.
+  it.each(OSC7_PARSER_AGREEMENT_CASES)(
+    '$name, through xterm',
+    async ({ uri, folder, viaXterm, xtermCancels }) => {
+      const term = new Terminal({ allowProposedApi: true })
+      const payloads: string[] = []
+      term.parser.registerOscHandler(7, (data) => {
+        payloads.push(data)
+        return true
+      })
+      await new Promise<void>((resolve) => term.write(`\x1b]7;${uri}\x07`, resolve))
+      term.dispose()
+      if (xtermCancels) {
+        expect(payloads).toEqual([])
+        return
+      }
+      expect(payloads.map((data) => parseOsc7(data))).toEqual([
+        viaXterm === undefined ? folder : viaXterm
+      ])
+    }
+  )
 })

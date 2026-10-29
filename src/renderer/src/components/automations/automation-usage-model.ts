@@ -38,21 +38,15 @@ export function getAutomationUsageStatusLabel(
     )
   }
   const count = usage.totalTokens ?? 0
-  const params = {
-    count,
-    tokens: formatAutomationTokens(usage.totalTokens),
-    cost: formatAutomationCost(usage.estimatedCostUsd)
-  }
   // count drives CLDR plural selection; tokens is the compact display form.
-  return count === 1
-    ? translate(
-        'auto.components.automations.usage.tokensAndCost_one',
-        '{{tokens}} token · {{cost}}',
-        params
-      )
-    : translate(
-        'auto.components.automations.usage.tokensAndCost_other',
-        '{{tokens}} tokens · {{cost}}',
-        params
-      )
+  return translate(
+    'auto.components.automations.usage.tokensAndCost',
+    '{{tokens}} tokens · {{cost}}',
+    {
+      count,
+      tokens: formatAutomationTokens(usage.totalTokens),
+      cost: formatAutomationCost(usage.estimatedCostUsd),
+      defaultValue_one: '{{tokens}} token · {{cost}}'
+    }
+  )
 }

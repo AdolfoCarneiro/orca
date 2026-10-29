@@ -340,11 +340,9 @@
       "permissionSameAsAll": "Igual que todos los agentes",
       "permissionChipRemove": "Quitar {{flag}} y usar la configuración propia de {{agent}}",
       "permissionChipTooltip": "Añadido por Permisos. Quítalo para usar la configuración propia de {{agent}}.",
-      "permissionOverridesKept": "{{count}} agentes siguen usando su propia configuración de permisos:",
       "permissionOverridesKept_one": "{{count}} agente sigue usando su propia configuración de permisos:",
       "permissionOverridesKept_other": "{{count}} agentes siguen usando su propia configuración de permisos:",
       "permissionOverridesKept_many": "{{count}} agentes siguen usando su propia configuración de permisos:",
-      "permissionOverridesFollow": "{{count}} agentes ahora siguen {{mode}}",
       "permissionOverridesFollow_one": "{{count}} agente ahora sigue {{mode}}",
       "permissionOverridesFollow_other": "{{count}} agentes ahora siguen {{mode}}",
       "permissionOverridesFollow_many": "{{count}} agentes ahora siguen {{mode}}",
@@ -1342,7 +1340,6 @@
         "folderWorkspaceCreateFailedMessage": "No se pudo crear el espacio de trabajo de carpeta. Revisa los detalles del error de arriba e inténtalo de nuevo.",
         "setupAgentStartupPolicySaveFailed": "Error al guardar el comportamiento de inicio",
         "5f3d2c8a1b": "Error al resolver la base del MR",
-        "dropPartiallyAttached": "No se pudieron adjuntar {{failureCount}} de {{count}} elementos.",
         "dropPartiallyAttached_one": "No se pudo adjuntar {{failureCount}} de {{count}} elemento.",
         "dropPartiallyAttached_other": "No se pudieron adjuntar {{failureCount}} de {{count}} elementos.",
         "dropPartiallyAttached_many": "No se pudieron adjuntar {{failureCount}} de {{count}} elementos."
@@ -1358,7 +1355,6 @@
         "ownerChanged": "No se pudo verificar a qué host pertenece este espacio de trabajo. Inténtalo de nuevo después de que se vuelva a conectar.",
         "nativeDropUnresolvedPathsDescription": "Guárdalos primero en el disco y luego suelta los archivos guardados.",
         "nativeDropUnresolvedPaths": "Orca no pudo leer una ruta para los archivos soltados.",
-        "nativeDropTempCopyFailed": "Orca no pudo copiar {{count}} archivos soltados.",
         "nativeDropTempCopyFailed_one": "Orca no pudo copiar {{count}} archivo soltado.",
         "nativeDropTempCopyFailed_other": "Orca no pudo copiar {{count}} archivos soltados.",
         "nativeDropTempCopyFailed_many": "Orca no pudo copiar {{count}} archivos soltados.",
@@ -6606,19 +6602,15 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git mantuvo {{count}} ramas locales porque pueden contener confirmaciones no fusionadas. Las ramas mantenidas no conservan las carpetas del espacio de trabajo; sus confirmaciones permanecen en el repositorio. Orca puede continuar liberando espacio en el disco del espacio de trabajo en segundo plano.",
                 "a3cdd9d9e6_one": "Git mantuvo la rama local {{count}} porque puede contener confirmaciones no fusionadas. Las ramas mantenidas no conservan las carpetas del espacio de trabajo; sus confirmaciones permanecen en el repositorio. Orca puede continuar liberando espacio en el disco del espacio de trabajo en segundo plano.",
                 "a3cdd9d9e6_other": "Git mantuvo {{count}} ramas locales porque pueden contener confirmaciones no fusionadas. Las ramas mantenidas no conservan las carpetas del espacio de trabajo; sus confirmaciones permanecen en el repositorio. Orca puede continuar liberando espacio en el disco del espacio de trabajo en segundo plano.",
                 "a3cdd9d9e6_many": "Git mantuvo {{count}} ramas locales porque pueden contener confirmaciones no fusionadas. Las ramas mantenidas no conservan las carpetas del espacio de trabajo; sus confirmaciones permanecen en el repositorio. Orca puede continuar liberando espacio en el disco del espacio de trabajo en segundo plano.",
-                "6310412304": "Revisar sucursales {{count}}",
                 "6310412304_one": "Revisar sucursal {{count}}",
                 "6310412304_other": "Revisar sucursales {{count}}",
                 "6310412304_many": "Revisar sucursales {{count}}",
-                "cea24c2b7d": "{{count}} espacios de trabajo eliminados",
                 "cea24c2b7d_one": "{{count}} espacio de trabajo eliminado",
                 "cea24c2b7d_other": "{{count}} espacios de trabajo eliminados",
                 "cea24c2b7d_many": "{{count}} espacios de trabajo eliminados",
-                "0e0379f24a": "{{count}} sucursales mantenidas",
                 "0e0379f24a_one": "{{count}} sucursal mantenida",
                 "0e0379f24a_other": "{{count}} sucursales mantenidas",
                 "0e0379f24a_many": "{{count}} sucursales mantenidas",
@@ -6626,7 +6618,6 @@
                 "e61d78054f": "Eliminando sucursales locales: {{value0}}",
                 "1e1a5f6763": "Sucursales locales eliminadas: {{value0}}",
                 "43d9395605": "{{value0}} eliminado, {{value1}} no eliminado",
-                "d42f1f14e0": "Reintentar {{count}} ramas",
                 "d42f1f14e0_one": "Reintentar rama {{count}}",
                 "d42f1f14e0_other": "Reintentar {{count}} ramas",
                 "d42f1f14e0_many": "Reintentar {{count}} ramas"
@@ -6642,7 +6633,6 @@
           "ee39e872d5": "Puede estar desfusionado",
           "676db406fd": "Cabeza no disponible",
           "285e1e4882": "Cancelar",
-          "a0f9863597": "Forzar eliminación de ramas {{count}}",
           "a0f9863597_one": "Forzar eliminación de rama {{count}}",
           "a0f9863597_other": "Forzar eliminación de ramas {{count}}",
           "a0f9863597_many": "Forzar eliminación de ramas {{count}}"
@@ -12293,11 +12283,9 @@
           "olderTerminals_one": "{{count}} terminal iniciado por una versión anterior de Orca sigue ejecutándose en este host y no se detiene solo. Ciérralo en esa versión de Orca o termínalo en el host y vuelve a conectarte.",
           "olderTerminals_other": "{{count}} terminales iniciados por una versión anterior de Orca siguen ejecutándose en este host y no se detienen solos. Ciérralos en esa versión de Orca o termínalos en el host y vuelve a conectarte.",
           "olderTerminals_many": "{{count}} terminales iniciados por una versión anterior de Orca siguen ejecutándose en este host y no se detienen solos. Ciérralos en esa versión de Orca o termínalos en el host y vuelve a conectarte.",
-          "olderTerminals": "{{count}} terminales iniciados por una versión anterior de Orca siguen ejecutándose en este host y no se detienen solos. Ciérralos en esa versión de Orca o termínalos en el host y vuelve a conectarte.",
           "linkedProjects_one": "El servidor Orca de este host ya tenía {{paths}}, así que este escritorio ahora usa la copia del servidor. Las pestañas de este escritorio y {{count}} automatización allí no se movieron, y los worktrees que creó allí aparecen como worktrees externos.",
           "linkedProjects_other": "El servidor Orca de este host ya tenía {{paths}}, así que este escritorio ahora usa la copia del servidor. Las pestañas de este escritorio y {{count}} automatizaciones allí no se movieron, y los worktrees que creó allí aparecen como worktrees externos.",
           "linkedProjects_many": "El servidor Orca de este host ya tenía {{paths}}, así que este escritorio ahora usa la copia del servidor. Las pestañas de este escritorio y {{count}} automatizaciones allí no se movieron, y los worktrees que creó allí aparecen como worktrees externos.",
-          "linkedProjects": "El servidor Orca de este host ya tenía {{paths}}, así que este escritorio ahora usa la copia del servidor. Las pestañas de este escritorio y {{count}} automatizaciones allí no se movieron, y los worktrees que creó allí aparecen como worktrees externos.",
           "linkedProjectsNoAutomations": "El servidor Orca de este host ya tenía {{paths}}, así que este escritorio ahora usa la copia del servidor. Las pestañas de este escritorio allí no se movieron, y los worktrees que creó allí aparecen como worktrees externos.",
           "nodeDownloadBlocked": "Ni este equipo ni este host pudieron descargar Node.js, que el servidor de Orca necesita. Usa un mirror de Node.js o revisa la red en ambas máquinas.",
           "nodeDownloadBlockedNoMirror": "Ni este equipo ni este host pudieron descargar Node.js, que el servidor de Orca necesita. Revisa la red o el proxy en ambas máquinas y vuelve a conectar.",
@@ -12317,8 +12305,7 @@
           "automationsLeftDisabled_other": "El servidor de Orca de este host asumió {{count}} automatizaciones, pero no pudo volver a activarlas. Actívalas en Automatizaciones.",
           "automationsLeftDisabled_many": "El servidor de Orca de este host asumió {{count}} automatizaciones, pero no pudo volver a activarlas. Actívalas en Automatizaciones.",
           "windowsBuildUnsupported": "Este host ejecuta una versión de Windows anterior a Windows 10 y Windows Server 2016, por lo que no puede ejecutar el servidor de Orca. Usa un host con una versión más reciente de Windows o un host Linux o macOS.",
-          "windowsNoExtractor": "Este host Windows no tiene tar.exe ni Expand-Archive de PowerShell, por lo que Orca no puede descomprimir allí su servidor. Instala Windows PowerShell 5.1 en el host y vuelve a conectarte.",
-          "automationsLeftDisabled": "El servidor de Orca de este host asumió {{count}} automatizaciones, pero no pudo volver a activarlas. Actívalas en Automatizaciones."
+          "windowsNoExtractor": "Este host Windows no tiene tar.exe ni Expand-Archive de PowerShell, por lo que Orca no puede descomprimir allí su servidor. Instala Windows PowerShell 5.1 en el host y vuelve a conectarte."
         },
         "deltaMove": {
           "action": "Mover los proyectos nuevos…",
@@ -15558,7 +15545,6 @@
           "0f806a2ab1": "Cancelar",
           "b6c3b84476": "Mostrar árbol de archivos",
           "39f8007549": "Revisar conflictos",
-          "skippedConflictsExcluded": "Se excluyeron {{count}} conflictos no resueltos de esta vista de diff.",
           "skippedConflictsExcluded_one": "Se excluyó {{count}} conflicto no resuelto de esta vista de diff.",
           "skippedConflictsExcluded_other": "Se excluyeron {{count}} conflictos no resueltos de esta vista de diff.",
           "skippedConflictsExcluded_many": "Se excluyeron {{count}} conflictos no resueltos de esta vista de diff.",
@@ -17641,10 +17627,7 @@
           "markManyUnread_many": "Marcar {{count}} agentes como no leídos",
           "clearMany_one": "Quitar {{count}} agente de la lista",
           "clearMany_other": "Quitar {{count}} agentes de la lista",
-          "clearMany_many": "Quitar {{count}} agentes de la lista",
-          "markManyRead": "Marcar {{count}} agentes como leídos",
-          "markManyUnread": "Marcar {{count}} agentes como no leídos",
-          "clearMany": "Quitar {{count}} agentes de la lista"
+          "clearMany_many": "Quitar {{count}} agentes de la lista"
         }
       },
       "confirmation": {
@@ -19210,7 +19193,6 @@
         "editFailed": "Este mensaje no se puede editar.",
         "editGone": "Este mensaje ya se envió o se eliminó. Tu edición está en el cuadro de chat.",
         "editGonePrompt": "Este mensaje ya se envió o se eliminó. Tu edición estará en el cuadro de chat cuando respondas al agente.",
-        "imageCount": "{{count}} imágenes",
         "imageCount_one": "{{count}} imagen",
         "imageCount_other": "{{count}} imágenes",
         "imageCount_many": "{{count}} imágenes",
@@ -20793,6 +20775,26 @@
         "gitInitFailed": "No se pudo inicializar el repositorio Git: {{detail}}",
         "initialCommitFailed": "No se pudo crear el commit inicial: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} ya es un host.",
+        "distroStopped": "{{distro}} se detuvo después de que se leyera la lista. Elige «Iniciar y agregar» para iniciarla.",
+        "wsl1": "{{distro}} usa WSL 1, que Orca ya no admite. Conviértela a WSL 2 en una terminal de Windows con: {{command}}",
+        "notRegistered": "{{distro}} no es una distro WSL instalada. Ejecuta {{command}} en una terminal de Windows para ver las instaladas, o reinstálala e inténtalo de nuevo.",
+        "sshManaged": "{{distro}} ya ejecuta el servidor Orca de «{{server}}», al que este equipo accede por SSH. Elimina primero ese servidor; aún no se admite moverlo a un host WSL."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows no indicó si la distro está en ejecución.",
+        "guestUnanswered": "La distro está en ejecución, pero no respondió a la comprobación de Orca.",
+        "orcadUnanswered": "El servidor Orca de la distro no respondió.",
+        "restartGaveUp_one": "No se pudo reiniciar el servidor Orca en {{distro}} después de {{count}} intento",
+        "restartGaveUp_other": "No se pudo reiniciar el servidor Orca en {{distro}} después de {{count}} intentos",
+        "restartGaveUp_many": "No se pudo reiniciar el servidor Orca en {{distro}} después de {{count}} intentos",
+        "serviceUnconfirmed": "El servicio WSL no confirmó si la distro está en ejecución.",
+        "peerCheckFailed": "Orca no pudo consultar al host WSL si otro Orca en este equipo aún lo usa: {{detail}}",
+        "removalUnrecorded": "Orca no pudo registrar qué quedó en ejecución tras esta eliminación: {{detail}}"
+      }
     }
   },
   "rendererRecovery": {
@@ -20980,22 +20982,18 @@
       "resumableBody": "Vuelve a abrirla aquí para seguir trabajando. Tu sesión de agente se reanudará.",
       "reopening": "Volviendo a abrir…",
       "tryAgain": "Reintentar",
-      "reopenTerminal": "Volver a abrir {{count}} terminales",
       "reopenTerminal_one": "Volver a abrir terminal",
       "reopenTerminal_other": "Volver a abrir {{count}} terminales",
       "reopenTerminal_many": "Volver a abrir {{count}} terminales",
-      "reopened": "Se volvieron a abrir {{count}} terminales",
       "reopened_one": "Se volvió a abrir {{count}} terminal",
       "reopened_other": "Se volvieron a abrir {{count}} terminales",
       "reopened_many": "Se volvieron a abrir {{count}} terminales",
-      "resumed": "Se reanudaron {{count}} sesiones de agente.",
       "resumed_one": "Se reanudó {{count}} sesión de agente.",
       "resumed_other": "Se reanudaron {{count}} sesiones de agente.",
       "resumed_many": "Se reanudaron {{count}} sesiones de agente."
     },
     "severedDaemonBanner": {
       "unknownCount": "sus terminales en ejecución",
-      "count": "{{count}} terminales en ejecución",
       "unverifiable": "Orca no pudo verificar el proceso del servicio de terminal, así que no se detuvo nada.",
       "alreadyReplaced": "El servicio de terminal ya se había reemplazado; no se detuvo nada.",
       "restarted": "Se reinició el servicio de terminal.",
@@ -21120,6 +21118,58 @@
       "firstPrompt": "La primera solicitud del usuario en este espacio de trabajo o chat.",
       "assistantMessage": "La respuesta inicial del agente, cuando Orca dispone de ella.",
       "linkedIssue": "El número del issue de GitHub vinculado a este espacio de trabajo. Vacío si no hay un issue de GitHub vinculado (también en espacios vinculados a GitLab). Usa plantillas con instrucciones: \"Fixes #{linkedIssue}\" por sí solo se convierte en \"Fixes #\" si no hay vínculo."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "El prompt de {{label}} es demasiado grande para la línea de comandos de Windows. Prepara menos cambios y vuelve a intentarlo.",
+        "promptTooLargeForArgument": "El prompt de {{label}} es demasiado grande para pasarlo como un único argumento de línea de comandos. Prepara menos cambios y vuelve a intentarlo.",
+        "agentCouldNotStart": "No se pudo iniciar {{label}}. Revisa el comando del agente en Ajustes y vuelve a intentarlo.",
+        "agentFailedToStart": "No se pudo iniciar {{label}}. Revisa el comando del agente en Ajustes y vuelve a intentarlo.",
+        "agentBinaryNotFound": "No se encontró {{binary}} en PATH. Instala {{label}} para usar mensajes de commit con IA.",
+        "timedOut": "La generación agotó el tiempo de espera tras {{seconds}} s.",
+        "outputTooLarge": "El comando CLI de {{label}} generó demasiada salida. Revisa la configuración de la CLI del agente y vuelve a intentarlo.",
+        "windowsBatchUnsafeArguments": "{{label}} se ejecuta mediante un script por lotes de Windows que no admite el prompt de varias líneas como argumento. Indica el ejecutable del agente en Ajustes o usa un comando personalizado sin {prompt} para que Orca envíe el prompt por stdin.",
+        "cliTerminated": "El comando CLI de {{label}} se interrumpió antes de finalizar.",
+        "cliTerminatedWithDetail": "El comando CLI de {{label}} se interrumpió antes de finalizar: {{detail}}",
+        "cliFailed": "El comando CLI de {{label}} falló con el código {{exitCode}}.",
+        "cliFailedWithDetail": "El comando CLI de {{label}} falló con el código {{exitCode}}: {{detail}}",
+        "agentReportedError": "{{label}} informó de un error.",
+        "emptyCommitMessage": "{{label}} devolvió un mensaje vacío.",
+        "emptyCommitMessageWithDetail": "{{label}} devolvió un mensaje vacío. Salida de la CLI: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} no devolvió detalles.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} no devolvió detalles. Salida de la CLI: {{detail}}",
+        "emptyJiraSummary": "{{label}} devolvió un resumen vacío.",
+        "emptyJiraSummaryWithDetail": "{{label}} devolvió un resumen vacío. Salida de la CLI: {{detail}}",
+        "commitMessageUnparseable": "No se pudo analizar el mensaje de commit generado.",
+        "pullRequestDetailsUnparseable": "No se pudieron analizar los detalles generados de la pull request.",
+        "jiraSummaryEmptyAfterSanitization": "El resumen generado quedó vacío tras la limpieza.",
+        "jiraDescriptionRequired": "La descripción es obligatoria.",
+        "jiraAccountDisconnected": "Vuelve a conectar la cuenta de Jira seleccionada en este host.",
+        "jiraSummaryBusyInOtherDraft": "Ya se está generando un título de Jira en otro borrador.",
+        "stagedChangesReadFailed": "No se pudieron leer los cambios preparados.",
+        "noStagedChanges": "No hay cambios preparados para resumir.",
+        "noBranchChanges": "No hay cambios en la rama para resumir.",
+        "commandTemplateEmptyCommitMessage": "La plantilla de comando para mensajes de commit está vacía.",
+        "commandTemplateEmptyPullRequest": "La plantilla de comando para detalles de pull requests está vacía.",
+        "commandTemplateEmptyBranchName": "La plantilla de comando para nombres de ramas está vacía.",
+        "commandTemplateEmptyChatName": "La plantilla de comando para nombres de chats está vacía.",
+        "sourceControlAgentUnsupported": "Elige un agente compatible con Source Control AI para esta acción en Ajustes -> Git -> Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "chatNameAgentUnsupported": "Elige un agente compatible para generar nombres de chats en esta acción en Ajustes -> Chat -> Nombres de chats. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "sourceControlCustomCommandEmpty": "El comando personalizado está vacío. Añade uno en Ajustes -> Git -> Source Control AI.",
+        "chatNameCustomCommandEmpty": "El comando personalizado está vacío. Añade uno en Ajustes -> Chat -> Nombres de chats.",
+        "agentCannotGenerateCommitMessage": "El agente «{{agent}}» no admite mensajes de commit de Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "agentCannotGeneratePullRequest": "El agente «{{agent}}» no admite detalles de pull requests de Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "agentCannotGenerateBranchName": "El agente «{{agent}}» no admite nombres de ramas de Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "agentCannotGenerateChatName": "El agente «{{agent}}» no admite nombres de chats. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "noModelForAgent": "No hay ningún modelo disponible para {{label}}.",
+        "planCustomCommandEmpty": "El comando personalizado está vacío. Añade uno en Ajustes → Git → Mensajes de commit con IA.",
+        "planAgentUnsupported": "El agente «{{agent}}» no admite mensajes de commit con IA.",
+        "planModelUnavailable": "El modelo «{{model}}» no está disponible para {{label}}.",
+        "planModelWithoutThinking": "El modelo «{{model}}» no admite un nivel de esfuerzo de razonamiento.",
+        "planThinkingLevelInvalid": "El nivel de razonamiento «{{level}}» no es válido para {{model}}."
+      },
+      "enableSourceControlAi": "Activa Source Control AI en Ajustes -> Git.",
+      "chooseBaseBranch": "Elige una rama base antes de generar."
     }
   },
   "aiVault": {
@@ -22335,6 +22385,87 @@
         "attemptsExhausted": "no se completó después de varios intentos"
       },
       "finishPending": "Un traslado anterior al host {{distro}} ya terminó allí. Orca lo termina aquí cuando se reinicie, o ahora con Verificar de nuevo."
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "No había ninguna ventana de Orca disponible para iniciar la automatización.",
+      "unevaluableSchedule": "Orca no pudo evaluar esta automatización y omitió esta ejecución.",
+      "noRunnableHost": "Esta automatización no tiene host donde ejecutarse.",
+      "wslMoveInProgress": "El proyecto de esta automatización se está moviendo a su host WSL, por lo que Orca omitió esta ejecución. Las ejecuciones se reanudarán cuando termine el traslado.",
+      "wslMoveOwnedByHost": "El proyecto de esta automatización ahora se ejecuta en su host WSL, que ejecuta allí esta automatización. Orca ya no ejecuta esta copia local.",
+      "missedGraceWindow": "Cuando Orca volvió a comprobarlo, ya había vencido el período de gracia para recuperar esta ejecución omitida.",
+      "targetMissing": "El host de la automatización ya no está registrado, por lo que esta automatización no tiene dónde ejecutarse.",
+      "targetReplaced": "El host de la automatización se eliminó y se volvió a registrar, por lo que hay que volver a vincular esta automatización antes de poder ejecutarla.",
+      "workspaceHostAmbiguous": "El espacio de trabajo de la automatización abarca varios hosts, por lo que Orca no puede determinar en cuál ejecutarla.",
+      "legacyTwinHosts": "Esta automatización se guardó antes de que Orca registrara en qué host se ejecuta, y su proyecto está en varios hosts. Abre la automatización y elige el host donde debe ejecutarse.",
+      "targetUnavailable": "El destino de ejecución de la automatización ya no está disponible.",
+      "remoteSchedulingUnavailable": "La programación de automatizaciones en servidores remotos aún no está disponible desde este cliente de Orca. Ejecuta esta automatización en el servidor remoto o actualiza Orca cuando esté disponible la programación remota persistente.",
+      "projectSetupMissing": "El proyecto ya no está configurado en el host seleccionado para la automatización.",
+      "targetSetupMismatch": "El destino de ejecución de la automatización ya no coincide con la configuración del host seleccionado para el proyecto.",
+      "repoUnavailable": "El repositorio del host seleccionado para la automatización ya no está disponible.",
+      "repoDetached": "El repositorio ya no está vinculado al host seleccionado para la automatización.",
+      "projectPathChanged": "La ruta del proyecto en el host seleccionado para la automatización ha cambiado.",
+      "automationChanged": "La automatización cambió antes de que pudiera iniciarse esta ejecución.",
+      "destinationChanged": "El destino de la automatización cambió antes de que pudiera iniciarse esta ejecución.",
+      "hooksReviewBlocked": "El agente está esperando a que alguien revise los hooks nuevos o modificados («Hooks need review»). Abre esta ejecución y confía en ellos o elimínalos. Las ejecuciones programadas continúan y se completarán correctamente cuando no quede nada por revisar.",
+      "agentNeverStarted": "El agente de la automatización no llegó a iniciarse tras el envío del prompt.",
+      "agentNoCompletion": "El agente de la automatización no informó de la finalización.",
+      "watchTimedOut": "Orca dejó de supervisar esta ejecución tras 6 horas sin una señal de finalización.",
+      "projectSetupState": {
+        "notSetUp": "El proyecto no está configurado en el host seleccionado para la automatización.",
+        "settingUp": "El proyecto aún se está configurando en el host seleccionado para la automatización.",
+        "error": "La configuración del proyecto falló en el host seleccionado para la automatización.",
+        "unsupported": "El host seleccionado para la automatización no admite este proyecto."
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "El título es obligatorio",
+      "networkError": "Error de red — comprueba tu conexión.",
+      "invalidUpdate": "Actualización no válida — {{detail}}",
+      "invalidRequest": "Solicitud no válida — {{detail}}",
+      "issueNotFound": "No se encontró el issue — puede que se haya eliminado.",
+      "issueUpdateFailed": "No se pudo actualizar el issue: {{detail}}",
+      "github": {
+        "repoUnresolved": "No se pudo determinar el owner/repo de GitHub para este repositorio",
+        "unexpectedResponse": "Respuesta inesperada de GitHub",
+        "pullRequestIdUnresolved": "No se pudo determinar el ID del pull request de GitHub",
+        "reviewerRequired": "Introduce al menos un revisor",
+        "stackAutoMergeUnsupported": "GitHub no admite auto-merge para pull requests apilados.",
+        "autoMergeAlreadyMergeable": "Este pull request ya se puede mergear. Usa Merge en lugar de auto-merge.",
+        "noFailedChecks": "No hay checks fallidos de GitHub Actions para volver a ejecutar.",
+        "noRerunnableChecks": "No se encontraron checks que se puedan volver a ejecutar.",
+        "stackMergeInvalidResponse": "GitHub devolvió una respuesta no válida al mergear la pila.",
+        "stackMergePending": "GitHub aún está mergeando esta pila. Actualiza para consultar su estado.",
+        "rateLimited": "Se alcanzó el límite de velocidad de GitHub. Inténtalo de nuevo en unos minutos.",
+        "issuePermissionDenied": "No tienes permiso para editar este issue. Comprueba los alcances de tu token de GitHub.",
+        "issuesDisabled": "Los issues están deshabilitados en este repositorio.",
+        "pullRequestPermissionDenied": "No tienes permiso para editar este pull request. Comprueba los alcances de tu token de GitHub.",
+        "pullRequestNotFound": "No se encontró el pull request — puede que se haya eliminado.",
+        "pullRequestUpdateFailed": "No se pudo actualizar el pull request: {{detail}}",
+        "autoMergeEnableFailed": "No se pudo habilitar auto-merge para el pull request: {{detail}}",
+        "autoMergeDisableFailed": "No se pudo deshabilitar auto-merge para el pull request: {{detail}}",
+        "mergeQueueAddFailed": "No se pudo añadir el pull request a la merge queue: {{detail}}",
+        "rerunPermissionDenied": "No tienes permiso para volver a ejecutar checks en este repositorio. Comprueba los alcances de tu token de GitHub.",
+        "rerunTargetNotFound": "No se encontró el recurso de GitHub que se iba a volver a ejecutar — puede que haya caducado o se haya eliminado.",
+        "rerunRejected": "No se pudieron volver a ejecutar los checks — {{detail}}",
+        "rerunFailed": "No se pudieron volver a ejecutar los checks: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "No se pudo determinar el proyecto de GitLab para este repositorio",
+        "unexpectedResponse": "Respuesta inesperada de GitLab",
+        "commentBodyRequired": "El contenido del comentario es obligatorio",
+        "discussionIdRequired": "El ID de la discusión es obligatorio",
+        "readyTitleConflict": "No se puede actualizar el título al marcar un merge request como listo",
+        "mergeRequestTitleUnreadable": "No se pudo leer el título actual del merge request",
+        "rateLimited": "Se alcanzó el límite de velocidad de GitLab. Inténtalo de nuevo en unos minutos.",
+        "issuePermissionDenied": "No tienes permiso para editar este issue. Comprueba los alcances de tu token de GitLab.",
+        "jobLogPermissionDenied": "No tienes permiso para leer el log de este job. Comprueba los alcances de tu token de GitLab.",
+        "jobProjectNotFound": "No se pudo encontrar el proyecto de GitLab de este job.",
+        "jobLogFailed": "No se pudo cargar el log del job: {{detail}}"
+      }
     }
   }
 }

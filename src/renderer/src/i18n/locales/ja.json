@@ -340,10 +340,8 @@
       "permissionSameAsAll": "すべての Agent と同じ",
       "permissionChipRemove": "{{flag}} を削除して {{agent}} 独自の設定を使用",
       "permissionChipTooltip": "権限によって追加されました。{{agent}} 独自の設定を使用するには削除してください。",
-      "permissionOverridesKept": "{{count}} 個の Agent は引き続き独自の権限設定を使用します:",
       "permissionOverridesKept_one": "{{count}} 個の Agent は引き続き独自の権限設定を使用します:",
       "permissionOverridesKept_other": "{{count}} 個の Agent は引き続き独自の権限設定を使用します:",
-      "permissionOverridesFollow": "{{count}} 個の Agent が {{mode}} に従うようになりました",
       "permissionOverridesFollow_one": "{{count}} 個の Agent が {{mode}} に従うようになりました",
       "permissionOverridesFollow_other": "{{count}} 個の Agent が {{mode}} に従うようになりました",
       "permissionOverrideFollows": "{{agent}} が {{mode}} に従うようになりました",
@@ -1338,7 +1336,6 @@
         "folderWorkspaceCreateFailedMessage": "フォルダーワークスペースを作成できませんでした。上のエラー詳細を確認して、もう一度お試しください。",
         "setupAgentStartupPolicySaveFailed": "セットアップ時の起動設定を保存できませんでした。",
         "5f3d2c8a1b": "MR のベースブランチを特定できませんでした。",
-        "dropPartiallyAttached": "{{count}} 個のアイテムのうち {{failureCount}} 個を接続できませんでした。",
         "dropPartiallyAttached_one": "{{count}} アイテムの {{failureCount}} を接続できませんでした。",
         "dropPartiallyAttached_other": "{{count}} 個のアイテムのうち {{failureCount}} 個を接続できませんでした。"
       },
@@ -1353,7 +1350,6 @@
         "ownerChanged": "このワークスペースを所有するホストを確認できませんでした。再接続してから、もう一度お試しください。",
         "nativeDropUnresolvedPathsDescription": "まずそれらをディスクに保存してから、保存したファイルをドロップします。",
         "nativeDropUnresolvedPaths": "Orca はドロップされたファイルのパスを読み取ることができませんでした。",
-        "nativeDropTempCopyFailed": "ドロップされた {{count}} 個のファイルを Orca でコピーできませんでした。",
         "nativeDropTempCopyFailed_one": "ドロップされた {{count}} 個のファイルを Orca でコピーできませんでした。",
         "nativeDropTempCopyFailed_other": "ドロップされた {{count}} 個のファイルを Orca でコピーできませんでした。",
         "hostMismatch": "このエディターは別のホスト上にあります。元のワークスペースからファイルを開いてください。",
@@ -6353,23 +6349,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git では、マージされていないコミットが含まれる可能性があるため、{{count}} ローカルブランチを保持しました。保持されたブランチはワークスペースフォルダーを保持しません。彼らのコミットはリポジトリに残ります。 Orca はバックグラウンドでワークスペースのディスク領域を解放し続ける可能性があります。",
                 "a3cdd9d9e6_one": "マージされていないコミットが含まれている可能性があるため、Git は {{count}} ローカルブランチを保持しました。保持されたブランチはワークスペースフォルダーを保持しません。彼らのコミットはリポジトリに残ります。 Orca はバックグラウンドでワークスペースのディスク領域を解放し続ける可能性があります。",
                 "a3cdd9d9e6_other": "Git では、マージされていないコミットが含まれる可能性があるため、{{count}} ローカルブランチを保持しました。保持されたブランチはワークスペースフォルダーを保持しません。彼らのコミットはリポジトリに残ります。 Orca はバックグラウンドでワークスペースのディスク領域を解放し続ける可能性があります。",
-                "6310412304": "{{count}} ブランチを確認する",
                 "6310412304_one": "{{count}} ブランチをレビューする",
                 "6310412304_other": "{{count}} ブランチを確認する",
-                "cea24c2b7d": "{{count}} ワークスペースが削除されました",
                 "cea24c2b7d_one": "{{count}} ワークスペースが削除されました",
                 "cea24c2b7d_other": "{{count}} ワークスペースが削除されました",
-                "0e0379f24a": "{{count}} ブランチが保持されました",
                 "0e0379f24a_one": "{{count}} ブランチは保持されました",
                 "0e0379f24a_other": "{{count}} ブランチが保持されました",
                 "4cf75caab7": "{{value0}}、{{value1}}",
                 "e61d78054f": "ローカルブランチの削除: {{value0}}",
                 "1e1a5f6763": "ローカルブランチが削除されました: {{value0}}",
                 "43d9395605": "{{value0}} は削除されましたが、{{value1}} は削除されていません",
-                "d42f1f14e0": "{{count}} ブランチを再試行",
                 "d42f1f14e0_one": "{{count}} ブランチを再試行します",
                 "d42f1f14e0_other": "{{count}} ブランチを再試行"
               }
@@ -6384,7 +6375,6 @@
           "ee39e872d5": "統合されていない可能性があります",
           "676db406fd": "ヘッドが使用不可",
           "285e1e4882": "キャンセル",
-          "a0f9863597": "{{count}} ブランチを強制的に削除",
           "a0f9863597_one": "{{count}} ブランチを強制削除",
           "a0f9863597_other": "{{count}} ブランチを強制的に削除"
         },
@@ -12018,10 +12008,8 @@
           "olderTerminalsUnverifiable": "以前のバージョンの Orca で開始されたターミナルが終了したことを確認できませんでした。再接続してもう一度お試しください。",
           "olderTerminals_one": "以前のバージョンの Orca で開始された {{count}} 個のターミナルがこのホストでまだ実行中で、自動では終了しません。そのバージョンの Orca で閉じるか、ホスト上で終了してから再接続してください。",
           "olderTerminals_other": "以前のバージョンの Orca で開始された {{count}} 個のターミナルがこのホストでまだ実行中で、自動では終了しません。そのバージョンの Orca で閉じるか、ホスト上で終了してから再接続してください。",
-          "olderTerminals": "以前のバージョンの Orca で開始された {{count}} 個のターミナルがこのホストでまだ実行中で、自動では終了しません。そのバージョンの Orca で閉じるか、ホスト上で終了してから再接続してください。",
           "linkedProjects_one": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブと {{count}} 件のオートメーションは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
           "linkedProjects_other": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブと {{count}} 件のオートメーションは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
-          "linkedProjects": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブと {{count}} 件のオートメーションは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
           "linkedProjectsNoAutomations": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
           "nodeDownloadBlocked": "Orca のサーバーに必要な Node.js を、このコンピュータとこのホストのどちらもダウンロードできませんでした。Node.js のミラーを使うか、両方のマシンのネットワークを確認してください。",
           "nodeDownloadBlockedNoMirror": "Orca のサーバーに必要な Node.js を、このコンピュータとこのホストのどちらもダウンロードできませんでした。両方のマシンのネットワークまたはプロキシを確認してから、もう一度接続してください。",
@@ -12040,8 +12028,7 @@
           "automationsLeftDisabled_one": "このホストの Orca サーバーは {{count}} 件の自動化を引き継ぎましたが、再度オンにできませんでした。自動化でオンにしてください。",
           "automationsLeftDisabled_other": "このホストの Orca サーバーは {{count}} 件の自動化を引き継ぎましたが、再度オンにできませんでした。自動化でオンにしてください。",
           "windowsBuildUnsupported": "このホストは Windows 10 および Windows Server 2016 より古いバージョンの Windows を実行しているため、Orca のサーバーを実行できません。より新しいバージョンの Windows のホスト、または Linux か macOS のホストを使用してください。",
-          "windowsNoExtractor": "この Windows ホストには tar.exe も PowerShell の Expand-Archive もないため、Orca はサーバーを展開できません。ホストに Windows PowerShell 5.1 をインストールしてから、もう一度接続してください。",
-          "automationsLeftDisabled": "このホストの Orca サーバーは {{count}} 件の自動化を引き継ぎましたが、再度オンにできませんでした。自動化でオンにしてください。"
+          "windowsNoExtractor": "この Windows ホストには tar.exe も PowerShell の Expand-Archive もないため、Orca はサーバーを展開できません。ホストに Windows PowerShell 5.1 をインストールしてから、もう一度接続してください。"
         },
         "deltaMove": {
           "action": "新規プロジェクトを移動…",
@@ -15194,7 +15181,6 @@
           "0f806a2ab1": "キャンセル",
           "b6c3b84476": "ファイルツリーを表示",
           "39f8007549": "競合をレビューする",
-          "skippedConflictsExcluded": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
           "skippedConflictsExcluded_one": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
           "skippedConflictsExcluded_other": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
           "820ec01f24": "競合したファイルは個別にレビューされます",
@@ -17216,10 +17202,7 @@
           "markManyUnread_one": "{{count}} 件の Agent を未読としてマークする",
           "markManyUnread_other": "{{count}} 件の Agent を未読としてマークする",
           "clearMany_one": "{{count}} 件の Agent をリストから消去",
-          "clearMany_other": "{{count}} 件の Agent をリストから消去",
-          "markManyRead": "{{count}} 件の Agent に既読マークを付ける",
-          "markManyUnread": "{{count}} 件の Agent を未読としてマークする",
-          "clearMany": "{{count}} 件の Agent をリストから消去"
+          "clearMany_other": "{{count}} 件の Agent をリストから消去"
         }
       },
       "confirmation": {
@@ -18863,7 +18846,6 @@
         "editFailed": "このメッセージは編集できません。",
         "editGone": "このメッセージはすでに送信または削除されています。編集したテキストはチャット入力欄にあります。",
         "editGonePrompt": "このメッセージはすでに送信または削除されています。Agent に回答すると、編集したテキストがチャット入力欄に表示されます。",
-        "imageCount": "画像 {{count}} 枚",
         "imageCount_one": "画像 {{count}} 枚",
         "imageCount_other": "画像 {{count}} 枚",
         "collapse": "折りたたむ",
@@ -19927,6 +19909,24 @@
         "gitInitFailed": "Git リポジトリを初期化できませんでした: {{detail}}",
         "initialCommitFailed": "最初のコミットを作成できませんでした: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} はすでにホストです。",
+        "distroStopped": "一覧の読み取り後に {{distro}} が停止しました。「起動して追加」を選択して起動してください。",
+        "wsl1": "{{distro}} は Orca がサポートを終了した WSL 1 を使用しています。Windows のターミナルで次のコマンドを実行し、WSL 2 に変換してください: {{command}}",
+        "notRegistered": "{{distro}} はインストール済みの WSL ディストリビューションではありません。Windows のターミナルで {{command}} を実行してインストール済みのものを確認するか、再インストールしてからやり直してください。",
+        "sshManaged": "{{distro}} ではすでに「{{server}}」の Orca サーバーが実行されており、このコンピューターは SSH 経由で接続しています。先にそのサーバーを削除してください。WSL ホストへの移行はまだサポートされていません。"
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows からディストリビューションの実行状態が報告されませんでした。",
+        "guestUnanswered": "ディストリビューションは実行中ですが、Orca の確認に応答しませんでした。",
+        "orcadUnanswered": "ディストリビューション内の Orca サーバーが応答しませんでした。",
+        "restartGaveUp_other": "{{count}} 回試行しましたが、{{distro}} 内の Orca サーバーを再起動できませんでした",
+        "serviceUnconfirmed": "WSL サービスからディストリビューションが実行中かどうかの確認が得られませんでした。",
+        "peerCheckFailed": "Orca は WSL ホストに、このコンピューター上の別の Orca がまだ使用しているかを問い合わせられませんでした: {{detail}}",
+        "removalUnrecorded": "Orca は、今回の削除後も実行中のものを記録できませんでした: {{detail}}"
+      }
     }
   },
   "editor": {
@@ -20108,6 +20108,58 @@
       "firstPrompt": "このワークスペースまたはチャットでの最初のユーザーの依頼です。",
       "assistantMessage": "Orca が取得できる場合の、Agent の最初の応答です。",
       "linkedIssue": "このワークスペースにリンクされた GitHub Issue の番号です。GitHub Issue がリンクされていない場合は空です（GitLab にリンクされたワークスペースを含む）。指示を含むテンプレートを使ってください。リンクがない場合、単独の「Fixes #{linkedIssue}」は「Fixes #」になります。"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} のプロンプトが Windows のコマンドラインには大きすぎます。ステージする変更を減らして、もう一度お試しください。",
+        "promptTooLargeForArgument": "{{label}} のプロンプトが大きすぎるため、単一のコマンドライン引数として渡せません。ステージする変更を減らして、もう一度お試しください。",
+        "agentCouldNotStart": "{{label}} を起動できませんでした。設定で Agent のコマンドを確認し、もう一度お試しください。",
+        "agentFailedToStart": "{{label}} の起動に失敗しました。設定で Agent のコマンドを確認し、もう一度お試しください。",
+        "agentBinaryNotFound": "PATH に {{binary}} が見つかりません。AI コミットメッセージを使用するには、{{label}} をインストールしてください。",
+        "timedOut": "生成が {{seconds}} 秒でタイムアウトしました。",
+        "outputTooLarge": "{{label}} の CLI コマンドの出力が多すぎます。Agent の CLI 設定を確認し、もう一度お試しください。",
+        "windowsBatchUnsafeArguments": "{{label}} の実行に使われる Windows バッチスクリプトは、複数行のプロンプトを引数として受け取れません。設定で Agent の実行ファイルを指定するか、{prompt} を含まないカスタムコマンドを使用して、Orca がプロンプトを stdin に送信できるようにしてください。",
+        "cliTerminated": "{{label}} の CLI コマンドは終了前に停止されました。",
+        "cliTerminatedWithDetail": "{{label}} の CLI コマンドは終了前に停止されました：{{detail}}",
+        "cliFailed": "{{label}} の CLI コマンドがコード {{exitCode}} で失敗しました。",
+        "cliFailedWithDetail": "{{label}} の CLI コマンドがコード {{exitCode}} で失敗しました：{{detail}}",
+        "agentReportedError": "{{label}} がエラーを報告しました。",
+        "emptyCommitMessage": "{{label}} が空のメッセージを返しました。",
+        "emptyCommitMessageWithDetail": "{{label}} が空のメッセージを返しました。CLI 出力: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} が返した詳細は空でした。",
+        "emptyPullRequestDetailsWithDetail": "{{label}} が返した詳細は空でした。CLI 出力: {{detail}}",
+        "emptyJiraSummary": "{{label}} が空の要約を返しました。",
+        "emptyJiraSummaryWithDetail": "{{label}} が空の要約を返しました。CLI 出力: {{detail}}",
+        "commitMessageUnparseable": "生成されたコミットメッセージを解析できませんでした。",
+        "pullRequestDetailsUnparseable": "生成された PR の詳細を解析できませんでした。",
+        "jiraSummaryEmptyAfterSanitization": "生成された要約はサニタイズ後に空になりました。",
+        "jiraDescriptionRequired": "説明は必須です。",
+        "jiraAccountDisconnected": "このホストで、選択した Jira アカウントを再接続してください。",
+        "jiraSummaryBusyInOtherDraft": "別の下書きですでに Jira のタイトルを生成中です。",
+        "stagedChangesReadFailed": "ステージ済みの変更を読み取れませんでした。",
+        "noStagedChanges": "要約するステージ済みの変更はありません。",
+        "noBranchChanges": "要約するブランチの変更はありません。",
+        "commandTemplateEmptyCommitMessage": "コミットメッセージ用のコマンドテンプレートが空です。",
+        "commandTemplateEmptyPullRequest": "PR の詳細用のコマンドテンプレートが空です。",
+        "commandTemplateEmptyBranchName": "ブランチ名用のコマンドテンプレートが空です。",
+        "commandTemplateEmptyChatName": "チャット名用のコマンドテンプレートが空です。",
+        "sourceControlAgentUnsupported": "この操作に対応する Agent を設定 -> Git -> ソース管理 AI で選択してください。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "chatNameAgentUnsupported": "この操作に対応するチャット名生成用の Agent を設定 -> チャット -> チャット名で選択してください。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "sourceControlCustomCommandEmpty": "カスタムコマンドが空です。設定 -> Git -> ソース管理 AI で追加してください。",
+        "chatNameCustomCommandEmpty": "カスタムコマンドが空です。設定 -> チャット -> チャット名で追加してください。",
+        "agentCannotGenerateCommitMessage": "Agent「{{agent}}」はソース管理 AI のコミットメッセージに対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "agentCannotGeneratePullRequest": "Agent「{{agent}}」はソース管理 AI の PR の詳細に対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "agentCannotGenerateBranchName": "Agent「{{agent}}」はソース管理 AI のブランチ名に対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "agentCannotGenerateChatName": "Agent「{{agent}}」はチャット名に対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "noModelForAgent": "{{label}} で利用できるモデルがありません。",
+        "planCustomCommandEmpty": "カスタムコマンドが空です。設定 → Git → AI コミットメッセージで追加してください。",
+        "planAgentUnsupported": "Agent「{{agent}}」は AI コミットメッセージに対応していません。",
+        "planModelUnavailable": "モデル「{{model}}」は {{label}} で利用できません。",
+        "planModelWithoutThinking": "モデル「{{model}}」は思考の強度設定に対応していません。",
+        "planThinkingLevelInvalid": "思考レベル「{{level}}」は {{model}} では無効です。"
+      },
+      "enableSourceControlAi": "設定 -> Git でソース管理 AI を有効にしてください。",
+      "chooseBaseBranch": "生成する前にベースブランチを選択してください。"
     }
   },
   "rendererRecovery": {
@@ -20505,19 +20557,15 @@
       "resumableBody": "作業を続けるには、ここで再度開いてください。Agent セッションが再開されます。",
       "reopening": "再度開いています…",
       "tryAgain": "再試行",
-      "reopenTerminal": "{{count}} 個のターミナルを再度開く",
       "reopenTerminal_one": "ターミナルを再度開く",
       "reopenTerminal_other": "{{count}} 個のターミナルを再度開く",
-      "reopened": "{{count}} 個のターミナルを再度開きました",
       "reopened_one": "{{count}} 個のターミナルを再度開きました",
       "reopened_other": "{{count}} 個のターミナルを再度開きました",
-      "resumed": "{{count}} 個の Agent セッションを再開しました。",
       "resumed_one": "{{count}} 個の Agent セッションを再開しました。",
       "resumed_other": "{{count}} 個の Agent セッションを再開しました。"
     },
     "severedDaemonBanner": {
       "unknownCount": "実行中のターミナル",
-      "count": "実行中のターミナル {{count}} 個",
       "unverifiable": "Orca はターミナルサービスのプロセスを確認できなかったため、何も停止していません。",
       "alreadyReplaced": "ターミナルサービスはすでに置き換えられていたため、何も停止していません。",
       "restarted": "ターミナルサービスを再起動しました。",
@@ -21723,6 +21771,87 @@
         "attemptsExhausted": "何度か試しても完了しませんでした"
       },
       "finishPending": "{{distro}} ホストへの以前の移動はホスト側で完了しています。Orca は再起動時、または「再確認」ですぐに、ここでの処理を完了します。"
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "オートメーションを起動できる Orca ウィンドウがありませんでした。",
+      "unevaluableSchedule": "Orca はこのオートメーションを評価できず、今回の実行をスキップしました。",
+      "noRunnableHost": "このオートメーションには実行するホストがありません。",
+      "wslMoveInProgress": "このオートメーションのプロジェクトを WSL ホストへ移動中のため、Orca は今回の実行をスキップしました。移動が完了すると実行が再開されます。",
+      "wslMoveOwnedByHost": "このオートメーションのプロジェクトは現在 WSL ホスト上で動作しており、オートメーションもそこで実行されます。Orca はこのローカルコピーを実行しなくなりました。",
+      "missedGraceWindow": "Orca が次に確認した時点で、この実行は実行漏れの猶予時間を過ぎていました。",
+      "targetMissing": "オートメーションのホストは登録されていないため、このオートメーションを実行する場所がありません。",
+      "targetReplaced": "オートメーションのホストが削除され、再登録されたため、実行するにはこのオートメーションを再度関連付ける必要があります。",
+      "workspaceHostAmbiguous": "オートメーションのワークスペースが複数のホストにまたがっているため、Orca はどのホストで実行すべきか判断できません。",
+      "legacyTwinHosts": "このオートメーションは、Orca が実行ホストを記録するようになる前に保存されており、プロジェクトが複数のホストにあります。オートメーションを開き、実行するホストを選択してください。",
+      "targetUnavailable": "オートメーションの実行ターゲットは利用できなくなりました。",
+      "remoteSchedulingUnavailable": "この Orca クライアントでは、リモートサーバーのオートメーションのスケジュール設定はまだ利用できません。リモートサーバー上でこのオートメーションを実行するか、永続的なリモートスケジュール機能が利用可能になったら Orca を更新してください。",
+      "projectSetupMissing": "オートメーション用に選択したホストでは、プロジェクトがセットアップされていない状態になっています。",
+      "targetSetupMismatch": "オートメーションの実行ターゲットが、プロジェクトで選択したホストの設定と一致しなくなりました。",
+      "repoUnavailable": "選択したオートメーションのホストのリポジトリは利用できなくなりました。",
+      "repoDetached": "リポジトリは、選択したオートメーションのホストに関連付けられていません。",
+      "projectPathChanged": "選択したオートメーションのホストのプロジェクトパスが変更されました。",
+      "automationChanged": "今回の実行を開始する前に、オートメーションが変更されました。",
+      "destinationChanged": "今回の実行を開始する前に、オートメーションの実行先が変更されました。",
+      "hooksReviewBlocked": "Agent は、新規または変更されたフックのレビューを待っています（「Hooks need review」）。この実行を開き、フックを信頼するか削除してください。スケジュールされた実行は継続され、レビューが必要なものがなくなれば成功します。",
+      "agentNeverStarted": "プロンプトの送信後、オートメーションの Agent が起動しませんでした。",
+      "agentNoCompletion": "オートメーションの Agent から完了の報告がありませんでした。",
+      "watchTimedOut": "完了シグナルがないまま 6 時間が経過したため、Orca はこの実行の監視を終了しました。",
+      "projectSetupState": {
+        "notSetUp": "選択したオートメーションのホストでは、プロジェクトがセットアップされていません。",
+        "settingUp": "選択したオートメーションのホストで、プロジェクトをまだセットアップ中です。",
+        "error": "選択したオートメーションのホストで、プロジェクトのセットアップに失敗しました。",
+        "unsupported": "選択したオートメーションのホストは、このプロジェクトをサポートしていません。"
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "タイトルは必須です",
+      "networkError": "ネットワークエラー — 接続を確認してください。",
+      "invalidUpdate": "無効な更新 — {{detail}}",
+      "invalidRequest": "無効なリクエスト — {{detail}}",
+      "issueNotFound": "Issue が見つかりません — 削除された可能性があります。",
+      "issueUpdateFailed": "Issue を更新できませんでした: {{detail}}",
+      "github": {
+        "repoUnresolved": "このリポジトリの GitHub 所有者とリポジトリ名を特定できませんでした",
+        "unexpectedResponse": "GitHub から予期しない応答がありました",
+        "pullRequestIdUnresolved": "GitHub PR の ID を特定できませんでした",
+        "reviewerRequired": "1 人以上のレビュアーを入力してください",
+        "stackAutoMergeUnsupported": "GitHub はスタックされた PR の自動マージに対応していません。",
+        "autoMergeAlreadyMergeable": "この PR はすでにマージ可能です。自動マージではなく「マージ」を使用してください。",
+        "noFailedChecks": "再実行対象の失敗した GitHub Actions チェックはありません。",
+        "noRerunnableChecks": "再実行できるチェックが見つかりませんでした。",
+        "stackMergeInvalidResponse": "GitHub がスタックのマージに対して無効な応答を返しました。",
+        "stackMergePending": "GitHub はまだこのスタックをマージ中です。更新して状態を確認してください。",
+        "rateLimited": "GitHub のレート制限に達しました。数分後にもう一度お試しください。",
+        "issuePermissionDenied": "この Issue を編集する権限がありません。GitHub トークンのスコープを確認してください。",
+        "issuesDisabled": "このリポジトリでは Issue が無効になっています。",
+        "pullRequestPermissionDenied": "この PR を編集する権限がありません。GitHub トークンのスコープを確認してください。",
+        "pullRequestNotFound": "PR が見つかりません — 削除された可能性があります。",
+        "pullRequestUpdateFailed": "PR を更新できませんでした: {{detail}}",
+        "autoMergeEnableFailed": "PR の自動マージを有効にできませんでした: {{detail}}",
+        "autoMergeDisableFailed": "PR の自動マージを無効にできませんでした: {{detail}}",
+        "mergeQueueAddFailed": "PR をマージキューに追加できませんでした: {{detail}}",
+        "rerunPermissionDenied": "このリポジトリでチェックを再実行する権限がありません。GitHub トークンのスコープを確認してください。",
+        "rerunTargetNotFound": "再実行対象の GitHub リソースが見つかりません — 期限切れまたは削除された可能性があります。",
+        "rerunRejected": "チェックを再実行できませんでした — {{detail}}",
+        "rerunFailed": "チェックを再実行できませんでした: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "このリポジトリの GitLab プロジェクトを特定できませんでした",
+        "unexpectedResponse": "GitLab から予期しない応答がありました",
+        "commentBodyRequired": "コメント本文が必要です",
+        "discussionIdRequired": "ディスカッション ID が必要です",
+        "readyTitleConflict": "MR をレビュー準備完了にする際にタイトルは更新できません",
+        "mergeRequestTitleUnreadable": "現在の MR のタイトルを読み取れませんでした",
+        "rateLimited": "GitLab のレート制限に達しました。数分後にもう一度お試しください。",
+        "issuePermissionDenied": "この Issue を編集する権限がありません。GitLab トークンのスコープを確認してください。",
+        "jobLogPermissionDenied": "このジョブのログを読む権限がありません。GitLab トークンのスコープを確認してください。",
+        "jobProjectNotFound": "このジョブの GitLab プロジェクトが見つかりませんでした。",
+        "jobLogFailed": "ジョブログを読み込めませんでした: {{detail}}"
+      }
     }
   }
 }

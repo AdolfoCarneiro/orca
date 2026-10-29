@@ -337,10 +337,8 @@
       "permissionSameAsAll": "与所有智能体相同",
       "permissionChipRemove": "移除 {{flag}} 并使用 {{agent}} 自己的设置",
       "permissionChipTooltip": "由权限设置添加。移除后使用 {{agent}} 自己的设置。",
-      "permissionOverridesKept": "{{count}} 个智能体仍在使用自己的权限设置：",
       "permissionOverridesKept_one": "{{count}} 个智能体仍在使用自己的权限设置：",
       "permissionOverridesKept_other": "{{count}} 个智能体仍在使用自己的权限设置：",
-      "permissionOverridesFollow": "{{count}} 个智能体现已遵循 {{mode}}",
       "permissionOverridesFollow_one": "{{count}} 个智能体现已遵循 {{mode}}",
       "permissionOverridesFollow_other": "{{count}} 个智能体现已遵循 {{mode}}",
       "permissionOverrideFollows": "{{agent}} 现已遵循 {{mode}}",
@@ -1338,7 +1336,6 @@
         "folderWorkspaceCreateFailedMessage": "无法创建文件夹工作区。请查看上方错误详情，然后重试。",
         "setupAgentStartupPolicySaveFailed": "保存设置启动行为失败",
         "5f3d2c8a1b": "解析 MR 基础分支失败",
-        "dropPartiallyAttached": "无法附加 {{count}} 项中的 {{failureCount}} 项。",
         "dropPartiallyAttached_one": "无法附加 {{count}} 项目的 {{failureCount}}。",
         "dropPartiallyAttached_other": "无法附加 {{count}} 项中的 {{failureCount}} 项。"
       },
@@ -1355,7 +1352,6 @@
         "workspaceOpenFailed": "无法打开 {{fileName}}。请从其源工作区打开后重试。",
         "nativeDropUnresolvedPathsDescription": "首先将它们保存到磁盘，然后删除保存的文件。",
         "nativeDropUnresolvedPaths": "Orca 无法读取已删除文件的路径。",
-        "nativeDropTempCopyFailed": "Orca 无法复制 {{count}} 个拖放的文件。",
         "nativeDropTempCopyFailed_one": "Orca 无法复制 {{count}} 个拖放的文件。",
         "nativeDropTempCopyFailed_other": "Orca 无法复制 {{count}} 个拖放的文件。"
       },
@@ -6353,23 +6349,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git 保留 {{count}} 本地分支，因为它们可能包含未合并的提交。保留的分支不保留工作区文件夹；他们的提交保留在仓库中。 Orca 可能会继续在后台释放工作区磁盘空间。",
                 "a3cdd9d9e6_one": "Git 保留 {{count}} 本地分支，因为它可能包含未合并的提交。保留的分支不保留工作区文件夹；他们的提交保留在仓库中。 Orca 可能会继续在后台释放工作区磁盘空间。",
                 "a3cdd9d9e6_other": "Git 保留 {{count}} 本地分支，因为它们可能包含未合并的提交。保留的分支不保留工作区文件夹；他们的提交保留在仓库中。 Orca 可能会继续在后台释放工作区磁盘空间。",
-                "6310412304": "审查 {{count}} 分支",
                 "6310412304_one": "审查 {{count}} 分行",
                 "6310412304_other": "审查 {{count}} 分支",
-                "cea24c2b7d": "{{count}} 工作区已删除",
                 "cea24c2b7d_one": "{{count}} 工作区已删除",
                 "cea24c2b7d_other": "{{count}} 工作区已删除",
-                "0e0379f24a": "保留 {{count}} 分支",
                 "0e0379f24a_one": "保留 {{count}} 分支",
                 "0e0379f24a_other": "保留 {{count}} 分支",
                 "4cf75caab7": "{{value0}}，{{value1}}",
                 "e61d78054f": "删除本地分支：{{value0}}",
                 "1e1a5f6763": "已删除本地分支：{{value0}}",
                 "43d9395605": "{{value0}} 已删除，{{value1}} 未删除",
-                "d42f1f14e0": "重试 {{count}} 分支",
                 "d42f1f14e0_one": "重试 {{count}} 分支",
                 "d42f1f14e0_other": "重试 {{count}} 分支"
               }
@@ -6384,7 +6375,6 @@
           "ee39e872d5": "可能会取消合并",
           "676db406fd": "头不可用",
           "285e1e4882": "取消",
-          "a0f9863597": "强制删除 {{count}} 分支",
           "a0f9863597_one": "强制删除 {{count}} 分支",
           "a0f9863597_other": "强制删除 {{count}} 分支"
         },
@@ -12032,10 +12022,8 @@
           "olderTerminalsUnverifiable": "Orca 无法确认由旧版本 Orca 启动的终端是否已退出。请重新连接后重试。",
           "olderTerminals_one": "由旧版本 Orca 启动的 {{count}} 个终端仍在此主机上运行，且不会自行停止。请在该版本的 Orca 中关闭它们，或在主机上结束它们，然后重新连接。",
           "olderTerminals_other": "由旧版本 Orca 启动的 {{count}} 个终端仍在此主机上运行，且不会自行停止。请在该版本的 Orca 中关闭它们，或在主机上结束它们，然后重新连接。",
-          "olderTerminals": "由旧版本 Orca 启动的 {{count}} 个终端仍在此主机上运行，且不会自行停止。请在该版本的 Orca 中关闭它们，或在主机上结束它们，然后重新连接。",
           "linkedProjects_one": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页和 {{count}} 个自动化未被迁移，它在那里创建的工作树会显示为外部工作树。",
           "linkedProjects_other": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页和 {{count}} 个自动化未被迁移，它在那里创建的工作树会显示为外部工作树。",
-          "linkedProjects": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页和 {{count}} 个自动化未被迁移，它在那里创建的工作树会显示为外部工作树。",
           "linkedProjectsNoAutomations": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页未被迁移，它在那里创建的工作树会显示为外部工作树。",
           "automationsLeftDisabled_one": "此主机上的 Orca 服务器接管了 {{count}} 个自动化任务，但无法重新启用。请在“自动化”中开启。",
           "automationsLeftDisabled_other": "此主机上的 Orca 服务器接管了 {{count}} 个自动化任务，但无法重新启用。请在“自动化”中开启。",
@@ -12053,7 +12041,6 @@
           "refusedLeaveBehindUnnamed": "此主机的部分已保存项目无法移到其 Orca 服务器。“仍要迁移”会连接此主机，并将这些项目保留在这台电脑上。",
           "windowsBuildUnsupported": "此主机运行的 Windows 版本低于 Windows 10 和 Windows Server 2016，无法运行 Orca 的服务器。请使用 Windows 版本较新的主机，或 Linux、macOS 主机。",
           "windowsNoExtractor": "此 Windows 主机上既没有 tar.exe 也没有 PowerShell 的 Expand-Archive，Orca 无法在其中解包服务器。请先在主机上安装 Windows PowerShell 5.1，然后重新连接。",
-          "automationsLeftDisabled": "此主机上的 Orca 服务器接管了 {{count}} 个自动化任务，但无法重新启用。请在“自动化”中开启。",
           "runtimeNoexec": "此主机不允许执行 ~/.orca-remote 中的程序，因此 Orca 无法在那里启动服务器。这通常是因为主目录以 noexec 选项挂载。请联系主机管理员，允许在该目录中执行程序，然后重新连接。",
           "setupContactLost": "Orca 在设置服务器时失去了与此主机的联系。主机上没有任何进程被停止。请重新连接以继续。"
         },
@@ -15194,7 +15181,6 @@
           "0f806a2ab1": "取消",
           "b6c3b84476": "显示文件树",
           "39f8007549": "评审冲突",
-          "skippedConflictsExcluded": "{{count}} 个未解决的冲突已被排除在此差异视图之外。",
           "skippedConflictsExcluded_one": "{{count}} 个未解决的冲突已被排除在此差异视图之外。",
           "skippedConflictsExcluded_other": "{{count}} 个未解决的冲突已被排除在此差异视图之外。",
           "820ec01f24": "冲突文件单独评审",
@@ -17216,10 +17202,7 @@
           "markManyUnread_one": "将 {{count}} 个智能体标记为未读",
           "markManyUnread_other": "将 {{count}} 个智能体标记为未读",
           "clearMany_one": "从列表中清除 {{count}} 个智能体",
-          "clearMany_other": "从列表中清除 {{count}} 个智能体",
-          "markManyRead": "将 {{count}} 个智能体标记为已读",
-          "markManyUnread": "将 {{count}} 个智能体标记为未读",
-          "clearMany": "从列表中清除 {{count}} 个智能体"
+          "clearMany_other": "从列表中清除 {{count}} 个智能体"
         }
       },
       "confirmation": {
@@ -18835,7 +18818,6 @@
         "editFailed": "此消息无法编辑。",
         "editGone": "此消息已发送或移除。你编辑的内容已放入聊天输入框。",
         "editGonePrompt": "此消息已发送或移除。回答智能体后，你编辑的内容会出现在聊天输入框中。",
-        "imageCount": "{{count}} 张图片",
         "imageCount_one": "{{count}} 张图片",
         "imageCount_other": "{{count}} 张图片",
         "collapse": "收起",
@@ -19927,6 +19909,24 @@
         "gitInitFailed": "初始化 Git 仓库失败：{{detail}}",
         "initialCommitFailed": "创建初始提交失败：{{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} 已是主机。",
+        "distroStopped": "读取列表后，{{distro}} 已停止。选择“启动并添加”以启动它。",
+        "wsl1": "{{distro}} 使用 WSL 1，Orca 已不再支持。请在 Windows 终端中使用以下命令将其转换为 WSL 2：{{command}}",
+        "notRegistered": "{{distro}} 不是已安装的 WSL 发行版。请在 Windows 终端中运行 {{command}} 查看已安装的发行版，或重新安装它后重试。",
+        "sshManaged": "{{distro}} 已在为“{{server}}”运行 Orca 服务器，此电脑通过 SSH 访问该服务器。请先移除该服务器；暂不支持将其迁移为 WSL 主机。"
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows 未报告该发行版是否正在运行。",
+        "guestUnanswered": "发行版正在运行，但未响应 Orca 的检查。",
+        "orcadUnanswered": "发行版中的 Orca 服务器未响应。",
+        "restartGaveUp_other": "尝试 {{count}} 次后仍无法重启 {{distro}} 中的 Orca 服务器",
+        "serviceUnconfirmed": "WSL 服务未确认该发行版是否正在运行。",
+        "peerCheckFailed": "Orca 无法向 WSL 主机询问此电脑上的另一个 Orca 是否仍在使用该主机：{{detail}}",
+        "removalUnrecorded": "Orca 无法记录此次移除后仍在运行的内容：{{detail}}"
+      }
     }
   },
   "editor": {
@@ -20108,6 +20108,58 @@
       "firstPrompt": "此工作区或聊天中的第一个用户请求。",
       "assistantMessage": "Orca 可获取的智能体初始回复。",
       "linkedIssue": "与此工作区关联的 GitHub issue 编号。未关联 GitHub issue 时为空（包括关联 GitLab 的工作区）。优先使用带指示的模板：未关联时，单独的“Fixes #{linkedIssue}”会变成“Fixes #”。"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} 的提示词过大，无法用于 Windows 命令行。请减少暂存的更改后重试。",
+        "promptTooLargeForArgument": "{{label}} 的提示词过大，无法作为单个命令行参数传递。请减少暂存的更改后重试。",
+        "agentCouldNotStart": "无法启动 {{label}}。请在设置中检查智能体命令后重试。",
+        "agentFailedToStart": "{{label}} 启动失败。请在设置中检查智能体命令后重试。",
+        "agentBinaryNotFound": "在 PATH 中找不到 {{binary}}。请安装 {{label}} 以使用 AI 提交信息。",
+        "timedOut": "生成在 {{seconds}} 秒后超时。",
+        "outputTooLarge": "{{label}} CLI 命令产生了过多输出。请检查智能体的 CLI 配置后重试。",
+        "windowsBatchUnsafeArguments": "{{label}} 通过 Windows 批处理脚本运行，该脚本无法将多行提示词作为参数接收。请在设置中指定智能体的可执行文件，或使用不含 {prompt} 的自定义命令，让 Orca 通过 stdin 发送提示词。",
+        "cliTerminated": "{{label}} CLI 命令在退出前被终止。",
+        "cliTerminatedWithDetail": "{{label}} CLI 命令在退出前被终止：{{detail}}",
+        "cliFailed": "{{label}} CLI 命令执行失败，退出码为 {{exitCode}}。",
+        "cliFailedWithDetail": "{{label}} CLI 命令执行失败，退出码为 {{exitCode}}：{{detail}}",
+        "agentReportedError": "{{label}} 报告了错误。",
+        "emptyCommitMessage": "{{label}} 返回了空消息。",
+        "emptyCommitMessageWithDetail": "{{label}} 返回了空消息。CLI 输出：{{detail}}",
+        "emptyPullRequestDetails": "{{label}} 返回了空的详细信息。",
+        "emptyPullRequestDetailsWithDetail": "{{label}} 返回了空的详细信息。CLI 输出：{{detail}}",
+        "emptyJiraSummary": "{{label}} 返回了空摘要。",
+        "emptyJiraSummaryWithDetail": "{{label}} 返回了空摘要。CLI 输出：{{detail}}",
+        "commitMessageUnparseable": "无法解析生成的提交信息。",
+        "pullRequestDetailsUnparseable": "无法解析生成的 PR 详情。",
+        "jiraSummaryEmptyAfterSanitization": "生成的摘要在清理后为空。",
+        "jiraDescriptionRequired": "描述为必填项。",
+        "jiraAccountDisconnected": "请在此主机上重新连接所选的 Jira 账户。",
+        "jiraSummaryBusyInOtherDraft": "另一个草稿中已在生成 Jira 标题。",
+        "stagedChangesReadFailed": "无法读取已暂存的更改。",
+        "noStagedChanges": "没有可供总结的已暂存更改。",
+        "noBranchChanges": "没有可供总结的分支更改。",
+        "commandTemplateEmptyCommitMessage": "提交信息的命令模板为空。",
+        "commandTemplateEmptyPullRequest": "PR 详情的命令模板为空。",
+        "commandTemplateEmptyBranchName": "分支名称的命令模板为空。",
+        "commandTemplateEmptyChatName": "聊天名称的命令模板为空。",
+        "sourceControlAgentUnsupported": "请在设置 -> Git -> 源代码控制 AI 中为此操作选择支持的智能体。支持的智能体：{{agents}}，或选择“自定义命令”。",
+        "chatNameAgentUnsupported": "请在设置 -> 聊天 -> 聊天名称中为此操作选择支持的聊天命名智能体。支持的智能体：{{agents}}，或选择“自定义命令”。",
+        "sourceControlCustomCommandEmpty": "自定义命令为空。请在设置 -> Git -> 源代码控制 AI 中添加。",
+        "chatNameCustomCommandEmpty": "自定义命令为空。请在设置 -> 聊天 -> 聊天名称中添加。",
+        "agentCannotGenerateCommitMessage": "智能体“{{agent}}”不支持源代码控制 AI 提交信息。支持的智能体：{{agents}}，或选择“自定义命令”。",
+        "agentCannotGeneratePullRequest": "智能体“{{agent}}”不支持源代码控制 AI PR 详情。支持的智能体：{{agents}}，或选择“自定义命令”。",
+        "agentCannotGenerateBranchName": "智能体“{{agent}}”不支持源代码控制 AI 分支名称。支持的智能体：{{agents}}，或选择“自定义命令”。",
+        "agentCannotGenerateChatName": "智能体“{{agent}}”不支持聊天名称。支持的智能体：{{agents}}，或选择“自定义命令”。",
+        "noModelForAgent": "{{label}} 没有可用的模型。",
+        "planCustomCommandEmpty": "自定义命令为空。请在设置 → Git → AI 提交信息中添加。",
+        "planAgentUnsupported": "智能体“{{agent}}”不支持 AI 提交信息。",
+        "planModelUnavailable": "模型“{{model}}”不可用于 {{label}}。",
+        "planModelWithoutThinking": "模型“{{model}}”不支持思考强度设置。",
+        "planThinkingLevelInvalid": "思考级别“{{level}}”对 {{model}} 无效。"
+      },
+      "enableSourceControlAi": "请在设置 -> Git 中启用源代码控制 AI。",
+      "chooseBaseBranch": "请先选择基础分支，再生成。"
     }
   },
   "rendererRecovery": {
@@ -20505,19 +20557,15 @@
       "resumableBody": "在此重新打开以继续工作。您的智能体会话将会恢复。",
       "reopening": "正在重新打开…",
       "tryAgain": "重试",
-      "reopenTerminal": "重新打开 {{count}} 个终端",
       "reopenTerminal_one": "重新打开终端",
       "reopenTerminal_other": "重新打开 {{count}} 个终端",
-      "reopened": "已重新打开 {{count}} 个终端",
       "reopened_one": "已重新打开 {{count}} 个终端",
       "reopened_other": "已重新打开 {{count}} 个终端",
-      "resumed": "已恢复 {{count}} 个智能体会话。",
       "resumed_one": "已恢复 {{count}} 个智能体会话。",
       "resumed_other": "已恢复 {{count}} 个智能体会话。"
     },
     "severedDaemonBanner": {
       "unknownCount": "其正在运行的终端",
-      "count": "{{count}} 个正在运行的终端",
       "unverifiable": "Orca 无法验证终端服务进程，因此未停止任何内容。",
       "alreadyReplaced": "终端服务已被替换；未停止任何内容。",
       "restarted": "终端服务已重新启动。",
@@ -21723,6 +21771,87 @@
         "attemptsExhausted": "多次尝试后仍未完成"
       },
       "finishPending": "之前一次到 {{distro}} 主机的移动已在主机上完成。Orca 会在重启时在此处完成它，也可以点击“重新检查”立即完成。"
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "没有可用于启动自动化的 Orca 窗口。",
+      "unevaluableSchedule": "Orca 无法评估此自动化，已跳过此次执行。",
+      "noRunnableHost": "此自动化没有可运行的主机。",
+      "wslMoveInProgress": "此自动化的项目正在移到其 WSL 主机，因此 Orca 跳过了此次运行。移动完成后将恢复运行。",
+      "wslMoveOwnedByHost": "此自动化的项目现在在其 WSL 主机上运行，自动化本身也由该主机运行。Orca 不再运行此本地副本。",
+      "missedGraceWindow": "Orca 再次检查时，此次运行的补跑宽限期已过。",
+      "targetMissing": "自动化主机已不在注册列表中，因此此自动化已无处运行。",
+      "targetReplaced": "自动化主机已被移除并重新注册，因此必须重新关联此自动化后才能运行。",
+      "workspaceHostAmbiguous": "自动化工作区跨越多个主机，因此 Orca 无法确定应在哪个主机上运行。",
+      "legacyTwinHosts": "此自动化保存于 Orca 开始记录运行主机之前，且其项目位于多个主机上。请打开自动化，选择应运行它的主机。",
+      "targetUnavailable": "自动化运行目标已不可用。",
+      "remoteSchedulingUnavailable": "此 Orca 客户端尚不支持远程服务器上的自动化调度。请在远程服务器上运行此自动化，或等持久化远程调度可用后更新 Orca。",
+      "projectSetupMissing": "所选自动化主机上已没有此项目的配置。",
+      "targetSetupMismatch": "自动化运行目标与项目所选主机的配置已不匹配。",
+      "repoUnavailable": "所选自动化主机的仓库已不可用。",
+      "repoDetached": "仓库已不再关联到所选自动化主机。",
+      "projectPathChanged": "所选自动化主机上的项目路径已更改。",
+      "automationChanged": "此次运行启动前，自动化已更改。",
+      "destinationChanged": "此次运行启动前，自动化的目标位置已更改。",
+      "hooksReviewBlocked": "智能体正在等待有人审查新增或更改的钩子（“Hooks need review”）。请打开此次运行，信任这些钩子或将其移除。计划运行会继续进行，待没有需要审查的内容后即可成功。",
+      "agentNeverStarted": "提交提示词后，自动化智能体始终未启动。",
+      "agentNoCompletion": "自动化智能体未报告完成。",
+      "watchTimedOut": "6 小时内未收到完成信号，Orca 已停止监视此次运行。",
+      "projectSetupState": {
+        "notSetUp": "项目尚未在所选自动化主机上完成设置。",
+        "settingUp": "项目仍在所选自动化主机上进行设置。",
+        "error": "项目在所选自动化主机上设置失败。",
+        "unsupported": "所选自动化主机不支持此项目。"
+      }
+    }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "标题为必填项",
+      "networkError": "网络错误 — 请检查你的网络连接。",
+      "invalidUpdate": "无效的更新 — {{detail}}",
+      "invalidRequest": "无效的请求 — {{detail}}",
+      "issueNotFound": "未找到议题 — 可能已被删除。",
+      "issueUpdateFailed": "更新议题失败：{{detail}}",
+      "github": {
+        "repoUnresolved": "无法确定此仓库的 GitHub 所有者和仓库名称",
+        "unexpectedResponse": "GitHub 返回了意外响应",
+        "pullRequestIdUnresolved": "无法确定 GitHub PR ID",
+        "reviewerRequired": "请至少输入一位评审人",
+        "stackAutoMergeUnsupported": "GitHub 不支持堆栈中 PR 的自动合并。",
+        "autoMergeAlreadyMergeable": "此 PR 已可合并。请使用“合并”而非自动合并。",
+        "noFailedChecks": "没有失败的 GitHub Actions 检查可重新运行。",
+        "noRerunnableChecks": "未找到可重新运行的检查。",
+        "stackMergeInvalidResponse": "GitHub 返回了无效的堆栈合并响应。",
+        "stackMergePending": "GitHub 仍在合并此堆栈。请刷新以查看状态。",
+        "rateLimited": "已达到 GitHub 速率限制。请几分钟后重试。",
+        "issuePermissionDenied": "你没有权限编辑此议题。请检查 GitHub 令牌范围。",
+        "issuesDisabled": "此仓库已禁用议题。",
+        "pullRequestPermissionDenied": "你没有权限编辑此 PR。请检查 GitHub 令牌范围。",
+        "pullRequestNotFound": "未找到 PR — 可能已被删除。",
+        "pullRequestUpdateFailed": "更新 PR 失败：{{detail}}",
+        "autoMergeEnableFailed": "为 PR 启用自动合并失败：{{detail}}",
+        "autoMergeDisableFailed": "为 PR 禁用自动合并失败：{{detail}}",
+        "mergeQueueAddFailed": "将 PR 添加到合并队列失败：{{detail}}",
+        "rerunPermissionDenied": "你没有权限在此仓库中重新运行检查。请检查 GitHub 令牌范围。",
+        "rerunTargetNotFound": "未找到要重新运行的 GitHub 资源 — 可能已过期或被删除。",
+        "rerunRejected": "无法重新运行检查 — {{detail}}",
+        "rerunFailed": "重新运行检查失败：{{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "无法确定此仓库的 GitLab 项目",
+        "unexpectedResponse": "GitLab 返回了意外响应",
+        "commentBodyRequired": "必须填写评论正文",
+        "discussionIdRequired": "必须提供讨论 ID",
+        "readyTitleConflict": "将合并请求标记为就绪时无法更新标题",
+        "mergeRequestTitleUnreadable": "无法读取合并请求的当前标题",
+        "rateLimited": "已达到 GitLab 速率限制。请几分钟后重试。",
+        "issuePermissionDenied": "你没有权限编辑此议题。请检查 GitLab 令牌范围。",
+        "jobLogPermissionDenied": "你没有权限读取此作业的日志。请检查 GitLab 令牌范围。",
+        "jobProjectNotFound": "找不到此作业的 GitLab 项目。",
+        "jobLogFailed": "加载作业日志失败：{{detail}}"
+      }
     }
   }
 }
