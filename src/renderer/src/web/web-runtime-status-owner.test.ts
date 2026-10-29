@@ -27,7 +27,17 @@ afterEach(async () => {
 it('primary browser status follows the authenticated socket and closing it retires the owner', async () => {
   let runtimeId = 'before'
   const server = await createSharedControlTestServer({
-    resultForRequest: () => ({ runtimeId, capabilities: [] })
+    resultForRequest: () => ({
+      runtimeId,
+      runtimeProtocolVersion: 3,
+      minCompatibleRuntimeClientVersion: 2,
+      rendererGraphEpoch: 0,
+      graphStatus: 'unavailable',
+      authoritativeWindowId: null,
+      liveTabCount: 0,
+      liveLeafCount: 0,
+      capabilities: []
+    })
   })
   const publish = vi.fn()
   const client = new WebRuntimeClient(server.pairing, {

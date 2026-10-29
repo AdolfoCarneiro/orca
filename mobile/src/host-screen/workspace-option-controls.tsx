@@ -132,9 +132,7 @@ function projectsValue({ controller }: WorkspaceOptionProps, t: Translate): stri
       'Saved project selection · Unavailable projects'
     )
   }
-  const labels = repos
-    .filter((repo) => selection.matchingKeys.includes(repo.key))
-    .map((repo) => repo.name)
+  const labels = repos.filter((repo) => selection.matching.has(repo.key)).map((repo) => repo.name)
   const label =
     labels.length === 1
       ? labels[0]
@@ -160,7 +158,7 @@ function ProjectsPage({ controller }: WorkspaceOptionProps) {
   const needle = query.trim().toLowerCase()
   const selected = state.view.filters.filterRepoIds
   const selection = workspaceProjectFilterSelection(controller.sectionsResult.uniqueRepos, selected)
-  const checkedKeys = new Set(selection.fullKeys)
+  const checkedKeys = selection.full
   const repos = controller.sectionsResult.uniqueRepos.filter(
     (repo) => !needle || repo.name.toLowerCase().includes(needle)
   )
@@ -193,16 +191,18 @@ function ProjectsPage({ controller }: WorkspaceOptionProps) {
                   )
                 : undefined
             }
+            disabled={settings.projectRepoFiltersReady === false}
             checked={selected.length === 0}
             onPress={() => settings.setFilter('filterRepoIds', [])}
           />,
           ...repos.map((repo) => (
             <CheckRow
               key={repo.key}
+              disabled={settings.projectRepoFiltersReady === false}
               label={repo.name}
               checked={checkedKeys.has(repo.key)}
               detail={
-                selection.partialKeys.includes(repo.key)
+                selection.partial.has(repo.key)
                   ? t('hostScreen.workspaceOptionControls.partiallySelected', 'Partially selected')
                   : undefined
               }

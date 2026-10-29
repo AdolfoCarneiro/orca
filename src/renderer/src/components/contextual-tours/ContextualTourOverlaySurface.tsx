@@ -1,3 +1,5 @@
+import { Trans } from 'react-i18next'
+import { i18n } from '@/i18n/i18n'
 import { createPortal } from 'react-dom'
 import {
   useLayoutEffect,
@@ -213,6 +215,28 @@ export function ContextualTourOverlaySurface({
           {renderState.title}
         </h2>
         <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{renderState.body}</p>
+        {activeTourId === 'project-grouping-upgrade' ? (
+          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+            <Trans
+              i18n={i18n}
+              defaults={translate(
+                'settings.projectGrouping.upgrade.link',
+                'To keep them separate, change <settings>Group checkouts in Settings</settings>.'
+              )}
+              components={{
+                settings: (
+                  <button
+                    type="button"
+                    className="text-primary hover:text-primary/80"
+                    onClick={() =>
+                      onStepAction({ kind: 'open-project-grouping-settings', label: '' })
+                    }
+                  />
+                )
+              }}
+            />
+          </p>
+        ) : null}
         {renderState.control ? <ContextualTourControl control={renderState.control} /> : null}
         <div className="mt-3.5 flex items-center justify-between gap-3">
           <ContextualTourProgressDots

@@ -1,3 +1,4 @@
+import type { ProjectGroupingUpgradeTipAudience } from '../../../../../shared/project-grouping-upgrade-tip-audience'
 import type { PersistedTrustedOrcaHooks } from '../../../../../shared/orca-yaml-hook-types'
 import type {
   FeatureInteractionId,
@@ -61,6 +62,8 @@ export type UISliceContextual = {
   featureTipsSeenIds: FeatureTipId[]
   markFeatureTipsSeen: (ids: FeatureTipId[]) => void
   /** Main's once-decided native chat upgrade tip variant; null until read. */
+  projectGroupingUpgradeTipAudience: ProjectGroupingUpgradeTipAudience | null
+  setProjectGroupingUpgradeTipAudience: (audience: ProjectGroupingUpgradeTipAudience) => void
   nativeChatUpgradeTipVariant: NativeChatUpgradeTipVariant | null
   setNativeChatUpgradeTipVariant: (variant: NativeChatUpgradeTipVariant) => void
   featureInteractions: FeatureInteractionState

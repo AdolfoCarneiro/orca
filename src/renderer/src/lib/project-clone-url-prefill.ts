@@ -6,13 +6,20 @@ import {
 } from '../../../shared/project-section-grouping'
 import { stripCredentialsFromMessage } from '../../../shared/git-remote-error'
 import type { Project } from '../../../shared/project-types'
+import { getRepoExecutionHostId } from '../../../shared/execution-host'
 import type { Repo } from '../../../shared/repo-types'
 import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import type { AppState } from '@/store/types'
 
-const prefills = new WeakMap<ProjectGroupingIndex, Map<string | null, string>>()
+const prefills = new WeakMap<ProjectGroupingIndex, Map<string, string>>()
 
-export function selectProjectCloneUrlPrefill(state: AppState, projectId: string | null): string {
+type CloneSource = { repoId: string; hostId: string; path?: string | null }
+
+export function selectProjectCloneUrlPrefill(
+  state: AppState,
+  projectId: string | null,
+  source?: CloneSource
+): string {
   if (!projectId) {
     return ''
   }
@@ -22,7 +29,8 @@ export function selectProjectCloneUrlPrefill(state: AppState, projectId: string 
     cached = new Map()
     prefills.set(grouping, cached)
   }
-  const existing = cached.get(projectId)
+  const key = JSON.stringify([projectId, source])
+  const existing = cached.get(key)
   if (existing !== undefined) {
     return existing
   }
@@ -31,9 +39,10 @@ export function selectProjectCloneUrlPrefill(state: AppState, projectId: string 
     state.repos,
     projectId,
     undefined,
-    grouping
+    grouping,
+    source
   )
-  cached.set(projectId, value)
+  cached.set(key, value)
   return value
 }
 
@@ -43,7 +52,8 @@ export function resolveProjectCloneUrlPrefill(
   repos: readonly Repo[],
   selectedProjectId: string | null,
   settings?: ProjectGroupingSettings | null,
-  grouping?: ProjectGroupingIndex
+  grouping?: ProjectGroupingIndex,
+  source?: CloneSource
 ): string {
   if (!selectedProjectId) {
     return ''
@@ -51,16 +61,31 @@ export function resolveProjectCloneUrlPrefill(
   const projectIndex = selectedProjectId.startsWith('project:')
     ? (grouping ?? buildRepoProjectGroupingIndex(repos, settings))
     : null
-  const sourceRepoIds = selectedProjectId.startsWith('project:')
-    ? repos
-        .filter(
-          (repo) =>
-            (projectIndex
-              ? getProjectGroupForRepo(projectIndex, repo)?.key
-              : `project:repo:${repo.id}`) === selectedProjectId
+  const members = projectIndex
+    ? repos.filter((repo) => getProjectGroupForRepo(projectIndex, repo)?.key === selectedProjectId)
+    : source
+      ? repos.filter((repo) =>
+          projects
+            .find((project) => project.id === selectedProjectId)
+            ?.sourceRepoIds.includes(repo.id)
         )
-        .map((repo) => repo.id)
-    : (projects.find((candidate) => candidate.id === selectedProjectId)?.sourceRepoIds ?? [])
+      : []
+  if (source) {
+    const concrete = members.find(
+      (repo) =>
+        repo.id === source.repoId &&
+        getRepoExecutionHostId(repo) === source.hostId &&
+        (!source.path || repo.path === source.path)
+    )
+    return stripCredentialsFromMessage(concrete?.gitRemoteIdentity?.remoteUrl ?? '')
+  }
+  if (projectIndex) {
+    return stripCredentialsFromMessage(
+      members.find((repo) => repo.gitRemoteIdentity?.remoteUrl)?.gitRemoteIdentity?.remoteUrl ?? ''
+    )
+  }
+  const sourceRepoIds =
+    projects.find((candidate) => candidate.id === selectedProjectId)?.sourceRepoIds ?? []
   let reposById: Map<string, Repo> | undefined
   for (let index = 0; index < sourceRepoIds.length; index++) {
     if (index > 0 && !reposById) {

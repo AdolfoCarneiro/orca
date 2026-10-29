@@ -1,3 +1,4 @@
+import type { ProjectGroupingUpgradeTipAudience } from '../../shared/project-grouping-upgrade-tip-audience'
 import type { NativeChatUpgradeTipVariant } from '../../shared/native-chat/native-chat-upgrade-tip-audience'
 import type { OnboardingState } from '../../shared/onboarding-state-types'
 
@@ -10,6 +11,7 @@ export type OnboardingApi = {
     }
   ) => Promise<OnboardingState>
   /** Audience is fixed from the profile saved before the chat upgrade. */
+  getProjectGroupingUpgradeTipAudience: () => Promise<ProjectGroupingUpgradeTipAudience>
   getNativeChatUpgradeTipVariant: () => Promise<NativeChatUpgradeTipVariant>
 }
 

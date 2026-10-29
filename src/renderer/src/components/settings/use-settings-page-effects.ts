@@ -198,7 +198,8 @@ export function useSettingsPageEffects(
         ? paneSectionId
         : (settingsNavigationTarget.sectionId ?? paneSectionId)
     setHighlightedSettingsTargetId(
-      settingsNavigationTarget.pane === 'developer-permissions'
+      settingsNavigationTarget.pane === 'developer-permissions' ||
+        settingsNavigationTarget.sectionId === 'general-projects'
         ? (settingsNavigationTarget.sectionId ?? null)
         : null
     )

@@ -1,6 +1,10 @@
 import { expect, it, vi } from 'vitest'
 import { getProjectSectionsResource } from './project-sections-resource'
 import { stubRpcClient } from '../transport/rpc-client-test-stub'
+import { RpcClientStreamRegistry } from '../transport/rpc-client-stream-registry'
+import { CLIENT_EVENT_METHODS } from '../../../src/main/runtime/rpc/methods/client-events'
+import type { RpcResponse } from '../transport/types'
+import type { RpcRequestFrame } from '../transport/rpc-envelope-fields'
 import { RpcClientRequestTracker } from '../transport/rpc-client-request-tracker'
 import { OrcaRuntimeService } from '../../../src/main/runtime/orca-runtime'
 import { partialRuntimeStore } from '../../../src/main/runtime/runtime-store-partial-fixture'
@@ -95,3 +99,122 @@ it('answers only known owner input and wakes pending readers after real headless
     vi.useRealTimers()
   }
 })
+
+it.each([false, true])(
+  'releases the real server registration through the stream registry with ready delayed=%s',
+  async (delayReady) => {
+    vi.useFakeTimers()
+    const runtime = new OrcaRuntimeService(
+      partialRuntimeStore({
+        getRepos: () => [],
+        getAllWorktreeMeta: () => ({}),
+        getWorktreeMeta: () => undefined,
+        getSettings: () => ({ workspaceDir: '/tmp/workspaces' })
+      })
+    )
+    runtime.syncWindowGraph(HEADLESS_RUNTIME_WINDOW_ID, { tabs: [], leaves: [] })
+    const context = {
+      runtime,
+      connectionId: 'owner-resource-release',
+      clientKind: 'mobile' as const
+    }
+    const registered = vi.spyOn(runtime, 'registerSubscriptionCleanup')
+    const cleaned = vi.spyOn(runtime, 'cleanupSubscription')
+    let sequence = 0
+    const sent: RpcRequestFrame[] = []
+    const held: RpcResponse[] = []
+    const tasks: Promise<unknown>[] = []
+    const tracker = new RpcClientRequestTracker({
+      nextId: () => String(++sequence),
+      getState: () => 'connected',
+      waitForConnected: async () => {},
+      sendFrame: (frame) => {
+        sent.push(frame)
+        tasks.push(
+          Promise.resolve()
+            .then(() => MOBILE_PROJECT_SECTIONS_METHODS[0].handler(undefined, context))
+            .then((result) =>
+              tracker.resolve(successResponse(frame.id, { runtimeId: 'owner' }, result))
+            )
+        )
+        return true
+      }
+    })
+    const streams = new RpcClientStreamRegistry({
+      nextId: () => String(++sequence),
+      getState: () => 'connected',
+      sendFrame: (frame) => {
+        sent.push(frame)
+        if (frame.method === 'runtime.clientEvents.subscribe') {
+          tasks.push(
+            CLIENT_EVENT_METHODS[0].handler(null, context, (result) => {
+              const reply = {
+                ...successResponse(frame.id, { runtimeId: 'owner' }, result),
+                streaming: true as const
+              }
+              if (
+                delayReady &&
+                result !== null &&
+                typeof result === 'object' &&
+                Reflect.get(result, 'type') === 'ready'
+              ) {
+                held.push(reply)
+              } else {
+                streams.handleResponse(reply)
+              }
+            })
+          )
+        } else if (frame.method === 'runtime.clientEvents.unsubscribe') {
+          const params = CLIENT_EVENT_METHODS[1].params!.parse(frame.params)
+          tasks.push(Promise.resolve(CLIENT_EVENT_METHODS[1].handler(params, context)))
+        }
+        return true
+      }
+    })
+    const client = stubRpcClient({
+      sendRequest: tracker.sendRequest.bind(tracker),
+      subscribe: streams.subscribe.bind(streams)
+    })
+    const resource = getProjectSectionsResource(client)
+    const flush = async () => {
+      for (let i = 0; i < 20; i++) {
+        await Promise.resolve()
+      }
+    }
+    const release = resource.subscribe(() => {}, { addEventListener: () => ({ remove: () => {} }) })
+    try {
+      await flush()
+      expect(resource.getSnapshot()).toEqual({ kind: 'answered', value: null })
+      expect(registered).toHaveBeenCalledOnce()
+      expect(streams.size()).toBe(1)
+      release()
+      if (delayReady) {
+        expect(
+          sent.filter((frame) => frame.method === 'runtime.clientEvents.unsubscribe')
+        ).toHaveLength(0)
+        expect(held).toHaveLength(1)
+        streams.handleResponse(held[0])
+      }
+      await Promise.all(tasks)
+      await flush()
+      const subscriptionId = registered.mock.calls[0][0]
+      expect(sent.filter((frame) => frame.method === 'runtime.clientEvents.unsubscribe')).toEqual([
+        expect.objectContaining({ params: { subscriptionId } })
+      ])
+      expect(cleaned).toHaveBeenCalledExactlyOnceWith(subscriptionId)
+      expect(streams.size()).toBe(0)
+      expect(tracker.size()).toBe(0)
+      expect(vi.getTimerCount()).toBe(0)
+      const count = sent.length
+      runtime.notifyReposChangedForRemoteClients()
+      await flush()
+      expect(sent).toHaveLength(count)
+    } finally {
+      release()
+      runtime.cleanupSubscriptionsForConnection(context.connectionId)
+      registered.mockRestore()
+      cleaned.mockRestore()
+      vi.useRealTimers()
+    }
+  }
+)

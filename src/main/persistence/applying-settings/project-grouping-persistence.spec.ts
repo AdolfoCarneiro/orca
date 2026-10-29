@@ -8,7 +8,10 @@ import {
   editProjectFilter
 } from '../../../shared/project-repo-filter-selection'
 import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
-import { projectRepoFilterMatcher } from '../../../shared/project-grouping'
+import {
+  reconcileProjectRepoFilterEdit,
+  projectRepoFilterMatcher
+} from '../../../shared/project-grouping'
 
 export function registerProjectGroupingPersistenceTests(createStore: () => Promise<Store>) {
   it('loads existing settings with repository grouping and retains offline overrides through restart', async () => {
@@ -64,7 +67,14 @@ export function registerProjectGroupingPersistenceTests(createStore: () => Promi
       expect(store.getUI()[field]).toEqual(selected)
       // Shipped peers can echo qualified values that their raw-ID controls do not understand.
       store.updateUI({ [field]: ['a', 'local\0a', 'runtime:server\0a', 'offline'] })
-      store.updateUI({ [field]: ['local\0a', 'runtime:server\0a', 'offline'] })
+      // Explicit legacy-context contract; trusted local Store writes are exact.
+      store.updateUI({
+        [field]: reconcileProjectRepoFilterEdit(store.getUI()[field], [
+          'local\0a',
+          'runtime:server\0a',
+          'offline'
+        ])
+      })
       expect(store.getUI()[field]).toEqual(['offline'])
       store.updateUI({ [field]: ['runtime:server\0a', 'offline'] })
       expect(projectRepoFilterMatcher(store.getUI()[field])('a', 'local')).toBe(false)

@@ -1,5 +1,4 @@
 import { normalizeExplorerDisplayRootByWorktree } from '../../../shared/file-explorer-display-root'
-import { reconcileProjectRepoFilterEdit } from '../../../shared/project-grouping'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import {
   getDefaultUIState,
@@ -109,13 +108,6 @@ export function updatePersistedUI(
   const nextUI = {
     ...currentUI,
     ...durableUpdates,
-    ...Object.fromEntries(
-      (['filterRepoIds', 'agentsFilterRepoIds'] as const).flatMap((field) =>
-        durableUpdates[field]
-          ? [[field, reconcileProjectRepoFilterEdit(currentUI[field] ?? [], durableUpdates[field])]]
-          : []
-      )
-    ),
     workspaceCleanup: mergeWorkspaceCleanupUIState(
       currentUI.workspaceCleanup,
       durableUpdates.workspaceCleanup

@@ -1,3 +1,7 @@
+import {
+  projectRawTaskRepoSelection,
+  replaceRawTaskRepoSelection
+} from '../../shared/task-repo-selection'
 import { publishedLegacyChatPermissionMode } from '../../shared/agent-chat-permission-mode'
 import { getClaudeAgentViewService } from '../claude/agent-view-service'
 import { getAppEnvironment } from '../../shared/app-environment'
@@ -79,7 +83,7 @@ export class RuntimeClientSettingsController {
       defaultTaskSource: settings.defaultTaskSource ?? 'github',
       defaultTaskViewPreset: settings.defaultTaskViewPreset ?? 'issues',
       visibleTaskProviders: settings.visibleTaskProviders ?? [...TASK_PROVIDERS],
-      defaultRepoSelection: settings.defaultRepoSelection ?? null,
+      defaultRepoSelection: projectRawTaskRepoSelection(settings.defaultRepoSelection),
       // Persisted settings can violate the paired client's string-array contract.
       defaultLinearTeamSelection: Array.isArray(settings.defaultLinearTeamSelection)
         ? settings.defaultLinearTeamSelection.filter((id): id is string => typeof id === 'string')
@@ -133,6 +137,14 @@ export class RuntimeClientSettingsController {
     this.store.updateSettings(
       {
         ...updates,
+        ...(updates.defaultRepoSelection !== undefined
+          ? {
+              defaultRepoSelection: replaceRawTaskRepoSelection(
+                beforeSettings.defaultRepoSelection,
+                updates.defaultRepoSelection
+              )
+            }
+          : {}),
         // An older client writes Arguments as it reads them, flag included.
         ...(updates.agentDefaultArgs !== undefined || updates.agentDefaultEnv !== undefined
           ? legacyLaunchTextUpdates(

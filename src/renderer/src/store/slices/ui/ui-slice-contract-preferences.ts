@@ -1,3 +1,4 @@
+import type { ProjectRepoFilterWriteIntent } from '../../../../../shared/project-repo-filter-capability'
 import type { PersistedUIState } from '../../../../../shared/persisted-ui-state-types'
 import type { BrowserDevToolsDockLayout } from '../../../../../shared/browser-devtools-dock'
 import type {
@@ -168,6 +169,7 @@ export type UISliceSurfaces = {
 
 export type UISlicePersistence = {
   persistedUIReady: boolean
+  persistedUIProjectFilterWrite?: { ids: readonly string[]; intent: ProjectRepoFilterWriteIntent }
   /** Last hydrated/flushed values; debounced persistence diffs here to write only this client’s edits (STA-5781). */
   persistedUIWriteBaseline: PersistedUIWriteBaseline | null
   /** Preserve local values during in-flight writes so echoes cannot revert newer flip-backs. */

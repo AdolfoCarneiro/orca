@@ -2,7 +2,16 @@ import { getRepoExecutionHostId } from '../../../shared/execution-host'
 import type { ProjectHostSetup } from '../../../shared/project-types'
 import type { Repo } from '../../../shared/repo-types'
 
+const lookups = new WeakMap<readonly Repo[], ReturnType<typeof createProjectSetupRepoLookup>>()
 export function buildProjectSetupRepoLookup(repos: readonly Repo[]) {
+  let lookup = lookups.get(repos)
+  if (!lookup) {
+    lookup = createProjectSetupRepoLookup(repos)
+    lookups.set(repos, lookup)
+  }
+  return lookup
+}
+function createProjectSetupRepoLookup(repos: readonly Repo[]) {
   const byId = new Map<string, Repo[]>()
   const byHost = new Map<string, Repo>()
   for (const repo of repos) {

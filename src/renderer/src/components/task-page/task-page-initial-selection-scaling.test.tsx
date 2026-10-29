@@ -1,3 +1,4 @@
+import { taskRepoSelectionRawId } from '../../../../shared/task-repo-selection'
 import { describe, expect, it } from 'vitest'
 import { renderToString } from 'react-dom/server'
 import type { Repo } from '../../../../shared/repo-types'
@@ -17,13 +18,13 @@ function resolveSelection(repos: Repo[], persisted: string[], preferred?: string
     } as unknown as TaskPageStoreBindingsModel
     useTaskPageRepoSelection(model)
     selected = [
-      ...(model as TaskPageStoreBindingsModel & { resolvedInitialSelection: ReadonlySet<string> })
-        .resolvedInitialSelection
+      ...(model as TaskPageStoreBindingsModel & { repoSelection: ReadonlySet<string> })
+        .repoSelection
     ]
     return null
   }
   renderToString(<Probe />)
-  return selected
+  return selected.map(taskRepoSelectionRawId)
 }
 
 describe('task page initial repo selection', () => {

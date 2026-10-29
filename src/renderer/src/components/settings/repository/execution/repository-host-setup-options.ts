@@ -1,3 +1,4 @@
+import { getProjectHostSetupSelectionKey } from '@/lib/project-host-setup-options'
 import {
   getExecutionHostLabel,
   type ExecutionHostId
@@ -77,4 +78,22 @@ export function buildSetupHostOptions({
         canUsePathActions
       }
     })
+}
+
+export function setupsByOwnedExecutionHost(
+  setups: readonly ProjectHostSetup[],
+  selectedSetupKey: string
+): ProjectHostSetup[] {
+  const byHost = new Map<string, ProjectHostSetup>()
+  for (const setup of setups) {
+    const key = JSON.stringify([
+      setup.hostId,
+      setup.executionHostId ?? setup.hostId,
+      setup.runtimeOwnerEnvironmentId ?? null
+    ])
+    if (!byHost.has(key) || getProjectHostSetupSelectionKey(setup) === selectedSetupKey) {
+      byHost.set(key, setup)
+    }
+  }
+  return [...byHost.values()]
 }

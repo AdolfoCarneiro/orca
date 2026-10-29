@@ -74,6 +74,7 @@ export function getTabOrderControlSearchKeywords(
 const EMPTY_WSL_DISTROS: string[] = []
 
 type GeneralPaneProps = {
+  highlightedSettingId?: string | null
   settings: GlobalSettings
   updateSettings: (updates: SettingsUpdate) => void
   updateSettingsOrThrow?: (updates: Partial<GlobalSettings>) => void | Promise<void>
@@ -86,6 +87,7 @@ type GeneralPaneProps = {
 }
 
 export function GeneralPane({
+  highlightedSettingId,
   settings,
   updateSettings,
   updateSettingsOrThrow,
@@ -217,6 +219,7 @@ export function GeneralPane({
     matchesSettingsSearch(searchQuery, getGeneralWorkspaceSearchEntries()) ? (
       <GeneralWorkspaceSettingsSection
         key="workspace"
+        highlightedSettingId={highlightedSettingId}
         settings={settings}
         updateSettings={updateSettings}
         updateSettingsOrThrow={updateSettingsOrThrow}

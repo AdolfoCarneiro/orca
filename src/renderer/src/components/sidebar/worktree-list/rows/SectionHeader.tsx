@@ -209,6 +209,7 @@ export function renderWorktreeSectionHeaderRow(args: {
           tabIndex={0}
           aria-label={hostContext ? `${label} — ${hostContext.label}` : undefined}
           aria-expanded={showHeaderCollapseAffordance ? !isHeaderCollapsed : undefined}
+          data-project-grouping-key={row.key}
           data-repo-header-id={projectIdForHeader}
           data-repo-header-index={repoHeaderIndex}
           data-repo-header-bucket={repoHeaderBucketKey}

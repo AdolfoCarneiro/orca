@@ -169,6 +169,7 @@ function WorkspaceOptionsContent({
     newCardStyle: state.view.newCardStyle,
     hasRemoteHosts: hosts.some((host) => parseExecutionHostId(host.id)?.kind !== 'local'),
     projectCount: controller.sectionsResult.uniqueRepos.length,
+    hasProjectFilter: state.view.filters.filterRepoIds.length > 0,
     // Why the host's say-so: a host that keeps the filter to itself cannot apply the phone's value.
     mayHaveServerHosts:
       state.view.sharesOtherClientFilter === true && state.serverWorkspaces.hosts.length > 0
@@ -228,7 +229,11 @@ function WorkspaceOptionsContent({
           <WorkspaceOptionsPending settings={settings} />
         </View>
         {controller.activeFilterCount > 0 && (
-          <Pressable onPress={settings.clearFilters}>
+          <Pressable
+            disabled={settings.projectRepoFiltersReady === false}
+            accessibilityState={{ disabled: settings.projectRepoFiltersReady === false }}
+            onPress={settings.clearFilters}
+          >
             <Text style={styles.clearFiltersText}>
               {t('hostScreen.workspaceOptionsSheet.clearFilters', 'Clear filters')}
             </Text>
@@ -247,6 +252,7 @@ function WorkspaceOptionsContent({
             framedRows.push(
               <DrillRow
                 key={option.key}
+                disabled={option.key === 'projects' && settings.projectRepoFiltersReady === false}
                 label={option.label}
                 value={control.value(props, t)}
                 onPress={() => pager.open(option.key)}

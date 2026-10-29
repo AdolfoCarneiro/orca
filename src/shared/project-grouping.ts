@@ -199,6 +199,6 @@ export function reconcileProjectRepoFilterEdit(
   const removedRaw = new Set(previous.filter((id) => !id.includes('\0') && !incoming.has(id)))
   const old = new Set(previous)
   return [...incoming].filter(
-    (id) => !id.includes('\0') || !old.has(id) || !removedRaw.has(id.slice(id.indexOf('\0') + 1))
+    (id) => !id.includes('\0') || (old.has(id) && !removedRaw.has(id.slice(id.indexOf('\0') + 1)))
   )
 }

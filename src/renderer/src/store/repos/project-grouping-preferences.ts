@@ -1,3 +1,4 @@
+import { getProjectHostSetupProjectionFromState } from '../project-host-setup-selector'
 import {
   carryProjectStateThroughIdentityChange,
   carryProjectGroupingOverrides
@@ -11,7 +12,11 @@ import type { AppState } from '../types'
 export function retireRemovedProjectGroupingState(get: () => AppState, repo: Repo): void {
   const state = get()
   const projectId = getProjectIdentityKey(repo)
-  if (state.repos.some((repo) => getProjectIdentityKey(repo) === projectId)) {
+  const hasOwner = () =>
+    getProjectHostSetupProjectionFromState(get()).projects.some(
+      (project) => project.id === projectId
+    )
+  if (hasOwner()) {
     return
   }
   state.removeCollapsedGroups(
@@ -19,6 +24,9 @@ export function retireRemovedProjectGroupingState(get: () => AppState, repo: Rep
   )
   void state
     .updateSettingsOrThrow((current) => {
+      if (hasOwner() || !Object.hasOwn(current.projectGroupingOverrides ?? {}, projectId)) {
+        return {}
+      }
       const overrides = { ...current.projectGroupingOverrides }
       delete overrides[projectId]
       return { projectGroupingOverrides: overrides }

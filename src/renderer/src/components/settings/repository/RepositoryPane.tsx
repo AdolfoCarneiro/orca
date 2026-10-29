@@ -24,7 +24,7 @@ import { matchesSettingsSearch } from '../settings-search'
 import { useAppStore } from '@/store/index'
 import { getRepositoryIconSectionId } from './repository-settings-targets'
 import { RepositoryIconPicker } from './identity/RepositoryIconPicker'
-import { getRepositoryPaneSearchEntries } from './repository-search'
+import { getRepositoryPaneSearchEntries, projectGroupingSearchEntry } from './repository-search'
 import { RepositoryHostSetupsSection } from './execution/RepositoryHostSetupsSection'
 import { RepoSettingsDraftInput } from './RepositorySettingsDraftInput'
 import { RepositoryForkSyncSection } from './identity/RepositoryForkSyncSection'
@@ -172,6 +172,7 @@ export function RepositoryPane({
 
   const allEntries = getRepositoryPaneSearchEntries(repo, { isLocalWindowsProject })
   const identityEntryTitles = new Set([
+    projectGroupingSearchEntry(repo.displayName).title,
     translate('auto.components.settings.repository.search.7e1e456a95', 'Display Name'),
     translate('auto.components.settings.repository.search.b24f00294a', 'Project Icon'),
     translate('components.RepositoryJiraProjectSection.title', 'Default Jira project'),
@@ -326,6 +327,7 @@ export function RepositoryPane({
 
             {settings && project ? (
               <ProjectGroupingSetting
+                forceVisible={forceFullPaneForRepoMatch}
                 settings={settings}
                 updateSettings={updateSettings}
                 projectId={project.id}

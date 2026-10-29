@@ -264,3 +264,73 @@ it.each([[[]], [[{ key: 'local|a', id: 'a', name: 'App', color: '#fff' }]]])(
     expect(settings.setFilter).toHaveBeenCalledWith('filterRepoIds', [])
   }
 )
+
+it.each([100, 1000])(
+  'bounds actual phone Projects summary, page and search membership visits for %i groups',
+  (count) => {
+    const repos = Array.from({ length: count }, (_, group) =>
+      ['a', 'b'].map((checkout) => ({
+        id: `${group}-${checkout}`,
+        path: `/${group}/${checkout}`,
+        displayName: `App ${group}`,
+        badgeColor: '',
+        addedAt: 0,
+        upstream: { owner: 'org', repo: `app-${group}` }
+      }))
+    ).flat()
+    const projection = projectHostSetupProjectionFromRepos(repos)
+    const options = buildFilterRepos(repos, [], {
+      projects: projection.projects,
+      projectHostSetups: projection.setups
+    })
+    const selected = Array.from({ length: count }, (_, group) => `${group}-a`)
+    let visits = 0
+    const includes = Array.prototype.includes
+    const has = Set.prototype.has
+    const includeSpy = vi.spyOn(Array.prototype, 'includes').mockImplementation(function (
+      this: unknown[],
+      value: unknown,
+      from?: number
+    ) {
+      if (typeof value === 'string' && value.startsWith('project:')) {
+        visits += this.length
+      }
+      return includes.call(this, value, from)
+    })
+    const hasSpy = vi.spyOn(Set.prototype, 'has').mockImplementation(function (
+      this: Set<unknown>,
+      value: unknown
+    ) {
+      if (typeof value === 'string' && value.startsWith('project:')) {
+        visits++
+      }
+      return has.call(this, value)
+    })
+    try {
+      render({ newCardStyle: false, hideSleeping: false, selected, repos: options })
+      expect(texts()).toContain(`${count} projects · Partially selected`)
+      expect(visits).toBeGreaterThan(count)
+      expect(visits).toBeLessThan(40 * count)
+      visits = 0
+      press(`Projects, ${count} projects · Partially selected`)
+      expect(
+        renderer!.root.findAll(
+          (node) => String(node.type) === 'Pressable' && node.props.accessibilityRole === 'checkbox'
+        )
+      ).toHaveLength(count + 1)
+      expect(visits).toBeGreaterThan(count)
+      expect(visits).toBeLessThan(40 * count)
+      visits = 0
+      act(() =>
+        renderer!.root
+          .find((node) => String(node.type) === 'MobileSearchField')
+          .props.onChangeText('App 99')
+      )
+      expect(visits).toBeLessThan(20 * count)
+      press('All projects')
+    } finally {
+      includeSpy.mockRestore()
+      hasSpy.mockRestore()
+    }
+  }
+)

@@ -1,3 +1,4 @@
+import { groupPendingCreationsByRepo } from './pending-creation-repos'
 import { getWorktreeExecutionHostId } from '../execution-host'
 import type { FolderWorkspace } from '../folder-workspace-types'
 import type { ProjectGroup } from '../project-group-types'
@@ -15,7 +16,11 @@ import {
   getMixedWorktreeHostContextLabels,
   getNoticeHostContextLabels
 } from './host-labels'
-import { buildProjectGroupingIndex, getProjectGroupingForRepo } from '../project-section-grouping'
+import {
+  buildProjectGroupingIndex,
+  getProjectGroupingForRepo,
+  getProjectSectionRepoLookup
+} from '../project-section-grouping'
 import {
   buildWorktreeOccurrencePlan,
   type WorktreeOccurrenceSection
@@ -60,6 +65,7 @@ export type SidebarRowPlanInputs = {
   /** Visible worktrees in the frozen sort order. */
   worktrees: Worktree[]
   repoMap: Map<string, Repo>
+  repos?: readonly Repo[]
   /** Defaults to repoMap's registration for the row's repo id. */
   repoOfWorktree?: RepoOfWorktree
   prGroupOf: SidebarPRGroupReader
@@ -109,15 +115,11 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
     filterRepoIds
   } = inputs
   const projectIndex = buildProjectGroupingIndex(projectGrouping)
+  const repoByHost = inputs.repos ? getProjectSectionRepoLookup(inputs.repos) : undefined
   const repoOf = repoOfWorktree ?? ((worktree: Worktree) => repoMap.get(worktree.repoId))
   // Resolve folder membership before groupBy; every mode renders the same set (#15362).
   const renderableFolderWorkspaces = getRenderableFolderWorkspaces(folderWorkspaces, projectGroups)
-  const pendingByRepo = new Map<string, PendingCreationRef[]>()
-  for (const creation of pendingCreations) {
-    const list = pendingByRepo.get(creation.repoId) ?? []
-    list.push(creation)
-    pendingByRepo.set(creation.repoId, list)
-  }
+  const pendingByRepo = groupPendingCreationsByRepo(pendingCreations, repoMap)
 
   const projectGroupPaths = getProjectGroupOccurrencePaths(projectGroups)
   const occurrencePlan = buildWorktreeOccurrencePlan({
@@ -133,7 +135,8 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
         worktree.repoId,
         repoMap,
         projectIndex,
-        getWorktreeExecutionHostId(worktree, repoOf(worktree))
+        getWorktreeExecutionHostId(worktree, repoOf(worktree)),
+        repoByHost
       ),
     projectIdOf: (worktree) => worktree.repoId,
     sectionsOf: ({ pinned, natural, displayRootByIdentity }) => {
@@ -144,6 +147,7 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
               groupBy,
               naturalWorktrees: natural,
               repoMap,
+              repos: inputs.repos,
               prGroupOf,
               workspaceStatuses,
               projectIndex,
@@ -279,6 +283,7 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
       importedWorktreesByRepo,
       newExternalWorktreesInboxByRepo,
       pendingByRepo,
+      repoByHost,
       mixedWorktreeHostContextLabels,
       noticeHostContextLabelByRepoId,
       occurrencePlan

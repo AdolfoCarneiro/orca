@@ -1,3 +1,5 @@
+import { getRepoHostIdentity, getRepoHostIdentityForParts } from '../repo-host-identity'
+import { getRepoExecutionHostId } from '../execution-host'
 import type { Repo } from '../repo-types'
 import type { WorktreeOccurrencePlan } from '../worktree-occurrence-plan'
 import type { WorkspaceStatusDefinition, Worktree } from '../worktree/types'
@@ -41,6 +43,7 @@ export type SectionAppendContext = {
   projectIndex: ProjectGroupingIndex | null
   importedWorktreesByRepo: ReadonlyMap<string, ImportedWorktreesCardCandidate>
   newExternalWorktreesInboxByRepo: ReadonlyMap<string, NewExternalWorktreesInboxCandidate>
+  repoByHost?: ReadonlyMap<string, Repo>
   pendingByRepo: ReadonlyMap<string, PendingCreationRef[]>
   mixedWorktreeHostContextLabels: Map<string, string> | undefined
   noticeHostContextLabelByRepoId: Map<string, NoticeHostContext> | undefined
@@ -147,7 +150,11 @@ export function appendOrderedGroups(
                 : []
         for (const repoId of repoIds) {
           const candidate = importedWorktreesByRepo.get(repoId)
-          if (candidate) {
+          if (
+            candidate &&
+            (!projectIndex ||
+              projectIndex.groupByRepoHost.get(getRepoHostIdentity(candidate.repo))?.key === key)
+          ) {
             result.push(
               buildImportedWorktreesCardRow(
                 candidate,
@@ -159,7 +166,11 @@ export function appendOrderedGroups(
         }
         for (const repoId of repoIds) {
           const candidate = newExternalWorktreesInboxByRepo.get(repoId)
-          if (candidate) {
+          if (
+            candidate &&
+            (!projectIndex ||
+              projectIndex.groupByRepoHost.get(getRepoHostIdentity(candidate.repo))?.key === key)
+          ) {
             result.push(
               buildNewExternalWorktreesInboxRow(
                 candidate,
@@ -169,9 +180,15 @@ export function appendOrderedGroups(
           }
         }
         // Place in-progress creates atop their own repo so the workspace appears where it will land.
-        for (const repoId of repoIds) {
-          for (const creation of pendingByRepo.get(repoId) ?? []) {
-            result.push(buildPendingCreationRow(creation, repoMap))
+        const registrations = projectIndex?.groupByKey.get(key)?.registrations
+        const pendingKeys = registrations
+          ? registrations.map((setup) => getRepoHostIdentityForParts(setup.repoId, setup.hostId))
+          : repoIds.map((repoId) =>
+              getRepoHostIdentityForParts(repoId, getRepoExecutionHostId(repoMap.get(repoId) ?? {}))
+            )
+        for (const identity of new Set(pendingKeys)) {
+          for (const creation of pendingByRepo.get(identity) ?? []) {
+            result.push(buildPendingCreationRow(creation, repoMap, ctx.repoByHost))
           }
         }
       }

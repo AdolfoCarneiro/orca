@@ -1,3 +1,4 @@
+import { getRepoHostIdentity } from '../../../../shared/repo-host-identity'
 import type { ProjectGroupingSettings } from '../../../../shared/project-grouping'
 import {
   buildRepoProjectGroupingIndex,
@@ -16,6 +17,7 @@ export type TaskProjectPickerGroup = {
   projectKey: string
   repo: Repo
   sources: Repo[]
+  selectionKeys?: readonly string[]
 }
 
 // Keep unknown/offline identities eligible until probing proves no usable remote, so repos cannot vanish without explanation.
@@ -41,7 +43,7 @@ export function getDefaultTaskRepoSelection(
       selectedByProject.set(projectKey, repo)
     }
   }
-  return new Set([...selectedByProject.values()].map((repo) => repo.id))
+  return new Set([...selectedByProject.values()].map(getRepoHostIdentity))
 }
 
 export function getTaskProjectPickerGroups(
@@ -56,7 +58,13 @@ export function getTaskProjectPickerGroups(
     const projectKey = getProjectGroupForRepo(projectIndex, repo)?.key ?? `project:repo:${repo.id}`
     const current = groupsByProject.get(projectKey)
     if (!current) {
-      groupsByProject.set(projectKey, { projectKey, repo, sources: [repo] })
+      const group = getProjectGroupForRepo(projectIndex, repo)
+      groupsByProject.set(projectKey, {
+        projectKey,
+        repo,
+        sources: [repo],
+        selectionKeys: group?.registrations.map((setup) => `${setup.hostId}\0${setup.repoId}`)
+      })
       continue
     }
     current.sources.push(repo)
@@ -79,20 +87,45 @@ export function normalizeTaskRepoSelection(
   const projectIndex = grouping ?? buildRepoProjectGroupingIndex(repos, settings)
   const selectedByProject = new Map<string, Repo>()
   const selectedIds = new Set(selection)
+  const exactGroups = new Set<string>()
+  for (const token of selection) {
+    const group = projectIndex.groupByRepoHost.get(token)
+    if (group) {
+      exactGroups.add(group.key)
+    }
+  }
   for (const repo of repos) {
-    if (!selectedIds.has(repo.id)) {
+    if (!selectedIds.has(getRepoHostIdentity(repo)) && !selectedIds.has(repo.id)) {
       continue
     }
     const projectKey = getProjectGroupForRepo(projectIndex, repo)?.key ?? `project:repo:${repo.id}`
+    if (exactGroups.has(projectKey) && !selectedIds.has(getRepoHostIdentity(repo))) {
+      continue
+    }
     const current = selectedByProject.get(projectKey)
-    if (!current || compareDefaultTaskRepoCandidate(repo, current) < 0) {
+    if (!current || compareTaskProjectPickerCandidate(repo, current, selection) < 0) {
       selectedByProject.set(projectKey, repo)
     }
   }
-  if (selectedByProject.size === 0) {
+  if (selectedByProject.size === 0 && ![...selection].some((token) => token.includes('\0'))) {
     return getDefaultTaskRepoSelection(repos, settings, projectIndex)
   }
-  return new Set([...selectedByProject.values()].map((repo) => repo.id))
+  const known = new Set<string>(repos.map(getRepoHostIdentity))
+  return new Set([
+    ...[...selection].filter((token) => token.includes('\0') && !known.has(token)),
+    ...[...selectedByProject.values()].map(getRepoHostIdentity)
+  ])
+}
+
+/** Resolve once per collection, before provider dispatch; raw saved choices keep their default ranking. */
+export function resolveTaskSelectedRepos(
+  repos: readonly Repo[],
+  selection: ReadonlySet<string>,
+  settings?: ProjectGroupingSettings | null,
+  grouping?: ProjectGroupingIndex
+): Repo[] {
+  const normalized = normalizeTaskRepoSelection(repos, selection, settings, grouping)
+  return repos.filter((repo) => normalized.has(getRepoHostIdentity(repo)))
 }
 
 function compareTaskProjectPickerCandidate(
@@ -100,6 +133,11 @@ function compareTaskProjectPickerCandidate(
   b: Repo,
   preferredSelection: ReadonlySet<string>
 ): number {
+  const aExact = preferredSelection.has(getRepoHostIdentity(a))
+  const bExact = preferredSelection.has(getRepoHostIdentity(b))
+  if (aExact !== bExact) {
+    return aExact ? -1 : 1
+  }
   const aPreferred = preferredSelection.has(a.id)
   const bPreferred = preferredSelection.has(b.id)
   if (aPreferred !== bPreferred) {

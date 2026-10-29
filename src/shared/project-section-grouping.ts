@@ -1,3 +1,13 @@
+import {
+  getProjectGroupingForRepo,
+  getProjectSectionRepoLookup,
+  type ProjectHeaderRevealTarget
+} from './project-section-reveal'
+export {
+  getProjectGroupingForRepo,
+  getProjectSectionRepoLookup,
+  type ProjectHeaderRevealTarget
+} from './project-section-reveal'
 import { getRepoExecutionHostId } from './execution-host'
 // The desktop sidebar's Project sections; the paired phone calls these same functions.
 import type { ExecutionHostId } from './execution-host'
@@ -133,48 +143,6 @@ export function getProjectGroupForRepo(
   )
 }
 
-export type ProjectHeaderRevealTarget<
-  R extends Pick<ProjectSectionRepo, 'displayName'> & Partial<ProjectSectionRepo> = Repo
-> = {
-  key: string
-  label: string
-  repo?: R
-  projectId?: string
-}
-
-export function getProjectGroupingForRepo<
-  R extends Pick<ProjectSectionRepo, 'displayName'> & Partial<ProjectSectionRepo>
->(
-  repoId: string,
-  repoMap: ReadonlyMap<string, R>,
-  projectIndex: ProjectGroupingIndex | null,
-  hostId?: string
-): ProjectHeaderRevealTarget<R> {
-  const repo = repoMap.get(repoId)
-  const repoHost = hostId ?? (repo ? getRepoExecutionHostId(repo) : undefined)
-  const identity = `${repoHost}\0${repoId}`
-  const setup =
-    projectIndex?.setupByRepoHost.get(identity) ??
-    (hostId ? undefined : projectIndex?.setupByRepoId.get(repoId))
-  const project = setup ? projectIndex?.projectById.get(setup.projectId) : undefined
-  if (!setup || !project) {
-    return {
-      key: `repo:${repoId}`,
-      label: repo?.displayName ?? 'Unknown',
-      repo
-    }
-  }
-  const group =
-    projectIndex?.groupByRepoHost.get(identity) ??
-    (hostId ? undefined : projectIndex?.groupByRepoId.get(repoId))
-  return {
-    key: group?.key ?? `project:${project.id}`,
-    label: group?.label ?? project.displayName,
-    repo,
-    projectId: project.id
-  }
-}
-
 export function getProjectHeaderRevealTarget(
   repoId: string,
   repoMap: Map<string, Repo>,
@@ -196,6 +164,7 @@ export function buildProjectOwnershipIndex<Item, R extends ProjectSectionRepo>(a
   hostIdOf?: (item: Item) => string | undefined
   repoMap: ReadonlyMap<string, R>
   projectIndex: ProjectGroupingIndex | null
+  repoByHost?: ReadonlyMap<string, R>
 }): Map<string, { items: Item[]; repoIds: Set<string> }> {
   const ownership = new Map<string, { items: Item[]; repoIds: Set<string> }>()
   for (const item of args.items) {
@@ -204,7 +173,8 @@ export function buildProjectOwnershipIndex<Item, R extends ProjectSectionRepo>(a
       repoId,
       args.repoMap,
       args.projectIndex,
-      args.hostIdOf?.(item)
+      args.hostIdOf?.(item),
+      args.repoByHost
     ).key
     const entry = ownership.get(key) ?? { items: [], repoIds: new Set<string>() }
     entry.items.push(item)
@@ -220,9 +190,10 @@ function addItemToProjectSection<Item, R extends ProjectSectionRepo>(
   repoId: string,
   repoMap: ReadonlyMap<string, R>,
   projectIndex: ProjectGroupingIndex | null,
-  hostId?: string
+  hostId?: string,
+  repoByHost?: ReadonlyMap<string, R>
 ): void {
-  const grouping = getProjectGroupingForRepo(repoId, repoMap, projectIndex, hostId)
+  const grouping = getProjectGroupingForRepo(repoId, repoMap, projectIndex, hostId, repoByHost)
   let section = sections.get(grouping.key)
   if (!section) {
     section = { label: grouping.label, items: [], repo: grouping.repo, repoIds: new Set() }
@@ -238,12 +209,19 @@ function ensureProjectSectionForRepo<Item, R extends ProjectSectionRepo>(
   repoId: string,
   repoMap: ReadonlyMap<string, R>,
   projectIndex: ProjectGroupingIndex | null,
-  options: { requireRepo?: boolean; fallbackRepo?: R } = {}
+  options: { requireRepo?: boolean; fallbackRepo?: R; repoByHost?: ReadonlyMap<string, R> } = {}
 ): void {
-  const grouping = getProjectGroupingForRepo(repoId, repoMap, projectIndex)
+  const grouping = getProjectGroupingForRepo(
+    repoId,
+    repoMap,
+    projectIndex,
+    options.fallbackRepo ? getRepoExecutionHostId(options.fallbackRepo) : undefined,
+    options.repoByHost
+  )
   if (options.requireRepo && !grouping.repo) {
     return
   }
+  repoId = grouping.repo?.id ?? repoId.slice(repoId.indexOf('\0') + 1)
   const section = sections.get(grouping.key)
   if (section) {
     section.repoIds.add(repoId)
@@ -269,6 +247,7 @@ export function buildProjectSections<
   displayRepoIdOf?: (item: Item) => string
   repoMap: ReadonlyMap<string, R>
   projectIndex: ProjectGroupingIndex | null
+  repos?: readonly R[]
   placeholderRepoIds: Iterable<string>
   noticeRepos?: Iterable<readonly [string, R | undefined]>
   pendingRepoIds?: Iterable<string>
@@ -277,7 +256,8 @@ export function buildProjectSections<
 }): [string, ProjectSectionEntry<Item, R>][] {
   const { repoMap, projectIndex } = args
   const sections = new Map<string, ProjectSectionEntry<Item, R>>()
-  const ownership = buildProjectOwnershipIndex(args)
+  const repoByHost = args.repos ? getProjectSectionRepoLookup(args.repos) : undefined
+  const ownership = buildProjectOwnershipIndex({ ...args, repoByHost })
   for (const item of args.items) {
     const repoId = args.repoIdOf(item)
     addItemToProjectSection(
@@ -286,20 +266,27 @@ export function buildProjectSections<
       args.displayRepoIdOf?.(item) ?? repoId,
       repoMap,
       projectIndex,
-      args.hostIdOf?.(item)
+      args.hostIdOf?.(item),
+      repoByHost
     )
   }
   // Repos may precede scans; ignore stale placeholder IDs instead of rendering Unknown headers.
   for (const repoId of args.placeholderRepoIds) {
-    ensureProjectSectionForRepo(sections, repoId, repoMap, projectIndex, { requireRepo: true })
+    ensureProjectSectionForRepo(sections, repoId, repoMap, projectIndex, {
+      requireRepo: true,
+      repoByHost
+    })
   }
   // Pinned worktrees leave natural groups, but actionable notices still need project sections.
   for (const [repoId, fallbackRepo] of args.noticeRepos ?? []) {
-    ensureProjectSectionForRepo(sections, repoId, repoMap, projectIndex, { fallbackRepo })
+    ensureProjectSectionForRepo(sections, repoId, repoMap, projectIndex, {
+      fallbackRepo,
+      repoByHost
+    })
   }
   // Ensure a section for first-workspace creation so its pending row is not dropped.
   for (const repoId of args.pendingRepoIds ?? []) {
-    ensureProjectSectionForRepo(sections, repoId, repoMap, projectIndex)
+    ensureProjectSectionForRepo(sections, repoId, repoMap, projectIndex, { repoByHost })
   }
   for (const [key, section] of sections) {
     section.activityItems = ownership.get(key)?.items ?? []

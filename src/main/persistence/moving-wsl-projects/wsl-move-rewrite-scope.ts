@@ -21,6 +21,7 @@ export type WslMoveRewriteScope = {
   worktreeId: (worktreeId: string) => string
   /** The host's path for an absolute UNC path of the moved distro; anything else unchanged. */
   path: (value: string) => string
+  sourceDistro?: string
   destinationHostId: WslMoveDesktopRewriteContext['destinationHostId']
 }
 
@@ -34,6 +35,7 @@ export function wslMoveRewriteScope(context: WslMoveDesktopRewriteContext): WslM
       .map(getProjectIdentityKey)
   )
   return {
+    sourceDistro: source.distro.trim().toLowerCase(),
     inScope: (owner) => {
       const parsed = parseWorkspaceKey(owner)
       if (parsed?.type === 'folder') {

@@ -14,7 +14,7 @@ import { searchRepos } from '@/lib/repo-search'
 import type { Repo } from '../../../../shared/repo-types'
 import { translate } from '@/i18n/i18n'
 
-const emptyPartialKeys: readonly string[] = []
+const emptyPartialKeys: ReadonlySet<string> = new Set()
 
 function projectCommandFilter(_value: string, search: string, keywords?: string[]): number {
   const query = search.trim().toLowerCase()
@@ -40,7 +40,7 @@ type SidebarProjectFilterPanelProps = {
   availableRepos: Repo[]
   selectedRepos: Repo[]
   hasRepoFilter: boolean
-  partialKeys?: readonly string[]
+  partialKeys?: ReadonlySet<string>
   unavailable?: boolean
   onComplete: (id: string) => void
   onRemove: (id: string) => void
@@ -207,7 +207,7 @@ function SelectedProjectPills({
   onRemoveProject
 }: {
   selectedRepos: Repo[]
-  partialKeys: readonly string[]
+  partialKeys: ReadonlySet<string>
   onRemoveProject: (repoId: string) => void
 }) {
   if (selectedRepos.length === 0) {
@@ -228,7 +228,7 @@ function SelectedProjectPills({
             className="max-w-[8rem]"
             badgeClassName="size-1.5"
           />
-          {partialKeys.includes(repo.id) && (
+          {partialKeys.has(repo.id) && (
             <span>{translate('projects.partiallySelected', 'Partially selected')}</span>
           )}
           <Button

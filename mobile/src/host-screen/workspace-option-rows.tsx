@@ -103,11 +103,18 @@ export function SwitchRow(props: {
   )
 }
 
-export function DrillRow(props: { label: string; value: string; onPress: () => void }) {
+export function DrillRow(props: {
+  label: string
+  value: string
+  onPress: () => void
+  disabled?: boolean
+}) {
   useMobileColorScheme()
   return (
     <Pressable
-      style={styles.filterRow}
+      style={[styles.filterRow, props.disabled && styles.optionRowDisabled]}
+      disabled={props.disabled}
+      accessibilityState={{ disabled: props.disabled }}
       onPress={props.onPress}
       accessibilityRole="button"
       accessibilityLabel={props.value ? `${props.label}, ${props.value}` : props.label}

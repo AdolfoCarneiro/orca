@@ -11,6 +11,7 @@ import { GlobalWorktreeVisibilitySourcesSetting } from './GlobalWorktreeVisibili
 import { GLOBAL_WORKTREE_VISIBILITY_SETTINGS_TARGET_ID } from '@/lib/settings-navigation-types'
 
 type GeneralWorkspaceSettingsSectionProps = {
+  highlightedSettingId?: string | null
   settings: GlobalSettings
   updateSettings: (updates: SettingsUpdate) => void
   updateSettingsOrThrow?: (updates: Partial<GlobalSettings>) => void | Promise<void>
@@ -19,6 +20,7 @@ type GeneralWorkspaceSettingsSectionProps = {
 }
 
 export function GeneralWorkspaceSettingsSection({
+  highlightedSettingId,
   settings,
   updateSettings,
   updateSettingsOrThrow = updateSettings,
@@ -38,7 +40,12 @@ export function GeneralWorkspaceSettingsSection({
         )}
       />
 
-      <div id="general-projects" data-settings-section="general-projects" className="scroll-mt-6">
+      <div
+        id="general-projects"
+        data-settings-section="general-projects"
+        data-highlighted={highlightedSettingId === 'general-projects' ? 'true' : undefined}
+        className="scroll-mt-6 rounded-md transition-[background-color,box-shadow] duration-500 data-[highlighted=true]:bg-accent data-[highlighted=true]:ring-2 data-[highlighted=true]:ring-inset data-[highlighted=true]:ring-ring/50 motion-reduce:transition-none"
+      >
         <SettingsSubsectionHeader
           title={translate('settings.projectGrouping.projects', 'Projects')}
         />

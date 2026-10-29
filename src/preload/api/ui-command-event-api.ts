@@ -1,3 +1,4 @@
+import type { ProjectRepoFilterWriteIntent } from '../../shared/project-repo-filter-capability'
 import type {
   RuntimeEditorTabReveal,
   RuntimeFileOpenPosition
@@ -74,9 +75,15 @@ export type UiCommandEventApi = {
   getJiraSavedFilters?: () => Promise<JiraSavedFilterState>
   mutateJiraSavedFilters?: (mutation: JiraSavedFilterMutation) => Promise<JiraSavedFilterState>
   get: () => Promise<PersistedUIState>
-  set: (args: Partial<PersistedUIState>) => Promise<void>
+  set: (
+    args: Partial<PersistedUIState>,
+    context?: { projectFilter?: ProjectRepoFilterWriteIntent }
+  ) => Promise<void>
   /** Unlike web set, rejects transport failures so the diff writer retries unacknowledged patches. */
-  setWithAck?: (args: Partial<PersistedUIState>) => Promise<void>
+  setWithAck?: (
+    args: Partial<PersistedUIState>,
+    context?: { projectFilter?: ProjectRepoFilterWriteIntent }
+  ) => Promise<void>
   recordFeatureInteraction: (id: FeatureInteractionId) => Promise<PersistedUIState>
   onStateChanged: (callback: (ui: PersistedUIState) => void) => () => void
   onOpenSettings: (callback: () => void) => () => void

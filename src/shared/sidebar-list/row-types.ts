@@ -110,7 +110,7 @@ export type FolderWorkspaceRow = {
 }
 
 /** Stable create/repo identity only: subscribing to full progress records would rebuild the list on phase/loader churn. */
-export type PendingCreationRef = { creationId: string; repoId: string }
+export type PendingCreationRef = { creationId: string; repoId: string; hostId?: string }
 
 export type Row =
   | GroupHeaderRow

@@ -1,3 +1,4 @@
+import { getRepoExecutionHostId } from '../execution-host'
 import type { Repo } from '../repo-types'
 import type { Worktree } from '../worktree/types'
 import { getWorktreeHostIdentity } from '../worktree/host-qualified-identity'
@@ -23,13 +24,19 @@ import type {
 
 export function buildPendingCreationRow(
   creation: PendingCreationRef,
-  repoMap: Map<string, Repo>
+  repoMap: Map<string, Repo>,
+  repoByHost?: ReadonlyMap<string, Repo>
 ): PendingCreationRow {
   return {
     type: 'pending-creation',
     key: `pending:${creation.creationId}`,
     creationId: creation.creationId,
-    repo: repoMap.get(creation.repoId)
+    repo: creation.hostId
+      ? (repoByHost?.get(`${creation.hostId}\0${creation.repoId}`) ??
+        (getRepoExecutionHostId(repoMap.get(creation.repoId) ?? {}) === creation.hostId
+          ? repoMap.get(creation.repoId)
+          : undefined))
+      : repoMap.get(creation.repoId)
   }
 }
 

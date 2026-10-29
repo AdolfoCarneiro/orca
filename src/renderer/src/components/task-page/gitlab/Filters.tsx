@@ -22,7 +22,6 @@ export function TaskPageGitLabFilters({
     repoSelection,
     setRepoSelection,
     taskPickerGroups,
-    taskPickerRepos,
     gitLabIssueFilters,
     gitLabMRFilters,
     getTaskPickerRepoHostLabel,
@@ -83,8 +82,7 @@ export function TaskPageGitLabFilters({
               })
             }}
             onSelectAll={() => {
-              const allIds = new Set(taskPickerRepos.map((r) => r.id))
-              setRepoSelection(allIds)
+              setRepoSelection(null)
               void updateSettings({
                 defaultRepoSelection: null
               }).catch(() => {

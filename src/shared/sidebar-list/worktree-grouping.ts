@@ -25,6 +25,7 @@ export function buildOrderedGroups(args: {
   groupBy: WorktreeGroupBy
   naturalWorktrees: readonly Worktree[]
   repoMap: Map<string, Repo>
+  repos?: readonly Repo[]
   prGroupOf: SidebarPRGroupReader
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectIndex: ProjectGroupingIndex | null
@@ -64,6 +65,7 @@ export function buildOrderedGroups(args: {
         (displayRootByIdentity?.get(getWorktreeHostIdentity(worktree)) ?? worktree).repoId,
       repoMap,
       projectIndex,
+      repos: args.repos,
       placeholderRepoIds,
       noticeRepos: [
         ...[...importedWorktreesByRepo].map(

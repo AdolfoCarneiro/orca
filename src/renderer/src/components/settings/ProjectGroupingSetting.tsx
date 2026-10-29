@@ -39,11 +39,13 @@ function groupingOptions() {
 export function ProjectGroupingSetting({
   settings,
   updateSettings,
-  projectId
+  projectId,
+  forceVisible = false
 }: {
   settings: GlobalSettings
   updateSettings: (updates: SettingsUpdate) => void
   projectId?: string
+  forceVisible?: boolean
 }) {
   const options = groupingOptions()
   const mode = resolveProjectGroupingMode(projectId ?? '', settings)
@@ -76,6 +78,7 @@ export function ProjectGroupingSetting({
   }
   return (
     <SearchableSetting
+      forceVisible={forceVisible}
       title={title}
       description={description}
       keywords={['projects', 'repository', 'host', 'folder', 'group', 'checkout']}

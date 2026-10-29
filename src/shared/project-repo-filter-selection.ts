@@ -6,6 +6,9 @@ export type ProjectFilterSelection = {
   fullKeys: string[]
   partialKeys: string[]
   matchingKeys: string[]
+  full: ReadonlySet<string>
+  partial: ReadonlySet<string>
+  matching: ReadonlySet<string>
   unresolved: string[]
   badgeCount: number
 }
@@ -55,6 +58,9 @@ export function projectFilterSelection(
     fullKeys,
     partialKeys,
     matchingKeys,
+    full: new Set(fullKeys),
+    partial: new Set(partialKeys),
+    matching: new Set(matchingKeys),
     unresolved,
     badgeCount: ids.length ? Math.max(1, matchingKeys.length) : 0
   }

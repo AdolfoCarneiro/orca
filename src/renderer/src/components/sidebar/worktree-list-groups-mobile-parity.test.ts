@@ -141,7 +141,14 @@ async function desktopHeaders(projectOrderBy: ProjectOrderBy) {
 /** Round-trip the published catalog through JSON as main serves it to the phone. */
 async function servedCatalog(projectOrderBy: ProjectOrderBy): Promise<MobileProjectSectionCatalog> {
   const { repos, rows } = await desktopCatalog()
-  const published = getProjectSectionCatalogFromState({ repos, ...rows, projectOrderBy })
+  const published = getProjectSectionCatalogFromState({
+    repos,
+    ...rows,
+    projectOrderBy,
+    settings: {},
+    projectGroupingSettingsHydrated: true,
+    localRepoCatalogHydrated: true
+  })
   if (!published) {
     throw new Error('the renderer published no catalog')
   }

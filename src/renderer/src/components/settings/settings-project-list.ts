@@ -1,10 +1,7 @@
+import { buildProjectSetupRepoLookup } from '@/lib/project-setup-repo-lookup'
 import type { Project, ProjectHostSetup } from '../../../../shared/project-types'
 import type { Repo } from '../../../../shared/repo-types'
-import {
-  getRepoExecutionHostId,
-  LOCAL_EXECUTION_HOST_ID,
-  type ExecutionHostId
-} from '../../../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../../shared/execution-host'
 import { projectHostSetupProjectionFromRepos } from '../../../../shared/project-host-setup-projection'
 import { buildProjectGroups, getProjectGroupKey } from '../../../../shared/project-grouping'
 import type { ProjectGroupingModel } from '../../../../shared/project-section-grouping'
@@ -259,12 +256,5 @@ export function getSettingsProjectHostRepo(
     ) ??
     settingsProject.setups.find((setup) => setup.hostId === effectiveHostId) ??
     settingsProject.setups[0]
-  return (
-    repos.find(
-      (repo) =>
-        repo.id === effectiveSetup.repoId && getRepoExecutionHostId(repo) === effectiveHostId
-    ) ??
-    repos.find((repo) => repo.id === effectiveSetup.repoId) ??
-    repos.find((repo) => repo.id === settingsProject.representativeRepoId)
-  )
+  return buildProjectSetupRepoLookup(repos).resolve(effectiveSetup) ?? undefined
 }

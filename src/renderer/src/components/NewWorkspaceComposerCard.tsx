@@ -1,3 +1,4 @@
+import { getComposerCloneSource } from './new-workspace/composer-clone-source'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -63,8 +64,6 @@ export default function NewWorkspaceComposerCard(
     composerRef,
     onComposerNodeChange,
     nameInputRef,
-    eligibleRepos,
-    repoId,
     selectedRepoIsGit,
     onProjectHostSetupChange,
     selectedRepoSshStatus,
@@ -107,13 +106,14 @@ export default function NewWorkspaceComposerCard(
   // Retain the dialog while its cleared option drives the close animation.
   const [setLocationDialogMounted, setSetLocationDialogMounted] = React.useState(false)
 
-  const selectedRepo = eligibleRepos.find((candidate) => candidate.id === repoId)
+  const [locationRequest, setLocationRequest] = React.useState(0)
+  const { selectedRepo, cloneSource, cloneSourceKey } = getComposerCloneSource(props)
   const selectedRepoName = selectedRepo?.displayName ?? selectedRepo?.path ?? 'This project'
   const selectedProjectName =
     projectOptions.find((candidate) => candidate.id === selectedProjectId)?.displayName ??
     selectedRepoName
   const defaultCloneUrl = useAppStore((state) =>
-    selectProjectCloneUrlPrefill(state, selectedProjectId)
+    selectProjectCloneUrlPrefill(state, selectedProjectId, cloneSource)
   )
   const readyProjectHostSetupOptions = projectHostSetupOptions.filter(
     (option) => option.kind === 'ready'
@@ -239,6 +239,7 @@ export default function NewWorkspaceComposerCard(
   }, [onAddProjectOverride, openModal])
   const handleSetLocation = React.useCallback(
     (option: NeedsProjectHostOption): void => {
+      setLocationRequest((request) => request + 1)
       setSetLocationDialogMounted(true)
       setSetLocationOption(option)
       onNestedDialogOpenChange?.(true)
@@ -392,6 +393,7 @@ export default function NewWorkspaceComposerCard(
       {setLocationDialogMounted ? (
         <React.Suspense fallback={null}>
           <SetProjectLocationDialog
+            key={`${locationRequest}:${cloneSourceKey}`}
             option={setLocationOption}
             projectName={selectedProjectName}
             projectKind={selectedRepoIsGit ? 'git' : 'folder'}

@@ -70,7 +70,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
   )
   const filterRepoIds = useAppStore((s) => s.filterRepoIds)
   const setFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
-  const { repos, selection, edit } = useProjectFilterOptions(filterRepoIds)
+  const { repos, selection, edit, ready } = useProjectFilterOptions(filterRepoIds)
   const addRepo = useAppStore((s) => s.addRepo)
 
   const [open, setOpen] = useState(false)
@@ -90,13 +90,16 @@ const SidebarFilter = React.memo(function SidebarFilter({
 
   const handleToggleRepo = useCallback(
     (repoId: string) => {
-      setFilterRepoIds(edit(selection.fullKeys.includes(repoId) ? 'remove' : 'complete', [repoId]))
+      if (!ready) {
+        return
+      }
+      setFilterRepoIds(edit(selection.full.has(repoId) ? 'remove' : 'complete', [repoId]))
     },
-    [selection.fullKeys, edit, setFilterRepoIds]
+    [selection.full, edit, setFilterRepoIds, ready]
   )
 
   const canFilterRepos = repos.length > 1 || selection.active
-  const selectedRepoIdSet = new Set(selection.fullKeys)
+  const selectedRepoIdSet = selection.full
   const selectedCount = selection.matchingKeys.length
   const hasRepoFilter = selection.active
   const { hasAnyFilter, activeFilterCount } = useWorkspaceOptionsFilterBadge()
@@ -258,7 +261,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
                   type="button"
                   onClick={selectAllRepos}
                   className="rounded-full px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-40 disabled:hover:bg-transparent"
-                  disabled={allSelected}
+                  disabled={!ready || allSelected}
                 >
                   {translate('auto.components.sidebar.SidebarFilter.139877b384', 'Select all')}
                 </button>
@@ -266,7 +269,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
                   type="button"
                   onClick={clearRepos}
                   className="rounded-full px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-40 disabled:hover:bg-transparent"
-                  disabled={!hasRepoFilter}
+                  disabled={!ready || !hasRepoFilter}
                 >
                   {translate('auto.components.sidebar.SidebarFilter.779b7ba05d', 'Clear')}
                 </button>
@@ -308,6 +311,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
                   return (
                     <CommandItem
                       key={r.id}
+                      disabled={!ready}
                       value={r.id}
                       onSelect={() => handleToggleRepo(r.id)}
                       className="mx-1 my-0.5 items-center gap-2 rounded-[7px] px-2 py-1 text-[12px] leading-5 font-medium data-[selected=true]:bg-black/8 dark:data-[selected=true]:bg-white/14"
@@ -325,7 +329,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
                           </span>
                         )}
                       </span>
-                      {selection.partialKeys.includes(r.id) && (
+                      {selection.partial.has(r.id) && (
                         <span>{translate('projects.partiallySelected', 'Partially selected')}</span>
                       )}
                       {checked && (

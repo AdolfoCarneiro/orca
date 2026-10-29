@@ -262,6 +262,10 @@ export class LoadedStateParsingOperations {
         this.cohorts.migrateTelemetry(result, fileExistedOnLoad),
         fileExistedOnLoad
       ),
+      projectGroupingUpgradeTipAudience: this.cohorts.captureProjectGroupingUpgradeTipAudience(
+        parsed,
+        result.repos
+      ),
       nativeChatUpgradeTipAudience:
         nativeChatUpgradeTipAudience ?? this.cohorts.captureNativeChatUpgradeTipAudience(undefined)
     }

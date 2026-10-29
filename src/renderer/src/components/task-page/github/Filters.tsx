@@ -1,3 +1,4 @@
+import { getRepoHostIdentity } from '../../../../../shared/repo-host-identity'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
 import { getGitHubTaskKindPresets } from '@/components/task-page/task-page-localized-options'
 import { cn } from '@/lib/utils'
@@ -154,7 +155,7 @@ export function TaskPageGitHubFilters({
                   // Why: restore a non-empty draft (accidental dismissal recoverable); empty default guards a stale draft after a repo change.
                   const seed = resolveNewIssueOpenSeed({
                     draft: useAppStore.getState().newIssueDraft,
-                    selectedRepoIds: selectedRepos.map((r) => r.id)
+                    selectedRepoIds: selectedRepos.map(getRepoHostIdentity)
                   })
                   setNewIssueTitle(seed.title)
                   setNewIssueBody(seed.body)

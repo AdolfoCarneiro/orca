@@ -23,7 +23,6 @@ export function TaskPageGitHubModeControls({
     repoSelection,
     setRepoSelection,
     taskPickerGroups,
-    taskPickerRepos,
     githubModeButtons,
     taskSource,
     getTaskPickerRepoHostLabel,
@@ -95,8 +94,7 @@ export function TaskPageGitHubModeControls({
             })
           }}
           onSelectAll={() => {
-            const allIds = new Set(taskPickerRepos.map((r) => r.id))
-            setRepoSelection(allIds)
+            setRepoSelection(null)
             void updateSettings({
               defaultRepoSelection: null
             }).catch(() => {

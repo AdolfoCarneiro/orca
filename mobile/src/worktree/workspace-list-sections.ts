@@ -1,3 +1,6 @@
+import { buildSectionRepoMap } from './section-repo-map'
+export { buildSectionRepoMap } from './section-repo-map'
+import { getRepoHostIdentityForParts } from '../../../src/shared/repo-host-identity'
 import { projectRepoFilterMatcher } from '../../../src/shared/project-grouping'
 import { getRepoExecutionHostId } from '../../../src/shared/execution-host'
 import { orderMainWorktreeFirst } from '../../../src/shared/sidebar-list/section-order'
@@ -35,6 +38,7 @@ import {
   buildProjectGroupingIndex,
   buildProjectSections,
   getProjectGroupingForRepo,
+  getProjectSectionRepoLookup,
   type ProjectSectionModel
 } from '../../../src/shared/project-section-grouping'
 import { withRepoSectionDisplayLabels } from '../../../src/shared/project-section-order'
@@ -64,24 +68,6 @@ export const NO_PROJECT_SECTION_CATALOG: ProjectSectionCatalog = {
   projectOrderBy: 'manual'
 }
 
-export function buildSectionRepoMap(
-  catalogRepos: readonly SectionRepo[],
-  worktrees: readonly Worktree[]
-): Map<string, SectionRepo> {
-  const repoMap = new Map(catalogRepos.map((repo) => [repo.id, repo]))
-  for (const w of worktrees) {
-    if (!repoMap.has(w.repoId)) {
-      repoMap.set(w.repoId, {
-        id: w.repoId,
-        displayName: w.repo || translate('common.unknown', 'Unknown'),
-        // Why: labels key on host + path, so a shared '' would let one stand-in rename another.
-        path: w.repoId,
-        executionHostId: w.hostId
-      })
-    }
-  }
-  return repoMap
-}
 export { getWorktreeStatus, sortWorktrees } from './workspace-list-ordering'
 
 function makeSection(
@@ -190,6 +176,7 @@ export function buildMobileWorkspacePlan(
     worktrees.filter((w) => matchesRepo(w.repoId, hostIdOf(w)))
   )
   const repoMap = buildSectionRepoMap(projectCatalog.repos, worktrees)
+  const repoByHost = getProjectSectionRepoLookup(projectCatalog.repos)
   const projectIndex = buildProjectGroupingIndex(projectCatalog.grouping ?? undefined)
   const occurrencePlan = buildWorktreeOccurrencePlan({
     rows: sorted,
@@ -198,7 +185,13 @@ export function buildMobileWorkspacePlan(
     isPinned: (worktree) => isWorktreePinned(worktree, pinnedIds),
     duplicatePinned: showPinnedInGroups,
     owningSectionOf: (worktree) =>
-      getProjectGroupingForRepo(worktree.repoId, repoMap, projectIndex, hostIdOf(worktree)),
+      getProjectGroupingForRepo(
+        worktree.repoId,
+        repoMap,
+        projectIndex,
+        hostIdOf(worktree),
+        repoByHost
+      ),
     projectIdOf: (worktree) => worktree.repoId,
     sectionsOf: ({ pinned, natural: canonicalGroupWorktrees, displayRootByIdentity }) => {
       const sections: Section[] = []
@@ -212,16 +205,20 @@ export function buildMobileWorkspacePlan(
           )
         }
       } else if (groupMode === 'repo') {
-        const representedRepoIds = new Set(worktrees.map((w) => w.repoId))
+        const representedRepoIds = new Set(
+          worktrees.map((w) => getRepoHostIdentityForParts(w.repoId, hostIdOf(w)))
+        )
         const query = search.trim().toLowerCase()
         const placeholderRepoIds = projectCatalog.repos
           .filter(
             (repo) =>
-              !representedRepoIds.has(repo.id) &&
+              !representedRepoIds.has(
+                getRepoHostIdentityForParts(repo.id, getRepoExecutionHostId(repo))
+              ) &&
               matchesRepo(repo.id, getRepoExecutionHostId(repo)) &&
               (!query || repo.displayName.toLowerCase().includes(query))
           )
-          .map((repo) => repo.id)
+          .map((repo) => getRepoHostIdentityForParts(repo.id, getRepoExecutionHostId(repo)))
         const projectSections = withRepoSectionDisplayLabels(
           buildProjectSections({
             items: canonicalGroupWorktrees,
@@ -231,6 +228,7 @@ export function buildMobileWorkspacePlan(
               (displayRootByIdentity.get(getWorktreeRowIdentity(w)) ?? w).repoId,
             repoMap,
             projectIndex,
+            repos: projectCatalog.repos,
             placeholderRepoIds,
             repoOrder: projectCatalog.repoOrder,
             projectOrderBy: projectCatalog.projectOrderBy

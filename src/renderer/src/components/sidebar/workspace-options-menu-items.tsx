@@ -268,7 +268,8 @@ export function WorkspaceOptionsMenuItems({
 }: {
   preserveWorkspaceBoardOpen?: boolean
 }): JSX.Element {
-  const repoCount = useAppStore((s) => s.repos.length)
+  const projectCount = useAppStore((s) => getProjectGroupingIndexFromState(s).groups.length)
+  const hasProjectFilter = useAppStore((s) => s.filterRepoIds.length > 0)
   const groupBy = useAppStore((s) => s.groupBy)
   const showSleepingWorkspaces = useAppStore((s) => s.showSleepingWorkspaces)
   const hideWorkspacesFromOtherDevices = useAppStore((s) => s.hideWorkspacesFromOtherDevices)
@@ -282,7 +283,8 @@ export function WorkspaceOptionsMenuItems({
     hideWorkspacesFromOtherDevices,
     newCardStyle,
     hasRemoteHosts: shouldShowHostScopeControls(hostOptions),
-    projectCount: repoCount,
+    projectCount,
+    hasProjectFilter,
     mayHaveServerHosts: !runtimeEnvironmentCatalogHydrated || runtimeEnvironmentCount > 0
   })
 

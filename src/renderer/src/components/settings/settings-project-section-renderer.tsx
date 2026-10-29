@@ -1,3 +1,5 @@
+import { ProjectGroupingSetting } from './ProjectGroupingSetting'
+import { RepositoryHostSetupsSection } from './repository/execution/RepositoryHostSetupsSection'
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import { getRepoHostIdentity } from '../../store/slices/repo-host-identity'
 import { RepositoryPane } from './repository/RepositoryPane'
@@ -26,10 +28,7 @@ export function renderProjectSettingsSections(context: SettingsRenderContext): R
       hostSelection.hostId,
       hostSelection.setupId
     )
-    if (!repo) {
-      return null
-    }
-    const repoHostIdentity = getRepoHostIdentity(repo)
+    const repoHostIdentity = repo ? getRepoHostIdentity(repo) : 'unavailable'
     const repoHooksState = model.repoHooksMap[repoHostIdentity]
     const project = settingsProject.project
 
@@ -42,10 +41,31 @@ export function renderProjectSettingsSections(context: SettingsRenderContext): R
           'Project Settings > {{value0}}',
           { value0: settingsProject.checkoutLabel ?? project.displayName }
         )}
-        description={repo.path}
+        description={repo?.path}
         searchEntries={navigation.getSectionSearchEntries(repoSectionId)}
       >
-        {view.isSectionMounted(repoSectionId) ? (
+        {view.isSectionMounted(repoSectionId) && !repo ? (
+          <div className="space-y-8">
+            {model.settings && project.kind !== 'folder' ? (
+              <ProjectGroupingSetting
+                settings={model.settings}
+                updateSettings={model.updateSettings}
+                projectId={project.id}
+              />
+            ) : null}
+            <RepositoryHostSetupsSection
+              project={project}
+              retainedSetups={settingsProject.setups}
+              selectedProjectSetupId={hostSelection.setupId}
+              selectedProjectHostId={hostSelection.hostId}
+              settingsSelectionKey={settingsProject.selectionKey}
+              settingsEntryRepoIds={new Set(settingsProject.setups.map((setup) => setup.repoId))}
+              forceVisible
+              searchQuery=""
+              searchEntries={navigation.getSectionSearchEntries(repoSectionId)}
+            />
+          </div>
+        ) : view.isSectionMounted(repoSectionId) && repo ? (
           // Re-key by host so same-ID hosts cannot inherit drafts/effects.
           <RepositoryPane
             key={repoHostIdentity}

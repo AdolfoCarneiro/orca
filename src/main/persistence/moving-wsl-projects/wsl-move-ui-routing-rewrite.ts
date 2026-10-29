@@ -306,16 +306,17 @@ function addHostProjectGroups(
   const present = new Set(groups)
   const added: string[] = []
   for (const key of groups ?? []) {
-    const match = /^(project:.+?)::host:local::local::wsl:[^:]+(::setup:(.+))?$/.exec(key)
+    const match = /^(project:.+?)::host:local::local::wsl:([^:]+)(::setup:(.+))?$/.exec(key)
     if (
       !match ||
-      (match[3]
-        ? !scope.repoInScope(match[3])
+      match[2].trim().toLowerCase() !== scope.sourceDistro ||
+      (match[4]
+        ? !scope.repoInScope(match[4])
         : !scope.projectInScope?.(match[1].slice('project:'.length)))
     ) {
       continue
     }
-    const hostKey = `${match[1]}::host:${scope.destinationHostId}::${scope.destinationHostId}::default${match[2] ?? ''}`
+    const hostKey = `${match[1]}::host:${scope.destinationHostId}::${scope.destinationHostId}::default${match[3] ?? ''}`
     if (!present.has(hostKey)) {
       present.add(hostKey)
       added.push(hostKey)

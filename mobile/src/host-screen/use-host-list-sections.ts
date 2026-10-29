@@ -18,6 +18,7 @@ import type { HostSidebarFeed } from './use-host-sidebar-feed'
 import type { HostScreenState } from './use-host-screen-state'
 
 export type HostListSectionsInputs = {
+  exactProjectRepoFilters?: boolean
   client: RpcClient | null
   hostId: string | undefined
   /** Null in a build that lists without the feed. */
@@ -54,7 +55,8 @@ function useFilterRepos(
 
 function useLegacyHostListSections({
   displayWorktrees,
-  state
+  state,
+  exactProjectRepoFilters
 }: HostListSectionsInputs): HostListSections {
   const projectCatalog = useMemo(
     () =>
@@ -85,7 +87,8 @@ function useLegacyHostListSections({
     filterCatalogRepos: state.servedProjectSections?.repos ?? state.desktopRepos,
     collapsedGroups,
     workspaceStatuses: state.view.workspaceStatuses,
-    repoHostIdByRepoId: state.repoHostIdByRepoId
+    repoHostIdByRepoId: state.repoHostIdByRepoId,
+    exactProjectRepoFilters
   })
   return { ...sectionsResult, collapsedGroups, projectOrderBy: projectCatalog.projectOrderBy }
 }
@@ -98,7 +101,8 @@ function useFeedHostListSections({
   feed,
   displayWorktrees,
   hostPlatform,
-  state
+  state,
+  exactProjectRepoFilters
 }: HostListSectionsInputs): HostListSections {
   const collapsedGroups = useCollapsedGroups(state)
   const domains = feed?.kind === 'ready' ? feed.domains : null
@@ -112,7 +116,7 @@ function useFeedHostListSections({
   const uniqueRepos = useFilterRepos(
     served?.repos ?? state.desktopRepos,
     displayWorktrees,
-    served ? catalog.projectGrouping : null
+    served && exactProjectRepoFilters ? catalog.projectGrouping : null
   )
   const view = useMemo(
     () =>

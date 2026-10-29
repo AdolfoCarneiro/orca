@@ -291,6 +291,27 @@ describe('WSL move UI routing rewrite', () => {
     expect(rewriteWslMoveUiRouting({ ...original, ...updates }, scoped)).toEqual({})
   })
 
+  it('does not copy another distro collapse when only Ubuntu moved', () => {
+    const project = 'project:github:org/app'
+    const ubuntu = `${project}::host:local::local::wsl:ubuntu`
+    const debian = `${project}::host:local::local::wsl:debian`
+    const scoped = { ...scope, projectInScope: (id: string) => id === 'github:org/app' }
+    for (const suffix of ['', '::setup:repo-a']) {
+      const original = { ...EMPTY_UI, collapsedGroups: [debian + suffix] }
+      expect(rewriteWslMoveUiRouting(original, scoped)).toEqual({})
+      const collapsed = {
+        ...original,
+        collapsedGroups: [...original.collapsedGroups, ubuntu + suffix]
+      }
+      const updates = rewriteWslMoveUiRouting(collapsed, scoped)
+      expect(updates.collapsedGroups).toEqual([
+        ...collapsed.collapsedGroups,
+        `${project}::host:${HOST}::${HOST}::default${suffix}`
+      ])
+      expect(rewriteWslMoveUiRouting({ ...collapsed, ...updates }, scoped)).toEqual({})
+    }
+  })
+
   it('changes nothing on a second run', () => {
     const first = {
       ...profileUi(),

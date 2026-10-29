@@ -154,11 +154,15 @@ export async function getRuntimeBackedStoredSettings(): Promise<GlobalSettings> 
     runtimeSettings.artifactSharingEnabled = result.settings.artifactSharingEnabled === true
     runtimeSettings.agentSkillSharingEnabled = result.settings.agentSkillSharingEnabled === true
     const next = mergeSettings(local, runtimeSettings)
+    next.defaultRepoSelection = getStoredSettings().defaultRepoSelection
     writeStoredSettings(next)
     return settingsForActiveVisibilityOwner(next)
   } catch {
     // Why: unpaired/offline web clients keep a local settings fallback.
-    return settingsForActiveVisibilityOwner(local)
+    return settingsForActiveVisibilityOwner({
+      ...local,
+      defaultRepoSelection: getStoredSettings().defaultRepoSelection
+    })
   }
 }
 
@@ -225,6 +229,7 @@ export async function syncRuntimeBackedSettings(
       15_000
     )
     const runtimeSettings = { ...result.settings }
+    delete runtimeSettings.defaultRepoSelection
     delete runtimeSettings.activeRuntimeEnvironmentId
     const updatedVisibilityDefaults = normalizeWorktreeVisibilityDefaults(
       runtimeSettings.worktreeVisibilityDefaults
@@ -238,6 +243,7 @@ export async function syncRuntimeBackedSettings(
     }
     delete runtimeSettings.worktreeVisibilityDefaults
     const next = mergeSettings(localNext, runtimeSettings)
+    next.defaultRepoSelection = getStoredSettings().defaultRepoSelection
     writeStoredSettings(next)
     return next
   } catch (error) {
@@ -245,7 +251,7 @@ export async function syncRuntimeBackedSettings(
       throw error
     }
     // Why: unpaired/offline web clients still need local settings persistence.
-    return localNext
+    return { ...localNext, defaultRepoSelection: getStoredSettings().defaultRepoSelection }
   }
 }
 
@@ -264,6 +270,7 @@ export async function updateRuntimePRBotAuthorOverride(args: {
     const next = mergeSettings(local, {
       prBotAuthorOverrides: normalizePRBotAuthorOverrides(result.settings.prBotAuthorOverrides)
     })
+    next.defaultRepoSelection = getStoredSettings().defaultRepoSelection
     writeStoredSettings(next)
     return next
   }

@@ -402,6 +402,7 @@ describe('client UI RPC methods', () => {
     }
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => updated)
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -438,6 +439,7 @@ describe('client UI RPC methods', () => {
     }
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => updated)
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -501,6 +503,7 @@ describe('client UI RPC methods', () => {
     }
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => updated)
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -590,6 +593,7 @@ describe('client UI RPC methods', () => {
   ])('accepts %s, which the renderer persists through ui.set', async (_label, payload) => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => getDefaultUIState())
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -603,6 +607,7 @@ describe('client UI RPC methods', () => {
   it('accepts the whole debounced App writer payload', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => getDefaultUIState())
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -656,6 +661,7 @@ describe('client UI RPC methods', () => {
   it('rejects unknown and malformed UI update fields', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn()
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -677,6 +683,7 @@ describe('client UI RPC methods', () => {
   ])('drops an unknown %s instead of rejecting the batch around it', async (_label, drifted) => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => getDefaultUIState())
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -699,6 +706,7 @@ describe('client UI RPC methods', () => {
     }
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => updated)
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -716,6 +724,7 @@ describe('client UI RPC methods', () => {
   it('accepts every worktree card property the shared union defines', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => getDefaultUIState())
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -736,6 +745,7 @@ describe('client UI RPC methods', () => {
     async (rightSidebarTab) => {
       const runtime = {
         getRuntimeId: () => 'test-runtime',
+        getUIState: () => getDefaultUIState(),
         updateUIState: vi.fn(() => getDefaultUIState())
       } as unknown as OrcaRuntimeService
       const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -756,6 +766,7 @@ describe('client UI RPC methods', () => {
     }
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn(() => updated)
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })
@@ -773,6 +784,7 @@ describe('client UI RPC methods', () => {
   it('rejects each star-nag persisted state mutation field from remote clients', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
+      getUIState: () => getDefaultUIState(),
       updateUIState: vi.fn()
     } as unknown as OrcaRuntimeService
     const dispatcher = new RpcDispatcher({ runtime, methods: CLIENT_UI_METHODS })

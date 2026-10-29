@@ -51,12 +51,17 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
   const setWorkspaceFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
   const filterRepoIds = filterRepoIdsProp ?? workspaceFilterRepoIds
   const setFilterRepoIds = setFilterRepoIdsProp ?? setWorkspaceFilterRepoIds
-  const { repos: groupedRepos, selection, edit } = useProjectFilterOptions(filterRepoIds)
+  const {
+    repos: groupedRepos,
+    selection,
+    edit,
+    ready
+  } = useProjectFilterOptions(filterRepoIds, filterRepoIdsProp !== undefined)
   const canFilterRepos = groupedRepos.length > 1 || selection.active
   const selectedCount = selection.matchingKeys.length
   const hasRepoFilter = selection.active
-  const selectedRepos = groupedRepos.filter((repo) => selection.matchingKeys.includes(repo.id))
-  const availableRepos = groupedRepos.filter((repo) => !selection.fullKeys.includes(repo.id))
+  const selectedRepos = groupedRepos.filter((repo) => selection.matching.has(repo.id))
+  const availableRepos = groupedRepos.filter((repo) => !selection.full.has(repo.id))
   const visibilityLabel =
     selection.active && !selectedCount
       ? translate('projects.savedSelection', 'Saved project selection')
@@ -70,7 +75,7 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger disabled={!ready}>
         <span className="flex flex-1 items-center justify-between gap-3">
           <span>
             {translate(
@@ -120,7 +125,7 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
           availableRepos={availableRepos}
           selectedRepos={selectedRepos}
           hasRepoFilter={hasRepoFilter}
-          partialKeys={selection.partialKeys}
+          partialKeys={selection.partial}
           unavailable={selection.unresolved.length > 0}
           onComplete={(id) => setFilterRepoIds(edit('complete', [id]))}
           onRemove={(id) => setFilterRepoIds(edit('remove', [id]))}

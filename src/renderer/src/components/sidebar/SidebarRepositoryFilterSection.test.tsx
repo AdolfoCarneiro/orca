@@ -25,7 +25,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { useWorkspaceOptionsFilterBadge } from './workspace-options-menu-items'
+import {
+  WorkspaceOptionsMenuItems,
+  useWorkspaceOptionsFilterBadge
+} from './workspace-options-menu-items'
 import { useActivityScopeFilterCount } from '../activity/activity-scope-filter-controls'
 import {
   filterWorkspaceRows,
@@ -51,6 +54,20 @@ function setState(overrides: Record<string, unknown> = {}): void {
   setFilterRepoIds = vi.fn()
   mocks.state = {
     repos: REPOS,
+    groupBy: 'none',
+    sortBy: 'name',
+    projectOrderBy: 'manual',
+    settings: { experimentalNewWorktreeCardStyle: false },
+    runtimeEnvironments: [],
+    runtimeEnvironmentCatalogHydrated: true,
+    runtimeStatusByEnvironmentId: new Map(),
+    sshTargetLabels: new Map(),
+    sshConnectionStates: new Map(),
+    wslHostStatuses: new Map(),
+    worktreeCardProperties: [],
+    projectGroups: [],
+    worktreeCardMode: 'detailed',
+    agentActivityDisplayMode: 'compact',
     hideDefaultBranchWorkspace: false,
     hideAutomationGeneratedWorkspaces: false,
     hideCliCreatedWorkspaces: false,
@@ -77,7 +94,7 @@ function Badges() {
     </output>
   )
 }
-function render(): void {
+function render(outer = false): void {
   act(() => {
     root.render(
       <DropdownMenu defaultOpen>
@@ -85,7 +102,7 @@ function render(): void {
         <DropdownMenuTrigger>Options</DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem>Sort by</DropdownMenuItem>
-          <SidebarRepositoryFilterSection />
+          {outer ? <WorkspaceOptionsMenuItems /> : <SidebarRepositoryFilterSection />}
         </DropdownMenuContent>
       </DropdownMenu>
     )
@@ -93,7 +110,9 @@ function render(): void {
 }
 
 function openSubmenu(): void {
-  const trigger = document.querySelector<HTMLElement>('[data-slot="dropdown-menu-sub-trigger"]')
+  const trigger = [
+    ...document.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-sub-trigger"]')
+  ].find((node) => node.textContent?.startsWith('Projects'))
   if (!trigger) {
     throw new Error('sub-trigger not rendered')
   }
@@ -272,7 +291,7 @@ const visible = (ids: string[]) =>
 it('shows partial upgraded scope through pills, badge and rows; complete/remove preserve offline intent', async () => {
   const saved = ['a', 'offline']
   setState({ repos: grouped, filterRepoIds: saved, agentsFilterRepoIds: saved })
-  render()
+  render(true)
   openSubmenu()
   await settle()
   expect(document.body.textContent).toContain('Partially selected')
@@ -299,7 +318,7 @@ it.each([[[]], [[grouped[0]]]])(
   'keeps unknown-only saved selection visible and exactly clearable with catalog %j',
   async (...[repos]) => {
     setState({ repos, filterRepoIds: ['offline'], agentsFilterRepoIds: ['offline'] })
-    render()
+    render(true)
     openSubmenu()
     await settle()
     expect(document.body.textContent).toContain('Saved project selection')
@@ -386,3 +405,72 @@ it('keeps the flat Projects checkboxes partial and Reset enabled through mode ch
   act(() => reset.click())
   expect(setFilterRepoIds).toHaveBeenLastCalledWith([])
 })
+
+it.each([100, 1000])(
+  'bounds actual Projects summary, pills, search and flat checkbox membership work for %i groups',
+  async (count) => {
+    const repos = Array.from({ length: count }, (_, group) =>
+      ['a', 'b'].map((checkout) => ({
+        id: `${group}-${checkout}`,
+        displayName: `App ${group}`,
+        path: `/${group}/${checkout}`,
+        upstream: { owner: 'org', repo: `app-${group}` }
+      }))
+    ).flat()
+    setState({ repos, filterRepoIds: Array.from({ length: count }, (_, group) => `${group}-a`) })
+    let membershipVisits = 0
+    const originalIncludes = Array.prototype.includes
+    const originalHas = Set.prototype.has
+    vi.spyOn(Array.prototype, 'includes').mockImplementation(function (
+      this: unknown[],
+      value: unknown,
+      from?: number
+    ) {
+      if (typeof value === 'string' && value.startsWith('project:')) {
+        membershipVisits += this.length
+      }
+      return originalIncludes.call(this, value, from)
+    })
+    vi.spyOn(Set.prototype, 'has').mockImplementation(function (
+      this: Set<unknown>,
+      value: unknown
+    ) {
+      if (typeof value === 'string' && value.startsWith('project:')) {
+        membershipVisits++
+      }
+      return originalHas.call(this, value)
+    })
+    render()
+    openSubmenu()
+    await settle()
+    expect(document.querySelectorAll('[aria-label^="Remove App "]')).toHaveLength(count)
+    expect(membershipVisits).toBeGreaterThan(count)
+    expect(membershipVisits).toBeLessThan(60 * count)
+    membershipVisits = 0
+    typeIntoFocused('App 99')
+    await settle()
+    expect(membershipVisits).toBeLessThan(20 * count)
+    closeSubmenu()
+    membershipVisits = 0
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <SidebarFilter onMenuOpenChange={() => {}} />
+        </TooltipProvider>
+      )
+    )
+    const trigger = document.querySelector<HTMLButtonElement>(
+      `[aria-label="Edit filters (${count} active)"]`
+    )!
+    expect(trigger).toBeTruthy()
+    act(() =>
+      trigger.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' })
+      )
+    )
+    await settle()
+    expect(document.body.textContent).toContain('Partially selected')
+    expect(membershipVisits).toBeGreaterThan(count)
+    expect(membershipVisits).toBeLessThan(60 * count)
+  }
+)

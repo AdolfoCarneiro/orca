@@ -108,8 +108,8 @@ function workspaceProjectFilterIndex(repos: readonly WorkspaceSectionRepo[]): Pr
 export function selectedWorkspaceProjectKeys(
   repos: readonly WorkspaceSectionRepo[],
   selected: readonly string[]
-): Set<string> {
-  return new Set(workspaceProjectFilterSelection(repos, selected).fullKeys)
+): ReadonlySet<string> {
+  return workspaceProjectFilterSelection(repos, selected).full
 }
 
 export function toggleProjectFilter(
@@ -117,11 +117,14 @@ export function toggleProjectFilter(
   selected: readonly string[],
   repos: readonly WorkspaceSectionRepo[] = [repo]
 ): string[] {
+  if (!repo.grouping) {
+    return selected.includes(repo.id)
+      ? selected.filter((id) => id !== repo.id)
+      : [...selected, repo.id]
+  }
   const index = workspaceProjectFilterIndex(repos)
   return editProjectFilter(index, selected, {
-    kind: projectFilterSelection(index, selected).fullKeys.includes(repo.key)
-      ? 'remove'
-      : 'complete',
+    kind: projectFilterSelection(index, selected).full.has(repo.key) ? 'remove' : 'complete',
     keys: [repo.key]
   })
 }

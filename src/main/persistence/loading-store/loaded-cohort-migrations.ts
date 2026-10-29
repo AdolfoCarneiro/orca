@@ -1,3 +1,9 @@
+import {
+  captureProjectGroupingUpgradeTipAudience,
+  parseProjectGroupingUpgradeTipAudience,
+  type ProjectGroupingUpgradeTipAudience
+} from '../../../shared/project-grouping-upgrade-tip-audience'
+import type { Repo } from '../../../shared/repo-types'
 import { randomInt, randomUUID } from 'node:crypto'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import {
@@ -66,6 +72,20 @@ export class LoadedCohortMigrationOperations {
       membership: 'excluded',
       basis: chatUi === false ? 'chat-ui-off' : 'chat-ui-unset'
     }
+  }
+
+  captureProjectGroupingUpgradeTipAudience(
+    savedProfile: PersistedState | undefined,
+    repos: readonly Repo[]
+  ): ProjectGroupingUpgradeTipAudience {
+    const saved = savedProfile?.projectGroupingUpgradeTipAudience
+    if (saved !== undefined) {
+      return parseProjectGroupingUpgradeTipAudience(saved) ?? { version: 1, membership: 'excluded' }
+    }
+    this.runtime.loadNeedsSave = true
+    return savedProfile
+      ? captureProjectGroupingUpgradeTipAudience(repos, savedProfile.settings ?? {})
+      : { version: 1, membership: 'excluded' }
   }
 
   migrateTelemetry(state: PersistedState, fileExistedOnLoad: boolean): PersistedState {

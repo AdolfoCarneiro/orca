@@ -116,7 +116,8 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
         const separator = key.indexOf(' ')
         return {
           creationId: key.slice(0, separator),
-          repoId: key.slice(separator + 1)
+          repoId: key.slice(key.indexOf('\0', separator) + 1),
+          hostId: key.slice(separator + 1, key.indexOf('\0', separator))
         }
       }),
     [pendingCreationKeys]
@@ -143,6 +144,7 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
         groupBy: args.groupBy,
         worktrees,
         repoMap,
+        repos,
         prGroupOf: createSidebarPRGroupReader(repoMap, args.prCache),
         repoOrder,
         workspaceStatuses: args.workspaceStatuses,
@@ -164,6 +166,7 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
       }),
     [
       args.groupBy,
+      repos,
       worktrees,
       repoMap,
       args.prCache,

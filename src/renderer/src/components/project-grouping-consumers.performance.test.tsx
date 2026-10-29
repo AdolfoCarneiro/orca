@@ -147,6 +147,11 @@ it.each([100, 1000])(
       )
       expect(renders).toBe(settledRenders)
       expect(reads).toBe(0)
+      act(() =>
+        useAppStore.setState({ sshTargetLabels: new Map([['unrelated-host', 'Other host']]) })
+      )
+      expect(renders).toBe(settledRenders)
+      expect(reads).toBe(0)
       act(() => useAppStore.setState({ settings: { ...settings, projectGroupingMode: 'host' } }))
       expect(container.textContent).toBe(`${2 * count}:1:${2 * count}`)
       expect(reads).toBeLessThan(100 * count)
