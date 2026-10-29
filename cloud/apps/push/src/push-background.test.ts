@@ -122,6 +122,7 @@ it('keeps a delivery claim behind one statement while a backlog drains back to b
     },
     transaction: (operation) => operation(database),
     lockQuotaScope: async () => {},
+    lockScope: async () => {},
     tryLockScope: async () => true,
     tryLockSharedScope: async () => true,
     close: async () => {}

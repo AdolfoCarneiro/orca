@@ -1,7 +1,10 @@
+import { declarePushRoutes } from './push-route-declarations.js'
+import { pushDestination } from './push-occurrence-admission.js'
 import { PushAuthAdmission } from './push-auth-admission.js'
 import { createAdaptorServer } from '@hono/node-server'
 import {
   PUSH_LIMITS,
+  PushRouteDeclarationSchema,
   PushDeviceRegistrationRequestSchema,
   PushHostChallengeRequestSchema,
   PushHostSessionRequestSchema,
@@ -131,7 +134,13 @@ export function createPushServer(
   })
 
   app.get('/health', (context) =>
-    context.json({ ok: true, pushProtocol: 1, deliveryProtocol: 2, mode: config.mode })
+    context.json({
+      ok: true,
+      pushProtocol: 1,
+      deliveryProtocol: 2,
+      mode: config.mode,
+      features: ['origin-claim-v1']
+    })
   )
   app.get('/ready', limitUnauthenticatedIp, async (context) =>
     (await ready())
@@ -210,6 +219,20 @@ export function createPushServer(
     return context.json(await sessions.create(verification.hostFingerprint))
   })
 
+  const routeIps = clientIpRateLimit(new ClientIpRateLimiter({ now }), {
+    trustedProxyHops: config.trustedProxyHops
+  })
+  const routeDestinations = new ClientIpRateLimiter({ now })
+  app.post('/v1/routes', routeIps, limitBody, async (context) => {
+    const body = PushRouteDeclarationSchema.safeParse(await context.req.json().catch(() => null))
+    if (!body.success) return context.json({ error: 'invalid_request' }, 400)
+    if (!routeDestinations.allow(pushDestination(body.data)))
+      return context.json({ error: 'rate_limited' }, 429)
+    return (await declarePushRoutes(database, body.data, now()))
+      ? context.json({ ok: true })
+      : context.json({ error: 'invalid_declaration' }, 400)
+  })
+
   app.post('/v1/devices', limitBody, async (context) => {
     const body = PushDeviceRegistrationRequestSchema.safeParse(
       await context.req.json().catch(() => null)
@@ -218,6 +241,7 @@ export function createPushServer(
     const registered = await devices.upsert({
       hostFingerprint: context.get('hostFingerprint'),
       deviceId: body.data.deviceId,
+      ...(body.data.routeKey ? { routeKey: body.data.routeKey } : {}),
       platform: body.data.platform,
       token: body.data.token,
       ...(body.data.apnsEnvironment === undefined

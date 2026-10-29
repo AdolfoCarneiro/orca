@@ -62,8 +62,10 @@ describe('send schemas', () => {
         notification: { ...notification(), coalescedCount: 2 }
       }).success
     ).toBe(false)
-    expect(PushSendRequestSchema.safeParse({ v: 1, registrationIds: [], notification: notification() }).success)
-      .toBe(false)
+    expect(
+      PushSendRequestSchema.safeParse({ v: 1, registrationIds: [], notification: notification() })
+        .success
+    ).toBe(false)
   })
 
   it('rejects a notification id that could not be sent as a collapse header', () => {
@@ -105,4 +107,29 @@ describe('send schemas', () => {
         .success
     ).toBe(false)
   })
+})
+
+it('requires the complete origin occurrence pair on alerts only', () => {
+  for (const fields of [{}, { origin: 'o'.repeat(16), occurrence: 'c'.repeat(43) }]) {
+    expect(
+      PushSendRequestSchema.safeParse({
+        v: 1,
+        registrationIds: ['reg'],
+        notification: { ...notification(), ...fields }
+      }).success
+    ).toBe(true)
+  }
+  for (const fields of [
+    { origin: 'o'.repeat(16) },
+    { occurrence: 'c'.repeat(43) },
+    { origin: 'o'.repeat(16), occurrence: 'c'.repeat(43), kind: 'dismiss' }
+  ]) {
+    expect(
+      PushSendRequestSchema.safeParse({
+        v: 1,
+        registrationIds: ['reg'],
+        notification: { ...notification(), ...fields }
+      }).success
+    ).toBe(false)
+  }
 })

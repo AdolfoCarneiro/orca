@@ -7,7 +7,8 @@ export async function reconcileQueuedDismissal(
   host: string,
   registrationId: string,
   notification: PushNotification,
-  now: number
+  now: number,
+  fences: PushNotification[] = []
 ): Promise<boolean> {
   if (!notification.notificationId) return false
   const key = [host, notification.notificationEpoch, notification.notificationId]
@@ -15,8 +16,11 @@ export async function reconcileQueuedDismissal(
     'SELECT notification_seq FROM push_dismissed_events WHERE host_fingerprint = ? AND notification_epoch = ? AND notification_id = ?',
     key
   )
-  if (notification.kind !== 'dismiss')
-    return Number(dismissed?.notification_seq ?? -1) >= notification.notificationSeq
+  if (notification.kind !== 'dismiss') {
+    const covered = Number(dismissed?.notification_seq ?? -1) >= notification.notificationSeq
+    if (covered) fences.push(notification)
+    return covered
+  }
   await tx.query(
     `INSERT INTO push_dismissed_events(host_fingerprint, notification_epoch, notification_id, notification_seq, created_at)
     VALUES (?, ?, ?, ?, ?) ON CONFLICT(host_fingerprint, notification_epoch, notification_id)
@@ -24,8 +28,8 @@ export async function reconcileQueuedDismissal(
     [...key, notification.notificationSeq, now]
   )
   const deliveries = await tx.query(
-    "SELECT batch_id, payload_json FROM push_delivery_batches WHERE host_fingerprint = ? AND registration_id = ? AND kind = 'alert' AND state = 'pending' AND lease_until <= ?",
-    [host, registrationId, now]
+    "SELECT batch_id, payload_json FROM push_delivery_batches WHERE host_fingerprint = ? AND registration_id = ? AND kind = 'alert' AND state = 'pending'",
+    [host, registrationId]
   )
   for (const delivery of deliveries) {
     const queued = parsePushDeliveryPayload(String(delivery.payload_json))
@@ -35,6 +39,7 @@ export async function reconcileQueuedDismissal(
       queued.notificationSeq > notification.notificationSeq
     )
       continue
+    fences.push(queued)
     // The lease guard re-evaluates after a concurrent claim commits; that alert then goes out and
     // this dismissal is delivered after it.
     await tx.query(

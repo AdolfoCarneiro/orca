@@ -2,6 +2,7 @@ import { isDismissedAlert, reconcileQueuedDismissal } from './push-queued-dismis
 import { parsePushDeliveryPayload } from './push-delivery-payload.js'
 import { createHash, randomUUID } from 'node:crypto'
 import { PUSH_LIMITS, type PushNotification } from '@orca-cloud/push-contract'
+import { fenceDismissedOccurrences, occurrenceAdmission } from './push-occurrence-admission.js'
 import { WORKER_DRAINS } from './push-worker-concurrency.js'
 import type { PushDatabase, SqlRow } from './push-database.js'
 import { limitPushDatabaseConcurrency } from './push-background-database.js'
@@ -51,7 +52,13 @@ export class DurablePushStore {
         JSON.stringify([host, kind, notification.notificationEpoch, notification.notificationSeq])
       )
       .digest('hex')
-    const { sound: _sound, kind: _kind, ...content } = notification
+    const {
+      sound: _sound,
+      kind: _kind,
+      origin: _origin,
+      occurrence: _occurrence,
+      ...content
+    } = notification
     const fingerprint = createHash('sha256')
       .update(JSON.stringify({ kind, ...content }))
       .digest('hex')
@@ -82,8 +89,11 @@ export class DurablePushStore {
         [eventId, registrationId]
       )
       if (recipient) return 'queued'
-      if (await reconcileQueuedDismissal(tx, host, registrationId, notification, now))
+      const fences: PushNotification[] = []
+      if (await reconcileQueuedDismissal(tx, host, registrationId, notification, now, fences)) {
+        await fenceDismissedOccurrences(tx, registrationId, fences, now)
         return 'queued'
+      }
       await tx.query(
         `INSERT INTO push_delivery_batches(batch_id, host_fingerprint, registration_id, kind, payload_json, state, due_at, expires_at, lease_until, attempts, created_at)
         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, 0, 0, ?)`,
@@ -102,6 +112,7 @@ export class DurablePushStore {
         'INSERT INTO push_event_recipients(event_id, registration_id, created_at) VALUES (?, ?, ?)',
         [eventId, registrationId, now]
       )
+      await fenceDismissedOccurrences(tx, registrationId, fences, now)
       return 'queued'
     })
   }
@@ -201,6 +212,17 @@ export class DurablePushStore {
     )
   }
 
+  admission(delivery: QueuedPushDelivery) {
+    return occurrenceAdmission(this.background, delivery, this.now)
+  }
+
+  async defer(delivery: QueuedPushDelivery): Promise<void> {
+    await this.background.query(
+      "UPDATE push_delivery_batches SET due_at = ?, lease_until = 0, lease_token = NULL, attempts = attempts - 1 WHERE batch_id = ? AND lease_token = ? AND state = 'pending'",
+      [Math.min(this.now() + 1000, delivery.expiresAt - 1), delivery.id, delivery.lease]
+    )
+  }
+
   async pendingCount(registrationId: string): Promise<number> {
     const [row] = await this.database.query(
       "SELECT COUNT(*) AS total FROM push_delivery_batches WHERE registration_id = ? AND state = 'pending'",
@@ -223,7 +245,8 @@ export class DurablePushStore {
     for (const [table, key] of [
       ['push_dismissed_events', 'host_fingerprint, notification_epoch, notification_id'],
       ['push_event_recipients', 'event_id, registration_id'],
-      ['push_events', 'event_id']
+      ['push_events', 'event_id'],
+      ['push_occurrence_claims', 'destination, origin, occurrence']
     ] as const) {
       const sweep = await this.deleteInBatches(
         table,
@@ -235,7 +258,13 @@ export class DurablePushStore {
       deleted += sweep.deleted
       saturated ||= sweep.saturated
     }
-    return { deleted, saturated }
+    const routes = await this.deleteInBatches(
+      'push_route_declarations',
+      'destination, route_key',
+      'updated_at < ?',
+      [now - 30 * RETENTION_MS]
+    )
+    return { deleted: deleted + routes.deleted, saturated: saturated || routes.saturated }
   }
 
   private async deleteInBatches(

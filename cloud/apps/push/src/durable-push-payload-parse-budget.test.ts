@@ -25,6 +25,7 @@ function captureDatabaseErrors(database: PushDatabase, errors: unknown[]): PushD
     },
     transaction: (run) => database.transaction((tx) => run(captureDatabaseErrors(tx, errors))),
     lockQuotaScope: (key) => database.lockQuotaScope(key),
+    lockScope: (key) => database.lockScope(key),
     tryLockScope: (key) => database.tryLockScope(key),
     tryLockSharedScope: (key) => database.tryLockSharedScope(key),
     close: () => database.close()
