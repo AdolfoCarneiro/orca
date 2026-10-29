@@ -68,6 +68,11 @@ describe('project grouping', () => {
       })
     ).toHaveLength(1)
     expect(getPhysicalProjectKey(first)).not.toBe(getPhysicalProjectKey(remote))
+    for (const mode of ['repository', 'host', 'folder'] as const) {
+      expect(getProjectGroupKey({ ...first, projectId: 'repo:first' }, mode)).toBe(
+        'project:repo:first'
+      )
+    }
   })
 
   it('keeps explicit and contextual checkout selections before a host default', () => {

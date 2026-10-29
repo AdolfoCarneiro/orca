@@ -107,7 +107,7 @@ export const PROJECT_SECTION_PARITY_ROWS: readonly {
 ]
 
 const PROJECT = { key: 'project:github:stablyai/orca', label: 'orca' }
-const ASSETS = { key: 'repo:local-assets', label: 'design-assets' }
+const ASSETS = { key: 'project:repo:local-assets', label: 'design-assets' }
 
 export const PROJECT_SECTION_PARITY_HEADERS = {
   recent: [PROJECT, ASSETS],
@@ -183,7 +183,7 @@ export const PROJECT_SECTION_PARITY_SERVED: MobileProjectSectionCatalog = {
     },
     {
       id: 'local-assets',
-      groupKey: 'repo:local-assets',
+      groupKey: 'project:repo:local-assets',
       projectId: 'repo:local-assets',
       hostId: 'local',
       repoId: 'local-assets',

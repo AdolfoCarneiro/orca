@@ -68,7 +68,7 @@ export function getProjectGroupKey(setup: GroupingSetup, mode: ProjectGroupingMo
   }
   const repository = `project:${setup.projectId}`
   if (setup.projectId.startsWith('repo:')) {
-    return `repo:${setup.repoId}`
+    return repository
   }
   if (mode === 'repository') {
     return repository

@@ -136,7 +136,7 @@ describe('useLiveDashboardSnapshot', () => {
     seed({ tabAutoGenerateTitle: false })
     const { result } = renderHook(() => useLiveDashboardSnapshot())
     expect(result.current.repoIconsByRepoId).toEqual({
-      'repo:repo-1': { type: 'lucide', name: 'Rocket' }
+      'project:repo:repo-1': { type: 'lucide', name: 'Rocket' }
     })
   })
 

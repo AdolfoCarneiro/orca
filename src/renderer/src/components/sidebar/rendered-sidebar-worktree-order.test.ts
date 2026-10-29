@@ -133,7 +133,7 @@ describe('closed-sidebar Cmd+1-9 ordering (#9497)', () => {
     const main = makeMainWorktree('wt-main')
     const feature = makeWorktree('wt-feature')
     seedStore([main, feature], {
-      collapsedGroups: new Set(['repo:repo1']),
+      collapsedGroups: new Set(['project:repo:repo1']),
       agentSendPopoverTargetMode: {
         worktreeId: 'wt-feature',
         id: 'send-1',
@@ -168,7 +168,7 @@ describe('closed-sidebar Cmd+1-9 ordering (#9497)', () => {
   it('elides members of a collapsed group, which render no card to number', () => {
     const main = makeMainWorktree('wt-main')
     const feature = makeWorktree('wt-feature')
-    seedStore([main, feature], { collapsedGroups: new Set(['repo:repo1']) })
+    seedStore([main, feature], { collapsedGroups: new Set(['project:repo:repo1']) })
 
     expect(getVisibleWorktreeIds()).toEqual([])
   })
