@@ -13,7 +13,7 @@ const asyncStorage = vi.hoisted(() => ({
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: asyncStorage }))
 vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator',
-  AppState: { currentState: 'active' },
+  AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   FlatList: 'FlatList',
   Image: 'Image',
   Keyboard: { dismiss: vi.fn() },
@@ -490,9 +490,11 @@ describe('NewWorktreeModal project targets', () => {
                 { hostId: 'runtime:vm', label: 'scratch-vm', health: 'available', relay: 'ready' }
               ]
             }
-          : method === 'repo.list'
-            ? { repos: relayed === 'runtime:vm' ? [serverRepo] : repos }
-            : {}
+          : method === MOBILE_PROJECT_SECTIONS_METHOD
+            ? { catalog: null }
+            : method === 'repo.list'
+              ? { repos: relayed === 'runtime:vm' ? [serverRepo] : repos }
+              : {}
       return { id: 'reply', ok: true, result, _meta: { runtimeId: 'runtime-1' } }
     })
     const listCalls = () =>

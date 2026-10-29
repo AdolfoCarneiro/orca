@@ -1,3 +1,4 @@
+import type { HeaderRevealPlacement } from '../../../../../../shared/sidebar-list/header-reveal-placement'
 import type { WorktreeOccurrencePlan } from '../../../../../../shared/worktree-occurrence-plan'
 import type React from 'react'
 import type { AppState } from '@/store/types'
@@ -18,7 +19,7 @@ import type {
 } from '../../../../../../shared/worktree/types'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { ExecutionHostRegistryEntry } from '../../../../../../shared/execution-host-registry'
-import type { HostSectionRow } from '../../../../../../shared/sidebar-list/host-section-rows'
+import type { HostSectionRow } from '../../../../../../shared/sidebar-list/header-reveal-placement'
 import type { ImportedWorktreeCardActionState } from '../../imported-worktrees-card-actions'
 import type { NewExternalWorktreesInboxActionState } from '../../new-external-worktrees-inbox-actions'
 import type {
@@ -36,6 +37,7 @@ import type {
 export const EMPTY_PROJECT_GROUPS: readonly ProjectGroup[] = []
 export type VirtualizedWorktreeViewportProps = {
   occurrencePlan?: WorktreeOccurrencePlan<Worktree>
+  headerRevealPlacements?: ReadonlyMap<string, HeaderRevealPlacement>
   visibleProjectRepoIdsBySection?: ReadonlyMap<string, ReadonlySet<string>>
   rows: HostSectionRow[]
   hostOptions?: readonly ExecutionHostRegistryEntry[]

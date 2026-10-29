@@ -4,10 +4,13 @@ import {
   type ProjectGroupingIndex
 } from '../../../src/shared/project-section-grouping'
 import {
-  selectedProjectFilterKeys,
-  projectFilterMemberIds
+  projectFilterSelection,
+  editProjectFilter
 } from '../../../src/shared/project-repo-filter-selection'
-import { getRepoExecutionHostId } from '../../../src/shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  normalizeExecutionHostId
+} from '../../../src/shared/execution-host'
 import { resolveRepoBadgeColor } from '../../../src/shared/repo-badge-color'
 import { buildSectionRepoMap, type SectionRepo, type Worktree } from './workspace-list-sections'
 
@@ -66,30 +69,59 @@ export function buildFilterRepos(
   })
 }
 
+const filterIndexes = new WeakMap<readonly WorkspaceSectionRepo[], ProjectGroupingIndex>()
+
+export function workspaceProjectFilterSelection(
+  repos: readonly WorkspaceSectionRepo[],
+  selected: readonly string[]
+) {
+  return projectFilterSelection(workspaceProjectFilterIndex(repos), selected)
+}
+
+function workspaceProjectFilterIndex(repos: readonly WorkspaceSectionRepo[]): ProjectGroupingIndex {
+  const cached = filterIndexes.get(repos)
+  if (cached) {
+    return cached
+  }
+  const ownerIndex = repos.find((repo) => repo.grouping)?.grouping
+  if (ownerIndex) {
+    filterIndexes.set(repos, ownerIndex)
+    return ownerIndex
+  }
+  const index = buildProjectGroupingIndex({
+    projects: repos.map((repo) => ({ id: repo.key, displayName: repo.name })),
+    projectHostSetups: repos.map((repo) => ({
+      id: repo.key,
+      projectId: repo.key,
+      repoId: repo.id,
+      groupKey: repo.key,
+      hostId: normalizeExecutionHostId(repo.key.slice(0, repo.key.lastIndexOf('|'))) ?? 'local',
+      path: '',
+      displayName: repo.name,
+      setupMethod: 'legacy-repo'
+    }))
+  })
+  filterIndexes.set(repos, index)
+  return index
+}
+
 export function selectedWorkspaceProjectKeys(
   repos: readonly WorkspaceSectionRepo[],
   selected: readonly string[]
 ): Set<string> {
-  const index = repos.find((repo) => repo.grouping)?.grouping
-  return new Set(
-    index
-      ? selectedProjectFilterKeys(index, selected)
-      : repos.filter((repo) => selected.includes(repo.id)).map((repo) => repo.key)
-  )
+  return new Set(workspaceProjectFilterSelection(repos, selected).fullKeys)
 }
 
 export function toggleProjectFilter(
   repo: WorkspaceSectionRepo,
-  selected: readonly string[]
+  selected: readonly string[],
+  repos: readonly WorkspaceSectionRepo[] = [repo]
 ): string[] {
-  if (!repo.grouping) {
-    return selected.includes(repo.id)
-      ? selected.filter((id) => id !== repo.id)
-      : [...selected, repo.id]
-  }
-  const checked = selectedProjectFilterKeys(repo.grouping, selected)
-  const keys = checked.includes(repo.key)
-    ? checked.filter((key) => key !== repo.key)
-    : [...checked, repo.key]
-  return projectFilterMemberIds(repo.grouping, keys, selected)
+  const index = workspaceProjectFilterIndex(repos)
+  return editProjectFilter(index, selected, {
+    kind: projectFilterSelection(index, selected).fullKeys.includes(repo.key)
+      ? 'remove'
+      : 'complete',
+    keys: [repo.key]
+  })
 }

@@ -1,3 +1,4 @@
+import { buildProjectSetupRepoLookup } from './project-setup-repo-lookup'
 import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
 import {
   buildProjectGroupingIndex,
@@ -151,14 +152,14 @@ function buildReadySetupOptions({
   eligibleRepos,
   hosts
 }: BuildReadySetupOptionsInput): ReadyProjectHostSetupOption[] {
-  const eligibleRepoIds = new Set(eligibleRepos.map((repo) => repo.id))
+  const repoLookup = buildProjectSetupRepoLookup(eligibleRepos)
   const hostById = new Map(hosts.map((host) => [host.id, host]))
   const options = projectHostSetups
     .filter((setup) => {
       const host = hostById.get(setup.hostId)
       return (
         setup.setupState === 'ready' &&
-        eligibleRepoIds.has(setup.repoId) &&
+        Boolean(repoLookup.resolve(setup)) &&
         Boolean(host) &&
         !isEphemeralVmProjectHost(host) &&
         !isRuntimeOwnedSshSetupHost(setup.hostId)

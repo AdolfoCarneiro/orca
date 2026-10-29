@@ -6,6 +6,7 @@ vi.mock('../i18n/mobile-i18n', () => ({
 import { NO_WORKSPACE_ROW_FILTERS } from '../../../src/shared/workspace-view/workspace-row-filters'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  workspaceProjectFilterSelection,
   buildFilterRepos,
   selectedWorkspaceProjectKeys,
   toggleProjectFilter
@@ -100,4 +101,30 @@ describe('the repo filter', () => {
       )
     ).toEqual(['b'])
   })
+})
+
+it('uses qualified tokens and durable offline scope in the catalog-less phone adapter', () => {
+  const repos = buildFilterRepos(
+    [
+      { id: 'same', path: '/a', displayName: 'App' },
+      { id: 'same', path: '/b', displayName: 'App', executionHostId: 'runtime:server' }
+    ],
+    []
+  )
+  const saved = ['runtime:server\0same', 'offline']
+  expect(workspaceProjectFilterSelection(repos, saved)).toMatchObject({
+    active: true,
+    badgeCount: 1,
+    matchingKeys: ['runtime:server|same'],
+    unresolved: ['offline']
+  })
+  expect(
+    filterWorktrees(
+      [row('local', 'same', 'local'), row('remote', 'same', 'runtime:server')],
+      { ...NO_WORKSPACE_ROW_FILTERS, filterRepoIds: saved },
+      ''
+    ).map((row) => row.worktreeId)
+  ).toEqual(['remote'])
+  expect(toggleProjectFilter(repos[1], saved, repos)).toEqual(['offline'])
+  expect(workspaceProjectFilterSelection([], ['offline']).badgeCount).toBe(1)
 })

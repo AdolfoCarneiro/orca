@@ -1,3 +1,5 @@
+import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
+import { projectFilterSelection } from '../../../../shared/project-repo-filter-selection'
 import { Fragment, useMemo, type ComponentType, type JSX } from 'react'
 import { useAppStore } from '@/store'
 import {
@@ -43,14 +45,14 @@ export function useWorkspaceOptionsFilterBadge(): {
   activeFilterLabel: string
 } {
   const filterState = useAppStore(useShallow(selectSidebarFilterState))
-  const repos = useAppStore((s) => s.repos)
+  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const activeFilterCount = useMemo(
     () =>
       countActiveWorkspaceFilters(
         sidebarWorkspaceRowFilters(filterState),
-        repos.map((repo) => repo.id)
+        projectFilterSelection(grouping, filterState.filterRepoIds).badgeCount
       ),
-    [filterState, repos]
+    [filterState, grouping]
   )
   return {
     hasAnyFilter: activeFilterCount > 0,

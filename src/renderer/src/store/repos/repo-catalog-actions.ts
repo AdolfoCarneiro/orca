@@ -133,6 +133,7 @@ export function createRepoCatalogActions(
           )
           return {
             repos: prunedRepos,
+            ...(target.kind === 'local' ? { localRepoCatalogHydrated: true } : {}),
             pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
             ...reconcileFetchedCatalogWorktreeState(s, catalog, prunedRepos),
             ...mergedProjectCompatibility,

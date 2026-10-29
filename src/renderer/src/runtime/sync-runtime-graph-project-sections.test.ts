@@ -25,6 +25,9 @@ const repo: Repo = {
 }
 
 const BASE_STATE = {
+  settings: getDefaultSettings(''),
+  projectGroupingSettingsHydrated: true,
+  localRepoCatalogHydrated: true,
   tabsByWorktree: {},
   terminalLayoutsByTabId: {},
   runtimePaneTitlesByTabId: {},

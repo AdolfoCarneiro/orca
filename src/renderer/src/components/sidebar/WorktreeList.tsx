@@ -246,6 +246,7 @@ const WorktreeList = React.memo(function WorktreeList({
         rows={rowModel.sectionRows}
         hostOptions={rowModel.hostOptions}
         occurrencePlan={rowModel.occurrencePlan}
+        headerRevealPlacements={rowModel.headerRevealPlacements}
         visibleProjectRepoIdsBySection={visibleProjectRepoIdsBySection}
         // Full-page Tasks/Activity views have no selected worktree card.
         activeWorktreeId={

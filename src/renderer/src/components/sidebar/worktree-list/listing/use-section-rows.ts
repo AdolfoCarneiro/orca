@@ -22,6 +22,7 @@ import {
   scopeHostSectionCollapse
 } from '../../../../../../shared/sidebar-list/host-section-collapse'
 import { addHostSectionRows } from '../../../../../../shared/sidebar-list/host-section-rows'
+import { collectHeaderRevealPlacements } from '../../../../../../shared/sidebar-list/header-reveal-placement'
 import { collectRenderedSidebarRowKeys } from './rendered-row-keys'
 import {
   mergeDraggedHostSectionOrder,
@@ -231,6 +232,28 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
       ),
     [orderedHostOptions, setWorkspaceHostOrder, workspaceHostOrder]
   )
+  const headerRevealPlacements = useMemo(
+    () =>
+      collectHeaderRevealPlacements(
+        addHostSectionRows({
+          rows: rowPlan.render(new Set()),
+          hostOptions: orderedHostOptions,
+          workspaceHostScope: args.workspaceHostScope,
+          visibleWorkspaceHostIds: args.visibleWorkspaceHostIds,
+          defaultHostId,
+          localHostLabel: getLocalExecutionHostLabel(),
+          preferProjectGrouping: true
+        }),
+        rowPlan.headerRevealPaths
+      ),
+    [
+      rowPlan,
+      orderedHostOptions,
+      args.workspaceHostScope,
+      args.visibleWorkspaceHostIds,
+      defaultHostId
+    ]
+  )
   const sectionRows = useMemo(() => {
     const sectioned = addHostSectionRows({
       rows,
@@ -268,6 +291,7 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
   const headerHostOptions: readonly ExecutionHostRegistryEntry[] = hostOptions
   return {
     occurrencePlan: rowPlan.occurrencePlan,
+    headerRevealPlacements,
     hostOptions: headerHostOptions,
     effectiveCollapsedGroups,
     rows,

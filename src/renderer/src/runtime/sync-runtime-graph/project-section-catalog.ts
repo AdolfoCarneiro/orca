@@ -21,10 +21,17 @@ let cachedCatalogSource: CatalogSource | null = null
 /** What the sidebar groups Project headers by: state.repos in its order and the selector's projection. */
 export function getProjectSectionCatalogFromState(
   state: Pick<AppState, 'repos' | 'projects' | 'projectHostSetups' | 'projectOrderBy'> &
-    Partial<Pick<AppState, 'settings'>>
+    Partial<
+      Pick<AppState, 'settings' | 'localRepoCatalogHydrated' | 'projectGroupingSettingsHydrated'>
+    >
 ): MobileProjectSectionCatalog | null {
   // Why: graph publication must not fail on a store slice that holds no repo catalog.
-  if (!Array.isArray(state.repos)) {
+  if (
+    !state.settings ||
+    !Array.isArray(state.repos) ||
+    !state.localRepoCatalogHydrated ||
+    !state.projectGroupingSettingsHydrated
+  ) {
     return null
   }
   const model = getProjectGroupingModelFromState(state)

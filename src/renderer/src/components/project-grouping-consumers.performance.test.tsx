@@ -118,7 +118,7 @@ it.each([100, 1000])(
       const recent = useRecentProjectIds()
       return (
         <output>
-          {options.repos.length}:{options.selectedKeys.length}:
+          {options.repos.length}:{options.selection.matchingKeys.length}:
           {recent.filter((id) => id.startsWith('project:')).length}
         </output>
       )
@@ -129,7 +129,7 @@ it.each([100, 1000])(
     try {
       reads = 0
       act(() => root.render(<Consumer />))
-      expect(container.textContent).toBe(`${count}:0:${count}`)
+      expect(container.textContent).toBe(`${count}:1:${count}`)
       expect(reads).toBeLessThan(100 * count)
       reads = 0
       const settledRenders = renders

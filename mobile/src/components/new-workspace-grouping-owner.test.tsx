@@ -67,7 +67,7 @@ it('holds grouping until delayed owner input and keeps owner groups across A →
       return reply({ repos })
     }
     if (method === 'settings.get') {
-      return reply({ settings: { defaultTuiAgent: 'codex', projectGroupingMode: 'repository' } })
+      return reply({ settings: { defaultTuiAgent: 'codex' } })
     }
     return reply({})
   })
@@ -77,7 +77,7 @@ it('holds grouping until delayed owner input and keeps owner groups across A →
       return reply({ repos: [serverRepo] })
     }
     if (method === 'settings.get') {
-      return reply({ settings: { defaultTuiAgent: 'claude', projectGroupingMode: 'folder' } })
+      return reply({ settings: { defaultTuiAgent: 'claude' } })
     }
     return reply({})
   })
@@ -169,3 +169,5 @@ it.each(['null', 'method_not_found'] as const)(
     expect(container.textContent).toBe('2')
   }
 )
+
+vi.mock('react-native', () => ({ AppState: { addEventListener: () => ({ remove: () => {} }) } }))

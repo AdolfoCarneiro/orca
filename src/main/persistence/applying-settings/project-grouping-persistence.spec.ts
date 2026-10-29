@@ -4,8 +4,8 @@ import { getDefaultPersistedState } from '../../../shared/constants'
 import { writeDataFile, testState } from '../persistence-test-harness'
 import { buildProjectGroupingIndex } from '../../../shared/project-section-grouping'
 import {
-  selectedProjectFilterKeys,
-  projectFilterMemberIds
+  projectFilterSelection,
+  editProjectFilter
 } from '../../../shared/project-repo-filter-selection'
 import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
 import { projectRepoFilterMatcher } from '../../../shared/project-grouping'
@@ -52,8 +52,11 @@ export function registerProjectGroupingPersistenceTests(createStore: () => Promi
       projects: projection.projects,
       projectHostSetups: projection.setups
     })
-    expect(selectedProjectFilterKeys(index, ['b', 'offline'])).toEqual([])
-    const selected = projectFilterMemberIds(index, [index.groups[0].key], ['b', 'offline'])
+    expect(projectFilterSelection(index, ['b', 'offline']).fullKeys).toEqual([])
+    const selected = editProjectFilter(index, ['b', 'offline'], {
+      kind: 'complete',
+      keys: [index.groups[0].key]
+    })
     expect(new Set(selected)).toEqual(new Set(['a', 'b', 'offline']))
     const store = await createStore()
     for (const field of ['filterRepoIds', 'agentsFilterRepoIds'] as const) {

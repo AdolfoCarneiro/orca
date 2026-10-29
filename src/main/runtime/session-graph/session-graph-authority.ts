@@ -1,3 +1,4 @@
+import { readMobileProjectSections } from '../mobile-project-sections-snapshot'
 import type { OrcaRuntimeWithResolveBrowserNetworkExecutionHostForWorktree as ResolveBrowserNetworkExecutionHostForWorktreeMethods } from '../terminal/launch/terminal-workspace-scope'
 import { OrcaRuntimeWithHasTerminalsForWorktree } from './session-graph-reload-lifecycle'
 import { HEADLESS_RUNTIME_WINDOW_ID } from '../../../shared/runtime-types'
@@ -40,6 +41,12 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     ResolveBrowserNetworkExecutionHostForWorktreeMethods['resolveBrowserNetworkExecutionHostForWorktree']
   >
 
+  abstract notifyReposChangedForRemoteClients(): void
+
+  shouldRelayTerminalBrowserOpens(): boolean {
+    return this.authoritativeWindowId === HEADLESS_RUNTIME_WINDOW_ID
+  }
+
   protected transitionGraphReloadToTerminalState(windowId: number): void {
     if (this.shouldRestoreHeadlessGraph(windowId)) {
       this.restoreHeadlessGraphAuthority()
@@ -63,6 +70,7 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
   }
 
   protected restoreHeadlessGraphAuthority(): void {
+    const wasHeadless = this.authoritativeWindowId === HEADLESS_RUNTIME_WINDOW_ID
     this.rendererGraphEpoch += 1
     this.authoritativeWindowId = HEADLESS_RUNTIME_WINDOW_ID
     this.graphStatus = 'ready'
@@ -80,6 +88,9 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     if (ORCA_LAYOUT_OWNER_IS_MAIN) {
       this.headlessGraphFallbackAvailable = true
       startedMainTerminalSurfaces(this)?.republish({ force: true })
+    }
+    if (!wasHeadless && !readMobileProjectSections().catalog) {
+      this.notifyReposChangedForRemoteClients()
     }
   }
 

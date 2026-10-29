@@ -1,3 +1,4 @@
+import { workspaceProjectFilterSelection } from '../worktree/workspace-filter-repos'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useLocalSearchParams, usePathname } from 'expo-router'
@@ -148,7 +149,7 @@ export function useHostScreenController({
     () =>
       countActiveWorkspaceFilters(
         state.view.filters,
-        uniqueRepos.map((repo) => repo.id)
+        workspaceProjectFilterSelection(uniqueRepos, state.view.filters.filterRepoIds).badgeCount
       ),
     [state.view.filters, uniqueRepos]
   )

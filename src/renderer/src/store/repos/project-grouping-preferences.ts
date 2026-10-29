@@ -14,11 +14,9 @@ export function retireRemovedProjectGroupingState(get: () => AppState, repo: Rep
   if (state.repos.some((repo) => getProjectIdentityKey(repo) === projectId)) {
     return
   }
-  for (const key of state.collapsedGroups) {
-    if (key === `project:${projectId}` || key.startsWith(`project:${projectId}::host:`)) {
-      state.toggleCollapsedGroup(key)
-    }
-  }
+  state.removeCollapsedGroups(
+    (key) => key === `project:${projectId}` || key.startsWith(`project:${projectId}::host:`)
+  )
   void state
     .updateSettingsOrThrow((current) => {
       const overrides = { ...current.projectGroupingOverrides }

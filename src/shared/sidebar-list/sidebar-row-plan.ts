@@ -302,5 +302,9 @@ export function planSidebarRows(inputs: SidebarRowPlanInputs) {
 
     return result
   }
-  return { occurrencePlan, render }
+  const headerRevealPaths = new Map([...projectGroupPaths.values()].map((path) => [path.key, path]))
+  for (const section of occurrencePlan.sections) {
+    headerRevealPaths.set(section.key, section.revealPath ?? { key: section.key })
+  }
+  return { occurrencePlan, headerRevealPaths, render }
 }

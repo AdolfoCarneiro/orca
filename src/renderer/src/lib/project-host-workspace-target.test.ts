@@ -1,3 +1,7 @@
+import { buildNewWorkspaceProjectOptions } from './new-workspace-project-options'
+import { buildProjectHostSetupOptions } from './project-host-setup-options'
+import { buildProjectGroupingIndex } from '../../../shared/project-section-grouping'
+import type { ExecutionHostRegistryEntry } from '../../../shared/execution-host-registry'
 import { describe, expect, it } from 'vitest'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { Project, ProjectHostSetup } from '../../../shared/project-types'
@@ -523,3 +527,65 @@ describe('project-host workspace target resolution', () => {
     })
   })
 })
+
+it.each(['repository', 'host', 'folder'] as const)(
+  'offers executable concrete host twins in %s mode and revalidates stale selections',
+  (projectGroupingMode) => {
+    const projectId = 'github:org/app'
+    const projects = [makeProject(projectId, ['same'])]
+    const projectHostSetups = [
+      makeSetup('local', projectId, 'local', 'same', { path: '/local' }),
+      makeSetup('remote', projectId, 'runtime:remote', 'same', { path: '/remote' })
+    ]
+    const hosts: ExecutionHostRegistryEntry[] = [
+      { id: 'local', kind: 'local', label: 'This computer', detail: '', health: 'local' },
+      { id: 'runtime:remote', kind: 'runtime', label: 'Remote', detail: '', health: 'available' }
+    ]
+    const settings = { projectGroupingMode }
+    const grouping = buildProjectGroupingIndex({ projects, projectHostSetups, settings })
+    const local = makeRepo('same', { executionHostId: 'local', path: '/local' })
+    const remote = makeRepo('same', { executionHostId: 'runtime:remote', path: '/remote' })
+    for (const eligibleRepos of [[local], [local, remote], [makeRepo('same')]]) {
+      const input = { projects, projectHostSetups, eligibleRepos, settings, grouping, hosts }
+      const options = buildNewWorkspaceProjectOptions(input)
+      expect(options).toHaveLength(
+        projectGroupingMode === 'repository' ||
+          (eligibleRepos.length === 1 && eligibleRepos[0].executionHostId)
+          ? 1
+          : 2
+      )
+      for (const option of options) {
+        expect(
+          resolveWorkspaceCreationTarget({ ...input, projectId: option.projectId })
+        ).toMatchObject({ status: 'ready' })
+        const runs = buildProjectHostSetupOptions({
+          ...input,
+          projectId,
+          groupKey: option.id
+        }).filter((row) => row.kind === 'ready')
+        expect(runs.length).toBeGreaterThan(0)
+        for (const row of runs) {
+          const target = resolveWorkspaceCreationTarget({
+            ...input,
+            projectHostSetupId: row.id,
+            projectHostSetupHostId: row.hostId
+          })
+          expect(target).toMatchObject({
+            status: 'ready',
+            target: { hostId: row.hostId, setup: { path: row.path } }
+          })
+          if (row.hostId === 'runtime:remote') {
+            expect(
+              resolveWorkspaceCreationTarget({
+                ...input,
+                eligibleRepos: [local],
+                projectHostSetupId: row.id,
+                projectHostSetupHostId: row.hostId
+              })
+            ).toEqual({ status: 'unavailable', reason: 'setup-not-found' })
+          }
+        }
+      }
+    }
+  }
+)

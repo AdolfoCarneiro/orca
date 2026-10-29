@@ -1,8 +1,4 @@
-import {
-  projectSectionsRead,
-  readServedProjectSections,
-  type ServedProjectSections
-} from '../worktree/project-sections-operations'
+import { useOwnerProjectSections } from '../worktree/use-owner-project-sections'
 import { buildNewWorkspaceGrouping } from './new-workspace-project-targets'
 import type { ProjectGroupingIndex } from '../../../src/shared/project-section-grouping'
 import { useEffect, useMemo, useState } from 'react'
@@ -40,10 +36,7 @@ export function useNewWorkspaceRepositories(args: {
     hostId ? (getCachedRepos(hostId) as MobileWorkspaceRepo[] | null) : null
   )
   const [desktopRepos, setDesktopRepos] = useState<MobileWorkspaceRepo[]>(initialRepos ?? [])
-  const [ownerCatalog, setOwnerCatalog] = useState<{
-    client: RpcClient
-    served: ServedProjectSections | null
-  } | null>(null)
+  const { answer: ownerCatalog } = useOwnerProjectSections(client, visible)
   const serverRepos = useServerRepos<MobileWorkspaceRepo>(serverClients, visible)
   const [pickedRepo, setSelectedRepo] = useState<MobileWorkspaceRepo | null>(null)
   const [loading, setLoading] = useState(initialRepos == null)
@@ -65,30 +58,11 @@ export function useNewWorkspaceRepositories(args: {
 
   const grouping = useMemo(
     () =>
-      ownerCatalog?.client === client
-        ? buildNewWorkspaceGrouping(allRepos, ownerCatalog.served)
+      ownerCatalog.kind === 'answered'
+        ? buildNewWorkspaceGrouping(allRepos, ownerCatalog.value)
         : null,
     [allRepos, client, ownerCatalog]
   )
-  useEffect(() => {
-    if (!visible || !client) {
-      return
-    }
-    let stale = false
-    void projectSectionsRead
-      .request(client)
-      .then((reply) => {
-        const result = readServedProjectSections(reply)
-        if (!stale && result.kind === 'answered') {
-          setOwnerCatalog({ client, served: result.value })
-        }
-      })
-      .catch(() => undefined)
-    return () => {
-      stale = true
-    }
-  }, [client, visible])
-
   useEffect(() => {
     if (!visible || !lastVisitedRepo.loaded || selectedRepo || repos.length === 0) {
       return

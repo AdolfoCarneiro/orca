@@ -3,8 +3,8 @@ import { useAppStore } from '@/store'
 import { getProjectGroupingIndexFromState } from '@/store/project-host-setup-selector'
 import { getRepoHostIdentity } from '@/store/slices/repo-host-identity'
 import {
-  selectedProjectFilterKeys,
-  projectFilterMemberIds
+  projectFilterSelection,
+  editProjectFilter
 } from '../../../../shared/project-repo-filter-selection'
 
 export function useProjectFilterOptions(filterRepoIds: readonly string[]) {
@@ -17,10 +17,14 @@ export function useProjectFilterOptions(filterRepoIds: readonly string[]) {
       return repo ? [{ ...repo, id: group.key, displayName: group.label }] : []
     })
   }, [repos, index])
-  const selectedKeys = useMemo(
-    () => selectedProjectFilterKeys(index, filterRepoIds),
+  const selection = useMemo(
+    () => projectFilterSelection(index, filterRepoIds),
     [index, filterRepoIds]
   )
-  const memberIds = (keys: readonly string[]) => projectFilterMemberIds(index, keys, filterRepoIds)
-  return { repos: groupedRepos, selectedKeys, memberIds }
+  return {
+    repos: groupedRepos,
+    selection,
+    edit: (kind: 'complete' | 'remove', keys: readonly string[]) =>
+      editProjectFilter(index, filterRepoIds, { kind, keys })
+  }
 }

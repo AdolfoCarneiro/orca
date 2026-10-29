@@ -37,6 +37,7 @@ export type SettingsUpdate =
 
 export type SettingsSlice = SettingsSearchState & {
   settings: GlobalSettings | null
+  projectGroupingSettingsHydrated: boolean
   worktreeVisibilityDefaultsByHost: WorktreeVisibilityDefaultsByHost
   worktreeVisibilityDefaultsSupportedRuntimeEnvironmentId: string | null
   worktreeVisibilitySourceDefaultsSupportedRuntimeEnvironmentId: string | null
@@ -201,6 +202,7 @@ export const createSettingsSlice: StateCreator<AppState, [], [], SettingsSlice> 
   }
   return {
     settings: null,
+    projectGroupingSettingsHydrated: false,
     worktreeVisibilityDefaultsByHost: {},
     worktreeVisibilityDefaultsSupportedRuntimeEnvironmentId: null,
     worktreeVisibilitySourceDefaultsSupportedRuntimeEnvironmentId: null,

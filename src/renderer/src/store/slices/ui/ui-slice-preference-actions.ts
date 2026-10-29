@@ -158,6 +158,15 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
     ...createAgentsViewPreferenceActions(set),
 
     collapsedGroups: new Set<string>(),
+    removeCollapsedGroups: (matches) =>
+      set((s) => {
+        const next = new Set([...s.collapsedGroups].filter((key) => !matches(key)))
+        if (next.size === s.collapsedGroups.size) {
+          return s
+        }
+        window.api.ui.set({ collapsedGroups: [...next] }).catch(console.error)
+        return { collapsedGroups: next }
+      }),
     toggleCollapsedGroup: (key) =>
       set((s) => {
         const next = new Set(s.collapsedGroups)

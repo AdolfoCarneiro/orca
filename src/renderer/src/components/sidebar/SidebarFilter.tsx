@@ -70,7 +70,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
   )
   const filterRepoIds = useAppStore((s) => s.filterRepoIds)
   const setFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
-  const { repos, selectedKeys, memberIds } = useProjectFilterOptions(filterRepoIds)
+  const { repos, selection, edit } = useProjectFilterOptions(filterRepoIds)
   const addRepo = useAppStore((s) => s.addRepo)
 
   const [open, setOpen] = useState(false)
@@ -90,22 +90,15 @@ const SidebarFilter = React.memo(function SidebarFilter({
 
   const handleToggleRepo = useCallback(
     (repoId: string) => {
-      setFilterRepoIds(
-        memberIds(
-          selectedKeys.includes(repoId)
-            ? selectedKeys.filter((id) => id !== repoId)
-            : [...selectedKeys, repoId]
-        )
-      )
+      setFilterRepoIds(edit(selection.fullKeys.includes(repoId) ? 'remove' : 'complete', [repoId]))
     },
-    [selectedKeys, memberIds, setFilterRepoIds]
+    [selection.fullKeys, edit, setFilterRepoIds]
   )
 
-  const canFilterRepos = repos.length > 1
-  // Ignore removed repo IDs so they cannot inflate counts or imply an active filter.
-  const selectedRepoIdSet = new Set(selectedKeys)
-  const selectedCount = selectedRepoIdSet.size
-  const hasRepoFilter = selectedCount > 0
+  const canFilterRepos = repos.length > 1 || selection.active
+  const selectedRepoIdSet = new Set(selection.fullKeys)
+  const selectedCount = selection.matchingKeys.length
+  const hasRepoFilter = selection.active
   const { hasAnyFilter, activeFilterCount } = useWorkspaceOptionsFilterBadge()
 
   const filteredRepos = useMemo(() => searchRepos(repos, query), [repos, query])
@@ -113,7 +106,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
     commandValueOverride && filteredRepos.some((repo) => repo.id === commandValueOverride)
       ? commandValueOverride
       : (filteredRepos[0]?.id ?? '')
-  const allSelected = canFilterRepos && selectedCount === repos.length
+  const allSelected = canFilterRepos && selection.fullKeys.length === repos.length
 
   const clearAll = useCallback(() => {
     const store = useAppStore.getState()
@@ -122,8 +115,13 @@ const SidebarFilter = React.memo(function SidebarFilter({
 
   // Use current repos so Select All includes projects added while the popover stays open.
   const selectAllRepos = useCallback(() => {
-    setFilterRepoIds(memberIds(repos.map((r) => r.id)))
-  }, [repos, memberIds, setFilterRepoIds])
+    setFilterRepoIds(
+      edit(
+        'complete',
+        repos.map((r) => r.id)
+      )
+    )
+  }, [repos, edit, setFilterRepoIds])
 
   const clearRepos = useCallback(() => setFilterRepoIds([]), [setFilterRepoIds])
 
@@ -235,13 +233,21 @@ const SidebarFilter = React.memo(function SidebarFilter({
           onChange={setHideDetachedHeadWorkspaces}
         />
 
+        {selection.unresolved.length > 0 && (
+          <span className="px-2 text-xs text-muted-foreground">
+            {translate(
+              'projects.savedUnavailable',
+              'Saved project selection · Unavailable projects'
+            )}
+          </span>
+        )}
         {canFilterRepos && (
           <>
             <DropdownMenuSeparator />
             <div className="flex items-center justify-between px-2 py-1">
               <span className="text-[11px] font-semibold tracking-wide uppercase text-muted-foreground">
                 {translate('auto.components.sidebar.SidebarFilter.5f7085a077', 'Projects')}
-                {hasRepoFilter && (
+                {hasRepoFilter && selectedCount > 0 && (
                   <span className="ml-1.5 normal-case tracking-normal font-medium text-foreground">
                     · {selectedCount}
                   </span>
@@ -319,6 +325,9 @@ const SidebarFilter = React.memo(function SidebarFilter({
                           </span>
                         )}
                       </span>
+                      {selection.partialKeys.includes(r.id) && (
+                        <span>{translate('projects.partiallySelected', 'Partially selected')}</span>
+                      )}
                       {checked && (
                         <Check className="size-3 shrink-0 text-primary" strokeWidth={3} />
                       )}

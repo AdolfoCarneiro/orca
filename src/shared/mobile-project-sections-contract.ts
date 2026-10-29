@@ -1,8 +1,12 @@
 import type { ProjectGroupingSettings } from './project-grouping'
-import { buildProjectGroupingIndex, type ProjectGroupingIndex } from './project-section-grouping'
+import {
+  buildProjectGroupingIndex,
+  type ProjectGroupingIndex,
+  type ProjectSectionProject,
+  type ProjectSectionSetup
+} from './project-section-grouping'
 import type { ProjectGroup } from './project-group-types'
 import type { ProjectHostSetupProjection } from './project-host-setup-projection'
-import type { ProjectSectionProject, ProjectSectionSetup } from './project-section-grouping'
 import type { RepoIcon } from './repo-icon'
 import type { Repo } from './repo-types'
 import type { ProjectOrderBy } from './ui-chrome-types'

@@ -14,6 +14,10 @@ const ERROR_LINE = /^(\S.*?)\(\d+,\d+\): error TS\d+:/
 // Require every on-disk test in program except these explicit exclusions: error-only diff cannot see excluded/shadowed tests.
 export const TESTS_OUTSIDE_PROGRAM = new Map([
   [
+    'src/worktree/project-sections-owner-recovery.test.ts',
+    'Node-side: imports the desktop runtime and RPC handlers; checked by config/tsconfig.node.json against Node libraries'
+  ],
+  [
     'src/components/WorktreeAgentList.runtime-lineage.test.tsx',
     'Node-side: renders the mobile consumer of real desktop SQLite assignment projection, against Node rather than RN libs'
   ],

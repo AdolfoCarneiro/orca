@@ -1,3 +1,4 @@
+import { buildProjectSetupRepoLookup } from './project-setup-repo-lookup'
 import {
   buildProjectGroupingIndex,
   type ProjectGroupingIndex
@@ -113,16 +114,13 @@ function isReadySetup(setup: ProjectHostSetup): boolean {
   return setup.setupState === 'ready'
 }
 
+type SetupRepoLookup = ReturnType<typeof buildProjectSetupRepoLookup>
+
 function createTarget(
   setup: ProjectHostSetup,
-  reposById: ReadonlyMap<string, readonly Repo[]>
+  lookup: SetupRepoLookup
 ): WorkspaceCreationTarget | null {
-  const candidates = reposById.get(setup.repoId) ?? []
-  const repo =
-    candidates.find((candidate) => getRepoExecutionHostId(candidate) === setup.hostId) ??
-    (candidates.length === 1 && !candidates[0].executionHostId && !candidates[0].connectionId
-      ? candidates[0]
-      : null)
+  const repo = lookup.resolve(setup)
   if (!repo) {
     return null
   }
@@ -138,14 +136,14 @@ function createTarget(
 
 function findReadySetupTarget(
   setups: readonly ProjectHostSetup[],
-  reposById: ReadonlyMap<string, readonly Repo[]>,
+  lookup: SetupRepoLookup,
   predicate: (setup: ProjectHostSetup) => boolean
 ): WorkspaceCreationTarget | null {
   for (const setup of setups) {
     if (!isReadySetup(setup) || !predicate(setup)) {
       continue
     }
-    const target = createTarget(setup, reposById)
+    const target = createTarget(setup, lookup)
     if (target) {
       return target
     }
@@ -162,12 +160,8 @@ export function resolveWorkspaceCreationTarget(
   }
 
   const model = getProjectSetupModel(input)
-  const reposById = new Map<string, Repo[]>()
-  for (const repo of eligibleRepos) {
-    const candidates = reposById.get(repo.id) ?? []
-    candidates.push(repo)
-    reposById.set(repo.id, candidates)
-  }
+  const lookup = buildProjectSetupRepoLookup(eligibleRepos)
+  const reposById = lookup.byId
   const actionableHostIds = input.actionableHostIds
   const allSetups = model?.setups ?? []
   const setups = actionableHostIds
@@ -196,7 +190,7 @@ export function resolveWorkspaceCreationTarget(
     if (!isReadySetup(setup)) {
       return { status: 'unavailable', reason: 'setup-not-ready' }
     }
-    const explicit = createTarget(setup, reposById)
+    const explicit = createTarget(setup, lookup)
     if (explicit) {
       return { status: 'ready', target: explicit }
     }
@@ -231,7 +225,7 @@ export function resolveWorkspaceCreationTarget(
       return { status: 'unavailable', reason: 'setup-not-ready' }
     }
     const candidates = ready.filter(
-      (setup) => (!hostId || setup.hostId === hostId) && createTarget(setup, reposById) !== null
+      (setup) => (!hostId || setup.hostId === hostId) && createTarget(setup, lookup) !== null
     )
     if (candidates.length > 0) {
       const selected = selectProjectGroupTarget(
@@ -247,7 +241,7 @@ export function resolveWorkspaceCreationTarget(
           hostId: requestedHost
         }
       )
-      const target = createTarget(selected, reposById)
+      const target = createTarget(selected, lookup)
       if (target) {
         return { status: 'ready', target }
       }
@@ -256,7 +250,7 @@ export function resolveWorkspaceCreationTarget(
   }
 
   if (hostId) {
-    const target = findReadySetupTarget(setups, reposById, (setup) => setup.hostId === hostId)
+    const target = findReadySetupTarget(setups, lookup, (setup) => setup.hostId === hostId)
     if (target) {
       return { status: 'ready', target }
     }
@@ -284,10 +278,10 @@ export function resolveWorkspaceCreationTarget(
       (!actionableHostIds || actionableHostIds.has(projectedLegacySetup.hostId)
         ? projectedLegacySetup
         : null)
-    legacyTarget = legacySetup ? createTarget(legacySetup, reposById) : null
+    legacyTarget = legacySetup ? createTarget(legacySetup, lookup) : null
   } else if (repoId) {
     // Cross-host duplicate repo IDs are ambiguous; retain the resolved setup instead of letting the composer repick arbitrarily.
-    legacyTarget = findReadySetupTarget(setups, reposById, (setup) => setup.repoId === repoId)
+    legacyTarget = findReadySetupTarget(setups, lookup, (setup) => setup.repoId === repoId)
   }
   if (legacyTarget) {
     return { status: 'ready', target: legacyTarget }
@@ -296,7 +290,7 @@ export function resolveWorkspaceCreationTarget(
     // An explicit repo must not fall back to a different ready project/host.
     return { status: 'unavailable', reason: 'setup-not-found' }
   }
-  const fallbackTarget = findReadySetupTarget(setups, reposById, () => true)
+  const fallbackTarget = findReadySetupTarget(setups, lookup, () => true)
   return fallbackTarget
     ? { status: 'ready', target: fallbackTarget }
     : { status: 'unavailable', reason: legacyRepo ? 'setup-not-found' : 'no-eligible-repo' }

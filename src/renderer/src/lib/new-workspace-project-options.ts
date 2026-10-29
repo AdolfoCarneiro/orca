@@ -1,3 +1,4 @@
+import { buildProjectSetupRepoLookup } from './project-setup-repo-lookup'
 import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
 import {
   buildProjectGroupingIndex,
@@ -92,7 +93,7 @@ export function buildNewWorkspaceProjectOptions(
 ): NewWorkspaceProjectOption[] {
   const { eligibleRepos } = input
   const { projects, projectHostSetups } = getProjectModel(input)
-  const eligibleRepoIds = new Set(eligibleRepos.map((repo) => repo.id))
+  const repoLookup = buildProjectSetupRepoLookup(eligibleRepos)
   const hostLabelById = new Map((input.hosts ?? []).map((host) => [host.id, host.label]))
   const liveHostIds = input.hosts ? new Set(input.hosts.map((host) => host.id)) : null
   const readySetupCountsByProjectId = new Map<string, number>()
@@ -101,7 +102,7 @@ export function buildNewWorkspaceProjectOptions(
   for (const setup of projectHostSetups) {
     if (
       setup.setupState !== 'ready' ||
-      !eligibleRepoIds.has(setup.repoId) ||
+      !repoLookup.resolve(setup) ||
       (liveHostIds && !liveHostIds.has(setup.hostId))
     ) {
       continue
@@ -128,7 +129,7 @@ export function buildNewWorkspaceProjectOptions(
       group.registrations.some(
         (setup) =>
           projectHostSetupsById.get(`${setup.hostId}\0${setup.id}`)?.setupState === 'ready' &&
-          eligibleRepoIds.has(setup.repoId) &&
+          repoLookup.resolve(setup) &&
           (!liveHostIds || liveHostIds.has(setup.hostId))
       )
     )
@@ -139,7 +140,14 @@ export function buildNewWorkspaceProjectOptions(
       }
       setupDirectoriesByProjectId.set(
         group.key,
-        group.members.map((setup) => ({ path: setup.path, hostId: setup.hostId }))
+        group.registrations
+          .filter(
+            (setup) =>
+              projectHostSetupsById.get(`${setup.hostId}\0${setup.id}`)?.setupState === 'ready' &&
+              repoLookup.resolve(setup) &&
+              (!liveHostIds || liveHostIds.has(setup.hostId))
+          )
+          .map((setup) => ({ path: setup.path, hostId: setup.hostId }))
       )
       return [
         {

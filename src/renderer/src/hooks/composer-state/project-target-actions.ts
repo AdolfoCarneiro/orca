@@ -52,21 +52,17 @@ import {
 } from '@/lib/new-workspace-project-options'
 import { translate } from '@/i18n/i18n'
 import { getFolderSourceRepos } from '@/components/sidebar/folder-workspace-composer-helpers'
+import { getComposerEligibleRepos } from '@/lib/new-workspace-composer-repo'
 import { resolveWorkspaceCreationTarget } from '@/lib/project-host-workspace-target'
 
 export function useProjectTargetActions(input: ProjectTargetActionsInput) {
-  const grouping = useAppStore(getProjectGroupingIndexFromState)
   const {
     actionableHostIds,
-    eligibleRepos,
     handleRepoChange,
     initialProjectGroupAppliedRef,
     isProjectGroupTarget,
     linkedWorkItem,
     projectGroups,
-    projectHostSetups,
-    projects,
-    settings,
     setSelectedProjectHostSetupOverrideId,
     setSelectedProjectHostSetupOverrideHostId,
     repos,
@@ -199,12 +195,13 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
       const preferredHostId =
         selectedWorkspaceTarget.status === 'ready' ? selectedWorkspaceTarget.target.hostId : null
       // Prefer focusedHostScope rather than hard-pin hostId, so projects available only on another host remain selectable.
+      const state = useAppStore.getState()
       const next = resolveWorkspaceCreationTarget({
-        grouping,
-        settings,
-        eligibleRepos,
-        projects,
-        projectHostSetups,
+        grouping: getProjectGroupingIndexFromState(state),
+        settings: state.settings,
+        eligibleRepos: getComposerEligibleRepos(state.repos),
+        projects: state.projects,
+        projectHostSetups: state.projectHostSetups,
         projectId,
         focusedHostScope: preferredHostId ?? workspaceHostScope,
         actionableHostIds
@@ -218,16 +215,11 @@ export function useProjectTargetActions(input: ProjectTargetActionsInput) {
     },
     [
       applyProjectGroupSelection,
-      eligibleRepos,
-      grouping,
       actionableHostIds,
       handleRepoChange,
       isProjectGroupTarget,
       projectGroups,
-      projectHostSetups,
-      projects,
       repos,
-      settings,
       setSelectedProjectHostSetupOverrideId,
       setSelectedProjectHostSetupOverrideHostId,
       selectedWorkspaceTarget,

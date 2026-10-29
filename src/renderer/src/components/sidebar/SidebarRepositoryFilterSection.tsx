@@ -51,13 +51,16 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
   const setWorkspaceFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
   const filterRepoIds = filterRepoIdsProp ?? workspaceFilterRepoIds
   const setFilterRepoIds = setFilterRepoIdsProp ?? setWorkspaceFilterRepoIds
-  const { repos: groupedRepos, selectedKeys, memberIds } = useProjectFilterOptions(filterRepoIds)
-  const canFilterRepos = groupedRepos.length > 1
-  const selectedCount = selectedKeys.length
-  const hasRepoFilter = selectedCount > 0
-  const selectedRepos = groupedRepos.filter((repo) => selectedKeys.includes(repo.id))
-  const availableRepos = groupedRepos.filter((repo) => !selectedKeys.includes(repo.id))
-  const visibilityLabel = getProjectFilterVisibilityLabel({ selectedCount, selectedRepos })
+  const { repos: groupedRepos, selection, edit } = useProjectFilterOptions(filterRepoIds)
+  const canFilterRepos = groupedRepos.length > 1 || selection.active
+  const selectedCount = selection.matchingKeys.length
+  const hasRepoFilter = selection.active
+  const selectedRepos = groupedRepos.filter((repo) => selection.matchingKeys.includes(repo.id))
+  const availableRepos = groupedRepos.filter((repo) => !selection.fullKeys.includes(repo.id))
+  const visibilityLabel =
+    selection.active && !selectedCount
+      ? translate('projects.savedSelection', 'Saved project selection')
+      : getProjectFilterVisibilityLabel({ selectedCount, selectedRepos })
 
   const clearRepos = useCallback(() => setFilterRepoIds([]), [setFilterRepoIds])
 
@@ -77,6 +80,12 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
           </span>
           <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
             {visibilityLabel}
+            {selection.partialKeys.length > 0 && (
+              <> · {translate('projects.partiallySelected', 'Partially selected')}</>
+            )}
+            {selection.unresolved.length > 0 && (
+              <> · {translate('projects.unavailable', 'Unavailable projects')}</>
+            )}
           </span>
         </span>
       </DropdownMenuSubTrigger>
@@ -90,7 +99,7 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
               'auto.components.sidebar.SidebarRepositoryFilterSection.7679f0c268',
               'Projects'
             )}
-            {hasRepoFilter && (
+            {hasRepoFilter && selectedCount > 0 && (
               <span className="ml-1.5 font-medium text-foreground">· {selectedCount}</span>
             )}
           </span>
@@ -111,8 +120,10 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
           availableRepos={availableRepos}
           selectedRepos={selectedRepos}
           hasRepoFilter={hasRepoFilter}
-          filterRepoIds={selectedKeys}
-          setFilterRepoIds={(ids) => setFilterRepoIds(memberIds(ids))}
+          partialKeys={selection.partialKeys}
+          unavailable={selection.unresolved.length > 0}
+          onComplete={(id) => setFilterRepoIds(edit('complete', [id]))}
+          onRemove={(id) => setFilterRepoIds(edit('remove', [id]))}
         />
       </DropdownMenuSubContent>
     </DropdownMenuSub>

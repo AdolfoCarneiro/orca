@@ -179,10 +179,10 @@ export function formatActiveFilterBadge(count: number): string {
   return count > 9 ? '9+' : String(count)
 }
 
-/** Count narrowing filters plus selected known projects; stale repo IDs do not inflate the badge. */
+/** Project contribution comes from the same saved-selection projection as the controls. */
 export function countActiveWorkspaceFilters(
   filters: WorkspaceRowFilters,
-  knownRepoIds: readonly string[]
+  projectFilterCount: number
 ): number {
   const counted = activeWorkspaceRowFilterKeys(filters).filter(
     (key) =>
@@ -190,6 +190,5 @@ export function countActiveWorkspaceFilters(
       // Disabling the exemption narrows only an active sleeping sweep.
       (key !== 'alwaysShowDefaultBranchWorkspace' || filters.hideSleepingWorkspaces)
   )
-  const selectedRepoCount = knownRepoIds.filter((id) => filters.filterRepoIds.includes(id)).length
-  return counted.length + selectedRepoCount
+  return counted.length + projectFilterCount
 }
