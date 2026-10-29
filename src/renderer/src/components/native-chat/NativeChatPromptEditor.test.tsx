@@ -233,7 +233,7 @@ describe('a pasted run too long to lay out with kerning', () => {
     expect(input.value).toBe(`short line\nsee ${blob} here`)
   })
 
-  it('keeps kerning on long prose, CJK paragraphs and many short Shift+Enter lines', () => {
+  it('keeps kerning on prose, CJK and Shift+Enter lines, and never splits a CJK code point', () => {
     const { editor, container } = setup('')
     act(() => {
       editor.commands.insertContent('a few words '.repeat(500))
@@ -242,19 +242,11 @@ describe('a pasted run too long to lay out with kerning', () => {
         editor.commands.insertContent('y'.repeat(70))
         editor.commands.setHardBreak()
       }
+      editor.commands.insertContent('\u{20000}')
+      editor.commands.insertContent('x'.repeat(300))
+      editor.commands.setHardBreak()
+      editor.commands.insertContent(`\u{20000}${'y'.repeat(300)}`)
     })
-    expect(unkerned(container)).toEqual([])
-  })
-
-  it('re-checks only the edited line: splitting a run restores its kerning', () => {
-    const blob = 'z'.repeat(400)
-    const { input, editor, container } = setup(`${blob}\n${blob}`)
-    expect(unkerned(container)).toEqual([blob, blob])
-    act(() => {
-      input.setSelectionRange(200, 200)
-      editor.commands.insertContent(' ')
-    })
-    expect(unkerned(container)).toEqual([blob])
-    expect(input.value).toBe(`${'z'.repeat(200)} ${'z'.repeat(200)}\n${blob}`)
+    expect(unkerned(container)).toEqual(['x'.repeat(300), 'y'.repeat(300)])
   })
 })

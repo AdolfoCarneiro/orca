@@ -12,7 +12,6 @@ export function nativeChatBreaksUnkernedRun(code: number): boolean {
   return (
     code === 32 ||
     (code >= 9 && code <= 13) ||
-    code === 0xa0 ||
     (code >= 0x0e00 && code <= 0x0e7f) ||
     (code >= 0x1100 && code <= 0x11ff) ||
     (code >= 0x2e80 && code <= 0x9fff) ||
@@ -25,16 +24,23 @@ export function nativeChatBreaksUnkernedRun(code: number): boolean {
   )
 }
 
+const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff
+export const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff
+
 /** `[start, end)` of every run with no break opportunity too long to lay out kerned; one linear pass. */
 export function nativeChatUnkernedRuns(text: string, limit = Infinity): [number, number][] {
   const runs: [number, number][] = []
   let start = 0
   for (let index = 0; index <= text.length && runs.length < limit; index++) {
-    if (index === text.length || nativeChatBreaksUnkernedRun(text.charCodeAt(index))) {
+    const code = text.charCodeAt(index)
+    if (index === text.length || nativeChatBreaksUnkernedRun(code)) {
       if (index - start > KERNED_RUN_MAX_CHARS) {
         runs.push([start, index])
       }
-      start = index + 1
+      // A supplementary ideograph breaks as one code point, both surrogates.
+      const width = isHighSurrogate(code) && isLowSurrogate(text.charCodeAt(index + 1)) ? 2 : 1
+      start = index + width
+      index += width - 1
     }
   }
   return runs

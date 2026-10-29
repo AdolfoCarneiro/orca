@@ -4,6 +4,7 @@ import { Plugin, PluginKey, type Transaction } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import {
   NATIVE_CHAT_UNKERNED_STYLE,
+  isLowSurrogate,
   nativeChatBreaksUnkernedRun,
   nativeChatUnkernedRuns
 } from './native-chat-unkerned-runs'
@@ -68,7 +69,11 @@ function runEdge(doc: ProseMirrorNode, set: DecorationSet, pos: number, dir: -1 
   const { text } = node
   if (dir < 0) {
     for (let index = text.length - 1; index >= 0; index--) {
-      if (nativeChatBreaksUnkernedRun(text.charCodeAt(index))) {
+      const code = text.charCodeAt(index)
+      // Ending on a supplementary ideograph's low surrogate, the run starts after the pair.
+      const pairEnd =
+        isLowSurrogate(code) && nativeChatBreaksUnkernedRun(text.charCodeAt(index - 1))
+      if (pairEnd || nativeChatBreaksUnkernedRun(code)) {
         return pos - (text.length - 1 - index)
       }
     }
