@@ -6,6 +6,7 @@ import { BrowserError } from '../browser/browser-error'
 import {
   AGENT_BROWSER_BATCH_ARGS,
   agentBrowserBatchInput,
+  isAgentBrowserStaleRefError,
   parseAgentBrowserJsonOutput
 } from '../browser/agent-browser-batch-command'
 import { BROWSER_UNAVAILABLE_ERROR_CODE } from '../../shared/runtime-types'

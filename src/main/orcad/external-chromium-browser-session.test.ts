@@ -93,6 +93,26 @@ describe('orcad external-chromium agent-browser environment', () => {
     }
   )
 
+  it('reports a ref whose element is gone as stale', async () => {
+    runProcessMock.mockResolvedValue({
+      code: 1,
+      signal: null,
+      stdout: JSON.stringify({
+        success: false,
+        error:
+          'Stale ref for role=button name=Approve cannot be recovered: several elements now match.'
+      }),
+      stderr: '',
+      timedOut: false
+    })
+    const session = new ExternalChromiumBrowserSession(
+      '/opt/orca/agent-browser',
+      { executablePath: BASE.executablePath, provider: 'chromium' },
+      '/state'
+    )
+    await expect(session.run(['click', '@e2'])).rejects.toMatchObject({ code: 'browser_stale_ref' })
+  })
+
   it('never bounds the daemon that owns the Chromium tree', () => {
     const env = externalChromiumAgentBrowserEnvironment({ inheritedEnv: {}, ...BASE })
 
