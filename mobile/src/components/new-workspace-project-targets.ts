@@ -5,11 +5,13 @@ import {
 } from '../../../src/shared/project-section-grouping'
 import type { ProjectGroupingSettings } from '../../../src/shared/project-grouping'
 import { withLegacyProjectGroupKeys } from '../../../src/shared/project-section-legacy-grouping'
-import { projectHostSetupProjectionFromRepos } from '../../../src/shared/project-host-setup-projection'
+import {
+  projectHostSetupProjectionFromRepos,
+  getProjectProviderIdentity
+} from '../../../src/shared/project-host-setup-projection'
 import type { ServedProjectSections } from '../worktree/project-sections-operations'
 import type { Repo } from '../../../src/shared/repo-types'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../src/shared/execution-host'
-import { getProjectProviderIdentity } from '../../../src/shared/project-host-setup-projection'
 import { getHostContextLabel } from '../../../src/shared/worktree/host-context-labels'
 
 type WorkspaceRepo = Pick<Repo, 'id' | 'displayName' | 'path'> &

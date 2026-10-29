@@ -68,17 +68,15 @@ import {
     'builds membership once for a %i-thread Activity pass, retaining qualified scope',
     (count) => {
       let reads = 0
-      const filters = new Proxy(
-        Array.from({ length: count }, (_, i) => `runtime:server\0repo-${i}`),
-        {
-          get(array, key) {
-            if (typeof key === 'string' && /^\d+$/.test(key)) {
-              reads++
-            }
-            return Reflect.get(array, key)
+      const filters = Array.from({ length: count }, (_, i) => `runtime:server\0repo-${i}`)
+      for (const [index, value] of filters.entries()) {
+        Object.defineProperty(filters, index, {
+          get() {
+            reads++
+            return value
           }
-        }
-      )
+        })
+      }
       const threads = Array.from({ length: count }, (_, i) =>
         makeThread({
           repo: { ...makeRepo(), id: `repo-${i}` },
