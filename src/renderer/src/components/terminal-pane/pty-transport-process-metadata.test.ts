@@ -79,15 +79,29 @@ describe('IPC process description lifetime', () => {
     let rowReads = 0
     let inventory = rows
     window.api.pty.listSessions = vi.fn(async () =>
-      inventory.map(
-        (row) =>
-          new Proxy(row, {
-            get(target, key, receiver) {
-              rowReads++
-              return Reflect.get(target, key, receiver)
-            }
-          })
-      )
+      inventory.map((row): PtyListedSession => ({
+        ...row,
+        get id() {
+          rowReads++
+          return row.id
+        },
+        get incarnationId() {
+          rowReads++
+          return row.incarnationId
+        },
+        get shellPath() {
+          rowReads++
+          return row.shellPath
+        },
+        get wslDistro() {
+          rowReads++
+          return row.wslDistro
+        },
+        get exiting() {
+          rowReads++
+          return row.exiting
+        }
+      }))
     )
     const assign = Object.assign
     const maps = new WeakSet<object>([retained])
