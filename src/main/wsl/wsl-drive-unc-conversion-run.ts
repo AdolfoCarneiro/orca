@@ -24,7 +24,11 @@ import {
   type WslDriveProjectDeps
 } from './wsl-drive-project-windows-git'
 import { WslDriveUncKeyCollisionError } from './wsl-drive-unc-identity-rewrite'
-import { collectWslDriveUncScope, wslUncDrivePathToWindows } from './wsl-drive-unc-project-scope'
+import {
+  collectWslDriveUncScope,
+  withNestedWslDriveUncProjects,
+  wslUncDrivePathToWindows
+} from './wsl-drive-unc-project-scope'
 import { rewriteWslDriveUncState } from './wsl-drive-unc-state-rewrite'
 import type { WindowsDriveMount } from '../runtime/wsl-guest-drive-mountinfo'
 
@@ -138,7 +142,10 @@ function checkScope(
   if (repoIds.length + folderWorkspaceIds.length === 0 && blockers.length === 0) {
     blockers.push({ kind: 'not-convertible', id: '', reason: 'not-in-scope' })
   }
-  return blockers.length > 0 ? { blockers } : { repoIds, folderWorkspaceIds }
+  // Bare paths are re-keyed by folder, so a nested project's rows would move without its ids.
+  return blockers.length > 0
+    ? { blockers }
+    : withNestedWslDriveUncProjects(state, scope, request.distro, { repoIds, folderWorkspaceIds })
 }
 
 /** Windows Git runs in the drive path, which is the same folder the distro shows. */

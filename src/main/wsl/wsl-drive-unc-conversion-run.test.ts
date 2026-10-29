@@ -93,6 +93,24 @@ describe('startWslDriveUncConversion', () => {
     expect(run.restart).toHaveBeenCalledOnce()
   })
 
+  it('converts a nested project with its parent, since its path moves with the parent', async () => {
+    const nested = `${UNC}\\nested`
+    const value = state()
+    value.repos.push({ id: 'repo-b', path: nested, displayName: 'b', badgeColor: '', addedAt: 0 })
+    value.projects.push({ ...value.projects[0], id: 'repo-b', sourceRepoIds: ['repo-b'] })
+    const run = deps({ readProfileState: async () => value })
+    expect(await startWslDriveUncConversion(run, REQUEST)).toMatchObject({ outcome: 'restarting' })
+    expect(listWslDriveUncConversions(root)).toEqual([
+      expect.objectContaining({
+        repoIds: ['repo-a', 'repo-b'],
+        worktreeIds: [
+          [`repo-a::${UNC}`, `repo-a::${DRIVE}`],
+          [`repo-b::${nested}`, `repo-b::${DRIVE}\\nested`]
+        ]
+      })
+    ])
+  })
+
   it('refuses, pausing nothing, when the distro does not show /mnt/c as drive C:', async () => {
     for (const mounts of [null, [{ mountPoint: '/mnt/c', windowsRoot: null }]]) {
       const run = deps({ readDriveMounts: async () => mounts })
