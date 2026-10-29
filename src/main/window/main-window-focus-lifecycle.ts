@@ -115,7 +115,7 @@ export function installMainWindowFocusLifecycle(args: {
     }
   }
   ipcMain.on(plainTextContextMenuTargetChannel, onPlainTextContextMenuTarget)
-  const editableContextMenuPopup = createEditableContextMenuPopup(mainWindow)
+  const editableContextMenuPopup = createEditableContextMenuPopup(mainWindow, rendererWebContents)
   const onMainContextMenu = (_event: Electron.Event, params: Electron.ContextMenuParams): void => {
     const tableTarget = matchingRichMarkdownContextMenuTableTarget(
       params,
