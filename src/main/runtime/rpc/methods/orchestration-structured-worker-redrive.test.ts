@@ -285,6 +285,7 @@ it.each([100, 1000])(
       coordinatorHandle: identity.handle,
       coordinatorPaneKey: identity.paneKey
     })
+    const transport = await mailCheckTransport(state.runtime)
     const debtSelections = vi.spyOn(MailDebts.prototype, 'select')
     for (let n = 0; n < 10; n++) {
       expect(
@@ -299,16 +300,25 @@ it.each([100, 1000])(
         )
       ).toMatchObject({ messages: [], count: 0 })
       expect(
-        await harness.call(
-          'orchestration.check',
-          {
-            terminal: identity.handle,
-            run: coordinatorRun.id,
-            peek: true,
-            types: 'question'
-          },
-          state.ctx
-        )
+        n === 0
+          ? await transport.cli(
+              new Map<string, string | boolean>([
+                ['terminal', identity.handle],
+                ['run', coordinatorRun.id],
+                ['peek', true],
+                ['types', 'question']
+              ])
+            )
+          : await harness.call(
+              'orchestration.check',
+              {
+                terminal: identity.handle,
+                run: coordinatorRun.id,
+                peek: true,
+                types: 'question'
+              },
+              state.ctx
+            )
       ).toMatchObject({ runId: coordinatorRun.id, messages: [], count: 0 })
     }
     expect(attempts).toHaveBeenCalledTimes(count)
