@@ -40,6 +40,28 @@ function blocksAroundLists(element: Element): string {
   return blocks.filter(Boolean).join('\n\n')
 }
 
+function headingCodeMarkdown(element: Element): string {
+  const prefix = '#'.repeat(Number(element.tagName.slice(1)))
+  const blocks: string[] = []
+  let inline = ''
+  const flushInline = () => {
+    if (inline.trim()) {
+      blocks.push(`${prefix} ${inline.trim()}`)
+    }
+    inline = ''
+  }
+  for (const child of Array.from(element.childNodes)) {
+    if (child instanceof Element && child.tagName.toLowerCase() === 'pre') {
+      flushInline()
+      blocks.push(blockMarkdown(child))
+    } else {
+      inline += inlineMarkdown(child)
+    }
+  }
+  flushInline()
+  return blocks.join('\n\n')
+}
+
 // Unknown block elements serialize inline content so browser-created tags cannot lose user text.
 export function blockMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -50,6 +72,11 @@ export function blockMarkdown(node: Node): string {
   }
   const tag = node.tagName.toLowerCase()
   if (/^h[1-6]$/.test(tag)) {
+    for (let index = 0; index < node.children.length; index += 1) {
+      if (node.children.item(index)?.tagName.toLowerCase() === 'pre') {
+        return headingCodeMarkdown(node)
+      }
+    }
     return `${'#'.repeat(Number(tag.slice(1)))} ${inlineChildren(node).trim()}`
   }
   if (tag === 'p' || tag === 'div') {
