@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type * as BrowserFocusModule from '@/components/browser-pane/host-guest/browser-focus'
 import { requestBrowserFocus } from '@/components/browser-pane/host-guest/browser-focus'
@@ -119,7 +120,7 @@ describe('browser link placement and exact page activation', () => {
   it('prefers the focused visible browser, otherwise the most recently focused one', async () => {
     const left = browser('b', 'https://left.example/')
     const right = browser('c', 'https://right.example/')
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       unifiedTabsByWorktree: {
         [WORKSPACE]: state.unifiedTabsByWorktree[WORKSPACE]!.map((tab) => ({
           ...tab,
@@ -146,7 +147,7 @@ describe('browser link placement and exact page activation', () => {
     expect(
       selectBrowserLinkDestination(store.getState(), destination, context().linkIntent)
     ).toMatchObject({ groupId: 'c' })
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       unifiedTabsByWorktree: {
         [WORKSPACE]: state.unifiedTabsByWorktree[WORKSPACE]!.map((tab) => ({
           ...tab,
@@ -439,7 +440,7 @@ describe('existing open routes with link intent', () => {
   it('refuses a source owner that changed while HTTP routing was pending', async () => {
     const captured = context()
     const host = 'ssh:changed-owner'
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         executionHostId: host,

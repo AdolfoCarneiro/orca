@@ -131,6 +131,7 @@ function applyHostSnapshot(
   vi.setSystemTime(now)
   const state = store.getState()
   const patch = applyFreshWebSessionTabsSnapshot(state, snapshot, ENV, now)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
   setSessionTestState(store, patch as Partial<AppState>)
   return patch !== state
 }

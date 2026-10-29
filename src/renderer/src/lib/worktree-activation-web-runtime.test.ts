@@ -362,6 +362,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
   })
 
   it('does not create a fallback while a backend startup terminal awaits mirroring', () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This getKnownWorktreeById fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, {
       getKnownWorktreeById: ((id: string) =>
         id === 'wt-1'

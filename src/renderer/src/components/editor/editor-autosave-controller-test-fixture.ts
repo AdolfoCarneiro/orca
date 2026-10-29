@@ -120,7 +120,7 @@ export function createEditorStore() {
           editorAutoSaveDelayMs: 1000
         },
         ...createEditorSlice(...args)
-      }) as AppState,
+      }) as unknown as AppState,
     true
   )
   return createStore<AppState>()(create)

@@ -40,7 +40,7 @@ beforeEach(() => {
     })
     return { surface: { kind: 'host-published' }, pasteDraftAfterLaunch: false }
   })
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     settings: getDefaultSettings('/test'),
     repos: [{ id: 'repo-1', path: '/repo', displayName: 'Repo', badgeColor: '', addedAt: 0 }],
     worktreesByRepo: {

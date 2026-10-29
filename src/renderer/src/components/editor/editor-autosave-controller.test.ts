@@ -70,7 +70,7 @@ function createEditorStore() {
           sshConnectionStates: new Map(),
           sshStateByEnvironment: new Map(),
           ...createEditorSlice(...args)
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }

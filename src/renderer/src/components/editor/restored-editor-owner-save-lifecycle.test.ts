@@ -168,7 +168,7 @@ describe('restored editor owner save lifecycle', () => {
       null
     )
     await Promise.resolve()
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       worktreesByRepo: { ...state.worktreesByRepo, 'repo-b': [] }
     }))
 
@@ -211,7 +211,7 @@ describe('restored editor owner save lifecycle', () => {
       null
     )
     await Promise.resolve()
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       folderWorkspaces: state.folderWorkspaces.map((workspace) => ({
         ...workspace,
         folderPath: '/renamed-notes'
@@ -230,7 +230,7 @@ describe('restored editor owner save lifecycle', () => {
 
   it('fails closed when direct-SSH authority reconnects during save quiescence', async () => {
     const oldId = seed()
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       repos: state.repos.map((repo) =>
         repo.id === 'repo-b'
           ? { ...repo, connectionId: 'ssh-1', executionHostId: 'ssh:ssh-1' }

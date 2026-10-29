@@ -20,7 +20,7 @@ export function createRuntimeDetectedAgentsPairingTestStore() {
           clearClientHostedBrowserCloseIntents: () => {
             throw new Error('Agent-detection pairing must not replay browser close intents')
           }
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }

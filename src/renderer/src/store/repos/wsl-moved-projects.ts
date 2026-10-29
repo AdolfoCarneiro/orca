@@ -33,7 +33,9 @@ export async function fetchWslMovedProjects(
   try {
     const projects = await list()
     set((state) =>
-      sameMovedProjects(state.wslMovedProjects, projects) ? state : { wslMovedProjects: projects }
+      sameMovedProjects(state.wslMovedProjects, projects)
+        ? undefined
+        : { wslMovedProjects: projects }
     )
   } catch (error) {
     // Without the list the moved chats stay hidden, as before this entry existed; nothing breaks.

@@ -39,7 +39,7 @@ function makeStore(settings: AppState['settings'] = null) {
   >()((...args) => ({
     settings,
     repos: [{ id: 'repo-1', path: '/repo', connectionId: null } as AppState['repos'][number]],
-    ...createHostedReviewSlice(...(args as Parameters<typeof createHostedReviewSlice>))
+    ...createHostedReviewSlice(...(args as unknown as Parameters<typeof createHostedReviewSlice>))
   }))
 }
 

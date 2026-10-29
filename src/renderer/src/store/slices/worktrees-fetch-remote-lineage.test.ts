@@ -328,6 +328,7 @@ describe('fetchWorktrees', () => {
     const createdWorkspace = makeWorkspaceLineage({
       childWorkspaceKey: worktreeWorkspaceKey(worktree.id)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreeLineageById, workspaceLineageByChildKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreeLineageById: { [created.worktreeId]: created },
       workspaceLineageByChildKey: { [createdWorkspace.childWorkspaceKey]: createdWorkspace }
@@ -402,6 +403,7 @@ describe('fetchWorktrees', () => {
       childWorkspaceKey: childKey,
       parentWorkspaceKey: worktreeWorkspaceKey('repo1::/remote/new-parent')
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreeLineageById, workspaceLineageByChildKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreeLineageById: { [reassigned.worktreeId]: reassigned },
       workspaceLineageByChildKey: { [childKey]: reassignedWorkspace }
@@ -460,6 +462,7 @@ describe('fetchWorktrees', () => {
     })
 
     const pending = store.getState().fetchWorktreeLineage({ executionHostId: 'runtime:env-1' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreeLineageById, workspaceLineageByChildKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreeLineageById: {},
       workspaceLineageByChildKey: {}

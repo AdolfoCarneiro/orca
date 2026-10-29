@@ -92,6 +92,7 @@ function applyHostSnapshot(
   if (patch === state) {
     return false
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
   setSessionTestState(store, patch as Partial<AppState>)
   return true
 }

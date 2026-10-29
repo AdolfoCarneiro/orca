@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type * as BrowserFocusModule from '@/components/browser-pane/host-guest/browser-focus'
@@ -38,7 +39,7 @@ beforeEach(() => {
     activeView: 'activity',
     settings: { ...getDefaultSettings('/home/test'), openLinksInApp: true }
   })
-  setSessionTestState(useAppStore, (state) => ({
+  setSessionTestState(useAppStore, (state): Partial<AppState> => ({
     worktreesByRepo: {
       repo1: [
         ...state.worktreesByRepo.repo1!,
@@ -385,7 +386,7 @@ it.each([
     for (const path of ['legacy', 'preview'] as const) {
       useAppStore.setState({ createBrowserTab: useAppStore.getInitialState().createBrowserTab })
       seedBrowserLinkTestStore(useAppStore)
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         activeWorkspaceExecutionHostId: hostId,
         worktreesByRepo: {
           repo1: [makeWorktree({ id: WORKSPACE, repoId: 'repo1', path: '/repo', hostId })]

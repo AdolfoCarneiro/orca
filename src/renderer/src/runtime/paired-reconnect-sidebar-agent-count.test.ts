@@ -168,6 +168,7 @@ function applyHostSnapshot(
   const state = store.getState()
   const patch = applyFreshWebSessionTabsSnapshot(state, snapshot, ENV, now)
   expect(patch, 'host snapshot must pass the freshness gate').not.toBe(state)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
   setSessionTestState(store, patch as Partial<AppState>)
 }
 

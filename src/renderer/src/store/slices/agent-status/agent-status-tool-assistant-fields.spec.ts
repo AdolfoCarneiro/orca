@@ -93,6 +93,7 @@ export function registerAgentStatusToolAssistantFieldsTests(): void {
       vi.useFakeTimers()
       const store = createTestStore()
       const setGeneratedTabTitleFromAgentPrompt = vi.fn()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, setGeneratedTabTitleFromAgentPrompt fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         settings: { ...store.getState().settings, tabAutoGenerateTitle: true },
         setGeneratedTabTitleFromAgentPrompt

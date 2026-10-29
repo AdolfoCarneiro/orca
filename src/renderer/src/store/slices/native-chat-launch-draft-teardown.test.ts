@@ -177,8 +177,8 @@ describe('nativeChatLaunchDraftByTabId teardown', () => {
       new Set([TAB1])
     )
 
-    expect(patch.nativeChatLaunchDraftByTabId[TAB1]).toBeUndefined()
-    expect(patch.nativeChatLaunchDraftByTabId[TAB2]).toBeDefined()
+    expect(patch.nativeChatLaunchDraftByTabId?.[TAB1]).toBeUndefined()
+    expect(patch.nativeChatLaunchDraftByTabId?.[TAB2]).toBeDefined()
   })
 
   it('removing a worktree drops the unsent composer drafts of its tabs only', async () => {

@@ -15,7 +15,7 @@ function makeStore() {
     >
   >()((...args) =>
     createPinnedTabCloseConfirmSlice(
-      ...(args as Parameters<typeof createPinnedTabCloseConfirmSlice>)
+      ...(args as unknown as Parameters<typeof createPinnedTabCloseConfirmSlice>)
     )
   )
 }

@@ -160,6 +160,7 @@ describe('createSparsePresetsSlice', () => {
 
   it('saves presets per repo and sorts the repo list by name', async () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sparsePresetsByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       sparsePresetsByRepo: {
         'repo-1': [makePreset({ id: 'z', repoId: 'repo-1', name: 'Zed' })],
@@ -229,6 +230,7 @@ describe('createSparsePresetsSlice', () => {
     const store = createTestStore()
     const preset = makePreset({ id: 'preset-1', repoId: 'repo-1', name: 'Web' })
     mockApi.sparsePresets.remove.mockRejectedValueOnce(new Error('disk failed'))
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sparsePresetsByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { sparsePresetsByRepo: { 'repo-1': [preset] } } as Partial<AppState>)
 
     await expect(

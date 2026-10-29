@@ -402,7 +402,7 @@ describe('native status publication to a mounted popout', () => {
         }) satisfies StructuredTab
       const target = nativeTab('tab1', 'w1', 'claude')
       const other = nativeTab('tab2', 'w2', 'codex', 'runtime:other')
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         ...baseState(),
         tabsByWorktree: {},
         agentStatusByPaneKey: {},
@@ -591,7 +591,7 @@ describe('native status publication to a mounted popout', () => {
           return [paneKey, entry(paneKey, t.id, 'w1')]
         })
       )
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         ...baseState(),
         tabsByWorktree: { w1: tabs },
         agentStatusByPaneKey: entries,

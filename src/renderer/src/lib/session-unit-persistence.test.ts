@@ -17,7 +17,7 @@ import { editSessionSource, unwrapSessionSourceWrite } from '../store/session-so
 import { makeOpenFile } from '../store/slices/store-session-test-harness'
 import type { WorkspaceSessionPatch } from '../../../shared/workspace-session-state-types'
 
-function fixture() {
+function fixture(): AppState {
   const state = useAppStore.getState()
   const tab = (id: string, worktreeId: string) => ({
     id,
@@ -54,7 +54,8 @@ describe('keyed session persistence', () => {
     const before = { ...fixture(), openFiles: [file, file, twin], editorDrafts: {} }
     const projection = new SessionUnitProjection(before)
     const write = editSessionSource(before).set('editorDrafts', 'shared', 'new draft').finish()
-    const native = { ...before, ...write }
+    const native = { ...before, editorDrafts: { shared: 'new draft' } }
+    expect(unwrapSessionSourceWrite(write).partial.editorDrafts).toEqual(native.editorDrafts)
     const expected = buildWorkspaceSessionPatch(native, ['editorDrafts'])
     const openFiles = new Proxy(native.openFiles, {
       get: () => {
@@ -85,12 +86,13 @@ describe('keyed session persistence', () => {
     expect(projection.full(state).terminalOwners?.get('duplicate')).toBe(
       oracle.getOwner(state.tabsByWorktree, 'duplicate')
     )
-    for (const buckets of [
+    const sequence: AppState['tabsByWorktree'][] = [
       { 'repo::/a': a, 'other::/b': [...b, b[0]] },
       { 'other::/b': b, 'repo::/a': a },
       { 'other::/b': b },
       { 'other::/b': b, 'repo::/a': a }
-    ]) {
+    ]
+    for (const buckets of sequence) {
       const next = { ...state, tabsByWorktree: buckets }
       const update = projection.update(next, discoverSessionSources(state, next))
       expect(update.terminalOwners?.get('duplicate')).toBe(oracle.getOwner(buckets, 'duplicate'))

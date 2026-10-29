@@ -11,6 +11,12 @@ export * from '../session-source-fields'
 
 type SourceCollection = Readonly<Record<string, unknown>> | Map<string, unknown>
 
+function isSourceArray(
+  value: AppState[SessionSourceField]
+): value is Extract<AppState[SessionSourceField], readonly unknown[]> {
+  return Array.isArray(value)
+}
+
 function sourceKeys(value: SourceCollection): string[] {
   return value instanceof Map ? [...value.keys()] : Object.keys(value)
 }
@@ -169,8 +175,8 @@ export function discoverSessionSources(
       !after ||
       typeof before !== 'object' ||
       typeof after !== 'object' ||
-      Array.isArray(before) ||
-      Array.isArray(after) ||
+      isSourceArray(before) ||
+      isSourceArray(after) ||
       before instanceof Set ||
       after instanceof Set
     ) {

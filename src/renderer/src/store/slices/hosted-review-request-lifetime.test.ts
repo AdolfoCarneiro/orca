@@ -40,7 +40,7 @@ function makeStore(runtime = false) {
     ],
     prCache: {},
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This harness provides every state field read by the hosted-review slice.
-    ...createHostedReviewSlice(...(args as Parameters<typeof createHostedReviewSlice>))
+    ...createHostedReviewSlice(...(args as unknown as Parameters<typeof createHostedReviewSlice>))
   }))
 }
 

@@ -107,7 +107,7 @@ describe('Dashboard and retained sidebar destination contract', () => {
         createdAt: NOW,
         updatedAt: NOW
       }
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         activeWorktreeId: null,
         activeWorkspaceExecutionHostId: null,
         activeTabType: 'editor',
@@ -241,7 +241,7 @@ describe('Dashboard and retained sidebar destination contract', () => {
 
       // Keep the exact tab alive while its workspace disappears: neither entry may focus or notify it.
       cleanup()
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         worktreesByRepo: {},
         folderWorkspaces: [],
         activeWorktreeId: null,

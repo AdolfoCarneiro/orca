@@ -24,7 +24,7 @@ vi.mock('@/store', async () => {
   const { getDefaultSettings } = await import('../../../../shared/constants')
   return {
     useAppStore: create<ContextState>()(
-      withSessionSourceWrites(() => ({
+      withSessionSourceWrites<ContextState>(() => ({
         settings: getDefaultSettings('/home/test'),
         repos: [],
         projectGroups: [],

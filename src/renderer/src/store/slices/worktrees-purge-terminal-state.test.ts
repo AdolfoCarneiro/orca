@@ -37,6 +37,7 @@ describe('purgeWorktreeTerminalState direct (design §4.4)', () => {
   it('wipes tab-id-keyed maps (terminalLayoutsByTabId, ptyIdsByTabId) and clears actives', () => {
     const store = createTestStore()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, terminalLayoutsByTabId, ptyIdsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         'repoA::/a/wt1': [
@@ -155,6 +156,7 @@ describe('purgeWorktreeTerminalState direct (design §4.4)', () => {
     const before = {
       'repoA::/a/wt1': [{ id: 'tab-1', worktreeId: 'repoA::/a/wt1' }]
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { tabsByWorktree: before } as unknown as Partial<AppState>)
 
     store.getState().purgeWorktreeTerminalState([])
@@ -176,6 +178,7 @@ describe('purgeWorktreeTerminalState direct (design §4.4)', () => {
       mode: 'edit' as const
     }
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, browserTabsByWorktree, openFiles fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         [staleId]: [{ id: 'tab-1', worktreeId: staleId }],
@@ -293,6 +296,7 @@ describe('purgeWorktreeTerminalState direct (design §4.4)', () => {
       [FLOATING_TERMINAL_WORKTREE_ID]: { type: 'leaf', groupId: 'floating-group' }
     }
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, browserTabsByWorktree, openFiles fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree,
       browserTabsByWorktree,

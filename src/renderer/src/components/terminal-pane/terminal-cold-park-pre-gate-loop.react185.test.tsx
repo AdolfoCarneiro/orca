@@ -82,27 +82,22 @@ vi.mock('./terminal-parked-tab-watchers', async () => {
       if (args.parkedTabIds.size === 0) {
         return
       }
-      setSessionTestState(
-        useAppStore as unknown as {
-          setState: (update: (state: ParkingStoreState) => Partial<ParkingStoreState>) => void
+      setSessionTestState(useAppStore, (state) => ({
+        tabsByWorktree: {
+          ...state.tabsByWorktree,
+          [args.worktreeId]: state.tabsByWorktree[args.worktreeId].map((tab) => ({
+            ...tab,
+            title: `${tab.id}-${harness.syncCalls}`
+          }))
         },
-        (state) => ({
-          tabsByWorktree: {
-            ...state.tabsByWorktree,
-            [args.worktreeId]: state.tabsByWorktree[args.worktreeId].map((tab) => ({
-              ...tab,
-              title: `${tab.id}-${harness.syncCalls}`
-            }))
-          },
-          unifiedTabsByWorktree: {
-            ...state.unifiedTabsByWorktree,
-            [args.worktreeId]: state.unifiedTabsByWorktree[args.worktreeId].map((tab) => ({
-              ...tab,
-              label: `${tab.entityId}-${harness.syncCalls}`
-            }))
-          }
-        })
-      )
+        unifiedTabsByWorktree: {
+          ...state.unifiedTabsByWorktree,
+          [args.worktreeId]: state.unifiedTabsByWorktree[args.worktreeId].map((tab) => ({
+            ...tab,
+            label: `${tab.entityId}-${harness.syncCalls}`
+          }))
+        }
+      }))
     }
   }
 })

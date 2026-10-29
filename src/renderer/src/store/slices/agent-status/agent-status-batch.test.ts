@@ -658,12 +658,15 @@ describe('committed agent status changes', () => {
     expect(() =>
       store.getState().updateAgentStatusState((_state, keys) => {
         keys.add(FIRST_PANE)
-        return {
-          agentStatusByPaneKey: {},
-          get editorDrafts(): Record<string, string> {
-            throw new Error('precommit middleware')
-          }
-        }
+        return replaceSessionSourceFields<AppState>(
+          {
+            agentStatusByPaneKey: {},
+            get editorDrafts(): Record<string, string> {
+              throw new Error('precommit middleware')
+            }
+          },
+          'hydration'
+        )
       })
     ).toThrow('precommit middleware')
     expect(store.getState().agentStatusByPaneKey).toBe(before)

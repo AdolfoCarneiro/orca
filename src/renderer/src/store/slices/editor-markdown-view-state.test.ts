@@ -562,6 +562,7 @@ describe('createEditorSlice openMarkdownPreview', () => {
 
   it('uses the resolved active runtime owner when opening markdown previews', () => {
     const store = createEditorStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, openFiles fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-active' } as AppState['settings'],
       openFiles: [

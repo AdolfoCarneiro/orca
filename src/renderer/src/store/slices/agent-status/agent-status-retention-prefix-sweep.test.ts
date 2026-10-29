@@ -195,6 +195,7 @@ describe('agent status retention + prefix sweep', () => {
           terminalHandle: 'term-worker'
         }
       )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This acknowledgedAgentsByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       acknowledgedAgentsByPaneKey: { [paneKey]: Date.now() }
     } as Partial<AppState>)

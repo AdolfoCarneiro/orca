@@ -233,6 +233,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
     expect(store.getState().detectedAgentIds).toEqual(['claude'])
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: {
         terminalWindowsShell: 'wsl.exe'
@@ -546,6 +547,7 @@ describe('createDetectedAgentsSlice remote detection', () => {
 
   it('deduplicates concurrent SSH refreshes', async () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This remoteDetectedAgentIds fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       remoteDetectedAgentIds: { 'ssh-1': ['claude'] }
     } as Partial<AppState>)
@@ -838,6 +840,7 @@ describe('createDetectedAgentsSlice remote detection', () => {
 
   it('does not retry ordinary runtime refresh failures with a second RPC', async () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This runtimeDetectedAgentIds fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       runtimeDetectedAgentIds: { 'env-1': ['claude'] }
     } as Partial<AppState>)

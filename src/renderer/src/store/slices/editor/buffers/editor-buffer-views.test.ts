@@ -120,7 +120,7 @@ describe('editor buffer view index', () => {
 
   it('writes a buffer field to one tab only, as before', () => {
     const files = [tab('a'), tab('b')]
-    const state = {
+    const state: EditorBufferState = {
       openFiles: files,
       editorBuffers: {
         a: editorBufferRecordFromFile(files[0]),
@@ -140,7 +140,7 @@ describe('editor buffer view index', () => {
 
   it('writes a record and every view mirror once views share it', () => {
     const files = [tab('a'), tab('b'), tab('c')]
-    const state = {
+    const state: EditorBufferState = {
       openFiles: files,
       editorBuffers: {
         rec: editorBufferRecordFromFile(files[0]),
@@ -161,7 +161,7 @@ describe('editor buffer view index', () => {
 
   it('writes and clears drafts through every view of the record', () => {
     const store = createStore<EditorBufferState>()(
-      withSessionSourceWrites(() => ({
+      withSessionSourceWrites<EditorBufferState>(() => ({
         openFiles: [tab('a'), tab('b'), tab('c'), tab('ro', { readOnly: true })],
         editorBuffers: {},
         editorDrafts: {},

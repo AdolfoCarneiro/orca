@@ -1,3 +1,4 @@
+import { createGlobalSettingsFixture } from '../../../../../shared/global-settings-test-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -19,8 +20,6 @@ vi.mock('@/lib/worktree-runtime-owner', () => ({
 
 import { RemoteRuntimeEgressIndicator, SshEgressIndicator } from './browser-egress-indicator'
 
-type SetState = Parameters<typeof useAppStore.setState>[0]
-
 function renderIndicator(worktreeId: string): ReturnType<typeof render> {
   return render(
     <TooltipProvider>
@@ -37,13 +36,13 @@ describe('SshEgressIndicator', () => {
     priorLabels = useAppStore.getState().sshTargetLabels
     setSessionTestState(useAppStore, {
       sshTargetLabels: new Map([['target-a', 'openclaw']])
-    } as SetState)
+    })
   })
   afterEach(() => {
     setSessionTestState(useAppStore, {
       settings: priorSettings,
       sshTargetLabels: priorLabels
-    } as SetState)
+    })
     cleanup()
   })
 
@@ -64,8 +63,11 @@ describe('SshEgressIndicator', () => {
   it('shows the this-device icon when the target opted out', () => {
     mocks.executionHostId = 'ssh:target-a'
     setSessionTestState(useAppStore, {
-      settings: { ...priorSettings, browserSshWorkspaceRoutingDisabledTargetIds: ['target-a'] }
-    } as SetState)
+      settings: {
+        ...createGlobalSettingsFixture(priorSettings ?? {}),
+        browserSshWorkspaceRoutingDisabledTargetIds: ['target-a']
+      }
+    })
     renderIndicator('wt-1')
     const icon = screen.getByTestId('ssh-egress-indicator')
     expect(icon.getAttribute('data-egress')).toBe('local')
@@ -87,7 +89,7 @@ describe('SshEgressIndicator', () => {
       openSettingsTarget: useAppStore.getState().openSettingsTarget,
       openSettingsPage: useAppStore.getState().openSettingsPage
     }
-    useAppStore.setState({ openSettingsTarget, openSettingsPage } as unknown as SetState)
+    useAppStore.setState({ openSettingsTarget, openSettingsPage })
     try {
       renderIndicator('wt-1')
       fireEvent.click(screen.getByTestId('ssh-egress-indicator'))
@@ -100,7 +102,7 @@ describe('SshEgressIndicator', () => {
       })
       expect(openSettingsPage).toHaveBeenCalledTimes(1)
     } finally {
-      useAppStore.setState(prior as unknown as SetState)
+      useAppStore.setState(prior)
     }
   })
 })
@@ -111,10 +113,10 @@ describe('RemoteRuntimeEgressIndicator', () => {
     priorEnvironments = useAppStore.getState().runtimeEnvironments
     useAppStore.setState({
       runtimeEnvironments: [{ id: 'env-1', name: 'Cloud Box' }]
-    } as unknown as SetState)
+    })
   })
   afterEach(() => {
-    useAppStore.setState({ runtimeEnvironments: priorEnvironments } as unknown as SetState)
+    useAppStore.setState({ runtimeEnvironments: priorEnvironments })
     cleanup()
   })
 
@@ -141,7 +143,7 @@ describe('RemoteRuntimeEgressIndicator', () => {
   })
 
   it('falls back to the environment id when no summary is known', () => {
-    useAppStore.setState({ runtimeEnvironments: [] } as unknown as SetState)
+    useAppStore.setState({ runtimeEnvironments: [] })
     renderRemote('client-hosted')
     expect(screen.getByTestId('ssh-egress-indicator').getAttribute('aria-label')).toContain('env-1')
   })
@@ -153,7 +155,7 @@ describe('RemoteRuntimeEgressIndicator', () => {
       openSettingsTarget: useAppStore.getState().openSettingsTarget,
       openSettingsPage: useAppStore.getState().openSettingsPage
     }
-    useAppStore.setState({ openSettingsTarget, openSettingsPage } as unknown as SetState)
+    useAppStore.setState({ openSettingsTarget, openSettingsPage })
     try {
       renderRemote('client-hosted')
       fireEvent.click(screen.getByTestId('ssh-egress-indicator'))
@@ -165,7 +167,7 @@ describe('RemoteRuntimeEgressIndicator', () => {
       })
       expect(openSettingsPage).toHaveBeenCalledTimes(1)
     } finally {
-      useAppStore.setState(prior as unknown as SetState)
+      useAppStore.setState(prior)
     }
   })
 })

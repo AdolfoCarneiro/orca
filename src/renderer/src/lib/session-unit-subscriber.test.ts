@@ -9,7 +9,7 @@ import { editSessionSource } from '../store/session-source-edits'
 import type { WorkspaceSessionPatch } from '../../../shared/workspace-session-state-types'
 
 function storeFixture() {
-  const initial = {
+  const initial: AppState = {
     ...useAppStore.getState(),
     workspaceSessionReady: true,
     hydrationSucceeded: true,
@@ -20,7 +20,7 @@ function storeFixture() {
     tabsByWorktree: {},
     terminalLayoutsByTabId: {}
   }
-  const store = createStore<AppState>()(withSessionSourceWrites(() => initial, true))
+  const store = createStore<AppState>()(withSessionSourceWrites<AppState>(() => initial, true))
   return Object.assign(store, {
     edit: (value: Record<string, number>) => {
       const current = store.getState()

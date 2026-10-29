@@ -174,11 +174,10 @@ export function createProjectHostSetupActions(
         const repo = result.repo
           ? adoptFromEndpoint(target, { kind: 'repo', row: result.repo })
           : undefined
-        const repoHostId = repo ? getRepoExecutionHostId(repo) : null
         set((s) => {
           const edit = editSessionSource(s)
           if (repo) {
-            upsertRepo(edit, repo, repoHostId)
+            upsertRepo(edit, repo, getRepoExecutionHostId(repo))
           }
           return edit.finish({
             projects: s.projects.some((entry) => entry.id === project.id)

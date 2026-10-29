@@ -6,7 +6,8 @@ import type { GitHubAssignableUser } from '../../../../shared/github/pull-reques
 
 function makeStore() {
   return create<Pick<AppState, 'newIssueDraft' | 'setNewIssueDraft' | 'clearNewIssueDraft'>>()(
-    (...args) => createNewIssueDraftSlice(...(args as Parameters<typeof createNewIssueDraftSlice>))
+    (...args) =>
+      createNewIssueDraftSlice(...(args as unknown as Parameters<typeof createNewIssueDraftSlice>))
   )
 }
 

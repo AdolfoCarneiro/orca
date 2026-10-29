@@ -298,9 +298,6 @@ export class SessionUnitIndex {
   candidate(): SessionUnitIndex {
     return new SessionUnitIndex(
       {
-        activeRepoId: null,
-        activeWorktreeId: null,
-        activeTabId: null,
         tabsByWorktree: {},
         terminalLayoutsByTabId: {}
       },

@@ -150,6 +150,7 @@ describe('hosted review slice', () => {
   it('clears stale GitHub PR cache when branch review lookup finds a non-GitHub review', async () => {
     mockApi.hostedReview.forBranch.mockResolvedValueOnce(review)
     const store = makeStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This prCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       prCache: {
         'repo-1::feature/gitlab': {

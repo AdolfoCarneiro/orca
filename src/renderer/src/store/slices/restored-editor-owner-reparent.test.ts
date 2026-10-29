@@ -129,7 +129,7 @@ describe('restored editor owner reparent', () => {
     state.setEditorViewMode(oldId, 'changes')
     state.setMarkdownFrontmatterVisible(oldId, false)
     state.setMarkdownTableOfContentsVisible(oldId, true)
-    setSessionTestState(useAppStore, (current) => ({
+    setSessionTestState(useAppStore, (current): Partial<AppState> => ({
       pendingEditorReveal: {
         fileId: oldId,
         filePath: FILE_PATH,
@@ -367,7 +367,7 @@ describe('restored editor owner reparent', () => {
     const keptTab = useAppStore
       .getState()
       .unifiedTabsByWorktree[TARGET]!.find((tab) => tab.entityId === keptFileId)!
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       unifiedTabsByWorktree: {
         ...state.unifiedTabsByWorktree,
         [TARGET]: [
@@ -518,7 +518,7 @@ describe('restored editor owner reparent', () => {
       id: 'stale-target-tab',
       entityId: 'stale-target-file'
     }
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       activeWorktreeId: SOURCE,
       activeFileId: sourceId,
       unifiedTabsByWorktree: {
@@ -684,7 +684,7 @@ describe('restored editor owner reparent', () => {
   })
 
   it('captures exact direct-SSH host and connection-generation authority', () => {
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         connectionId: 'ssh-1',

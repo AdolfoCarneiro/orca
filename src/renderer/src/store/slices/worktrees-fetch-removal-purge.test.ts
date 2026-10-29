@@ -57,6 +57,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([surviving])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch, rightSidebarTabByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       sortEpoch: 7,
@@ -80,7 +81,7 @@ describe('fetchWorktrees', () => {
       stateHistory: [],
       terminalResumeEligible: false as const
     }
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         [removed.id]: [
           {
@@ -125,6 +126,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([surviving])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch, rightSidebarTabByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       sortEpoch: 7,
@@ -144,6 +146,7 @@ describe('fetchWorktrees', () => {
     expect(store.getState().rightSidebarTabByWorktree).toEqual({ [surviving.id]: 'pr-checks' })
 
     // A shape-valid plugin panel tab also survives the purge.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This rightSidebarTabByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       rightSidebarTabByWorktree: {
         [surviving.id]: 'plugin:orca-samples.my-plugin/dashboard' as never
@@ -169,6 +172,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([surviving])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] }
     } as Partial<AppState>)
@@ -206,6 +210,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected
       .mockResolvedValueOnce(previousDetected)
       .mockResolvedValueOnce(makeDetectedResult('repo1', [visible]))
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [visible] },
       detectedWorktreesByRepo: { repo1: previousDetected },
@@ -265,6 +270,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult('repo1', [surviving]))
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -324,6 +330,7 @@ describe('fetchWorktrees', () => {
       .mockResolvedValueOnce(hiddenDetected)
       .mockResolvedValueOnce(makeDetectedResult('repo1', [visible]))
       .mockResolvedValueOnce(recreatedDetected)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, hasHydratedWorktreePurge, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -349,6 +356,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult(args.repoId, []))
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, hasHydratedWorktreePurge fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -396,6 +404,7 @@ describe('fetchWorktrees', () => {
     mockApi.worktrees.listDetected.mockImplementationOnce(async (args) =>
       qualifyDetectedResult(args, makeDetectedResult('repo1', [surviving]))
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo, tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: {
@@ -450,6 +459,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch, rightSidebarTabByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [missingFromFallback, fallback] },
       sortEpoch: 7,
@@ -487,6 +497,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch, rightSidebarTabByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7,
@@ -505,6 +516,7 @@ describe('fetchWorktrees', () => {
     const store = createTestStore()
 
     worktreeListMock.mockResolvedValue([])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: {}, sortEpoch: 7 } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')

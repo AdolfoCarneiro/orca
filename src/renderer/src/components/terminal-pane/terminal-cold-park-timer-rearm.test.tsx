@@ -59,9 +59,7 @@ const TICK_MS = 10_000
 
 type ParkingStoreState = { tabsByWorktree: Record<string, TerminalTab[]> }
 
-const parkingStore = useAppStore as unknown as {
-  setState: (partial: (state: ParkingStoreState) => Partial<ParkingStoreState>) => void
-}
+const parkingStore = useAppStore
 
 function terminalTab(id: string): TerminalTab {
   return { id, ptyId: `${park.worktreeId}@@session-${id}`, title: id } as TerminalTab

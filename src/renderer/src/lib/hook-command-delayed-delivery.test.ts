@@ -12,6 +12,7 @@ const initialTabsByWorktree = useAppStore.getState().tabsByWorktree
 const initialGetKnownWorktreeById = useAppStore.getState().getKnownWorktreeById
 
 function setStorePartial(partial: Record<string, unknown>): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
   setSessionTestState(useAppStore, partial as Partial<AppState>)
 }
 

@@ -92,6 +92,7 @@ describe('tab-move-to-pane-column', () => {
 
   it('creates a sibling split pane via dropUnifiedTab', () => {
     const dropUnifiedTab = vi.fn(() => true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This dropUnifiedTab fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
       ReturnType<typeof useAppStore.getState>
     >)
@@ -114,6 +115,7 @@ describe('tab-move-to-pane-column', () => {
 
   it('does not mirror when the local store rejects the move', () => {
     const dropUnifiedTab = vi.fn(() => false)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This dropUnifiedTab fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
       ReturnType<typeof useAppStore.getState>
     >)

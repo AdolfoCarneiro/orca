@@ -212,6 +212,7 @@ export function attachHostSessionShadow(
   if (!shadow) {
     return
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: shadow is keyed by ExecutionHostId; Object.entries preserves those keys and their optional session slices.
   for (const [hostId, shadowSlice] of Object.entries(shadow) as [
     ExecutionHostId,
     Partial<WorkspaceSessionState> | undefined

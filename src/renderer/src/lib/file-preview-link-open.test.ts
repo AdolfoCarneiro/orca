@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type * as BrowserFocusModule from '@/components/browser-pane/host-guest/browser-focus'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -66,7 +67,7 @@ it.each([
 ] as const)(
   'opens a detected-only workspace preview beside its retained source on %s (selected twin: %s)',
   async (host, selectedTwin) => {
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         connectionId: host === 'local' ? null : 'detected-owner',
@@ -135,7 +136,7 @@ it.each([
 )
 
 it('refuses a detected preview whose owner changed despite a retained active host selection', async () => {
-  setSessionTestState(store, (state) => ({
+  setSessionTestState(store, (state): Partial<AppState> => ({
     worktreesByRepo: {},
     detectedWorktreesByRepo: {
       repo1: detectedListingFixture(state.worktreesByRepo.repo1!)
@@ -169,7 +170,7 @@ it('refuses a detected preview whose owner changed despite a retained active hos
 
 it('SSH document links reuse the source page and its grant without a website-browser capability', async () => {
   const host = 'ssh:ssh-test'
-  setSessionTestState(store, (state) => ({
+  setSessionTestState(store, (state): Partial<AppState> => ({
     repos: state.repos.map((repo) => ({
       ...repo,
       connectionId: 'ssh-test',
@@ -333,7 +334,7 @@ it.each([false, true])(
       explicitSourceGroup: explicit
     })
     const host = 'ssh:changed-owner'
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         connectionId: 'changed-owner',
@@ -368,7 +369,7 @@ it.each([true, false])(
     const destination = 'repo2::/other'
     const host = 'ssh:file-owner'
     const linkIntent = captureLinkOpenIntent(store.getState(), WORKSPACE, 'source')
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       repos: [
         ...state.repos,
         { ...TEST_REPO, id: 'repo2', connectionId: 'file-owner', executionHostId: host }
@@ -408,7 +409,7 @@ it.each([true, false])(
 
 it('keeps deliberate client-local HTML discovery from a remote source available', async () => {
   const host = 'ssh:remote-source'
-  setSessionTestState(store, (state) => ({
+  setSessionTestState(store, (state): Partial<AppState> => ({
     repos: state.repos.map((repo) => ({
       ...repo,
       connectionId: 'remote-source',

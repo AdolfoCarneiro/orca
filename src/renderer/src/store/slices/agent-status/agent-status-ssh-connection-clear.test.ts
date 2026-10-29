@@ -52,6 +52,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
         { updatedAt: 6 },
         { connectionId: null }
       )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentLaunchConfigByPaneKey, acknowledgedAgentsByPaneKey, retentionSuppressedPaneKeys fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       agentLaunchConfigByPaneKey: {
         [oldA]: {
@@ -87,6 +88,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
     // Resolve unstamped SSH status by owning worktree or relay restart leaves unclickable rows fresh for 30m (#9030).
     vi.useFakeTimers()
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -157,6 +159,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
     // Repo IDs/buckets collide across hosts; resolve worktree ownership before clearing (#9030).
     vi.useFakeTimers()
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -215,6 +218,7 @@ describe('agent status cleanup for a lost SSH connection', () => {
     // repoId::path collides across hosts: explicit other-host stamps win, unstamped collided rows stay ambiguous and must survive (#9030).
     vi.useFakeTimers()
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {

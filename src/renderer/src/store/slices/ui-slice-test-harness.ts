@@ -30,7 +30,7 @@ export function createUIStore() {
           ...createSettingsSearchState(args[0]),
           ...createWorktreeNavHistorySlice(...args),
           ...createUISlice(...args)
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }

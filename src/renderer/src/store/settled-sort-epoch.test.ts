@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from './index'
@@ -74,13 +75,13 @@ describe('settledSortEpoch', () => {
   })
 
   it('ignores archived rows when detecting adds and removes', () => {
-    setSessionTestState(useAppStore, (s) => ({
+    setSessionTestState(useAppStore, (s): Partial<AppState> => ({
       sortBy: 'recent',
       worktreesByRepo: { 'repo-1': [makeWorktree('a', 'A')] },
       sortEpoch: s.sortEpoch + 1
     }))
     expect(settled()).toBe(true)
-    setSessionTestState(useAppStore, (s) => ({
+    setSessionTestState(useAppStore, (s): Partial<AppState> => ({
       worktreesByRepo: {
         'repo-1': [makeWorktree('a', 'A'), makeWorktree('b', 'B', { isArchived: true })]
       },

@@ -44,6 +44,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: {

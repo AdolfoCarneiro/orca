@@ -15,23 +15,11 @@ import {
   type WorktreeNavHistorySimpleViewEntry
 } from './worktree-nav-history'
 
-type MinimalState = Pick<
-  AppState,
-  | 'worktreeNavHistory'
-  | 'worktreeNavHistoryIndex'
-  | 'isNavigatingHistory'
-  | 'recordWorktreeVisit'
-  | 'recordViewVisit'
-  | 'goBackWorktree'
-  | 'goForwardWorktree'
-  | 'worktreesByRepo'
->
-
 function makeWorktree(id: string): Worktree {
   return { id } as unknown as Worktree
 }
 
-function createHistoryStore(worktreeIds: string[] = []): StoreApi<MinimalState> {
+function createHistoryStore(worktreeIds: string[] = []) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   return createStore<AppState>()(
@@ -49,7 +37,7 @@ function createHistoryStore(worktreeIds: string[] = []): StoreApi<MinimalState> 
           )
         }) as AppState
     )
-  ) as unknown as StoreApi<MinimalState>
+  )
 }
 
 const viewCases: { entry: WorktreeNavHistorySimpleViewEntry; label: string }[] = [

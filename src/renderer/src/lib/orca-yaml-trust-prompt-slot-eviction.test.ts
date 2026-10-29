@@ -20,6 +20,7 @@ function createStateBackedByRealModalSlot(): {
   state: AppState
 } {
   const store = createUIStore()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, trustedOrcaHooks fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     repos: [{ id: 'repo-1', displayName: 'Repo One' }],
     trustedOrcaHooks: {}

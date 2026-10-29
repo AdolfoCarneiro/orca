@@ -57,6 +57,7 @@ describe('createWorktree base status merge', () => {
 
   it('prefetches create base through runtime RPC for remote runtime targets', async () => {
     const store = createRepoTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'remote-runtime' }
     } as Partial<AppState>)
@@ -296,6 +297,7 @@ describe('createWorktree base status merge', () => {
       parentWorkspaceKey: folderWorkspaceKey('folder-1'),
       capture: { source: 'active-workspace', confidence: 'explicit' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorkspaceKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       activeWorkspaceKey: folderWorkspaceKey('folder-1')
     } as Partial<AppState>)
@@ -617,6 +619,7 @@ describe('createWorktree base status merge', () => {
 
   it('persists the dismissal flag when the suggestion toast is closed or swiped', async () => {
     const store = createRepoTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, updateSettings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { refreshLocalBaseRefOnWorktreeCreate: false } as AppState['settings'],
       updateSettings: vi.fn().mockResolvedValue(undefined)
@@ -643,6 +646,7 @@ describe('createWorktree base status merge', () => {
 
   it('does not record a dismissal on close when the feature is already enabled', async () => {
     const store = createRepoTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, updateSettings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { refreshLocalBaseRefOnWorktreeCreate: true } as AppState['settings'],
       updateSettings: vi.fn().mockResolvedValue(undefined)
@@ -669,6 +673,7 @@ describe('createWorktree base status merge', () => {
 
   it('stamps manualOrder on create while Manual sort is active', async () => {
     const store = createRepoTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sortBy fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { sortBy: 'manual' } as Partial<AppState>)
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(123_456)
     const wt = makeWorktree({

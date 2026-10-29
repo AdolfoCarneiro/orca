@@ -16,20 +16,22 @@ type ReadyToast = {
   onAutoClose: () => void
 }
 
+type ReadyToastState = {
+  repos: Pick<Repo, 'id' | 'kind'>[]
+  activeView: 'terminal' | 'tasks'
+  activeWorktreeId: string | null
+  activePendingCreationId: string | null
+  activeWorkspaceExecutionHostId: ExecutionHostId | null
+  worktreesByRepo: Record<string, Pick<Worktree, 'id' | 'repoId' | 'hostId'>[]>
+  settings: { activeRuntimeEnvironmentId: string | null }
+}
+
 const { toasts, store } = await vi.hoisted(async () => {
   const { createStore } = await import('zustand/vanilla')
   const { withSessionSourceWrites } = await import('@/store/session-source-write-boundary')
   const toasts: ReadyToast[] = []
-  const store = createStore<{
-    repos: Pick<Repo, 'id' | 'kind'>[]
-    activeView: 'terminal' | 'tasks'
-    activeWorktreeId: string | null
-    activePendingCreationId: string | null
-    activeWorkspaceExecutionHostId: ExecutionHostId | null
-    worktreesByRepo: Record<string, Pick<Worktree, 'id' | 'repoId' | 'hostId'>[]>
-    settings: { activeRuntimeEnvironmentId: string | null }
-  }>()(
-    withSessionSourceWrites(() => ({
+  const store = createStore<ReadyToastState>()(
+    withSessionSourceWrites<ReadyToastState>(() => ({
       repos: [],
       activeView: 'terminal',
       activeWorktreeId: null,

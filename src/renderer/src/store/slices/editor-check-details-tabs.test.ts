@@ -68,7 +68,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
             worktreesByRepo: { 'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: '/repo' }] },
             fetchPRCheckDetails,
             ...createEditorSlice(...args)
-          }) as AppState
+          }) as unknown as AppState
       )
     )
     const check = {
@@ -122,7 +122,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
             worktreesByRepo: {},
             fetchPRCheckDetails,
             ...createEditorSlice(...args)
-          }) as AppState
+          }) as unknown as AppState
       )
     )
     const check = {
@@ -194,7 +194,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
             settings: { activeRuntimeEnvironmentId: null },
             fetchPRCheckDetails,
             ...createEditorSlice(...args)
-          }) as AppState
+          }) as unknown as AppState
       )
     )
     const check = {
@@ -247,7 +247,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
             settings: { activeRuntimeEnvironmentId: null },
             fetchPRCheckDetails: vi.fn().mockResolvedValue(null),
             ...createEditorSlice(...args)
-          }) as AppState
+          }) as unknown as AppState
       )
     )
     const check = {

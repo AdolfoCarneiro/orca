@@ -234,7 +234,7 @@ describe('STA-4343 sidebar delete: the confirmed row decides the host', () => {
     )
     const store = createTestStore()
     storeRef.current = store
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo1',

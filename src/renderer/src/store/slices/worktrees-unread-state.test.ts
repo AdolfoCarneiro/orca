@@ -40,6 +40,7 @@ describe('worktree unread (show-until-interact)', () => {
   it('marking sets isUnread even when the worktree is active', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, activeWorktreeId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id
@@ -70,6 +71,7 @@ describe('worktree unread (show-until-interact)', () => {
       path: '/home/user/wt',
       hostId: 'ssh:ssh-1'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         { id: 'repo-shared', path: '/local', displayName: 'Local', badgeColor: '#000', addedAt: 0 },
@@ -106,6 +108,7 @@ describe('worktree unread (show-until-interact)', () => {
   it('keeps unread state local instead of throwing for genuinely ambiguous owners (#10634)', () => {
     const store = createTestStore()
     const worktreeId = 'repo-shared::/same/path'
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'hub-c' } as never,
       worktreesByRepo: {
@@ -195,6 +198,7 @@ describe('worktree unread (show-until-interact)', () => {
     try {
       const worktreeId = 'repo-spam::/same/path'
       const store = createTestStore()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         settings: { activeRuntimeEnvironmentId: 'hub-c' } as never,
         worktreesByRepo: {
@@ -224,6 +228,7 @@ describe('worktree unread (show-until-interact)', () => {
       path: '/path/wt1',
       isUnread: true
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, activeWorktreeId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id
@@ -247,6 +252,7 @@ describe('worktree unread (show-until-interact)', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
     const initial = { repo1: [wt] }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: initial } as Partial<AppState>)
 
     store
@@ -266,6 +272,7 @@ describe('worktree unread (show-until-interact)', () => {
     })
     const detected = makeDetectedResult('repo1', [hidden])
     detected.worktrees[0] = { ...detected.worktrees[0], ownership: 'external', visible: false }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: { repo1: detected }
@@ -296,6 +303,7 @@ describe('worktree unread (show-until-interact)', () => {
     })
     const detected = makeDetectedResult('repo1', [hidden])
     detected.worktrees[0] = { ...detected.worktrees[0], ownership: 'external', visible: false }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: { repo1: detected }

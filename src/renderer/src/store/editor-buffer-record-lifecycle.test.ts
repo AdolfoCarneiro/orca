@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -243,9 +244,11 @@ describe('editor buffer records', () => {
         editorBuffers: {},
         ...EMPTY_EDITOR_BUFFER_VIEW_INDEX,
         dirtyMirrorOnly: () =>
-          set((s) => ({
-            openFiles: s.openFiles.map((file) => ({ ...file, isDirty: true }))
-          }))
+          set((s) => {
+            const edit = editSessionSource(s)
+            edit.sequence('openFiles').map((file) => ({ ...file, isDirty: true }))
+            return edit.finish()
+          })
       }))
     )
     setSessionTestState(store, { openFiles: [...store.getState().openFiles] })

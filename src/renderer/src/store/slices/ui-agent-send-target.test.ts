@@ -239,7 +239,7 @@ describe('createUISlice agent send target mode', () => {
     const store = createAgentSendStore()
     seedAgentSendState(store)
     const agentStatusByPaneKey = store.getState().agentStatusByPaneKey
-    store.setState({
+    setSessionTestState(store, {
       agentStatusByPaneKey: {
         ...agentStatusByPaneKey,
         [workingPaneKey]: {
@@ -822,7 +822,7 @@ describe('openDiffNotesSendMenuForActiveWorktree', () => {
   ): { store: SessionTestStore<AppState>; setRightSidebarTab: ReturnType<typeof vi.fn> } {
     const store = createAgentSendStore()
     const setRightSidebarTab = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId,
       getDiffComments: () => comments,
       setRightSidebarTab,

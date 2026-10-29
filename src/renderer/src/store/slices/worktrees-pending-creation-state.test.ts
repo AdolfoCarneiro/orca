@@ -256,6 +256,7 @@ describe('pending worktree creation state', () => {
   it('setActiveWorktree dismisses the creation panel even when re-selecting the already-active worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/a', repoId: 'repo1' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, activeWorktreeId, activePendingCreationId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id,

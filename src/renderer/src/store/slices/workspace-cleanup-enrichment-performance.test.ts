@@ -209,6 +209,7 @@ describe('workspace cleanup enrichment performance', () => {
       })
     ) as unknown as AppState['tabsByWorktree']
     const store = createCleanupTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorktreeId, tabsByWorktree, openFiles fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       activeWorktreeId: BETA_ID,
       tabsByWorktree,
@@ -327,6 +328,7 @@ describe('workspace cleanup enrichment performance', () => {
       getForegroundProcess: vi.fn().mockResolvedValue('zsh')
     }
     const store = createCleanupTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, ptyIdsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { tabsByWorktree, ptyIdsByTabId } as Partial<AppState>)
 
     const scanPromise = store.getState().scanWorkspaceCleanup()
@@ -417,6 +419,7 @@ describe('workspace cleanup enrichment performance', () => {
       getForegroundProcess: vi.fn().mockResolvedValue('zsh')
     }
     const store = createCleanupTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, ptyIdsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { tabsByWorktree, ptyIdsByTabId } as Partial<AppState>)
 
     const scanPromise = store.getState().scanWorkspaceCleanup()
@@ -472,6 +475,7 @@ describe('workspace cleanup enrichment performance', () => {
 
     await store.getState().scanWorkspaceCleanup()
     const removal = store.getState().removeWorkspaceCleanupCandidates([candidate.worktreeId])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, ptyIdsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         [candidate.worktreeId]: [

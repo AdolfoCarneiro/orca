@@ -79,6 +79,7 @@ describe('fetchWorktrees', () => {
     const surviving = makeWorktree({ id: 'repo1::/p/surv', repoId: 'repo1', path: '/p/surv' })
 
     // Caller A starts before hydration, so its known-id snapshot is empty.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: 'repo1', path: '/p/repo1', displayName: 'R', badgeColor: '#000', addedAt: 0 }],
       worktreesByRepo: {},
@@ -101,6 +102,7 @@ describe('fetchWorktrees', () => {
     await scanStarted
 
     // Hydration lands mid-scan: the renderer now owns `deleted` and its tabs.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo, tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [deleted, surviving] },
       detectedWorktreesByRepo: { repo1: makeDetectedResult('repo1', [deleted, surviving]) },
@@ -126,6 +128,7 @@ describe('fetchWorktrees', () => {
     const deleted = makeWorktree({ id: 'repo1::/p/deleted', repoId: 'repo1', path: '/p/deleted' })
     const surviving = makeWorktree({ id: 'repo1::/p/surv', repoId: 'repo1', path: '/p/surv' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: 'repo1', path: '/p/repo1', displayName: 'R', badgeColor: '#000', addedAt: 0 }],
       worktreesByRepo: { repo1: [deleted, surviving] },
@@ -153,6 +156,7 @@ describe('fetchWorktrees', () => {
     const deleted = makeWorktree({ id: 'repo1::/p/deleted', repoId: 'repo1', path: '/p/deleted' })
     const surviving = makeWorktree({ id: 'repo1::/p/surv', repoId: 'repo1', path: '/p/surv' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -316,6 +320,7 @@ describe('fetchWorktrees', () => {
         }
       )
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This hasHydratedWorktreePurge, repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos: [
@@ -373,6 +378,7 @@ describe('fetchWorktrees', () => {
         }
       )
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -425,6 +431,7 @@ describe('fetchWorktrees', () => {
         }
       )
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -462,6 +469,7 @@ describe('fetchWorktrees', () => {
     const store = createTestStore()
     const worktreesByRepo = store.getState().worktreesByRepo
     const detectedWorktreesByRepo = store.getState().detectedWorktreesByRepo
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {

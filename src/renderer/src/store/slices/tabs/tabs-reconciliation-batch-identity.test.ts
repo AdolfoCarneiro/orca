@@ -72,7 +72,10 @@ describe('projectWorktreeTabModelReconciliation identity', () => {
 
 describe('shared reconciliation edit identity', () => {
   it('keeps equal entries and copies once across sequential workspaces with frozen priors', () => {
-    const current = Object.freeze({ first: 'one', second: 'two' })
+    const current: Readonly<Record<string, string | undefined>> = Object.freeze({
+      first: 'one',
+      second: 'two'
+    })
     const edit = editSessionSource({ activeGroupIdByWorktree: current })
     edit.set('activeGroupIdByWorktree', 'first', 'one')
     expect(edit.read('activeGroupIdByWorktree')).toBe(current)

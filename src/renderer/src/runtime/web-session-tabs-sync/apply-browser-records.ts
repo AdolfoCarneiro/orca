@@ -136,7 +136,7 @@ export function applyBrowserRecordUpdates(context: BrowserRecordContext) {
         state,
         'browserCertificateFailuresByPageId',
         page.id,
-        certificateFailure,
+        certificateFailure ?? undefined,
         batchContext,
         !certificateFailure,
         nextBrowserCertificateFailuresByPageId

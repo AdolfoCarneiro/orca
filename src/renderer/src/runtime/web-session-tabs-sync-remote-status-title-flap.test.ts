@@ -104,6 +104,7 @@ function applyHostSnapshot(
   // The freshness gate must accept every republished frame (monotonic version).
   expect(shouldApplyWebSessionTabsSnapshot(snapshot, ENV)).toBe(true)
   const patch = applyWebSessionTabsSnapshot(state, snapshot, ENV, now)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
   setSessionTestState(store, patch as Partial<AppState>)
 }
 

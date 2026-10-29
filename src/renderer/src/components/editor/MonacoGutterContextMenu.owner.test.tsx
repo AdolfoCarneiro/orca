@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { SessionTestStore } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
@@ -48,7 +49,7 @@ function openMenu(fileId: string): void {
 beforeEach(() => {
   const store = createEditorTabsStore()
   storeRef.current = store
-  store.setState({
+  setSessionTestState(store, {
     openFiles: [
       file('host-a-file', 'host-a-worktree', 'host-a'),
       file('host-b-file', 'host-b-worktree', 'host-b')

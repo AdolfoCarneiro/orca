@@ -8,6 +8,7 @@ import { buildAiVaultResumeStartupForWorktree } from './ai-vault-resume-command'
 describe('AI Vault OMP cold resume', () => {
   it('keeps the custom session store after the resumed process reports its id', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeRepoId, activeWorktreeId, folderWorkspaces fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       activeRepoId: 'repo-1',
       activeWorktreeId: 'wt-1',

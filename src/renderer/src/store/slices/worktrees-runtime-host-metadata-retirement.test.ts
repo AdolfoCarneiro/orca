@@ -23,6 +23,7 @@ const deletedOnHost = worktree('/home/orca/deleted')
 
 function seedClientWithBothRows(): ReturnType<typeof createTestStore> {
   const store = createTestStore()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
     repos: [

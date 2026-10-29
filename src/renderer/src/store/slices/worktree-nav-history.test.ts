@@ -13,19 +13,6 @@ import {
   setWorktreeNavActivator
 } from './worktree-nav-history'
 
-type MinimalState = Pick<
-  AppState,
-  | 'worktreeNavHistory'
-  | 'worktreeNavHistoryIndex'
-  | 'isNavigatingHistory'
-  | 'recordWorktreeVisit'
-  | 'recordViewVisit'
-  | 'goBackWorktree'
-  | 'goForwardWorktree'
-  | 'worktreesByRepo'
-  | 'folderWorkspaces'
->
-
 function makeWorktree(id: string): Worktree {
   // Only `id` is read by findWorktreeById, which is what the slice uses for
   // live-entry checks. Cast covers fields irrelevant to these tests.
@@ -50,10 +37,7 @@ function makeFolderWorkspace(id: string): FolderWorkspace {
   }
 }
 
-function createHistoryStore(
-  worktreeIds: string[] = [],
-  folderWorkspaceIds: string[] = []
-): StoreApi<MinimalState> {
+function createHistoryStore(worktreeIds: string[] = [], folderWorkspaceIds: string[] = []) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   return createStore<AppState>()(
@@ -72,7 +56,7 @@ function createHistoryStore(
           )
         }) as AppState
     )
-  ) as unknown as StoreApi<MinimalState>
+  )
 }
 
 describe('worktree-nav-history slice: recordWorktreeVisit', () => {

@@ -47,6 +47,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: { remoteName: 'fork', branchName: 'old/review-head' }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -103,6 +104,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -155,6 +157,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -207,6 +210,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -262,6 +266,7 @@ describe('updateWorktreeGitIdentity', () => {
       }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -273,6 +278,7 @@ describe('updateWorktreeGitIdentity', () => {
     )
     await Promise.resolve()
     const switched = store.getState().worktreesByRepo.repo1[0]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: {
         repo1: [
@@ -318,6 +324,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: { remoteName: 'fork', branchName: 'old/review-head' }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -328,6 +335,7 @@ describe('updateWorktreeGitIdentity', () => {
       null
     )
     const switched = store.getState().worktreesByRepo.repo1[0]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: {
         repo1: [
@@ -380,6 +388,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: { remoteName: 'fork', branchName: 'old/review-head' }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     store.getState().updateWorktreeGitIdentity(
@@ -437,6 +446,7 @@ describe('updateWorktreeGitIdentity', () => {
       linkedPR: 101
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -495,6 +505,7 @@ describe('updateWorktreeGitIdentity', () => {
       linkedPR: 101
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',
@@ -541,6 +552,7 @@ describe('updateWorktreeGitIdentity', () => {
       pushTarget: undefined
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
     store.getState().updateWorktreeGitIdentity(
       'repo1::/path/wt1',

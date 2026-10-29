@@ -329,7 +329,7 @@ describe('useRetainedAgentsSync', () => {
     })
 
     act(() => {
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         tabsByWorktree: {
           [worktree.id]: [
             {
@@ -376,7 +376,7 @@ describe('useRetainedAgentsSync', () => {
 
     // Why: model both teardown writes landing before the next retention effect runs.
     act(() => {
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         tabsByWorktree: { [worktree.id]: [] },
         agentStatusByPaneKey: {},
         recentlyClosedAgentStatusTabIds: { [row.tab.id]: true },

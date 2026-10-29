@@ -31,6 +31,7 @@ function makeComments(isResolved = false): PRComment[] {
 
 function installLocalComments(store: ReturnType<typeof createTestStore>): string {
   const cacheKey = sourceScopedRepoCacheKey(repoPath, repoId, prCommentsCacheSuffix(12))
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, commentsCache fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
     commentsCache: { [cacheKey]: { data: makeComments(), fetchedAt: 1 } }
@@ -57,6 +58,7 @@ describe('createGitHubSlice.resolveReviewThread', () => {
       undefined,
       true
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, repos, commentsCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings,
       repos: [

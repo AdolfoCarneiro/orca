@@ -79,10 +79,7 @@ type ParkingStoreState = {
   unifiedTabsByWorktree: Record<string, Tab[]>
 }
 
-const parkingStore = useAppStore as unknown as {
-  getState: () => ParkingStoreState
-  setState: (partial: unknown) => void
-}
+const parkingStore = useAppStore
 
 function terminalTab(id: string): TerminalTab {
   return {

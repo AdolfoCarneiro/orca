@@ -21,7 +21,9 @@ function makeStore() {
       | 'clearNewJiraIssueDraft'
     >
   >()((...args) =>
-    createTaskCreationDraftsSlice(...(args as Parameters<typeof createTaskCreationDraftsSlice>))
+    createTaskCreationDraftsSlice(
+      ...(args as unknown as Parameters<typeof createTaskCreationDraftsSlice>)
+    )
   )
 }
 

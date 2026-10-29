@@ -4,6 +4,7 @@ import type { OpenFile } from '../store/slices/editor/types/open-file'
 import { discoverSessionSources } from './test-support/session-source-discovery'
 import { SessionUnitProjection } from './session-unit-projection'
 import { buildEditorSessionData } from './workspace-session'
+import type { AppState } from '../store/types'
 
 function file(filePath: string, worktreeId = 'repo::/a'): OpenFile {
   return {
@@ -16,7 +17,7 @@ function file(filePath: string, worktreeId = 'repo::/a'): OpenFile {
     isDirty: false
   }
 }
-function fixture(openFiles: OpenFile[] = []) {
+function fixture(openFiles: OpenFile[] = []): AppState {
   return {
     ...useAppStore.getState(),
     openFiles,

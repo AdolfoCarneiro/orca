@@ -717,6 +717,7 @@ describe('createBrowserSlice annotations', () => {
 describe('createBrowserSlice floating tabs', () => {
   it('tracks new floating browser tabs without changing the main browser surface', async () => {
     const { store, main } = await createTestStoreDrawnFromMain()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorktreeId, activeTabType fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       activeWorktreeId: 'wt-1',
       activeTabType: 'terminal'

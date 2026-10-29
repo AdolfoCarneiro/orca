@@ -89,6 +89,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const branch = 'feature/test'
     const pr = makePR({ number: 44 })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, prCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -134,6 +135,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const branch = 'feature/test'
     const pr = makePR({ number: 44 })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, prCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [
         {
@@ -190,6 +192,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: null,
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
@@ -199,6 +202,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       force: true,
       repoId
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as AppState['settings']
     } as Partial<AppState>)
@@ -223,6 +227,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const repoId = 'repo-1'
     const branch = 'feature/exact-linked-provenance'
     const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -270,6 +275,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -278,6 +284,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       force: true,
       repoId
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This hostedReviewCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       hostedReviewCache: {
         [hostedReviewCacheKey]: {
@@ -327,6 +334,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -336,6 +344,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       repoId,
       fallbackPRNumber: 12
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This hostedReviewCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       hostedReviewCache: {
         [hostedReviewCacheKey]: {
@@ -388,6 +397,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     })
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
     } as unknown as Partial<AppState>)
@@ -397,6 +407,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       repoId,
       linkedPRNumber: 88
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This hostedReviewCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       hostedReviewCache: {
         [hostedReviewCacheKey]: {
@@ -446,6 +457,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     mockApi.gh.refreshPRNow.mockReturnValueOnce(refresh)
 
     try {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
       } as unknown as Partial<AppState>)
@@ -454,6 +466,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         force: true,
         repoId
       })
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This hostedReviewCache fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         hostedReviewCache: {
           [hostedReviewCacheKey]: {

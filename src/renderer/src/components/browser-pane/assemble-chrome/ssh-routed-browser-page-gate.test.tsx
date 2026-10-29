@@ -1,3 +1,4 @@
+import { createGlobalSettingsFixture } from '../../../../../shared/global-settings-test-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, render, screen } from '@testing-library/react'
@@ -100,8 +101,11 @@ describe('SshRoutedBrowserPageGate', () => {
     mocks.executionHostId = 'ssh:target-a'
     const priorSettings = useAppStore.getState().settings
     setSessionTestState(useAppStore, {
-      settings: { ...priorSettings, browserSshWorkspaceRoutingEnabled: false }
-    } as Parameters<typeof useAppStore.setState>[0])
+      settings: {
+        ...createGlobalSettingsFixture(priorSettings ?? {}),
+        browserSshWorkspaceRoutingEnabled: false
+      }
+    })
     try {
       render(
         <SshRoutedBrowserPageGate worktreeId="wt-1" sessionProfileId={null} pageIds={PAGE_IDS}>
@@ -112,9 +116,7 @@ describe('SshRoutedBrowserPageGate', () => {
       expect(screen.getByTestId('page').textContent).toBe('null')
       expect(mocks.prepare).not.toHaveBeenCalled()
     } finally {
-      setSessionTestState(useAppStore, { settings: priorSettings } as Parameters<
-        typeof useAppStore.setState
-      >[0])
+      setSessionTestState(useAppStore, { settings: priorSettings })
     }
   })
 
@@ -144,9 +146,7 @@ describe('SshRoutedBrowserPageGate', () => {
     mocks.prepare.mockRejectedValue(new Error('browser_local_route_ssh_unavailable'))
     const updateSettings = vi.fn()
     const prior = useAppStore.getState().updateSettings
-    useAppStore.setState({ updateSettings } as unknown as Parameters<
-      typeof useAppStore.setState
-    >[0])
+    useAppStore.setState({ updateSettings })
     try {
       render(
         <SshRoutedBrowserPageGate worktreeId="wt-1" sessionProfileId={null} pageIds={PAGE_IDS}>
@@ -159,9 +159,7 @@ describe('SshRoutedBrowserPageGate', () => {
         browserSshWorkspaceRoutingDisabledTargetIds: ['target-a']
       })
     } finally {
-      useAppStore.setState({ updateSettings: prior } as unknown as Parameters<
-        typeof useAppStore.setState
-      >[0])
+      useAppStore.setState({ updateSettings: prior })
     }
   })
 
@@ -169,8 +167,11 @@ describe('SshRoutedBrowserPageGate', () => {
     mocks.executionHostId = 'ssh:target-a'
     const priorSettings = useAppStore.getState().settings
     setSessionTestState(useAppStore, {
-      settings: { ...priorSettings, browserSshWorkspaceRoutingDisabledTargetIds: ['target-a'] }
-    } as Parameters<typeof useAppStore.setState>[0])
+      settings: {
+        ...createGlobalSettingsFixture(priorSettings ?? {}),
+        browserSshWorkspaceRoutingDisabledTargetIds: ['target-a']
+      }
+    })
     try {
       render(
         <SshRoutedBrowserPageGate worktreeId="wt-1" sessionProfileId={null} pageIds={PAGE_IDS}>
@@ -181,9 +182,7 @@ describe('SshRoutedBrowserPageGate', () => {
       expect(screen.getByTestId('page').textContent).toBe('null')
       expect(mocks.prepare).not.toHaveBeenCalled()
     } finally {
-      setSessionTestState(useAppStore, { settings: priorSettings } as Parameters<
-        typeof useAppStore.setState
-      >[0])
+      setSessionTestState(useAppStore, { settings: priorSettings })
     }
   })
 

@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type * as BrowserFocusModule from '@/components/browser-pane/host-guest/browser-focus'
@@ -200,7 +201,7 @@ it('updates and clears published profile evidence even when page content stays i
 
 it('uses the paired runtime profile catalog for its SSH-owned workspace', async () => {
   const sshHost = 'ssh:ssh-target'
-  setSessionTestState(useAppStore, (state) => ({
+  setSessionTestState(useAppStore, (state): Partial<AppState> => ({
     activeWorkspaceExecutionHostId: sshHost,
     repos: state.repos.map((repo) => ({ ...repo, executionHostId: sshHost })),
     worktreesByRepo: {
@@ -219,7 +220,7 @@ it.each(['unchanged', 'different-host', 'different-runtime'] as const)(
   'validates the captured SSH owner after foreground runtime selection (%s)',
   async (ownerChange) => {
     const sshHost = 'ssh:ssh-target'
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       activeWorkspaceExecutionHostId: sshHost,
       repos: state.repos.map((repo) => ({ ...repo, executionHostId: sshHost })),
       worktreesByRepo: {
@@ -248,7 +249,7 @@ it.each(['unchanged', 'different-host', 'different-runtime'] as const)(
     expect(pendingCreates).toHaveLength(1)
     expect(useAppStore.getState().activeWorkspaceExecutionHostId).toBe(HOST)
     if (ownerChange === 'different-host') {
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         activeWorkspaceExecutionHostId: 'ssh:other-target',
         worktreesByRepo: {
           repo: [
@@ -261,7 +262,7 @@ it.each(['unchanged', 'different-host', 'different-runtime'] as const)(
         }
       }))
     } else if (ownerChange === 'different-runtime') {
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         activeWorkspaceExecutionHostId: sshHost,
         worktreesByRepo: {
           repo: state.worktreesByRepo.repo!.map((worktree) => ({

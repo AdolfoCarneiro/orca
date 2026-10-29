@@ -56,7 +56,7 @@ export function extendWorktreeIdByTabId(
 
 /** Resolve <tabId>:<leafId> through one index shared by host splitting and stranded-partition adoption. */
 export function worktreeIdForPaneKey(
-  worktreeIdByTabId: Map<string, string>,
+  worktreeIdByTabId: ReadonlyMap<string, string>,
   paneKey: string
 ): string | undefined {
   const separator = paneKey.lastIndexOf(':')

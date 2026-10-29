@@ -413,6 +413,7 @@ describe('useTabDragSplit', () => {
     )
     const activeData = makeDragData('group-1')
     const dropUnifiedTab = vi.fn(() => true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This dropUnifiedTab fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
       ReturnType<typeof useAppStore.getState>
     >)
@@ -448,6 +449,7 @@ describe('useTabDragSplit', () => {
     )
     const activeData = makeDragData('group-1')
     const dropUnifiedTab = vi.fn(() => true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This dropUnifiedTab fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, { dropUnifiedTab } as Partial<
       ReturnType<typeof useAppStore.getState>
     >)

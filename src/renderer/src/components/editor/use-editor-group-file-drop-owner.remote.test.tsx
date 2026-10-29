@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, render, waitFor } from '@testing-library/react'
@@ -232,7 +233,7 @@ describe('editor group OS file drops on remote workspaces', () => {
     async (kind) => {
       const worktreeId = kind === 'nested-ssh' ? 'wt-runtime' : kind
       if (kind === 'nested-ssh') {
-        setSessionTestState(useAppStore, (state) => ({
+        setSessionTestState(useAppStore, (state): Partial<AppState> => ({
           worktreesByRepo: {
             ...state.worktreesByRepo,
             'repo-rt': state.worktreesByRepo['repo-rt'].map((wt) => ({
@@ -333,7 +334,7 @@ describe('editor group OS file drops on remote workspaces', () => {
   })
 
   it('uses the repo-derived SSH folder owner and refuses completion after reconnect', async () => {
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       folderWorkspaces: [
         {
           id: 'notes',
@@ -433,7 +434,7 @@ describe('editor group OS file drops on remote workspaces', () => {
       const view = render(<EditorStrip worktreeId="wt-runtime" groupId="group-runtime" />)
       dropFile(view.getByTestId('strip'), name)
       await waitFor(() => expect(mocks.importPaths).toHaveBeenCalledTimes(1))
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         repos: state.repos.map((repo) =>
           repo.id === 'repo-rt' ? { ...repo, executionHostId: 'runtime:new-owner' as const } : repo
         )
@@ -474,7 +475,7 @@ describe('editor group OS file drops on remote workspaces', () => {
       await waitFor(() => expect(mocks.importPaths).toHaveBeenCalledTimes(1))
       expect(mocks.toastError).toHaveBeenCalledTimes(1)
       view.unmount()
-      setSessionTestState(useAppStore, (state) => ({
+      setSessionTestState(useAppStore, (state): Partial<AppState> => ({
         groupsByWorktree: {
           ...state.groupsByWorktree,
           [worktreeId]: [{ id: 'group-other', worktreeId, activeTabId: null, tabOrder: [] }]
@@ -512,7 +513,7 @@ describe('editor group OS file drops on remote workspaces', () => {
     )
     const view = render(<EditorStrip worktreeId="wt-runtime" groupId="group-runtime" />)
     dropFile(view.getByTestId('strip'))
-    setSessionTestState(useAppStore, (state) => ({
+    setSessionTestState(useAppStore, (state): Partial<AppState> => ({
       repos: state.repos.map((repo) =>
         repo.id === 'repo-rt' ? { ...repo, executionHostId: 'runtime:new-owner' as const } : repo
       )

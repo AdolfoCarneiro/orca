@@ -248,6 +248,7 @@ describe('createGitHubSlice.fetchPRChecks checks cache freshness', () => {
       { name: 'build', status: 'completed', conclusion: 'failure', url: null } as const
     ]
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This checksCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
@@ -276,6 +277,7 @@ describe('createGitHubSlice.fetchPRChecks checks cache freshness', () => {
       { name: 'build', status: 'completed', conclusion: 'success', url: null } as const
     ]
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This checksCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
@@ -306,6 +308,7 @@ describe('createGitHubSlice.applyGitHubPRRefreshEvent checks cache reuse', () =>
     const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
     const checksCacheKey = `${repoId}::${prChecksCacheSuffix(12, null, 'head-oid')}`
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This checksCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {
@@ -346,6 +349,7 @@ describe('createGitHubSlice.applyGitHubPRRefreshEvent checks cache reuse', () =>
     const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
     const checksCacheKey = `${repoId}::${prChecksCacheSuffix(12, null, 'head-oid')}`
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This checksCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       checksCache: {
         [checksCacheKey]: {

@@ -186,9 +186,10 @@ describe('renaming a structured chat tab', () => {
     store.getState().setUnifiedTabColor(STRUCTURED_TAB_ID, 'red')
     setSessionTestState(store, {
       unifiedTabsByWorktree: {
-        [WORKTREE]: store
-          .getState()
-          .unifiedTabsByWorktree[WORKTREE]!.map((tab) => ({ ...tab, executionHostId: 'local' }))
+        [WORKTREE]: store.getState().unifiedTabsByWorktree[WORKTREE]!.map((tab) => ({
+          ...tab,
+          executionHostId: 'local' as const
+        }))
       }
     })
     if (ORCA_LAYOUT_OWNER_IS_MAIN) {

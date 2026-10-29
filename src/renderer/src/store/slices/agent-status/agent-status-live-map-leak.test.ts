@@ -16,6 +16,7 @@ const BIG_ASSISTANT_MESSAGE = 'a'.repeat(8 * 1024)
 const BIG_INTERACTIVE_PROMPT = 'q'.repeat(16 * 1024)
 
 function seedWorktree(store: ReturnType<typeof createTestStore>): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     repos: [
       {
@@ -146,6 +147,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
   it("never evicts a live pane's waiting or blocked row, even under the hard-cap fallback", () => {
     const store = createTestStore()
     seedWorktree(store)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This terminalLayoutsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       terminalLayoutsByTabId: {
         'tab-live': {
@@ -198,6 +200,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
   it('keeps fresh rows of rootless / empty-snapshot / no-renderer-tab panes (live agents, #2962)', () => {
     const store = createTestStore()
     seedWorktree(store)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, terminalLayoutsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [
@@ -270,6 +273,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
     churnDeadLeaves(store, MAX_LIVE_AGENT_STATUSES)
     const evictedPaneKey = 'tab-live:dead-0'
     const keptPaneKey = 'tab-live:dead-1'
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sleepingAgentSessionsByPaneKey, agentLaunchConfigByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       sleepingAgentSessionsByPaneKey: {
         [evictedPaneKey]: sleepingRecord(evictedPaneKey),
@@ -306,6 +310,7 @@ describe('agentStatusByPaneKey stays bounded (leak regression #9872)', () => {
     churnDeadLeaves(store, MAX_LIVE_AGENT_STATUSES, workingPayload)
     const existingPaneKey = 'tab-live:dead-0'
     const existing = store.getState().agentStatusByPaneKey[existingPaneKey]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       agentStatusByPaneKey: {
         ...store.getState().agentStatusByPaneKey,

@@ -562,6 +562,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       const cachedPR = makePR({ number: 12, state, title: 'Visible event PR' })
       const hostedReviewCacheKey = getHostedReviewCacheKey(repoPath, branch, null, repoId)
 
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This prCache, hostedReviewCache fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         prCache: {
           [cacheKey]: {

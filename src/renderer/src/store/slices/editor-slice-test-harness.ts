@@ -34,7 +34,7 @@ export function createEditorStore() {
           projectGroups: [],
           recordFeatureInteraction: vi.fn(),
           ...createEditorSlice(...args)
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }
@@ -64,7 +64,7 @@ export function createEditorTabsStore() {
           recordFeatureInteraction: vi.fn(),
           ...createTabsSlice(...args),
           ...createEditorSlice(...args)
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }

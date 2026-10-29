@@ -1,5 +1,6 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { create, type StoreApi } from 'zustand'
+import { create } from 'zustand'
 import { withReactCommitCascadeWriteProbe } from './react-commit-cascade-write-probe'
 import {
   armStoreIdentityChurnProbe,
@@ -19,14 +20,17 @@ type ProbeState = {
 
 function createProbeStore() {
   return create<ProbeState>()(
-    withStoreIdentityChurnProbe((set) => ({
-      rows: [{ id: 'a', label: 'A' }],
-      entries: { a: { status: 'idle' } },
-      counter: 0,
-      refresh: (rows) => set({ rows }),
-      touch: (id, status) => set((state) => ({ entries: { ...state.entries, [id]: { status } } })),
-      bump: () => set((state) => ({ counter: state.counter + 1 }))
-    }))
+    withSessionSourceWrites<ProbeState>(
+      withStoreIdentityChurnProbe((set) => ({
+        rows: [{ id: 'a', label: 'A' }],
+        entries: { a: { status: 'idle' } },
+        counter: 0,
+        refresh: (rows) => set({ rows }),
+        touch: (id, status) =>
+          set((state) => ({ entries: { ...state.entries, [id]: { status } } })),
+        bump: () => set((state) => ({ counter: state.counter + 1 }))
+      }))
+    )
   )
 }
 
@@ -122,7 +126,7 @@ describe('store identity churn probe', () => {
     const store = createProbeStore()
     armStoreIdentityChurnProbe()
 
-    store.setState((state) => state)
+    store.setState(() => undefined)
 
     expect(readStoreIdentityChurnReport()).toEqual([])
   })
@@ -130,9 +134,9 @@ describe('store identity churn probe', () => {
   it('passes disarmed writes straight through without reading state', () => {
     const innerSet = vi.fn()
     const innerGet = vi.fn(() => ({ counter: 0 }))
-    const api = { setState: innerSet, getState: innerGet } as unknown as StoreApi<{
-      counter: number
-    }>
+    const api = { setState: innerSet, getState: innerGet } as unknown as Parameters<
+      typeof creator
+    >[2]
     const creator = withStoreIdentityChurnProbe<{ counter: number }>(() => ({ counter: 0 }))
     creator(innerSet, innerGet, api)
     const updater = (state: { counter: number }) => ({ counter: state.counter + 1 })
@@ -148,16 +152,18 @@ describe('store identity churn probe', () => {
   it('composes with the cascade probe without dropping or doubling a write', () => {
     // Mirrors store/index.ts: churn probe outermost, cascade probe inside it.
     const store = create<ProbeState>()(
-      withStoreIdentityChurnProbe(
-        withReactCommitCascadeWriteProbe((set) => ({
-          rows: [{ id: 'a', label: 'A' }],
-          entries: { a: { status: 'idle' } },
-          counter: 0,
-          refresh: (rows) => set({ rows }),
-          touch: (id, status) =>
-            set((state) => ({ entries: { ...state.entries, [id]: { status } } })),
-          bump: () => set((state) => ({ counter: state.counter + 1 }))
-        }))
+      withSessionSourceWrites<ProbeState>(
+        withStoreIdentityChurnProbe(
+          withReactCommitCascadeWriteProbe((set) => ({
+            rows: [{ id: 'a', label: 'A' }],
+            entries: { a: { status: 'idle' } },
+            counter: 0,
+            refresh: (rows) => set({ rows }),
+            touch: (id, status) =>
+              set((state) => ({ entries: { ...state.entries, [id]: { status } } })),
+            bump: () => set((state) => ({ counter: state.counter + 1 }))
+          }))
+        )
       )
     )
     let updaterCalls = 0
@@ -200,10 +206,12 @@ describe('store identity churn probe', () => {
 
   it('treats distinct class instances as changed rather than equal', () => {
     const store = create<{ value: unknown; put: (value: unknown) => void }>()(
-      withStoreIdentityChurnProbe((set) => ({
-        value: new Map([['a', 1]]),
-        put: (value) => set({ value })
-      }))
+      withSessionSourceWrites<{ value: unknown; put: (value: unknown) => void }>(
+        withStoreIdentityChurnProbe((set) => ({
+          value: new Map([['a', 1]]),
+          put: (value) => set({ value })
+        }))
+      )
     )
     armStoreIdentityChurnProbe()
 

@@ -52,6 +52,7 @@ describe('useWorkspaceCleanupBrowseState', () => {
       ...globalThis.window,
       api: { ui: { set: vi.fn().mockResolvedValue(undefined) } }
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This workspaceCleanupBrowse fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       workspaceCleanupBrowse: createDefaultWorkspaceCleanupBrowseState()
     } as Partial<AppState>)

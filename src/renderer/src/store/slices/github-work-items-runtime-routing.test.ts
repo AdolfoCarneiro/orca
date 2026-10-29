@@ -147,7 +147,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       _meta: { runtimeId: 'remote-runtime' }
     })
     const store = createTestStore()
-    setSessionTestState(store, (state) => ({
+    setSessionTestState(store, (state): Partial<AppState> => ({
       ...state,
       settings: null,
       repos: [

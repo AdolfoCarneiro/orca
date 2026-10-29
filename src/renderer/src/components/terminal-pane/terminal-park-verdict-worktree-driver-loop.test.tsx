@@ -52,9 +52,7 @@ const EMPTY_PORTALS: never[] = []
 
 type ParkingStoreState = { tabsByWorktree: Record<string, TerminalTab[]> }
 
-const parkingStore = useAppStore as unknown as {
-  setState: (partial: (state: ParkingStoreState) => Partial<ParkingStoreState>) => void
-}
+const parkingStore = useAppStore
 
 let hostRenderCount = 0
 let parkVerdictFlipCount = 0

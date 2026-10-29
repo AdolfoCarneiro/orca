@@ -66,7 +66,7 @@ describe('Rich Editor from a diff', () => {
     const target = file({ ...owner, id: targetId })
     const other = file({ worktreeId: 'wt-other' })
     const diff = file({ ...owner, id: 'diff-target', mode: 'diff', diffSource: 'unstaged' })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       openFiles: [other, target, diff],
       activeFileId: diff.id,
       activeWorktreeId: owner.worktreeId,
@@ -88,7 +88,7 @@ describe('Rich Editor from a diff', () => {
     const owner = { worktreeId: 'wt-target', runtimeEnvironmentId: 'runtime-target' }
     const other = file({ worktreeId: 'wt-other' })
     const diff = file({ ...owner, id: 'diff-target', mode: 'diff', diffSource: 'unstaged' })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       openFiles: [other, diff],
       activeFileId: diff.id,
       activeWorktreeId: owner.worktreeId,

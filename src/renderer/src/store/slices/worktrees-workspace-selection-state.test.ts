@@ -254,6 +254,7 @@ describe('markWorktreeVisited', () => {
     expect(store.getState().activeWorktreeId).toBe('repo1::/a')
 
     // A pointer into a not-yet-hydrated (e.g. SSH pre-connect) repo is deferred.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorktreeId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { activeWorktreeId: 'ssh-repo::/b' } as Partial<AppState>)
     store.getState().pruneLastVisitedTimestamps()
     expect(store.getState().activeWorktreeId).toBe('ssh-repo::/b')

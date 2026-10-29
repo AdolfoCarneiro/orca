@@ -1,3 +1,4 @@
+import type { AppState } from '@/store/types'
 import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** Capability verdicts must change only on async daemon answers, never pane mount/unmount; repeatedly flip them between commits while mount writes update other exemption inputs to catch React #185 loops. */
@@ -61,10 +62,6 @@ vi.mock('@/lib/crash-breadcrumb-recorder', () => ({
 vi.mock('./TerminalOverlaySlot', async () => {
   const { useEffect } = await vi.importActual<typeof ReactModule>('react')
   const { useAppStore } = await import('../../store')
-  type SlotStoreState = {
-    tabsByWorktree: Record<string, TerminalTab[]>
-    terminalLayoutsByTabId: Record<string, unknown>
-  }
   return {
     TerminalOverlaySlot: ({ terminalTabId }: { terminalTabId: string }) => {
       harness.slotRenders += 1
@@ -73,20 +70,15 @@ vi.mock('./TerminalOverlaySlot', async () => {
         if (harness.slotMounts > 400) {
           throw new Error('harness runaway: slot remount storm exceeded 400 mounts')
         }
-        setSessionTestState(
-          useAppStore as unknown as {
-            setState: (update: (state: SlotStoreState) => Partial<SlotStoreState>) => void
+        setSessionTestState(useAppStore, (state): Partial<AppState> => ({
+          tabsByWorktree: {
+            ...state.tabsByWorktree,
+            [harness.worktreeId]: state.tabsByWorktree[harness.worktreeId].map((tab) =>
+              tab.id === terminalTabId ? { ...tab, title: `mounted-${harness.slotMounts}` } : tab
+            )
           },
-          (state) => ({
-            tabsByWorktree: {
-              ...state.tabsByWorktree,
-              [harness.worktreeId]: state.tabsByWorktree[harness.worktreeId].map((tab) =>
-                tab.id === terminalTabId ? { ...tab, title: `mounted-${harness.slotMounts}` } : tab
-              )
-            },
-            terminalLayoutsByTabId: { ...state.terminalLayoutsByTabId }
-          })
-        )
+          terminalLayoutsByTabId: { ...state.terminalLayoutsByTabId }
+        }))
       }, [terminalTabId])
       return null
     }

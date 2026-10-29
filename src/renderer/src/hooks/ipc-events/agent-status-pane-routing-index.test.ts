@@ -39,6 +39,7 @@ function seedLineage(store: ReturnType<typeof createTestStore>): {
     ]
     paneKeys.push(makePaneKey(tabId, LEAF_ID))
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     repos: [TEST_REPO],
     worktreesByRepo: {
@@ -68,6 +69,7 @@ describe('agent-status pane routing index memoization', () => {
       expect(resolvePaneKeyFromRoutingIndex(index, paneKeys[commit % paneKeys.length]).exists).toBe(
         true
       )
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentStatusByPaneKey, agentStatusEpoch fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         agentStatusByPaneKey: { ...store.getState().agentStatusByPaneKey },
         agentStatusEpoch: commit
@@ -88,6 +90,7 @@ describe('agent-status pane routing index memoization', () => {
     createAgentStatusPaneRoutingIndex(store.getState())
     resetAgentStatusPaneRoutingIndexCounters()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: { ...store.getState().tabsByWorktree }
     } as Partial<AppState>)
@@ -102,6 +105,7 @@ describe('agent-status pane routing index memoization', () => {
     createAgentStatusPaneRoutingIndex(store.getState())
     resetAgentStatusPaneRoutingIndexCounters()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This terminalLayoutsByTabId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       terminalLayoutsByTabId: { 'tab-0': makeLayout() }
     } as Partial<AppState>)
@@ -150,6 +154,7 @@ describe('agent-status leading-edge and batched pane resolution', () => {
         })
       ]
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [TEST_REPO],
       worktreesByRepo: {

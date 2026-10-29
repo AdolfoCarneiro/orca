@@ -226,6 +226,7 @@ describe('createEditorSlice recently closed editor tabs', () => {
       // A layout-owner build draws the tabs from main's frames.
       await main.settle()
       let reads = 0
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unifiedTabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         unifiedTabsByWorktree: {
           'wt-1': withCountedEntityIdReads(
@@ -259,6 +260,7 @@ describe('createEditorSlice recently closed editor tabs', () => {
 
   it('reactivates the live tab when a stale reopen id targets an already-open file', async () => {
     const store = createEditorTabsStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: {
         'repo-1': [

@@ -22,7 +22,7 @@ function createTestStore() {
           repos: [],
           rightSidebarWidth: 280,
           ...createUISlice(...args)
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }

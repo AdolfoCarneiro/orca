@@ -262,7 +262,7 @@ describe('STA-1111 worktree reopen does not fork-bomb tabs', () => {
 
     for (let reopen = 0; reopen < 4; reopen++) {
       const paneKey = `slept-pane-${reopen}:0`
-      setSessionTestState(useAppStore, (s) => ({
+      setSessionTestState(useAppStore, (s): Partial<AppState> => ({
         sleepingAgentSessionsByPaneKey: {
           ...s.sleepingAgentSessionsByPaneKey,
           [paneKey]: {

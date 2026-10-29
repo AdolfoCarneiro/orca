@@ -47,6 +47,7 @@ describe('workspace cleanup cache hydration', () => {
     installWorkspaceCleanupApi(vi.fn(), getCachedScan)
     const store = createCleanupTestStore()
     const live = { scannedAt: NOW, candidates: [makeCandidate()], errors: [] }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This workspaceCleanupScan fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { workspaceCleanupScan: live } as Partial<AppState>)
 
     await expect(store.getState().hydrateWorkspaceCleanupFromCache()).resolves.toBe(false)

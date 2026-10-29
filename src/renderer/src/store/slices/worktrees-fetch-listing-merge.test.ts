@@ -45,6 +45,7 @@ describe('fetchWorktrees', () => {
     const detected = makeDetectedResult('repo1', [existing])
 
     mockApi.worktrees.listDetected.mockResolvedValueOnce(detected)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       detectedWorktreesByRepo: { repo1: detected },
@@ -87,6 +88,7 @@ describe('fetchWorktrees', () => {
       path: '/path/second'
     })
     const detected = makeDetectedResult('repo1', [first, second])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second] },
       detectedWorktreesByRepo: { repo1: detected },
@@ -125,6 +127,7 @@ describe('fetchWorktrees', () => {
       path: '/path/stable'
     })
     const detected = makeDetectedResult('repo1', [changed, stable])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [changed, stable] },
       detectedWorktreesByRepo: { repo1: detected },
@@ -166,6 +169,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7
@@ -199,6 +203,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
@@ -239,6 +244,7 @@ describe('fetchWorktrees', () => {
       resolveListing = resolve
     })
     worktreeListMock.mockReturnValueOnce(listing)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [requestStarted] }
     } as Partial<AppState>)
@@ -251,6 +257,7 @@ describe('fetchWorktrees', () => {
       head: 'latest-head',
       linkedPR: 303
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [latest] } } as Partial<AppState>)
     resolveListing([staleResponse])
 
@@ -281,6 +288,7 @@ describe('fetchWorktrees', () => {
       resolveListing = resolve
     })
     worktreeListMock.mockReturnValueOnce(listing)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [daily, relay] },
       detectedWorktreesByRepo: { repo1: detected }
@@ -326,6 +334,7 @@ describe('fetchWorktrees', () => {
       resolveListing = resolve
     })
     worktreeListMock.mockReturnValueOnce(listing)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [requestStarted] }
     } as Partial<AppState>)
@@ -361,6 +370,7 @@ describe('fetchWorktrees', () => {
         resolveListing = resolve
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [requestStarted] }
     } as Partial<AppState>)
@@ -395,6 +405,7 @@ describe('fetchWorktrees', () => {
         resolveListing = resolve
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [requestStarted] }
     } as Partial<AppState>)
@@ -425,6 +436,7 @@ describe('fetchWorktrees', () => {
     const staleResponse = { ...existing, displayNameMode: undefined }
 
     worktreeListMock.mockResolvedValueOnce([staleResponse])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
@@ -450,6 +462,7 @@ describe('fetchWorktrees', () => {
     const peerRenamed = { ...existing, displayName: 'peer label', displayNameMode: undefined }
 
     worktreeListMock.mockResolvedValueOnce([peerRenamed])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
@@ -475,6 +488,7 @@ describe('fetchWorktrees', () => {
     }
 
     worktreeListMock.mockResolvedValueOnce([rederived])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
@@ -499,6 +513,7 @@ describe('fetchWorktrees', () => {
     const rederived = { ...existing, branch: '', displayName: 'wt1', displayNameMode: undefined }
 
     worktreeListMock.mockResolvedValueOnce([rederived])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     await store.getState().fetchWorktrees('repo1')
@@ -527,6 +542,7 @@ describe('fetchWorktrees', () => {
       })
     )
     worktreeListMock.mockResolvedValueOnce([staleResponse])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { worktreesByRepo: { repo1: [existing] } } as Partial<AppState>)
 
     const rename = store.getState().updateWorktreeMeta(existing.id, { displayName: 'new label' })
@@ -559,6 +575,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7
@@ -585,6 +602,7 @@ describe('fetchWorktrees', () => {
     })
 
     worktreeListMock.mockResolvedValue([refreshed])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7
@@ -606,6 +624,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7
@@ -628,6 +647,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7
@@ -659,6 +679,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, sortEpoch fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [existing] },
       sortEpoch: 7
