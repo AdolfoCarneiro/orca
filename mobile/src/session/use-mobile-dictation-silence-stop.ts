@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent } from 'react'
 import type { UseMobileDictationResult } from '../hooks/mobile-dictation-session-state'
 import { nativeChatDictationCopy } from './mobile-session-native-chat-dictation-copy'
 
-export const DICTATION_SILENCE_STOP_MS = 60_000
+const DICTATION_SILENCE_STOP_MS = 60_000
 
 // A forgotten tap-mode mic keeps the screen awake; a finger holding the button is never forgotten.
 export function useMobileDictationSilenceStop(
@@ -34,7 +34,7 @@ export function useMobileDictationSilenceStop(
         stopForSilence()
       }
     }
-    timer = setTimeout(check, DICTATION_SILENCE_STOP_MS)
+    check()
     return () => clearTimeout(timer)
   }, [meter, watching])
 }

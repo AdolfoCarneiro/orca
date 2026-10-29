@@ -69,8 +69,10 @@ describe('dictation silence stop', () => {
   })
 
   it('never stops a hold-mode recording', () => {
-    const { stop, play, unmount } = record('hold')
-    play(120, 0)
+    const { stop, unmount } = record('hold')
+    act(() => {
+      vi.advanceTimersByTime(120_000)
+    })
     expect(stop).not.toHaveBeenCalled()
     unmount()
   })
