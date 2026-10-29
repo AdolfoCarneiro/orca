@@ -35,7 +35,7 @@ function createRuntime() {
     getSettings: () => ({
       disabledTuiAgents: [],
       agentCmdOverrides: {},
-      agentDefaultArgs: {},
+      agentDefaultArgs: { codex: '--model host-model' },
       agentDefaultEnv: { codex: { KEEP: '1', CODEX_HOME: '/stale' } }
     })
   }
@@ -119,71 +119,70 @@ describe('agent-session creates with a desktop-prepared accountEnv', () => {
     expect(planned[0]?.env).toMatchObject({ KEEP: '1', CODEX_HOME: ACCOUNT_ENV.CODEX_HOME })
   })
 
-  it.each(['host-defaults', 'current-inputs', 'saved'] as const)(
-    'uses the selected host account over %s env on resume without desktop accountEnv',
-    async (source) => {
-      const runtime = createRuntime()
-      runtime.setHostAccountLaunchEnv(
-        HostAccountLaunchEnvParams.parse({
-          wslDistro: 'Ubuntu',
-          claude: {},
-          terminal: { CODEX_HOME: ACCOUNT_ENV.CODEX_HOME, CLAUDE_CONFIG_DIR: '/host-claude' }
-        })
-      )
-      const { planned } = planCreates(runtime)
-      const recipe =
-        source === 'saved'
-          ? {
-              source,
-              launchConfig: {
-                agentCommand: 'recorded-codex',
-                agentArgs: '--model recorded',
-                agentEnv: {
-                  KEEP: 'saved',
-                  CODEX_HOME: '/saved',
-                  CLAUDE_CONFIG_DIR: '/saved-claude'
-                }
-              }
-            }
-          : source === 'current-inputs'
-            ? {
-                source,
-                settings: { agentDefaultEnv: { codex: { KEEP: '1', CODEX_HOME: '/selected' } } }
-              }
-            : { source }
-      await runtime.ensureAgentSession({
-        kind: 'explicit',
-        worktree: 'id:worktree-1',
-        agent: 'codex',
-        providerSession: { key: 'session_id', id: 'provider-session-1' },
-        resume: { recipe },
-        ...(source === 'saved'
-          ? {
-              env: {
-                CODEX_HOME: '/caller-home',
-                CLAUDE_CONFIG_DIR: '/caller-claude',
-                ORCA_PANE_KEY: 'restored-tab:restored-leaf',
-                ORCA_AGENT_LAUNCH_TOKEN: 'restore-token'
-              },
-              accountEnv: { CODEX_HOME: '/explicit-home' }
-            }
-          : {})
-      })
-      expect(planned[0]?.env).toMatchObject({
-        KEEP: source === 'saved' ? 'saved' : '1',
-        CODEX_HOME: source === 'saved' ? '/explicit-home' : ACCOUNT_ENV.CODEX_HOME
-      })
-      if (source === 'saved') {
-        expect(planned[0]?.command).toContain('recorded-codex')
-        expect(planned[0]?.launchConfig?.agentArgs).toBe('--model recorded')
-        expect(planned[0]?.env).toMatchObject({
-          ORCA_PANE_KEY: 'restored-tab:restored-leaf',
-          ORCA_AGENT_LAUNCH_TOKEN: 'restore-token',
-          CLAUDE_CONFIG_DIR: '/caller-claude'
-        })
+  it.each([
+    { source: 'host-defaults' },
+    {
+      source: 'current-inputs',
+      settings: { agentDefaultEnv: { codex: { KEEP: '1', CODEX_HOME: '/selected' } } }
+    },
+    {
+      source: 'saved',
+      launchConfig: {
+        agentCommand: 'recorded-codex',
+        agentArgs: '--model recorded',
+        agentEnv: {
+          KEEP: 'saved',
+          CODEX_HOME: '/saved',
+          CLAUDE_CONFIG_DIR: '/saved-claude'
+        }
       }
     }
-  )
+  ] as const)('uses the selected host account over $source recipe env', async (recipe) => {
+    const source = recipe.source
+    const runtime = createRuntime()
+    runtime.setHostAccountLaunchEnv(
+      HostAccountLaunchEnvParams.parse({
+        wslDistro: 'Ubuntu',
+        claude: {},
+        terminal: { CODEX_HOME: ACCOUNT_ENV.CODEX_HOME, CLAUDE_CONFIG_DIR: '/host-claude' }
+      })
+    )
+    const { planned } = planCreates(runtime)
+    await runtime.ensureAgentSession({
+      kind: 'explicit',
+      worktree: 'id:worktree-1',
+      agent: 'codex',
+      providerSession: { key: 'session_id', id: 'provider-session-1' },
+      resume: { recipe },
+      ...(source === 'saved'
+        ? {
+            env: {
+              CODEX_HOME: '/caller-home',
+              CLAUDE_CONFIG_DIR: '/caller-claude',
+              ORCA_PANE_KEY: 'restored-tab:restored-leaf',
+              ORCA_AGENT_LAUNCH_TOKEN: 'restore-token'
+            },
+            accountEnv: { CODEX_HOME: '/explicit-home' }
+          }
+        : {})
+    })
+    expect(planned[0]?.env).toMatchObject({
+      KEEP: source === 'saved' ? 'saved' : '1',
+      CODEX_HOME: source === 'saved' ? '/explicit-home' : ACCOUNT_ENV.CODEX_HOME
+    })
+    if (source === 'host-defaults') {
+      expect(planned[0]?.command).toContain('host-model')
+    }
+    if (source === 'saved') {
+      expect(planned[0]?.command).toContain('recorded-codex')
+      expect(planned[0]?.launchConfig?.agentArgs).toBe('--model recorded')
+      expect(planned[0]?.env).toMatchObject({
+        ORCA_PANE_KEY: 'restored-tab:restored-leaf',
+        ORCA_AGENT_LAUNCH_TOKEN: 'restore-token',
+        CLAUDE_CONFIG_DIR: '/caller-claude'
+      })
+    }
+  })
 
   it('carries it through a resumed (restored or sleeping) agent', async () => {
     const runtime = createRuntime()

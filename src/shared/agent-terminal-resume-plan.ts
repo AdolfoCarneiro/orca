@@ -10,7 +10,6 @@ import { buildAgentResumeStartupPlan } from './tui-agent-resume-startup'
 import type { AgentLaunchRuntime } from './agent-launch-runtime'
 import { agentLaunchQuotingShell } from './agent-launch-runtime'
 import type { SessionOptionValue } from './native-chat-session-options'
-import { buildAiVaultResumeShellCommand } from './ai-vault-resume-command'
 import { parseWslUncPath } from './wsl-paths'
 
 export function buildAgentTerminalResumePlan(args: {
@@ -53,7 +52,7 @@ export function buildAgentTerminalResumePlan(args: {
               : {}),
           sessionOptions: args.sessionOptions
         })
-  const plan = buildAgentResumeStartupPlan({
+  return buildAgentResumeStartupPlan({
     agent: args.agent,
     providerSession: {
       ...args.providerSession,
@@ -83,23 +82,10 @@ export function buildAgentTerminalResumePlan(args: {
     sessionOptions: args.sessionOptions,
     sessionOptionsOverrideAgentArgs: Boolean(args.sessionOptions),
     launchCwd: args.launchCwd,
-    resumeInLaunchCwd: args.resume.resumeInLaunchCwd
+    resumeInLaunchCwd: args.resume.resumeInLaunchCwd,
+    codexHome:
+      args.runtime.platform === 'linux' && args.resume.codexHome
+        ? (parseWslUncPath(args.resume.codexHome)?.linuxPath ?? args.resume.codexHome)
+        : args.resume.codexHome
   })
-  if (!plan || !args.resume.codexHome) {
-    return plan
-  }
-  const home =
-    args.runtime.platform === 'linux'
-      ? (parseWslUncPath(args.resume.codexHome)?.linuxPath ?? args.resume.codexHome)
-      : args.resume.codexHome
-  return {
-    ...plan,
-    launchCommand: buildAiVaultResumeShellCommand({
-      resumeCommand: plan.launchCommand,
-      cwd: null,
-      platform: args.runtime.platform,
-      shell,
-      codexHome: home
-    })
-  }
 }

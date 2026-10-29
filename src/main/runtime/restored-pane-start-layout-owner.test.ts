@@ -15,6 +15,7 @@ const {
   TEST_WORKTREE_ID,
   deferred,
   makeRuntimeStoreWithWorkspaceSession,
+  makeHeadlessTerminalLayout,
   makeWorkspaceSessionWithHeadlessTerminal
 } = await import('./orca-runtime-test-fixtures.spec')
 const { committingSpawn } = await import('./bind-first-pane.test-fixture')
@@ -92,12 +93,7 @@ describe('a restored pane with no live terminal, on a host with no window (layou
         ...session,
         tabsByWorktree: { [TEST_WORKTREE_ID]: [{ ...tab, ptyId: null }] },
         terminalLayoutsByTabId: {
-          [PANE.tabId]: {
-            root: { type: 'leaf', leafId: PANE.leafId },
-            activeLeafId: PANE.leafId,
-            expandedLeafId: null,
-            ptyIdsByLeafId: {}
-          }
+          [PANE.tabId]: makeHeadlessTerminalLayout({})
         },
         sleepingAgentSessionsByPaneKey: { [record.paneKey]: record }
       })

@@ -1,3 +1,6 @@
+import { execFileSync } from 'node:child_process'
+import { realpathSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { partialRuntimeStore } from './runtime-store-partial-fixture'
 import { isAgentResumeNotDispatchedResponse } from '../../shared/agent-terminal-resume-outcome'
 import { mapRuntimeError } from './rpc/errors'
@@ -127,8 +130,8 @@ function resumePlan(
         getSettings: () => ({
           terminalWindowsShell,
           agentCmdOverrides: { claude: 'host-claude' },
-          agentDefaultArgs: { claude: '--model host-model' },
-          agentDefaultEnv: { claude: { SETTINGS: 'host' } }
+          agentDefaultArgs: { claude: '--model host-model', codex: '--model host-model' },
+          agentDefaultEnv: { claude: { SETTINGS: 'host' }, codex: { SETTINGS: 'host' } }
         })
       })
     }
@@ -155,6 +158,8 @@ it.each([
       setting
     )
     expect(launch.command).toBe(expected)
+    expect(launch.launchConfig?.agentArgs).toBe('')
+    expect(launch.env).toEqual({})
     expect(launch.resumeProviderSession).toEqual({ key: 'session_id', id: "session's" })
     expect(launch.launchRuntime?.platform).toBe(launchRuntime ? 'linux' : 'win32')
     expect(launch.startupCommandDelivery).toBe('shell-ready')
@@ -177,14 +182,53 @@ it('maps actual ordinary C1 null without typed refusal evidence', async () => {
   expect(isAgentResumeNotDispatchedResponse(response)).toBe(false)
 })
 
-it('keeps host defaults, saved absence and recorded cwd distinct at C1', async () => {
-  const defaults = await resumePlan({ recipe: { source: 'host-defaults' } })
-  const absent = await resumePlan({ recipe: { source: 'saved' } })
-  expect(defaults.command).toContain('host-model')
-  expect(absent.launchConfig?.agentArgs).toBe('')
-  expect(absent.env).toEqual({})
-  expect(absent.command).toContain('/original')
-  expect(
-    (await resumePlan({ recipe: { source: 'saved' }, resumeInLaunchCwd: true })).command
-  ).not.toContain('/original')
-})
+it.skipIf(original === 'win32')(
+  'composes the selected home with recorded cwd through typed C1',
+  async () => {
+    const cwd = realpathSync(tmpdir())
+    for (const resumeInLaunchCwd of [undefined, false, true]) {
+      const launch = await resumePlan(
+        {
+          recipe: {
+            source: 'saved',
+            launchConfig: {
+              agentCommand: "codex '--dangerously-bypass-approvals-and-sandbox'",
+              agentArgs: '--dangerously-bypass-approvals-and-sandbox',
+              agentEnv: { SELECTED: 'recipe', CODEX_HOME: '/recipe' }
+            }
+          },
+          codexHome: String.raw`\\wsl.localhost\Ubuntu\selected`,
+          resumeInLaunchCwd
+        },
+        {
+          startupAgent: 'codex',
+          resumeProviderSession: { key: 'session_id', id: 'saved', cwd: '/' },
+          cwd,
+          env: { CODEX_HOME: '/caller' },
+          accountEnv: { CODEX_HOME: '/account' }
+        }
+      )
+      const argv = resumeInLaunchCwd
+        ? ['-c', 'tui.resume_cwd=current', 'resume', 'saved']
+        : ['resume', 'saved']
+      expect(launch.launchConfig).toMatchObject({ agentCommand: 'codex', agentArgs: '' })
+      expect(launch.env).toEqual({ SELECTED: 'recipe', CODEX_HOME: '/account' })
+      expect(launch.resumeProviderSession).toEqual({ key: 'session_id', id: 'saved', cwd: '/' })
+      expect(launch.startupCommandDelivery).toBe('shell-ready')
+      const observed = execFileSync(
+        '/bin/sh',
+        [
+          '-c',
+          `codex() { printf '%s\n' "$CODEX_HOME" "$PWD" "$SELECTED" "$@"; }\n${launch.command}`
+        ],
+        { cwd, env: launch.env, encoding: 'utf8' }
+      )
+      expect(observed.trim().split('\n')).toEqual([
+        '/selected',
+        resumeInLaunchCwd ? cwd : '/',
+        'recipe',
+        ...argv
+      ])
+    }
+  }
+)

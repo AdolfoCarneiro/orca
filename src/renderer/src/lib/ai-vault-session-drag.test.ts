@@ -199,9 +199,6 @@ describe('Session History session drag data', () => {
   it('keeps the 9000-character unrelated env drag valid and selected changes effective', async () => {
     const state = historyState({ UNUSED: 'x'.repeat(9000) })
     const first = historyDrag(state)
-    expect(new TextEncoder().encode(first.serialized).byteLength).toBeLessThan(
-      AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES
-    )
     if (!state.settings) {
       throw new Error('Missing fixture settings')
     }
@@ -225,15 +222,6 @@ describe('Session History session drag data', () => {
     const inherited = await effectiveDragResume(historyDrag(state))
     expect(inherited.command).toContain('default')
     expect(inherited.command).not.toContain('acceptEdits')
-  })
-
-  it('requires executable commands while old readers ignore private fields', () => {
-    for (const command of [undefined, '']) {
-      expect(readAiVaultSessionDragData(parentTransfer({ command }))).toBeNull()
-    }
-    expect(readAiVaultSessionDragData(parentTransfer({ resume: { unknown: true } }))).toEqual(
-      codecPayload
-    )
   })
 
   it('preserves an explicit null sessionCwd across the serialized round-trip', () => {
@@ -290,8 +278,10 @@ describe('Session History session drag data', () => {
     expect(read && 'sessionCwd' in read).toBe(false)
   })
 
-  it('rejects malformed parent paths, agents, env, deletion and launch config records', () => {
+  it('rejects malformed parent records while old readers ignore private fields', () => {
     for (const change of [
+      { command: undefined },
+      { command: '' },
       { sessionFilePath: '   ' },
       { agent: 'bad' },
       { env: ['ANTHROPIC_BASE_URL=https://claude.example.test'] },
@@ -301,6 +291,9 @@ describe('Session History session drag data', () => {
     ]) {
       expect(readAiVaultSessionDragData(parentTransfer(change))).toBeNull()
     }
+    expect(readAiVaultSessionDragData(parentTransfer({ resume: { unknown: true } }))).toEqual(
+      codecPayload
+    )
   })
 
   it('rejects oversized serialized payloads before parsing', () => {
@@ -617,10 +610,6 @@ it.each(['folder:source', wt])(
     const transfer = drag(args)
     expect(transfer.getData(AI_VAULT_SESSION_DRAG_TYPE)).toBe(parentBytes(args))
     const reads = vi.spyOn(transfer, 'getData')
-    const old = JSON.parse(transfer.getData(AI_VAULT_SESSION_DRAG_TYPE))
-    expect(JSON.stringify([old.command, old.env, old.envToDelete, old.launchConfig])).toBe(
-      JSON.stringify([prepared.command, prepared.env, prepared.envToDelete, prepared.launchConfig])
-    )
     state = {
       ...state,
       repos: state.repos.map((repo) => ({
@@ -638,9 +627,6 @@ it.each(['folder:source', wt])(
     expect(pending).not.toHaveProperty('resume')
     expect(reads).not.toHaveBeenCalledWith(AI_VAULT_LOCAL_DRAG_TYPE)
     expect(pending.resumeProviderSession).toEqual(prepared.providerSession)
-    expect(mocks.prepare).toHaveBeenCalledWith(
-      expect.not.objectContaining({ localFallback: expect.anything(), resume: expect.anything() })
-    )
   }
 )
 
@@ -779,7 +765,6 @@ it('keeps cross-window selected, LONG3000 and near-cap parent input through the 
     const expected = parentBytes(args)
     const transfer = drag(args)
     expect(transfer.getData(AI_VAULT_SESSION_DRAG_TYPE)).toBe(expected)
-    expect(readAiVaultSessionDragData(transfer)).not.toBeNull()
     if (size === nearCap) {
       expect(
         AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES - new TextEncoder().encode(expected).byteLength

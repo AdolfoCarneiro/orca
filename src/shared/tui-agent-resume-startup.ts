@@ -34,6 +34,7 @@ export function buildAgentResumeStartupPlan(args: {
   resumeInLaunchCwd?: boolean
   /** Folder the resume shell starts in; an agent recorded elsewhere is resumed from its own folder (#16960). */
   launchCwd?: string | null
+  codexHome?: string | null
   /** Open a copy of the conversation instead of re-entering it; null for agents that cannot. */
   fork?: boolean
 }): AgentStartupPlan | null {
@@ -83,15 +84,17 @@ export function buildAgentResumeStartupPlan(args: {
   })
   const resumeCommand = buildAgentResumeLaunchCommand(args.agent, baseCommand.command, argv, shell)
   const agentCwd = args.providerSession.cwd
-  const launchCommand =
+  const cwd =
     agentCwd && args.launchCwd && !args.resumeInLaunchCwd && !isSameFolder(agentCwd, args.launchCwd)
-      ? buildAiVaultResumeShellCommand({
-          resumeCommand,
-          cwd: agentCwd,
-          platform: args.platform,
-          shell
-        })
-      : resumeCommand
+      ? agentCwd
+      : null
+  const launchCommand = buildAiVaultResumeShellCommand({
+    resumeCommand,
+    cwd,
+    platform: args.platform,
+    shell,
+    codexHome: args.codexHome
+  })
   const applied = baseCommand.appliedSessionOptions
   return {
     agent: args.agent,

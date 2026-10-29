@@ -157,18 +157,20 @@ describe('a pane that starts its own agent launch', () => {
     })
   })
 
+  const typedResume = {
+    agentLaunch: undefined,
+    command: undefined,
+    resume: { recipe: { source: 'saved' as const } },
+    launchAgent: 'claude' as const,
+    resumeProviderSession: { key: 'session_id' as const, id: 'contract' }
+  }
+
   it('returns typed C1 refusal on its originating invocation after exact acquisition cleanup', async () => {
     const providerSpawn = vi.fn(async () => ({ id: 'pty-agent' }))
     const runtime = register(providerSpawn, async () => {
       throw new ResumePlanNotDispatchedError('Could not build resume command for claude.')
     })
-    const response = await spawnPane(AI_BUTTON, {
-      agentLaunch: undefined,
-      command: undefined,
-      launchAgent: 'claude',
-      resume: { recipe: { source: 'saved' } },
-      resumeProviderSession: { key: 'session_id', id: 'contract' }
-    })
+    const response = await spawnPane(AI_BUTTON, typedResume)
     expect(isAgentResumeNotDispatchedResponse(response)).toBe(true)
     expect(providerSpawn).not.toHaveBeenCalled()
     expect(runtime.reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
@@ -187,20 +189,13 @@ describe('a pane that starts its own agent launch', () => {
       throw new Error('daemon reply lost')
     })
     const runtime = register(providerSpawn)
-    const request = {
-      agentLaunch: undefined,
-      command: undefined,
-      resume: { recipe: { source: 'saved' as const } },
-      launchAgent: 'claude' as const,
-      resumeProviderSession: { key: 'session_id' as const, id: 'contract' }
-    }
-    await expect(spawnPane(AI_BUTTON, request)).rejects.toThrow('daemon reply lost')
+    await expect(spawnPane(AI_BUTTON, typedResume)).rejects.toThrow('daemon reply lost')
     expect(runtime.planAgentPaneLaunch).toHaveBeenCalledOnce()
     expect(providerSpawn).toHaveBeenCalledOnce()
     expect(isAgentLaunchRunningIn(worktreeId, { kind: 'pane', tabId, leafId })).toBe(false)
     expect(runtime.reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
     providerSpawn.mockResolvedValueOnce({ id: 'retry' })
-    await expect(spawnPane(AI_BUTTON, request)).resolves.toMatchObject({ id: 'retry' })
+    await expect(spawnPane(AI_BUTTON, typedResume)).resolves.toMatchObject({ id: 'retry' })
     expect(providerSpawn).toHaveBeenCalledTimes(2)
   })
 

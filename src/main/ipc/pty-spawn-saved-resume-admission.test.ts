@@ -1,4 +1,4 @@
-import { describe, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { forgetRefusedPaneResumeMock, spawnMock } from './pty-ipc-mock-registry'
 import { posixOnlyIt } from './pty-ipc-test-constants'
 import { setupPtyIpcSuite } from './pty-ipc-test-harness'
@@ -132,34 +132,25 @@ describe('a pane restore of a conversation a native chat continues', () => {
     }
   }
 
-  posixOnlyIt(
+  it.skipIf(process.platform === 'win32').each([false, true])(
     'starts the plain shell with the notice and forgets the pane claim while the chat tab is open',
-    async () => {
-      register([chat.sessionId])
-      const restored = await spawnResume('saved')
+    async (typed) => {
+      const runtime = register([chat.sessionId])
+      const restored = await spawnResume('saved', LEAF_ID, typed)
+      if (typed) {
+        const planned = await vi.mocked(runtime.planAgentPaneLaunch).mock.results[0]!.value
+        expect(planned.command).toContain(C)
+      }
       expect(restored).toMatchObject({ refused: 'chat-home', notice: true })
       expect(restored.input).not.toContain(C)
+      expect(restored.input).not.toContain('--resume')
+      expect(spawnMock).toHaveBeenCalledOnce()
       expect(forgetRefusedPaneResumeMock).toHaveBeenCalledWith(`tab-floating:${LEAF_ID}`, {
         agent: 'claude',
         providerSession: { key: 'session_id', id: C }
       })
     }
   )
-
-  posixOnlyIt('runs real typed planning then strips the resume at saved admission', async () => {
-    const runtime = register([chat.sessionId])
-    const restored = await spawnResume('saved', LEAF_ID, true)
-    const planned = await vi.mocked(runtime.planAgentPaneLaunch).mock.results[0]!.value
-    expect(planned.command).toContain(C)
-    expect(restored).toMatchObject({ refused: 'chat-home', notice: true })
-    expect(restored.input).not.toContain(C)
-    expect(restored.input).not.toContain('--resume')
-    expect(spawnMock).toHaveBeenCalledOnce()
-    expect(forgetRefusedPaneResumeMock).toHaveBeenCalledWith(`tab-floating:${LEAF_ID}`, {
-      agent: 'claude',
-      providerSession: { key: 'session_id', id: C }
-    })
-  })
 
   posixOnlyIt(
     'recovers a disabled saved desktop agent while ensure and saved mobile still refuse',

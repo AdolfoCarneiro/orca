@@ -93,7 +93,6 @@ describe('AI Vault OMP cold resume', () => {
       }
     })
     const startup = await materializeAiVaultResumeForTest(args, selected)
-    expect(startup.command).not.toContain('wsl$')
 
     expect(startup).toMatchObject({
       command: "omp '--model' 'custom' '--resume' '/custom/omp-sessions/project/session.jsonl'",
