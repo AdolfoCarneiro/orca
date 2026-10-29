@@ -151,8 +151,7 @@ describe.skipIf(process.platform === 'win32')('runtime transport', () => {
     await vi.runAllTimersAsync()
     expect(await response).toMatchObject({
       code: 'runtime_unavailable',
-      message:
-        'The Orca runtime closed the connection before responding. Restart Orca and try again.'
+      message: 'Orca closed the connection before responding.'
     })
     expect(vi.getTimerCount()).toBe(0)
   })

@@ -41,7 +41,7 @@ beforeEach(() => {
   socket = new TestSocket()
   connect.mockReturnValue(socket)
   tryReadMetadata.mockReturnValue(metadata)
-  mockKill()
+  mockKill('ESRCH')
 })
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -90,7 +90,8 @@ describe('runtime access denied', () => {
     const human = formatCliError(await deniedRequest('EPERM'))
 
     expect(human).toContain('The Codex sandbox blocked this command from connecting to Orca')
-    expect(human).toContain('escalated permissions, outside the Codex sandbox')
+    expect(human).toContain("Codex's existing escalation when the session permits it")
+    expect(human).toContain('otherwise run the same command from a terminal outside the sandbox')
     expect(human).not.toMatch(RESTART_OR_ABSENT_ADVICE)
   })
 
@@ -98,39 +99,21 @@ describe('runtime access denied', () => {
     expect(await deniedRequest('ECONNREFUSED')).toMatchObject({ code: 'runtime_unavailable' })
   })
 
-  it.each([undefined, 'EPERM'])(
-    'fails status instead of guessing a state (kill %s)',
-    async (killCode) => {
-      mockKill(killCode)
-      const pending = getCliStatus('/test')
-      failConnect('EPERM')
+  it.each(['EPERM', 'EACCES'])(
+    'preserves %s with a hidden host PID through status and open without launching',
+    async (code) => {
+      const status = getCliStatus('/test')
+      failConnect(code)
+      await expect(status).rejects.toMatchObject({ code: 'runtime_access_denied' })
 
-      await expect(pending).rejects.toMatchObject({ code: 'runtime_access_denied' })
+      const open = new RuntimeClient('/test', 1000, null, null).openOrca()
+      failConnect(code)
+      await expect(open).rejects.toMatchObject({ code: 'runtime_access_denied' })
+      expect(launchOrcaApp).not.toHaveBeenCalled()
+      expect(connect).toHaveBeenCalledTimes(2)
+      expect(process.kill).not.toHaveBeenCalled()
     }
   )
-
-  // Sandbox denial can mask ECONNREFUSED on a dead runtime’s leftover socket.
-  it('gives not-running advice when the denied endpoint belongs to a dead pid', async () => {
-    mockKill('ESRCH')
-    const human = formatCliError(await deniedRequest('EPERM'))
-
-    expect(human).toContain("Orca is not running. Run 'orca open' first.")
-    expect(human).not.toContain('Do not restart')
-    const pending = getCliStatus('/test')
-    failConnect('EPERM')
-    await expect(pending).resolves.toMatchObject({
-      result: { app: { running: false }, runtime: { state: 'stale_bootstrap' } }
-    })
-  })
-
-  it('does not launch or poll Orca when the initial status is denied', async () => {
-    const pending = new RuntimeClient('/test', 1000, null, null).openOrca()
-    failConnect('EPERM')
-
-    await expect(pending).rejects.toMatchObject({ code: 'runtime_access_denied' })
-    expect(launchOrcaApp).not.toHaveBeenCalled()
-    expect(connect).toHaveBeenCalledTimes(1)
-  })
 
   it('reports status --json as an ok:false envelope with the recovery data', async () => {
     const pending = getCliStatus('/test')
