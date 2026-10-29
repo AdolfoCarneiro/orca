@@ -12,16 +12,22 @@
  * or spawns in children that drop the environment.
  */
 import { execFile } from 'node:child_process'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import type { ElectronApplication, Page } from '@stablyai/playwright-test'
+import type { Page } from '@stablyai/playwright-test'
 import { expect, test } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import { waitForActivePanePtyId } from './helpers/terminal'
 import { visitSettingsPanes } from './helpers/settings-pane-visits'
 import { buildWslExecArgs } from '../../src/shared/wsl-login-shell-command'
 import { quotePosixShell } from '../../src/shared/shell-argument-quoting'
+import {
+  readDiagnosticLog,
+  recordMainProcessWslDiagnostics,
+  UNC_TOUCH,
+  type DiagnosticRecord
+} from './helpers/wsl-boot-diagnostics-log'
 
 const DISTRO = process.env.ORCA_E2E_WSL_TERMINATE_DISTRO?.trim() ?? ''
 
@@ -36,8 +42,6 @@ const SETTINGS_PANES = [
   'session-history',
   'automations'
 ] as const
-
-type SpawnRecord = { file: string; args: string[] }
 
 const WSL_EXE = /(^|[\\/])wsl(\.exe)?$/i
 
@@ -67,9 +71,9 @@ function wsl(args: readonly string[], timeoutMs = 60_000): Promise<string> {
 }
 
 /** Timestamped steps in the test output, so a lane failure shows when each read and act happened. */
-const startedAt = performance.now()
-function timeline(event: string): void {
-  console.log(`[e9-guard +${Math.round(performance.now() - startedAt)}ms] ${event}`)
+const startedAt = Date.now()
+function timeline(event: string, at = Date.now()): void {
+  console.log(`[e9-guard +${Math.round(at - startedAt)}ms] ${event}`)
 }
 
 /**
@@ -142,12 +146,21 @@ function watchDistroRunning(distro: string): {
     TERMINATE_GRACE_MS
   )
   // Spawns are interleaved into the timeline so a boot can be matched to the launch before it.
-  let spawnsSeen = readSpawnLog(SPAWN_LOG).length
+  let spawnsSeen = readDiagnosticLog(SPAWN_LOG).length
   const logNewWslSpawns = (): void => {
-    const spawns = readSpawnLog(SPAWN_LOG)
+    const spawns = readDiagnosticLog(SPAWN_LOG)
     for (const spawn of spawns.slice(spawnsSeen)) {
-      if (WSL_EXE.test(spawn.file)) {
-        timeline(`spawn ${spawn.file} ${spawn.args.join(' ')}`)
+      if (WSL_EXE.test(spawn.file) || spawn.file === UNC_TOUCH) {
+        // `at` is when it happened; the line prints at this poll, up to a second later.
+        timeline(
+          `${spawn.file === UNC_TOUCH ? 'unc' : 'spawn'} ${spawn.file} ${spawn.args.join(' ')}`,
+          spawn.at
+        )
+        if (startsDistro(spawn, distro) || spawn.file === UNC_TOUCH) {
+          for (const frame of spawn.stack ?? []) {
+            timeline(`    ${frame}`, spawn.at)
+          }
+        }
       }
     }
     spawnsSeen = spawns.length
@@ -202,58 +215,6 @@ function runInDistro(distro: string, script: string): Promise<string> {
   return wsl(['-u', 'root', ...buildWslExecArgs(distro, ['sh', '-c', script])])
 }
 
-/**
- * Logs main's direct child_process spawns too (spawn, exec and execFile all pass through
- * ChildProcess#spawn), beside the process-host log. node-pty terminals do not, and need not.
- */
-async function recordMainProcessSpawns(app: ElectronApplication, logFile: string): Promise<void> {
-  await app.evaluate((_electron, logFile) => {
-    const fs = process.mainModule?.require('node:fs')
-    const proto = process.mainModule?.require('node:child_process')?.ChildProcess?.prototype
-    if (!fs || !proto) {
-      throw new Error('Cannot hook child_process in the main process')
-    }
-    if (proto.spawn.orcaE9SpawnLog) {
-      return
-    }
-    const original = proto.spawn
-    const logged = function (this: unknown, options: { file?: string; args?: string[] }) {
-      fs.appendFileSync(
-        logFile,
-        `${JSON.stringify({ file: String(options?.file ?? ''), args: options?.args ?? [] })}\n`
-      )
-      return original.call(this, options)
-    }
-    logged.orcaE9SpawnLog = true
-    proto.spawn = logged
-  }, logFile)
-}
-
-function readSpawnLog(logFile: string): SpawnRecord[] {
-  if (!existsSync(logFile)) {
-    return []
-  }
-  return readFileSync(logFile, 'utf8')
-    .split('\n')
-    .filter(Boolean)
-    .flatMap((line): SpawnRecord[] => {
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(line)
-      } catch {
-        // A line torn by a concurrent append; the next read sees it whole.
-        return []
-      }
-      const file =
-        parsed && typeof parsed === 'object' && 'file' in parsed ? String(parsed.file) : ''
-      const args =
-        parsed && typeof parsed === 'object' && 'args' in parsed && Array.isArray(parsed.args)
-          ? parsed.args.map(String)
-          : []
-      return [{ file, args }]
-    })
-}
-
 /** wsl.exe verbs that never start a distro; any other launch counts as starting the default one. */
 const NON_BOOTING_WSL_VERBS = new Set([
   '-l',
@@ -268,7 +229,7 @@ const NON_BOOTING_WSL_VERBS = new Set([
 ])
 
 /** Fails closed: a wsl.exe launch starts `distro` unless it names another one or only lists. */
-function startsDistro(spawn: SpawnRecord, distro: string): boolean {
+function startsDistro(spawn: DiagnosticRecord, distro: string): boolean {
   if (!WSL_EXE.test(spawn.file)) {
     return false
   }
@@ -288,7 +249,9 @@ async function waitForWslLaunchesToSettle(): Promise<void> {
   await expect
     .poll(
       () => {
-        const count = readSpawnLog(SPAWN_LOG).filter((spawn) => WSL_EXE.test(spawn.file)).length
+        const count = readDiagnosticLog(SPAWN_LOG).filter((spawn) =>
+          WSL_EXE.test(spawn.file)
+        ).length
         const now = performance.now()
         if (count !== last.count) {
           last = { count, since: now }
@@ -355,7 +318,7 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
       }, uncPath)
       // Focusing it is a user act that opens a WSL terminal. Let that launch (its PTY, hook relay
       // and agent probes) finish before the terminate, or it boots the distro after it.
-      await recordMainProcessSpawns(electronApp, SPAWN_LOG)
+      await recordMainProcessWslDiagnostics(electronApp, SPAWN_LOG)
       await activate(page, wslWorktreeId.worktreeId)
       await ensureTerminalVisible(page, 60_000)
       await waitForActivePanePtyId(page, 60_000)
@@ -364,7 +327,7 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
       await activate(page, localWorktreeId)
 
       // Counted from before the terminate, so work started while it stops counts too.
-      const spawnsBefore = readSpawnLog(SPAWN_LOG).length
+      const spawnsBefore = readDiagnosticLog(SPAWN_LOG).length
       timeline('terminate')
       await wsl(['--terminate', DISTRO], 30_000)
       timeline('terminated')
@@ -403,7 +366,7 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
       expect(watched.seenRunning).toBe(false)
       expect(await isDistroRunning(DISTRO)).toBe(false)
       // Diagnostics that name the caller; non-empty so the check cannot pass vacuously.
-      const background = readSpawnLog(SPAWN_LOG).slice(spawnsBefore)
+      const background = readDiagnosticLog(SPAWN_LOG).slice(spawnsBefore)
       expect(background.length).toBeGreaterThan(0)
       expect(background.filter((spawn) => startsDistro(spawn, DISTRO))).toEqual([])
 
