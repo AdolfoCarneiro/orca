@@ -1,5 +1,6 @@
 import {
   canonicalSourceControlActionSelection,
+  commitSourceControlActionArguments,
   editSourceControlActionArguments,
   pickSourceControlActionAgent,
   selectSourceControlActionRecipe,
@@ -60,6 +61,7 @@ export function useSourceControlAgentActionDialog({
     () => selectSourceControlActionRecipe(currentSelection),
     [currentSelection]
   )
+  const [argumentsEdited, setArgumentsEdited] = useState(false)
   const [livePick, setLivePick] = useState<AgentLaunchSurface | undefined>(undefined)
   const commandTemplate = recipe.commandInputTemplate ?? '{basePrompt}'
   const agentArgs = recipe.agentArgs ?? ''
@@ -106,6 +108,14 @@ export function useSourceControlAgentActionDialog({
       trimmedCommandInput,
       agentArgsApply: choice.launchAppliesAgentArgs,
       recipe: choice.canSaveSurface ? recipe : (({ surface: _surface, ...rest }) => rest)(recipe),
+      prepareRecipe: (agent) => {
+        const submitted = argumentsEdited
+          ? commitSourceControlActionArguments(currentSelection, agent).recipe
+          : recipe
+        return choice.canSaveSurface
+          ? submitted
+          : (({ surface: _surface, ...rest }) => rest)(submitted)
+      },
       saveLaunchRecipe,
       saveTargetValue,
       actionId,
@@ -164,13 +174,24 @@ export function useSourceControlAgentActionDialog({
     const saved = savedSurfaceForPick(choice.observation.model, agent, surface)
     setLivePick(surface)
     setCurrentSelection((previous) =>
-      pickSourceControlActionAgent(previous, agent, selectedAgent, saved)
+      pickSourceControlActionAgent(
+        argumentsEdited && selectedAgent !== agent
+          ? commitSourceControlActionArguments(previous, selectedAgent ?? agent).selection
+          : previous,
+        agent,
+        selectedAgent,
+        saved
+      )
     )
+    if (selectedAgent !== agent) {
+      setArgumentsEdited(false)
+    }
     resetDeliveryPlan()
   }
-  const onAgentArgsChange = resetPlanAfter((agentArgs: string) =>
+  const onAgentArgsChange = resetPlanAfter((agentArgs: string) => {
+    setArgumentsEdited(true)
     setCurrentSelection((current) => editSourceControlActionArguments(current, agentArgs))
-  )
+  })
   const onCommandTemplateChange = resetPlanAfter((commandInputTemplate: string) =>
     setCurrentSelection((selection) => ({
       ...selection,

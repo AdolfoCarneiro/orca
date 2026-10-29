@@ -29,6 +29,7 @@ type UseSourceControlAgentActionStartArgs = {
   trimmedCommandInput: string
   /** False when the launch would be structured native chat, which reads no CLI arguments. */
   agentArgsApply: boolean
+  prepareRecipe?: (agent: TuiAgent) => SelectedSourceControlActionRecipe
   recipe: SelectedSourceControlActionRecipe
   saveLaunchRecipe: boolean
   saveTargetValue: string
@@ -85,6 +86,7 @@ export function useSourceControlAgentActionStart({
   trimmedCommandInput,
   agentArgsApply,
   recipe,
+  prepareRecipe,
   saveLaunchRecipe,
   saveTargetValue,
   actionId,
@@ -123,7 +125,10 @@ export function useSourceControlAgentActionStart({
   useEffect(() => cancelStart, [open, worktreeId, connectionId, actionId, cancelStart])
 
   const buildPlan = useCallback(
-    (currentDetectedAgents: TuiAgent[]): SourceControlAgentActionDeliveryPlanState =>
+    (
+      currentDetectedAgents: TuiAgent[],
+      submitted: SelectedSourceControlActionRecipe
+    ): SourceControlAgentActionDeliveryPlanState =>
       buildSourceControlAgentDeliveryPlan({
         settings,
         agentLaunchPreferences,
@@ -132,7 +137,7 @@ export function useSourceControlAgentActionStart({
         // Why: the check must judge the arguments the launch will really apply.
         agentArgs:
           agentArgsApply && selectedAgent
-            ? projectSelectedSourceControlActionLaunch(recipe, selectedAgent, {
+            ? projectSelectedSourceControlActionLaunch(submitted, selectedAgent, {
                 renderedPrompt: commandInput,
                 settings
               }).agentArgs
@@ -145,7 +150,6 @@ export function useSourceControlAgentActionStart({
     [
       settings,
       agentLaunchPreferences,
-      recipe,
       agentArgsApply,
       commandInput,
       connectionUnavailable,
@@ -170,7 +174,8 @@ export function useSourceControlAgentActionStart({
       attemptRef.current = attempt
       setIsStarting(true)
       try {
-        const nextPlan = buildPlan(nextAgents)
+        const submitted = prepareRecipe ? prepareRecipe(selectedAgent) : recipe
+        const nextPlan = buildPlan(nextAgents, submitted)
         if (nextPlan.status === 'error') {
           setDeliveryPlan(nextPlan)
           return false
@@ -180,7 +185,7 @@ export function useSourceControlAgentActionStart({
           selectedAgent,
           trimmedCommandInput,
           launchChoice,
-          recipe,
+          recipe: submitted,
           saveTargetValue: saveLaunchRecipe ? saveTargetValue : 'none',
           actionId,
           repoId,
@@ -217,6 +222,7 @@ export function useSourceControlAgentActionStart({
       buildPlan,
       launchChoice,
       recipe,
+      prepareRecipe,
       connectionUnavailable,
       groupId,
       launchSource,
