@@ -20345,6 +20345,79 @@
       },
       "enableSourceControlAi": "KI für die Quellcodeverwaltung unter Einstellungen -> Git aktivieren.",
       "chooseBaseBranch": "Vor dem Generieren einen Basis-Branch auswählen."
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "Submodul „{{name}}“ hat Änderungen im Remote. Im Submodul pullen und erneut versuchen.",
+        "remoteChanged": "Ein Submodul hat Änderungen im Remote. Im Submodul pullen und erneut versuchen.",
+        "namedPushFailed": "Submodul „{{name}}“ konnte nicht gepusht werden. Den Push-Fehler des Submoduls beheben und erneut versuchen.",
+        "pushFailed": "Ein Submodul konnte nicht gepusht werden. Den Push-Fehler des Submoduls beheben und erneut versuchen."
+      },
+      "failedWithDetail": {
+        "publish": "Veröffentlichen des Branches fehlgeschlagen. {{detail}}",
+        "sync": "Synchronisierung fehlgeschlagen. {{detail}}",
+        "forcePush": "Erzwungener Push fehlgeschlagen. {{detail}}",
+        "push": "Push fehlgeschlagen. {{detail}}",
+        "fetch": "Fetch fehlgeschlagen. {{detail}}",
+        "fastForward": "Fast-Forward fehlgeschlagen. {{detail}}",
+        "rebase": "Rebase fehlgeschlagen. {{detail}}",
+        "pull": "Pull fehlgeschlagen. {{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "Veröffentlichen des Branches blockiert — lint beim Push fehlgeschlagen.",
+          "sync": "Synchronisierung blockiert — lint beim Push fehlgeschlagen.",
+          "forcePush": "Erzwungener Push blockiert — lint beim Push fehlgeschlagen.",
+          "push": "Push blockiert — lint beim Push fehlgeschlagen."
+        },
+        "prePush": {
+          "publish": "Veröffentlichen des Branches blockiert — pre-push-Hook fehlgeschlagen.",
+          "sync": "Synchronisierung blockiert — pre-push-Hook fehlgeschlagen.",
+          "forcePush": "Erzwungener Push blockiert — pre-push-Hook fehlgeschlagen.",
+          "push": "Push blockiert — pre-push-Hook fehlgeschlagen."
+        },
+        "detail": {
+          "publish": "Veröffentlichen des Branches blockiert — {{detail}}",
+          "sync": "Synchronisierung blockiert — {{detail}}",
+          "forcePush": "Erzwungener Push blockiert — {{detail}}",
+          "push": "Push blockiert — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "Veröffentlichen des Branches fehlgeschlagen. {{detail}}. Den Zugriff auf das Remote prüfen und erneut versuchen.",
+        "sync": "Synchronisierung fehlgeschlagen. {{detail}}. Den Zugriff auf das Remote prüfen und erneut versuchen.",
+        "forcePush": "Erzwungener Push fehlgeschlagen. {{detail}}. Den Zugriff auf das Remote prüfen und erneut versuchen.",
+        "push": "Push fehlgeschlagen. {{detail}}. Den Zugriff auf das Remote prüfen und erneut versuchen."
+      },
+      "publishFailed": "Veröffentlichen des Branches fehlgeschlagen. Den Zugriff auf das Remote prüfen und erneut versuchen.",
+      "syncFailed": "Synchronisierung fehlgeschlagen. Die Verbindung prüfen und erneut versuchen.",
+      "forcePushFailed": "Erzwungener Push fehlgeschlagen. Die Verbindung prüfen und erneut versuchen.",
+      "pushFailed": "Push fehlgeschlagen. Die Verbindung prüfen und erneut versuchen.",
+      "localChangesBlocked": {
+        "rebase": "Rebase blockiert — lokale Änderungen zuerst committen oder stashen.",
+        "fastForward": "Fast-Forward blockiert — lokale Änderungen zuerst committen oder stashen.",
+        "pull": "Pull blockiert — lokale Änderungen zuerst committen oder stashen."
+      },
+      "operationFailed": "Remote-Operation fehlgeschlagen",
+      "unconcludedMerge": {
+        "rebase": "Rebase blockiert — zuerst bestehende Konflikte beheben.",
+        "sync": "Synchronisierung blockiert — zuerst bestehende Merge-Konflikte beheben.",
+        "pull": "Pull blockiert — zuerst bestehende Merge-Konflikte beheben."
+      },
+      "mergeConflicts": {
+        "rebase": "Rebase wegen Konflikten angehalten. Diese in der Quellcodeverwaltung beheben und dann den Rebase fortsetzen.",
+        "sync": "Synchronisierung wegen Merge-Konflikten angehalten. Diese in der Quellcodeverwaltung beheben und dann den Merge committen.",
+        "pull": "Pull wegen Merge-Konflikten angehalten. Diese in der Quellcodeverwaltung beheben und dann den Merge committen."
+      },
+      "syncRemoteMoved": "Synchronisierung fehlgeschlagen — das Remote hat sich während der Synchronisierung geändert. Erneut versuchen.",
+      "forcePushRejected": "Erzwungener Push abgelehnt — das Remote hat sich seit dem letzten Fetch geändert. Zuerst fetchen und erneut versuchen.",
+      "pushRejected": "Push abgelehnt — das Remote enthält Änderungen. Zuerst pullen und erneut versuchen.",
+      "untrackedFilesBlocked": {
+        "rebase": "Rebase blockiert — nicht versionierte Dateien zuerst verschieben, entfernen oder hinzufügen.",
+        "fastForward": "Fast-Forward blockiert — nicht versionierte Dateien zuerst verschieben, entfernen oder hinzufügen.",
+        "pull": "Pull blockiert — nicht versionierte Dateien zuerst verschieben, entfernen oder hinzufügen."
+      },
+      "authenticationFailed": "Authentifizierung fehlgeschlagen. Die Zugangsdaten für das Remote prüfen."
     }
   },
   "agentsSidebarIntro": {

@@ -20058,6 +20058,79 @@
       },
       "enableSourceControlAi": "請在「設定 -> Git」中啟用原始碼控制 AI。",
       "chooseBaseBranch": "產生前請先選擇基礎分支。"
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "子模組「{{name}}」有遠端變更。請在子模組內拉取後再試一次。",
+        "remoteChanged": "某個子模組有遠端變更。請在子模組內拉取後再試一次。",
+        "namedPushFailed": "無法推送子模組「{{name}}」。請解決子模組的推送錯誤後再試一次。",
+        "pushFailed": "無法推送某個子模組。請解決子模組的推送錯誤後再試一次。"
+      },
+      "failedWithDetail": {
+        "publish": "發布分支失敗。{{detail}}",
+        "sync": "同步失敗。{{detail}}",
+        "forcePush": "強制推送失敗。{{detail}}",
+        "push": "推送失敗。{{detail}}",
+        "fetch": "擷取失敗。{{detail}}",
+        "fastForward": "快轉失敗。{{detail}}",
+        "rebase": "變基失敗。{{detail}}",
+        "pull": "拉取失敗。{{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "分支發布遭阻擋 — 推送期間 lint 失敗。",
+          "sync": "同步遭阻擋 — 推送期間 lint 失敗。",
+          "forcePush": "強制推送遭阻擋 — 推送期間 lint 失敗。",
+          "push": "推送遭阻擋 — 推送期間 lint 失敗。"
+        },
+        "prePush": {
+          "publish": "分支發布遭阻擋 — pre-push 鉤子失敗。",
+          "sync": "同步遭阻擋 — pre-push 鉤子失敗。",
+          "forcePush": "強制推送遭阻擋 — pre-push 鉤子失敗。",
+          "push": "推送遭阻擋 — pre-push 鉤子失敗。"
+        },
+        "detail": {
+          "publish": "分支發布遭阻擋 — {{detail}}",
+          "sync": "同步遭阻擋 — {{detail}}",
+          "forcePush": "強制推送遭阻擋 — {{detail}}",
+          "push": "推送遭阻擋 — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "發布分支失敗。{{detail}}。請檢查遠端存取權限後再試一次。",
+        "sync": "同步失敗。{{detail}}。請檢查遠端存取權限後再試一次。",
+        "forcePush": "強制推送失敗。{{detail}}。請檢查遠端存取權限後再試一次。",
+        "push": "推送失敗。{{detail}}。請檢查遠端存取權限後再試一次。"
+      },
+      "publishFailed": "發布分支失敗。請檢查遠端存取權限後再試一次。",
+      "syncFailed": "同步失敗。請檢查連線後再試一次。",
+      "forcePushFailed": "強制推送失敗。請檢查連線後再試一次。",
+      "pushFailed": "推送失敗。請檢查連線後再試一次。",
+      "localChangesBlocked": {
+        "rebase": "變基遭阻擋 — 請先提交或儲藏本機變更。",
+        "fastForward": "快轉遭阻擋 — 請先提交或儲藏本機變更。",
+        "pull": "拉取遭阻擋 — 請先提交或儲藏本機變更。"
+      },
+      "operationFailed": "遠端操作失敗",
+      "unconcludedMerge": {
+        "rebase": "變基遭阻擋 — 請先解決現有衝突。",
+        "sync": "同步遭阻擋 — 請先解決現有合併衝突。",
+        "pull": "拉取遭阻擋 — 請先解決現有合併衝突。"
+      },
+      "mergeConflicts": {
+        "rebase": "變基因衝突而停止。請在原始碼控制中解決衝突，再繼續變基。",
+        "sync": "同步因合併衝突而停止。請在原始碼控制中解決衝突，再提交合併。",
+        "pull": "拉取因合併衝突而停止。請在原始碼控制中解決衝突，再提交合併。"
+      },
+      "syncRemoteMoved": "同步失敗 — 同步期間遠端已變更。請再試一次。",
+      "forcePushRejected": "強制推送遭拒 — 自上次擷取以來，遠端已有變更。請先擷取後再試一次。",
+      "pushRejected": "推送遭拒 — 遠端有變更。請先拉取後再試一次。",
+      "untrackedFilesBlocked": {
+        "rebase": "變基遭阻擋 — 請先移動、移除或新增未追蹤的檔案。",
+        "fastForward": "快轉遭阻擋 — 請先移動、移除或新增未追蹤的檔案。",
+        "pull": "拉取遭阻擋 — 請先移動、移除或新增未追蹤的檔案。"
+      },
+      "authenticationFailed": "身分驗證失敗。請檢查遠端憑證。"
     }
   },
   "agentsSidebarIntro": {

@@ -20908,6 +20908,79 @@
       },
       "enableSourceControlAi": "Activez l’IA du contrôle de code source dans Paramètres -> Git.",
       "chooseBaseBranch": "Choisissez une branche de base avant de générer."
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "Le sous-module « {{name}} » a des modifications distantes. Faites un pull dans le sous-module, puis réessayez.",
+        "remoteChanged": "Un sous-module a des modifications distantes. Faites un pull dans le sous-module, puis réessayez.",
+        "namedPushFailed": "Le sous-module « {{name}} » n'a pas pu être poussé. Résolvez l'erreur de push du sous-module, puis réessayez.",
+        "pushFailed": "Un sous-module n'a pas pu être poussé. Résolvez l'erreur de push du sous-module, puis réessayez."
+      },
+      "failedWithDetail": {
+        "publish": "La publication de la branche a échoué. {{detail}}",
+        "sync": "La synchronisation a échoué. {{detail}}",
+        "forcePush": "Le force push a échoué. {{detail}}",
+        "push": "Le push a échoué. {{detail}}",
+        "fetch": "Le fetch a échoué. {{detail}}",
+        "fastForward": "Le fast-forward a échoué. {{detail}}",
+        "rebase": "Le rebase a échoué. {{detail}}",
+        "pull": "Le pull a échoué. {{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "Publication de la branche bloquée — le lint a échoué pendant le push.",
+          "sync": "Synchronisation bloquée — le lint a échoué pendant le push.",
+          "forcePush": "Force push bloqué — le lint a échoué pendant le push.",
+          "push": "Push bloqué — le lint a échoué pendant le push."
+        },
+        "prePush": {
+          "publish": "Publication de la branche bloquée — le hook pre-push a échoué.",
+          "sync": "Synchronisation bloquée — le hook pre-push a échoué.",
+          "forcePush": "Force push bloqué — le hook pre-push a échoué.",
+          "push": "Push bloqué — le hook pre-push a échoué."
+        },
+        "detail": {
+          "publish": "Publication de la branche bloquée — {{detail}}",
+          "sync": "Synchronisation bloquée — {{detail}}",
+          "forcePush": "Force push bloqué — {{detail}}",
+          "push": "Push bloqué — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "La publication de la branche a échoué. {{detail}}. Vérifiez votre accès au dépôt distant et réessayez.",
+        "sync": "La synchronisation a échoué. {{detail}}. Vérifiez votre accès au dépôt distant et réessayez.",
+        "forcePush": "Le force push a échoué. {{detail}}. Vérifiez votre accès au dépôt distant et réessayez.",
+        "push": "Le push a échoué. {{detail}}. Vérifiez votre accès au dépôt distant et réessayez."
+      },
+      "publishFailed": "La publication de la branche a échoué. Vérifiez votre accès au dépôt distant et réessayez.",
+      "syncFailed": "La synchronisation a échoué. Vérifiez votre connexion et réessayez.",
+      "forcePushFailed": "Le force push a échoué. Vérifiez votre connexion et réessayez.",
+      "pushFailed": "Le push a échoué. Vérifiez votre connexion et réessayez.",
+      "localChangesBlocked": {
+        "rebase": "Rebase bloqué — commitez ou stashez d'abord vos modifications locales.",
+        "fastForward": "Fast-forward bloqué — commitez ou stashez d'abord vos modifications locales.",
+        "pull": "Pull bloqué — commitez ou stashez d'abord vos modifications locales."
+      },
+      "operationFailed": "Échec de l'opération distante",
+      "unconcludedMerge": {
+        "rebase": "Rebase bloqué — résolvez d'abord les conflits existants.",
+        "sync": "Synchronisation bloquée — résolvez d'abord les conflits de fusion existants.",
+        "pull": "Pull bloqué — résolvez d'abord les conflits de fusion existants."
+      },
+      "mergeConflicts": {
+        "rebase": "Le rebase s'est arrêté sur des conflits. Résolvez-les dans Contrôle de code source, puis poursuivez le rebase.",
+        "sync": "La synchronisation s'est arrêtée sur des conflits de fusion. Résolvez-les dans Contrôle de code source, puis commitez la fusion.",
+        "pull": "Le pull s'est arrêté sur des conflits de fusion. Résolvez-les dans Contrôle de code source, puis commitez la fusion."
+      },
+      "syncRemoteMoved": "La synchronisation a échoué — le dépôt distant a changé pendant la synchronisation. Réessayez.",
+      "forcePushRejected": "Force push rejeté — le dépôt distant a changé depuis le dernier fetch. Faites d'abord un fetch, puis réessayez.",
+      "pushRejected": "Push rejeté — le dépôt distant a des modifications. Faites d'abord un pull, puis réessayez.",
+      "untrackedFilesBlocked": {
+        "rebase": "Rebase bloqué — déplacez, supprimez ou ajoutez d'abord les fichiers non suivis.",
+        "fastForward": "Fast-forward bloqué — déplacez, supprimez ou ajoutez d'abord les fichiers non suivis.",
+        "pull": "Pull bloqué — déplacez, supprimez ou ajoutez d'abord les fichiers non suivis."
+      },
+      "authenticationFailed": "Échec de l'authentification. Vérifiez vos identifiants d'accès au dépôt distant."
     }
   },
   "agentsSidebarIntro": {

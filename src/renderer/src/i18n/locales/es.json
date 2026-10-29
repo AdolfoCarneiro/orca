@@ -21355,6 +21355,79 @@
       },
       "enableSourceControlAi": "Activa Source Control AI en Ajustes -> Git.",
       "chooseBaseBranch": "Elige una rama base antes de generar."
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "El submódulo '{{name}}' tiene cambios en el remoto. Haz pull dentro del submódulo y vuelve a intentarlo.",
+        "remoteChanged": "Un submódulo tiene cambios en el remoto. Haz pull dentro del submódulo y vuelve a intentarlo.",
+        "namedPushFailed": "No se pudo hacer push del submódulo '{{name}}'. Resuelve el error de push del submódulo y vuelve a intentarlo.",
+        "pushFailed": "No se pudo hacer push de un submódulo. Resuelve el error de push del submódulo y vuelve a intentarlo."
+      },
+      "failedWithDetail": {
+        "publish": "No se pudo publicar la rama. {{detail}}",
+        "sync": "La sincronización falló. {{detail}}",
+        "forcePush": "El force push falló. {{detail}}",
+        "push": "El push falló. {{detail}}",
+        "fetch": "El fetch falló. {{detail}}",
+        "fastForward": "El fast-forward falló. {{detail}}",
+        "rebase": "El rebase falló. {{detail}}",
+        "pull": "El pull falló. {{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "Publicación de rama bloqueada — el lint falló durante el push.",
+          "sync": "Sincronización bloqueada — el lint falló durante el push.",
+          "forcePush": "Force push bloqueado — el lint falló durante el push.",
+          "push": "Push bloqueado — el lint falló durante el push."
+        },
+        "prePush": {
+          "publish": "Publicación de rama bloqueada — el hook pre-push falló.",
+          "sync": "Sincronización bloqueada — el hook pre-push falló.",
+          "forcePush": "Force push bloqueado — el hook pre-push falló.",
+          "push": "Push bloqueado — el hook pre-push falló."
+        },
+        "detail": {
+          "publish": "Publicación de rama bloqueada — {{detail}}",
+          "sync": "Sincronización bloqueada — {{detail}}",
+          "forcePush": "Force push bloqueado — {{detail}}",
+          "push": "Push bloqueado — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "No se pudo publicar la rama. {{detail}}. Comprueba tu acceso al remoto y vuelve a intentarlo.",
+        "sync": "La sincronización falló. {{detail}}. Comprueba tu acceso al remoto y vuelve a intentarlo.",
+        "forcePush": "El force push falló. {{detail}}. Comprueba tu acceso al remoto y vuelve a intentarlo.",
+        "push": "El push falló. {{detail}}. Comprueba tu acceso al remoto y vuelve a intentarlo."
+      },
+      "publishFailed": "No se pudo publicar la rama. Comprueba tu acceso al remoto y vuelve a intentarlo.",
+      "syncFailed": "La sincronización falló. Comprueba tu conexión y vuelve a intentarlo.",
+      "forcePushFailed": "El force push falló. Comprueba tu conexión y vuelve a intentarlo.",
+      "pushFailed": "El push falló. Comprueba tu conexión y vuelve a intentarlo.",
+      "localChangesBlocked": {
+        "rebase": "Rebase bloqueado — primero haz commit o stash de tus cambios locales.",
+        "fastForward": "Fast-forward bloqueado — primero haz commit o stash de tus cambios locales.",
+        "pull": "Pull bloqueado — primero haz commit o stash de tus cambios locales."
+      },
+      "operationFailed": "La operación remota falló",
+      "unconcludedMerge": {
+        "rebase": "Rebase bloqueado — resuelve primero los conflictos existentes.",
+        "sync": "Sincronización bloqueada — resuelve primero los conflictos de merge existentes.",
+        "pull": "Pull bloqueado — resuelve primero los conflictos de merge existentes."
+      },
+      "mergeConflicts": {
+        "rebase": "El rebase se detuvo por conflictos. Resuélvelos en Control de código fuente y luego continúa el rebase.",
+        "sync": "La sincronización se detuvo por conflictos de merge. Resuélvelos en Control de código fuente y luego haz commit del merge.",
+        "pull": "El pull se detuvo por conflictos de merge. Resuélvelos en Control de código fuente y luego haz commit del merge."
+      },
+      "syncRemoteMoved": "La sincronización falló — el remoto cambió durante la sincronización. Vuelve a intentarlo.",
+      "forcePushRejected": "Force push rechazado — el remoto cambió desde el último fetch. Haz fetch primero y vuelve a intentarlo.",
+      "pushRejected": "Push rechazado — hay cambios en el remoto. Haz pull primero y vuelve a intentarlo.",
+      "untrackedFilesBlocked": {
+        "rebase": "Rebase bloqueado — mueve, elimina o añade primero los archivos sin seguimiento.",
+        "fastForward": "Fast-forward bloqueado — mueve, elimina o añade primero los archivos sin seguimiento.",
+        "pull": "Pull bloqueado — mueve, elimina o añade primero los archivos sin seguimiento."
+      },
+      "authenticationFailed": "Falló la autenticación. Comprueba tus credenciales del remoto."
     }
   },
   "aiVault": {

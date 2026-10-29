@@ -201,6 +201,79 @@
       },
       "enableSourceControlAi": "Ative a IA de Controle de Versão em Configurações -> Git.",
       "chooseBaseBranch": "Escolha uma branch base antes de gerar."
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "O submódulo '{{name}}' tem alterações no remoto. Faça pull dentro do submódulo e tente novamente.",
+        "remoteChanged": "Um submódulo tem alterações no remoto. Faça pull dentro do submódulo e tente novamente.",
+        "namedPushFailed": "Não foi possível fazer push do submódulo '{{name}}'. Resolva o erro de push do submódulo e tente novamente.",
+        "pushFailed": "Não foi possível fazer push de um submódulo. Resolva o erro de push do submódulo e tente novamente."
+      },
+      "failedWithDetail": {
+        "publish": "A publicação da branch falhou. {{detail}}",
+        "sync": "A sincronização falhou. {{detail}}",
+        "forcePush": "O force push falhou. {{detail}}",
+        "push": "O push falhou. {{detail}}",
+        "fetch": "O fetch falhou. {{detail}}",
+        "fastForward": "O fast-forward falhou. {{detail}}",
+        "rebase": "O rebase falhou. {{detail}}",
+        "pull": "O pull falhou. {{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "Publicação da branch bloqueada — o lint falhou durante o push.",
+          "sync": "Sincronização bloqueada — o lint falhou durante o push.",
+          "forcePush": "Force push bloqueado — o lint falhou durante o push.",
+          "push": "Push bloqueado — o lint falhou durante o push."
+        },
+        "prePush": {
+          "publish": "Publicação da branch bloqueada — o hook pre-push falhou.",
+          "sync": "Sincronização bloqueada — o hook pre-push falhou.",
+          "forcePush": "Force push bloqueado — o hook pre-push falhou.",
+          "push": "Push bloqueado — o hook pre-push falhou."
+        },
+        "detail": {
+          "publish": "Publicação da branch bloqueada — {{detail}}",
+          "sync": "Sincronização bloqueada — {{detail}}",
+          "forcePush": "Force push bloqueado — {{detail}}",
+          "push": "Push bloqueado — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "A publicação da branch falhou. {{detail}}. Verifique seu acesso ao remoto e tente novamente.",
+        "sync": "A sincronização falhou. {{detail}}. Verifique seu acesso ao remoto e tente novamente.",
+        "forcePush": "O force push falhou. {{detail}}. Verifique seu acesso ao remoto e tente novamente.",
+        "push": "O push falhou. {{detail}}. Verifique seu acesso ao remoto e tente novamente."
+      },
+      "publishFailed": "A publicação da branch falhou. Verifique seu acesso ao remoto e tente novamente.",
+      "syncFailed": "A sincronização falhou. Verifique sua conexão e tente novamente.",
+      "forcePushFailed": "O force push falhou. Verifique sua conexão e tente novamente.",
+      "pushFailed": "O push falhou. Verifique sua conexão e tente novamente.",
+      "localChangesBlocked": {
+        "rebase": "Rebase bloqueado — faça commit ou stash das alterações locais primeiro.",
+        "fastForward": "Fast-forward bloqueado — faça commit ou stash das alterações locais primeiro.",
+        "pull": "Pull bloqueado — faça commit ou stash das alterações locais primeiro."
+      },
+      "operationFailed": "Falha na operação remota",
+      "unconcludedMerge": {
+        "rebase": "Rebase bloqueado — resolva os conflitos existentes primeiro.",
+        "sync": "Sincronização bloqueada — resolva os conflitos de merge existentes primeiro.",
+        "pull": "Pull bloqueado — resolva os conflitos de merge existentes primeiro."
+      },
+      "mergeConflicts": {
+        "rebase": "O rebase foi interrompido por conflitos. Resolva-os no Controle de versão e depois continue o rebase.",
+        "sync": "A sincronização foi interrompida por conflitos de merge. Resolva-os no Controle de versão e depois faça commit do merge.",
+        "pull": "O pull foi interrompido por conflitos de merge. Resolva-os no Controle de versão e depois faça commit do merge."
+      },
+      "syncRemoteMoved": "A sincronização falhou — o remoto mudou durante a sincronização. Tente novamente.",
+      "forcePushRejected": "Force push rejeitado — o remoto mudou desde o último fetch. Faça fetch primeiro e tente novamente.",
+      "pushRejected": "Push rejeitado — o remoto tem alterações. Faça pull primeiro e tente novamente.",
+      "untrackedFilesBlocked": {
+        "rebase": "Rebase bloqueado — mova, remova ou adicione os arquivos não rastreados primeiro.",
+        "fastForward": "Fast-forward bloqueado — mova, remova ou adicione os arquivos não rastreados primeiro.",
+        "pull": "Pull bloqueado — mova, remova ou adicione os arquivos não rastreados primeiro."
+      },
+      "authenticationFailed": "Falha na autenticação. Verifique suas credenciais de acesso ao remoto."
     }
   },
   "githubChecks": {

@@ -20766,6 +20766,79 @@
       },
       "enableSourceControlAi": "Enable Source Control AI in Settings -> Git.",
       "chooseBaseBranch": "Choose a base branch before generating."
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "Submodule '{{name}}' has remote changes. Pull inside the submodule, then try again.",
+        "remoteChanged": "A submodule has remote changes. Pull inside the submodule, then try again.",
+        "namedPushFailed": "Submodule '{{name}}' could not be pushed. Resolve the submodule push error, then try again.",
+        "pushFailed": "A submodule could not be pushed. Resolve the submodule push error, then try again."
+      },
+      "failedWithDetail": {
+        "publish": "Publish Branch failed. {{detail}}",
+        "sync": "Sync failed. {{detail}}",
+        "forcePush": "Force Push failed. {{detail}}",
+        "push": "Push failed. {{detail}}",
+        "fetch": "Fetch failed. {{detail}}",
+        "fastForward": "Fast-forward failed. {{detail}}",
+        "rebase": "Rebase failed. {{detail}}",
+        "pull": "Pull failed. {{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "Publish Branch blocked — lint failed during push.",
+          "sync": "Sync blocked — lint failed during push.",
+          "forcePush": "Force Push blocked — lint failed during push.",
+          "push": "Push blocked — lint failed during push."
+        },
+        "prePush": {
+          "publish": "Publish Branch blocked — pre-push hook failed.",
+          "sync": "Sync blocked — pre-push hook failed.",
+          "forcePush": "Force Push blocked — pre-push hook failed.",
+          "push": "Push blocked — pre-push hook failed."
+        },
+        "detail": {
+          "publish": "Publish Branch blocked — {{detail}}",
+          "sync": "Sync blocked — {{detail}}",
+          "forcePush": "Force Push blocked — {{detail}}",
+          "push": "Push blocked — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "Publish Branch failed. {{detail}}. Check your remote access and try again.",
+        "sync": "Sync failed. {{detail}}. Check your remote access and try again.",
+        "forcePush": "Force Push failed. {{detail}}. Check your remote access and try again.",
+        "push": "Push failed. {{detail}}. Check your remote access and try again."
+      },
+      "publishFailed": "Publish Branch failed. Check your remote access and try again.",
+      "syncFailed": "Sync failed. Check your connection and try again.",
+      "forcePushFailed": "Force Push failed. Check your connection and try again.",
+      "pushFailed": "Push failed. Check your connection and try again.",
+      "localChangesBlocked": {
+        "rebase": "Rebase blocked — commit or stash your local changes first.",
+        "fastForward": "Fast-forward blocked — commit or stash your local changes first.",
+        "pull": "Pull blocked — commit or stash your local changes first."
+      },
+      "operationFailed": "Remote operation failed",
+      "unconcludedMerge": {
+        "rebase": "Rebase blocked — resolve existing conflicts first.",
+        "sync": "Sync blocked — resolve existing merge conflicts first.",
+        "pull": "Pull blocked — resolve existing merge conflicts first."
+      },
+      "mergeConflicts": {
+        "rebase": "Rebase stopped with conflicts. Resolve them in Source Control, then continue the rebase.",
+        "sync": "Sync stopped with merge conflicts. Resolve them in Source Control, then commit the merge.",
+        "pull": "Pull stopped with merge conflicts. Resolve them in Source Control, then commit the merge."
+      },
+      "syncRemoteMoved": "Sync failed — remote moved while syncing. Try again.",
+      "forcePushRejected": "Force push rejected — remote changed since last fetch. Fetch first, then try again.",
+      "pushRejected": "Push rejected — remote has changes. Pull first, then try again.",
+      "untrackedFilesBlocked": {
+        "rebase": "Rebase blocked — move, remove, or add untracked files first.",
+        "fastForward": "Fast-forward blocked — move, remove, or add untracked files first.",
+        "pull": "Pull blocked — move, remove, or add untracked files first."
+      },
+      "authenticationFailed": "Authentication failed. Check your remote credentials."
     }
   },
   "agentsSidebarIntro": {

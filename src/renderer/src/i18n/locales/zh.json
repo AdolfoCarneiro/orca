@@ -20335,6 +20335,79 @@
       },
       "enableSourceControlAi": "请在设置 -> Git 中启用源代码控制 AI。",
       "chooseBaseBranch": "请先选择基础分支，再生成。"
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "子模块“{{name}}”有远程更改。请在子模块内拉取后重试。",
+        "remoteChanged": "某个子模块有远程更改。请在子模块内拉取后重试。",
+        "namedPushFailed": "无法推送子模块“{{name}}”。请解决子模块的推送错误后重试。",
+        "pushFailed": "无法推送某个子模块。请解决子模块的推送错误后重试。"
+      },
+      "failedWithDetail": {
+        "publish": "发布分支失败。{{detail}}",
+        "sync": "同步失败。{{detail}}",
+        "forcePush": "强制推送失败。{{detail}}",
+        "push": "推送失败。{{detail}}",
+        "fetch": "获取失败。{{detail}}",
+        "fastForward": "快进失败。{{detail}}",
+        "rebase": "变基失败。{{detail}}",
+        "pull": "拉取失败。{{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "发布分支被阻止 — 推送时 lint 失败。",
+          "sync": "同步被阻止 — 推送时 lint 失败。",
+          "forcePush": "强制推送被阻止 — 推送时 lint 失败。",
+          "push": "推送被阻止 — 推送时 lint 失败。"
+        },
+        "prePush": {
+          "publish": "发布分支被阻止 — pre-push 钩子失败。",
+          "sync": "同步被阻止 — pre-push 钩子失败。",
+          "forcePush": "强制推送被阻止 — pre-push 钩子失败。",
+          "push": "推送被阻止 — pre-push 钩子失败。"
+        },
+        "detail": {
+          "publish": "发布分支被阻止 — {{detail}}",
+          "sync": "同步被阻止 — {{detail}}",
+          "forcePush": "强制推送被阻止 — {{detail}}",
+          "push": "推送被阻止 — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "发布分支失败。{{detail}}。请检查远程访问权限后重试。",
+        "sync": "同步失败。{{detail}}。请检查远程访问权限后重试。",
+        "forcePush": "强制推送失败。{{detail}}。请检查远程访问权限后重试。",
+        "push": "推送失败。{{detail}}。请检查远程访问权限后重试。"
+      },
+      "publishFailed": "发布分支失败。请检查远程访问权限后重试。",
+      "syncFailed": "同步失败。请检查连接后重试。",
+      "forcePushFailed": "强制推送失败。请检查连接后重试。",
+      "pushFailed": "推送失败。请检查连接后重试。",
+      "localChangesBlocked": {
+        "rebase": "变基被阻止 — 请先提交本地更改或将其存入 stash。",
+        "fastForward": "快进被阻止 — 请先提交本地更改或将其存入 stash。",
+        "pull": "拉取被阻止 — 请先提交本地更改或将其存入 stash。"
+      },
+      "operationFailed": "远程操作失败",
+      "unconcludedMerge": {
+        "rebase": "变基被阻止 — 请先解决现有冲突。",
+        "sync": "同步被阻止 — 请先解决现有合并冲突。",
+        "pull": "拉取被阻止 — 请先解决现有合并冲突。"
+      },
+      "mergeConflicts": {
+        "rebase": "变基因冲突而停止。请在源代码控制中解决冲突，然后继续变基。",
+        "sync": "同步因合并冲突而停止。请在源代码控制中解决冲突，然后提交合并。",
+        "pull": "拉取因合并冲突而停止。请在源代码控制中解决冲突，然后提交合并。"
+      },
+      "syncRemoteMoved": "同步失败 — 同步期间远程发生了更改。请重试。",
+      "forcePushRejected": "强制推送被拒绝 — 远程在上次获取后发生了更改。请先获取，再重试。",
+      "pushRejected": "推送被拒绝 — 远程有更改。请先拉取，再重试。",
+      "untrackedFilesBlocked": {
+        "rebase": "变基被阻止 — 请先移动、移除或添加未跟踪文件。",
+        "fastForward": "快进被阻止 — 请先移动、移除或添加未跟踪文件。",
+        "pull": "拉取被阻止 — 请先移动、移除或添加未跟踪文件。"
+      },
+      "authenticationFailed": "身份验证失败。请检查远程凭据。"
     }
   },
   "rendererRecovery": {

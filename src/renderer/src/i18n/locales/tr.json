@@ -20326,6 +20326,79 @@
       },
       "enableSourceControlAi": "Ayarlar -> Git bölümünde Kaynak Kontrolü AI özelliğini etkinleştirin.",
       "chooseBaseBranch": "Oluşturmadan önce bir temel branch seçin."
+    },
+    "remoteError": {
+      "submodule": {
+        "namedRemoteChanged": "Alt modül '{{name}}' için remote'da değişiklikler var. Alt modülün içinde pull yapın, ardından tekrar deneyin.",
+        "remoteChanged": "Bir alt modül için remote'da değişiklikler var. Alt modülün içinde pull yapın, ardından tekrar deneyin.",
+        "namedPushFailed": "Alt modül '{{name}}' gönderilemedi. Alt modülün gönderme hatasını giderip tekrar deneyin.",
+        "pushFailed": "Bir alt modül gönderilemedi. Alt modülün gönderme hatasını giderip tekrar deneyin."
+      },
+      "failedWithDetail": {
+        "publish": "Branch yayınlanamadı. {{detail}}",
+        "sync": "Senkronizasyon yapılamadı. {{detail}}",
+        "forcePush": "Force push yapılamadı. {{detail}}",
+        "push": "Gönderme işlemi yapılamadı. {{detail}}",
+        "fetch": "Fetch yapılamadı. {{detail}}",
+        "fastForward": "Fast-forward yapılamadı. {{detail}}",
+        "rebase": "Rebase yapılamadı. {{detail}}",
+        "pull": "Pull yapılamadı. {{detail}}"
+      },
+      "hookBlocked": {
+        "lint": {
+          "publish": "Branch yayını engellendi — push sırasında lint kontrolü geçilemedi.",
+          "sync": "Senkronizasyon engellendi — push sırasında lint kontrolü geçilemedi.",
+          "forcePush": "Force push engellendi — push sırasında lint kontrolü geçilemedi.",
+          "push": "Gönderme engellendi — push sırasında lint kontrolü geçilemedi."
+        },
+        "prePush": {
+          "publish": "Branch yayını engellendi — pre-push hook'u tamamlanamadı.",
+          "sync": "Senkronizasyon engellendi — pre-push hook'u tamamlanamadı.",
+          "forcePush": "Force push engellendi — pre-push hook'u tamamlanamadı.",
+          "push": "Gönderme engellendi — pre-push hook'u tamamlanamadı."
+        },
+        "detail": {
+          "publish": "Branch yayını engellendi — {{detail}}",
+          "sync": "Senkronizasyon engellendi — {{detail}}",
+          "forcePush": "Force push engellendi — {{detail}}",
+          "push": "Gönderme engellendi — {{detail}}"
+        }
+      },
+      "remoteAccessWithDetail": {
+        "publish": "Branch yayınlanamadı. {{detail}}. Remote erişiminizi kontrol edip tekrar deneyin.",
+        "sync": "Senkronizasyon yapılamadı. {{detail}}. Remote erişiminizi kontrol edip tekrar deneyin.",
+        "forcePush": "Force push yapılamadı. {{detail}}. Remote erişiminizi kontrol edip tekrar deneyin.",
+        "push": "Gönderme işlemi yapılamadı. {{detail}}. Remote erişiminizi kontrol edip tekrar deneyin."
+      },
+      "publishFailed": "Branch yayınlanamadı. Remote erişiminizi kontrol edip tekrar deneyin.",
+      "syncFailed": "Senkronizasyon yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+      "forcePushFailed": "Force push yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+      "pushFailed": "Gönderme işlemi yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+      "localChangesBlocked": {
+        "rebase": "Rebase engellendi — önce yerel değişikliklerinizi commit'leyin veya stash'leyin.",
+        "fastForward": "Fast-forward engellendi — önce yerel değişikliklerinizi commit'leyin veya stash'leyin.",
+        "pull": "Pull engellendi — önce yerel değişikliklerinizi commit'leyin veya stash'leyin."
+      },
+      "operationFailed": "Remote işlemi yapılamadı",
+      "unconcludedMerge": {
+        "rebase": "Rebase engellendi — önce mevcut çakışmaları çözün.",
+        "sync": "Senkronizasyon engellendi — önce mevcut merge çakışmalarını çözün.",
+        "pull": "Pull engellendi — önce mevcut merge çakışmalarını çözün."
+      },
+      "mergeConflicts": {
+        "rebase": "Rebase çakışmalar nedeniyle durdu. Kaynak Kontrolü bölümünde çakışmaları çözün, ardından rebase'e devam edin.",
+        "sync": "Senkronizasyon merge çakışmaları nedeniyle durdu. Kaynak Kontrolü bölümünde çakışmaları çözün, ardından merge işlemini commit'leyin.",
+        "pull": "Pull merge çakışmaları nedeniyle durdu. Kaynak Kontrolü bölümünde çakışmaları çözün, ardından merge işlemini commit'leyin."
+      },
+      "syncRemoteMoved": "Senkronizasyon yapılamadı — senkronizasyon sırasında remote değişti. Tekrar deneyin.",
+      "forcePushRejected": "Force push reddedildi — son fetch'ten bu yana remote değişti. Önce fetch yapıp tekrar deneyin.",
+      "pushRejected": "Push reddedildi — remote'da değişiklikler var. Önce pull yapıp tekrar deneyin.",
+      "untrackedFilesBlocked": {
+        "rebase": "Rebase engellendi — önce izlenmeyen dosyaları taşıyın, kaldırın veya ekleyin.",
+        "fastForward": "Fast-forward engellendi — önce izlenmeyen dosyaları taşıyın, kaldırın veya ekleyin.",
+        "pull": "Pull engellendi — önce izlenmeyen dosyaları taşıyın, kaldırın veya ekleyin."
+      },
+      "authenticationFailed": "Kimlik doğrulanamadı. Remote kimlik bilgilerinizi kontrol edin."
     }
   },
   "agentsSidebarIntro": {
