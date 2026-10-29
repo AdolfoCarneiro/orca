@@ -53,6 +53,216 @@ describe('IPC process description lifetime', () => {
   })
   afterEach(() => restorePtySpecWindow(originalWindow))
 
+  it.each([100, 1000])('bounds inventory copy work and publication at %i rows', async (size) => {
+    const { listActivationPtySessions } = await import('@/lib/worktree-activation-pty-inventory')
+    const { captureLocalPtyProcessDescription, createIpcPtyProcessDescription } =
+      await import('./ipc-pty-process-description')
+    const { useAppStore } = await import('@/store')
+    const { terminalProcessMetadataKey } =
+      await import('@/store/terminals/terminal-process-metadata')
+    const rows: PtyListedSession[] = Array.from({ length: size }, (_, i) => ({
+      id: `live-${i}`,
+      incarnationId: `inc-${i}`,
+      shellPath: 'powershell.exe',
+      wslDistro: null,
+      cwd: '',
+      title: '',
+      agentOwnership: 'unknown'
+    }))
+    const retained = Object.fromEntries(
+      rows.map((row, i) => [
+        terminalProcessMetadataKey(i % 2 ? 'ssh:other' : 'local', `retained-${i}`),
+        { observationRevision: 1, incarnationId: `retained-${i}`, retired: true as const }
+      ])
+    )
+    useAppStore.setState({ ptyProcessMetadataById: retained, ptyProcessObservationRevision: 1 })
+    let rowReads = 0
+    let inventory = rows
+    window.api.pty.listSessions = vi.fn(async () =>
+      inventory.map(
+        (row) =>
+          new Proxy(row, {
+            get(target, key, receiver) {
+              rowReads++
+              return Reflect.get(target, key, receiver)
+            }
+          })
+      )
+    )
+    const assign = Object.assign
+    const maps = new WeakSet<object>([retained])
+    let clones = 0
+    let properties = 0
+    const copying = vi.spyOn(Object, 'assign').mockImplementation((target, ...sources) => {
+      const source = sources[0]
+      const isMapClone = sources.length === 1 && maps.has(source)
+      const result = assign(target, ...sources)
+      if (isMapClone) {
+        clones++
+        properties += Object.keys(source).length
+        maps.add(result)
+      }
+      return result
+    })
+    const notified = vi.fn()
+    const unsubscribe = useAppStore.subscribe(notified)
+    const changed = vi.fn()
+    const consumer = createIpcPtyProcessDescription(true, () => 'live-0', changed, {})
+    consumer.bind('inc-0')
+    const list = () => listActivationPtySessions({ repos: [{ id: 'repo' }] }, 'repo::/src')
+    try {
+      // Calibrate against intermediate unpublished clones, not only the store's final map.
+      let intermediate = retained
+      for (let i = 0; i < 3; i++) {
+        intermediate = Object.assign({}, intermediate)
+      }
+      expect([clones, properties]).toEqual([3, 3 * size])
+      clones = properties = 0
+      await list()
+      expect([clones, properties, notified.mock.calls.length]).toEqual([1, size, 1])
+      expect(rowReads).toBeLessThanOrEqual(10 * size)
+      expect(useAppStore.getState().ptyProcessObservationRevision).toBe(size + 1)
+      expect(changed).toHaveBeenCalledTimes(2)
+      const before = useAppStore.getState()
+      const map = before.ptyProcessMetadataById
+      const entry = map['local\0live-0']
+      rows.forEach((row, i) =>
+        expect(map[`local\0${row.id}`]).toEqual({
+          incarnationId: row.incarnationId,
+          shellPath: row.shellPath,
+          wslDistro: null,
+          observationRevision: i + 2
+        })
+      )
+      clones = properties = rowReads = 0
+      notified.mockClear()
+      changed.mockClear()
+      await list()
+      captureLocalPtyProcessDescription(true)(rows[0])
+      captureLocalPtyProcessDescription(true)({
+        id: rows[0].id,
+        incarnationId: rows[0].incarnationId,
+        shellPath: ''
+      })
+      expect([clones, properties, notified.mock.calls.length]).toEqual([0, 0, 0])
+      expect(rowReads).toBeLessThanOrEqual(10 * size)
+      expect(useAppStore.getState()).toBe(before)
+      expect(useAppStore.getState().ptyProcessMetadataById).toBe(map)
+      expect(useAppStore.getState().ptyProcessMetadataById['local\0live-0']).toBe(entry)
+      expect(changed).not.toHaveBeenCalled()
+
+      inventory = rows.map((row) => ({ ...row, shellPath: 'wsl.exe', wslDistro: 'Debian' }))
+      clones = properties = rowReads = 0
+      await list()
+      expect([clones, properties, notified.mock.calls.length]).toEqual([1, 2 * size, 1])
+      expect(rowReads).toBeLessThanOrEqual(10 * size)
+      expect(useAppStore.getState().ptyProcessObservationRevision).toBe(size + 1)
+      expect(changed).toHaveBeenCalledOnce()
+      expect(consumer.getContext()).toMatchObject({ shellOverride: 'wsl.exe', wslDistro: 'Debian' })
+      const enriched = useAppStore.getState().ptyProcessMetadataById
+      rows.forEach((row, i) =>
+        expect(enriched[`local\0${row.id}`]).toEqual({
+          incarnationId: row.incarnationId,
+          shellPath: 'wsl.exe',
+          wslDistro: 'Debian',
+          observationRevision: i + 2
+        })
+      )
+      for (const [key, value] of Object.entries(retained)) {
+        expect(enriched[key]).toBe(value)
+      }
+
+      inventory = [{ ...rows[0], shellPath: 'cmd.exe' }, ...inventory.slice(1)]
+      clones = properties = rowReads = 0
+      notified.mockClear()
+      await list()
+      expect([clones, properties, notified.mock.calls.length]).toEqual([1, 2 * size, 1])
+      expect(rowReads).toBeLessThanOrEqual(10 * size)
+      expect(consumer.getContext()).toMatchObject({ shellOverride: 'cmd.exe', wslDistro: null })
+      expect(changed).toHaveBeenCalledTimes(2)
+      const after = useAppStore.getState().ptyProcessMetadataById
+      for (const [key, value] of Object.entries(enriched)) {
+        if (key !== 'local\0live-0') {
+          expect(after[key]).toBe(value)
+        }
+      }
+    } finally {
+      consumer.detach()
+      unsubscribe()
+      copying.mockRestore()
+    }
+  })
+
+  it('preserves ordered lifetime fences, partial enrichment and inventory failure containment', async () => {
+    const { listActivationPtySessions } = await import('@/lib/worktree-activation-pty-inventory')
+    const { captureLocalPtyProcessDescription, createIpcPtyProcessDescription } =
+      await import('./ipc-pty-process-description')
+    const { useAppStore } = await import('@/store')
+    const row = {
+      id: 'ordered',
+      incarnationId: 'A',
+      shellPath: 'wsl.exe',
+      wslDistro: 'Debian',
+      cwd: '',
+      title: '',
+      agentOwnership: 'unknown' as const
+    }
+    const inventory = [
+      row,
+      { ...row, incarnationId: 'B', shellPath: 'cmd.exe' },
+      { ...row, shellPath: '', wslDistro: null }
+    ]
+    window.api.pty.listSessions = vi.fn(async () => inventory)
+    const list = () => listActivationPtySessions({ repos: [{ id: 'repo' }] }, 'repo::/src')
+    expect(await list()).toBe(inventory)
+    expect(useAppStore.getState().ptyProcessMetadataById['local\0ordered']).toEqual({
+      incarnationId: 'A',
+      shellPath: 'wsl.exe',
+      wslDistro: null,
+      observationRevision: 1
+    })
+    const consumer = createIpcPtyProcessDescription(true, () => row.id, vi.fn(), {})
+    consumer.bind('A')
+    const retire = consumer.captureRetirement()
+    captureLocalPtyProcessDescription(true)({ id: row.id, incarnationId: 'A', wslDistro: 'Ubuntu' })
+    expect(consumer.getContext()).toMatchObject({ shellPath: 'wsl.exe', wslDistro: 'Ubuntu' })
+    retire()
+    const retired = useAppStore.getState()
+    const retiredRows = [row, { ...row, incarnationId: undefined }]
+    vi.mocked(window.api.pty.listSessions).mockResolvedValueOnce(retiredRows)
+    expect(await list()).toBe(retiredRows)
+    expect(useAppStore.getState()).toBe(retired)
+    consumer.detach()
+
+    const legacy = { id: 'legacy-clock', shellPath: 'cmd.exe' }
+    captureLocalPtyProcessDescription(true)(legacy)
+    const older = captureLocalPtyProcessDescription(true)
+    const revision = useAppStore.getState().ptyProcessObservationRevision
+    captureLocalPtyProcessDescription(true)(legacy)
+    expect(useAppStore.getState().ptyProcessObservationRevision).toBe(revision + 1)
+    const fresh = useAppStore.getState()
+    older({ ...legacy, shellPath: 'wsl.exe' })
+    expect(useAppStore.getState()).toBe(fresh)
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const unsubscribe = useAppStore.subscribe(() => {
+      throw new Error('description failed')
+    })
+    vi.mocked(window.api.pty.listSessions).mockResolvedValueOnce([{ ...row, id: 'new-row' }])
+    try {
+      expect(await list()).toEqual([{ ...row, id: 'new-row' }])
+      expect(warn).toHaveBeenCalledWith(
+        '[pty] could not update process description',
+        expect.any(Error)
+      )
+      vi.mocked(window.api.pty.listSessions).mockRejectedValueOnce(new Error('inventory failed'))
+      await expect(list()).rejects.toThrow('inventory failed')
+    } finally {
+      unsubscribe()
+      warn.mockRestore()
+    }
+  })
+
   it('retains a pending spawn across view disposal and adopts it before direct-attach replay/input', async () => {
     const { createIpcPtyTransport } = await import('./pty-transport')
     const pending = Promise.withResolvers<Awaited<ReturnType<typeof window.api.pty.spawn>>>()

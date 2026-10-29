@@ -1,7 +1,7 @@
 import { useAppStore } from '@/store'
 import { ensurePtyDispatcher } from './pty-dispatcher'
 import {
-  adoptTerminalProcessMetadata,
+  adoptTerminalProcessMetadataBatch,
   readTerminalProcessMetadata,
   retireTerminalProcessMetadata,
   resolveTerminalProcessContext,
@@ -18,22 +18,25 @@ function describe<T>(action: () => T): T | undefined {
 }
 
 /** Pending requests retain only the observation clock, never the payload map. */
-export function captureLocalPtyProcessDescription(isLocal: boolean) {
+export function captureLocalPtyProcessDescriptions(isLocal: boolean) {
   const baseline = isLocal
     ? describe(() => {
         ensurePtyDispatcher()
         return useAppStore.getState().ptyProcessObservationRevision
       })
     : undefined
-  return (facts: TerminalProcessFacts & { id: string }): void => {
+  return (facts: Iterable<TerminalProcessFacts & { id: string }>): void => {
     if (baseline !== undefined) {
       describe(() =>
-        useAppStore.setState((state) =>
-          adoptTerminalProcessMetadata(state, facts.id, facts, baseline)
-        )
+        useAppStore.setState((state) => adoptTerminalProcessMetadataBatch(state, facts, baseline))
       )
     }
   }
+}
+
+export function captureLocalPtyProcessDescription(isLocal: boolean) {
+  const publish = captureLocalPtyProcessDescriptions(isLocal)
+  return (facts: TerminalProcessFacts & { id: string }): void => publish([facts])
 }
 
 export function createIpcPtyProcessDescription(

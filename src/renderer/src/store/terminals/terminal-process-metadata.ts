@@ -46,30 +46,59 @@ function replaceEntry(
   }
 }
 
-export function adoptTerminalProcessMetadata(
-  state: TerminalProcessMetadataState,
-  id: string,
+function projectTerminalProcessMetadata(
+  current: TerminalProcessMetadata | undefined,
   facts: TerminalProcessFacts,
-  baseline: number
-): Partial<TerminalProcessMetadataState> {
-  const key = terminalProcessMetadataKey('local', id)
-  const current = state.ptyProcessMetadataById[key]
+  baseline: number,
+  revision: number
+): TerminalProcessMetadata | undefined {
   const same = Boolean(facts.incarnationId && facts.incarnationId === current?.incarnationId)
   if (
     (current?.retired && (same || !facts.incarnationId)) ||
     (!same && current && current.observationRevision > baseline)
   ) {
-    return {}
+    return undefined
   }
   const { incarnationId, shellPath, wslDistro } = facts
-  return replaceEntry(state, key, {
+  if (
+    same &&
+    current &&
+    !current.retired &&
+    (!shellPath || shellPath === current.shellPath) &&
+    (wslDistro === undefined || wslDistro === current.wslDistro)
+  ) {
+    return undefined
+  }
+  return {
     ...(same && current && !current.retired ? current : {}),
-    observationRevision:
-      same && current ? current.observationRevision : state.ptyProcessObservationRevision + 1,
+    observationRevision: same && current ? current.observationRevision : revision + 1,
     ...(incarnationId ? { incarnationId } : {}),
     ...(shellPath ? { shellPath } : {}),
     ...(wslDistro !== undefined ? { wslDistro } : {})
-  })
+  }
+}
+
+export function adoptTerminalProcessMetadataBatch(
+  state: TerminalProcessMetadataState,
+  rows: Iterable<TerminalProcessFacts & { id: string }>,
+  baseline: number
+): TerminalProcessMetadataState {
+  let map = state.ptyProcessMetadataById
+  let revision = state.ptyProcessObservationRevision
+  for (const facts of rows) {
+    const key = terminalProcessMetadataKey('local', facts.id)
+    const entry = projectTerminalProcessMetadata(map[key], facts, baseline, revision)
+    if (entry) {
+      if (map === state.ptyProcessMetadataById) {
+        map = Object.assign({}, map)
+      }
+      map[key] = entry
+      revision = Math.max(revision, entry.observationRevision)
+    }
+  }
+  return map === state.ptyProcessMetadataById
+    ? state
+    : { ptyProcessMetadataById: map, ptyProcessObservationRevision: revision }
 }
 
 export function retireTerminalProcessMetadata(

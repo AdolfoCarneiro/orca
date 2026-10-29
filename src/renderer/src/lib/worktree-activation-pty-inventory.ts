@@ -1,4 +1,4 @@
-import { captureLocalPtyProcessDescription } from '@/components/terminal-pane/ipc-pty-process-description'
+import { captureLocalPtyProcessDescriptions } from '@/components/terminal-pane/ipc-pty-process-description'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 import { parseExecutionHostId } from '../../../shared/execution-host'
 import type { PtyListedSession, PtySessionListScope } from '../../../shared/pty-listed-session'
@@ -59,12 +59,8 @@ export async function listActivationPtySessions(
   if (!scope) {
     throw new Error('Activation PTY inventory is unverifiable: no execution-owner route')
   }
-  const publish = captureLocalPtyProcessDescription(scope.connectionId === null)
+  const publish = captureLocalPtyProcessDescriptions(scope.connectionId === null)
   const sessions = await window.api.pty.listSessions(scope)
-  for (const session of sessions) {
-    if (!session.exiting) {
-      publish(session)
-    }
-  }
+  publish(sessions.filter((session) => !session.exiting))
   return sessions
 }
