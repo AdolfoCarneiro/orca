@@ -67,7 +67,7 @@ export type MobileQueuedEditDraft = {
     submissions: readonly AgentJournalSubmission[]
   }
   scopeKey: string
-  destination: string | null
+  destination: MobileNativeChatDraftDestination | null
   handBackText: ((text: string) => boolean) | undefined
   messageId: string
   body: AgentSessionQueuedMessage['body']
@@ -96,7 +96,7 @@ export function closeMobileQueuedEditDraft(
   }
   edit.closed = true
   edit.lease.end()
-  if (handBack) {
+  if (handBack && (edit.destination?.active ?? true)) {
     const inputs = readMobileNativeChatDraftInputs(edit.scopeKey)
     const dirty = edit.uncertain || mobileQueuedEditValueKey(edit.text, inputs) !== edit.baseKey
     const kept = edit.kept.filter((entry) =>
@@ -209,9 +209,7 @@ export function insertMobileQueuedEditDictation(
     return false
   }
   if (destination.scope !== edit.scopeKey) {
-    setMobileNativeChatDraftText(destination.scope, (before) =>
-      appendBufferedDictation(before, text)
-    )
+    setMobileNativeChatDraftText(destination, (before) => appendBufferedDictation(before, text))
   } else {
     edit.text = appendBufferedDictation(edit.text, text)
   }

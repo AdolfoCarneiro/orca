@@ -6,9 +6,12 @@ import {
 } from './mobile-session-write-operations'
 import type { MobileSessionTab, Terminal } from './mobile-session-route-types'
 import type { MobileSessionContentCreateActionsModel } from './use-mobile-session-content-create-actions'
+import { mobileNativeChatScopeKey } from './native-chat/mobile-native-chat-scope-key'
+import { closeMobileNativeChatTabDraft } from './native-chat/composer/mobile-native-chat-draft-store'
 
 export function useMobileSessionCloseActions(scope: MobileSessionContentCreateActionsModel) {
   const {
+    hostId,
     worktreeId,
     client,
     setTerminals,
@@ -113,6 +116,10 @@ export function useMobileSessionCloseActions(scope: MobileSessionContentCreateAc
         })
       )
       if (response.accepted) {
+        const chatScope = mobileNativeChatScopeKey(hostId, worktreeId, tab.id)
+        if (chatScope) {
+          closeMobileNativeChatTabDraft(chatScope)
+        }
         if (tab.type === 'markdown') {
           setMarkdownDocs((prev) => {
             const doc = prev.get(tab.id)

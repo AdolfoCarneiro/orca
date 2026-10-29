@@ -7,6 +7,7 @@ import {
 import { appendBufferedDictation } from '../../../terminal/terminal-live-dictation-routing'
 import {
   focusMobileNativeChatTextDestination,
+  mobileNativeChatDraftDestination,
   pruneMobileNativeChatDraftSkills,
   registerMobileNativeChatTextDestination
 } from './mobile-native-chat-draft-inputs'
@@ -126,14 +127,16 @@ export function MobileNativeChatComposer({
     if (!draftScopeKey) {
       return
     }
-    return registerMobileNativeChatTextDestination(
-      draftScopeKey,
-      insertDictation ??
-        ((text) =>
-          setMobileNativeChatDraftText(draftScopeKey, (before) =>
-            appendBufferedDictation(before, text)
-          ))
-    )
+    const destination = mobileNativeChatDraftDestination(draftScopeKey)
+    return registerMobileNativeChatTextDestination(draftScopeKey, (text) => {
+      if (!destination.active) {
+        return false
+      }
+      if (insertDictation) {
+        return insertDictation(text)
+      }
+      setMobileNativeChatDraftText(destination, (before) => appendBufferedDictation(before, text))
+    })
   }, [draftScopeKey, insertDictation])
   useMobileColorScheme()
   const fallbackInputRef = useRef<TextInput>(null)

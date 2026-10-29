@@ -26,9 +26,12 @@ import { withSessionTabStatusReceipts } from './mobile-session-tab-status-clock'
 import { withRememberedNativeChatIdentity } from './native-chat/mobile-native-chat-eligibility'
 import type { MobileSessionTab, SessionTabsResult } from './mobile-session-route-types'
 import type { MobileSessionTerminalListModel } from './use-mobile-session-terminal-list'
+import { pruneMobileNativeChatTabDrafts } from './native-chat/composer/mobile-native-chat-draft-store'
 
 export function useMobileSessionTabApplication(scope: MobileSessionTerminalListModel) {
   const {
+    hostId,
+    worktreeId,
     setTerminals,
     terminalsRef,
     setSessionTabs,
@@ -96,6 +99,13 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
       reconcileBufferedDraftsRef.current(currentSessionTabs, nextTabs, {
         retainMissingSurfaces: result.tabs.length === 0
       })
+      if (result.tabs.length > 0) {
+        pruneMobileNativeChatTabDrafts(
+          hostId,
+          worktreeId,
+          nextTabs.map((tab) => tab.id)
+        )
+      }
       sessionTabsRef.current = nextTabs
       initialSessionAutoCreateRef.current.sawSessionTabs ||= nextTabs.length > 0
       // Avoid identical snapshot state updates that would tear down and replay subscriptions.
@@ -238,7 +248,13 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
       }
       return outcome
     },
-    [defaultTerminalHandlesToLiveInput, subscribeToTerminal, unsubscribeTerminal]
+    [
+      defaultTerminalHandlesToLiveInput,
+      hostId,
+      worktreeId,
+      subscribeToTerminal,
+      unsubscribeTerminal
+    ]
   )
   return {
     applySessionTabs

@@ -5,6 +5,18 @@ import type { RpcClient } from '../transport/rpc-client'
 import type { MobileSessionTab, SessionTabsResult } from './mobile-session-route-types'
 import { launchedSelection, type PendingSessionSelection } from './pending-session-selection'
 import { useMobileSessionTabApplication } from './use-mobile-session-tab-application'
+import {
+  mobileNativeChatDraftDestination,
+  readMobileNativeChatDraftInputs,
+  updateMobileNativeChatDraftInputs
+} from './native-chat/composer/mobile-native-chat-draft-inputs'
+
+import {
+  mobileNativeChatLaunchDraftSeeds,
+  readMobileNativeChatDraftEditGeneration,
+  resetMobileNativeChatDraftStoreForTests,
+  setMobileNativeChatDraftText
+} from './native-chat/composer/mobile-native-chat-draft-store'
 
 function terminalTab(id: string, terminal: string, isActive = false): MobileSessionTab {
   return { type: 'terminal', id, parentTabId: id, leafId: 'leaf', title: 'T', terminal, isActive }
@@ -61,6 +73,8 @@ function scope(pending: PendingSessionSelection | null) {
   return {
     sendRequest,
     state: {
+      hostId: 'host',
+      worktreeId: 'workspace-1',
       setTerminals: vi.fn(),
       terminalsRef: { current: [] },
       setSessionTabs: vi.fn(),
@@ -97,6 +111,7 @@ let renderer: ReactTestRenderer | undefined
 afterEach(() => {
   act(() => renderer?.unmount())
   renderer = undefined
+  resetMobileNativeChatDraftStoreForTests()
 })
 
 function mount(state: ReturnType<typeof scope>['state']) {
@@ -117,6 +132,82 @@ function activations(sendRequest: ReturnType<typeof scope>['sendRequest']): unkn
     call[0] === 'session.tabs.activate' ? [call[1]] : []
   )
 }
+
+it.each([10, 100])('retires %i missing tab input scopes after accepted inventory', (count) => {
+  const { state } = scope(null)
+  const apply = mount(state)
+  const retired = Array.from({ length: count }, (_, index) => `host\0workspace-1\0gone-${index}`)
+  const retained = [
+    'host\0workspace-1\0live',
+    'other\0workspace-1\0gone',
+    'host\0folder:other\0gone'
+  ]
+  const destinations = retired.map(mobileNativeChatDraftDestination)
+  for (const key of [...retired, ...retained]) {
+    updateMobileNativeChatDraftInputs(key, (current) => ({
+      ...current,
+      images: [
+        {
+          id: key,
+          path: '/remote.png',
+          previewUri: `data:image/png;base64,${'a'.repeat(32 * 1024)}`
+        }
+      ]
+    }))
+  }
+  apply(snapshot([]))
+  for (const key of retired) {
+    expect(readMobileNativeChatDraftInputs(key).images).toHaveLength(1)
+  }
+  const next = snapshot([terminalTab('live', 'live', true)])
+  expect(apply({ ...next, snapshotVersion: -1 }).accepted).toBe(false)
+  for (const key of retired) {
+    expect(readMobileNativeChatDraftInputs(key).images).toHaveLength(1)
+  }
+  expect(apply(next).accepted).toBe(true)
+  for (let index = 0; index < count; index++) {
+    expect(readMobileNativeChatDraftInputs(retired[index]!).images).toHaveLength(0)
+    expect(destinations[index]!.active).toBe(false)
+    updateMobileNativeChatDraftInputs(destinations[index]!, (current) => ({
+      ...current,
+      pending: 10
+    }))
+    expect(readMobileNativeChatDraftInputs(retired[index]!).pending).toBeUndefined()
+  }
+  for (const key of retained) {
+    expect(readMobileNativeChatDraftInputs(key).images).toHaveLength(1)
+  }
+})
+
+it.each([10, 100])(
+  'retires %i absent text scopes only after an accepted nonempty inventory',
+  (count) => {
+    const { state } = scope(null)
+    const apply = mount(state)
+    const retired = Array.from({ length: count }, (_, index) => `host\0workspace-1\0text-${index}`)
+    const retained = [
+      'host\0workspace-1\0live',
+      'host\0other-workspace\0text',
+      'other-host\0workspace-1\0text'
+    ]
+    for (const key of [...retired, ...retained]) {
+      setMobileNativeChatDraftText(key, 'draft '.repeat(2048))
+      mobileNativeChatLaunchDraftSeeds.set(key, null)
+    }
+    apply(snapshot([]))
+    expect(retired.every((key) => readMobileNativeChatDraftEditGeneration(key) === 1)).toBe(true)
+    const next = snapshot([terminalTab('live', 'live', true)])
+    expect(apply({ ...next, snapshotVersion: -1 }).accepted).toBe(false)
+    expect(retired.every((key) => mobileNativeChatLaunchDraftSeeds.has(key))).toBe(true)
+    expect(apply(next).accepted).toBe(true)
+    expect(retired.filter((key) => readMobileNativeChatDraftEditGeneration(key) > 0)).toHaveLength(
+      0
+    )
+    expect(retired.filter((key) => mobileNativeChatLaunchDraftSeeds.has(key))).toHaveLength(0)
+    expect(retained.every((key) => readMobileNativeChatDraftEditGeneration(key) === 1)).toBe(true)
+    expect(retained.every((key) => mobileNativeChatLaunchDraftSeeds.has(key))).toBe(true)
+  }
+)
 
 describe('landing on a launched tab', () => {
   it('records a launched terminal as this device’s pick on the host once its tab arrives', () => {
