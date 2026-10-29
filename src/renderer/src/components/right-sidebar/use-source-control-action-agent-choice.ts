@@ -56,14 +56,18 @@ export function useSourceControlActionAgentChoice(args: {
           : NO_PROJECT_ROWS,
     [args.worktreeId, args.repoId, args.repo, worktreeDetectionTarget]
   )
-  const observation = useAgentMenuObservation(rows.target, args.open, rows.detectionTarget)
+  const observation = useAgentMenuObservation(rows.target, args.open, rows.detectionTarget, true)
   const { detectedIds, detectionFailed, needsServerUpdate } = observation.detection
   const detectedAgents =
     observation.model.state === 'settled'
       ? [
           ...new Set(
             observation.model.rows
-              .filter((row) => row.kind !== 'chat-unavailable')
+              .filter(
+                (row) =>
+                  row.kind === 'chat' ||
+                  (row.kind !== 'chat-unavailable' && detectedIds?.includes(row.agent))
+              )
               .map((row) => row.agent)
           )
         ]
@@ -92,7 +96,15 @@ export function useSourceControlActionAgentChoice(args: {
     !detecting &&
     Boolean(
       selectedAgent &&
-      !isSourceControlAgentDetectedAndEnabled(selectedAgent, detectedAgents, disabledAgents)
+      !isSourceControlAgentDetectedAndEnabled(selectedAgent, detectedAgents, disabledAgents) &&
+      !(
+        recipe.agentId === selectedAgent &&
+        observation.failedAttempt &&
+        !needsServerUpdate &&
+        !observation.detection.isLoading &&
+        !observation.detection.isRefreshing &&
+        isTuiAgentEnabled(selectedAgent, disabledAgents)
+      )
     )
   const route = buildAgentLaunchRouteInput(useAppStore.getState(), {
     agent: selectedAgent ?? 'claude',
@@ -116,7 +128,13 @@ export function useSourceControlActionAgentChoice(args: {
     selectedAgentUnavailable,
     hasEnabledAgents: enabledDetectedAgents.length > 0,
     agentOptions: getAgentCatalog().filter(
-      (entry) => enabledDetectedAgents.includes(entry.id) || entry.id === selectedAgent
+      (entry) =>
+        enabledDetectedAgents.includes(entry.id) ||
+        entry.id === selectedAgent ||
+        (observation.model.state === 'settled' &&
+          observation.model.rows.some(
+            (row) => row.agent === entry.id && row.kind !== 'chat-unavailable'
+          ))
     ),
     // Why the captured route, not `selection.cli`: plain mode labels no row "(CLI)" yet applies them.
     launchAppliesAgentArgs: selection.choice?.route !== 'structured-native-chat'

@@ -475,3 +475,64 @@ it.each([1, 10])(
     }
   }
 )
+
+it('opens the global unset recipe list after cold failure and persists the complete command through its writer', async () => {
+  const base = useAppStore.getState().settings!
+  useAppStore.getState().clearLocalDetectedAgents()
+  useAppStore.setState({
+    settingsSearchQuery: '',
+    settings: {
+      ...base,
+      defaultTuiAgent: 'blank',
+      experimentalNativeChat: false,
+      sourceControlAi: {
+        ...base.sourceControlAi!,
+        enabled: true,
+        actions: {
+          fixChecks: {
+            agentId: null,
+            agentArgs: '--verbose',
+            commandInputTemplate: 'fix {basePrompt}'
+          }
+        }
+      }
+    }
+  })
+  window.api.preflight.detectAgents = vi.fn().mockRejectedValue(new Error('login capture failed'))
+  await useAppStore.getState().ensureDetectedAgents()
+  function Defaults() {
+    const settings = useAppStore((state) => state.settings)!
+    return React.createElement(SourceControlAiActionRecipeDefaults, {
+      config: settings.sourceControlAi!,
+      defaultTuiAgent: settings.defaultTuiAgent,
+      searchQuery: '',
+      writeConfig: async (patch) => {
+        const current = useAppStore.getState().settings!.sourceControlAi!
+        const updates = typeof patch === 'function' ? patch(current) : patch
+        await useAppStore.getState().updateSettings({ sourceControlAi: { ...current, ...updates } })
+      }
+    })
+  }
+  const view = render(React.createElement(TooltipProvider, null, React.createElement(Defaults)))
+  await act(async () => {})
+  const row = view.getByText('Broken checks fixes').parentElement?.parentElement?.parentElement
+  if (!(row instanceof HTMLElement)) {
+    throw new Error('Missing global Checks recipe')
+  }
+  const { within } = await import('@testing-library/react')
+  expect(within(row).getByRole('combobox').textContent).toContain('Use default agent')
+  await act(async () => fireEvent.click(within(row).getByRole('combobox')))
+  const command = view
+    .getAllByRole('option')
+    .find((option) => option.textContent?.startsWith('Claude'))
+  if (!command) {
+    throw new Error('Missing configured command')
+  }
+  await act(async () => fireEvent.click(command))
+  expect(useAppStore.getState().settings?.sourceControlAi?.actions?.fixChecks).toMatchObject({
+    agentId: 'claude',
+    agentArgs: '--verbose',
+    commandInputTemplate: 'fix {basePrompt}'
+  })
+  expect(useAppStore.getState().readLocalAgentInventory()).toEqual({ ids: null, state: 'failed' })
+})

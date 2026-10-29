@@ -1,3 +1,6 @@
+import { useAppStore } from '@/store'
+import { getDefaultSettings } from '../../../shared/constants'
+import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
 import { projectAgentLaunchSettings } from '../../../shared/agent-launch-settings'
 import { clearHostAgentMenuSettingsForTests } from '@/components/settings/use-host-agent-launch-preferences'
@@ -10,53 +13,13 @@ vi.mock('@/runtime/runtime-rpc-client', () => ({
   callRuntimeRpc: hostRpc,
   runtimeEnvironmentSupportsCapability: async () => true
 }))
-afterEach(clearHostAgentMenuSettingsForTests)
+afterEach(() => {
+  clearHostAgentMenuSettingsForTests()
+  useAppStore.setState(useAppStore.getInitialState(), true)
+})
 
 const mocks = vi.hoisted(() => {
-  const store = {
-    settings: { defaultTuiAgent: 'codex' },
-    repos: [
-      {
-        id: 'repo-1',
-        path: '/repo',
-        displayName: 'Repo',
-        badgeColor: '#000000',
-        addedAt: 1,
-        connectionId: null as string | null
-      }
-    ],
-    worktrees: [
-      {
-        id: 'wt-1',
-        repoId: 'repo-1',
-        path: '/repo/wt-1'
-      }
-    ],
-    worktreesByRepo: {
-      'repo-1': [
-        {
-          id: 'wt-1',
-          repoId: 'repo-1',
-          path: '/repo/wt-1'
-        }
-      ]
-    },
-    projects: [
-      {
-        id: 'repo-1',
-        displayName: 'Repo',
-        badgeColor: '#000000',
-        sourceRepoIds: ['repo-1'],
-        createdAt: 1,
-        updatedAt: 1
-      }
-    ] as Record<string, unknown>[],
-    allWorktrees: vi.fn(() => store.worktrees),
-    ensureDetectedAgents: vi.fn(),
-    ensureRemoteDetectedAgents: vi.fn()
-  }
   return {
-    store,
     activateAndRevealWorktree: vi.fn(),
     findGithubPrWorkspaceAttachment: vi.fn(),
     focusTerminalTabSurface: vi.fn(),
@@ -76,12 +39,6 @@ vi.mock('./host-chat-program-acquisition', async (importOriginal) => ({
   ...(await importOriginal<typeof HostChatProgramAcquisitionModule>()),
   acquireAgentLaunchChoices: async (_: unknown, run: () => unknown) => ({ detected: await run() })
 }))
-vi.mock('@/store', () => ({
-  useAppStore: {
-    getState: () => mocks.store
-  }
-}))
-
 vi.mock('sonner', () => ({
   toast: {
     error: mocks.toastError,
@@ -139,8 +96,13 @@ vi.mock('../../../shared/source-control-ai', () => ({
 describe('startFixChecksAgent', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.store.settings = { defaultTuiAgent: 'codex' }
-    mocks.store.repos = [
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState({
+      ensureDetectedAgents: vi.fn().mockResolvedValue(['codex']),
+      ensureRemoteDetectedAgents: vi.fn().mockResolvedValue(['codex'])
+    })
+    useAppStore.getState().settings = { ...getDefaultSettings('/tmp'), defaultTuiAgent: 'codex' }
+    useAppStore.getState().repos = [
       {
         id: 'repo-1',
         path: '/repo',
@@ -150,9 +112,12 @@ describe('startFixChecksAgent', () => {
         connectionId: null
       }
     ]
-    mocks.store.worktrees = [{ id: 'wt-1', repoId: 'repo-1', path: '/repo/wt-1' }]
-    mocks.store.worktreesByRepo = { 'repo-1': mocks.store.worktrees }
-    mocks.store.projects = [
+    useAppStore.setState({
+      worktreesByRepo: {
+        'repo-1': [makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo/wt-1' })]
+      }
+    })
+    useAppStore.getState().projects = [
       {
         id: 'repo-1',
         displayName: 'Repo',
@@ -162,8 +127,8 @@ describe('startFixChecksAgent', () => {
         updatedAt: 1
       }
     ]
-    mocks.store.ensureDetectedAgents.mockResolvedValue(['codex'])
-    mocks.store.ensureRemoteDetectedAgents.mockResolvedValue(['codex'])
+    vi.mocked(useAppStore.getState().ensureDetectedAgents).mockResolvedValue(['codex'])
+    vi.mocked(useAppStore.getState().ensureRemoteDetectedAgents).mockResolvedValue(['codex'])
     mocks.activateAndRevealWorktree.mockReturnValue(true)
     mocks.findGithubPrWorkspaceAttachment.mockReturnValue(null)
     mocks.getConnectionId.mockReturnValue(null)
@@ -214,12 +179,12 @@ describe('startFixChecksAgent', () => {
       })
     ).resolves.toBe(false)
 
-    expect(mocks.store.ensureDetectedAgents).not.toHaveBeenCalled()
+    expect(useAppStore.getState().ensureDetectedAgents).not.toHaveBeenCalled()
     expect(mocks.launchAgentInNewTab).not.toHaveBeenCalled()
   })
 
   it('fails without launching when agent detection finds no enabled agent', async () => {
-    mocks.store.ensureDetectedAgents.mockResolvedValue([])
+    vi.mocked(useAppStore.getState().ensureDetectedAgents).mockResolvedValue([])
     const { startFixChecksAgent } = await import('./fix-checks-agent-launch')
 
     await expect(
@@ -235,9 +200,11 @@ describe('startFixChecksAgent', () => {
   })
 
   it('rejects without launching when remote agent detection fails', async () => {
-    mocks.store.repos = [{ ...mocks.store.repos[0], connectionId: 'conn-1' }]
+    useAppStore.getState().repos = [{ ...useAppStore.getState().repos[0], connectionId: 'conn-1' }]
     mocks.getConnectionId.mockReturnValue('conn-1')
-    mocks.store.ensureRemoteDetectedAgents.mockRejectedValue(new Error('detection failed'))
+    vi.mocked(useAppStore.getState().ensureRemoteDetectedAgents).mockRejectedValue(
+      new Error('detection failed')
+    )
     const { startFixChecksAgent } = await import('./fix-checks-agent-launch')
 
     await expect(
@@ -253,9 +220,9 @@ describe('startFixChecksAgent', () => {
   })
 
   it("resolves the attached workspace's own execution host", async () => {
-    mocks.store.repos = [
+    useAppStore.getState().repos = [
       {
-        ...mocks.store.repos[0],
+        ...useAppStore.getState().repos[0],
         connectionId: 'ssh-1'
       }
     ]
@@ -271,9 +238,9 @@ describe('startFixChecksAgent', () => {
       })
     ).resolves.toBe(true)
 
-    expect(mocks.store.ensureRemoteDetectedAgents).toHaveBeenCalledWith('ssh-1')
+    expect(useAppStore.getState().ensureRemoteDetectedAgents).toHaveBeenCalledWith('ssh-1')
     expect(mocks.resolveRepoWorktreeLaunchPlatform).toHaveBeenCalledWith(
-      mocks.store,
+      useAppStore.getState(),
       expect.objectContaining({ id: 'repo-1', connectionId: 'ssh-1' }),
       expect.objectContaining({ id: 'wt-1', path: '/repo/wt-1' })
     )
@@ -330,7 +297,9 @@ describe('startFixChecksAgent', () => {
     ).resolves.toBe(true)
 
     expect(mocks.launchAgentInNewTab).toHaveBeenCalledWith(
-      expect.objectContaining({ agentArgs: '--model "unterminated' })
+      expect.objectContaining({
+        agentArgs: '--dangerously-bypass-approvals-and-sandbox --model "unterminated'
+      })
     )
     expect(mocks.toastError).not.toHaveBeenCalled()
   })
@@ -355,13 +324,18 @@ describe('startFixChecksAgent', () => {
 
   // Why: a saved chat stays implicit so a host that stops running chats falls back to a terminal.
   it('replays a saved terminal explicitly and leaves a saved chat to the settings route', async () => {
-    Object.assign(mocks.store.settings, { disabledTuiAgents: ['codex'] })
-    Object.assign(mocks.store, {
+    useAppStore.setState(({ settings }) => ({
+      settings: settings && { ...settings, disabledTuiAgents: ['codex'] }
+    }))
+    Object.assign(useAppStore.getState(), {
       runtimeStatusByEnvironmentId: new Map(),
       ensureRuntimeDetectedAgents: vi.fn().mockResolvedValue(['codex'])
     })
-    Object.assign(mocks.store.repos[0], { kind: 'folder', executionHostId: 'runtime:alpha' })
-    Object.assign(mocks.store.worktrees[0], { hostId: 'runtime:alpha' })
+    Object.assign(useAppStore.getState().repos[0], {
+      kind: 'folder',
+      executionHostId: 'runtime:alpha'
+    })
+    Object.assign(useAppStore.getState().worktreesByRepo['repo-1'][0], { hostId: 'runtime:alpha' })
     const preferences = projectAgentLaunchSettings({
       defaultTuiAgent: 'codex',
       disabledTuiAgents: ['claude']

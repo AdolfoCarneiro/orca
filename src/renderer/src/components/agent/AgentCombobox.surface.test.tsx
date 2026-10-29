@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 import { AGENT_CATALOG } from '@/lib/agent-catalog'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { buildNewTabAgentMenuRows, type NewTabAgentMenuRow } from '@/lib/new-tab-agent-menu-rows'
@@ -201,4 +201,62 @@ it('keeps a recorded host chat without its CLI on CHAT after ArrowRight and Ente
   fireEvent.keyDown(input, { key: 'ArrowRight' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(onPick).toHaveBeenCalledExactlyOnceWith('antigravity', 'chat')
+})
+
+it('keeps a cold configuration CLI companion selected on reopen and Enter without offering the chat terminal button', () => {
+  const rows = buildNewTabAgentMenuRows({
+    settings: { experimentalNativeChat: true },
+    detectedOnHost: null,
+    configurationCommandCandidates: ['claude'],
+    chatAgents: ['claude'],
+    hostChatAnswer: () => 'yes',
+    chatProgram: () => 'available'
+  })
+  const model: NewTabAgentMenuModel = {
+    state: 'settled',
+    rows,
+    detection: { ...detection, detectedIds: null, detectionFailed: true }
+  }
+  const saved = vi.fn()
+  function Picker() {
+    const [surface, setSurface] = useState<AgentLaunchSurface>('chat')
+    return (
+      <AgentCombobox
+        agents={AGENT_CATALOG}
+        value="claude"
+        onValueChange={() => {}}
+        surfaceRows={{
+          model,
+          surface,
+          selection: resolveAgentMenuSelection({
+            agent: 'claude',
+            surface,
+            settings: { experimentalNativeChat: true },
+            inventoryReady: true,
+            answer: 'yes',
+            chatPending: false,
+            plain: false
+          }),
+          onPick: (agent, chosen) => {
+            saved(agent, chosen)
+            setSurface(chosen)
+          }
+        }}
+      />
+    )
+  }
+  render(<Picker />, { wrapper: TooltipProvider })
+  fireEvent.click(screen.getByRole('combobox'))
+  expect(screen.queryByRole('button', { name: 'Start Claude in a terminal' })).toBeNull()
+  fireEvent.click(option('Claude (CLI)'))
+  expect(saved).toHaveBeenLastCalledWith('claude', 'terminal')
+  fireEvent.click(screen.getByRole('combobox'))
+  expect(option('Claude (CLI)').getAttribute('aria-selected')).toBe('true')
+  fireEvent.keyDown(
+    screen
+      .getAllByRole('combobox', { expanded: true })
+      .find((element) => element.tagName === 'INPUT')!,
+    { key: 'Enter' }
+  )
+  expect(saved).toHaveBeenLastCalledWith('claude', 'terminal')
 })

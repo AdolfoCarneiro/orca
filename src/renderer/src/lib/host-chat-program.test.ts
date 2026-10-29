@@ -1,3 +1,4 @@
+import { repoFixture } from '@/components/native-chat/native-chat-workspace-test-fixtures'
 import { getDefaultSourceControlAiSettings } from '../../../shared/source-control-ai-settings'
 import { afterEach, assert, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
@@ -123,7 +124,8 @@ it('adapts only absent publication on older hosts and shares the saved Checks ga
   settings.experimentalNativeChat = true
   settings.sourceControlAi = getDefaultSourceControlAiSettings()
   settings.sourceControlAi.actions = { fixChecks: { agentId: 'antigravity' } }
-  useAppStore.setState({ settings, ensureDetectedAgents: async () => [] })
+  const ownedRepo = repoFixture({ id: 'missing' })
+  useAppStore.setState({ settings, repos: [ownedRepo], ensureDetectedAgents: async () => [] })
   await acquireAgentLaunchChoices(local, async () => [])
   const checksAgent = (actionId: 'fixChecks' | 'resolveComments') =>
     resolveChecksActionAgent(useAppStore.getState(), actionId, undefined, local, [])

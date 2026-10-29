@@ -32,7 +32,12 @@ export function SourceControlActionAgentPicker(props: PickerProps) {
         target: { workspace: { kind: 'git-worktree' as const } },
         detectionTarget: { kind: 'local' as const }
       }
-  const observation = useAgentMenuObservation(rows.target, !props.disabled, rows.detectionTarget)
+  const observation = useAgentMenuObservation(
+    rows.target,
+    !props.disabled,
+    rows.detectionTarget,
+    true
+  )
   const canSaveSurface = canSaveSourceControlActionSurface(rows.target, props.agent ?? 'claude')
   return (
     <SourceControlActionAgentPickerView

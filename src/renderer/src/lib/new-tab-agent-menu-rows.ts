@@ -73,6 +73,7 @@ export type NewTabAgentMenuSettings = NativeChatDefaultSettings &
 export function buildNewTabAgentMenuRows(args: {
   settings: NewTabAgentMenuSettings | null | undefined
   detectedOnHost: readonly TuiAgent[] | null
+  configurationCommandCandidates?: readonly TuiAgent[]
   chatAgents: readonly TuiAgent[]
   hostChatAnswer: (agent: TuiAgent) => HostChatAnswer
   /** Whether the chat's own program runs there, which for some agents is not their CLI. */
@@ -81,8 +82,12 @@ export function buildNewTabAgentMenuRows(args: {
   const { settings } = args
   const defaultAgent = settings?.defaultTuiAgent
   const installed = filterEnabledTuiAgents(args.detectedOnHost ?? [], settings?.disabledTuiAgents)
+  const commands = filterEnabledTuiAgents(
+    [...new Set([...installed, ...(args.configurationCommandCandidates ?? [])])],
+    settings?.disabledTuiAgents
+  )
   if (!isNativeChatEnabled(settings) || args.hostChatAnswer('claude') === 'no-chats') {
-    return orderAgents(defaultAgent, installed).map((agent) => ({ kind: 'terminal', agent }))
+    return orderAgents(defaultAgent, commands).map((agent) => ({ kind: 'terminal', agent }))
   }
   const runnable: TuiAgent[] = []
   const unavailable = new Map<TuiAgent, ChatUnavailableReason>()
@@ -134,7 +139,9 @@ export function buildNewTabAgentMenuRows(args: {
     })),
     ...orderAgents(
       defaultAgent,
-      installed.filter((agent) => !runnable.includes(agent))
+      commands.filter(
+        (agent) => !runnable.includes(agent) || args.configurationCommandCandidates?.includes(agent)
+      )
     ).map((agent) => ({
       kind: 'cli' as const,
       agent,

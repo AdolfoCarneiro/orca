@@ -178,78 +178,112 @@ it('recovers the cold catalog through Retry and keeps retained rows editable aft
   expect(view.queryByText(/Check the host connection/)).toBeNull()
 })
 
-it('repository saved recipe permission editing settles after the real cold store rejection', async () => {
-  useAppStore.setState({ repos: [TEST_REPO], settings: getDefaultSettings('/tmp') })
-  let saved: RepoSourceControlAiOverrides = {
-    actionOverrides: {
-      fixChecks: {
-        agentId: 'claude',
-        surface: 'terminal',
-        agentArgs: '--verbose'
-      }
-    }
-  }
-  function RepositoryRecipes() {
-    const [persisted, setPersisted] = useState(saved)
-    const draft = useRepositorySourceControlAiGlobalUx({
-      repoId: TEST_REPO.id,
-      persistedRepoAi: persisted,
-      settings: getDefaultSettings('/tmp'),
-      source: getDefaultSourceControlAiSettings(),
-      updateRepo: async (_id, patch) => {
-        saved = patch.sourceControlAi ?? {}
-        setPersisted(saved)
-        return true
+it.each([false, true])(
+  'repository recipe new-choice=%s and permission editing settle after cold rejection',
+  async (newChoice) => {
+    useAppStore.setState({
+      repos: [TEST_REPO],
+      settings: {
+        ...getDefaultSettings('/tmp'),
+        experimentalNativeChat: false,
+        defaultTuiAgent: 'blank'
       }
     })
-    return (
-      <RepositorySourceControlAiActionRows
-        repoId={TEST_REPO.id}
-        repoAi={draft.displayRepoAi}
-        source={getDefaultSourceControlAiSettings()}
-        defaultTuiAgent="claude"
-        onActionModeChange={draft.updateActionMode}
-        onActionAgentChange={draft.updateActionAgent}
-        onActionLaunchPreferencesChange={draft.updateActionLaunchPreferences}
-        onActionTemplateChange={draft.updateActionTemplate}
-        onActionAgentArgsChange={draft.updateActionAgentArgs}
-        onAppendVariable={draft.appendVariable}
-        savingActionIds={draft.savingActionIds}
-        actionDirtyById={draft.actionDirtyById}
-        onActionDiscard={draft.discardActionRecipeText}
-        onActionSave={draft.saveActionRecipeText}
-      />
+    let saved: RepoSourceControlAiOverrides = {
+      actionOverrides: {
+        fixChecks: {
+          agentId: newChoice ? null : 'claude',
+          ...(newChoice ? {} : { surface: 'terminal' as const }),
+          commandInputTemplate: '{basePrompt}',
+          agentArgs: '--verbose'
+        }
+      }
+    }
+    function RepositoryRecipes() {
+      const [persisted, setPersisted] = useState(saved)
+      const draft = useRepositorySourceControlAiGlobalUx({
+        repoId: TEST_REPO.id,
+        persistedRepoAi: persisted,
+        settings: getDefaultSettings('/tmp'),
+        source: getDefaultSourceControlAiSettings(),
+        updateRepo: async (_id, patch) => {
+          saved = patch.sourceControlAi ?? {}
+          setPersisted(saved)
+          return true
+        }
+      })
+      return (
+        <RepositorySourceControlAiActionRows
+          repoId={TEST_REPO.id}
+          repoAi={draft.displayRepoAi}
+          source={getDefaultSourceControlAiSettings()}
+          defaultTuiAgent="claude"
+          onActionModeChange={draft.updateActionMode}
+          onActionAgentChange={draft.updateActionAgent}
+          onActionLaunchPreferencesChange={draft.updateActionLaunchPreferences}
+          onActionTemplateChange={draft.updateActionTemplate}
+          onActionAgentArgsChange={draft.updateActionAgentArgs}
+          onAppendVariable={draft.appendVariable}
+          savingActionIds={draft.savingActionIds}
+          actionDirtyById={draft.actionDirtyById}
+          onActionDiscard={draft.discardActionRecipeText}
+          onActionSave={draft.saveActionRecipeText}
+        />
+      )
+    }
+    const view = render(
+      <TooltipProvider>
+        <RepositoryRecipes />
+      </TooltipProvider>
     )
+    await act(async () => {})
+    const row = view.container.querySelector(
+      '[data-settings-section$="source-control-ai-fixChecks"]'
+    )
+    if (!(row instanceof HTMLElement)) {
+      throw new Error('Missing saved Checks row')
+    }
+    if (newChoice) {
+      expect(
+        within(row)
+          .getAllByRole('combobox')
+          .find((element) => element.hasAttribute('data-agent-combobox-root'))!.textContent
+      ).toContain('Use default agent')
+      await userEvent.click(
+        within(row)
+          .getAllByRole('combobox')
+          .find((element) => element.hasAttribute('data-agent-combobox-root'))!
+      )
+      const command = view
+        .getAllByRole('option')
+        .find((option) => option.textContent?.startsWith('Claude'))
+      if (!command) {
+        throw new Error('Missing cold configuration command')
+      }
+      await userEvent.click(command)
+    }
+    expect(useAppStore.getState().readLocalAgentInventory()).toEqual({ ids: null, state: 'failed' })
+    const editable = within(row).getByRole('button', { name: 'Claude permissions' })
+    expect(editable.hasAttribute('disabled')).toBe(false)
+    await userEvent.click(editable)
+    const options = await view.findAllByRole('menuitemradio', { name: /Full access/ })
+    const option = options.find((entry) => entry.getAttribute('aria-checked') === 'false')
+    if (!option) {
+      throw new Error('Missing explicit Full access choice')
+    }
+    await userEvent.click(option)
+    await act(async () => {
+      fireEvent.click(within(row).getByRole('button', { name: 'Save' }))
+    })
+    expect(saved.actionOverrides?.fixChecks).toMatchObject({
+      agentId: 'claude',
+      ...(newChoice ? {} : { surface: 'terminal' }),
+      agentArgs: '--verbose',
+      commandInputTemplate: '{basePrompt}',
+      launchPreferences: { agentId: 'claude', permissionMode: 'full-access' }
+    })
   }
-  const view = render(
-    <TooltipProvider>
-      <RepositoryRecipes />
-    </TooltipProvider>
-  )
-  await act(async () => {})
-  const row = view.container.querySelector('[data-settings-section$="source-control-ai-fixChecks"]')
-  if (!(row instanceof HTMLElement)) {
-    throw new Error('Missing saved Checks row')
-  }
-  const editable = within(row).getByRole('button', { name: 'Claude permissions' })
-  expect(editable.hasAttribute('disabled')).toBe(false)
-  await userEvent.click(editable)
-  const options = await view.findAllByRole('menuitemradio', { name: /Full access/ })
-  const option = options.find((entry) => entry.getAttribute('aria-checked') === 'false')
-  if (!option) {
-    throw new Error('Missing explicit Full access choice')
-  }
-  await userEvent.click(option)
-  await act(async () => {
-    fireEvent.click(within(row).getByRole('button', { name: 'Save' }))
-  })
-  expect(saved.actionOverrides?.fixChecks).toMatchObject({
-    agentId: 'claude',
-    surface: 'terminal',
-    agentArgs: '--verbose',
-    launchPreferences: { agentId: 'claude', permissionMode: 'full-access' }
-  })
-})
+)
 
 it('onboarding and setup checklist retain selection, continue and save after failed discovery', async () => {
   const { default: OnboardingFlow } = await import('../onboarding/OnboardingFlow')

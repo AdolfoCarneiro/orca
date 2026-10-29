@@ -1,3 +1,5 @@
+import { exerciseAgentMenuRetainedFailure } from './agent-menu-retained-failure.test-fixture'
+import { surfaceRowValue } from '@/components/agent/agent-combobox-surface-items'
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -46,6 +48,8 @@ const mocks = vi.hoisted(() => ({
   records: 0,
   lists: 0,
   metadata: 0,
+  candidateVisits: 0,
+  rowVisits: 0,
   countedLists: new WeakSet<object>(),
   program:
     vi.fn<
@@ -69,7 +73,25 @@ vi.mock('@/lib/new-tab-agent-menu-rows', async (importOriginal) => {
   return {
     ...actual,
     buildNewTabAgentMenuRows: (...args: Parameters<typeof actual.buildNewTabAgentMenuRows>) => {
+      args[0].configurationCommandCandidates?.forEach((value, index, candidates) => {
+        Object.defineProperty(candidates, index, {
+          configurable: true,
+          get: () => {
+            mocks.candidateVisits++
+            return value
+          }
+        })
+      })
       const rows = actual.buildNewTabAgentMenuRows(...args)
+      rows.forEach((value, index) =>
+        Object.defineProperty(rows, index, {
+          configurable: true,
+          get: () => {
+            mocks.rowVisits++
+            return value
+          }
+        })
+      )
       mocks.metadata += rows.length
       return rows
     },
@@ -643,4 +665,147 @@ it('preserves per-agent published answers and direct route inputs across context
       }
     }
   }
+})
+
+it('separates cold-only configuration commands from observation and ordinary launch rows', () => {
+  const target: AgentMenuRowsTarget = { workspace: { kind: 'git-worktree', repoId: TEST_REPO.id } }
+  useAppStore.setState({
+    repos: [TEST_REPO],
+    detectedAgentIds: null,
+    localDetectedAgentIdsByContext: {}
+  })
+  mocks.program.mockReturnValue('available')
+  const cold = {
+    detectedIds: null,
+    detectionFailed: true,
+    isLoading: false,
+    isRefreshing: false,
+    needsServerUpdate: false
+  }
+  mocks.detection.mockReturnValue(cold)
+  const hook = renderHook(
+    ({ config }) => useAgentMenuObservation(target, true, { kind: 'local' }, config),
+    { initialProps: { config: true } }
+  )
+  const model = hook.result.current.model
+  expect(model.state).toBe('settled')
+  if (model.state !== 'settled') {
+    throw new Error('Cold config did not settle')
+  }
+  expect(model.rows).toContainEqual(expect.objectContaining({ kind: 'cli', agent: 'claude' }))
+  expect(model.rows).toContainEqual(expect.objectContaining({ kind: 'chat', agent: 'claude' }))
+  expect(model.detection.detectedIds).toBeNull()
+  hook.rerender({ config: false })
+  expect(hook.result.current.model).toMatchObject({
+    rows: expect.not.arrayContaining([expect.objectContaining({ kind: 'cli', agent: 'claude' })])
+  })
+  for (const override of [
+    { detectedIds: [] },
+    { isLoading: true },
+    { isRefreshing: true },
+    { needsServerUpdate: true },
+    { detectionFailed: false }
+  ]) {
+    mocks.detection.mockReturnValue({ ...cold, ...override })
+    hook.rerender({ config: true })
+    const next = hook.result.current.model
+    if (next.state === 'settled') {
+      expect(next.rows).not.toContainEqual(
+        expect.objectContaining({ kind: 'cli', agent: 'claude' })
+      )
+    }
+  }
+})
+
+it('bounds added configuration candidate and row work at N and 10N without unrelated renders', async () => {
+  const work = []
+  for (const count of [10, 100]) {
+    useAppStore.setState({
+      repos: [TEST_REPO],
+      detectedAgentIds: null,
+      localDetectedAgentIdsByContext: {}
+    })
+    mocks.detection.mockReturnValue({
+      detectedIds: null,
+      detectionFailed: true,
+      isLoading: false,
+      isRefreshing: false,
+      needsServerUpdate: false
+    })
+    const target: AgentMenuRowsTarget = {
+      workspace: { kind: 'git-worktree', repoId: TEST_REPO.id }
+    }
+    let renders = 0
+    const hooks = Array.from({ length: count }, () =>
+      renderHook(() => {
+        renders++
+        return useAgentMenuObservation(target, true, { kind: 'local' }, true)
+      })
+    )
+    await act(async () => {})
+    mocks.candidateVisits = 0
+    mocks.rowVisits = 0
+    mocks.metadata = 0
+    for (const hook of hooks) {
+      hook.rerender()
+    }
+    const candidates = mocks.candidateVisits,
+      rows = mocks.rowVisits,
+      built = mocks.metadata
+    let selections = 0
+    for (const hook of hooks) {
+      const model = hook.result.current.model
+      if (model.state !== 'settled') {
+        throw new Error('Configuration rows did not settle')
+      }
+      for (const row of model.rows) {
+        const agent = row.agent
+        Object.defineProperty(row, 'agent', {
+          configurable: true,
+          get: () => {
+            selections++
+            return agent
+          }
+        })
+      }
+      for (const agent of ['claude', 'codex'] as const) {
+        hook.result.current.selectionFor(agent, 'terminal')
+        surfaceRowValue(model.rows, agent, true)
+      }
+    }
+    work.push({ candidates, rows, built, selections })
+    const settled = renders
+    act(() => useAppStore.setState({ settingsSearchQuery: 'unrelated' }))
+    expect(renders).toBe(settled)
+    act(() => useAppStore.setState({ remoteDetectedAgentIds: { other: ['claude'] } }))
+    expect(renders).toBe(settled)
+    Object.assign(window, {
+      api: {
+        ...window.api,
+        preflight: {
+          ...window.api?.preflight,
+          detectRemoteAgents: vi.fn().mockRejectedValue(new Error('other host failed'))
+        }
+      }
+    })
+    await act(() => useAppStore.getState().ensureRemoteDetectedAgents('other-failed'))
+    expect(renders).toBe(settled)
+    mocks.detection.mockReturnValue({ detectedIds: null, detectionFailed: false, isLoading: true })
+    for (const hook of hooks) {
+      hook.rerender()
+    }
+    expect(renders).toBeGreaterThan(settled)
+    for (const hook of hooks) {
+      hook.unmount()
+    }
+  }
+  console.info('configuration command work', work)
+  for (const key of ['candidates', 'rows', 'built', 'selections'] as const) {
+    expect(work[0][key]).toBeGreaterThan(0)
+    expect(work[1][key]).toBe(10 * work[0][key])
+  }
+})
+
+it('selects the actual keyed retained failure without reacting to another host outcome', async () => {
+  await exerciseAgentMenuRetainedFailure((value) => mocks.detection.mockReturnValue(value))
 })
