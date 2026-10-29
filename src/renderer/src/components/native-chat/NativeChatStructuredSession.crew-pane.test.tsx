@@ -76,10 +76,14 @@ it('handles sibling-composer Escape at the actual native pane boundary and keeps
       />
     </TooltipProvider>
   )
-  const roots = view.container.querySelectorAll<HTMLElement>('[data-native-chat-root]')
+  const roots = view.container.querySelectorAll('[data-native-chat-root]')
   expect(roots).toHaveLength(2)
-  const pane = within(roots[0]),
-    other = within(roots[1])
+  const [firstRoot, secondRoot] = roots
+  if (!(firstRoot instanceof HTMLElement) || !(secondRoot instanceof HTMLElement)) {
+    throw new Error('Expected two native chat pane elements')
+  }
+  const pane = within(firstRoot),
+    other = within(secondRoot)
   await user.click(pane.getByRole('button', { name: 'Show crew: 1 workers' }))
   await user.click(other.getByRole('button', { name: 'Show crew: 1 workers' }))
   const composer = pane.getByRole('textbox', { name: 'Message' })

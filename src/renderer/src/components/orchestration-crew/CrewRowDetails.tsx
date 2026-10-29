@@ -20,7 +20,7 @@ export function CrewRowDetails({ row }: { row: OrchestrationCrewRow }) {
       <dd>
         {row.task ? (
           <>
-            <Badge variant="outline" className="mr-1 text-3xs">
+            <Badge variant="outline" className="mr-1">
               {row.task.state}
             </Badge>
             {row.task.title}
