@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { workspaceFromLinearData } from '../../../../main/linear/linear-workspace-record'
+import { credentialDecryptionMessage } from '../../../../shared/integration-credential-errors'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import {
   getTaskSourceCacheScope,
@@ -214,15 +216,12 @@ describe('createLinearSlice', () => {
 
   it('ignores stale status checks after a successful connect', async () => {
     const staleMountCheck = deferred<LinearConnectionStatus>()
-    const freshConnectCheck = deferred<LinearConnectionStatus>()
     const viewer = {
       displayName: 'Test User',
       email: 'test@example.com',
       organizationName: 'Test Org'
     }
-    linearStatus
-      .mockReturnValueOnce(staleMountCheck.promise)
-      .mockReturnValueOnce(freshConnectCheck.promise)
+    linearStatus.mockReturnValueOnce(staleMountCheck.promise)
     linearConnect.mockResolvedValueOnce({ ok: true, viewer })
     const store = createTestStore()
 
@@ -232,7 +231,6 @@ describe('createLinearSlice', () => {
 
     expect(linearStatus).toHaveBeenCalledTimes(1)
 
-    freshConnectCheck.resolve({ connected: true, viewer })
     await connectPromise
 
     staleMountCheck.resolve({ connected: false, viewer: null })
@@ -375,13 +373,58 @@ describe('account observations stay separate from query transport', () => {
     const action = store.getState().connectLinear('fixture-token')
     linearStatus.mockRejectedValue(new Error('unreachable'))
     await store.getState().checkLinearConnection(true)
-    const workspace = { ...confirmed.workspaces![0], credentialRevision: 2 }
+    const workspace = workspaceFromLinearData(
+      { displayName: 'User', email: null },
+      { id: 'workspace-1', name: 'Acme' }
+    )
     ack.resolve({ ok: true, viewer: workspace, workspace })
     await expect(action).resolves.toMatchObject({ ok: true })
     expect(
       store.getState().linearStatus.workspaces?.find((item) => item.id === workspace.id)
-        ?.credentialRevision
-    ).toBe(2)
+    ).toEqual(workspace)
+  })
+  it('revalidates repeated revisionless acknowledgements only in their scope and preserves another scope credential error', async () => {
+    const store = connectedStore()
+    const workspace = workspaceFromLinearData(
+      { displayName: 'User', email: null },
+      { id: 'workspace-1', name: 'Acme' }
+    )
+    const error = credentialDecryptionMessage('Linear')
+    store.setState({ linearStatus: { ...confirmed, credentialError: error } })
+    const acknowledgement = { ok: true, viewer: workspace, workspace }
+    linearConnect.mockResolvedValue(acknowledgement)
+    linearTestConnection.mockResolvedValue(acknowledgement)
+    linearStatus.mockRejectedValue(new Error('unreachable'))
+    linearSearchIssues.mockResolvedValue([issue('healthy')])
+    const read = (workspaceId: string | null) =>
+      store.getState().searchLinearIssues('warm', 12, { workspaceId })
+    await read('workspace-2')
+    await getInflightStatusRequest()?.promise
+    const healthy = store.getState().linearSearchCache['workspace-2::search::warm::12']
+    for (const action of ['connect', 'connect', 'test'] as const) {
+      await read('workspace-1')
+      await read(null)
+      await getInflightStatusRequest()?.promise
+      const calls = linearSearchIssues.mock.calls.length
+      await (action === 'connect'
+        ? store.getState().connectLinear('fixture-token')
+        : store.getState().testLinearConnection(workspace.id))
+      expect(store.getState().linearStatus.credentialError).toBe(error)
+      expect(store.getState().linearSearchCache['workspace-1::search::warm::12']).toBeUndefined()
+      expect(store.getState().linearSearchCache['default::search::warm::12']).toBeUndefined()
+      expect(store.getState().linearSearchCache['workspace-2::search::warm::12']).toBe(healthy)
+      await read('workspace-1')
+      await getInflightStatusRequest()?.promise
+      await read(null)
+      await read('workspace-2')
+      await getInflightStatusRequest()?.promise
+      expect(linearSearchIssues).toHaveBeenCalledTimes(calls + 2)
+      expect(store.getState().linearStatus.workspaces?.map((item) => item.id)).toEqual([
+        'workspace-2',
+        'workspace-1'
+      ])
+    }
+    expect(workspace).not.toHaveProperty('credentialRevision')
   })
   it('does not turn SSH authentication or a renderer-synthesized auth error into account rejection', async () => {
     const store = connectedStore()

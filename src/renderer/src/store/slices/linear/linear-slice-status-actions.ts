@@ -26,17 +26,20 @@ export function publishLinearAccountStatus(
   set: LinearSliceSet,
   get: LinearSliceGet,
   scope: LinearReadScope,
-  status: LinearConnectionStatus
+  status: LinearConnectionStatus,
+  affectedWorkspaceIds?: readonly string[]
 ): void {
   const previous = get().linearStatus
   const matching = get().linearStatusContextKey === scope.runtimeContextKey
   const changed =
-    !matching || linearStatusScopeSignature(previous) !== linearStatusScopeSignature(status)
-  let affected: Set<string> | undefined
+    affectedWorkspaceIds !== undefined ||
+    !matching ||
+    linearStatusScopeSignature(previous) !== linearStatusScopeSignature(status)
+  let affected = affectedWorkspaceIds ? new Set(affectedWorkspaceIds) : undefined
   if (matching && previous.workspaces && status.workspaces) {
     const before = new Map(previous.workspaces.map((workspace) => [workspace.id, workspace]))
     const after = new Map(status.workspaces.map((workspace) => [workspace.id, workspace]))
-    affected = new Set<string>()
+    affected ??= new Set<string>()
     for (const [id, workspace] of before) {
       const next = after.get(id)
       if (
@@ -83,21 +86,33 @@ export function acknowledgeLinearAccount(
 ): void {
   const previous =
     get().linearStatusContextKey === scope.runtimeContextKey ? get().linearStatus : null
-  publishLinearAccountStatus(set, get, scope, {
-    ...previous,
-    connected: true,
-    viewer,
-    ...(workspace
-      ? {
-          workspaces: [
-            ...(previous?.workspaces ?? []).filter((item) => item.id !== workspace.id),
-            workspace
-          ],
-          selectedWorkspaceId: workspace.id,
-          activeWorkspaceId: workspace.id
-        }
-      : {})
-  })
+  publishLinearAccountStatus(
+    set,
+    get,
+    scope,
+    {
+      ...previous,
+      connected: true,
+      viewer,
+      credentialError:
+        workspace &&
+        previous?.workspaces?.length === 1 &&
+        previous.workspaces[0].id === workspace.id
+          ? undefined
+          : previous?.credentialError,
+      ...(workspace
+        ? {
+            workspaces: [
+              ...(previous?.workspaces ?? []).filter((item) => item.id !== workspace.id),
+              workspace
+            ],
+            selectedWorkspaceId: workspace.id,
+            activeWorkspaceId: workspace.id
+          }
+        : {})
+    },
+    workspace ? [workspace.id, 'default', 'selected'] : undefined
+  )
 }
 
 export function removeLinearAccountWorkspaces(

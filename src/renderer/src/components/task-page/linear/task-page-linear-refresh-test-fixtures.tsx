@@ -73,7 +73,9 @@ const reads = vi.hoisted(() => ({
   detail: vi.fn(),
   update: vi.fn(),
   create: vi.fn(),
-  projects: vi.fn()
+  projects: vi.fn(),
+  connect: vi.fn(),
+  test: vi.fn()
 }))
 
 const accountViewer = vi.hoisted(() => ({
@@ -84,9 +86,9 @@ const accountViewer = vi.hoisted(() => ({
 
 vi.mock('@/runtime/runtime-linear-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
-  linearTestConnection: async () => ({ ok: true, viewer: accountViewer }),
+  linearTestConnection: (...args: unknown[]) => reads.test(...args),
   linearDisconnect: async () => {},
-  linearConnect: async () => ({ ok: true, viewer: accountViewer }),
+  linearConnect: (...args: unknown[]) => reads.connect(...args),
   linearStatus: async () => ({ connected: true, viewer: accountViewer, selectedWorkspaceId: 'w' }),
   linearListIssues: (...args: unknown[]) => reads.list(...args),
   linearSearchIssues: (...args: unknown[]) => reads.search(...args)
@@ -314,6 +316,8 @@ beforeEach(() => {
   deferredIssueSetters.enabled = false
   deferredIssueSetters.updates.length = 0
   vi.resetAllMocks()
+  reads.connect.mockResolvedValue({ ok: true, viewer: accountViewer })
+  reads.test.mockResolvedValue({ ok: true, viewer: accountViewer })
   clearLinearRequestMaps()
 })
 

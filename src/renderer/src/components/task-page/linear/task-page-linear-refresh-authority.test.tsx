@@ -18,6 +18,8 @@ import { TaskPageLinearIssueTable } from './IssueTable'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
 import { useState } from 'react'
+import { workspaceFromLinearData } from '../../../../../main/linear/linear-workspace-record'
+import { credentialDecryptionMessage } from '../../../../../shared/integration-credential-errors'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
 import { defaultScopeSource } from '@/lib/default-creation-host'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
@@ -62,6 +64,60 @@ describe('Linear refresh row authority', () => {
     }
   )
 })
+
+it.each(['connect', 'test'] as const)(
+  '%s acknowledgement without a revision retires the sole workspace decrypt error in Tasks selection',
+  async (action) => {
+    const s = store()
+    reads.list.mockResolvedValue(response('list', 'In Review'))
+    const { items } = await s.getState().listLinearIssues(listArgs, { force: true })
+    const workspace = workspaceFromLinearData(
+      { displayName: 'User', email: null },
+      { id: 'w', name: 'Acme' }
+    )
+    const message = credentialDecryptionMessage('Linear')
+    s.setState({
+      linearStatus: {
+        connected: true,
+        viewer: workspace,
+        workspaces: [{ ...workspace, credentialRevision: 1 }],
+        activeWorkspaceId: 'w',
+        selectedWorkspaceId: 'w',
+        credentialError: message
+      }
+    })
+    const acknowledgement = { ok: true, viewer: workspace, workspace }
+    reads[action].mockResolvedValue(acknowledgement)
+    function Tasks() {
+      const linearStatus = s((state) => state.linearStatus)
+      const model = { ...fixture(s, items), linearStatus }
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: existing fixture supplies all exercised selection fields; unrelated full-page services are absent.
+      const selection = useTaskPageLinearListSelectionPrelude(model as never)
+      return (
+        <>
+          <output data-testid="account-error">{selection.activeLinearIssueError}</output>
+          <output data-testid="account-rows">
+            {selection.displayedLinearIssues.map((row) => row.state.name).join(',')}
+          </output>
+        </>
+      )
+    }
+    render(<Tasks />)
+    expect(screen.getByTestId('account-error').textContent).toBe(message)
+    expect(screen.getByTestId('account-rows').textContent).toBe('In Review')
+    await act(async () => {
+      const result =
+        action === 'connect'
+          ? await s.getState().connectLinear('fixture-token')
+          : await s.getState().testLinearConnection('w')
+      expect(result).toEqual(acknowledgement)
+    })
+    expect(screen.getByTestId('account-error').textContent).toBe('')
+    expect(screen.getByTestId('account-rows').textContent).toBe('In Review')
+    expect(reads.list).toHaveBeenCalledTimes(1)
+    expect(workspace).not.toHaveProperty('credentialRevision')
+  }
+)
 
 describe('Linear refresh failure', () => {
   it.each(['list', 'search'] as const)(
