@@ -223,26 +223,23 @@ describe('RuntimeBrowserCommands browser screencast', () => {
 
   it('lists no tabs without waking the window when no saved tab could mount', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
-    const send = vi.fn()
     const bridge = {
       getRegisteredTabs: vi.fn(() => new Map()),
       tabList: vi.fn(() => ({ tabs: [] }))
     } as unknown as AgentBrowserBridge
-    const commands = new RuntimeBrowserCommands(
-      createHost({
-        getAgentBrowserBridge: () => bridge,
-        getAuthoritativeWindow: vi.fn(() => ({ webContents: { send } }) as never),
-        serveBrowserTabs: {
-          opened: vi.fn(),
-          start: vi.fn(async () => false),
-          hasStartable: () => false
-        }
-      })
-    )
+    const host = createHost({
+      getAgentBrowserBridge: () => bridge,
+      serveBrowserTabs: {
+        opened: vi.fn(),
+        start: vi.fn(async () => false),
+        hasStartable: () => false
+      }
+    })
+    const commands = new RuntimeBrowserCommands(host)
 
     await expect(commands.browserTabList({ worktree: 'id:wt-1' })).resolves.toEqual({ tabs: [] })
 
-    expect(send).not.toHaveBeenCalled()
+    expect(host.getAuthoritativeWindow).not.toHaveBeenCalled()
     expect(waitForWorktreeTabRegistrationMock).not.toHaveBeenCalled()
   })
 
