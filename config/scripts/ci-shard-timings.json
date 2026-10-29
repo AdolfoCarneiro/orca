@@ -7023,7 +7023,6 @@
       "src/renderer/src/components/artifacts/ArtifactPreview.test.tsx": 366,
       "src/renderer/src/components/artifacts/ArtifactPublishButton.test.tsx": 568,
       "src/renderer/src/components/artifacts/ArtifactsPage.test.tsx": 1464,
-      "src/renderer/src/components/artifacts/artifact-display-labels.test.ts": 114,
       "src/renderer/src/components/artifacts/artifact-list-search.test.ts": 127,
       "src/renderer/src/components/artifacts/artifact-list-windowing.test.tsx": 1563,
       "src/renderer/src/components/artifacts/artifact-publish-flow.test.ts": 80,
