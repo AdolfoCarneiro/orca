@@ -30,6 +30,7 @@ import {
   getWslHookReconciliationAction,
   getWslReconciliationKey,
   installManagedHooksIntoWslRuntime,
+  isWslHookDistroBlocked,
   refreshWslRuntimeUserHooks
 } from './codex-hook-wsl-runtime'
 import {
@@ -102,6 +103,11 @@ export class CodexHookService {
       if (action === 'none') {
         return
       }
+      // The probe settled after the install; the distro may have stopped since (E9).
+      const distro = resolvedPlan?.wslDistro ?? wslPlan?.wslDistro
+      if (!distro || (await isWslHookDistroBlocked(distro))) {
+        return
+      }
       if (action === 'remove') {
         try {
           removeStaleWslRuntimeManagedHookTrustEntries(
@@ -117,6 +123,9 @@ export class CodexHookService {
         return
       }
       const status = await installManagedHooksIntoWslRuntime(resolvedPlan)
+      if (!status) {
+        return
+      }
       if (status.state === 'error') {
         console.warn('[codex-hook-service] failed to reconcile WSL hook path', status.detail)
         return

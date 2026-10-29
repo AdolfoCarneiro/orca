@@ -35,11 +35,20 @@ import type {
   CodexWslRuntimeHookInstallPlan,
   WslCanonicalPathSettlement
 } from './codex-wsl-hook-install-plan'
+import { blockedWslDistroForPath } from '../wsl/wsl-unc-access-gate'
 
-// Serialize clear/grant/fallback per file so concurrent pane launches cannot interleave trust writes.
+/** True when touching the distro's `\\wsl.localhost` files now would start it (E9); a user act passes. */
+export async function isWslHookDistroBlocked(distro: string): Promise<boolean> {
+  return (await blockedWslDistroForPath('', distro)) !== null
+}
+
+/**
+ * Serialize clear/grant/fallback per file so concurrent pane launches cannot interleave trust writes.
+ * Null: skipped, because the distro is stopped and its UNC files would start it.
+ */
 export function installManagedHooksIntoWslRuntime(
   plan: CodexWslRuntimeHookInstallPlan
-): Promise<AgentHookInstallStatus> {
+): Promise<AgentHookInstallStatus | null> {
   return runExclusivelyForCodexTrustConfig(plan.tomlPath, () =>
     installManagedHooksIntoWslRuntimeExclusively(plan)
   )
@@ -47,7 +56,11 @@ export function installManagedHooksIntoWslRuntime(
 
 async function installManagedHooksIntoWslRuntimeExclusively(
   plan: CodexWslRuntimeHookInstallPlan
-): Promise<AgentHookInstallStatus> {
+): Promise<AgentHookInstallStatus | null> {
+  // Checked inside the queue, right before the first UNC read: a stop while queued must skip.
+  if (await isWslHookDistroBlocked(plan.wslDistro)) {
+    return null
+  }
   const config = readHooksJson(plan.configPath)
   if (!config) {
     return {
@@ -117,6 +130,10 @@ async function installManagedHooksIntoWslRuntimeExclusively(
     const grant = await grantManagedCodexHookTrust(grantPlan, () =>
       removeSelfComputedTrustBeforeGrant(grantPlan)
     )
+    // The distro may have stopped during the hash wait; the fallback write would start it again.
+    if (grant.lane === 'fallback' && (await isWslHookDistroBlocked(plan.wslDistro))) {
+      return null
+    }
     if (grant.lane === 'fallback') {
       // Upsert only Orca's entries to preserve user approvals not rebuilt here.
       upsertHookTrustEntries(plan.tomlPath, trustEntries)
