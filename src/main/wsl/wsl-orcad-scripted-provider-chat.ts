@@ -206,3 +206,18 @@ export async function exerciseScriptedProviderChat(
     await lane.rpc('agentSession.close', { sessionId })
   }
 }
+
+type LaneWorkspace = { worktree: string; cwd: string }
+
+/** Each scripted provider once; one workspace kind each keeps the lane short (Claude covers both). */
+export async function exerciseScriptedProviderChats(
+  lane: ChatLane,
+  install: Record<WslScriptedProviderInstall['agent'], WslScriptedProviderInstall>,
+  git: LaneWorkspace,
+  folder: LaneWorkspace
+) {
+  const codex = await exerciseScriptedProviderChat(lane, install.codex, git.worktree, git.cwd)
+  const grok = await exerciseScriptedProviderChat(lane, install.grok, folder.worktree, folder.cwd)
+  const opencode = await exerciseScriptedProviderChat(lane, install.opencode, git.worktree, git.cwd)
+  return { codex, grok, opencode }
+}
