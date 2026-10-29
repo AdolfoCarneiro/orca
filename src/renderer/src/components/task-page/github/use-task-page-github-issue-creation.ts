@@ -181,7 +181,6 @@ export function useTaskPageGitHubIssueCreation<Model extends TaskPageGitHubIssue
           const state = useAppStore.getState()
           if (
             full &&
-            state.activeView === 'tasks' &&
             state.taskPageData.openGitHubWorkItem === stub &&
             state.githubTaskDrawerWorkItem === stub
           ) {
