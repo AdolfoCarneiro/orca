@@ -30,6 +30,7 @@ export function AgentLaunchSetupButton({
   initial,
   renderAnchor,
   disabled,
+  open: controlledOpen,
   onOpenChange,
   onUse
 }: {
@@ -37,10 +38,12 @@ export function AgentLaunchSetupButton({
   initial?: AgentPickerDraft
   renderAnchor?: (trigger: ReactElement) => ReactElement
   disabled?: boolean
+  open?: boolean
   onOpenChange?: (open: boolean) => void
   onUse: (draft: AgentPickerDraft) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [localOpen, setOpen] = useState(false)
+  const open = controlledOpen ?? localOpen
   const [placement, setPlacement] = useState<'right' | 'bottom'>('right')
   const content = useRef<HTMLDivElement>(null)
   const anchor = useRef<HTMLDivElement>(null)
@@ -83,7 +86,9 @@ export function AgentLaunchSetupButton({
     if (next) {
       setPlacement('right')
     }
-    setOpen(next)
+    if (controlledOpen === undefined) {
+      setOpen(next)
+    }
     onOpenChange?.(next)
   }
   const trigger = (

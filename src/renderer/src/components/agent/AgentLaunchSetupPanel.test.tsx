@@ -211,6 +211,64 @@ it('keeps pending defaults disabled, selects resolved values without overrides, 
   ).toBe(false)
 })
 
+it('launches explicit model and effort picks when settled defaults have neither selected', () => {
+  const own: AgentPickerEntry = {
+    ...entry,
+    agent: 'codex',
+    defaultSurface: 'chat',
+    arguments: undefined,
+    structured: { permissionMode: 'ask' },
+    catalog: {
+      origin: 'probe',
+      fetchedAt: 1,
+      listingNamesConfiguredModel: false,
+      models: [
+        {
+          id: 'host-model',
+          label: 'Host model',
+          efforts: [
+            { value: 'low', label: 'Low' },
+            { value: 'high', label: 'High' }
+          ]
+        }
+      ]
+    }
+  }
+  act(() =>
+    root.render(
+      <TooltipProvider>
+        <AgentLaunchSetupPanel entry={own} onUse={onUse} />
+      </TooltipProvider>
+    )
+  )
+  expect(host.querySelector('[cmdk-item][data-current="true"]')).toBeNull()
+  expect(host.querySelector('[role="radio"][data-state="on"]')).toBeNull()
+  fireEvent.click(host.querySelector('[cmdk-item][data-value="host-model"]')!)
+  expect(host.querySelector('[cmdk-item][data-current="true"]')?.textContent).toBe('Host model')
+  expect(host.querySelector('[role="radio"][data-state="on"]')).toBeNull()
+  fireEvent.click(
+    [...host.querySelectorAll('[role="radio"]')].find((radio) => radio.textContent === 'High')!
+  )
+  expect(host.querySelector('[role="radio"][data-state="on"]')?.textContent).toBe('High')
+  fireEvent.click(
+    [...host.querySelectorAll('button')].find((button) => button.textContent === 'Launch chat')!
+  )
+  expect(onUse).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      surface: 'chat',
+      choices: { model: 'host-model', options: { effort: 'high' } }
+    })
+  )
+  expect(agentPickerLaunchInputs(onUse.mock.calls[0][0], own).sessionOptions).toMatchObject({
+    model: 'host-model',
+    effort: 'high'
+  })
+  const footer = [...host.querySelectorAll('button')].find(
+    (button) => button.textContent === 'Launch chat'
+  )!.parentElement!
+  expect(footer.textContent).toBe('Launch terminalLaunch chat')
+})
+
 it('returns to concrete default model, effort and permission values by selecting them directly', () => {
   const own: AgentPickerEntry = {
     ...entry,

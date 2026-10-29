@@ -22377,7 +22377,6 @@
     "noModels": "No models match your search.",
     "legacyModels": "Legacy models",
     "toggleArguments": "Toggle Arguments",
-    "agentDefaultModel": "Default model",
     "argumentsTerminalHint": "Only used when it opens in a terminal (CLI)",
     "searchAgentModels": "Search {{agent}} models…",
     "legacyModelCount": "{{total}} models"

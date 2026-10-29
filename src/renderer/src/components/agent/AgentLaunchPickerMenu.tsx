@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent } from 'react'
+import { useId, useRef, useState, type PointerEvent } from 'react'
 import { Input } from '@/components/ui/input'
 import { DropdownMenuItem, DropdownMenuShortcut } from '@/components/ui/dropdown-menu'
 import { AgentIcon } from '@/lib/agent-catalog'
@@ -51,6 +51,7 @@ export function AgentLaunchPickerMenu({
   onSelectAgent?: (agent: AgentPickerEntry['agent']) => void
 }) {
   const [query, setQuery] = useState('')
+  const [openSetup, setOpenSetup] = useState<string | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const shortcut = useOptionalShortcutLabel('tab.newAgent')
   const setups = searchAgentPickerSetups(entries, query)
@@ -91,6 +92,8 @@ export function AgentLaunchPickerMenu({
         <AgentPickerMenuRow
           key={`${setup.entry.agent}:${setup.model.id}:${setup.choices.options?.effort ?? ''}`}
           entry={setup.entry}
+          openSetup={openSetup}
+          onSetupOpenChange={setOpenSetup}
           label={setup.label}
           initial={{
             agent: setup.entry.agent,
@@ -106,6 +109,8 @@ export function AgentLaunchPickerMenu({
         <AgentPickerMenuRow
           key={entry.agent}
           entry={entry}
+          openSetup={openSetup}
+          onSetupOpenChange={setOpenSetup}
           disabled={disabled}
           runLaunch={runLaunch}
           onSelectAgent={onSelectAgent}
@@ -130,6 +135,8 @@ export function AgentLaunchPickerMenu({
 
 function AgentPickerMenuRow({
   entry,
+  openSetup,
+  onSetupOpenChange,
   label = entry.label,
   initial,
   disabled,
@@ -138,6 +145,8 @@ function AgentPickerMenuRow({
   onSelectAgent
 }: {
   entry: AgentPickerEntry
+  openSetup: string | null
+  onSetupOpenChange: (id: string | null) => void
   label?: string
   initial?: AgentPickerDraft
   disabled?: boolean
@@ -145,6 +154,7 @@ function AgentPickerMenuRow({
   shortcut?: string
   onSelectAgent?: (agent: AgentPickerEntry['agent']) => void
 }) {
+  const setupId = useId()
   const item = useRef<HTMLDivElement>(null)
   const configured = useRef<AgentPickerDraft | undefined>(undefined)
   const unavailable = entry.rows.find((row) => row.kind === 'chat-unavailable')
@@ -152,8 +162,10 @@ function AgentPickerMenuRow({
     <AgentLaunchSetupButton
       entry={entry}
       initial={initial}
+      open={openSetup === setupId}
       disabled={disabled}
       onOpenChange={(next) => {
+        onSetupOpenChange(next ? setupId : null)
         if (next) {
           onSelectAgent?.(entry.agent)
         }

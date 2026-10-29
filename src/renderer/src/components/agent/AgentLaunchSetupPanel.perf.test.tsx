@@ -246,8 +246,7 @@ it('bounds catalog projection independently of raw model operands and retains Co
         fireEvent.change(input, { target: { value: text } })
         const calls = projection.mock.calls.length
         expect(calls).toBe(7)
-        // The footer summary adds one selected-model lookup per render.
-        expect(reads).toBeLessThanOrEqual((7 + 9) * models + 8)
+        expect(reads).toBeLessThanOrEqual((7 + 8) * models + 8)
         if (operands === 300) {
           expect({ calls, reads }).toEqual(previous.get(models))
         }

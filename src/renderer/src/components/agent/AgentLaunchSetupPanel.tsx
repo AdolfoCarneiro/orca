@@ -15,10 +15,7 @@ import { AgentDefaultArgsInput } from '../settings/AgentLaunchDefaultsEditor'
 import { NativeChatSessionOptionRows } from '../native-chat/NativeChatSessionOptionRows'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import type { SessionOptionDescriptor } from '../../../../shared/native-chat/input/native-chat-session-options'
-import {
-  AgentPermissionMenu,
-  agentPermissionChoiceLabel
-} from '../settings/AgentPermissionChoiceControls'
+import { AgentPermissionMenu } from '../settings/AgentPermissionChoiceControls'
 import {
   agentPickerPanelArguments,
   agentPickerSpeedValue,
@@ -147,6 +144,7 @@ export function AgentLaunchSetupPanel({
       shownReason={null}
       pendingIds={new Set()}
       divided={false}
+      layout="settings"
       onSet={(option, value) =>
         setDraft(
           option.id === 'fastMode' || option.id === 'serviceTier'
@@ -159,23 +157,6 @@ export function AgentLaunchSetupPanel({
   )
   const use = (surface: AgentPickerSurface) => onUse({ ...draft, surface })
   const legacyCount = models.filter((model) => model.isLegacy && !model.hidden).length
-  const effortRow = optionRows.find((row) => row.id === 'effort')
-  const effortChoice =
-    effortRow?.kind.type === 'select'
-      ? effortRow.kind.choices.find((choice) => choice.value === effortRow.kind.currentValue)
-      : undefined
-  const summary = [
-    entry.label,
-    models.find((model) => model.id === currentModel)?.label ??
-      currentModel ??
-      translate('agentPicker.agentDefaultModel', 'Default model'),
-    effortChoice?.label,
-    argumentsView.selectedPermission
-      ? agentPermissionChoiceLabel(argumentsView.selectedPermission, entry.label)
-      : argumentsView.permission
-  ]
-    .filter(Boolean)
-    .join(' · ')
   return (
     <div
       className="flex w-full flex-col"
@@ -193,7 +174,7 @@ export function AgentLaunchSetupPanel({
     >
       <Command
         surface="inline"
-        density="menu"
+        density="model"
         onKeyDownCapture={(event) => {
           if (
             !disabled &&
@@ -283,11 +264,11 @@ export function AgentLaunchSetupPanel({
           </CommandGroup>
         </CommandList>
       </Command>
-      <div className="border-t border-border pb-1">
+      <div className="grid gap-2.5 border-t border-border px-3 pt-2.5 pb-1">
         {renderOptions(
           optionRows.filter((row) => row.id !== 'fastMode' && row.id !== 'serviceTier')
         )}
-        <div className="px-3">
+        <div>
           <AgentPermissionMenu
             agentId={entry.agent}
             label={entry.label}
@@ -319,7 +300,7 @@ export function AgentLaunchSetupPanel({
           optionRows.filter((row) => row.id === 'fastMode' || row.id === 'serviceTier')
         )}
         {entry.surfaces.includes('terminal') ? (
-          <div className="px-3">
+          <div>
             <Collapsible open={argumentsOpen} onOpenChange={setArgumentsOpen}>
               <CollapsibleTrigger asChild>
                 <button
@@ -373,8 +354,7 @@ export function AgentLaunchSetupPanel({
           </div>
         ) : null}
       </div>
-      <div className="flex items-center gap-2 border-t border-border px-2.5 py-2">
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground/70">{summary}</span>
+      <div className="flex items-center justify-end gap-2 border-t border-border px-2.5 py-2">
         {agentPickerButtonOrder(entry).map((surface) => (
           <Button
             key={surface}

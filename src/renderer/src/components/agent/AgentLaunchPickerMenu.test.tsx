@@ -384,31 +384,49 @@ it('keeps setup open while the pointer expands and collapses Arguments', async (
   expect(launch).not.toHaveBeenCalled()
 })
 
-it('keeps setup open when pointermove focuses another menu row, then closes on pointerdown outside', async () => {
-  show(entry, [
-    {
-      ...entry,
-      agent: 'claude',
-      label: 'Claude',
-      rows: [{ agent: 'claude', kind: 'chat' }]
-    }
-  ])
-  const user = userEvent.setup()
-  await user.click(
-    document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!
-  )
-  const panel = document.querySelector('[role="dialog"]')!
-  expect(panel).not.toBeNull()
-  const otherRow = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
-    (row) => row.textContent === 'Claude'
-  )!
-  fireEvent.pointerMove(otherRow, { pointerType: 'mouse' })
-  await waitFor(() => expect(document.activeElement).toBe(otherRow))
-  expect(document.querySelector('[role="dialog"]')).toBe(panel)
-  fireEvent.pointerDown(document.body, { pointerType: 'mouse', button: 0 })
-  await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
-  expect(launch).not.toHaveBeenCalled()
-})
+it.each(['{Enter}', ' '])(
+  'keeps setup on hover, replaces it on keyboard %s, and dismisses without launching',
+  async (key) => {
+    show(entry, [
+      {
+        ...entry,
+        agent: 'claude',
+        label: 'Claude',
+        rows: [{ agent: 'claude', kind: 'chat' }]
+      }
+    ])
+    const user = userEvent.setup()
+    await user.click(
+      document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!
+    )
+    const panel = document.querySelector('[role="dialog"]')!
+    expect(panel).not.toBeNull()
+    const otherRow = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      (row) => row.textContent === 'Claude'
+    )!
+    fireEvent.pointerMove(otherRow, { pointerType: 'mouse' })
+    await waitFor(() => expect(document.activeElement).toBe(otherRow))
+    expect(document.querySelector('[role="dialog"]')).toBe(panel)
+    await user.keyboard('{ArrowRight}')
+    const otherTrigger = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Configure Claude"]'
+    )!
+    expect(document.activeElement).toBe(otherTrigger)
+    await user.keyboard(key)
+    await waitFor(() => expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1))
+    expect(
+      document.querySelector('[role="dialog"] input[placeholder="Search Claude models…"]')
+    ).not.toBeNull()
+    expect(document.querySelector('[role="dialog"]')).not.toBe(panel)
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await user.click(otherTrigger)
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
+    fireEvent.pointerDown(document.body, { pointerType: 'mouse', button: 0 })
+    await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    expect(launch).not.toHaveBeenCalled()
+  }
+)
 
 it('keeps model, permission and Fast badge pointer interactions inside setup, but dismisses outside', async () => {
   show({
