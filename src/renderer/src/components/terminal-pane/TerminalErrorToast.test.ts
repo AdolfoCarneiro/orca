@@ -219,6 +219,17 @@ describe('humanizeTerminalError', () => {
     )
   })
 
+  // SSH pin: only the wrapper goes; the SSH host's own words, and other channels' wrappers, stay.
+  it("leaves an SSH host's refusal words and other IPC channels' wrappers as they were", () => {
+    expect(
+      humanizeTerminalError(
+        "Error invoking remote method 'runtimeEnvironments:call': Error: Remote Orca runtime is not connected: ssh desk"
+      )
+    ).toBe('Remote Orca runtime is not connected: ssh desk')
+    const otherChannel = "Error invoking remote method 'ssh:connect': Error: Permission denied"
+    expect(humanizeTerminalError(otherChannel)).toBe(otherChannel)
+  })
+
   it('replaces the terminal-host-gone code with copy that explains the loss', () => {
     const humanized = humanizeTerminalError('terminal_host_gone')
     expect(humanized).not.toContain('terminal_host_gone')
