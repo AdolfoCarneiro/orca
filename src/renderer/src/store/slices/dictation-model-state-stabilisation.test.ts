@@ -1,13 +1,14 @@
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { create, type StateCreator } from 'zustand'
+import { create } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { SpeechModelState } from '../../../../shared/speech-types'
 import type { AppState } from '../types'
 import { createDictationSlice } from './dictation'
 
 type DictationTestStore = Pick<AppState, 'modelStates' | 'refreshModelStates' | 'setModelStates'>
-const dictationSlice = createDictationSlice as unknown as StateCreator<DictationTestStore>
+const dictationSlice = createDictationSlice as unknown as SessionStateCreator<DictationTestStore>
 
 let reply: SpeechModelState[]
 

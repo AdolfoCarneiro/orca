@@ -62,9 +62,7 @@ vi.mock('@/lib/ensure-hooks-confirmed', () => ({
   ensureHooksConfirmed: vi.fn().mockResolvedValue('run')
 }))
 
-vi.mock('@/lib/connection-context', () => ({
-  getConnectionId: mocks.getConnectionId
-}))
+vi.mock('@/lib/connection-context', () => ({ getConnectionId: mocks.getConnectionId }))
 
 const hostMocks = vi.hoisted(() => ({
   checkRuntimeHooks: vi.fn(),

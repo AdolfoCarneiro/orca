@@ -220,7 +220,7 @@ export function resetTerminalCreateEnvironment(): void {
 }
 
 /** The high-level snapshot spy observes the snapshots passed to the edit-taking adapter. */
-export function mockWebSessionTabsSnapshotsToEdit(applySnapshot: SessionMock) {
+export function mockWebSessionTabsSnapshotsToEdit(applySnapshot: (...args: unknown[]) => unknown) {
   return (
     _edit: unknown,
     state: unknown,

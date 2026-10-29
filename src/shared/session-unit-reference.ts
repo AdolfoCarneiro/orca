@@ -1,3 +1,4 @@
+import type { SessionMapField } from './session-change-set'
 import { parseWorkspaceKey } from './workspace-scope'
 export type SessionReferenceKind =
   | 'owner'
