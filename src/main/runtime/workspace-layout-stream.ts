@@ -9,25 +9,6 @@ import {
   changedLayoutRecords,
   type Shown
 } from './workspace-layout-frame-diff'
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
-// Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
-// Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
 
 // Reproject changed Store partitions only while subscribed; overlay live titles without reloading.
 // Main-owned layouts emit one records frame per operation, coalescing unscoped writes per task; window-owned layouts emit whole workspaces.
