@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/store'
 import type { AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 
 /**
  * A local agent list refused while its WSL distro was stopped stays failed. The user opening a
- * launch picker is a user act, so it retries that list as a wake (E9); a known list is reused.
+ * launch picker is a user act, so it retries that list once as a wake (E9). Any other failure,
+ * native or WSL, is left to the normal retry so an open picker never loops probes.
  */
 export function useAgentPickerRefusedWake(
   userOpened: boolean,
@@ -14,13 +15,25 @@ export function useAgentPickerRefusedWake(
     userOpened && detectionTarget?.kind === 'local'
       ? (detectionTarget.worktreeId ?? null)
       : undefined
-  const refused = useAppStore(
+  // The target this open already woke; cleared on close so the next open may wake again.
+  const wokenFor = useRef<{ worktreeId: string | null } | null>(null)
+  const failed = useAppStore(
     (state) =>
       worktreeId !== undefined && state.readLocalAgentInventory(worktreeId).state === 'failed'
   )
   useEffect(() => {
-    if (refused && worktreeId !== undefined) {
-      void useAppStore.getState().ensureDetectedAgentsForPicker(worktreeId)
+    if (worktreeId === undefined) {
+      wokenFor.current = null
+      return
     }
-  }, [refused, worktreeId])
+    if (!failed || wokenFor.current?.worktreeId === worktreeId) {
+      return
+    }
+    const state = useAppStore.getState()
+    if (!state.isLocalAgentInventoryRefused(worktreeId)) {
+      return
+    }
+    wokenFor.current = { worktreeId }
+    void state.ensureDetectedAgentsForPicker(worktreeId)
+  }, [failed, worktreeId])
 }

@@ -9,6 +9,7 @@ import { localAgentInventoryContextKey } from '@/lib/local-preflight-context-key
 import * as contextEviction from './local-agent-context-eviction'
 import { getLegacyLoadingPatch, getSupersededDetectPatch } from './local-agent-legacy-loading'
 import type { LocalAgentRefreshOptions } from './local-detected-agent-store-state'
+import { isWslDistroRefusalError } from '../../../../shared/wsl-distro-refusal'
 
 export type LocalAgentInventoryLifecycle = {
   detectPromises: Map<string, Promise<TuiAgent[]>>
@@ -16,6 +17,8 @@ export type LocalAgentInventoryLifecycle = {
   /** Refreshes sent as a user act; a background one may be refused for a stopped WSL distro. */
   wakeRefreshes: WeakSet<Promise<TuiAgent[]>>
   wakeDetects: WeakSet<Promise<TuiAgent[]>>
+  /** Contexts whose last probe the E9 gate refused (distro not running), not a real failure. */
+  refusedContextKeys: Set<string>
   keptThroughFailure: WeakSet<TuiAgent[]>
   failedDetectContextKeys: Set<string>
   detectedContextKey: string | null
@@ -108,6 +111,7 @@ export function refreshLocalAgentInventory(
         lifecycle.refreshPromises.get(contextKey) === pending
       ) {
         lifecycle.failedDetectContextKeys.delete(contextKey)
+        lifecycle.refusedContextKeys.delete(contextKey)
         lifecycle.failedDetectContextKeys.delete(publishedContextKey)
         const exposeToLegacy =
           lifecycle.legacyRefreshContextKey !== null &&
@@ -138,12 +142,13 @@ export function refreshLocalAgentInventory(
       }
       return typed
     })
-    .catch(() => {
+    .catch((error: unknown) => {
       const fallback = get().localDetectedAgentIdsByContext[contextKey] ?? []
       if (
         requestGeneration === lifecycle.localDetectionGeneration &&
         lifecycle.refreshPromises.get(contextKey) === pending
       ) {
+        markLocalAgentRefusal(lifecycle, contextKey, error)
         lifecycle.keptThroughFailure.add(fallback)
         const publishedFallback = get().localDetectedAgentIdsByContext[publishedContextKey] ?? []
         lifecycle.keptThroughFailure.add(publishedFallback)
@@ -199,4 +204,17 @@ export function refreshLocalAgentInventory(
   }
   lifecycle.refreshPromises.set(contextKey, pending)
   return pending
+}
+
+/** Records whether a context's failed probe was an E9 refusal, which a picker opening may retry. */
+export function markLocalAgentRefusal(
+  lifecycle: Pick<LocalAgentInventoryLifecycle, 'refusedContextKeys'>,
+  contextKey: string,
+  error: unknown
+): void {
+  if (isWslDistroRefusalError(error)) {
+    lifecycle.refusedContextKeys.add(contextKey)
+  } else {
+    lifecycle.refusedContextKeys.delete(contextKey)
+  }
 }

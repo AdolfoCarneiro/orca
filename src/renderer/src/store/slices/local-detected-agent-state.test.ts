@@ -153,6 +153,22 @@ describe('local detected agent context lifecycle', () => {
     expect(detectAgents).toHaveBeenCalledTimes(3)
   })
 
+  it('marks only an E9 refusal as refused, so a picker never retries real failures', async () => {
+    const store = createTestStore([makeRepo('repo-1')])
+    detectAgents.mockRejectedValueOnce(
+      new Error(
+        "Error invoking remote method 'preflight:detectAgents': WslDistroStoppedError: WSL distro 'Ubuntu' is not running. Retry, or open a terminal in it, to start it."
+      )
+    )
+    await store.getState().ensureDetectedAgents()
+    expect(store.getState().isLocalAgentInventoryRefused()).toBe(true)
+
+    detectAgents.mockRejectedValueOnce(new Error('wsl.exe timed out'))
+    await store.getState().ensureDetectedAgents()
+    expect(store.getState().readLocalAgentInventory().state).toBe('failed')
+    expect(store.getState().isLocalAgentInventoryRefused()).toBe(false)
+  })
+
   it('re-detects re-enabled agents and prevents pre-change requests from restoring caches', async () => {
     const store = createTestStore([])
     let finishOld: (ids: string[]) => void = () => {}

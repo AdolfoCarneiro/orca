@@ -9,6 +9,7 @@ import { localAgentInventoryContextKey } from '@/lib/local-preflight-context-key
 import * as contextEviction from './local-agent-context-eviction'
 import { getLegacyLoadingPatch } from './local-agent-legacy-loading'
 import {
+  markLocalAgentRefusal,
   refreshLocalAgentInventory,
   type LocalAgentInventoryLifecycle
 } from './local-agent-inventory-refresh'
@@ -28,6 +29,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
     refreshPromises: new Map(),
     wakeRefreshes: new WeakSet(),
     wakeDetects: new WeakSet(),
+    refusedContextKeys: new Set(),
     keptThroughFailure: new WeakSet(),
     failedDetectContextKeys: new Set(),
     detectedContextKey: null,
@@ -52,6 +54,12 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
     },
     ensureAllDetectedAgents: (worktreeId?: string | null): Promise<TuiAgent[]> =>
       actions.ensureDetectedAgents(worktreeId, false, true),
+    isLocalAgentInventoryRefused: (worktreeId?: string | null): boolean =>
+      lifecycle.refusedContextKeys.has(
+        localAgentInventoryContextKey(
+          getLocalAgentPreflightContext(get(), undefined, undefined, worktreeId)
+        )
+      ),
     ensureDetectedAgentsForPicker: (worktreeId?: string | null): Promise<TuiAgent[]> =>
       actions.ensureDetectedAgents(worktreeId, false, false, { wakeWslDistro: true }),
     ensureDetectedAgents: (
@@ -135,6 +143,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
             requestGeneration === lifecycle.localDetectionGeneration &&
             lifecycle.detectPromises.get(contextKey) === pending
           ) {
+            lifecycle.refusedContextKeys.delete(contextKey)
             lifecycle.failedDetectContextKeys.delete(contextKey)
             const exposeToLegacy = lifecycle.legacyDetectContextKey === contextKey
             if (exposeToLegacy) {
@@ -155,12 +164,13 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
           }
           return typed
         })
-        .catch((): TuiAgent[] => {
+        .catch((error: unknown): TuiAgent[] => {
           if (
             requestGeneration === lifecycle.localDetectionGeneration &&
             lifecycle.detectPromises.get(contextKey) === pending
           ) {
             lifecycle.failedDetectContextKeys.add(contextKey)
+            markLocalAgentRefusal(lifecycle, contextKey, error)
             const exposeToLegacy = lifecycle.legacyDetectContextKey === contextKey
             if (exposeToLegacy) {
               lifecycle.legacyDetectContextKey = null

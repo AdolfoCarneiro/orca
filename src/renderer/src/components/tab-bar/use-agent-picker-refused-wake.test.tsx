@@ -1,39 +1,80 @@
 // @vitest-environment happy-dom
 
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
+import { create } from 'zustand'
 
-const mocks = vi.hoisted(() => {
-  const inventory: { state: 'pending' | 'successful' | 'failed' } = { state: 'failed' }
-  const ensureDetectedAgentsForPicker = vi.fn(async () => [])
-  const state = {
-    readLocalAgentInventory: () => ({ ids: [], state: inventory.state }),
-    ensureDetectedAgentsForPicker
+type InventoryState = 'pending' | 'successful' | 'failed'
+type MockState = {
+  inventory: InventoryState
+  refused: boolean
+  readLocalAgentInventory: () => { ids: null; state: InventoryState }
+  isLocalAgentInventoryRefused: () => boolean
+  ensureDetectedAgentsForPicker: (worktreeId?: string | null) => Promise<unknown[]>
+}
+
+const mocks = vi.hoisted(() => ({ ensure: vi.fn(async (_worktreeId?: string | null) => []) }))
+const store = vi.hoisted(() => {
+  const holder: { current: unknown } = { current: null }
+  return holder
+})
+vi.mock('@/store', () => ({
+  get useAppStore() {
+    return store.current
   }
-  return { inventory, ensureDetectedAgentsForPicker, state }
-})
-vi.mock('@/store', () => {
-  const useAppStore = <T,>(selector: (state: typeof mocks.state) => T): T => selector(mocks.state)
-  useAppStore.getState = () => mocks.state
-  return { useAppStore }
-})
+}))
 
 import { useAgentPickerRefusedWake } from './use-agent-picker-refused-wake'
 
+function makeStore(refused: boolean) {
+  const useStore = create<MockState>()((_set, get) => ({
+    inventory: 'failed',
+    refused,
+    readLocalAgentInventory: () => ({ ids: null, state: get().inventory }),
+    isLocalAgentInventoryRefused: () => get().refused,
+    ensureDetectedAgentsForPicker: mocks.ensure
+  }))
+  store.current = useStore
+  return useStore
+}
+
+const LOCAL = { kind: 'local', worktreeId: 'wt-1' } as const
+
 beforeEach(() => {
-  mocks.inventory.state = 'failed'
-  mocks.ensureDetectedAgentsForPicker.mockClear()
+  mocks.ensure.mockClear()
 })
 
-it('retries a refused local list as a wake when the user opens the picker (E9)', () => {
-  renderHook(() => useAgentPickerRefusedWake(true, { kind: 'local', worktreeId: 'wt-1' }))
-  expect(mocks.ensureDetectedAgentsForPicker).toHaveBeenCalledWith('wt-1')
+it('wakes a refused WSL list once per open, even when the woken probe fails again (E9)', () => {
+  const useStore = makeStore(true)
+  const { rerender } = renderHook(({ open }) => useAgentPickerRefusedWake(open, LOCAL), {
+    initialProps: { open: true }
+  })
+  expect(mocks.ensure).toHaveBeenCalledTimes(1)
+  expect(mocks.ensure).toHaveBeenCalledWith('wt-1')
+  // The wake probe runs (pending) and fails again while the picker stays open.
+  act(() => useStore.setState({ inventory: 'pending' }))
+  act(() => useStore.setState({ inventory: 'failed' }))
+  act(() => useStore.setState({ inventory: 'pending' }))
+  act(() => useStore.setState({ inventory: 'failed' }))
+  expect(mocks.ensure).toHaveBeenCalledTimes(1)
+
+  // Closing and reopening is a new user act.
+  rerender({ open: false })
+  rerender({ open: true })
+  expect(mocks.ensure).toHaveBeenCalledTimes(2)
 })
 
-it('wakes nothing while closed, for a known list, or for a remote host', () => {
-  renderHook(() => useAgentPickerRefusedWake(false, { kind: 'local', worktreeId: 'wt-1' }))
+it('never retries a native or non-refusal failure while the picker is open', () => {
+  const useStore = makeStore(false)
+  renderHook(() => useAgentPickerRefusedWake(true, LOCAL))
+  act(() => useStore.setState({ inventory: 'pending' }))
+  act(() => useStore.setState({ inventory: 'failed' }))
+  expect(mocks.ensure).not.toHaveBeenCalled()
+})
+
+it('wakes nothing while closed or for a remote host', () => {
+  makeStore(true)
+  renderHook(() => useAgentPickerRefusedWake(false, LOCAL))
   renderHook(() => useAgentPickerRefusedWake(true, { kind: 'ssh', connectionId: 'ssh-1' }))
-  mocks.inventory.state = 'successful'
-  renderHook(() => useAgentPickerRefusedWake(true, { kind: 'local', worktreeId: 'wt-1' }))
-  expect(mocks.ensureDetectedAgentsForPicker).not.toHaveBeenCalled()
+  expect(mocks.ensure).not.toHaveBeenCalled()
 })
