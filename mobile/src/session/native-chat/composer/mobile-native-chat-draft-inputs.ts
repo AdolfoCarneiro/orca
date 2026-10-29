@@ -3,6 +3,10 @@ import { pickedSkillsInText } from '../../../../../src/shared/structured-agent-s
 import type { AgentJournalSkillRef } from '../../../../../src/shared/agent-session-journal-types'
 import type { PendingNativeChatImage } from './mobile-native-chat-image-attachment'
 import type { PendingNativeChatFile } from './mobile-native-chat-file-attachment'
+import type {
+  MobileDictationAnchor,
+  MobileDictationPreview
+} from '../../../dictation/mobile-dictation-text-insertion'
 
 export type MobileNativeChatDraftInputs = {
   images: readonly PendingNativeChatImage[]
@@ -97,15 +101,23 @@ export function closeMobileNativeChatEditInputs(
   listeners.get(scope)?.forEach((listener) => listener())
 }
 
-const textDestinations = new Map<string, (text: string) => boolean | void>()
+// Read when dictation starts: where its text will land and how to put it there.
+export type MobileNativeChatTextDestination = {
+  scope: string | null
+  anchor: MobileDictationAnchor | null
+  insert: (text: string) => boolean | void
+}
+// The words heard so far, drawn in grey where the destination will put them.
+export type MobileNativeChatDictationPreview = MobileDictationPreview & { scope: string | null }
+const textDestinations = new Map<string, () => MobileNativeChatTextDestination>()
 let focusedScope: string | null = null
 export function registerMobileNativeChatTextDestination(
   scope: string,
-  insert: (text: string) => boolean | void
+  capture: () => MobileNativeChatTextDestination
 ): () => void {
-  textDestinations.set(scope, insert)
+  textDestinations.set(scope, capture)
   return () => {
-    if (textDestinations.get(scope) === insert) {
+    if (textDestinations.get(scope) === capture) {
       textDestinations.delete(scope)
     }
   }
@@ -114,9 +126,9 @@ export function focusMobileNativeChatTextDestination(scope: string): void {
   focusedScope = scope
 }
 export function captureMobileNativeChatTextDestination():
-  | ((text: string) => boolean | void)
+  | MobileNativeChatTextDestination
   | undefined {
-  return focusedScope ? textDestinations.get(focusedScope) : undefined
+  return focusedScope ? textDestinations.get(focusedScope)?.() : undefined
 }
 
 export function resetMobileNativeChatDraftInputsForTests(): void {

@@ -4,16 +4,24 @@ import { act, create } from 'react-test-renderer'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeRpcClient, type FakeRpcClient } from '../mobile-web-shell/bridge-host-test-fakes'
 import type * as NativeChatSendError from './native-chat/use-mobile-native-chat-send-error'
+import type * as NativeChatDraftStore from './native-chat/composer/mobile-native-chat-draft-store'
 
-const seen = vi.hoisted(() => ({
-  toasts: new Array<string>(),
-  errorHaptics: 0,
-  setupSheetOpens: 0,
-  micPermissionRequests: 0,
-  clipboard: new Array<string>(),
-  inputs: new Array<string>(),
-  audioListeners: new Map<string, (event: { data: string }) => void>()
-}))
+type ChatView = { shown: boolean; scope: string | null }
+
+const seen = vi.hoisted(() => {
+  const chat: ChatView = { shown: false, scope: null }
+  return {
+    toasts: new Array<string>(),
+    errorHaptics: 0,
+    setupSheetOpens: 0,
+    micPermissionRequests: 0,
+    clipboard: new Array<string>(),
+    inputs: new Array<string>(),
+    chat,
+    chatWrites: new Array<[string | null, string]>(),
+    audioListeners: new Map<string, (event: { data: string }) => void>()
+  }
+})
 
 vi.mock('react-native', () => ({
   AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
@@ -78,10 +86,19 @@ vi.mock('./use-mobile-native-chat-controller', () => ({
   useMobileNativeChatController: () => ({
     nativeChatSession: { messages: [] },
     toggleTabChatView: () => {},
-    showNativeChat: false,
-    showNativeChatRef: { current: false },
-    setChatComposerText: () => {}
+    showNativeChat: seen.chat.shown,
+    showNativeChatRef: { current: seen.chat.shown },
+    chatComposerScopeKey: seen.chat.scope,
+    setChatComposerText: (update: (current: string) => string) => {
+      seen.chatWrites.push([seen.chat.scope, update('')])
+    }
   })
+}))
+vi.mock('./native-chat/composer/mobile-native-chat-draft-store', async (importOriginal) => ({
+  ...(await importOriginal<typeof NativeChatDraftStore>()),
+  editMobileNativeChatDraft: (scope: string, update: (current: string) => string) => {
+    seen.chatWrites.push([scope, update('')])
+  }
 }))
 vi.mock('./use-mobile-send-completion-generation', () => ({
   useMobileSendCompletionGeneration: () => () => 0
@@ -123,6 +140,7 @@ function mount(
       setDictationEnabled: () => {},
       deviceTokenRef: useRef('dev'),
       dictationRouteContextRef: useRef(null),
+      commandFieldAnchorRef: useRef(null),
       activeHandleRef: useRef('t1'),
       flushPendingLiveInputBeforeExternalSend: async () => true,
       canSend: true,
@@ -200,6 +218,8 @@ beforeEach(() => {
   seen.micPermissionRequests = 0
   seen.clipboard.length = 0
   seen.inputs.length = 0
+  seen.chat = { shown: false, scope: null }
+  seen.chatWrites.length = 0
   seen.audioListeners.clear()
 })
 
@@ -337,4 +357,27 @@ describe('a live terminal insert that fails', () => {
       expect(seen.toasts).toEqual(["Couldn't insert dictation, so it was copied to the clipboard"])
     })
   }
+})
+
+describe('a dictation that ends after switching between chat and terminal', () => {
+  it('lands in the chat it started in, where its words were shown', async () => {
+    seen.chat = { shown: true, scope: 'chat-a' }
+    const rpc = createFakeRpcClient()
+    const mounted = await startRecording(rpc, { liveInput: false })
+    seen.chat = { shown: false, scope: 'chat-b' }
+    act(() => mounted.current().handleDictationToggle())
+    await settle(rpc, 'ship it')
+    expect(seen.chatWrites).toEqual([['chat-a', 'ship it']])
+    expect(seen.inputs).toEqual([])
+  })
+
+  it('lands in the chat that replaced the terminal it started in', async () => {
+    const rpc = createFakeRpcClient()
+    const mounted = await startRecording(rpc, { liveInput: false })
+    seen.chat = { shown: true, scope: 'chat-b' }
+    act(() => mounted.current().handleDictationToggle())
+    await settle(rpc, 'ship it')
+    expect(seen.chatWrites).toEqual([['chat-b', 'ship it']])
+    expect(seen.inputs).toEqual([])
+  })
 })
