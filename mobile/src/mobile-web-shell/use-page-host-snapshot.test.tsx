@@ -67,7 +67,7 @@ import { savePinnedIds } from '../storage/preferences'
 import { writeLastVisitedWorktree } from '../worktree/last-visited-worktree-by-host'
 import { PAGE_STORAGE_MAX_VALUE_CHARS } from './page-storage-keys'
 import { usePageHostSnapshot, type PageHostSnapshotView } from './use-page-host-snapshot'
-import { readMirroredStorage } from '../storage/mirrored-storage-keys'
+import { persistMirrored, readMirroredStorage } from '../storage/mirrored-storage-keys'
 
 const PINS = 'orca:pins:host-1'
 const LAST_VISITED = 'orca:last-visited-worktree'
@@ -205,6 +205,39 @@ it('waits for retry when an evicted route cannot reload its durable preferences'
   await act(async () => reopened.view().retry())
   expect(reopened.view().snapshot?.host.id).toBe('host-1')
   expect(reopened.view().readStorage().storage[CHAT_TABS]).toBe('{"tab":"chat"}')
+})
+
+it('becomes ready when an unrelated key is written during a cold route hydration', async () => {
+  doubles.store.set(CHAT_TABS, '{"tab":"chat"}')
+  doubles.holdReads = true
+  const mounted = await mount()
+  await act(async () => {
+    await persistMirrored('orca:unrelated-preference', 'x')
+    releaseReads()
+  })
+  expect(mounted.view().unreadable).toBe(false)
+  expect(mounted.view().snapshot?.host.id).toBe('host-1')
+  expect(mounted.view().readStorage().storage[CHAT_TABS]).toBe('{"tab":"chat"}')
+})
+
+it('keeps host-wide keys mirrored while the next route hydrates', async () => {
+  doubles.store.set(PINS, '["one"]')
+  const held: { view: PageHostSnapshotView | null } = { view: null }
+  function Probe({ route }: { route: string }): null {
+    held.view = usePageHostSnapshot('host-1', route)
+    return null
+  }
+  let tree: ReturnType<typeof create> | undefined
+  await act(async () => {
+    tree = createTracked(createElement(Probe, { route: SESSION_ROUTE }))
+  })
+  doubles.holdReads = true
+  await act(async () => {
+    tree?.update(createElement(Probe, { route: '/h/host-1/session/wt-2' }))
+  })
+  expect(readMirroredStorage([PINS])).toEqual({ [PINS]: '["one"]' })
+  await act(async () => releaseReads())
+  expect(held.view?.snapshot?.host.id).toBe('host-1')
 })
 
 describe('what the shell puts on every init', () => {

@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // Shell init is synchronous, so mirror stored keys in memory; page-reachable writes must use persistMirrored.
 // Null records a known removal, distinct from an unhydrated key.
 const mirror = new Map<string, string | null>()
-const owners = new Map<string, { count: number }>()
+// writtenAt stamps the last note per owned key so unrelated writes cannot void another key's hydration.
+const owners = new Map<string, { count: number; writtenAt: number }>()
 
 let writeCount = 0
 
@@ -14,7 +15,7 @@ export function retainMirroredStorage(keys: readonly string[]): () => void {
     if (owner) {
       owner.count += 1
     } else {
-      owners.set(key, { count: 1 })
+      owners.set(key, { count: 1, writtenAt: 0 })
     }
   }
   let released = false
@@ -56,14 +57,11 @@ export async function hydrateMirroredStorage(keys: readonly string[]): Promise<b
   } catch {
     return keys.every((key) => mirror.has(key))
   }
-  if (writeCount !== startedAt) {
-    // Writes outrank an overlapping read; discard its stale snapshot and reread next time.
-    return keys.every((key) => mirror.has(key))
-  }
   for (const [key, value] of pairs) {
     // A store must not inject keys outside the requested route scope.
     const owner = startedOwners.get(key)
-    if (owner && owners.get(key) === owner) {
+    // Writes outrank an overlapping read of their own key; that key keeps the written value.
+    if (owner && owners.get(key) === owner && owner.writtenAt <= startedAt) {
       mirror.set(key, value)
     }
   }
@@ -90,7 +88,9 @@ export function subscribeMirroredKey(key: string, listener: MirroredKeyListener)
 
 function note(key: string, value: string | null): void {
   writeCount += 1
-  if (owners.has(key)) {
+  const owner = owners.get(key)
+  if (owner) {
+    owner.writtenAt = writeCount
     mirror.set(key, value)
   }
   for (const listener of keyListeners.get(key) ?? []) {
