@@ -434,6 +434,30 @@
         "readFailed": "キーバインドファイルを読み取れませんでした: {{reason}}"
       }
     },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "プロキシ URL が長すぎます。",
+        "invalid": "有効なプロキシ URL を入力してください。",
+        "unsupportedProtocol": "http、https、socks、socks4、socks5 のいずれかのプロキシ URL を使用してください。",
+        "missingHost": "プロキシ URL にはホストが必要です。"
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "ヨーロッパの 25 言語で最高の精度。句読点、大文字・小文字、単語単位のタイムスタンプに対応。",
+        "parakeetV2": "英語のみ。v3 と同程度の精度で、より高速。句読点と大文字・小文字に対応。",
+        "zipformerBilingual": "中国語 + 英語の混在に対応。低遅延のリアルタイムストリーミング。",
+        "paraformerBilingual": "中国語（標準中国語 + 方言）+ 英語。なまりや地域ごとの中国語に強い。",
+        "zipformerStreamingEn": "英語のみ。2,000 万パラメーターの軽量モデル。速度とサイズのバランスが良好。",
+        "zipformerStreamingZh": "中国語のみ。1,400 万パラメーターの超軽量モデル。リソースの少ないデバイスに最適。",
+        "zipformerStreamingKo": "韓国語のみ。低遅延のリアルタイムストリーミング。",
+        "parakeetJa": "日本語のみ。3.5 万時間以上の自然な音声で学習。句読点に対応。",
+        "whisperTiny": "90 以上の言語に対応。Parakeet より精度は低いものの、対応言語が最も豊富。",
+        "senseVoice": "中国語、英語、日本語、韓国語、広東語に対応。言語を自動検出。",
+        "gpt4oMiniTranscribe": "高精度で低コストのクラウド文字起こし。OpenAI API キーが必要です。",
+        "gpt4oTranscribe": "より高精度なクラウド文字起こし。OpenAI API キーが必要です。"
+      }
+    },
     "diagnostics": {
       "errors": {
         "creatingDisabled": "確認用ファイルの作成は無効になっています",
@@ -19049,6 +19073,27 @@
         "noLiveTerminal": "利用可能な稼働中のターミナルがありません。",
         "commandCanceled": "入力欄が閉じられたため、Chat UI コマンドはキャンセルされました。",
         "commandRejected": "ターミナルがコマンドを受け付けませんでした。"
+      },
+      "sessionOptionErrors": {
+        "startOnly": "このオプションはセッション開始時にのみ設定できます。",
+        "modelRejected": "Claude は現在のモデルを維持しました。",
+        "modelUnverified": "モデルの変更を確認できませんでした。ターミナルを開いて確認してください。",
+        "unknownOption": "不明なセッションオプション: {{id}}",
+        "agentPickerOnly": "このオプションは Agent の選択画面で変更してください。",
+        "toggleBaselineUnknown": "現在の値が不明です。代わりに「切り替える」操作を使用してください。",
+        "afterStartOnly": "このオプションはセッション開始後にのみ使用できます。",
+        "valueRequired": "このオプションには値が必要です。",
+        "toggleValueKnown": "このオプションの値は判明しています。代わりに「オン」か「オフ」を選択してください。"
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "/goal の後に目標を記述してください。",
+        "commandUnavailable": "/{{name}} はチャットセッションでは使用できません。使用可能なコマンドはスラッシュメニューで確認してください。",
+        "commandTakesNoArguments": "/{{name}} は引数なしで使用してください。",
+        "commandUnsupportedByHost": "このチャットホストは /{{name}} に対応していません。",
+        "modelPickerFailed": "モデル選択画面を開けませんでした。",
+        "effortPickerFailed": "推論レベル選択画面を開けませんでした。",
+        "modelApplyFailed": "モデル {{value}} を適用できませんでした。",
+        "effortApplyFailed": "推論レベル {{value}} を適用できませんでした。"
       }
     },
     "tab": {
@@ -20340,7 +20385,32 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → CLI",
     "continueInCli": "CLIで続行",
-    "continueInCliNewTab": "新規タブで CLI を続行する"
+    "continueInCliNewTab": "新規タブで CLI を続行する",
+    "scanIssues": {
+      "issuesOmitted": "その他のスキャンの問題は省略されました。",
+      "sessionMetadataUnreadable": "今回のスキャンではセッションのメタデータを読み取れませんでした。",
+      "openCodeScannerUnavailable": "バックグラウンドスキャナーを起動できなかったため、OpenCode の履歴をスキップしました。アプリの応答性は保たれています。",
+      "openCodeScanIncomplete": "OpenCode の履歴スキャンが完了しませんでした: {{detail}}",
+      "openCodeWslReaderPreparing": "WSL 用 SQLite リーダーを準備しています。セットアップ完了後に Vault を更新してください。",
+      "openCodeWslReaderNotPrepared": "WSL 用 SQLite リーダーの準備ができていません。Vault を更新して再試行してください。",
+      "openCodeDatabaseBusy": "{{label}} が現在 {{name}} に書き込み中のため、履歴をスキップしました。次回の更新時に再度読み取ります。",
+      "openCodeDatabaseUnreadable": "{{name}} 内の {{label}} の履歴を読み取れませんでした: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "WSL 内の {{label}} セッションを Windows から検索することはまだできません。",
+      "openCodeWriteAheadLogUnreadable": "{{name}} 内の {{label}} の履歴を読み取れませんでした。このファイルシステムでは先行書き込みログを読み取り専用で開けません。ログを書き出すには {{label}} を正常に終了してください。",
+      "wslTranscriptFsSlow": "ファイルシステムへのアクセスに時間がかかりすぎているため、WSL のセッション記録ファイルを一時的に利用できません。少し待ってから再試行するか、問題が続く場合は Orca を再起動してください。",
+      "wslTranscriptFsCapacity": "ファイルシステムへのリクエストがすでに多数待機しているため、WSL のセッション記録を一時的に検出できません。少し待ってから再試行するか、問題が続く場合は Orca を再起動してください。",
+      "wslTranscriptFsProcessFailed": "ファイルシステムの補助プロセスで障害が発生したため、WSL のセッション記録ファイルを一時的に利用できません（{{detail}}）。少し待ってから再試行するか、問題が続く場合は Orca を再起動してください。",
+      "wslDistroNotRunning": "WSL ディストリビューション「{{distro}}」が実行されていないため、WSL のセッション記録ファイルを利用できません。起動するには、そのディストリビューションでターミナルを開いてください。",
+      "wslDistroUnverifiable": "「{{distro}}」が実行中かどうか WSL から応答がなかったため、WSL のセッション記録ファイルを利用できません。少し待ってから再試行してください。",
+      "scopePathsTruncated": "最初の {{limit}} 件のプロジェクトパスのみをスキャンしました。",
+      "invalidResultsSkipped_other": "Agent セッション履歴の無効な結果項目 {{count}} 件をスキップしました。",
+      "scanTimedOutOnSshHost": "この SSH ホストでセッションスキャンが {{seconds}} 秒後にタイムアウトしました。更新して再試行してください。",
+      "scanTimedOut": "セッションスキャンが {{seconds}} 秒後にタイムアウトしました。マシンがビジー状態の可能性があります。更新して再試行してください。",
+      "scannerPaused": "繰り返し失敗したため、セッションのスキャンを一時停止しました。更新して再試行してください。",
+      "scannerBusy": "実行中のセッションスキャンが多すぎます。少し待ってから更新してください。",
+      "scannerMissing": "この Orca にはセッションスキャナーが含まれていません。Orca を再インストールすると復元されます。",
+      "scannerStopped": "セッションスキャナーが予期せず停止しました。更新して再試行してください。"
+    }
   },
   "common": {
     "retry": "再試行",
@@ -20954,7 +21024,12 @@
       "dialogTitle": "チャットの自動命名に失敗しました",
       "dialogDescriptionStart": "Orca は",
       "dialogDescriptionEnd": "の名前を最初のメッセージから生成できませんでした。",
-      "settings": "設定"
+      "settings": "設定",
+      "errors": {
+        "noName": "チャット名 Agent から名前が返されませんでした。",
+        "agentNotRun": "Orca はチャット名 Agent を実行できませんでした。",
+        "noAgentAvailable": "このワークスペースで実行できるチャット名 Agent はありません。"
+      }
     }
   },
   "jira": {
@@ -21863,6 +21938,22 @@
         "error": "選択したオートメーションのホストで、プロジェクトのセットアップに失敗しました。",
         "unsupported": "選択したオートメーションのホストは、このプロジェクトをサポートしていません。"
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "追加の引数は 4 KB 以下にしてください。",
+        "controlCharacters": "追加の引数に制御文字や改行は使用できません。",
+        "invalid": "追加の引数が無効です: {{detail}}",
+        "shellSyntax": "{{text}} には、追加の引数では許可されていないシェル構文が使われています。",
+        "terminator": "追加の引数に「--」は使用できません。",
+        "notAnOption": "「{{token}}」はオプションではありません。{{agent}} の追加の引数で使用できるのは次のものだけです: {{allowed}}。",
+        "optionNotAllowed": "{{agent}} の追加の引数に「{{option}}」は使用できません。使用可能: {{allowed}}。",
+        "missingValue": "「{{option}}」には値が必要です。",
+        "valueNotAllowed": "「{{option}} {{value}}」は使用できません。{{agent}} の追加の引数で使用できるのは「{{option}} {{prefix}}<level>」だけです。",
+        "modelRepeated": "追加の引数でモデルが複数回指定されています。",
+        "effortRepeated": "追加の引数で推論レベルが複数回指定されています。"
+      },
+      "hostUpdateRequired": "追加の引数を使用するには、このホストの Orca を更新してください。"
     }
   },
   "codeHost": {
@@ -22032,6 +22123,12 @@
       "tile12": {
         "title": "PDF、画像、CSV、Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex 環境",
+      "packageManager": "パッケージマネージャー"
     }
   },
   "emulator": {

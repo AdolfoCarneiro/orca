@@ -799,6 +799,30 @@
         "reconnection-failed": "Wiederherstellen der Verbindung fehlgeschlagen"
       }
     },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "Die Proxy-URL ist zu lang.",
+        "invalid": "Eine gültige Proxy-URL eingeben.",
+        "unsupportedProtocol": "Eine Proxy-URL mit http, https, socks, socks4 oder socks5 verwenden.",
+        "missingHost": "Die Proxy-URL muss einen Host enthalten."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "Höchste Genauigkeit für 25 europäische Sprachen. Zeichensetzung, Groß- und Kleinschreibung und Zeitstempel auf Wortebene.",
+        "parakeetV2": "Nur Englisch. Schneller als v3 bei ähnlicher Genauigkeit. Zeichensetzung und Groß- und Kleinschreibung.",
+        "zipformerBilingual": "Chinesisch + Englisch mit Sprachwechsel. Echtzeit-Streaming mit geringer Latenz.",
+        "paraformerBilingual": "Chinesisch (Mandarin + Dialekte) + Englisch. Stark bei Akzenten und regionalen Varianten des Chinesischen.",
+        "zipformerStreamingEn": "Nur Englisch. Schlankes Modell mit 20 Mio. Parametern und gutem Verhältnis von Geschwindigkeit und Größe.",
+        "zipformerStreamingZh": "Nur Chinesisch. Sehr schlankes Modell mit 14 Mio. Parametern, ideal für Geräte mit wenig Ressourcen.",
+        "zipformerStreamingKo": "Nur Koreanisch. Echtzeit-Streaming mit geringer Latenz.",
+        "parakeetJa": "Nur Japanisch. Mit über 35.000 Stunden natürlicher Sprache trainiert. Mit Zeichensetzung.",
+        "whisperTiny": "Über 90 Sprachen. Geringere Genauigkeit als Parakeet, aber die größte Sprachabdeckung.",
+        "senseVoice": "Chinesisch, Englisch, Japanisch, Koreanisch und Kantonesisch mit automatischer Erkennung der gesprochenen Sprache.",
+        "gpt4oMiniTranscribe": "Cloud-Transkription mit hoher Genauigkeit und geringen Kosten. Benötigt einen OpenAI-API-Schlüssel.",
+        "gpt4oTranscribe": "Cloud-Transkription mit höherer Genauigkeit. Benötigt einen OpenAI-API-Schlüssel."
+      }
+    },
     "diagnostics": {
       "errors": {
         "creatingDisabled": "das Erstellen von Dateien zur Prüfung ist deaktiviert",
@@ -19377,6 +19401,27 @@
         "noLiveTerminal": "Kein aktives Terminal verfügbar.",
         "commandCanceled": "Der Befehl der Chat-Oberfläche wurde abgebrochen, weil das Eingabefeld geschlossen wurde.",
         "commandRejected": "Das Terminal hat den Befehl nicht angenommen."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "Diese Option kann nur beim Start der Sitzung festgelegt werden.",
+        "modelRejected": "Claude hat das aktuelle Modell beibehalten.",
+        "modelUnverified": "Die Modelländerung konnte nicht bestätigt werden; zur Prüfung das Terminal öffnen.",
+        "unknownOption": "Unbekannte Sitzungsoption: {{id}}",
+        "agentPickerOnly": "Diese Option muss in der Agentenauswahl geändert werden.",
+        "toggleBaselineUnknown": "Der aktuelle Wert ist unbekannt; stattdessen die Aktion „Umschalten“ verwenden.",
+        "afterStartOnly": "Diese Option ist erst nach dem Start der Sitzung verfügbar.",
+        "valueRequired": "Diese Option benötigt einen Wert.",
+        "toggleValueKnown": "Der Wert dieser Option ist bekannt; stattdessen „Ein“ oder „Aus“ auswählen."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "Das Ziel nach /goal beschreiben.",
+        "commandUnavailable": "/{{name}} ist in Chat-Sitzungen nicht verfügbar. Verfügbare Befehle werden im Slash-Menü angezeigt.",
+        "commandTakesNoArguments": "/{{name}} ohne Argumente verwenden.",
+        "commandUnsupportedByHost": "/{{name}} wird von diesem Chat-Host nicht unterstützt.",
+        "modelPickerFailed": "Die Modellauswahl konnte nicht geöffnet werden.",
+        "effortPickerFailed": "Die Auswahl des Denkaufwands konnte nicht geöffnet werden.",
+        "modelApplyFailed": "Modell {{value}} konnte nicht angewendet werden.",
+        "effortApplyFailed": "Denkaufwand {{value}} konnte nicht angewendet werden."
       }
     },
     "tab": {
@@ -20389,6 +20434,32 @@
       "loading": "Unteragenten werden geladen…",
       "loadError": "Nicht alle Unteragenten konnten geladen werden.",
       "empty": "Keine Unteragenten gefunden."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Weitere Probleme beim Scannen wurden ausgelassen.",
+      "sessionMetadataUnreadable": "Sitzungsmetadaten konnten bei diesem Scan nicht gelesen werden.",
+      "openCodeScannerUnavailable": "Der OpenCode-Verlauf wurde übersprungen, weil der Hintergrundscanner nicht starten konnte; die App reagiert weiterhin.",
+      "openCodeScanIncomplete": "Der Scan des OpenCode-Verlaufs wurde nicht abgeschlossen: {{detail}}",
+      "openCodeWslReaderPreparing": "Das SQLite-Leseprogramm für WSL wird vorbereitet. Nach Abschluss der Einrichtung Vault aktualisieren.",
+      "openCodeWslReaderNotPrepared": "Das SQLite-Leseprogramm für WSL ist nicht vorbereitet. Zum Wiederholen Vault aktualisieren.",
+      "openCodeDatabaseBusy": "{{label}} schreibt gerade in {{name}}, daher wurde der Verlauf übersprungen. Er wird bei der nächsten Aktualisierung erneut gelesen.",
+      "openCodeDatabaseUnreadable": "Der Verlauf von {{label}} in {{name}} konnte nicht gelesen werden: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "{{label}}-Sitzungen innerhalb von WSL können noch nicht von Windows aus durchsucht werden.",
+      "openCodeWriteAheadLogUnreadable": "Der Verlauf von {{label}} in {{name}} konnte nicht gelesen werden. Das Write-Ahead-Log lässt sich auf diesem Dateisystem nicht schreibgeschützt öffnen. {{label}} ordnungsgemäß beenden, damit das Log in die Datenbank geschrieben wird.",
+      "wslTranscriptFsSlow": "WSL-Protokolldateien sind vorübergehend nicht verfügbar, weil der Dateisystemzugriff zu lange dauert. In Kürze erneut versuchen oder Orca neu starten, falls das Problem anhält.",
+      "wslTranscriptFsCapacity": "Die Suche nach WSL-Protokolldateien ist vorübergehend nicht verfügbar, weil bereits zu viele Dateisystemanfragen warten. In Kürze erneut versuchen oder Orca neu starten, falls das Problem anhält.",
+      "wslTranscriptFsProcessFailed": "WSL-Protokolldateien sind vorübergehend nicht verfügbar, weil der Dateisystem-Hilfsprozess fehlgeschlagen ist ({{detail}}). In Kürze erneut versuchen oder Orca neu starten, falls das Problem anhält.",
+      "wslDistroNotRunning": "WSL-Protokolldateien sind nicht verfügbar, weil die WSL-Distribution „{{distro}}“ nicht läuft. Zum Starten ein Terminal darin öffnen.",
+      "wslDistroUnverifiable": "WSL-Protokolldateien sind nicht verfügbar, weil WSL nicht geantwortet hat, ob „{{distro}}“ läuft. In Kürze erneut versuchen.",
+      "scopePathsTruncated": "Nur die ersten {{limit}} Projektpfade wurden gescannt.",
+      "invalidResultsSkipped_one": "{{count}} ungültiger Ergebniseintrag aus dem Verlauf der Agentensitzungen wurde übersprungen.",
+      "invalidResultsSkipped_other": "{{count}} ungültige Ergebniseinträge aus dem Verlauf der Agentensitzungen wurden übersprungen.",
+      "scanTimedOutOnSshHost": "Zeitüberschreitung beim Sitzungs-Scan nach {{seconds}} s auf diesem SSH-Host. Zum Wiederholen aktualisieren.",
+      "scanTimedOut": "Zeitüberschreitung beim Sitzungs-Scan nach {{seconds}} s — der Rechner ist möglicherweise ausgelastet. Zum Wiederholen aktualisieren.",
+      "scannerPaused": "Das Scannen von Sitzungen wurde nach wiederholten Fehlern pausiert. Zum Wiederholen aktualisieren.",
+      "scannerBusy": "Zu viele Sitzungs-Scans gleichzeitig. Kurz warten und dann aktualisieren.",
+      "scannerMissing": "Der Sitzungs-Scanner fehlt in dieser Orca-Installation. Eine Neuinstallation von Orca stellt ihn wieder her.",
+      "scannerStopped": "Der Sitzungs-Scanner wurde unerwartet beendet. Zum Wiederholen aktualisieren."
     }
   },
   "common": {
@@ -20948,7 +21019,12 @@
       "settings": "Einstellungen",
       "dialogTitle": "Automatische Chat-Benennung fehlgeschlagen",
       "dialogDescriptionStart": "Orca konnte für",
-      "dialogDescriptionEnd": "keinen Namen aus der ersten Nachricht generieren."
+      "dialogDescriptionEnd": "keinen Namen aus der ersten Nachricht generieren.",
+      "errors": {
+        "noName": "Der Agent zur Chat-Benennung hat keinen Namen zurückgegeben.",
+        "agentNotRun": "Orca konnte den Agenten zur Chat-Benennung nicht ausführen.",
+        "noAgentAvailable": "In diesem Arbeitsbereich kann kein Agent zur Chat-Benennung ausgeführt werden."
+      }
     }
   },
   "updates": {
@@ -21860,6 +21936,22 @@
         "error": "Die Projekteinrichtung auf dem ausgewählten Automatisierungs-Host ist fehlgeschlagen.",
         "unsupported": "Der ausgewählte Automatisierungs-Host unterstützt dieses Projekt nicht."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "Zusätzliche Argumente dürfen höchstens 4 KB groß sein.",
+        "controlCharacters": "Zusätzliche Argumente dürfen keine Steuerzeichen oder Zeilenumbrüche enthalten.",
+        "invalid": "Zusätzliche Argumente sind ungültig: {{detail}}",
+        "shellSyntax": "{{text}} verwendet Shell-Syntax, die in zusätzlichen Argumenten nicht erlaubt ist.",
+        "terminator": "„--“ ist in zusätzlichen Argumenten nicht erlaubt.",
+        "notAnOption": "„{{token}}“ ist keine Option. Zusätzliche Argumente für {{agent}} erlauben nur: {{allowed}}.",
+        "optionNotAllowed": "„{{option}}“ ist in zusätzlichen Argumenten für {{agent}} nicht erlaubt. Erlaubt: {{allowed}}.",
+        "missingValue": "„{{option}}“ benötigt einen Wert.",
+        "valueNotAllowed": "„{{option}} {{value}}“ ist nicht erlaubt. Zusätzliche Argumente für {{agent}} erlauben nur „{{option}} {{prefix}}<level>“.",
+        "modelRepeated": "Zusätzliche Argumente legen das Modell mehrfach fest.",
+        "effortRepeated": "Zusätzliche Argumente legen den Denkaufwand mehrfach fest."
+      },
+      "hostUpdateRequired": "Orca auf diesem Host aktualisieren, um zusätzliche Argumente zu verwenden."
     }
   },
   "codeHost": {
@@ -22029,6 +22121,12 @@
       "tile12": {
         "title": "PDFs, Bilder, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex-Umgebung",
+      "packageManager": "Paketverwaltung"
     }
   },
   "emulator": {

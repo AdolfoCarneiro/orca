@@ -191,7 +191,34 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → CLI",
     "continueInCli": "Continuar na CLI",
-    "continueInCliNewTab": "Continuar na CLI em nova aba"
+    "continueInCliNewTab": "Continuar na CLI em nova aba",
+    "scanIssues": {
+      "issuesOmitted": "Outros problemas da verificação foram omitidos.",
+      "sessionMetadataUnreadable": "Não foi possível ler os metadados das sessões nesta verificação.",
+      "openCodeScannerUnavailable": "O histórico do OpenCode foi ignorado porque seu verificador em segundo plano não pôde ser iniciado; o aplicativo continua respondendo.",
+      "openCodeScanIncomplete": "A verificação do histórico do OpenCode não foi concluída: {{detail}}",
+      "openCodeWslReaderPreparing": "Preparando o leitor SQLite do WSL. Atualize o Vault após a conclusão da configuração.",
+      "openCodeWslReaderNotPrepared": "O leitor SQLite do WSL não está preparado. Atualize o Vault para tentar novamente.",
+      "openCodeDatabaseBusy": "{{label}} está gravando em {{name}}, por isso seu histórico foi ignorado. Ele será lido novamente na próxima atualização.",
+      "openCodeDatabaseUnreadable": "Não foi possível ler o histórico de {{label}} em {{name}}: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "Ainda não é possível pesquisar sessões de {{label}} dentro do WSL a partir do Windows.",
+      "openCodeWriteAheadLogUnreadable": "Não foi possível ler o histórico de {{label}} em {{name}}. Seu log de gravação antecipada não pode ser aberto em modo somente leitura neste sistema de arquivos. Encerre {{label}} normalmente para descarregar o log.",
+      "wslTranscriptFsSlow": "Os arquivos de transcrição do WSL estão temporariamente indisponíveis porque o acesso ao sistema de arquivos está demorando demais. Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslTranscriptFsCapacity": "A busca por transcrições do WSL está temporariamente indisponível porque já há solicitações demais ao sistema de arquivos em espera. Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslTranscriptFsProcessFailed": "Os arquivos de transcrição do WSL estão temporariamente indisponíveis porque o processo auxiliar do sistema de arquivos falhou ({{detail}}). Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslDistroNotRunning": "Os arquivos de transcrição do WSL estão indisponíveis porque a distribuição WSL '{{distro}}' não está em execução. Abra um terminal nela para iniciá-la.",
+      "wslDistroUnverifiable": "Os arquivos de transcrição do WSL estão indisponíveis porque o WSL não respondeu se '{{distro}}' está em execução. Tente novamente em instantes.",
+      "scopePathsTruncated": "Apenas os primeiros {{limit}} caminhos de projetos foram verificados.",
+      "invalidResultsSkipped_one": "{{count}} entrada de resultado inválida do Histórico de Sessões de Agente foi ignorada.",
+      "invalidResultsSkipped_other": "{{count}} entradas de resultado inválidas do Histórico de Sessões de Agente foram ignoradas.",
+      "invalidResultsSkipped_many": "{{count}} entradas de resultado inválidas do Histórico de Sessões de Agente foram ignoradas.",
+      "scanTimedOutOnSshHost": "A verificação de sessões excedeu o tempo limite de {{seconds}} s neste host SSH. Atualize para tentar novamente.",
+      "scanTimedOut": "A verificação de sessões excedeu o tempo limite de {{seconds}} s — a máquina pode estar ocupada. Atualize para tentar novamente.",
+      "scannerPaused": "A verificação de sessões foi pausada após falhas repetidas. Atualize para tentar novamente.",
+      "scannerBusy": "Há verificações de sessões demais em andamento. Aguarde um momento e atualize.",
+      "scannerMissing": "O verificador de sessões está ausente nesta instalação do Orca. Reinstalar o Orca o restaura.",
+      "scannerStopped": "O verificador de sessões parou inesperadamente. Atualize para tentar novamente."
+    }
   },
   "checksPanel": {
     "unlinked": {
@@ -1342,6 +1369,30 @@
         "unknownPlatform": "A plataforma desconhecida \"{{platform}}\" foi ignorada.",
         "conflictingOverrides": "Atalhos personalizados conflitantes foram ignorados: {{actions}}.",
         "readFailed": "Não foi possível ler o arquivo de atalhos: {{reason}}"
+      }
+    },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "A URL de proxy é longa demais.",
+        "invalid": "Insira uma URL de proxy válida.",
+        "unsupportedProtocol": "Use uma URL de proxy http, https, socks, socks4 ou socks5.",
+        "missingHost": "A URL de proxy deve incluir um host."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "Máxima precisão para 25 idiomas europeus. Pontuação, maiúsculas e minúsculas e marcas de tempo por palavra.",
+        "parakeetV2": "Somente inglês. Mais rápido que v3 com precisão semelhante. Pontuação e maiúsculas e minúsculas.",
+        "zipformerBilingual": "Chinês + inglês com alternância de idiomas. Streaming em tempo real com baixa latência.",
+        "paraformerBilingual": "Chinês (mandarim + dialetos) + inglês. Bom desempenho com sotaques e variantes regionais do chinês.",
+        "zipformerStreamingEn": "Somente inglês. Modelo leve de 20 milhões de parâmetros, com bom equilíbrio entre velocidade e tamanho.",
+        "zipformerStreamingZh": "Somente chinês. Modelo ultraleve de 14 milhões de parâmetros, ideal para dispositivos com poucos recursos.",
+        "zipformerStreamingKo": "Somente coreano. Streaming em tempo real com baixa latência.",
+        "parakeetJa": "Somente japonês. Treinado com mais de 35 mil horas de fala natural. Inclui pontuação.",
+        "whisperTiny": "Mais de 90 idiomas. Menor precisão que Parakeet, mas com a maior cobertura de idiomas.",
+        "senseVoice": "Chinês, inglês, japonês, coreano e cantonês com detecção automática de idioma.",
+        "gpt4oMiniTranscribe": "Transcrição na nuvem com alta precisão e baixo custo. Exige uma chave de API da OpenAI.",
+        "gpt4oTranscribe": "Transcrição na nuvem com maior precisão. Exige uma chave de API da OpenAI."
       }
     },
     "diagnostics": {
@@ -20228,6 +20279,27 @@
         "noLiveTerminal": "Nenhum terminal ativo está disponível.",
         "commandCanceled": "O comando da Interface de Chat foi cancelado porque o campo de texto foi fechado.",
         "commandRejected": "O terminal não aceitou o comando."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "Esta opção só pode ser definida ao iniciar a sessão.",
+        "modelRejected": "Claude manteve o modelo atual.",
+        "modelUnverified": "Não foi possível verificar a mudança de modelo; abra o terminal para conferir.",
+        "unknownOption": "Opção de sessão desconhecida: {{id}}",
+        "agentPickerOnly": "Esta opção deve ser alterada no seletor de agente.",
+        "toggleBaselineUnknown": "O valor atual é desconhecido; use a ação Alternar.",
+        "afterStartOnly": "Esta opção só está disponível após o início da sessão.",
+        "valueRequired": "Esta opção exige um valor.",
+        "toggleValueKnown": "Esta opção tem um valor conhecido; escolha Ativado ou Desativado."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "Descreva o objetivo após /goal.",
+        "commandUnavailable": "/{{name}} não está disponível em sessões de chat. Use o menu de comandos / para ver os comandos disponíveis.",
+        "commandTakesNoArguments": "Use /{{name}} sem argumentos.",
+        "commandUnsupportedByHost": "Este host de chat não oferece suporte a /{{name}}.",
+        "modelPickerFailed": "Não foi possível abrir o seletor de modelo.",
+        "effortPickerFailed": "Não foi possível abrir o seletor de esforço.",
+        "modelApplyFailed": "Não foi possível aplicar o modelo {{value}}.",
+        "effortApplyFailed": "Não foi possível aplicar o esforço {{value}}."
       }
     },
     "tab": {
@@ -21366,7 +21438,12 @@
       "dialogTitle": "Falha ao nomear o chat automaticamente",
       "dialogDescriptionStart": "O Orca não conseguiu gerar um nome para",
       "dialogDescriptionEnd": "a partir da primeira mensagem.",
-      "settings": "Configurações"
+      "settings": "Configurações",
+      "errors": {
+        "noName": "O agente que nomeia os chats não retornou nenhum nome.",
+        "agentNotRun": "O Orca não conseguiu executar o agente que nomeia os chats.",
+        "noAgentAvailable": "Nenhum agente que nomeia os chats pode ser executado neste espaço de trabalho."
+      }
     }
   },
   "updates": {
@@ -22292,6 +22369,22 @@
         "error": "A configuração do projeto falhou no host selecionado para a automação.",
         "unsupported": "O host selecionado para a automação não oferece suporte a este projeto."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "Os argumentos extras devem ter no máximo 4 KB.",
+        "controlCharacters": "Os argumentos extras não podem conter caracteres de controle nem quebras de linha.",
+        "invalid": "Os argumentos extras são inválidos: {{detail}}",
+        "shellSyntax": "{{text}} usa sintaxe de shell que não é permitida nos argumentos extras.",
+        "terminator": "\"--\" não é permitido nos argumentos extras.",
+        "notAnOption": "\"{{token}}\" não é uma opção. Os argumentos extras de {{agent}} aceitam apenas: {{allowed}}.",
+        "optionNotAllowed": "\"{{option}}\" não é permitido nos argumentos extras de {{agent}}. Opções permitidas: {{allowed}}.",
+        "missingValue": "\"{{option}}\" precisa de um valor.",
+        "valueNotAllowed": "\"{{option}} {{value}}\" não é permitido. Os argumentos extras de {{agent}} aceitam apenas \"{{option}} {{prefix}}<level>\".",
+        "modelRepeated": "Os argumentos extras definem o modelo mais de uma vez.",
+        "effortRepeated": "Os argumentos extras definem o esforço mais de uma vez."
+      },
+      "hostUpdateRequired": "Atualize o Orca neste host para usar argumentos extras."
     }
   },
   "codeHost": {
@@ -22461,6 +22554,12 @@
       "tile12": {
         "title": "PDFs, imagens, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Ambiente do Codex",
+      "packageManager": "gerenciador de pacotes"
     }
   },
   "emulator": {

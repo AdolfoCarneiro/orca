@@ -434,6 +434,30 @@
         "readFailed": "无法读取键绑定文件：{{reason}}"
       }
     },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "代理 URL 过长。",
+        "invalid": "请输入有效的代理 URL。",
+        "unsupportedProtocol": "请使用 http、https、socks、socks4 或 socks5 代理 URL。",
+        "missingHost": "代理 URL 必须包含主机。"
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "为 25 种欧洲语言提供最高准确度。支持标点、大小写和词级时间戳。",
+        "parakeetV2": "仅限英语。准确度与 v3 相近，速度更快。支持标点和大小写。",
+        "zipformerBilingual": "中文 + 英文，支持语言混用。低延迟实时流式处理。",
+        "paraformerBilingual": "中文（普通话 + 方言）+ 英文。擅长识别各地口音和方言。",
+        "zipformerStreamingEn": "仅限英语。2000 万参数的轻量模型，兼顾速度和体积。",
+        "zipformerStreamingZh": "仅限中文。1400 万参数的超轻量模型，适合资源有限的设备。",
+        "zipformerStreamingKo": "仅限韩语。低延迟实时流式处理。",
+        "parakeetJa": "仅限日语。使用超过 3.5 万小时的自然语音训练。支持标点。",
+        "whisperTiny": "支持 90 多种语言。准确度低于 Parakeet，但语言覆盖最广。",
+        "senseVoice": "支持中文、英语、日语、韩语和粤语，并自动检测语言。",
+        "gpt4oMiniTranscribe": "准确度高、成本低的云端转录。需要 OpenAI API 密钥。",
+        "gpt4oTranscribe": "准确度更高的云端转录。需要 OpenAI API 密钥。"
+      }
+    },
     "diagnostics": {
       "errors": {
         "creatingDisabled": "已禁用创建查看文件",
@@ -19014,6 +19038,27 @@
         "noLiveTerminal": "没有可用的活动终端。",
         "commandCanceled": "输入框已关闭，Chat UI 命令已取消。",
         "commandRejected": "终端未接受该命令。"
+      },
+      "sessionOptionErrors": {
+        "startOnly": "此选项只能在会话启动时设置。",
+        "modelRejected": "Claude 保留了当前模型。",
+        "modelUnverified": "无法验证模型变更，请打开终端检查。",
+        "unknownOption": "未知的会话选项：{{id}}",
+        "agentPickerOnly": "此选项必须在智能体选择器中更改。",
+        "toggleBaselineUnknown": "当前值未知，请改用“切换”操作。",
+        "afterStartOnly": "此选项仅在会话启动后可用。",
+        "valueRequired": "此选项需要一个值。",
+        "toggleValueKnown": "此选项的值已知，请改选“开启”或“关闭”。"
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "请在 /goal 后描述目标。",
+        "commandUnavailable": "/{{name}} 在聊天会话中不可用。请使用斜杠菜单查看可用命令。",
+        "commandTakesNoArguments": "请使用 /{{name}}，不要附带参数。",
+        "commandUnsupportedByHost": "此聊天主机不支持 /{{name}}。",
+        "modelPickerFailed": "无法打开模型选择器。",
+        "effortPickerFailed": "无法打开推理强度选择器。",
+        "modelApplyFailed": "无法应用模型 {{value}}。",
+        "effortApplyFailed": "无法应用推理强度 {{value}}。"
       }
     },
     "tab": {
@@ -20340,7 +20385,32 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → 命令行界面",
     "continueInCli": "在 CLI 中继续",
-    "continueInCliNewTab": "在新选项卡中继续使用 CLI"
+    "continueInCliNewTab": "在新选项卡中继续使用 CLI",
+    "scanIssues": {
+      "issuesOmitted": "已省略其他扫描问题。",
+      "sessionMetadataUnreadable": "本次扫描未能读取会话元数据。",
+      "openCodeScannerUnavailable": "由于无法启动后台扫描器，已跳过 OpenCode 历史记录；应用仍可正常响应。",
+      "openCodeScanIncomplete": "OpenCode 历史记录扫描未完成：{{detail}}",
+      "openCodeWslReaderPreparing": "正在准备 WSL SQLite 读取器。设置完成后请刷新 Vault。",
+      "openCodeWslReaderNotPrepared": "WSL SQLite 读取器尚未准备就绪。请刷新 Vault 以重试。",
+      "openCodeDatabaseBusy": "{{label}} 正在写入 {{name}}，因此已跳过其历史记录。下次刷新时会重新读取。",
+      "openCodeDatabaseUnreadable": "无法读取 {{label}} 在 {{name}} 中的历史记录：{{detail}}",
+      "openCodeWslDatabaseUnsupported": "目前尚无法从 Windows 搜索 WSL 内的 {{label}} 会话。",
+      "openCodeWriteAheadLogUnreadable": "无法读取 {{label}} 在 {{name}} 中的历史记录。此文件系统不支持以只读方式打开其预写日志。请正常退出 {{label}} 以将日志写入数据库。",
+      "wslTranscriptFsSlow": "由于文件系统访问耗时过长，WSL 会话记录文件暂时不可用。请稍后重试；如果问题持续，请重启 Orca。",
+      "wslTranscriptFsCapacity": "由于已有太多文件系统请求在排队，暂时无法查找 WSL 会话记录。请稍后重试；如果问题持续，请重启 Orca。",
+      "wslTranscriptFsProcessFailed": "由于文件系统辅助进程失败（{{detail}}），WSL 会话记录文件暂时不可用。请稍后重试；如果问题持续，请重启 Orca。",
+      "wslDistroNotRunning": "由于 WSL 发行版“{{distro}}”未运行，WSL 会话记录文件不可用。请在该发行版中打开终端以启动它。",
+      "wslDistroUnverifiable": "WSL 未回应“{{distro}}”是否正在运行，因此无法使用 WSL 会话记录文件。请稍后重试。",
+      "scopePathsTruncated": "仅扫描了前 {{limit}} 个项目路径。",
+      "invalidResultsSkipped_other": "已跳过智能体会话历史中 {{count}} 条无效的结果条目。",
+      "scanTimedOutOnSshHost": "此 SSH 主机上的会话扫描在 {{seconds}} 秒后超时。请刷新以重试。",
+      "scanTimedOut": "会话扫描在 {{seconds}} 秒后超时，计算机可能正忙。请刷新以重试。",
+      "scannerPaused": "会话扫描因多次失败而暂停。请刷新以重试。",
+      "scannerBusy": "同时进行的会话扫描过多。请稍等片刻，然后刷新。",
+      "scannerMissing": "此 Orca 安装中缺少会话扫描器。重新安装 Orca 可将其恢复。",
+      "scannerStopped": "会话扫描器意外停止。请刷新以重试。"
+    }
   },
   "common": {
     "retry": "重试",
@@ -20954,7 +21024,12 @@
       "settings": "设置",
       "dialogTitle": "聊天自动命名失败",
       "dialogDescriptionStart": "Orca 无法根据第一条消息为",
-      "dialogDescriptionEnd": "生成名称。"
+      "dialogDescriptionEnd": "生成名称。",
+      "errors": {
+        "noName": "聊天命名智能体未返回名称。",
+        "agentNotRun": "Orca 无法运行聊天命名智能体。",
+        "noAgentAvailable": "此工作区中没有可运行的聊天命名智能体。"
+      }
     }
   },
   "jira": {
@@ -21863,6 +21938,22 @@
         "error": "项目在所选自动化主机上设置失败。",
         "unsupported": "所选自动化主机不支持此项目。"
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "额外参数不得超过 4 KB。",
+        "controlCharacters": "额外参数不能包含控制字符或换行符。",
+        "invalid": "额外参数无效：{{detail}}",
+        "shellSyntax": "{{text}} 使用了额外参数不允许的 Shell 语法。",
+        "terminator": "额外参数中不允许使用“--”。",
+        "notAnOption": "“{{token}}”不是选项。{{agent}} 的额外参数仅接受：{{allowed}}。",
+        "optionNotAllowed": "{{agent}} 的额外参数中不允许使用“{{option}}”。允许的选项：{{allowed}}。",
+        "missingValue": "“{{option}}”需要一个值。",
+        "valueNotAllowed": "不允许使用“{{option}} {{value}}”。{{agent}} 的额外参数仅接受“{{option}} {{prefix}}<level>”。",
+        "modelRepeated": "额外参数重复设置了模型。",
+        "effortRepeated": "额外参数重复设置了推理强度。"
+      },
+      "hostUpdateRequired": "请更新此主机上的 Orca 以使用额外参数。"
     }
   },
   "codeHost": {
@@ -22032,6 +22123,12 @@
       "tile12": {
         "title": "PDF、图片、CSV、Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex 环境",
+      "packageManager": "包管理器"
     }
   },
   "emulator": {

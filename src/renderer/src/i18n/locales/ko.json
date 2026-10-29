@@ -434,6 +434,30 @@
         "readFailed": "키바인딩 파일을 읽지 못했습니다: {{reason}}"
       }
     },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "프록시 URL이 너무 깁니다.",
+        "invalid": "유효한 프록시 URL을 입력하세요.",
+        "unsupportedProtocol": "http, https, socks, socks4 또는 socks5 프록시 URL을 사용하세요.",
+        "missingHost": "프록시 URL에는 호스트가 포함되어야 합니다."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "유럽 25개 언어에서 가장 높은 정확도. 문장 부호, 대소문자, 단어별 타임스탬프 지원.",
+        "parakeetV2": "영어 전용. v3와 정확도는 비슷하며 속도는 더 빠릅니다. 문장 부호와 대소문자 지원.",
+        "zipformerBilingual": "중국어 + 영어 혼용 지원. 지연 시간이 짧은 실시간 스트리밍.",
+        "paraformerBilingual": "중국어(표준 중국어 + 방언) + 영어. 다양한 중국어 억양과 지역 방언에 강합니다.",
+        "zipformerStreamingEn": "영어 전용. 파라미터 2천만 개의 경량 모델로, 속도와 크기의 균형이 좋습니다.",
+        "zipformerStreamingZh": "중국어 전용. 파라미터 1,400만 개의 초경량 모델로, 자원이 제한된 기기에 적합합니다.",
+        "zipformerStreamingKo": "한국어 전용. 지연 시간이 짧은 실시간 스트리밍.",
+        "parakeetJa": "일본어 전용. 3만 5천 시간 이상의 자연 발화로 학습했습니다. 문장 부호 지원.",
+        "whisperTiny": "90개 이상 언어 지원. Parakeet보다 정확도는 낮지만 지원 언어가 가장 다양합니다.",
+        "senseVoice": "중국어, 영어, 일본어, 한국어, 광둥어를 지원하며 언어를 자동으로 감지합니다.",
+        "gpt4oMiniTranscribe": "정확도가 높고 비용이 저렴한 클라우드 전사. OpenAI API 키가 필요합니다.",
+        "gpt4oTranscribe": "정확도가 더 높은 클라우드 전사. OpenAI API 키가 필요합니다."
+      }
+    },
     "diagnostics": {
       "errors": {
         "creatingDisabled": "검토 파일 생성이 비활성화되어 있습니다",
@@ -19049,6 +19073,27 @@
         "noLiveTerminal": "사용 가능한 활성 터미널이 없습니다.",
         "commandCanceled": "입력창이 닫혀 Chat UI 명령이 취소되었습니다.",
         "commandRejected": "터미널이 명령을 수락하지 않았습니다."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "이 옵션은 세션을 시작할 때만 설정할 수 있습니다.",
+        "modelRejected": "Claude가 현재 모델을 유지했습니다.",
+        "modelUnverified": "모델 변경을 확인하지 못했습니다. 터미널을 열어 확인하세요.",
+        "unknownOption": "알 수 없는 세션 옵션: {{id}}",
+        "agentPickerOnly": "이 옵션은 에이전트 선택기에서 변경해야 합니다.",
+        "toggleBaselineUnknown": "현재 값을 알 수 없습니다. 대신 전환 동작을 사용하세요.",
+        "afterStartOnly": "이 옵션은 세션이 시작된 후에만 사용할 수 있습니다.",
+        "valueRequired": "이 옵션에는 값이 필요합니다.",
+        "toggleValueKnown": "이 옵션의 값이 확인되어 있습니다. 대신 켜짐 또는 꺼짐을 선택하세요."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "/goal 뒤에 목표를 설명하세요.",
+        "commandUnavailable": "/{{name}} 명령은 채팅 세션에서 사용할 수 없습니다. 슬래시 메뉴에서 사용 가능한 명령을 확인하세요.",
+        "commandTakesNoArguments": "/{{name}} 명령을 인수 없이 사용하세요.",
+        "commandUnsupportedByHost": "이 채팅 호스트는 /{{name}} 명령을 지원하지 않습니다.",
+        "modelPickerFailed": "모델 선택기를 열지 못했습니다.",
+        "effortPickerFailed": "추론 수준 선택기를 열지 못했습니다.",
+        "modelApplyFailed": "{{value}} 모델을 적용하지 못했습니다.",
+        "effortApplyFailed": "{{value}} 추론 수준을 적용하지 못했습니다."
       }
     },
     "tab": {
@@ -20340,7 +20385,32 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → CLI",
     "continueInCli": "CLI에서 계속",
-    "continueInCliNewTab": "새 탭의 CLI에서 계속"
+    "continueInCliNewTab": "새 탭의 CLI에서 계속",
+    "scanIssues": {
+      "issuesOmitted": "추가 스캔 문제는 생략되었습니다.",
+      "sessionMetadataUnreadable": "이번 스캔에서 세션 메타데이터를 읽지 못했습니다.",
+      "openCodeScannerUnavailable": "백그라운드 스캐너를 시작할 수 없어 OpenCode 기록을 건너뛰었습니다. 앱은 계속 응답합니다.",
+      "openCodeScanIncomplete": "OpenCode 기록 스캔이 완료되지 않았습니다: {{detail}}",
+      "openCodeWslReaderPreparing": "WSL SQLite 리더를 준비하는 중입니다. 설정이 끝나면 Vault를 새로고침하세요.",
+      "openCodeWslReaderNotPrepared": "WSL SQLite 리더가 준비되지 않았습니다. Vault를 새로고침하여 다시 시도하세요.",
+      "openCodeDatabaseBusy": "{{label}}에서 현재 {{name}}에 쓰는 중이므로 기록을 건너뛰었습니다. 다음 새로고침 때 다시 읽습니다.",
+      "openCodeDatabaseUnreadable": "{{name}}에 있는 {{label}} 기록을 읽지 못했습니다: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "아직 Windows에서 WSL 내부의 {{label}} 세션을 검색할 수 없습니다.",
+      "openCodeWriteAheadLogUnreadable": "{{name}}에 있는 {{label}} 기록을 읽지 못했습니다. 이 파일 시스템에서는 미리 쓰기 로그를 읽기 전용으로 열 수 없습니다. 로그를 반영하려면 {{label}} 앱을 정상적으로 종료하세요.",
+      "wslTranscriptFsSlow": "파일 시스템 접근에 너무 오래 걸려 WSL 세션 기록 파일을 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하거나 문제가 계속되면 Orca를 다시 시작하세요.",
+      "wslTranscriptFsCapacity": "이미 대기 중인 파일 시스템 요청이 너무 많아 WSL 세션 기록 검색을 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하거나 문제가 계속되면 Orca를 다시 시작하세요.",
+      "wslTranscriptFsProcessFailed": "파일 시스템 보조 프로세스에 오류가 발생하여 WSL 세션 기록 파일을 일시적으로 사용할 수 없습니다({{detail}}). 잠시 후 다시 시도하거나 문제가 계속되면 Orca를 다시 시작하세요.",
+      "wslDistroNotRunning": "WSL 배포판({{distro}})이 실행 중이 아니므로 WSL 세션 기록 파일을 사용할 수 없습니다. 해당 배포판에서 터미널을 열어 시작하세요.",
+      "wslDistroUnverifiable": "WSL에서 '{{distro}}'의 실행 여부에 응답하지 않아 WSL 세션 기록 파일을 사용할 수 없습니다. 잠시 후 다시 시도하세요.",
+      "scopePathsTruncated": "처음 {{limit}}개의 프로젝트 경로만 스캔했습니다.",
+      "invalidResultsSkipped_other": "Agent 세션 기록의 잘못된 결과 항목 {{count}}개를 건너뛰었습니다.",
+      "scanTimedOutOnSshHost": "이 SSH 호스트에서 세션 스캔이 {{seconds}}초 후 시간 초과되었습니다. 새로고침하여 다시 시도하세요.",
+      "scanTimedOut": "세션 스캔이 {{seconds}}초 후 시간 초과되었습니다. 컴퓨터의 작업 부하가 높을 수 있습니다. 새로고침하여 다시 시도하세요.",
+      "scannerPaused": "반복된 실패로 세션 스캔이 일시 중지되었습니다. 새로고침하여 다시 시도하세요.",
+      "scannerBusy": "동시에 진행 중인 세션 스캔이 너무 많습니다. 잠시 기다린 후 새로고침하세요.",
+      "scannerMissing": "이 Orca 설치에는 세션 스캐너가 없습니다. Orca를 다시 설치하면 복원됩니다.",
+      "scannerStopped": "세션 스캐너가 예기치 않게 중지되었습니다. 새로고침하여 다시 시도하세요."
+    }
   },
   "common": {
     "retry": "다시 시도",
@@ -20954,7 +21024,12 @@
       "dialogTitle": "채팅 자동 이름 지정 실패",
       "dialogDescriptionStart": "Orca가",
       "dialogDescriptionEnd": "의 이름을 첫 메시지로부터 생성하지 못했습니다.",
-      "settings": "설정"
+      "settings": "설정",
+      "errors": {
+        "noName": "채팅 이름 에이전트가 이름을 반환하지 않았습니다.",
+        "agentNotRun": "Orca가 채팅 이름 에이전트를 실행하지 못했습니다.",
+        "noAgentAvailable": "이 워크스페이스에서 실행할 수 있는 채팅 이름 에이전트가 없습니다."
+      }
     }
   },
   "jira": {
@@ -21863,6 +21938,22 @@
         "error": "선택한 자동화 호스트에서 프로젝트 설정에 실패했습니다.",
         "unsupported": "선택한 자동화 호스트가 이 프로젝트를 지원하지 않습니다."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "추가 인수는 4 KB 이하여야 합니다.",
+        "controlCharacters": "추가 인수에는 제어 문자나 줄바꿈을 포함할 수 없습니다.",
+        "invalid": "추가 인수가 유효하지 않습니다: {{detail}}",
+        "shellSyntax": "{{text}}에 추가 인수에서 허용되지 않는 셸 구문이 사용되었습니다.",
+        "terminator": "추가 인수에는 \"--\"를 사용할 수 없습니다.",
+        "notAnOption": "\"{{token}}\"은(는) 옵션이 아닙니다. {{agent}}의 추가 인수에는 다음만 허용됩니다: {{allowed}}.",
+        "optionNotAllowed": "{{agent}}의 추가 인수에는 \"{{option}}\"을(를) 사용할 수 없습니다. 허용된 옵션: {{allowed}}.",
+        "missingValue": "\"{{option}}\"에 값이 필요합니다.",
+        "valueNotAllowed": "\"{{option}} {{value}}\"은(는) 허용되지 않습니다. {{agent}}의 추가 인수에는 \"{{option}} {{prefix}}<level>\"만 허용됩니다.",
+        "modelRepeated": "추가 인수에 모델이 두 번 이상 지정되어 있습니다.",
+        "effortRepeated": "추가 인수에 추론 수준이 두 번 이상 지정되어 있습니다."
+      },
+      "hostUpdateRequired": "추가 인수를 사용하려면 이 호스트의 Orca를 업데이트하세요."
     }
   },
   "codeHost": {
@@ -22032,6 +22123,12 @@
       "tile12": {
         "title": "PDF, 이미지, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex 환경",
+      "packageManager": "패키지 관리자"
     }
   },
   "emulator": {

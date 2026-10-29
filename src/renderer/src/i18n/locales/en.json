@@ -814,6 +814,30 @@
         "devinDesktop": "Devin Desktop"
       }
     },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "Proxy URL is too long.",
+        "invalid": "Enter a valid proxy URL.",
+        "unsupportedProtocol": "Use an http, https, socks, socks4, or socks5 proxy URL.",
+        "missingHost": "Proxy URL must include a host."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "Highest accuracy for 25 European languages. Punctuation, capitalization, and word-level timestamps.",
+        "parakeetV2": "English only. Faster than v3 with similar accuracy. Punctuation and capitalization.",
+        "zipformerBilingual": "Chinese + English with code-switching. Low-latency real-time streaming.",
+        "paraformerBilingual": "Chinese (Mandarin + dialects) + English. Strong on accented and regional Chinese.",
+        "zipformerStreamingEn": "English only. Lightweight 20M-param model, good balance of speed and size.",
+        "zipformerStreamingZh": "Chinese only. Ultra-lightweight 14M-param model, ideal for low-resource devices.",
+        "zipformerStreamingKo": "Korean only. Low-latency real-time streaming.",
+        "parakeetJa": "Japanese only. Trained on 35k+ hours of natural speech. Punctuation included.",
+        "whisperTiny": "90+ languages. Lower accuracy than Parakeet but broadest language coverage.",
+        "senseVoice": "Chinese, English, Japanese, Korean, and Cantonese with automatic language detection.",
+        "gpt4oMiniTranscribe": "Cloud transcription with strong accuracy and low cost. Requires an OpenAI API key.",
+        "gpt4oTranscribe": "Cloud transcription with higher accuracy. Requires an OpenAI API key."
+      }
+    },
     "diagnostics": {
       "errors": {
         "creatingDisabled": "creating review files is disabled",
@@ -19791,6 +19815,27 @@
         "noLiveTerminal": "No live terminal is available.",
         "commandCanceled": "Chat UI command was canceled because the composer closed.",
         "commandRejected": "The terminal did not accept the command."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "This option can only be set when the session starts.",
+        "modelRejected": "Claude kept the current model.",
+        "modelUnverified": "Could not verify the model change; open the terminal to check.",
+        "unknownOption": "Unknown session option: {{id}}",
+        "agentPickerOnly": "This option must be changed in the agent picker.",
+        "toggleBaselineUnknown": "Current value is unknown; use the Toggle action instead.",
+        "afterStartOnly": "This option is only available after the session starts.",
+        "valueRequired": "This option requires a value.",
+        "toggleValueKnown": "This option has a known value; choose On or Off instead."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "Describe the goal after /goal.",
+        "commandUnavailable": "/{{name}} is not available in chat sessions. Use the slash menu to see available commands.",
+        "commandTakesNoArguments": "Use /{{name}} without arguments.",
+        "commandUnsupportedByHost": "/{{name}} is not supported by this chat host.",
+        "modelPickerFailed": "Could not open the model picker.",
+        "effortPickerFailed": "Could not open the effort picker.",
+        "modelApplyFailed": "Could not apply model {{value}}.",
+        "effortApplyFailed": "Could not apply effort {{value}}."
       }
     },
     "tab": {
@@ -20803,6 +20848,32 @@
       "loading": "Loading subagents…",
       "loadError": "Could not load all subagents.",
       "empty": "No subagents found."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Additional scan issues were omitted.",
+      "sessionMetadataUnreadable": "Session metadata could not be read this scan.",
+      "openCodeScannerUnavailable": "OpenCode history was skipped because its background scanner could not start; the app remains responsive.",
+      "openCodeScanIncomplete": "OpenCode history scan did not complete: {{detail}}",
+      "openCodeWslReaderPreparing": "Preparing the WSL SQLite reader. Refresh Vault after setup finishes.",
+      "openCodeWslReaderNotPrepared": "The WSL SQLite reader is not prepared. Refresh Vault to retry.",
+      "openCodeDatabaseBusy": "{{label}} is writing to {{name}} right now, so its history was skipped. It is read again on the next refresh.",
+      "openCodeDatabaseUnreadable": "{{label}} history in {{name}} could not be read: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "{{label}} sessions inside WSL can't be searched from Windows yet.",
+      "openCodeWriteAheadLogUnreadable": "{{label}} history in {{name}} could not be read. Its write-ahead log cannot be opened read-only on this filesystem. Exit {{label}} cleanly to flush the log.",
+      "wslTranscriptFsSlow": "WSL transcript files are temporarily unavailable because filesystem access is taking too long. Try again shortly or restart Orca if the issue continues.",
+      "wslTranscriptFsCapacity": "WSL transcript discovery is temporarily unavailable because too many filesystem requests are already waiting. Try again shortly or restart Orca if the issue continues.",
+      "wslTranscriptFsProcessFailed": "WSL transcript files are temporarily unavailable because the filesystem helper process failed ({{detail}}). Try again shortly or restart Orca if the issue continues.",
+      "wslDistroNotRunning": "WSL transcript files are unavailable because WSL distro '{{distro}}' is not running. Open a terminal in it to start it.",
+      "wslDistroUnverifiable": "WSL transcript files are unavailable because WSL didn't answer whether '{{distro}}' is running. Try again shortly.",
+      "scopePathsTruncated": "Only the first {{limit}} project paths were scanned.",
+      "invalidResultsSkipped_one": "Skipped {{count}} invalid Agent Session History result entry.",
+      "invalidResultsSkipped_other": "Skipped {{count}} invalid Agent Session History result entries.",
+      "scanTimedOutOnSshHost": "Session scan timed out after {{seconds}}s on this SSH host. Refresh to try again.",
+      "scanTimedOut": "Session scan timed out after {{seconds}}s — the machine may be busy. Refresh to try again.",
+      "scannerPaused": "Session scanning paused after repeated failures. Refresh to try again.",
+      "scannerBusy": "Too many session scans in flight. Wait a moment, then refresh.",
+      "scannerMissing": "The session scanner is missing from this Orca install. Reinstalling Orca restores it.",
+      "scannerStopped": "The session scanner stopped unexpectedly. Refresh to try again."
     }
   },
   "common": {
@@ -21362,7 +21433,12 @@
       "settings": "Settings",
       "dialogTitle": "Chat auto-name failed",
       "dialogDescriptionStart": "Orca couldn't generate a name for",
-      "dialogDescriptionEnd": "from its first message."
+      "dialogDescriptionEnd": "from its first message.",
+      "errors": {
+        "noName": "The chat-name agent returned no name.",
+        "agentNotRun": "Orca could not run the chat-name agent.",
+        "noAgentAvailable": "No chat-name agent can run in this workspace."
+      }
     }
   },
   "updates": {
@@ -22294,6 +22370,22 @@
         "error": "Project setup failed on the selected automation host.",
         "unsupported": "The selected automation host does not support this project."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "Extra arguments must be 4 KB or less.",
+        "controlCharacters": "Extra arguments cannot contain control characters or line breaks.",
+        "invalid": "Extra arguments are invalid: {{detail}}",
+        "shellSyntax": "{{text}} uses shell syntax that extra arguments don't allow.",
+        "terminator": "\"--\" isn't allowed in extra arguments.",
+        "notAnOption": "\"{{token}}\" isn't an option. Extra arguments for {{agent}} accept only: {{allowed}}.",
+        "optionNotAllowed": "\"{{option}}\" isn't allowed in extra arguments for {{agent}}. Allowed: {{allowed}}.",
+        "missingValue": "\"{{option}}\" needs a value.",
+        "valueNotAllowed": "\"{{option}} {{value}}\" isn't allowed. {{agent}} extra arguments accept only \"{{option}} {{prefix}}<level>\".",
+        "modelRepeated": "Extra arguments set the model more than once.",
+        "effortRepeated": "Extra arguments set the effort more than once."
+      },
+      "hostUpdateRequired": "Update Orca on this host to use extra arguments."
     }
   },
   "codeHost": {
@@ -22463,6 +22555,12 @@
       "tile12": {
         "title": "PDFs, images, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex environment",
+      "packageManager": "package manager"
     }
   },
   "emulator": {

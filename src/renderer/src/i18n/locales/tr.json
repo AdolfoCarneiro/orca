@@ -777,6 +777,30 @@
         "reconnection-failed": "Yeniden bağlanılamadı"
       }
     },
+    "network": {
+      "proxyUrlErrors": {
+        "tooLong": "Proxy URL'si çok uzun.",
+        "invalid": "Geçerli bir proxy URL'si girin.",
+        "unsupportedProtocol": "http, https, socks, socks4 veya socks5 proxy URL'si kullanın.",
+        "missingHost": "Proxy URL'si bir ana makine içermelidir."
+      }
+    },
+    "voice": {
+      "modelDescriptions": {
+        "parakeetV3": "25 Avrupa dili için en yüksek doğruluk. Noktalama, büyük/küçük harf kullanımı ve sözcük düzeyinde zaman damgaları.",
+        "parakeetV2": "Yalnızca İngilizce. Benzer doğrulukla v3'ten daha hızlı. Noktalama ve büyük/küçük harf kullanımı.",
+        "zipformerBilingual": "Dil geçişleriyle Çince + İngilizce. Düşük gecikmeli gerçek zamanlı akış.",
+        "paraformerBilingual": "Çince (Mandarin + lehçeler) + İngilizce. Aksanlı ve bölgesel Çince konuşmalarda güçlü.",
+        "zipformerStreamingEn": "Yalnızca İngilizce. Hız ve boyut arasında iyi denge sunan, 20 milyon parametreli hafif model.",
+        "zipformerStreamingZh": "Yalnızca Çince. Kaynakları kısıtlı cihazlar için ideal, 14 milyon parametreli çok hafif model.",
+        "zipformerStreamingKo": "Yalnızca Korece. Düşük gecikmeli gerçek zamanlı akış.",
+        "parakeetJa": "Yalnızca Japonca. 35 bini aşkın saatlik doğal konuşmayla eğitildi. Noktalama dâhil.",
+        "whisperTiny": "90'dan fazla dil. Parakeet'ten daha düşük doğruluk, ancak en geniş dil kapsamı.",
+        "senseVoice": "Otomatik dil algılamayla Çince, İngilizce, Japonca, Korece ve Kantonca.",
+        "gpt4oMiniTranscribe": "Yüksek doğruluk ve düşük maliyetle bulut transkripsiyonu. OpenAI API anahtarı gerektirir.",
+        "gpt4oTranscribe": "Daha yüksek doğrulukla bulut transkripsiyonu. OpenAI API anahtarı gerektirir."
+      }
+    },
     "diagnostics": {
       "errors": {
         "creatingDisabled": "inceleme dosyası oluşturma devre dışı",
@@ -19359,6 +19383,27 @@
         "noLiveTerminal": "Kullanılabilir etkin terminal yok.",
         "commandCanceled": "İleti düzenleyicisi kapatıldığı için Sohbet Arayüzü komutu iptal edildi.",
         "commandRejected": "Terminal komutu kabul etmedi."
+      },
+      "sessionOptionErrors": {
+        "startOnly": "Bu seçenek yalnızca oturum başlatılırken ayarlanabilir.",
+        "modelRejected": "Claude mevcut modeli korudu.",
+        "modelUnverified": "Model değişikliği doğrulanamadı; kontrol etmek için terminali açın.",
+        "unknownOption": "Bilinmeyen oturum seçeneği: {{id}}",
+        "agentPickerOnly": "Bu seçenek ajan seçicide değiştirilmelidir.",
+        "toggleBaselineUnknown": "Mevcut değer bilinmiyor; bunun yerine Aç/kapat eylemini kullanın.",
+        "afterStartOnly": "Bu seçenek yalnızca oturum başladıktan sonra kullanılabilir.",
+        "valueRequired": "Bu seçenek bir değer gerektirir.",
+        "toggleValueKnown": "Bu seçeneğin değeri biliniyor; bunun yerine Açık veya Kapalı seçin."
+      },
+      "composerErrors": {
+        "goalObjectiveMissing": "/goal sonrasında hedefi açıklayın.",
+        "commandUnavailable": "/{{name}} sohbet oturumlarında kullanılamaz. Kullanılabilir komutları görmek için eğik çizgi menüsünü kullanın.",
+        "commandTakesNoArguments": "/{{name}} komutunu argümansız kullanın.",
+        "commandUnsupportedByHost": "/{{name}} bu sohbet ana makinesi tarafından desteklenmiyor.",
+        "modelPickerFailed": "Model seçici açılamadı.",
+        "effortPickerFailed": "Çaba seçici açılamadı.",
+        "modelApplyFailed": "{{value}} modeli uygulanamadı.",
+        "effortApplyFailed": "Çaba düzeyi {{value}} olarak ayarlanamadı."
       }
     },
     "tab": {
@@ -20370,6 +20415,32 @@
       "loading": "Alt ajanlar yükleniyor…",
       "loadError": "Tüm alt ajanlar yüklenemedi.",
       "empty": "Alt ajan bulunamadı."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Ek tarama sorunları gösterilmedi.",
+      "sessionMetadataUnreadable": "Bu taramada oturum meta verileri okunamadı.",
+      "openCodeScannerUnavailable": "Arka plan tarayıcısı başlatılamadığı için OpenCode geçmişi atlandı; uygulama yanıt vermeye devam ediyor.",
+      "openCodeScanIncomplete": "OpenCode geçmiş taraması tamamlanamadı: {{detail}}",
+      "openCodeWslReaderPreparing": "WSL SQLite okuyucusu hazırlanıyor. Kurulum tamamlandıktan sonra Vault bölümünü yenileyin.",
+      "openCodeWslReaderNotPrepared": "WSL SQLite okuyucusu hazır değil. Yeniden denemek için Vault bölümünü yenileyin.",
+      "openCodeDatabaseBusy": "{{label}} şu anda {{name}} dosyasına yazdığı için geçmişi atlandı. Sonraki yenilemede yeniden okunacak.",
+      "openCodeDatabaseUnreadable": "{{name}} içindeki {{label}} geçmişi okunamadı: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "WSL içindeki {{label}} oturumları henüz Windows üzerinden aranamıyor.",
+      "openCodeWriteAheadLogUnreadable": "{{name}} içindeki {{label}} geçmişi okunamadı. Ön yazma günlüğü bu dosya sisteminde salt okunur olarak açılamıyor. Günlüğü diske aktarmak için {{label}} uygulamasından düzgün biçimde çıkın.",
+      "wslTranscriptFsSlow": "Dosya sistemine erişim çok uzun sürdüğü için WSL oturum dökümü dosyaları geçici olarak kullanılamıyor. Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
+      "wslTranscriptFsCapacity": "Zaten çok fazla dosya sistemi isteği beklediği için WSL oturum dökümlerini bulma işlemi geçici olarak kullanılamıyor. Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
+      "wslTranscriptFsProcessFailed": "Dosya sistemi yardımcı işlemi hata verdiği için WSL oturum dökümü dosyaları geçici olarak kullanılamıyor ({{detail}}). Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
+      "wslDistroNotRunning": "'{{distro}}' WSL dağıtımı çalışmadığı için WSL oturum dökümü dosyaları kullanılamıyor. Dağıtımı başlatmak için içinde bir terminal açın.",
+      "wslDistroUnverifiable": "WSL, '{{distro}}' dağıtımının çalışıp çalışmadığına yanıt vermediği için WSL oturum dökümü dosyaları kullanılamıyor. Kısa süre sonra yeniden deneyin.",
+      "scopePathsTruncated": "Yalnızca ilk {{limit}} proje yolu tarandı.",
+      "invalidResultsSkipped_one": "Ajan Oturum Geçmişi sonuçlarındaki {{count}} geçersiz girdi atlandı.",
+      "invalidResultsSkipped_other": "Ajan Oturum Geçmişi sonuçlarındaki {{count}} geçersiz girdi atlandı.",
+      "scanTimedOutOnSshHost": "Bu SSH sunucusundaki oturum taraması {{seconds}} saniye sonra zaman aşımına uğradı. Yeniden denemek için yenileyin.",
+      "scanTimedOut": "Oturum taraması {{seconds}} saniye sonra zaman aşımına uğradı — bilgisayar meşgul olabilir. Yeniden denemek için yenileyin.",
+      "scannerPaused": "Tekrarlanan hatalardan sonra oturum taraması duraklatıldı. Yeniden denemek için yenileyin.",
+      "scannerBusy": "Aynı anda çok fazla oturum taraması çalışıyor. Biraz bekleyip yenileyin.",
+      "scannerMissing": "Bu Orca kurulumunda oturum tarayıcısı eksik. Orca'yı yeniden yüklemek onu geri getirir.",
+      "scannerStopped": "Oturum tarayıcısı beklenmedik şekilde durdu. Yeniden denemek için yenileyin."
     }
   },
   "common": {
@@ -20929,7 +21000,12 @@
       "settings": "Ayarlar",
       "dialogTitle": "Sohbete otomatik ad verilemedi",
       "dialogDescriptionStart": "Orca tarafından",
-      "dialogDescriptionEnd": "sohbetinin ilk mesajından bir ad oluşturulamadı."
+      "dialogDescriptionEnd": "sohbetinin ilk mesajından bir ad oluşturulamadı.",
+      "errors": {
+        "noName": "Sohbeti adlandıran ajan bir ad döndürmedi.",
+        "agentNotRun": "Sohbeti adlandıran ajan Orca tarafından çalıştırılamadı.",
+        "noAgentAvailable": "Bu çalışma alanında sohbeti adlandıran hiçbir ajan çalıştırılamaz."
+      }
     }
   },
   "updates": {
@@ -21841,6 +21917,22 @@
         "error": "Proje seçili otomasyon sunucusunda kurulamadı.",
         "unsupported": "Seçili otomasyon sunucusu bu projeyi desteklemiyor."
       }
+    },
+    "extraAgentArgs": {
+      "errors": {
+        "tooLarge": "Ek argümanlar en fazla 4 KB olmalıdır.",
+        "controlCharacters": "Ek argümanlar kontrol karakteri veya satır sonu içeremez.",
+        "invalid": "Ek argümanlar geçersiz: {{detail}}",
+        "shellSyntax": "{{text}}, ek argümanlarda izin verilmeyen kabuk sözdizimi kullanıyor.",
+        "terminator": "Ek argümanlarda \"--\" kullanımına izin verilmez.",
+        "notAnOption": "\"{{token}}\" bir seçenek değil. {{agent}} için ek argümanlar yalnızca şunları kabul eder: {{allowed}}.",
+        "optionNotAllowed": "{{agent}} için ek argümanlarda \"{{option}}\" kullanımına izin verilmez. İzin verilenler: {{allowed}}.",
+        "missingValue": "\"{{option}}\" bir değer gerektirir.",
+        "valueNotAllowed": "\"{{option}} {{value}}\" kullanımına izin verilmez. {{agent}} için ek argümanlar yalnızca \"{{option}} {{prefix}}<level>\" kabul eder.",
+        "modelRepeated": "Ek argümanlar modeli birden fazla kez belirtiyor.",
+        "effortRepeated": "Ek argümanlar çabayı birden fazla kez belirtiyor."
+      },
+      "hostUpdateRequired": "Ek argümanları kullanmak için bu ana makinedeki Orca'yı güncelleyin."
     }
   },
   "codeHost": {
@@ -22010,6 +22102,12 @@
       "tile12": {
         "title": "PDF'ler, görseller, CSV, Markdown"
       }
+    }
+  },
+  "setupScriptPrompt": {
+    "candidateLabels": {
+      "codexEnvironment": "Codex ortamı",
+      "packageManager": "paket yöneticisi"
     }
   },
   "emulator": {
