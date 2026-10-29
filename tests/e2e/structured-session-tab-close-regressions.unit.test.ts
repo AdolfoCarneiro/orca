@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { setSessionTestState } from '../../src/renderer/src/lib/test-support/session-source-fixture'
 
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { RuntimeMobileSessionTabsResult } from '../../src/shared/runtime-types'
@@ -245,7 +246,7 @@ describe('reopened structured session close', () => {
     bridge.runtime = null
     bridge.closeHeld = null
     bridge.pairedClose = null
-    useAppStore.setState(initialStoreState, true)
+    setSessionTestState(useAppStore, initialStoreState, true)
     resetLocalStructuredSessionVersionForTests()
     resetWebSessionTabsSnapshotFreshnessForTests()
     // A close's follow-up re-read can outlive its test, which tears the host down under it.
@@ -412,7 +413,7 @@ describe('in-flight structured session close', () => {
     bridge.rendererSessionCloses = []
     bridge.closeHeld = null
     bridge.pairedClose = null
-    useAppStore.setState(initialStoreState, true)
+    setSessionTestState(useAppStore, initialStoreState, true)
     resetLocalStructuredSessionVersionForTests()
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetWebSessionCloseIntentForTests()
@@ -523,7 +524,7 @@ describe('in-flight structured session close', () => {
       const strip = (): string[] =>
         (useAppStore.getState().groupsByWorktree[WORKTREE] ?? []).flatMap((group) => group.tabOrder)
       // The server owns the workspace, so its layout is mirrored, never drawn by main's frames.
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         activeWorktreeId: WORKTREE,
         worktreesByRepo: {
           'repo-1': [
