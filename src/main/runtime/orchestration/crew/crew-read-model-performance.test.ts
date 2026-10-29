@@ -372,7 +372,14 @@ it('selects peer maxima without losing bodies and uses indexed historical proven
 })
 
 it('drives pending questions from metadata on real N/10N mailbox wakes and keeps answer/close semantics', async () => {
-  const receipts = []
+  const receipts: {
+    retainedMessages: number
+    pending: number
+    executions: number
+    rows: number
+    bytes: number
+    plan: string[]
+  }[] = []
   for (const retainedMessages of [100, 1000]) {
     const { db, deps, run, assign } = fixture()
     const worker = assign('term_worker')
