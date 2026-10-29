@@ -34,7 +34,7 @@ const CODEX_LAUNCH =
 const AGENT_COMMAND = {
   codex: { command: `${CODEX_LAUNCH} 'don'"'"'t stop'`, agentCommand: CODEX },
   aider: {
-    command: "aider '--no-check-update' '--no-show-release-notes' '--yes-always'",
+    command: "aider '--yes-always' '--no-check-update' '--no-show-release-notes'",
     agentCommand: "aider '--yes-always'"
   }
 } as const

@@ -103,9 +103,10 @@ export function resolveAgentLaunchCommand(args: {
   const suppressionArgs = args.suppressStartupUpdatePrompt
     ? (STARTUP_UPDATE_PROMPT_SUPPRESSION_ARGS[args.agent] ?? [])
     : []
+  const prefixSuppressionArgs = args.agent === 'aider' ? [] : suppressionArgs
   const launchHead = withAgentTerminalInputArgs(
-    suppressionArgs.length
-      ? `${command} ${suppressionArgs.map((arg) => quoteStartupArg(arg, args.shell)).join(' ')}`
+    prefixSuppressionArgs.length
+      ? `${command} ${prefixSuppressionArgs.map((arg) => quoteStartupArg(arg, args.shell)).join(' ')}`
       : command,
     args.agent,
     args.agentHostPlatform === undefined ? args.platform : args.agentHostPlatform,
@@ -157,13 +158,18 @@ export function resolveAgentLaunchCommand(args: {
   const initialTokens = args.sessionOptionsOverrideAgentArgs
     ? insertBeforeTerminator(args.agent, keptTokens, resolvedOptions.args)
     : [...resolvedOptions.args, ...keptTokens]
+  // Aider's last boolean flag wins, even over configured --check-update.
+  const launchTokens =
+    args.agent === 'aider'
+      ? insertBeforeTerminator(args.agent, initialTokens, suppressionArgs)
+      : initialTokens
   // Restart retains explicit policy and surviving raw pins, while providers restore model seeds.
   const resumeArgs = render(
     insertBeforeTerminator(args.agent, keptTokens, resolvedOptions.permissionArgs ?? [])
   )
   return {
     ok: true,
-    command: withArgs(render(initialTokens), launchHead),
+    command: withArgs(render(launchTokens), launchHead),
     resumeLaunch: {
       agentCommand: withArgs(resumeArgs),
       ...(keptTokens.length !== rawTokens.length || resolvedOptions.permissionArgs

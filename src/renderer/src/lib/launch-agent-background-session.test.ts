@@ -574,7 +574,7 @@ describe('launchAgentBackgroundSession', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       expect.objectContaining({
-        command: "aider '--no-check-update' '--no-show-release-notes' '--yes-always'"
+        command: "aider '--yes-always' '--no-check-update' '--no-show-release-notes'"
       })
     )
     expect(mockPasteDraftWhenAgentReady).toHaveBeenCalledWith(
