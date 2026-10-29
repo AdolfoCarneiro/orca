@@ -2725,10 +2725,15 @@ private enum Input {
         } ?? []
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        let changeCount = pasteboard.changeCount
         defer {
-            pasteboard.clearContents()
-            if !previousItems.isEmpty {
-                pasteboard.writeObjects(previousItems)
+            // Why: posting Cmd+V returns before the receiver reads the pasteboard.
+            usleep(200_000)
+            if pasteboard.changeCount == changeCount {
+                pasteboard.clearContents()
+                if !previousItems.isEmpty {
+                    pasteboard.writeObjects(previousItems)
+                }
             }
         }
         try body()
