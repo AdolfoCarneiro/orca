@@ -352,6 +352,12 @@
     "fileLoad": {
       "hostUnresolved": "主機找不到該檔案的工作區。它可能已被刪除，或者主機可能還不知道。重試，或從分頁欄關閉此分頁。",
       "remoteTooLarge": "此檔案過大，無法從主機開啟。"
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "沒有可匯出的內容",
+        "timedOut": "匯出逾時"
+      }
     }
   },
   "githubChecks": {
@@ -792,6 +798,23 @@
         "senseVoice": "支援中文、英文、日文、韓文及粵語，並自動偵測語言。",
         "gpt4oMiniTranscribe": "準確度高、成本低的雲端轉錄。需要 OpenAI API 金鑰。",
         "gpt4oTranscribe": "準確度更高的雲端轉錄。需要 OpenAI API 金鑰。"
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "已停用建立檢視檔案",
+        "sendingDisabled": "已停用傳送診斷資訊",
+        "sendingNotConfigured": "此建置版本未設定診斷資訊傳送功能",
+        "expiredBeforeSending": "檢視檔案已過期；請在傳送前建立新檔案",
+        "expiredBeforeOpening": "檢視檔案已過期；請在開啟前建立新檔案",
+        "previewNotOpened": "請在傳送前開啟檢視檔案",
+        "previewOpenFailed": "無法開啟檢視檔案",
+        "deleteNotConfigured": "此建置版本未設定診斷資訊上傳端點",
+        "createFailed": "無法建立檢視檔案",
+        "openFailed": "無法開啟檢視檔案",
+        "sendFailed": "無法傳送診斷資訊",
+        "discardFailed": "無法丟棄檢視檔案",
+        "deleteFailed": "無法刪除已傳送的診斷資訊"
       }
     }
   },
@@ -20123,6 +20146,31 @@
       "loading": "正在載入子代理程式…",
       "loadError": "無法載入所有子代理程式。",
       "empty": "找不到子代理程式。"
+    },
+    "scanIssues": {
+      "issuesOmitted": "已省略其他掃描問題。",
+      "sessionMetadataUnreadable": "本次掃描無法讀取工作階段後設資料。",
+      "openCodeScannerUnavailable": "由於無法啟動背景掃描器，已跳過 OpenCode 歷史記錄；應用程式仍可正常回應。",
+      "openCodeScanIncomplete": "OpenCode 歷史記錄掃描未完成：{{detail}}",
+      "openCodeWslReaderPreparing": "正在準備 WSL SQLite 讀取器。設定完成後請重新整理 Vault。",
+      "openCodeWslReaderNotPrepared": "WSL SQLite 讀取器尚未準備就緒。請重新整理 Vault 以重試。",
+      "openCodeDatabaseBusy": "{{label}} 正在寫入 {{name}}，因此已跳過其歷史記錄。下次重新整理時會再次讀取。",
+      "openCodeDatabaseUnreadable": "無法讀取 {{label}} 在 {{name}} 中的歷史記錄：{{detail}}",
+      "openCodeWslDatabaseUnsupported": "目前尚無法從 Windows 搜尋 WSL 內的 {{label}} 工作階段。",
+      "openCodeWriteAheadLogUnreadable": "無法讀取 {{label}} 在 {{name}} 中的歷史記錄。此檔案系統無法以唯讀模式開啟其預寫式日誌。請正常結束 {{label}}，以將日誌寫入資料庫。",
+      "wslTranscriptFsSlow": "由於存取檔案系統耗時過久，暫時無法使用 WSL 工作階段記錄檔。請稍後再試，若問題持續，請重新啟動 Orca。",
+      "wslTranscriptFsCapacity": "由於已有太多檔案系統存取要求等待處理，暫時無法尋找 WSL 工作階段記錄。請稍後再試，若問題持續，請重新啟動 Orca。",
+      "wslTranscriptFsProcessFailed": "由於檔案系統輔助行程失敗（{{detail}}），暫時無法使用 WSL 工作階段記錄檔。請稍後再試，若問題持續，請重新啟動 Orca。",
+      "wslDistroNotRunning": "由於 WSL 發行版「{{distro}}」目前未執行，無法使用 WSL 工作階段記錄檔。請在該發行版中開啟終端機以啟動它。",
+      "wslDistroUnverifiable": "WSL 未回覆「{{distro}}」是否正在執行，因此無法使用 WSL 工作階段記錄檔。請稍後再試。",
+      "scopePathsTruncated": "僅掃描了前 {{limit}} 個專案路徑。",
+      "invalidResultsSkipped_other": "已跳過代理程式工作階段歷史中的 {{count}} 筆無效結果項目。",
+      "scanTimedOutOnSshHost": "工作階段掃描在此 SSH 主機上執行 {{seconds}} 秒後逾時。請重新整理以重試。",
+      "scanTimedOut": "工作階段掃描在 {{seconds}} 秒後逾時，電腦可能正忙。請重新整理以重試。",
+      "scannerPaused": "工作階段掃描因多次失敗而暫停。請重新整理以重試。",
+      "scannerBusy": "同時進行的工作階段掃描過多。請稍候再重新整理。",
+      "scannerMissing": "此 Orca 安裝中缺少工作階段掃描器。重新安裝 Orca 即可還原。",
+      "scannerStopped": "工作階段掃描器意外停止。請重新整理以重試。"
     }
   },
   "common": {
@@ -20676,7 +20724,12 @@
       "settings": "設定",
       "dialogTitle": "對話自動命名失敗",
       "dialogDescriptionStart": "Orca 無法根據第一則訊息為",
-      "dialogDescriptionEnd": "產生名稱。"
+      "dialogDescriptionEnd": "產生名稱。",
+      "errors": {
+        "noName": "對話命名代理程式未傳回名稱。",
+        "agentNotRun": "Orca 無法執行對話命名代理程式。",
+        "noAgentAvailable": "此工作區中沒有可執行的對話命名代理程式。"
+      }
     }
   },
   "updates": {
@@ -21776,6 +21829,40 @@
     "candidateLabels": {
       "codexEnvironment": "Codex 環境",
       "packageManager": "套件管理員"
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "手機模擬器已在設定中停用。",
+      "notAvailable": "手機模擬器無法使用。",
+      "noSession": "沒有作用中的模擬器工作階段",
+      "noDeviceSpecified": "未指定模擬器裝置。請在設定 > 手機模擬器中選擇預設裝置，或傳入裝置。",
+      "workspaceChanged": "模擬器啟動期間工作區已變更。請重新連接模擬器。",
+      "noIosSimulators": "找不到 iOS 模擬器。請在 Xcode Settings > Platforms 中新增一個。",
+      "simctlUnavailable": "無法使用 xcrun simctl。",
+      "simulatorToolsUnavailable": "無法使用 Xcode Simulator 工具。請安裝完整版 Xcode，開啟一次，然後使用 `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` 選取它。",
+      "requiresMacosXcode": "iOS 模擬器需要已安裝 Xcode Command Line Tools 的 macOS。",
+      "simulatorNotFound": "找不到模擬器 {{udid}}。請透過 Xcode > Window > Devices and Simulators 建立一個。",
+      "serveSimUnavailable": "無法使用 serve-sim。",
+      "serveSimNoEndpoints": "serve-sim 未傳回串流端點。",
+      "serveSimEndpointUnreachable": "serve-sim 已啟動，但無法連線至其串流端點。",
+      "androidSdkMissing": "找不到 Android SDK。請安裝 Android Studio 並設定 ANDROID_HOME。",
+      "adbUnavailable": "無法使用 adb。",
+      "noAndroidDevices": "找不到 Android 裝置或 AVD。請在 Android Studio 中建立一個。",
+      "androidDeviceNotRunning": "Android 裝置「{{device}}」尚未執行。請先啟動它。",
+      "unknownDeviceOrAvd": "「{{device}}」不是正在執行的裝置，也不是已知的 AVD。",
+      "avdBootTimeout": "AVD「{{avdName}}」未在時限內完成啟動。",
+      "scrcpyDownloadFailed": "無法下載 scrcpy 伺服器：{{detail}}",
+      "scrcpyServerInvalid": "下載的 scrcpy 伺服器無效或不完整。"
+    },
+    "pane": {
+      "listDevicesFailed": "無法列出模擬器裝置。",
+      "noDevices": "找不到模擬器裝置。請在 Xcode 中新增 iOS 模擬器，或在 Android Studio 中新增 Android 虛擬裝置。",
+      "startFailed": "無法啟動模擬器。請確認已設定好 Xcode（iOS）或 Android Studio（Android），然後嘗試其他裝置。",
+      "shutdownFailed": "無法關閉模擬器。請重試，或從模擬器管理程式停止它。"
+    },
+    "settings": {
+      "availabilityCheckFailed": "無法檢查模擬器是否可用。"
     }
   },
   "ephemeralVm": {

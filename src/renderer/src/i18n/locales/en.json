@@ -372,6 +372,12 @@
     "diffTooLarge": {
       "title": "File too large to diff",
       "detail": "One version of this file is over 10 MB, so Orca doesn’t load it for a text diff."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "No content to export",
+        "timedOut": "Export timed out"
+      }
     }
   },
   "githubChecks": {
@@ -830,6 +836,23 @@
         "senseVoice": "Chinese, English, Japanese, Korean, and Cantonese with automatic language detection.",
         "gpt4oMiniTranscribe": "Cloud transcription with strong accuracy and low cost. Requires an OpenAI API key.",
         "gpt4oTranscribe": "Cloud transcription with higher accuracy. Requires an OpenAI API key."
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "creating review files is disabled",
+        "sendingDisabled": "sending diagnostics is disabled",
+        "sendingNotConfigured": "sending diagnostics is not configured for this build",
+        "expiredBeforeSending": "review file has expired; create a new one before sending",
+        "expiredBeforeOpening": "review file has expired; create a new one before opening",
+        "previewNotOpened": "open the review file before sending",
+        "previewOpenFailed": "could not open review file",
+        "deleteNotConfigured": "diagnostic upload endpoint is not configured for this build",
+        "createFailed": "Could not create review file",
+        "openFailed": "Could not open review file",
+        "sendFailed": "Could not send diagnostics",
+        "discardFailed": "Could not discard review file",
+        "deleteFailed": "Could not delete sent diagnostics"
       }
     }
   },
@@ -20825,6 +20848,32 @@
       "loading": "Loading subagents…",
       "loadError": "Could not load all subagents.",
       "empty": "No subagents found."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Additional scan issues were omitted.",
+      "sessionMetadataUnreadable": "Session metadata could not be read this scan.",
+      "openCodeScannerUnavailable": "OpenCode history was skipped because its background scanner could not start; the app remains responsive.",
+      "openCodeScanIncomplete": "OpenCode history scan did not complete: {{detail}}",
+      "openCodeWslReaderPreparing": "Preparing the WSL SQLite reader. Refresh Vault after setup finishes.",
+      "openCodeWslReaderNotPrepared": "The WSL SQLite reader is not prepared. Refresh Vault to retry.",
+      "openCodeDatabaseBusy": "{{label}} is writing to {{name}} right now, so its history was skipped. It is read again on the next refresh.",
+      "openCodeDatabaseUnreadable": "{{label}} history in {{name}} could not be read: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "{{label}} sessions inside WSL can't be searched from Windows yet.",
+      "openCodeWriteAheadLogUnreadable": "{{label}} history in {{name}} could not be read. Its write-ahead log cannot be opened read-only on this filesystem. Exit {{label}} cleanly to flush the log.",
+      "wslTranscriptFsSlow": "WSL transcript files are temporarily unavailable because filesystem access is taking too long. Try again shortly or restart Orca if the issue continues.",
+      "wslTranscriptFsCapacity": "WSL transcript discovery is temporarily unavailable because too many filesystem requests are already waiting. Try again shortly or restart Orca if the issue continues.",
+      "wslTranscriptFsProcessFailed": "WSL transcript files are temporarily unavailable because the filesystem helper process failed ({{detail}}). Try again shortly or restart Orca if the issue continues.",
+      "wslDistroNotRunning": "WSL transcript files are unavailable because WSL distro '{{distro}}' is not running. Open a terminal in it to start it.",
+      "wslDistroUnverifiable": "WSL transcript files are unavailable because WSL didn't answer whether '{{distro}}' is running. Try again shortly.",
+      "scopePathsTruncated": "Only the first {{limit}} project paths were scanned.",
+      "invalidResultsSkipped_one": "Skipped {{count}} invalid Agent Session History result entry.",
+      "invalidResultsSkipped_other": "Skipped {{count}} invalid Agent Session History result entries.",
+      "scanTimedOutOnSshHost": "Session scan timed out after {{seconds}}s on this SSH host. Refresh to try again.",
+      "scanTimedOut": "Session scan timed out after {{seconds}}s — the machine may be busy. Refresh to try again.",
+      "scannerPaused": "Session scanning paused after repeated failures. Refresh to try again.",
+      "scannerBusy": "Too many session scans in flight. Wait a moment, then refresh.",
+      "scannerMissing": "The session scanner is missing from this Orca install. Reinstalling Orca restores it.",
+      "scannerStopped": "The session scanner stopped unexpectedly. Refresh to try again."
     }
   },
   "common": {
@@ -21384,7 +21433,12 @@
       "settings": "Settings",
       "dialogTitle": "Chat auto-name failed",
       "dialogDescriptionStart": "Orca couldn't generate a name for",
-      "dialogDescriptionEnd": "from its first message."
+      "dialogDescriptionEnd": "from its first message.",
+      "errors": {
+        "noName": "The chat-name agent returned no name.",
+        "agentNotRun": "Orca could not run the chat-name agent.",
+        "noAgentAvailable": "No chat-name agent can run in this workspace."
+      }
     }
   },
   "updates": {
@@ -22105,6 +22159,29 @@
       "worktreeFolder": "New workspaces for this project are set to go inside WSL. Choose a folder on a Windows drive in this project’s settings first."
     }
   },
+  "wslDriveUnc": {
+    "label": "Location",
+    "description": "Orca opens this project through WSL. Open it at {{drivePath}} instead: Git runs on Windows, which is much faster here, and terminals and agents stay in {{distro}}.",
+    "convert": "Open at {{drivePath}}",
+    "review": "Orca pauses this project’s terminals, restarts, and reopens it at {{drivePath}}. Tabs, terminals with their history, chats and settings come along, and paused terminals pick up where they were.",
+    "cancel": "Cancel",
+    "confirm": "Restart and convert",
+    "failed": "Orca could not convert this project.",
+    "restarting": "Restarting Orca to convert this project…",
+    "terminalsBusy": "Some terminals in this project are busy. Let them finish or close them, then try again.",
+    "pauseFailed": "Orca could not pause this project’s terminals, so nothing changed.",
+    "blocker": {
+      "pending": "Orca is already converting a project. It finishes when Orca restarts.",
+      "state": "Orca found saved state for this project it can’t convert safely, so nothing changed.",
+      "duplicate": "{{drivePath}} is already a project in Orca.",
+      "mixed": "Some of this project’s folders are inside WSL, not on a Windows drive.",
+      "overlap": "This project shares folders with a project Orca can’t convert, so they would split.",
+      "notDriveMount": "In this distro, that folder isn’t {{drivePath}}: it isn’t mounted from that Windows drive.",
+      "notConvertible": "This project isn’t on a Windows drive on this computer.",
+      "differingState": "Orca saved different details for this folder under both its WSL path and {{drivePath}}, so nothing changed.",
+      "projectSplit": "This project also holds a repository that isn’t converting, so nothing changed."
+    }
+  },
   "runtime": {
     "health": {
       "mixed": "Mixed",
@@ -22507,6 +22584,40 @@
     "candidateLabels": {
       "codexEnvironment": "Codex environment",
       "packageManager": "package manager"
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "Mobile Emulator is disabled in Settings.",
+      "notAvailable": "Mobile Emulator is not available.",
+      "noSession": "No emulator session is active",
+      "noDeviceSpecified": "No emulator device specified. Choose a default device in Settings > Mobile Emulator or pass a device.",
+      "workspaceChanged": "The workspace changed while the emulator was starting. Reattach the emulator.",
+      "noIosSimulators": "No iOS simulators found. Add one in Xcode Settings > Platforms.",
+      "simctlUnavailable": "xcrun simctl is unavailable.",
+      "simulatorToolsUnavailable": "Xcode Simulator tools are unavailable. Install full Xcode, open it once, then select it with `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "requiresMacosXcode": "iOS Simulator requires macOS with Xcode Command Line Tools.",
+      "simulatorNotFound": "Simulator {{udid}} not found. Create one via Xcode > Window > Devices and Simulators.",
+      "serveSimUnavailable": "serve-sim is unavailable.",
+      "serveSimNoEndpoints": "serve-sim did not return stream endpoints.",
+      "serveSimEndpointUnreachable": "serve-sim started but its stream endpoint is not reachable.",
+      "androidSdkMissing": "Android SDK not found. Install Android Studio and set ANDROID_HOME.",
+      "adbUnavailable": "adb is unavailable.",
+      "noAndroidDevices": "No Android devices or AVDs found. Create one in Android Studio.",
+      "androidDeviceNotRunning": "Android device \"{{device}}\" is not running. Boot it first.",
+      "unknownDeviceOrAvd": "\"{{device}}\" is not a running device or a known AVD.",
+      "avdBootTimeout": "AVD \"{{avdName}}\" did not finish booting in time.",
+      "scrcpyDownloadFailed": "Could not download scrcpy server: {{detail}}",
+      "scrcpyServerInvalid": "Downloaded scrcpy server was invalid or truncated."
+    },
+    "pane": {
+      "listDevicesFailed": "Could not list emulator devices.",
+      "noDevices": "No emulator devices found. Add an iOS Simulator in Xcode, or an Android Virtual Device in Android Studio.",
+      "startFailed": "Could not start the emulator. Make sure Xcode (iOS) or Android Studio (Android) is set up, then try another device.",
+      "shutdownFailed": "Could not shut down the emulator. Try again, or stop it from your emulator manager."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Could not check emulator availability."
     }
   },
   "ephemeralVm": {

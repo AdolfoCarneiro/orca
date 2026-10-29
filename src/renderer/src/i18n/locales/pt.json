@@ -191,7 +191,34 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → CLI",
     "continueInCli": "Continuar na CLI",
-    "continueInCliNewTab": "Continuar na CLI em nova aba"
+    "continueInCliNewTab": "Continuar na CLI em nova aba",
+    "scanIssues": {
+      "issuesOmitted": "Outros problemas da verificação foram omitidos.",
+      "sessionMetadataUnreadable": "Não foi possível ler os metadados das sessões nesta verificação.",
+      "openCodeScannerUnavailable": "O histórico do OpenCode foi ignorado porque seu verificador em segundo plano não pôde ser iniciado; o aplicativo continua respondendo.",
+      "openCodeScanIncomplete": "A verificação do histórico do OpenCode não foi concluída: {{detail}}",
+      "openCodeWslReaderPreparing": "Preparando o leitor SQLite do WSL. Atualize o Vault após a conclusão da configuração.",
+      "openCodeWslReaderNotPrepared": "O leitor SQLite do WSL não está preparado. Atualize o Vault para tentar novamente.",
+      "openCodeDatabaseBusy": "{{label}} está gravando em {{name}}, por isso seu histórico foi ignorado. Ele será lido novamente na próxima atualização.",
+      "openCodeDatabaseUnreadable": "Não foi possível ler o histórico de {{label}} em {{name}}: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "Ainda não é possível pesquisar sessões de {{label}} dentro do WSL a partir do Windows.",
+      "openCodeWriteAheadLogUnreadable": "Não foi possível ler o histórico de {{label}} em {{name}}. Seu log de gravação antecipada não pode ser aberto em modo somente leitura neste sistema de arquivos. Encerre {{label}} normalmente para descarregar o log.",
+      "wslTranscriptFsSlow": "Os arquivos de transcrição do WSL estão temporariamente indisponíveis porque o acesso ao sistema de arquivos está demorando demais. Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslTranscriptFsCapacity": "A busca por transcrições do WSL está temporariamente indisponível porque já há solicitações demais ao sistema de arquivos em espera. Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslTranscriptFsProcessFailed": "Os arquivos de transcrição do WSL estão temporariamente indisponíveis porque o processo auxiliar do sistema de arquivos falhou ({{detail}}). Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslDistroNotRunning": "Os arquivos de transcrição do WSL estão indisponíveis porque a distribuição WSL '{{distro}}' não está em execução. Abra um terminal nela para iniciá-la.",
+      "wslDistroUnverifiable": "Os arquivos de transcrição do WSL estão indisponíveis porque o WSL não respondeu se '{{distro}}' está em execução. Tente novamente em instantes.",
+      "scopePathsTruncated": "Apenas os primeiros {{limit}} caminhos de projetos foram verificados.",
+      "invalidResultsSkipped_one": "{{count}} entrada de resultado inválida do Histórico de Sessões de Agente foi ignorada.",
+      "invalidResultsSkipped_other": "{{count}} entradas de resultado inválidas do Histórico de Sessões de Agente foram ignoradas.",
+      "invalidResultsSkipped_many": "{{count}} entradas de resultado inválidas do Histórico de Sessões de Agente foram ignoradas.",
+      "scanTimedOutOnSshHost": "A verificação de sessões excedeu o tempo limite de {{seconds}} s neste host SSH. Atualize para tentar novamente.",
+      "scanTimedOut": "A verificação de sessões excedeu o tempo limite de {{seconds}} s — a máquina pode estar ocupada. Atualize para tentar novamente.",
+      "scannerPaused": "A verificação de sessões foi pausada após falhas repetidas. Atualize para tentar novamente.",
+      "scannerBusy": "Há verificações de sessões demais em andamento. Aguarde um momento e atualize.",
+      "scannerMissing": "O verificador de sessões está ausente nesta instalação do Orca. Reinstalar o Orca o restaura.",
+      "scannerStopped": "O verificador de sessões parou inesperadamente. Atualize para tentar novamente."
+    }
   },
   "checksPanel": {
     "unlinked": {
@@ -219,6 +246,12 @@
       "searching": "Buscando…",
       "searchFailed": "Não foi possível concluir a busca. Tente novamente.",
       "refreshFailed": "Falha ao atualizar a prévia. Mostrando a versão anterior; abra o código-fonte para ver o conteúdo atual."
+    },
+    "pdfExport": {
+      "errors": {
+        "noContent": "Nenhum conteúdo para exportar",
+        "timedOut": "O tempo limite da exportação foi excedido"
+      }
     }
   },
   "notifications": {
@@ -1360,6 +1393,23 @@
         "senseVoice": "Chinês, inglês, japonês, coreano e cantonês com detecção automática de idioma.",
         "gpt4oMiniTranscribe": "Transcrição na nuvem com alta precisão e baixo custo. Exige uma chave de API da OpenAI.",
         "gpt4oTranscribe": "Transcrição na nuvem com maior precisão. Exige uma chave de API da OpenAI."
+      }
+    },
+    "diagnostics": {
+      "errors": {
+        "creatingDisabled": "a criação de arquivos de revisão está desativada",
+        "sendingDisabled": "o envio de diagnósticos está desativado",
+        "sendingNotConfigured": "o envio de diagnósticos não está configurado para este build",
+        "expiredBeforeSending": "o arquivo de revisão expirou; crie um novo antes de enviá-lo",
+        "expiredBeforeOpening": "o arquivo de revisão expirou; crie um novo antes de abri-lo",
+        "previewNotOpened": "abra o arquivo de revisão antes de enviá-lo",
+        "previewOpenFailed": "não foi possível abrir o arquivo de revisão",
+        "deleteNotConfigured": "o endpoint de upload de diagnósticos não está configurado para este build",
+        "createFailed": "Não foi possível criar o arquivo de revisão",
+        "openFailed": "Não foi possível abrir o arquivo de revisão",
+        "sendFailed": "Não foi possível enviar os diagnósticos",
+        "discardFailed": "Não foi possível descartar o arquivo de revisão",
+        "deleteFailed": "Não foi possível excluir os diagnósticos enviados"
       }
     }
   },
@@ -21388,7 +21438,12 @@
       "dialogTitle": "Falha ao nomear o chat automaticamente",
       "dialogDescriptionStart": "O Orca não conseguiu gerar um nome para",
       "dialogDescriptionEnd": "a partir da primeira mensagem.",
-      "settings": "Configurações"
+      "settings": "Configurações",
+      "errors": {
+        "noName": "O agente que nomeia os chats não retornou nenhum nome.",
+        "agentNotRun": "O Orca não conseguiu executar o agente que nomeia os chats.",
+        "noAgentAvailable": "Nenhum agente que nomeia os chats pode ser executado neste espaço de trabalho."
+      }
     }
   },
   "updates": {
@@ -22505,6 +22560,40 @@
     "candidateLabels": {
       "codexEnvironment": "Ambiente do Codex",
       "packageManager": "gerenciador de pacotes"
+    }
+  },
+  "emulator": {
+    "errors": {
+      "disabled": "O Emulador Mobile está desativado nas Configurações.",
+      "notAvailable": "O Emulador Mobile não está disponível.",
+      "noSession": "Nenhuma sessão de emulador está ativa",
+      "noDeviceSpecified": "Nenhum dispositivo de emulador especificado. Escolha um dispositivo padrão em Configurações > Emulador Mobile ou informe um dispositivo.",
+      "workspaceChanged": "O espaço de trabalho mudou durante a inicialização do emulador. Reconecte o emulador.",
+      "noIosSimulators": "Nenhum simulador iOS encontrado. Adicione um em Xcode Settings > Platforms.",
+      "simctlUnavailable": "xcrun simctl não está disponível.",
+      "simulatorToolsUnavailable": "As ferramentas do Xcode Simulator não estão disponíveis. Instale a versão completa do Xcode, abra-o uma vez e selecione-o com `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.",
+      "requiresMacosXcode": "O Simulador iOS requer macOS com Xcode Command Line Tools.",
+      "simulatorNotFound": "Simulador {{udid}} não encontrado. Crie um em Xcode > Window > Devices and Simulators.",
+      "serveSimUnavailable": "serve-sim não está disponível.",
+      "serveSimNoEndpoints": "serve-sim não retornou endpoints de streaming.",
+      "serveSimEndpointUnreachable": "serve-sim foi iniciado, mas seu endpoint de streaming não está acessível.",
+      "androidSdkMissing": "Android SDK não encontrado. Instale o Android Studio e defina ANDROID_HOME.",
+      "adbUnavailable": "adb não está disponível.",
+      "noAndroidDevices": "Nenhum dispositivo Android ou AVD encontrado. Crie um no Android Studio.",
+      "androidDeviceNotRunning": "O dispositivo Android \"{{device}}\" não está em execução. Inicie-o primeiro.",
+      "unknownDeviceOrAvd": "\"{{device}}\" não é um dispositivo em execução nem um AVD conhecido.",
+      "avdBootTimeout": "O AVD \"{{avdName}}\" não terminou de inicializar a tempo.",
+      "scrcpyDownloadFailed": "Não foi possível baixar o servidor scrcpy: {{detail}}",
+      "scrcpyServerInvalid": "O servidor scrcpy baixado era inválido ou estava incompleto."
+    },
+    "pane": {
+      "listDevicesFailed": "Não foi possível listar os dispositivos de emulador.",
+      "noDevices": "Nenhum dispositivo de emulador encontrado. Adicione um Simulador iOS no Xcode ou um dispositivo virtual Android no Android Studio.",
+      "startFailed": "Não foi possível iniciar o emulador. Verifique se o Xcode (iOS) ou o Android Studio (Android) está configurado e tente outro dispositivo.",
+      "shutdownFailed": "Não foi possível desligar o emulador. Tente novamente ou encerre-o pelo gerenciador de emuladores."
+    },
+    "settings": {
+      "availabilityCheckFailed": "Não foi possível verificar a disponibilidade do emulador."
     }
   },
   "ephemeralVm": {
