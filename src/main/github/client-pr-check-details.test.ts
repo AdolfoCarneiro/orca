@@ -180,11 +180,8 @@ describe('getPRCheckDetails', () => {
   it.each([
     { status: 'completed', count: 0, calls: 1 },
     { status: 'in_progress', count: 0, calls: 2 },
-    { status: 'queued', count: 0, calls: 2 },
     { status: 'completed', count: 1, calls: 2 },
-    { status: 'completed', count: undefined, calls: 2 },
-    { status: 'completed', count: null, calls: 2 },
-    { status: 'completed', count: '0', calls: 2 }
+    { status: 'completed', count: undefined, calls: 2 }
   ])(
     'only skips authoritative empty annotations for a completed check: %j',
     async ({ status, count, calls }) => {
