@@ -297,7 +297,7 @@ export function useNativeChatContextMenu({
                 <DropdownMenuItem onSelect={onSwitchToTerminal}>
                   <SquareTerminal />
                   {translate(
-                    'components.tab.bar.SortableTabContextMenu.switchToTerminalView',
+                    'components.tab.bar.SortableTabContextMenu.showAsTerminal',
                     'Show as terminal'
                   )}
                   {shortcutLabel ? (
