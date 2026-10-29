@@ -1,14 +1,11 @@
 import type { Editor } from '@tiptap/react'
 
-export const RICH_MARKDOWN_CODE_BLOCK_INDENT = '  '
+const RICH_MARKDOWN_CODE_BLOCK_INDENT = '  '
 
 const LEADING_INDENT = /^(\t| {1,2})/
 
 function changeCodeBlockIndent(editor: Editor, direction: 'indent' | 'outdent'): boolean {
   const { from, to, empty } = editor.state.selection
-  if (empty && direction === 'indent') {
-    return false
-  }
   const tr = editor.state.tr
   editor.state.doc.nodesBetween(from, to, (node, position) => {
     if (node.type.name !== 'codeBlock') {
@@ -47,6 +44,20 @@ export function indentRichMarkdownCodeBlock(editor: Editor): boolean {
   return changeCodeBlockIndent(editor, 'indent')
 }
 
+function selectionStartsInCodeBlock(editor: Editor): boolean {
+  const { $from } = editor.state.selection
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).type.name === 'codeBlock') {
+      return true
+    }
+  }
+  return false
+}
+
 export function outdentRichMarkdownCodeBlock(editor: Editor): boolean {
+  // Selections that start outside code (e.g. list items wrapping a code block) belong to list outdent.
+  if (!selectionStartsInCodeBlock(editor) && !editor.isActive('codeBlock')) {
+    return false
+  }
   return changeCodeBlockIndent(editor, 'outdent')
 }
