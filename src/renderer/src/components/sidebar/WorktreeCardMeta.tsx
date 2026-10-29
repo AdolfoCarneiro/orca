@@ -221,6 +221,7 @@ export function WorktreeCardDetailsHover({
             <>
               <WorktreeCardIssueDetailSection
                 issue={issue}
+                workspaceId={workspace?.id}
                 onManageLinks={onManageLinks ? dismissAndRun(onManageLinks) : undefined}
                 issueMenuOpen={issueMenuOpen}
                 onIssueMenuOpenChange={handleIssueMenuOpenChange}

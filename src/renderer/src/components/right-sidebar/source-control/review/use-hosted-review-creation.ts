@@ -189,7 +189,8 @@ export function useSourceControlHostedReviewCreation({
                   'Open on {{value0}}',
                   { value0: hostedReviewCreateCopy.providerName }
                 ),
-                onClick: () => openAppHttpLink(result.existingReview!.url)
+                onClick: () =>
+                  openAppHttpLink(result.existingReview!.url, { worktreeId: activeWorktreeId })
               }
             }
           )

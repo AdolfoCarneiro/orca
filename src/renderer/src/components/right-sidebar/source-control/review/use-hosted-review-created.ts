@@ -124,7 +124,7 @@ export function useSourceControlHostedReviewCreated({
                 'Open on {{value0}}',
                 { value0: copy.providerName }
               ),
-              onClick: () => openAppHttpLink(result.url)
+              onClick: () => openAppHttpLink(result.url, { worktreeId })
             }
           }
         )

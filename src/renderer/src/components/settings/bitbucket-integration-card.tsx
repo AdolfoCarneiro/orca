@@ -12,7 +12,6 @@ import { usePreflightCardStatuses } from './source-control-preflight-card-status
 import { tokenProviderStatusLabel } from './token-source-control-status'
 import { BitbucketCredentialsDialog } from './bitbucket-credentials-dialog'
 import { translate } from '@/i18n/i18n'
-import { openAppHttpLink } from '@/lib/app-http-link-open'
 
 const API_TOKEN_DOCS_URL = 'https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/'
 const DEFAULT_API_BASE_URL = 'https://api.bitbucket.org/2.0'
@@ -215,7 +214,7 @@ export function BitbucketIntegrationCard(): React.JSX.Element {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={(event) => openAppHttpLink(API_TOKEN_DOCS_URL, { event })}
+                onClick={() => window.api.shell.openUrl(API_TOKEN_DOCS_URL)}
               >
                 <ExternalLink className="size-3.5 mr-1.5" />
                 {translate(

@@ -79,14 +79,14 @@ export function RelatedFeatures(props: {
           <li key={tile.id}>
             <button
               type="button"
-              onClick={() => {
+              onClick={(event) => {
                 track('feature_wall_docs_clicked', {
                   group_id: workflow.id,
                   tile_id: tile.id,
                   source
                 })
                 track('feature_wall_tile_clicked', { tile_id: tile.id })
-                openAppHttpLink(tile.docsUrl)
+                openAppHttpLink(tile.docsUrl, { event })
               }}
               className="inline-flex items-center gap-1.5 text-left text-[13px] hover:underline hover:underline-offset-2"
             >

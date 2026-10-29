@@ -21,9 +21,9 @@ export function GitHubLabelsSettingsLink({
     <div className={cn(separated && 'mt-1 border-t border-border/60 pt-1')}>
       <button
         type="button"
-        onClick={() => {
+        onClick={(event) => {
           onOpen?.()
-          openAppHttpLink(url)
+          openAppHttpLink(url, { event })
         }}
         className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       >
