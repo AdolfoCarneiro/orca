@@ -82,7 +82,14 @@ function downloadTo(url: string, dest: string, redirects = 0): Promise<void> {
       const status = res.statusCode ?? 0
       if (status >= 300 && status < 400 && res.headers.location) {
         // Resolve relative Locations and refuse protocol downgrades (http:).
-        const next = new URL(res.headers.location, url)
+        let next: URL
+        try {
+          next = new URL(res.headers.location, url)
+        } catch (error) {
+          res.resume()
+          reject(error)
+          return
+        }
         if (next.protocol !== 'https:') {
           res.resume()
           reject(new Error(`refusing non-https redirect to ${next.protocol}`))

@@ -45,6 +45,27 @@ async function prepareDownload() {
 }
 
 describe('scrcpy server download publication', () => {
+  it('rejects a malformed redirect URL without escaping the download promise', async () => {
+    const download = await prepareDownload()
+    const outcome: { error?: unknown } = {}
+    void download.ensureScrcpyServerJar().catch((error: unknown) => {
+      outcome.error = error
+    })
+    download.responses[0]!.statusCode = 302
+    download.responses[0]!.headers.location = 'https://['
+    download.responses[0]!.end()
+
+    await vi.waitFor(() => {
+      expect(outcome.error).toMatchObject({
+        name: 'EmulatorError',
+        code: 'emulator_helper_failed',
+        message: 'Could not download scrcpy server: Invalid URL'
+      })
+    })
+    expect(download.isScrcpyServerJarReady()).toBe(false)
+    expect(await readdir(dirname(download.scrcpyServerJarPath()))).toEqual([])
+  })
+
   it.each([1, 10])('keeps %i other callers waiting for the complete JAR', async (count) => {
     const download = await prepareDownload()
     const first = download.ensureScrcpyServerJar()
