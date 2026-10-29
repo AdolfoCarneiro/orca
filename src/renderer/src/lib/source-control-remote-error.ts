@@ -37,7 +37,7 @@ function truncateDetail(detail: string): string {
 function extractPublishFailureDetail(message: string): string | null {
   let remoteDetail: string | null = null
 
-  for (const rawLine of iterateRemoteErrorLines(message)) {
+  for (const rawLine of iterateRemoteErrorLines(stripAnsiEscapeSequences(message))) {
     const line = rawLine.trim()
     if (!line) {
       continue

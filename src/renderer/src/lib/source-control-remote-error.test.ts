@@ -33,6 +33,19 @@ describe('source-control remote error formatting', () => {
     )
   })
 
+  it.each(['fatal', 'remote'])(
+    'redacts ANSI-bearing credentials in %s details from older remote hosts',
+    (prefix) => {
+      const error = new Error(
+        `git.push failed:\n${prefix}: Access denied to https://user:sec\x1b[1 qret@example.com/repo.git`
+      )
+
+      expect(resolveRemoteOperationErrorMessage(error, { isPush: true })).toBe(
+        'Push failed. Access denied to https://example.com/repo.git. Check your remote access and try again.'
+      )
+    }
+  )
+
   it('maps pre-push hook failures to a hook-specific message instead of remote access guidance', () => {
     const error = new Error(
       "git push failed: Command failed: git push origin main\nerror: failed to push some refs to 'origin'\nhusky - pre-push hook exited with code 1\neslint found 2 errors"
