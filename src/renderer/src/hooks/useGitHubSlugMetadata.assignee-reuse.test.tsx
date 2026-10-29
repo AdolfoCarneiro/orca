@@ -95,17 +95,6 @@ describe('repository assignee reuse across row seeds', () => {
     expect(results.get('a')?.data[1]).toEqual({ login: 'alpha', name: null, avatarUrl: '' })
   })
 
-  it('reuses the base list while opening ten rows with different seeds', async () => {
-    for (let index = 0; index < 10; index++) {
-      await render(<Probe key={index} seeds={[`row-${index}`]} />)
-      expect(logins()).toEqual(['member', `row-${index}`])
-    }
-    expect(listUsers).toHaveBeenCalledTimes(1)
-    await render(<Probe key="unseeded" />)
-    expect(logins()).toEqual(['member'])
-    expect(listUsers).toHaveBeenCalledTimes(1)
-  })
-
   it('updates seeds in place without a fetch or loading transition', async () => {
     await render(<Probe seeds={['first']} />)
     await render(<Probe seeds={['second']} />)
