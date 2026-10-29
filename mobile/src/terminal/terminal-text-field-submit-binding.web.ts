@@ -51,6 +51,7 @@ export function bindTerminalTextFieldSubmit(
       event.metaKey ||
       event.getModifierState('AltGraph') ||
       (event.ctrlKey && event.altKey) ||
+      (os === 'ios' && event.altKey && event.key.length === 1) ||
       (event.ctrlKey && event.key === ' ')
     ) {
       return

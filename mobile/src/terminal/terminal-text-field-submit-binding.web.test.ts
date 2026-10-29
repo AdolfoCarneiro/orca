@@ -136,7 +136,7 @@ describe.each(['android', 'ios'] as const)('live terminal keyboard chords on %s'
     ['ArrowUp', {}, '\x1b[A'],
     ['ArrowLeft', { ctrlKey: true }, '\x1b[1;5D'],
     ['Enter', { shiftKey: true }, '\x1b[13;2u'],
-    ['b', { altKey: true }, '\x1bb']
+    ['ArrowLeft', { altKey: true }, '\x1b[1;3D']
   ])('claims %s once before RNWeb can resend it', (name, options, bytes) => {
     const { field, onChord, key } = setup()
     const parentKey = vi.fn()
@@ -145,6 +145,15 @@ describe.each(['android', 'ios'] as const)('live terminal keyboard chords on %s'
     expect(onChord).toHaveBeenCalledExactlyOnceWith({ bytes })
     expect(parentKey).not.toHaveBeenCalled()
   })
+
+  it.each(['b', '@', '[', ']', '{', ' '])(
+    'keeps Option-generated %j native on iOS and Alt chords on Android',
+    (name) => {
+      const { onChord, key } = setup()
+      expect(key(name, { altKey: true }).defaultPrevented).toBe(os === 'android')
+      expect(onChord.mock.calls).toEqual(os === 'android' ? [[{ bytes: `\x1b${name}` }]] : [])
+    }
+  )
 
   it.each([
     ['a', {}],
