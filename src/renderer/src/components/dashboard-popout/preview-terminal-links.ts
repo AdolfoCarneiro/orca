@@ -9,34 +9,91 @@ import type { TerminalLinkActionRequester } from '@/components/terminal-pane/ter
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { TERMINAL_HTTP_URL_REGEX } from '../../../../shared/terminal-http-url-extraction'
 import { previewTerminalLinkContext } from './preview-terminal-link-context'
+import { httpLinkDirectClickDestination } from '@/lib/http-link-destinations'
+import { isHttpLinkBackgroundOpen } from '@/lib/http-link-browser-placement'
+import type { LinkAction } from '@/components/link-actions/link-action-request'
 
 export type PreviewTerminalLinkRouting = {
   getContext: () => ReturnType<typeof previewTerminalLinkContext>
   request: TerminalLinkActionRequester
+  onNavigate?: () => void
 }
 
 /** Share pane actions for OSC and detected URLs; retain the preview's single URL provider. */
 export function installPreviewTerminalLinks(
-  terminal: Terminal,
-  deps: { getSettings: () => GlobalSettings | null; linkRouting?: PreviewTerminalLinkRouting }
+  terminal: Pick<
+    Terminal,
+    | 'element'
+    | 'options'
+    | 'hasSelection'
+    | 'clearSelection'
+    | 'focus'
+    | 'loadAddon'
+    | 'registerLinkProvider'
+  >,
+  deps: {
+    getSettings: () => Pick<
+      GlobalSettings,
+      | 'terminalRightClickToPaste'
+      | 'terminalLinkClickBehavior'
+      | 'terminalLinkActionPopoverEnabled'
+      | 'openLinksInAppInBackground'
+    > | null
+    linkRouting?: PreviewTerminalLinkRouting
+  }
 ): () => void {
   installGuardedLinkProviderRegistration(terminal)
-  const pointerGesture = installTerminalLinkPointerGesture(terminal)
+  const pointerGesture = deps.linkRouting ? installTerminalLinkPointerGesture(terminal) : null
   let hoveredLink: string | null = null
   const activate = (event: MouseEvent, uri: string): boolean => {
     const context = deps.linkRouting?.getContext() ?? previewTerminalLinkContext()
-    const handled = handleOscLink(uri, event, {
-      ...context,
-      linkActionContext: deps.linkRouting && {
-        paneId: 0,
-        pointerGesture,
-        claimPtyMouse: () => true,
-        request: deps.linkRouting.request,
-        focusTerminal: () => terminal.focus(),
-        plainClickBehavior: terminalLinkClickBehaviorFor(deps.getSettings()),
-        sourceOwner: context.sourceOwner
+    let requested = false
+    const navigate = (): void => deps.linkRouting?.onNavigate?.()
+    const browserAction = (action: LinkAction): LinkAction => ({
+      ...action,
+      run: () => {
+        if (!action.external && !isHttpLinkBackgroundOpen({ settings: deps.getSettings() }))
+          navigate()
+        return action.run()
       }
     })
+    const handled = handleOscLink(uri, event, {
+      ...context,
+      onInternalOpen: navigate,
+      linkActionContext: deps.linkRouting &&
+        pointerGesture && {
+          paneId: 0,
+          pointerGesture,
+          claimPtyMouse: () => true,
+          request: (request) => {
+            requested = true
+            deps.linkRouting?.request(
+              request.kind === 'url'
+                ? {
+                    ...request,
+                    primary: browserAction(request.primary),
+                    alternate: request.alternate && browserAction(request.alternate),
+                    secondaryActions: request.secondaryActions?.map(browserAction)
+                  }
+                : request
+            )
+          },
+          focusTerminal: () => terminal.focus(),
+          plainClickBehavior: terminalLinkClickBehaviorFor(deps.getSettings()),
+          sourceOwner: context.sourceOwner
+        }
+    })
+    if (
+      handled &&
+      !requested &&
+      /^https?:/i.test(uri) &&
+      httpLinkDirectClickDestination(
+        context.actionDestinations ?? { primary: 'system' },
+        event.shiftKey
+      ) === 'orca' &&
+      !isHttpLinkBackgroundOpen({ settings: deps.getSettings() })
+    )
+      navigate()
     if (handled) {
       terminal.clearSelection()
     }
@@ -62,7 +119,7 @@ export function installPreviewTerminalLinks(
   }
   terminal.element?.addEventListener('contextmenu', contextMenu)
   return () => {
-    pointerGesture.dispose()
+    pointerGesture?.dispose()
     terminal.element?.removeEventListener('contextmenu', contextMenu)
     if (terminal.options.linkHandler === linkHandler) {
       terminal.options.linkHandler = previousHandler

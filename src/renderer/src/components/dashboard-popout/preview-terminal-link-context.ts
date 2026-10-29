@@ -1,4 +1,8 @@
 import { useAppStore } from '@/store'
+import { resolveOwner } from '@/lib/resolve-owner'
+import { hostRouteForAuthority } from '@/runtime/runtime-client-target'
+import { findRegisteredTerminalTab } from '@/runtime/mounted-terminal-tab-registry'
+import { resolveTerminalStartupCwd } from '../../../../shared/terminal-startup-cwd'
 import { resolveWorkspaceDirectory } from '@/lib/workspace-directory'
 import { resolvePaneWslDistro } from '@/components/terminal-pane/terminal-pane-wsl-distro'
 import { httpLinkActionDestinationsFor } from '@/lib/http-link-destinations'
@@ -14,7 +18,8 @@ import type { handleOscLink } from '@/components/terminal-pane/terminal-osc-link
 export type PreviewTerminalLinkSource = Pick<
   DashboardCard,
   'worktreeId' | 'tabId' | 'executionHostId'
->
+> &
+  Partial<Pick<DashboardCard, 'leafId' | 'ptyId'>>
 
 /** Resolve on gestures, without subscribing every dashboard preview to workspace changes. */
 export function previewTerminalLinkContext(
@@ -37,10 +42,34 @@ export function previewTerminalLinkContext(
       ? canOpenWorkspaceBrowserTabOnRuntime(state, worktreeId, sourceOwner.runtimeEnvironmentId)
       : sourceOwner.kind === 'ssh' &&
         canOpenWorkspaceBrowserTabOnSsh(state, worktreeId, sourceOwner.connectionId))
+  const owner =
+    source && host ? resolveOwner(state, { workspaceId: worktreeId, hostId: host.id }) : null
+  const route = owner?.kind === 'resolved' ? hostRouteForAuthority(owner.owner) : null
+  const tab = state.tabsByWorktree?.[worktreeId]?.find((tab) => tab.id === source?.tabId)
+  const mounted = source ? findRegisteredTerminalTab(source.tabId, worktreeId)?.tab : null
+  const paneId = source?.leafId ? mounted?.getManager()?.getNumericIdForLeaf(source.leafId) : null
+  const paneContext =
+    paneId != null && source?.ptyId && mounted?.getPtyIdForPane(paneId) === source.ptyId
+      ? mounted.getLinkContextForPane?.(paneId)
+      : null
   return {
+    ...paneContext,
+    startupCwd:
+      paneContext?.startupCwd ??
+      resolveTerminalStartupCwd(worktreePath ?? '', tab?.startupCwd) ??
+      worktreePath ??
+      '',
+    fileContext: {
+      target: route?.target ?? { kind: 'local' },
+      worktreeId,
+      worktreePath,
+      ...(host?.kind === 'ssh' ? { connectionId: host.targetId } : {}),
+      ...(route ? { expectedExecutionHostId: route.at } : {}),
+      sourceHostResolved: route !== null
+    },
     worktreeId,
     worktreePath: worktreePath ?? '',
-    runtimeEnvironmentId: host?.kind === 'runtime' ? host.environmentId : null,
+    runtimeEnvironmentId: route?.target.kind === 'environment' ? route.target.environmentId : null,
     sourceTabId: worktreePath ? source?.tabId : undefined,
     wslDistro:
       worktreePath && host?.kind === 'local'

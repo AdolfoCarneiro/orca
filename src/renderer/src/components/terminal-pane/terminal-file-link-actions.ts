@@ -1,3 +1,4 @@
+import type { TerminalFileContext } from './terminal-file-path-mapping'
 import type { LinkActionRequest } from '@/components/link-actions/link-action-request'
 import type { HttpLinkSourceOwner } from '@/lib/http-link-routing'
 import { buildHttpLinkActions } from '@/lib/http-link-destinations'
@@ -26,6 +27,8 @@ export type TerminalFileLinkActionDeps = {
   worktreeId: string
   worktreePath: string
   runtimeEnvironmentId?: string | null
+  fileContext?: TerminalFileContext
+  onInternalOpen?: () => void
   wslDistro?: string | null
   /** The paired-server terminal that printed the link; lets its host grant a file outside workspaces. */
   terminalHandle?: string | null
@@ -79,11 +82,9 @@ export function buildFileLinkActions(
     deps.worktreePath,
     terminalLinkWslDistro(deps.wslDistro, deps.runtimeEnvironmentId)
   )
-  const fileContext = getTerminalFileContext(
-    deps.worktreeId,
-    deps.worktreePath,
-    deps.runtimeEnvironmentId
-  )
+  const fileContext =
+    deps.fileContext ??
+    getTerminalFileContext(deps.worktreeId, deps.worktreePath, deps.runtimeEnvironmentId)
   const worktreeRoot = resolveKnownWorktreeRootPathLink(
     mappedPath,
     useAppStore.getState(),

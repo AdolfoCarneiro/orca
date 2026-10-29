@@ -1,3 +1,4 @@
+import type { TerminalFileContext } from './terminal-file-path-mapping'
 import { downloadAndOpenRemoteTerminalFile } from './terminal-remote-file-download-open'
 import { findWorkspaceFileRoute } from '@/lib/runtime-workspace-file-route'
 import { isPathInsideWorktree, toWorktreeRelativePath } from '../../../../shared/terminal-links'
@@ -59,6 +60,8 @@ type TerminalFileOpenDeps = {
   worktreeId: string
   worktreePath: string
   runtimeEnvironmentId?: string | null
+  fileContext?: TerminalFileContext
+  onInternalOpen?: () => void
   wslDistro?: string | null
   /** Shift+modifier: the OS default app, or the other link-routing browser for a local HTML file. */
   openWithSystemDefault?: boolean
@@ -110,7 +113,8 @@ export function openDetectedFilePath(
 
   void (async () => {
     let statResult
-    let fileContext = getTerminalFileContext(worktreeId, worktreePath, runtimeEnvironmentId)
+    let fileContext =
+      deps.fileContext ?? getTerminalFileContext(worktreeId, worktreePath, runtimeEnvironmentId)
     const sourceFileHostId =
       terminalFileSourceHost(useAppStore.getState(), fileContext) ??
       getConnectionExecutionHostId(fileContext.connectionId)
@@ -144,6 +148,7 @@ export function openDetectedFilePath(
         if (!isCurrentRequest()) {
           return
         }
+        deps.onInternalOpen?.()
         activateAndRevealWorktree(worktreeRootLink.id, {
           executionHostId: worktreeRootLink.executionHostId
         })
@@ -250,6 +255,7 @@ export function openDetectedFilePath(
           canOpenWithSystemDefault,
           ...(linkContext && !clientLocal ? { fileExecutionHostId } : {}),
           linkContext,
+          onInternalOpen: deps.onInternalOpen,
           ...(explicitGroupRequest ? { refuseOpenInSourceGroup: refuseExplicitNonEditorRoute } : {})
         })
       ) {
@@ -267,6 +273,7 @@ export function openDetectedFilePath(
     const runtimeOwnerId = runtimeTargetEnvironmentId(fileContext.target) ?? sourceRuntimeOwnerId
     let targetExecutionHostId =
       hostWorkspaceFile?.executionHostId ??
+      (deps.fileContext ? sourceFileHostId : null) ??
       (runtimeOwnerId
         ? toRuntimeExecutionHostId(runtimeOwnerId)
         : getConnectionExecutionHostId(fileContext.connectionId))
@@ -302,6 +309,7 @@ export function openDetectedFilePath(
       return
     }
 
+    deps.onInternalOpen?.()
     if (targetWorktreeId) {
       // Route by workspace shape and resolved host: folder keys are valid and worktree ids can repeat across hosts.
       activateAndRevealWorkspace(targetWorktreeId, {

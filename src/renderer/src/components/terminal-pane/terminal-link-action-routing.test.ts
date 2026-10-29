@@ -72,6 +72,25 @@ describe('terminal link action routing', () => {
     expect(closeTerminalLinkActionRequest(first, first)).toBeNull()
   })
 
+  it('requests contextmenu actions with plain clicks disabled but still honors PTY claim refusal', () => {
+    const event = plainEvent()
+    Object.defineProperty(event, 'type', { value: 'contextmenu' })
+    const request = vi.fn()
+    const context = actionContext(request)
+    context.plainClickBehavior = 'none'
+    context.pointerGesture.canRequestAction = () => false
+    const details = {
+      destination: 'https://example.com',
+      kind: 'url' as const,
+      primary: { label: 'Open', run: vi.fn() }
+    }
+    expect(requestTerminalLinkAction(event, context, details)).toBe(true)
+    expect(request).toHaveBeenCalledOnce()
+    context.claimPtyMouse = () => false
+    expect(requestTerminalLinkAction(event, context, details)).toBe(false)
+    expect(request).toHaveBeenCalledOnce()
+  })
+
   it('claims PTY mouse ownership only after the pointer gesture is eligible', () => {
     const claimPtyMouse = vi.fn(() => true)
     const request = vi.fn()

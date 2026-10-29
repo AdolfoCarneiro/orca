@@ -27,6 +27,17 @@ describe('terminal link activation', () => {
     expect(isTerminalOwnedLinkGesture(event())).toBe(true)
   })
 
+  it('keeps a genuine contextmenu out of direct activation even with the platform modifier', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Macintosh' })
+    expect(isTerminalLinkDirectActivation(event({ type: 'contextmenu', metaKey: true }))).toBe(
+      false
+    )
+    vi.stubGlobal('navigator', { userAgent: 'Windows' })
+    expect(isTerminalLinkDirectActivation(event({ type: 'contextmenu', ctrlKey: true }))).toBe(
+      false
+    )
+  })
+
   it('reserves macOS Control-click for the context menu', () => {
     vi.stubGlobal('navigator', { userAgent: 'Macintosh' })
 

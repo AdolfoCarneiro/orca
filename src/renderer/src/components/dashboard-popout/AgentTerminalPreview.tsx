@@ -52,7 +52,8 @@ export function AgentTerminalPreview({
   terminalInput = null,
   linkSource,
   className,
-  onRequestClose
+  onRequestClose,
+  onNavigate
 }: {
   ptyId: string
   /** Host-input facts relayed with the card; null routes bytes by client OS. */
@@ -60,6 +61,7 @@ export function AgentTerminalPreview({
   linkSource?: PreviewTerminalLinkSource
   className?: string
   onRequestClose?: () => void
+  onNavigate?: () => void
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -71,6 +73,7 @@ export function AgentTerminalPreview({
   const macOptionAsAltRef = useRef(macOptionAsAlt)
   const terminalInputRef = useRef(terminalInput)
   const onRequestCloseRef = useRef(onRequestClose)
+  const onNavigateRef = useRef(onNavigate)
   const linkSourceRef = useRef(linkSource)
   const [linkRequest, setLinkRequest] = useState<TerminalLinkActionRequest | null>(null)
   const { terminalTheme: composedTheme, terminalMode } = useMemo(() => {
@@ -97,8 +100,9 @@ export function AgentTerminalPreview({
     macOptionAsAltRef.current = macOptionAsAlt
     terminalInputRef.current = terminalInput
     onRequestCloseRef.current = onRequestClose
+    onNavigateRef.current = onNavigate
     linkSourceRef.current = linkSource
-  }, [settings, macOptionAsAlt, terminalInput, onRequestClose, linkSource])
+  }, [settings, macOptionAsAlt, terminalInput, onRequestClose, linkSource, onNavigate])
 
   // Font changes retain the replay-driven fit, grid claim and input-owner reset.
   useEffect(() => {
@@ -197,7 +201,8 @@ export function AgentTerminalPreview({
           getTerminalInput: () => terminalInputRef.current,
           linkRouting: {
             getContext: () => previewTerminalLinkContext(linkSourceRef.current),
-            request: setLinkRequest
+            request: setLinkRequest,
+            onNavigate: () => onNavigateRef.current?.()
           },
           requestClose: () => onRequestCloseRef.current?.()
         })
@@ -345,6 +350,7 @@ export function AgentTerminalPreview({
       {linkRequest ? (
         <LinkActionPopover
           request={linkRequest}
+          onOpenSettings={onNavigate ?? null}
           onClose={(dismissed) =>
             setLinkRequest((current) => closeTerminalLinkActionRequest(current, dismissed))
           }

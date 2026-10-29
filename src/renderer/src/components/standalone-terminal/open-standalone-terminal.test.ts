@@ -72,6 +72,13 @@ describe('standalone terminal input', () => {
     expect(sendInput).toHaveBeenCalledWith('ls\r')
   })
 
+  it('preserves a real-input mouse report for a mouse-aware child', () => {
+    const sendInput = open(false)
+    signalUserInput()
+    emitData('\x1b[<0;1;1M')
+    expect(sendInput).toHaveBeenCalledExactlyOnceWith('\x1b[<0;1;1M')
+  })
+
   it('leaves query replies to the real pane when it only mirrors one', () => {
     const sendInput = open(false)
     emitData(CURSOR_POSITION_REPLY)

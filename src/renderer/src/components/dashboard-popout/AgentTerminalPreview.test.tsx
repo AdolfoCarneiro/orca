@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 
 import '@testing-library/jest-dom/vitest'
+import { useState } from 'react'
+import { AgentTerminalDialog } from './AgentTerminalDialog'
+import type { DashboardCard } from '../../../../shared/dashboard-snapshot'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Terminal } from '@xterm/xterm'
@@ -9,7 +12,7 @@ import type { TerminalPreviewApi } from '../../../../preload/api/dashboard-api'
 import type { TerminalPreviewConnectResult } from '../../../../shared/terminal-preview'
 
 const terminalHarness = vi.hoisted(() => ({
-  instances: [] as {
+  instances: new Array<{
     options: Terminal['options']
     element: HTMLElement
     write: ReturnType<typeof vi.fn>
@@ -26,7 +29,7 @@ const terminalHarness = vi.hoisted(() => ({
     modes: { bracketedPasteMode: boolean }
     selectionText: string
     customKeyHandler: ((event: KeyboardEvent) => boolean) | null
-  }[],
+  }>(),
   userInputListener: null as (() => void) | null,
   userInputDispose: vi.fn()
 }))
@@ -34,6 +37,8 @@ const terminalHarness = vi.hoisted(() => ({
 const platformState = vi.hoisted(() => ({ value: 'linux' }))
 const storeState = vi.hoisted(() => ({
   settings: null,
+  openSettingsPage: vi.fn(),
+  openSettingsTarget: vi.fn(),
   keybindings: {} as Record<string, string[]>
 }))
 
@@ -257,9 +262,63 @@ describe('AgentTerminalPreview', () => {
       )
     })
     const browser = await view.findByRole('button', { name: /System Browser/ })
+    expect(view.queryByRole('button', { name: 'Terminal link settings' })).toBeNull()
     fireEvent.click(browser)
     expect(openUrl).toHaveBeenCalledExactlyOnceWith(url)
     await waitFor(() => expect(view.queryByRole('button', { name: /System Browser/ })).toBeNull())
+  })
+
+  it('hands in-window Settings navigation to the host before opening Settings', async () => {
+    const onNavigate = vi.fn()
+    const card: DashboardCard = {
+      paneKey: 'tab:leaf',
+      ptyId: 'pty-1',
+      agentType: 'codex',
+      bucket: 'working',
+      dotState: 'working',
+      task: 'task',
+      repoId: 'repo',
+      worktreeId: 'wt',
+      tabId: 'tab',
+      leafId: 'leaf',
+      repoName: 'Repo',
+      worktreeName: 'Workspace',
+      startedAt: 0,
+      finishedAt: null,
+      stateChangedAt: 0,
+      unseen: false
+    }
+    function Host() {
+      const [open, setOpen] = useState(true)
+      return (
+        <TooltipProvider>
+          <AgentTerminalDialog
+            card={open ? card : null}
+            onOpenChange={setOpen}
+            onReveal={() => {}}
+            onNavigate={onNavigate}
+          />
+        </TooltipProvider>
+      )
+    }
+    const view = render(<Host />)
+    await waitFor(() => expect(terminalHarness.instances).toHaveLength(1))
+    const terminal = terminalHarness.instances[0]!
+    act(() => {
+      terminal.options.linkHandler?.hover?.(new MouseEvent('mousemove'), 'https://example.com', {
+        start: { x: 1, y: 1 },
+        end: { x: 2, y: 1 }
+      })
+      terminal.element.dispatchEvent(new MouseEvent('contextmenu', { button: 2, cancelable: true }))
+    })
+    fireEvent.click(await view.findByRole('button', { name: 'Terminal link settings' }))
+    expect(onNavigate).toHaveBeenCalledOnce()
+    await waitFor(() => expect(view.queryByRole('dialog')).toBeNull())
+    expect(storeState.openSettingsTarget).toHaveBeenCalledOnce()
+    expect(storeState.openSettingsPage).toHaveBeenCalledOnce()
+    expect(onNavigate.mock.invocationCallOrder[0]).toBeLessThan(
+      storeState.openSettingsPage.mock.invocationCallOrder[0]!
+    )
   })
 
   it('routes signaled user input while a live write parses and drops parser replies', async () => {

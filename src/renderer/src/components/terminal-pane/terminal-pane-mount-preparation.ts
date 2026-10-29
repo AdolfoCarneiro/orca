@@ -238,6 +238,7 @@ export function prepareTerminalPaneMount(
     getManager: () => deps.managerRef.current,
     getContainer: () => deps.containerRef.current,
     getPtyIdForPane: (paneId) => paneTransports.get(paneId)?.getPtyId() ?? null,
+    getLinkContextForPane: (paneId) => ({ startupCwd: getPaneLinkCwd(paneId), terminalHomePath }),
     getTabWideAgentHintLeafId: deps.getTabWideAgentHintLeafId
   })
   const fileOpenLinkHint = getTerminalFileOpenHint()

@@ -1,3 +1,4 @@
+import { showFileLinkOpenFailureToast } from '@/lib/file-link-open-failure-toast'
 import { resolveTerminalFileLink } from '../../../../shared/terminal-links'
 import { isWindowsAbsolutePathLike } from '../../../../shared/cross-platform-path'
 import type { LinkHandlerDeps } from './terminal-link-handlers'
@@ -14,7 +15,10 @@ import {
 } from './terminal-url-link-hit-testing'
 import type { HttpLinkSourceOwner } from '@/lib/http-link-routing'
 import type { TerminalLinkActionContext } from './terminal-link-action-request'
-import { handleTerminalFileLink } from './terminal-file-link-actions'
+import {
+  handleTerminalFileLink,
+  type TerminalFileLinkActionDeps
+} from './terminal-file-link-actions'
 
 type TerminalLinkEvent = Pick<MouseEvent, 'metaKey' | 'ctrlKey'> &
   Partial<
@@ -55,6 +59,9 @@ export function handleOscLink(
         'runtimeEnvironmentId' | 'startupCwd' | 'terminalHomePath' | 'wslDistro' | 'sourceTabId'
       >
     > & {
+      fileContext?: TerminalFileLinkActionDeps['fileContext']
+      onInternalOpen?: () => void
+      onOpenFailure?: TerminalFileLinkActionDeps['onOpenFailure']
       sourceOwner?: HttpLinkSourceOwner
       requestOpenLinksInAppPreference?: TerminalLinkRoutingPreferenceRequester
       linkActionContext?: TerminalLinkActionContext | null
@@ -122,7 +129,12 @@ export function handleOscLink(
       file.line,
       file.column,
       mouseEvent,
-      deps,
+      {
+        ...deps,
+        onOpenFailure:
+          deps.onOpenFailure ??
+          ((failure) => showFileLinkOpenFailureToast(file.absolutePath, failure))
+      },
       deps.linkActionContext,
       rawText
     )
