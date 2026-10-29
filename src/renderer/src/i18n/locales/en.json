@@ -571,6 +571,26 @@
         "administratorSearchDescription": "See Orca’s Windows permissions or restart with administrator approval.",
         "administratorApproval": "Windows will ask for approval. Use your usual account."
       },
+      "limit": {
+        "label": "Maximum running terminals",
+        "description": "Limits your running terminals across projects on this host.",
+        "system": "System PTY limit: {{value}}",
+        "unknown": "Unavailable",
+        "shared": "Shared with other terminal apps. This is total capacity, not free slots.",
+        "disconnected": "This host is disconnected. Reconnect to view or change its terminal limit.",
+        "unsupported": "This host’s terminal service does not support changing this limit yet.",
+        "environment": "This Orca instance has a terminal limit set by its environment. Remove the override on this host to edit it here.",
+        "savedUnreadable": "Couldn’t read this host’s saved terminal limit. Using {{value}}. Enter a value and press Enter to replace it.",
+        "failed": "Couldn’t confirm the terminal limit. Try again.",
+        "retry": "Retry",
+        "unit": "terminals",
+        "search": {
+          "limit": "limit",
+          "maximum": "maximum",
+          "pty": "pty",
+          "capacity": "capacity"
+        }
+      },
       "wordSeparators": {
         "description": "Characters treated as word boundaries for double-click selection, including space.",
         "noSpaceHint": "No space included — double-click will select across spaces."
@@ -19068,7 +19088,7 @@
         "historyInOtherAccount": "This chat's history is in another Claude account. Switch back to that account to continue it.",
         "claudeAccountFolderMissing": "The selected Claude account's folder is missing. Sign in to it again or choose another account.",
         "claudeAccountSetupFailed": "The selected Claude account could not be set up. Try again or choose another account.",
-        "agentCommandNotRunnable": "{{agent}}'s Command in Settings → Agents must be a program path or name Orca can find, with no arguments or variables. Change it or reset it.",
+        "agentCommandNotRunnable": "{{agent}}'s Command in Settings → Agents must start with a program Orca can find. Variables, pipes and other shell syntax aren't supported; use the Environment setting for variables. Change it or reset it.",
         "runtimeNotInstalled": "{{agent}} isn't installed on the computer running this chat. Install it from the chat in a current version of Orca.",
         "fullAccessAsRoot": "{{agent}} won't use Full access while it runs as root. Choose another permission for {{agent}} in Settings → Agents for the computer running this chat, then start a new chat.",
         "launchPreparationFailed": "Orca couldn't prepare {{agent}} to start on the computer running this chat.",
@@ -19710,7 +19730,12 @@
       },
       "agentMessage": {
         "messageFrom": "Message from",
-        "unnamedSender": "an agent"
+        "unnamedSender": "an agent",
+        "goToAgent": "Go to agent",
+        "messageFromCoordinator": "Message from your coordinator",
+        "showMore": "Show more",
+        "taskFromCoordinator": "Task from your coordinator",
+        "updateFromWorker": "Update from your worker"
       },
       "goal": {
         "placeholder": "Describe your goal, define measurable outcomes for best results",
@@ -19814,6 +19839,7 @@
         "reconnect": "Reconnect",
         "stopped": "{{distro}} is stopped",
         "start": "Start",
+        "startFailed": "Couldn’t start {{distro}}. Check it in Settings → Remote Orca Servers.",
         "unverifiable": "Orca couldn't check whether {{distro}} is running",
         "startToSend": "Start {{distro}} to send."
       },
@@ -19975,6 +20001,16 @@
         "effortPickerFailed": "Could not open the effort picker.",
         "modelApplyFailed": "Could not apply model {{value}}.",
         "effortApplyFailed": "Could not apply effort {{value}}."
+      },
+      "githubPeek": {
+        "updated": "updated {{time}}",
+        "oneComment": "1 comment",
+        "comments": "{{count}} comments",
+        "unavailable": "Preview unavailable.",
+        "retry": "Retry"
+      },
+      "webPeek": {
+        "unavailable": "No preview for this page."
       }
     },
     "tab": {
@@ -20368,7 +20404,12 @@
         "queueSearchSteer": "steer",
         "shellEnvSearchVariables": "environment variables",
         "shellEnvSearchPath": "PATH",
-        "shellEnvSearchProxy": "proxy"
+        "shellEnvSearchProxy": "proxy",
+        "linkPreviewsToggleLabel": "Toggle link previews",
+        "linkPreviewsTitle": "Link previews",
+        "linkPreviewsCopy": "Hovering a web link shows a preview card. Orca fetches the page to build it, so the site can see the request.",
+        "linkPreviewsSearchUnfurl": "unfurl",
+        "linkPreviewsSearchHover": "hover card"
       }
     },
     "agentChildRow": {
