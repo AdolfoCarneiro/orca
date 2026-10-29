@@ -38,6 +38,8 @@ export function useNativeChatDisclosures(): NativeChatDisclosureStore {
           const oldest = updated.keys().next().value
           if (oldest !== undefined && oldest !== key) {
             updated.delete(oldest)
+            // An evicted disclosure reads as closed, so its scroll goes with it like an explicit close.
+            runScroll.delete(oldest)
           }
         }
         return updated
