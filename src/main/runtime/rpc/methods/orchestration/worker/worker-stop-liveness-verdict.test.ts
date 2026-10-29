@@ -28,10 +28,10 @@ describe('worker-stop against a terminal we lost contact with', () => {
   afterEach(() => db.close())
 
   async function call(name: string, params: Record<string, unknown>) {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((candidate) => candidate.name === name)
-    if (!method) {
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (candidate) => candidate.name === name
+    )
+    if (!method || isStreamingMethod(method)) {
       throw new Error(`Method not found: ${name}`)
     }
     return method.handler(method.params!.parse(params), { runtime })

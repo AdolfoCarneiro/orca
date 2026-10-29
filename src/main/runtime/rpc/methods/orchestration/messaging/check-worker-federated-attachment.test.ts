@@ -55,10 +55,10 @@ describe('orchestration.check on a federated attachment across a restart', () =>
   }
 
   function check(ctx: RpcContext, params: Record<string, unknown> = {}): Promise<CheckResult> {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
-      .filter((method) => !isStreamingMethod(method))
-      .find((entry) => entry.name === 'orchestration.check')
-    if (!method) {
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
+      (entry) => entry.name === 'orchestration.check'
+    )
+    if (!method || isStreamingMethod(method)) {
       throw new Error('orchestration.check is not registered')
     }
     const parsed = method.params

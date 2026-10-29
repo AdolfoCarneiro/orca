@@ -42,6 +42,7 @@ import {
   OrcadPeerDesktopsParamsSchema
 } from '../orcad-peer-desktops-contract'
 import { OrcadTerminalCensusParamsSchema } from '../orcad-terminal-census'
+import { CrewSubscribeParams } from '../orchestration-crew'
 import { pluginConsentRequestSchema } from '../plugins/plugin-consent-request'
 import {
   AccountsUnsubscribeParams,
@@ -1237,6 +1238,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'orchestration.ask': AskParams,
   'orchestration.callerShow': null,
   'orchestration.check': CheckParams,
+  'orchestration.crewSubscribe': CrewSubscribeParams,
   'orchestration.dispatch': DispatchParams,
   'orchestration.dispatchShow': DispatchShowParams,
   'orchestration.federationAck': FederationAckParams,
@@ -1494,7 +1496,6 @@ export const RPC_PARAMS_BY_METHOD = {
 // graph reaches into src/main. Listing them keeps the gap visible instead of absent.
 export const RPC_METHODS_WITHOUT_SHARED_PARAMS: readonly string[] = [
   'emulator.install',
-  'orchestration.crewSubscribe',
   'orchestration.send',
   'orchestration.taskUpdate'
 ]

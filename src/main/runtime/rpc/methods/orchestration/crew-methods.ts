@@ -1,5 +1,4 @@
-import { z } from 'zod'
-import { CrewParty } from '../../../../../shared/orchestration-crew'
+import { CrewSubscribeParams } from '../../../../../shared/orchestration-crew'
 import { subscribeCrew } from '../../../orchestration/crew/crew-stream'
 import { defineStreamingMethod } from '../../core'
 
@@ -8,7 +7,7 @@ export const ORCHESTRATION_CREW_METHODS = [
   defineStreamingMethod({
     name: 'orchestration.crewSubscribe',
     permission: 'workspace',
-    params: z.object({ party: CrewParty }),
+    params: CrewSubscribeParams,
     handler: async ({ party }, { runtime, signal, connectionId }, emit) => {
       await new Promise<void>((resolve) => {
         const key = `crew:${connectionId ?? 'local'}:${++sequence}`
