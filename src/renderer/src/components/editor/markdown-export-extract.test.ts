@@ -62,7 +62,9 @@ describe('getActiveMarkdownExportPayload', () => {
       root
     })
 
-    expect(fetch).toHaveBeenCalledWith('blob:rich-local-image')
+    expect(fetch).toHaveBeenCalledWith('blob:rich-local-image', {
+      signal: expect.any(AbortSignal)
+    })
     expect(payload?.html).toContain('src="data:image/png;base64,AQID"')
     expect(payload?.html).not.toContain('blob:rich-local-image')
   })

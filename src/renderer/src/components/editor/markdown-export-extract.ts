@@ -93,7 +93,7 @@ async function buildMarkdownExportPayload(
   const controller = new AbortController()
   try {
     await Promise.all([
-      inlineBlobImageSources(clone),
+      inlineBlobImageSources(clone, controller),
       inlineMarkdownExportLocalImages(localImages, controller)
     ])
   } catch (error) {
@@ -110,29 +110,44 @@ async function buildMarkdownExportPayload(
   return { title, html }
 }
 
-async function inlineBlobImageSources(root: Element): Promise<void> {
+function inlineBlobImageSources(root: Element, controller: AbortController): Promise<void> {
+  const { signal } = controller
   const images = Array.from(root.querySelectorAll<HTMLImageElement>('img[src^="blob:"]'))
-  await Promise.all(
-    images.map(async (image) => {
-      const src = image.getAttribute('src')
-      if (!src) {
-        return
-      }
-      image.setAttribute('src', await readBlobImageAsDataUrl(src))
-    })
+  const sources = images.map((image) => image.getAttribute('src'))
+  const clearImages = (): void => {
+    images.length = 0
+  }
+  signal.addEventListener('abort', clearImages, { once: true })
+  return Promise.all(
+    sources.map((src) => (src ? readBlobImageAsDataUrl(src, signal) : Promise.resolve(null)))
   )
+    .then((dataUrls) => {
+      signal.throwIfAborted()
+      for (const [index, image] of images.entries()) {
+        const dataUrl = dataUrls[index]
+        if (dataUrl) {
+          image.setAttribute('src', dataUrl)
+        }
+      }
+    })
+    .finally(() => signal.removeEventListener('abort', clearImages))
 }
 
-async function readBlobImageAsDataUrl(src: string): Promise<string> {
+async function readBlobImageAsDataUrl(src: string, signal: AbortSignal): Promise<string> {
   try {
-    const response = await fetch(src)
+    signal.throwIfAborted()
+    const response = await fetch(src, { signal })
+    signal.throwIfAborted()
     if (!response.ok) {
       throw new Error('Unable to fetch blob image')
     }
     const blob = await response.blob()
+    signal.throwIfAborted()
     const bytes = new Uint8Array(await blob.arrayBuffer())
+    signal.throwIfAborted()
     return `data:${blob.type || 'application/octet-stream'};base64,${bytesToBase64(bytes)}`
   } catch (error) {
+    signal.throwIfAborted()
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to inline image for PDF export: ${message}`)
   }
