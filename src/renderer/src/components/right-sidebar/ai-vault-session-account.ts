@@ -96,10 +96,7 @@ export function resolveAiVaultSessionAccount(
 }
 
 export function useAiVaultSessionAccount(session: SessionAccountSource): string | null {
-  const settings = useAppStore((state) => state.settings)
   const [accounts, setAccounts] = useState<SessionAccounts | null>(null)
-  const claudeSaved = settings?.claudeManagedAccounts
-  const codexSaved = settings?.codexManagedAccounts
   const agent = session.agent
   const dataAccount =
     !!session.accountHome &&
@@ -109,6 +106,12 @@ export function useAiVaultSessionAccount(session: SessionAccountSource): string 
     session.executionHostId === LOCAL_EXECUTION_HOST_ID &&
     session.accountHome != null &&
     (agent === 'claude' || agent === 'codex' || dataAccount)
+  const claudeSaved = useAppStore((state) =>
+    needsAccounts && agent === 'claude' ? state.settings?.claudeManagedAccounts : undefined
+  )
+  const codexSaved = useAppStore((state) =>
+    needsAccounts && agent === 'codex' ? state.settings?.codexManagedAccounts : undefined
+  )
 
   useEffect(() => {
     if (!needsAccounts) {
@@ -135,5 +138,9 @@ export function useAiVaultSessionAccount(session: SessionAccountSource): string 
     }
   }, [agent, dataAccount, needsAccounts, claudeSaved, codexSaved])
 
-  return resolveAiVaultSessionAccount(session, settings, accounts)
+  return resolveAiVaultSessionAccount(
+    session,
+    { claudeManagedAccounts: claudeSaved ?? [], codexManagedAccounts: codexSaved ?? [] },
+    accounts
+  )
 }
