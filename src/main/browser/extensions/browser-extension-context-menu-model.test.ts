@@ -47,6 +47,64 @@ describe('menu item bookkeeping', () => {
     expect(removeContextMenuItem(items, 1).map((item) => item.id)).toEqual(['1'])
   })
 
+  it.each([100, 1000])('removes a reversed %i-item chain within a linear read budget', (size) => {
+    const items: StoredContextMenuItem[] = Array.from({ length: size }, (_, id) => ({
+      id,
+      parentId: id === size - 1 ? undefined : id + 1,
+      title: String(id),
+      type: 'normal',
+      contexts: ['page'],
+      enabled: true,
+      visible: true
+    }))
+    const before = structuredClone(items)
+    let reads = 0
+    const observed = new Proxy(items, {
+      get(target, key, receiver) {
+        if (typeof key === 'string' && /^(0|[1-9][0-9]*)$/.test(key)) {
+          reads++
+        }
+        return Reflect.get(target, key, receiver)
+      }
+    })
+
+    expect(removeContextMenuItem(observed, size - 1)).toEqual([])
+    expect(reads).toBeLessThanOrEqual(8 * size)
+    expect(items).toEqual(before)
+  })
+
+  it('preserves persisted duplicate edges, cycles and typed finite ids during removal', () => {
+    const base = { type: 'normal' as const, contexts: ['page'], enabled: true, visible: true }
+    const items: StoredContextMenuItem[] = [
+      { ...base, id: 'leaf', parentId: 'shared' },
+      { ...base, id: 'shared', parentId: 'left' },
+      { ...base, id: 'shared', parentId: 'right' },
+      { ...base, id: 'left', parentId: 'cycle' },
+      { ...base, id: 'cycle', parentId: 'left' },
+      { ...base, id: 'right' },
+      { ...base, id: 'leaf', parentId: 'unrelated' },
+      { ...base, id: 'unrelated' },
+      { ...base, id: 0 },
+      { ...base, id: '0' },
+      { ...base, id: 1.25 },
+      { ...base, id: '1.25' },
+      { ...base, id: 'zero-child', parentId: -0 },
+      { ...base, id: 'fraction-child', parentId: 1.25 }
+    ]
+    const before = structuredClone(items)
+    const survivors = removeContextMenuItem(items, 'left')
+    expect(survivors).toEqual(
+      items.filter((item) => !['leaf', 'shared', 'left', 'cycle'].includes(String(item.id)))
+    )
+    expect(removeContextMenuItem(items, -0)).toEqual(
+      items.filter((item) => item.id !== 0 && item.id !== 'zero-child')
+    )
+    expect(removeContextMenuItem(items, 1.25)).toEqual(
+      items.filter((item) => item.id !== 1.25 && item.id !== 'fraction-child')
+    )
+    expect(items).toEqual(before)
+  })
+
   it('keeps exactly one checked radio per adjacent run', () => {
     const items = build(
       { id: 'a', title: 'A', type: 'radio' },

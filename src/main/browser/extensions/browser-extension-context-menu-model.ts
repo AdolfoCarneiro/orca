@@ -25,15 +25,18 @@ function describeId(id: MenuItemId): string {
 }
 
 function descendantsOf(items: StoredContextMenuItem[], id: MenuItemId): Set<MenuItemId> {
+  const childrenByParent = new Map<MenuItemId, MenuItemId[]>()
+  for (const item of items) {
+    if (item.parentId !== undefined) {
+      const children = childrenByParent.get(item.parentId) ?? []
+      children.push(item.id)
+      childrenByParent.set(item.parentId, children)
+    }
+  }
   const found = new Set<MenuItemId>([id])
-  let grew = true
-  while (grew) {
-    grew = false
-    for (const item of items) {
-      if (item.parentId !== undefined && found.has(item.parentId) && !found.has(item.id)) {
-        found.add(item.id)
-        grew = true
-      }
+  for (const parent of found) {
+    for (const child of childrenByParent.get(parent) ?? []) {
+      found.add(child)
     }
   }
   return found
