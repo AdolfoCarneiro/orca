@@ -19907,7 +19907,8 @@
         "reconnect": "Подключиться снова",
         "stopped": "{{distro}} остановлен",
         "start": "Запустить",
-        "unverifiable": "Orca не удалось проверить, запущен ли {{distro}}"
+        "unverifiable": "Orca не удалось проверить, запущен ли {{distro}}",
+        "startToSend": "Запустите {{distro}}, чтобы отправить."
       },
       "interruptedContinue": {
         "continue": "Продолжить",

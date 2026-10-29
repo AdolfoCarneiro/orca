@@ -19291,7 +19291,8 @@
         "reconnect": "Yeniden bağlan",
         "stopped": "{{distro}} durduruldu",
         "start": "Başlat",
-        "unverifiable": "Orca, {{distro}} öğesinin çalışıp çalışmadığını denetleyemedi"
+        "unverifiable": "Orca, {{distro}} öğesinin çalışıp çalışmadığını denetleyemedi",
+        "startToSend": "Göndermek için {{distro}} dağıtımını başlatın."
       },
       "interruptedContinue": {
         "continue": "Devam et",

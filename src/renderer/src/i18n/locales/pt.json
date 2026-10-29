@@ -20297,7 +20297,8 @@
         "reconnect": "Reconectar",
         "stopped": "{{distro}} está parado",
         "start": "Iniciar",
-        "unverifiable": "O Orca não conseguiu verificar se {{distro}} está em execução"
+        "unverifiable": "O Orca não conseguiu verificar se {{distro}} está em execução",
+        "startToSend": "Inicie {{distro}} para enviar."
       },
       "interruptedContinue": {
         "continue": "Continuar",

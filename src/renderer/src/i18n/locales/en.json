@@ -19733,7 +19733,8 @@
         "reconnect": "Reconnect",
         "stopped": "{{distro}} is stopped",
         "start": "Start",
-        "unverifiable": "Orca couldn't check whether {{distro}} is running"
+        "unverifiable": "Orca couldn't check whether {{distro}} is running",
+        "startToSend": "Start {{distro}} to send."
       },
       "interruptedContinue": {
         "continue": "Continue",

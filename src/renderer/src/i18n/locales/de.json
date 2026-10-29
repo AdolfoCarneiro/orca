@@ -19307,7 +19307,8 @@
         "reconnect": "Erneut verbinden",
         "stopped": "{{distro}} ist gestoppt",
         "start": "Starten",
-        "unverifiable": "Orca konnte nicht prüfen, ob {{distro}} läuft"
+        "unverifiable": "Orca konnte nicht prüfen, ob {{distro}} läuft",
+        "startToSend": "Starte {{distro}}, um zu senden."
       },
       "interruptedContinue": {
         "continue": "Fortfahren",

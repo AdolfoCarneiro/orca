@@ -19659,7 +19659,8 @@
         "reconnect": "Reconnecter",
         "stopped": "{{distro}} est arrêté",
         "start": "Démarrer",
-        "unverifiable": "Orca n'a pas pu vérifier si {{distro}} est en cours d'exécution"
+        "unverifiable": "Orca n'a pas pu vérifier si {{distro}} est en cours d'exécution",
+        "startToSend": "Démarrez {{distro}} pour envoyer."
       },
       "interruptedContinue": {
         "continue": "Continuer",
