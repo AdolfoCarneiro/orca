@@ -19,7 +19,8 @@ export async function resolveAgentModelCatalogScope(
   params: Parameters<AgentModelCatalogService['read']>[0],
   record: AgentModelCatalogRecord | undefined,
   base: string,
-  home: AgentSessionAccountHome | null
+  home: AgentSessionAccountHome | null,
+  isCurrent: () => boolean = () => true
 ): Promise<{
   base: string
   fingerprint: string
@@ -27,6 +28,9 @@ export async function resolveAgentModelCatalogScope(
   cwd?: string
   resolved?: AgentModelCatalogResolvedProbe
 } | null> {
+  if (!isCurrent()) {
+    return null
+  }
   if (!independentAgentModelCatalog(params.agent) || !home) {
     return { base, fingerprint: base, exact: false }
   }
@@ -38,7 +42,7 @@ export async function resolveAgentModelCatalogScope(
   if (params.legacy) {
     const fingerprint = agentModelCatalogScopeFingerprint(base, 'legacy-account')
     const resolved =
-      savedOnly() || !deps.store.probeDue(fingerprint)
+      !isCurrent() || savedOnly() || !deps.store.probeDue(fingerprint)
         ? null
         : await probe?.resolveLegacy?.(home).catch(() => null)
     return {
@@ -55,16 +59,19 @@ export async function resolveAgentModelCatalogScope(
   if (!cwd) {
     return { base, fingerprint: base, exact: false }
   }
+  if (!isCurrent()) {
+    return null
+  }
   const resolve = (lookup: AgentModelCatalogLookup) =>
-    probe?.resolve?.(home, cwd, lookup).catch(() => null)
+    isCurrent() ? probe?.resolve?.(home, cwd, lookup).catch(() => null) : null
   const scopeKey = (resolved: AgentModelCatalogResolvedProbe | null | undefined) =>
     agentModelCatalogScopeFingerprint(base, cwd, resolved?.identity)
   let resolved = await resolve(savedOnly() ? 'saved' : 'snapshot')
   // Rerun shells only for reads due to list; saved-only reads must remain passive.
-  if (!savedOnly() && (!resolved || deps.store.probeDue(scopeKey(resolved)))) {
+  if (isCurrent() && !savedOnly() && (!resolved || deps.store.probeDue(scopeKey(resolved)))) {
     resolved = await resolve('recover')
   }
-  if (probe?.resolve && !resolved) {
+  if (!isCurrent() || (probe?.resolve && !resolved)) {
     return null
   }
   return {

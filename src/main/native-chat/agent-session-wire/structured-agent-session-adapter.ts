@@ -1,3 +1,4 @@
+import type { AgentModelCatalogContext } from '../agent-model-catalog/agent-model-catalog-service-contract'
 import type { StructuredAgentSessionAdmitFreshInput } from './structured-agent-session-input-admission'
 import type { AiVaultConversationCopy } from '../../../shared/ai-vault-resume-preparation'
 import type { AgentChatPermissionChoice } from '../../../shared/agent-chat-permission-mode'
@@ -261,6 +262,7 @@ export type StructuredAgentSessionAdapter = StructuredAgentSessionAdapterStop & 
   /** Prove this acquisition’s root alive for lease renewal; absent/false falls back to PID probing. */
   holdsLiveProviderProcess?(sessionId: string, acquisitionGeneration: string): boolean
   /** Undefined preserves the client catalog when the provider reports none. */
+  readCatalogContext?: (sessionId: string) => AgentModelCatalogContext | undefined
   readCommands?(sessionId: string): AgentSessionSlashCommand[] | undefined
   atRestCommands?: StructuredAgentSessionAtRestCommands
   /** Claim the live callback, build reply, commit journal CAS, then answer; reject unbuildable replies before commit. */

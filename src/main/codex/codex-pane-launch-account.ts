@@ -1,5 +1,6 @@
-import { codexLoginHome } from './codex-launch-home'
-import { dirname } from 'node:path'
+import { resolveHostCodexManagedHomeVerdict } from '../codex-accounts/host-codex-managed-home-ownership'
+import { canonicalCodexHome, codexLoginHome } from './codex-launch-home'
+import { basename, dirname } from 'node:path'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { parseWslUncPath } from '../../shared/wsl-paths'
@@ -24,6 +25,17 @@ export function resolveCodexPaneLaunchAccount(args: {
   settings: CodexPaneLaunchAccountSettings
   target: CodexAccountSelectionTarget
 }): CodexPaneAccountRecord | null {
+  try {
+    return classifyCodexPaneLaunchAccount(args)
+  } catch (error) {
+    console.warn('[codex-pane-account] Could not classify spawned Codex home:', error)
+    return null
+  }
+}
+
+function classifyCodexPaneLaunchAccount(
+  args: Parameters<typeof resolveCodexPaneLaunchAccount>[0]
+): CodexPaneAccountRecord | null {
   const accountId = args.pinnedByResume
     ? resolveCodexHomeOwnerAccountId(args)
     : getSelectedCodexAccountIdForTarget(args.settings, args.target)
@@ -50,9 +62,16 @@ function resolveCodexPaneHomeRoute(args: {
   ) {
     return 'real-home'
   }
+  if (
+    args.target.runtime !== 'wsl' &&
+    normalizeRuntimePathForComparison(canonicalCodexHome(args.launchCodexHomePath)) ===
+      normalizeRuntimePathForComparison(canonicalCodexHome(args.systemCodexHomePath))
+  ) {
+    return 'real-home'
+  }
   const launchHomePath = args.launchCodexHomePath
   const accountOwnsHome = args.settings.codexManagedAccounts?.some((account) =>
-    accountOwnsCodexHome(account, args.target, launchHomePath)
+    accountOwnsCodexHome(account, args.target, launchHomePath, args.systemCodexHomePath)
   )
   if (accountOwnsHome) {
     return 'account-home'
@@ -78,14 +97,21 @@ function resolveCodexHomeOwnerAccountId(args: {
   }
   if (
     normalizeRuntimePathForComparison(
-      codexLoginHome(args.launchCodexHomePath, args.systemCodexHomePath)
-    ) === normalizeRuntimePathForComparison(args.systemCodexHomePath)
+      args.target.runtime === 'wsl'
+        ? args.launchCodexHomePath
+        : canonicalCodexHome(codexLoginHome(args.launchCodexHomePath, args.systemCodexHomePath))
+    ) ===
+    normalizeRuntimePathForComparison(
+      args.target.runtime === 'wsl'
+        ? args.systemCodexHomePath
+        : canonicalCodexHome(args.systemCodexHomePath)
+    )
   ) {
     return null
   }
   const launchHomePath = args.launchCodexHomePath
   const owner = args.settings.codexManagedAccounts?.find((account) =>
-    accountOwnsCodexHome(account, args.target, launchHomePath)
+    accountOwnsCodexHome(account, args.target, launchHomePath, args.systemCodexHomePath)
   )
   // Unknown owners cannot produce safe restart prompts; guessing could block terminal input.
   return owner ? owner.id : undefined
@@ -94,7 +120,8 @@ function resolveCodexHomeOwnerAccountId(args: {
 function accountOwnsCodexHome(
   account: NonNullable<CodexPaneLaunchAccountSettings['codexManagedAccounts']>[number],
   target: CodexAccountSelectionTarget,
-  launchHomePath: string
+  launchHomePath: string,
+  systemCodexHomePath: string
 ): boolean {
   // Host and per-distro WSL selection lanes must not claim each other's homes.
   if (
@@ -104,14 +131,29 @@ function accountOwnsCodexHome(
     return false
   }
   if (
+    (target.runtime === 'wsl' || basename(dirname(launchHomePath)) !== 'overlays') &&
     normalizeRuntimePathForComparison(account.managedHomePath) ===
-    normalizeRuntimePathForComparison(
-      target.runtime === 'wsl'
-        ? launchHomePath
-        : codexLoginHome(launchHomePath, undefined, dirname(dirname(account.managedHomePath)))
-    )
+      normalizeRuntimePathForComparison(launchHomePath)
   ) {
     return true
+  }
+  if (target.runtime !== 'wsl') {
+    const root = dirname(dirname(account.managedHomePath))
+    const projected = codexLoginHome(canonicalCodexHome(launchHomePath), systemCodexHomePath, root)
+    const owned = resolveHostCodexManagedHomeVerdict({
+      candidatePath: account.managedHomePath,
+      expectedAccountId: account.id,
+      managedAccountsRoot: root,
+      systemCodexHomePath
+    })
+    if (owned.kind === 'indeterminate') {
+      throw owned.error
+    }
+    return (
+      owned.kind === 'owned' &&
+      normalizeRuntimePathForComparison(canonicalCodexHome(projected)) ===
+        normalizeRuntimePathForComparison(owned.homePath)
+    )
   }
   const launchWslHome = target.runtime === 'wsl' ? parseWslUncPath(launchHomePath) : null
   const accountDistro = account.wslDistro?.trim()

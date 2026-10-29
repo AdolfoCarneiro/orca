@@ -1,3 +1,4 @@
+import type { AgentModelCatalogContext } from './agent-model-catalog-service-contract'
 import { agentSessionConversationView } from '../../../shared/agent-session-conversation-view'
 import { describe, expect, it, vi } from 'vitest'
 import type { AgentSessionAccountHome } from '../../../shared/agent-session-account-home'
@@ -158,4 +159,82 @@ describe('a saved-only catalog read', () => {
       'defaultHoldsInEveryWorkspace'
     )
   })
+})
+
+it('keeps saved-only reads exact and active associations bounded to their immutable owner', async () => {
+  const saved = agentSessionRecordFixture(agentSessionLeaseFixture())
+  saved.provider = 'codex'
+  saved.accountHome = { variable: 'CODEX_HOME', path: '/saved' }
+  const store = new AgentModelCatalogStore()
+  let active: AgentModelCatalogContext | undefined
+  const home = (path: string) => ({ variable: 'CODEX_HOME', path })
+  const makeContext = (path: string): AgentModelCatalogContext => {
+    const context: AgentModelCatalogContext = {
+      accountHome: home(path),
+      fence: saved.lease.runtimeFence,
+      acquisitionGeneration: path,
+      isCurrent: () => active === context
+    }
+    return context
+  }
+  const probe = vi.fn(async (account: AgentSessionAccountHome) => ({
+    ...listing('path' in account ? account.path : 'other'),
+    complete: true
+  }))
+  const service = createAgentModelCatalogService({
+    store,
+    getRecord: () => saved,
+    getConversation: () => agentSessionConversationView(saved),
+    drivesRecord: () => true,
+    resolveAccountHome: async () => home('/selected'),
+    readCatalogContext: () => active,
+    recordWorkspacePath: async () => '/repo',
+    probes: { codex: probe }
+  })
+  try {
+    await service.read({ agent: 'codex', sessionId: saved.sessionId, waitForListing: true })
+    const idle = service.peek(saved.sessionId)
+    expect(idle?.models[0]?.id).toBe('/saved')
+    active = makeContext('/actual-1')
+    const old = active
+    expect(service.peek(saved.sessionId)).toBeNull()
+    await service.read({ agent: 'codex', sessionId: saved.sessionId, waitForListing: true })
+    expect(service.peek(saved.sessionId, true, old)?.models[0]?.id).toBe('/actual-1')
+    const passive = await service.read({
+      agent: 'codex',
+      sessionId: saved.sessionId,
+      savedOnly: true
+    })
+    expect(passive).toMatchObject({ models: [{ id: '/saved' }] })
+    expect(service.peek(saved.sessionId, true, old)?.models[0]?.id).toBe('/actual-1')
+    active = makeContext('/actual-2')
+    expect(service.peek(saved.sessionId, false, old)).toBeNull()
+    expect(await service.read({ agent: 'codex', sessionId: saved.sessionId }, old)).toEqual({
+      origin: 'unknown'
+    })
+    await service.read({ agent: 'codex', sessionId: saved.sessionId, waitForListing: true })
+    expect(service.peek(saved.sessionId, true, active)?.models[0]?.id).toBe('/actual-2')
+    expect(
+      await service.retainedLiveModelIds(saved.sessionId, {
+        models: [{ id: '/actual-2', label: 'actual', isDefault: true, efforts: [] }]
+      })
+    ).toEqual(['/actual-2'])
+    expect(probe).toHaveBeenCalledTimes(3)
+    expect(saved.accountHome).toEqual(home('/saved'))
+    active = { ...active, accountHome: null, isCurrent: () => true }
+    expect(await service.read({ agent: 'codex', sessionId: saved.sessionId })).toEqual({
+      origin: 'unknown'
+    })
+    expect(service.peek(saved.sessionId)).toBeNull()
+    expect(probe).toHaveBeenCalledTimes(3)
+    active = undefined
+    const idleAgain = await service.read({
+      agent: 'codex',
+      sessionId: saved.sessionId,
+      savedOnly: true
+    })
+    expect(idleAgain).toMatchObject({ models: [{ id: '/saved' }] })
+  } finally {
+    service.stop()
+  }
 })

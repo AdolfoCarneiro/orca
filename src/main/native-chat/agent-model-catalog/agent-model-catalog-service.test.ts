@@ -1,3 +1,4 @@
+import type { AgentModelCatalogContext } from './agent-model-catalog-service-contract'
 import { agentSessionRecordFixture } from '../agent-session-record-test-fixture'
 import { agentSessionConversationView } from '../../../shared/agent-session-conversation-view'
 import {
@@ -15,7 +16,8 @@ import { createAgentModelCatalogService } from './agent-model-catalog-service'
 import {
   AGENT_MODEL_CATALOG_FRESH_MS,
   AgentModelCatalogStore,
-  type AgentModelCatalogSuccess
+  type AgentModelCatalogSuccess,
+  type AgentModelCatalogProbe
 } from './agent-model-catalog-store'
 
 function record(accountHomePath: string): AgentSessionRecord {
@@ -668,3 +670,118 @@ it.each(['cold', 'warm', 'failure', 'stop'] as const)(
     }
   }
 )
+
+it.each(['folder', 'scope', 'probe'] as const)(
+  'expires a captured active owner during %s without recovering or associating a successor',
+  async (boundary) => {
+    const saved = record('/homes/saved')
+    saved.provider = 'codex'
+    saved.accountHome = { variable: 'CODEX_HOME', path: '/homes/saved' }
+    let current = true
+    const context: AgentModelCatalogContext = {
+      accountHome: { variable: 'CODEX_HOME', path: '/homes/actual' },
+      fence: saved.lease.runtimeFence,
+      acquisitionGeneration: 'actual-1',
+      isCurrent: () => current
+    }
+    const waiting = Promise.withResolvers<void>()
+    const entered = Promise.withResolvers<void>()
+    const reads: string[] = []
+    const pause = async (at: string) => {
+      reads.push(at)
+      if (boundary === at) {
+        entered.resolve()
+        await waiting.promise
+      }
+    }
+    const store = new AgentModelCatalogStore()
+    const probe: AgentModelCatalogProbe = Object.assign(async () => listing('unused'), {
+      resolve: async (_home: AgentSessionAccountHome, _cwd: string, lookup?: string) => {
+        await pause('scope')
+        reads.push(lookup ?? 'missing')
+        return {
+          identity: 'native',
+          run: async () => {
+            await pause('probe')
+            return listing('actual')
+          }
+        }
+      }
+    })
+    const service = createAgentModelCatalogService({
+      store,
+      getRecord: () => saved,
+      getConversation: () => agentSessionConversationView(saved),
+      drivesRecord: () => true,
+      readCatalogContext: () => context,
+      resolveAccountHome: async () => {
+        throw new Error('no selected fallback')
+      },
+      recordWorkspacePath: async () => {
+        await pause('folder')
+        return '/repo'
+      },
+      listsInChatFolder: new Set(['codex']),
+      probes: { codex: probe }
+    })
+    try {
+      const pending = service.read(
+        { agent: 'codex', sessionId: saved.sessionId, waitForListing: true },
+        context
+      )
+      await entered.promise
+      current = false
+      waiting.resolve()
+      await expect(pending).resolves.toEqual({ origin: 'unknown' })
+      expect(service.peek(saved.sessionId, false, context)).toBeNull()
+      if (boundary === 'folder') {
+        expect(reads).toEqual(['folder'])
+      }
+      if (boundary === 'scope') {
+        expect(reads).not.toContain('recover')
+      }
+      if (boundary !== 'probe') {
+        expect(reads).not.toContain('probe')
+      }
+    } finally {
+      waiting.resolve()
+      service.stop()
+    }
+  }
+)
+
+it('preserves absent-context Claude discovery independently of live reports on its saved account', async () => {
+  const saved = record('/claude/saved')
+  saved.provider = 'claude'
+  saved.accountHome = { variable: 'CLAUDE_CONFIG_DIR', path: '/claude/saved' }
+  const probe = vi.fn(async () => listing('claude-sonnet-4-5'))
+  const selected = vi.fn(async () => ({ variable: 'CLAUDE_CONFIG_DIR', path: '/claude/selected' }))
+  const service = createAgentModelCatalogService({
+    store: new AgentModelCatalogStore(),
+    getRecord: () => saved,
+    getConversation: () => agentSessionConversationView(saved),
+    drivesRecord: () => true,
+    resolveAccountHome: selected,
+    probes: { claude: probe }
+  })
+  try {
+    const result = await service.read({
+      agent: 'claude',
+      sessionId: saved.sessionId,
+      waitForListing: true
+    })
+    expect(result).toMatchObject({ models: [{ id: 'claude-sonnet-4-5' }] })
+    expect(probe).toHaveBeenCalledExactlyOnceWith(saved.accountHome, {
+      signal: expect.any(AbortSignal)
+    })
+    service.recordLiveListing(saved.sessionId, { models: listing('claude-opus-5-5[1m]').models })
+    expect(await service.read({ agent: 'claude', sessionId: saved.sessionId })).toMatchObject({
+      origin: 'probe',
+      models: [{ id: 'claude-sonnet-4-5' }]
+    })
+    expect(selected).not.toHaveBeenCalled()
+    expect(saved.accountHome.path).toBe('/claude/saved')
+  } finally {
+    service.stop()
+  }
+})

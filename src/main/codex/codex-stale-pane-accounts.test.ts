@@ -1,5 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { resolveCodexLaunchHome } from './codex-launch-home'
+import { publishCommittedPtySpawn } from '../ipc/pty/spawn-commit-publication'
+import { localProvider } from '../ipc/pty/provider/registry'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as fs from 'node:fs'
+import {
+  mkdirSync,
+  symlinkSync,
+  realpathSync,
+  readFileSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { GlobalSettings } from '../../shared/global-settings-types'
@@ -17,6 +29,17 @@ import {
 } from './codex-pane-account-registry'
 import { forgetStaleCodexPanes, listStaleCodexPanes } from './codex-stale-pane-accounts'
 
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof fs>()
+  return { ...actual, lstatSync: vi.fn(actual.lstatSync) }
+})
+vi.mock('./codex-home-paths', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getSystemCodexHomePath: () => join(userDataPath, 'system'),
+  syncSystemCodexResourcesIntoManagedHome: vi.fn()
+}))
+
+const awaitedFs = await vi.importActual<typeof fs>('node:fs')
 let userDataPath: string
 let previousUserDataPath: string | undefined
 
@@ -31,6 +54,7 @@ function settingsWithSelection(
 }
 
 beforeEach(() => {
+  vi.mocked(fs.lstatSync).mockReset().mockImplementation(awaitedFs.lstatSync)
   previousUserDataPath = process.env.ORCA_USER_DATA_PATH
   userDataPath = mkdtempSync(join(tmpdir(), 'orca-codex-pane-accounts-'))
   process.env.ORCA_USER_DATA_PATH = userDataPath
@@ -436,3 +460,130 @@ describe('listStaleCodexPanes', () => {
     ])
   })
 })
+
+it.each([false, true])(
+  'publishes both validated host alias directions and unknown on IO (saved canonical=%s)',
+  (savedCanonical) => {
+    const root = join(userDataPath, 'codex-accounts')
+    const home = join(root, 'a', 'home')
+    mkdirSync(home, { recursive: true })
+    writeFileSync(join(home, '.orca-managed-home'), 'a')
+    const system = join(userDataPath, 'system')
+    mkdirSync(system)
+    const alias = join(userDataPath, 'alias')
+    symlinkSync(root, alias, 'dir')
+    const saved = savedCanonical ? realpathSync(home) : join(alias, 'a', 'home')
+    const actor = resolveCodexLaunchHome({
+      selectedAccount: { homePath: saved, id: 'a' },
+      conversationHome: system,
+      accountsRoot: root,
+      systemHome: system
+    })!
+    const launch = savedCanonical ? actor.replace(realpathSync(root), alias) : actor
+    const settings: GlobalSettings = {
+      ...settingsWithSelection('b'),
+      codexManagedAccounts: [
+        {
+          id: 'a',
+          email: 'a@example.test',
+          managedHomePath: saved,
+          createdAt: 1,
+          updatedAt: 1,
+          lastAuthenticatedAt: 1
+        }
+      ]
+    }
+    const sendPtySpawnedToRenderer = vi.fn()
+    const onCodexHomePtySpawned = vi.fn()
+    const publish = (pinnedByResume = true) =>
+      publishCommittedPtySpawn({
+        state: {
+          deps: {
+            getSettings: () => settings,
+            sendPtySpawnedToRenderer,
+            options: { onCodexHomePtySpawned }
+          },
+          args: { cols: 80, rows: 24 },
+          result: { id: 'reused' },
+          provider: localProvider,
+          cwd: undefined,
+          metadataLeafId: null,
+          pendingRegistrationPtyId: null,
+          effectiveSessionAppId: undefined,
+          stablePaneOwner: null,
+          provisionalPtySize: undefined,
+          isDaemonHostSpawn: true,
+          codexResumeHomeSelected: pinnedByResume,
+          selectedCodexHomePath: launch,
+          codexSelectionTarget: { runtime: 'host' },
+          codexHomeLaunchStartedAt: undefined,
+          codexHomeLaunchStartedSequence: undefined,
+          reattachedCodexHomeRoutes: new Map(),
+          launchCommand: undefined,
+          preSpawnHiddenMarkId: null
+        },
+        nativeWindowsConptySpawn: false,
+        seedPaneKey: null,
+        registration: {
+          store: undefined,
+          worktreeId: undefined,
+          shellOverride: undefined,
+          rendererLaunchAuthority: null
+        },
+        preAllocatedHandle: null,
+        paneKey: null,
+        resumeArgvDropped: false,
+        codexLaunchEnv: undefined,
+        initiallyHidden: false,
+        hiddenDelivery: 'runtime-owned',
+        response: { id: 'reused' }
+      })
+    try {
+      expect(publish().kind).toBe('committed')
+      expect(getCodexPaneAccount('reused')).toEqual({
+        selectionKey: 'host',
+        accountId: 'a',
+        homeRoute: 'account-home'
+      })
+      expect(listStaleCodexPanes({ ptyIds: ['reused'], settings })).toEqual([
+        { ptyId: 'reused', launchAccountId: 'a', activeAccountId: 'b' }
+      ])
+      settings.activeCodexManagedAccountId = 'a'
+      settings.activeCodexManagedAccountIdsByRuntime = { host: 'a', wsl: {} }
+      expect(publish(false).kind).toBe('committed')
+      expect(getCodexPaneAccount('reused')).toEqual({
+        selectionKey: 'host',
+        accountId: 'a',
+        homeRoute: 'account-home'
+      })
+      writeFileSync(join(home, '.orca-managed-home'), 'another-account')
+      expect(publish().kind).toBe('committed')
+      expect(getCodexPaneAccount('reused')).toBeNull()
+      writeFileSync(join(home, '.orca-managed-home'), 'a')
+      expect(publish().kind).toBe('committed')
+      expect(getCodexPaneAccount('reused')?.accountId).toBe('a')
+      settings.activeCodexManagedAccountId = 'b'
+      settings.activeCodexManagedAccountIdsByRuntime = { host: 'b', wsl: {} }
+      const nativeLstat = awaitedFs.lstatSync
+      vi.spyOn(fs, 'lstatSync').mockImplementation((...args) => {
+        if (String(args[0]).includes('overlays')) {
+          throw Object.assign(new Error('classification IO'), { code: 'EIO' })
+        }
+        return nativeLstat(...args)
+      })
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      expect(publish().kind).toBe('committed')
+      expect(getCodexPaneAccount('reused')).toBeNull()
+      expect(listStaleCodexPanes({ ptyIds: ['reused'], settings })).toEqual([])
+      expect(
+        JSON.parse(readFileSync(join(userDataPath, 'codex-pane-accounts.json'), 'utf8')).panes
+      ).not.toHaveProperty('reused')
+      expect(sendPtySpawnedToRenderer).toHaveBeenCalledTimes(5)
+      expect(onCodexHomePtySpawned).toHaveBeenCalledTimes(5)
+      expect(warning).toHaveBeenCalled()
+      expect(settings.activeCodexManagedAccountId).toBe('b')
+    } finally {
+      vi.restoreAllMocks()
+    }
+  }
+)

@@ -1,3 +1,4 @@
+import { applyCodexDaemonSocketGuard } from './codex-daemon-socket-path-guard'
 import { basename, dirname } from 'node:path'
 import { codexConversationStore } from './codex-conversation-store-path'
 import { parseTomlKeyPath } from './config-toml-key-path'
@@ -48,4 +49,12 @@ export function applyCodexSharedStoreConfig(config: string, homePath: string): s
       return !removing
     })
   return `sqlite_home = ${JSON.stringify(resolveEffectiveCodexSqliteHome(store))} ${CODEX_SHARED_STORE_MARKER}\ncli_auth_credentials_store = "file" ${CODEX_SHARED_STORE_MARKER}\n${lines.join('\n')}`
+}
+
+export function applyCodexOverlayConfig(
+  config: string,
+  home: string,
+  effectiveHome = home
+): string {
+  return applyCodexDaemonSocketGuard(applyCodexSharedStoreConfig(config, home), effectiveHome)
 }

@@ -1,5 +1,9 @@
 import type {
-  CodexSessionCatalogAccess,
+  AgentModelCatalogSessionAccess,
+  AgentModelCatalogStore
+} from '../native-chat/agent-model-catalog/agent-model-catalog-store'
+import type { AgentModelCatalogContext } from '../native-chat/agent-model-catalog/agent-model-catalog-service-contract'
+import type {
   CodexStructuredSessionAdapterDeps,
   CodexStructuredLaunch
 } from './codex-structured-session-state'
@@ -12,7 +16,8 @@ export function codexAcquireCatalogAccess(
     'modelCatalog' | 'readModelCatalog' | 'demandModelCatalog'
   >,
   launch: Pick<CodexStructuredLaunch, 'codexHome'>,
-  sessionId?: string
+  sessionId?: string,
+  context?: AgentModelCatalogContext
 ): CodexSessionCatalogAccess | undefined {
   const access = agentModelCatalogSessionAccess(
     deps.modelCatalog,
@@ -26,10 +31,15 @@ export function codexAcquireCatalogAccess(
         ...(deps.readModelCatalog
           ? {
               read: (verifiedOnly?: boolean) =>
-                deps.readModelCatalog?.(sessionId, verifiedOnly) ?? null
+                deps.readModelCatalog?.(sessionId, verifiedOnly, context) ?? null
             }
           : {}),
-        ...(demand ? { demand: (legacy?: boolean) => demand(sessionId, legacy) } : {})
+        ...(demand ? { demand: (legacy?: boolean) => demand(sessionId, legacy, context) } : {})
       }
     : access
+}
+
+export type CodexSessionCatalogAccess = AgentModelCatalogSessionAccess & {
+  read?: (verifiedOnly?: boolean) => ReturnType<AgentModelCatalogStore['get']>
+  demand?: (legacy?: boolean) => Promise<unknown>
 }

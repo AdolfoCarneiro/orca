@@ -1,3 +1,5 @@
+import type { CodexSessionCatalogAccess } from './codex-structured-acquire-catalog'
+import type { AgentModelCatalogContext } from '../native-chat/agent-model-catalog/agent-model-catalog-service-contract'
 import type { CodexAppliedSettings } from './codex-structured-applied-settings'
 import type { StructuredAgentSessionChildWorkProducer } from '../native-chat/agent-session-wire/structured-agent-session-subagent-rows'
 import type { StructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
@@ -25,20 +27,14 @@ import type { CodexJournalTranslator } from './codex-structured-journal-translat
 import type { StructuredAgentSessionLifecycleEvent } from '../native-chat/agent-session-wire/structured-agent-session-adapter'
 import type { CodexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 import type { StructuredLaunchRequest } from '../runtime/structured-agent-launch-composition'
-import type {
-  AgentModelCatalogSessionAccess,
-  AgentModelCatalogStore
-} from '../native-chat/agent-model-catalog/agent-model-catalog-store'
+import type { AgentModelCatalogStore } from '../native-chat/agent-model-catalog/agent-model-catalog-store'
 import type { StructuredAgentSessionProviderOpen } from '../native-chat/agent-session-wire/structured-agent-session-provider-open-contract'
 import type { NativeChatVisualsLaunch } from '../native-chat/native-chat-visuals-delivery'
 import type { AgentChatPermissionChoice } from '../../shared/agent-chat-permission-mode'
 import type { CodexSandboxPolicy } from './codex-structured-sandbox-policy'
 import type { StructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 
-export type CodexSessionCatalogAccess = AgentModelCatalogSessionAccess & {
-  read?: (verifiedOnly?: boolean) => ReturnType<AgentModelCatalogStore['get']>
-  demand?: (legacy?: boolean) => Promise<unknown>
-}
+export type { CodexSessionCatalogAccess } from './codex-structured-acquire-catalog'
 
 export type CodexStructuredLaunch = {
   command: string
@@ -128,12 +124,18 @@ export type CodexStructuredSessionAdapterDeps = {
   modelCatalog?: AgentModelCatalogStore
   readModelCatalog?: (
     sessionId: string,
-    verifiedOnly?: boolean
+    verifiedOnly?: boolean,
+    expectedContext?: AgentModelCatalogContext
   ) => ReturnType<AgentModelCatalogStore['get']>
-  demandModelCatalog?: (sessionId: string, legacy?: boolean) => Promise<unknown>
+  demandModelCatalog?: (
+    sessionId: string,
+    legacy?: boolean,
+    expectedContext?: AgentModelCatalogContext
+  ) => Promise<unknown>
 }
 
 export type CodexSession = {
+  catalogContext?: AgentModelCatalogContext
   events?: StructuredAgentSessionEventSink
   account?: AgentSessionAccountKind
   connection: CodexAppServerConnection
@@ -226,6 +228,7 @@ export function requireLiveCodexSession(
 }
 
 export type CodexAcquisitionAttempt = {
+  catalogContext?: AgentModelCatalogContext
   window: CodexAcquisitionWindow
   acquisitionGeneration?: string
   open?: StructuredAgentSessionProviderOpen

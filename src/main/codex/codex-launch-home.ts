@@ -19,7 +19,7 @@ import {
   getSystemCodexHomePath,
   syncSystemCodexResourcesIntoManagedHome
 } from './codex-home-paths'
-import { syncSystemConfigIntoManagedCodexHome } from './codex-config-mirror'
+import { initializeCodexOverlayConfigAtBirth } from './codex-config-mirror'
 import { canonicalCodexHome, codexConversationStore } from './codex-conversation-store-path'
 
 export { canonicalCodexHome, codexConversationStore }
@@ -276,7 +276,7 @@ function materializeCodexOverlay(
   ) {
     throw new Error('Codex actor root is redirected')
   }
-  const overlay = join(root, randomUUID().replaceAll('-', ''))
+  const overlay = join(canonicalCodexHome(root), randomUUID().replaceAll('-', ''))
   const staging = `${overlay}.creating`
   // The exclusive staging name reserves this actor across concurrent constructors.
   mkdirSync(staging)
@@ -299,7 +299,11 @@ function materializeCodexOverlay(
     }
     linkLoginAtBirth(staging, loginHome)
     syncSystemCodexResourcesIntoManagedHome(staging)
-    syncSystemConfigIntoManagedCodexHome({ runtimeHomePath: staging, systemHomePath: systemHome })
+    initializeCodexOverlayConfigAtBirth({
+      runtimeHomePath: staging,
+      effectiveHomePath: overlay,
+      systemHomePath: systemHome
+    })
     renameSync(staging, overlay)
     return overlay
   } catch (error) {

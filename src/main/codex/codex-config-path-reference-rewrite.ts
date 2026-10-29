@@ -1,5 +1,8 @@
+import { normalizeDeprecatedCodexHookFeatureFlag } from './config-toml-deprecated-hook-flag'
+import { parseWslUncPath } from '../../shared/wsl-paths'
+import { stripRuntimeOwnedTomlSections } from './config-toml-runtime-owned-sections'
 import { realpathSync } from 'node:fs'
-import { join, posix as pathPosix, resolve, win32 as pathWin32 } from 'node:path'
+import { dirname, join, posix as pathPosix, resolve, win32 as pathWin32 } from 'node:path'
 import {
   CODEX_BUNDLED_MARKETPLACE_NAMES,
   CODEX_BUNDLED_MARKETPLACES_ENTRY
@@ -189,4 +192,44 @@ function getTomlHeaderPath(header: string): string {
     return trimmed.slice(1, -1).trim()
   }
   return ''
+}
+
+export function resolveCodexConfigMirrorSourceDirectory(
+  systemHomePath: string,
+  systemConfigDir?: string
+): string {
+  return (
+    systemConfigDir ??
+    parseWslUncPath(systemHomePath)?.linuxPath ??
+    dirname(join(systemHomePath, 'config.toml'))
+  )
+}
+
+export function prepareSystemConfigForRuntimeMirror(
+  config: string,
+  systemConfigDir: string,
+  runtimeHomePath?: string
+): string {
+  const prepared = rewriteRelativePathConfigValues(
+    normalizeDeprecatedCodexHookFeatureFlag(config),
+    systemConfigDir
+  )
+  // WSL guest homes do not receive host resource links.
+  return runtimeHomePath && !parseWslUncPath(runtimeHomePath)
+    ? rebaseBundledMarketplaceSources(prepared, systemConfigDir, runtimeHomePath)
+    : prepared
+}
+
+// Install re-keys user-hook trust; plugin/project trust carries unchanged.
+// WSL systemConfigDir must name the Linux-side config directory.
+export function prepareSystemConfigForFreshRuntimeMirror(
+  config: string,
+  systemConfigDir: string,
+  runtimeHomePath?: string
+): string {
+  return stripRuntimeOwnedTomlSections(
+    prepareSystemConfigForRuntimeMirror(config, systemConfigDir, runtimeHomePath),
+    new Set(),
+    { systemHomeDir: systemConfigDir, runtimeHookTrustKeys: new Set() }
+  )
 }

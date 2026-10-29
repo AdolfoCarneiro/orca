@@ -13,7 +13,15 @@ import type {
   AgentModelCatalogWorkspaceDeps,
   AgentModelCatalogRecord
 } from './agent-model-catalog-workspace'
+export type AgentModelCatalogContext = {
+  readonly accountHome: AgentSessionAccountHome | null
+  readonly fence: number
+  readonly acquisitionGeneration: string
+  readonly isCurrent: () => boolean
+}
+
 export type AgentModelCatalogServiceDeps = AgentModelCatalogWorkspaceDeps & {
+  readCatalogContext?: (record: AgentModelCatalogRecord) => AgentModelCatalogContext | undefined
   getConversation: (sessionId: string) => AgentSessionConversationView | undefined
   getRecord: (sessionId: string) => AgentSessionRecord | undefined
   /** Unlaunchable records cannot authorize probing their account with a different host binary. */
@@ -28,22 +36,29 @@ export type AgentModelCatalogServiceDeps = AgentModelCatalogWorkspaceDeps & {
 }
 
 export type AgentModelCatalogService = {
-  peek: (sessionId: string, verifiedOnly?: boolean) => AgentModelCatalogEntry | null
-  read: (params: {
-    agent: string
-    sessionId?: string
-    /** null means the requested workspace is not a local directory. */
-    workspacePath?: string | null
-    inSessionWorkspace?: true
-    /** Await missing-catalog discovery or reprobe of expired unavailability. */
-    waitForListing?: boolean
-    /** Return saved facts only; do not start, join or recheck discovery. */
-    savedOnly?: boolean
-    verifiedOnly?: boolean
-    legacy?: boolean
-    /** Display compatibility only, never launch/admission proof. */
-    legacyOptionsDisplay?: true
-  }) => Promise<AgentSessionModelCatalogResult>
+  peek: (
+    sessionId: string,
+    verifiedOnly?: boolean,
+    expectedContext?: AgentModelCatalogContext
+  ) => AgentModelCatalogEntry | null
+  read: (
+    params: {
+      agent: string
+      sessionId?: string
+      /** null means the requested workspace is not a local directory. */
+      workspacePath?: string | null
+      inSessionWorkspace?: true
+      /** Await missing-catalog discovery or reprobe of expired unavailability. */
+      waitForListing?: boolean
+      /** Return saved facts only; do not start, join or recheck discovery. */
+      savedOnly?: boolean
+      verifiedOnly?: boolean
+      legacy?: boolean
+      /** Display compatibility only, never launch/admission proof. */
+      legacyOptionsDisplay?: true
+    },
+    expectedContext?: AgentModelCatalogContext
+  ) => Promise<AgentSessionModelCatalogResult>
   /** Validate only launch-injected rows against pinned account membership. */
   retainedLiveModelIds: (
     sessionId: string,

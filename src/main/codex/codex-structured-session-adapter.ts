@@ -83,6 +83,11 @@ export class CodexStructuredSessionAdapter implements StructuredAgentSessionAdap
 
   supportsLocation = supportsCodexStructuredLocation
 
+  readCatalogContext: NonNullable<StructuredAgentSessionAdapter['readCatalogContext']> = (
+    sessionId
+  ) =>
+    this.sessions.get(sessionId)?.catalogContext ?? this.acquisitions.get(sessionId)?.catalogContext
+
   readCommands: NonNullable<StructuredAgentSessionAdapter['readCommands']> = (sessionId) =>
     this.sessions.get(sessionId)?.skillReport?.read()
 

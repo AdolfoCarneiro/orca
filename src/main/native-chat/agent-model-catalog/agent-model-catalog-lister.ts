@@ -137,13 +137,18 @@ export function scopedAgentModelCatalogLister(input: {
       if (!input.canList()) {
         throw new AgentModelCatalogListingStoppedError('catalog scope unavailable')
       }
-      if (resolved) {
-        return await resolved.run(attemptSignal)
-      }
-      if (!probe || !probeHome) {
+      if (!resolved && (!probe || !probeHome)) {
         throw new AgentModelCatalogListingStoppedError('catalog scope unavailable')
       }
-      return await probe(probeHome, { signal: attemptSignal, workspacePath })
+      const result = resolved
+        ? await resolved.run(attemptSignal)
+        : probe && probeHome
+          ? await probe(probeHome, { signal: attemptSignal, workspacePath })
+          : undefined
+      if (!result || !input.canList()) {
+        throw new AgentModelCatalogListingStoppedError('catalog scope unavailable')
+      }
+      return result
     } catch (error) {
       throw signal.aborted ? new AgentModelCatalogListingStoppedError(String(error)) : error
     } finally {

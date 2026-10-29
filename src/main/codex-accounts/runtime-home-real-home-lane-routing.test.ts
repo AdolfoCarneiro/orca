@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFakeAppEnvironment } from '../../../config/scripts/vitest-host-ports-setup'
 import type * as NodeFs from 'node:fs'
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  writeFileSync
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 import { resolveCodexLaunchHome } from '../codex/codex-launch-home'
 import { createSettings } from './runtime-home-settings-test-fixtures'
@@ -272,15 +279,66 @@ describe('CodexRuntimeHomeService', () => {
       const familyRoot = join(dirname(login), 'overlays')
       for (let pass = 0; pass < 2; pass++) {
         vi.mocked(readdirSync).mockClear()
-        expect(service.getRetainedHostCodexHookHomePaths(ids)).toEqual(
-          expect.arrayContaining(actors)
-        )
+        expect(
+          service.getRetainedHostCodexHookHomePaths(ids).map((home) => realpathSync(home))
+        ).toEqual(expect.arrayContaining(actors))
         expect(
           vi.mocked(readdirSync).mock.calls.filter(([path]) => String(path) === familyRoot)
         ).toHaveLength(1)
       }
       settings.codexManagedAccounts = []
       expect(service.getRetainedHostCodexHookHomePaths(ids)).toEqual([])
+    }
+  )
+
+  it.each([8, 80])(
+    'processes the actual outer History/resume inventory linearly at %i actors',
+    async (count) => {
+      const login = createManagedAuth(testState.userDataDir, 'account-1', '{"account":"one"}')
+      const actors = Array.from({ length: count }, () =>
+        resolveCodexLaunchHome({
+          selectedAccount: { homePath: login, id: 'account-1' },
+          conversationHome: getSystemCodexHomePath()
+        })!
+      )
+      const settings = createSettings({
+        codexManagedAccounts: [
+          createCodexAccountRecord('account-1', 'one@example.test', 'one', login)
+        ],
+        activeCodexManagedAccountId: 'account-1',
+        activeCodexManagedAccountIdsByRuntime: { host: 'account-1', wsl: {} }
+      })
+      const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture implements the settings store surface.
+      const service = new CodexRuntimeHomeService(createStore(settings) as never)
+      const NativeSet = globalThis.Set
+      const counts: number[] = []
+      class CountOuterSet<T> extends NativeSet<T> {
+        constructor(values?: Iterable<T> | null) {
+          super(values)
+          if (Array.isArray(values) && values[0] === getRuntimeCodexHomePath()) {
+            counts.push(values.length)
+          }
+        }
+      }
+      try {
+        vi.stubGlobal('Set', CountOuterSet)
+        for (let pass = 0; pass < 2; pass++) {
+          const homes = service.getHostCodexHomePathsForSessionDiscovery()
+          expect(homes[0]).toBe(getRuntimeCodexHomePath())
+          expect(homes).toContain(login)
+          expect(homes).toContain(getSystemCodexHomePath())
+          for (const actor of actors) {
+            expect(homes.map((home) => home.replace('/private/var/', '/var/'))).toContain(
+              actor.replace('/private/var/', '/var/')
+            )
+          }
+        }
+        // No custom configured source in this fixture: mirror + H + N actors + X + System + H.
+        expect(counts).toEqual([count + 5, count + 5])
+      } finally {
+        vi.unstubAllGlobals()
+      }
     }
   )
 

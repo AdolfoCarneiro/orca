@@ -108,7 +108,18 @@ export class StructuredAgentSessionClientDelivery {
       return live
     }
     const record = store.getRecord(sessionId)
-    return record ? adapter.atRestCommands?.read(record) : undefined
+    const context = adapter.readCatalogContext?.(sessionId)
+    if (
+      context &&
+      (!context.isCurrent() || !context.accountHome || record?.lease.runtimeFence !== context.fence)
+    ) {
+      return undefined
+    }
+    return record
+      ? adapter.atRestCommands?.read(
+          context?.accountHome ? { ...record, accountHome: context.accountHome } : record
+        )
+      : undefined
   }
 
   /** Wait briefly for scans because one-shot menu readers do not receive later updates. */
@@ -119,9 +130,25 @@ export class StructuredAgentSessionClientDelivery {
     if (live !== undefined || !record) {
       return live
     }
+    const context = adapter.readCatalogContext?.(sessionId)
+    const current = () =>
+      !context ||
+      (context.isCurrent() &&
+        !!context.accountHome &&
+        store.getRecord(sessionId)?.lease.runtimeFence === context.fence &&
+        adapter.readCatalogContext?.(sessionId) === context)
+    if (!current()) {
+      return undefined
+    }
+    const projected = context?.accountHome
+      ? { ...record, accountHome: context.accountHome }
+      : record
     const commands = adapter.atRestCommands?.settled
-      ? await adapter.atRestCommands.settled(record, AT_REST_COMMANDS_READ_BUDGET_MS)
-      : adapter.atRestCommands?.read(record)
+      ? await adapter.atRestCommands.settled(projected, AT_REST_COMMANDS_READ_BUDGET_MS)
+      : adapter.atRestCommands?.read(projected)
+    if (!current()) {
+      return undefined
+    }
     return adapter.readCommands?.(sessionId) ?? commands
   }
 

@@ -186,6 +186,19 @@ describe('CodexRuntimeHomeService', () => {
     const { CodexRuntimeHomeService } = await import('./runtime-home-service')
     const service = new CodexRuntimeHomeService(store as never)
 
+    // Default preparation has no conversation pin and must prepare the actual registered H.
+    expect(service.prepareForCodexLaunch()).toBe(home1)
+    expect(readFileSync(join(home1, 'skills', 'review', 'SKILL.md'), 'utf8')).toBe('skill\n')
+    expect(readFileSync(join(home1, 'config.toml'), 'utf8')).toContain('approval_policy = "never"')
+    writeFileSync(join(getSystemCodexHomePath(), 'config.toml'), 'approval_policy = "on-request"\n')
+    expect(service.resolveHostCodexHomePathForLaunchReadOnly()).toBe(home1)
+    expect(readFileSync(join(home1, 'config.toml'), 'utf8')).toContain('approval_policy = "never"')
+    service.prepareForCodexLaunch()
+    expect(readFileSync(join(home1, 'config.toml'), 'utf8')).toContain(
+      'approval_policy = "on-request"'
+    )
+    // A genuine in-H edit promotes before the layered birth copies System config.
+    writeFileSync(join(home1, 'config.toml'), 'approval_policy = "never"\n')
     const launchHome = service.prepareForCodexLaunch(undefined, undefined, {
       conversationHome: getSystemCodexHomePath()
     })!
@@ -200,6 +213,9 @@ describe('CodexRuntimeHomeService', () => {
       'approval_policy = "never"'
     )
 
+    expect(readFileSync(join(getSystemCodexHomePath(), 'config.toml'), 'utf8')).toContain(
+      'approval_policy = "never"'
+    )
     expect(readFileSync(getSystemCodexAuthPath(), 'utf-8')).toBe('{"account":"system"}\n')
   })
 

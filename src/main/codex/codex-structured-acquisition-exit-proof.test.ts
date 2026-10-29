@@ -1,3 +1,4 @@
+import { fakeCodexAppServer } from './codex-structured-dispatch-test-support'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { AgentSessionJournalIdentity } from '../../shared/agent-session-journal-types'
@@ -121,10 +122,13 @@ describe('Codex failed-acquisition exit proof', () => {
     })
     const acquiring = adapter.acquire({ identity: IDENTITY, fence: 7, spawnToken: 'spawn-9' })
     await readStarted.promise
+    const context = adapter.readCatalogContext('session-1')!
+    expect(context.isCurrent()).toBe(true)
 
     await expect(adapter.closeAll()).rejects.toThrow(
       'codex structured session shutdown could not prove every child stopped'
     )
+    expect(context.isCurrent()).toBe(false)
     processStart.resolve(null)
     await expect(acquiring).rejects.toThrow('agent_session_acquisition_exit_unproven')
     expect(close).toHaveBeenCalledTimes(4)
@@ -170,4 +174,55 @@ describe('Codex failed-acquisition exit proof', () => {
     await expect(acquiring).rejects.toThrow('agent_session_acquisition_exit_unproven')
     expect(close).toHaveBeenCalledTimes(4)
   })
+})
+
+it('exposes only opened owners before publication, expires cancellation, and preserves an unproven published close', async () => {
+  const codex = fakeCodexAppServer()
+  const identityRead = Promise.withResolvers<number | null>()
+  const entered = Promise.withResolvers<void>()
+  const adapter = new CodexStructuredSessionAdapter({
+    resolveLaunch: async () => ({
+      command: 'codex',
+      args: ['app-server'],
+      cwd: '/fixture',
+      codexHome: '/fixture/actual',
+      resumeThreadId: null
+    }),
+    openConnection: codex.openConnection,
+    readProcessStartTime: () => {
+      entered.resolve()
+      return identityRead.promise
+    }
+  })
+  const acquiring = adapter.acquire({ identity: IDENTITY, fence: 7, spawnToken: 'spawn-9' })
+  await entered.promise
+  const first = adapter.readCatalogContext('session-1')!
+  expect(first.accountHome).toEqual({ variable: 'CODEX_HOME', path: '/fixture/actual' })
+  expect(first.isCurrent()).toBe(true) // No model store and process identity still pending.
+  identityRead.resolve(100)
+  const acquired = await acquiring
+  await adapter.open({
+    sessionId: 'session-1',
+    fence: 7,
+    acquisitionGeneration: acquired.acquisitionGeneration,
+    signal: new AbortController().signal
+  })
+  expect(adapter.readCatalogContext('session-1')).toBe(first)
+  const connection = codex.connections[0]!
+  const originalClose = connection.close
+  connection.close = async () => false
+  try {
+    await expect(adapter.closeSession('session-1')).resolves.toBe(false)
+    expect(first.isCurrent()).toBe(true)
+    await expect(
+      adapter.acquire({ identity: IDENTITY, fence: 8, spawnToken: 'spawn-next' })
+    ).rejects.toThrow('could not be stopped')
+    expect(codex.connections).toHaveLength(1)
+    expect(adapter.readCatalogContext('session-1')).toBe(first)
+    expect(first.isCurrent()).toBe(true)
+  } finally {
+    connection.close = originalClose
+    await adapter.closeAll()
+  }
+  expect(first.isCurrent()).toBe(false)
 })

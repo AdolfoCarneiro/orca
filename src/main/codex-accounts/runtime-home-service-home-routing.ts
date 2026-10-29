@@ -46,7 +46,7 @@ export abstract class CodexRuntimeHomeRouting extends CodexRuntimeHomeManagedHom
     for (const perAccountHome of this.getManagedAccountHomesForSessionDiscovery()) {
       homes.push(perAccountHome)
     }
-    return homes.filter((home, index) => homes.indexOf(home) === index)
+    return [...new Set(homes)]
   }
 
   /** Read-only host-account home for session discovery; null means no trusted host-account home. */

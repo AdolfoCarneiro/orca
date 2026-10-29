@@ -1,3 +1,8 @@
+import { fakeCodexAppServer } from '../../codex/codex-structured-dispatch-test-support'
+import { CodexStructuredSessionAdapter } from '../../codex/codex-structured-session-adapter'
+import { CODEX_STRUCTURED_AGENT } from '../../codex/codex-structured-agent-definition'
+import { StructuredAgentRegistry } from './structured-agent-registry'
+import { StructuredAgentSessionAdapterRouter } from './structured-agent-session-adapter-router'
 import { createCodexAtRestSkillCatalog } from '../../codex/codex-at-rest-skills-probe'
 import { refreshAtRestCommandContext } from './at-rest-command-context'
 import { waitForPromiseWithSignal } from '../../../shared/abort-signal-reason'
@@ -24,6 +29,7 @@ import {
   HOST_TEST_NOW,
   HOST_TEST_SESSION as SESSION,
   hostTestAttachParams,
+  hostTestOperationId,
   resetHostTestOperationIds
 } from './structured-agent-session-host-test-data'
 import { openTestJournalHostDatabase } from '../agent-session-journal/journal-host-database-test-support'
@@ -355,4 +361,134 @@ describe("a Claude chat whose Claude isn't running lists Claude's own `/` comman
       vi.useRealTimers()
     }
   })
+})
+
+it('keys acquiring Codex command fallback by actual O, fences a settled replacement, and preserves passive saved O', async () => {
+  const codex = fakeCodexAppServer()
+  let actual = join(directory, 'actual-one')
+  const saved = join(directory, 'saved-zero')
+  const nativeHomes: string[] = []
+  const scanEntered = Promise.withResolvers<void>()
+  const finishScan = Promise.withResolvers<void>()
+  const catalogDeps: Parameters<typeof createCodexAtRestSkillCatalog>[0] = {
+    resolveWorkspacePath: async () => workspace,
+    resolveEnvironment: async () => ({ HOME: directory, PATH: '/bin' }),
+    resolveLaunchArgs: () => [],
+    resolveCommand: () => 'codex',
+    runSession: async (invocation, body) => {
+      const home = invocation.env?.CODEX_HOME ?? ''
+      nativeHomes.push(home)
+      return body({
+        notify: () => {},
+        request: async () => {
+          if (home.endsWith('actual-one')) {
+            scanEntered.resolve()
+            await finishScan.promise
+          }
+          return {
+            data: [
+              {
+                cwd: workspace,
+                skills: [
+                  {
+                    name: home.endsWith('saved-zero')
+                      ? 'saved'
+                      : home.endsWith('actual-one')
+                        ? 'old-owner'
+                        : 'current-owner',
+                    description: 'skill',
+                    path: join(home, 'SKILL.md'),
+                    enabled: true
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+    }
+  }
+  const catalog = createCodexAtRestSkillCatalog(catalogDeps)
+  const adapter = new CodexStructuredSessionAdapter({
+    resolveLaunch: async () => ({
+      command: 'codex',
+      args: ['app-server'],
+      cwd: workspace,
+      codexHome: actual,
+      env: { CODEX_HOME: actual },
+      resumeThreadId: null
+    }),
+    openConnection: codex.openConnection,
+    readProcessStartTime: async () => 100,
+    atRestCommands: catalog
+  })
+  const agents = new StructuredAgentRegistry([{ definition: CODEX_STRUCTURED_AGENT, adapter }])
+  const router = new StructuredAgentSessionAdapterRouter(agents, () => adapter.closeAll())
+  host = new StructuredAgentSessionHost({
+    agents,
+    store,
+    adapter: router,
+    journalDatabase: openTestJournalHostDatabase(directory),
+    claimKeyId: 'key',
+    logger: recordingStructuredAgentSessionLogger().logger,
+    now: () => clock,
+    probeOwner: async () => ({ outcome: 'pid-absent' })
+  })
+  const id = '8a914fbd-d72a-4d9a-b57e-a37204706280'
+  const params = hostTestAttachParams(null, {
+    envelope: {
+      sessionId: id,
+      clientOperationId: hostTestOperationId(),
+      expectedRuntimeFence: null,
+      payloadFingerprint: ''
+    },
+    accountHome: { variable: 'CODEX_HOME', path: saved },
+    providerHandle: { kind: 'codex', threadId: 'de0e7f21-f114-4149-924f-4eaa493673ef' }
+  })
+  const attached = await host.attach(caller, params)
+  if (!attached.ok) {
+    throw new Error(JSON.stringify(attached))
+  }
+  const record = store.getRecord(id)!
+  const identity = {
+    sessionId: id,
+    workspaceId: record.location.workspaceId,
+    hostId: 'local',
+    agent: 'codex',
+    providerHandle: null
+  }
+  const acquire = () =>
+    router.acquire({
+      identity,
+      fence: record.lease.runtimeFence,
+      spawnToken: 'fixture-command-owner'
+    })
+  try {
+    await acquire() // Route is live, provider open/publication has not run; no live skill report.
+    const old = router.readCatalogContext(id)!
+    const reading = host.readCommands(id)
+    await scanEntered.promise
+    actual = join(directory, 'actual-two')
+    await acquire() // Actual adapter tears down old acquisition before the replacement can own O2.
+    expect(old.isCurrent()).toBe(false)
+    finishScan.resolve()
+    expect((await reading).commands).toBeUndefined()
+    const current = await host.readCommands(id)
+    expect(current.commands?.map((item) => item.name)).toContain('current-owner')
+    expect(nativeHomes).toEqual([join(directory, 'actual-one'), join(directory, 'actual-two')])
+    expect(store.getRecord(id)?.accountHome).toEqual({ variable: 'CODEX_HOME', path: saved })
+    // Exact passive scan bypasses host's active projection and gets a separate saved-home key.
+    catalog.dispose()
+    const passive = createCodexAtRestSkillCatalog(catalogDeps)
+    try {
+      await passive.settled(record, 1_000)
+      expect(nativeHomes).toContain(saved)
+    } finally {
+      passive.dispose()
+    }
+  } finally {
+    finishScan.resolve()
+    await adapter.closeAll()
+    catalog.dispose()
+  }
 })

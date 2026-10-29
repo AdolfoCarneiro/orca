@@ -12,7 +12,10 @@ import { codexProviderHandle } from '../../shared/agent-session-provider-handle-
 import { DatabaseSync } from 'node:sqlite'
 import { parse as parseToml } from 'smol-toml'
 import { applyCodexSharedStoreConfig } from './codex-shared-store-config'
-import { syncSystemConfigIntoManagedCodexHome } from './codex-config-mirror'
+import {
+  initializeCodexOverlayConfigAtBirth,
+  syncSystemConfigIntoManagedCodexHome
+} from './codex-config-mirror'
 import {
   existsSync,
   lstatSync,
@@ -69,7 +72,7 @@ let a: string
 let b: string
 beforeEach(() => {
   vi.mocked(fsPromises.link).mockImplementation(originalFsPromises.link)
-  root = mkdtempSync(join(tmpdir(), 'codex-store-overlay-'))
+  root = realpathSync(mkdtempSync(join(tmpdir(), 'codex-store-overlay-')))
   system = join(root, 'system')
   accounts = join(root, 'codex-accounts')
   a = account('a')
@@ -527,3 +530,68 @@ it('leaves a missing native rollout to the existing provider resume/unsaved-thre
   ).resolves.toBeUndefined()
   expect(existsSync(targetRollout())).toBe(false)
 })
+
+it('stages final marketplace and store semantics through a canonical parent alias', () => {
+  const alias = join(root, 'alias')
+  symlinkSync(accounts, alias, 'dir')
+  const bundled = join(system, '.tmp', 'bundled-marketplaces', 'openai-bundled')
+  mkdirSync(bundled, { recursive: true })
+  writeFileSync(join(bundled, 'manifest.json'), '{}')
+  writeFileSync(
+    join(system, 'config.toml'),
+    `model = "test"
+[marketplaces.openai-bundled]
+source = ${JSON.stringify(bundled)}
+`
+  )
+  const home = launch(join(alias, 'a', 'home'), system)
+  const config = readFileSync(join(home, 'config.toml'), 'utf8')
+  expect(home).toBe(realpathSync(home))
+  expect(config).toContain(join(home, '.tmp', 'bundled-marketplaces', 'openai-bundled'))
+  expect(config).not.toContain('.creating')
+  expect(
+    readFileSync(
+      join(home, '.tmp', 'bundled-marketplaces', 'openai-bundled', 'manifest.json'),
+      'utf8'
+    )
+  ).toBe('{}')
+  expect(readConfiguredCodexSqliteHome(config, home)).toBe(realpathSync(system))
+  expect(parseToml(config).cli_auth_credentials_store).toBe('file')
+  const before = readFileSync(join(home, 'config.toml'), 'utf8')
+  writeFileSync(join(system, 'config.toml'), 'model = "later"\n')
+  expect(launch(a, home, true)).toBe(home)
+  expect(readFileSync(join(home, 'config.toml'), 'utf8')).toBe(before)
+})
+
+it.each(['missing', 'blank', 'unreadable'] as const)(
+  'uses final socket semantics on %s birth-config fallback without a staging stall',
+  (source) => {
+    const stage = join(root, 'overlays', 'unpublished.creating')
+    mkdirSync(stage, { recursive: true })
+    mkdirSync(join(system, 'sessions'), { recursive: true })
+    symlinkSync(join(system, 'sessions'), join(stage, 'sessions'), 'dir')
+    const sourceHome = join(root, 'source')
+    mkdirSync(sourceHome)
+    if (source === 'blank') {
+      writeFileSync(join(sourceHome, 'config.toml'), '  \n')
+    }
+    if (source === 'unreadable') {
+      mkdirSync(join(sourceHome, 'config.toml'))
+    }
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // Socket measurements alone are platform-shaped; real staging/store IO still runs.
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'darwin' })
+    const final = `/x/overlays/${'a'.repeat(32)}`
+    initializeCodexOverlayConfigAtBirth({
+      runtimeHomePath: stage,
+      effectiveHomePath: final,
+      systemHomePath: sourceHome
+    })
+    const config = readFileSync(join(stage, 'config.toml'), 'utf8')
+    expect(config).not.toContain('daemon_auto_start')
+    expect(readConfiguredCodexSqliteHome(config, stage)).toBe(realpathSync(system))
+    expect(parseToml(config).cli_auth_credentials_store).toBe('file')
+    expect(warning.mock.calls.flat().join(' ')).not.toContain('Config sync stalled')
+    expect(warning).toHaveBeenCalledTimes(source === 'unreadable' ? 1 : 0)
+  }
+)

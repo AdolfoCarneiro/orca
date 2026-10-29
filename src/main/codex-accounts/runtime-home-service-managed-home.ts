@@ -1,7 +1,11 @@
 import { statSync } from 'node:fs'
 import { join } from 'node:path'
 import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
-import { getSystemCodexHomePath } from '../codex/codex-home-paths'
+import { syncSystemConfigIntoManagedCodexHome } from '../codex/codex-config-mirror'
+import {
+  syncSystemCodexResourcesIntoManagedHome,
+  getSystemCodexHomePath
+} from '../codex/codex-home-paths'
 import {
   resolveHostCodexSessionSourceHome,
   resolveWslCodexSessionSourceHome
@@ -115,6 +119,11 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
     this.lastHostAccountUsedSelfContainedHome = true
     this.sharedAuthRefreshBlockedByManagedTransition = true
     this.markSharedRuntimeAuthManaged(account.id)
+    syncSystemCodexResourcesIntoManagedHome(perAccountHome)
+    syncSystemConfigIntoManagedCodexHome({
+      runtimeHomePath: perAccountHome,
+      systemHomePath: getSystemCodexHomePath()
+    })
     return perAccountHome
   }
 

@@ -80,6 +80,7 @@ export const electronModuleMock = (): ElectronModuleMock => ({
 
 export const fsModuleMock = () => ({
   existsSync: existsSyncMock,
+  realpathSync: (path: string) => path,
   statSync: statSyncMock,
   accessSync: accessSyncMock,
   mkdirSync: mkdirSyncMock,

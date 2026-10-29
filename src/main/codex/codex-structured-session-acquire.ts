@@ -1,3 +1,4 @@
+import type { AgentModelCatalogContext } from '../native-chat/agent-model-catalog/agent-model-catalog-service-contract'
 import type { AgentSessionAccountKind } from '../../shared/agent-session-availability'
 import {
   CODEX_STRUCTURED_HANDLE_NAMESPACE,
@@ -122,6 +123,30 @@ export async function acquireCodexStructuredSession(input: {
           }
     acquisitions.assertCurrent(sessionId, attempt)
     account = launch.codexHome ? deps.resolveAccountKind?.(launch.codexHome) : undefined
+    const catalogContext: AgentModelCatalogContext = {
+      accountHome: launch.codexHome ? { variable: 'CODEX_HOME', path: launch.codexHome } : null,
+      fence: acquireInput.fence,
+      acquisitionGeneration,
+      isCurrent: () => {
+        const session = sessions.get(sessionId)
+        if (session?.catalogContext === catalogContext) {
+          return (
+            !session.ended &&
+            !session.connection.closed &&
+            session.fence === acquireInput.fence &&
+            session.acquisitionGeneration === acquisitionGeneration
+          )
+        }
+        return (
+          acquisitions.get(sessionId) === attempt &&
+          !attempt.cancelled &&
+          !attempt.exitProven &&
+          !!acquisition.connection &&
+          !acquisition.connection.closed
+        )
+      }
+    }
+    attempt.catalogContext = catalogContext
     const connection = await open(
       {
         command: launch.command,

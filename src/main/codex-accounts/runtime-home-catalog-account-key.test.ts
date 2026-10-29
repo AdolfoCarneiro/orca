@@ -195,10 +195,14 @@ describe('Codex catalog account key: picker read vs launch', () => {
         renameSync(offline, removable)
       }
       const read = await wired.resolve('read')
-      expect(wired.runtimeHome.getHostCodexHomePathsForSessionDiscovery()).toEqual(
+      expect(
+        wired.runtimeHome
+          .getHostCodexHomePathsForSessionDiscovery()
+          .map((home) => home.replace('/private/var/', '/var/'))
+      ).toEqual(
         expect.arrayContaining([
-          retained,
-          join(realpathSync(testState.fakeHomeDir), 'removable-store')
+          retained.replace('/private/var/', '/var/'),
+          join(testState.fakeHomeDir, 'removable-store').replace('/private/var/', '/var/')
         ])
       )
       vi.mocked(readdirSync).mockClear()
@@ -377,7 +381,7 @@ describe('Codex catalog account key: picker read vs launch', () => {
     expect(actors).toHaveLength(1)
     writeFileSync(join(login, 'auth.json'), auth)
     await vi.advanceTimersByTimeAsync(25)
-    expect((await pending).selectedCodexHomePath).toBe(actors[0])
+    expect((await pending).selectedCodexHomePath).toBe(realpathSync(actors[0]!))
     expect(
       codexAccountOverlayHomes(join(testState.userDataDir, 'codex-accounts', 'account-1'))
     ).toEqual(actors)
@@ -496,4 +500,43 @@ describe('Codex catalog account key: picker read vs launch', () => {
       resolveCodexLaunchHome({ selectedAccount: { homePath: managedHomePath }, readOnly: true })!
     )
   })
+})
+
+it('prepares registered H resources and current config through the default startup wrapper, then promotes H before a layered birth', async () => {
+  setupRuntimeHomeTest()
+  const login = createManagedAuth(
+    testState.userDataDir,
+    'account-1',
+    createCodexAuthJson('one@example.test', 'one', 'one')
+  )
+  const settings = createSettings({
+    codexManagedAccounts: [createCodexAccountRecord('account-1', 'one@example.test', 'one', login)],
+    activeCodexManagedAccountId: 'account-1',
+    activeCodexManagedAccountIdsByRuntime: { host: 'account-1', wsl: {} }
+  })
+  const system = getSystemCodexHomePath()
+  mkdirSync(join(system, 'skills', 'example'), { recursive: true })
+  writeFileSync(join(system, 'skills', 'example', 'SKILL.md'), 'skill')
+  writeFileSync(join(system, 'AGENTS.md'), 'instructions')
+  writeFileSync(join(system, 'config.toml'), 'model = "before"\n')
+  const wired = await wireCodexAccountKey(settings)
+  const { prepareCodexRuntimeHomeForLaunch } = await import('../startup/codex-launch-preparation')
+  try {
+    expect(await prepareCodexRuntimeHomeForLaunch()).toBe(login)
+    expect(readFileSync(join(login, 'skills', 'example', 'SKILL.md'), 'utf8')).toBe('skill')
+    expect(readFileSync(join(login, 'AGENTS.md'), 'utf8')).toContain('instructions')
+    writeFileSync(join(system, 'config.toml'), 'model = "after"\n')
+    expect(await prepareCodexRuntimeHomeForLaunch()).toBe(login)
+    expect(readFileSync(join(login, 'config.toml'), 'utf8')).toContain('model = "after"')
+    writeFileSync(join(login, 'config.toml'), 'model = "in-home"\n')
+    const actor = await prepareCodexRuntimeHomeForLaunch(undefined, undefined, {
+      conversationHome: system
+    })
+    expect(actor).not.toBe(login)
+    expect(readFileSync(join(system, 'config.toml'), 'utf8')).toContain('model = "in-home"')
+    expect(readFileSync(join(actor!, 'config.toml'), 'utf8')).toContain('model = "in-home"')
+  } finally {
+    wired.release()
+    teardownRuntimeHomeTest()
+  }
 })

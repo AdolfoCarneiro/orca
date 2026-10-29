@@ -65,7 +65,7 @@ export function registeredModelCatalogDiscovery(
 /** Hydrate once and build catalog service only with a known selected account; otherwise answer unknown rather than guess its key. */
 export async function modelCatalogHostDeps(input: {
   store: Pick<AgentSessionRecordStore, 'getRecord' | 'getConversation' | 'listConversations'>
-  agents: Pick<StructuredAgentRegistry, 'definition'>
+  agents: Pick<StructuredAgentRegistry, 'definition' | 'registration'>
   registrations: readonly CatalogRegistration[]
   deps: StructuredAgentModelCatalogContext['deps']
   environment: StructuredAgentModelCatalogContext['environment']
@@ -79,6 +79,8 @@ export async function modelCatalogHostDeps(input: {
     store: agentModelCatalogStore,
     getConversation: (id) => input.store.getConversation(id) ?? undefined,
     getRecord: (sessionId) => input.store.getRecord(sessionId) ?? undefined,
+    readCatalogContext: (record) =>
+      input.agents.registration(record.provider)?.adapter.readCatalogContext?.(record.sessionId),
     drivesRecord: (record) => agentDrivesSession(input.agents, record),
     resolveAccountHome: deps.resolveAgentAccountHome,
     recordWorkspacePath: async (record) =>

@@ -71,3 +71,13 @@ export function mergeSystemCodexConfigIntoRuntime(
       .map((section) => section.block)
   ])
 }
+
+export type CodexConfigMirrorResult =
+  | { status: 'skipped-missing-source' }
+  | { status: 'refused-indeterminate'; error: unknown }
+  | {
+      status: 'mirrored'
+      preservedConflictKeys: ReadonlySet<string>
+      mirroredMcpServerNames: ReadonlySet<string>
+      mirroredMcpServerRoot: boolean
+    }
