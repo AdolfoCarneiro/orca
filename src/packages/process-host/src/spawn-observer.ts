@@ -29,7 +29,12 @@ export function notifySpawnObserver(
   const log = e2eSpawnLog()
   if (log) {
     try {
-      appendFileSync(log, `${JSON.stringify({ file: command, args })}\n`)
+      // The caller's stack lets a guard name what launched a spawn it flags.
+      const stack = (new Error('spawn-log caller').stack ?? '')
+        .split('\n')
+        .slice(2, 14)
+        .map((line) => line.trim())
+      appendFileSync(log, `${JSON.stringify({ file: command, args, at: Date.now(), stack })}\n`)
     } catch {
       // A diagnostics write must never fail the spawn it describes.
     }

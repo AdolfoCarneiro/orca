@@ -79,10 +79,13 @@ describe('spawn observer', () => {
         .trim()
         .split('\n')
         .map((line) => JSON.parse(line))
-      expect(lines).toEqual([
-        { file: process.execPath, args: ['-e', 'process.exit(0)'] },
-        { file: process.execPath, args: ['-e', 'process.exit(0)'] }
-      ])
+      const spawned = {
+        file: process.execPath,
+        args: ['-e', 'process.exit(0)'],
+        at: expect.any(Number),
+        stack: expect.arrayContaining([expect.stringContaining('spawn-observer.test')])
+      }
+      expect(lines).toEqual([spawned, spawned])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
