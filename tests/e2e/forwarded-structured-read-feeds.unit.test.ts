@@ -68,7 +68,9 @@ function ipc(channel: string, ...args: unknown[]): unknown {
     ([name]) => name === channel
   )
   const handler = registration?.[1]
-  if (typeof handler !== 'function') throw new Error(`missing handler ${channel}`)
+  if (typeof handler !== 'function') {
+    throw new Error(`missing handler ${channel}`)
+  }
   return handler({}, ...args)
 }
 
@@ -119,8 +121,9 @@ function wire(controller: RuntimeMobileNotificationController): void {
       typeof result !== 'object' ||
       !('delivered' in result) ||
       typeof result.delivered !== 'boolean'
-    )
+    ) {
       throw new Error('invalid production dispatch result')
+    }
     return { delivered: result.delivered }
   })
 }
@@ -139,14 +142,18 @@ it.each(['live', 'file reload'] as const)(
     const previousSubscribe = window.api.runtimeEnvironments.subscribe
     Object.assign(window.api.runtimeEnvironments, {
       subscribe: vi.fn(async (request, callbacks) => {
-        if (request.method !== 'agentSession.subscribeTurnCompletions')
+        if (request.method !== 'agentSession.subscribeTurnCompletions') {
           return previousSubscribe(request, callbacks)
+        }
         const release = fixture.hostFeed.subscribe({
           id: 'forwarder',
           includePrompts: request.params.includePrompts,
           includeReads: request.params.includeReads,
           emit: (event: AgentSessionTurnCompletionEvent) =>
-            callbacks.onResponse({ id: 'feed', ok: true, result: event })
+            callbacks.onResponse(
+              { id: 'feed', ok: true, result: event },
+              { subscriptionId: 'forwarder-feed', requestId: 'feed' }
+            )
         })
         return {
           unsubscribe: () => {
@@ -214,9 +221,15 @@ it.each(['live', 'file reload'] as const)(
       fixture.hostFeed.observe(SESSION)
     })
     await waitFor(() => expect(controller.getForwardedEnvironments()).toEqual(['relay-host']))
+    expect(transport.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        forwardingSource: { subscriptionId: 'forwarder-feed', requestId: 'feed' }
+      })
+    )
     const original = events.find((event) => event.type === 'notification')
-    if (!original || original.type !== 'notification')
+    if (!original || original.type !== 'notification') {
       throw new Error('forwarded notification missing')
+    }
     expect(original.structuredOrigin?.journalCursor).toEqual({
       epoch: 'journal-a',
       sequence: fixture.sequence
@@ -327,6 +340,8 @@ it.each([10, 100])(
 )
 
 it('leaves old records unheld and invokes the production resume projection for saved interest expiry', async () => {
+  const now = 1_800_000_000_000
+  vi.spyOn(Date, 'now').mockReturnValue(now)
   const directory = join(fixture.directory, 'old-forwarder')
   const { mkdirSync } = await import('node:fs')
   mkdirSync(directory)
@@ -338,7 +353,7 @@ it('leaves old records unheld and invokes the production resume projection for s
         notificationEpoch: 'old-epoch',
         notificationSeq: 1,
         dismissedThrough: 1,
-        expiresAt: Date.now() + 60_000
+        expiresAt: now + 60_000
       }
     ])
   )
@@ -354,7 +369,9 @@ it('leaves old records unheld and invokes the production resume projection for s
   ).toHaveLength(1)
   const refresh = vi.spyOn(controller, 'refreshForwardedEnvironments')
   const resume = vi.mocked(powerMonitor.on).mock.calls.find(([name]) => name === 'resume')?.[1]
-  if (typeof resume !== 'function') throw new Error('resume handler missing')
+  if (typeof resume !== 'function') {
+    throw new Error('resume handler missing')
+  }
   resume()
   expect(refresh).toHaveBeenCalledTimes(1)
   expect(vi.mocked(ipcMain.handle)).toHaveBeenCalled()

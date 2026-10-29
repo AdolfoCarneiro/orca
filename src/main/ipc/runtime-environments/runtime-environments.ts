@@ -1,6 +1,7 @@
 import { createAiVaultAssociationObserver } from '../ai-vault-projection-dependency'
 import { invalidateAiVaultHostLegCache } from '../ai-vault-host-leg-cache'
 import {
+  findForwardedPushSource,
   registerRuntimeEnvironmentSubscriptionHandlers,
   type RetainedRemoteRuntimeSubscription,
   type PendingRuntimeSubscription
@@ -195,4 +196,18 @@ export function registerRuntimeEnvironmentHandlers(store: Store): void {
     recordLayoutFrame: (environmentId, method, response) =>
       recordRemoteLayoutFrame(store, environmentId, method, response)
   })
+}
+
+export function getForwardedPushSource(
+  senderId: number,
+  environmentId: string,
+  context: { subscriptionId: string; requestId: string } | undefined
+) {
+  return findForwardedPushSource(
+    pendingSubscriptions,
+    remoteRuntimeSubscriptions,
+    senderId,
+    environmentId,
+    context
+  )
 }

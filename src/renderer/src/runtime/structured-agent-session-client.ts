@@ -1,3 +1,4 @@
+import type { RuntimeSubscriptionContext } from '../../../shared/runtime-rpc-envelope'
 import type {
   AgentJournalCursor,
   AgentJournalRenderItem
@@ -191,13 +192,14 @@ async function subscribeStructuredAgentSessionMethod<TEvent>(
   target: RuntimeClientTarget,
   method: string,
   params: unknown,
-  onEvent: (event: TEvent) => void,
+  onEvent: (event: TEvent, context?: RuntimeSubscriptionContext) => void,
   onError: (error: unknown) => void,
   onClose: () => void
 ): Promise<{ unsubscribe: () => void }> {
   return subscribeRuntimeRpc(target, method, params, {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: each caller names the method whose frames are TEvent; unchecked as before.
-    onEvent: (result) => onEvent(result as TEvent),
+    onEvent: (result, context) =>
+      context ? onEvent(result as TEvent, context) : onEvent(result as TEvent),
     onError,
     onClose
   })
@@ -307,7 +309,7 @@ export async function acknowledgeStructuredAgentSessionAttention(
  *  nothing, so a subscriber that reconnects has missed whatever happened while it was away. */
 export async function subscribeStructuredAgentSessionTurnCompletions(
   target: RuntimeClientTarget,
-  onEvent: (event: AgentSessionTurnCompletionEvent) => void,
+  onEvent: (event: AgentSessionTurnCompletionEvent, context?: RuntimeSubscriptionContext) => void,
   onError: (error: unknown) => void,
   onClose: () => void
 ): Promise<{ unsubscribe: () => void }> {

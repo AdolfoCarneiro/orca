@@ -1,8 +1,8 @@
-import { app, BrowserWindow, Notification, ipcMain, powerMonitor } from 'electron'
-import {
-  structuredPushOccurrence,
-  forwardedPushOrigin
-} from '../notifications/structured-push-identity'
+import { createForwardedPushAuthority } from '../notifications/forwarded-push-authority'
+import type { getForwardedPushSource } from './runtime-environments/runtime-environments'
+import { getRuntimeEnvironmentRegistryRoot } from './runtime-environments/runtime-environment-registry-root'
+import { BrowserWindow, Notification, ipcMain, powerMonitor } from 'electron'
+import { structuredPushOccurrence } from '../notifications/structured-push-identity'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { readDesktopAwayState } from '../notifications/desktop-away-state'
 import type { Store } from '../persistence'
@@ -35,7 +35,11 @@ import {
   resetNotificationPermissionEvidence
 } from './notification-permission-probe'
 
-export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntimeService): void {
+export function registerNotificationHandlers(
+  store: Store,
+  runtime?: OrcaRuntimeService,
+  findSource?: typeof getForwardedPushSource
+): void {
   ipcMain.removeHandler('notifications:getDesktopAwayState')
   ipcMain.handle('notifications:getDesktopAwayState', () => readDesktopAwayState(powerMonitor))
   resetNotificationPermissionEvidence()
@@ -172,6 +176,11 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
     }
   )
 
+  const authority = createForwardedPushAuthority(getRuntimeEnvironmentRegistryRoot)
+  const sourceProofs = new WeakMap<
+    NotificationDispatchRequest,
+    ReturnType<typeof getForwardedPushSource>
+  >()
   const deliveryService = createNotificationDeliveryService({
     readNotificationSettings: () => store.getSettings().notifications,
     findActiveWindow: () =>
@@ -187,10 +196,14 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
     deliverNative: deliverNativeNotification,
     platform: process.platform,
     now: () => Date.now(),
-    resolveMobileOrigin: (request) =>
-      request.occurrence && request.executionHost && request.forwardingEnvironmentId
-        ? forwardedPushOrigin(app.getPath('userData'), request.forwardingEnvironmentId)
-        : undefined,
+    resolveMobileOrigin: (request) => {
+      const proof = sourceProofs.get(request)
+      return request.occurrence &&
+        proof &&
+        request.executionHost === `runtime:${proof.source.environmentId}`
+        ? authority.resolve(proof.source, proof.isCurrent)
+        : undefined
+    },
     recordAnnounced: (request) => {
       if (request.paneKey && request.notificationId) {
         announced.record(request.paneKey, request.notificationId, request.structuredOrigin)
@@ -213,14 +226,22 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
   ipcMain.handle(
     'notifications:dispatch',
     (
-      _event,
+      event,
       args: NotificationDispatchRequest
-    ): NotificationDispatchResult | Promise<NotificationDispatchResult> =>
-      deliveryService.dispatch({
+    ): NotificationDispatchResult | Promise<NotificationDispatchResult> => {
+      const request = {
         ...args,
         occurrence: structuredPushOccurrence(args.notificationId, args.structuredOrigin),
         origin: undefined
-      })
+      }
+      if (args.forwardingEnvironmentId && event.sender) {
+        sourceProofs.set(
+          request,
+          findSource?.(event.sender.id, args.forwardingEnvironmentId, args.forwardingSource)
+        )
+      }
+      return deliveryService.dispatch(request)
+    }
   )
 
   registerNotificationSoundHandlers(store)

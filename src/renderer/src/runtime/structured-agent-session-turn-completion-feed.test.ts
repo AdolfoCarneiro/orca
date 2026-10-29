@@ -1,3 +1,4 @@
+import type { RuntimeSubscriptionContext } from '../../../shared/runtime-rpc-envelope'
 // Keep completion/prompt edges live-only: no late snapshot, buffering or reconnect catch-up, which would mark already-read work unread again.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -25,7 +26,7 @@ function label(edge: AgentSessionAttentionEdge): string {
 }
 
 type Subscription = {
-  emit: (event: AgentSessionTurnCompletionEvent) => void
+  emit: (event: AgentSessionTurnCompletionEvent, context?: RuntimeSubscriptionContext) => void
   fail: (error: unknown) => void
   close: () => void
   unsubscribe: ReturnType<typeof vi.fn>
@@ -109,11 +110,18 @@ describe('structured turn completion feed (renderer)', () => {
     feed.activate()
     const first: string[] = []
     const second: string[] = []
-    feed.subscribe((edge) => first.push(label(edge)))
+    const contexts: (RuntimeSubscriptionContext | undefined)[] = []
+    feed.subscribe((edge, context) => {
+      first.push(label(edge))
+      contexts.push(context)
+    })
     feed.subscribe((edge) => second.push(label(edge)))
     await vi.advanceTimersByTimeAsync(0)
 
-    subscription().emit({ type: 'completion', completion: completion('turn-1') })
+    const context = Object.freeze({ subscriptionId: 'source', requestId: 'R1' })
+    subscription().emit({ type: 'completion', completion: completion('turn-1') }, context)
+    expect(contexts).toEqual([context])
+    expect(contexts[0]).toBe(context)
 
     expect(first).toEqual(['turn-1'])
     expect(second).toEqual(['turn-1'])

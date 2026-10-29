@@ -6,6 +6,7 @@ type Environment = { id: string; createdAt: number; orcadDeployment?: OrcadDeplo
 const mocks = vi.hoisted(() => ({
   environments: new Map<string, Environment>(),
   resolveManaged: vi.fn(),
+  subscribe: vi.fn(),
   wslCheck: vi.fn(async () => {}),
   statusProbe: vi.fn(async () => ({ id: 'status.get', ok: true, result: {}, _meta: {} }))
 }))
@@ -34,7 +35,19 @@ vi.mock('./runtime-environment-status-probe', () => ({
   getRuntimeEnvironmentStatus: mocks.statusProbe
 }))
 
-import { callRuntimeEnvironment } from './runtime-environment-transport-routing'
+vi.mock('../../../shared/remote-runtime/remote-runtime-client', async (importOriginal) => ({
+  ...(await importOriginal()),
+  subscribeRemoteRuntimeRequest: mocks.subscribe
+}))
+vi.mock('./runtime-environment-usage-record', () => ({ recordRuntimeEnvironmentUsage: vi.fn() }))
+import {
+  createEnvironmentFromPairingOffer,
+  getPreferredPairedRuntimeConnection
+} from '../../../shared/runtime-environments'
+import {
+  callRuntimeEnvironment,
+  subscribeRuntimeEnvironment
+} from './runtime-environment-transport-routing'
 
 const NO_START = { preparation: { wslStart: 'never' as const } }
 
@@ -100,4 +113,59 @@ describe("a no-start caller's status probe", () => {
       true
     )
   })
+})
+
+it('captures the selected prepared route before a synchronous authenticated first completion frame', async () => {
+  const selected = createEnvironmentFromPairingOffer({
+    id: 'prepared',
+    name: 'Prepared',
+    now: 2,
+    runtimeId: null,
+    offer: {
+      v: 2,
+      endpoint: 'ws://127.0.0.1:41000/runtime',
+      publicKeyB64: Buffer.alloc(32, 2).toString('base64'),
+      deviceToken: 'prepared-token'
+    }
+  })
+  const preparation = Promise.withResolvers<typeof selected>()
+  mocks.resolveManaged.mockReturnValueOnce(preparation.promise)
+  const onSource = vi.fn()
+  const onEvent = vi.fn()
+  mocks.subscribe.mockImplementationOnce(
+    (
+      ...parameters: Parameters<
+        typeof import('../../../shared/remote-runtime/remote-runtime-client').subscribeRemoteRuntimeRequest
+      >
+    ) => {
+      expect(onSource).toHaveBeenCalledExactlyOnceWith(
+        selected,
+        getPreferredPairedRuntimeConnection(selected)
+      )
+      parameters[4].onResponse({
+        id: 'first',
+        ok: true,
+        result: {},
+        _meta: { runtimeId: 'prepared-runtime' }
+      })
+      return Promise.resolve({ requestId: 'first', close: () => {}, sendBinary: () => true })
+    }
+  )
+  const opening = subscribeRuntimeEnvironment(
+    '/profile',
+    'original-selector',
+    'agentSession.subscribeTurnCompletions',
+    {},
+    1000,
+    { onSource, onEvent, onClose: () => {} }
+  )
+  expect(onSource).not.toHaveBeenCalled()
+  preparation.resolve(selected)
+  await opening
+  expect(onEvent).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'response',
+      response: expect.objectContaining({ id: 'first' })
+    })
+  )
 })

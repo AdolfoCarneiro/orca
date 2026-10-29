@@ -221,7 +221,9 @@ export class RuntimeMobileNotificationController {
     } catch {
       console.warn('[notifications] Could not persist dismissal recovery state')
     }
-    if (changed && project) this.refreshForwardedEnvironments()
+    if (changed && project) {
+      this.refreshForwardedEnvironments()
+    }
     notifyRuntimeListeners(
       this.listeners,
       (listener) =>
@@ -269,7 +271,9 @@ export class RuntimeMobileNotificationController {
         changed = true
       }
     }
-    if (changed) this.refreshForwardedEnvironments()
+    if (changed) {
+      this.refreshForwardedEnvironments()
+    }
   }
 
   reconcileStructuredPromptAttention(state: StructuredAttentionState): void {
@@ -283,7 +287,9 @@ export class RuntimeMobileNotificationController {
         changed = true
       }
     }
-    if (changed) this.refreshForwardedEnvironments()
+    if (changed) {
+      this.refreshForwardedEnvironments()
+    }
   }
 
   async dispatchPlugin(input: {

@@ -105,3 +105,6 @@ export type RuntimeRpcDispatchObservation = {
   responseTimeoutMs: number
   responseExpiresAt?: number
 }
+
+/** Local callback attribution; never sent to a remote host. */
+export type RuntimeSubscriptionContext = Readonly<{ subscriptionId: string; requestId: string }>

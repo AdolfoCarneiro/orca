@@ -456,6 +456,9 @@ it('does not count admission deferrals as retries or inflate the next provider b
   await h.worker.runDue()
   expect(h.onRetry).not.toHaveBeenCalled()
   const [pending] = await h.db.query('SELECT attempts, due_at FROM push_delivery_batches')
+  if (!pending) {
+    throw new Error('Expected parked delivery')
+  }
   expect(Number(pending.attempts)).toBe(1)
   expect(Number(pending.due_at)).toBe(h.now() + 2000)
 })

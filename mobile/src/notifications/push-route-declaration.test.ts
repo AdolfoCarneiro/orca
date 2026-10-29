@@ -16,7 +16,9 @@ const state = vi.hoisted(() => ({
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: {
     getItem: async (key: string) => {
-      if (key === 'orca:hosts') state.loads++
+      if (key === 'orca:hosts') {
+        state.loads++
+      }
       return state.storage.get(key) ?? null
     },
     setItem: async (key: string, value: string) => {
@@ -178,7 +180,7 @@ it('parks deletion-first last-host400 and resumes even unchanged membership afte
   let live = true
   const client = {
     sendRequest: vi.fn(async (method: string) => {
-      if (method === 'status.get')
+      if (method === 'status.get') {
         return {
           id: 'req',
           ok: true as const,
@@ -189,6 +191,7 @@ it('parks deletion-first last-host400 and resumes even unchanged membership afte
             ]
           }
         }
+      }
       if (method === 'notifications.unregisterPush') {
         live = false
         return { id: 'req', ok: true as const, result: { unregistered: true } }

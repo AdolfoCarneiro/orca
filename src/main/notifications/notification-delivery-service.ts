@@ -126,8 +126,7 @@ export function createNotificationDeliveryService(
             // Push needs real agent state to distinguish input/completion and silence running agents.
             ...(request.agentState ? { agentState: request.agentState } : {}),
             ...(request.attentionKey ? { attentionKey: request.attentionKey } : {}),
-            ...(request.occurrence ? { occurrence: request.occurrence } : {}),
-            ...(origin ? { origin } : {}),
+            ...(origin && request.occurrence ? { origin, occurrence: request.occurrence } : {}),
             ...(request.forwardingEnvironmentId
               ? { forwardingEnvironmentId: request.forwardingEnvironmentId }
               : {}),

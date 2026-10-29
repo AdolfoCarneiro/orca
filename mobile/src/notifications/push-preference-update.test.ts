@@ -1,3 +1,15 @@
+vi.mock('../transport/pairing-keychain', () => {
+  const items = new Map<string, string>()
+  return {
+    readPairingKeychainItem: async (key: string) => items.get(key) ?? null,
+    writePairingKeychainItem: async (key: string, value: string) => {
+      items.set(key, value)
+    },
+    deletePairingKeychainItem: async (key: string) => {
+      items.delete(key)
+    }
+  }
+})
 vi.mock('./desktop-notification-channel', () => ({
   ensureDesktopNotificationChannel: vi.fn(async () => {})
 }))

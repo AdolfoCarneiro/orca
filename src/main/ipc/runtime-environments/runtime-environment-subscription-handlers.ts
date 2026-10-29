@@ -1,3 +1,7 @@
+import {
+  forwardedPushBinding,
+  type ForwardedPushSource
+} from '../../notifications/forwarded-push-authority'
 import { ipcMain } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { abortWhenRendererGone } from '../renderer-lifetime-abort'
@@ -9,6 +13,7 @@ import { getRuntimeEnvironmentTransportGeneration } from './runtime-environment-
 import { subscribeRuntimeEnvironment } from './runtime-environment-transport-routing'
 
 export type RetainedRemoteRuntimeSubscription = RemoteRuntimeSubscription & {
+  source?: ForwardedPushSource
   setupController: AbortController
   environmentId: string
   ownerWebContentsId: number
@@ -16,6 +21,7 @@ export type RetainedRemoteRuntimeSubscription = RemoteRuntimeSubscription & {
   notifyClosed: () => void
 }
 export type PendingRuntimeSubscription = {
+  source?: ForwardedPushSource
   ownerWebContentsId: number
   environmentId: string
   close: () => void
@@ -66,7 +72,8 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
       ) {
         throw new Error('Runtime environment subscription id already exists')
       }
-      const environment = resolveEnvironment(getUserDataPath(), args.selector)
+      const subscriptionRoot = getUserDataPath()
+      const environment = resolveEnvironment(subscriptionRoot, args.selector)
       if (isRuntimeEnvironmentManuallyDisconnected(environment.id)) {
         throw new Error('runtime_manually_disconnected')
       }
@@ -109,6 +116,9 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
       }
       const closeSubscription = (): void => {
         rendererGone = true
+        if (pending.source) {
+          pending.source.invalid = true
+        }
         setupController.abort()
         if (pendingSubscriptions.get(subscriptionId) === pending) {
           pendingSubscriptions.delete(subscriptionId)
@@ -136,7 +146,7 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
           // The renderer is gone; there is no one left to tell.
         }
       }
-      const pending = {
+      const pending: PendingRuntimeSubscription = {
         ownerWebContentsId,
         environmentId: environment.id,
         close: closeSubscription
@@ -146,12 +156,36 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
       rendererLifetime.signal.addEventListener('abort', closeSubscription, { once: true })
       try {
         subscription = await subscribeRuntimeEnvironment(
-          getUserDataPath(),
+          subscriptionRoot,
           environment.id,
           args.method,
           args.params,
           args.timeoutMs,
           {
+            onSource: (selected, connection) => {
+              if (args.method !== 'agentSession.subscribeTurnCompletions') {
+                return
+              }
+              if (
+                transportClosed ||
+                !transportIsCurrent() ||
+                rendererGone ||
+                setupController.signal.aborted ||
+                pending.source
+              ) {
+                if (pending.source) {
+                  pending.source.invalid = true
+                }
+                return
+              }
+              pending.source = {
+                root: subscriptionRoot,
+                environmentId: selected.id,
+                method: args.method,
+                binding: forwardedPushBinding(selected, connection),
+                invalid: false
+              }
+            },
             onEvent: (payload) => {
               if (
                 rendererGone ||
@@ -162,9 +196,20 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
                 return
               }
               if (payload.type === 'close') {
+                if (pending.source) {
+                  pending.source.invalid = true
+                }
                 // Retirement advances generation before close; the old generation still needs its terminal notification.
                 notifyClosed()
                 return
+              }
+              if (payload.type === 'response' && pending.source) {
+                const source = pending.source
+                if (source.requestId !== undefined && source.requestId !== payload.response.id) {
+                  source.invalid = true
+                } else {
+                  source.requestId = payload.response.id
+                }
               }
               if (transportIsCurrent() && !sender.isDestroyed()) {
                 sender.send('runtimeEnvironments:subscriptionEvent', {
@@ -186,6 +231,9 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
             },
             onClose: () => {
               transportClosed = true
+              if (pending.source) {
+                pending.source.invalid = true
+              }
               if (rendererGone) {
                 return
               }
@@ -200,6 +248,9 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
           setupController.signal
         )
       } catch (error) {
+        if (pending.source) {
+          pending.source.invalid = true
+        }
         if (pendingSubscriptions.get(subscriptionId) === pending) {
           pendingSubscriptions.delete(subscriptionId)
         }
@@ -227,7 +278,18 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
         subscription.close()
         return { subscriptionId, requestId: subscription.requestId }
       }
+      if (
+        pending.source &&
+        pending.source.requestId !== undefined &&
+        pending.source.requestId !== subscription.requestId
+      ) {
+        pending.source.invalid = true
+      }
+      if (pending.source) {
+        pending.source.requestId ??= subscription.requestId
+      }
       remoteRuntimeSubscriptions.set(subscriptionId, {
+        source: pending.source,
         setupController,
         requestId: subscription.requestId,
         environmentId: environment.id,
@@ -236,6 +298,9 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
         notifyClosed,
         sendBinary: (bytes) => subscription?.sendBinary(bytes) ?? false,
         close: () => {
+          if (pending.source) {
+            pending.source.invalid = true
+          }
           disposeRendererLifetime()
           subscription?.close()
         }
@@ -289,4 +354,34 @@ function toBinaryPayload(value: unknown): Uint8Array<ArrayBufferLike> | null {
     return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
   }
   return null
+}
+
+export function findForwardedPushSource(
+  pending: Map<string, PendingRuntimeSubscription>,
+  retained: Map<string, RetainedRemoteRuntimeSubscription>,
+  senderId: number,
+  environmentId: string,
+  context: { subscriptionId: string; requestId: string } | undefined
+): { source: ForwardedPushSource; isCurrent: () => boolean } | undefined {
+  if (
+    !context ||
+    typeof context.subscriptionId !== 'string' ||
+    typeof context.requestId !== 'string'
+  ) {
+    return undefined
+  }
+  const id = context.subscriptionId
+  const owner = pending.get(id) ?? retained.get(id)
+  const source = owner?.source
+  if (!owner || !source) {
+    return undefined
+  }
+  const isCurrent = () =>
+    (pending.get(id) ?? retained.get(id))?.source === source &&
+    !source.invalid &&
+    owner.ownerWebContentsId === senderId &&
+    source.environmentId === environmentId &&
+    source.method === 'agentSession.subscribeTurnCompletions' &&
+    source.requestId === context.requestId
+  return isCurrent() ? { source, isCurrent } : undefined
 }

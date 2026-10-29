@@ -1,6 +1,9 @@
 import { pairedRuntimeConnectionFromOffer } from '../../../shared/paired-runtime-connection'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { KnownRuntimeEnvironment } from '../../../shared/runtime-environments'
+import {
+  getPreferredPairedRuntimeConnection,
+  type KnownRuntimeEnvironment
+} from '../../../shared/runtime-environments'
 import {
   advanceRuntimeEnvironmentCapabilityIncarnation,
   applyRuntimeEnvironmentCapabilityVerdict,
@@ -268,12 +271,16 @@ it.each(['capable', 'absent'] as const)(
   'forwards consumer cancellation into the %s subscription setup',
   async (verdict) => {
     supportsMock.mockResolvedValue(acceptedOutcome(verdict))
-    const setup = vi.fn(
-      (signal?: AbortSignal) =>
-        new Promise<never>((_resolve, reject) => {
-          signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
-        })
-    )
+    const onSource = vi.fn()
+    const setup = vi.fn((signal?: AbortSignal) => {
+      expect(onSource).toHaveBeenCalledExactlyOnceWith(
+        environment(),
+        getPreferredPairedRuntimeConnection(environment())
+      )
+      return new Promise<never>((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
+      })
+    })
     subscribeSharedMock.mockImplementation(
       (...args: Parameters<typeof subscribeRemoteRuntimeSharedControlRequest>) => setup(args[6])
     )
@@ -288,6 +295,7 @@ it.each(['capable', 'absent'] as const)(
       params: {},
       timeoutMs: 1000,
       callbacks: { onEvent: vi.fn(), onClose: vi.fn() },
+      onSource,
       isCurrent: () => true,
       signal: controller.signal
     })

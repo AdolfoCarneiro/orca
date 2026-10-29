@@ -35,7 +35,9 @@ async function routeKeypair(create = false): Promise<nacl.SignKeyPair | null> {
         const bytes = decodeBase64Bytes(stored)
         return bytes.length === 64 ? nacl.sign.keyPair.fromSecretKey(bytes) : null
       }
-      if (!create) return null
+      if (!create) {
+        return null
+      }
       const keypair = nacl.sign.keyPair.fromSeed(ExpoCrypto.getRandomBytes(32))
       await writePairingKeychainItem(KEY, encodeBase64Bytes(keypair.secretKey))
       return keypair
@@ -44,7 +46,9 @@ async function routeKeypair(create = false): Promise<nacl.SignKeyPair | null> {
     }
   })()
   const keypair = await keyPromise
-  if (!keypair) keyPromise = null
+  if (!keypair) {
+    keyPromise = null
+  }
   return keypair
 }
 
@@ -59,7 +63,9 @@ function cancelRetry(): void {
 }
 
 async function send(current: NonNullable<typeof publication>, attempt = 0): Promise<void> {
-  if (current.generation !== generation || current.acknowledged || current.sending) return
+  if (current.generation !== generation || current.acknowledged || current.sending) {
+    return
+  }
   cancelRetry()
   current.sending = true
   const wake = registrationWake
@@ -73,13 +79,19 @@ async function send(current: NonNullable<typeof publication>, attempt = 0): Prom
       body: current.body
     })
     status = response.status
-    if (response.ok) current.acknowledged = true
+    if (response.ok) {
+      current.acknowledged = true
+    }
   } catch {}
   current.sending = false
-  if (current.generation !== generation || current.acknowledged) return
+  if (current.generation !== generation || current.acknowledged) {
+    return
+  }
   // Registration drains asynchronously; one retry covers that race, then wait for an actual wake.
   const permanent = status !== undefined && status >= 400 && status < 500 && status !== 429
-  if (permanent && (status !== 400 || attempt > 0) && wake === registrationWake) return
+  if (permanent && (status !== 400 || attempt > 0) && wake === registrationWake) {
+    return
+  }
   retry = setTimeout(
     () => void send(current, attempt + 1),
     wake !== registrationWake ? 0 : Math.min(60_000, 1000 * 2 ** Math.min(attempt, 6))
@@ -87,24 +99,34 @@ async function send(current: NonNullable<typeof publication>, attempt = 0): Prom
 }
 
 export function publishPushRoutes(current: MobilePushToken, gatewayOrigin?: string): void {
-  if (gatewayOrigin !== GATEWAY_ORIGIN) return
+  if (gatewayOrigin !== GATEWAY_ORIGIN) {
+    return
+  }
   enrolled = true
   registrationWake++
   if (JSON.stringify(token) !== JSON.stringify(current)) {
     refreshPushRoutes(current)
   } else if (publication) {
-    if (!publication.acknowledged) void send(publication)
+    if (!publication.acknowledged) {
+      void send(publication)
+    }
   } else {
     const candidate = generation
     void chain.then(() => {
-      if (!publication && token && candidate === generation) refreshPushRoutes(token)
+      if (!publication && token && candidate === generation) {
+        refreshPushRoutes(token)
+      }
     })
   }
 }
 
 export function refreshPushRoutes(currentToken?: MobilePushToken): void {
-  if (currentToken) token = currentToken
-  if (!token) return
+  if (currentToken) {
+    token = currentToken
+  }
+  if (!token) {
+    return
+  }
   const current = token
   const candidate = ++generation
   publication = undefined
@@ -114,7 +136,9 @@ export function refreshPushRoutes(currentToken?: MobilePushToken): void {
     .then(async () => {
       const keypair = await routeKeypair()
       const rawVersion = await AsyncStorage.getItem(VERSION)
-      if (!keypair || (rawVersion === null && !enrolled) || candidate !== generation) return
+      if (!keypair || (rawVersion === null && !enrolled) || candidate !== generation) {
+        return
+      }
       await hostListMutationsSettled()
       const hosts = [
         ...new Set(
@@ -125,7 +149,9 @@ export function refreshPushRoutes(currentToken?: MobilePushToken): void {
         )
       ].sort()
       const saved = Number(rawVersion ?? 0)
-      if (!Number.isSafeInteger(saved) || saved < 0 || saved === Number.MAX_SAFE_INTEGER) return
+      if (!Number.isSafeInteger(saved) || saved < 0 || saved === Number.MAX_SAFE_INTEGER) {
+        return
+      }
       const version = Math.max(Date.now(), saved + 1)
       const declaration = {
         v: 1 as const,
@@ -145,20 +171,28 @@ export function refreshPushRoutes(currentToken?: MobilePushToken): void {
           )
         })
       // Withdraw stale participation while the complete catalog cannot fit the current protocol.
-      if (hosts.length > 100) declaration.hosts = []
+      if (hosts.length > 100) {
+        declaration.hosts = []
+      }
       let body = signedBody()
       if (new TextEncoder().encode(body).length > 16_384) {
         declaration.hosts = []
         body = signedBody()
       }
-      if (candidate !== generation) return
+      if (candidate !== generation) {
+        return
+      }
       await AsyncStorage.setItem(VERSION, String(version))
-      if (candidate !== generation) return
+      if (candidate !== generation) {
+        return
+      }
       publication = { generation: candidate, body, acknowledged: false, sending: false }
       await send(publication)
     })
     .catch(() => {
-      if (candidate === generation) retry = setTimeout(refreshPushRoutes, 5000)
+      if (candidate === generation) {
+        retry = setTimeout(refreshPushRoutes, 5000)
+      }
     })
 }
 

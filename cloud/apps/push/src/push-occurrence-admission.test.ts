@@ -24,6 +24,13 @@ const origin = B
 const occurrence = 'o'.repeat(43)
 afterEach(cleanupDurablePushFixtures)
 
+function required<T>(value: T | null | undefined): T {
+  if (value === undefined || value === null) {
+    throw new Error('Missing expected fixture value')
+  }
+  return value
+}
+
 async function setup() {
   const f = await fixture()
   const devices = new PushDeviceRegistryStore(f.db, f.clock)
@@ -38,18 +45,20 @@ async function setup() {
       apnsEnvironment: 'production',
       routeKey
     })
-  const [a] = await devices
+  const [maybeA] = await devices
     .findOwned(
       A,
       (await devices.list(A)).map((d) => d.registrationId)
     )
     .then((m) => [...m.values()])
-  const [b] = await devices
+  const [maybeB] = await devices
     .findOwned(
       B,
       (await devices.list(B)).map((d) => d.registrationId)
     )
     .then((m) => [...m.values()])
+  const a = required(maybeA)
+  const b = required(maybeB)
   const declare = async (hosts: string[], version = 1, signingKey = key) => {
     const body = {
       v: 1 as const,
@@ -75,8 +84,8 @@ async function setup() {
   const alert = { ...notification(1), notificationId: 'subject', origin, occurrence }
   await f.store.accept(A, a.registrationId, alert)
   await f.store.accept(B, b.registrationId, alert)
-  const first = (await f.store.claim())!
-  const second = (await f.store.claim())!
+  const first = required(await f.store.claim())
+  const second = required(await f.store.claim())
   const device = (queued: typeof first) => (queued.hostFingerprint === A ? a : b)
   return { ...f, devices, declare, a, b, alert, first, second, device }
 }
@@ -130,15 +139,17 @@ describe('occurrence admission', () => {
             })
       try {
         await atAttempt
-        expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe(
-          'inflight'
-        )
+        expect(
+          required((await f.db.query('SELECT state FROM push_occurrence_claims'))[0]).state
+        ).toBe('inflight')
       } finally {
         releaseAgain()
         await blocker
       }
       await completed
-      expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe(outcome)
+      expect(
+        required((await f.db.query('SELECT state FROM push_occurrence_claims'))[0]).state
+      ).toBe(outcome)
       if (outcome === 'dismissed') {
         expect(
           await f.db.query('SELECT batch_id FROM push_delivery_batches WHERE batch_id = ?', [
@@ -149,26 +160,6 @@ describe('occurrence admission', () => {
       expect(await f.store.admission(f.second).acquire(f.device(f.second))).toBe('superseded')
     }
   )
-
-  it('waits quietly, releases failed winners, and never resends a recorded receipt after removal', async () => {
-    const f = await setup()
-    const winner = f.store.admission(f.first)
-    const loser = f.store.admission(f.second)
-    expect(await winner.acquire(f.device(f.first))).toBe('admitted')
-    for (let i = 0; i < 5; i++) {
-      expect(await loser.acquire(f.device(f.second))).toBe('deferred')
-      await f.store.defer(f.second)
-      f.advance(1000)
-      f.second = (await f.store.claim())!
-    }
-    expect(f.second.attempts).toBe(1)
-    await winner.finalize(false)
-    const successor = f.store.admission(f.second)
-    expect(await successor.acquire(f.device(f.second))).toBe('admitted')
-    await successor.finalize(true)
-    expect(await f.declare([f.first.hostFingerprint], 2)).toBe(true)
-    expect(await winner.acquire(f.device(f.first))).toBe('superseded')
-  })
 
   it('serializes expired takeover and fences a stale completion', async () => {
     const f = await setup()
@@ -183,7 +174,8 @@ describe('occurrence admission', () => {
     ])
     expect(results.filter((result) => result === 'admitted')).toHaveLength(1)
     await stale.finalize(false)
-    const [row] = await f.db.query('SELECT * FROM push_occurrence_claims')
+    const [maybeRow] = await f.db.query('SELECT * FROM push_occurrence_claims')
+    const row = required(maybeRow)
     expect(row.attempt).not.toBe(f.first.lease)
     const admitted = results[0] === 'admitted' ? successor : peer
     await admitted.finalize(true)
@@ -205,7 +197,7 @@ describe('occurrence admission', () => {
     await winner.finalize(false)
     expect(await f.store.admission(f.second).acquire(f.device(f.second))).toBe('superseded')
     await f.store.accept(A, f.a.registrationId, { ...f.alert, notificationSeq: 1 })
-    expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe(
+    expect(required((await f.db.query('SELECT state FROM push_occurrence_claims'))[0]).state).toBe(
       'dismissed'
     )
   })
@@ -222,7 +214,7 @@ describe('occurrence admission', () => {
     expect(await f.store.pendingCount(f.second.registrationId)).toBe(1)
     await winner.finalize(false)
     f.advance(499)
-    const retried = (await f.store.claim())!
+    const retried = required(await f.store.claim())
     expect(retried.attempts).toBe(1)
     expect(await f.store.admission(retried).acquire(f.device(retried))).toBe('admitted')
   })
@@ -283,7 +275,9 @@ describe('occurrence admission', () => {
         )
         expect(await f.store.pendingCount(f.a.registrationId)).toBe(0)
         expect(await f.store.pendingCount(f.b.registrationId)).toBe(0)
-        expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe('sent')
+        expect(
+          required((await f.db.query('SELECT state FROM push_occurrence_claims'))[0]).state
+        ).toBe('sent')
       } finally {
         await worker.stop()
       }
@@ -291,7 +285,7 @@ describe('occurrence admission', () => {
   )
 
   it.each([200, 400])(
-    'parks the competing worker and settles after winner HTTP %s, with one provider call per winner',
+    'parks five times, refunds attempts and settles after winner HTTP %s through provider retry',
     async (status) => {
       const f = await setup()
       await parkBoth(f)
@@ -307,15 +301,13 @@ describe('occurrence admission', () => {
       const atProvider = new Promise<void>((resolve) => {
         entered = resolve
       })
-      let parked!: () => void
-      const atPark = new Promise<void>((resolve) => {
-        parked = resolve
-      })
+      let park = Promise.withResolvers<void>()
       const defer = vi.spyOn(f.store, 'defer').mockImplementation(async (queued) => {
         await DurablePushStore.prototype.defer.call(f.store, queued)
-        parked()
+        park.resolve()
       })
       const requests: ApnsRequest[] = []
+      const onRetry = vi.fn()
       const worker = new DurablePushWorker(
         f.store,
         new PushDispatcher({
@@ -327,37 +319,59 @@ describe('occurrence admission', () => {
               await held
               return { status, body: '{"reason":"BadTopic"}' }
             }
-            return { status: 200, body: '' }
+            return { status: requests.length === 2 ? 503 : 200, body: '' }
           })
         }),
-        { now: f.clock }
+        { now: f.clock, onRetry }
       )
       const running = worker.runDue()
+      const competing: Promise<void>[] = []
       try {
         await within(atProvider, 5000)
-        f.advance(1000)
-        const competing = worker.runDue()
-        await within(atPark, 5000)
+        for (let wait = 0; wait < 5; wait++) {
+          f.advance(1000)
+          competing.push(worker.runDue())
+          await within(park.promise, 5000)
+          park = Promise.withResolvers<void>()
+          expect(defer).toHaveBeenCalledTimes(wait + 1)
+        }
         expect(requests).toHaveLength(1)
-        const [row] = await f.db.query(
+        expect(onRetry).not.toHaveBeenCalled()
+        const [maybeRow] = await f.db.query(
           'SELECT attempts, lease_token, due_at FROM push_delivery_batches WHERE host_fingerprint = ?',
           [B]
         )
+        const row = required(maybeRow)
         expect(Number(row.attempts)).toBe(0)
         expect(row.lease_token).toBeNull()
         expect(Number(row.due_at)).toBe(f.clock() + 1000)
         release()
-        await Promise.all([running, competing])
+        await Promise.all([running, ...competing])
+        if (status === 200) {
+          expect(await f.declare([B], 2)).toBe(true)
+        }
         f.advance(1000)
         await worker.runDue()
         expect(requests).toHaveLength(status === 200 ? 1 : 2)
-        if (status === 400) expect(JSON.parse(requests[1].body).orca.hostFingerprint).toBe(B)
+        if (status === 400) {
+          expect(JSON.parse(required(requests[1]).body).orca.hostFingerprint).toBe(B)
+          const [waiting] = await f.db.query('SELECT attempts, due_at FROM push_delivery_batches')
+          expect(Number(required(waiting).attempts)).toBe(1)
+          expect(Number(required(waiting).due_at)).toBe(f.clock() + 2000)
+          expect(onRetry).not.toHaveBeenCalled()
+          f.advance(2000)
+          await worker.runDue()
+          expect(requests).toHaveLength(3)
+          expect(onRetry).toHaveBeenCalledOnce()
+        }
         expect(await f.store.pendingCount(f.a.registrationId)).toBe(0)
         expect(await f.store.pendingCount(f.b.registrationId)).toBe(0)
-        expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe('sent')
+        expect(
+          required((await f.db.query('SELECT state FROM push_occurrence_claims'))[0]).state
+        ).toBe('sent')
       } finally {
         release()
-        await running
+        await Promise.all([running, ...competing])
         await worker.stop()
         defer.mockRestore()
       }
@@ -401,7 +415,9 @@ describe('occurrence admission', () => {
       expect(transport).toHaveBeenCalledTimes(1)
       expect(failures).toBe(3)
       expect(await store.pendingCount(f.first.registrationId)).toBe(0)
-      expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe('sent')
+      expect(
+        required((await f.db.query('SELECT state FROM push_occurrence_claims'))[0]).state
+      ).toBe('sent')
     } finally {
       await worker.stop()
     }
@@ -456,7 +472,7 @@ describe('occurrence admission', () => {
         await worker.stop()
       }
     }
-    expect(samples[1].queries).toBeLessThanOrEqual(samples[0].queries * 10)
+    expect(required(samples[1]).queries).toBeLessThanOrEqual(required(samples[0]).queries * 10)
   })
 
   it('acknowledges lost declaration responses, orders versions, and rejects unproven declarations', async () => {
@@ -466,9 +482,9 @@ describe('occurrence admission', () => {
     expect(await f.declare([B], 2, nacl.sign.keyPair())).toBe(false)
     await Promise.all([f.declare([A], 2), f.declare([B], 3)])
     expect(await f.declare([A, B], 2)).toBe(false)
-    expect((await f.db.query('SELECT hosts_json FROM push_route_declarations'))[0].hosts_json).toBe(
-      JSON.stringify([B])
-    )
+    expect(
+      required((await f.db.query('SELECT hosts_json FROM push_route_declarations'))[0]).hosts_json
+    ).toBe(JSON.stringify([B]))
     await f.db.query('UPDATE push_devices SET route_key = NULL')
     expect(await f.declare([A, B], 4)).toBe(false)
     expect(

@@ -68,9 +68,11 @@ it('validates signed current-device declarations before acknowledging ordered/id
   expect((await harness.post('/v1/routes', body)).status).toBe(200)
   expect((await harness.post('/v1/routes', sign(2, []))).status).toBe(200)
   expect((await harness.post('/v1/routes', body)).status).toBe(400)
-  expect(
-    (await harness.database.query('SELECT hosts_json FROM push_route_declarations'))[0].hosts_json
-  ).toBe('[]')
+  const [row] = await harness.database.query('SELECT hosts_json FROM push_route_declarations')
+  if (!row) {
+    throw new Error('Expected persisted route declaration')
+  }
+  expect(row.hosts_json).toBe('[]')
 })
 
 it('bounds route requests independently of registration and refuses an oversized body', async () => {

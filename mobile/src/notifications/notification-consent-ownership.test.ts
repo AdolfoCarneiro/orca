@@ -1,3 +1,15 @@
+vi.mock('../transport/pairing-keychain', () => {
+  const items = new Map<string, string>()
+  return {
+    readPairingKeychainItem: async (key: string) => items.get(key) ?? null,
+    writePairingKeychainItem: async (key: string, value: string) => {
+      items.set(key, value)
+    },
+    deletePairingKeychainItem: async (key: string) => {
+      items.delete(key)
+    }
+  }
+})
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'

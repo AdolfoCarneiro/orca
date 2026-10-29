@@ -1,3 +1,4 @@
+import type { RuntimeSubscriptionContext } from './runtime-rpc-envelope'
 import type { StructuredAttentionRead, StructuredAttentionOrigin } from './agent-session-attention'
 import type { AgentStatusState, AgentType } from './agent-status-types'
 import type { AgentTurnOutcome } from './agent-turn-outcome'
@@ -68,6 +69,7 @@ export type NotificationDispatchRequest = {
   occurrence?: string
   origin?: string
   forwardingEnvironmentId?: string
+  forwardingSource?: RuntimeSubscriptionContext
   /** The execution host already pushed this to its paired phones, so main must not fan it out again. */
   mobileDeliveredByHost?: boolean
 }

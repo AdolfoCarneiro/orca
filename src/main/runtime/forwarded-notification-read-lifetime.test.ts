@@ -81,7 +81,7 @@ it.each([10, 100])(
     }
     try {
       controller.configureDismissalStore(folder)
-      for (let i = 0; i < count; i++)
+      for (let i = 0; i < count; i++) {
         controller.dispatch({
           type: 'notification',
           source: 'agent-task-complete',
@@ -91,9 +91,11 @@ it.each([10, 100])(
           forwardingEnvironmentId: `environment-${i}`,
           structuredOrigin
         })
+      }
       project.mockClear()
-      for (let i = 0; i < count; i++)
+      for (let i = 0; i < count; i++) {
         controller.dispatch({ type: 'notification', source: 'plugin', title: 'Orca', body: '' })
+      }
       expect(project).not.toHaveBeenCalled()
       controller.retireStructuredAttention({
         sessionId: 'session',
@@ -141,7 +143,7 @@ it('releases forwarded interest when an ordinary record evicts its last delivery
     })
     const changes: string[][] = []
     controller.onForwardedEnvironmentsChanged((ids) => changes.push(ids))
-    for (let i = 0; i < 4096; i++)
+    for (let i = 0; i < 4096; i++) {
       controller.dispatch({
         type: 'notification',
         source: 'terminal-bell',
@@ -149,6 +151,7 @@ it('releases forwarded interest when an ordinary record evicts its last delivery
         body: '',
         notificationId: `ordinary-${i}`
       })
+    }
     expect(changes).toEqual([[]])
   } finally {
     await controller.closeDismissals()

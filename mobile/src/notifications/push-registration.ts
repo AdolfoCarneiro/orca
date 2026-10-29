@@ -286,8 +286,12 @@ export function startPushTokenSync(): () => void {
     await currentToken()
     const pending = tokenPromise
     const token = await pending
-    if (stopped || tokenPromise !== pending) return
-    if (token) refreshPushRoutes(token)
+    if (stopped || tokenPromise !== pending) {
+      return
+    }
+    if (token) {
+      refreshPushRoutes(token)
+    }
     await reconcileAllHosts()
   }
   void refresh().catch(() => {})

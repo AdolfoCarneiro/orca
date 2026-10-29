@@ -1,3 +1,4 @@
+import type { RuntimeSubscriptionContext } from '../../../shared/runtime-rpc-envelope'
 // Share host completion/prompt edges per target without snapshots, buffers or reconnect catch-up. Status feed retains state; this feed intentionally loses outage edges. Retention would create unread obligations with nothing to retire them and relight already-read work.
 
 import type { AgentSessionTurnCompletionEvent } from '../../../shared/agent-session-wire'
@@ -7,7 +8,10 @@ import { runtimeEnvironmentSupportsCapability } from './runtime-rpc-client'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { subscribeStructuredAgentSessionTurnCompletions } from './structured-agent-session-client'
 
-export type StructuredAgentSessionTurnCompletionListener = (edge: AgentSessionAttentionEdge) => void
+export type StructuredAgentSessionTurnCompletionListener = (
+  edge: AgentSessionAttentionEdge,
+  context?: RuntimeSubscriptionContext
+) => void
 
 export type StructuredAgentSessionTurnCompletionFeedOwner = {
   activate: () => () => void
@@ -33,11 +37,15 @@ function createOwner(target: RuntimeClientTarget): OwnedTurnCompletionFeed {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempt = 0
 
-  const deliver = (edge: AgentSessionAttentionEdge): void => {
+  const deliver = (edge: AgentSessionAttentionEdge, context?: RuntimeSubscriptionContext): void => {
     // A copy, so a listener that unsubscribes mid-fanout does not skip its neighbour.
     for (const listener of Array.from(listeners)) {
       try {
-        listener(edge)
+        if (context) {
+          listener(edge, context)
+        } else {
+          listener(edge)
+        }
       } catch (error) {
         console.warn('[structured-session-completion] listener failed', error)
       }
@@ -80,7 +88,7 @@ function createOwner(target: RuntimeClientTarget): OwnedTurnCompletionFeed {
   const subscribeToHost = (candidate: number): void => {
     void subscribeStructuredAgentSessionTurnCompletions(
       target,
-      (event: AgentSessionTurnCompletionEvent) => {
+      (event: AgentSessionTurnCompletionEvent, context?: RuntimeSubscriptionContext) => {
         if (!active(candidate)) {
           return
         }
@@ -95,7 +103,7 @@ function createOwner(target: RuntimeClientTarget): OwnedTurnCompletionFeed {
         }
         // An arm this build cannot name is dropped, not handed on half-read.
         if (event.type === 'completion' || event.type === 'prompt') {
-          deliver(event)
+          deliver(event, context)
         }
       },
       () => {
