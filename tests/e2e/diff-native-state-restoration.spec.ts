@@ -21,6 +21,16 @@ for (const mode of ['original-file', 'readonly-combined']) {
     )
     writeFileSync(fixture.absolutePath, original.replace('oldName', 'newName'))
     writeFileSync(path.join(fixture.repoPath, 'other.txt'), 'other file\n')
+    if (mode === 'readonly-combined') {
+      for (let index = 0; index < 18; index++) {
+        writeFileSync(
+          path.join(fixture.repoPath, 'src', `z-scroll-${String(index).padStart(2, '0')}.ts`),
+          Array.from({ length: 200 }, (_, line) => `export const value_${line} = ${line}\n`).join(
+            ''
+          )
+        )
+      }
+    }
     await waitForSessionReady(orcaPage)
     await setDiffWindowSize(electronApp)
     await addAndActivateRepo(orcaPage, fixture.repoPath)
@@ -37,7 +47,7 @@ for (const mode of ['original-file', 'readonly-combined']) {
       await orcaPage.getByRole('button', { name: 'Stage All', exact: true }).click()
       await expect(
         orcaPage.locator('[data-testid="source-control-entry"][data-source-control-area="staged"]')
-      ).toHaveCount(2)
+      ).toHaveCount(20)
       await orcaPage.getByRole('button', { name: 'View all', exact: true }).first().click()
     } else {
       await entry.click()
@@ -69,6 +79,16 @@ for (const mode of ['original-file', 'readonly-combined']) {
       })
     await expect.poll(selectedText).toBe('SELECT_ME')
     const scrollLeft = await code.evaluate((node) => node.scrollLeft)
+    if (mode === 'readonly-combined') {
+      const viewport = orcaPage.locator('.combined-diff-scroll-container')
+      await viewport.hover({ position: { x: 200, y: 100 } })
+      await orcaPage.mouse.wheel(0, 60_000)
+      await expect(host).toHaveCount(0)
+      await orcaPage.mouse.wheel(0, -60_000)
+      await expect.poll(() => viewport.evaluate((node) => node.scrollTop)).toBeLessThan(1)
+      await expect(code).toBeVisible()
+      await expect.poll(selectedText).toBe('SELECT_ME')
+    }
     if (mode === 'original-file') {
       await orcaPage
         .locator('[data-testid="source-control-entry"]')
