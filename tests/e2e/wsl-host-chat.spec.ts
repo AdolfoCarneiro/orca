@@ -166,19 +166,19 @@ test.describe('native chat on a WSL host', () => {
     }
   })
 
-  test('names the distro when the agent is not installed there', async ({
-    orcaPage: hub
+  test('names the distro when the agent is no longer installed there', async ({
+    orcaPage: hub,
+    claudeStub
   }, testInfo) => {
-    // Two Electron apps and one failed chat start.
+    // Two Electron apps, one chat turn and one failed restart.
     test.setTimeout(240_000)
     await waitForSessionReady(hub)
-    // The host finds no claude: its PATH holds only the system dirs, which the stub fixture checked.
-    await hub.evaluate(async () => {
+    await hub.evaluate(async (command) => {
       await window.__store?.getState().updateSettings({
         experimentalNativeChat: true,
-        agentDefaultEnv: { claude: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' } }
+        agentCmdOverrides: { claude: command }
       })
-    })
+    }, buildFakeAgentCommandOverride(claudeStub.command))
     const offer = await createRuntimeDesktopPairingOffer(hub)
     const fakeDir = mkdtempSync(path.join(os.tmpdir(), 'orca-e2e-wsl-chat-missing-'))
     const distrosFile = path.join(fakeDir, 'distros.json')
@@ -207,6 +207,7 @@ test.describe('native chat on a WSL host', () => {
         kind: 'git'
       })
       await expect.poll(() => focusProject(page, projectPath), { timeout: 60_000 }).toBeTruthy()
+      // The menu offers only installed agents, so the chat starts while claude is there.
       await page.getByRole('button', { name: 'New tab', exact: true }).first().click()
       await page
         .getByRole('menu')
@@ -215,11 +216,33 @@ test.describe('native chat on a WSL host', () => {
         .click({ timeout: 60_000 })
       const chat = page.locator('[data-native-chat-root="true"]')
       const composer = chat.getByRole('textbox')
-      await expect(composer).toBeEditable({ timeout: 60_000 })
-      await composer.click()
-      await page.keyboard.type('hello')
-      await expect(composer).toContainText('hello')
-      await chat.getByRole('button', { name: 'Send', exact: true }).click()
+      const send = async (text: string): Promise<void> => {
+        await expect(composer).toBeEditable({ timeout: 60_000 })
+        await composer.click()
+        await page.keyboard.type(text)
+        await expect(composer).toContainText(text)
+        await chat.getByRole('button', { name: 'Send', exact: true }).click()
+      }
+      await send('hello')
+      await expect(chat.getByText('Stub reply.').first()).toBeVisible({ timeout: 120_000 })
+
+      // Then claude leaves the host (its PATH keeps only the system dirs the stub fixture checked),
+      // and the chat's next start has to find it again.
+      await hub.evaluate(async () => {
+        await window.__store?.getState().updateSettings({
+          agentCmdOverrides: {},
+          agentDefaultEnv: { claude: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' } }
+        })
+      })
+      const sessionId = await page.evaluate(
+        () =>
+          Object.values(window.__store?.getState().unifiedTabsByWorktree ?? {})
+            .flat()
+            .find((tab) => tab.agentSessionAgent === 'claude')?.entityId ?? null
+      )
+      expect(sessionId).toBeTruthy()
+      await callEnvironment(page, WSL_ENVIRONMENT_ID, 'agentSession.close', { sessionId })
+      await send('again')
       // Says where it's missing, not "the computer running this chat".
       await expect(
         chat.getByText(/Claude isn't installed in the WSL distro Ubuntu\./).first()
