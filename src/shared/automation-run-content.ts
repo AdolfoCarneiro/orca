@@ -5,7 +5,10 @@ type AutomationRunContentSource = {
   usage?: { unavailableMessage?: string | null } | null
 }
 
-export function getAutomationRunContent(run: AutomationRunContentSource): string {
+export function getAutomationRunContent(
+  run: AutomationRunContentSource,
+  noOutputContent = 'No output content available.'
+): string {
   const savedOutput = run.outputSnapshot?.content.trim()
   if (savedOutput) {
     return run.outputSnapshot?.content ?? savedOutput
@@ -18,5 +21,5 @@ export function getAutomationRunContent(run: AutomationRunContentSource): string
       return output
     }
   }
-  return run.error ?? run.usage?.unavailableMessage ?? 'No output content available.'
+  return run.error ?? run.usage?.unavailableMessage ?? noOutputContent
 }

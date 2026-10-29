@@ -5,6 +5,9 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AutomationRun } from '../../../../shared/automations-types'
 import { AutomationRunDetailsPage } from './AutomationRunDetailsPage'
+import { getAutomationRunContent } from '../../../../shared/automation-run-content'
+import { i18n } from '@/i18n/i18n'
+import es from '@/i18n/locales/es.json'
 import type { AutomationRunViewState } from './automation-run-view-state'
 
 // These fixtures exercise markdown without rendering diagrams.
@@ -38,11 +41,11 @@ const run: AutomationRun = {
   createdAt: 1
 }
 
-function renderPage(viewState: AutomationRunViewState): void {
+function renderPage(viewState: AutomationRunViewState, selectedRun: AutomationRun = run): void {
   render(
     <AutomationRunDetailsPage
       automation={null}
-      run={run}
+      run={selectedRun}
       relativeNow={1}
       workspaceDisplay={null}
       viewState={viewState}
@@ -84,5 +87,29 @@ describe('AutomationRunDetailsPage', () => {
     })
     expect(screen.queryByRole('button', { name: 'View run' })).not.toBeInTheDocument()
     expect(screen.getByText('Precheck exited with code 1.')).toBeInTheDocument()
+  })
+
+  it('localizes empty desktop output while the shared mobile default remains available', async () => {
+    const emptyRun: AutomationRun = { ...run, error: null }
+    expect(getAutomationRunContent(emptyRun)).toBe('No output content available.')
+    const originalLanguage = i18n.language
+    i18n.addResourceBundle('es', 'translation', es)
+    await i18n.changeLanguage('es')
+    try {
+      renderPage(
+        {
+          availability: 'metadata',
+          actionLabel: 'View run',
+          statusLabel: 'Run is complete',
+          canOpen: false
+        },
+        emptyRun
+      )
+      expect(
+        screen.getByText(es.auto.components.automations.runContent.noOutput)
+      ).toBeInTheDocument()
+    } finally {
+      await i18n.changeLanguage(originalLanguage)
+    }
   })
 })
