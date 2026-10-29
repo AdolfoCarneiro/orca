@@ -47,6 +47,21 @@ beforeEach(() => {
 })
 
 describe('createUISlice hydratePersistedUI', () => {
+  it('keeps model badges on for an existing profile, persists a choice and restores it', async () => {
+    const setUI = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('window', { api: { ui: { set: setUI } } })
+    const store = createUIStore()
+    store.getState().hydratePersistedUI(makePersistedUI({}))
+    expect(store.getState().showAgentModels).toBe(true)
+    store.getState().setShowAgentModels(false)
+    expect(store.getState().showAgentModels).toBe(false)
+    expect(setUI).toHaveBeenLastCalledWith({ showAgentModels: false })
+    store.getState().hydratePersistedUI(makePersistedUI({ showAgentModels: false }))
+    expect(store.getState().showAgentModels).toBe(false)
+    store.getState().setShowAgentModels(true)
+    expect(setUI).toHaveBeenLastCalledWith({ showAgentModels: true })
+  })
+
   it('does not restore the retired active-only filter from persisted UI state', () => {
     const store = createUIStore()
 

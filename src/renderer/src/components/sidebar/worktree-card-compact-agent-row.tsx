@@ -88,6 +88,7 @@ function getCompactAgentTime(agent: DashboardAgentRowData, now: number): string 
 }
 
 type CompactAgentRowProps = {
+  showModel?: boolean
   agent: DashboardAgentRowData
   now: number
   onActivate: (tabId: string, paneKey: string) => void
@@ -106,6 +107,7 @@ type CompactAgentRowProps = {
 
 export const CompactAgentRow = React.memo(function CompactAgentRow({
   agent,
+  showModel = true,
   now,
   onActivate,
   sendTargetStatus,
@@ -248,10 +250,10 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
           </span>
         </>
       )}
-      {model && (
+      {showModel && model && (
         <span
           className={cn(
-            'min-w-0 max-w-24 truncate font-mono text-[10px]',
+            'min-w-0 max-w-24 truncate font-mono text-3xs',
             highlighted ? 'text-foreground/70' : 'text-muted-foreground/70'
           )}
           title={model}

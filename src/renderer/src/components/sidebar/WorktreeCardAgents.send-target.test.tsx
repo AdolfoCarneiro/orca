@@ -17,6 +17,7 @@ function agentRow(paneKey: string, state: string, now: number): unknown {
     startedAt: now,
     agentType: 'codex',
     entry: {
+      model: 'reported-model',
       prompt: state === 'working' ? 'Busy' : 'Ready',
       state,
       stateStartedAt: now,
@@ -122,14 +123,17 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
     agent,
     sendTargetStatus,
     sendTargetDisabledReason,
-    onSendTargetClick
+    onSendTargetClick,
+    showModel
   }: {
+    showModel?: boolean
     agent: { paneKey: string }
     sendTargetStatus?: 'eligible' | 'disabled' | 'sending'
     sendTargetDisabledReason?: string
     onSendTargetClick?: (paneKey: string) => void
   }) => (
     <div
+      data-show-model={String(showModel)}
       data-agent-send-target={sendTargetStatus}
       data-disabled-reason={sendTargetDisabledReason}
       data-has-send-handler={typeof onSendTargetClick === 'function' ? 'true' : 'false'}
@@ -149,6 +153,21 @@ vi.mock('@/components/ui/tooltip', () => ({
 }))
 
 describe('WorktreeCardAgents send targets', () => {
+  it.each(['compact', 'full'] as const)('applies model visibility to the %s list', async (mode) => {
+    const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
+    mockStoreState = { ...mockStoreState, agentActivityDisplayMode: mode }
+    const render = () => renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
+    expect(render()).toContain(
+      mode === 'compact' ? 'title="reported-model"' : 'data-show-model="true"'
+    )
+    mockStoreState = { ...mockStoreState, showAgentModels: false }
+    if (mode === 'compact') {
+      expect(render()).not.toContain('title="reported-model"')
+    } else {
+      expect(render()).toContain('data-show-model="false"')
+    }
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     const now = Date.now()
