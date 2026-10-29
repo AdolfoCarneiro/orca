@@ -473,9 +473,10 @@ async function restartThroughBridgeConpty(): Promise<Receipt> {
     }
   )
   let output = ''
-  let firstPaintMs: number | null = null
+  // ConPTY's own startup repaint, before the distro has produced anything.
+  let conptyStartupOutputMs: number | null = null
   terminal.onData((data) => {
-    firstPaintMs ??= Math.round(performance.now() - started)
+    conptyStartupOutputMs ??= Math.round(performance.now() - started)
     output += data
   })
   try {
@@ -486,7 +487,7 @@ async function restartThroughBridgeConpty(): Promise<Receipt> {
       120_000,
       50
     )
-    return { firstPaintMs, firstOutputMs: Math.round(performance.now() - started) }
+    return { conptyStartupOutputMs, firstOutputMs: Math.round(performance.now() - started) }
   } finally {
     terminal.kill()
   }
@@ -571,7 +572,7 @@ async function distroRestartBaseline(): Promise<void> {
     medianHostPhases: medianWslOrcadEnsurePhases(host.map((run) => run.phases)),
     medianBridgeExecLowerBoundMs: median(bridge, 'firstOutputMs'),
     bridgeConpty: conpty,
-    medianBridgeConptyFirstPaintMs: median(conpty, 'firstPaintMs'),
+    medianBridgeConptyStartupOutputMs: median(conpty, 'conptyStartupOutputMs'),
     medianBridgeConptyFirstOutputMs: median(conpty, 'firstOutputMs')
   }
   receipt.orcadStartupProfiles = await profileOrcadRestart(repoPath)
