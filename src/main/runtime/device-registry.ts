@@ -148,7 +148,8 @@ export class DeviceRegistry {
     if (nextDevices !== this.devices) {
       this.devices = this.save(nextDevices)
     }
-    return entries
+    // A child the file had already lost is dropped by the save: never hand out its token.
+    return entries.filter((entry) => this.getDevice(entry.deviceId) !== null)
   }
 
   removeDevice(deviceId: string): boolean {

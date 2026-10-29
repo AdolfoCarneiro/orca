@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PRComment } from '../../../../shared/github/comment-types'
+import type { PRComment } from '../../../shared/github/comment-types'
 import {
   markPRCommentThreadResolved,
   restorePRCommentThreadSnapshot
@@ -42,5 +42,35 @@ describe('PR comment thread resolution helpers', () => {
       ['thread-b', false],
       ['thread-b', false]
     ])
+  })
+
+  it('restores only resolution fields while preserving edits and current membership', () => {
+    const previous = comment({ id: 1, threadId: 'thread-a', isResolved: false })
+    const removed = comment({ id: 2, threadId: 'thread-a', isResolved: false })
+    const edited = comment({
+      ...previous,
+      isResolved: true,
+      body: 'Updated while resolution was pending.',
+      reactions: [{ content: 'heart', count: 1, viewerHasReacted: true }]
+    })
+    const added = comment({ id: 3, threadId: 'thread-a', body: 'New reply.' })
+
+    expect(restorePRCommentThreadSnapshot([edited, added], [previous, removed])).toEqual([
+      { ...edited, isResolved: false },
+      { ...added, isResolved: false }
+    ])
+  })
+
+  it('preserves per-ID resolution values and uses known thread state for new replies', () => {
+    const unknown = comment({ id: 1, threadId: 'thread-a' })
+    const resolved = comment({ id: 2, threadId: 'thread-a', isResolved: true })
+    const added = comment({ id: 3, threadId: 'thread-a' })
+
+    expect(
+      restorePRCommentThreadSnapshot(
+        markPRCommentThreadResolved([unknown, resolved, added], 'thread-a', false),
+        [unknown, resolved]
+      )
+    ).toEqual([{ ...unknown, isResolved: undefined }, resolved, { ...added, isResolved: true }])
   })
 })

@@ -10,7 +10,7 @@ import type { RpcClient } from '../transport/rpc-client'
 import { triggerError, triggerSuccess } from '../platform/haptics'
 import { useDictationSetupPoller } from '../dictation/use-dictation-setup-poller'
 import {
-  CLOUD_MODEL_NEEDS_KEY,
+  cloudModelNeedsKey,
   dictationModelRowAction,
   downloadDictationModel,
   fetchDictationSetup,
@@ -176,7 +176,7 @@ export function MobileDictationSetupSheet({ visible, client, onClose, onReady }:
                     </Text>
                   </View>
                   {action === 'needs-api-key' ? (
-                    <Text style={styles.modelStateText}>{CLOUD_MODEL_NEEDS_KEY}</Text>
+                    <Text style={styles.modelStateText}>{cloudModelNeedsKey()}</Text>
                   ) : action === 'in-use' ? (
                     <View style={styles.selectedTag}>
                       <Check size={14} color={colors.statusGreen} strokeWidth={2.4} />
