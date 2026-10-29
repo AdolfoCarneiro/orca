@@ -1,5 +1,9 @@
 import { resolve as resolvePath } from 'node:path'
-import { isPathInsideOrEqual } from '../shared/cross-platform-path'
+import {
+  isPathInsideOrEqual,
+  normalizeRuntimePathForComparison
+} from '../shared/cross-platform-path'
+import { projectGroupIdFromRepoId } from '../shared/folder-workspace-worktree'
 import {
   LOCAL_EXECUTION_HOST_ID,
   parseExecutionHostId,
@@ -8,7 +12,7 @@ import {
 } from '../shared/execution-host'
 import { readOrchestrationCompatibilityEvidence } from '../shared/orchestration-compatibility-evidence'
 import type { RuntimeWorktreeListResult, RuntimeWorktreeRecord } from '../shared/runtime-types'
-import type { RuntimeClient } from './runtime-client'
+import { RuntimeClientError, type RuntimeClient } from './runtime-client'
 
 type CatalogRow = Pick<RuntimeWorktreeRecord, 'id' | 'path' | 'hostId'> & {
   identity?: { key: string }
@@ -38,7 +42,7 @@ function toHostScopedSelector(row: CatalogRow, catalog: readonly CatalogRow[]): 
 
 export type HostScopedWorktreeSelection = { selector: string; worktreeId: string }
 
-/** Prefer the innermost enclosing worktree on the caller's host. */
+/** Workspace ownership stays separate from project inference: siblings can share a checkout. */
 export function selectEnclosingWorktreeSelectionOnHost(
   catalog: readonly CatalogRow[],
   cwd: string,
@@ -69,6 +73,54 @@ export function selectEnclosingWorktreeSelectionOnHost(
   return enclosing
     ? { selector: toHostScopedSelector(enclosing, catalog), worktreeId: enclosing.id }
     : undefined
+}
+
+export function selectEnclosingRepoOnHost(
+  catalog: readonly (CatalogRow & Pick<RuntimeWorktreeRecord, 'repoId'>)[],
+  cwd: string,
+  hostId: ExecutionHostId,
+  callerWorktreeId?: string
+): string | undefined {
+  const currentPath = resolvePath(cwd)
+  const enclosing = catalog.filter(
+    (row) => isOnCallerHost(row, hostId) && isPathInsideOrEqual(resolvePath(row.path), currentPath)
+  )
+  const innermostLength = Math.max(...enclosing.map((row) => resolvePath(row.path).length))
+  const candidates = enclosing.filter((row) => resolvePath(row.path).length === innermostLength)
+  // A folder's synthetic repo names its group, not an association with a Git checkout.
+  const checkouts = new Map<string, (typeof candidates)[number]>()
+  const callerCheckouts = new Set<string>()
+  for (const row of candidates) {
+    const key = JSON.stringify([
+      row.repoId,
+      row.hostId ?? LOCAL_EXECUTION_HOST_ID,
+      normalizeRuntimePathForComparison(resolvePath(row.path))
+    ])
+    checkouts.set(key, row)
+    if (row.id === callerWorktreeId) {
+      callerCheckouts.add(key)
+    }
+  }
+  const matches = [...checkouts]
+    .filter(([key]) => callerCheckouts.size === 0 || callerCheckouts.has(key))
+    .map(([, row]) => row)
+  if (matches.length > 1) {
+    const projects = matches
+      .map((row) => ({ repo: `id:${row.repoId}`, hostId: row.hostId, path: row.path }))
+      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+    throw new RuntimeClientError(
+      'selector_ambiguous',
+      `More than one Orca project contains the current directory: ${currentPath}. Choose the project with --repo or --project.`,
+      {
+        projects,
+        nextSteps: [
+          'Run `orca repo list --json` or `orca project list --json`, then pass the intended --repo or --project selector.'
+        ]
+      }
+    )
+  }
+  const repoId = matches[0]?.repoId
+  return repoId && !projectGroupIdFromRepoId(repoId) ? repoId : undefined
 }
 
 export function selectEnclosingWorktreeOnHost(

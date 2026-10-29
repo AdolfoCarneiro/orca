@@ -24,7 +24,7 @@ import {
 import {
   getOptionalWorktreeSelector,
   getRequiredWorktreeSelector,
-  resolveCurrentWorktreeSelection,
+  resolveWorktreeCreateCwdContext,
   resolveCurrentWorktreeSelector
 } from '../selectors'
 import type { HostScopedWorktreeSelection } from '../caller-host-worktree-selection'
@@ -36,7 +36,8 @@ import { projectWorktreePsTerminalVerdict } from '../worktree-ps-terminal-verdic
 import {
   assertWorkspaceTargetFlagsCompatible,
   hasWorkspaceProjectTarget,
-  getCreateRepoTarget
+  getCreateRepoTarget,
+  type CliRepoTarget
 } from '../worktree-project-target'
 import {
   assertWorktreeParentFlagsCompatible,
@@ -153,6 +154,7 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
         ? getEnvParentWorkspace()
         : undefined
     let cwdParentWorktree: HostScopedWorktreeSelection | undefined
+    let inferredRepoId: string | undefined
     const needsCwdRepoInference = !flags.has('repo') && !hasWorkspaceProjectTarget(flags)
     if (
       (!explicitParentWorktree && !explicitParentWorkspace && !noParent) ||
@@ -160,15 +162,26 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
     ) {
       try {
         // Cwd preserves parent/repo inference when agent shells lose ORCA_TERMINAL_HANDLE.
-        cwdParentWorktree = await resolveCurrentWorktreeSelection(cwd, client)
-      } catch {
+        const context = await resolveWorktreeCreateCwdContext(cwd, client, needsCwdRepoInference)
+        cwdParentWorktree = context.parentWorktree
+        inferredRepoId = context.repoId
+      } catch (error) {
+        if (
+          needsCwdRepoInference &&
+          error instanceof RuntimeClientError &&
+          error.code === 'selector_ambiguous'
+        ) {
+          throw error
+        }
         cwdParentWorktree = undefined
       }
     }
     const linearIssueLink = getOptionalLinearIssueLinkFlag(flags, 'linear-issue')
     const activate = flags.get('activate') === true || flags.get('run-hooks') === true
     const name = getRequiredStringFlag(flags, 'name')
-    const repoTarget = await getCreateRepoTarget(flags, cwdParentWorktree, client)
+    const repoTarget: CliRepoTarget = inferredRepoId
+      ? { repo: `id:${inferredRepoId}` }
+      : await getCreateRepoTarget(flags, undefined, client)
     await assertGitLabLinkFlagProjectsMatch(flags, client, repoTarget)
     const linkedItems = referenceInputs
       ? await resolveReferenceInputs(context, referenceInputs)

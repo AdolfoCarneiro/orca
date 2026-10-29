@@ -11,6 +11,7 @@ import { getOptionalStringFlag, getPresentStringFlag, getRequiredStringFlag } fr
 import {
   getCallerExecutionHostId,
   resolveCallerPaneWorktreeSelector,
+  selectEnclosingRepoOnHost,
   selectEnclosingWorktreeSelectionOnHost,
   type HostScopedWorktreeSelection
 } from './caller-host-worktree-selection'
@@ -122,6 +123,24 @@ export async function resolveCurrentWorktreeSelection(
     )
   }
   return selection
+}
+
+export async function resolveWorktreeCreateCwdContext(
+  cwd: string,
+  client: RuntimeClient,
+  inferRepo: boolean
+): Promise<{ parentWorktree?: HostScopedWorktreeSelection; repoId?: string }> {
+  assertLocalCwdWorktreeSelector('current', client)
+  const worktrees = await client.call<RuntimeWorktreeListResult>('worktree.list', { limit: 10_000 })
+  const catalog = worktrees.result.worktrees
+  const hostId = getCallerExecutionHostId()
+  const callerWorktreeId = process.env.ORCA_WORKTREE_ID
+  return {
+    repoId: inferRepo
+      ? selectEnclosingRepoOnHost(catalog, cwd, hostId, callerWorktreeId)
+      : undefined,
+    parentWorktree: selectEnclosingWorktreeSelectionOnHost(catalog, cwd, hostId, callerWorktreeId)
+  }
 }
 
 export async function getOptionalWorktreeSelector(
