@@ -54,13 +54,12 @@ export function ResourcePtyPanel({
           {inventory.observedAt === null
             ? translate('resourceManager.pty.thisComputer', 'This computer')
             : translate(
-                sessions.length === 1
-                  ? 'resourceManager.pty.localOwnedCount_one'
-                  : 'resourceManager.pty.localOwnedCount_other',
-                sessions.length === 1
-                  ? '{{count}} Orca PTY on this computer'
-                  : '{{count}} Orca PTYs on this computer',
-                { count: sessions.length }
+                'resourceManager.pty.localOwnedCount',
+                '{{count}} Orca PTYs on this computer',
+                {
+                  count: sessions.length,
+                  defaultValue_one: '{{count}} Orca PTY on this computer'
+                }
               )}
           {inventory.observedAt !== null && unbound > 0 && (
             <span>

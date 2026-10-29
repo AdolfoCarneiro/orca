@@ -21783,5 +21783,53 @@
         "unsupported": "Seçili otomasyon sunucusu bu projeyi desteklemiyor."
       }
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "Başlık zorunludur",
+      "networkError": "Ağ hatası — bağlantınızı kontrol edin.",
+      "invalidUpdate": "Geçersiz güncelleme — {{detail}}",
+      "invalidRequest": "Geçersiz istek — {{detail}}",
+      "issueNotFound": "Sorun bulunamadı — silinmiş olabilir.",
+      "issueUpdateFailed": "Sorun güncellenemedi: {{detail}}",
+      "github": {
+        "repoUnresolved": "Bu repository için GitHub owner/repo bilgisi belirlenemedi",
+        "unexpectedResponse": "GitHub'dan beklenmeyen yanıt",
+        "pullRequestIdUnresolved": "GitHub pull request ID'si belirlenemedi",
+        "reviewerRequired": "En az bir inceleyen belirtin",
+        "stackAutoMergeUnsupported": "GitHub, yığındaki pull request'ler için otomatik merge'i desteklemiyor.",
+        "autoMergeAlreadyMergeable": "Bu pull request zaten merge edilebilir. Otomatik merge yerine Merge kullanın.",
+        "noFailedChecks": "Yeniden çalıştırılacak başarısız GitHub Actions kontrolü yok.",
+        "noRerunnableChecks": "Yeniden çalıştırılabilir kontrol bulunamadı.",
+        "stackMergeInvalidResponse": "GitHub geçersiz bir yığın merge yanıtı döndürdü.",
+        "stackMergePending": "GitHub hâlâ bu yığını merge ediyor. Durumunu kontrol etmek için yenileyin.",
+        "rateLimited": "GitHub istek sınırına ulaşıldı. Birkaç dakika sonra tekrar deneyin.",
+        "issuePermissionDenied": "Bu sorunu düzenleme izniniz yok. GitHub belirtecinizin kapsamlarını kontrol edin.",
+        "issuesDisabled": "Bu repository'de sorunlar devre dışı.",
+        "pullRequestPermissionDenied": "Bu pull request'i düzenleme izniniz yok. GitHub belirtecinizin kapsamlarını kontrol edin.",
+        "pullRequestNotFound": "Pull request bulunamadı — silinmiş olabilir.",
+        "pullRequestUpdateFailed": "Pull request güncellenemedi: {{detail}}",
+        "autoMergeEnableFailed": "Pull request için otomatik merge etkinleştirilemedi: {{detail}}",
+        "autoMergeDisableFailed": "Pull request için otomatik merge devre dışı bırakılamadı: {{detail}}",
+        "mergeQueueAddFailed": "Pull request merge queue'suna eklenemedi: {{detail}}",
+        "rerunPermissionDenied": "Bu repository'de kontrolleri yeniden çalıştırma izniniz yok. GitHub belirtecinizin kapsamlarını kontrol edin.",
+        "rerunTargetNotFound": "Yeniden çalıştırılacak GitHub kaynağı bulunamadı — süresi dolmuş veya silinmiş olabilir.",
+        "rerunRejected": "Kontroller yeniden çalıştırılamadı — {{detail}}",
+        "rerunFailed": "Kontroller yeniden çalıştırılamadı: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Bu repository için GitLab projesi belirlenemedi",
+        "unexpectedResponse": "GitLab'dan beklenmeyen yanıt",
+        "commentBodyRequired": "Yorum metni gerekli",
+        "discussionIdRequired": "Tartışma ID'si gerekli",
+        "readyTitleConflict": "Bir merge request hazır olarak işaretlenirken başlık güncellenemez",
+        "mergeRequestTitleUnreadable": "Merge request'in mevcut başlığı okunamadı",
+        "rateLimited": "GitLab istek sınırına ulaşıldı. Birkaç dakika sonra tekrar deneyin.",
+        "issuePermissionDenied": "Bu sorunu düzenleme izniniz yok. GitLab belirtecinizin kapsamlarını kontrol edin.",
+        "jobLogPermissionDenied": "Bu işin günlüğünü okuma izniniz yok. GitLab belirtecinizin kapsamlarını kontrol edin.",
+        "jobProjectNotFound": "Bu işin GitLab projesi bulunamadı.",
+        "jobLogFailed": "İş günlüğü yüklenemedi: {{detail}}"
+      }
+    }
   }
 }

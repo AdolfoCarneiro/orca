@@ -21805,5 +21805,53 @@
         "unsupported": "選択したオートメーションのホストは、このプロジェクトをサポートしていません。"
       }
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "タイトルは必須です",
+      "networkError": "ネットワークエラー — 接続を確認してください。",
+      "invalidUpdate": "無効な更新 — {{detail}}",
+      "invalidRequest": "無効なリクエスト — {{detail}}",
+      "issueNotFound": "Issue が見つかりません — 削除された可能性があります。",
+      "issueUpdateFailed": "Issue を更新できませんでした: {{detail}}",
+      "github": {
+        "repoUnresolved": "このリポジトリの GitHub 所有者とリポジトリ名を特定できませんでした",
+        "unexpectedResponse": "GitHub から予期しない応答がありました",
+        "pullRequestIdUnresolved": "GitHub PR の ID を特定できませんでした",
+        "reviewerRequired": "1 人以上のレビュアーを入力してください",
+        "stackAutoMergeUnsupported": "GitHub はスタックされた PR の自動マージに対応していません。",
+        "autoMergeAlreadyMergeable": "この PR はすでにマージ可能です。自動マージではなく「マージ」を使用してください。",
+        "noFailedChecks": "再実行対象の失敗した GitHub Actions チェックはありません。",
+        "noRerunnableChecks": "再実行できるチェックが見つかりませんでした。",
+        "stackMergeInvalidResponse": "GitHub がスタックのマージに対して無効な応答を返しました。",
+        "stackMergePending": "GitHub はまだこのスタックをマージ中です。更新して状態を確認してください。",
+        "rateLimited": "GitHub のレート制限に達しました。数分後にもう一度お試しください。",
+        "issuePermissionDenied": "この Issue を編集する権限がありません。GitHub トークンのスコープを確認してください。",
+        "issuesDisabled": "このリポジトリでは Issue が無効になっています。",
+        "pullRequestPermissionDenied": "この PR を編集する権限がありません。GitHub トークンのスコープを確認してください。",
+        "pullRequestNotFound": "PR が見つかりません — 削除された可能性があります。",
+        "pullRequestUpdateFailed": "PR を更新できませんでした: {{detail}}",
+        "autoMergeEnableFailed": "PR の自動マージを有効にできませんでした: {{detail}}",
+        "autoMergeDisableFailed": "PR の自動マージを無効にできませんでした: {{detail}}",
+        "mergeQueueAddFailed": "PR をマージキューに追加できませんでした: {{detail}}",
+        "rerunPermissionDenied": "このリポジトリでチェックを再実行する権限がありません。GitHub トークンのスコープを確認してください。",
+        "rerunTargetNotFound": "再実行対象の GitHub リソースが見つかりません — 期限切れまたは削除された可能性があります。",
+        "rerunRejected": "チェックを再実行できませんでした — {{detail}}",
+        "rerunFailed": "チェックを再実行できませんでした: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "このリポジトリの GitLab プロジェクトを特定できませんでした",
+        "unexpectedResponse": "GitLab から予期しない応答がありました",
+        "commentBodyRequired": "コメント本文が必要です",
+        "discussionIdRequired": "ディスカッション ID が必要です",
+        "readyTitleConflict": "MR をレビュー準備完了にする際にタイトルは更新できません",
+        "mergeRequestTitleUnreadable": "現在の MR のタイトルを読み取れませんでした",
+        "rateLimited": "GitLab のレート制限に達しました。数分後にもう一度お試しください。",
+        "issuePermissionDenied": "この Issue を編集する権限がありません。GitLab トークンのスコープを確認してください。",
+        "jobLogPermissionDenied": "このジョブのログを読む権限がありません。GitLab トークンのスコープを確認してください。",
+        "jobProjectNotFound": "このジョブの GitLab プロジェクトが見つかりませんでした。",
+        "jobLogFailed": "ジョブログを読み込めませんでした: {{detail}}"
+      }
+    }
   }
 }

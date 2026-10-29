@@ -22419,5 +22419,53 @@
         "unsupported": "El host seleccionado para la automatización no admite este proyecto."
       }
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "El título es obligatorio",
+      "networkError": "Error de red — comprueba tu conexión.",
+      "invalidUpdate": "Actualización no válida — {{detail}}",
+      "invalidRequest": "Solicitud no válida — {{detail}}",
+      "issueNotFound": "No se encontró el issue — puede que se haya eliminado.",
+      "issueUpdateFailed": "No se pudo actualizar el issue: {{detail}}",
+      "github": {
+        "repoUnresolved": "No se pudo determinar el owner/repo de GitHub para este repositorio",
+        "unexpectedResponse": "Respuesta inesperada de GitHub",
+        "pullRequestIdUnresolved": "No se pudo determinar el ID del pull request de GitHub",
+        "reviewerRequired": "Introduce al menos un revisor",
+        "stackAutoMergeUnsupported": "GitHub no admite auto-merge para pull requests apilados.",
+        "autoMergeAlreadyMergeable": "Este pull request ya se puede mergear. Usa Merge en lugar de auto-merge.",
+        "noFailedChecks": "No hay checks fallidos de GitHub Actions para volver a ejecutar.",
+        "noRerunnableChecks": "No se encontraron checks que se puedan volver a ejecutar.",
+        "stackMergeInvalidResponse": "GitHub devolvió una respuesta no válida al mergear la pila.",
+        "stackMergePending": "GitHub aún está mergeando esta pila. Actualiza para consultar su estado.",
+        "rateLimited": "Se alcanzó el límite de velocidad de GitHub. Inténtalo de nuevo en unos minutos.",
+        "issuePermissionDenied": "No tienes permiso para editar este issue. Comprueba los alcances de tu token de GitHub.",
+        "issuesDisabled": "Los issues están deshabilitados en este repositorio.",
+        "pullRequestPermissionDenied": "No tienes permiso para editar este pull request. Comprueba los alcances de tu token de GitHub.",
+        "pullRequestNotFound": "No se encontró el pull request — puede que se haya eliminado.",
+        "pullRequestUpdateFailed": "No se pudo actualizar el pull request: {{detail}}",
+        "autoMergeEnableFailed": "No se pudo habilitar auto-merge para el pull request: {{detail}}",
+        "autoMergeDisableFailed": "No se pudo deshabilitar auto-merge para el pull request: {{detail}}",
+        "mergeQueueAddFailed": "No se pudo añadir el pull request a la merge queue: {{detail}}",
+        "rerunPermissionDenied": "No tienes permiso para volver a ejecutar checks en este repositorio. Comprueba los alcances de tu token de GitHub.",
+        "rerunTargetNotFound": "No se encontró el recurso de GitHub que se iba a volver a ejecutar — puede que haya caducado o se haya eliminado.",
+        "rerunRejected": "No se pudieron volver a ejecutar los checks — {{detail}}",
+        "rerunFailed": "No se pudieron volver a ejecutar los checks: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "No se pudo determinar el proyecto de GitLab para este repositorio",
+        "unexpectedResponse": "Respuesta inesperada de GitLab",
+        "commentBodyRequired": "El contenido del comentario es obligatorio",
+        "discussionIdRequired": "El ID de la discusión es obligatorio",
+        "readyTitleConflict": "No se puede actualizar el título al marcar un merge request como listo",
+        "mergeRequestTitleUnreadable": "No se pudo leer el título actual del merge request",
+        "rateLimited": "Se alcanzó el límite de velocidad de GitLab. Inténtalo de nuevo en unos minutos.",
+        "issuePermissionDenied": "No tienes permiso para editar este issue. Comprueba los alcances de tu token de GitLab.",
+        "jobLogPermissionDenied": "No tienes permiso para leer el log de este job. Comprueba los alcances de tu token de GitLab.",
+        "jobProjectNotFound": "No se pudo encontrar el proyecto de GitLab de este job.",
+        "jobLogFailed": "No se pudo cargar el log del job: {{detail}}"
+      }
+    }
   }
 }

@@ -22234,5 +22234,53 @@
         "unsupported": "O host selecionado para a automação não oferece suporte a este projeto."
       }
     }
+  },
+  "codeHost": {
+    "errors": {
+      "titleRequired": "O título é obrigatório",
+      "networkError": "Erro de rede — verifique sua conexão.",
+      "invalidUpdate": "Atualização inválida — {{detail}}",
+      "invalidRequest": "Solicitação inválida — {{detail}}",
+      "issueNotFound": "Issue não encontrada — ela pode ter sido excluída.",
+      "issueUpdateFailed": "Falha ao atualizar a issue: {{detail}}",
+      "github": {
+        "repoUnresolved": "Não foi possível determinar o owner/repo do GitHub para este repositório",
+        "unexpectedResponse": "Resposta inesperada do GitHub",
+        "pullRequestIdUnresolved": "Não foi possível determinar o ID do pull request no GitHub",
+        "reviewerRequired": "Informe pelo menos um revisor",
+        "stackAutoMergeUnsupported": "O GitHub não oferece suporte a merge automático de pull requests empilhados.",
+        "autoMergeAlreadyMergeable": "Este pull request já pode ser mergeado. Use Merge em vez de merge automático.",
+        "noFailedChecks": "Não há verificações com falha do GitHub Actions para executar novamente.",
+        "noRerunnableChecks": "Não foram encontradas verificações para executar novamente.",
+        "stackMergeInvalidResponse": "O GitHub retornou uma resposta inválida ao fazer merge da pilha.",
+        "stackMergePending": "O GitHub ainda está fazendo merge desta pilha. Atualize para verificar o status.",
+        "rateLimited": "Limite de taxa do GitHub atingido. Tente novamente em alguns minutos.",
+        "issuePermissionDenied": "Você não tem permissão para editar esta issue. Verifique os escopos do seu token do GitHub.",
+        "issuesDisabled": "As issues estão desativadas neste repositório.",
+        "pullRequestPermissionDenied": "Você não tem permissão para editar este pull request. Verifique os escopos do seu token do GitHub.",
+        "pullRequestNotFound": "Pull request não encontrado — ele pode ter sido excluído.",
+        "pullRequestUpdateFailed": "Falha ao atualizar o pull request: {{detail}}",
+        "autoMergeEnableFailed": "Falha ao ativar o merge automático do pull request: {{detail}}",
+        "autoMergeDisableFailed": "Falha ao desativar o merge automático do pull request: {{detail}}",
+        "mergeQueueAddFailed": "Falha ao adicionar o pull request à fila de merge: {{detail}}",
+        "rerunPermissionDenied": "Você não tem permissão para executar verificações novamente neste repositório. Verifique os escopos do seu token do GitHub.",
+        "rerunTargetNotFound": "O recurso do GitHub a ser executado novamente não foi encontrado — ele pode ter expirado ou sido excluído.",
+        "rerunRejected": "Não foi possível executar as verificações novamente — {{detail}}",
+        "rerunFailed": "Falha ao executar as verificações novamente: {{detail}}"
+      },
+      "gitlab": {
+        "projectUnresolved": "Não foi possível determinar o projeto do GitLab para este repositório",
+        "unexpectedResponse": "Resposta inesperada do GitLab",
+        "commentBodyRequired": "O conteúdo do comentário é obrigatório",
+        "discussionIdRequired": "O ID da discussão é obrigatório",
+        "readyTitleConflict": "Não é possível atualizar o título ao marcar um merge request como pronto",
+        "mergeRequestTitleUnreadable": "Não foi possível ler o título atual do merge request",
+        "rateLimited": "Limite de taxa do GitLab atingido. Tente novamente em alguns minutos.",
+        "issuePermissionDenied": "Você não tem permissão para editar esta issue. Verifique os escopos do seu token do GitLab.",
+        "jobLogPermissionDenied": "Você não tem permissão para ler o log deste job. Verifique os escopos do seu token do GitLab.",
+        "jobProjectNotFound": "Não foi possível encontrar o projeto do GitLab deste job.",
+        "jobLogFailed": "Falha ao carregar o log do job: {{detail}}"
+      }
+    }
   }
 }
