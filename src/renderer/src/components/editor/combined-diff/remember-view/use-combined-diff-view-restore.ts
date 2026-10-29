@@ -66,6 +66,7 @@ export function useCombinedDiffViewRestore({
   } = entrySet
   const {
     generationRef,
+    deferredReloadKeysRef,
     deferredLoadRequestsRef,
     loadSchedulerRef,
     loadedIndicesRef,
@@ -212,6 +213,9 @@ export function useCombinedDiffViewRestore({
     loadingIndicesRef.current.clear()
     sectionLoadTokensRef.current.clear()
     supersededLoadIndicesRef.current.clear()
+    // Why: the rebuilt rows load fresh, so a refusal recorded against the old set would charge the
+    // next save of that path a git diff it no longer needs.
+    deferredReloadKeysRef.current.clear()
     clearPendingSectionReloadTimers(reloadTimersRef.current)
     loadSchedulerRef.current.reset()
     generationRef.current += 1
@@ -220,6 +224,7 @@ export function useCombinedDiffViewRestore({
     entries,
     entrySignature,
     generationRef,
+    deferredReloadKeysRef,
     deferredLoadRequestsRef,
     gitStatusEntries,
     hasUncommittedEntriesSnapshot,

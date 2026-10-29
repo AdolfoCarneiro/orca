@@ -8,8 +8,9 @@ export type CombinedDiffLoadScheduler = {
 export function createCombinedDiffLoadScheduler({
   loadSection,
   schedule = (callback) => queueMicrotask(callback),
-  // Section completion mounts Monaco; serialize by default to avoid stacking large-diff render work.
-  maxConcurrent = 1
+  // Why: sections now render through Pierre, which highlights in a worker pool
+  // instead of constructing an editor, so fetches no longer need serializing.
+  maxConcurrent = 4
 }: {
   loadSection: (index: number) => Promise<void>
   schedule?: (callback: () => void) => void

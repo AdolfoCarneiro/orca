@@ -1,17 +1,20 @@
 import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react'
-import type { editor as monacoEditor } from 'monaco-editor'
 import type { DecoratedDiffComment } from '../diff-comments/decorated-diff-comment'
 import type { DiffSection } from './diff-section-types'
 
 export type DiffSectionItemProps = {
   section: DiffSection
   index: number
+  editStateKey?: string
+  /** Remount identity; changes when refetched content replaces the section. */
+  renderKey?: string
   isBranchMode: boolean
   sideBySide: boolean
-  isDark: boolean
   settings: {
+    theme?: 'system' | 'dark' | 'light'
     terminalFontSize?: number
     terminalFontFamily?: string
+    editorFontFamily?: string
     diffWordWrap?: boolean
     diffShowWhitespace?: boolean
   } | null
@@ -35,7 +38,6 @@ export type DiffSectionItemProps = {
   getCommentableLineNumbers?: (section: DiffSection) => readonly number[] | undefined
   setSectionHeights: Dispatch<SetStateAction<Record<number, number>>>
   setSections: Dispatch<SetStateAction<DiffSection[]>>
-  modifiedEditorsRef: MutableRefObject<Map<number, monacoEditor.IStandaloneCodeEditor>>
   /** `overwrite` comes only from the section's conflict bar. */
   handleSectionSaveRef: MutableRefObject<(index: number, mode?: 'overwrite') => Promise<void>>
 }

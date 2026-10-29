@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
@@ -73,7 +73,9 @@ function useViewer(props: Viewer) {
   const [sectionHeights, setSectionHeights] = useState<Record<number, number>>({})
   const [, setGeneration] = useState(0)
   const [, setSideBySide] = useState(false)
-  const registry = useCombinedDiffSectionLoadRegistry(sections)
+  const sectionsRef = useRef(sections)
+  sectionsRef.current = sections
+  const registry = useCombinedDiffSectionLoadRegistry(sectionsRef)
   const restore = useCombinedDiffViewRestore({
     entrySet: props.entrySet,
     gitStatusEntries: [],
@@ -95,6 +97,7 @@ function useViewer(props: Viewer) {
   })
   const retry = useCombinedDiffSectionRetry({
     invalidateViewStateCache: restore.invalidateViewStateCache,
+    sections,
     registry,
     setSectionHeights,
     setSections

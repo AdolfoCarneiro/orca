@@ -9,6 +9,7 @@ packages:
 minimumReleaseAge: 4320
 # Preserve the existing exception for the explicitly selected Bun 1.4.4 release.
 minimumReleaseAgeExclude:
+  - '@pierre/diffs@1.4.1'
   # Security fix for compressed-request crashes (GHSA-27r3-jxmh-p828).
   - 'body-parser@2.4.0'
   - 'bun@1.4.4'
@@ -132,3 +133,4 @@ patchedDependencies:
   sprintf-js@1.1.3: config/patches/sprintf-js@1.1.3.patch
   '@tiptap/extension-list@3.31.3': config/patches/@tiptap__extension-list@3.31.3.patch
   vitest@5.0.5: config/patches/vitest@5.0.5.patch
+  '@pierre/diffs@1.4.1': config/patches/@pierre__diffs@1.4.1.patch

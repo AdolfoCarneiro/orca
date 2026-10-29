@@ -6,6 +6,7 @@ import {
 } from './editor/editor-autosave'
 import { getEditorCmdSaveFileId } from './editor/editor-cmd-save-target'
 import { isEventTargetInsideFloatingWorkspacePanel } from '@/lib/floating-workspace-terminal-actions'
+import { isEditableTarget } from '@/lib/editable-target'
 
 type EditorShortcutContext = {
   event: KeyboardEvent
@@ -23,10 +24,10 @@ export function handleTerminalWorkspaceEditorShortcut({
 }: EditorShortcutContext): boolean {
   // Save fallback for focus outside the editor; editor-local handlers own focused saves.
   if (!event.repeat && matchShortcut('editor.save')) {
-    const target = event.target as HTMLElement | null
+    const target = event.target
     const inEditor =
-      target?.closest('.monaco-editor, [contenteditable]') !== null ||
-      target?.closest('textarea:not(.xterm-helper-textarea), input') !== null
+      isEditableTarget(target) ||
+      (target instanceof HTMLElement && target.closest('.monaco-editor') !== null)
     if (!inEditor) {
       const state = useAppStore.getState()
       const floatingPanelOwnsEvent =

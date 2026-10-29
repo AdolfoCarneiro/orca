@@ -1,6 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { editor as monacoEditor } from 'monaco-editor'
 import type { DecoratedDiffComment } from '@/components/diff-comments/decorated-diff-comment'
 import { useCombinedDiffSectionIndexMap } from '../../editor/combined-diff/resolve-changes/use-combined-diff-section-index-map'
 import { handleCombinedDiffFileTreeNavigation } from '../../editor/combined-diff/browse-files/combined-diff-file-tree-navigation'
@@ -9,7 +8,6 @@ import type { DiffSection } from '@/components/editor/diff-section-types'
 import { getCombinedDiffBranchEntriesInTreeOrder } from '../../editor/combined-diff/browse-files/combined-diff-file-tree-filter'
 import type { CombinedDiffFileTreeEntry } from '../../editor/combined-diff/resolve-changes/combined-diff-section-identity'
 import { useAppStore } from '@/store'
-import { useDocumentDarkTheme } from '@/hooks/use-document-dark-theme'
 import type { GitBranchChangeEntry } from '../../../../../shared/git-diff-compare-types'
 import { isPRFileViewed } from '@/components/github/pr-file-content-size'
 import {
@@ -29,6 +27,9 @@ import {
   setAllPRFilesCombinedDiffSectionsCollapsed,
   togglePRFilesCombinedDiffSection
 } from './pr-files-combined-diff-load'
+import { PierreDiffProviders } from '@/components/editor/pierre-diff/PierreDiffProviders'
+import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host'
 
 type PRFilesCombinedDiffSectionsProps = PRFilesCombinedDiffViewerProps & {
   signature: string
@@ -92,8 +93,15 @@ function PRFilesCombinedDiffSections({
   setFileTreeCollapsed
 }: PRFilesCombinedDiffSectionsProps): React.JSX.Element {
   const settings = useAppStore((s) => s.settings)
-  const isDark = useDocumentDarkTheme()
-  // The keyed mount fixes this file set; state preserves its identity without a render-time ref cache.
+  const viewStateKey = [
+    'pr-dialog',
+    sourceContext?.hostId ?? LOCAL_EXECUTION_HOST_ID,
+    repoId || repoPath,
+    prRepo ? githubRepoIdentityKey(prRepo) : '',
+    prNumber
+  ].join('\0')
+  // Why: this subtree is keyed by the diff signature, so its file set is fixed for the
+  // mount. Freezing it in state keeps a stable identity without caching through a ref.
   const [entries] = useState<GitBranchChangeEntry[]>(() =>
     getCombinedDiffBranchEntriesInTreeOrder('commit', files.map(gitHubPRFileToBranchEntry))
   )
@@ -158,10 +166,11 @@ function PRFilesCombinedDiffSections({
   const loadedIndicesRef = useRef<Set<number>>(new Set())
   const loadingIndicesRef = useRef<Set<number>>(new Set())
   const sectionsRef = useRef<DiffSection[]>(sections)
-  const modifiedEditorsRef = useRef<Map<number, monacoEditor.IStandaloneCodeEditor>>(new Map())
   const handleSectionSaveRef = useRef<(index: number) => Promise<void>>(async () => {})
 
-  // Sync after commit but before passive effects: collapsed sections remount and read this ref during their passive load.
+  // Why: commit-phase write (a render React abandons would leak one), and it must be a layout
+  // effect — collapsing rekeys a section's virtual item, so the remounted DiffSectionItem's
+  // passive effect calls loadSection before any passive effect here could sync this ref.
   useLayoutEffect(() => {
     sectionsRef.current = sections
   }, [sections])
@@ -328,40 +337,41 @@ function PRFilesCombinedDiffSections({
   )
 
   return (
-    <PRFilesCombinedDiffBody
-      files={files}
-      repoPath={repoPath}
-      repoId={repoId}
-      prNumber={prNumber}
-      fileTreeCollapsed={fileTreeCollapsed}
-      allSectionsCollapsed={allSectionsCollapsed}
-      sideBySide={sideBySide}
-      setFileTreeCollapsed={setFileTreeCollapsed}
-      setAllSectionsCollapsed={setAllSectionsCollapsed}
-      setSideBySide={setSideBySide}
-      entries={entries}
-      sectionIndexByKey={sectionIndexByKey}
-      activeTreeSectionKey={activeTreeSectionKey}
-      viewedSectionKeys={viewedSectionKeys}
-      handleTreeNavigate={handleTreeNavigate}
-      scrollContainerRef={scrollContainerRef}
-      virtualizer={virtualizer}
-      sections={sections}
-      isDark={isDark}
-      settings={settings}
-      sectionHeights={sectionHeights}
-      inlineReviewComments={inlineReviewComments}
-      loadSection={loadSection}
-      retrySection={retrySection}
-      toggleSection={toggleSection}
-      openFilesOnGitHub={openFilesOnGitHub}
-      renderViewedCheckbox={renderViewedCheckbox}
-      handleAddLineComment={handleAddLineComment}
-      getCommentableLineNumbers={getCommentableLineNumbers}
-      setSectionHeights={setSectionHeights}
-      setSections={setSections}
-      modifiedEditorsRef={modifiedEditorsRef}
-      handleSectionSaveRef={handleSectionSaveRef}
-    />
+    <PierreDiffProviders scrollContainerRef={scrollContainerRef}>
+      <PRFilesCombinedDiffBody
+        viewStateKey={viewStateKey}
+        files={files}
+        repoPath={repoPath}
+        repoId={repoId}
+        prNumber={prNumber}
+        fileTreeCollapsed={fileTreeCollapsed}
+        allSectionsCollapsed={allSectionsCollapsed}
+        sideBySide={sideBySide}
+        setFileTreeCollapsed={setFileTreeCollapsed}
+        setAllSectionsCollapsed={setAllSectionsCollapsed}
+        setSideBySide={setSideBySide}
+        entries={entries}
+        sectionIndexByKey={sectionIndexByKey}
+        activeTreeSectionKey={activeTreeSectionKey}
+        viewedSectionKeys={viewedSectionKeys}
+        handleTreeNavigate={handleTreeNavigate}
+        scrollContainerRef={scrollContainerRef}
+        virtualizer={virtualizer}
+        sections={sections}
+        settings={settings}
+        sectionHeights={sectionHeights}
+        inlineReviewComments={inlineReviewComments}
+        loadSection={loadSection}
+        retrySection={retrySection}
+        toggleSection={toggleSection}
+        openFilesOnGitHub={openFilesOnGitHub}
+        renderViewedCheckbox={renderViewedCheckbox}
+        handleAddLineComment={handleAddLineComment}
+        getCommentableLineNumbers={getCommentableLineNumbers}
+        setSectionHeights={setSectionHeights}
+        setSections={setSections}
+        handleSectionSaveRef={handleSectionSaveRef}
+      />
+    </PierreDiffProviders>
   )
 }

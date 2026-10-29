@@ -75,7 +75,7 @@ it('guards section saves, marks a refusal as a section conflict, and overwrites 
       isAllMode: false,
       isBranchMode: false,
       isCommitMode: false,
-      sections,
+      retryDeferredSectionReloadRef: { current: () => {} },
       sectionsRef: { current: sections },
       setSectionHeights: vi.fn(),
       setSections
@@ -118,7 +118,7 @@ function renderSave(sections: DiffSection[], setSections = vi.fn()) {
       isAllMode: false,
       isBranchMode: false,
       isCommitMode: false,
-      sections,
+      retryDeferredSectionReloadRef: { current: () => {} },
       sectionsRef: { current: sections },
       setSectionHeights: vi.fn(),
       setSections
@@ -194,7 +194,7 @@ it('serializes overlapping saves of one section and never clobbers newer edits',
       isAllMode: false,
       isBranchMode: false,
       isCommitMode: false,
-      sections: sectionsRef.current,
+      retryDeferredSectionReloadRef: { current: () => {} },
       sectionsRef,
       setSectionHeights: vi.fn(),
       setSections
@@ -254,7 +254,7 @@ it('applies a queued save to the section clicked even after rows are rebuilt', a
       isAllMode: false,
       isBranchMode: false,
       isCommitMode: false,
-      sections: sectionsRef.current,
+      retryDeferredSectionReloadRef: { current: () => {} },
       sectionsRef,
       setSectionHeights: vi.fn(),
       setSections: vi.fn()

@@ -21,6 +21,7 @@ import { getLayoutCharacterForCode } from '@/lib/keyboard-layout/layout-base-cha
 import { createTerminalKeyboardReleaseHandlers } from './terminal-keyboard-release-handlers'
 import { synchronizeTerminalKeyboardPane } from './terminal-keyboard-pane-resolution'
 import { isInsideNativeChatCover } from './native-chat-covered-pane'
+import { isEditorKeyboardTarget } from '@/lib/editable-target'
 
 const MAX_OBSERVED_ENTER_KEYDOWNS_PER_CODE = 8
 
@@ -113,6 +114,10 @@ export function createTerminalKeyboardEventHandlers(context: EventContext) {
     }
     const keyboardScope = keyboardScopeRef.current
     if (keyboardScope && !keyboardEventBelongsToScope(e, keyboardScope)) {
+      return
+    }
+    // Shadow hosts and read-only diff panes own their search and editing chords.
+    if (isEditorKeyboardTarget(e.target)) {
       return
     }
 

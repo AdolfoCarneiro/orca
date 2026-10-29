@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
 // Render note cards in per-zone React roots; keep persisted DiffComment names while UI says Note to distinguish PR review comments.
 
 type Props = {
+  commentId?: string
   lineNumber: number
   startLine?: number
   label?: string | null
@@ -34,6 +35,7 @@ function resizeDiffCommentTextarea(textarea: HTMLTextAreaElement): boolean {
 }
 
 export function DiffCommentCard({
+  commentId,
   lineNumber,
   startLine,
   label,
@@ -166,7 +168,7 @@ export function DiffCommentCard({
   }
 
   return (
-    <div ref={cardRef} className="orca-diff-comment-card">
+    <div ref={cardRef} data-diff-comment-id={commentId} className="orca-diff-comment-card">
       <div className="orca-diff-comment-content-col">
         {/* Header Row */}
         <div className="orca-diff-comment-header">
