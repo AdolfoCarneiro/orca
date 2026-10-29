@@ -77,8 +77,6 @@ export type PtyApi = {
     spawnIntent?: SpawnIntent
     // A restore no user act asked for; main holds it for a stopped WSL distro. Older mains ignore it.
     wslPassiveRestore?: true
-    // The user's last switch to the workspace (ms since epoch); a distro stopped after it holds the pane.
-    wslUserSwitchAt?: number
     agentLaunch?: AgentPaneLaunchRequest
     // Main emits agent_started only after a successful spawn.
     telemetry?: { agent_kind: AgentKind; launch_source: LaunchSource; request_kind: RequestKind }

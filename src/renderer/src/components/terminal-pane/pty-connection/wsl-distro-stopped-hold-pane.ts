@@ -1,4 +1,4 @@
-import { lastUserWorkspaceSwitchAt } from '@/lib/workspace-switch-user-act'
+import { takeWorkspaceSwitchWake } from '@/lib/workspace-switch-user-act'
 import { holdPaneForStoppedWslDistro } from '../wsl-distro-stopped-hold-state'
 import { recordPtyConnectDiagnostic } from './pty-connect-limits'
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
@@ -6,20 +6,28 @@ import type { ConnectPanePtySession } from './connect-pane-pty-session'
 // Clears the saved screen the hold painted so the restore below paints it once.
 const CLEAR_HELD_SCREEN = '\x1b[0m\x1b[2J\x1b[3J\x1b[H'
 
+// The mounts a user's switch itself causes land well inside this; a later remount does not.
+const SWITCH_MOUNT_WINDOW_MS = 10_000
+
 /**
- * How a local restore may start a stopped WSL distro: Start passes nothing (the user's act); with no
- * switch to the workspace it is passive; otherwise main counts the switch only if it followed the
- * distro's last stop, so a later remount or background mount cannot boot it. Never on a server.
+ * Whether a local restore may start a stopped WSL distro: only Start, or this pane's first mount
+ * after the user's own switch to its workspace (once per switch, while recent). Anything else is
+ * passive, so main holds it unless the distro runs. Never on a server, whose host decides.
  */
 export function wslRestoreStartArgs(
   session: ConnectPanePtySession,
   userAct: boolean
-): { wslPassiveRestore?: true; wslUserSwitchAt?: number } {
-  if (session.runtimeEnvironmentId || userAct) {
+): { wslPassiveRestore?: true } {
+  if (
+    session.runtimeEnvironmentId ||
+    userAct ||
+    takeWorkspaceSwitchWake(session.deps.worktreeId, `pane-restore:${session.cacheKey}`, {
+      withinMs: SWITCH_MOUNT_WINDOW_MS
+    })
+  ) {
     return {}
   }
-  const switchedAt = lastUserWorkspaceSwitchAt(session.deps.worktreeId)
-  return switchedAt === undefined ? { wslPassiveRestore: true } : { wslUserSwitchAt: switchedAt }
+  return { wslPassiveRestore: true }
 }
 
 /** Hold the pane read-only with its saved screen until the user's Start reconnects it. */

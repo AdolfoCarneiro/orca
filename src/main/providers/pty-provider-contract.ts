@@ -97,8 +97,6 @@ export type PtySpawnOptions = {
   spawnIntent?: SpawnIntent
   /** A restore no user act asked for: a WSL bridge pane whose distro is stopped is held, not started. */
   wslPassiveRestore?: true
-  /** The user's last switch to the workspace (ms since epoch); a distro stopped after it holds the pane. */
-  wslUserSwitchAt?: number
   agentSessionEnsure?: {
     claim: AgentSessionExecutionClaim
     surface: AgentSessionSurfaceBinding

@@ -17,8 +17,6 @@ let unsubscribeObservations: (() => void) | null = null
 // Same window as the orcad liveness EXIT_SETTLE_MS; not imported, to keep this module's graph small.
 export const WSL_STOP_SETTLE_MS = 500
 const mayHaveStoppedAt = new Map<string, number>()
-// Wall clock, so a window's user act can be ordered against it across processes.
-const stopNotedWallAt = new Map<string, number>()
 const wokenAt = new Map<string, number>()
 let unsubscribeStops: (() => void) | null = null
 
@@ -72,15 +70,9 @@ export function onWslDistroGateNote(listener: (note: WslDistroGateNote) => void)
 /** A link into the distro died, or a read saw it stop: later running reads must start after it settles. */
 export function noteWslDistroMayHaveStopped(distro: string): void {
   mayHaveStoppedAt.set(distroKey(distro), performance.now())
-  stopNotedWallAt.set(distroKey(distro), Date.now())
   for (const listener of noteListeners) {
     listener({ kind: 'stopped', distro })
   }
-}
-
-/** When this process last noted the distro may have stopped (ms since epoch); undefined if never. */
-export function wslDistroStopNotedAt(distro: string): number | undefined {
-  return stopNotedWallAt.get(distroKey(distro))
 }
 
 /** A user act just touched the distro, which starts it: an older 'stopped' read no longer answers. */
@@ -285,7 +277,6 @@ export function _resetWslBackgroundDistroGateForTests(): void {
   unsubscribeObservations?.()
   unsubscribeObservations = null
   mayHaveStoppedAt.clear()
-  stopNotedWallAt.clear()
   wokenAt.clear()
   unsubscribeStops?.()
   unsubscribeStops = null

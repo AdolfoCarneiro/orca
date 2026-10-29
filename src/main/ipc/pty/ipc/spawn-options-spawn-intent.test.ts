@@ -45,16 +45,4 @@ describe('renderer pty spawn: a passive restore', () => {
     ).toBeUndefined()
     expect((await resolveSpawnOptions(PANE)).wslPassiveRestore).toBeUndefined()
   })
-
-  it("forwards the user's last switch only as a finite number", async () => {
-    expect((await resolveSpawnOptions({ ...PANE, wslUserSwitchAt: 1_000 })).wslUserSwitchAt).toBe(
-      1_000
-    )
-    expect(
-      (await resolveSpawnOptions({ ...PANE, wslUserSwitchAt: '1000' })).wslUserSwitchAt
-    ).toBeUndefined()
-    expect(
-      (await resolveSpawnOptions({ ...PANE, wslUserSwitchAt: Number.NaN })).wslUserSwitchAt
-    ).toBeUndefined()
-  })
 })

@@ -180,8 +180,6 @@ export type PtyTransport = {
     resumeSpawnIntent?: RestoreSpawnIntent
     /** A restore no user act asked for: main holds a stopped WSL distro's pane instead of starting it. */
     wslPassiveRestore?: true
-    /** The user's last switch to this workspace; main holds the pane if the distro stopped after it. */
-    wslUserSwitchAt?: number
     command?: string
     commandDelivery?: 'renderer' | 'provider'
     env?: Record<string, string>

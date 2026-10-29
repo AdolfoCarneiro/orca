@@ -126,16 +126,37 @@ describe('a restored WSL bridge pane whose distro is stopped (E9)', () => {
     expect(fixture.pane.terminal.options.disableStdin).toBe(false)
   })
 
-  it("sends the user's last switch, so main can tell it from a later remount", async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(1_000)
-    noteUserWorkspaceSwitch('wt')
-    vi.mocked(Date.now).mockRestore()
+  const mountAt = async (wallMs: number) => {
+    vi.spyOn(Date, 'now').mockReturnValue(wallMs)
     const { session, transport, nextConnect } = createSession()
     nextConnect('reattach')
     startDeferredSessionReattach(session, 'restored-pty')
     await vi.waitFor(() => expect(transport.connect).toHaveBeenCalled())
-    expect(transport.connect.mock.calls[0]?.[0]).toMatchObject({ wslUserSwitchAt: 1_000 })
-    expect(transport.connect.mock.calls[0]?.[0]).not.toHaveProperty('wslPassiveRestore')
+    vi.mocked(Date.now).mockRestore()
+    return transport.connect.mock.calls[0]?.[0]
+  }
+
+  it("starts the pane the user's own switch mounts", async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000)
+    noteUserWorkspaceSwitch('wt')
+    vi.mocked(Date.now).mockRestore()
+    expect(await mountAt(1_500)).not.toHaveProperty('wslPassiveRestore')
+  })
+
+  // e9 review: switch at 10:00, distro stops at 12:00, Orca remounts at 12:01.
+  it('makes a remount after that switch passive again, so a stopped distro holds it', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000)
+    noteUserWorkspaceSwitch('wt')
+    vi.mocked(Date.now).mockRestore()
+    expect(await mountAt(1_500)).not.toHaveProperty('wslPassiveRestore')
+    expect(await mountAt(7_200_000)).toMatchObject({ wslPassiveRestore: true })
+  })
+
+  it('does not let a pane first mounted long after the switch use it', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000)
+    noteUserWorkspaceSwitch('wt')
+    vi.mocked(Date.now).mockRestore()
+    expect(await mountAt(7_200_000)).toMatchObject({ wslPassiveRestore: true })
   })
 
   it("never marks a paired server's pane: its host decides its own starts", async () => {

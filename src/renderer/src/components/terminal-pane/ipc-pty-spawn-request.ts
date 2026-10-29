@@ -138,9 +138,6 @@ export async function spawnIpcPty(
     ...(placement && !admittedSessionId ? { placement } : {}),
     ...(spawnIntent ? { spawnIntent } : {}),
     ...(connectOptions.wslPassiveRestore ? { wslPassiveRestore: true as const } : {}),
-    ...(connectOptions.wslUserSwitchAt !== undefined
-      ? { wslUserSwitchAt: connectOptions.wslUserSwitchAt }
-      : {}),
     ...(replacesPtyId ? { replacesPtyId } : {}),
     ...(shellOverride ? { shellOverride } : {}),
     ...(projectRuntime ? { projectRuntime } : {}),
