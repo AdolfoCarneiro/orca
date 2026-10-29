@@ -68,6 +68,7 @@ export const linearRequestState = {
     string,
     InflightLinearCollectionRequest<LinearProjectSummary>
   >(),
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: null initializes this existing mutable slot; widening to its declared request union admits only typed requests or null.
   inflightStatusRequest: null as InflightLinearStatusRequest | null,
   statusReadGeneration: 0,
   mutationGeneration: 0,

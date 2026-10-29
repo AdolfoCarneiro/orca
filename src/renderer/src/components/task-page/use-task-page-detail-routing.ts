@@ -36,8 +36,7 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
     () => ({
       id: pageData.openLinearIssue?.id ?? null,
       fallback: pageData.openLinearIssue
-        ? // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: materialize the captured target seed once; provider field edits are not navigation.
-          projectLinearIssue(scope, pageData.openLinearIssue)
+        ? projectLinearIssue(scope, pageData.openLinearIssue)
         : null,
       canFloat: Boolean(pageData.openLinearIssue),
       request: {}
@@ -103,7 +102,6 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
     selectedLinearIssueFallback?.workspaceId,
     publish
   ])
-  // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: publish captures the full source/runtime target; committed is the stable current reducer pointer.
   const setSelectedLinearIssue = useCallback(
     (
       issue: LinearIssue | null,
@@ -131,6 +129,7 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
             : undefined
       })
     },
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: publish captures the full source/runtime target; committed is the stable current reducer pointer.
     [publish, committed]
   )
   const clearSelectedLinearIssue = useCallback(

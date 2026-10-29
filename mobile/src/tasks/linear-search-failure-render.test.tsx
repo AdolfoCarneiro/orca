@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { useMobileTasksTaskListLoading } from './use-mobile-tasks-task-list-loading'
 import { MobileTasksLegacySurface } from './MobileTasksLegacySurface'
@@ -100,7 +100,9 @@ it.each([
   await act(async () => {
     rendered.root
       .findAllByType('button')
-      .find((button) => button.children.includes('Linear'))!
+      .find((button) =>
+        button.findAllByType('span').some((label) => label.children.includes('Linear'))
+      )!
       .props.onClick()
   })
   await expectText(visible)
@@ -194,31 +196,32 @@ function Tasks() {
   const [loading, setLoading] = useState(false)
   const clientRef = useRef(client),
     loadGenerationRef = useRef(0)
-  const model = {
-    appliedQuery: 'network issue',
-    client,
-    clientRef,
-    loadGenerationRef,
-    connState: 'connected',
-    tasksSupported: true,
-    taskStateHydrated: true,
-    provider: 'linear',
-    linearConnected: true,
-    linearFilter: 'all',
-    selectedLinearWorkspaceId: 'w',
-    selectedLinearTeamIds: new Set<string>(),
-    linearOrderBy: 'updatedAt',
-    effectiveRepoIds: new Set<string>(),
-    serverRepoList: [],
-    repoListEnsureLoaded: async () => [],
-    resetGitHubItemsState: () => {},
-    setError,
-    setLoading,
-    setRefreshing: () => {},
-    setItems: () => {},
-    error,
-    loading
-  }
+  const model = useMemo(
+    () => ({
+      appliedQuery: 'network issue',
+      client,
+      clientRef,
+      loadGenerationRef,
+      connState: 'connected',
+      tasksSupported: true,
+      taskStateHydrated: true,
+      provider: 'linear',
+      linearConnected: true,
+      linearFilter: 'all',
+      selectedLinearWorkspaceId: 'w',
+      selectedLinearTeamIds: new Set<string>(),
+      linearOrderBy: 'updatedAt',
+      effectiveRepoIds: new Set<string>(),
+      serverRepoList: [],
+      repoListEnsureLoaded: async () => [],
+      resetGitHubItemsState: () => {},
+      setError,
+      setLoading,
+      setRefreshing: () => {},
+      setItems: () => {}
+    }),
+    [clientRef, loadGenerationRef, setError, setLoading]
+  )
   // SAFETY: the actual Linear search branch uses precisely these fields; unrelated screen controls are omitted.
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
   const actions = useMobileTasksTaskListLoading(model as unknown as ProviderLoadActionsModel)
@@ -227,7 +230,11 @@ function Tasks() {
   }, [])
   // SAFETY: shipping error banner reads error/provider/loading; unrelated drawers/chrome are mocked above.
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
-  return <MobileTasksLegacySurface model={actions as unknown as ConnectionPresentationModel} />
+  return (
+    <MobileTasksLegacySurface
+      model={{ ...actions, error, loading } as unknown as ConnectionPresentationModel}
+    />
+  )
 }
 it('shipping phone Tasks renders the safe server search failure', async () => {
   const raw = '429: GraphQL request failed private phone Tasks diagnostic'

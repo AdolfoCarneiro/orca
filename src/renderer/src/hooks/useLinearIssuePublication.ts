@@ -20,7 +20,6 @@ export function useLinearIssuePublication(
   const target = JSON.stringify([key, issue?.id, issue?.workspaceId])
   const seed = useMemo(
     () => ({
-      // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the complete target materializes this seed once, independently of later row field objects.
       issue: issue ? projectLinearIssue(scope, issue) : null,
       loading: Boolean(issue)
     }),
@@ -75,8 +74,7 @@ export function useLinearIssuePublication(
       const issue =
         view.data && (view.kind === 'data' || seed)
           ? seed
-            ? // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: target captures the exact projection scope for this delivered seed.
-              projectLinearIssue(scope, view.data)
+            ? projectLinearIssue(scope, view.data)
             : view.data
           : null
       if (issue) {

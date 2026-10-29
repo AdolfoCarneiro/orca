@@ -240,8 +240,7 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
           ...(issues
             ? {
                 data: shouldProbeOnLanding
-                  ? // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the descriptor captures landing rows; publishing a result must not restart its own read.
-                    reconcileTaskPageLinearIssuesAfterLandingRefresh(retainedLinearRows, issues)
+                  ? reconcileTaskPageLinearIssuesAfterLandingRefresh(retainedLinearRows, issues)
                   : issues
               }
             : view.kind === 'loading'
@@ -268,6 +267,7 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
       cancelled = true
       release()
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: the descriptor captures landing rows; publishing a result must not restart its own read.
   }, [
     taskSource,
     linearMode,
