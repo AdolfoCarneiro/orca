@@ -17,8 +17,12 @@ export async function stopStructuredWorkerForRelease(args: {
   archiveStatus: string | null
 }): Promise<WorkerReleaseReceipt> {
   const { structured, dispatchId, resource, runtime, db } = args
-  const stop = await stopStructuredWorker(structured, dispatchId, runtime, () =>
-    db.admitWorkerChatReleaseClose(resource.id)
+  // Only an automatic release can be refused; an explicit one keeps cutting through a hung start.
+  const stop = await stopStructuredWorker(
+    structured,
+    dispatchId,
+    runtime,
+    resource.auto_release_at ? () => db.admitWorkerChatReleaseClose(resource.id) : undefined
   )
   if (!stop.stopped) {
     const current = db.getWorkerTerminalResource(resource.id)
