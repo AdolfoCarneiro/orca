@@ -55,7 +55,8 @@ class FakeText:
 class FakeEditableText:
     @staticmethod
     def insert_text(node, position, text, length):
-        node.value = node.value[:position] + text[:length] + node.value[position:]
+        inserted = text.encode("utf-8")[:length].decode("utf-8")
+        node.value = node.value[:position] + inserted + node.value[position:]
         return True
 
     @staticmethod
@@ -347,20 +348,21 @@ class RuntimeRenderTest(unittest.TestCase):
 
     def test_text_entry_inserts_into_the_focused_field_of_a_background_window(self):
         for tool in ("type_text", "paste_text"):
-            field = FakeAccessible("text", "Message", value="Hello world")
-            field.caret, field.selection = 11, (6, 11)
-            field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
-            field.get_editable_text_iface = lambda: field
-            with self.subTest(tool=tool), SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])) as fixture:
-                calls = []
-                fixture.restore = lambda: calls.append("restore")
-                with patch.object(runtime, "type_text", lambda _: calls.append("keys")), \
-                     patch.object(runtime, "paste_text", lambda _: calls.append("clipboard")):
-                    result = runtime.run_operation({"tool": tool, "app": "Fixture", "text": "there", "noScreenshot": True})
-                self.assertEqual(calls, [])
-                self.assertEqual((field.value, field.caret), ("Hello there", 11))
-                self.assertEqual(result["action"]["path"], "accessibility")
-                self.assertEqual(result["action"]["verification"]["state"], "verified")
+            for value in ("there", "élan", "🚀 café"):
+                field = FakeAccessible("text", "Message", value="Hello world")
+                field.caret, field.selection = 11, (6, 11)
+                field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
+                field.get_editable_text_iface = lambda: field
+                with self.subTest(tool=tool, value=value), SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])) as fixture:
+                    calls = []
+                    fixture.restore = lambda: calls.append("restore")
+                    with patch.object(runtime, "type_text", lambda _: calls.append("keys")), \
+                         patch.object(runtime, "paste_text", lambda _: calls.append("clipboard")):
+                        result = runtime.run_operation({"tool": tool, "app": "Fixture", "text": value, "noScreenshot": True})
+                    self.assertEqual(calls, [])
+                    self.assertEqual((field.value, field.caret), ("Hello " + value, 6 + len(value)))
+                    self.assertEqual(result["action"]["path"], "accessibility")
+                    self.assertEqual(result["action"]["verification"]["state"], "verified")
 
     def test_text_entry_without_an_editable_focused_field_still_requires_window_focus(self):
         field = FakeAccessible("text", "Read only", value="Hello")

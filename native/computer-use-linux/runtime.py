@@ -1014,7 +1014,7 @@ def insert_focused_text(window, value):
             start, end = selection.start_offset, selection.end_offset
     if start < 0:
         return None
-    if not attempt(lambda: Atspi.EditableText.insert_text(editable, end, value, len(value)), False):
+    if not attempt(lambda: Atspi.EditableText.insert_text(editable, end, value, len(value.encode("utf-8"))), False):
         raise RuntimeError("text_insertion_unconfirmed: text insertion did not confirm success; inspect state before retrying")
     # Why insert before deleting: an unsuccessful insert leaves the selected text intact.
     if end > start and not attempt(lambda: Atspi.EditableText.delete_text(editable, start, end), False):
