@@ -219,6 +219,8 @@ export class WslHostService {
       isVisible: () => this.visible.has(environmentId),
       publishStopped: (record) =>
         this.setStatus(record, { state: 'distro-stopped', terminals: 'exited', recovering: false }),
+      publishReady: (record, connection) =>
+        this.setStatus(record, { state: 'ready', census: null }, connection),
       retry: () => this.ensureForRuntimeCall(environmentId)
     })
   }

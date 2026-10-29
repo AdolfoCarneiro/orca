@@ -23,8 +23,11 @@ export function useRetryPanesWhenWslHostReturns(
     }
     stoppedHost.current = null
     for (const transport of paneTransports.current.values()) {
-      // Why only the host's panes: one on another server never met this stop.
-      if (transport.getRuntimeEnvironmentId?.() === ownerEnvironmentId) {
+      // The card's rule: a pane with no server yet is still the workspace's; one on another never met this stop.
+      const paneEnvironmentId = transport.getRuntimeEnvironmentId
+        ? transport.getRuntimeEnvironmentId()
+        : ownerEnvironmentId
+      if (paneEnvironmentId == null || paneEnvironmentId === ownerEnvironmentId) {
         transport.retryRecovery?.()
       }
     }
