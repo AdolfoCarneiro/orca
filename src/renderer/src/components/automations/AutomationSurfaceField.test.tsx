@@ -1,7 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { AutomationEditorDialog, type AutomationDraft } from './AutomationEditorDialog'
+import {
+  AutomationEditorDialog,
+  AUTOMATION_EDITOR_SEGMENTED_GROUP_CLASS,
+  AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS,
+  type AutomationDraft
+} from './AutomationEditorDialog'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { makeStoreState } from './automations-page-fixtures'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import {
@@ -40,9 +46,42 @@ const draft = { agentId: 'claude', extraAgentArgs: '--model opus' } as Automatio
 afterEach(cleanup)
 it('places the current default on the right, highlights it, and preserves arguments through toggles', () => {
   const change = vi.fn()
-  render(
+  const previous = render(
+    <ToggleGroup
+      type="single"
+      size="sm"
+      spacing={1}
+      value="chat"
+      className={AUTOMATION_EDITOR_SEGMENTED_GROUP_CLASS}
+    >
+      <ToggleGroupItem value="terminal" className={AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS}>
+        Terminal
+      </ToggleGroupItem>
+      <ToggleGroupItem value="chat" className={AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS}>
+        Chat
+      </ToggleGroupItem>
+    </ToggleGroup>
+  )
+  const previousClasses = Array.from(
+    previous.container.querySelectorAll<HTMLElement>(
+      '[data-slot="toggle-group"], [data-slot="toggle-group-item"]'
+    ),
+    (element) => element.className
+  )
+  expect(screen.getByRole('radiogroup').hasAttribute('data-variant')).toBe(false)
+  expect(screen.getByRole('radio', { name: 'Chat' }).getAttribute('data-state')).toBe('on')
+  previous.unmount()
+  const current = render(
     <AutomationSurfaceField draft={draft} settings={settings} supported onDraftChange={change} />
   )
+  expect(
+    Array.from(
+      current.container.querySelectorAll<HTMLElement>(
+        '[data-slot="toggle-group"], [data-slot="toggle-group-item"]'
+      ),
+      (element) => element.className
+    )
+  ).toEqual(previousClasses)
   const radios = screen.getAllByRole('radio')
   expect(radios.map((radio) => radio.textContent)).toEqual(['Terminal', 'Chat'])
   expect(radios[1].getAttribute('aria-checked')).toBe('true')

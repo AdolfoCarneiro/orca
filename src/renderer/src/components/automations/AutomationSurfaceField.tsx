@@ -35,7 +35,7 @@ export function AutomationSurfaceField({
         type="single"
         spacing={1}
         size="sm"
-        className="grid w-full grid-cols-2 rounded-md bg-muted p-0.5"
+        variant="segmented-card"
         value={automationDraftSurface(draft, settings, supported)}
         disabled={supported === null}
         onValueChange={(surface) => {
@@ -50,7 +50,6 @@ export function AutomationSurfaceField({
             aria-checked={automationDraftSurface(draft, settings, supported) === surface}
             key={surface}
             value={surface}
-            className="h-7 rounded-sm border-0 bg-transparent shadow-none hover:bg-card/70 data-[state=on]:bg-card data-[state=on]:text-card-foreground data-[state=on]:shadow-xs"
             disabled={surface === 'chat' && supported !== true}
           >
             {surface === 'chat'
