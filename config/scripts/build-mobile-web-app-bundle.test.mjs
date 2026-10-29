@@ -454,12 +454,12 @@ describe('the Phase C budget', () => {
     const CHUNKED_ALONG_THE_ENGINE = 172
     expect(WITH_ONE_ARTIFACT).toBeLessThanOrEqual(mobileWebAppBundleMaxChunks(ROUTES))
     expect(CHUNKED_ALONG_THE_ENGINE).toBeGreaterThan(mobileWebAppBundleMaxChunks(ROUTES))
-    // Chunked engine also emitted 215 total assets, exceeding the current 161-asset envelope.
+    // Chunked engine also emitted 215 total assets, exceeding the current 160-asset envelope.
     expect(mobileWebAppBundleMaxAssets(ROUTES, 42)).toBeLessThan(CHUNKED_ALONG_THE_ENGINE + 42 + 1)
   })
 
   it('derives the asset ceiling so the chunk ceiling is always the one that trips first', () => {
-    // Asset ceiling must derive from chunks+images+document or a flat limit fails first and misattributes chunk growth (175 assets at 18 routes/42 images).
+    // Asset ceiling must derive from chunks+images+document or a flat limit fails first and misattributes chunk growth (174 assets at 18 routes/42 images).
     for (const routeCount of [14, 18, 24, 40]) {
       for (const imageCount of [0, 42, 120]) {
         const chunks = mobileWebAppBundleMaxChunks(routeCount)
@@ -487,13 +487,13 @@ describe('the Phase C budget', () => {
   it('fails the build when the derived ceiling passes what the phone will accept', async () => {
     // Measured sweep crosses the phone’s 256-asset limit at 24 routes with either 42 or 50 images.
     expect(await readMobileWebBundleMaxAssets()).toBe(MOBILE_WEB_BUNDLE_MAX_ASSETS)
-    expect(assertAssetCeilingFitsShell(23, 42, MOBILE_WEB_BUNDLE_MAX_ASSETS)).toBe(245)
+    expect(assertAssetCeilingFitsShell(23, 42, MOBILE_WEB_BUNDLE_MAX_ASSETS)).toBe(244)
     expect(() => assertAssetCeilingFitsShell(24, 42, MOBILE_WEB_BUNDLE_MAX_ASSETS)).toThrow(
-      /259 .*256/
+      /258 .*256/
     )
-    expect(assertAssetCeilingFitsShell(23, 50, MOBILE_WEB_BUNDLE_MAX_ASSETS)).toBe(253)
+    expect(assertAssetCeilingFitsShell(23, 50, MOBILE_WEB_BUNDLE_MAX_ASSETS)).toBe(252)
     expect(() => assertAssetCeilingFitsShell(24, 50, MOBILE_WEB_BUNDLE_MAX_ASSETS)).toThrow(
-      /267 .*256/
+      /266 .*256/
     )
   })
 })
