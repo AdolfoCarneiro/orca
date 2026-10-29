@@ -11,9 +11,9 @@ import {
   setLibprocAddonForTests,
   type LibprocAddon,
   type LibprocProcessRow,
-  type LibprocQuery,
-  type LibprocTableRead
+  type LibprocQuery
 } from './libproc-addon'
+import { nativeReadWaitersForTests, resetNativeReadsForTests } from './libproc-native-reads'
 import { runPsInProcess } from './libproc-process-table'
 import { parseCheapProcessTableRows, parseStrictProcessTableRows } from './process-table-snapshot'
 
@@ -21,8 +21,6 @@ const TTYS004 = (16 << 24) | 4
 // 2026-09-03T16:02:01Z, a single-digit day so lstart pads it.
 const START = Date.UTC(2026, 8, 3, 16, 2, 1) / 1000
 const BUDGET = { timeoutMs: 1000 }
-// After any request, so mocked reads always count as fresh.
-const FRESH_READ_STARTED_AT_MS = Date.UTC(2100, 0, 1)
 
 function row(overrides: Partial<LibprocProcessRow>): LibprocProcessRow {
   return {
@@ -90,13 +88,9 @@ const TABLE = [
   row({})
 ]
 
-function tableFor(query: LibprocQuery, table = TABLE): LibprocTableRead {
-  return { startedAtMs: FRESH_READ_STARTED_AT_MS, rows: rowsFor(query, table) }
-}
-
-function rowsFor(
+function tableFor(
   query: LibprocQuery,
-  table: readonly LibprocProcessRow[]
+  table: readonly LibprocProcessRow[] = TABLE
 ): LibprocProcessRow[] | null {
   if (query.tty !== undefined && !/^(?:\/dev\/)?ttys004$/.test(query.tty)) {
     return null
@@ -122,6 +116,7 @@ function installAddon(overrides: Partial<LibprocAddon> = {}): LibprocAddon {
 
 afterEach(() => {
   setLibprocAddonForTests(undefined)
+  resetNativeReadsForTests()
   runProcess.mockReset()
   vi.useRealTimers()
 })
@@ -263,14 +258,14 @@ describe('runPsInProcess', () => {
     )
   })
 
-  it('refuses a shared read that began before the request, so stale rows never reach a caller', async () => {
-    let finishStale: (read: LibprocTableRead) => void = () => {}
-    const stale = new Promise<LibprocTableRead>((resolve) => {
+  it('never joins a read submitted before the request, so stale rows never reach a caller', async () => {
+    type Rows = LibprocProcessRow[] | null
+    let finishStale: (rows: Rows) => void = () => {}
+    const stale = new Promise<Rows>((resolve) => {
       finishStale = resolve
     })
-    const startedBefore = 0
     const readProcessTable = vi
-      .fn<(query: LibprocQuery) => Promise<LibprocTableRead>>()
+      .fn<(query: LibprocQuery) => Promise<Rows>>()
       .mockReturnValueOnce(stale)
       .mockImplementation(async (query) => tableFor(query))
     installAddon({ readProcessTable })
@@ -278,11 +273,32 @@ describe('runPsInProcess', () => {
 
     expect(await runPsInProcess(args, { timeoutMs: 10 })).toMatchObject({ timedOut: true })
     const fresh = runPsInProcess(args, BUDGET)
-    finishStale({ startedAtMs: startedBefore, rows: [row({ pid: 9999, ppid: 4242 })] })
-    const result = await fresh
-    expect(result?.stdout).not.toContain('9999')
-    expect(result?.startedAtMs).toBeGreaterThan(startedBefore)
+    finishStale([row({ pid: 9999, ppid: 4242 })])
+    expect((await fresh)?.stdout).not.toContain('9999')
     expect(readProcessTable).toHaveBeenCalledTimes(2)
+  })
+
+  it('queues past the read cap without retaining timed-out waiters, then hands a stalled pool to ps', async () => {
+    vi.useFakeTimers()
+    installAddon({ readProcessTable: vi.fn(() => new Promise<never>(() => {})) })
+    const read = (pid: number, timeoutMs = 50) =>
+      runPsInProcess(['-p', String(pid), '-o', 'pid='], { timeoutMs })
+
+    // Eight distinct reads fill the cap and stall; overflow callers wait on one slot notifier.
+    const capped = Array.from({ length: 8 }, (_, index) => read(5000 + index, 10_000))
+    const overflow = Array.from({ length: 300 }, (_, index) => read(6000 + index))
+    expect(nativeReadWaitersForTests()).toBe(300)
+    await vi.advanceTimersByTimeAsync(50)
+    expect(nativeReadWaitersForTests()).toBe(0)
+    expect(await Promise.all(overflow)).toEqual(Array(300).fill(null))
+
+    // The breaker stays open for its cool-down: callers run ps without queueing.
+    expect(await read(7000)).toBeNull()
+    expect(nativeReadWaitersForTests()).toBe(0)
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(await Promise.all(capped)).toEqual(
+      Array(8).fill(expect.objectContaining({ timedOut: true }))
+    )
   })
 
   it('recovers argv for a sudo use_pty tree on its own pty, but not for root daemons or GUI helpers', async () => {

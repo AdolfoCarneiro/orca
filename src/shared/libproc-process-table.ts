@@ -3,13 +3,15 @@ import {
   claimDarwinTerminalNaming,
   darwinTerminalNamingDrained
 } from './darwin-terminal-naming-single-flight'
+import { loadLibprocAddon, type LibprocProcessRow, type LibprocQuery } from './libproc-addon'
 import {
-  loadLibprocAddon,
-  type LibprocAddon,
-  type LibprocProcessRow,
-  type LibprocQuery,
-  type LibprocTableRead
-} from './libproc-addon'
+  DEADLINE_PASSED,
+  beforeDeadline,
+  isNativeReaderHealthy,
+  monotonicNow,
+  readFreshNativeTable,
+  registerNativeRequest
+} from './libproc-native-reads'
 import { completeCommands } from './libproc-argv-completion'
 import {
   compareLikePs,
@@ -27,8 +29,6 @@ export type LibprocPsResult = {
   stderr: ''
   timedOut: boolean
   outputTruncated: boolean
-  /** When the native read began, never before the request: identity boundaries may rely on it. */
-  startedAtMs?: number
 }
 
 export type InProcessPsOptions = {
@@ -61,81 +61,6 @@ function lstartZoneIsUtc(env: NodeJS.ProcessEnv): boolean | null {
   return /^(?:UTC|GMT)0?$/.test(zone) ? true : null
 }
 
-const DEADLINE_PASSED = Symbol('deadline')
-
-async function beforeDeadline<T>(
-  pending: Promise<T>,
-  deadline: number
-): Promise<T | typeof DEADLINE_PASSED> {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      pending,
-      new Promise<typeof DEADLINE_PASSED>((resolve) => {
-        timer = setTimeout(() => resolve(DEADLINE_PASSED), Math.max(0, deadline - Date.now()))
-      })
-    ])
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// Identical reads share one worker; each caller still races its own deadline, so a stalled pool times them all out.
-const nativeReadsInFlight = new Map<string, Promise<LibprocTableRead>>()
-// Workers queued behind a saturated libuv pool would otherwise pile up one per poll.
-const MAX_NATIVE_READS_IN_FLIGHT = 8
-
-function startNativeRead(
-  addon: LibprocAddon,
-  query: LibprocQuery,
-  key: string
-): Promise<LibprocTableRead> | null {
-  if (nativeReadsInFlight.size >= MAX_NATIVE_READS_IN_FLIGHT) {
-    return null
-  }
-  const pending = addon.readProcessTable(query)
-  nativeReadsInFlight.set(key, pending)
-  const release = (): void => {
-    if (nativeReadsInFlight.get(key) === pending) {
-      nativeReadsInFlight.delete(key)
-    }
-  }
-  pending.then(release, release)
-  return pending
-}
-
-/** Rows read no earlier than `requestedAtMs`. A shared read that began before this request (an earlier
- * poll's abandoned one) is refused: its exited pids may since be reused, and teardown would signal them. */
-async function readNativeTableSince(
-  addon: LibprocAddon,
-  query: LibprocQuery,
-  requestedAtMs: number,
-  deadline: number
-): Promise<LibprocTableRead | typeof DEADLINE_PASSED> {
-  const key = JSON.stringify(query)
-  for (;;) {
-    const pending = nativeReadsInFlight.get(key) ?? startNativeRead(addon, query, key)
-    if (!pending) {
-      // At the cap (a startup-restore burst, or a stalled pool): queue behind a read instead of bursting ps.
-      const settled = Promise.race(nativeReadsInFlight.values()).then(
-        () => {},
-        () => {}
-      )
-      if ((await beforeDeadline(settled, deadline)) === DEADLINE_PASSED) {
-        return DEADLINE_PASSED
-      }
-      continue
-    }
-    const read = await beforeDeadline(pending, deadline)
-    if (read === DEADLINE_PASSED || read.startedAtMs >= requestedAtMs) {
-      return read
-    }
-    if (nativeReadsInFlight.get(key) === pending) {
-      nativeReadsInFlight.delete(key)
-    }
-  }
-}
-
 /** One naming pass at a time; wait out another (within the deadline) rather than burst /bin/ps at startup restore. */
 async function nameTerminals(
   devices: ReadonlySet<string>,
@@ -166,11 +91,11 @@ export async function runPsInProcess(
 ): Promise<LibprocPsResult | null> {
   const addon = loadLibprocAddon()
   const query = addon ? parsePsQuery(args) : null
-  if (!addon || !query) {
+  if (!addon || !query || !isNativeReaderHealthy()) {
     return null
   }
-  const requestedAtMs = Date.now()
-  const deadline = requestedAtMs + options.timeoutMs
+  const registeredSequence = registerNativeRequest()
+  const deadline = monotonicNow() + options.timeoutMs
   const env = options.env ?? process.env
   const utc = lstartZoneIsUtc(env)
   const needsLstart = query.columns.includes('lstart')
@@ -190,16 +115,17 @@ export async function runPsInProcess(
     ...(includeCommand ? { ctype } : {})
   }
   let rows: LibprocProcessRow[] | null
-  let startedAtMs: number
   let ttyNames: ReadonlyMap<string, string> = new Map()
   try {
-    const read = await readNativeTableSince(addon, nativeQuery, requestedAtMs, deadline)
+    const read = await readFreshNativeTable(addon, nativeQuery, registeredSequence, deadline)
+    if (read === 'stalled') {
+      return null
+    }
     if (read === DEADLINE_PASSED) {
       return TIMED_OUT
     }
-    startedAtMs = read.startedAtMs
     // Shared reads hand every caller the same rows; command completion writes per caller.
-    rows = read.rows?.map((row) => ({ ...row })) ?? null
+    rows = read?.map((row) => ({ ...row })) ?? null
     if (rows && query.columns.includes('tty')) {
       const devices = new Set(
         rows.map((row) => formatDarwinDevice(row.tdev)).filter((device) => device !== null)
@@ -218,12 +144,12 @@ export async function runPsInProcess(
   } catch {
     return null
   }
-  if (Date.now() > deadline) {
+  if (monotonicNow() > deadline) {
     return TIMED_OUT
   }
   // ps exits 1 when -t names no terminal or a -p/-t selection matched nothing.
   if (rows === null) {
-    return { ...TIMED_OUT, code: 1, signal: null, timedOut: false, startedAtMs }
+    return { ...TIMED_OUT, code: 1, signal: null, timedOut: false }
   }
   const ttyOf = (row: LibprocProcessRow): string =>
     ttyNames.get(formatDarwinDevice(row.tdev) ?? '') ?? '??'
@@ -263,8 +189,7 @@ export async function runPsInProcess(
     stdout,
     stderr: '',
     timedOut: false,
-    outputTruncated,
-    startedAtMs
+    outputTruncated
   }
 }
 

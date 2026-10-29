@@ -1,5 +1,6 @@
 import { runProcess } from '@orca/process-host'
 import type { LibprocProcessRow } from './libproc-addon'
+import { monotonicNow } from './libproc-native-reads'
 import { NODEV } from './libproc-ps-format'
 
 const SZOMB_STATUS = 5
@@ -29,10 +30,11 @@ function descendsFromUsersTerminal(
 
 type AuthoritativeCommand = { command: string; cachedAtMs: number }
 
-// A long-lived sudo agent costs one ps per TTL, not one per poll.
+// exec can keep pid, start time, comm and executable (node → node with another script) and no cheap field shows it,
+// so a recovered argv is trusted for 30s: a sudo pane costs one targeted ps per process per TTL, other users none.
 const authoritativeCommands = new Map<string, AuthoritativeCommand>()
 const AUTHORITATIVE_COMMAND_LIMIT = 512
-const AUTHORITATIVE_COMMAND_TTL_MS = 10 * 60_000
+const AUTHORITATIVE_COMMAND_TTL_MS = 30_000
 
 /** exec keeps pid and start time but changes comm and the executable path; microseconds split same-second pid reuse. */
 function commandKey(ctype: string, row: LibprocProcessRow): string {
@@ -59,7 +61,7 @@ export async function completeCommands(
   deadline: number
 ): Promise<void> {
   const byPid = new Map(rows.map((row) => [row.pid, row]))
-  const now = Date.now()
+  const now = monotonicNow()
   const missing: { row: LibprocProcessRow; key: string }[] = []
   for (const row of rows) {
     if (
@@ -77,7 +79,7 @@ export async function completeCommands(
       missing.push({ row, key })
     }
   }
-  const timeoutMs = deadline - Date.now()
+  const timeoutMs = Math.floor(deadline - monotonicNow())
   if (missing.length === 0 || timeoutMs <= 0) {
     return
   }

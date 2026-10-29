@@ -2,15 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   setLibprocAddonForTests,
   type LibprocProcessRow,
-  type LibprocQuery,
-  type LibprocTableRead
+  type LibprocQuery
 } from '../shared/libproc-addon'
+import { resetNativeReadsForTests } from '../shared/libproc-native-reads'
 import { captureDescendantSnapshot, killWithDescendantSweep } from './pty-descendant-termination'
 
 const START = Date.UTC(2026, 8, 3, 16, 2, 1) / 1000
-// Fixed read start times on either side of any request: one long before, one after.
-const ABANDONED_READ_STARTED_AT_MS = 0
-const FRESH_READ_STARTED_AT_MS = Date.UTC(2100, 0, 1)
+const WALL_CLOCK = Date.UTC(2026, 9, 29, 12, 0, 0)
 
 function row(pid: number, ppid: number): LibprocProcessRow {
   return {
@@ -29,44 +27,52 @@ function row(pid: number, ppid: number): LibprocProcessRow {
 
 afterEach(() => {
   setLibprocAddonForTests(undefined)
+  resetNativeReadsForTests()
+  vi.useRealTimers()
 })
 
 describe('descendant teardown over the in-process process table', () => {
-  it('never signals a reused pid from an earlier poll’s abandoned native read', async () => {
-    let finishAbandoned: (read: LibprocTableRead) => void = () => {}
-    const abandoned = new Promise<LibprocTableRead>((resolve) => {
-      finishAbandoned = resolve
-    })
-    const readProcessTable = vi
-      .fn<(query: LibprocQuery) => Promise<LibprocTableRead>>()
-      .mockReturnValueOnce(abandoned)
-      // Since that read began, descendant 200 exited and an unrelated process took its pid.
-      .mockImplementation(async () => ({
-        startedAtMs: FRESH_READ_STARTED_AT_MS,
-        rows: [row(1, 0), row(100, 1), row(200, 1)]
-      }))
-    setLibprocAddonForTests({
-      readProcessTable,
-      processCwd: () => null,
-      processPath: () => null
-    })
-    expect(await captureDescendantSnapshot(100, { timeoutMs: 10 })).toBeNull()
+  it.each([
+    ['a steady clock', 0],
+    ['the wall clock stepped back 100ms', -100],
+    ['the wall clock stepped back an hour', -3_600_000],
+    ['the wall clock stepped forward an hour', 3_600_000]
+  ])(
+    'never signals a reused pid from an earlier poll’s abandoned native read with %s',
+    async (_name, stepMs) => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(WALL_CLOCK)
+      type Rows = LibprocProcessRow[] | null
+      let finishAbandoned: (rows: Rows) => void = () => {}
+      const abandoned = new Promise<Rows>((resolve) => {
+        finishAbandoned = resolve
+      })
+      const readProcessTable = vi
+        .fn<(query: LibprocQuery) => Promise<Rows>>()
+        .mockReturnValueOnce(abandoned)
+        // Since that read was submitted, descendant 200 exited and an unrelated process took its pid.
+        .mockImplementation(async () => [row(1, 0), row(100, 1), row(200, 1)])
+      setLibprocAddonForTests({
+        readProcessTable,
+        processCwd: () => null,
+        processPath: () => null
+      })
+      expect(await captureDescendantSnapshot(100, { timeoutMs: 10 })).toBeNull()
 
-    const sendSignal = vi.fn()
-    const killRoot = vi.fn()
-    const teardown = killWithDescendantSweep(100, killRoot, {
-      sendSignal,
-      timeoutMs: 1_000,
-      graceMs: 60_000
-    })
-    finishAbandoned({
-      startedAtMs: ABANDONED_READ_STARTED_AT_MS,
-      rows: [row(1, 0), row(100, 1), row(200, 100)]
-    })
-    await teardown
+      vi.setSystemTime(WALL_CLOCK + stepMs)
+      const sendSignal = vi.fn()
+      const killRoot = vi.fn()
+      const teardown = killWithDescendantSweep(100, killRoot, {
+        sendSignal,
+        timeoutMs: 1_000,
+        graceMs: 60_000
+      })
+      finishAbandoned([row(1, 0), row(100, 1), row(200, 100)])
+      await teardown
 
-    expect(killRoot).toHaveBeenCalledOnce()
-    expect(sendSignal).not.toHaveBeenCalled()
-    expect(readProcessTable).toHaveBeenCalledTimes(2)
-  })
+      expect(killRoot).toHaveBeenCalledOnce()
+      expect(sendSignal).not.toHaveBeenCalled()
+      expect(readProcessTable).toHaveBeenCalledTimes(2)
+    }
+  )
 })

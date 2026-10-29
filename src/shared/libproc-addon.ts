@@ -32,15 +32,9 @@ export type LibprocQuery = {
   ctype?: string
 }
 
-export type LibprocTableRead = {
-  /** Wall clock when the worker began reading; a read queued behind a busy pool starts late. */
-  startedAtMs: number
-  rows: LibprocProcessRow[] | null
-}
-
 export type LibprocAddon = {
   /** Reads on a libuv worker thread; argv for a whole table costs ~20ms of syscalls. */
-  readProcessTable: (query: LibprocQuery) => Promise<LibprocTableRead>
+  readProcessTable: (query: LibprocQuery) => Promise<LibprocProcessRow[] | null>
   processCwd: (pid: number) => string | null
   processPath: (pid: number) => string | null
 }
