@@ -63,6 +63,7 @@
       "useHereHostKeptForPeers": "{{project}} moved to the {{distro}} host, which is still running for another Orca. Re-add the host to use it here again.",
       "useHereHostUnreachable": "The {{distro}} host isn't answering, so Orca can't stop its copy of this project, and its agents may still be running there. Connect the host in Settings, or remove it, then try again.",
       "useHereHostStillRunning": "The {{distro}} host's copy of this project is still running terminals, so its agents could run twice. Wait a moment, then try again.",
+      "useHereHostTerminalsAsleep": "Its terminals on the {{distro}} host were put to sleep. Open the project to resume them.",
       "useHereFailed": "Could not bring this project back to this computer.",
       "useHereHostRemovalPending": "The {{distro}} host is still being removed, so Orca leaves it alone. Finish removing it in Settings, then try again.",
       "useHereHostAutomations": "Orca couldn't turn off this project's automations on the {{distro}} host, so they could run twice. Connect the host in Settings, then try again.",
@@ -2903,7 +2904,6 @@
         "47126bcf57": "Download Manually",
         "3553a8672f": "Details",
         "90559b14e3": "This turns on a process-wide Electron networking switch after restart. Use it for corporate VPNs or proxies that reject HTTP/2 update downloads.",
-        "6e45bfa2e0": "Downloading...",
         "558842597d": "Downloading Update",
         "f58b5c57a6": "New:",
         "ec8fe71cfc": "Update",
@@ -2913,7 +2913,6 @@
         "318d3b4bc7": "Dismiss update",
         "9abc59f814": "Update Available",
         "aad383aecc": "Read the full release notes",
-        "ccd8b0a793": "more since your last update",
         "b1d867f4fb": "Your terminal sessions won't be interrupted during the update.",
         "09a55c39b5": "Installing...",
         "ea2a41adbe": "You're on the latest version.",
@@ -2939,7 +2938,24 @@
         "d29740d175": "The selected build could not be used.",
         "37d45c9ec1": "Choose Another Build",
         "7f1a4c9e02": "Your system package manager installed Orca, so update it from there — Orca cannot install this release itself.",
-        "compatibilityModeFailed": "Could not enable compatibility mode. {{message}}"
+        "compatibilityModeFailed": "Could not enable compatibility mode. {{message}}",
+        "moreSinceLastUpdate": "+{{count}} more since your last update",
+        "downloadingPercent": "Downloading... {{percent}}%",
+        "restartToInstallFailed": "Could not restart to install the update.",
+        "http1RetryAvailable": "Orca can retry through HTTP/1.1 compatibility mode.",
+        "restarting": "Restarting...",
+        "updateCheckFailed": "Update Check Failed",
+        "updateIncomplete": "Could not complete the update.",
+        "checkFailed": "Could not check for updates.",
+        "aria": {
+          "statusIdle": "Update status",
+          "statusChecking": "Checking for updates",
+          "statusLatest": "You're on the latest version",
+          "statusAvailable": "Update available",
+          "statusDownloading": "Downloading update",
+          "statusDownloaded": "Update ready to install",
+          "statusError": "Update error"
+        }
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "Move",
@@ -4922,9 +4938,6 @@
           "trackingSince": "Tracking since {{value0}}"
         },
         "UsageOverviewPane": {
-          "22ed1b7669": "sessions",
-          "444585cb41": "with data",
-          "ecb0cd8a4c": "enabled -",
           "33f7b043d2": "Providers",
           "70f36452d4": "Cache share",
           "327603fe8b": "Active days",
@@ -4940,7 +4953,10 @@
           "c760c481c5": "Usage Overview",
           "55c910f4f1": "- some model prices are unavailable",
           "enableMuse": "Enable Muse",
-          "noLocalUsageYet": "No local Claude, Codex, OpenCode, or Muse usage found yet. The overview will populate after the next agent session writes token logs."
+          "noLocalUsageYet": "No local Claude, Codex, OpenCode, or Muse usage found yet. The overview will populate after the next agent session writes token logs.",
+          "providersEnabledWithData": "{{enabled}} enabled - {{withData}} with data",
+          "sessionCount_one": "{{formatted}} session",
+          "sessionCount_other": "{{formatted}} sessions"
         },
         "share": {
           "card": {
@@ -5004,14 +5020,18 @@
               "7f270458af": "Output",
               "9365b14a4e": "New input",
               "3de9bf87fc": "No model yet",
-              "6762f6a682": "tokens",
-              "a7f937fb29": "{{value0}} sessions - {{value1}} {{value2}}",
-              "c8f3a2d1e0b4": "turns",
-              "d9a4b3e2f1c5": "events",
               "statusScanning": "Scanning",
               "statusEnabled": "Enabled",
               "statusOff": "Off",
-              "recentCombinedActivity": "Recent combined Claude, Codex, OpenCode, and Muse token activity."
+              "recentCombinedActivity": "Recent combined Claude, Codex, OpenCode, and Muse token activity.",
+              "sessionCount_one": "{{formatted}} session",
+              "sessionCount_other": "{{formatted}} sessions",
+              "turnCount_one": "{{formatted}} turn",
+              "turnCount_other": "{{formatted}} turns",
+              "eventCount_one": "{{formatted}} event",
+              "eventCount_other": "{{formatted}} events",
+              "sessionsAndActivity": "{{sessions}} - {{activity}}",
+              "tokenTotal": "{{tokens}} tokens"
             }
           }
         },
@@ -5040,6 +5060,10 @@
           "emptyMessage": "No local Muse usage found yet for this scope.",
           "noCostNote": "Muse session logs record tokens but not cost, so no cost estimate is shown.",
           "recentSessionsDescription": "Most recent local Muse sessions in this scope."
+        },
+        "usageFormatters": {
+          "notScannedYet": "Not scanned yet",
+          "updatedAt": "Updated {{time}}"
         }
       },
       "sparse": {
@@ -5092,24 +5116,20 @@
         },
         "SkillFreshnessNudge": {
           "titleOne": "An installed Orca skill is out of date",
-          "titleMany": "{{value0}} installed Orca skills are out of date",
           "description": "Update {{value0}} so agents follow the current instructions for this version of Orca.",
           "updateOne": "Update skill",
-          "updateMany": "Update skills"
+          "updateMany": "Update skills",
+          "title_other": "{{count}} installed Orca skills are out of date"
         },
         "SkillFreshnessRow": {},
         "SkillFreshnessUpdateDialog": {
           "title": "Update skills",
           "checking": "Checking installed Orca skills…",
           "none": "No installed Orca skills found.",
-          "updateOne": "1 update available",
-          "updateMany": "{{value0}} updates available",
           "success": "All installed Orca skills are up to date.",
           "progressAria": "Updating skills",
           "errorTitle": "The update didn't finish",
           "updating": "Updating…",
-          "updateActionOne": "Update 1 skill",
-          "updateActionMany": "Update {{value0}} skills",
           "checkNow": "Re-check",
           "done": "Done",
           "close": "Close",
@@ -5117,16 +5137,20 @@
           "repair": "An earlier update was interrupted. Update to repair it.",
           "hideFolders": "Hide folders",
           "showFolders": "Show folders",
-          "upToDateMany": "{{value0}} skills are up to date.",
           "upToDateOne": "{{value0}} is up to date.",
-          "updatedMany": "Updated {{value0}} skills",
-          "updatedOne": "Updated 1 skill",
           "updatedSkipped": "{{value0}} · {{value1}} skipped",
-          "currentOne": "1 skill is up to date",
-          "currentMany": "{{value0}} skills are up to date",
           "noUpdates": "No updates available",
           "updateServer": "Update Orca on the server to update its Orca skills.",
-          "connectHost": "Connect to this SSH host to check its Orca skills."
+          "connectHost": "Connect to this SSH host to check its Orca skills.",
+          "upToDate_other": "{{count}} skills are up to date.",
+          "update_other": "{{count}} updates available",
+          "current_other": "{{count}} skills are up to date",
+          "updated_other": "Updated {{count}} skills",
+          "updateAction_other": "Update {{count}} skills",
+          "update_one": "{{count}} update available",
+          "current_one": "{{count}} skill is up to date",
+          "updated_one": "Updated {{count}} skill",
+          "updateAction_one": "Update {{count}} skill"
         },
         "SkillUpdateResultRows": {},
         "SkillUpdateRow": {
@@ -5251,8 +5275,9 @@
           "01c5a12e04": "Kept local",
           "01c5a12e07": "Bundle installation needs attention.",
           "01c5a12e08": "Skills installed and verified.",
-          "01c5a12e09": "{{value0}} selected skills checked.",
-          "01c5a12e10": "Needs retry"
+          "01c5a12e10": "Needs retry",
+          "selectedChecked_one": "{{count}} selected skill checked.",
+          "selectedChecked_other": "{{count}} selected skills checked."
         },
         "SkillBundleInstallReview": {
           "01c5a11e09": "Release notes:",
@@ -5300,31 +5325,31 @@
           "plugin": "Plugin"
         },
         "count": {
-          "skillOne": "{{count}} skill",
-          "skillOther": "{{count}} skills",
-          "sourceOne": "{{count}} source",
-          "sourceOther": "{{count}} sources",
-          "fileOne": "{{count}} file",
-          "fileOther": "{{count}} files",
-          "resultOne": "{{count}} result",
-          "resultOther": "{{count}} results",
           "selected": "{{count}} selected",
-          "shareOne": "Share {{count}} skill",
-          "shareOther": "Share {{count}} skills",
-          "installOne": "Install {{count}} skill",
-          "installOther": "Install {{count}} skills",
-          "retryOne": "Retry {{count}} skill",
-          "retryOther": "Retry {{count}} skills",
-          "linkOne": "{{count}} link",
-          "linkOther": "{{count}} links",
-          "deleteOne": "Delete {{count}} skill",
-          "deleteOther": "Delete {{count}} skills",
-          "deletedOne": "Deleted {{count}} skill",
-          "deletedOther": "Deleted {{count}} skills",
-          "deleteFolderOne": "{{count}} folder",
-          "deleteFolderOther": "{{count}} folders",
-          "deleteLinkOne": "{{count}} link",
-          "deleteLinkOther": "{{count}} links"
+          "delete_one": "Delete {{count}} skill",
+          "delete_other": "Delete {{count}} skills",
+          "deleteFolder_one": "{{count}} folder",
+          "deleteFolder_other": "{{count}} folders",
+          "deleteLink_one": "{{count}} link",
+          "deleteLink_other": "{{count}} links",
+          "skill_one": "{{count}} skill",
+          "skill_other": "{{count}} skills",
+          "source_one": "{{count}} source",
+          "source_other": "{{count}} sources",
+          "file_one": "{{count}} file",
+          "file_other": "{{count}} files",
+          "link_one": "{{count}} link",
+          "link_other": "{{count}} links",
+          "result_one": "{{count}} result",
+          "result_other": "{{count}} results",
+          "share_one": "Share {{count}} skill",
+          "share_other": "Share {{count}} skills",
+          "install_one": "Install {{count}} skill",
+          "install_other": "Install {{count}} skills",
+          "retry_one": "Retry {{count}} skill",
+          "retry_other": "Retry {{count}} skills",
+          "deleted_one": "Deleted {{count}} skill",
+          "deleted_other": "Deleted {{count}} skills"
         },
         "host": {
           "local": "This machine",
@@ -5339,13 +5364,13 @@
           "releaseNotesOptional": "Add release notes (optional)",
           "releaseNotesFirst": "Describe this release",
           "manageLinks": "Manage or revoke this link in Settings",
-          "scriptOne": "{{count}} script",
-          "scriptOther": "{{count}} scripts",
-          "executableOne": "{{count}} executable",
-          "executableOther": "{{count}} executables",
           "noExecutableContent": "No scripts or executables",
           "newVersionDescriptionPlain": "Adds a new version to the existing link.",
-          "accessSummaryPlain": "Unlisted link — anyone with it can install this."
+          "accessSummaryPlain": "Unlisted link — anyone with it can install this.",
+          "script_one": "{{count}} script",
+          "script_other": "{{count}} scripts",
+          "executable_one": "{{count}} executable",
+          "executable_other": "{{count}} executables"
         },
         "description": {
           "showLess": "Show less",
@@ -5380,7 +5405,6 @@
           "rowNew": "New",
           "chooseSkills": "Choose what to install from this link.",
           "singleRunnableWarning": "This skill includes scripts or binary files.",
-          "runnableWarning": "{{affectedCount}} of {{selectedCount}} selected skills include scripts or binary files: {{affected}}.",
           "reviewRunnableFiles": "Includes scripts or binary files",
           "reviewSupportingFiles": "Review the supporting files",
           "reviewInstructions": "About this skill",
@@ -5389,13 +5413,17 @@
           "fileBinary": "binary",
           "fileRunnable": "runnable",
           "agentsCountBadge": "{{count}} selected",
-          "agentsCountLabel": "{{count}} {{label}}",
           "targetAgentsHeader": "Target Agents",
           "deselectAll": "Deselect all",
           "selectAll": "Select all",
           "canonicalHeader": "Standard Agents (Always Included)",
           "canonicalExplanation": "These agents natively read {{root}}, which Orca installs to by default:",
-          "additionalAgentsHeader": "Additional Agent Directories"
+          "additionalAgentsHeader": "Additional Agent Directories",
+          "agentCount_one": "{{count}} agent",
+          "agentCount_other": "{{count}} agents",
+          "namesAndMore": "{{names}} +{{count}} more",
+          "runnableWarningOfSelected_other": "{{affectedCount}} of {{count}} selected skills include scripts or binary files: {{affected}}.",
+          "runnableWarningOfSelected_one": "{{affectedCount}} of {{count}} selected skill include scripts or binary files: {{affected}}."
         },
         "filter": {
           "allAgents": "All agents",
@@ -5477,10 +5505,10 @@
           "hostUnresolved": "Still finding the machine that owns these skills.",
           "hostUpdateRequired": "Update Orca on the selected machine to delete skills.",
           "nothingOne": "That skill cannot be deleted from here.",
-          "nothingOther": "None of the {{count}} selected skills can be deleted from here.",
           "placementSummaryParts": "Removes {{parts}} across {{roots}}.",
           "placementJoin": " and ",
-          "retainedSource": "The skill itself stays at {{path}}."
+          "retainedSource": "The skill itself stays at {{path}}.",
+          "nothing_other": "None of the {{count}} selected skills can be deleted from here."
         },
         "skillPlanOpCopy": {
           "busy": "Another install is still running",
@@ -5509,6 +5537,20 @@
           "updateAvailable": "Update available",
           "repairAvailable": "Repair available",
           "installAvailable": "Install available"
+        },
+        "installResult": {
+          "installed": "Installed and verified.",
+          "updated": "Updated and verified.",
+          "unchanged": "This exact version is already installed.",
+          "partial": "Installed, but one or more agent placements need attention.",
+          "removed": "Removed.",
+          "cancelled": "Installation cancelled.",
+          "incomplete": "Installation did not complete."
+        },
+        "managedRemoval": {
+          "removed": "{{removed}} removed.",
+          "removedPreserved_one": "{{removed}} removed · {{count}} modified skill preserved.",
+          "removedPreserved_other": "{{removed}} removed · {{count}} modified skills preserved."
         }
       },
       "sidebar": {
@@ -14308,15 +14350,23 @@
       },
       "repo": {
         "NestedRepoChecklist": {
-          "f7e1170567": "selected",
-          "ea54c7bf8f": "of",
           "91b5bcadb6": "Select all",
-          "929734aea5": "Deselect all"
+          "929734aea5": "Deselect all",
+          "selectedOfTotal": "{{selected}} of {{total}} selected"
         },
         "NestedRepoScanLimitNotice": {
           "642a43c139": "Nested repository scan limits",
           "574eb5408b": "Showing partial scan results.",
-          "03e9beab7b": "Scan stopped early."
+          "03e9beab7b": "Scan stopped early.",
+          "seconds_one": "{{count}} second",
+          "seconds_other": "{{count}} seconds",
+          "milliseconds": "{{count}} ms",
+          "folderLevels_one": "{{count}} folder level",
+          "folderLevels_other": "{{count}} folder levels",
+          "repositories_one": "{{count}} repository",
+          "repositories_other": "{{count}} repositories",
+          "limitText": "Scan stops after {{depth}} or {{repos}}. You can stop scanning early and import repositories found so far.",
+          "limitTextWithTimeout": "Scan stops after {{depth}}, {{repos}}, or {{timeout}}. You can stop scanning early and import repositories found so far."
         },
         "RepoCombobox": {
           "b3e15f4525": "Add project",
@@ -14349,6 +14399,9 @@
             "65b437c381": "Code",
             "bed2674f9d": "Folder"
           }
+        },
+        "forkIndicator": {
+          "forkOf": "Fork of {{repo}}"
         }
       },
       "pet": {
@@ -14365,12 +14418,13 @@
           "e6a369bd04": "Popular agents",
           "d7b3ef168b": "Detected on your system",
           "9c163bb0e0": "Install instructions",
-          "69af7e9c1c": "isn't on your PATH yet. Orca will set it as your default and you can install it any time.",
           "1eee1c7bd8": "No agents detected on your PATH. Pick one to install later, or continue with a blank terminal.",
           "hideAgents": "Hide agents",
-          "showMoreAgents": "Show {{value0}} more agents →",
           "yoloModeLabel": "Yolo mode",
-          "yoloPermissionsDescription": "Agents run commands and edit files without asking, and some also bypass their sandbox. Use only in projects you trust."
+          "yoloPermissionsDescription": "Agents run commands and edit files without asking, and some also bypass their sandbox. Use only in projects you trust.",
+          "showMoreAgents_one": "Show {{count}} more agent →",
+          "showMoreAgents_other": "Show {{count}} more agents →",
+          "agentNotOnPath": "<agent>{{agent}}</agent> isn't on your PATH yet. Orca will set it as your default and you can install it any time."
         },
         "IntegrationsStep": {
           "277f30eb34": "Linear, GitLab, Bitbucket, Azure DevOps, Gitea, and Jira live in Settings > Integrations.",
@@ -14414,7 +14468,6 @@
         },
         "OnboardingFlow": {
           "1b5e182e9f": "Welcome to Orca",
-          "4db04f2f57": "of",
           "adaa0aa627": "Go to onboarding step {{value0}}: {{value1}}",
           "a249f81538": "Orca",
           "277ba45540": "Orca onboarding",
@@ -14427,7 +14480,8 @@
           "322fc50a18": "Orca works with every CLI agent. Choose the one you'll reach for most. Switch any time.",
           "198b148b3c": "Pick your default agent",
           "windowsTerminalTitle": "Set Windows terminal defaults",
-          "windowsTerminalSubtitle": "Choose the DEFAULT Shell for new panes and how right-click behaves in the terminal."
+          "windowsTerminalSubtitle": "Choose the DEFAULT Shell for new panes and how right-click behaves in the terminal.",
+          "stepOfTotal": "{{current}} of {{total}}"
         },
         "OnboardingFooter": {
           "ba58547306": "Back",
@@ -14454,15 +14508,14 @@
           "7ee9234e54": "Ghostty config detected.",
           "78b6386140": "Imported from Ghostty.",
           "2c3aa538f8": "Looking for a Ghostty config…",
-          "94b9dc561d": "Settings → Terminal",
-          "dd5c16ad1b": "More terminal options, including font, cursor, and palette, in",
           "ad192706e6": "Light",
           "fa7b673ea9": "Dark",
           "827ea7b4a2": "System",
           "699ddf83c2": "Failed to import Ghostty settings",
           "16a9f0446a": "No Ghostty settings found to import",
           "ad19e5c916": "Importing…",
-          "906c4373fe": "settings"
+          "906c4373fe": "settings",
+          "moreTerminalOptions": "More terminal options, including font, cursor, and palette, in <settings>Settings → Terminal</settings>"
         },
         "use": {
           "onboarding": {
@@ -14612,9 +14665,6 @@
           "4c1df4eba7": "Can't scan?",
           "85067b9e06": "Refresh network interfaces",
           "dfd2aa9d5d": "Network",
-          "2f077ef4eb": ", and scan the code.",
-          "3aa7bb2d8b": "Pair Desktop",
-          "d1495e5e64": "Open Orca Mobile, tap",
           "3960f5c339": "Step 2 of 2",
           "3241f3c26a": "Install QR",
           "aa97420ba4": "Copy install link",
@@ -14657,7 +14707,8 @@
           "directAddressHint": "Optional. Pick the Wi‑Fi or Tailscale address your phone should use when nearby — usually faster than Relay. Relay still works when you’re away.",
           "androidHelp": {
             "guide": "Install guide"
-          }
+          },
+          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code."
         },
         "MobilePage": {
           "e17393c6a3": "Phone preview",
@@ -14693,7 +14744,10 @@
               },
               "stable": {
                 "tagline": "The public release, updated weekly."
-              }
+              },
+              "downloadApk": "Download APK",
+              "openTestFlight": "Open TestFlight",
+              "openAppStore": "Open App Store"
             }
           }
         },
@@ -14897,7 +14951,10 @@
             "e9eb197e12": "Opened Computer Use permissions",
             "c605f51f2b": "Capability setup ready",
             "1aa657d8f4": "Some capability setup needs attention",
-            "installSkills": "Install skills"
+            "installSkills": "Install skills",
+            "settingUp": "Setting up capabilities...",
+            "disableRow": "Disable {{title}}",
+            "enableRow": "Enable {{title}}"
           },
           "AiCommitPrSettingsCard": {
             "8d4152701a": "e.g. ollama run llama3.1 {{value0}}",
@@ -14985,7 +15042,8 @@
             "a7463915b6": "Failed to save setup script",
             "6299297dac": "Setup script saved",
             "f0bbf7da77": "Try it out",
-            "522cce9e33": "Add project"
+            "522cce9e33": "Add project",
+            "addProjectFirst": "First add a project you'd like to work on."
           },
           "FeatureWallTourPanel": {
             "af7d622f6f": "Optional"
@@ -15045,12 +15103,12 @@
             "cd8a3a39d7": "3 commits ahead"
           },
           "TasksAnimatedVisual": {
-            "efba6f77eb": "Reading issue #",
             "b68c92fbdc": "Start workspace",
             "4331c4d0f8": "Open",
             "b13375617e": "Worktree picker truncates names",
             "fe47c9c9e8": "Workspace ready",
-            "61ffda7601": "Creating workspace"
+            "61ffda7601": "Creating workspace",
+            "readingIssue": "Reading issue #{{number}}…"
           },
           "WorkbenchAnimatedVisual": {
             "633a91e358": "Thinking…",
@@ -15197,17 +15255,17 @@
             "5f97caf76b": "Installing…"
           },
           "ConnectIntegrationsList": {
-            "3dddb2d565": "connected for tasks",
             "33b650af52": "Connect where your team tracks work. Orca starts workspaces with the issue title, link, and context already attached.",
-            "5b3577a492": "connected for review status",
             "list_end": ", and ",
             "list_pair": " and ",
             "list_mid": ", ",
-            "code_host_tasks_summary": "issues available as tasks · add Linear or Jira if your team plans work there",
             "code_host_tasks_caption": "Your code host's issues also work as tasks.",
             "review_step_title": "See PR status while agents work",
             "review_step_description": "Connect a review provider so Orca can show PR or MR status, checks, and reviews.",
-            "task_step_title": "Start agents on your tasks without leaving Orca"
+            "task_step_title": "Start agents on your tasks without leaving Orca",
+            "reviewConnectedSummary": "<provider>{{provider}}</provider> connected for review status",
+            "tasksConnectedSummary": "<sources/> connected for tasks",
+            "codeHostTasksSummary": "<provider>{{provider}}</provider> issues available as tasks · add Linear or Jira if your team plans work there"
           },
           "connect": {
             "integration": {
@@ -15231,7 +15289,9 @@
             "6e3d62b816": "Open Full Disk Access"
           },
           "FeatureWallTourSurface": {
-            "reopenHint": "Reopen any time from Help > Explore Orca."
+            "reopenHint": "Reopen any time from Help > Explore Orca.",
+            "done": "Done",
+            "continue": "Continue"
           }
         },
         "tips": {
@@ -15240,26 +15300,26 @@
             "22e62f3bab": "Claude Code session started"
           },
           "CmdJPaletteTipDialog": {
-            "c0bb9f869b": "Settings → Shortcuts",
-            "8241897205": "Rebind the shortcut anytime in"
+            "rebindInSettings": "Rebind the shortcut anytime in <link>Settings → Shortcuts</link>."
           },
           "FeatureTipActions": {
-            "eb04abece8": "Maybe Later"
+            "eb04abece8": "Maybe Later",
+            "installing": "Installing...",
+            "turningOn": "Turning on...",
+            "working": "Working..."
           },
           "FeatureTipsModal": {
             "c169298e4d": "Done",
             "3c6c478462": "X finishes, send it the review task.”",
             "298301b7a0": "worktree",
             "864e2db28f": "“When the agent in",
-            "7fc6f02099": "and create PRs for each.”",
-            "27c567a89c": "worktrees",
-            "55846c7f95": "“Split this PR into two",
             "4795ac2d4a": "Try asking:",
             "53905bd076": "Development preview: opening skills setup terminal.",
             "1da82af45b": "Orca CLI needs attention",
             "ce13a742d0": "Registered `orca` in PATH.",
             "d1a86c7eb5": "Open Settings to finish CLI setup.",
-            "cliInstallFailed": "Failed to install Orca CLI."
+            "cliInstallFailed": "Failed to install Orca CLI.",
+            "splitPrPrompt": "“Split this PR into two <term>worktrees</term> and create PRs for each.”"
           },
           "CmdJPaletteFeatureTipVisual": {
             "ab94e16d44": "Create worktree \"{{value0}}\""
@@ -15413,16 +15473,12 @@
           "39b6b9e4e4": "Committed on Branch"
         },
         "CombinedDiffViewer": {
-          "35cc27aeb2": "in Source Control",
-          "e3b9a6ce02": "more",
           "1da745c551": "Sent",
           "84898c548d": "Clear",
           "88b70d0ef5": "Copy",
           "bb84b4c374": "AI notes",
           "948a5fd6c8": "Clear Notes",
           "0f806a2ab1": "Cancel",
-          "80a286d8f5": "from this worktree?",
-          "7e7ca60816": "changed files",
           "b6c3b84476": "Show file tree",
           "39f8007549": "Review conflicts",
           "skippedConflictsExcluded": "{{count}} unresolved conflicts were excluded from this diff view.",
@@ -15432,21 +15488,35 @@
           "fd8892b120": "No changes to display",
           "eb5f40e49c": "This diff view excludes unresolved conflicts because the normal two-way diff pipeline is not conflict-safe.",
           "45cf23b418": "Failed to clear notes.",
-          "0fb870a0fe": "notes",
-          "8ab3248fd8": "note",
           "ec5053c7f5": "Side by Side",
           "f786fd54e1": "Inline",
           "ea08dae15b": "Collapse All",
           "19c45cfdc0": "Expand All",
           "982d14bfa5": "Open All Changes",
           "3d909843bb": "Open Branch Diff",
-          "8f68ad9ca9": "Show {{value0}} AI {{value1}}",
-          "724a13568d": " in {{value0}}",
-          "6094135eec": " vs {{value0}}",
           "a4420ca1f7": "Wrap On",
           "dde325ddfe": "Wrap Off",
           "2e91bc89d1": "Whitespace On",
-          "2bf19c54ad": "Whitespace Off"
+          "2bf19c54ad": "Whitespace Off",
+          "untrackedFiles": "Untracked Files",
+          "noExtension": "(no extension)",
+          "diffLoadTimedOut": "Diff did not finish loading.",
+          "diffLoadFailed": "Unable to load diff.",
+          "moreNotesInSourceControl_one": "{{count}} more note in Source Control",
+          "moreNotesInSourceControl_other": "{{count}} more notes in Source Control",
+          "clearNotesConfirm_one": "Clear {{count}} note from this worktree?",
+          "clearNotesConfirm_other": "Clear {{count}} notes from this worktree?",
+          "changedFilesVs_one": "{{count}} changed file vs {{baseRef}}",
+          "changedFilesVs_other": "{{count}} changed files vs {{baseRef}}",
+          "changedFilesIn_one": "{{count}} changed file in {{compareRef}}",
+          "changedFilesIn_other": "{{count}} changed files in {{compareRef}}",
+          "changedFiles_one": "{{count}} changed file",
+          "changedFiles_other": "{{count}} changed files",
+          "showAiNotes_one": "Show {{count}} AI note",
+          "showAiNotes_other": "Show {{count}} AI notes",
+          "send": "Send",
+          "openDiff": "Open diff",
+          "openInEditor": "Open in editor"
         },
         "ConflictComponents": {
           "f338288514": "Loading conflict contents...",
@@ -15472,14 +15542,16 @@
           "69d4e210bb": "Unresolved"
         },
         "CsvViewer": {
-          "eedd0d37a7": "columns",
-          "ac31d2cd60": "rows",
           "a233d55b77": "Empty file",
           "delimiterComma": "Comma",
           "delimiterSemicolon": "Semicolon",
           "delimiterTab": "Tab",
           "delimiterAuto": "Auto ({{delimiter}})",
-          "delimiter": "Delimiter"
+          "delimiter": "Delimiter",
+          "rowCount_one": "{{formatted}} row",
+          "rowCount_other": "{{formatted}} rows",
+          "columnCount_one": "{{formatted}} column",
+          "columnCount_other": "{{formatted}} columns"
         },
         "DiffNotesSendMenu": {
           "f1aa04b5cf": "This file",
@@ -15513,7 +15585,8 @@
           "39f018b052": "Unable to load file",
           "8a0898ae4c": "Text diff is unavailable for this file.",
           "3c6e71df22": "Text diff is unavailable for this file in branch compare.",
-          "6c4f1a8d2e": "Check details are unavailable."
+          "6c4f1a8d2e": "Check details are unavailable.",
+          "resolveConflictGuidance": "Resolve the conflict in Git or restore one side before reopening it."
         },
         "EditorPanelHeader": {
           "fb8331694e": "Open Preview to the Side",
@@ -15580,7 +15653,6 @@
           "9e06ae5d36": "Run Notebook Code?",
           "d6f37a640b": "Empty notebook",
           "15ec40a735": "Save notebook",
-          "07e7d96612": "cells",
           "c1601b23b2": "Unable to render notebook",
           "66a3f7d330": "Notebook HTML output",
           "781abd6926": "Delete cell",
@@ -15634,7 +15706,10 @@
           "kernelDied": "The kernel died.",
           "localOnly": "Notebook cells can only run for files on this computer.",
           "pythonOnly": "Only Python notebooks can run in Orca.",
-          "ownerUnresolved": "Orca can't tell which computer this notebook is on yet, so its cells can't run."
+          "ownerUnresolved": "Orca can't tell which computer this notebook is on yet, so its cells can't run.",
+          "invalidNotebook": "Invalid notebook",
+          "cellCount_one": "{{count}} cell",
+          "cellCount_other": "{{count}} cells"
         },
         "MarkdownPreview": {
           "e4683f70c4": "Cancel",
@@ -15657,7 +15732,9 @@
           "d652c87c91": "Saving…",
           "c5dc92cfe3": "No results",
           "6c043947ae": "File not found: {{value0}}",
-          "759463a221": "Cannot open directory: {{value0}}"
+          "759463a221": "Cannot open directory: {{value0}}",
+          "docLinkAmbiguous": "Document link is ambiguous",
+          "docLinkNotFound": "Document not found"
         },
         "MarkdownTableOfContentsPanel": {
           "de3928b6e4": "No headings",
@@ -15679,7 +15756,8 @@
           "df667919ca": "No matching templates.",
           "22fd4890ad": "Search templates...",
           "7b458e0b7f": "Choose a Markdown template.",
-          "1829437fce": "New Markdown"
+          "1829437fce": "New Markdown",
+          "newDocumentHeading": "New Document"
         },
         "DiagramViewerModal": {
           "title": "Diagram"
@@ -15692,7 +15770,8 @@
         },
         "MermaidBlock": {
           "dcc132e691": "Diagram error:",
-          "expand": "Expand diagram"
+          "expand": "Expand diagram",
+          "invalidSyntax": "Invalid mermaid syntax"
         },
         "MonacoEditor": {
           "68cb83f4a7": "Add note on selected text",
@@ -15706,7 +15785,11 @@
         },
         "NotesSendMenu": {
           "44dc5e60a6": "Send notes",
-          "433928cd9f": "Send {{value0}} to an agent"
+          "433928cd9f": "Send {{value0}} to an agent",
+          "thisNote": "This note",
+          "noteAlreadySent": "Note already sent",
+          "sendNotesToAgent": "Send notes to an agent",
+          "allNotesSent": "All notes sent"
         },
         "PdfFind": {
           "cd65b1d6b0": "Close",
@@ -15721,7 +15804,10 @@
           "069ff59932": "Find in PDF ({{value0}})",
           "2b6eb1ccd6": "Zoom in",
           "c0119616d6": "Fit to width",
-          "fa5d096b00": "Zoom out"
+          "fa5d096b00": "Zoom out",
+          "passwordProtected": "This PDF is password-protected",
+          "loadFailed": "Failed to load PDF preview",
+          "decodeFailed": "Failed to decode PDF content"
         },
         "ReviewNotesSendMenuContent": {
           "a49800405b": "New agent",
@@ -15763,10 +15849,9 @@
         },
         "RichMarkdownDocLinkMenu": {
           "e17b987473": "↑↓ navigate&nbsp;&nbsp;↵ select&nbsp;&nbsp;esc dismiss",
-          "90c5f0e1e4": "of",
-          "2aaf7d9678": "Showing",
           "63ced7cb9b": "No documents found",
-          "0e8489bc11": "Markdown document links"
+          "0e8489bc11": "Markdown document links",
+          "showingOfTotal": "Showing {{shown}} of {{total}}"
         },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "Retry",
@@ -15812,7 +15897,13 @@
           "82c6816ff8": "No blocks found",
           "dbdd2ad15f": "Search blocks...",
           "550189b06c": "Search blocks",
-          "2e0400b958": "Slash commands"
+          "2e0400b958": "Slash commands",
+          "groupHeadings": "Headings",
+          "groupToggleHeadings": "Toggle headings",
+          "groupBasicBlocks": "Basic blocks",
+          "groupAdvanced": "Advanced",
+          "groupMedia": "Media",
+          "groupOthers": "Others"
         },
         "RichMarkdownToolbar": {
           "e935c6b61e": "Image",
@@ -15844,7 +15935,13 @@
           "c8ac7868e6": "file name",
           "b6ed807cc6": "Name",
           "e365f3c638": "Name your markdown file and pick a folder.",
-          "674b046582": "Save as"
+          "674b046582": "Save as",
+          "nameEmpty": "Name cannot be empty",
+          "nameHasSeparators": "Name cannot contain path separators",
+          "folderEmpty": "Folder path cannot be empty",
+          "folderOutsideWorkspace": "Folder must be inside the current workspace",
+          "nameTaken": "A file with that name already exists",
+          "saveFailed": "Failed to save file"
         },
         "export": {
           "active": {
@@ -15945,10 +16042,8 @@
           "20857938dd": "Modified lines",
           "e5f0d2182e": "Characters",
           "877c25a02f": "Reason",
-          "5fca073b72": "Limits",
-          "f1d136a163": "lines per side",
-          "23433fcdea": "combined characters",
-          "7944ed9fb8": "Not counted"
+          "7944ed9fb8": "Not counted",
+          "limitsSummary": "Limits: {{lines}} lines per side · {{characters}} combined characters"
         },
         "DiffViewer": {
           "b5675b0694": "Save",
@@ -15988,12 +16083,16 @@
           "copyOutput": "Copy output"
         },
         "CheckRunJobs": {
-          "1c0a4d7e02": "succeeded",
-          "2d3b8f1a55": "skipped",
-          "3e6c9a2b71": "pending",
-          "4f7d0c3e88": "steps failed",
           "5a8e1d4f23": " · ",
-          "copy": "Copy jobs"
+          "copy": "Copy jobs",
+          "stepsSucceeded_one": "{{count}} succeeded",
+          "stepsSucceeded_other": "{{count}} succeeded",
+          "stepsSkipped_one": "{{count}} skipped",
+          "stepsSkipped_other": "{{count}} skipped",
+          "stepsPending_one": "{{count}} pending",
+          "stepsPending_other": "{{count}} pending",
+          "stepsFailedOfTotal_one": "{{failed}} / {{count}} steps failed",
+          "stepsFailedOfTotal_other": "{{failed}} / {{count}} steps failed"
         },
         "check": {
           "run": {
@@ -16045,7 +16144,9 @@
           "citationFallbackLabel": "Citation",
           "citationLinkUnavailable": "{{value0}}, citation link unavailable. {{value1}}",
           "tabForCitationActions": "Tab for available actions.",
-          "noCitationActions": "No link actions are available."
+          "noCitationActions": "No link actions are available.",
+          "togglePlaceholder": "text",
+          "placeholder": "Write markdown… Type / for blocks."
         },
         "richMarkdownHtmlSuperscriptLink": {
           "availableAriaLabel": "{{value0}}, link to {{value1}}",
@@ -16143,6 +16244,53 @@
         },
         "useMarkdownDocuments": {
           "listFailed": "Failed to list Markdown documents."
+        },
+        "ReviewNotesSendMenu": {
+          "terminalGone": "Terminal is no longer available",
+          "chatGone": "Chat is no longer open",
+          "justNow": "just now",
+          "minutesAgo": "{{minutes}}m ago",
+          "hoursAgo": "{{hours}}h ago",
+          "daysAgo": "{{days}}d ago"
+        },
+        "editorHeader": {
+          "worktreePathCopied": "Worktree path copied",
+          "checkDetails": "Check details",
+          "checkDetailsCopied": "Check details copied",
+          "filePathCopied": "File path copied"
+        },
+        "editorLabels": {
+          "conflictReview": "Conflict Review",
+          "stagedDiff": "{{name}} (staged diff)",
+          "branchDiff": "{{name}} (branch diff)",
+          "commitDiff": "{{name}} (commit diff)",
+          "diff": "{{name}} (diff)",
+          "preview": "{{name}} (preview)",
+          "allChanges": "All Changes",
+          "uncommittedChanges": "Uncommitted Changes",
+          "branchChanges": "Branch Changes ({{baseRef}})",
+          "branchChangesBase": "Branch Changes (base)",
+          "commitWithSubject": "Commit {{ref}}: {{subject}}",
+          "commit": "Commit {{ref}}",
+          "commitDiffFallback": "Commit diff"
+        },
+        "conflictMarkers": {
+          "currentChange": "Current change",
+          "commonAncestor": "Common ancestor",
+          "incomingChange": "Incoming change",
+          "endConflict": "End conflict"
+        },
+        "richMarkdownImageInsert": {
+          "hostUnverified": "Couldn't verify which host owns this file. Reopen the file and try again."
+        },
+        "contextualCopy": {
+          "copyContextHint": "Copy context {{shortcut}}"
+        },
+        "EditorPanel": {
+          "diffLoadError": "Error loading diff: {{error}}",
+          "siblingFileAlreadyOpen": "The sibling file is already open; close one tab before restoring it.",
+          "siblingFileOwnerChanged": "The sibling file owner changed while the tab was restoring.",
+          "csvGrewTooLarge": "CSV grew too large for editing. Your draft has been kept; reopen the file to preview it."
         }
       },
       "diff": {
@@ -16260,7 +16408,9 @@
             "closedDescription": "Send a privacy-safe diagnostic report to help us understand what happened.",
             "reportNotesPlaceholder": "Optional: what happened?",
             "uiErrorNotesPlaceholder": "Optional: what were you doing before this UI error?",
-            "closedNotesPlaceholder": "Optional: what were you doing before Orca closed?"
+            "closedNotesPlaceholder": "Optional: what were you doing before Orca closed?",
+            "renderErrorIn": "React render error in {{surface}}",
+            "renderError": "React render error"
           }
         }
       },
@@ -16277,8 +16427,8 @@
             "complete": "Done"
           },
           "ContextualTourProgressDots": {
-            "7734cb8ad3": "of",
-            "dcd6e6b03e": "Step {{value0}} of {{value1}}"
+            "dcd6e6b03e": "Step {{value0}} of {{value1}}",
+            "stepOfTotal": "{{current}} of {{total}}"
           },
           "contextual": {
             "tour": {
@@ -18511,7 +18661,6 @@
         "inProgress": "In progress",
         "pending": "Pending",
         "empty": "No tasks",
-        "progress": "{{completed}} of {{total}} tasks completed",
         "added": "Added {{task}}",
         "removed": "Removed {{task}}",
         "started": "Started {{task}}",
@@ -18519,14 +18668,16 @@
         "reset": "Marked pending: {{task}}",
         "updated": "Updated {{task}}",
         "unchanged": "Tasks unchanged",
-        "showAll": "Full task list"
+        "showAll": "Full task list",
+        "progress_one": "{{completed}} of {{count}} task completed",
+        "progress_other": "{{completed}} of {{count}} tasks completed"
       },
       "turnDiff": {
-        "one": "1 changed file",
-        "many": "{{count}} changed files",
         "partial": "Partial diff",
         "showDiff": "Show diff",
-        "hideDiff": "Hide diff"
+        "hideDiff": "Hide diff",
+        "changedFiles_one": "{{count}} changed file",
+        "changedFiles_other": "{{count}} changed files"
       },
       "receipt": {
         "unavailable": "Selected answer unavailable",
@@ -18672,8 +18823,6 @@
         "exitCode": "exit {{value0}}",
         "milliseconds": "{{value0}}ms",
         "result": "Result",
-        "countOne": "1 tool call",
-        "countN": "{{value0}} tool calls",
         "failedCount": "{{value0}} failed",
         "failedCallsLabel": "Failed tool calls: {{value0}}",
         "interruptedCount": "{{value0}} interrupted",
@@ -18710,58 +18859,61 @@
           "triedFetch": "Tried to fetch",
           "triedSearchWeb": "Tried to search the web"
         },
-        "runReadOne": "Read 1 file",
-        "runReadMany": "Read {{value0}} files",
-        "runSearchOne": "Searched 1 time",
-        "runSearchMany": "Searched {{value0}} times",
-        "runListFilesOne": "Listed 1 directory",
-        "runListFilesMany": "Listed {{value0}} directories",
-        "runCommandOne": "Ran 1 command",
-        "runCommandMany": "Ran {{value0}} commands",
-        "runFileChangeOne": "Edited 1 file",
-        "runFileChangeMany": "Edited {{value0}} files",
-        "runWebSearchOne": "Searched the web 1 time",
-        "runWebSearchMany": "Searched the web {{value0}} times",
         "runBrowserOne": "Used the browser",
-        "runBrowserMany": "Used the browser {{value0}} times",
-        "runIntegrationOne": "Used 1 integration",
-        "runIntegrationMany": "Used {{value0}} integrations",
-        "runAgentOne": "Ran 1 agent",
-        "runAgentMany": "Ran {{value0}} agents",
         "runPlanOne": "Updated the plan",
-        "runPlanMany": "Updated the plan {{value0}} times",
-        "runToolOne": "Used 1 tool",
-        "runToolMany": "Used {{value0}} tools",
         "runPair": "{{value0}} and {{value1}}",
         "runList": "{{value0}}, and {{value1}}",
         "runListSeparator": ", ",
-        "runLiveReadOne": "Reading 1 file",
-        "runLiveReadMany": "Reading {{value0}} files",
-        "runLiveSearchOne": "Searching 1 time",
-        "runLiveSearchMany": "Searching {{value0}} times",
-        "runLiveListFilesOne": "Listing 1 directory",
-        "runLiveListFilesMany": "Listing {{value0}} directories",
-        "runLiveCommandOne": "Running 1 command",
-        "runLiveCommandMany": "Running {{value0}} commands",
-        "runLiveFileChangeOne": "Editing 1 file",
-        "runLiveFileChangeMany": "Editing {{value0}} files",
-        "runLiveWebSearchOne": "Searching the web 1 time",
-        "runLiveWebSearchMany": "Searching the web {{value0}} times",
         "runLiveBrowserOne": "Using the browser",
-        "runLiveBrowserMany": "Using the browser {{value0}} times",
-        "runLiveIntegrationOne": "Using 1 integration",
-        "runLiveIntegrationMany": "Using {{value0}} integrations",
-        "runLiveAgentOne": "Running 1 agent",
-        "runLiveAgentMany": "Running {{value0}} agents",
         "runLivePlanOne": "Updating the plan",
-        "runLivePlanMany": "Updating the plan {{value0}} times",
-        "runLiveToolOne": "Using 1 tool",
-        "runLiveToolMany": "Using {{value0}} tools",
         "showBrowserPage": "Show",
-        "showBrowserPageLabel": "Show {{value0}}"
+        "showBrowserPageLabel": "Show {{value0}}",
+        "callCount_other": "{{count}} tool calls",
+        "runRead_other": "Read {{count}} files",
+        "runSearch_other": "Searched {{count}} times",
+        "runListFiles_other": "Listed {{count}} directories",
+        "runCommand_other": "Ran {{count}} commands",
+        "runFileChange_other": "Edited {{count}} files",
+        "runWebSearch_other": "Searched the web {{count}} times",
+        "runBrowser_other": "Used the browser {{count}} times",
+        "runIntegration_other": "Used {{count}} integrations",
+        "runAgent_other": "Ran {{count}} agents",
+        "runPlan_other": "Updated the plan {{count}} times",
+        "runTool_other": "Used {{count}} tools",
+        "runLiveRead_other": "Reading {{count}} files",
+        "runLiveSearch_other": "Searching {{count}} times",
+        "runLiveListFiles_other": "Listing {{count}} directories",
+        "runLiveCommand_other": "Running {{count}} commands",
+        "runLiveFileChange_other": "Editing {{count}} files",
+        "runLiveWebSearch_other": "Searching the web {{count}} times",
+        "runLiveBrowser_other": "Using the browser {{count}} times",
+        "runLiveIntegration_other": "Using {{count}} integrations",
+        "runLiveAgent_other": "Running {{count}} agents",
+        "runLivePlan_other": "Updating the plan {{count}} times",
+        "runLiveTool_other": "Using {{count}} tools",
+        "runRead_one": "Read {{count}} file",
+        "runSearch_one": "Searched {{count}} time",
+        "runListFiles_one": "Listed {{count}} directory",
+        "runCommand_one": "Ran {{count}} command",
+        "runFileChange_one": "Edited {{count}} file",
+        "runWebSearch_one": "Searched the web {{count}} time",
+        "runIntegration_one": "Used {{count}} integration",
+        "runAgent_one": "Ran {{count}} agent",
+        "runTool_one": "Used {{count}} tool",
+        "runLiveRead_one": "Reading {{count}} file",
+        "runLiveSearch_one": "Searching {{count}} time",
+        "runLiveListFiles_one": "Listing {{count}} directory",
+        "runLiveCommand_one": "Running {{count}} command",
+        "runLiveFileChange_one": "Editing {{count}} file",
+        "runLiveWebSearch_one": "Searching the web {{count}} time",
+        "runLiveIntegration_one": "Using {{count}} integration",
+        "runLiveAgent_one": "Running {{count}} agent",
+        "runLiveTool_one": "Using {{count}} tool",
+        "callCount_one": "{{count}} tool call"
       },
       "providerFrame": {
-        "byteLength": "{{value0}} bytes"
+        "byteCount_one": "{{count}} byte",
+        "byteCount_other": "{{count}} bytes"
       },
       "status": {
         "responding": "Agent is responding",
@@ -18893,7 +19045,8 @@
         "awaiting": "Awaiting user input:",
         "awaitingUnnamed": "Awaiting user input",
         "asked": "Asked:",
-        "questionCount": "{{value0}} questions"
+        "questionCount_other": "{{count}} questions",
+        "questionCount_one": "{{count}} question"
       },
       "approval": {
         "title": "Allow {{value0}}?",
@@ -19196,6 +19349,21 @@
         "opus": "Best for everyday, complex tasks",
         "sonnet": "Efficient for routine tasks",
         "haiku": "Fastest for quick answers"
+      },
+      "transcript": {
+        "imageFallback": "Image"
+      },
+      "commandMarker": {
+        "ran": "Ran {{command}}"
+      },
+      "runtime": {
+        "readError": "Couldn't read agent chat from the remote runtime.",
+        "tooOld": "This remote runtime is too old to show agent chat history. Update the remote runtime to view it."
+      },
+      "sessionOption": {
+        "noLiveTerminal": "No live terminal is available.",
+        "commandCanceled": "Chat UI command was canceled because the composer closed.",
+        "commandRejected": "The terminal did not accept the command."
       }
     },
     "tab": {
@@ -19822,28 +19990,22 @@
       "intro": "New chats with supported agents now open in the upgraded chat view. To move between chat and CLI, open {{panel}} in the right sidebar:",
       "resumeInNativeChat": "{{action}} opens a supported CLI conversation in native chat.",
       "resumeInCli": "{{action}} copies a Claude or Codex chat into a new CLI session. The original chat stays as it is.",
-      "settingsInstruction": "Manage Chat UI in",
-      "settingsLink": "Settings → Experimental",
-      "gotIt": "Got It"
+      "gotIt": "Got It",
+      "manageInSettings": "Manage Chat UI in <link>Settings → Experimental</link>."
     },
     "voice": {
       "demoPrompt": "Review this diff for edge cases and add tests for anything you find.",
       "startDictation": "Start dictation",
       "agentPromptTitle": "Agent prompt",
       "listening": "Listening...",
-      "focusPaneInstruction": "Focus a terminal, editor, or agent prompt, then press",
-      "startInstruction": "to start voice dictation. Press",
-      "stopInstruction": "again to stop.",
       "unassignedInstruction": "Assign a dictation shortcut before starting voice dictation in a focused pane.",
-      "settingsInstruction": "Change the model, dictation mode, or shortcut anytime in",
-      "settingsLink": "Settings → Voice"
+      "shortcutInstruction": "Focus a terminal, editor, or agent prompt, then press <shortcut/> to start voice dictation. Press <shortcut/> again to stop.",
+      "changeInSettings": "Change the model, dictation mode, or shortcut anytime in <link>Settings → Voice</link>."
     },
     "sessionSearch": {
       "enableFailed": "Could not turn on session search. Try again.",
       "progressStarting": "Finding your sessions…",
-      "settingsLink": "Settings → Agent Session Search",
       "agentsInstruction": "Your agents can search it too. Ask one to “find the session where we fixed the login timeout.”",
-      "consentInstruction": "Change or turn it off anytime in",
       "readyDescription": "Every agent session on this computer can now be found by what was said in it.",
       "indexingDescription": "Orca is reading your past agent transcripts so you can search them. This can take a few minutes.",
       "indexingTitle": "Indexing your agent sessions",
@@ -19882,7 +20044,8 @@
       "demoHit6Snippet": "Every [[migration]] here is reversible except the enum rename.",
       "demoHit6Age": "1mo",
       "readyToast": "Session search is ready",
-      "readyToastOpen": "Open"
+      "readyToastOpen": "Open",
+      "changeInSettings": "Change or turn it off anytime in <link>Settings → Agent Session Search</link>."
     }
   },
   "quickOpen": {
@@ -21393,6 +21556,26 @@
   },
   "startupFailure": {
     "title": "Orca could not start"
+  },
+  "wslDriveProject": {
+    "label": "Git",
+    "converted": "Orca runs Git on Windows for this project. Terminals and agents still run in {{distro}}.",
+    "checkFailed": "Orca could not check this project.",
+    "convertFailed": "Orca could not switch Git.",
+    "description": "This project is on a Windows drive, where Git in WSL is slow and misses changes made in Windows. Use Git for Windows instead; terminals and agents stay in {{distro}}.",
+    "useWindowsGit": "Use Git for Windows",
+    "review": "Nothing in Orca changes for this project: its tabs, terminals, chats and workspaces stay as they are. Running terminals keep going.",
+    "lineEndings": "Also set core.autocrlf in this repo, so git in WSL terminals stops showing every file as changed.",
+    "cancel": "Cancel",
+    "confirm": "Use Git for Windows",
+    "blocker": {
+      "notWsl": "This project already runs Git on Windows.",
+      "repair": "Fix this project’s WSL runtime first: its distro is missing or WSL is not available.",
+      "notWindowsDrive": "A folder of this project is not on a Windows drive.",
+      "gitMissing": "Git for Windows is not installed. Install it from git-scm.com, then try again.",
+      "wslWorktrees": "WSL Git created these workspaces, and Git for Windows cannot read them: {{paths}}. Remove them, or keep this project on WSL Git.",
+      "worktreeFolder": "New workspaces for this project are set to go inside WSL. Choose a folder on a Windows drive in this project’s settings first."
+    }
   },
   "runtime": {
     "health": {

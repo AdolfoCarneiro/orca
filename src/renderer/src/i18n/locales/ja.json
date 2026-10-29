@@ -2524,7 +2524,6 @@
         "47126bcf57": "手動でダウンロードする",
         "3553a8672f": "最後のエラー",
         "90559b14e3": "これにより、再起動後にプロセス全体の Electron ネットワークスイッチがオンになります。 HTTP/2 アップデートのダウンロードを拒否する企業の VPN またはプロキシに使用します。",
-        "6e45bfa2e0": "ダウンロード中…",
         "558842597d": "アップデートをダウンロード中",
         "f58b5c57a6": "新規：",
         "ec8fe71cfc": "更新",
@@ -2534,7 +2533,6 @@
         "318d3b4bc7": "更新を閉じる",
         "9abc59f814": "利用可能なアップデート",
         "aad383aecc": "リリースノート全文を読む",
-        "ccd8b0a793": "前回の更新以降、さらに多くの",
         "b1d867f4fb": "アップデート中にターミナルセッションが中断されることはありません。",
         "09a55c39b5": "インストール中…",
         "ea2a41adbe": "最新バージョンを使用しています。",
@@ -2560,7 +2558,24 @@
         "d29740d175": "選択したビルドを使用できませんでした。",
         "37d45c9ec1": "別のビルドを選択",
         "7f1a4c9e02": "システムパッケージマネージャーによって Orca がインストールされているため、そこから更新してください。Orca はこのリリース自体をインストールできません。",
-        "compatibilityModeFailed": "互換モードを有効にできませんでした。{{message}}"
+        "compatibilityModeFailed": "互換モードを有効にできませんでした。{{message}}",
+        "moreSinceLastUpdate": "+{{count}} 件（前回の更新以降）",
+        "downloadingPercent": "ダウンロード中… {{percent}}%",
+        "restartToInstallFailed": "アップデートをインストールするために再起動できませんでした。",
+        "http1RetryAvailable": "Orca は HTTP/1.1 互換モードで再試行できます。",
+        "restarting": "再起動中…",
+        "updateCheckFailed": "アップデートの確認に失敗",
+        "updateIncomplete": "アップデートを完了できませんでした。",
+        "checkFailed": "アップデートを確認できませんでした。",
+        "aria": {
+          "statusIdle": "アップデートの状態",
+          "statusChecking": "アップデートをチェックしています",
+          "statusLatest": "最新バージョンを使用しています",
+          "statusAvailable": "更新があります",
+          "statusDownloading": "アップデートをダウンロード中",
+          "statusDownloaded": "アップデートのインストール準備完了",
+          "statusError": "更新エラー"
+        }
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "移動",
@@ -4487,9 +4502,6 @@
           "trackingSince": "{{value0}} 以降の追跡"
         },
         "UsageOverviewPane": {
-          "22ed1b7669": "セッション",
-          "444585cb41": "データ付き",
-          "ecb0cd8a4c": "有効 -",
           "33f7b043d2": "プロバイダー",
           "70f36452d4": "キャッシュシェア",
           "327603fe8b": "アクティブ日数",
@@ -4505,7 +4517,9 @@
           "c760c481c5": "使用方法の概要",
           "55c910f4f1": "- 一部のモデルの価格は利用できません",
           "enableMuse": "Muse を有効にする",
-          "noLocalUsageYet": "ローカルの Claude、Codex、OpenCode、Muse の使用状況はまだ見つかりません。次の Agent セッションがトークンログを書き込むと、概要に反映されます。"
+          "noLocalUsageYet": "ローカルの Claude、Codex、OpenCode、Muse の使用状況はまだ見つかりません。次の Agent セッションがトークンログを書き込むと、概要に反映されます。",
+          "providersEnabledWithData": "{{enabled}} 件が有効 - {{withData}} 件にデータあり",
+          "sessionCount_other": "{{formatted}} セッション"
         },
         "share": {
           "card": {
@@ -4569,14 +4583,15 @@
               "7f270458af": "出力",
               "9365b14a4e": "新規入力",
               "3de9bf87fc": "まだモデルがありません",
-              "6762f6a682": "トークン",
-              "a7f937fb29": "{{value0}} セッション - {{value1}} {{value2}}",
-              "c8f3a2d1e0b4": "ターン",
-              "d9a4b3e2f1c5": "イベント",
               "recentCombinedActivity": "最近の Claude、Codex、OpenCode、Muse のトークンアクティビティの組み合わせ。",
               "statusScanning": "走査",
               "statusEnabled": "有効",
-              "statusOff": "オフ"
+              "statusOff": "オフ",
+              "sessionsAndActivity": "{{sessions}} - {{activity}}",
+              "tokenTotal": "{{tokens}} トークン",
+              "sessionCount_other": "{{formatted}} セッション",
+              "turnCount_other": "{{formatted}} ターン",
+              "eventCount_other": "{{formatted}} イベント"
             }
           }
         },
@@ -4605,6 +4620,10 @@
           "emptyMessage": "このスコープではローカルの Muse 使用状況がまだ見つかりません。",
           "noCostNote": "Muse のセッションログにはトークンは記録されますがコストは記録されないため、コストの見積もりは表示されません。",
           "recentSessionsDescription": "このスコープ内の最新のローカル Muse セッション。"
+        },
+        "usageFormatters": {
+          "notScannedYet": "未スキャン",
+          "updatedAt": "更新: {{time}}"
         }
       },
       "sparse": {
@@ -4691,31 +4710,19 @@
           "plugin": "プラグイン"
         },
         "count": {
-          "skillOne": "{{count}} 件のスキル",
-          "skillOther": "{{count}} 件のスキル",
-          "sourceOne": "{{count}} 件のソース",
-          "sourceOther": "{{count}} 件のソース",
-          "fileOne": "{{count}} 個のファイル",
-          "fileOther": "{{count}} 個のファイル",
-          "resultOne": "{{count}} 件の結果",
-          "resultOther": "{{count}} 件の結果",
           "selected": "{{count}} 件を選択",
-          "shareOne": "{{count}} 件のスキルを共有",
-          "shareOther": "{{count}} 件のスキルを共有",
-          "linkOne": "{{count}} 件のリンク",
-          "linkOther": "{{count}} 件のリンク",
-          "installOne": "{{count}} スキルをインストールする",
-          "installOther": "{{count}} スキルをインストールする",
-          "retryOne": "{{count}} スキルを再試行してください",
-          "retryOther": "{{count}} スキルを再試行してください",
-          "deleteOne": "{{count}} スキルを削除",
-          "deleteOther": "{{count}} スキルを削除",
-          "deletedOne": "{{count}} スキルを削除しました",
-          "deletedOther": "{{count}} スキルを削除しました",
-          "deleteFolderOne": "{{count}} フォルダー",
-          "deleteFolderOther": "{{count}} フォルダー",
-          "deleteLinkOne": "{{count}} リンク",
-          "deleteLinkOther": "{{count}} リンク"
+          "delete_other": "{{count}} 件のスキルを削除",
+          "deleteFolder_other": "{{count}} 個のフォルダー",
+          "deleteLink_other": "{{count}} 件のリンク",
+          "skill_other": "{{count}} 件のスキル",
+          "source_other": "{{count}} 件のソース",
+          "file_other": "{{count}} 個のファイル",
+          "link_other": "{{count}} 件のリンク",
+          "result_other": "{{count}} 件の結果",
+          "share_other": "{{count}} 件のスキルを共有",
+          "install_other": "{{count}} 件のスキルをインストール",
+          "retry_other": "{{count}} 件のスキルを再試行",
+          "deleted_other": "{{count}} 件のスキルを削除しました"
         },
         "filter": {
           "allAgents": "すべての Agent",
@@ -4736,41 +4743,37 @@
         },
         "SkillFreshnessNudge": {
           "titleOne": "インストール済みの Orca スキルが古くなっています",
-          "titleMany": "インストール済みの Orca スキル {{value0}} 件が古くなっています",
           "updateOne": "スキルを更新",
           "updateMany": "スキルを更新",
-          "description": "Agent がこのバージョンの Orca の最新の手順に従うように、{{value0}} を更新してください。"
+          "description": "Agent がこのバージョンの Orca の最新の手順に従うように、{{value0}} を更新してください。",
+          "title_other": "インストール済みの Orca スキル {{count}} 件が古くなっています"
         },
         "SkillFreshnessRow": {},
         "SkillFreshnessUpdateDialog": {
           "title": "スキルを更新",
           "checking": "インストール済みの Orca スキルを確認中…",
           "none": "インストール済みの Orca スキルは見つかりませんでした。",
-          "updateOne": "1 件の更新があります",
-          "updateMany": "{{value0}} 件の更新があります",
           "success": "インストール済みの Orca スキルはすべて最新です。",
           "checkNow": "再確認",
           "close": "閉じる",
           "progressAria": "スキルを更新しています",
           "errorTitle": "更新が完了しませんでした",
           "updating": "Updating…",
-          "updateActionOne": "1 件のスキルを更新",
-          "updateActionMany": "{{value0}} 件のスキルを更新",
           "done": "完了",
           "finishedWithProblems": "一部のスキルに対応が必要です",
           "repair": "以前の更新が中断されました。更新すると修復されます。",
           "hideFolders": "フォルダーを隠す",
           "showFolders": "フォルダーを表示",
-          "upToDateMany": "{{value0}} 個のスキルは最新です。",
           "upToDateOne": "{{value0}} は最新です。",
-          "updatedMany": "{{value0}} 個のスキルを更新しました",
-          "updatedOne": "1 個のスキルを更新しました",
           "updatedSkipped": "{{value0}} · {{value1}} 件をスキップ",
-          "currentOne": "1 個のスキルは最新です",
-          "currentMany": "{{value0}} 個のスキルは最新です",
           "noUpdates": "利用可能な更新はありません",
           "updateServer": "サーバーの Orca を更新すると、Orca スキルを更新できます。",
-          "connectHost": "この SSH ホストに接続すると、Orca スキルを確認できます。"
+          "connectHost": "この SSH ホストに接続すると、Orca スキルを確認できます。",
+          "upToDate_other": "{{count}} 件のスキルは最新です。",
+          "update_other": "{{count}} 件の更新があります",
+          "current_other": "{{count}} 件のスキルは最新です",
+          "updated_other": "{{count}} 件のスキルを更新しました",
+          "updateAction_other": "{{count}} 件のスキルを更新"
         },
         "SkillFreshnessStatusPill": {
           "updateAvailable": "更新があります",
@@ -4899,8 +4902,8 @@
           "01c5a12e04": "ローカルに維持",
           "01c5a12e07": "バンドルのインストールには注意が必要です。",
           "01c5a12e08": "スキルがインストールされ、検証されました。",
-          "01c5a12e09": "{{value0}} 選択されたスキルがチェックされました。",
-          "01c5a12e10": "再試行が必要です"
+          "01c5a12e10": "再試行が必要です",
+          "selectedChecked_other": "選択した {{count}} 件のスキルを確認しました。"
         },
         "SkillBundleInstallReview": {
           "01c5a11e09": "リリースノート:",
@@ -4921,13 +4924,11 @@
           "releaseNotesOptional": "リリースノートを追加する (オプション)",
           "releaseNotesFirst": "このリリースについて説明する",
           "manageLinks": "[設定] でこのリンクを管理または取り消します",
-          "scriptOne": "{{count}} スクリプト",
-          "scriptOther": "{{count}} スクリプト",
-          "executableOne": "{{count}} 実行可能ファイル",
-          "executableOther": "{{count}} 実行可能ファイル",
           "noExecutableContent": "スクリプトや実行可能ファイルはありません",
           "newVersionDescriptionPlain": "新規バージョンを既存のリンクに追加します。",
-          "accessSummaryPlain": "リストにないリンク — これを持っている人は誰でもこれをインストールできます。"
+          "accessSummaryPlain": "リストにないリンク — これを持っている人は誰でもこれをインストールできます。",
+          "script_other": "{{count}} 個のスクリプト",
+          "executable_other": "{{count}} 個の実行可能ファイル"
         },
         "description": {
           "showLess": "表示を少なくする",
@@ -4962,7 +4963,6 @@
           "rowNew": "新規",
           "chooseSkills": "このリンクからインストールするものを選択してください。",
           "singleRunnableWarning": "このスキルにはスクリプトまたはバイナリファイルが含まれます。",
-          "runnableWarning": "選択されたスキル {{selectedCount}} の {{affectedCount}} には、スクリプトまたはバイナリファイル {{affected}} が含まれています。",
           "reviewRunnableFiles": "スクリプトまたはバイナリファイルが含まれます",
           "reviewSupportingFiles": "サポートファイルを確認してください",
           "reviewInstructions": "このスキルについて",
@@ -4971,13 +4971,15 @@
           "fileBinary": "バイナリ",
           "fileRunnable": "実行可能",
           "agentsCountBadge": "{{count}} が選択されました",
-          "agentsCountLabel": "{{count}} {{label}}",
           "targetAgentsHeader": "対象 Agent",
           "deselectAll": "すべての選択を解除",
           "selectAll": "すべて選択",
           "canonicalHeader": "標準 Agent (常に含まれます)",
           "canonicalExplanation": "これらの Agent はネイティブで {{root}} を読み取り、Orca はデフォルトでこれをインストールします。",
-          "additionalAgentsHeader": "追加の Agent ディレクトリ"
+          "additionalAgentsHeader": "追加の Agent ディレクトリ",
+          "namesAndMore": "{{names}}、ほか {{count}} 件",
+          "agentCount_other": "{{count}} エージェント",
+          "runnableWarningOfSelected_other": "選択した {{count}} 件のスキルのうち {{affectedCount}} 件にスクリプトまたはバイナリファイルが含まれます: {{affected}}。"
         },
         "SkillSharedLinkRow": {
           "contentsUnavailable": "このリンクに含まれるものを読み込めませんでした。",
@@ -5042,10 +5044,10 @@
           "hostUnresolved": "これらのスキルを備えたマシンはまだ見つかりません。",
           "hostUpdateRequired": "選択したマシンで Orca を更新してスキルを削除します。",
           "nothingOne": "そのスキルはここから削除できません。",
-          "nothingOther": "{{count}} 選択したスキルはここからは削除できません。",
           "placementSummaryParts": "{{roots}} 間の {{parts}} を削除します。",
           "placementJoin": " と ",
-          "retainedSource": "スキル自体は{{path}}のままです。"
+          "retainedSource": "スキル自体は{{path}}のままです。",
+          "nothing_other": "選択した {{count}} 件のスキルはどれもここから削除できません。"
         },
         "skillPlanOpCopy": {
           "busy": "別のインストールがまだ実行中です",
@@ -5074,6 +5076,19 @@
           "updateAvailable": "更新があります",
           "repairAvailable": "修復できます",
           "installAvailable": "インストールできます"
+        },
+        "installResult": {
+          "installed": "インストールと検証が完了しました。",
+          "updated": "更新と検証が完了しました。",
+          "unchanged": "まったく同じバージョンが既にインストールされています。",
+          "partial": "インストール済みですが、一部のエージェントへの配置に対応が必要です。",
+          "removed": "削除しました。",
+          "cancelled": "インストールをキャンセルしました。",
+          "incomplete": "インストールが完了しませんでした。"
+        },
+        "managedRemoval": {
+          "removed": "{{removed}} 件を削除しました。",
+          "removedPreserved_other": "{{removed}} 件を削除 · 変更済みのスキル {{count}} 件を保持しました。"
         }
       },
       "sidebar": {
@@ -13814,15 +13829,20 @@
       },
       "repo": {
         "NestedRepoChecklist": {
-          "f7e1170567": "選択中",
-          "ea54c7bf8f": "の",
           "91b5bcadb6": "すべて選択",
-          "929734aea5": "すべての選択を解除します"
+          "929734aea5": "すべての選択を解除します",
+          "selectedOfTotal": "{{total}} 件中 {{selected}} 件を選択"
         },
         "NestedRepoScanLimitNotice": {
           "642a43c139": "ネストされたリポジトリのスキャン制限",
           "574eb5408b": "部分的なスキャン結果を表示しています。",
-          "03e9beab7b": "スキャンが早期に停止しました。"
+          "03e9beab7b": "スキャンが早期に停止しました。",
+          "milliseconds": "{{count}} ms",
+          "seconds_other": "{{count}} 秒",
+          "folderLevels_other": "フォルダー {{count}} 階層",
+          "repositories_other": "{{count}} 個のリポジトリ",
+          "limitText": "スキャンは {{depth}} または {{repos}} に達すると停止します。途中で停止して、それまでに見つかったリポジトリをインポートできます。",
+          "limitTextWithTimeout": "スキャンは {{depth}}、{{repos}}、または {{timeout}} に達すると停止します。途中で停止して、それまでに見つかったリポジトリをインポートできます。"
         },
         "RepoCombobox": {
           "b3e15f4525": "プロジェクトを追加",
@@ -13855,6 +13875,9 @@
             "65b437c381": "コード",
             "bed2674f9d": "フォルダー"
           }
+        },
+        "forkIndicator": {
+          "forkOf": "{{repo}} のフォーク"
         }
       },
       "pet": {
@@ -13871,12 +13894,12 @@
           "e6a369bd04": "人気の Agent",
           "d7b3ef168b": "システム上で検出されました",
           "9c163bb0e0": "インストール手順",
-          "69af7e9c1c": "はまだ PATH 上にありません。 Orca はこれをデフォルトとして設定し、いつでもインストールできます。",
           "1eee1c7bd8": "PATH 上に Agent が検出されませんでした。後でインストールするものを選択するか、空のターミナルを使用して続行します。",
           "hideAgents": "Agent を非表示にする",
-          "showMoreAgents": "{{value0}} 件の Agent をさらに表示 →",
           "yoloModeLabel": "Yolo モード",
-          "yoloPermissionsDescription": "Agent は確認なしでコマンドを実行しファイルを編集します。一部はサンドボックスも回避します。信頼できるプロジェクトでのみ使用してください。"
+          "yoloPermissionsDescription": "Agent は確認なしでコマンドを実行しファイルを編集します。一部はサンドボックスも回避します。信頼できるプロジェクトでのみ使用してください。",
+          "showMoreAgents_other": "Agent をさらに {{count}} 件表示 →",
+          "agentNotOnPath": "<agent>{{agent}}</agent> はまだ PATH にありません。Orca がデフォルトに設定します。インストールはいつでも可能です。"
         },
         "IntegrationsStep": {
           "277f30eb34": "Linear、GitLab、Bitbucket、Azure DevOps、Gitea、Jira は [設定] > [連携] にあります。",
@@ -13920,7 +13943,6 @@
         },
         "OnboardingFlow": {
           "1b5e182e9f": "Orca へようこそ",
-          "4db04f2f57": "の",
           "adaa0aa627": "オンボーディングステップ {{value0}}: {{value1}} に進みます。",
           "a249f81538": "Orca",
           "277ba45540": "Orca のオンボーディング",
@@ -13933,7 +13955,8 @@
           "322fc50a18": "Orca はすべての CLI Agent で動作します。最もよく使うものを選択してください。いつでも切り替えられます。",
           "198b148b3c": "デフォルトの Agent を選択",
           "windowsTerminalTitle": "Windows ターミナルの既定値を設定",
-          "windowsTerminalSubtitle": "新規ペインで使う既定のシェルと、ターミナルでの右クリックの動作を選びます。"
+          "windowsTerminalSubtitle": "新規ペインで使う既定のシェルと、ターミナルでの右クリックの動作を選びます。",
+          "stepOfTotal": "{{current}} / {{total}}"
         },
         "OnboardingFooter": {
           "ba58547306": "戻る",
@@ -13960,15 +13983,14 @@
           "7ee9234e54": "Ghostty 構成が検出されました。",
           "78b6386140": "Ghostty からインポートしました。",
           "2c3aa538f8": "Ghostty 設定を検索中…",
-          "94b9dc561d": "設定→Terminal",
-          "dd5c16ad1b": "フォント、カーソル、パレットを含むその他のターミナルオプション",
           "ad192706e6": "ライト",
           "fa7b673ea9": "ダーク",
           "827ea7b4a2": "システム",
           "699ddf83c2": "Ghostty 設定のインポートに失敗しました",
           "16a9f0446a": "インポートする Ghostty 設定が見つかりません",
           "ad19e5c916": "インポート中…",
-          "906c4373fe": "設定"
+          "906c4373fe": "設定",
+          "moreTerminalOptions": "フォント、カーソル、パレットなどのターミナルオプションは <settings>設定 → ターミナル</settings>から変更できます"
         },
         "use": {
           "onboarding": {
@@ -14118,9 +14140,6 @@
           "4c1df4eba7": "スキャンできないのですか？",
           "85067b9e06": "ネットワークインターフェースを更新",
           "dfd2aa9d5d": "ネットワーク",
-          "2f077ef4eb": "をクリックしてコードをスキャンします。",
-          "3aa7bb2d8b": "デスクトップのペアリング",
-          "d1495e5e64": "Orca モバイルを開き、 をタップします",
           "3960f5c339": "ステップ 2/2",
           "3241f3c26a": "QRをインストールする",
           "aa97420ba4": "インストールリンクをコピーする",
@@ -14163,7 +14182,8 @@
           "pairThisComputer": "このコンピュータをペアリングします。",
           "androidHelp": {
             "guide": "インストールガイド"
-          }
+          },
+          "openAppAndScan": "Orca Mobile を開き、<strong>デスクトップのペアリング</strong>をタップしてコードをスキャンしてください。"
         },
         "MobilePage": {
           "e17393c6a3": "スマートフォンプレビュー",
@@ -14199,7 +14219,10 @@
               },
               "stable": {
                 "tagline": "一般公開版、毎週更新。"
-              }
+              },
+              "downloadApk": "APK をダウンロード",
+              "openTestFlight": "TestFlight を開く",
+              "openAppStore": "App Store を開く"
             }
           }
         },
@@ -14403,7 +14426,10 @@
             "e9eb197e12": "開かれたコンピュータ操作許可",
             "c605f51f2b": "機能セットアップの準備完了",
             "1aa657d8f4": "一部の機能の設定には注意が必要です",
-            "installSkills": "スキルをインストール"
+            "installSkills": "スキルをインストール",
+            "settingUp": "機能を設定中…",
+            "disableRow": "{{title}} を無効にする",
+            "enableRow": "{{title}} を有効にする"
           },
           "AiCommitPrSettingsCard": {
             "8d4152701a": "例: ollama run llama3.1 {{value0}}",
@@ -14491,7 +14517,8 @@
             "a7463915b6": "セットアップスクリプトの保存に失敗しました",
             "6299297dac": "セットアップスクリプトが保存されました",
             "f0bbf7da77": "試してみる",
-            "522cce9e33": "プロジェクトを追加"
+            "522cce9e33": "プロジェクトを追加",
+            "addProjectFirst": "まず、作業したいプロジェクトを追加してください。"
           },
           "FeatureWallTourPanel": {
             "af7d622f6f": "任意"
@@ -14551,12 +14578,12 @@
             "cd8a3a39d7": "3 コミット進んでいます"
           },
           "TasksAnimatedVisual": {
-            "efba6f77eb": "Issue 番号を読む",
             "b68c92fbdc": "ワークスペースを開始",
             "4331c4d0f8": "オープン",
             "b13375617e": "ワークツリーピッカーが名前を切り捨てる",
             "fe47c9c9e8": "ワークスペースの準備完了",
-            "61ffda7601": "ワークスペースの作成"
+            "61ffda7601": "ワークスペースの作成",
+            "readingIssue": "Issue #{{number}} を読み取り中…"
           },
           "WorkbenchAnimatedVisual": {
             "633a91e358": "思考中…",
@@ -14703,17 +14730,17 @@
             "5f97caf76b": "インストール中…"
           },
           "ConnectIntegrationsList": {
-            "3dddb2d565": "タスク用に接続済み",
             "33b650af52": "チームが作業を管理している場所に接続します。Orca は、Issue のタイトル・リンク・コンテキストを引き継いだ状態でワークスペースを開始します。",
-            "5b3577a492": "レビュー状況用に接続済み",
             "list_end": ", and ",
             "list_pair": " と ",
             "list_mid": ", ",
-            "code_host_tasks_summary": "件の Issue をタスクとして利用できます · チームが Linear や Jira で計画している場合は追加してください",
             "code_host_tasks_caption": "コードホストの Issue も、タスクとして利用できます。",
             "review_step_title": "Agent の作業中に PR の状態を確認",
             "review_step_description": "レビュープロバイダーを接続すると、Orca が PR や MR の状態・チェック・レビューを表示できます。",
-            "task_step_title": "Orca から離れずに、タスクから Agent を開始"
+            "task_step_title": "Orca から離れずに、タスクから Agent を開始",
+            "reviewConnectedSummary": "レビュー状況の確認用に <provider>{{provider}}</provider> と接続済み",
+            "tasksConnectedSummary": "タスク用に <sources/> と接続済み",
+            "codeHostTasksSummary": "<provider>{{provider}}</provider> の Issue をタスクとして利用可能 · チームが Linear や Jira で作業を計画している場合は追加してください"
           },
           "connect": {
             "integration": {
@@ -14737,7 +14764,9 @@
             "6e3d62b816": "フルディスクアクセスを開く"
           },
           "FeatureWallTourSurface": {
-            "reopenHint": "ヘルプ > Orca を探索 からいつでも再度開けます。"
+            "reopenHint": "ヘルプ > Orca を探索 からいつでも再度開けます。",
+            "done": "完了",
+            "continue": "続行"
           }
         },
         "tips": {
@@ -14746,26 +14775,26 @@
             "22e62f3bab": "Claude Code セッションが開始されました"
           },
           "CmdJPaletteTipDialog": {
-            "c0bb9f869b": "設定→ショートカット",
-            "8241897205": "いつでもショートカットを再バインドします"
+            "rebindInSettings": "ショートカットは <link>設定 → ショートカット</link>でいつでも変更できます。"
           },
           "FeatureTipActions": {
-            "eb04abece8": "たぶん後で"
+            "eb04abece8": "たぶん後で",
+            "installing": "インストール中…",
+            "turningOn": "有効化中…",
+            "working": "処理中…"
           },
           "FeatureTipsModal": {
             "c169298e4d": "完了",
             "3c6c478462": "X が終了しました。レビュータスクを送信します。」",
             "298301b7a0": "ワークツリー",
             "864e2db28f": "「Agent が入ったとき、",
-            "7fc6f02099": "それぞれの PR を作成します。」",
-            "27c567a89c": "ワークツリー",
-            "55846c7f95": "「この PR を 2 つに分割します",
             "4795ac2d4a": "尋ねてみてください:",
             "53905bd076": "開発プレビュー: スキル設定ターミナルを開きます。",
             "1da82af45b": "Orca CLI には注意が必要です",
             "ce13a742d0": "orcaをPATHに登録しました。",
             "d1a86c7eb5": "[設定] を開いて CLI セットアップを完了します。",
-            "cliInstallFailed": "Orca CLI をインストールできませんでした。"
+            "cliInstallFailed": "Orca CLI をインストールできませんでした。",
+            "splitPrPrompt": "「この PR を 2 つの <term>ワークツリー</term>に分割し、それぞれに PR を作成して。」"
           },
           "CmdJPaletteFeatureTipVisual": {
             "ab94e16d44": "ワークツリー「{{value0}}」を作成する"
@@ -14919,16 +14948,12 @@
           "39b6b9e4e4": "コミット先のブランチ"
         },
         "CombinedDiffViewer": {
-          "35cc27aeb2": "ソース管理内",
-          "e3b9a6ce02": "件以上",
           "1da745c551": "送信済み",
           "84898c548d": "クリア",
           "88b70d0ef5": "コピー",
           "bb84b4c374": "AIメモ",
           "948a5fd6c8": "ノートをクリア",
           "0f806a2ab1": "キャンセル",
-          "80a286d8f5": "このワークツリーから?",
-          "7e7ca60816": "変更されたファイル",
           "b6c3b84476": "ファイルツリーを表示",
           "39f8007549": "競合をレビューする",
           "skippedConflictsExcluded": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
@@ -14938,21 +14963,29 @@
           "fd8892b120": "表示に変更はありません",
           "eb5f40e49c": "通常の双方向 diff パイプラインは競合に対して安全ではないため、この diff ビューでは未解決の競合が除外されます。",
           "45cf23b418": "メモを消去できませんでした。",
-          "0fb870a0fe": "メモ",
-          "8ab3248fd8": "メモ",
           "ec5053c7f5": "サイドバイサイド",
           "f786fd54e1": "インライン",
           "ea08dae15b": "すべて折りたたむ",
           "19c45cfdc0": "すべて展開",
           "982d14bfa5": "commit されていない差分を開く",
           "3d909843bb": "ブランチの差分を開く",
-          "8f68ad9ca9": "{{value0}} AI {{value1}} を表示",
-          "724a13568d": "（{{value0}}）",
-          "6094135eec": " vs {{value0}}",
           "a4420ca1f7": "ラップオン",
           "dde325ddfe": "ラップオフ",
           "2e91bc89d1": "ホワイトスペースオン",
-          "2bf19c54ad": "ホワイトスペースオフ"
+          "2bf19c54ad": "ホワイトスペースオフ",
+          "untrackedFiles": "未追跡ファイル",
+          "noExtension": "(拡張子なし)",
+          "diffLoadTimedOut": "差分の読み込みが完了しませんでした。",
+          "diffLoadFailed": "差分を読み込めません。",
+          "moreNotesInSourceControl_other": "ソース管理にさらに {{count}} 件のメモ",
+          "clearNotesConfirm_other": "このワークツリーから {{count}} 件のメモを消去しますか？",
+          "changedFilesVs_other": "{{baseRef}} と比較して {{count}} 件のファイルに変更",
+          "changedFilesIn_other": "{{compareRef}} の変更ファイル {{count}} 件",
+          "changedFiles_other": "変更ファイル {{count}} 件",
+          "showAiNotes_other": "AIメモを {{count}} 件表示",
+          "send": "送信",
+          "openDiff": "差分を開く",
+          "openInEditor": "エディターで開く"
         },
         "ConflictComponents": {
           "f338288514": "競合するコンテンツを読み込んでいます…",
@@ -14978,14 +15011,14 @@
           "69d4e210bb": "未解決"
         },
         "CsvViewer": {
-          "eedd0d37a7": "列",
-          "ac31d2cd60": "行",
           "a233d55b77": "空のファイル",
           "delimiterComma": "コンマ",
           "delimiterSemicolon": "セミコロン",
           "delimiterTab": "タブ",
           "delimiterAuto": "自動 ({{delimiter}})",
-          "delimiter": "デリミタ"
+          "delimiter": "デリミタ",
+          "rowCount_other": "{{formatted}} 行",
+          "columnCount_other": "{{formatted}} 列"
         },
         "DiffNotesSendMenu": {
           "f1aa04b5cf": "このファイル",
@@ -15019,7 +15052,8 @@
           "39f018b052": "ファイルをロードできません",
           "8a0898ae4c": "このファイルではテキストの差分を使用できません。",
           "3c6e71df22": "ブランチ比較では、このファイルのテキスト差分は使用できません。",
-          "6c4f1a8d2e": "チェック詳細を利用できません。"
+          "6c4f1a8d2e": "チェック詳細を利用できません。",
+          "resolveConflictGuidance": "Git で競合を解決するか、片方の内容を復元してから再度開いてください。"
         },
         "EditorPanelHeader": {
           "fb8331694e": "プレビューを横に開く",
@@ -15083,7 +15117,6 @@
           "9e06ae5d36": "ノートブックのコードを実行しますか?",
           "d6f37a640b": "空のノート",
           "15ec40a735": "ノートブックの保存",
-          "07e7d96612": "細胞",
           "c1601b23b2": "ノートブックをレンダリングできません",
           "66a3f7d330": "ノートブックの HTML 出力",
           "781abd6926": "セルの削除",
@@ -15137,7 +15170,9 @@
           "tryAgain": "再試行",
           "useAnotherPython": "別の Python を使用…",
           "venvDescription": "Orca は '{{env}}' から {{folder}} に .venv を作成し、ipykernel をインストールして、このノートブックをそこで実行します。",
-          "ownerUnresolved": "Orca は、このノートブックがどのコンピュータ上にあるのかをまだ認識できないため、そのセルは実行できません。"
+          "ownerUnresolved": "Orca は、このノートブックがどのコンピュータ上にあるのかをまだ認識できないため、そのセルは実行できません。",
+          "invalidNotebook": "無効なノートブック",
+          "cellCount_other": "{{count}} セル"
         },
         "MarkdownPreview": {
           "e4683f70c4": "キャンセル",
@@ -15160,7 +15195,9 @@
           "d652c87c91": "保存中…",
           "c5dc92cfe3": "結果はありません",
           "6c043947ae": "ファイルが見つかりません: {{value0}}",
-          "759463a221": "ディレクトリを開けません: {{value0}}"
+          "759463a221": "ディレクトリを開けません: {{value0}}",
+          "docLinkAmbiguous": "ドキュメントのリンク先を一意に特定できません",
+          "docLinkNotFound": "ドキュメントが見つかりません"
         },
         "MarkdownTableOfContentsPanel": {
           "de3928b6e4": "見出しなし",
@@ -15182,7 +15219,8 @@
           "df667919ca": "一致するテンプレートがありません。",
           "22fd4890ad": "テンプレートを検索…",
           "7b458e0b7f": "Markdown テンプレートを選択します。",
-          "1829437fce": "新規 Markdown"
+          "1829437fce": "新規 Markdown",
+          "newDocumentHeading": "新規ドキュメント"
         },
         "DiagramViewerModal": {
           "title": "図"
@@ -15195,7 +15233,8 @@
         },
         "MermaidBlock": {
           "dcc132e691": "図のエラー:",
-          "expand": "図を拡大"
+          "expand": "図を拡大",
+          "invalidSyntax": "無効な Mermaid 構文"
         },
         "MonacoEditor": {
           "68cb83f4a7": "選択したテキストにメモを追加する",
@@ -15209,7 +15248,11 @@
         },
         "NotesSendMenu": {
           "44dc5e60a6": "メモを送信する",
-          "433928cd9f": "{{value0}} を Agent に送信します"
+          "433928cd9f": "{{value0}} を Agent に送信します",
+          "thisNote": "このメモ",
+          "noteAlreadySent": "送信済みのメモ",
+          "sendNotesToAgent": "メモを Agent に送信",
+          "allNotesSent": "すべてのメモを送信済み"
         },
         "PdfFind": {
           "cd65b1d6b0": "閉じる",
@@ -15224,7 +15267,10 @@
           "069ff59932": "PDF で検索 ({{value0}})",
           "2b6eb1ccd6": "ズームイン",
           "c0119616d6": "幅に合わせる",
-          "fa5d096b00": "ズームアウト"
+          "fa5d096b00": "ズームアウト",
+          "passwordProtected": "この PDF はパスワードで保護されています",
+          "loadFailed": "PDF プレビューを読み込めませんでした",
+          "decodeFailed": "PDF の内容をデコードできませんでした"
         },
         "ReviewNotesSendMenuContent": {
           "a49800405b": "新規 Agent",
@@ -15266,10 +15312,9 @@
         },
         "RichMarkdownDocLinkMenu": {
           "e17b987473": "↑↓ 移動 ↵ 選択 esc 閉じる",
-          "90c5f0e1e4": "の",
-          "2aaf7d9678": "表示中",
           "63ced7cb9b": "文書が見つかりませんでした",
-          "0e8489bc11": "Markdown ドキュメントのリンク"
+          "0e8489bc11": "Markdown ドキュメントのリンク",
+          "showingOfTotal": "{{total}} 件中 {{shown}} 件を表示"
         },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "再試行",
@@ -15315,7 +15360,13 @@
           "82c6816ff8": "ブロックが見つかりませんでした",
           "dbdd2ad15f": "ブロックを検索…",
           "550189b06c": "ブロックを検索",
-          "2e0400b958": "スラッシュコマンド"
+          "2e0400b958": "スラッシュコマンド",
+          "groupHeadings": "見出し",
+          "groupToggleHeadings": "折りたたみ可能な見出し",
+          "groupBasicBlocks": "基本ブロック",
+          "groupAdvanced": "詳細設定",
+          "groupMedia": "メディア",
+          "groupOthers": "その他"
         },
         "RichMarkdownToolbar": {
           "e935c6b61e": "画像",
@@ -15361,7 +15412,13 @@
           "c8ac7868e6": "ファイル名",
           "b6ed807cc6": "名前",
           "e365f3c638": "markdown ファイルに名前を付け、フォルダーを選択します。",
-          "674b046582": "名前を付けて保存"
+          "674b046582": "名前を付けて保存",
+          "nameEmpty": "名前を空にすることはできません",
+          "nameHasSeparators": "名前にパス区切り文字は使用できません",
+          "folderEmpty": "フォルダーパスを空にすることはできません",
+          "folderOutsideWorkspace": "フォルダーは現在のワークスペース内に指定してください",
+          "nameTaken": "同じ名前のファイルがすでに存在します",
+          "saveFailed": "ファイルを保存できませんでした"
         },
         "export": {
           "active": {
@@ -15462,10 +15519,8 @@
           "20857938dd": "変更後の行数",
           "e5f0d2182e": "文字数",
           "877c25a02f": "理由",
-          "5fca073b72": "制限",
-          "f1d136a163": "片側あたりの行数",
-          "23433fcdea": "合計文字数",
-          "7944ed9fb8": "未カウント"
+          "7944ed9fb8": "未カウント",
+          "limitsSummary": "上限：片側 {{lines}} 行 · 合計 {{characters}} 文字"
         },
         "DiffViewer": {
           "b5675b0694": "保存",
@@ -15530,12 +15585,12 @@
           "cancelled": "大きなペーストは、元のターゲットが変更されたためキャンセルされました。"
         },
         "CheckRunJobs": {
-          "1c0a4d7e02": "成功しました",
-          "2d3b8f1a55": "スキップしました",
-          "3e6c9a2b71": "保留中",
-          "4f7d0c3e88": "失敗したステップ",
           "5a8e1d4f23": " · ",
-          "copy": "コピージョブ"
+          "copy": "コピージョブ",
+          "stepsSucceeded_other": "{{count}} 件成功",
+          "stepsSkipped_other": "{{count}} 件スキップ済み",
+          "stepsPending_other": "{{count}} 件保留中",
+          "stepsFailedOfTotal_other": "{{count}} ステップ中 {{failed}} 件失敗"
         },
         "ExternalFileChangeBanner": {
           "7c41e90d12": "未保存の編集がある間に、ディスク上のファイルが変更されました。上書きすると、ディスク上の新しい内容が置き換えられます。",
@@ -15562,7 +15617,9 @@
           "citationFallbackLabel": "引用",
           "citationLinkUnavailable": "{{value0}}、引用リンクは利用できません。{{value1}}",
           "tabForCitationActions": "Tabキーで利用可能な操作に移動します。",
-          "noCitationActions": "利用できるリンク操作はありません。"
+          "noCitationActions": "利用できるリンク操作はありません。",
+          "togglePlaceholder": "テキスト",
+          "placeholder": "Markdown を入力… / でブロックを挿入。"
         },
         "richMarkdownHtmlSuperscriptLink": {
           "availableAriaLabel": "{{value0}}、{{value1}}へのリンク",
@@ -15649,6 +15706,53 @@
         },
         "EditorPanelActionsMenu": {
           "fileActions": "ファイル操作"
+        },
+        "ReviewNotesSendMenu": {
+          "terminalGone": "ターミナルは利用できなくなりました",
+          "chatGone": "チャットはすでに閉じられています",
+          "justNow": "たった今",
+          "minutesAgo": "{{minutes}}分前",
+          "hoursAgo": "{{hours}}時間前",
+          "daysAgo": "{{days}}日前"
+        },
+        "editorHeader": {
+          "worktreePathCopied": "ワークツリーのパスをコピーしました",
+          "checkDetails": "チェックの詳細",
+          "checkDetailsCopied": "チェックの詳細をコピーしました",
+          "filePathCopied": "ファイルのパスをコピーしました"
+        },
+        "editorLabels": {
+          "conflictReview": "競合レビュー",
+          "stagedDiff": "{{name}}（ステージ済みの差分）",
+          "branchDiff": "{{name}}（ブランチの差分）",
+          "commitDiff": "{{name}}（コミットの差分）",
+          "diff": "{{name}}（差分）",
+          "preview": "{{name}}（プレビュー）",
+          "allChanges": "すべての変更",
+          "uncommittedChanges": "未コミットの変更",
+          "branchChanges": "ブランチの変更（{{baseRef}}）",
+          "branchChangesBase": "ブランチの変更（ベース）",
+          "commitWithSubject": "コミット {{ref}}: {{subject}}",
+          "commit": "コミット {{ref}}",
+          "commitDiffFallback": "コミットの差分"
+        },
+        "conflictMarkers": {
+          "currentChange": "現在の変更",
+          "commonAncestor": "共通の祖先",
+          "incomingChange": "取り込む変更",
+          "endConflict": "競合の終わり"
+        },
+        "richMarkdownImageInsert": {
+          "hostUnverified": "このファイルが属するホストを確認できませんでした。ファイルを開き直して、もう一度お試しください。"
+        },
+        "contextualCopy": {
+          "copyContextHint": "コンテキストをコピー {{shortcut}}"
+        },
+        "EditorPanel": {
+          "diffLoadError": "差分の読み込みエラー: {{error}}",
+          "siblingFileAlreadyOpen": "対応するファイルはすでに開いています。復元する前にタブを 1 つ閉じてください。",
+          "siblingFileOwnerChanged": "タブの復元中に、対応するファイルの所有者が変わりました。",
+          "csvGrewTooLarge": "CSV が大きくなりすぎたため編集できません。下書きは保持されています。ファイルを開き直すとプレビューできます。"
         }
       },
       "diff": {
@@ -15763,7 +15867,9 @@
             "closedDescription": "プライバシーに配慮した診断レポートを送信して、何が起きたかの把握にご協力ください。",
             "reportNotesPlaceholder": "任意: 何が起きましたか？",
             "uiErrorNotesPlaceholder": "任意: この UI エラーの前に何をしていましたか？",
-            "closedNotesPlaceholder": "任意: Orca が終了する前に何をしていましたか？"
+            "closedNotesPlaceholder": "任意: Orca が終了する前に何をしていましたか？",
+            "renderErrorIn": "{{surface}} で React レンダリングエラー",
+            "renderError": "React レンダリングエラー"
           }
         }
       },
@@ -15780,8 +15886,8 @@
             "complete": "完了"
           },
           "ContextualTourProgressDots": {
-            "7734cb8ad3": "の",
-            "dcd6e6b03e": "ステップ {{value0}}/{{value1}}"
+            "dcd6e6b03e": "ステップ {{value0}}/{{value1}}",
+            "stepOfTotal": "{{current}} / {{total}}"
           },
           "contextual": {
             "tour": {
@@ -18141,8 +18247,6 @@
         "result": "結果",
         "exitCode": "{{value0}} を出る",
         "milliseconds": "{{value0}}ms",
-        "countOne": "1 ツール呼び出し",
-        "countN": "{{value0}} ツール呼び出し",
         "failedCount": "{{value0}} 件失敗",
         "failedCallsLabel": "失敗したツール呼び出し: {{value0}}",
         "interruptedCount": "{{value0}} 件中断",
@@ -18179,55 +18283,38 @@
           "triedFetch": "取得を試行",
           "triedSearchWeb": "ウェブ検索を試行"
         },
-        "runReadOne": "1ファイルを読み込む",
-        "runReadMany": "{{value0}} ファイルを読み取る",
-        "runSearchOne": "1 回検索されました",
-        "runSearchMany": "{{value0}} 回検索されました",
-        "runListFilesOne": "1 つのディレクトリがリストされています",
-        "runListFilesMany": "{{value0}} ディレクトリのリスト",
-        "runCommandOne": "1 コマンドを実行しました",
-        "runCommandMany": "{{value0}} コマンドを実行しました",
-        "runFileChangeOne": "1ファイルを編集しました",
-        "runFileChangeMany": "編集された{{value0}}ファイル",
-        "runWebSearchOne": "ウェブを 1 回検索しました",
-        "runWebSearchMany": "ウェブを{{value0}}回検索しました",
         "runBrowserOne": "ブラウザを使用しました",
-        "runBrowserMany": "ブラウザを{{value0}}回使用しました",
-        "runIntegrationOne": "使用済み 1 連携",
-        "runIntegrationMany": "{{value0}} 連携を使用しました",
-        "runAgentOne": "Agent を 1 人実行しました",
-        "runAgentMany": "{{value0}} Agent を実行しました",
         "runPlanOne": "計画を更新しました",
-        "runPlanMany": "計画を{{value0}}回更新しました",
-        "runToolOne": "使用した工具 1 個",
-        "runToolMany": "使用した{{value0}}ツール",
         "runPair": "{{value0}} および {{value1}}",
         "runList": "{{value0}}、{{value1}}",
         "runListSeparator": "、",
-        "runLiveReadOne": "1ファイルを読み込んでいます",
-        "runLiveReadMany": "{{value0}} ファイルの読み取り",
-        "runLiveSearchOne": "1回検索中",
-        "runLiveSearchMany": "{{value0}} 回検索しています",
-        "runLiveListFilesOne": "リスト 1 のディレクトリ",
-        "runLiveListFilesMany": "{{value0}} ディレクトリの一覧表示",
-        "runLiveCommandOne": "1つのコマンドを実行中",
-        "runLiveCommandMany": "{{value0}} コマンドの実行",
-        "runLiveFileChangeOne": "1ファイルを編集中",
-        "runLiveFileChangeMany": "{{value0}} ファイルの編集",
-        "runLiveWebSearchOne": "ウェブ検索 1 回",
-        "runLiveWebSearchMany": "ウェブを{{value0}}回検索しています",
         "runLiveBrowserOne": "ブラウザを使用しています",
-        "runLiveBrowserMany": "ブラウザを{{value0}}回使用しています",
-        "runLiveIntegrationOne": "1 つの連携を使用する",
-        "runLiveIntegrationMany": "{{value0}} 連携の使用",
-        "runLiveAgentOne": "1 つの Agent を実行中",
-        "runLiveAgentMany": "{{value0}} Agent を実行しています",
         "runLivePlanOne": "計画を更新する",
-        "runLivePlanMany": "計画を{{value0}}回更新しています",
-        "runLiveToolOne": "1つのツールを使用する",
-        "runLiveToolMany": "{{value0}} ツールの使用",
         "showBrowserPage": "表示",
-        "showBrowserPageLabel": "{{value0}} を表示"
+        "showBrowserPageLabel": "{{value0}} を表示",
+        "callCount_other": "ツール呼び出し {{count}} 回",
+        "runRead_other": "{{count}} 個のファイルを読み取りました",
+        "runSearch_other": "{{count}} 回検索しました",
+        "runListFiles_other": "{{count}} 個のディレクトリを一覧表示しました",
+        "runCommand_other": "{{count}} 個のコマンドを実行しました",
+        "runFileChange_other": "{{count}} 個のファイルを編集しました",
+        "runWebSearch_other": "ウェブを {{count}} 回検索しました",
+        "runBrowser_other": "ブラウザを {{count}} 回使用しました",
+        "runIntegration_other": "{{count}} 個の連携を使用しました",
+        "runAgent_other": "{{count}} 個の Agent を実行しました",
+        "runPlan_other": "計画を {{count}} 回更新しました",
+        "runTool_other": "{{count}} 個のツールを使用しました",
+        "runLiveRead_other": "{{count}} 個のファイルを読み取り中",
+        "runLiveSearch_other": "{{count}} 回検索中",
+        "runLiveListFiles_other": "{{count}} 個のディレクトリを一覧表示中",
+        "runLiveCommand_other": "{{count}} 個のコマンドを実行中",
+        "runLiveFileChange_other": "{{count}} 個のファイルを編集中",
+        "runLiveWebSearch_other": "ウェブを {{count}} 回検索中",
+        "runLiveBrowser_other": "ブラウザを {{count}} 回使用中",
+        "runLiveIntegration_other": "{{count}} 個の連携を使用中",
+        "runLiveAgent_other": "{{count}} 個の Agent を実行中",
+        "runLivePlan_other": "計画を {{count}} 回更新中",
+        "runLiveTool_other": "{{count}} 個のツールを使用中"
       },
       "status": {
         "responding": "Agent が応答中です",
@@ -18327,7 +18414,6 @@
         "inProgress": "進行中",
         "pending": "保留中",
         "empty": "タスクがありません",
-        "progress": "{{total}} 件中 {{completed}} 件のタスクが完了しました",
         "added": "{{task}} を追加しました",
         "removed": "{{task}} を削除しました",
         "started": "{{task}} を開始しました",
@@ -18335,14 +18421,14 @@
         "reset": "保留中としてマーク: {{task}}",
         "updated": "{{task}} を更新しました",
         "unchanged": "タスクは変更されていない",
-        "showAll": "完全なタスクリスト"
+        "showAll": "完全なタスクリスト",
+        "progress_other": "タスク {{count}} 件中 {{completed}} 件完了"
       },
       "turnDiff": {
-        "one": "1 つの変更されたファイル",
-        "many": "{{count}} がファイルを変更しました",
         "partial": "部分的な差分",
         "showDiff": "差分を表示",
-        "hideDiff": "差分を非表示"
+        "hideDiff": "差分を非表示",
+        "changedFiles_other": "変更されたファイル {{count}} 個"
       },
       "receipt": {
         "unavailable": "選択した回答は利用できません",
@@ -18372,7 +18458,7 @@
         "orcaStopUnnamedServer": "リモートサーバー"
       },
       "providerFrame": {
-        "byteLength": "{{value0}}バイト"
+        "byteCount_other": "{{count}} バイト"
       },
       "backgroundTasks": {
         "monitoring": "バックグラウンドタスクの監視",
@@ -18427,7 +18513,7 @@
         "awaiting": "ユーザー入力を待っています:",
         "awaitingUnnamed": "ユーザー入力を待っています",
         "asked": "質問:",
-        "questionCount": "{{value0}} の質問"
+        "questionCount_other": "{{count}} 件の質問"
       },
       "subagents": {
         "state": {
@@ -18704,6 +18790,21 @@
         "opus": "日常の複雑なタスクに最適",
         "sonnet": "日常のタスクを効率的に処理",
         "haiku": "素早い回答に最適"
+      },
+      "transcript": {
+        "imageFallback": "画像"
+      },
+      "commandMarker": {
+        "ran": "{{command}} を実行しました"
+      },
+      "runtime": {
+        "readError": "リモートランタイムから Agent のチャットを読み取れませんでした。",
+        "tooOld": "このリモートランタイムは古いため、Agent のチャット履歴を表示できません。表示するにはリモートランタイムを更新してください。"
+      },
+      "sessionOption": {
+        "noLiveTerminal": "利用可能な稼働中のターミナルがありません。",
+        "commandCanceled": "入力欄が閉じられたため、Chat UI コマンドはキャンセルされました。",
+        "commandRejected": "ターミナルがコマンドを受け付けませんでした。"
       }
     },
     "tab": {
@@ -19556,6 +19657,7 @@
       "useHereHostKeptForPeers": "{{project}} は {{distro}} ホストに移動しました。そのホストは別の Orca のために動作中です。ここで再び使うには、ホストを追加し直してください。",
       "useHereHostUnreachable": "{{distro}} ホストが応答しないため、Orca はこのプロジェクトのホスト側のコピーを停止できず、そのAgentがまだ実行中の可能性があります。設定でホストに接続するか削除してから、もう一度お試しください。",
       "useHereHostStillRunning": "{{distro}} ホスト上のこのプロジェクトのコピーでまだターミナルが実行中のため、Agentが二重に動く可能性があります。少し待ってからもう一度お試しください。",
+      "useHereHostTerminalsAsleep": "{{distro}} ホスト上のターミナルはスリープしました。プロジェクトを開くと再開します。",
       "useHereFailed": "このプロジェクトをこのコンピューターに戻せませんでした。",
       "useHereHostRemovalPending": "{{distro}} ホストはまだ削除中のため、Orca はそのままにしています。設定で削除を完了してから、もう一度お試しください。",
       "useHereHostAutomations": "Orca は {{distro}} ホスト上のこのプロジェクトのオートメーションをオフにできなかったため、二重に実行される可能性があります。設定でホストに接続してから、もう一度お試しください。",
@@ -19599,31 +19701,26 @@
       "intro": "対応 Agent の新しいチャットはアップグレード版のチャットビューで開きます。チャットと CLI の切り替えは右サイドバーの{{panel}}から:",
       "resumeInNativeChat": "{{action}}: 対応する CLI の会話をネイティブチャットで開きます。",
       "resumeInCli": "{{action}}: Claude/Codex のチャットを新しい CLI セッションに複製します。元のチャットは残ります。",
-      "settingsInstruction": "Chat UI の管理:",
-      "settingsLink": "設定 → 実験的機能",
       "gotIt": "OK",
       "leaveOff": "オフのままにする",
       "enableNow": "今すぐ有効にする",
-      "enableError": "チャットモードを有効にできませんでした。"
+      "enableError": "チャットモードを有効にできませんでした。",
+      "manageInSettings": "<link>設定 → 実験的機能</link>で Chat UI を管理できます。"
     },
     "voice": {
       "demoPrompt": "特殊なケースについてはこの差分を確認し、見つかったものについてはテストを追加してください。",
       "startDictation": "ディクテーションを開始する",
       "agentPromptTitle": "Agent プロンプト",
       "listening": "リスニング…",
-      "focusPaneInstruction": "ターミナル、エディター、または Agent のプロンプトにフォーカスして、 を押します。",
-      "startInstruction": "音声ディクテーションを開始します。プレス",
-      "stopInstruction": "再び停止します。",
       "unassignedInstruction": "フォーカスされたペインで音声ディクテーションを開始する前に、ディクテーションショートカットを割り当てます。",
-      "settingsInstruction": "いつでもモデル、ディクテーションモード、ショートカットを変更できます。",
-      "settingsLink": "設定→音声"
+      "shortcutInstruction": "ターミナル、エディター、または Agent のプロンプトにフォーカスし、<shortcut/> を押すと音声入力を開始します。もう一度 <shortcut/> を押すと停止します。",
+      "changeInSettings": "モデル、ディクテーションモード、ショートカットは、<link>設定 → 音声</link>でいつでも変更できます。"
     },
     "sessionSearch": {
       "ageHours": "2時間前",
       "ageMinutes": "12分前",
       "ageYesterday": "1日前",
       "agentsInstruction": "Agent も検索できます。「ログインタイムアウトを修正したセッションを探して」と頼んでみてください。",
-      "consentInstruction": "いつでも以下で変更またはオフにできます:",
       "continueInBackground": "バックグラウンドで続行",
       "demoHit1Age": "3日前",
       "demoHit1Snippet": "[[ログインタイムアウト]]を 30 秒に引き上げ、トークン更新時の再試行を追加しました。",
@@ -19661,8 +19758,8 @@
       "recent2Title": "ロックファイルの更新",
       "recent3Text": "メモの初版です。分野別にまとめています。",
       "recent3Title": "リリースノートの下書き",
-      "settingsLink": "設定 → Agent セッションの検索",
-      "startSearching": "検索を開始"
+      "startSearching": "検索を開始",
+      "changeInSettings": "<link>設定 → Agent セッションの検索</link>でいつでも変更または無効化できます。"
     }
   },
   "quickOpen": {

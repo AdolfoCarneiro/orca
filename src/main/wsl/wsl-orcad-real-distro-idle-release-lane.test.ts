@@ -18,6 +18,7 @@ import { ORCAD_E2E_IDLE_TIMEOUT_ENV } from '../../shared/orcad-idle-exit'
 import { pairedRuntimeConnectionFromOffer } from '../../shared/paired-runtime-connection'
 import { parsePairingCode } from '../../shared/pairing'
 import { sendRemoteRuntimeRequest } from '../../shared/remote-runtime/remote-runtime-client'
+import { RemoteRuntimeSharedControlConnection } from '../../shared/remote-runtime/control/remote-runtime-shared-control-connection'
 import { execCommand } from '../ssh/remote-exec/remote-exec-command'
 import { readConfirmedRunningWslDistros } from '../wsl-background-distro-gate'
 import { readWindowsProcessTableFresh } from '../windows/windows-process-table'
@@ -160,13 +161,27 @@ async function guest(command: string): Promise<string> {
   }
 }
 
-async function rpc<T>(connection: WslOrcadConnection, method: string, params?: unknown) {
+function pairedConnectionOf(connection: WslOrcadConnection) {
   const offer = parsePairingCode(connection.pairingOffer)
   if (!offer) {
     throw new Error(`Unparseable pairing offer for ${connection.distro}`)
   }
+  return pairedRuntimeConnectionFromOffer(offer)
+}
+
+function resultOf<T>(
+  method: string,
+  response: Awaited<ReturnType<typeof sendRemoteRuntimeRequest<T>>>
+): T {
+  if (!response.ok) {
+    throw new Error(`${method} failed: ${response.error.code}: ${response.error.message}`)
+  }
+  return response.result
+}
+
+async function rpc<T>(connection: WslOrcadConnection, method: string, params?: unknown) {
   const response = await sendRemoteRuntimeRequest<T>(
-    pairedRuntimeConnectionFromOffer(offer),
+    pairedConnectionOf(connection),
     method,
     params,
     30_000,
@@ -174,10 +189,20 @@ async function rpc<T>(connection: WslOrcadConnection, method: string, params?: u
     undefined,
     ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES
   )
-  if (!response.ok) {
-    throw new Error(`${method} failed: ${response.error.code}: ${response.error.message}`)
+  return resultOf(method, response)
+}
+
+/** One socket for every request, as the app holds it; per-request dials each pay a bridge spawn. */
+function openHeldRpc(connection: WslOrcadConnection) {
+  const held = new RemoteRuntimeSharedControlConnection(pairedConnectionOf(connection), {
+    environmentId: connection.environmentId,
+    clientCapabilities: ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES
+  })
+  return {
+    call: async <T>(method: string, params?: unknown): Promise<T> =>
+      resultOf(method, await held.request<T>(method, params, 30_000)),
+    close: () => held.close()
   }
-  return response.result
 }
 
 async function plainRunning(): Promise<boolean> {
@@ -360,37 +385,42 @@ async function restartThroughHost(
     ensureTrace = null
   })
   const ensureMs = Math.round(performance.now() - started)
-  const created = await rpc<{ terminal: { handle: string } }>(connection, 'terminal.create', {
-    worktree: `path:${repoPath}`
-  })
-  const createdMs = Math.round(performance.now() - started)
-  const probe = outputProbe()
-  await rpc(connection, 'terminal.send', {
-    terminal: created.terminal.handle,
-    text: probe.command,
-    enter: true
-  })
-  await waitFor(
-    'the host terminal to print the probe',
-    async () => {
-      const read = await rpc<{ terminal: { tail?: unknown[] } }>(connection, 'terminal.read', {
-        terminal: created.terminal.handle
-      })
-      return (read.terminal.tail ?? []).map(String).join('\n').includes(probe.token) ? true : null
-    },
-    120_000,
-    100
-  )
-  const firstOutputMs = Math.round(performance.now() - started)
-  const orcadStartup = await readOrcadStartupTiming()
-  await rpc(connection, 'terminal.close', { terminal: created.terminal.handle }).catch(() => {})
-  await manager.dispose()
-  return {
-    ensureMs,
-    terminalCreatedMs: createdMs - ensureMs,
-    firstOutputMs,
-    phases: summarizeWslOrcadEnsurePhases(trace.events),
-    orcadStartup
+  const held = openHeldRpc(connection)
+  try {
+    const created = await held.call<{ terminal: { handle: string } }>('terminal.create', {
+      worktree: `path:${repoPath}`
+    })
+    const createdMs = Math.round(performance.now() - started)
+    const probe = outputProbe()
+    await held.call('terminal.send', {
+      terminal: created.terminal.handle,
+      text: probe.command,
+      enter: true
+    })
+    await waitFor(
+      'the host terminal to print the probe',
+      async () => {
+        const read = await held.call<{ terminal: { tail?: unknown[] } }>('terminal.read', {
+          terminal: created.terminal.handle
+        })
+        return (read.terminal.tail ?? []).map(String).join('\n').includes(probe.token) ? true : null
+      },
+      120_000,
+      100
+    )
+    const firstOutputMs = Math.round(performance.now() - started)
+    const orcadStartup = await readOrcadStartupTiming()
+    await held.call('terminal.close', { terminal: created.terminal.handle }).catch(() => {})
+    return {
+      ensureMs,
+      terminalCreatedMs: createdMs - ensureMs,
+      firstOutputMs,
+      phases: summarizeWslOrcadEnsurePhases(trace.events),
+      orcadStartup
+    }
+  } finally {
+    held.close()
+    await manager.dispose()
   }
 }
 

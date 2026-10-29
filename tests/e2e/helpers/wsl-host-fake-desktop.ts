@@ -23,20 +23,28 @@ export const STOPPED = [{ name: 'Ubuntu', state: 'stopped', version: 2 }]
 
 export async function launchDesktopWithFakeWsl(
   fake: Record<string, unknown>,
-  testInfo: Parameters<typeof forwardElectronProcessLogs>[1]
-): Promise<{ app: ElectronApplication; page: Page; dispose: () => Promise<void> }> {
+  testInfo: Parameters<typeof forwardElectronProcessLogs>[1],
+  options: { internalGate?: boolean; beforeLaunch?: (userDataDir: string) => void } = {}
+): Promise<{
+  app: ElectronApplication
+  page: Page
+  userDataDir: string
+  dispose: () => Promise<void>
+}> {
   const userDataDir = mkdtempSync(path.join(os.tmpdir(), 'orca-e2e-wsl-host-desktop-'))
   writeFileSync(
     path.join(userDataDir, 'orca-data.json'),
     `${JSON.stringify(getE2ECompletedOnboardingProfile(), null, 2)}\n`
   )
+  options.beforeLaunch?.(userDataDir)
   const { ELECTRON_RUN_AS_NODE: _unused, ...cleanEnv } = process.env
   void _unused
   const isolation = createElectronHomeIsolation({
     inheritedEnv: cleanEnv,
     launchEnv: {},
     extraEnv: {
-      [WSL_HOSTS_INTERNAL_GATE_ENV]: '1',
+      // WSL hosts exist only behind this internal gate; the gated-off test leaves it closed.
+      ...(options.internalGate === false ? {} : { [WSL_HOSTS_INTERNAL_GATE_ENV]: '1' }),
       ORCA_E2E_FAKE_WSL_HOSTS: JSON.stringify(fake)
     },
     userDataDir
@@ -55,11 +63,36 @@ export async function launchDesktopWithFakeWsl(
     const page = await app.firstWindow({ timeout: 120_000 })
     await page.waitForLoadState('domcontentloaded')
     await waitForSessionReady(page)
-    return { app, page, dispose }
+    return { app, page, userDataDir, dispose }
   } catch (error) {
     await dispose()
     throw error
   }
+}
+
+/** A desktop whose fake "distros" (a running Ubuntu, a WSL 1 Legacy) connect to the HUB's code. */
+export function launchDesktopWithFakeWslPairing(
+  pairingCode: string,
+  testInfo: Parameters<typeof forwardElectronProcessLogs>[1],
+  fakeOverrides: Record<string, unknown> = {},
+  options: { internalGate?: boolean; beforeLaunch?: (userDataDir: string) => void } = {}
+): ReturnType<typeof launchDesktopWithFakeWsl> {
+  return launchDesktopWithFakeWsl(
+    {
+      distros: [RUNNING[0], { name: 'Legacy', state: 'stopped', version: 1 }],
+      pairingCode,
+      ...fakeOverrides
+    },
+    testInfo,
+    options
+  )
+}
+
+export async function setWslHostsEnabled(page: Page, enabled: boolean): Promise<void> {
+  await page.evaluate(async (experimentalWslHosts) => {
+    const settings = await window.api.settings.set({ experimentalWslHosts })
+    window.__store?.setState({ settings })
+  }, enabled)
 }
 
 export function createGitProject(): string {
