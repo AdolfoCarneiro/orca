@@ -633,6 +633,118 @@ it.each([10, 100])(
   }
 )
 
+it.each([10, 100])(
+  'reads open-chat authority only once for %i saved items, including failed publication',
+  async (count) => {
+    append([{ ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }])
+    for (let index = 0; index < count; index++) {
+      const seq = 2 + 3 * index
+      append([
+        item(seq, 1, `item-${index}`),
+        item(seq + 1, 2, `item-${index}`),
+        item(seq + 2, 3, `item-${index}`)
+      ])
+    }
+    expect(saveJournalState(database, state)).toBe(true)
+    const through = state.lastSequence
+    append([
+      item(through + 1, 1, 'tail'),
+      item(through + 2, 2, 'tail'),
+      item(through + 3, 3, 'tail')
+    ])
+    const tail = stored().filter((row) => row.seq > through)
+    const prepare = Database.prototype.prepare
+    const observed = new WeakSet<object>()
+    let stateReads = 0
+    const itemReads: number[] = []
+    vi.spyOn(Database.prototype, 'prepare').mockImplementation(function (this: Database, sql) {
+      const statement = prepare.call(this, sql)
+      if (!observed.has(statement)) {
+        observed.add(statement)
+        if (sql.startsWith('SELECT through_seq, version, state_json FROM journal_state')) {
+          const get = statement.get.bind(statement)
+          vi.spyOn(statement, 'get').mockImplementation((...args) => {
+            stateReads++
+            return get(...args)
+          })
+        } else if (sql.startsWith('SELECT item_json FROM journal_items')) {
+          const all = statement.all.bind(statement)
+          vi.spyOn(statement, 'all').mockImplementation((...args) => {
+            const rows = all(...args)
+            itemReads.push(rows.length)
+            return rows
+          })
+        }
+      }
+      return statement
+    })
+    const checkpointOpen = vi.fn(async () => {
+      saveJournalState(database, state)
+      return true
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    database.db.exec(
+      "CREATE TRIGGER fail_checkpoint BEFORE INSERT ON journal_state BEGIN SELECT RAISE(ABORT, 'save failed'); END"
+    )
+    // A live callback can return true after publication fails: only the older FULL prefix qualifies.
+    expect(await backfillJournalState({ ...run(), checkpointOpen })).toBeNull()
+    expect(checkpointOpen).toHaveBeenCalledTimes(1)
+    expect(stateReads).toBe(1)
+    expect(itemReads).toEqual([count])
+    expect(stored()).toHaveLength(2 * count + 4)
+    expect(stored().filter((row) => row.seq > through)).toEqual(tail)
+    expect(readJournalSavedState(database.db, sessionId, epoch)?.lastSequence).toBe(through)
+    expectSameState(restoreJournal(database.db, sessionId)?.state)
+    database.db.exec('DROP TRIGGER fail_checkpoint')
+    stateReads = 0
+    itemReads.length = 0
+    checkpointOpen.mockClear()
+    expect(await backfillJournalState({ ...run(), checkpointOpen })).toEqual({ deleted: 1 })
+    expect(checkpointOpen).toHaveBeenCalledTimes(1)
+    expect(stateReads).toBe(1)
+    expect(itemReads).toEqual([count + 1])
+    closeTestJournalHostDatabases()
+    database = openTestJournalHostDatabase(root)
+    expectSameState(restoreJournal(database.db, sessionId)?.state)
+  }
+)
+
+it('ends open-chat backfill on a paced database replacement, then retires on the legitimate next pass', async () => {
+  append([
+    { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+    ...Array.from({ length: 40 }, (_, index) => item(index + 2, index + 1))
+  ])
+  const before = stored()
+  const parse = vi.spyOn(rowSchema, 'parseJournalRow')
+  const checkpointOpen = vi.fn(async () => {
+    saveJournalState(database, state)
+    return true
+  })
+  let clock = 0
+  let replaced = false
+  expect(
+    await backfillJournalState({
+      ...run(),
+      checkpointOpen,
+      now: () => (clock += 30),
+      rest: async () => {
+        expect(database.db.isTransaction).toBe(false)
+        if (!replaced && parse.mock.calls.length >= 32) {
+          expect(checkpointOpen).toHaveBeenCalledTimes(1)
+          closeTestJournalHostDatabases()
+          database = openTestJournalHostDatabase(root)
+          replaced = true
+        }
+      }
+    })
+  ).toBeNull()
+  expect(replaced).toBe(true)
+  expect(stored()).toEqual(before)
+  expectSameState(restoreJournal(database.db, sessionId)?.state)
+  expect(await backfillJournalState({ ...run(), checkpointOpen })).toEqual({ deleted: 38 })
+  expectSameState(restoreJournal(database.db, sessionId)?.state)
+})
+
 it.each(['append', 'reopen', 'epoch'] as const)(
   'keeps its captured prefix across a paced %s',
   async (change) => {

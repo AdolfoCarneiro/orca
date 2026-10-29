@@ -23,6 +23,7 @@ import {
   type AgentSessionJournalIdentity
 } from '../../../shared/agent-session-journal-types'
 import type { AgentSessionSubscribeEvent } from '../../../shared/agent-session-wire'
+import { AGENT_SESSION_HISTORY_MAX_LIMIT } from '../../../shared/agent-session-wire'
 import * as rowSchema from '../agent-session-journal/journal-row-schema'
 import {
   createTrackedJournalOpener,
@@ -398,5 +399,30 @@ it.each([
     expect(events.at(-1)).toMatchObject(corpus.frame)
     expect(olderBefore).toEqual({ ok: true, page: corpus.older })
     expect(tailBefore).toEqual({ ok: true, page: corpus.tail })
+    if (capabilities.snapshotCatchUp) {
+      // Retained non-item rows force a second catch-up page without expanding the visible window.
+      for (let index = 0; index <= AGENT_SESSION_HISTORY_MAX_LIMIT; index++)
+        await scenario.journal.appendQueueResume(1)
+      expect(scenario.journal.publicRead().normalizationKey).toBe('')
+      expect(
+        readAgentSessionHistory(scenario.journal, {
+          sessionId: COMPACTION_IDENTITY.sessionId,
+          direction: 'after',
+          cursor: { epoch: scenario.journal.epoch, sequence: 7 },
+          limit: AGENT_SESSION_HISTORY_MAX_LIMIT
+        })
+      ).toMatchObject({ ok: true, page: { hasNewer: true } })
+      const fallback = runSubscriber(7)
+      expect(fallback.events[0]?.type).toBe('snapshot')
+      expect(fallback.events.some((event) => event.type === 'reset')).toBe(false)
+      const current = scenario.journal.snapshot()
+      expect(fallback.state.items).toEqual(current.items)
+      expect(fallback.state.submissions).toEqual(current.submissions)
+      expect(fallback.state.cursor).toEqual(current.cursor)
+      expect(fallback.state.items.some((item) => item.itemId === 'removed')).toBe(false)
+      expect(fallback.state.actionablePromptIds).toEqual(['prompt'])
+      expect(fallback.state.working).toBe(true)
+      expect(fallback.state.queuedMessages?.map((card) => card.messageId)).toEqual(['draft'])
+    }
   }
 )

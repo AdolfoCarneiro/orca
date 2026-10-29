@@ -76,54 +76,51 @@ export async function backfillJournalState(
       if (!opened) {
         return null
       }
-      const state =
-        readJournalSavedState(opened.db, sessionId, epoch) ??
-        createJournalReducerState(sessionId, epoch)
-      const fold = startJournalRowFold({ sessionId, epoch }, state)
-      let afterSequence = state.lastSequence === 0 ? Number.MIN_SAFE_INTEGER : state.lastSequence
-      while (!checkpointed && afterSequence < lastSequence) {
-        const next = await pace()
-        if (!next) {
-          return null
-        }
-        const page = readJournalRowsAfter(
-          next.db,
-          sessionId,
-          epoch,
-          afterSequence,
-          PAGE_ROWS
-        ).filter((entry) => entry.seq <= lastSequence)
-        if (page.length === 0) {
-          break
-        }
-        let readable = true
-        for (const entry of page) {
-          afterSequence = entry.seq
-          if (!fold.add(entry)) {
-            readable = false
+      if (!checkpointed) {
+        const state =
+          readJournalSavedState(opened.db, sessionId, epoch) ??
+          createJournalReducerState(sessionId, epoch)
+        const fold = startJournalRowFold({ sessionId, epoch }, state)
+        let afterSequence = state.lastSequence === 0 ? Number.MIN_SAFE_INTEGER : state.lastSequence
+        while (afterSequence < lastSequence) {
+          const next = await pace()
+          if (!next) {
+            return null
+          }
+          const page = readJournalRowsAfter(
+            next.db,
+            sessionId,
+            epoch,
+            afterSequence,
+            PAGE_ROWS
+          ).filter((entry) => entry.seq <= lastSequence)
+          if (page.length === 0) {
+            break
+          }
+          let readable = true
+          for (const entry of page) {
+            afterSequence = entry.seq
+            if (!fold.add(entry)) {
+              readable = false
+              break
+            }
+          }
+          if (!readable) {
             break
           }
         }
-        if (!readable) {
-          break
+        const loaded = fold.finish()
+        const target = await pace()
+        if (!target) {
+          return null
         }
-      }
-      const loaded = fold.finish()
-      const target = await pace()
-      if (!target) {
-        return null
-      }
-      if (
-        !checkpointed &&
-        !loaded.damage &&
-        !loaded.newer &&
-        loaded.state.lastSequence === lastSequence
-      ) {
-        // Opening meanwhile is safe: publication can only advance the same immutable prefix.
-        if (!(await run.checkpointOpen(sessionId))) {
-          await new JournalWriteQueue(sessionId).serialize(() =>
-            saveJournalState(target, loaded.state)
-          )
+        if (!loaded.damage && !loaded.newer && loaded.state.lastSequence === lastSequence) {
+          // Opening meanwhile is safe: publication can only advance the same immutable prefix.
+          if (!(await run.checkpointOpen(sessionId))) {
+            await new JournalWriteQueue(sessionId).serialize(() =>
+              saveJournalState(target, loaded.state)
+            )
+          }
         }
       }
     } catch (error) {
