@@ -47,7 +47,8 @@ export function commitRow(editor: Editor, menu: DocLinkMenuState, row: DocLinkMe
 export function syncDocLinkMenu(
   editor: Editor,
   root: HTMLDivElement | null,
-  setDocLinkMenu: React.Dispatch<React.SetStateAction<DocLinkMenuState | null>>
+  setDocLinkMenu: React.Dispatch<React.SetStateAction<DocLinkMenuState | null>>,
+  readBlockTextBeforeCursor?: () => string
 ): void {
   if (!root || editor.view.composing || !editor.isEditable) {
     setDocLinkMenu(null)
@@ -78,7 +79,8 @@ export function syncDocLinkMenu(
     return
   }
 
-  const blockTextBeforeCursor = $from.parent.textBetween(0, $from.parentOffset, '\0', '\0')
+  const blockTextBeforeCursor =
+    readBlockTextBeforeCursor?.() ?? $from.parent.textBetween(0, $from.parentOffset, '\0', '\0')
   const match = blockTextBeforeCursor.match(DOC_LINK_TRIGGER_REGEX)
   if (!match) {
     setDocLinkMenu(null)

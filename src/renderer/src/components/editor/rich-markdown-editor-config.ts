@@ -5,16 +5,9 @@ import { handleRichMarkdownPaste } from './rich-markdown-paste-handler'
 import { encodeRawMarkdownHtmlForRichEditor } from './raw-markdown-html'
 import { normalizeEmptyListItems } from './rich-markdown-normalize'
 import { autoFocusRichEditor } from './rich-markdown-auto-focus'
-import {
-  syncSlashMenu,
-  type SlashCommand,
-  type SlashMenuState
-} from './rich-markdown-slash-commands'
-import {
-  syncDocLinkMenu,
-  type DocLinkMenuRow,
-  type DocLinkMenuState
-} from './rich-markdown-commands'
+import type { SlashCommand, SlashMenuState } from './rich-markdown-slash-commands'
+import type { DocLinkMenuRow, DocLinkMenuState } from './rich-markdown-commands'
+import { syncRichMarkdownCompletionMenus } from './rich-markdown-completion-menus'
 import { isSingleEmptyTopLevelOrderedList } from './rich-markdown-list-continuation'
 import type { LinkBubbleState } from './RichMarkdownLinkBubble'
 import {
@@ -250,8 +243,7 @@ export function createRichMarkdownEditorConfig(params: EditorConfigParams): UseE
       )
     },
     onUpdate: ({ editor: nextEditor }) => {
-      syncSlashMenu(nextEditor, rootRef.current, setSlashMenu)
-      syncDocLinkMenu(nextEditor, rootRef.current, setDocLinkMenu)
+      syncRichMarkdownCompletionMenus(nextEditor, rootRef, setSlashMenu, setDocLinkMenu)
       if (!isSingleEmptyTopLevelOrderedList(nextEditor)) {
         typedEmptyOrderedListMarkerRef.current = false
       }
@@ -269,8 +261,7 @@ export function createRichMarkdownEditorConfig(params: EditorConfigParams): UseE
       }, 300)
     },
     onSelectionUpdate: ({ editor: nextEditor }) => {
-      syncSlashMenu(nextEditor, rootRef.current, setSlashMenu)
-      syncDocLinkMenu(nextEditor, rootRef.current, setDocLinkMenu)
+      syncRichMarkdownCompletionMenus(nextEditor, rootRef, setSlashMenu, setDocLinkMenu)
       syncAnnotationTarget(nextEditor)
       setIsEditingLink(false)
       setLinkBubble(

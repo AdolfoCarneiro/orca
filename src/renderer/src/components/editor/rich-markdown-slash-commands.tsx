@@ -34,7 +34,8 @@ export function runSlashCommand(
 export function syncSlashMenu(
   editor: Editor,
   root: HTMLDivElement | null,
-  setSlashMenu: React.Dispatch<React.SetStateAction<SlashMenuState | null>>
+  setSlashMenu: React.Dispatch<React.SetStateAction<SlashMenuState | null>>,
+  readBlockTextBeforeCursor?: () => string
 ): void {
   if (!root || editor.view.composing || !editor.isEditable) {
     setSlashMenu(null)
@@ -54,7 +55,8 @@ export function syncSlashMenu(
     return
   }
 
-  const blockTextBeforeCursor = $from.parent.textBetween(0, $from.parentOffset, '\0', '\0')
+  const blockTextBeforeCursor =
+    readBlockTextBeforeCursor?.() ?? $from.parent.textBetween(0, $from.parentOffset, '\0', '\0')
   const slashMatch = blockTextBeforeCursor.match(/^\s*\/([a-z0-9-]*)$/i)
   if (!slashMatch) {
     setSlashMenu(null)
