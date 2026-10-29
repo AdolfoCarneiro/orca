@@ -1,3 +1,4 @@
+import { openTestChats } from './structured-agent-session-open-test-chats.test-support'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -101,7 +102,7 @@ function openHost(overrides: Partial<StructuredAgentSessionHostDeps> = {}): void
 
 async function reopenStore(): Promise<void> {
   await abandonStructuredAgentSessionHost(host)
-  store = await openTestAgentSessionRecordStore(root)
+  store = await openTestAgentSessionRecordStore(root, { legacySessionTabIds: [SESSION] })
 }
 
 beforeEach(async () => {
@@ -123,7 +124,7 @@ beforeEach(async () => {
       observedAt: NOW
     }
   }))
-  store = await openTestAgentSessionRecordStore(root)
+  store = await openTestAgentSessionRecordStore(root, { legacySessionTabIds: [SESSION] })
   openHost()
 })
 
@@ -187,7 +188,7 @@ describe('recovery exits', () => {
       mintSpawnToken: () => 'spawn-c',
       probeOwner: async () => ({ outcome: 'pid-absent' })
     })
-    await host.restoreReadableSessions()
+    await openTestChats(host)
 
     expect(acquire).toHaveBeenCalledTimes(2)
     expect(store.getRecord(SESSION)?.lease).toMatchObject({
@@ -242,7 +243,7 @@ describe('recovery exits', () => {
     })
   })
 
-  it('heals a stranded native owner during startup restore, and spawns nothing until work asks', async () => {
+  it('heals a stranded native owner on explicit recovery, and spawns nothing until work asks', async () => {
     expect((await host.attach(CALLER, hostTestAttachParams(null))).ok).toBe(true)
     await reopenStore()
 
@@ -259,9 +260,9 @@ describe('recovery exits', () => {
       stopOwnerProcess
     })
 
-    await host.restoreReadableSessions()
+    await openTestChats(host)
 
-    // Startup heals ownership without spawning; only later work starts a replacement child.
+    // Explicit recovery heals ownership without spawning; only later work starts a replacement child.
     expect(stopOwnerProcess).toHaveBeenCalledWith(4242, 'SIGTERM')
     expect(acquire).toHaveBeenCalledTimes(1)
     expect(store.getRecord(SESSION)?.lease).toMatchObject({
@@ -299,7 +300,7 @@ describe('recovery exits', () => {
     const outgoingHost = host
     const outgoingStore = store
     supersededHosts.add(outgoingHost)
-    store = await openTestAgentSessionRecordStore(root)
+    store = await openTestAgentSessionRecordStore(root, { legacySessionTabIds: [SESSION] })
     const realProbe = createStructuredAgentSessionOwnerProbe('local')
     let overlapDriven = false
     openHost({
@@ -320,7 +321,7 @@ describe('recovery exits', () => {
       }
     })
 
-    await host.restoreReadableSessions()
+    await openTestChats(host)
     expect(store.getRecord(SESSION)?.lease).toMatchObject({
       runtimeFence: 2,
       claimStatus: 'released',

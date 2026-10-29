@@ -101,6 +101,12 @@ function baselineStructuredMethods(): string[] {
   return baseline.methodNames.filter((name) => name.startsWith('agentSession.'))
 }
 
+async function releaseHostRoot(root: string): Promise<void> {
+  setStructuredAgentSessionHost(null)
+  await journalHostDatabase.closeTestJournalHostDatabase(root)
+  await rm(root, { recursive: true, force: true })
+}
+
 describe('cross-version structured agent sessions', () => {
   it(
     'skews current code against a real published release',
@@ -529,11 +535,7 @@ describe('cross-version structured agent sessions', () => {
       }
     })
 
-    afterEach(async () => {
-      setStructuredAgentSessionHost(null)
-      await journalHostDatabase.closeTestJournalHostDatabase(root)
-      await rm(root, { recursive: true, force: true })
-    })
+    afterEach(() => releaseHostRoot(root))
 
     it('hides the row from the old client and annotates it for a capable client', async () => {
       const [oldReply] = await callBuild(
@@ -788,11 +790,7 @@ describe('cross-version structured agent sessions', () => {
       await bootHost('a')
     })
 
-    afterEach(async () => {
-      setStructuredAgentSessionHost(null)
-      await journalHostDatabase.closeTestJournalHostDatabase(root)
-      await rm(root, { recursive: true, force: true })
-    })
+    afterEach(() => releaseHostRoot(root))
 
     it('resumes from the cursor the client held, with no snapshot and no replay', async () => {
       const created = await answer('agentSession.create', createIntentParams())
@@ -802,9 +800,9 @@ describe('cross-version structured agent sessions', () => {
       const held = first.cursor
 
       const restarted = await bootHost('b')
-      await restarted.restoreReadableSessions()
-      // Restart restores the session for READING. The chat the client still has open takes its
-      // hold, and that is what gives the session a provider child again.
+      await restarted.seedSessionTabs([SESSION])
+      await restarted.revealSession(SESSION)
+      // Demand-open restores reading; the retained chat's hold starts its provider child again.
       await answer('agentSession.hold', {
         sessionId: SESSION,
         holderId: 'surface-1'

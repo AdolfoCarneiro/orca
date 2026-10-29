@@ -1,19 +1,20 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { tearDownRuntime, type InstalledRuntime } from './structured-agent-session-runtime-teardown'
 
 // An exit that settles while teardown drains recovery wakes delivery; a fresh child started then
 // would only be killed by the teardown after it.
 it('stops delivery before it drains the recovery of exits already observed', async () => {
   const order: string[] = []
-  let releaseClose = () => {}
-  const closing = new Promise<void>((resolve) => {
-    releaseClose = resolve
-  })
-  let finished = false
+  const drained = Promise.withResolvers<void>()
+  const closing = Promise.withResolvers<void>()
   const installed: InstalledRuntime = {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: teardown calls only `stopDelivery` and `flushAllStreamedEvents` on the host.
     host: {
       stopDelivery: () => order.push('stop-delivery'),
+      drainStatusWrites: async () => {
+        order.push('drain-status')
+        await drained.promise
+      },
       flushAllStreamedEvents: async () => {
         order.push('flush')
       }
@@ -23,7 +24,7 @@ it('stops delivery before it drains the recovery of exits already observed', asy
     journalDatabase: {
       close: async () => {
         order.push('close-database')
-        await closing
+        await closing.promise
       }
     } as never,
     waitForRecovery: async () => {
@@ -31,14 +32,24 @@ it('stops delivery before it drains the recovery of exits already observed', asy
     }
   }
 
-  const teardown = tearDownRuntime(installed, 'quit').then(() => {
+  let finished = false
+  const stopping = tearDownRuntime(installed, 'quit').then(() => {
     finished = true
   })
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  expect(order).toContain('close-database')
+  await vi.waitFor(() => expect(order).toContain('drain-status'))
+  expect(order).not.toContain('close-database')
+  drained.resolve()
+  await vi.waitFor(() => expect(order).toContain('close-database'))
   expect(finished).toBe(false)
-  releaseClose()
-  await teardown
+  closing.resolve()
+  await stopping
 
-  expect(order.slice(0, 2)).toEqual(['stop-delivery', 'wait-for-recovery'])
+  expect(order).toEqual([
+    'stop-delivery',
+    'wait-for-recovery',
+    'flush',
+    'wait-for-recovery',
+    'drain-status',
+    'close-database'
+  ])
 })
