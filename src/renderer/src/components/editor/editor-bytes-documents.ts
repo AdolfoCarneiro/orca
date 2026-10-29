@@ -27,6 +27,9 @@ function notify(): void {
 
 /** Drops a draft once its tab is clean (saved, reverted, discarded) and the entry once it closes. */
 function dropSettledDrafts(state: AppState, previous: AppState): void {
+  if (state.openFiles === previous.openFiles) {
+    return
+  }
   let changed = false
   const isOpen = (id: string): boolean => state.openFiles.some((file) => file.id === id)
   for (const [fileId, box] of bytesDocumentBoxes) {
@@ -46,12 +49,16 @@ function dropSettledDrafts(state: AppState, previous: AppState): void {
       changed = true
     }
   }
+  stopWatchingEmptyBytesDocuments()
+  if (changed) {
+    notify()
+  }
+}
+
+function stopWatchingEmptyBytesDocuments(): void {
   if (bytesDocumentBoxes.size === 0) {
     unsubscribeStore?.()
     unsubscribeStore = null
-  }
-  if (changed) {
-    notify()
   }
 }
 
@@ -79,10 +86,14 @@ export function loadEditorBytes(
   /** `editorBytesEdits` when the read started. */
   editsAtRead: number | undefined
 ): void {
+  const state = useAppStore.getState()
+  if (!state.openFiles.some((file) => file.id === fileId)) {
+    return
+  }
   unsubscribeStore ??= useAppStore.subscribe(dropSettledDrafts)
   const own = bytesDocumentBoxes.get(fileId)
   if (!own) {
-    const siblings = editorBufferSiblingViewIds(useAppStore.getState(), fileId)
+    const siblings = editorBufferSiblingViewIds(state, fileId)
     const shared = siblings.map((id) => bytesDocumentBoxes.get(id)).find(Boolean)
     // Why adopt as is: the twin's box is newer than a read that may have started before its save.
     bytesDocumentBoxes.set(
@@ -136,6 +147,7 @@ export function releaseEditorBytes(fileId: string): void {
   mountedViews.delete(fileId)
   if (bytesDocumentBoxes.get(fileId)?.current.draft === null) {
     bytesDocumentBoxes.delete(fileId)
+    stopWatchingEmptyBytesDocuments()
     notify()
   }
 }
