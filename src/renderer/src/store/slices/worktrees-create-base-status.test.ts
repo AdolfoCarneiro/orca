@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
@@ -249,7 +250,7 @@ describe('createWorktree base status merge', () => {
       // Why: the remote reports the worktree from its own perspective, so it comes back with the default local host.
       hostId: 'local'
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-remote',
@@ -324,7 +325,7 @@ describe('createWorktree base status merge', () => {
       ...watcherWorktree,
       baseRef: 'refs/remotes/origin/main'
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [watcherWorktree] }
     } as Partial<AppState>)
     mockApi.worktrees.create.mockResolvedValue({ worktree: createdWorktree })
@@ -523,7 +524,7 @@ describe('createWorktree base status merge', () => {
   // Creates that joined one refresh report the same fact, so they share one toast per repo+branch.
   it('reuses one toast id for every create of the same repo and base branch', async () => {
     const store = createRepoTestStore()
-    store.setState({ repos: [TEST_REPO, { ...TEST_REPO, id: 'repo2' }] })
+    setSessionTestState(store, { repos: [TEST_REPO, { ...TEST_REPO, id: 'repo2' }] })
     const refresh = {
       status: 'skipped_error',
       baseRef: 'origin/main',
@@ -822,7 +823,7 @@ function lastWarningDescriptionText(): string {
 }
 
 function seedRepoHost(store: ReturnType<typeof createTestStore>, hostId: ExecutionHostId): void {
-  store.setState({ repos: [{ ...TEST_REPO, executionHostId: hostId }] })
+  setSessionTestState(store, { repos: [{ ...TEST_REPO, executionHostId: hostId }] })
 }
 
 function createRepoTestStore(): ReturnType<typeof createTestStore> {

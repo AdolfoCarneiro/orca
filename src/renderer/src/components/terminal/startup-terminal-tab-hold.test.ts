@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 /** Hydrated surfaces may render before startup PTY ownership settles; hold terminal panes unadmitted until gate opening replaces the hold with activation deferral. */
@@ -120,7 +121,7 @@ function admits(
 describe('startup terminal tab hold', () => {
   beforeEach(() => {
     useAppStore.setState(initialState, true)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         [WORKTREE_ID]: [terminalTab(TAB_1, WORKTREE_ID), terminalTab(TAB_2, WORKTREE_ID)],
         [OTHER_WORKTREE_ID]: [terminalTab(TAB_1, OTHER_WORKTREE_ID)]
@@ -210,7 +211,7 @@ describe('startup terminal tab hold', () => {
     const restrictions = result.current.backgroundMountTabIdsByWorktreeRef.current
     restrictions.set(WORKTREE_ID, new Set([TAB_1]))
     act(() => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         tabsByWorktree: {
           ...useAppStore.getState().tabsByWorktree,
           [WORKTREE_ID]: [terminalTab(TAB_2, WORKTREE_ID)]

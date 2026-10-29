@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { StoreApi } from 'zustand/vanilla'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
@@ -43,7 +44,7 @@ afterEach(() => {
 // A clean same-owner twin of `file`, shown in its own tab.
 function addPinnedSibling(): OpenFile {
   const sibling = { ...file, id: 'duplicate-record' }
-  store.setState({ openFiles: [...store.getState().openFiles, sibling] })
+  setSessionTestState(store, { openFiles: [...store.getState().openFiles, sibling] })
   store.getState().createUnifiedTab(sibling.worktreeId, 'editor', {
     id: 'duplicate-tab',
     entityId: sibling.id,

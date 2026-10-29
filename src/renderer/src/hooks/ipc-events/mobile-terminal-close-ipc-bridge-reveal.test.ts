@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeEditorTabReveal } from '../../../../shared/runtime-file-contracts'
 import { createTestStore, makeWorktree, seedStore } from '../../store/slices/store-test-helpers'
@@ -84,7 +85,7 @@ function setup(): {
     }
   })
   store.getState().setActiveWorktree(WT)
-  store.setState({
+  setSessionTestState(store, {
     openFiles: [
       {
         ...FILE,

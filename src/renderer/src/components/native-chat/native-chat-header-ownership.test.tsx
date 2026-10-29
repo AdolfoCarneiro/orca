@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { Profiler } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
@@ -81,7 +82,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   Object.assign(window, { api })
   useAppStore.setState(initial, true)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     folderWorkspaces: [makeFolderWorkspace({ id: 'workspace', folderPath: '/repo' })]
   })
 })
@@ -121,7 +122,7 @@ function seedChats(size: number) {
       activeTabId: id === 'first' ? 'chat-0' : `chat-${size - 1}`
     })
   )
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     unifiedTabsByWorktree: { [workspace]: tabs },
     groupsByWorktree: { [workspace]: groups },
     activeGroupIdByWorktree: { [workspace]: 'first' }
@@ -164,7 +165,7 @@ it.each([10, 100])(
     await act(async () => {
       useAppStore.getState().setTabLabel('chat-1', 'Hidden title')
       useAppStore.getState().pinTab('chat-1', { recordInteraction: false })
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         groupsByWorktree: { [workspace]: [useAppStore.getState().groupsByWorktree[workspace][0]] }
       })
     })
@@ -263,7 +264,7 @@ it.each([10, 100])(
     )
     const folder = `folder:folder-${size - 1}`
     const git = `repo-${size - 1}::/git/${size - 1}`
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: folders,
       projectGroups: groups,
       repos,

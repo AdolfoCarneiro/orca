@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -51,7 +52,7 @@ function seedEditTab(overrides: Partial<Record<string, unknown>> = {}): void {
   state.setEditorDraft(id, '20 min of work')
   state.markFileDirty(id, true)
   state.setLastKnownDiskSignature(id, 'sig-a')
-  useAppStore.setState((s) => ({
+  setSessionTestState(useAppStore, (s) => ({
     editorCursorLine: { ...s.editorCursorLine, [id]: 42 },
     markdownViewMode: { ...s.markdownViewMode, [id]: 'rendered' } as never,
     activeFileId: id,
@@ -125,7 +126,7 @@ describe('rekeyOpenFilesForPathChange', () => {
         activeTabId: oldId,
         recentTabIds: [oldId]
       } as never
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: { 'wt-1': [tab] },
         groupsByWorktree: { 'wt-1': [group] }
       } as never)
@@ -282,7 +283,7 @@ describe('rekeyOpenFilesForPathChange', () => {
   it('detaches a moved tab from the host mirror so the snapshot cannot cull it', async () => {
     seedEditTab()
     const oldId = useAppStore.getState().openFiles[0]!.id
-    useAppStore.setState((s) => ({
+    setSessionTestState(useAppStore, (s) => ({
       openFiles: s.openFiles.map((f) =>
         f.id === oldId ? { ...f, mirroredFromRuntimeSession: true } : f
       )

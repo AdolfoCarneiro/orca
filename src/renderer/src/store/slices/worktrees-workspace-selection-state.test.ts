@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import {
@@ -41,7 +42,7 @@ describe('folder workspace lookups', () => {
   it('returns a stable synthetic worktree for repeated folder workspace lookups', () => {
     const store = createTestStore()
     const folderWorkspace = makeFolderWorkspace()
-    store.setState({ folderWorkspaces: [folderWorkspace] } as Partial<AppState>)
+    setSessionTestState(store, { folderWorkspaces: [folderWorkspace] } as Partial<AppState>)
 
     const first = store.getState().getKnownWorktreeById(folderWorkspaceKey(folderWorkspace.id))
     const second = store.getState().getKnownWorktreeById(folderWorkspaceKey(folderWorkspace.id))
@@ -83,7 +84,7 @@ describe('setActiveWorktree focus handling', () => {
     registerPersistentWebview('page-1', webview)
 
     try {
-      store.setState({
+      setSessionTestState(store, {
         worktreesByRepo: { repo1: [current, next] },
         activeWorktreeId: current.id,
         reconcileWorktreeTabModel: vi.fn(() => ({
@@ -116,7 +117,7 @@ describe('setActiveWorktree focus handling', () => {
   it('repairs a stale workspace key when reactivating the current worktree', () => {
     const store = createTestStore()
     const worktree = makeWorktree({ id: 'repo1::/path/current', repoId: 'repo1' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [worktree] },
       activeWorktreeId: worktree.id,
       activeWorkspaceKey: worktreeWorkspaceKey('repo1::/path/stale'),
@@ -136,7 +137,7 @@ describe('markWorktreeVisited', () => {
   it('stamps a host-qualified key when the worktree owner is known', () => {
     const store = createTestStore()
     const worktree = makeWorktree({ id: 'repo1::/hosted', repoId: 'repo1', hostId: 'ssh:builder' })
-    store.setState({ worktreesByRepo: { repo1: [worktree] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [worktree] } } as Partial<AppState>)
 
     store.getState().markWorktreeVisited(worktree.id, 1000)
 
@@ -162,7 +163,7 @@ describe('markWorktreeVisited', () => {
 
   it('seedActiveWorktreeLastVisitedIfMissing seeds only when missing', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId: 'wt-1',
       lastVisitedAtByWorktreeId: {}
     } as Partial<AppState>)
@@ -177,7 +178,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps drops entries for unknown worktree IDs within hydrated repos', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       lastVisitedAtByWorktreeId: { 'repo1::/a': 100, 'repo1::/gone': 200 }
     } as Partial<AppState>)
@@ -190,7 +191,7 @@ describe('markWorktreeVisited', () => {
     const id = 'repo1::/shared'
     const local = makeWorktree({ id, repoId: 'repo1', path: '/shared', hostId: 'local' })
     const ssh = makeWorktree({ id, repoId: 'repo1', path: '/shared', hostId: 'ssh:builder' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [local, ssh] },
       lastVisitedAtByWorktreeId: {
         [`local|${id}`]: 100,
@@ -210,7 +211,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps preserves entries for not-yet-hydrated repos (e.g. SSH pre-connect)', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       lastVisitedAtByWorktreeId: { 'repo1::/a': 100, 'ssh-repo::/b': 200 }
     } as Partial<AppState>)
@@ -224,7 +225,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps clears a stale activeWorktreeId gone from a hydrated repo', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
       lastVisitedAtByWorktreeId: {}
@@ -236,7 +237,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps keeps a live activeWorktreeId and defers unhydrated repos', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/a'
     } as Partial<AppState>)
@@ -251,7 +252,7 @@ describe('markWorktreeVisited', () => {
 
   it('pruneLastVisitedTimestamps defers when the detected list is non-authoritative', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: {
         repo1: makeDetectedResult('repo1', [], {
@@ -269,7 +270,7 @@ describe('markWorktreeVisited', () => {
 
   it('pruneLastVisitedTimestamps defers an empty list with no detected record (unhydrated shape)', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       lastVisitedAtByWorktreeId: { 'repo1::/hidden': 100 }
     } as Partial<AppState>)
@@ -284,7 +285,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps clears the derived worktree-scoped active workspace key with a stale active worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
       activeWorkspaceKey: worktreeWorkspaceKey('repo1::/gone'),
@@ -303,7 +304,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps preserves a folder-scoped active workspace key when the active worktree is stale', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
       activeWorkspaceKey: folderWorkspaceKey('folder-1'),
@@ -322,7 +323,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps preserves an active workspace key pointing at a different live worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
       activeWorkspaceKey: worktreeWorkspaceKey('repo1::/a'),
@@ -339,7 +340,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps clears a legacy unprefixed active workspace key for the stale worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
       // Sessions predating the `worktree:` prefix stored the bare id (see the purge path).
@@ -378,7 +379,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id,
       revealWorktreeInSidebar: reveal
@@ -394,7 +395,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: true })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id,
       revealWorktreeInSidebar: reveal
@@ -411,7 +412,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const focused = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const pinned = makeWorktree({ id: 'repo1::/b', repoId: 'repo1', path: '/b', isPinned: true })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [focused, pinned] },
       activeWorktreeId: focused.id,
       revealWorktreeInSidebar: reveal
@@ -429,7 +430,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const focused = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const other = makeWorktree({ id: 'repo1::/b', repoId: 'repo1', path: '/b', isPinned: false })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [focused, other] },
       activeWorktreeId: focused.id,
       revealWorktreeInSidebar: reveal
@@ -446,7 +447,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const local = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', hostId: 'local' })
     const ssh = makeWorktree({ ...local, hostId: 'ssh:box' })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [local, ssh] },
       activeWorktreeId: local.id,
       activeWorkspaceExecutionHostId: 'local',
@@ -483,7 +484,7 @@ describe('setWorktreesPinnedAndReveal', () => {
         repoId: 'repo1'
       })
       const reveal = vi.fn()
-      store.setState({
+      setSessionTestState(store, {
         worktreesByRepo: { repo1: [parent, child] },
         worktreeLineageById: {
           [child.id]: makeLineage({ worktreeId: child.id, parentWorktreeId: parent.id })
@@ -508,7 +509,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       runtimeOwnerEnvironmentId: 'hub'
     })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [proxied] },
       activeWorktreeId: proxied.id,
       activeWorkspaceExecutionHostId: 'runtime:hub',
@@ -540,7 +541,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       hostId: 'local'
     })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, parentTwin, child] },
       worktreeLineageById: {
         [child.id]: makeLineage({ worktreeId: child.id, parentWorktreeId: parent.id })
@@ -571,7 +572,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       lineage: makeLineage({ worktreeId: 'repo1::/child', parentWorktreeId: parent.id })
     }
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, child] },
       activeWorktreeId: child.id,
       revealWorktreeInSidebar: reveal
@@ -595,7 +596,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       repoId: 'repo1'
     })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second] },
       worktreeLineageById: {
         [first.id]: makeLineage({
@@ -633,7 +634,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       repoId: 'repo1'
     })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, child] },
       worktreeLineageById: {
         [child.id]: makeLineage({ worktreeId: child.id, parentWorktreeId: parent.id })
@@ -661,7 +662,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       repoId: 'repo1'
     })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, child] },
       worktreeLineageById: {
         [child.id]: makeLineage({ worktreeId: child.id, parentWorktreeId: parent.id })
@@ -679,7 +680,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: true })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       revealWorktreeInSidebar: reveal
     } as Partial<AppState>)
@@ -694,7 +695,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       revealWorktreeInSidebar: reveal
     } as Partial<AppState>)
@@ -708,7 +709,7 @@ describe('setWorktreesPinnedAndReveal', () => {
   it('does nothing for an empty id list', () => {
     const store = createTestStore()
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       revealWorktreeInSidebar: reveal
     } as Partial<AppState>)
@@ -729,7 +730,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const first = makeWorktree({ id: 'repo1::/b', repoId: 'repo1', path: '/b', isPinned: false })
     const focused = makeWorktree({ id: 'repo1::/c', repoId: 'repo1', path: '/c', isPinned: false })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [alreadyPinned, first, focused] },
       activeWorktreeId: focused.id,
       revealWorktreeInSidebar: reveal
@@ -757,7 +758,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       isPinned: false
     })
     const reveal = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second, elsewhere] },
       activeWorktreeId: elsewhere.id,
       revealWorktreeInSidebar: reveal

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it } from 'vitest'
 import type { AgentStatusEntry } from '../../../../../shared/agent-status-types'
 import type { AppState } from '../../types'
@@ -29,7 +30,7 @@ function makeAgentEntry(overrides: {
 describe('captureAllSleepingAgentSessions', () => {
   it('checkpoints a live resumable provider session before quit-time capture', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -71,7 +72,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('captures launch config into live checkpoints and refreshes late registration', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -115,7 +116,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('keeps private launch config through waiting and blocked live states', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -175,7 +176,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('uses provider session matching to capture launch config without a launch token', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -217,7 +218,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('skips rewriting an unchanged resume record on repeated capture', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -261,7 +262,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('does not let a periodic checkpoint supersede a confirmed quit record', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -304,7 +305,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('preserves hydrated launch config during live recapture without a registry entry', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -315,7 +316,7 @@ describe('captureAllSleepingAgentSessions', () => {
       agentArgs: '--model gpt-5',
       agentEnv: { CODEX_PROFILE: 'captured' }
     }
-    store.setState({
+    setSessionTestState(store, {
       sleepingAgentSessionsByPaneKey: {
         'tab-1:leaf-1': {
           paneKey: 'tab-1:leaf-1',
@@ -362,7 +363,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('does not reuse a stale pane launch config for a new provider session', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -422,7 +423,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('does not attach a registered launch config to a different agent identity', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -482,7 +483,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('scrubs launch config registry entries when worktree agent status is dropped', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -503,7 +504,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('clears launch config registry entries when sleeping sessions are cleared by worktree', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })],
         'wt-2': [makeTab({ id: 'tab-2', worktreeId: 'wt-2' })]
@@ -574,7 +575,7 @@ describe('captureAllSleepingAgentSessions', () => {
         identity: {}
       }
     } as AppState['agentLaunchConfigByPaneKey']
-    store.setState({
+    setSessionTestState(store, {
       sleepingAgentSessionsByPaneKey: sleeping,
       agentLaunchConfigByPaneKey: launchConfigs
     })
@@ -601,7 +602,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('clears launch config registry entries when invalid sleeping sessions are pruned', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })],
         'wt-2': [makeTab({ id: 'tab-2', worktreeId: 'wt-2' })]
@@ -650,7 +651,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('does not rewrite the live checkpoint for same-session status ticks', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -694,7 +695,7 @@ describe('captureAllSleepingAgentSessions', () => {
     'retains the recovery anchor when a finished %s session stays resumable (#9454)',
     (agentType, title) => {
       const store = createTestStore()
-      store.setState({
+      setSessionTestState(store, {
         tabsByWorktree: { 'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })] }
       } as Partial<AppState>)
       const providerSession = { key: 'session_id', id: `${agentType}-session-1` } as const
@@ -728,7 +729,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('does not reuse launch config from a completed same-pane agent', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       }
@@ -782,7 +783,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('captures resumable agents across every worktree, not just one', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })],
         'wt-2': [makeTab({ id: 'tab-2', worktreeId: 'wt-2' })]
@@ -828,7 +829,7 @@ describe('captureAllSleepingAgentSessions', () => {
       sessionId: 'sess-1'
     })
     entry.state = 'done'
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       },
@@ -842,7 +843,7 @@ describe('captureAllSleepingAgentSessions', () => {
 
   it('skips agents without a resumable provider session', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       },
@@ -864,7 +865,7 @@ describe('captureAllSleepingAgentSessions', () => {
       sessionId: 'sess-1'
     })
     delete entry.worktreeId
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
       },

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore, type AppState } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
@@ -41,7 +42,7 @@ const FIXTURE: OpenFile[] = [
 const IDS = [...FIXTURE.map((file) => file.id), 'not-open']
 
 function seed(): AppState {
-  useAppStore.setState({ openFiles: FIXTURE })
+  setSessionTestState(useAppStore, { openFiles: FIXTURE })
   return useAppStore.getState()
 }
 

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 // Model worktree-level watcher coverage oscillating with mount state (#15136). A lone last-active tab has no cold candidates, proving only rendered-verdict pinning can stop this driver.
 import { act, useEffect, useState } from 'react'
@@ -135,7 +136,7 @@ describe('park-verdict damping reaches the worktree-level driver', () => {
     parkVerdictFlipCount = 0
     lastParkVerdict = false
     paneMountCount = 0
-    parkingStore.setState(() => ({
+    setSessionTestState(parkingStore, () => ({
       tabsByWorktree: {
         [park.worktreeId]: [
           { id: TAB_ID, ptyId: `${park.worktreeId}@@session-1`, title: TAB_ID } as TerminalTab

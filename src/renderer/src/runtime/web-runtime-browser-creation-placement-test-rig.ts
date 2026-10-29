@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { vi } from 'vitest'
 import type { BrowserPage, BrowserWorkspace } from '../../../shared/browser-workspace-types'
 import type { RuntimeMobileSessionTabsResult } from '../../../shared/runtime-types'
@@ -108,7 +109,7 @@ export function seedPairedWorktree(): void {
       recentTabIds: [OTHER.unifiedTabId]
     }
   ]
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: WT,
     activeWorkspaceExecutionHostId: HOST,
     runtimeStatusByEnvironmentId: runtimeStatusesFor([

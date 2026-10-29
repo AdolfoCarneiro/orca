@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { cleanup, renderHook } from '@testing-library/react'
 import { Suspense } from 'react'
@@ -98,7 +99,7 @@ it('keeps cursor and gutter copy on the current file owner after migration', asy
   storeRef.current = store
   const filePath = '/repo/file.ts'
   const oldId = 'restored-file'
-  store.setState({
+  setSessionTestState(store, {
     activeFileId: null,
     openFiles: [
       {
@@ -210,7 +211,9 @@ it('keeps cursor and gutter copy on the current file owner after migration', asy
   const local = vi.spyOn(window.api.git, 'remoteFileUrl').mockResolvedValue(copiedUrl)
   const clipboard = vi.spyOn(window.api.ui, 'writeClipboardText')
   for (const runtimeEnvironmentId of [null, 'paired']) {
-    store.setState({ openFiles: [{ ...store.getState().openFiles[0], runtimeEnvironmentId }] })
+    setSessionTestState(store, {
+      openFiles: [{ ...store.getState().openFiles[0], runtimeEnvironmentId }]
+    })
     const transport = runtimeEnvironmentId ? vi.mocked(callRuntimeRpc) : local
     transport.mockResolvedValue(copiedUrl)
     for (const line of [15, 21]) {

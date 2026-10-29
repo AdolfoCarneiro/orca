@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
@@ -272,7 +273,7 @@ describe('runtimePaneTitle → sortEpoch', () => {
     })
     store.getState().setRuntimePaneTitle('tab-1', 1, '⠋ Claude')
     const baseline = store.getState().sortEpoch
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: new Proxy(store.getState().tabsByWorktree, {
         ownKeys() {
           throw new Error('tabsByWorktree should not be enumerated')
@@ -314,7 +315,7 @@ describe('runtimePaneTitle → sortEpoch', () => {
     })
     store.getState().setRuntimePaneTitle('tab-1', 1, 'shell prompt')
     const baseline = store.getState().sortEpoch
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: new Proxy(store.getState().tabsByWorktree, {
         ownKeys() {
           throw new Error('tabsByWorktree should not be enumerated')

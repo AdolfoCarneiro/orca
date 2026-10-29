@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -90,7 +91,7 @@ beforeEach(() => {
     entry.onDismiss()
   }
   toasts.length = 0
-  store.setState({
+  setSessionTestState(store, {
     repos: [],
     activeView: 'terminal',
     activeWorktreeId: null,
@@ -103,7 +104,7 @@ beforeEach(() => {
 
 describe('showWorktreeCreationReadyToast', () => {
   it('names a git worktree and offers to go to it', () => {
-    store.setState({ repos: [{ id: 'repo-1', kind: 'git' }] })
+    setSessionTestState(store, { repos: [{ id: 'repo-1', kind: 'git' }] })
 
     showWorktreeCreationReadyToast(worktree)
 
@@ -122,7 +123,7 @@ describe('showWorktreeCreationReadyToast', () => {
   })
 
   it('calls a folder repo workspace a workspace, not a worktree', () => {
-    store.setState({ repos: [{ id: 'repo-1', kind: 'folder' }] })
+    setSessionTestState(store, { repos: [{ id: 'repo-1', kind: 'folder' }] })
 
     showWorktreeCreationReadyToast(worktree)
 
@@ -134,7 +135,7 @@ describe('showWorktreeCreationReadyToast', () => {
   })
 
   it('keeps the worktree wording when the repo is unknown', () => {
-    store.setState({ repos: [] })
+    setSessionTestState(store, { repos: [] })
 
     showWorktreeCreationReadyToast(worktree)
 
@@ -179,7 +180,7 @@ describe('showWorktreeCreationReadyToast', () => {
   })
 
   it('also dismisses when a folder workspace is opened', async () => {
-    store.setState({ repos: [{ id: 'repo-1', kind: 'folder' }] })
+    setSessionTestState(store, { repos: [{ id: 'repo-1', kind: 'folder' }] })
     showWorktreeCreationReadyToast(worktree)
     store.setState({ activeWorktreeId: worktree.id })
     await Promise.resolve()
@@ -220,7 +221,7 @@ describe('showWorktreeCreationReadyToast', () => {
 
   it('resolves the selected host from the catalog when selection is unqualified', async () => {
     const local = { ...worktree, hostId: 'local' as const }
-    store.setState({ worktreesByRepo: { [worktree.repoId]: [local] } })
+    setSessionTestState(store, { worktreesByRepo: { [worktree.repoId]: [local] } })
     showWorktreeCreationReadyToast(local)
     store.setState({ activeWorktreeId: worktree.id })
     await Promise.resolve()
@@ -228,7 +229,7 @@ describe('showWorktreeCreationReadyToast', () => {
   })
 
   it('routes an unqualified selection by the owner row, not the Active Server setting', async () => {
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: 'repo-1', kind: 'git' }],
       worktreesByRepo: { [worktree.repoId]: [{ id: worktree.id, repoId: worktree.repoId }] },
       settings: { activeRuntimeEnvironmentId: 'remote-a' }
@@ -274,7 +275,7 @@ describe('showWorktreeCreationReadyToast', () => {
     'projects a paired response into the renderer host with creation host %s',
     async (creationHostId) => {
       const raw = { ...worktree, hostId: 'local' as const }
-      store.setState({
+      setSessionTestState(store, {
         worktreesByRepo: { [worktree.repoId]: [{ ...worktree, hostId: 'runtime:remote-a' }] }
       })
       showWorktreeCreationReadyToast(raw, creationHostId)
@@ -309,7 +310,7 @@ describe('showWorktreeCreationReadyToast', () => {
   })
 
   it('keeps an unqualified notification when the catalog cannot prove its host', async () => {
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         [worktree.repoId]: [
           { ...worktree, hostId: 'local' },

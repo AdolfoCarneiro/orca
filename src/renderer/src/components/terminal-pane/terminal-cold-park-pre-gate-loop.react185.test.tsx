@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 import { act, StrictMode } from 'react'
 import type * as ReactModule from 'react'
@@ -78,26 +79,27 @@ vi.mock('./terminal-parked-tab-watchers', async () => {
       if (args.parkedTabIds.size === 0) {
         return
       }
-      ;(
+      setSessionTestState(
         useAppStore as unknown as {
           setState: (update: (state: ParkingStoreState) => Partial<ParkingStoreState>) => void
-        }
-      ).setState((state) => ({
-        tabsByWorktree: {
-          ...state.tabsByWorktree,
-          [args.worktreeId]: state.tabsByWorktree[args.worktreeId].map((tab) => ({
-            ...tab,
-            title: `${tab.id}-${harness.syncCalls}`
-          }))
         },
-        unifiedTabsByWorktree: {
-          ...state.unifiedTabsByWorktree,
-          [args.worktreeId]: state.unifiedTabsByWorktree[args.worktreeId].map((tab) => ({
-            ...tab,
-            label: `${tab.entityId}-${harness.syncCalls}`
-          }))
-        }
-      }))
+        (state) => ({
+          tabsByWorktree: {
+            ...state.tabsByWorktree,
+            [args.worktreeId]: state.tabsByWorktree[args.worktreeId].map((tab) => ({
+              ...tab,
+              title: `${tab.id}-${harness.syncCalls}`
+            }))
+          },
+          unifiedTabsByWorktree: {
+            ...state.unifiedTabsByWorktree,
+            [args.worktreeId]: state.unifiedTabsByWorktree[args.worktreeId].map((tab) => ({
+              ...tab,
+              label: `${tab.entityId}-${harness.syncCalls}`
+            }))
+          }
+        })
+      )
     }
   }
 })
@@ -187,7 +189,7 @@ describe('TerminalPaneOverlayLayer cold-park pre-gate loop', () => {
     harness.renderedParkedSets.length = 0
     const tabs = TAB_IDS.map(terminalTab)
     const unifiedTabs = TAB_IDS.map(unifiedTerminalTab)
-    parkingStore.setState({
+    setSessionTestState(parkingStore, {
       activeGroupIdByWorktree: { [harness.worktreeId]: GROUP_ID },
       groupsByWorktree: {
         [harness.worktreeId]: [
@@ -233,7 +235,7 @@ describe('TerminalPaneOverlayLayer cold-park pre-gate loop', () => {
     const settledSyncCalls = harness.syncCalls
     const state = parkingStore.getState()
     act(() => {
-      parkingStore.setState({
+      setSessionTestState(parkingStore, {
         tabsByWorktree: {
           ...state.tabsByWorktree,
           [harness.worktreeId]: state.tabsByWorktree[harness.worktreeId].map((tab) =>
@@ -253,7 +255,7 @@ describe('TerminalPaneOverlayLayer cold-park pre-gate loop', () => {
     const beforePendingSpawnSyncCalls = harness.syncCalls
     const pendingSpawnState = parkingStore.getState()
     act(() => {
-      parkingStore.setState({
+      setSessionTestState(parkingStore, {
         tabsByWorktree: {
           ...pendingSpawnState.tabsByWorktree,
           [harness.worktreeId]: pendingSpawnState.tabsByWorktree[harness.worktreeId].map((tab) =>
@@ -267,7 +269,7 @@ describe('TerminalPaneOverlayLayer cold-park pre-gate loop', () => {
     const beforeTabOrderSyncCalls = harness.syncCalls
     const tabOrderState = parkingStore.getState()
     act(() => {
-      parkingStore.setState({
+      setSessionTestState(parkingStore, {
         tabsByWorktree: {
           ...tabOrderState.tabsByWorktree,
           [harness.worktreeId]: tabOrderState.tabsByWorktree[harness.worktreeId].toReversed()
@@ -279,7 +281,7 @@ describe('TerminalPaneOverlayLayer cold-park pre-gate loop', () => {
     const beforeActiveTabChangeSyncCalls = harness.syncCalls
     const activeTabState = parkingStore.getState()
     act(() => {
-      parkingStore.setState({
+      setSessionTestState(parkingStore, {
         groupsByWorktree: {
           ...activeTabState.groupsByWorktree,
           [harness.worktreeId]: activeTabState.groupsByWorktree[harness.worktreeId].map(
@@ -297,7 +299,7 @@ describe('TerminalPaneOverlayLayer cold-park pre-gate loop', () => {
     const groupState = parkingStore.getState()
     const nextGroupId = 'group-b'
     act(() => {
-      parkingStore.setState({
+      setSessionTestState(parkingStore, {
         groupsByWorktree: {
           ...groupState.groupsByWorktree,
           [harness.worktreeId]: [

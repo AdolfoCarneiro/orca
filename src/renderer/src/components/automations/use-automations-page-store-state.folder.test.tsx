@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -15,7 +16,7 @@ afterEach(() => {
 
 describe('automation rows that target a folder workspace', () => {
   it('find the folder workspace instead of reporting it gone', () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace({ id: 'fw-1', name: 'App' })]
     })
     const [row] = unscopedAutomationListRows([

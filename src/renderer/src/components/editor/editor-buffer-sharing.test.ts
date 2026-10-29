@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 // Use real record middleware and save queues for cross-workspace restored drafts, phone writes, rich text and autosave pauses.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -55,7 +56,7 @@ const BASE = 'base'
 function twoWorkspaceStore(): StoreApi<AppState> {
   const store = createEditorStore()
   storeRef.current = store
-  store.setState({
+  setSessionTestState(store, {
     worktreesByRepo: {
       'repo-1': [
         makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }),
@@ -237,7 +238,7 @@ describe('restored floating and ordinary views', () => {
               ]
             }
           : { worktreesByRepo: store.getState().worktreesByRepo }
-      store.setState(late ? { worktreesByRepo: {}, folderWorkspaces: [] } : catalog)
+      setSessionTestState(store, late ? { worktreesByRepo: {}, folderWorkspaces: [] } : catalog)
       const [ordinary, floating] = restore(
         store,
         [undefined, 'restored draft'],

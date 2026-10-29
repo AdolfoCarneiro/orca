@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { worktreeRemovalReplyTimeoutMs } from '../../../../shared/worktree/archive-hook-removal-gate'
 import type { AppState } from '../types'
@@ -51,7 +52,7 @@ describe('worktree remote runtime mutations', () => {
       result: { removed: true },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [wt] }
     } as Partial<AppState>)
@@ -93,7 +94,7 @@ describe('worktree remote runtime mutations', () => {
   it('never removes an unstamped worktree through the focused server', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
-    store.setState({
+    setSessionTestState(store, {
       settings: { ...getDefaultSettings('/home'), activeRuntimeEnvironmentId: 'env-1' },
       repos: [{ id: 'repo1', path: '/path', displayName: 'r', badgeColor: '#000', addedAt: 0 }],
       worktreesByRepo: { repo1: [wt] }
@@ -128,7 +129,7 @@ describe('worktree remote runtime mutations', () => {
         result: { deleted: true },
         _meta: { runtimeId: 'runtime-remote' }
       })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       trustedOrcaHooks: { repo1: { all: { approvedAt: 1 } } },
       worktreesByRepo: { repo1: [wt] }
@@ -192,7 +193,7 @@ describe('worktree remote runtime mutations', () => {
         cleanupStatus: 'not_started'
       }
     ] as never)
-    store.setState({ worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
 
     await expect(
       store.getState().removeWorktree({ id: wt.id, executionHostId: 'ssh:runtime-ssh-a' })
@@ -233,7 +234,7 @@ describe('worktree remote runtime mutations', () => {
         result: { deleted: true },
         _meta: { runtimeId: 'runtime-owner-hub' }
       })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'different-hub' } as never,
       worktreesByRepo: { 'repo-ssh': [wt] }
     } as Partial<AppState>)
@@ -323,12 +324,12 @@ describe('worktree remote runtime mutations', () => {
         _meta: { runtimeId: 'runtime-shared-hub' }
       })
     )
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-shared': [localWorktree] }
     } as Partial<AppState>)
 
     await store.getState().removeWorktree({ id: worktreeId, executionHostId: null })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-shared': [remoteWorktree] }
     } as Partial<AppState>)
     await store.getState().removeWorktree({ id: worktreeId, executionHostId: null })
@@ -393,12 +394,12 @@ describe('worktree remote runtime mutations', () => {
         _meta: { runtimeId: 'runtime-shared-hub' }
       })
     )
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-shared': [localWorktree] }
     } as Partial<AppState>)
 
     await store.getState().removeWorktree({ id: worktreeId, executionHostId: null })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-shared': [remoteWorktree] }
     } as Partial<AppState>)
     await store.getState().removeWorktree({ id: worktreeId, executionHostId: null })
@@ -423,7 +424,7 @@ describe('worktree remote runtime mutations', () => {
   it('fails HUB-owned SSH removal closed when the exact id has two HUB owners', async () => {
     const store = createTestStore()
     const worktreeId = 'repo-ssh::/srv/same-wt'
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         'repo-ssh': [
           makeWorktree({
@@ -468,7 +469,7 @@ describe('worktree remote runtime mutations', () => {
         error: { code: errorCode, message: errorCode },
         _meta: { runtimeId: 'runtime-remote' }
       })
-      store.setState({
+      setSessionTestState(store, {
         settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
         worktreesByRepo: { 'repo-gone': [wt] }
       } as Partial<AppState>)
@@ -498,7 +499,7 @@ describe('worktree remote runtime mutations', () => {
       hostId: 'runtime:env-2'
     })
     runtimeEnvironmentCall.mockImplementationOnce(async () => {
-      store.setState({ worktreesByRepo: { 'repo-shared': [original, rival] } })
+      setSessionTestState(store, { worktreesByRepo: { 'repo-shared': [original, rival] } })
       return {
         id: 'rpc-rm',
         ok: false,
@@ -506,7 +507,7 @@ describe('worktree remote runtime mutations', () => {
         _meta: { runtimeId: 'runtime-remote' }
       }
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       trustedOrcaHooks: { 'repo-shared': { all: { approvedAt: 1 } } },
       worktreesByRepo: { 'repo-shared': [original] }
@@ -535,7 +536,7 @@ describe('worktree remote runtime mutations', () => {
       repoId: 'repo-shared',
       hostId: 'runtime:env-1'
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { 'repo-shared': [local, remote] }
     } as Partial<AppState>)
 
@@ -570,7 +571,7 @@ describe('worktree remote runtime mutations', () => {
       },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [wt] }
     } as Partial<AppState>)
@@ -589,7 +590,7 @@ describe('worktree remote runtime mutations', () => {
   it('sends force without the PTY-stop waiver unless a caller asks for it', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/w/one', repoId: 'repo1', path: '/w/one' })
-    store.setState({ worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
 
     await store.getState().removeWorktree({ id: wt.id, executionHostId: null }, true)
     expect(mockApi.worktrees.remove).toHaveBeenLastCalledWith(
@@ -598,7 +599,7 @@ describe('worktree remote runtime mutations', () => {
 
     // Reseed a new row so second removal reaches API rather than rereading the first call.
     const retry = makeWorktree({ id: 'repo1::/w/two', repoId: 'repo1', path: '/w/two' })
-    store.setState({ worktreesByRepo: { repo1: [retry] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [retry] } } as Partial<AppState>)
 
     await store.getState().removeWorktree({ id: retry.id, executionHostId: null }, true, {
       allowUnverifiedPtyStop: true
@@ -615,7 +616,7 @@ describe('worktree remote runtime mutations', () => {
       repoId: 'repo-ssh',
       path: '/home/orca/wt1'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
         {
@@ -650,7 +651,7 @@ describe('worktree remote runtime mutations', () => {
   it('fails closed before deleting an exact worktree id owned by multiple hosts', async () => {
     const store = createTestStore()
     const worktreeId = 'repo-shared::/same/path'
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         { id: 'repo-shared', path: '/local', displayName: 'Local', badgeColor: '#000', addedAt: 0 },
         {

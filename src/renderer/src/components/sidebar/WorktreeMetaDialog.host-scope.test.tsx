@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -65,7 +66,7 @@ function open(
   rows: Worktree[] = [workspace(), workspace('ssh:box')],
   repos: Repo[] = [localRepo, remoteRepo]
 ): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos,
     worktreesByRepo: { repo: rows },
     updateWorktreeMeta: update,
@@ -133,7 +134,7 @@ describe('workspace details exact host selection', () => {
       updatedAt: 1,
       linkedItems: [{ provider: 'github', type: 'issue', number: 1, title: 'Local folder task' }]
     }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: [
         folder,
         {

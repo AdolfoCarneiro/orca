@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store/index'
@@ -91,7 +92,7 @@ beforeEach(async () => {
   mocks.text = ''
   resetStructuredAgentLaunchRegistryForTests()
   clearNativeChatPendingAttachmentsForTests()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: 'wt-1',
     unifiedTabsByWorktree: {},
     groupsByWorktree: {},
@@ -232,7 +233,7 @@ describe('a provisional structured chat tab', () => {
     const groupId = sibling.groupId
     const siblingRecords = () =>
       ORCA_LAYOUT_OWNER_IS_MAIN ? [terminalRecord(sibling.entityId)] : []
-    useAppStore.setState({ tabsByWorktree: { 'wt-1': siblingRecords() } })
+    setSessionTestState(useAppStore, { tabsByWorktree: { 'wt-1': siblingRecords() } })
     await mainLoadsStoreLayout()
     const pinnedSource = scenario === 'empty' || scenario === 'typed-during'
     if (pinnedSource) {
@@ -271,7 +272,7 @@ describe('a provisional structured chat tab', () => {
             .getState()
             .createUnifiedTab('wt-1', 'terminal', { id: 'replacement', activate: false })
     if (terminal) {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         tabsByWorktree: { 'wt-1': [terminalRecord(terminal.entityId), ...siblingRecords()] }
       })
       if (scenario === 'typed-before') {
@@ -371,7 +372,7 @@ describe('a provisional structured chat tab', () => {
       targetGroupId: chatGroupId,
       activate: false
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': ORCA_LAYOUT_OWNER_IS_MAIN
           ? [terminalRecord(sibling.entityId), terminalRecord(terminal.entityId)]

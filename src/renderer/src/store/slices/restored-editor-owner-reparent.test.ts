@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -42,7 +43,7 @@ function WatchProbe(): null {
 
 function installWorkspaceState(): void {
   useAppStore.setState(useAppStore.getInitialState(), true)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: SOURCE,
     settings: { editorAutoSave: false },
     repos: [
@@ -127,7 +128,7 @@ describe('restored editor owner reparent', () => {
     state.setEditorViewMode(oldId, 'changes')
     state.setMarkdownFrontmatterVisible(oldId, false)
     state.setMarkdownTableOfContentsVisible(oldId, true)
-    useAppStore.setState((current) => ({
+    setSessionTestState(useAppStore, (current) => ({
       pendingEditorReveal: {
         fileId: oldId,
         filePath: FILE_PATH,
@@ -225,7 +226,7 @@ describe('restored editor owner reparent', () => {
     const oldId = await openDrawnRestoredSource()
     const refreshGitHubForWorktreeIfStale = vi.fn()
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: partial terminal, browser and catalog records with only the fields activation and frames read.
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       activeTabId: 'source-terminal',
       activeBrowserTabId: 'source-browser',
       activePendingCreationId: 'source-creation',
@@ -365,7 +366,7 @@ describe('restored editor owner reparent', () => {
     const keptTab = useAppStore
       .getState()
       .unifiedTabsByWorktree[TARGET]!.find((tab) => tab.entityId === keptFileId)!
-    useAppStore.setState((state) => ({
+    setSessionTestState(useAppStore, (state) => ({
       unifiedTabsByWorktree: {
         ...state.unifiedTabsByWorktree,
         [TARGET]: [
@@ -516,7 +517,7 @@ describe('restored editor owner reparent', () => {
       id: 'stale-target-tab',
       entityId: 'stale-target-file'
     }
-    useAppStore.setState((state) => ({
+    setSessionTestState(useAppStore, (state) => ({
       activeWorktreeId: SOURCE,
       activeFileId: sourceId,
       unifiedTabsByWorktree: {
@@ -621,7 +622,7 @@ describe('restored editor owner reparent', () => {
   })
 
   it('reparents into a folder workspace with local save and watch authority', () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: [
         {
           id: 'notes',
@@ -681,7 +682,7 @@ describe('restored editor owner reparent', () => {
   })
 
   it('captures exact direct-SSH host and connection-generation authority', () => {
-    useAppStore.setState((state) => ({
+    setSessionTestState(useAppStore, (state) => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         connectionId: 'ssh-1',

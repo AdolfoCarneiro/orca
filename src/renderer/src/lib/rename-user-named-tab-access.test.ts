@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as RuntimeFileMutationClient from '@/runtime/runtime-file-mutation-client'
 import type * as EditorAutosave from '@/components/editor/editor-autosave'
@@ -146,7 +147,7 @@ function renameCalls(): unknown[][] {
 
 beforeEach(async () => {
   useAppStore.setState(useAppStore.getInitialState(), true)
-  useAppStore.setState({ repos: [repo], worktreesByRepo: { 'repo-local': [worktree] } })
+  setSessionTestState(useAppStore, { repos: [repo], worktreesByRepo: { 'repo-local': [worktree] } })
   clearFileExplorerUndoHistory()
   mocks.renameRuntimePath.mockReset().mockResolvedValue(undefined)
   mocks.writeRuntimeFile.mockReset().mockResolvedValue({ ok: true })

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act } from 'react'
@@ -52,7 +53,7 @@ function resizePane(): void {
 }
 
 function setState(agent: 'claude' | 'codex', seen = false): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     claudeDiffPanelNoticeSeen: seen,
     paneForegroundAgentByPaneKey: { [PANE_KEY]: { agent, shellForeground: false } },
     // A floating terminal runs on the host.

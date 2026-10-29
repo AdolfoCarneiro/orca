@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
@@ -40,7 +41,7 @@ describe('switching workspaces with the sidebar-inputs switch on', () => {
     const shells = worktree('shells')
     const next = worktree('next')
     const markWorktreeVisited = vi.fn()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         { id: 'repo-1', path: '/workspace/repo', displayName: 'repo', badgeColor: '', addedAt: 0 }
       ],

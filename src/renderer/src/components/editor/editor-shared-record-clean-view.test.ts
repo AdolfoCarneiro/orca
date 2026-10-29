@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 // When a shared record goes clean, synchronize source and rich views so stale typing cannot resurrect old text.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -44,7 +45,7 @@ afterEach(() => {
 function openSharedMarkdown() {
   const store = createEditorStore()
   storeRef.current = store
-  store.setState({
+  setSessionTestState(store, {
     worktreesByRepo: {
       'repo-1': [
         makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }),

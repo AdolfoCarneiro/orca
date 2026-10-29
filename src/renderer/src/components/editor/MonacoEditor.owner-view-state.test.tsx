@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
@@ -98,7 +99,7 @@ it('preserves a draft, selected range and scroll when the same tab gains a known
     language: 'plaintext',
     isDirty: true
   }
-  store.setState({
+  setSessionTestState(store, {
     openFiles: [file],
     activeWorktreeId: null,
     activeWorkspaceExecutionHostId: null,
@@ -144,7 +145,7 @@ it('preserves a draft, selected range and scroll when the same tab gains a known
 
   const openFiles = store.getState().openFiles
   act(() => {
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         repo: [
           makeWorktree({ id: file.worktreeId, repoId: 'repo', path: '/repo', hostId: 'local' })

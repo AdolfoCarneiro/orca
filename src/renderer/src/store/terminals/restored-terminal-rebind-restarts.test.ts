@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // Layout-owner build, two restarts: a terminal recorded only on its tab (an older session, or an
 // unvisited SSH relay tab) must reattach after each one. Runs main's Loader, the window's startup
 // hydration and reconnect, main's frames and main's save join, as the app does.
@@ -134,7 +135,7 @@ async function launch(onDisk: StoredPartition[]): Promise<Launched> {
   }))
   const store = createTestStore()
   const launched: Launched = { store, stored: partitions, mainPaneTerminals: new Map() }
-  store.setState({
+  setSessionTestState(store, {
     sshConnectionStates: new Map([
       [TARGET_ID, { targetId: TARGET_ID, status: 'connected', error: null, reconnectAttempt: 0 }]
     ]),

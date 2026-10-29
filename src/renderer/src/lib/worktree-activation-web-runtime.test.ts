@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { activateAndRevealFolderWorkspace, activateAndRevealWorktree } from './worktree-activation'
 import { ensureWorktreeHasInitialTerminal } from './worktree-initial-terminal-seeding'
@@ -58,7 +59,7 @@ describe('activateAndRevealWorktree', () => {
         ? { ...settings, activeRuntimeEnvironmentId: 'web-runtime-1' }
         : ({ activeRuntimeEnvironmentId: 'web-runtime-1' } as unknown as typeof settings)
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         [worktree.id]: [
           {
@@ -173,7 +174,7 @@ describe('activateAndRevealFolderWorkspace', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment })
     const settings = useAppStore.getState().settings
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       activeView: 'terminal',
       folderWorkspaces: [
         {
@@ -233,7 +234,7 @@ describe('activateAndRevealFolderWorkspace', () => {
 describe('ensureWorktreeHasInitialTerminal', () => {
   it('does not create a local fallback tab in the paired web runtime client', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
-    useAppStore.setState((state) => ({
+    setSessionTestState(useAppStore, (state) => ({
       settings: state.settings
         ? { ...state.settings, activeRuntimeEnvironmentId: 'web-runtime-1' }
         : ({ activeRuntimeEnvironmentId: 'web-runtime-1' } as unknown as typeof state.settings),
@@ -259,7 +260,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
 
   it('queues returned setup fallback on an existing web runtime tab', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
-    useAppStore.setState((state) => ({
+    setSessionTestState(useAppStore, (state) => ({
       settings: state.settings
         ? { ...state.settings, activeRuntimeEnvironmentId: 'web-runtime-1' }
         : ({ activeRuntimeEnvironmentId: 'web-runtime-1' } as unknown as typeof state.settings),
@@ -314,7 +315,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
 
   it('holds the issue command for the first mirrored web runtime tab when none exists yet', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
-    useAppStore.setState((state) => ({
+    setSessionTestState(useAppStore, (state) => ({
       settings: state.settings
         ? { ...state.settings, activeRuntimeEnvironmentId: 'web-runtime-1' }
         : ({ activeRuntimeEnvironmentId: 'web-runtime-1' } as unknown as typeof state.settings),
@@ -329,7 +330,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
         ] as never
       }
     }))
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {},
       getKnownWorktreeById: ((id: string) =>
         id === 'wt-1'
@@ -347,7 +348,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(result).toBeNull()
     expect(useAppStore.getState().pendingIssueCommandSplitByTabId).toEqual({})
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-1': [{ id: 'mirror-tab-1' }] }
     } as unknown as Partial<AppStoreState>)
 
@@ -379,7 +380,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(store.createTab).not.toHaveBeenCalled()
     expect(store.setActiveTab).not.toHaveBeenCalled()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-1': [{ id: 'mirror-tab-1' }] }
     } as unknown as Partial<AppStoreState>)
 

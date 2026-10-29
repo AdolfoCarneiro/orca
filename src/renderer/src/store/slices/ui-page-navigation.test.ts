@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
@@ -154,7 +155,7 @@ describe('createUISlice settings navigation', () => {
     const prefetchWorkItems = vi.fn()
     const prefetchLinearIssues = vi.fn()
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-1',
@@ -202,7 +203,7 @@ describe('createUISlice settings navigation', () => {
       providerIdentity: { provider: 'github', owner: 'acme', repo: 'repo' }
     }
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-1',
@@ -325,7 +326,7 @@ describe('createUISlice settings navigation', () => {
 describe('createUISlice page navigation history', () => {
   it('records and rewinds Tasks visits on close', () => {
     const store = createUIStore()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openTaskPage()
@@ -340,7 +341,7 @@ describe('createUISlice page navigation history', () => {
   it('rewinds Tasks detail visits on close', () => {
     const store = createUIStore()
     const workItem = makeGitHubWorkItem()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openTaskPage({ taskSource: 'github', openGitHubWorkItem: workItem })
@@ -524,7 +525,7 @@ describe('createUISlice page navigation history', () => {
   it('skips the whole Tasks detail stack on close', () => {
     const store = createUIStore()
     const workItem = makeGitHubWorkItem()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openTaskPage({ taskSource: 'github', openGitHubWorkItem: workItem })
@@ -549,7 +550,7 @@ describe('createUISlice page navigation history', () => {
 
   it('records and rewinds Automations visits on close', () => {
     const store = createUIStore()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openAutomationsPage()
@@ -563,7 +564,7 @@ describe('createUISlice page navigation history', () => {
 
   it('dedupes repeated Automations opens against the current history entry', () => {
     const store = createUIStore()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openAutomationsPage()
@@ -588,7 +589,7 @@ describe('createUISlice page navigation history', () => {
 
   it('skips deleted prior worktrees when closing Automations', () => {
     const store = createUIStore()
-    store.setState({
+    setSessionTestState(store, {
       activeView: 'automations',
       previousViewBeforeAutomations: 'terminal',
       worktreesByRepo: { 'repo-1': [makeWorktree('c')] },
@@ -694,7 +695,7 @@ describe('createUISlice space navigation', () => {
 
   it('records and rewinds Artifacts visits on close', () => {
     const store = createUIStore()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openArtifactsPage()
@@ -708,7 +709,7 @@ describe('createUISlice space navigation', () => {
 
   it('records and rewinds Skills visits on close', () => {
     const store = createUIStore()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openSkillsPage()
@@ -722,7 +723,7 @@ describe('createUISlice space navigation', () => {
 
   it('records Artifacts and Skills as separate back/forward entries', () => {
     const store = createUIStore()
-    store.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
+    setSessionTestState(store, { worktreesByRepo: { 'repo-1': [makeWorktree('a')] } })
 
     store.getState().recordWorktreeVisit('a')
     store.getState().openArtifactsPage()

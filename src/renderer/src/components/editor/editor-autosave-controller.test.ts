@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { createEditorSlice } from '@/store/slices/editor'
@@ -219,7 +220,7 @@ describe('attachEditorAutosaveController', () => {
 
     const store = createEditorStore()
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {},
       folderWorkspaces: [
         makeFolderWorkspace({
@@ -318,7 +319,7 @@ describe('attachEditorAutosaveController', () => {
     const store = createEditorStore()
     const workspaceId = 'folder-workspace-runtime'
     const workspaceKey = folderWorkspaceKey(workspaceId)
-    store.setState({
+    setSessionTestState(store, {
       settings: {
         editorAutoSave: true,
         editorAutoSaveDelayMs: 1000,
@@ -404,7 +405,7 @@ describe('attachEditorAutosaveController', () => {
     } satisfies WindowStub)
 
     const store = createEditorStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: {
         editorAutoSave: true,
         editorAutoSaveDelayMs: 1000,

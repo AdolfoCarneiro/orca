@@ -1,11 +1,10 @@
+import { summary } from './structured-status-launch-directory.test-fixture'
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type {
-  AgentSessionStatusEvent,
-  AgentSessionStatusSummary
-} from '../../../../shared/agent-session-wire'
+import type { AgentSessionStatusEvent } from '../../../../shared/agent-session-wire'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import {
   LOCAL_EXECUTION_HOST_ID,
@@ -99,18 +98,6 @@ const floatingTab = {
   agentSessionAgent: 'codex',
   executionHostId: LOCAL_EXECUTION_HOST_ID
 } satisfies Tab
-
-function summary(overrides: Partial<AgentSessionStatusSummary> = {}): AgentSessionStatusSummary {
-  return {
-    sessionId: 'session-1',
-    workspaceId: FLOATING_TERMINAL_WORKTREE_ID,
-    agent: 'codex',
-    status: 'idle',
-    latestPrompt: 'hello',
-    updatedAt: 1,
-    ...overrides
-  }
-}
 
 function emit(event: AgentSessionStatusEvent): void {
   const call = mocks.subscribeStatus.mock.calls.at(-1)
@@ -236,7 +223,9 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
                 : 'local'
           }) satisfies Tab
       )
-      useAppStore.setState({ unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: tabs } })
+      setSessionTestState(useAppStore, {
+        unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: tabs }
+      })
       let commits = 0
       let publications = 0
       let sleepWrites = 0
@@ -347,7 +336,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
         )
       resetWork()
       const removalWork = measureMembership(() =>
-        useAppStore.setState({
+        setSessionTestState(useAppStore, {
           unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: remaining }
         })
       )
@@ -385,7 +374,9 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
       { ...floatingTab, id: 'second', entityId: 'session-2' },
       { ...floatingTab, id: 'remote', entityId: 'session-3', executionHostId: 'runtime:paired' }
     ]
-    useAppStore.setState({ unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: tabs } })
+    setSessionTestState(useAppStore, {
+      unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: tabs }
+    })
     const view = render(<StructuredAgentSessionStatusBridge />)
     await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledTimes(2))
     act(() => {
@@ -406,7 +397,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
       })
     })
     act(() =>
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: tabs.slice(1) }
       })
     )
@@ -420,13 +411,15 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
         return
       }
       reenter = false
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: [tabs[2]] }
       })
     })
     try {
       act(() =>
-        useAppStore.setState({ unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: [] } })
+        setSessionTestState(useAppStore, {
+          unifiedTabsByWorktree: { [FLOATING_TERMINAL_WORKTREE_ID]: [] }
+        })
       )
       expect(reenter).toBe(false)
       expect(released[0]).toHaveBeenCalledOnce()
@@ -474,7 +467,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
           })
         }
         act(() =>
-          useAppStore.setState({
+          setSessionTestState(useAppStore, {
             unifiedTabsByWorktree: {
               [FLOATING_TERMINAL_WORKTREE_ID]: [
                 { ...floatingTab, entityId: 'replacement', executionHostId: 'runtime:paired' }
@@ -510,13 +503,13 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
 
   it('rekeys an older unstamped tab when its worktree owner arrives', async () => {
     const legacyTab = { ...floatingTab, worktreeId: 'wt-1', executionHostId: undefined }
-    useAppStore.setState({ unifiedTabsByWorktree: { 'wt-1': [legacyTab] } })
+    setSessionTestState(useAppStore, { unifiedTabsByWorktree: { 'wt-1': [legacyTab] } })
     render(<StructuredAgentSessionStatusBridge />)
     await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledOnce())
     expect(feed().target).toEqual({ kind: 'local' })
     act(() => feed().emit({ type: 'snapshot', sessions: [summary({ workspaceId: 'wt-1' })] }))
     act(() =>
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         worktreesByRepo: {
           repo: [
             makeWorktree({
@@ -674,7 +667,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
           })
         )
         act(() =>
-          useAppStore.setState({
+          setSessionTestState(useAppStore, {
             unifiedTabsByWorktree: {
               [FLOATING_TERMINAL_WORKTREE_ID]: [
                 { ...floatingTab, executionHostId: 'runtime:paired' }
@@ -706,7 +699,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
         )
         assertContinuity()
         act(() =>
-          useAppStore.setState({
+          setSessionTestState(useAppStore, {
             unifiedTabsByWorktree: {
               [FLOATING_TERMINAL_WORKTREE_ID]: [{ ...floatingTab, executionHostId: 'runtime:cold' }]
             }
@@ -723,7 +716,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
         )
         expect(statuses()[0].stateStartedAt).toBe(statusStartedAt ?? 400)
         act(() =>
-          useAppStore.setState({
+          setSessionTestState(useAppStore, {
             unifiedTabsByWorktree: {
               [FLOATING_TERMINAL_WORKTREE_ID]: [
                 { ...floatingTab, entityId: 'replacement', executionHostId: 'runtime:cold' }
@@ -783,7 +776,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
       }
     })
     act(() =>
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: {
           [FLOATING_TERMINAL_WORKTREE_ID]: [{ ...floatingTab, ...metadata }]
         }

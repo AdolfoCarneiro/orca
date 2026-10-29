@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 // Local chat listings preserve main-framed tab structure and update only host titles.
@@ -89,7 +90,7 @@ function listing(): RuntimeMobileSessionTabsResult {
 
 beforeEach(() => {
   useAppStore.setState(useAppStore.getInitialState(), true)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: WT,
     unifiedTabsByWorktree: {
       [WT]: [

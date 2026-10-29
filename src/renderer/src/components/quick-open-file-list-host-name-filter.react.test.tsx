@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, createElement, useEffect } from 'react'
@@ -119,7 +120,7 @@ afterEach(async () => {
 describe('useRuntimeFileListForWorktree host name filter', () => {
   it('re-lists a capped local workspace with the name filter applied on the host', async () => {
     vi.useFakeTimers()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace()],
       projectGroups: [makeProjectGroup()],
       repos: [],
@@ -158,7 +159,7 @@ describe('useRuntimeFileListForWorktree host name filter', () => {
   })
 
   it('filters an uncapped local listing in the renderer without a host re-list', async () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace()],
       projectGroups: [makeProjectGroup()],
       repos: [],
@@ -180,7 +181,7 @@ describe('useRuntimeFileListForWorktree host name filter', () => {
   })
   it('falls back to the capped listing and stops re-listing after a host filter failure', async () => {
     vi.useFakeTimers()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace()],
       projectGroups: [makeProjectGroup()],
       repos: [],

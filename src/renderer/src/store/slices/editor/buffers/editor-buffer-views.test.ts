@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand'
 import { useAppStore } from '@/store'
@@ -217,8 +218,10 @@ describe('editor buffer invariant', () => {
       withEditorBufferRecords<EditorBufferState>(() => ({ ...valid, editorDrafts: {} }), true)
     )
 
-    store.setState({ editorDrafts: { a: 'y', b: 'y' } })
-    expect(() => store.setState({ editorDrafts: { a: 'y', b: 'z' } })).toThrow(/draft of b/)
+    setSessionTestState(store, { editorDrafts: { a: 'y', b: 'y' } })
+    expect(() => setSessionTestState(store, { editorDrafts: { a: 'y', b: 'z' } })).toThrow(
+      /draft of b/
+    )
     expect(store.getState().editorDrafts).toEqual({ a: 'y', b: 'y' })
   })
 

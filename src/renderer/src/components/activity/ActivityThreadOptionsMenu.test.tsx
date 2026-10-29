@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, StrictMode, type ReactElement } from 'react'
@@ -192,7 +193,7 @@ describe('ActivityThreadOptionsMenu', () => {
       const originalState = useAppStore.getState()
       const persist = vi.fn().mockResolvedValue(undefined)
       vi.stubGlobal('api', { ui: { set: persist } })
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         repos: scenario === 'single project' ? [makeRepo()] : [],
         agentsVisibleHostIds: scenario === 'removed host' ? ['ssh:removed-host'] : null,
         agentsFilterRepoIds: scenario === 'removed host' ? [] : ['repo-1'],

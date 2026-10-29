@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -117,7 +118,7 @@ function loadChat(tab: Tab, owner: ExecutionHostId) {
   return loadWorkspaceLayoutWithoutReport(owner, stored, nameBasedLoadContext())
 }
 function seed(tab: Tab) {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     workspaceSessionReady: true,
     repos: [{ ...TEST_REPO, id: 'repo' }],
     worktreesByRepo: { repo: [workspace] },
@@ -167,7 +168,7 @@ it('keeps invisible aliases without retrying them while valid migration and expl
     customLabel: '  Visible\u200B name  '
   })
   seed(blank)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     unifiedTabsByWorktree: { [workspace.id]: [blank, joiners, valid] },
     groupsByWorktree: saveWorkspaceLayout(loadChat(blank, 'runtime:paired')).tabGroups ?? {}
   })
@@ -242,7 +243,7 @@ it('bounds reconciliation scans linearly at N and 10N without resending unchange
       })
     )
     seed(tabs[0])
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: { [workspace.id]: tabs },
       groupsByWorktree: {
         [workspace.id]: [
@@ -282,12 +283,12 @@ it('bounds reconciliation scans linearly at N and 10N without resending unchange
     )
 
     // A new snapshot with identical candidates still scans, but must not send again.
-    useAppStore.setState({ unifiedTabsByWorktree: { [workspace.id]: [...tabs] } })
+    setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [workspace.id]: [...tabs] } })
     expectScan(tabs)
     // Changing the candidate set reaches the in-flight check rather than the unchanged shortcut.
-    useAppStore.setState({ unifiedTabsByWorktree: { [workspace.id]: tabs.slice(1) } })
+    setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [workspace.id]: tabs.slice(1) } })
     expectScan(tabs.slice(1))
-    useAppStore.setState({ unifiedTabsByWorktree: { [workspace.id]: [...tabs] } })
+    setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [workspace.id]: [...tabs] } })
     expectScan(tabs)
     await act(async () => {})
     expect(mock.rpc).toHaveBeenCalledTimes(count / 4)
@@ -383,7 +384,7 @@ it('retains a replacement alias when main receives an older session cleanup', as
 it('transfers an unstamped alias once its single local owner is known and reloads the canonical name', async () => {
   const tab = chat({ worktreeId: 'folder:unique', customLabel: 'Legacy' })
   seed(tab)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos: [],
     worktreesByRepo: {},
     restoredRuntimeHostIdByWorkspaceSessionKey: { [tab.worktreeId]: 'runtime:storage-only' }
@@ -396,8 +397,8 @@ it('transfers an unstamped alias once its single local owner is known and reload
   ).toBe(false)
   expect(mock.rpc).not.toHaveBeenCalled()
   const groups = saveWorkspaceLayout(loadChat(tab, 'local')).tabGroups?.[tab.worktreeId] ?? []
-  useAppStore.setState({ groupsByWorktree: { [tab.worktreeId]: groups } })
-  useAppStore.setState({
+  setSessionTestState(useAppStore, { groupsByWorktree: { [tab.worktreeId]: groups } })
+  setSessionTestState(useAppStore, {
     folderWorkspaces: [makeFolderWorkspace({ id: 'unique', executionHostId: 'local' })]
   })
   await waitFor(() =>
@@ -428,7 +429,7 @@ function seedTwin(tab: Tab) {
   seed(tab)
   const folder = makeFolderWorkspace({ id: 'twin' })
   const paneKey = makePaneKey(tab.id, '11111111-1111-4111-8111-111111111111')
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: tab.worktreeId,
     activeWorkspaceExecutionHostId: 'runtime:paired',
     folderWorkspaces: [
@@ -490,7 +491,7 @@ it('shares qualified current names with live dashboard and attachments without a
   mock.snapshot = new Map([[tab.entityId, name(tab, 'Same')]])
   mock.paired = new Map([[tab.entityId, name(tab, 'Same')]])
   const attached = chat({ id: 'attached-tab', executionHostId: 'runtime:paired' })
-  useAppStore.setState((state) => ({
+  setSessionTestState(useAppStore, (state) => ({
     unifiedTabsByWorktree: { ...state.unifiedTabsByWorktree, [workspace.id]: [attached] }
   }))
   const before = getStructuredChatTabNames()
@@ -554,7 +555,9 @@ it('shares qualified current names with live dashboard and attachments without a
   expect(shown()).toBe('Codex Chat')
   expect(activityTitle()).toBe('Codex Chat')
   const replacement = { ...tab }
-  act(() => useAppStore.setState({ unifiedTabsByWorktree: { [tab.worktreeId]: [replacement] } }))
+  act(() =>
+    setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [tab.worktreeId]: [replacement] } })
+  )
   expect(getStructuredChatTabNames().has(tab)).toBe(false)
   expect(getStructuredChatTabNames().has(replacement)).toBe(true)
   dashboard.unmount()
@@ -647,7 +650,7 @@ it('traces legacy runtime storage movement, action routing and switch-away befor
   const current = () => useAppStore.getState().unifiedTabsByWorktree[tab.worktreeId][0]
   expect(current().executionHostId).toBeUndefined()
   const folder = makeFolderWorkspace({ id: 'twin' })
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorkspaceExecutionHostId: 'runtime:b',
     folderWorkspaces: [
       { ...folder, executionHostId: 'runtime:a' },
@@ -744,7 +747,9 @@ it('traces legacy runtime storage movement, action routing and switch-away befor
   expect(readStructuredChatTabName(current(), useAppStore.getState())).toBe('Explicit name')
   expect(mock.rpc).toHaveBeenCalledTimes(1)
   // The existing migration retires the copy once catalog ownership is proved.
-  useAppStore.setState({ folderWorkspaces: [{ ...folder, executionHostId: 'runtime:b' }] })
+  setSessionTestState(useAppStore, {
+    folderWorkspaces: [{ ...folder, executionHostId: 'runtime:b' }]
+  })
   await waitFor(() => expect(current().customLabel).toBeNull())
   expect(mock.rpc).toHaveBeenLastCalledWith(
     { kind: 'environment', environmentId: 'b' },

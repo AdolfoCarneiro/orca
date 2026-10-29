@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { applyWebSessionTabsSnapshot } from '@/runtime/web-session-tabs-sync/snapshot-api'
@@ -73,7 +74,7 @@ function makeRecord(worktreeId: string, tabId: string): SleepingAgentSessionReco
 }
 
 function seedRecord(record: SleepingAgentSessionRecord): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     sleepingAgentSessionsByPaneKey: {
       ...useAppStore.getState().sleepingAgentSessionsByPaneKey,
       [record.paneKey]: record
@@ -123,7 +124,7 @@ describe('a tab closed on another paired client', () => {
 
   it('is not resumed from a record keyed by the tab id this client created it under', () => {
     const worktreeId = seedPairedWorkspace()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         [worktreeId]: [
           {

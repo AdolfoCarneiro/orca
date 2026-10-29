@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store'
@@ -47,7 +48,7 @@ function seedPanes(count: number): void {
       ptyIdsByLeafId: { [leafId]: ptyId }
     }
   }
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: { wt1: tabs },
     terminalLayoutsByTabId: layouts,
     ptyIdsByTabId

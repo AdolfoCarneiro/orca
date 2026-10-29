@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { getDefaultSettings } from '../../../shared/constants'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -104,7 +105,7 @@ function baseState(worktree: ReturnType<typeof makeCreatedAgentWorktree>): Parti
 
 function seedSleepingRecord(worktreeId: string, sessionId: string): string {
   const paneKey = makePaneKey(WEB_TAB_ID, LEAF_ID)
-  useAppStore.setState((s) => ({
+  setSessionTestState(useAppStore, (s) => ({
     sleepingAgentSessionsByPaneKey: {
       ...s.sleepingAgentSessionsByPaneKey,
       [paneKey]: {
@@ -204,7 +205,7 @@ describe('runtime-owned worktree activation with an unhydrated host mirror', () 
     }
     useAppStore.setState(state)
     const paneKey = makePaneKey(localTabId, LEAF_ID)
-    useAppStore.setState((s) => ({
+    setSessionTestState(useAppStore, (s) => ({
       sleepingAgentSessionsByPaneKey: {
         ...s.sleepingAgentSessionsByPaneKey,
         [paneKey]: {

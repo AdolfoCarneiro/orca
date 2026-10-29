@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
@@ -102,7 +103,7 @@ function makeState(
   repo: Partial<ReturnType<typeof makeRepo>> = {}
 ): AppState {
   useAppStore.setState(useAppStore.getInitialState(), true)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     agentStatusByPaneKey,
     activeRepoId: 'repo-1',
     activeWorktreeId: WORKTREE_ID,
@@ -372,7 +373,7 @@ describe('resolveTabSessionHistorySubject', () => {
       worktreeId: WORKTREE_ID,
       providerSession: { key: 'session_id', id: 'claude-session-old' }
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: {
         'term-1': { root: null, activeLeafId: 'leaf-1', expandedLeafId: null }
       },
@@ -487,7 +488,7 @@ describe('one pane of a terminal tab', () => {
         providerSession: { key: 'session_id', id: 'gemini-session-1' }
       })
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: { 'term-1': { root: null, activeLeafId, expandedLeafId: null } }
     })
     return useAppStore.getState()

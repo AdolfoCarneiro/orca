@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import '@testing-library/jest-dom/vitest'
 import { useRef, type ComponentProps } from 'react'
@@ -138,7 +139,7 @@ beforeEach(() => {
   resetLocalImageSrcStateForTests()
   vi.stubGlobal('IntersectionObserver', undefined)
   const worktree = worktreeFixture('wt-1', '/repo/worktree', { hostId: 'local' })
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     ...useAppStore.getInitialState(),
     repos: [repoFixture()],
     worktreesByRepo: { repo: [worktree] },
@@ -174,7 +175,7 @@ describe('native chat Markdown image preview', () => {
         executionHostId: `runtime:${owner}` as const,
         folderPath: path
       }))
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ...useAppStore.getInitialState(),
       ...fixture,
       folderWorkspaces: folders('markdown-first', '/remote/first'),
@@ -212,7 +213,9 @@ describe('native chat Markdown image preview', () => {
       )
 
       act(() =>
-        useAppStore.setState({ folderWorkspaces: folders('markdown-next', '/remote/next') })
+        setSessionTestState(useAppStore, {
+          folderWorkspaces: folders('markdown-next', '/remote/next')
+        })
       )
       await waitFor(() =>
         expect(screen.getByRole('img', { name: 'Chart' })).toHaveAttribute('src', 'blob:image-2')
@@ -240,7 +243,7 @@ describe('native chat Markdown image preview', () => {
         })
       )
       mocks.openDetectedFilePath.mockClear()
-      await act(async () => useAppStore.setState({ unifiedTabsByWorktree: {} }))
+      await act(async () => setSessionTestState(useAppStore, { unifiedTabsByWorktree: {} }))
       expect(screen.queryByRole('img', { name: 'Chart' })).toBeNull()
       const unavailableTrigger = screen.getByRole('button', { name: 'View image: Chart' })
       expect(unavailableTrigger).toHaveTextContent('Chart')

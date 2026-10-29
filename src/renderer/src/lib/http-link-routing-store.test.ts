@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type * as BrowserFocusModule from '@/components/browser-pane/host-guest/browser-focus'
 import { requestBrowserFocus } from '@/components/browser-pane/host-guest/browser-focus'
@@ -37,7 +38,7 @@ beforeEach(() => {
     activeView: 'activity',
     settings: { ...getDefaultSettings('/home/test'), openLinksInApp: true }
   })
-  useAppStore.setState((state) => ({
+  setSessionTestState(useAppStore, (state) => ({
     worktreesByRepo: {
       repo1: [
         ...state.worktreesByRepo.repo1!,
@@ -315,7 +316,7 @@ it('keeps the Activity view and current pane selected for background source-awar
 it('keeps the main view and workspace selected when revealing a floating HTTP link', async () => {
   const floating = FLOATING_TERMINAL_WORKTREE_ID
   const state = useAppStore.getState()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     settings: {
       ...getDefaultSettings('/home/test'),
       openLinksInApp: true,
@@ -384,7 +385,7 @@ it.each([
     for (const path of ['legacy', 'preview'] as const) {
       useAppStore.setState({ createBrowserTab: useAppStore.getInitialState().createBrowserTab })
       seedBrowserLinkTestStore(useAppStore)
-      useAppStore.setState((state) => ({
+      setSessionTestState(useAppStore, (state) => ({
         activeWorkspaceExecutionHostId: hostId,
         worktreesByRepo: {
           repo1: [makeWorktree({ id: WORKSPACE, repoId: 'repo1', path: '/repo', hostId })]

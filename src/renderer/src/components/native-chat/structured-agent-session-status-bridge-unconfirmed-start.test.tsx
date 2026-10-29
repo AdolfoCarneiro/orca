@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 // Lost create replies remain unmarked and recheck on reconnect; only confirmed failures earn failure marks.
@@ -264,7 +265,7 @@ describe('a chat whose start was never confirmed', () => {
     mocks.restoreIntent.mockImplementation((args: { sessionId: string }) =>
       launchIntent(args.sessionId)
     )
-    store().setState({
+    setSessionTestState(store(), {
       agentStatusByPaneKey: {},
       acknowledgedAgentsByPaneKey: {},
       retainedAgentsByPaneKey: {},

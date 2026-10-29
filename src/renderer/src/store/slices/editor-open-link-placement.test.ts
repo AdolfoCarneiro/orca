@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { StoreApi } from 'zustand/vanilla'
 import { describe, expect, it, vi } from 'vitest'
 import { createEditorTabsStore } from './editor-slice-test-harness'
@@ -55,7 +56,7 @@ function addTab(
   // A terminal with its row, so main holds it once it takes the layout.
   if (ORCA_LAYOUT_OWNER_IS_MAIN && contentType === 'terminal') {
     const state = store.getState()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         ...state.tabsByWorktree,
         'wt-1': [
@@ -74,7 +75,7 @@ function addEditor(store: StoreApi<AppState>, filePath: string, groupId: string)
     store.getState().openFile(fileInput(filePath), { targetGroupId: groupId })
     return
   }
-  store.setState({
+  setSessionTestState(store, {
     openFiles: [
       ...store.getState().openFiles,
       { ...fileInput(filePath), id: filePath, isDirty: false }
@@ -90,7 +91,7 @@ function addEditor(store: StoreApi<AppState>, filePath: string, groupId: string)
 /** Drops a tab the way a close would, without the terminal slice the harness lacks. */
 function removeTab(store: StoreApi<AppState>, tabId: string): void {
   const state = store.getState()
-  store.setState({
+  setSessionTestState(store, {
     unifiedTabsByWorktree: {
       'wt-1': state.unifiedTabsByWorktree['wt-1']!.filter((tab) => tab.id !== tabId)
     },
@@ -105,7 +106,7 @@ function removeTab(store: StoreApi<AppState>, tabId: string): void {
 
 function removeGroup(store: StoreApi<AppState>, groupId: string): void {
   const state = store.getState()
-  store.setState({
+  setSessionTestState(store, {
     groupsByWorktree: {
       'wt-1': state.groupsByWorktree['wt-1']!.filter((group) => group.id !== groupId)
     },
@@ -116,7 +117,7 @@ function removeGroup(store: StoreApi<AppState>, groupId: string): void {
 }
 
 function focus(store: StoreApi<AppState>, groupId: string): void {
-  store.setState({ activeGroupIdByWorktree: { 'wt-1': groupId } })
+  setSessionTestState(store, { activeGroupIdByWorktree: { 'wt-1': groupId } })
 }
 
 function groupOfFile(store: StoreApi<AppState>, filePath: string): string[] {

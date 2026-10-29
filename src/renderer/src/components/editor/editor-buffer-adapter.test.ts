@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
@@ -23,7 +24,7 @@ bridge.register(monaco)
 
 function twoViews(): { store: StoreApi<AppState>; a: string; b: string } {
   const store = createEditorStore()
-  store.setState({
+  setSessionTestState(store, {
     worktreesByRepo: {
       'repo-1': [
         makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }),
@@ -126,13 +127,13 @@ describe('a kept dirty record owns its model', () => {
   it('keeps the model past its last view until its removal notice is dismissed', async () => {
     const { store, a, b } = twoViews()
     storeRef.current = store
-    store.setState((s) => ({ openFiles: s.openFiles.filter((tab) => tab.id !== b) }))
+    setSessionTestState(store, (s) => ({ openFiles: s.openFiles.filter((tab) => tab.id !== b) }))
     store.getState().setEditorDraft(a, 'unsaved')
     store.getState().markFileDirty(a, true)
     const model = modelOf(store, a, 'unsaved')
     const detach = attachClosedEditorTabCleanup(store, bridge)
     try {
-      store.setState((s) => ({
+      setSessionTestState(store, (s) => ({
         openFiles: s.openFiles.filter((tab) => tab.id !== a),
         editorBufferKeepRequest: { viewIds: new Set([a]), notice: 1 }
       }))

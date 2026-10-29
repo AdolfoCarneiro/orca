@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import {
@@ -48,7 +49,7 @@ describe('removeWorktree state cleanup', () => {
       repoId: 'repo1',
       path: '/path/reused'
     })
-    store.setState({ worktreesByRepo: { repo1: [removed] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [removed] } } as Partial<AppState>)
     const staleProbe = beginHugeRepoWarningProbe(removed)
     expect(markHugeRepoWarningDismissed(staleProbe)).toBe(true)
 
@@ -69,7 +70,7 @@ describe('removeWorktree state cleanup', () => {
       repoId: 'repo1',
       path: '/path/retained'
     })
-    store.setState({ worktreesByRepo: { repo1: [retained] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [retained] } } as Partial<AppState>)
     const retainedProbe = beginHugeRepoWarningProbe(retained)
     expect(markHugeRepoWarningDismissed(retainedProbe)).toBe(true)
     mockApi.worktrees.remove.mockRejectedValueOnce(new Error('delete failed'))
@@ -92,7 +93,9 @@ describe('removeWorktree state cleanup', () => {
       repoId: 'repo1',
       path: '/path/wt2'
     })
-    store.setState({ worktreesByRepo: { repo1: [removed, surviving] } } as Partial<AppState>)
+    setSessionTestState(store, {
+      worktreesByRepo: { repo1: [removed, surviving] }
+    } as Partial<AppState>)
     await store.getState().updateWorktreeMeta(removed.id, { linkedBitbucketPR: 101 })
     await store.getState().updateWorktreeMeta(surviving.id, { linkedAzureDevOpsPR: 202 })
 
@@ -110,7 +113,7 @@ describe('removeWorktree state cleanup', () => {
     const removed = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
     const surviving = makeWorktree({ id: 'repo1::/path/wt2', repoId: 'repo1', path: '/path/wt2' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       tabsByWorktree: {
         [removed.id]: [makeTerminalTab({ id: 'removed-tab', worktreeId: removed.id })],
@@ -140,7 +143,7 @@ describe('removeWorktree state cleanup', () => {
       path: '/path/wt2'
     })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       tabsByWorktree: {
         [removed.id]: [makeTerminalTab({ id: 'removed-tab', worktreeId: removed.id })],
@@ -199,7 +202,7 @@ describe('removeWorktree state cleanup', () => {
       updatedAt: 1
     }
     const deleteProjectHostSetup = vi.fn().mockResolvedValue(null)
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       projectHostSetups: [orphanedSetup, userSshSetup],
       deleteProjectHostSetup
@@ -227,7 +230,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
         {
@@ -266,7 +269,7 @@ describe('removeWorktree state cleanup', () => {
       worktreeInstanceId: 'sibling-instance'
     })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       worktreeLineageById: {
         [wt.id]: childLineage,
@@ -285,7 +288,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
         {
@@ -314,7 +317,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
         {
@@ -343,7 +346,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
         {
@@ -372,7 +375,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
         {
@@ -400,7 +403,7 @@ describe('removeWorktree state cleanup', () => {
   it('records the sidebar scroll anchor in the same tick it removes the worktree', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
-    store.setState({ worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
 
     const sidebar = new EventTarget()
     let worktreePresentWhenRecorded: boolean | null = null
@@ -429,7 +432,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       expandedDirs: {
         'repo1::/path/wt1': new Set(['src', 'src/lib']),
@@ -448,7 +451,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       showDotfilesByWorktree: {
         'repo1::/path/wt1': false,
@@ -467,7 +470,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeTabIdByWorktree: {
         'repo1::/path/wt1': 'tab-1',
@@ -486,7 +489,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       tabBarOrderByWorktree: {
         'repo1::/path/wt1': ['tab-1', 'file-1', 'browser-1'],
@@ -505,7 +508,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       pendingReconnectTabByWorktree: {
         'repo1::/path/wt1': ['tab-1'],
@@ -556,7 +559,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       gitStatusByWorktree: {
         'repo1::/path/wt1': [{ path: 'a.ts' }],
@@ -639,7 +642,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       recentlyClosedBrowserTabsByWorktree: {
         'repo1::/path/wt1': [{ workspace: { id: 'workspace-1' }, pages: [] }],
@@ -659,7 +662,7 @@ describe('removeWorktree state cleanup', () => {
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
     const drafts = { 'file-2': 'some content' }
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [],
       editorDrafts: drafts

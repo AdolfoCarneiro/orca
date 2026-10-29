@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
@@ -55,7 +56,7 @@ function seedAutomationWorktreeState(
   worktree: Worktree,
   overrides: Partial<ReturnType<typeof useAppStore.getState>> = {}
 ): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos: [
       {
         id: worktree.repoId,
@@ -128,7 +129,7 @@ describe('activateAndRevealWorktree automation filters', () => {
       exists: false,
       reason: 'missing' as const
     }))
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       sidebarBody: 'agents',
       folderWorkspaces: [
         {

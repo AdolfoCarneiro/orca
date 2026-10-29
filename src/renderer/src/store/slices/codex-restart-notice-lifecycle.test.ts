@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from '../index'
 
@@ -243,7 +244,7 @@ describe('replaceTerminalLayoutPanePtyId', () => {
 
   it('rebinds one leaf and leaves split siblings alone', () => {
     const OTHER_LEAF = '22222222-2222-4222-8222-222222222222'
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: {
         'tab-1': {
           root: null,

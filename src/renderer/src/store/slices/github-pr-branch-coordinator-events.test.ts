@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { CLEARED_HOSTED_REVIEW_SELECTION_UPDATES } from '../../../../shared/worktree/hosted-review-links'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { _clearGitHubPRRefreshStartedEntriesForTest } from '../github/request-coordination'
@@ -156,7 +157,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       })
       return worktree
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: { [repoId]: worktrees }
     } as unknown as Partial<AppState>)
@@ -209,7 +210,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       })
       return worktree
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: { [repoId]: worktrees }
     } as unknown as Partial<AppState>)
@@ -304,7 +305,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const worktreeId = 'repo-1::/same/path'
     const cacheKey = `${repoId}::${branch}`
     const updateWorktreeMeta = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: {
         [repoId]: [
@@ -365,7 +366,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const worktreeId = 'repo-1::/same/path'
     const cacheKey = `ssh:ssh-1::${repoId}::${branch}`
     const updateWorktreeMeta = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: repoId,
@@ -488,7 +489,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         if (options?.shouldApply && !options.shouldApply(current)) {
           return
         }
-        store.setState((state) => ({
+        setSessionTestState(store, (state) => ({
           worktreesByRepo: {
             ...state.worktreesByRepo,
             [repoId]: (state.worktreesByRepo[repoId] ?? []).map((worktree) =>
@@ -498,7 +499,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         }))
       }
     )
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: { [repoId]: [worktreeA, worktreeB] },
       updateWorktreeMeta
@@ -612,7 +613,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       headSha: 'merged-head'
     })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
           makePRRefreshWorktree({
@@ -712,7 +713,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       headSha: 'merged-head'
     })
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: testCase.worktreesByRepo,
       prCache: {
         [cacheKey]: {

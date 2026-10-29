@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -58,7 +59,7 @@ beforeEach(() => {
   closeUnifiedTab = vi.fn()
   closeBrowserTab = vi.fn()
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: setState takes a partial slice; these fixtures seed only the fields the close plan reads.
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     closeUnifiedTab,
     closeBrowserTab,
     closeTab: vi.fn(),
@@ -89,7 +90,7 @@ function commands(): ReturnType<typeof useTabGroupTabCloseCommands> {
 
 /** Stage a client handle before the host publishes its page. */
 function stageWorkspace(workspaceId: string): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     browserPagesByWorkspace: { [workspaceId]: [{ id: 'page-1', workspaceId }] },
     remoteBrowserPageHandlesByPageId: {
       'page-1': { environmentId: 'env-a', remotePageId: 'remote-1', staged: true }
@@ -132,7 +133,7 @@ describe('closing a browser workspace owned by more than one runtime environment
   // Pageless host mirrors need the workspace owner or the host re-mirrors the locally removed tab.
   it("removes a pageless host mirror through the worktree's runtime owner", () => {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: setState takes a partial slice; these fixtures seed only the fields the close plan reads.
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       browserPagesByWorkspace: {},
       remoteBrowserPageHandlesByPageId: {},
       ...OWNED_BY_ENV_OWNER
@@ -147,7 +148,7 @@ describe('closing a browser workspace owned by more than one runtime environment
 
   it('routes the bulk close through the same plan for a pageless host mirror', () => {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: setState takes a partial slice; these fixtures seed only the fields the close plan reads.
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       browserPagesByWorkspace: {},
       remoteBrowserPageHandlesByPageId: {},
       ...OWNED_BY_ENV_OWNER
@@ -213,7 +214,7 @@ describe('closing a browser workspace owned by more than one runtime environment
       groupId: 'group-1'
     } as Tab
     stageWorkspace('workspace-a')
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: { 'worktree-a': [BROWSER_TAB, hostTab] },
       browserPagesByWorkspace: {
         'workspace-a': [{ id: 'page-1', workspaceId: 'workspace-a' }],
@@ -237,7 +238,7 @@ describe('closing a browser workspace owned by more than one runtime environment
   })
 
   it('still leaves a lone owner tab for host sync to remove', () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       remoteBrowserPageHandlesByPageId: {
         'page-1': { environmentId: 'env-a', remotePageId: 'remote-1' },
         'page-2': { environmentId: 'env-a', remotePageId: 'remote-2' }
@@ -260,7 +261,7 @@ describe('shared tab close policies', () => {
       entityId: 'dirty-file',
       contentType: 'editor'
     } as Tab
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: { 'worktree-a': [editor] },
       openFiles: [{ id: 'dirty-file', isDirty: true, worktreeId: 'worktree-a' }]
     } as never)
@@ -282,7 +283,7 @@ describe('shared tab close policies', () => {
       entityId: 'terminal-entity',
       contentType: 'terminal'
     } as Tab
-    useAppStore.setState({ unifiedTabsByWorktree: { 'worktree-a': [terminal] } })
+    setSessionTestState(useAppStore, { unifiedTabsByWorktree: { 'worktree-a': [terminal] } })
     const { result } = renderHook(() => useTabGroupTabCloseCommands({ worktreeId: 'worktree-a' }))
     result.current.closeItem(terminal.id)
     expect(mocks.closeTerminalTab).toHaveBeenLastCalledWith('terminal-entity', {

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as intent from '@/lib/worktree-sleep-intent'
 import { buildWorktreePurgeState } from './worktrees/teardown/worktree-purge-state'
@@ -55,7 +56,7 @@ describe('worktree sleep intent lifecycle', () => {
 
   it('is released by activating a folder workspace', () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       folderWorkspaces: [
         {
           id: 'folder-1',

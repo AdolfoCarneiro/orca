@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, renderHook } from '@testing-library/react'
@@ -131,7 +132,7 @@ for (const scenario of cases) {
         }
       ])
     )
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [],
       folderWorkspaces: scenario.folder
         ? [
@@ -210,7 +211,7 @@ for (const scenario of cases) {
       openFiles[1].filePath = `${root}/file.txt-other`
     }
     if (scenario.stale) {
-      useAppStore.setState((state) => ({
+      setSessionTestState(useAppStore, (state) => ({
         worktreesByRepo: {
           ...state.worktreesByRepo,
           foreign: [

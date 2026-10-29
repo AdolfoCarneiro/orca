@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import type { AppState } from '../types'
@@ -47,7 +48,7 @@ function makeStore(settings: AppState['settings'] = null) {
 }
 
 function stampRepoOwner(store: ReturnType<typeof makeStore>, executionHostId: `runtime:${string}`) {
-  store.setState((state) => ({
+  setSessionTestState(store, (state) => ({
     repos: state.repos.map((repo) => ({ ...repo, executionHostId }))
   }))
 }
@@ -188,7 +189,7 @@ describe('hosted review slice', () => {
   it('uses SSH-scoped hosted review cache entries for SSH-backed repos', async () => {
     mockApi.hostedReview.forBranch.mockResolvedValueOnce(review)
     const store = makeStore()
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-1' } as AppState['repos'][number]]
     } as Partial<AppState>)
 
@@ -248,7 +249,7 @@ describe('hosted review slice', () => {
   it('routes runtime-owned review lookups through the owning runtime when local is focused', async () => {
     runtimeRpc.callRuntimeRpc.mockResolvedValueOnce(review)
     const store = makeStore(null)
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-1',
@@ -282,7 +283,7 @@ describe('hosted review slice', () => {
     const store = makeStore({
       activeRuntimeEnvironmentId: 'env-focused'
     } as AppState['settings'])
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-1',
@@ -348,7 +349,7 @@ describe('hosted review slice', () => {
       url: 'https://github.com/acme/orca/pull/12'
     })
     const store = makeStore()
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-1' } as AppState['repos'][number]]
     })
 
@@ -412,7 +413,7 @@ describe('hosted review slice', () => {
       nextAction: null
     })
     const store = makeStore()
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-1' } as AppState['repos'][number]]
     })
 

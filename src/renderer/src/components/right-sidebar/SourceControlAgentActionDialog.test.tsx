@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import type * as RuntimeGitStatusClientModule from '@/runtime/runtime-git-status-client'
@@ -125,7 +126,8 @@ function repoWithSavedRecipe(
   }
 }
 function resetStore(settings: GlobalSettings, repos: Repo[] = []): void {
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     {
       ...initialState,
       settings,
@@ -261,7 +263,7 @@ describe('SourceControlAgentActionDialog', () => {
       return ['codex']
     })
     resetStore(settingsWithGlobalRecipe(), [repoWithSavedRecipe('', null, 'runtime:env-1')])
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       worktreesByRepo: { 'repo-1': [makeWorktree({ id: 'repo-1::wt-1', repoId: 'repo-1' })] }
     })
 

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 /** Tab-model writes must recheck watcher coverage without rearming unchanged absolute deadlines; title floods must preserve the park instant and avoid timer churn. */
 import { act, useEffect, useState } from 'react'
@@ -65,7 +66,7 @@ function terminalTab(id: string): TerminalTab {
 
 /** A runtime-title publication: re-mints tabsByWorktree, changes no park input. */
 function publishTitle(revision: number): void {
-  parkingStore.setState((state) => ({
+  setSessionTestState(parkingStore, (state) => ({
     tabsByWorktree: {
       ...state.tabsByWorktree,
       [park.worktreeId]: (state.tabsByWorktree[park.worktreeId] ?? []).map((tab) => ({
@@ -110,7 +111,7 @@ let root: Root | undefined
 beforeEach(() => {
   park.effectRuns = 0
   latestParkedTabIds = new Set()
-  parkingStore.setState(() => ({
+  setSessionTestState(parkingStore, () => ({
     tabsByWorktree: { [park.worktreeId]: TAB_IDS.map(terminalTab) }
   }))
   container = document.createElement('div')
@@ -167,7 +168,7 @@ describe('cold-park recheck timers under a background title flood', () => {
     vi.useRealTimers()
     park.effectRuns = 0
     latestParkedTabIds = new Set()
-    parkingStore.setState(() => ({
+    setSessionTestState(parkingStore, () => ({
       tabsByWorktree: { [park.worktreeId]: TAB_IDS.map(terminalTab) }
     }))
 

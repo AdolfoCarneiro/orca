@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -141,9 +142,9 @@ describe('useCombinedDiffViewRestore deferral', () => {
     const store = createStore(() => ({ openFiles: [closedTab] }))
     const detach = attachClosedEditorTabCleanup(store, createEditorModelRegistry())
     try {
-      store.setState({ openFiles: [] })
+      setSessionTestState(store, { openFiles: [] })
       await Promise.resolve()
-      store.setState({ openFiles: [closedTab] })
+      setSessionTestState(store, { openFiles: [closedTab] })
       expect(restoreSections(entrySet, viewStateKey)).toEqual(loadedSections)
     } finally {
       detach()

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** Capability verdicts must change only on async daemon answers, never pane mount/unmount; repeatedly flip them between commits while mount writes update other exemption inputs to catch React #185 loops. */
 /** @vitest-environment happy-dom */
 import { act, StrictMode } from 'react'
@@ -69,19 +70,20 @@ vi.mock('./TerminalOverlaySlot', async () => {
         if (harness.slotMounts > 400) {
           throw new Error('harness runaway: slot remount storm exceeded 400 mounts')
         }
-        ;(
+        setSessionTestState(
           useAppStore as unknown as {
             setState: (update: (state: SlotStoreState) => Partial<SlotStoreState>) => void
-          }
-        ).setState((state) => ({
-          tabsByWorktree: {
-            ...state.tabsByWorktree,
-            [harness.worktreeId]: state.tabsByWorktree[harness.worktreeId].map((tab) =>
-              tab.id === terminalTabId ? { ...tab, title: `mounted-${harness.slotMounts}` } : tab
-            )
           },
-          terminalLayoutsByTabId: { ...state.terminalLayoutsByTabId }
-        }))
+          (state) => ({
+            tabsByWorktree: {
+              ...state.tabsByWorktree,
+              [harness.worktreeId]: state.tabsByWorktree[harness.worktreeId].map((tab) =>
+                tab.id === terminalTabId ? { ...tab, title: `mounted-${harness.slotMounts}` } : tab
+              )
+            },
+            terminalLayoutsByTabId: { ...state.terminalLayoutsByTabId }
+          })
+        )
       }, [terminalTabId])
       return null
     }
@@ -170,7 +172,7 @@ function unifiedTerminalTab(id: string): Tab {
 
 // Capability answers update module state; routine title writes wake the store memo to observe them.
 function touchStoreTitles(marker: string): void {
-  harnessStore.setState({
+  setSessionTestState(harnessStore, {
     tabsByWorktree: {
       [harness.worktreeId]: harnessStore
         .getState()
@@ -193,7 +195,7 @@ describe('force-park exemption flips under capability changes', () => {
     harness.slotMounts = 0
     harness.observedParkedCounts.clear()
     harness.watcherEntries.clear()
-    harnessStore.setState({
+    setSessionTestState(harnessStore, {
       activeGroupIdByWorktree: { [harness.worktreeId]: GROUP_ID },
       groupsByWorktree: {
         [harness.worktreeId]: [

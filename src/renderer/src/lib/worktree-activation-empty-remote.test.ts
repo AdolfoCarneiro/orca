@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import path from 'node:path'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
@@ -81,7 +82,7 @@ describe('empty remote worktree activation', () => {
       subscribe: vi.fn()
     })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -143,7 +144,7 @@ describe('empty remote worktree activation', () => {
       subscribe: vi.fn()
     })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -184,7 +185,7 @@ describe('empty remote worktree activation', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment, subscribe: vi.fn() })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -221,7 +222,7 @@ describe('empty remote worktree activation', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment, subscribe: vi.fn() })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -271,7 +272,7 @@ describe('empty remote worktree activation', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment, subscribe: vi.fn() })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',

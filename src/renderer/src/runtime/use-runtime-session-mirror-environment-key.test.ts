@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, cleanup, renderHook } from '@testing-library/react'
@@ -61,7 +62,8 @@ function makeProjectGroup(executionHostId: ProjectGroup['executionHostId']): Pro
 }
 
 function seedMirrorState(): void {
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     {
       ...initialState,
       settings: {
@@ -113,7 +115,7 @@ describe('useRuntimeSessionMirrorEnvironmentKeys', () => {
         ]
       ])
     )
-    useAppStore.setState({ repos, worktreesByRepo })
+    setSessionTestState(useAppStore, { repos, worktreesByRepo })
     const hook = renderHook(() => useRuntimeSessionMirrorEnvironmentKeys())
     const initialCallCount = getMirrorTargets.mock.calls.length
 

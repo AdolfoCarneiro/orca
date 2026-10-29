@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '@/store/types'
 
@@ -123,7 +124,7 @@ function group(worktreeId: string) {
 }
 
 beforeEach(() => {
-  store.setState({
+  setSessionTestState(store, {
     activeWorktreeId: null,
     tabsByWorktree: {},
     unifiedTabsByWorktree: {},
@@ -219,7 +220,7 @@ describe('closeTerminalTab unified close contract', () => {
       activeTerminalId: 'term-1',
       includeChatTab: false
     })
-    store.setState((state) => ({
+    setSessionTestState(store, (state) => ({
       openFiles: [
         {
           id: 'file-1',

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 /** Unchanged park-state dispatches can inherit another component’s pending cascade and get blamed for React #185. Title writes must still recheck watcher coverage, but only changed verdicts should dispatch (react-update-depth-attribution.ts). */
 import { act, useEffect, useState, StrictMode } from 'react'
@@ -107,7 +108,7 @@ function unifiedTerminalTab(id: string): Tab {
 
 /** An ordinary runtime title publication: re-mints tabsByWorktree, changes no park input. */
 function publishRuntimeTitle(revision: number): void {
-  parkingStore.setState((state: ParkingStoreState) => ({
+  setSessionTestState(parkingStore, (state: ParkingStoreState) => ({
     tabsByWorktree: {
       ...state.tabsByWorktree,
       [harness.worktreeId]: state.tabsByWorktree[harness.worktreeId].map((tab) => ({
@@ -163,7 +164,7 @@ describe('cold-park effect vs. unrelated commit cascade', () => {
     harness.renderedParkedSets.length = 0
     const tabs = TAB_IDS.map(terminalTab)
     const unifiedTabs = TAB_IDS.map(unifiedTerminalTab)
-    parkingStore.setState({
+    setSessionTestState(parkingStore, {
       activeGroupIdByWorktree: { [harness.worktreeId]: GROUP_ID },
       groupsByWorktree: {
         [harness.worktreeId]: [

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { StoreApi } from 'zustand/vanilla'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
@@ -110,7 +111,7 @@ function makeTerminalTab(id: string, worktreeId: string): TerminalTab {
 // Why: send targets list structured chats from the tabs slice, which the UI harness omits.
 function createAgentSendStore(): StoreApi<AppState> {
   const store = createUIStore()
-  store.setState({ unifiedTabsByWorktree: {} })
+  setSessionTestState(store, { unifiedTabsByWorktree: {} })
   return store
 }
 
@@ -132,7 +133,7 @@ describe('createUISlice agent send target mode', () => {
 
   function seedAgentSendState(store: StoreApi<AppState>): void {
     const now = Date.now()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         [worktreeId]: [
           {
@@ -273,7 +274,7 @@ describe('createUISlice agent send target mode', () => {
   it('does not reveal the sidebar when the current workspace has no eligible targets', () => {
     const store = createAgentSendStore()
     seedAgentSendState(store)
-    store.setState({
+    setSessionTestState(store, {
       terminalLayoutsByTabId: {
         [tabId]: {
           root: {
@@ -359,7 +360,7 @@ describe('createUISlice agent send target mode', () => {
     store: StoreApi<AppState>,
     agentStatusByPaneKey: AppState['agentStatusByPaneKey']
   ): void {
-    store.setState({
+    setSessionTestState(store, {
       agentStatusByPaneKey,
       tabsByWorktree: {},
       terminalLayoutsByTabId: {},
@@ -694,7 +695,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     const dismiss = vi.fn().mockResolvedValue({ dismissed: 0 })
     vi.stubGlobal('window', { api: { notifications: { dismiss } } })
     const store = createAgentSendStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-live': [makeTerminalTab(tabId, 'wt-live')]
       },
@@ -747,7 +748,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     vi.stubGlobal('window', { api: { notifications: { dismiss } } })
     const store = createAgentSendStore()
     const fallbackPaneKey = makePaneKey('tab-fallback', '44444444-4444-4444-8444-444444444444')
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {},
       agentStatusByPaneKey: {
         [fallbackPaneKey]: {
@@ -777,7 +778,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     const dismiss = vi.fn().mockResolvedValue({ dismissed: 0 })
     vi.stubGlobal('window', { api: { notifications: { dismiss } } })
     const store = createAgentSendStore()
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         'wt-live': [makeTerminalTab(tabId, 'wt-live')]
       },

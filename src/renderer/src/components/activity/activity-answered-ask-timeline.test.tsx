@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 // An answered subagent ask restores its parent’s older turn-end timestamp. Order switches by observation time, but read unread/state from the pane’s current turn.
@@ -143,7 +144,7 @@ describe("an answered subagent ask on a settled parent's Activity row", () => {
     mocks.subscribeStatus.mockResolvedValue({ unsubscribe: mocks.unsubscribe })
     vi.spyOn(Date, 'now').mockReturnValue(ANSWERED + 1_000)
     const worktree = makeWorktree()
-    store().setState({
+    setSessionTestState(store(), {
       agentStatusByPaneKey: {},
       acknowledgedAgentsByPaneKey: {},
       activityClearedAtByPaneKey: {},
@@ -164,7 +165,7 @@ describe("an answered subagent ask on a settled parent's Activity row", () => {
   it('keeps the saved native name across focus and follows naming-only updates', async () => {
     const unrelated = { ...structuredTab, id: 'other-tab', entityId: 'other-session' }
     const terminal: Tab = { ...structuredTab, id: 'terminal', contentType: 'terminal' }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: { 'wt-1': [structuredTab, unrelated, terminal] },
       groupsByWorktree: {
         'wt-1': [

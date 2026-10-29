@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -44,7 +45,7 @@ const prKey = `${repo.id}::${worktree.branch}`
 
 function setup(owner: Repo = repo) {
   const store = createTestStore()
-  store.setState({
+  setSessionTestState(store, {
     repos: [owner],
     settings: null,
     worktreesByRepo: { [repo.id]: [worktree] },
@@ -86,7 +87,7 @@ describe('visible hosted review refresh targets', () => {
 
   it('preserves explicit non-GitHub linked hints despite a GitHub PR cache', async () => {
     const store = setup()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { [repo.id]: [{ ...worktree, linkedGitLabMR: 8 }] },
       prCache: { [prKey]: { data: makePR(), fetchedAt: Date.now() } }
     })
@@ -123,7 +124,10 @@ describe('visible hosted review refresh targets', () => {
       }
       const detached = { ...worktree, branch: '', linkedGitLabMR: 8, linkedItems: [item] }
       const store = setup(owner)
-      store.setState({ worktreesByRepo: { [repo.id]: [detached] }, activeWorktreeId: detached.id })
+      setSessionTestState(store, {
+        worktreesByRepo: { [repo.id]: [detached] },
+        activeWorktreeId: detached.id
+      })
       mockApi.hostedReview.forBranch.mockResolvedValue(result)
       const exactKey = getWorkspaceReferenceRequest(item, detached, owner).key
       const rows = getVisibleHostedReviewRefreshTargets(store.getState(), store.getState, {
@@ -148,7 +152,7 @@ describe('visible hosted review refresh targets', () => {
   it('uses the repo runtime owner rather than the focused server and fills both caches', async () => {
     const owner: Repo = { ...repo, executionHostId: 'runtime:owner-server' }
     const store = setup(owner)
-    store.setState({
+    setSessionTestState(store, {
       settings: createGlobalSettingsFixture({ activeRuntimeEnvironmentId: 'other-server' }),
       worktreesByRepo: { [repo.id]: [{ ...worktree, linkedPR: 12 }] },
       activeWorktreeId: worktree.id
@@ -198,24 +202,24 @@ describe('visible hosted review refresh targets', () => {
 
   it('excludes folders, bare, archived, detached, missing and disconnected SSH workspaces', () => {
     const store = setup()
-    store.setState({ repos: [{ ...repo, kind: 'folder' }] })
+    setSessionTestState(store, { repos: [{ ...repo, kind: 'folder' }] })
     expect(targets(store)).toEqual([])
-    store.setState({ repos: [repo] })
+    setSessionTestState(store, { repos: [repo] })
     for (const patch of [
       { isBare: true },
       { isArchived: true },
       { branch: '' },
       { branch: 'HEAD' }
     ]) {
-      store.setState({ worktreesByRepo: { [repo.id]: [{ ...worktree, ...patch }] } })
+      setSessionTestState(store, { worktreesByRepo: { [repo.id]: [{ ...worktree, ...patch }] } })
       expect(targets(store)).toEqual([])
     }
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { [repo.id]: [worktree] },
       visibleReviewWorktreeIds: ['missing']
     })
     expect(targets(store)).toEqual([])
-    store.setState({
+    setSessionTestState(store, {
       repos: [{ ...repo, connectionId: 'ssh-1' }],
       visibleReviewWorktreeIds: [worktree.id]
     })
@@ -225,7 +229,7 @@ describe('visible hosted review refresh targets', () => {
   it('shares host/repo/branch aliases and promotes the selected alias', async () => {
     const store = setup()
     const alias = { ...worktree, id: 'alias' }
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { [repo.id]: [worktree, alias] },
       visibleReviewWorktreeIds: [worktree.id, alias.id],
       activeWorktreeId: alias.id,
@@ -241,7 +245,9 @@ describe('visible hosted review refresh targets', () => {
     const revision = rows[0].revision
     store.setState({ visibleReviewWorktreeIds: [alias.id, worktree.id] })
     expect(targets(store)[0].revision).toBe(revision)
-    store.setState({ worktreesByRepo: { [repo.id]: [{ ...worktree, head: 'new-head' }, alias] } })
+    setSessionTestState(store, {
+      worktreesByRepo: { [repo.id]: [{ ...worktree, head: 'new-head' }, alias] }
+    })
     expect(targets(store)[0].revision).not.toBe(revision)
   })
 
@@ -320,7 +326,7 @@ describe('visible hosted review refresh targets', () => {
       }
     })
     expect(targets(store)).toEqual([])
-    store.setState({
+    setSessionTestState(store, {
       hostedReviewCache: {},
       repos: [
         {
@@ -380,7 +386,7 @@ describe('visible hosted review refresh targets', () => {
     { head: worktree.head, headSha: '' }
   ])('preserves fresh settled metadata with an unknown HEAD: %j', ({ head, headSha }) => {
     const store = setup({ ...repo, executionHostId: 'runtime:owner-server' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { [repo.id]: [{ ...worktree, head }] },
       prCache: {
         [`runtime:owner-server::${prKey}`]: {
@@ -394,7 +400,7 @@ describe('visible hosted review refresh targets', () => {
 
   it('includes only connected SSH branches and preserves their host scope', async () => {
     const store = setup({ ...repo, connectionId: 'ssh-1', executionHostId: 'ssh:ssh-1' })
-    store.setState({
+    setSessionTestState(store, {
       sshConnectionStates: new Map([
         [
           'ssh-1',
@@ -417,7 +423,7 @@ describe('visible hosted review refresh targets', () => {
 
   it('limits paired-web card metadata to the selected workspace while preserving discovery', async () => {
     const store = setup()
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId: worktree.id,
       visibleReviewWorktreeIds: [worktree.id, 'other'],
       worktreesByRepo: { [repo.id]: [worktree, { ...worktree, id: 'other', branch: 'other' }] }
@@ -456,7 +462,7 @@ describe('visible hosted review refresh targets', () => {
     }
     const second: Repo = { ...first, executionHostId: 'runtime:second' }
     const store = setup(first)
-    store.setState({
+    setSessionTestState(store, {
       repos: [first, second],
       activeWorktreeId: worktree.id,
       activeWorkspaceExecutionHostId: 'runtime:second',

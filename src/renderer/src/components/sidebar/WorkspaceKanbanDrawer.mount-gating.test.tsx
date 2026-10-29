@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import React, { act } from 'react'
@@ -161,7 +162,7 @@ async function renderDrawer(open: boolean, dragPreview = false): Promise<void> {
 async function churnRemoteWorkspaceState(count: number): Promise<void> {
   await act(async () => {
     for (let index = 0; index < count; index += 1) {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         worktreesByRepo: {},
         tabsByWorktree: {},
         ptyIdsByTabId: {},

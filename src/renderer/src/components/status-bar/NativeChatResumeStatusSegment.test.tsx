@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { resetLocalStructuredChatsForTests } from '@/runtime/local-structured-chats'
@@ -215,7 +216,7 @@ describe('NativeChatResumeStatusSegment', () => {
   // The offer is this machine's runtime's; a paired server's chats are no reason to build it.
   it("does not ask this machine for an offer over a paired server's chats", async () => {
     rpc.mockResolvedValue({ sessions: candidates })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       settings: { ...getDefaultSettings(''), experimentalNativeChat: false },
       unifiedTabsByWorktree: {
         'wt-1': [

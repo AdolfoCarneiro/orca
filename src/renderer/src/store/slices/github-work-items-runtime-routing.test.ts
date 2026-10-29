@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { workItemsCacheKey } from '../github/cache-identity'
 import {
@@ -52,7 +53,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
         executionHostId: 'runtime:env-1'
       }
     ]
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' },
       repos
     } as Partial<AppState>)
@@ -97,7 +98,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       _meta: { runtimeId: 'remote-runtime' }
     })
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: null,
       repos: [
         {
@@ -144,7 +145,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       _meta: { runtimeId: 'remote-runtime' }
     })
     const store = createTestStore()
-    store.setState((state) => ({
+    setSessionTestState(store, (state) => ({
       ...state,
       settings: null,
       repos: [
@@ -205,7 +206,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
         addedAt: 1
       }
     ]
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-runtime' },
       repos
     } as Partial<AppState>)
@@ -300,7 +301,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       items: [{ type: 'issue', number: 27, title: 'SSH issue', url: 'https://example.test/27' }],
       sources: { issues: { owner: 'up', repo: 'r' }, prs: { owner: 'up', repo: 'r' } }
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-focused' } as AppState['settings'],
       repos: [
         {

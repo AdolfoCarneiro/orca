@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import React, { act } from 'react'
@@ -66,7 +67,7 @@ function makeStatus(overrides: Partial<RuntimeStatus>): RuntimeStatus {
 }
 
 function renderWithOwnerStatus(status: RuntimeStatus | null): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos: [repo],
     projects: [project],
     projectHostSetups: [setup],
@@ -135,7 +136,7 @@ describe('RepositoryHostSetupsSection workspace window availability', () => {
   })
 
   it('does not mark a transport-connected but unavailable runtime setup Ready', () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [repo],
       projects: [project],
       projectHostSetups: [setup],

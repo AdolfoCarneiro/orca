@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installAttentionScreen } from './workspace-attention/workspace-unread-characterization-fixture'
 import type { AppState } from '../types'
@@ -98,7 +99,7 @@ function stubFolderWorkspaceApis(): void {
 
 function seedLocalFolderStore(folderWorkspace: FolderWorkspace) {
   const store = createTestStore()
-  store.setState({
+  setSessionTestState(store, {
     projectGroups: [{ ...projectGroup, executionHostId: 'local' }],
     folderWorkspaces: [folderWorkspace],
     refreshGitHubForWorktreeIfStale: vi.fn()
@@ -158,7 +159,7 @@ describe('folder workspace generic activation and activity', () => {
       const workspaceKey = folderWorkspaceKey(folder.id)
       const store = seedLocalFolderStore(folder)
       store.getState().createUnifiedTab(workspaceKey, contentType, { id: 'selected' })
-      store.setState({ activeTabTypeByWorktree: { [workspaceKey]: 'editor' } })
+      setSessionTestState(store, { activeTabTypeByWorktree: { [workspaceKey]: 'editor' } })
 
       store.getState().setActiveFolderWorkspace(folder.id, executionHostId)
 
@@ -173,7 +174,7 @@ describe('folder workspace generic activation and activity', () => {
     const folder = makeFolderWorkspace()
     const workspaceKey = folderWorkspaceKey(folder.id)
     const store = seedLocalFolderStore(folder)
-    store.setState({
+    setSessionTestState(store, {
       ...rememberedBrowserSurface(workspaceKey),
       groupsByWorktree: {
         [workspaceKey]: [
@@ -198,7 +199,7 @@ describe('folder workspace generic activation and activity', () => {
     const folder = makeFolderWorkspace()
     const workspaceKey = folderWorkspaceKey(folder.id)
     const store = seedLocalFolderStore(folder)
-    store.setState({
+    setSessionTestState(store, {
       ...rememberedBrowserSurface(workspaceKey),
       groupsByWorktree: {},
       layoutByWorktree: { [workspaceKey]: { type: 'leaf', groupId: 'pending' } }
@@ -214,7 +215,7 @@ describe('folder workspace generic activation and activity', () => {
     const folder = makeFolderWorkspace()
     const workspaceKey = folderWorkspaceKey(folder.id)
     const store = seedLocalFolderStore(folder)
-    store.setState({
+    setSessionTestState(store, {
       groupsByWorktree: {},
       layoutByWorktree: {},
       // Why: the remembered browser tab is gone, so only the open file is left to show.

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act } from 'react'
@@ -81,7 +82,7 @@ it('is tri-state at every level, each node over every chat under it', () => {
 it('selects every eligible chat in a project, never an unretryable one or another project’s', () => {
   const candidates = seedTree()
   const mobile = worktree('mobile', { repoId: 'repo-2', id: 'repo-2::/mobile/mobile' })
-  useAppStore.setState((current) => ({
+  setSessionTestState(useAppStore, (current) => ({
     repos: [
       ...current.repos,
       { id: 'repo-2', path: '/mobile', displayName: 'orca-mobile', badgeColor: '#999', addedAt: 1 }

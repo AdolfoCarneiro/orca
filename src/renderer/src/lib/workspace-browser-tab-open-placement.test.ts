@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as SnapshotModule from '../runtime/web-runtime-session-snapshot'
 import { useAppStore } from '../store'
@@ -35,7 +36,7 @@ describe('workspace URL tab placement', () => {
     resetHostPages()
     seedPairedWorktree()
     installRuntimeTransport()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [{ ...makeRepo(), id: 'repo', executionHostId: HOST }],
       worktreesByRepo: {
         repo: [makeWorktree(WT, 'Workspace', { repoId: 'repo', hostId: HOST })]

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import React, { act } from 'react'
@@ -106,7 +107,7 @@ describe('palette live status', () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     bodyRenderCount = 0
     useAppStore.setState(initialAppState, true)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-a': [makeTerminalTab('term-a', 'wt-a')] },
       ptyIdsByTabId: { 'term-a': ['pty-term-a'] },
       browserTabsByWorktree: {}
@@ -141,7 +142,7 @@ describe('palette live status', () => {
     'does not paint a stale self-authored title as a live %s question',
     async (surface) => {
       const staleAt = Date.now() - AGENT_STATUS_STALE_AFTER_MS - 1
-      useAppStore.setState((s) => ({
+      setSessionTestState(useAppStore, (s) => ({
         tabsByWorktree: {
           'wt-a': [{ ...makeTerminalTab('term-a', 'wt-a'), title: 'Codex - action required' }]
         },
@@ -196,7 +197,7 @@ describe('palette live status', () => {
     const otherLeaf = '22222222-2222-4222-8222-222222222222'
     const staleAt = Date.now() - AGENT_STATUS_STALE_AFTER_MS - 1
     setAgentState('done', { updatedAt: staleAt, stateStartedAt: staleAt })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: {
         'term-a': {
           root: {
@@ -241,7 +242,7 @@ describe('palette live status', () => {
 
   it('shows monitoring when a covered pane retains a working title', async () => {
     setAgentState('working', { workingMode: 'monitoring' })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-a': [{ ...makeTerminalTab('term-a', 'wt-a'), title: 'claude [working]' }]
       }
@@ -393,7 +394,7 @@ describe('palette live status', () => {
   })
 
   it('shows only the content icon when a terminal-backed row is inactive', async () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ptyIdsByTabId: {}
     } as Partial<AppState>)
     await act(async () => {

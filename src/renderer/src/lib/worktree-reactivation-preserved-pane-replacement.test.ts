@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { getDefaultSettings } from '../../../shared/constants'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -114,7 +115,7 @@ function seedHuskTab(
 
 function seedSleepingRecord(worktreeId: string, sessionId: string): void {
   const paneKey = makePaneKey(HUSK_TAB_ID, LEAF_ID)
-  useAppStore.setState((s) => ({
+  setSessionTestState(useAppStore, (s) => ({
     sleepingAgentSessionsByPaneKey: {
       ...s.sleepingAgentSessionsByPaneKey,
       [paneKey]: {
@@ -301,7 +302,7 @@ describe('preserved-pane replacement contract on workspace activation', () => {
     }
     useAppStore.setState(state)
     const paneKey = makePaneKey(webTabId, LEAF_ID)
-    useAppStore.setState((s) => ({
+    setSessionTestState(useAppStore, (s) => ({
       sleepingAgentSessionsByPaneKey: {
         ...s.sleepingAgentSessionsByPaneKey,
         [paneKey]: {
@@ -360,7 +361,7 @@ describe('preserved-pane replacement contract on workspace activation', () => {
     }
     useAppStore.setState(state)
     const paneKey = makePaneKey(webTabId, LEAF_ID)
-    useAppStore.setState((s) => ({
+    setSessionTestState(useAppStore, (s) => ({
       sleepingAgentSessionsByPaneKey: {
         ...s.sleepingAgentSessionsByPaneKey,
         [paneKey]: {

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
 import { useAppStore } from '@/store'
@@ -180,7 +181,7 @@ describe('editor buffer records', () => {
   })
 
   it('seeds a record for an externally written tab from the tab, never from defaults', () => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       openFiles: [
         {
           id: 'seeded',
@@ -204,7 +205,7 @@ describe('editor buffer records', () => {
   it("adopts a host republish of a mirrored tab's buffer state, as remote session sync writes it", () => {
     const id = openEditTab()
     const republish = (mirroredFromRuntimeSession: true | undefined): void =>
-      useAppStore.setState((state) => {
+      setSessionTestState(useAppStore, (state) => {
         const openFiles = state.openFiles.map((file) =>
           file.id === id ? { ...file, isDirty: !file.isDirty, mirroredFromRuntimeSession } : file
         )
@@ -247,7 +248,7 @@ describe('editor buffer records', () => {
           }))
       }))
     )
-    store.setState({ openFiles: [...store.getState().openFiles] })
+    setSessionTestState(store, { openFiles: [...store.getState().openFiles] })
 
     expect(() => store.getState().dirtyMirrorOnly()).toThrow(/"isDirty" of a/)
     expect(store.getState().openFiles[0]?.isDirty).toBe(false)

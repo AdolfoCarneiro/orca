@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -90,7 +91,7 @@ function setTabs(tabIds: string[], activeTabId: string): void {
     activeTabId: `unified-${activeTabId}`,
     tabOrder: tabIds.map((tabId) => `unified-${tabId}`)
   }
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeGroupIdByWorktree: { [WORKTREE_ID]: GROUP_ID },
     groupsByWorktree: { [WORKTREE_ID]: [group] },
     tabsByWorktree: { [WORKTREE_ID]: tabIds.map(terminalTab) },

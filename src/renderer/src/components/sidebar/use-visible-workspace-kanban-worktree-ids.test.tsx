@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -25,7 +26,7 @@ describe('useVisibleWorkspaceKanbanWorktreeIds', () => {
     const local = makeWorktree('shared', 'Local workspace', { hostId: 'local' })
     const ssh = makeWorktree('shared', 'SSH workspace', { hostId: 'ssh:box' })
     const repo = makeRepo()
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       worktreesByRepo: { [repo.id]: [local, ssh] },
       showSleepingWorkspaces: true,
       visibleWorkspaceHostIds: ['local']
@@ -57,7 +58,7 @@ describe('useVisibleWorkspaceKanbanWorktreeIds', () => {
       sortOrder: 0,
       createdAt: 0
     }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       worktreesByRepo: { [repo.id]: [worktree] },
       unifiedTabsByWorktree: { [worktree.id]: [structuredTab] },
       structuredChatSleptAtByPaneKey: {

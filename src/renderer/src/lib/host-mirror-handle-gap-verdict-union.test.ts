@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import {
@@ -44,7 +45,7 @@ function setLiveTabs(tabIds: string[], ptyByTabId: Record<string, string> = {}):
       ptyIdsByLeafId: { [`leaf-${id}`]: ptyId }
     }
   }
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: {
       [WORKTREE]: tabIds.map((id) => makeTerminalTab({ id, worktreeId: WORKTREE, title: id }))
     },

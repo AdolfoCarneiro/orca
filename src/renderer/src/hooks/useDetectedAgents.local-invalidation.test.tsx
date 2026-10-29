@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -70,7 +71,7 @@ it('retargets a mounted first load when the project switches to WSL', async () =
     localWindowsRuntimePreference: { kind: 'windows-host' }
   }
   const worktree = makeWorktree({ id: 'wt1', repoId: TEST_REPO.id, path: 'C:\\project' })
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeRepoId: TEST_REPO.id,
     activeWorktreeId: worktree.id,
     repos: [{ ...TEST_REPO, path: worktree.path }],

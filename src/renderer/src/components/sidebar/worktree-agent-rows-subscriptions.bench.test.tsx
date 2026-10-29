@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -46,7 +47,7 @@ it.skipIf(!process.env.ORCA_AGENT_ROWS_BENCH)(
         stateHistory: []
       }
     }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree,
       agentStatusByPaneKey: entries,
       unifiedTabsByWorktree: {},

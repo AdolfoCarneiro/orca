@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import React, { act, Profiler } from 'react'
@@ -203,7 +204,7 @@ describe('CodexRestartChip pane ownership', () => {
     const commits = onRender.mock.calls.length
 
     await act(async () => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         ptyIdsByTabId: { unrelated: [PTY_TWO] },
         codexRestartNoticeByPtyId: {
           [PTY_ONE]: ownedNotice,

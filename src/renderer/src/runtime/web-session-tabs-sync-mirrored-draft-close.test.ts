@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -93,7 +94,7 @@ describe('tab-strip close of a client-dirty mirrored file after a host republish
     closeWebRuntimeSessionTabMock.mockClear()
     closeRequests.length = 0
     window.addEventListener(ORCA_EDITOR_REQUEST_FILE_CLOSE_EVENT, onCloseRequest)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ...initialState,
       activeWorktreeId: WT,
       openFiles: [clientDirtyMirroredNotes],

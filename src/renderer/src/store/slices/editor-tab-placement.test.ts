@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { StoreApi } from 'zustand/vanilla'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -48,7 +49,7 @@ afterEach(() => {
 /** An editor-tabs store main draws from; its session read-back needs these maps. */
 function createDrawnEditorTabsStore(): StoreApi<AppState> {
   const store = createEditorTabsStore()
-  store.setState({ ptyIdsByTabId: {}, lastKnownRelayPtyIdByTabId: {} })
+  setSessionTestState(store, { ptyIdsByTabId: {}, lastKnownRelayPtyIdByTabId: {} })
   return store
 }
 
@@ -101,7 +102,7 @@ describe('createEditorSlice floating editor activation', () => {
 
   it('opens floating markdown tabs without changing the main active editor surface', () => {
     const store = createEditorStore()
-    store.setState({
+    setSessionTestState(store, {
       activeFileId: '/repo/main.md',
       activeTabType: 'editor',
       activeFileIdByWorktree: { 'wt-1': '/repo/main.md' },
@@ -127,7 +128,7 @@ describe('createEditorSlice floating editor activation', () => {
 
   it('opens same-path floating markdown as a separate owner-qualified tab', () => {
     const store = createEditorStore()
-    store.setState({
+    setSessionTestState(store, {
       openFiles: [
         {
           id: '/repo/README.md',
@@ -196,7 +197,7 @@ describe('createEditorSlice split-group editor routing', () => {
     editorGroupId: string
   }> {
     // The terminal's row, so main holds the agent tab and its group.
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: { 'wt-1': [makeTab({ id: 'terminal-tab', worktreeId: 'wt-1' })] },
       terminalLayoutsByTabId: { 'terminal-tab': makeLayout() }
     })
@@ -217,7 +218,7 @@ describe('createEditorSlice split-group editor routing', () => {
     }
     openSourceFile(store, '/repo/seed.ts', { targetGroupId: editorGroupId })
     await main.settle()
-    store.setState({
+    setSessionTestState(store, {
       activeGroupIdByWorktree: { 'wt-1': terminalGroupId },
       activeTabType: 'terminal',
       activeTabTypeByWorktree: { 'wt-1': 'terminal' }
@@ -298,7 +299,7 @@ describe('createEditorSlice split-group editor routing', () => {
       label: 'Browser',
       targetGroupId: browserGroupId
     })
-    store.setState({
+    setSessionTestState(store, {
       activeGroupIdByWorktree: { 'wt-1': browserGroupId },
       activeTabType: 'browser',
       activeTabTypeByWorktree: { 'wt-1': 'browser' }

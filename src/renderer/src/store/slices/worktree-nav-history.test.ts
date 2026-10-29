@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { AppState } from '../types'
@@ -229,7 +230,7 @@ describe('worktree-nav-history selectors', () => {
 
     expect(canGoBackWorktreeHistory(store.getState() as AppState)).toBe(false)
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         'repo-1': [makeWorktree('a'), makeWorktree('c')]
       }
@@ -247,7 +248,7 @@ describe('worktree-nav-history selectors', () => {
 
     expect(canGoForwardWorktreeHistory(store.getState() as AppState)).toBe(false)
 
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         'repo-1': [makeWorktree('a'), makeWorktree('c')]
       }

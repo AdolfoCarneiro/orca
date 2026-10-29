@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import path from 'node:path'
 import { applyWebSessionTabsSnapshot } from '@/runtime/web-session-tabs-sync/snapshot-api'
 import {
@@ -86,7 +87,7 @@ function seedSplitTabWithOnlySiblingReady(
   worktree: ReturnType<typeof makeCreatedAgentWorktree>
 ): void {
   seedMirroredWorkspace(worktree)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     terminalLayoutsByTabId: {
       [WEB_TAB_ID]: {
         root: {
@@ -108,7 +109,7 @@ function seedSplitTabWithOnlySiblingReady(
 /** A second published mirrored row in the same environment, with its own leaf binding. */
 function seedSecondMirroredPane(worktreeId: string): void {
   const before = useAppStore.getState()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: {
       [worktreeId]: [
         ...(before.tabsByWorktree[worktreeId] ?? []),
@@ -135,7 +136,7 @@ function seedActiveSleepingRecordFor(
   sessionId: string
 ): string {
   const paneKey = makePaneKey(tabId, leafId)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     sleepingAgentSessionsByPaneKey: {
       ...useAppStore.getState().sleepingAgentSessionsByPaneKey,
       [paneKey]: {
@@ -296,7 +297,7 @@ describe('resume across the mirror handle gap', () => {
     const worktree = makeRuntimeOwnedWorktree()
     seedMirroredWorkspace(worktree)
     seedActiveSleepingRecord(worktree.id)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: {
         [WEB_TAB_ID]: {
           root: { type: 'leaf', leafId: LEAF_ID },
@@ -321,7 +322,9 @@ describe('resume across the mirror handle gap', () => {
     markHostSessionMirrorHydrated(RUNTIME_ENV_ID)
     expect(resumeSleepingAgentSessionsForWorktree(worktree.id)).toBe(0)
 
-    useAppStore.setState({ ptyIdsByTabId: { [WEB_TAB_ID]: ['remote:env-handle-gap@@term_1'] } })
+    setSessionTestState(useAppStore, {
+      ptyIdsByTabId: { [WEB_TAB_ID]: ['remote:env-handle-gap@@term_1'] }
+    })
     expect(countParkedHostMirrorHandleGapPanesForTests()).toBe(0)
     vi.advanceTimersByTime(HOST_MIRROR_HANDLE_GAP_DEADLINE_MS)
 
@@ -359,7 +362,7 @@ describe('resume across the mirror handle gap', () => {
       expect(resumeSleepingAgentSessionsForWorktree(worktree.id)).toBe(0)
     }
 
-    useAppStore.setState({ tabsByWorktree: { [worktree.id]: [] } })
+    setSessionTestState(useAppStore, { tabsByWorktree: { [worktree.id]: [] } })
     expect(resumeSleepingAgentSessionsForWorktree(worktree.id)).toBe(0)
     vi.advanceTimersByTime(HOST_MIRROR_HANDLE_GAP_DEADLINE_MS * 2)
 
@@ -535,7 +538,9 @@ describe('resume across the mirror handle gap', () => {
     expect(countParkedHostMirrorHandleGapPanesForTests()).toBe(2)
 
     vi.advanceTimersByTime(HOST_MIRROR_HANDLE_GAP_DEADLINE_MS / 2)
-    useAppStore.setState({ ptyIdsByTabId: { [WEB_TAB_ID]: ['remote:env-handle-gap@@term_1'] } })
+    setSessionTestState(useAppStore, {
+      ptyIdsByTabId: { [WEB_TAB_ID]: ['remote:env-handle-gap@@term_1'] }
+    })
 
     expect(countParkedHostMirrorHandleGapPanesForTests()).toBe(1)
     const after = useAppStore.getState()
@@ -557,7 +562,7 @@ describe('resume across the mirror handle gap', () => {
     expect(resumeSleepingAgentSessionsForWorktree(worktree.id)).toBe(0)
 
     vi.advanceTimersByTime(HOST_MIRROR_HANDLE_GAP_DEADLINE_MS / 2)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'web-terminal-other-env-tab': ['remote:env-other@@term_1'] }
     })
 
@@ -577,7 +582,7 @@ describe('resume across the mirror handle gap', () => {
     expect(resumeSleepingAgentSessionsForWorktree(worktree.id)).toBe(0)
 
     // Teardown drops every row the environment owned.
-    useAppStore.setState({ tabsByWorktree: {}, terminalLayoutsByTabId: {} })
+    setSessionTestState(useAppStore, { tabsByWorktree: {}, terminalLayoutsByTabId: {} })
 
     expect(countParkedHostMirrorHandleGapPanesForTests()).toBe(0)
     expect(vi.getTimerCount()).toBe(0)

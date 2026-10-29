@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
@@ -36,7 +37,7 @@ function publishOwner(
     sortOrder: 0,
     createdAt: 0
   }
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     unifiedTabsByWorktree: owner ? { [owner.workspaceId]: [tab] } : {},
     activeWorktreeId: owner?.workspaceId ?? null,
     activeWorkspaceExecutionHostId: owner?.executionHostId ?? null

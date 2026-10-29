@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import { toast } from 'sonner'
@@ -54,7 +55,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...wt, comment: 'remote note' } },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [wt] }
     } as Partial<AppState>)
@@ -85,7 +86,7 @@ describe('worktree remote runtime mutations', () => {
       result: { deleted: true },
       _meta: { runtimeId: 'runtime-owner-hub' }
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'different-hub' } as never,
       worktreesByRepo: { 'repo-ssh': [wt] }
     } as Partial<AppState>)
@@ -111,7 +112,7 @@ describe('worktree remote runtime mutations', () => {
   it('suppresses per-branch feedback for an aggregate delete', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
-    store.setState({ worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
     vi.mocked(toast.success).mockClear()
     vi.mocked(toast.error).mockClear()
 
@@ -127,7 +128,7 @@ describe('worktree remote runtime mutations', () => {
   it('fails preserved branch deletion closed for two HUB owners', async () => {
     const store = createTestStore()
     const worktreeId = 'repo-ssh::/srv/same-wt'
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         'repo-ssh': [
           makeWorktree({
@@ -166,7 +167,7 @@ describe('worktree remote runtime mutations', () => {
       path: '/home/orca/wt1',
       hostId: 'ssh:ssh-1'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
         {
@@ -201,7 +202,7 @@ describe('worktree remote runtime mutations', () => {
       displayName: 'Nautilus',
       pendingFirstAgentMessageRename: true
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] }
     } as Partial<AppState>)
 
@@ -281,7 +282,7 @@ describe('worktree remote runtime mutations', () => {
       updatedAt: '2026-05-15T00:00:00.000Z',
       mergeable: 'MERGEABLE' as const
     }
-    store.setState({
+    setSessionTestState(store, {
       settings: focusedRuntimeSettings,
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -358,7 +359,7 @@ describe('worktree remote runtime mutations', () => {
       linkedGitLabMR: 789
     })
     const fetchHostedReviewForBranch = vi.fn().mockResolvedValue(null)
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
       ],
@@ -385,7 +386,7 @@ describe('worktree remote runtime mutations', () => {
     const first = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
     const second = makeWorktree({ id: 'repo1::/path/wt2', repoId: 'repo1', path: '/path/wt2' })
     const subscriber = vi.fn()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second] },
       sortEpoch: 7
     } as Partial<AppState>)
@@ -409,7 +410,7 @@ describe('worktree remote runtime mutations', () => {
   it("keeps a local card out of a paired host's own column but still applies its rank", async () => {
     const store = createTestStore()
     const local = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [local] },
       workspaceStatuses: [{ id: 'in-progress', label: 'In progress' }],
       hostWorkspaceStatuses: { 'env-1': [{ id: 'status-6', label: 'Today' }] }
@@ -443,7 +444,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...hosted, workspaceStatus: 'status-6' } },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [hosted] },
       workspaceStatuses: [{ id: 'in-progress', label: 'In progress' }],
       hostWorkspaceStatuses: { 'env-1': [{ id: 'status-6', label: 'Today' }] }
@@ -481,7 +482,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...remote, manualOrder: 9000 } },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    store.setState({ worktreesByRepo: { repo1: [local, remote] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [local, remote] } } as Partial<AppState>)
 
     await store.getState().updateWorktreesMeta([{ worktreeId, updates: { manualOrder: 9000 } }])
 
@@ -515,7 +516,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...remote, comment: 'selected' } },
       _meta: { runtimeId: 'runtime-remote' }
     })
-    store.setState({ worktreesByRepo: { repo1: [local, remote] } } as Partial<AppState>)
+    setSessionTestState(store, { worktreesByRepo: { repo1: [local, remote] } } as Partial<AppState>)
 
     await store
       .getState()

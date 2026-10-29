@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it } from 'vitest'
 import { toAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import type { SshConnectionState } from '../../../../shared/ssh-types'
@@ -119,7 +120,7 @@ describe('SSH target cleanup tab map', () => {
         })
       ]
     })
-    store.setState({ tabsByWorktree })
+    setSessionTestState(store, { tabsByWorktree })
     const before = store.getState()
     store.getState().clearRemovedSshTargetState('removed')
     expect(store.getState()).toBe(before)

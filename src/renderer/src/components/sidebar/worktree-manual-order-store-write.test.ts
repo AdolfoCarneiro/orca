@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -27,7 +28,7 @@ function seedManualOrderedRows(count: number): Worktree[] {
       manualOrder: 100_000 - index
     })
   )
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     sortBy: 'smart',
     worktreesByRepo: { [REPO_ID]: worktrees }
   })

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it } from 'vitest'
 import {
   createWorktreeTabModelReconciliationBatch,
@@ -12,7 +13,7 @@ describe('projectWorktreeTabModelReconciliation identity', () => {
   it('keeps every tab-model map when only an orphan runtime terminal changed', () => {
     const groupId = 'g-1'
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       unifiedTabsByWorktree: {
         [WORKTREE]: [
           {

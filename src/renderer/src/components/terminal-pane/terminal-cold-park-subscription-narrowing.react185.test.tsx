@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -75,7 +76,10 @@ describe('cold-park store subscription narrowing', () => {
 
   beforeEach(() => {
     harness.renders = 0
-    useAppStore.setState({ pendingStartupByTabId: {}, sleepingAgentSessionsByPaneKey: {} })
+    setSessionTestState(useAppStore, {
+      pendingStartupByTabId: {},
+      sleepingAgentSessionsByPaneKey: {}
+    })
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -101,7 +105,7 @@ describe('cold-park store subscription narrowing', () => {
 
   it('ignores a sleeping-session write for another worktree', () => {
     act(() => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         sleepingAgentSessionsByPaneKey: {
           'other-tab:1': sleepingRecord('other-tab:1', OTHER_WORKTREE_ID)
         }
@@ -121,7 +125,7 @@ describe('cold-park store subscription narrowing', () => {
 
   it('still re-renders when this worktree gains a sleeping-session record', () => {
     act(() => {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         sleepingAgentSessionsByPaneKey: {
           'tab-1:1': sleepingRecord('tab-1:1', WORKTREE_ID)
         }

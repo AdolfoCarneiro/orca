@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, createElement } from 'react'
@@ -81,7 +82,7 @@ export function makeRemoteWorktree(): Worktree {
 }
 
 export function seedRemoteWorktree(): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     settings: {
       ...getDefaultSettings('/tmp'),
       ...initialAppState.settings,

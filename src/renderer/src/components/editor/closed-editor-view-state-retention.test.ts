@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 import { createStore } from 'zustand/vanilla'
@@ -51,7 +52,7 @@ function open(path: string, text = 'original') {
   return {
     model,
     close: async () => {
-      store.setState({ openFiles: [] })
+      setSessionTestState(store, { openFiles: [] })
       await Promise.resolve()
       expect(model.isDisposed()).toBe(true)
     }
@@ -156,7 +157,7 @@ it('keeps a Windows-path model that a second open tab still owns', async () => {
   const bridge = createEditorModelRegistry()
   disposeOwners.push(bridge.register(monaco), attachClosedEditorTabCleanup(store, bridge))
 
-  store.setState({ openFiles: [editing] })
+  setSessionTestState(store, { openFiles: [editing] })
   await Promise.resolve()
 
   expect(model.isDisposed()).toBe(false)

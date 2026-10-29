@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { getDefaultSettings } from '../../../shared/constants'
 import path from 'node:path'
 import { vi } from 'vitest'
@@ -105,7 +106,7 @@ export function seedAlreadyActiveWorktree(
   const revealWorktreeInSidebar = vi.fn()
   const terminalTitle = ['Terminal', '1'].join(' ')
 
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     ...baseSeedState(worktree, [worktree]),
     activeWorktreeId: worktree.id,
     activeTabId: 'tab-1',

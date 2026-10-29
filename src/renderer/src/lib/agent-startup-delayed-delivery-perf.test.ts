@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import {
@@ -9,7 +10,7 @@ const originalState = useAppStore.getState()
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 
 function seedPendingState(agentLaunchConfigByPaneKey: Record<string, unknown> = {}): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: {
       'wt-background': [
         {
@@ -34,7 +35,7 @@ function seedPendingState(agentLaunchConfigByPaneKey: Record<string, unknown> = 
 }
 
 function bindPendingPty(): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     agentLaunchConfigByPaneKey: {
       [`tab-background:${LEAF_ID}`]: {
         identity: {
@@ -134,7 +135,7 @@ describe('delayed agent startup subscription', () => {
       deliver
     })
 
-    useAppStore.setState({ tabsByWorktree: {} })
+    setSessionTestState(useAppStore, { tabsByWorktree: {} })
     seedPendingState()
     bindPendingPty()
 

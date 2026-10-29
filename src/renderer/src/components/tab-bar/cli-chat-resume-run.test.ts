@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CliChatResumeSource } from './cli-chat-resume-source'
@@ -216,7 +217,7 @@ describe('CLI identity resume through the existing launch owner', () => {
       }
       mocks.source = source
       mocks.sourceCapability.mockResolvedValue(supported)
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         worktreesByRepo: {
           repo: [
             makeWorktree({
@@ -259,7 +260,7 @@ describe('CLI identity resume through the existing launch owner', () => {
   it('opens an existing conversation owner on the source server after a conflict', async () => {
     const source: CliChatResumeSource = { ...SOURCE, executionHostId: 'runtime:server-1' }
     mocks.source = source
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       worktreesByRepo: {
         repo: [
           makeWorktree({
@@ -617,7 +618,7 @@ describe('CLI identity resume through the existing launch owner', () => {
     resetStructuredAgentLaunchPersistenceForTests()
     resetStructuredAgentLaunchRegistryForTests()
     useAppStore.setState(useAppStore.getInitialState(), true)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ...buildHydratedTabState(session, new Set(['wt-1'])),
       worktreesByRepo: { repo: [makeWorktree({ id: 'wt-1', repoId: 'repo', hostId: 'local' })] }
     })

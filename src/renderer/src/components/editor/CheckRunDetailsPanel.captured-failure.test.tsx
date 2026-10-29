@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -49,7 +50,7 @@ beforeEach(() => {
   fetchDetails.mockReset()
   Object.assign(window, { api: { ui: { writeClipboardText } } })
   const fixture = createEditorTabsStore().getState()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     openFiles: [],
     repos: fixture.repos,
     worktreesByRepo: fixture.worktreesByRepo,

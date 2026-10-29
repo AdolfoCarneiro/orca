@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import React, { act } from 'react'
@@ -64,7 +65,7 @@ describe('RepositoryHostSetupsSection settings entry scope', () => {
       path: '/home/alice/orca',
       connectionId: 'openclaw 2'
     })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [cloneA, cloneB, remoteRepo],
       projects: [
         {
@@ -126,7 +127,7 @@ describe('RepositoryHostSetupsSection settings entry scope', () => {
       connectionId: 'openclaw 2'
     })
     const sshHostId = toSshExecutionHostId('openclaw 2')
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [cloneA, cloneATwin],
       projectHostSetups: [
         makeSetup({ id: 'clone-a', repoId: 'clone-a', hostId: 'local', path: '/work/orca' }),

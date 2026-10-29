@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { StrictMode } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
@@ -99,7 +100,7 @@ function gate() {
 }
 beforeEach(() => {
   const fixture = createEditorTabsStore().getState()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     openFiles: [],
     repos: fixture.repos,
     worktreesByRepo: fixture.worktreesByRepo,
@@ -211,7 +212,7 @@ describe('synthetic outcome payloads through real sidebar and header actions', (
     fireEvent.resize(window)
     expect(marker).not.toHaveBeenCalled()
     act(() => {
-      useAppStore.setState({ openFiles: [] })
+      setSessionTestState(useAppStore, { openFiles: [] })
     })
     scrollTopCache.clear()
     act(() => {

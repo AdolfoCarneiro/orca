@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it } from 'vitest'
 import { hostWorktreeTarget } from '../../../../shared/worktree/host-qualified-identity'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
@@ -122,7 +123,7 @@ describe('removed workspace diff memory', () => {
   it('keeps cached views when a different host still owns the same workspace id', () => {
     const key = seedDiff(removed)
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: {
         repo: [
           makeWorktree({ id: removed, repoId: 'repo', hostId: 'local' }),

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { Repo } from '../../../../shared/repo-types'
 import { projectAgentLaunchSettings } from '../../../../shared/agent-launch-settings'
 import { makeWorktree, TEST_REPO } from '@/store/slices/worktrees-slice-test-fixtures'
@@ -174,7 +175,7 @@ it.each(['codex', null] as const)(
         }
       }
     }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       settings,
       repos: [repo],
       worktreesByRepo: {

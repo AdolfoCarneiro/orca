@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act } from 'react'
@@ -329,7 +330,7 @@ describe('CodexSharedServerBanner', () => {
     async function renderOldTab(worktreeId: string): Promise<() => Promise<void>> {
       const openNewTerminalTabInActiveWorkspace = vi.fn(() => Promise.resolve())
       setState({})
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         activeWorktreeId: 'wt-1',
         activeView: 'activity',
         unifiedTabsByWorktree: { [worktreeId]: [terminalTab(worktreeId, 'group-2')] },
@@ -408,7 +409,7 @@ describe('CodexSharedServerBanner', () => {
   describe('returning focus when a dialog closes', () => {
     // Why a real xterm textarea: the dialogs have no trigger, so only the hook can restore focus.
     function mountActiveTerminal(): HTMLTextAreaElement {
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         activeWorktreeId: 'wt-1',
         activeTabType: 'terminal',
         activeTabIdByWorktree: { 'wt-1': TAB_ID },
@@ -469,7 +470,7 @@ describe('CodexSharedServerBanner', () => {
       const xterm = mountActiveTerminal()
       const newTerminal = document.createElement('textarea')
       document.body.append(newTerminal)
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: {
           'wt-1': [
             {
@@ -513,7 +514,7 @@ describe('CodexSharedServerBanner', () => {
 
     it('returns focus to this terminal when Open new terminal cannot open one', async () => {
       setState({})
-      useAppStore.setState({ unifiedTabsByWorktree: {} })
+      setSessionTestState(useAppStore, { unifiedTabsByWorktree: {} })
       const xterm = mountActiveTerminal()
       isCodexOnSharedServer.mockResolvedValue(OLD_TAB_JOINED)
       await renderBanner()

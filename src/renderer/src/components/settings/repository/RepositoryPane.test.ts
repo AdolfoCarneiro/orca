@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import React, { act } from 'react'
@@ -172,7 +173,7 @@ describe('RepositoryPane search entries', () => {
 
   it('warns about live terminals and active tasks before project runtime changes', () => {
     const worktreeId = 'repo-1::/tmp/repo'
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       settingsSearchQuery: 'Example Repo',
       settingsSearchInputQuery: 'Example Repo',
       settings: getDefaultSettings('/tmp'),

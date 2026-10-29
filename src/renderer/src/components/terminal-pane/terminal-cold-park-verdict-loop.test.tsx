@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 /** Model mount/unmount changing watcher coverage and tab identity to provoke park oscillation. Parameterize commits per flip because React’s 50-commit limit can arrive before a flip-based damping threshold. */
 import { act, useEffect, useRef, useState } from 'react'
@@ -72,7 +73,7 @@ let tabModelRevision = 0
 function rewriteTabModel(tabId: string): void {
   tabModelRevision += 1
   const revision = tabModelRevision
-  parkingStore.setState((state) => ({
+  setSessionTestState(parkingStore, (state) => ({
     tabsByWorktree: {
       ...state.tabsByWorktree,
       [park.worktreeId]: (state.tabsByWorktree[park.worktreeId] ?? []).map((tab) =>
@@ -181,7 +182,7 @@ describe('cold-park verdict oscillation', () => {
     tabModelRevision = 0
     paneMountCount = 0
     storeCommitsPerParkTransition = 1
-    parkingStore.setState(() => ({
+    setSessionTestState(parkingStore, () => ({
       tabsByWorktree: {
         [park.worktreeId]: [terminalTab(EXEMPT_TAB_ID), terminalTab(PARKABLE_TAB_ID)]
       }

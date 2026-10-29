@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 /** Startup gate opening can install ref-only deferral without changing active workspace or mount revision. The plan revision must wake idle admission or every deferred tab remains stranded until a workspace switch. */
@@ -50,7 +51,7 @@ function terminalTab(id: string, ptyId: string): TerminalTab {
 }
 
 async function seedDeferrableWorktree(): Promise<void> {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: { [WORKTREE_ID]: [terminalTab(TAB_1, PTY_1), terminalTab(TAB_2, PTY_2)] }
   })
   captureParkedTerminalPaneCandidates(TAB_1, WORKTREE_ID, [

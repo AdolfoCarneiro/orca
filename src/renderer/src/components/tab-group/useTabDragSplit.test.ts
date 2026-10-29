@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /**
  * @vitest-environment happy-dom
  */
@@ -144,7 +145,7 @@ function renderDragHook(
 
 beforeEach(() => {
   layoutOwner.drop.mockClear()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeWorktreeId: WT,
     activeGroupIdByWorktree: { [WT]: 'group-1' },
     groupsByWorktree: {

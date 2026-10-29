@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorkspaceSessionState } from '../../../../shared/workspace-session-state-types'
 import { buildWorkspaceSessionPayload } from '@/lib/workspace-session'
@@ -25,7 +26,7 @@ function connectedSshState(status: 'connected' | 'disconnected') {
 
 function seedStore(status: 'connected' | 'disconnected' = 'connected') {
   const store = createTestStore()
-  store.setState({
+  setSessionTestState(store, {
     repos: [
       {
         id: REPO_ID,

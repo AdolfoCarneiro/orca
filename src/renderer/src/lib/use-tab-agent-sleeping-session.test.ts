@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, createElement } from 'react'
@@ -158,7 +159,7 @@ describe('useTabAgent sleeping-session', () => {
     getForegroundProcess.mockReset()
     clearTabLaunchAgent.mockReset()
     useAppStore.setState(initialAppState, true)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'tab-1': ['pty-1'] },
       agentStatusByPaneKey: {},
       terminalLayoutsByTabId: {},
@@ -185,7 +186,7 @@ describe('useTabAgent sleeping-session', () => {
   it('paints a hibernated pane with its sleeping-session agent over a stale launchAgent', async () => {
     const paneKey = makePaneKey('tab-1', LEAF_ID)
     // After reused Claude hibernates, persisted session identity alone can override stale Codex launch when hooks/process/title reveal none.
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: {
         'tab-1': {
           root: { type: 'leaf', leafId: LEAF_ID },

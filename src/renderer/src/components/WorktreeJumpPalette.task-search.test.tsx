@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, forwardRef, type ReactNode } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -87,7 +88,7 @@ beforeEach(() => {
       ]
     })
   openTaskPage.mockClear()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     activeModal: 'worktree-palette',
     repos: [],
     worktreesByRepo: {},
@@ -136,7 +137,7 @@ it('finds an unlinked Jira task from keywords and opens detail with the returned
 
 it('shows local matches while a provider request is still pending', async () => {
   search.mockImplementation(() => new Promise(() => {}))
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos: [makeRepo()],
     worktreesByRepo: { 'repo-1': [makeWorktree('local', 'login redirect workspace')] }
   })
@@ -169,7 +170,7 @@ it('discards a previous query response and aborts its Jira request', async () =>
 
 it('keeps local results and offers a retry after a provider failure', async () => {
   search.mockRejectedValueOnce(new Error('Offline'))
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos: [makeRepo()],
     worktreesByRepo: { 'repo-1': [makeWorktree('local', 'login redirect workspace')] }
   })

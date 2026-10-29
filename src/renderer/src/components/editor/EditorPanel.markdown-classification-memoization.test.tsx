@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -139,7 +140,7 @@ describe('EditorPanel markdown classification memoization', () => {
     const file = makeOpenFile()
     contentState.fileContents = { [file.id]: { content: MARKDOWN_WITH_HTML, isBinary: false } }
     useAppStore.setState(initialAppState, true)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       openFiles: [file],
       activeFileId: file.id,
       markdownViewMode: { [file.id]: 'rich' },

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -72,7 +73,7 @@ afterEach(() => {
 })
 
 function seedRetainedThread(stampedAt: number, lastAssistantMessage: string): void {
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     repos: [repo],
     worktreesByRepo: { [repo.id]: [worktree] },
     tabsByWorktree: { [worktree.id]: [] },

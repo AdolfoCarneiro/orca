@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from './index'
 import { SORT_SETTLE_MS } from '../../../shared/sidebar-list/sort-settle'
@@ -57,7 +58,7 @@ describe('settledSortEpoch', () => {
 
   it('treats an add that skipped its bump as structural on the next bump', () => {
     useAppStore.setState({ sortBy: 'recent' })
-    useAppStore.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a', 'A')] } })
+    setSessionTestState(useAppStore, { worktreesByRepo: { 'repo-1': [makeWorktree('a', 'A')] } })
     expect(vi.getTimerCount()).toBe(0)
     bump()
     expect(settled()).toBe(true)
@@ -67,19 +68,19 @@ describe('settledSortEpoch', () => {
     useAppStore.setState({ sortBy: 'recent' })
     bump()
     expect(settled()).toBe(false)
-    useAppStore.setState({ worktreesByRepo: { 'repo-1': [makeWorktree('a', 'A')] } })
+    setSessionTestState(useAppStore, { worktreesByRepo: { 'repo-1': [makeWorktree('a', 'A')] } })
     expect(settled()).toBe(true)
     expect(vi.getTimerCount()).toBe(0)
   })
 
   it('ignores archived rows when detecting adds and removes', () => {
-    useAppStore.setState((s) => ({
+    setSessionTestState(useAppStore, (s) => ({
       sortBy: 'recent',
       worktreesByRepo: { 'repo-1': [makeWorktree('a', 'A')] },
       sortEpoch: s.sortEpoch + 1
     }))
     expect(settled()).toBe(true)
-    useAppStore.setState((s) => ({
+    setSessionTestState(useAppStore, (s) => ({
       worktreesByRepo: {
         'repo-1': [makeWorktree('a', 'A'), makeWorktree('b', 'B', { isArchived: true })]
       },

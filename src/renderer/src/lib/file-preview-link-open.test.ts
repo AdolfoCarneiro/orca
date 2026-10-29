@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type * as BrowserFocusModule from '@/components/browser-pane/host-guest/browser-focus'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createStoreCascadesMockApi } from '@/store/slices/store-cascades-test-harness'
@@ -65,7 +66,7 @@ it.each([
 ] as const)(
   'opens a detected-only workspace preview beside its retained source on %s (selected twin: %s)',
   async (host, selectedTwin) => {
-    store.setState((state) => ({
+    setSessionTestState(store, (state) => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         connectionId: host === 'local' ? null : 'detected-owner',
@@ -134,7 +135,7 @@ it.each([
 )
 
 it('refuses a detected preview whose owner changed despite a retained active host selection', async () => {
-  store.setState((state) => ({
+  setSessionTestState(store, (state) => ({
     worktreesByRepo: {},
     detectedWorktreesByRepo: {
       repo1: detectedListingFixture(state.worktreesByRepo.repo1!)
@@ -168,7 +169,7 @@ it('refuses a detected preview whose owner changed despite a retained active hos
 
 it('SSH document links reuse the source page and its grant without a website-browser capability', async () => {
   const host = 'ssh:ssh-test'
-  store.setState((state) => ({
+  setSessionTestState(store, (state) => ({
     repos: state.repos.map((repo) => ({
       ...repo,
       connectionId: 'ssh-test',
@@ -236,7 +237,7 @@ it('SSH document links reuse the source page and its grant without a website-bro
 
 it('a folder workspace uses its own layout and activates its browser without Git metadata', async () => {
   const folder = 'folder:folder-1'
-  store.setState({
+  setSessionTestState(store, {
     folderWorkspaces: [
       {
         id: 'folder-1',
@@ -332,7 +333,7 @@ it.each([false, true])(
       explicitSourceGroup: explicit
     })
     const host = 'ssh:changed-owner'
-    store.setState((state) => ({
+    setSessionTestState(store, (state) => ({
       repos: state.repos.map((repo) => ({
         ...repo,
         connectionId: 'changed-owner',
@@ -367,7 +368,7 @@ it.each([true, false])(
     const destination = 'repo2::/other'
     const host = 'ssh:file-owner'
     const linkIntent = captureLinkOpenIntent(store.getState(), WORKSPACE, 'source')
-    store.setState((state) => ({
+    setSessionTestState(store, (state) => ({
       repos: [
         ...state.repos,
         { ...TEST_REPO, id: 'repo2', connectionId: 'file-owner', executionHostId: host }
@@ -407,7 +408,7 @@ it.each([true, false])(
 
 it('keeps deliberate client-local HTML discovery from a remote source available', async () => {
   const host = 'ssh:remote-source'
-  store.setState((state) => ({
+  setSessionTestState(store, (state) => ({
     repos: state.repos.map((repo) => ({
       ...repo,
       connectionId: 'remote-source',

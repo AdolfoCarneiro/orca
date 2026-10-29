@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 // Workspace-scoped discards must evict every view of the shared record, including other workspaces.
 import { act, useRef, useState } from 'react'
@@ -69,7 +70,7 @@ afterEach(() => {
 function openInTwoWorkspaces(): { a: OpenFile; b: OpenFile } {
   const store = createEditorStore()
   storeRef.current = store
-  store.setState({
+  setSessionTestState(store, {
     worktreesByRepo: {
       'repo-1': [
         makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }),

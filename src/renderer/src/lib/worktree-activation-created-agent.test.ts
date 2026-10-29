@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
 import { useAppStore } from '@/store'
@@ -111,7 +112,7 @@ describe('activateAndRevealWorktree', () => {
       activateAndExpectNoRelaunch(worktree.id)
 
       // Return directly to zero tabs; closeTab’s sleeping purge is covered by worktree-reactivation-tab-forkbomb.test.ts.
-      useAppStore.setState({ tabsByWorktree: {}, activeTabIdByWorktree: {} })
+      setSessionTestState(useAppStore, { tabsByWorktree: {}, activeTabIdByWorktree: {} })
     }
   })
 
@@ -152,7 +153,7 @@ describe('activateAndRevealWorktree', () => {
     const worktree = makeWorktree()
     const revealWorktreeInSidebar = vi.fn()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -234,7 +235,7 @@ describe('activateAndRevealWorktree', () => {
     const worktree = makeWorktree()
     const revealWorktreeInSidebar = vi.fn()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -285,7 +286,7 @@ describe('activateAndRevealWorktree', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -347,7 +348,7 @@ describe('activateAndRevealWorktree', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -411,7 +412,7 @@ describe('activateAndRevealWorktree', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -460,7 +461,7 @@ describe('activateAndRevealWorktree', () => {
     const callRuntimeEnvironment = vi.fn()
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -546,7 +547,7 @@ describe('activateAndRevealWorktree', () => {
       subscribe: vi.fn()
     })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',
@@ -624,7 +625,7 @@ describe('activateAndRevealWorktree', () => {
       subscribe: vi.fn()
     })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       repos: [
         {
           id: 'repo-1',

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 // Exercise the real attention path from completion stream to indicators/OS delivery; mock only transport and preload.
@@ -435,7 +436,7 @@ describe('StructuredAgentSessionAttentionBridge', () => {
       hostId: 'runtime:env-1',
       runtimeOwnerEnvironmentId: 'env-1'
     })
-    store.setState({
+    setSessionTestState(store, {
       activeWorktreeId: WORKSPACE,
       activeWorkspaceExecutionHostId: 'runtime:env-1',
       worktreesByRepo: { repo1: [remoteWorktree] },
@@ -486,7 +487,7 @@ describe('StructuredAgentSessionAttentionBridge', () => {
     const { executionHostId, ...legacyTab } = publishedTab
     expect(executionHostId).toBe('runtime:env-1')
     const tab = makeUnifiedTab(legacyTab)
-    store.setState({ unifiedTabsByWorktree: { [WORKSPACE]: [tab] } })
+    setSessionTestState(store, { unifiedTabsByWorktree: { [WORKSPACE]: [tab] } })
     expect(tab.contentType).toBe('agent-session')
     expect(tab.executionHostId).toBeUndefined()
     render(<StructuredAgentSessionAttentionBridge />)
@@ -497,7 +498,7 @@ describe('StructuredAgentSessionAttentionBridge', () => {
     })
 
     await act(async () =>
-      store.setState({
+      setSessionTestState(store, {
         worktreesByRepo: {
           repo1: [remoteWorktree, makeWorktree({ id: WORKSPACE, repoId: 'repo1', hostId: 'local' })]
         },
@@ -541,7 +542,7 @@ describe('StructuredAgentSessionAttentionBridge', () => {
         hostId: 'runtime:env-1',
         runtimeOwnerEnvironmentId: 'env-1'
       })
-      store.setState({
+      setSessionTestState(store, {
         activeWorktreeId: WORKSPACE,
         activeWorkspaceExecutionHostId: 'runtime:env-1',
         worktreesByRepo: { repo1: [remoteWorktree] },
@@ -599,7 +600,7 @@ describe('StructuredAgentSessionAttentionBridge', () => {
       })
 
       await act(async () =>
-        store.setState({
+        setSessionTestState(store, {
           ...activeAfterCollision,
           worktreesByRepo: {
             repo1: [

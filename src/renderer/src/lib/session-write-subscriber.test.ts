@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore, type AppState } from '@/store'
 import {
@@ -75,7 +76,7 @@ describe('createSessionWriteSubscriber', () => {
     const persist = vi.fn<(payload: WorkspaceSessionWrite) => void>()
     const cleanup = createSessionWriteSubscriber({ store: useAppStore, persist })
 
-    useAppStore.setState({ tabsByWorktree: { 'wt-1': [] } })
+    setSessionTestState(useAppStore, { tabsByWorktree: { 'wt-1': [] } })
     vi.advanceTimersByTime(200)
 
     expect(persist).not.toHaveBeenCalled()
@@ -154,7 +155,7 @@ describe('createSessionWriteSubscriber', () => {
     const persist = vi.fn<(payload: WorkspaceSessionWrite) => void>()
     const cleanup = createSessionWriteSubscriber({ store: useAppStore, persist })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       workspaceSessionReady: true,
       hydrationSucceeded: true,
       tabsByWorktree: {
@@ -230,7 +231,7 @@ describe('createSessionWriteSubscriber', () => {
     expect(persist).toHaveBeenCalledTimes(1)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -264,7 +265,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -302,7 +303,7 @@ describe('createSessionWriteSubscriber', () => {
       })
     )
     const cleanup = createSessionWriteSubscriber({ store: useAppStore, persist })
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       workspaceSessionReady: true,
       hydrationSucceeded: true,
       tabsByWorktree
@@ -312,7 +313,7 @@ describe('createSessionWriteSubscriber', () => {
     expect(vi.getTimerCount()).toBe(0)
 
     const changedWorktreeId = 'wt-173'
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         ...tabsByWorktree,
         [changedWorktreeId]: [
@@ -342,7 +343,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -373,7 +374,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -404,7 +405,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -433,7 +434,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -468,7 +469,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: {
         'wt-1': [
           {
@@ -496,7 +497,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: {
         'wt-1': [
           {
@@ -563,7 +564,7 @@ describe('createSessionWriteSubscriber', () => {
     const persist = vi.fn<(payload: WorkspaceSessionWrite) => void>()
     const cleanup = createSessionWriteSubscriber({ store: useAppStore, persist })
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       workspaceSessionReady: true,
       hydrationSucceeded: true,
       tabsByWorktree: {
@@ -585,7 +586,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-1': [
           {
@@ -629,7 +630,7 @@ describe('createSessionWriteSubscriber', () => {
     vi.advanceTimersByTime(200)
     persist.mockClear()
 
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ptyIdsByTabId: {
         ...useAppStore.getState().ptyIdsByTabId,
         'tab-1': []
@@ -670,7 +671,7 @@ describe('createSessionWriteSubscriber', () => {
       ...makeTerminalSessionState('shell')
     })
     vi.advanceTimersByTime(50)
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-1': [] },
       unifiedTabsByWorktree: { 'wt-1': [] },
       groupsByWorktree: { 'wt-1': [] },

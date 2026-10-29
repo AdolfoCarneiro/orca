@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -29,7 +30,7 @@ const settle = () =>
 
 describe('SshRoutedBrowserPageGate', () => {
   beforeEach(() => {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       sshConnectionStates: new Map([
         [
           'target-a',
@@ -46,7 +47,7 @@ describe('SshRoutedBrowserPageGate', () => {
   })
   afterEach(() => {
     cleanup()
-    useAppStore.setState({ sshConnectionStates: initialHostState.sshConnectionStates })
+    setSessionTestState(useAppStore, { sshConnectionStates: initialHostState.sshConnectionStates })
   })
 
   it('renders children with no override for non-SSH workspaces without any prepare call', async () => {

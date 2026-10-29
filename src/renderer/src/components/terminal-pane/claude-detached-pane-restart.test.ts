@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { provideLayoutFrameTerminalPanes } from '@/runtime/layout-frame-terminal-panes'
@@ -18,7 +19,7 @@ function seedClaudePane(
   overrides: Partial<Pick<AgentStatusEntry, 'state' | 'providerSession'>> = {}
 ): void {
   const paneKey = makePaneKey('tab-1', LEAF_ID)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     tabsByWorktree: {
       wt1: [
         {

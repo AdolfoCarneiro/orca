@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore, type AppState } from '@/store'
 import { makeTab } from '../store/slices/store-session-test-harness'
@@ -36,7 +37,7 @@ function parkAndRemoveDraft(source: 'initial' | 'terminal-write', replay: () => 
   useAppStore.getState().setEditorDraft(FILE_ID, 'discarded document text\n')
   parkUntilHostMirrorHandleLands(ENVIRONMENT_ID, WORKTREE_ID, TAB_ID, replay)
   if (source === 'terminal-write') {
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       ptyIdsByTabId: { ...useAppStore.getState().ptyIdsByTabId, 'another-tab': ['another-pty'] }
     })
   }
@@ -55,7 +56,7 @@ beforeEach(() => {
   clearRuntimeEnvironmentConnectionGenerationsForTests()
   useAppStore.setState(initialAppStoreState, true)
   setRuntimeEnvironmentConnectionGenerationForTests(ENVIRONMENT_ID, 1)
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     ptyIdsByTabId: {},
     tabsByWorktree: {
       [WORKTREE_ID]: [makeTab({ id: TAB_ID, worktreeId: WORKTREE_ID })]
@@ -110,7 +111,7 @@ describe('host-mirror handle-gap snapshot lifetime', () => {
     expect(retired.snapshot.deref()).toBeUndefined()
     expect(retired.drafts.deref()).toBeUndefined()
 
-    useAppStore.setState({ ptyIdsByTabId: { ...ptyIds, [TAB_ID]: [PTY_ID] } })
+    setSessionTestState(useAppStore, { ptyIdsByTabId: { ...ptyIds, [TAB_ID]: [PTY_ID] } })
     expect(countParkedHostMirrorHandleGapPanesForTests()).toBe(0)
     expect(countHostMirrorHandleGapVerdictsForTests()).toBe(0)
     expect(hasHostMirrorHandleWaitExpired(ENVIRONMENT_ID, TAB_ID)).toBe(false)

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, renderHook, waitFor } from '@testing-library/react'
@@ -50,7 +51,7 @@ function startAgent(name: string): void {
     stateStartedAt: updatedAt,
     stateHistory: []
   }
-  useAppStore.setState((state) => ({
+  setSessionTestState(useAppStore, (state) => ({
     tabsByWorktree: {
       ...state.tabsByWorktree,
       [worktreeId(name)]: [makeTab({ id: `tab-${name}`, worktreeId: worktreeId(name) })]

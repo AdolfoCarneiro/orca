@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // Use a real editor slice and isolated window/filesystem bridge across autosave suites.
 import { vi } from 'vitest'
 import { createStore, type StoreApi } from 'zustand/vanilla'
@@ -126,7 +127,7 @@ export function createEditorStore(): StoreApi<AppState> {
 /** Store with a local worktree at /repo and an open, untouched untitled note at /repo/`fileName`. */
 export function createUntitledNoteStore(fileName: string): StoreApi<AppState> {
   const store = createEditorStore()
-  store.setState({
+  setSessionTestState(store, {
     worktreesByRepo: {
       'repo-1': [makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' })]
     },

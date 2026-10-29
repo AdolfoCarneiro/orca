@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import { toast } from 'sonner'
@@ -125,7 +126,7 @@ describe('fetchWorktrees', () => {
       path: '/remote/wt',
       hostId: 'runtime:env-1'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
         {
@@ -178,7 +179,7 @@ describe('fetchWorktrees', () => {
       path: '/home/orca/wt1',
       branch: 'refs/heads/ssh'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
         {
@@ -218,7 +219,7 @@ describe('fetchWorktrees', () => {
       repoId: 'same-repo',
       path: '/local/wt'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
         {
@@ -263,7 +264,7 @@ describe('fetchWorktrees', () => {
       path: '/runtime/wt',
       hostId: 'local'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: null } as never,
       repos: []
     })
@@ -299,7 +300,7 @@ describe('fetchWorktrees', () => {
       path: '/ssh/wt',
       hostId: 'local'
     })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-ambient' } as never,
       repos: []
     } as Partial<AppState>)
@@ -350,7 +351,7 @@ describe('fetchWorktrees', () => {
       requireAuthoritative: true
     })
     await started
-    store.setState({ repos: [] })
+    setSessionTestState(store, { repos: [] })
     release()
 
     await expect(refresh).resolves.toBe(false)
@@ -382,7 +383,7 @@ describe('fetchWorktrees', () => {
       requireAuthoritative: true
     })
     await started
-    store.setState({
+    setSessionTestState(store, {
       sshConnectionStates: new Map([
         [
           TEST_SSH_AUTHORITY.targetId,
@@ -413,7 +414,7 @@ describe('fetchWorktrees', () => {
       branch: 'refs/heads/remote',
       hostId: 'local'
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-remote',
@@ -462,7 +463,7 @@ describe('fetchWorktrees', () => {
       resolveFresh = resolve
     })
     runtimeEnvironmentCall.mockReturnValueOnce(staleResponse).mockReturnValueOnce(freshResponse)
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-remote',
@@ -510,7 +511,7 @@ describe('fetchWorktrees', () => {
       branch: 'refs/heads/Jinwoo-H/vm-improve-2',
       hostId: 'local'
     })
-    store.setState({
+    setSessionTestState(store, {
       repos: [
         {
           id: 'repo-remote',
@@ -634,7 +635,7 @@ describe('fetchWorktrees', () => {
 
   it('surfaces one deduped scope-mismatch toast when a mobile pairing forbids worktree RPCs', async () => {
     const store = createTestStore()
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
         { id: 'repo1', path: '/r1', displayName: 'R1', badgeColor: '#000', addedAt: 0 },
@@ -642,7 +643,7 @@ describe('fetchWorktrees', () => {
       ]
     } as Partial<AppState>)
     // Ingest stamps server rows; the listing follows the row's host.
-    store.setState({
+    setSessionTestState(store, {
       repos: store.getState().repos.map((repo) => ({ ...repo, executionHostId: 'runtime:env-1' }))
     })
     // Why: a mobile-scope device token is denied non-allowlisted runtime RPCs.

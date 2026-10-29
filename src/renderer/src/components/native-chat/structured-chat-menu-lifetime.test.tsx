@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { createRef } from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -71,7 +72,7 @@ it.each([6, 60])('bounds retained menu work at %i chats', async (size) => {
     }))
     const ids = tabs.map((tab) => tab.id)
     const other = { ...tabs[0], id: 'other', worktreeId: 'other', groupId: 'group-other' }
-    useAppStore.setState({
+    setSessionTestState(useAppStore, {
       keybindings: initial.keybindings,
       tabsByWorktree: {},
       unifiedTabsByWorktree: { owner: tabs, other: [other] },

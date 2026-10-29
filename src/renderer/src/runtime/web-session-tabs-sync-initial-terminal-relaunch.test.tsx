@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
 import { act, cleanup, renderHook } from '@testing-library/react'
@@ -363,7 +364,7 @@ describe('activating a host-owned workspace before the host has answered', () =>
     resetWebRuntimeInitialTerminalBootstrapForTests()
     resetWebRuntimeWakeTerminalRespawnForTests()
     seedRemoteMirrorState(1)
-    useAppStore.setState({ worktreesByRepo: { 'repo-a': [makeWorktree()] } })
+    setSessionTestState(useAppStore, { worktreesByRepo: { 'repo-a': [makeWorktree()] } })
   })
 
   afterEach(() => {

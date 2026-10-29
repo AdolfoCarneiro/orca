@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import type { RuntimeEnvironmentCallRequest } from '../../runtime/runtime-compatibility-test-fixture'
@@ -73,7 +74,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
           })
         )
       )
-      store.setState({
+      setSessionTestState(store, {
         repos: [repoA],
         hydrationSucceeded: false,
         workspaceSessionReady: false
@@ -83,7 +84,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
         hydrationPurge: 'defer'
       })
       expect(store.getState().hasHydratedWorktreePurge).toBe(false)
-      store.setState({
+      setSessionTestState(store, {
         hydrationSucceeded: true,
         workspaceSessionReady: true,
         tabsByWorktree: {
@@ -97,9 +98,9 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
           }
         })
       } else if (change === 'new owner') {
-        store.setState({ repos: [repoA, repoB] })
+        setSessionTestState(store, { repos: [repoA, repoB] })
       } else if (change === 'unloaded runtime') {
-        store.setState({
+        setSessionTestState(store, {
           restoredRuntimeHostIdByWorkspaceSessionKey: {
             'remote-repo::/remote/saved': 'runtime:offline'
           }
@@ -141,7 +142,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
           source: 'metadata-fallback'
         })
       })
-      store.setState({
+      setSessionTestState(store, {
         repos: [sshRepo],
         hasHydratedWorktreePurge,
         sshConnectionStates: new Map([
@@ -208,7 +209,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     mockApi.worktrees.listDetected.mockResolvedValueOnce(
       makeDetectedResult('repoA', [resolvedParent, resolvedChild])
     )
-    store.setState({
+    setSessionTestState(store, {
       repos: [repoA],
       hasHydratedWorktreePurge: true,
       worktreeLineageById: {}
@@ -242,7 +243,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       throw new Error('git error')
     })
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [repoA, repoB],
       worktreesByRepo: { repoB: [wtB] },
       tabsByWorktree: {
@@ -281,7 +282,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     // Empty valid-id union (both repos newly-cloned, empty) isn't authoritative — defer instead of wiping tabsByWorktree.
     worktreeListMock.mockResolvedValue([])
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [repoA, repoB],
       tabsByWorktree: {
         'repoA::/a/wt1': [{ id: 'tab-A', worktreeId: 'repoA::/a/wt1' }]
@@ -307,7 +308,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [repoA, repoB],
       folderWorkspaces: [folderWorkspace],
       tabsByWorktree: {
@@ -340,7 +341,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     })
 
     // Second call must not re-run the purge even if new stale ids appear.
-    store.setState({
+    setSessionTestState(store, {
       tabsByWorktree: {
         ...store.getState().tabsByWorktree,
         'repoA::/a/new-zombie': [{ id: 'tab-new-zombie', worktreeId: 'repoA::/a/new-zombie' }]
@@ -362,7 +363,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [repoA, repoB],
       tabsByWorktree: {
         'repoA::/a/wt1': [{ id: 'tab-A', worktreeId: 'repoA::/a/wt1' }],
@@ -394,7 +395,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
-    store.setState({
+    setSessionTestState(store, {
       workspaceSessionReady: false,
       hydrationSucceeded: false,
       repos: [repoA, repoB],
@@ -436,7 +437,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : []
     )
 
-    store.setState({
+    setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos: [repoA, repoB],
       tabsByWorktree: {
@@ -517,7 +518,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       _meta: { runtimeId: 'runtime-remote' }
     })
 
-    store.setState({
+    setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos: [localRepo, runtimeRepo],
       worktreesByRepo: {
@@ -583,7 +584,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       return [makeWorktree({ id: `${repoId}::/wt`, repoId, path: `/wt/${repoId}` })]
     })
 
-    store.setState({ repos } as unknown as Partial<AppState>)
+    setSessionTestState(store, { repos } as unknown as Partial<AppState>)
 
     await store.getState().fetchAllWorktrees()
 
@@ -612,7 +613,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       return [makeWorktree({ id: `${repoId}::/wt`, repoId, path: `/wt/${repoId}` })]
     })
 
-    store.setState({
+    setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos
     } as unknown as Partial<AppState>)
@@ -649,7 +650,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     })
 
     try {
-      store.setState({
+      setSessionTestState(store, {
         hasHydratedWorktreePurge: true,
         repos
       } as unknown as Partial<AppState>)
@@ -670,7 +671,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     // Why: reuse is part of the coalescing key, so a foreground reuse:false scan must re-probe, not reuse a stale background failure.
     const store = createTestStore()
     const remote = makeWorktree({ id: 'repo1::/remote/wt', repoId: 'repo1', path: '/remote/wt' })
-    store.setState({
+    setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       hasHydratedWorktreePurge: true,
       repos: [
@@ -738,7 +739,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [repoA, repoB],
       activeWorktreeId: FLOATING_TERMINAL_WORKTREE_ID,
       activeFileId: 'floating-file',
