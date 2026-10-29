@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native'
+import type { UseMobileDictationResult } from '../hooks/mobile-dictation-session-state'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
@@ -8,9 +9,10 @@ import {
   mobileDictationStatusTitle,
   type MobileDictationStatusFlags
 } from './MobileDictationStatusAnnouncement'
+import { MobileDictationGrapes, MobileDictationTimer } from './MobileDictationMeter'
 
 type MobileTerminalLiveInputStatusProps = {
-  readonly dictation: MobileDictationStatusFlags
+  readonly dictation: MobileDictationStatusFlags & Pick<UseMobileDictationResult, 'meter'>
   readonly dictationMode: string | undefined
   readonly isAttaching: boolean
   // Words heard so far that will be typed into this terminal.
@@ -50,11 +52,15 @@ export function MobileTerminalLiveInputStatus({
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
+      {dictation.isRecording ? <MobileDictationTimer meter={dictation.meter} /> : null}
       <View style={styles.detailLine}>
         <TailClippedText style={heard ? [styles.detail, styles.heard] : styles.detail}>
           {detail}
         </TailClippedText>
       </View>
+      {dictation.isRecording ? (
+        <MobileDictationGrapes meter={dictation.meter} dotSize={3.5} />
+      ) : null}
     </View>
   )
 }

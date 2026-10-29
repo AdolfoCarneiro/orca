@@ -194,6 +194,7 @@ export function MobileSessionCommandDock({
               dictation={dictation}
               dictationMode={dictationMode}
               dictationEnabled={dictationEnabled}
+              meterHalo={dictation.meter}
               buttonStyle={styles.dictationButton}
               activeButtonStyle={styles.dictationButtonActive}
               disabledButtonStyle={styles.sendButtonDisabled}

@@ -104,3 +104,16 @@ export function dictationMeterStatesEqual(
     left.isClipping === right.isClipping
   )
 }
+
+// Desktop and phone draw the same nine dots so the meter looks alike in both apps.
+export const DICTATION_GRAPES = [
+  { base: 0.64, response: 0.45, lift: 1 },
+  { base: 0.76, response: 0.75, lift: -1 },
+  { base: 0.9, response: 1, lift: 1 },
+  { base: 1, response: 1.25, lift: -1 },
+  { base: 0.86, response: 0.9, lift: 1 },
+  { base: 0.72, response: 1.1, lift: -1 },
+  { base: 0.82, response: 0.7, lift: 1 },
+  { base: 0.68, response: 0.55, lift: -1 },
+  { base: 0.58, response: 0.35, lift: 1 }
+] as const

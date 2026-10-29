@@ -7361,7 +7361,7 @@
       "src/renderer/src/components/dashboard/useRetainedAgentsSync.test.ts": 1358,
       "src/renderer/src/components/dictation/DictationIndicator.localization.test.ts": 331,
       "src/renderer/src/components/dictation/DictationIndicator.test.tsx": 448,
-      "src/renderer/src/components/dictation/dictation-audio-meter.test.ts": 81,
+      "src/shared/dictation-audio-meter.test.ts": 81,
       "src/renderer/src/components/dictation/dictation-final-segments.test.ts": 50,
       "src/renderer/src/components/dictation/dictation-insertion-target.test.ts": 268,
       "src/renderer/src/components/dictation/dictation-meter-store.test.tsx": 225,
