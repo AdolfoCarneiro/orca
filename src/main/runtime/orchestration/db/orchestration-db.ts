@@ -30,6 +30,8 @@ class OrchestrationDbCore {
   mailHandBackListener: ((handBack: MailHandBack) => void) | undefined
   /** The runtime's auto-release timer, re-armed whenever a settlement stamps a deadline. */
   workerTerminalAutoReleaseListener: (() => void) | undefined
+  /** Whether a settling chat worker may arm too: every connected client must report touches. */
+  chatWorkerAutoReleaseArmable: (() => boolean) | undefined
 
   constructor(dbPath: (string & {}) | ':memory:') {
     this.db = new Database(dbPath)

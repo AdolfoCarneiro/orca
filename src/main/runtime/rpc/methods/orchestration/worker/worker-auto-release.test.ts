@@ -4,11 +4,12 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reconcileRequestedWorkerTerminalReleases } from '../../../../orchestration/worker-terminal-release-reconciliation'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
-import { OrchestrationDb } from '../../../../orchestration/db'
 import { getWorkerTerminalAutoReleaseScheduler } from '../../../../orchestration/worker-terminal-auto-release-scheduler'
 import { createOrchestrationWorkerReleaseHarness } from './worker-release.test-support'
+import { ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY } from '../../../../../../shared/orchestration-runtime-capabilities'
 
 const GRACE_MS = 2 * 60_000
+const CHAT_TOUCH = ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY
 
 describe('orchestration worker automatic release', () => {
   const h = createOrchestrationWorkerReleaseHarness()
@@ -300,26 +301,96 @@ describe('orchestration worker automatic release', () => {
     )
   })
 
-  it('never arms a chat worker, whose draft has no activity signal', () => {
-    const db = new OrchestrationDb(':memory:')
-    const task = db.createTask({ runId: 'run_legacy_local', spec: 'structured' })
-    const { dispatch } = db.createStartingWorkerDispatch({
-      creator: { kind: 'system' },
-      maxDepth: Number.MAX_SAFE_INTEGER,
-      taskId: task.id,
-      startOptions: {}
-    })
-    db.recordCreatedWorkerTerminalCustody({
-      dispatchId: dispatch.id,
-      handle: 'structworker_1',
-      paneKey: 'tab_s:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-      processIncarnation: 'structured:1',
-      worktreeId: 'wt'
+  describe('chat workers', () => {
+    const chatPaneKey = 'structured-agent-session-s1:dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+
+    function startChatWorker(): { taskId: string; dispatchId: string } {
+      const started = h.db.createStartingWorkerDispatch({
+        creator: { kind: 'system' },
+        maxDepth: Number.MAX_SAFE_INTEGER,
+        taskSpec: 'chat worker',
+        taskRunId: 'run_legacy_local',
+        startOptions: {}
+      })
+      h.db.prepareStartingWorkerAuthority({
+        dispatchId: started.dispatch.id,
+        handle: 'structworker_1',
+        paneKey: chatPaneKey,
+        processIncarnation: 'structured:s1',
+        hostScope: JSON.stringify({ kind: 'local', hostId: 'local' }),
+        worktreeId: 'wt',
+        setupState: 'not_applicable',
+        effects: [],
+        terminalOwnership: 'created'
+      })
+      h.db.markWorkerDispatchReady(started.dispatch.id)
+      return { taskId: started.task.id, dispatchId: started.dispatch.id }
+    }
+
+    function startSettledChatWorker(): string {
+      const { taskId, dispatchId } = startChatWorker()
+      h.settle(taskId, dispatchId, 'succeeded')
+      return dispatchId
+    }
+
+    const touch = (): Promise<unknown> =>
+      h.call('orchestration.workerChatTouch', { paneKey: chatPaneKey })
+
+    it.each([
+      ['every connected client reports touches', [[CHAT_TOUCH]], '2026-10-27 12:02:00'],
+      ['a connected client cannot report touches', [[CHAT_TOUCH], []], null]
+    ] as const)('arms on worker_done only when %s', (_case, clients, deadline) => {
+      setupWithFakeClock()
+      h.runtime.bindConnectedClientCapabilities(() => clients)
+
+      const dispatchId = startSettledChatWorker()
+
+      expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)?.auto_release_at).toBe(deadline)
     })
 
-    db.armWorkerTerminalAutoReleaseStatement(dispatch.id)
+    it.each(['before the deadline', 'while the automatic release captures output'] as const)(
+      'keeps a finished chat the user touched %s',
+      async (moment) => {
+        setupWithFakeClock()
+        const dispatchId = startSettledChatWorker()
+        if (moment !== 'before the deadline') {
+          h.db.claimDueWorkerTerminalAutoReleases(Date.now() + GRACE_MS)
+        }
 
-    expect(db.getWorkerTerminalResourceByOwner(dispatch.id)?.auto_release_at).toBeNull()
-    db.close()
+        await expect(touch()).resolves.toEqual({ changed: 1 })
+
+        const resource = h.db.getWorkerTerminalResourceByOwner(dispatchId)!
+        expect(resource).toMatchObject({
+          ownership_state: 'user_owned',
+          release_state: 'retained',
+          retained_reason: 'user_takeover',
+          auto_release_at: null
+        })
+        expect(
+          h.db.commitWorkerTerminalArchiveForRelease({
+            dispatchId,
+            resourceId: resource.id,
+            kind: 'transcript_pin',
+            content: '{}',
+            archiveSource: 'transcript',
+            archiveStatus: 'captured'
+          }).release_state
+        ).toBe('retained')
+      }
+    )
+
+    it('ignores a touch on a running worker and on an explicit release', async () => {
+      setupWithFakeClock()
+      const { taskId, dispatchId } = startChatWorker()
+      await expect(touch()).resolves.toEqual({ changed: 0 })
+
+      h.settle(taskId, dispatchId, 'succeeded')
+      h.db.requestWorkerTerminalRelease(dispatchId)
+      await expect(touch()).resolves.toEqual({ changed: 0 })
+      expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+        ownership_state: 'owned',
+        release_state: 'requested'
+      })
+    })
   })
 })

@@ -286,6 +286,9 @@ export class RuntimeRpcLifecycle extends RuntimeRpcWebSocketDispatch {
       }
     })
     this.mobileSocketWiring = mobileSocketWiring
+    this.runtime.bindConnectedClientCapabilities?.(() =>
+      mobileSocketWiring.authenticatedClientCapabilities()
+    )
     return mobileSocketWiring
   }
 }

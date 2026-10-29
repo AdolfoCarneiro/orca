@@ -12,7 +12,7 @@ export const WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS = 2 * 60_000
 const RELEASABLE_STATES_SQL = WORKER_RELEASABLE_STATES.map((state) => `'${state}'`).join(', ')
 
 /** Arm once per owning Dispatch inside its settlement transaction; a repeat report never extends it.
- *  Chat workers are excluded: no draft-edit signal proves the user is not mid-message. */
+ *  Chat workers arm only while every connected client reports touches; otherwise they stay on manual release. */
 export function armWorkerTerminalAutoReleaseStatement(
   this: OrchestrationDb,
   dispatchId: string,
@@ -26,11 +26,12 @@ export function armWorkerTerminalAutoReleaseStatement(
         WHERE owner_dispatch_id = ? AND ownership_state = 'owned'
           AND release_state = 'not_requested'
           AND auto_release_dispatch_id IS NOT owner_dispatch_id
-          AND substr(terminal_handle, 1, ?) != ?`
+          AND (? OR substr(terminal_handle, 1, ?) != ?)`
     )
     .run(
       toSqliteUtcTimestamp(nowMs + WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS),
       dispatchId,
+      this.chatWorkerAutoReleaseArmable?.() ? 1 : 0,
       STRUCTURED_WORKER_HANDLE_PREFIX.length,
       STRUCTURED_WORKER_HANDLE_PREFIX
     )

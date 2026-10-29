@@ -150,6 +150,17 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
         : 0
       return { changed }
     }
+  }),
+  defineMethod({
+    name: 'orchestration.workerChatTouch',
+    permission: 'workspace',
+    params: OrchestrationWorkerTerminalUserInputParams,
+    // Clients cannot tell worker chats apart, so every chat reports; only a finished worker's pending close yields.
+    handler: (params, { runtime }) => {
+      const paneKey = resolveUserWorkerPaneKey(runtime, params)
+      const changed = paneKey ? runtime.getOrchestrationDb().markWorkerChatTouched(paneKey) : 0
+      return { changed }
+    }
   })
 ]
 

@@ -147,6 +147,7 @@ export const EXECUTION_HOST_METHODS = [
   'nativeChat.unsubscribe',
   // Mobile reports takeover out of band, matching desktop renderer signaling.
   'orchestration.workerTerminalUserInput',
+  'orchestration.workerChatTouch',
   'projectGroup.list',
   'repo.baseRefDefault',
   'repo.gitAvailable',

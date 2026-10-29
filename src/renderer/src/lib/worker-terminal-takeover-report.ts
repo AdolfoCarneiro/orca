@@ -1,5 +1,6 @@
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { reportWorkerTakeoverOncePerWindow } from '../../../shared/worker-terminal-takeover-report-gate'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 
 const lastReportByPaneKey = new Map<string, number>()
 
@@ -19,6 +20,25 @@ export function reportStructuredSessionUserInput(
   reportTakeover({ sessionId }, runtimeEnvironmentId)
 }
 
+/** Edge-triggered by the chat view, so no throttle: a finished worker's chat stays open once its host hears of it. */
+export function reportStructuredSessionTouch(
+  sessionId: string,
+  runtimeEnvironmentId: string | null
+): void {
+  void callRuntimeRpc(
+    runtimeTarget(runtimeEnvironmentId),
+    'orchestration.workerChatTouch',
+    { sessionId },
+    { suppressFeatureInteraction: true, reuseRecentCompatibilityFailure: true }
+  ).catch(() => {})
+}
+
+function runtimeTarget(runtimeEnvironmentId: string | null): RuntimeClientTarget {
+  return runtimeEnvironmentId !== null
+    ? { kind: 'environment', environmentId: runtimeEnvironmentId }
+    : { kind: 'local' }
+}
+
 function reportTakeover(
   subject: { paneKey: string } | { sessionId: string },
   runtimeEnvironmentId: string | null
@@ -29,9 +49,7 @@ function reportTakeover(
     JSON.stringify([runtimeEnvironmentId, subject]),
     () =>
       callRuntimeRpc(
-        runtimeEnvironmentId !== null
-          ? { kind: 'environment', environmentId: runtimeEnvironmentId }
-          : { kind: 'local' },
+        runtimeTarget(runtimeEnvironmentId),
         'orchestration.workerTerminalUserInput',
         subject,
         { suppressFeatureInteraction: true, reuseRecentCompatibilityFailure: true }
