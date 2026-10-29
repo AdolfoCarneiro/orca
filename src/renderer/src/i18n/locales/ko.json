@@ -2524,7 +2524,6 @@
         "47126bcf57": "수동으로 다운로드",
         "3553a8672f": "마지막 오류",
         "90559b14e3": "다시 시작한 후 프로세스 전체의 Electron 네트워킹 스위치가 켜집니다. HTTP/2 업데이트 다운로드를 거부하는 기업 VPN 또는 프록시에 사용하세요.",
-        "6e45bfa2e0": "다운로드 중...",
         "558842597d": "업데이트 다운로드 중",
         "f58b5c57a6": "새 소식:",
         "ec8fe71cfc": "업데이트",
@@ -2534,7 +2533,6 @@
         "318d3b4bc7": "업데이트 닫기",
         "9abc59f814": "업데이트 가능",
         "aad383aecc": "전체 릴리스 노트 읽기",
-        "ccd8b0a793": "마지막 업데이트 이후 추가됨",
         "b1d867f4fb": "업데이트 중에 terminal 세션이 중단되지 않습니다.",
         "09a55c39b5": "설치 중...",
         "ea2a41adbe": "최신 버전을 사용 중입니다.",
@@ -2560,7 +2558,24 @@
         "d29740d175": "선택한 빌드를 사용할 수 없었습니다.",
         "37d45c9ec1": "다른 빌드 선택",
         "7f1a4c9e02": "시스템 패키지 관리자가 Orca를 설치했으므로 거기에서 업데이트하십시오. Orca는 이 릴리스 자체를 설치할 수 없습니다.",
-        "compatibilityModeFailed": "호환 모드를 활성화할 수 없습니다. {{message}}"
+        "compatibilityModeFailed": "호환 모드를 활성화할 수 없습니다. {{message}}",
+        "moreSinceLastUpdate": "지난 업데이트 이후 +{{count}}개",
+        "downloadingPercent": "다운로드 중... {{percent}}%",
+        "restartToInstallFailed": "업데이트 설치를 위해 다시 시작하지 못했습니다.",
+        "http1RetryAvailable": "Orca가 HTTP/1.1 호환 모드로 재시도할 수 있습니다.",
+        "restarting": "다시 시작 중...",
+        "updateCheckFailed": "업데이트 확인 실패",
+        "updateIncomplete": "업데이트를 완료하지 못했습니다.",
+        "checkFailed": "업데이트를 확인하지 못했습니다.",
+        "aria": {
+          "statusIdle": "업데이트 상태",
+          "statusChecking": "업데이트 확인 중",
+          "statusLatest": "최신 버전을 사용 중입니다",
+          "statusAvailable": "업데이트 가능",
+          "statusDownloading": "업데이트 다운로드 중",
+          "statusDownloaded": "업데이트 설치 준비 완료",
+          "statusError": "업데이트 오류"
+        }
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "이동",
@@ -4487,9 +4502,6 @@
           "trackingSince": "{{value0}} 이후 추적 중"
         },
         "UsageOverviewPane": {
-          "22ed1b7669": "세션",
-          "444585cb41": "데이터 있음",
-          "ecb0cd8a4c": "활성화됨 -",
           "33f7b043d2": "공급자",
           "70f36452d4": "캐시 공유",
           "327603fe8b": "활성 일수",
@@ -4505,7 +4517,9 @@
           "c760c481c5": "사용량 개요",
           "55c910f4f1": "- 일부 모델 가격 확인 불가",
           "enableMuse": "Muse 사용",
-          "noLocalUsageYet": "아직 로컬 Claude, Codex, OpenCode 또는 Muse 사용량을 찾지 못했습니다. 다음 에이전트 세션이 토큰 로그를 기록하면 개요가 채워집니다."
+          "noLocalUsageYet": "아직 로컬 Claude, Codex, OpenCode 또는 Muse 사용량을 찾지 못했습니다. 다음 에이전트 세션이 토큰 로그를 기록하면 개요가 채워집니다.",
+          "providersEnabledWithData": "{{enabled}}개 활성화 - {{withData}}개에 데이터 있음",
+          "sessionCount_other": "세션 {{formatted}}개"
         },
         "share": {
           "card": {
@@ -4569,14 +4583,15 @@
               "7f270458af": "출력",
               "9365b14a4e": "새로운 입력",
               "3de9bf87fc": "아직 모델이 없습니다.",
-              "6762f6a682": "토큰",
-              "a7f937fb29": "{{value0}}개 세션 - {{value1}} {{value2}}",
-              "c8f3a2d1e0b4": "턴",
-              "d9a4b3e2f1c5": "이벤트",
               "recentCombinedActivity": "최근 Claude, Codex, OpenCode, Muse의 통합 토큰 활동입니다.",
               "statusScanning": "스캐닝",
               "statusEnabled": "활성",
-              "statusOff": "비활성"
+              "statusOff": "비활성",
+              "sessionsAndActivity": "{{sessions}} - {{activity}}",
+              "tokenTotal": "토큰 {{tokens}}개",
+              "sessionCount_other": "세션 {{formatted}}개",
+              "turnCount_other": "턴 {{formatted}}회",
+              "eventCount_other": "이벤트 {{formatted}}개"
             }
           }
         },
@@ -4605,6 +4620,10 @@
           "emptyMessage": "이 범위에서 아직 로컬 Muse 사용량을 찾지 못했습니다.",
           "noCostNote": "Muse 세션 로그에는 토큰만 기록되고 비용은 기록되지 않으므로 비용 추정치를 표시하지 않습니다.",
           "recentSessionsDescription": "이 범위에서 가장 최근의 로컬 Muse 세션입니다."
+        },
+        "usageFormatters": {
+          "notScannedYet": "아직 스캔하지 않음",
+          "updatedAt": "{{time}} 업데이트됨"
         }
       },
       "sparse": {
@@ -4691,31 +4710,19 @@
           "plugin": "플러그인"
         },
         "count": {
-          "skillOne": "스킬 {{count}}개",
-          "skillOther": "스킬 {{count}}개",
-          "sourceOne": "소스 {{count}}개",
-          "sourceOther": "소스 {{count}}개",
-          "fileOne": "파일 {{count}}개",
-          "fileOther": "파일 {{count}}개",
-          "resultOne": "결과 {{count}}개",
-          "resultOther": "결과 {{count}}개",
           "selected": "{{count}}개 선택됨",
-          "shareOne": "스킬 {{count}}개 공유",
-          "shareOther": "스킬 {{count}}개 공유",
-          "linkOne": "링크 {{count}}개",
-          "linkOther": "링크 {{count}}개",
-          "installOne": "{{count}} 스킬 설치",
-          "installOther": "{{count}} 스킬 설치",
-          "retryOne": "{{count}} 스킬 재시도",
-          "retryOther": "{{count}} 기술을 다시 시도하세요.",
-          "deleteOne": "{{count}} 스킬 삭제",
-          "deleteOther": "{{count}} 기술 삭제",
-          "deletedOne": "{{count}} 스킬을 삭제했습니다.",
-          "deletedOther": "{{count}} 스킬을 삭제했습니다.",
-          "deleteFolderOne": "{{count}} 폴더",
-          "deleteFolderOther": "{{count}} 폴더",
-          "deleteLinkOne": "{{count}} 링크",
-          "deleteLinkOther": "{{count}} 링크"
+          "delete_other": "스킬 {{count}}개 삭제",
+          "deleteFolder_other": "폴더 {{count}}개",
+          "deleteLink_other": "링크 {{count}}개",
+          "skill_other": "스킬 {{count}}개",
+          "source_other": "소스 {{count}}개",
+          "file_other": "파일 {{count}}개",
+          "link_other": "링크 {{count}}개",
+          "result_other": "결과 {{count}}개",
+          "share_other": "스킬 {{count}}개 공유",
+          "install_other": "스킬 {{count}}개 설치",
+          "retry_other": "스킬 {{count}}개 재시도",
+          "deleted_other": "스킬 {{count}}개 삭제됨"
         },
         "filter": {
           "allAgents": "모든 에이전트",
@@ -4736,41 +4743,37 @@
         },
         "SkillFreshnessNudge": {
           "titleOne": "설치된 Orca 스킬이 오래되었습니다",
-          "titleMany": "설치된 Orca 스킬 {{value0}}개가 오래되었습니다",
           "updateOne": "스킬 업데이트",
           "updateMany": "스킬 업데이트",
-          "description": "Agents가 이 버전의 Orca에 대한 최신 지침을 따르도록 {{value0}}을(를) 업데이트하세요."
+          "description": "Agents가 이 버전의 Orca에 대한 최신 지침을 따르도록 {{value0}}을(를) 업데이트하세요.",
+          "title_other": "설치된 Orca 스킬 {{count}}개가 최신 상태가 아닙니다"
         },
         "SkillFreshnessRow": {},
         "SkillFreshnessUpdateDialog": {
           "title": "스킬 업데이트",
           "checking": "설치된 Orca 스킬을 확인하는 중…",
           "none": "설치된 Orca 스킬을 찾을 수 없습니다.",
-          "updateOne": "스킬 1개를 안전하게 업데이트할 수 있습니다",
-          "updateMany": "스킬 {{value0}}개를 안전하게 업데이트할 수 있습니다",
           "success": "설치된 Orca 스킬이 모두 최신 상태입니다.",
           "checkNow": "지금 확인",
           "close": "닫기",
           "progressAria": "Updating skills",
           "errorTitle": "업데이트가 완료되지 않았습니다",
           "updating": "Updating…",
-          "updateActionOne": "Update 1 skill",
-          "updateActionMany": "Update {{value0}} skills",
           "done": "Done",
           "finishedWithProblems": "일부 스킬에 확인이 필요합니다",
           "repair": "이전 업데이트가 중단되었습니다. 업데이트하면 복구됩니다.",
           "hideFolders": "폴더 숨기기",
           "showFolders": "폴더 보기",
-          "upToDateMany": "스킬 {{value0}}개가 최신 상태입니다.",
           "upToDateOne": "{{value0}}은(는) 최신 상태입니다.",
-          "updatedMany": "스킬 {{value0}}개를 업데이트했습니다",
-          "updatedOne": "스킬 1개를 업데이트했습니다",
           "updatedSkipped": "{{value0}} · {{value1}}개 건너뜀",
-          "currentOne": "스킬 1개가 최신 상태입니다",
-          "currentMany": "스킬 {{value0}}개가 최신 상태입니다",
           "noUpdates": "사용 가능한 업데이트가 없습니다",
           "updateServer": "서버의 Orca를 업데이트하면 Orca 스킬을 업데이트할 수 있습니다.",
-          "connectHost": "이 SSH 호스트에 연결하면 Orca 스킬을 확인할 수 있습니다."
+          "connectHost": "이 SSH 호스트에 연결하면 Orca 스킬을 확인할 수 있습니다.",
+          "upToDate_other": "스킬 {{count}}개가 최신 상태입니다.",
+          "update_other": "업데이트 {{count}}개 사용 가능",
+          "current_other": "스킬 {{count}}개가 최신 상태입니다",
+          "updated_other": "스킬 {{count}}개를 업데이트했습니다",
+          "updateAction_other": "스킬 {{count}}개 업데이트"
         },
         "SkillFreshnessStatusPill": {
           "updateAvailable": "업데이트 가능",
@@ -4899,8 +4902,8 @@
           "01c5a12e04": "로컬로 유지",
           "01c5a12e07": "번들 설치에 주의가 필요합니다.",
           "01c5a12e08": "스킬이 설치되고 검증되었습니다.",
-          "01c5a12e09": "{{value0}} 선택한 스킬이 확인되었습니다.",
-          "01c5a12e10": "재시도 필요"
+          "01c5a12e10": "재시도 필요",
+          "selectedChecked_other": "선택한 스킬 {{count}}개를 확인했습니다."
         },
         "SkillBundleInstallReview": {
           "01c5a11e09": "릴리스 노트:",
@@ -4921,13 +4924,11 @@
           "releaseNotesOptional": "출시 노트 추가(선택사항)",
           "releaseNotesFirst": "이번 릴리스 설명",
           "manageLinks": "설정에서 이 링크를 관리하거나 취소하세요.",
-          "scriptOne": "{{count}} 스크립트",
-          "scriptOther": "{{count}} 스크립트",
-          "executableOne": "{{count}} 실행 가능",
-          "executableOther": "{{count}} 실행 파일",
           "noExecutableContent": "스크립트나 실행 파일 없음",
           "newVersionDescriptionPlain": "기존 링크에 새 버전을 추가합니다.",
-          "accessSummaryPlain": "비공개 링크 — 링크가 있는 사람은 누구나 설치할 수 있습니다."
+          "accessSummaryPlain": "비공개 링크 — 링크가 있는 사람은 누구나 설치할 수 있습니다.",
+          "script_other": "스크립트 {{count}}개",
+          "executable_other": "실행 파일 {{count}}개"
         },
         "description": {
           "showLess": "간략히 보기",
@@ -4962,7 +4963,6 @@
           "rowNew": "새로 만들기",
           "chooseSkills": "이 링크에서 설치할 항목을 선택하세요.",
           "singleRunnableWarning": "이 기술에는 스크립트 또는 바이너리 파일이 포함됩니다.",
-          "runnableWarning": "{{selectedCount}} 중 {{affectedCount}} 선택한 기술에는 스크립트 또는 바이너리 파일이 포함됩니다: {{affected}}.",
           "reviewRunnableFiles": "스크립트 또는 바이너리 파일 포함",
           "reviewSupportingFiles": "지원 파일 검토",
           "reviewInstructions": "이 스킬에 대해",
@@ -4971,13 +4971,15 @@
           "fileBinary": "바이너리",
           "fileRunnable": "실행 가능",
           "agentsCountBadge": "{{count}} 선택됨",
-          "agentsCountLabel": "{{count}} {{label}}",
           "targetAgentsHeader": "대상 에이전트",
           "deselectAll": "모두 선택 해제",
           "selectAll": "모두 선택",
           "canonicalHeader": "표준 에이전트(항상 포함)",
           "canonicalExplanation": "이러한 에이전트는 Orca가 기본적으로 설치하는 {{root}}을 기본적으로 읽습니다.",
-          "additionalAgentsHeader": "추가 에이전트 디렉터리"
+          "additionalAgentsHeader": "추가 에이전트 디렉터리",
+          "namesAndMore": "{{names}} 외 {{count}}개",
+          "agentCount_other": "에이전트 {{count}}개",
+          "runnableWarningOfSelected_other": "선택한 스킬 {{count}}개 중 {{affectedCount}}개에 스크립트 또는 바이너리 파일이 포함되어 있습니다: {{affected}}."
         },
         "SkillSharedLinkRow": {
           "contentsUnavailable": "이 링크에 포함된 내용을 로드할 수 없습니다.",
@@ -5042,10 +5044,10 @@
           "hostUnresolved": "아직도 이러한 기술을 소유한 기계를 찾고 있습니다.",
           "hostUpdateRequired": "스킬을 삭제하려면 선택한 컴퓨터에서 Orca를 업데이트하세요.",
           "nothingOne": "해당 스킬은 여기에서 삭제할 수 없습니다.",
-          "nothingOther": "선택한 {{count}} 스킬은 여기에서 삭제할 수 없습니다.",
           "placementSummaryParts": "{{roots}}에서 {{parts}}을(를) 제거합니다.",
           "placementJoin": "그리고",
-          "retainedSource": "스킬 자체는 {{path}}에 유지됩니다."
+          "retainedSource": "스킬 자체는 {{path}}에 유지됩니다.",
+          "nothing_other": "선택한 스킬 {{count}}개 중 여기서 삭제할 수 있는 스킬이 없습니다."
         },
         "skillPlanOpCopy": {
           "busy": "다른 설치가 아직 진행 중입니다",
@@ -5074,6 +5076,19 @@
           "updateAvailable": "업데이트 가능",
           "repairAvailable": "복구 가능",
           "installAvailable": "설치 가능"
+        },
+        "installResult": {
+          "installed": "설치 및 검증 완료.",
+          "updated": "업데이트 및 검증 완료.",
+          "unchanged": "동일한 버전이 이미 설치되어 있습니다.",
+          "partial": "설치되었지만 일부 에이전트의 설치 위치를 확인해야 합니다.",
+          "removed": "제거되었습니다.",
+          "cancelled": "설치가 취소되었습니다.",
+          "incomplete": "설치가 완료되지 않았습니다."
+        },
+        "managedRemoval": {
+          "removed": "{{removed}}개 제거됨.",
+          "removedPreserved_other": "{{removed}}개 제거됨 · 수정된 스킬 {{count}}개 보존됨."
         }
       },
       "sidebar": {
@@ -13814,15 +13829,20 @@
       },
       "repo": {
         "NestedRepoChecklist": {
-          "f7e1170567": "선택됨",
-          "ea54c7bf8f": "/",
           "91b5bcadb6": "모두 선택",
-          "929734aea5": "모두 선택 취소"
+          "929734aea5": "모두 선택 취소",
+          "selectedOfTotal": "{{total}}개 중 {{selected}}개 선택됨"
         },
         "NestedRepoScanLimitNotice": {
           "642a43c139": "중첩 repos 스캔 한도",
           "574eb5408b": "부분 스캔 결과를 표시합니다.",
-          "03e9beab7b": "스캔이 일찍 중지되었습니다."
+          "03e9beab7b": "스캔이 일찍 중지되었습니다.",
+          "milliseconds": "{{count}} ms",
+          "seconds_other": "{{count}}초",
+          "folderLevels_other": "폴더 {{count}}단계",
+          "repositories_other": "리포지토리 {{count}}개",
+          "limitText": "스캔은 {{depth}} 또는 {{repos}}에 도달하면 중지됩니다. 도중에 중지하고 지금까지 찾은 리포지토리를 가져올 수 있습니다.",
+          "limitTextWithTimeout": "스캔은 {{depth}}, {{repos}} 또는 {{timeout}}에 도달하면 중지됩니다. 도중에 중지하고 지금까지 찾은 리포지토리를 가져올 수 있습니다."
         },
         "RepoCombobox": {
           "b3e15f4525": "프로젝트 추가",
@@ -13855,6 +13875,9 @@
             "65b437c381": "코드",
             "bed2674f9d": "폴더"
           }
+        },
+        "forkIndicator": {
+          "forkOf": "{{repo}}의 포크"
         }
       },
       "pet": {
@@ -13871,12 +13894,12 @@
           "e6a369bd04": "인기 agents",
           "d7b3ef168b": "시스템에서 감지됨",
           "9c163bb0e0": "설치 지침",
-          "69af7e9c1c": "아직 PATH에 없습니다. Orca는 이를 기본값으로 설정하며 언제든지 설치할 수 있습니다.",
           "1eee1c7bd8": "PATH에서 agents를 찾지 못했습니다. 나중에 설치할 항목을 선택하거나 빈 terminal로 계속 진행하세요.",
           "hideAgents": "agents 숨기기",
-          "showMoreAgents": "agents {{value0}}개 더 보기→",
           "yoloModeLabel": "Yolo 모드",
-          "yoloPermissionsDescription": "agents가 묻지 않고 명령을 실행하고 파일을 편집하며, 일부는 샌드박스도 우회합니다. 신뢰할 수 있는 프로젝트에서만 사용하세요."
+          "yoloPermissionsDescription": "agents가 묻지 않고 명령을 실행하고 파일을 편집하며, 일부는 샌드박스도 우회합니다. 신뢰할 수 있는 프로젝트에서만 사용하세요.",
+          "showMoreAgents_other": "에이전트 {{count}}개 더 보기 →",
+          "agentNotOnPath": "<agent>{{agent}}</agent>이(가) 아직 PATH에 없습니다. Orca가 기본값으로 설정하며, 언제든 설치할 수 있습니다."
         },
         "IntegrationsStep": {
           "277f30eb34": "Linear, GitLab, Bitbucket, Azure DevOps, Gitea 및 Jira는 설정 > 연동에 있습니다.",
@@ -13920,7 +13943,6 @@
         },
         "OnboardingFlow": {
           "1b5e182e9f": "Orca에 오신 것을 환영합니다",
-          "4db04f2f57": "/",
           "adaa0aa627": "온보딩 단계 {{value0}}: {{value1}}로 이동",
           "a249f81538": "Orca",
           "277ba45540": "Orca 온보딩",
@@ -13933,7 +13955,8 @@
           "322fc50a18": "Orca는 모든 CLI agent와 함께 작동합니다. 가장 자주 사용할 agent를 선택하세요. 언제든지 전환할 수 있습니다.",
           "198b148b3c": "기본 agent를 선택하세요",
           "windowsTerminalTitle": "Windows terminal 기본값 설정",
-          "windowsTerminalSubtitle": "새 창에서 사용할 기본 셸과 terminal에서 오른쪽 클릭이 동작하는 방식을 선택하세요."
+          "windowsTerminalSubtitle": "새 창에서 사용할 기본 셸과 terminal에서 오른쪽 클릭이 동작하는 방식을 선택하세요.",
+          "stepOfTotal": "{{current}} / {{total}}"
         },
         "OnboardingFooter": {
           "ba58547306": "뒤로",
@@ -13960,15 +13983,14 @@
           "7ee9234e54": "Ghostty 설정을 찾았습니다.",
           "78b6386140": "Ghostty에서 가져왔습니다.",
           "2c3aa538f8": "Ghostty 구성을 찾고 있습니다…",
-          "94b9dc561d": "설정 -> Terminal",
-          "dd5c16ad1b": "글꼴, 커서 및 팔레트를 포함한 추가 terminal 옵션",
           "ad192706e6": "라이트",
           "fa7b673ea9": "다크",
           "827ea7b4a2": "시스템",
           "699ddf83c2": "Ghostty 설정을 가져오지 못했습니다.",
           "16a9f0446a": "가져올 Ghostty 설정이 없습니다.",
           "ad19e5c916": "가져오는 중…",
-          "906c4373fe": "설정"
+          "906c4373fe": "설정",
+          "moreTerminalOptions": "글꼴, 커서, 팔레트 등 더 많은 터미널 옵션은 <settings>설정 → 터미널</settings>에서 확인하세요"
         },
         "use": {
           "onboarding": {
@@ -14118,9 +14140,6 @@
           "4c1df4eba7": "스캔할 수 없나요?",
           "85067b9e06": "네트워크 인터페이스 새로 고침",
           "dfd2aa9d5d": "네트워크",
-          "2f077ef4eb": "을 클릭하고 코드를 스캔하세요.",
-          "3aa7bb2d8b": "데스크탑 페어링",
-          "d1495e5e64": "Orca Mobile을 열고",
           "3960f5c339": "2/2단계",
           "3241f3c26a": "QR 설치",
           "aa97420ba4": "설치 링크 복사",
@@ -14163,7 +14182,8 @@
           "pairThisComputer": "이 컴퓨터를 페어링하십시오.",
           "androidHelp": {
             "guide": "설치 가이드"
-          }
+          },
+          "openAppAndScan": "Orca Mobile을 열고 <strong>데스크탑 페어링</strong>을 탭한 다음 코드를 스캔하세요."
         },
         "MobilePage": {
           "e17393c6a3": "휴대폰 미리보기",
@@ -14199,7 +14219,10 @@
               },
               "stable": {
                 "tagline": "정식 출시 버전, 매주 업데이트."
-              }
+              },
+              "downloadApk": "APK 다운로드",
+              "openTestFlight": "TestFlight 열기",
+              "openAppStore": "App Store 열기"
             }
           }
         },
@@ -14403,7 +14426,10 @@
             "e9eb197e12": "열린 컴퓨터 사용 권한",
             "c605f51f2b": "기능 설정 준비 완료",
             "1aa657d8f4": "일부 기능 설정에 주의가 필요합니다.",
-            "installSkills": "스킬 설치"
+            "installSkills": "스킬 설치",
+            "settingUp": "기능 설정 중…",
+            "disableRow": "{{title}} 비활성화",
+            "enableRow": "{{title}} 활성화"
           },
           "AiCommitPrSettingsCard": {
             "8d4152701a": "예: ollama run llama3.1 {{value0}}",
@@ -14491,7 +14517,8 @@
             "a7463915b6": "설정 스크립트를 저장하지 못했습니다.",
             "6299297dac": "설정 스크립트가 저장되었습니다.",
             "f0bbf7da77": "사용해 보세요",
-            "522cce9e33": "프로젝트 추가"
+            "522cce9e33": "프로젝트 추가",
+            "addProjectFirst": "먼저 작업할 프로젝트를 추가하세요."
           },
           "FeatureWallTourPanel": {
             "af7d622f6f": "선택 사항"
@@ -14551,12 +14578,12 @@
             "cd8a3a39d7": "commits 3개 앞섬"
           },
           "TasksAnimatedVisual": {
-            "efba6f77eb": "이슈 # 읽는 중",
             "b68c92fbdc": "워크스페이스 시작",
             "4331c4d0f8": "열기",
             "b13375617e": "워크트리 선택기가 이름을 자릅니다.",
             "fe47c9c9e8": "워크스페이스 준비",
-            "61ffda7601": "워크스페이스 만들기"
+            "61ffda7601": "워크스페이스 만들기",
+            "readingIssue": "이슈 #{{number}} 읽는 중…"
           },
           "WorkbenchAnimatedVisual": {
             "633a91e358": "생각 중…",
@@ -14703,17 +14730,17 @@
             "5f97caf76b": "설치 중…"
           },
           "ConnectIntegrationsList": {
-            "3dddb2d565": "작업용으로 연결됨",
             "33b650af52": "팀이 작업을 추적하는 서비스를 연결하세요. Orca는 이슈 제목, 링크, 컨텍스트가 이미 첨부된 워크스페이스를 시작합니다.",
-            "5b3577a492": "리뷰 상태용으로 연결됨",
             "list_end": ", 그리고 ",
             "list_pair": " and ",
             "list_mid": ", ",
-            "code_host_tasks_summary": "이슈를 작업으로 사용할 수 있음 · 팀이 Linear 또는 Jira에서 작업을 계획한다면 추가하세요",
             "code_host_tasks_caption": "코드 호스트의 이슈도 작업으로 사용할 수 있습니다.",
             "review_step_title": "agents가 작업하는 동안 PR 상태 보기",
             "review_step_description": "Orca가 PR 또는 MR 상태, 체크, 리뷰를 표시할 수 있도록 리뷰 공급자를 연결하세요.",
-            "task_step_title": "Orca를 떠나지 않고 작업에서 agents 시작"
+            "task_step_title": "Orca를 떠나지 않고 작업에서 agents 시작",
+            "reviewConnectedSummary": "리뷰 상태 확인을 위해 <provider>{{provider}}</provider>에 연결됨",
+            "tasksConnectedSummary": "작업용으로 <sources/>에 연결됨",
+            "codeHostTasksSummary": "<provider>{{provider}}</provider>의 이슈를 작업으로 사용 가능 · 팀에서 Linear 또는 Jira로 작업을 계획한다면 추가하세요"
           },
           "connect": {
             "integration": {
@@ -14737,7 +14764,9 @@
             "6e3d62b816": "전체 디스크 액세스 열기"
           },
           "FeatureWallTourSurface": {
-            "reopenHint": "도움말 > Orca 둘러보기에서 언제든지 다시 열 수 있습니다."
+            "reopenHint": "도움말 > Orca 둘러보기에서 언제든지 다시 열 수 있습니다.",
+            "done": "완료",
+            "continue": "계속"
           }
         },
         "tips": {
@@ -14746,26 +14775,26 @@
             "22e62f3bab": "Claude Code 세션이 시작되었습니다."
           },
           "CmdJPaletteTipDialog": {
-            "c0bb9f869b": "설정 → 바로가기",
-            "8241897205": "언제든지 바로가기를 다시 바인딩할 수 있습니다."
+            "rebindInSettings": "<link>설정 → 단축키</link>에서 언제든 단축키를 변경할 수 있습니다."
           },
           "FeatureTipActions": {
-            "eb04abece8": "나중에"
+            "eb04abece8": "나중에",
+            "installing": "설치 중…",
+            "turningOn": "활성화 중…",
+            "working": "작업 중..."
           },
           "FeatureTipsModal": {
             "c169298e4d": "완료",
             "3c6c478462": "X가 끝나면 리뷰 작업을 보냅니다.”",
             "298301b7a0": "작업 트리",
             "864e2db28f": "“agent가 들어오면",
-            "7fc6f02099": "각각에 대한 PR을 작성합니다.”",
-            "27c567a89c": "작업 트리",
-            "55846c7f95": "“이 PR을 두 개로 나누어",
             "4795ac2d4a": "다음과 같이 질문해 보세요.",
             "53905bd076": "개발 미리보기: 스킬 설정 terminal 열기.",
             "1da82af45b": "Orca CLI에 주의가 필요합니다",
             "ce13a742d0": "PATH에 'orca'를 등록했습니다.",
             "d1a86c7eb5": "설정을 열어 CLI 설정을 완료하세요.",
-            "cliInstallFailed": "Orca CLI를 설치하지 못했습니다."
+            "cliInstallFailed": "Orca CLI를 설치하지 못했습니다.",
+            "splitPrPrompt": "“이 PR을 두 개의 <term>작업 트리</term>로 나누고 각각 PR을 만들어 줘.”"
           },
           "CmdJPaletteFeatureTipVisual": {
             "ab94e16d44": "작업 트리 \"{{value0}}\" 만들기"
@@ -14919,16 +14948,12 @@
           "39b6b9e4e4": "브랜치에 커밋됨"
         },
         "CombinedDiffViewer": {
-          "35cc27aeb2": "소스 제어에서",
-          "e3b9a6ce02": "더",
           "1da745c551": "전송된",
           "84898c548d": "지우기",
           "88b70d0ef5": "복사",
           "bb84b4c374": "AI 노트",
           "948a5fd6c8": "메모 지우기",
           "0f806a2ab1": "취소",
-          "80a286d8f5": "이 작업 트리에서?",
-          "7e7ca60816": "변경된 파일",
           "b6c3b84476": "파일 트리 표시",
           "39f8007549": "충돌 리뷰",
           "skippedConflictsExcluded": "미해결 충돌 {{count}}개가 이 차이점 보기에서 제외되었습니다.",
@@ -14938,21 +14963,29 @@
           "fd8892b120": "표시할 변경사항이 없습니다.",
           "eb5f40e49c": "일반적인 양방향 diff 파이프라인은 충돌로부터 안전하지 않기 때문에 이 diff 보기는 해결되지 않은 충돌을 제외합니다.",
           "45cf23b418": "메모를 지우지 못했습니다.",
-          "0fb870a0fe": "메모",
-          "8ab3248fd8": "메모",
           "ec5053c7f5": "나란히",
           "f786fd54e1": "인라인",
           "ea08dae15b": "모두 축소",
           "19c45cfdc0": "모두 확장",
           "982d14bfa5": "commit 되지 않은 Diff 열기",
           "3d909843bb": "브랜치 diff 열기",
-          "8f68ad9ca9": "{{value0}} AI {{value1}} 표시",
-          "724a13568d": "{{value0}}에서",
-          "6094135eec": "대 {{value0}}",
           "a4420ca1f7": "랩 온",
           "dde325ddfe": "마무리",
           "2e91bc89d1": "공백 켜기",
-          "2bf19c54ad": "공백 끄기"
+          "2bf19c54ad": "공백 끄기",
+          "untrackedFiles": "추적되지 않는 파일",
+          "noExtension": "(확장자 없음)",
+          "diffLoadTimedOut": "차이점 로드를 완료하지 못했습니다.",
+          "diffLoadFailed": "차이점을 로드할 수 없습니다.",
+          "moreNotesInSourceControl_other": "소스 제어에 메모 {{count}}개 더 있음",
+          "clearNotesConfirm_other": "이 작업 트리에서 메모 {{count}}개를 지울까요?",
+          "changedFilesVs_other": "{{baseRef}} 대비 변경된 파일 {{count}}개",
+          "changedFilesIn_other": "{{compareRef}}에서 변경된 파일 {{count}}개",
+          "changedFiles_other": "변경된 파일 {{count}}개",
+          "showAiNotes_other": "AI 노트 {{count}}개 표시",
+          "send": "보내기",
+          "openDiff": "차이점 열기",
+          "openInEditor": "편집기에서 열기"
         },
         "ConflictComponents": {
           "f338288514": "충돌 콘텐츠 로드 중...",
@@ -14978,14 +15011,14 @@
           "69d4e210bb": "해결되지 않은"
         },
         "CsvViewer": {
-          "eedd0d37a7": "열",
-          "ac31d2cd60": "행",
           "a233d55b77": "빈 파일",
           "delimiterComma": "콤마",
           "delimiterSemicolon": "세미콜론(쌍반점)",
           "delimiterTab": "탭",
           "delimiterAuto": "자동 ({{delimiter}})",
-          "delimiter": "분리자"
+          "delimiter": "분리자",
+          "rowCount_other": "{{formatted}}행",
+          "columnCount_other": "{{formatted}}열"
         },
         "DiffNotesSendMenu": {
           "f1aa04b5cf": "이 파일",
@@ -15019,7 +15052,8 @@
           "39f018b052": "파일을 로드할 수 없습니다.",
           "8a0898ae4c": "이 파일에는 텍스트 비교를 사용할 수 없습니다.",
           "3c6e71df22": "브랜치 비교에서는 이 파일에 대해 텍스트 비교를 사용할 수 없습니다.",
-          "6c4f1a8d2e": "체크 세부 정보를 사용할 수 없습니다."
+          "6c4f1a8d2e": "체크 세부 정보를 사용할 수 없습니다.",
+          "resolveConflictGuidance": "다시 열기 전에 Git에서 충돌을 해결하거나 한쪽 내용을 복원하세요."
         },
         "EditorPanelHeader": {
           "fb8331694e": "측면으로 미리보기 열기",
@@ -15083,7 +15117,6 @@
           "9e06ae5d36": "노트북 코드를 실행하시겠습니까?",
           "d6f37a640b": "빈 노트북",
           "15ec40a735": "노트북 저장",
-          "07e7d96612": "셀",
           "c1601b23b2": "노트북을 렌더링할 수 없습니다.",
           "66a3f7d330": "노트북 HTML 출력",
           "781abd6926": "셀 삭제",
@@ -15137,7 +15170,9 @@
           "tryAgain": "다시 시도",
           "useAnotherPython": "다른 Python 사용…",
           "venvDescription": "Orca가 '{{env}}'에서 {{folder}}에 .venv를 만들고, ipykernel을 설치한 뒤 이 노트북을 거기서 실행합니다.",
-          "ownerUnresolved": "Orca가 아직 이 노트북 파일이 어느 컴퓨터에 있는지 확인할 수 없어 셀을 실행할 수 없습니다."
+          "ownerUnresolved": "Orca가 아직 이 노트북 파일이 어느 컴퓨터에 있는지 확인할 수 없어 셀을 실행할 수 없습니다.",
+          "invalidNotebook": "유효하지 않은 노트북",
+          "cellCount_other": "셀 {{count}}개"
         },
         "MarkdownPreview": {
           "e4683f70c4": "취소",
@@ -15160,7 +15195,9 @@
           "d652c87c91": "저장…",
           "c5dc92cfe3": "결과 없음",
           "6c043947ae": "파일을 찾을 수 없습니다: {{value0}}",
-          "759463a221": "디렉터리를 열 수 없습니다: {{value0}}"
+          "759463a221": "디렉터리를 열 수 없습니다: {{value0}}",
+          "docLinkAmbiguous": "문서 링크가 모호합니다",
+          "docLinkNotFound": "문서를 찾을 수 없습니다"
         },
         "MarkdownTableOfContentsPanel": {
           "de3928b6e4": "제목 없음",
@@ -15182,7 +15219,8 @@
           "df667919ca": "일치하는 템플릿이 없습니다.",
           "22fd4890ad": "템플릿 검색...",
           "7b458e0b7f": "Markdown 템플릿을 선택하세요.",
-          "1829437fce": "새로운 Markdown"
+          "1829437fce": "새로운 Markdown",
+          "newDocumentHeading": "새 문서"
         },
         "DiagramViewerModal": {
           "title": "다이어그램"
@@ -15195,7 +15233,8 @@
         },
         "MermaidBlock": {
           "dcc132e691": "다이어그램 오류:",
-          "expand": "다이어그램 확대"
+          "expand": "다이어그램 확대",
+          "invalidSyntax": "유효하지 않은 Mermaid 구문"
         },
         "MonacoEditor": {
           "68cb83f4a7": "선택한 텍스트에 메모 추가",
@@ -15209,7 +15248,11 @@
         },
         "NotesSendMenu": {
           "44dc5e60a6": "메모 보내기",
-          "433928cd9f": "agent에게 {{value0}} 보내기"
+          "433928cd9f": "agent에게 {{value0}} 보내기",
+          "thisNote": "이 메모",
+          "noteAlreadySent": "이미 보낸 메모",
+          "sendNotesToAgent": "에이전트에게 메모 보내기",
+          "allNotesSent": "모든 메모 전송됨"
         },
         "PdfFind": {
           "cd65b1d6b0": "닫기",
@@ -15224,7 +15267,10 @@
           "069ff59932": "PDF에서 찾기({{value0}})",
           "2b6eb1ccd6": "확대",
           "c0119616d6": "너비에 맞춤",
-          "fa5d096b00": "축소"
+          "fa5d096b00": "축소",
+          "passwordProtected": "이 PDF는 비밀번호로 보호되어 있습니다",
+          "loadFailed": "PDF 미리보기를 로드하지 못했습니다",
+          "decodeFailed": "PDF 내용을 디코딩하지 못했습니다"
         },
         "ReviewNotesSendMenuContent": {
           "a49800405b": "새로운 agent",
@@ -15266,10 +15312,9 @@
         },
         "RichMarkdownDocLinkMenu": {
           "e17b987473": "↑↓ 탐색  ↵ 선택  esc 해제",
-          "90c5f0e1e4": "/",
-          "2aaf7d9678": "표시 중",
           "63ced7cb9b": "문서를 찾을 수 없습니다.",
-          "0e8489bc11": "Markdown 문서 링크"
+          "0e8489bc11": "Markdown 문서 링크",
+          "showingOfTotal": "{{total}}개 중 {{shown}}개 표시"
         },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "다시 시도",
@@ -15315,7 +15360,13 @@
           "82c6816ff8": "블록을 찾을 수 없습니다.",
           "dbdd2ad15f": "블록 검색...",
           "550189b06c": "블록 검색",
-          "2e0400b958": "슬래시 명령"
+          "2e0400b958": "슬래시 명령",
+          "groupHeadings": "제목",
+          "groupToggleHeadings": "접을 수 있는 제목",
+          "groupBasicBlocks": "기본 블록",
+          "groupAdvanced": "고급",
+          "groupMedia": "미디어",
+          "groupOthers": "기타"
         },
         "RichMarkdownToolbar": {
           "e935c6b61e": "이미지",
@@ -15361,7 +15412,13 @@
           "c8ac7868e6": "파일 이름",
           "b6ed807cc6": "이름",
           "e365f3c638": "markdown 파일의 이름을 지정하고 폴더를 선택하세요.",
-          "674b046582": "다른 이름으로 저장"
+          "674b046582": "다른 이름으로 저장",
+          "nameEmpty": "이름은 비워 둘 수 없습니다",
+          "nameHasSeparators": "이름에 경로 구분자를 포함할 수 없습니다",
+          "folderEmpty": "폴더 경로는 비워 둘 수 없습니다",
+          "folderOutsideWorkspace": "폴더는 현재 워크스페이스 안에 있어야 합니다",
+          "nameTaken": "같은 이름의 파일이 이미 있습니다",
+          "saveFailed": "파일을 저장하지 못했습니다"
         },
         "export": {
           "active": {
@@ -15462,10 +15519,8 @@
           "20857938dd": "수정된 줄 수",
           "e5f0d2182e": "문자 수",
           "877c25a02f": "이유",
-          "5fca073b72": "제한",
-          "f1d136a163": "한쪽당 줄 수",
-          "23433fcdea": "합산 문자 수",
-          "7944ed9fb8": "계산하지 않음"
+          "7944ed9fb8": "계산하지 않음",
+          "limitsSummary": "제한: 한쪽당 {{lines}}줄 · 양쪽 합계 {{characters}}자"
         },
         "DiffViewer": {
           "b5675b0694": "저장",
@@ -15530,12 +15585,12 @@
           "cancelled": "원래 대상이 변경되어 큰 붙여넣기가 취소되었습니다."
         },
         "CheckRunJobs": {
-          "1c0a4d7e02": "성공",
-          "2d3b8f1a55": "건너뛰었습니다",
-          "3e6c9a2b71": "보류 중",
-          "4f7d0c3e88": "단계 실패",
           "5a8e1d4f23": " · ",
-          "copy": "복사 작업"
+          "copy": "복사 작업",
+          "stepsSucceeded_other": "{{count}}개 성공",
+          "stepsSkipped_other": "{{count}}개 건너뜀",
+          "stepsPending_other": "{{count}}개 대기 중",
+          "stepsFailedOfTotal_other": "{{count}}개 단계 중 {{failed}}개 실패"
         },
         "ExternalFileChangeBanner": {
           "7c41e90d12": "저장하지 않은 편집 내용이 있는 동안 디스크의 파일이 변경되었습니다. 덮어쓰면 디스크의 최신 내용이 대체됩니다.",
@@ -15562,7 +15617,9 @@
           "citationFallbackLabel": "인용",
           "citationLinkUnavailable": "{{value0}}, 인용 링크를 사용할 수 없습니다. {{value1}}",
           "tabForCitationActions": "Tab 키로 사용 가능한 작업으로 이동하세요.",
-          "noCitationActions": "사용 가능한 링크 작업이 없습니다."
+          "noCitationActions": "사용 가능한 링크 작업이 없습니다.",
+          "togglePlaceholder": "텍스트",
+          "placeholder": "Markdown을 작성하세요… /를 입력하면 블록을 삽입할 수 있습니다."
         },
         "richMarkdownHtmlSuperscriptLink": {
           "availableAriaLabel": "{{value0}}, {{value1}} 링크",
@@ -15649,6 +15706,53 @@
         },
         "EditorPanelActionsMenu": {
           "fileActions": "파일 작업"
+        },
+        "ReviewNotesSendMenu": {
+          "terminalGone": "터미널을 더 이상 사용할 수 없습니다",
+          "chatGone": "채팅이 더 이상 열려 있지 않습니다",
+          "justNow": "방금 전",
+          "minutesAgo": "{{minutes}}분 전",
+          "hoursAgo": "{{hours}}시간 전",
+          "daysAgo": "{{days}}일 전"
+        },
+        "editorHeader": {
+          "worktreePathCopied": "작업 트리 경로 복사됨",
+          "checkDetails": "검사 세부 정보",
+          "checkDetailsCopied": "검사 세부 정보 복사됨",
+          "filePathCopied": "파일 경로 복사됨"
+        },
+        "editorLabels": {
+          "conflictReview": "충돌 검토",
+          "stagedDiff": "{{name}} (스테이징된 차이점)",
+          "branchDiff": "{{name}} (브랜치 차이점)",
+          "commitDiff": "{{name}} (커밋 차이점)",
+          "diff": "{{name}} (차이점)",
+          "preview": "{{name}} (미리보기)",
+          "allChanges": "모든 변경 사항",
+          "uncommittedChanges": "커밋되지 않은 변경 사항",
+          "branchChanges": "브랜치 변경 사항 ({{baseRef}})",
+          "branchChangesBase": "브랜치 변경 사항 (기준)",
+          "commitWithSubject": "커밋 {{ref}}: {{subject}}",
+          "commit": "커밋 {{ref}}",
+          "commitDiffFallback": "커밋 차이점"
+        },
+        "conflictMarkers": {
+          "currentChange": "현재 변경 사항",
+          "commonAncestor": "공통 조상",
+          "incomingChange": "들어오는 변경 사항",
+          "endConflict": "충돌 끝"
+        },
+        "richMarkdownImageInsert": {
+          "hostUnverified": "이 파일이 어느 호스트에 속하는지 확인하지 못했습니다. 파일을 다시 열고 다시 시도하세요."
+        },
+        "contextualCopy": {
+          "copyContextHint": "컨텍스트 복사 {{shortcut}}"
+        },
+        "EditorPanel": {
+          "diffLoadError": "차이점 로드 오류: {{error}}",
+          "siblingFileAlreadyOpen": "연결된 파일이 이미 열려 있습니다. 복원하기 전에 탭 하나를 닫으세요.",
+          "siblingFileOwnerChanged": "탭을 복원하는 동안 연결된 파일의 소유자가 변경되었습니다.",
+          "csvGrewTooLarge": "CSV가 너무 커져 편집할 수 없습니다. 초안은 보관되었습니다. 파일을 다시 열어 미리 보세요."
         }
       },
       "diff": {
@@ -15763,7 +15867,9 @@
             "closedDescription": "개인정보를 보호하는 진단 보고서를 보내 무슨 일이 있었는지 파악하는 데 도움을 주세요.",
             "reportNotesPlaceholder": "선택 사항: 무슨 일이 있었나요?",
             "uiErrorNotesPlaceholder": "선택 사항: 이 UI 오류가 발생하기 전에 무엇을 하고 있었나요?",
-            "closedNotesPlaceholder": "선택 사항: Orca가 종료되기 전에 무엇을 하고 있었나요?"
+            "closedNotesPlaceholder": "선택 사항: Orca가 종료되기 전에 무엇을 하고 있었나요?",
+            "renderErrorIn": "{{surface}}에서 React 렌더링 오류",
+            "renderError": "React 렌더링 오류"
           }
         }
       },
@@ -15780,8 +15886,8 @@
             "complete": "완료"
           },
           "ContextualTourProgressDots": {
-            "7734cb8ad3": "중",
-            "dcd6e6b03e": "{{value1}}단계 중 {{value0}}단계"
+            "dcd6e6b03e": "{{value1}}단계 중 {{value0}}단계",
+            "stepOfTotal": "{{current}} / {{total}}"
           },
           "contextual": {
             "tour": {
@@ -18141,8 +18247,6 @@
         "result": "결과",
         "exitCode": "{{value0}} 종료",
         "milliseconds": "{{value0}}ms",
-        "countOne": "도구 호출 1회",
-        "countN": "{{value0}} 도구 호출",
         "failedCount": "{{value0}} 실패",
         "failedCallsLabel": "도구 호출 실패: {{value0}}",
         "interruptedCount": "{{value0}} 중단됨",
@@ -18179,55 +18283,38 @@
           "triedFetch": "가져오기 시도",
           "triedSearchWeb": "웹 검색 시도"
         },
-        "runReadOne": "파일 1개 읽기",
-        "runReadMany": "{{value0}} 파일 읽기",
-        "runSearchOne": "1회 검색됨",
-        "runSearchMany": "{{value0}}회 검색됨",
-        "runListFilesOne": "나열된 디렉터리 1개",
-        "runListFilesMany": "{{value0}} 디렉터리 나열",
-        "runCommandOne": "1번 명령 실행",
-        "runCommandMany": "{{value0}} 명령을 실행했습니다.",
-        "runFileChangeOne": "파일 1개를 수정했습니다.",
-        "runFileChangeMany": "{{value0}} 파일을 편집했습니다.",
-        "runWebSearchOne": "웹을 1회 검색했습니다.",
-        "runWebSearchMany": "웹을 {{value0}}번 검색했습니다.",
         "runBrowserOne": "브라우저를 사용했습니다",
-        "runBrowserMany": "브라우저를 {{value0}}회 사용했습니다",
-        "runIntegrationOne": "1개 통합 사용",
-        "runIntegrationMany": "{{value0}} 통합 사용",
-        "runAgentOne": "에이전트 1명 실행",
-        "runAgentMany": "{{value0}} 에이전트를 실행했습니다.",
         "runPlanOne": "계획을 업데이트했습니다",
-        "runPlanMany": "계획을 {{value0}}번 업데이트했습니다.",
-        "runToolOne": "도구 1개 사용",
-        "runToolMany": "{{value0}} 도구를 사용했습니다.",
         "runPair": "{{value0}} 및 {{value1}}",
         "runList": "{{value0}} 및 {{value1}}",
-        "runLiveReadOne": "파일 1개 읽기",
-        "runLiveReadMany": "{{value0}} 파일 읽기",
-        "runLiveSearchOne": "1회 검색 중",
-        "runLiveSearchMany": "{{value0}}번 검색 중",
-        "runLiveListFilesOne": "디렉터리 1개 나열",
-        "runLiveListFilesMany": "{{value0}} 디렉터리 나열",
-        "runLiveCommandOne": "명령 1개 실행 중",
-        "runLiveCommandMany": "{{value0}} 명령 실행",
-        "runLiveFileChangeOne": "파일 1개 수정 중",
-        "runLiveFileChangeMany": "{{value0}} 파일 편집 중",
-        "runLiveWebSearchOne": "웹 검색 1회",
-        "runLiveWebSearchMany": "웹 검색 {{value0}}회",
         "runLiveBrowserOne": "브라우저 사용 중",
-        "runLiveBrowserMany": "브라우저 {{value0}}회 사용 중",
-        "runLiveIntegrationOne": "1개의 통합 사용",
-        "runLiveIntegrationMany": "{{value0}} 통합 사용",
-        "runLiveAgentOne": "에이전트 1개 실행 중",
-        "runLiveAgentMany": "{{value0}} 에이전트 실행",
         "runLivePlanOne": "계획 업데이트 중",
-        "runLivePlanMany": "계획을 {{value0}}번 업데이트 중",
-        "runLiveToolOne": "도구 1개 사용",
-        "runLiveToolMany": "{{value0}} 도구 사용",
         "showBrowserPage": "보기",
         "showBrowserPageLabel": "{{value0}} 보기",
-        "runListSeparator": ", "
+        "runListSeparator": ", ",
+        "callCount_other": "도구 호출 {{count}}회",
+        "runRead_other": "파일 {{count}}개 읽음",
+        "runSearch_other": "{{count}}회 검색함",
+        "runListFiles_other": "디렉터리 {{count}}개 나열함",
+        "runCommand_other": "명령 {{count}}개 실행함",
+        "runFileChange_other": "파일 {{count}}개 수정함",
+        "runWebSearch_other": "웹 {{count}}회 검색함",
+        "runBrowser_other": "브라우저 {{count}}회 사용함",
+        "runIntegration_other": "연동 {{count}}개 사용함",
+        "runAgent_other": "에이전트 {{count}}개 실행함",
+        "runPlan_other": "계획 {{count}}회 업데이트함",
+        "runTool_other": "도구 {{count}}개 사용함",
+        "runLiveRead_other": "파일 {{count}}개 읽는 중",
+        "runLiveSearch_other": "{{count}}회 검색 중",
+        "runLiveListFiles_other": "디렉터리 {{count}}개 나열 중",
+        "runLiveCommand_other": "명령 {{count}}개 실행 중",
+        "runLiveFileChange_other": "파일 {{count}}개 수정 중",
+        "runLiveWebSearch_other": "웹 {{count}}회 검색 중",
+        "runLiveBrowser_other": "브라우저 {{count}}회 사용 중",
+        "runLiveIntegration_other": "연동 {{count}}개 사용 중",
+        "runLiveAgent_other": "에이전트 {{count}}개 실행 중",
+        "runLivePlan_other": "계획 {{count}}회 업데이트 중",
+        "runLiveTool_other": "도구 {{count}}개 사용 중"
       },
       "status": {
         "responding": "Agent이 응답 중입니다.",
@@ -18327,7 +18414,6 @@
         "inProgress": "진행 중",
         "pending": "보류 중",
         "empty": "작업 없음",
-        "progress": "{{total}} 작업 중 {{completed}} 완료됨",
         "added": "{{task}}을(를) 추가했습니다.",
         "removed": "{{task}} 삭제됨",
         "started": "{{task}} 시작됨",
@@ -18335,14 +18421,14 @@
         "reset": "보류 중으로 표시됨: {{task}}",
         "updated": "{{task}} 업데이트됨",
         "unchanged": "변경되지 않은 작업",
-        "showAll": "전체 작업 목록"
+        "showAll": "전체 작업 목록",
+        "progress_other": "작업 {{count}}개 중 {{completed}}개 완료"
       },
       "turnDiff": {
-        "one": "변경된 파일 1개",
-        "many": "{{count}} 변경된 파일",
         "partial": "부분적인 차이점",
         "showDiff": "차이 보기",
-        "hideDiff": "차이 숨기기"
+        "hideDiff": "차이 숨기기",
+        "changedFiles_other": "변경된 파일 {{count}}개"
       },
       "receipt": {
         "unavailable": "선택한 답변을 사용할 수 없습니다.",
@@ -18372,7 +18458,7 @@
         "orcaStopUnnamedServer": "원격 서버"
       },
       "providerFrame": {
-        "byteLength": "{{value0}}바이트"
+        "byteCount_other": "{{count}}바이트"
       },
       "backgroundTasks": {
         "monitoring": "백그라운드 작업 모니터링",
@@ -18427,7 +18513,7 @@
         "awaiting": "사용자 입력을 기다리는 중:",
         "awaitingUnnamed": "사용자 입력을 기다리는 중",
         "asked": "질문:",
-        "questionCount": "{{value0}} 질문"
+        "questionCount_other": "질문 {{count}}개"
       },
       "subagents": {
         "state": {
@@ -18704,6 +18790,21 @@
         "opus": "일상적인 복잡한 작업에 가장 적합",
         "sonnet": "일상 작업에 효율적",
         "haiku": "빠른 답변에 가장 빠름"
+      },
+      "transcript": {
+        "imageFallback": "이미지"
+      },
+      "commandMarker": {
+        "ran": "{{command}} 실행함"
+      },
+      "runtime": {
+        "readError": "원격 런타임에서 에이전트 채팅을 읽지 못했습니다.",
+        "tooOld": "원격 런타임이 너무 오래되어 에이전트 채팅 기록을 표시할 수 없습니다. 기록을 보려면 원격 런타임을 업데이트하세요."
+      },
+      "sessionOption": {
+        "noLiveTerminal": "사용 가능한 활성 터미널이 없습니다.",
+        "commandCanceled": "입력창이 닫혀 Chat UI 명령이 취소되었습니다.",
+        "commandRejected": "터미널이 명령을 수락하지 않았습니다."
       }
     },
     "tab": {
@@ -19585,31 +19686,26 @@
       "intro": "이제 지원되는 Agent의 새 채팅은 업그레이드된 채팅 보기에서 열립니다. 채팅과 CLI 사이를 오가려면 오른쪽 사이드바에서 {{panel}}을 여세요:",
       "resumeInNativeChat": "{{action}}: 지원되는 CLI 대화를 기본 채팅에서 엽니다.",
       "resumeInCli": "{{action}}: Claude 또는 Codex 채팅을 새 CLI 세션으로 복사합니다. 원래 채팅은 그대로 유지됩니다.",
-      "settingsInstruction": "Chat UI 관리 위치:",
-      "settingsLink": "설정 → 실험적",
       "gotIt": "확인",
       "leaveOff": "꺼진 상태 유지",
       "enableNow": "지금 활성화",
-      "enableError": "채팅 모드를 활성화하지 못했습니다."
+      "enableError": "채팅 모드를 활성화하지 못했습니다.",
+      "manageInSettings": "<link>설정 → 실험적</link>에서 Chat UI를 관리하세요."
     },
     "voice": {
       "demoPrompt": "극단적인 경우에 대해 이 차이점을 검토하고 찾은 항목에 대한 테스트를 추가하세요.",
       "startDictation": "받아쓰기 시작",
       "agentPromptTitle": "에이전트 프롬프트",
       "listening": "청취...",
-      "focusPaneInstruction": "터미널, 편집기 또는 에이전트 프롬프트에 초점을 맞춘 다음 누르세요.",
-      "startInstruction": "음성 받아쓰기를 시작하려면 누르다",
-      "stopInstruction": "다시 중지합니다.",
       "unassignedInstruction": "초점이 맞춰진 창에서 음성 받아쓰기를 시작하기 전에 받아쓰기 바로가기를 할당하세요.",
-      "settingsInstruction": "언제든지 모델, 받아쓰기 모드 또는 바로가기를 변경할 수 있습니다.",
-      "settingsLink": "설정 → 음성"
+      "shortcutInstruction": "터미널, 편집기 또는 에이전트 프롬프트에 포커스를 두고 <shortcut/> 키를 눌러 음성 받아쓰기를 시작하세요. 중지하려면 <shortcut/> 키를 다시 누르세요.",
+      "changeInSettings": "<link>설정 → 음성</link>에서 언제든 모델, 받아쓰기 모드 또는 단축키를 변경할 수 있습니다."
     },
     "sessionSearch": {
       "ageHours": "2시간",
       "ageMinutes": "12분",
       "ageYesterday": "1일",
       "agentsInstruction": "에이전트도 검색할 수 있습니다. 에이전트에게 “로그인 시간 초과를 수정한 세션을 찾아줘”라고 요청해 보세요.",
-      "consentInstruction": "언제든지 다음에서 변경하거나 끄기",
       "continueInBackground": "백그라운드에서 계속하기",
       "demoHit1Age": "3일",
       "demoHit1Snippet": "[[로그인 시간 초과]]를 30초로 늘리고 토큰 새로고침에 재시도를 추가했습니다.",
@@ -19647,8 +19743,8 @@
       "recent2Title": "잠금 파일 업데이트",
       "recent3Text": "초안 메모입니다. 영역별로 정리했습니다.",
       "recent3Title": "릴리스 노트 초안",
-      "settingsLink": "설정 → 에이전트 세션 검색",
-      "startSearching": "검색 시작하기"
+      "startSearching": "검색 시작하기",
+      "changeInSettings": "<link>설정 → 에이전트 세션 검색</link>에서 언제든 변경하거나 끌 수 있습니다."
     }
   },
   "quickOpen": {

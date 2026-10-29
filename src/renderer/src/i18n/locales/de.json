@@ -2888,7 +2888,6 @@
         "47126bcf57": "Manuell herunterladen",
         "3553a8672f": "Details",
         "90559b14e3": "Dadurch wird nach dem Neustart eine prozessweite Electron-Netzwerkoption aktiviert. Diese Option bei Unternehmens-VPNs oder Proxys verwenden, die HTTP/2-Downloads für Aktualisierungen ablehnen.",
-        "6e45bfa2e0": "Wird heruntergeladen…",
         "558842597d": "Aktualisierung wird heruntergeladen",
         "f58b5c57a6": "Neu:",
         "ec8fe71cfc": "Aktualisieren",
@@ -2898,7 +2897,6 @@
         "318d3b4bc7": "Aktualisierung ausblenden",
         "9abc59f814": "Aktualisierung verfügbar",
         "aad383aecc": "Vollständige Versionshinweise lesen",
-        "ccd8b0a793": "weitere seit der letzten Aktualisierung",
         "b1d867f4fb": "Terminal-Sitzungen werden während der Aktualisierung nicht unterbrochen.",
         "09a55c39b5": "Wird installiert…",
         "ea2a41adbe": "Die neueste Version ist installiert.",
@@ -2924,7 +2922,24 @@
         "d29740d175": "Der ausgewählte Build konnte nicht verwendet werden.",
         "37d45c9ec1": "Anderen Build auswählen",
         "7f1a4c9e02": "Orca wurde über die Paketverwaltung des Systems installiert und muss darüber aktualisiert werden — Orca kann diese Version nicht selbst installieren.",
-        "compatibilityModeFailed": "Kompatibilitätsmodus konnte nicht aktiviert werden. {{message}}"
+        "compatibilityModeFailed": "Kompatibilitätsmodus konnte nicht aktiviert werden. {{message}}",
+        "moreSinceLastUpdate": "+{{count}} weitere seit der letzten Aktualisierung",
+        "downloadingPercent": "Wird heruntergeladen… {{percent}}%",
+        "restartToInstallFailed": "Orca konnte zur Installation der Aktualisierung nicht neu gestartet werden.",
+        "http1RetryAvailable": "Orca kann es im HTTP/1.1-Kompatibilitätsmodus erneut versuchen.",
+        "restarting": "Neustart…",
+        "updateCheckFailed": "Suche nach Aktualisierungen fehlgeschlagen",
+        "updateIncomplete": "Die Aktualisierung konnte nicht abgeschlossen werden.",
+        "checkFailed": "Es konnte nicht nach Aktualisierungen gesucht werden.",
+        "aria": {
+          "statusIdle": "Aktualisierungsstatus",
+          "statusChecking": "Es wird nach Aktualisierungen gesucht",
+          "statusLatest": "Die neueste Version ist installiert",
+          "statusAvailable": "Aktualisierung verfügbar",
+          "statusDownloading": "Aktualisierung wird heruntergeladen",
+          "statusDownloaded": "Aktualisierung zur Installation bereit",
+          "statusError": "Aktualisierungsfehler"
+        }
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "Navigieren",
@@ -4896,9 +4911,6 @@
           "trackingSince": "Erfassung seit {{value0}}"
         },
         "UsageOverviewPane": {
-          "22ed1b7669": "Sitzungen",
-          "444585cb41": "mit Daten",
-          "ecb0cd8a4c": "aktiviert -",
           "33f7b043d2": "Anbieter",
           "70f36452d4": "Cache-Anteil",
           "327603fe8b": "Aktive Tage",
@@ -4914,7 +4926,10 @@
           "c760c481c5": "Nutzungsübersicht",
           "55c910f4f1": "- einige Modellpreise sind nicht verfügbar",
           "enableMuse": "Muse aktivieren",
-          "noLocalUsageYet": "Bisher wurde keine lokale Nutzung von Claude, Codex, OpenCode oder Muse gefunden. Die Übersicht wird gefüllt, sobald die nächste Agentensitzung Token-Protokolle schreibt."
+          "noLocalUsageYet": "Bisher wurde keine lokale Nutzung von Claude, Codex, OpenCode oder Muse gefunden. Die Übersicht wird gefüllt, sobald die nächste Agentensitzung Token-Protokolle schreibt.",
+          "providersEnabledWithData": "{{enabled}} aktiviert - {{withData}} mit Daten",
+          "sessionCount_one": "{{formatted}} Sitzung",
+          "sessionCount_other": "{{formatted}} Sitzungen"
         },
         "share": {
           "card": {
@@ -4978,14 +4993,18 @@
               "7f270458af": "Ausgabe",
               "9365b14a4e": "Neue Eingabe",
               "3de9bf87fc": "Noch kein Modell",
-              "6762f6a682": "Token",
-              "a7f937fb29": "{{value0}} Sitzungen - {{value1}} {{value2}}",
-              "c8f3a2d1e0b4": "Dialogschritte",
-              "d9a4b3e2f1c5": "Ereignisse",
               "statusScanning": "Wird durchsucht",
               "statusEnabled": "Aktiviert",
               "statusOff": "Aus",
-              "recentCombinedActivity": "Jüngste gemeinsame Token-Aktivität von Claude, Codex, OpenCode und Muse."
+              "recentCombinedActivity": "Jüngste gemeinsame Token-Aktivität von Claude, Codex, OpenCode und Muse.",
+              "sessionsAndActivity": "{{sessions}} - {{activity}}",
+              "tokenTotal": "{{tokens}} Token",
+              "sessionCount_one": "{{formatted}} Sitzung",
+              "sessionCount_other": "{{formatted}} Sitzungen",
+              "turnCount_one": "{{formatted}} Dialogschritt",
+              "turnCount_other": "{{formatted}} Dialogschritte",
+              "eventCount_one": "{{formatted}} Ereignis",
+              "eventCount_other": "{{formatted}} Ereignisse"
             }
           }
         },
@@ -5014,6 +5033,10 @@
           "emptyMessage": "Bisher wurde keine lokale Muse-Nutzung in diesem Geltungsbereich gefunden.",
           "noCostNote": "Muse-Sitzungsprotokolle erfassen Token, aber keine Kosten. Daher wird keine Kostenschätzung angezeigt.",
           "recentSessionsDescription": "Neueste lokale Muse-Sitzungen in diesem Geltungsbereich."
+        },
+        "usageFormatters": {
+          "notScannedYet": "Noch nicht gescannt",
+          "updatedAt": "Aktualisiert: {{time}}"
         }
       },
       "sparse": {
@@ -5066,23 +5089,19 @@
         },
         "SkillFreshnessNudge": {
           "titleOne": "Ein installierter Orca-Skill ist veraltet",
-          "titleMany": "{{value0}} installierte Orca-Skills sind veraltet",
           "description": "{{value0}} aktualisieren, damit Agenten den aktuellen Anweisungen für diese Orca-Version folgen.",
           "updateOne": "Skill aktualisieren",
-          "updateMany": "Skills aktualisieren"
+          "updateMany": "Skills aktualisieren",
+          "title_other": "{{count}} installierte Orca-Skills sind veraltet"
         },
         "SkillFreshnessUpdateDialog": {
           "title": "Skills aktualisieren",
           "checking": "Installierte Orca-Skills werden geprüft…",
           "none": "Keine installierten Orca-Skills gefunden.",
-          "updateOne": "1 Aktualisierung verfügbar",
-          "updateMany": "{{value0}} Aktualisierungen verfügbar",
           "success": "Alle installierten Orca-Skills sind auf dem neuesten Stand.",
           "progressAria": "Skills werden aktualisiert",
           "errorTitle": "Die Aktualisierung wurde nicht abgeschlossen",
           "updating": "Wird aktualisiert…",
-          "updateActionOne": "1 Skill aktualisieren",
-          "updateActionMany": "{{value0}} Skills aktualisieren",
           "checkNow": "Erneut prüfen",
           "done": "Abschließen",
           "close": "Schließen",
@@ -5090,16 +5109,20 @@
           "repair": "Eine frühere Aktualisierung wurde unterbrochen. Zum Reparieren erneut aktualisieren.",
           "hideFolders": "Ordner ausblenden",
           "showFolders": "Ordner anzeigen",
-          "upToDateMany": "{{value0}} Skills sind auf dem neuesten Stand.",
           "upToDateOne": "{{value0}} ist auf dem neuesten Stand.",
-          "updatedMany": "{{value0}} Skills aktualisiert",
-          "updatedOne": "1 Skill aktualisiert",
           "updatedSkipped": "{{value0}} · {{value1}} übersprungen",
-          "currentOne": "1 Skill ist auf dem neuesten Stand",
-          "currentMany": "{{value0}} Skills sind auf dem neuesten Stand",
           "noUpdates": "Keine Aktualisierungen verfügbar",
           "updateServer": "Zum Aktualisieren der dortigen Orca-Skills Orca auf dem Server aktualisieren.",
-          "connectHost": "Eine Verbindung zu diesem SSH-Host herstellen, um die dortigen Orca-Skills zu prüfen."
+          "connectHost": "Eine Verbindung zu diesem SSH-Host herstellen, um die dortigen Orca-Skills zu prüfen.",
+          "upToDate_other": "{{count}} Skills sind auf dem neuesten Stand.",
+          "update_one": "{{count}} Aktualisierung verfügbar",
+          "update_other": "{{count}} Aktualisierungen verfügbar",
+          "current_one": "{{count}} Skill ist auf dem neuesten Stand",
+          "current_other": "{{count}} Skills sind auf dem neuesten Stand",
+          "updated_one": "{{count}} Skill aktualisiert",
+          "updated_other": "{{count}} Skills aktualisiert",
+          "updateAction_one": "{{count}} Skill aktualisieren",
+          "updateAction_other": "{{count}} Skills aktualisieren"
         },
         "SkillUpdateRow": {
           "replaceWithOrca": "Durch die Kopie von Orca ersetzen (Sicherungskopie wird beibehalten)"
@@ -5223,8 +5246,9 @@
           "01c5a12e04": "Lokal beibehalten",
           "01c5a12e07": "Die Paketinstallation muss geprüft werden.",
           "01c5a12e08": "Skills installiert und überprüft.",
-          "01c5a12e09": "{{value0}} ausgewählte Skills geprüft.",
-          "01c5a12e10": "Erneuter Versuch erforderlich"
+          "01c5a12e10": "Erneuter Versuch erforderlich",
+          "selectedChecked_one": "{{count}} ausgewählter Skill geprüft.",
+          "selectedChecked_other": "{{count}} ausgewählte Skills geprüft."
         },
         "SkillBundleInstallReview": {
           "01c5a11e09": "Versionshinweise:",
@@ -5272,31 +5296,31 @@
           "plugin": "Plugin"
         },
         "count": {
-          "skillOne": "{{count}} Skill",
-          "skillOther": "{{count}} Skills",
-          "sourceOne": "{{count}} Quelle",
-          "sourceOther": "{{count}} Quellen",
-          "fileOne": "{{count}} Datei",
-          "fileOther": "{{count}} Dateien",
-          "resultOne": "{{count}} Ergebnis",
-          "resultOther": "{{count}} Ergebnisse",
           "selected": "{{count}} ausgewählt",
-          "shareOne": "{{count}} Skill teilen",
-          "shareOther": "{{count}} Skills teilen",
-          "installOne": "{{count}} Skill installieren",
-          "installOther": "{{count}} Skills installieren",
-          "retryOne": "Installation von {{count}} Skill erneut versuchen",
-          "retryOther": "Installation von {{count}} Skills erneut versuchen",
-          "linkOne": "{{count}} Link",
-          "linkOther": "{{count}} Links",
-          "deleteOne": "{{count}} Skill löschen",
-          "deleteOther": "{{count}} Skills löschen",
-          "deletedOne": "{{count}} Skill gelöscht",
-          "deletedOther": "{{count}} Skills gelöscht",
-          "deleteFolderOne": "{{count}} Ordner",
-          "deleteFolderOther": "{{count}} Ordner",
-          "deleteLinkOne": "{{count}} Link",
-          "deleteLinkOther": "{{count}} Links"
+          "delete_one": "{{count}} Skill löschen",
+          "delete_other": "{{count}} Skills löschen",
+          "deleteFolder_one": "{{count}} Ordner",
+          "deleteFolder_other": "{{count}} Ordner",
+          "deleteLink_one": "{{count}} Link",
+          "deleteLink_other": "{{count}} Links",
+          "skill_one": "{{count}} Skill",
+          "skill_other": "{{count}} Skills",
+          "source_one": "{{count}} Quelle",
+          "source_other": "{{count}} Quellen",
+          "file_one": "{{count}} Datei",
+          "file_other": "{{count}} Dateien",
+          "link_one": "{{count}} Link",
+          "link_other": "{{count}} Links",
+          "result_one": "{{count}} Ergebnis",
+          "result_other": "{{count}} Ergebnisse",
+          "share_one": "{{count}} Skill teilen",
+          "share_other": "{{count}} Skills teilen",
+          "install_one": "{{count}} Skill installieren",
+          "install_other": "{{count}} Skills installieren",
+          "retry_one": "Für {{count}} Skill erneut versuchen",
+          "retry_other": "Für {{count}} Skills erneut versuchen",
+          "deleted_one": "{{count}} Skill gelöscht",
+          "deleted_other": "{{count}} Skills gelöscht"
         },
         "host": {
           "local": "Dieser Rechner",
@@ -5311,13 +5335,13 @@
           "releaseNotesOptional": "Versionshinweise hinzufügen (optional)",
           "releaseNotesFirst": "Diese Version beschreiben",
           "manageLinks": "Diesen Link in den Einstellungen verwalten oder widerrufen",
-          "scriptOne": "{{count}} Skript",
-          "scriptOther": "{{count}} Skripte",
-          "executableOne": "{{count}} ausführbare Datei",
-          "executableOther": "{{count}} ausführbare Dateien",
           "noExecutableContent": "Keine Skripte oder ausführbaren Dateien",
           "newVersionDescriptionPlain": "Fügt dem bestehenden Link eine neue Version hinzu.",
-          "accessSummaryPlain": "Nicht gelisteter Link — wer ihn hat, kann dies installieren."
+          "accessSummaryPlain": "Nicht gelisteter Link — wer ihn hat, kann dies installieren.",
+          "script_one": "{{count}} Skript",
+          "script_other": "{{count}} Skripte",
+          "executable_one": "{{count}} ausführbare Datei",
+          "executable_other": "{{count}} ausführbare Dateien"
         },
         "description": {
           "showLess": "Weniger anzeigen",
@@ -5352,7 +5376,6 @@
           "rowNew": "Neu",
           "chooseSkills": "Auswählen, was über diesen Link installiert werden soll.",
           "singleRunnableWarning": "Dieser Skill enthält Skripte oder Binärdateien.",
-          "runnableWarning": "{{affectedCount}} von {{selectedCount}} ausgewählten Skills enthalten Skripte oder Binärdateien: {{affected}}.",
           "reviewRunnableFiles": "Enthält Skripte oder Binärdateien",
           "reviewSupportingFiles": "Zusätzliche Dateien prüfen",
           "reviewInstructions": "Über diesen Skill",
@@ -5361,13 +5384,17 @@
           "fileBinary": "binär",
           "fileRunnable": "ausführbar",
           "agentsCountBadge": "{{count}} ausgewählt",
-          "agentsCountLabel": "{{count}} {{label}}",
           "targetAgentsHeader": "Zielagenten",
           "deselectAll": "Gesamte Auswahl aufheben",
           "selectAll": "Alle auswählen",
           "canonicalHeader": "Standard-Agenten (immer enthalten)",
           "canonicalExplanation": "Diese Agenten lesen {{root}} direkt ein. Orca installiert standardmäßig dort:",
-          "additionalAgentsHeader": "Zusätzliche Agentenverzeichnisse"
+          "additionalAgentsHeader": "Zusätzliche Agentenverzeichnisse",
+          "namesAndMore": "{{names}} +{{count}} weitere",
+          "agentCount_one": "{{count}} Agent",
+          "agentCount_other": "{{count}} Agenten",
+          "runnableWarningOfSelected_one": "Ausgewählte Skills mit Skripten oder Binärdateien: {{affectedCount}} von {{count}} ({{affected}}).",
+          "runnableWarningOfSelected_other": "Ausgewählte Skills mit Skripten oder Binärdateien: {{affectedCount}} von {{count}} ({{affected}})."
         },
         "filter": {
           "allAgents": "Alle Agenten",
@@ -5449,10 +5476,10 @@
           "hostUnresolved": "Der Rechner, auf dem diese Skills liegen, wird noch ermittelt.",
           "hostUpdateRequired": "Zum Löschen von Skills Orca auf dem ausgewählten Rechner aktualisieren.",
           "nothingOne": "Dieser Skill kann von hier aus nicht gelöscht werden.",
-          "nothingOther": "Keiner der {{count}} ausgewählten Skills kann von hier aus gelöscht werden.",
           "placementSummaryParts": "Entfernt {{parts}} in {{roots}}.",
           "placementJoin": " und ",
-          "retainedSource": "Der Skill selbst bleibt unter {{path}} erhalten."
+          "retainedSource": "Der Skill selbst bleibt unter {{path}} erhalten.",
+          "nothing_other": "Keiner der {{count}} ausgewählten Skills kann hier gelöscht werden."
         },
         "skillPlanOpCopy": {
           "busy": "Eine andere Installation läuft noch",
@@ -5481,6 +5508,20 @@
           "updateAvailable": "Aktualisierung verfügbar",
           "repairAvailable": "Reparatur verfügbar",
           "installAvailable": "Installation verfügbar"
+        },
+        "installResult": {
+          "installed": "Installiert und überprüft.",
+          "updated": "Aktualisiert und überprüft.",
+          "unchanged": "Genau diese Version ist bereits installiert.",
+          "partial": "Installiert, aber mindestens ein Installationsort für Agenten muss überprüft werden.",
+          "removed": "Entfernt.",
+          "cancelled": "Installation abgebrochen.",
+          "incomplete": "Installation nicht abgeschlossen."
+        },
+        "managedRemoval": {
+          "removed": "{{removed}} entfernt.",
+          "removedPreserved_one": "{{removed}} entfernt · {{count}} geänderter Skill beibehalten.",
+          "removedPreserved_other": "{{removed}} entfernt · {{count}} geänderte Skills beibehalten."
         }
       },
       "sidebar": {
@@ -14272,15 +14313,23 @@
       },
       "repo": {
         "NestedRepoChecklist": {
-          "f7e1170567": "ausgewählt",
-          "ea54c7bf8f": "von",
           "91b5bcadb6": "Alle auswählen",
-          "929734aea5": "Gesamte Auswahl aufheben"
+          "929734aea5": "Gesamte Auswahl aufheben",
+          "selectedOfTotal": "{{selected}} von {{total}} ausgewählt"
         },
         "NestedRepoScanLimitNotice": {
           "642a43c139": "Suchgrenzen für verschachtelte Repositorys",
           "574eb5408b": "Es werden Teilergebnisse der Suche angezeigt.",
-          "03e9beab7b": "Suche vorzeitig beendet."
+          "03e9beab7b": "Suche vorzeitig beendet.",
+          "milliseconds": "{{count}} ms",
+          "seconds_one": "{{count}} Sekunde",
+          "seconds_other": "{{count}} Sekunden",
+          "folderLevels_one": "{{count}} Ordnerebene",
+          "folderLevels_other": "{{count}} Ordnerebenen",
+          "repositories_one": "{{count}} Repository",
+          "repositories_other": "{{count}} Repositorys",
+          "limitText": "Die Suche endet nach {{depth}} oder {{repos}}. Die Suche kann vorzeitig beendet werden, um die bisher gefundenen Repositorys zu importieren.",
+          "limitTextWithTimeout": "Die Suche endet nach {{depth}}, {{repos}} oder {{timeout}}. Die Suche kann vorzeitig beendet werden, um die bisher gefundenen Repositorys zu importieren."
         },
         "RepoCombobox": {
           "b3e15f4525": "Projekt hinzufügen",
@@ -14313,6 +14362,9 @@
             "65b437c381": "Code",
             "bed2674f9d": "Ordner"
           }
+        },
+        "forkIndicator": {
+          "forkOf": "Fork von {{repo}}"
         }
       },
       "pet": {
@@ -14329,12 +14381,13 @@
           "e6a369bd04": "Beliebte Agenten",
           "d7b3ef168b": "Auf dem System erkannt",
           "9c163bb0e0": "Installationsanleitung",
-          "69af7e9c1c": "ist noch nicht im PATH verfügbar. Orca legt diesen Agenten als Standard fest. Die Installation ist jederzeit möglich.",
           "1eee1c7bd8": "Keine Agenten im PATH gefunden. Einen Agenten zur späteren Installation auswählen oder mit einem leeren Terminal fortfahren.",
           "hideAgents": "Agenten ausblenden",
-          "showMoreAgents": "{{value0}} weitere Agenten anzeigen →",
           "yoloModeLabel": "Yolo-Modus",
-          "yoloPermissionsDescription": "Agenten führen Befehle aus und bearbeiten Dateien ohne Rückfrage. Einige umgehen dabei auch ihre Sandbox. Nur in vertrauenswürdigen Projekten verwenden."
+          "yoloPermissionsDescription": "Agenten führen Befehle aus und bearbeiten Dateien ohne Rückfrage. Einige umgehen dabei auch ihre Sandbox. Nur in vertrauenswürdigen Projekten verwenden.",
+          "showMoreAgents_one": "{{count}} weiteren Agenten anzeigen →",
+          "showMoreAgents_other": "{{count}} weitere Agenten anzeigen →",
+          "agentNotOnPath": "<agent>{{agent}}</agent> ist noch nicht im PATH. Orca legt ihn als Standard fest; die Installation ist jederzeit möglich."
         },
         "IntegrationsStep": {
           "277f30eb34": "Linear, GitLab, Bitbucket, Azure DevOps, Gitea und Jira sind unter Einstellungen > Integrationen zu finden.",
@@ -14378,7 +14431,6 @@
         },
         "OnboardingFlow": {
           "1b5e182e9f": "Willkommen bei Orca",
-          "4db04f2f57": "von",
           "adaa0aa627": "Zu Einrichtungsschritt {{value0}} wechseln: {{value1}}",
           "a249f81538": "Orca",
           "277ba45540": "Orca-Einrichtung",
@@ -14391,7 +14443,8 @@
           "322fc50a18": "Orca funktioniert mit jedem CLI-Agenten. Den bevorzugten Agenten auswählen. Ein Wechsel ist jederzeit möglich.",
           "198b148b3c": "Standardagenten auswählen",
           "windowsTerminalTitle": "Standardeinstellungen für Windows-Terminals festlegen",
-          "windowsTerminalSubtitle": "Die Standard-Shell für neue Bereiche und das Verhalten bei Rechtsklicks im Terminal auswählen."
+          "windowsTerminalSubtitle": "Die Standard-Shell für neue Bereiche und das Verhalten bei Rechtsklicks im Terminal auswählen.",
+          "stepOfTotal": "{{current}} von {{total}}"
         },
         "OnboardingFooter": {
           "ba58547306": "Zurück",
@@ -14418,15 +14471,14 @@
           "7ee9234e54": "Ghostty-Konfiguration erkannt.",
           "78b6386140": "Aus Ghostty importiert.",
           "2c3aa538f8": "Ghostty-Konfiguration wird gesucht…",
-          "94b9dc561d": "Einstellungen → Terminal",
-          "dd5c16ad1b": "Weitere Terminaloptionen, etwa für Schriftart, Cursor und Farbpalette, unter",
           "ad192706e6": "Hell",
           "fa7b673ea9": "Dunkel",
           "827ea7b4a2": "System",
           "699ddf83c2": "Ghostty-Einstellungen konnten nicht importiert werden",
           "16a9f0446a": "Keine Ghostty-Einstellungen zum Importieren gefunden",
           "ad19e5c916": "Wird importiert…",
-          "906c4373fe": "Einstellungen"
+          "906c4373fe": "Einstellungen",
+          "moreTerminalOptions": "Weitere Terminaloptionen für Schriftart, Cursor und Farbpalette unter <settings>Einstellungen → Terminal</settings>"
         },
         "use": {
           "onboarding": {
@@ -14576,9 +14628,6 @@
           "4c1df4eba7": "Scannen nicht möglich?",
           "85067b9e06": "Netzwerkschnittstellen aktualisieren",
           "dfd2aa9d5d": "Netzwerk",
-          "2f077ef4eb": ", dann den Code scannen.",
-          "3aa7bb2d8b": "Desktop koppeln",
-          "d1495e5e64": "Orca Mobile öffnen und Folgendes antippen:",
           "3960f5c339": "Schritt 2 von 2",
           "3241f3c26a": "QR-Code zur Installation",
           "aa97420ba4": "Installationslink kopieren",
@@ -14621,7 +14670,8 @@
           "directAddressHint": "Optional. Die WLAN- oder Tailscale-Adresse auswählen, die das Smartphone in der Nähe verwenden soll – meist schneller als Relay. Relay funktioniert auch unterwegs.",
           "androidHelp": {
             "guide": "Installationsanleitung"
-          }
+          },
+          "openAppAndScan": "Orca Mobile öffnen, auf <strong>Desktop koppeln</strong> tippen und den Code scannen."
         },
         "MobilePage": {
           "e17393c6a3": "Smartphone-Vorschau",
@@ -14657,7 +14707,10 @@
               },
               "stable": {
                 "tagline": "Die öffentliche Version, wöchentlich aktualisiert."
-              }
+              },
+              "downloadApk": "APK herunterladen",
+              "openTestFlight": "TestFlight öffnen",
+              "openAppStore": "App Store öffnen"
             }
           }
         },
@@ -14861,7 +14914,10 @@
             "e9eb197e12": "Berechtigungen für die Computersteuerung geöffnet",
             "c605f51f2b": "Funktionen eingerichtet",
             "1aa657d8f4": "Die Einrichtung einiger Funktionen erfordert Aufmerksamkeit",
-            "installSkills": "Skills installieren"
+            "installSkills": "Skills installieren",
+            "settingUp": "Funktionen werden eingerichtet…",
+            "disableRow": "{{title}} deaktivieren",
+            "enableRow": "{{title}} aktivieren"
           },
           "AiCommitPrSettingsCard": {
             "8d4152701a": "z. B. ollama run llama3.1 {{value0}}",
@@ -14949,7 +15005,8 @@
             "a7463915b6": "Setup-Skript konnte nicht gespeichert werden",
             "6299297dac": "Einrichtungsskript gespeichert",
             "f0bbf7da77": "Ausprobieren",
-            "522cce9e33": "Projekt hinzufügen"
+            "522cce9e33": "Projekt hinzufügen",
+            "addProjectFirst": "Zuerst ein Projekt hinzufügen, an dem du arbeiten möchtest."
           },
           "FeatureWallTourPanel": {
             "af7d622f6f": "Optional"
@@ -15009,12 +15066,12 @@
             "cd8a3a39d7": "3 Commits voraus"
           },
           "TasksAnimatedVisual": {
-            "efba6f77eb": "Lesen von Issue #",
             "b68c92fbdc": "Arbeitsbereich starten",
             "4331c4d0f8": "Offen",
             "b13375617e": "Worktree-Auswahl kürzt Namen",
             "fe47c9c9e8": "Arbeitsbereich bereit",
-            "61ffda7601": "Arbeitsbereich wird erstellt"
+            "61ffda7601": "Arbeitsbereich wird erstellt",
+            "readingIssue": "Issue #{{number}} wird gelesen…"
           },
           "WorkbenchAnimatedVisual": {
             "633a91e358": "Denkt nach…",
@@ -15161,17 +15218,17 @@
             "5f97caf76b": "Wird installiert…"
           },
           "ConnectIntegrationsList": {
-            "3dddb2d565": "für Aufgaben verbunden",
             "33b650af52": "Das Tool verbinden, mit dem das Team die Arbeit verwaltet. Orca startet Arbeitsbereiche bereits mit verknüpftem Issue-Titel, Link und Kontext.",
-            "5b3577a492": "für den Review-Status verbunden",
             "list_end": ", und ",
             "list_pair": " und ",
             "list_mid": ", ",
-            "code_host_tasks_summary": "Issues als Aufgaben verfügbar · Linear oder Jira hinzufügen, falls das Team dort die Arbeit plant",
             "code_host_tasks_caption": "Die Issues des Code-Hosts lassen sich auch als Aufgaben nutzen.",
             "review_step_title": "PR-Status anzeigen, während Agenten arbeiten",
             "review_step_description": "Einen Review-Anbieter verbinden, damit Orca den PR- oder MR-Status, Checks und Reviews anzeigen kann.",
-            "task_step_title": "Agenten für Aufgaben direkt in Orca starten"
+            "task_step_title": "Agenten für Aufgaben direkt in Orca starten",
+            "reviewConnectedSummary": "<provider>{{provider}}</provider> für den Review-Status verbunden",
+            "tasksConnectedSummary": "<sources/> für Aufgaben verbunden",
+            "codeHostTasksSummary": "Issues von <provider>{{provider}}</provider> als Aufgaben verfügbar · Linear oder Jira hinzufügen, falls das Team dort seine Arbeit plant"
           },
           "connect": {
             "integration": {
@@ -15195,7 +15252,9 @@
             "6e3d62b816": "Full Disk Access öffnen"
           },
           "FeatureWallTourSurface": {
-            "reopenHint": "Jederzeit über Hilfe > Orca erkunden erneut öffnen."
+            "reopenHint": "Jederzeit über Hilfe > Orca erkunden erneut öffnen.",
+            "done": "Fertig",
+            "continue": "Fortfahren"
           }
         },
         "tips": {
@@ -15204,26 +15263,26 @@
             "22e62f3bab": "Claude Code-Sitzung gestartet"
           },
           "CmdJPaletteTipDialog": {
-            "c0bb9f869b": "Einstellungen → Tastenkürzel",
-            "8241897205": "Das Tastenkürzel lässt sich jederzeit neu belegen unter"
+            "rebindInSettings": "Das Tastenkürzel lässt sich jederzeit unter <link>Einstellungen → Tastenkürzel</link> ändern."
           },
           "FeatureTipActions": {
-            "eb04abece8": "Vielleicht später"
+            "eb04abece8": "Vielleicht später",
+            "installing": "Wird installiert…",
+            "turningOn": "Wird aktiviert…",
+            "working": "In Arbeit…"
           },
           "FeatureTipsModal": {
             "c169298e4d": "Abschließen",
             "3c6c478462": "X fertig ist, ihm die Review-Aufgabe zuweisen.“",
             "298301b7a0": "Worktree",
             "864e2db28f": "„Wenn der Agent im",
-            "7fc6f02099": "aufteilen und für jeden einen PR erstellen.“",
-            "27c567a89c": "Worktrees",
-            "55846c7f95": "„Diesen PR in zwei",
             "4795ac2d4a": "Beispielanfragen:",
             "53905bd076": "Entwicklungsvorschau: Das Terminal zur Skill-Einrichtung wird geöffnet.",
             "1da82af45b": "Bei der Orca CLI besteht Handlungsbedarf",
             "ce13a742d0": "`orca` wurde in PATH registriert.",
             "d1a86c7eb5": "Einstellungen öffnen, um die CLI-Einrichtung abzuschließen.",
-            "cliInstallFailed": "Orca CLI konnte nicht installiert werden."
+            "cliInstallFailed": "Orca CLI konnte nicht installiert werden.",
+            "splitPrPrompt": "„Teile diesen PR auf zwei <term>Worktrees</term> auf und erstelle für jeden einen PR.“"
           },
           "CmdJPaletteFeatureTipVisual": {
             "ab94e16d44": "Worktree „{{value0}}“ erstellen"
@@ -15377,16 +15436,12 @@
           "39b6b9e4e4": "Auf Branch committet"
         },
         "CombinedDiffViewer": {
-          "35cc27aeb2": "in der Quellcodeverwaltung",
-          "e3b9a6ce02": "mehr",
           "1da745c551": "Gesendet",
           "84898c548d": "Leeren",
           "88b70d0ef5": "Kopieren",
           "bb84b4c374": "KI-Notizen",
           "948a5fd6c8": "Notizen löschen",
           "0f806a2ab1": "Abbrechen",
-          "80a286d8f5": "aus diesem Worktree?",
-          "7e7ca60816": "geänderte Dateien",
           "b6c3b84476": "Dateibaum anzeigen",
           "39f8007549": "Konflikte prüfen",
           "skippedConflictsExcluded": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
@@ -15396,21 +15451,35 @@
           "fd8892b120": "Keine Änderungen zum Anzeigen",
           "eb5f40e49c": "Diese Diff-Ansicht schließt ungelöste Konflikte aus, da die normale Zwei-Wege-Diff-Verarbeitung Konflikte nicht sicher verarbeiten kann.",
           "45cf23b418": "Die Notizen konnten nicht gelöscht werden.",
-          "0fb870a0fe": "Notizen",
-          "8ab3248fd8": "Notiz",
           "ec5053c7f5": "Nebeneinander",
           "f786fd54e1": "Untereinander",
           "ea08dae15b": "Alle einklappen",
           "19c45cfdc0": "Alle ausklappen",
           "982d14bfa5": "Alle Änderungen öffnen",
           "3d909843bb": "Branch-Diff öffnen",
-          "8f68ad9ca9": "{{value0}} KI-{{value1}} anzeigen",
-          "724a13568d": " in {{value0}}",
-          "6094135eec": " gegenüber {{value0}}",
           "a4420ca1f7": "Zeilenumbruch ein",
           "dde325ddfe": "Zeilenumbruch aus",
           "2e91bc89d1": "Leerraum ein",
-          "2bf19c54ad": "Leerraum aus"
+          "2bf19c54ad": "Leerraum aus",
+          "untrackedFiles": "Nicht verfolgte Dateien",
+          "noExtension": "(keine Dateiendung)",
+          "diffLoadTimedOut": "Der Diff wurde nicht vollständig geladen.",
+          "diffLoadFailed": "Der Diff konnte nicht geladen werden.",
+          "moreNotesInSourceControl_one": "{{count}} weitere Notiz in der Quellcodeverwaltung",
+          "moreNotesInSourceControl_other": "{{count}} weitere Notizen in der Quellcodeverwaltung",
+          "clearNotesConfirm_one": "{{count}} Notiz aus diesem Worktree löschen?",
+          "clearNotesConfirm_other": "{{count}} Notizen aus diesem Worktree löschen?",
+          "changedFilesVs_one": "{{count}} geänderte Datei gegenüber {{baseRef}}",
+          "changedFilesVs_other": "{{count}} geänderte Dateien gegenüber {{baseRef}}",
+          "changedFilesIn_one": "{{count}} geänderte Datei in {{compareRef}}",
+          "changedFilesIn_other": "{{count}} geänderte Dateien in {{compareRef}}",
+          "changedFiles_one": "{{count}} geänderte Datei",
+          "changedFiles_other": "{{count}} geänderte Dateien",
+          "showAiNotes_one": "{{count}} KI-Notiz anzeigen",
+          "showAiNotes_other": "{{count}} KI-Notizen anzeigen",
+          "send": "Senden",
+          "openDiff": "Diff öffnen",
+          "openInEditor": "Im Editor öffnen"
         },
         "ConflictComponents": {
           "f338288514": "Konfliktinhalte werden geladen…",
@@ -15436,14 +15505,16 @@
           "69d4e210bb": "Ungelöst"
         },
         "CsvViewer": {
-          "eedd0d37a7": "Spalten",
-          "ac31d2cd60": "Zeilen",
           "a233d55b77": "Leere Datei",
           "delimiterComma": "Komma",
           "delimiterSemicolon": "Semikolon",
           "delimiterTab": "Tabulator",
           "delimiterAuto": "Automatisch ({{delimiter}})",
-          "delimiter": "Trennzeichen"
+          "delimiter": "Trennzeichen",
+          "rowCount_one": "{{formatted}} Zeile",
+          "rowCount_other": "{{formatted}} Zeilen",
+          "columnCount_one": "{{formatted}} Spalte",
+          "columnCount_other": "{{formatted}} Spalten"
         },
         "DiffNotesSendMenu": {
           "f1aa04b5cf": "Diese Datei",
@@ -15477,7 +15548,8 @@
           "39f018b052": "Datei konnte nicht geladen werden",
           "8a0898ae4c": "Für diese Datei ist kein Text-Diff verfügbar.",
           "3c6e71df22": "Für diese Datei ist im Branch-Vergleich kein Text-Diff verfügbar.",
-          "6c4f1a8d2e": "Check-Details sind nicht verfügbar."
+          "6c4f1a8d2e": "Check-Details sind nicht verfügbar.",
+          "resolveConflictGuidance": "Vor dem erneuten Öffnen den Konflikt in Git lösen oder eine Seite wiederherstellen."
         },
         "EditorPanelHeader": {
           "fb8331694e": "Vorschau seitlich öffnen",
@@ -15544,7 +15616,6 @@
           "9e06ae5d36": "Notebook-Code ausführen?",
           "d6f37a640b": "Leeres Notebook",
           "15ec40a735": "Notebook speichern",
-          "07e7d96612": "Zellen",
           "c1601b23b2": "Notebook konnte nicht dargestellt werden",
           "66a3f7d330": "HTML-Ausgabe des Notebooks",
           "781abd6926": "Zelle löschen",
@@ -15598,7 +15669,10 @@
           "kernelDied": "Der Kernel ist abgestürzt.",
           "localOnly": "Notebook-Zellen können nur für Dateien auf diesem Computer ausgeführt werden.",
           "pythonOnly": "In Orca können nur Python-Notebooks ausgeführt werden.",
-          "ownerUnresolved": "Orca kann noch nicht feststellen, auf welchem Computer sich dieses Notebook befindet. Daher können seine Zellen nicht ausgeführt werden."
+          "ownerUnresolved": "Orca kann noch nicht feststellen, auf welchem Computer sich dieses Notebook befindet. Daher können seine Zellen nicht ausgeführt werden.",
+          "invalidNotebook": "Ungültiges Notebook",
+          "cellCount_one": "{{count}} Zelle",
+          "cellCount_other": "{{count}} Zellen"
         },
         "MarkdownPreview": {
           "e4683f70c4": "Abbrechen",
@@ -15621,7 +15695,9 @@
           "d652c87c91": "Wird gespeichert…",
           "c5dc92cfe3": "Keine Ergebnisse",
           "6c043947ae": "Datei nicht gefunden: {{value0}}",
-          "759463a221": "Verzeichnis kann nicht geöffnet werden: {{value0}}"
+          "759463a221": "Verzeichnis kann nicht geöffnet werden: {{value0}}",
+          "docLinkAmbiguous": "Dokumentlink ist mehrdeutig",
+          "docLinkNotFound": "Dokument nicht gefunden"
         },
         "MarkdownTableOfContentsPanel": {
           "de3928b6e4": "Keine Überschriften",
@@ -15643,7 +15719,8 @@
           "df667919ca": "Keine passenden Vorlagen.",
           "22fd4890ad": "Vorlagen suchen…",
           "7b458e0b7f": "Eine Markdown-Vorlage auswählen.",
-          "1829437fce": "Neue Markdown-Datei"
+          "1829437fce": "Neue Markdown-Datei",
+          "newDocumentHeading": "Neues Dokument"
         },
         "DiagramViewerModal": {
           "title": "Diagramm"
@@ -15656,7 +15733,8 @@
         },
         "MermaidBlock": {
           "dcc132e691": "Diagrammfehler:",
-          "expand": "Diagramm vergrößern"
+          "expand": "Diagramm vergrößern",
+          "invalidSyntax": "Ungültige Mermaid-Syntax"
         },
         "MonacoEditor": {
           "68cb83f4a7": "Notiz zum ausgewählten Text hinzufügen",
@@ -15670,7 +15748,11 @@
         },
         "NotesSendMenu": {
           "44dc5e60a6": "Notizen senden",
-          "433928cd9f": "{{value0}} an einen Agenten senden"
+          "433928cd9f": "{{value0}} an einen Agenten senden",
+          "thisNote": "Diese Notiz",
+          "noteAlreadySent": "Notiz bereits gesendet",
+          "sendNotesToAgent": "Notizen an einen Agenten senden",
+          "allNotesSent": "Alle Notizen gesendet"
         },
         "PdfFind": {
           "cd65b1d6b0": "Schließen",
@@ -15685,7 +15767,10 @@
           "069ff59932": "In PDF suchen ({{value0}})",
           "2b6eb1ccd6": "Vergrößern",
           "c0119616d6": "An Breite anpassen",
-          "fa5d096b00": "Verkleinern"
+          "fa5d096b00": "Verkleinern",
+          "passwordProtected": "Dieses PDF ist passwortgeschützt",
+          "loadFailed": "Die PDF-Vorschau konnte nicht geladen werden",
+          "decodeFailed": "Der PDF-Inhalt konnte nicht dekodiert werden"
         },
         "ReviewNotesSendMenuContent": {
           "a49800405b": "Neuer Agent",
@@ -15727,10 +15812,9 @@
         },
         "RichMarkdownDocLinkMenu": {
           "e17b987473": "↑↓ Navigieren&nbsp;&nbsp;↵ Auswählen&nbsp;&nbsp;esc Schließen",
-          "90c5f0e1e4": "von",
-          "2aaf7d9678": "Anzeige:",
           "63ced7cb9b": "Keine Dokumente gefunden",
-          "0e8489bc11": "Links zu Markdown-Dokumenten"
+          "0e8489bc11": "Links zu Markdown-Dokumenten",
+          "showingOfTotal": "{{shown}} von {{total}} angezeigt"
         },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "Erneut versuchen",
@@ -15776,7 +15860,13 @@
           "82c6816ff8": "Keine Blöcke gefunden",
           "dbdd2ad15f": "Blöcke suchen…",
           "550189b06c": "Blöcke suchen",
-          "2e0400b958": "Schrägstrichbefehle"
+          "2e0400b958": "Schrägstrichbefehle",
+          "groupHeadings": "Überschriften",
+          "groupToggleHeadings": "Einklappbare Überschriften",
+          "groupBasicBlocks": "Grundlegende Blöcke",
+          "groupAdvanced": "Erweitert",
+          "groupMedia": "Medien",
+          "groupOthers": "Sonstige"
         },
         "RichMarkdownToolbar": {
           "e935c6b61e": "Bild",
@@ -15808,7 +15898,13 @@
           "c8ac7868e6": "Dateiname",
           "b6ed807cc6": "Name",
           "e365f3c638": "Die Markdown-Datei benennen und einen Ordner auswählen.",
-          "674b046582": "Speichern unter"
+          "674b046582": "Speichern unter",
+          "nameEmpty": "Name darf nicht leer sein",
+          "nameHasSeparators": "Name darf keine Pfadtrennzeichen enthalten",
+          "folderEmpty": "Ordnerpfad darf nicht leer sein",
+          "folderOutsideWorkspace": "Ordner muss im aktuellen Arbeitsbereich liegen",
+          "nameTaken": "Eine Datei mit diesem Namen existiert bereits",
+          "saveFailed": "Die Datei konnte nicht gespeichert werden"
         },
         "export": {
           "active": {
@@ -15909,10 +16005,8 @@
           "20857938dd": "Geänderte Zeilen",
           "e5f0d2182e": "Zeichen",
           "877c25a02f": "Grund",
-          "5fca073b72": "Grenzen",
-          "f1d136a163": "Zeilen pro Seite",
-          "23433fcdea": "Zeichen insgesamt",
-          "7944ed9fb8": "Nicht gezählt"
+          "7944ed9fb8": "Nicht gezählt",
+          "limitsSummary": "Grenzen: {{lines}} Zeilen pro Seite · {{characters}} Zeichen insgesamt"
         },
         "DiffViewer": {
           "b5675b0694": "Speichern",
@@ -15952,12 +16046,16 @@
           "copyOutput": "Ausgabe kopieren"
         },
         "CheckRunJobs": {
-          "1c0a4d7e02": "erfolgreich",
-          "2d3b8f1a55": "übersprungen",
-          "3e6c9a2b71": "ausstehend",
-          "4f7d0c3e88": "Schritte fehlgeschlagen",
           "5a8e1d4f23": " · ",
-          "copy": "Jobs kopieren"
+          "copy": "Jobs kopieren",
+          "stepsSucceeded_one": "{{count}} erfolgreich",
+          "stepsSucceeded_other": "{{count}} erfolgreich",
+          "stepsSkipped_one": "{{count}} übersprungen",
+          "stepsSkipped_other": "{{count}} übersprungen",
+          "stepsPending_one": "{{count}} ausstehend",
+          "stepsPending_other": "{{count}} ausstehend",
+          "stepsFailedOfTotal_one": "{{failed}} / {{count}} Schritt fehlgeschlagen",
+          "stepsFailedOfTotal_other": "{{failed}} / {{count}} Schritte fehlgeschlagen"
         },
         "check": {
           "run": {
@@ -16009,7 +16107,9 @@
           "citationFallbackLabel": "Quellenangabe",
           "citationLinkUnavailable": "{{value0}}, Quellenlink nicht verfügbar. {{value1}}",
           "tabForCitationActions": "Tab für verfügbare Aktionen.",
-          "noCitationActions": "Keine Link-Aktionen verfügbar."
+          "noCitationActions": "Keine Link-Aktionen verfügbar.",
+          "togglePlaceholder": "Text",
+          "placeholder": "Markdown schreiben… Für Blöcke / eingeben."
         },
         "richMarkdownHtmlSuperscriptLink": {
           "availableAriaLabel": "{{value0}}, Link zu {{value1}}",
@@ -16107,6 +16207,53 @@
         },
         "useMarkdownDocuments": {
           "listFailed": "Markdown-Dokumente konnten nicht aufgelistet werden."
+        },
+        "ReviewNotesSendMenu": {
+          "terminalGone": "Terminal ist nicht mehr verfügbar",
+          "chatGone": "Chat ist nicht mehr geöffnet",
+          "justNow": "gerade eben",
+          "minutesAgo": "vor {{minutes}} Min.",
+          "hoursAgo": "vor {{hours}} Std.",
+          "daysAgo": "vor {{days}} T."
+        },
+        "editorHeader": {
+          "worktreePathCopied": "Worktree-Pfad kopiert",
+          "checkDetails": "Check-Details",
+          "checkDetailsCopied": "Check-Details kopiert",
+          "filePathCopied": "Dateipfad kopiert"
+        },
+        "editorLabels": {
+          "conflictReview": "Konflikt-Review",
+          "stagedDiff": "{{name}} (Diff vorgemerkter Änderungen)",
+          "branchDiff": "{{name}} (Branch-Diff)",
+          "commitDiff": "{{name}} (Commit-Diff)",
+          "diff": "{{name}} (Diff)",
+          "preview": "{{name}} (Vorschau)",
+          "allChanges": "Alle Änderungen",
+          "uncommittedChanges": "Nicht committete Änderungen",
+          "branchChanges": "Branch-Änderungen ({{baseRef}})",
+          "branchChangesBase": "Branch-Änderungen (Basis)",
+          "commitWithSubject": "Commit {{ref}}: {{subject}}",
+          "commit": "Commit {{ref}}",
+          "commitDiffFallback": "Commit-Diff"
+        },
+        "conflictMarkers": {
+          "currentChange": "Aktuelle Änderung",
+          "commonAncestor": "Gemeinsamer Vorgänger",
+          "incomingChange": "Eingehende Änderung",
+          "endConflict": "Konfliktende"
+        },
+        "richMarkdownImageInsert": {
+          "hostUnverified": "Der zuständige Host für diese Datei konnte nicht ermittelt werden. Datei erneut öffnen und noch einmal versuchen."
+        },
+        "contextualCopy": {
+          "copyContextHint": "Kontext kopieren {{shortcut}}"
+        },
+        "EditorPanel": {
+          "diffLoadError": "Fehler beim Laden des Diffs: {{error}}",
+          "siblingFileAlreadyOpen": "Die zugehörige Datei ist bereits geöffnet. Vor dem Wiederherstellen einen Tab schließen.",
+          "siblingFileOwnerChanged": "Der Besitzer der zugehörigen Datei hat sich während der Wiederherstellung des Tabs geändert.",
+          "csvGrewTooLarge": "Die CSV-Datei ist zum Bearbeiten zu groß geworden. Der Entwurf wurde beibehalten. Datei für eine Vorschau erneut öffnen."
         }
       },
       "diff": {
@@ -16224,7 +16371,9 @@
             "closedDescription": "Datenschutzfreundlichen Diagnosebericht senden, um den Vorfall besser zu verstehen.",
             "reportNotesPlaceholder": "Optional: Was ist passiert?",
             "uiErrorNotesPlaceholder": "Optional: Welche Aktionen wurden vor diesem Fehler in der Benutzeroberfläche ausgeführt?",
-            "closedNotesPlaceholder": "Optional: Welche Aktionen wurden ausgeführt, bevor Orca geschlossen wurde?"
+            "closedNotesPlaceholder": "Optional: Welche Aktionen wurden ausgeführt, bevor Orca geschlossen wurde?",
+            "renderErrorIn": "React-Renderfehler in {{surface}}",
+            "renderError": "React-Renderfehler"
           }
         }
       },
@@ -16241,8 +16390,8 @@
             "complete": "Abschließen"
           },
           "ContextualTourProgressDots": {
-            "7734cb8ad3": "von",
-            "dcd6e6b03e": "Schritt {{value0}} von {{value1}}"
+            "dcd6e6b03e": "Schritt {{value0}} von {{value1}}",
+            "stepOfTotal": "{{current}} von {{total}}"
           },
           "contextual": {
             "tour": {
@@ -18473,7 +18622,6 @@
         "inProgress": "In Bearbeitung",
         "pending": "Ausstehend",
         "empty": "Keine Aufgaben",
-        "progress": "{{completed}} von {{total}} Aufgaben abgeschlossen",
         "added": "{{task}} hinzugefügt",
         "removed": "{{task}} entfernt",
         "started": "{{task}} gestartet",
@@ -18481,14 +18629,16 @@
         "reset": "Als ausstehend markiert: {{task}}",
         "updated": "{{task}} aktualisiert",
         "unchanged": "Aufgaben unverändert",
-        "showAll": "Vollständige Aufgabenliste"
+        "showAll": "Vollständige Aufgabenliste",
+        "progress_one": "Aufgaben abgeschlossen: {{completed}} von {{count}}",
+        "progress_other": "Aufgaben abgeschlossen: {{completed}} von {{count}}"
       },
       "turnDiff": {
-        "one": "1 geänderte Datei",
-        "many": "{{count}} geänderte Dateien",
         "partial": "Teilweiser Diff",
         "showDiff": "Diff anzeigen",
-        "hideDiff": "Diff ausblenden"
+        "hideDiff": "Diff ausblenden",
+        "changedFiles_one": "{{count}} geänderte Datei",
+        "changedFiles_other": "{{count}} geänderte Dateien"
       },
       "receipt": {
         "unavailable": "Ausgewählte Antwort nicht verfügbar",
@@ -18634,8 +18784,6 @@
         "exitCode": "Rückgabecode {{value0}}",
         "milliseconds": "{{value0}}ms",
         "result": "Ergebnis",
-        "countOne": "1 Werkzeugaufruf",
-        "countN": "{{value0}} Werkzeugaufrufe",
         "failedCount": "{{value0}} fehlgeschlagen",
         "failedCallsLabel": "Fehlgeschlagene Werkzeugaufrufe: {{value0}}",
         "interruptedCount": "{{value0}} unterbrochen",
@@ -18672,58 +18820,61 @@
           "triedFetch": "Abrufen versucht",
           "triedSearchWeb": "Websuche versucht"
         },
-        "runReadOne": "1 Datei gelesen",
-        "runReadMany": "{{value0}} Dateien gelesen",
-        "runSearchOne": "1-mal gesucht",
-        "runSearchMany": "{{value0}}-mal gesucht",
-        "runListFilesOne": "1 Verzeichnis aufgelistet",
-        "runListFilesMany": "{{value0}} Verzeichnisse aufgelistet",
-        "runCommandOne": "1 Befehl ausgeführt",
-        "runCommandMany": "{{value0}} Befehle ausgeführt",
-        "runFileChangeOne": "1 Datei bearbeitet",
-        "runFileChangeMany": "{{value0}} Dateien bearbeitet",
-        "runWebSearchOne": "1-mal im Web gesucht",
-        "runWebSearchMany": "{{value0}}-mal im Web gesucht",
         "runBrowserOne": "Browser verwendet",
-        "runBrowserMany": "Browser {{value0}}-mal verwendet",
-        "runIntegrationOne": "1 Integration verwendet",
-        "runIntegrationMany": "{{value0}} Integrationen verwendet",
-        "runAgentOne": "1 Agent ausgeführt",
-        "runAgentMany": "{{value0}} Agenten ausgeführt",
         "runPlanOne": "Plan aktualisiert",
-        "runPlanMany": "Plan {{value0}}-mal aktualisiert",
-        "runToolOne": "1 Werkzeug verwendet",
-        "runToolMany": "{{value0}} Werkzeuge verwendet",
         "runPair": "{{value0}} und {{value1}}",
         "runList": "{{value0}} und {{value1}}",
         "runListSeparator": ", ",
-        "runLiveReadOne": "1 Datei wird gelesen",
-        "runLiveReadMany": "{{value0}} Dateien werden gelesen",
-        "runLiveSearchOne": "1 Suche läuft",
-        "runLiveSearchMany": "{{value0}} Suchvorgänge laufen",
-        "runLiveListFilesOne": "1 Verzeichnis wird aufgelistet",
-        "runLiveListFilesMany": "{{value0}} Verzeichnisse werden aufgelistet",
-        "runLiveCommandOne": "1 Befehl wird ausgeführt",
-        "runLiveCommandMany": "{{value0}} Befehle werden ausgeführt",
-        "runLiveFileChangeOne": "1 Datei wird bearbeitet",
-        "runLiveFileChangeMany": "{{value0}} Dateien werden bearbeitet",
-        "runLiveWebSearchOne": "1 Websuche läuft",
-        "runLiveWebSearchMany": "{{value0}} Websuchen laufen",
         "runLiveBrowserOne": "Browser wird verwendet",
-        "runLiveBrowserMany": "Browser wird {{value0}}-mal verwendet",
-        "runLiveIntegrationOne": "1 Integration wird verwendet",
-        "runLiveIntegrationMany": "{{value0}} Integrationen werden verwendet",
-        "runLiveAgentOne": "1 Agent wird ausgeführt",
-        "runLiveAgentMany": "{{value0}} Agenten werden ausgeführt",
         "runLivePlanOne": "Plan wird aktualisiert",
-        "runLivePlanMany": "Plan wird {{value0}}-mal aktualisiert",
-        "runLiveToolOne": "1 Werkzeug wird verwendet",
-        "runLiveToolMany": "{{value0}} Werkzeuge werden verwendet",
         "showBrowserPage": "Anzeigen",
-        "showBrowserPageLabel": "{{value0}} anzeigen"
+        "showBrowserPageLabel": "{{value0}} anzeigen",
+        "callCount_one": "{{count}} Werkzeugaufruf",
+        "callCount_other": "{{count}} Werkzeugaufrufe",
+        "runRead_one": "{{count}} Datei gelesen",
+        "runRead_other": "{{count}} Dateien gelesen",
+        "runSearch_one": "{{count}}-mal gesucht",
+        "runSearch_other": "{{count}}-mal gesucht",
+        "runListFiles_one": "{{count}} Verzeichnis aufgelistet",
+        "runListFiles_other": "{{count}} Verzeichnisse aufgelistet",
+        "runCommand_one": "{{count}} Befehl ausgeführt",
+        "runCommand_other": "{{count}} Befehle ausgeführt",
+        "runFileChange_one": "{{count}} Datei bearbeitet",
+        "runFileChange_other": "{{count}} Dateien bearbeitet",
+        "runWebSearch_one": "{{count}}-mal im Web gesucht",
+        "runWebSearch_other": "{{count}}-mal im Web gesucht",
+        "runBrowser_other": "Browser {{count}}-mal verwendet",
+        "runIntegration_one": "{{count}} Integration verwendet",
+        "runIntegration_other": "{{count}} Integrationen verwendet",
+        "runAgent_one": "{{count}} Agent ausgeführt",
+        "runAgent_other": "{{count}} Agenten ausgeführt",
+        "runPlan_other": "Plan {{count}}-mal aktualisiert",
+        "runTool_one": "{{count}} Werkzeug verwendet",
+        "runTool_other": "{{count}} Werkzeuge verwendet",
+        "runLiveRead_one": "{{count}} Datei wird gelesen",
+        "runLiveRead_other": "{{count}} Dateien werden gelesen",
+        "runLiveSearch_one": "{{count}} Suche läuft",
+        "runLiveSearch_other": "{{count}} Suchen laufen",
+        "runLiveListFiles_one": "{{count}} Verzeichnis wird aufgelistet",
+        "runLiveListFiles_other": "{{count}} Verzeichnisse werden aufgelistet",
+        "runLiveCommand_one": "{{count}} Befehl wird ausgeführt",
+        "runLiveCommand_other": "{{count}} Befehle werden ausgeführt",
+        "runLiveFileChange_one": "{{count}} Datei wird bearbeitet",
+        "runLiveFileChange_other": "{{count}} Dateien werden bearbeitet",
+        "runLiveWebSearch_one": "{{count}} Websuche läuft",
+        "runLiveWebSearch_other": "{{count}} Websuchen laufen",
+        "runLiveBrowser_other": "Browser wird {{count}}-mal verwendet",
+        "runLiveIntegration_one": "{{count}} Integration wird verwendet",
+        "runLiveIntegration_other": "{{count}} Integrationen werden verwendet",
+        "runLiveAgent_one": "{{count}} Agent wird ausgeführt",
+        "runLiveAgent_other": "{{count}} Agenten werden ausgeführt",
+        "runLivePlan_other": "Plan wird {{count}}-mal aktualisiert",
+        "runLiveTool_one": "{{count}} Werkzeug wird verwendet",
+        "runLiveTool_other": "{{count}} Werkzeuge werden verwendet"
       },
       "providerFrame": {
-        "byteLength": "{{value0}} Bytes"
+        "byteCount_one": "{{count}} Byte",
+        "byteCount_other": "{{count}} Bytes"
       },
       "status": {
         "responding": "Der Agent antwortet",
@@ -18855,7 +19006,8 @@
         "awaiting": "Warten auf Benutzereingabe:",
         "awaitingUnnamed": "Warten auf Benutzereingabe",
         "asked": "Gefragt:",
-        "questionCount": "{{value0}} Fragen"
+        "questionCount_one": "{{count}} Frage",
+        "questionCount_other": "{{count}} Fragen"
       },
       "approval": {
         "title": "{{value0}} zulassen?",
@@ -19158,6 +19310,21 @@
         "haiku": "Schnellstes Modell für schnelle Antworten",
         "opus": "Am besten für komplexe Aufgaben im Alltag",
         "sonnet": "Effizient für Routineaufgaben"
+      },
+      "transcript": {
+        "imageFallback": "Bild"
+      },
+      "commandMarker": {
+        "ran": "{{command}} ausgeführt"
+      },
+      "runtime": {
+        "readError": "Der Agentenchat konnte nicht aus der entfernten Laufzeitumgebung gelesen werden.",
+        "tooOld": "Diese entfernte Laufzeitumgebung ist zu alt, um den Agentenchatverlauf anzuzeigen. Zum Anzeigen die entfernte Laufzeitumgebung aktualisieren."
+      },
+      "sessionOption": {
+        "noLiveTerminal": "Kein aktives Terminal verfügbar.",
+        "commandCanceled": "Der Befehl der Chat-Oberfläche wurde abgebrochen, weil das Eingabefeld geschlossen wurde.",
+        "commandRejected": "Das Terminal hat den Befehl nicht angenommen."
       }
     },
     "tab": {
@@ -19759,28 +19926,22 @@
       "intro": "Neue Chats mit unterstützten Agenten werden jetzt in der verbesserten Chatansicht geöffnet. Zum Wechseln zwischen Chat und CLI {{panel}} in der rechten Seitenleiste öffnen:",
       "resumeInNativeChat": "{{action}} öffnet eine unterstützte CLI-Unterhaltung im nativen Chat.",
       "resumeInCli": "{{action}} kopiert einen Claude- oder Codex-Chat in eine neue CLI-Sitzung. Der ursprüngliche Chat bleibt unverändert.",
-      "settingsInstruction": "Chatoberfläche verwalten unter",
-      "settingsLink": "Einstellungen → Experimentell",
-      "gotIt": "Verstanden"
+      "gotIt": "Verstanden",
+      "manageInSettings": "Chat-Oberfläche unter <link>Einstellungen → Experimentell</link> verwalten."
     },
     "voice": {
       "demoPrompt": "Diesen Diff auf Sonderfälle prüfen und Tests für alle gefundenen Fälle hinzufügen.",
       "startDictation": "Diktat starten",
       "agentPromptTitle": "Agenten-Prompt",
       "listening": "Warte auf Spracheingabe…",
-      "focusPaneInstruction": "Ein Terminal, einen Editor oder einen Agenten-Prompt fokussieren und dann",
-      "startInstruction": "drücken, um das Diktat zu starten. Zum Stoppen",
-      "stopInstruction": "erneut drücken.",
       "unassignedInstruction": "Vor dem Diktieren in einem fokussierten Bereich ein Tastenkürzel für das Diktat zuweisen.",
-      "settingsInstruction": "Modell, Diktatmodus oder Tastenkürzel jederzeit ändern unter",
-      "settingsLink": "Einstellungen → Spracheingabe"
+      "shortcutInstruction": "Ein Terminal, einen Editor oder einen Agenten-Prompt fokussieren und <shortcut/> drücken, um das Diktat zu starten. Zum Beenden erneut <shortcut/> drücken.",
+      "changeInSettings": "Modell, Diktatmodus oder Tastenkürzel jederzeit unter <link>Einstellungen → Spracheingabe</link> ändern."
     },
     "sessionSearch": {
       "enableFailed": "Die Sitzungssuche konnte nicht aktiviert werden. Erneut versuchen.",
       "progressStarting": "Sitzungen werden gesucht…",
-      "settingsLink": "Einstellungen → Suche in Agentensitzungen",
       "agentsInstruction": "Auch Agenten können darin suchen. Dazu einen Agenten bitten: „Finde die Sitzung, in der wir den Anmelde-Timeout behoben haben.“",
-      "consentInstruction": "Jederzeit ändern oder deaktivieren unter",
       "readyDescription": "Jede Agentensitzung auf diesem Computer kann jetzt anhand ihrer Gesprächsinhalte gefunden werden.",
       "indexingDescription": "Orca liest frühere Agentenprotokolle ein, um sie durchsuchbar zu machen. Das kann einige Minuten dauern.",
       "indexingTitle": "Agentensitzungen werden indexiert",
@@ -19819,7 +19980,8 @@
       "demoHit6Snippet": "Jede [[Migration]] hier lässt sich rückgängig machen, außer der Enum-Umbenennung.",
       "demoHit6Age": "1 Mon.",
       "readyToast": "Sitzungssuche ist bereit",
-      "readyToastOpen": "Öffnen"
+      "readyToastOpen": "Öffnen",
+      "changeInSettings": "Jederzeit unter <link>Einstellungen → Suche in Agentensitzungen</link> ändern oder deaktivieren."
     }
   },
   "quickOpen": {
