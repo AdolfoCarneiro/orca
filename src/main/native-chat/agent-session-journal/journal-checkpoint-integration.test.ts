@@ -1,3 +1,4 @@
+import { once } from 'node:events'
 import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -133,7 +134,6 @@ it('never starts maintenance for probes or a newer read-only journal', async () 
 
 it('configures the maintenance connection for full checkpoint flushing without changing journal mode', async () => {
   const { journalCheckpointWorkerSource } = await import('./journal-checkpoint-worker-source')
-  const { once } = await import('node:events')
   const database = await open()
   const worker = new Worker(journalCheckpointWorkerSource, {
     eval: true,
