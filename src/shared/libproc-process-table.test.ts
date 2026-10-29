@@ -20,7 +20,8 @@ import { parseCheapProcessTableRows, parseStrictProcessTableRows } from './proce
 const TTYS004 = (16 << 24) | 4
 // 2026-09-03T16:02:01Z, a single-digit day so lstart pads it.
 const START = Date.UTC(2026, 8, 3, 16, 2, 1) / 1000
-const BUDGET = { timeoutMs: 1000 }
+// Pin the locale so lstart formatting doesn't depend on the runner's LANG.
+const BUDGET = { timeoutMs: 1000, env: { LC_ALL: 'C' } }
 
 function row(overrides: Partial<LibprocProcessRow>): LibprocProcessRow {
   return {
