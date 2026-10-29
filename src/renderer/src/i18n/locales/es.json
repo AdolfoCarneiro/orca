@@ -20385,6 +20385,7 @@
       "count_one": "{{count}} terminal en ejecución"
     },
     "restartedInputNotSent": "El terminal se reinició mientras escribías, así que parte de la entrada puede no haberle llegado. Revisa el nuevo shell antes de volver a escribirla.",
+    "typingBeforeStartNotSent": "Algunas teclas pulsadas mientras se iniciaba el terminal no se enviaron.",
     "stalledDaemonBanner": {
       "body": "El trabajo en segundo plano en este equipo se ha atascado. Es posible que la escritura y las terminales nuevas no funcionen. Reiniciar el servicio de terminal finaliza sus terminales y comandos en ejecución.",
       "review": "Revisar las opciones de reinicio",
