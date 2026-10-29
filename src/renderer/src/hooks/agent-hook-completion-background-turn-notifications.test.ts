@@ -3,13 +3,15 @@ import { mkdtemp, mkdir, readFile, writeFile, appendFile, rm } from 'node:fs/pro
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ClaudeHelperKillPoller } from '../../../shared/agent-hook-listener/providers/claude-helper-kill-poller'
-import { seedLegacyAgentStatusForTests } from '../../../shared/agent-hook-listener/listener-state'
+import {
+  createHookListenerState,
+  seedLegacyAgentStatusForTests
+} from '../../../shared/agent-hook-listener/listener-state'
 import type { AgentHookEventPayload } from '../../../shared/agent-hook-listener/listener-event'
 import { createTestStore, makeTab } from '../store/slices/store-test-helpers'
 import { buildRunningAgentChildRowModels } from '../../../shared/running-agent-child-rows'
 import { worktreeAgentChildRows } from '../../../../mobile/src/worktree/worktree-agent-child-rows'
 import type { ParsedAgentStatusPayload } from '../../../shared/agent-status-types'
-import { createHookListenerState } from '../../../shared/agent-hook-listener/listener-state'
 import { normalizeHookPayload } from '../../../shared/agent-hook-listener'
 import { makePaneKey } from '../../../shared/stable-pane-id'
 
