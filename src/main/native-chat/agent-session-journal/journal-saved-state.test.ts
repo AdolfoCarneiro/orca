@@ -2,9 +2,10 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type {
-  AgentJournalMessageItem,
-  AgentSessionJournalIdentity
+import {
+  AGENT_JOURNAL_THREAD_SCOPE,
+  type AgentJournalMessageItem,
+  type AgentSessionJournalIdentity
 } from '../../../shared/agent-session-journal-types'
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 import {
@@ -419,14 +420,14 @@ it.each(['settling', 'bound', 'failed'] as const)(
     await reopened.appendItem(
       turn,
       { kind: 'turn', turnId: 'new-turn', state: 'running' },
-      { fence: 1 }
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
     expect(structuredAgentSessionStopping(reopened, reopened.snapshot().items)).toBe(false)
     expect(reopened.stopMarks.personStopDecides('new-turn')).toBe(false)
     await reopened.appendItem(
       turn,
       { kind: 'turn', turnId: 'new-turn', state: 'interrupted', completedAt: 2_001 },
-      { fence: 1 }
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
     expect(reopened.itemBody(agentJournalItemKey(turn))).not.toHaveProperty('outcome')
     expect(reopened.snapshot()).toStrictEqual(
@@ -481,18 +482,29 @@ it('keeps admitted writes and later sends usable when checkpoint publication fai
   )
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   const item = { provider: 'codex', threadId: 'thread-1', turnId: 'turn-1', ordinal: 1 } as const
-  await journal.appendItem(item, text('First'), { fence: 1 })
+  await journal.appendItem(item, text('First'), {
+    fence: 1,
+    turnScope: AGENT_JOURNAL_THREAD_SCOPE
+  })
   await journal.checkpoint()
   let admitted: Promise<unknown> | undefined
   let closed: Promise<void> | undefined
   await journal.readInOrder(() => {
-    admitted = journal.appendItem(item, text('Still sends'), { fence: 1 })
+    admitted = journal.appendItem(item, text('Still sends'), {
+      fence: 1,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+    })
     closed = journal.close()
   })
   await admitted
   await closed
   expect(journal.itemBody(agentJournalItemKey(item))).toStrictEqual(text('Still sends'))
-  await expect(journal.appendItem(item, text('Too late'), { fence: 1 })).rejects.toThrow()
+  await expect(
+    journal.appendItem(item, text('Too late'), {
+      fence: 1,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+    })
+  ).rejects.toThrow()
   database.db.exec('DROP TRIGGER fail_checkpoint')
   const reopened = await journals.open({ identity, stateDirectory: root })
   expect(reopened.itemBody(agentJournalItemKey(item))).toStrictEqual(text('Still sends'))
