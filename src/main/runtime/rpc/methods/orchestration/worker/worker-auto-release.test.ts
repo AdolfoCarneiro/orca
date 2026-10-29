@@ -430,7 +430,7 @@ describe('orchestration worker automatic release', () => {
       const dispatchId = startSettledChatWorker()
       const resourceId = claimAndCommitChatRelease(dispatchId)
 
-      recordStructuredWorkerUserSend(h.runtime, 's1', { ok: true })
+      recordStructuredWorkerUserSend(h.runtime, 's1')
 
       expect(h.db.admitWorkerChatReleaseClose(resourceId)).toBe(false)
       expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
@@ -458,7 +458,7 @@ describe('orchestration worker automatic release', () => {
     it('keeps a chat the user sent to while it was working, though they left before it settled', async () => {
       setupWithFakeClock()
       const { taskId, dispatchId } = startChatWorker()
-      recordStructuredWorkerUserSend(h.runtime, 's1', { ok: true })
+      recordStructuredWorkerUserSend(h.runtime, 's1')
       h.settle(taskId, dispatchId, 'succeeded')
 
       await vi.advanceTimersByTimeAsync(GRACE_MS)

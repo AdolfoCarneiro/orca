@@ -101,3 +101,15 @@ export function runStructuredAgentSessionMutation<TValue>(
     now: () => context.now()
   })
 }
+
+/** Call in-lane: a person's accepted send must take its worker over before a close queued behind it admits. */
+export function noteAcceptedUserSend<TValue>(
+  context: StructuredAgentSessionMutationContext,
+  params: { envelope: AgentSessionMutationEnvelope; userSend?: true },
+  result: AgentSessionMutationResult<TValue>
+): AgentSessionMutationResult<TValue> {
+  if (result.ok && params.userSend) {
+    context.deps.onUserSendAccepted?.(params.envelope.sessionId)
+  }
+  return result
+}

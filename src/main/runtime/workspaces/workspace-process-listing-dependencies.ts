@@ -6,6 +6,8 @@ import type { OrcaRuntimeWithGetStructuredAgentSessionCreateSupport } from '../s
 import type { OrcaRuntimeWithGetPtyRecordForPaneKey } from '../orchestration/terminal-pane-mail-routing'
 import { OrcaRuntimeWithStartTuiIdleVisibleReadProbe } from '../terminal/wait/terminal-wait-visible-probe'
 import type { AgentSessionRecord } from '../../../shared/agent-session-record'
+import { escalateChatWorkerError } from '../orchestration/chat-worker-error-escalation'
+import type { StructuredAgentSessionRequestFailure } from '../../native-chat/agent-session-wire/structured-agent-session-request-failures'
 
 export abstract class OrcaRuntimeWithWorktreePsDependencies extends OrcaRuntimeWithStartTuiIdleVisibleReadProbe {
   protected abstract listResolvedWorktreeSnapshot(
@@ -50,4 +52,13 @@ export abstract class OrcaRuntimeWithWorktreePsDependencies extends OrcaRuntimeW
   abstract onStructuredSessionTabHidden(
     ...args: Parameters<OrcaRuntimeWithGetPtyRecordForPaneKey['onStructuredSessionTabHidden']>
   ): ReturnType<OrcaRuntimeWithGetPtyRecordForPaneKey['onStructuredSessionTabHidden']>
+
+  /** A chat worker whose request settled failed tells the Run that dispatched it. */
+  onStructuredRequestFailureForErrorMail(failure: StructuredAgentSessionRequestFailure): void {
+    void escalateChatWorkerError(failure, {
+      enabled: () => this.isChatWorkerErrorEscalationEnabled(),
+      db: () => this.getOrchestrationDbIfAvailable(),
+      notify: (handle, messageType) => this.notifyMessageArrived(handle, messageType)
+    })
+  }
 }

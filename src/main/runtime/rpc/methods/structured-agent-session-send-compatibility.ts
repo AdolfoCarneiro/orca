@@ -5,7 +5,6 @@ import {
 import { agentSessionSendSubmission } from '../../../../shared/agent-session-wire'
 import type { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-host'
 import { STRUCTURED_AGENT_SESSION_START_WAIT_MS } from '../../../native-chat/agent-session-wire/structured-agent-session-send-settlement'
-import { recordStructuredWorkerUserSend } from '../../orchestration/structured-worker-user-send-takeover'
 import type { RpcContext } from '../core'
 import { requireStructuredSessionHost, structuredCallerFor } from './structured-agent-session-gate'
 import { readsQueuedImageCards } from './structured-agent-session-queued-image-capability'
@@ -18,15 +17,11 @@ export async function sendStructuredAgentSessionForClient(
 ) {
   const host = requireStructuredSessionHost(context, params.envelope.sessionId)
   // Person provenance lets undelivered text recover as an ordinary queued card.
-  const result = recordStructuredWorkerUserSend(
-    context.runtime,
-    params.envelope.sessionId,
-    await host.send(structuredCallerFor(context), {
-      ...params,
-      userSend: true,
-      queuedImageCards: readsQueuedImageCards(context)
-    })
-  )
+  const result = await host.send(structuredCallerFor(context), {
+    ...params,
+    userSend: true,
+    queuedImageCards: readsQueuedImageCards(context)
+  })
   const capabilities = context.clientCapabilities ?? []
   if (
     !result.ok ||

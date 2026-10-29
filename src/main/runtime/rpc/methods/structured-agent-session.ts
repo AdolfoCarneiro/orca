@@ -66,7 +66,6 @@ import {
   UnsubscribeParams
 } from './structured-agent-session-schemas'
 import { sendStructuredAgentSessionForClient } from './structured-agent-session-send-compatibility'
-import { recordStructuredWorkerUserSend } from '../../orchestration/structured-worker-user-send-takeover'
 import { getStructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-registry'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
@@ -96,8 +95,7 @@ export const STRUCTURED_AGENT_SESSION_METHODS = [
       const { sessionId } = params.envelope
       const host = requireSessionHost(ctx, sessionId)
       await host.revealSession(sessionId)
-      const result = await host.conversationCommand(callerFor(ctx), { ...params, userSend: true })
-      return recordStructuredWorkerUserSend(ctx.runtime, sessionId, result)
+      return host.conversationCommand(callerFor(ctx), { ...params, userSend: true })
     }
   }),
   defineMethod({

@@ -39,9 +39,7 @@ import { createStructuredChatNamingHandler } from '../../native-chat/structured-
 import { structuredChatNamingDeps } from '../structured-chat-naming-runtime'
 import { getProfileUserDataPath } from '../../orca-profiles/profile-storage-paths'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
-import { escalateChatWorkerError } from '../orchestration/chat-worker-error-escalation'
 import { chatWorkerTurnStopReporter } from '../orchestration/chat-worker-turn-stops'
-import type { StructuredAgentSessionRequestFailure } from '../../native-chat/agent-session-wire/structured-agent-session-request-failures'
 import { buildWorktreeListingPage } from '../worktree-listing-host-scope'
 import {
   structuredWorkerOpenTaskTitle,
@@ -62,6 +60,7 @@ import {
   withoutHiddenHosts
 } from '../runtime-visible-catalog'
 import { isWorkspaceNotificationMuted } from '../workspace-notification-mute'
+import { recordStructuredWorkerUserSend } from '../orchestration/structured-worker-user-send-takeover'
 
 export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktreePsDependencies {
   async getWorktreePs(
@@ -295,6 +294,7 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
       ...(this.structuredAgentStatusSinkFn ? { statusSink: this.structuredAgentStatusSinkFn } : {}),
       conversationNaming: nameChat,
       onSessionTabHidden: (sessionId) => this.onStructuredSessionTabHidden(sessionId),
+      onUserSendAccepted: (sessionId) => recordStructuredWorkerUserSend(this, sessionId),
       assertNoTerminalWriter: (record) => this.assertStructuredChatAcquireAdmissible(record),
       attentionDelivery: createStructuredAttentionMobileDelivery({
         readNotificationSettings: () => this.requireStore().getSettings().notifications,
@@ -309,15 +309,6 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
       // Re-read dispatch ownership each sweep; absence of a database cannot keep the worker alive.
       hasOpenDispatch: (record) =>
         structuredWorkerOwesWork(this.getOrchestrationDbIfAvailable?.() ?? null, record)
-    })
-  }
-
-  /** A chat worker whose request settled failed tells the Run that dispatched it. */
-  onStructuredRequestFailureForErrorMail(failure: StructuredAgentSessionRequestFailure): void {
-    void escalateChatWorkerError(failure, {
-      enabled: () => this.isChatWorkerErrorEscalationEnabled(),
-      db: () => this.getOrchestrationDbIfAvailable(),
-      notify: (handle, messageType) => this.notifyMessageArrived(handle, messageType)
     })
   }
 }

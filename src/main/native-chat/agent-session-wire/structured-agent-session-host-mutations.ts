@@ -22,6 +22,7 @@ import type { AgentSessionPromptRequest } from './structured-agent-session-turns
 import { refuseThreadGoalUnsupported, threadGoalPlan } from './structured-agent-session-thread-goal'
 import {
   mutateStructuredAgentSession,
+  noteAcceptedUserSend,
   runStructuredAgentSessionMutation,
   type StructuredAgentSessionMutationContext
 } from './structured-agent-session-mutation-context'
@@ -115,7 +116,7 @@ export function sendStructuredAgentSessionTurn(
         }
       },
       sendPreparation(context, params.envelope, arrival, selection)
-    )
+    ).then((result) => noteAcceptedUserSend(context, params, result))
   )
 }
 
