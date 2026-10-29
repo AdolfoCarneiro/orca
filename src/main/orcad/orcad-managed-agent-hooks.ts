@@ -16,7 +16,8 @@ import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
 export function startOrcadManagedAgentHooks(
   store: Pick<ProfilePreferences, 'getSettings' | 'onSettingsChanged'>,
   setStatusHooksEnabled: (enabled: boolean) => void,
-  registerCleanup: (cleanup: OrcadRuntimeCleanup) => void
+  registerCleanup: (cleanup: OrcadRuntimeCleanup) => void,
+  published: Promise<void>
 ): void {
   let stopping = false
   const agentView = getClaudeAgentViewService()
@@ -35,6 +36,8 @@ export function startOrcadManagedAgentHooks(
   const shouldHydrateShellPath = getAppEnvironment().isPackaged()
   startCodexHooks({
     pathReady: shouldHydrateShellPath ? hydrateAgentCliShellPath() : Promise.resolve(),
+    // WSL: finding codex stats every Windows-drive PATH entry, slow on a cold start.
+    startAfter: published,
     isEnabled: () => isAgentStatusHooksEnabledForAgent(getSettings(), 'codex'),
     resolveLaunchHome: () => null
   })
