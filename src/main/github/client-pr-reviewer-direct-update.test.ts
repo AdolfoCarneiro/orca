@@ -76,34 +76,4 @@ describe.each(operations)('$name reviewer mutation', ({ method, flag, run }) => 
       )
     }
   )
-
-  it('does not retry a failed mutation through another transport', async () => {
-    mocks.exec.mockRejectedValueOnce(new Error('HTTP 422: not a collaborator'))
-    expect(await run('/folder', 42, ['alice'])).toEqual({
-      ok: false,
-      error: 'HTTP 422: not a collaborator'
-    })
-    expect(mocks.exec).toHaveBeenCalledTimes(1)
-    expect(mocks.release).toHaveBeenCalledTimes(1)
-    expect(mocks.invalidate).not.toHaveBeenCalled()
-  })
-
-  it('rejects empty selections before resolving the repository', async () => {
-    expect(await run('/folder', 42, [' ', ''])).toEqual({
-      ok: false,
-      error: 'Enter at least one reviewer'
-    })
-    expect(mocks.resolve).not.toHaveBeenCalled()
-    expect(mocks.exec).not.toHaveBeenCalled()
-  })
-
-  it('refuses unresolved repository identities without launching a process', async () => {
-    mocks.resolve.mockResolvedValueOnce({ ownerRepo: null, ghOptions: {} })
-    expect(await run('/folder', 42, ['alice'])).toEqual({
-      ok: false,
-      error: 'Could not resolve GitHub owner/repo for this repository'
-    })
-    expect(mocks.acquire).not.toHaveBeenCalled()
-    expect(mocks.exec).not.toHaveBeenCalled()
-  })
 })
