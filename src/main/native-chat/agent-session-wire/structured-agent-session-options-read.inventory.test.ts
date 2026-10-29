@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
+import { AcpStructuredOptions } from '../../acp/acp-structured-options'
+import { NewSessionResponseSchema } from '../../acp/generated/acp-protocol.generated'
 import { structuredAgentSessionSeedCatalog } from '../../../shared/structured-agent-session-seed-catalog'
 import {
+  applyStructuredAgentSessionModelCatalog,
   applyStructuredAgentSessionOptions,
   createStructuredAgentSessionOptionState,
   structuredAgentSessionOptionSnapshot
@@ -17,7 +21,7 @@ import { NO_STRUCTURED_AGENTS } from './structured-agent-session-adapter-router-
 import { readStructuredAgentSessionOptions } from './structured-agent-session-options-read'
 
 it('marks unknown resting inventory but preserves completed empty live and resting answers', async () => {
-  const record = { ...hostTestRestingOptionsRecord(), provider: 'pi', options: {} }
+  const record = { ...hostTestRestingOptionsRecord(), provider: 'omp', options: {} }
   let inventory: AgentSessionModelCatalogResult = { origin: 'unknown' }
   let live: StructuredAgentSessionLiveOptions | undefined
   const session = () => ({
@@ -47,16 +51,36 @@ it('marks unknown resting inventory but preserves completed empty live and resti
   expect(empty.models).toEqual([])
   expect(empty).not.toHaveProperty('modelsKnown')
   inventory = { origin: 'unknown' }
-  live = { models: [], current: {} }
+  // Captured OMP 17.3.8 Windows setup; the saved literal below is independent synthetic context.
+  const acp = new AcpStructuredOptions()
+  acp.adoptSession(
+    NewSessionResponseSchema.parse(
+      JSON.parse(
+        readFileSync(
+          new URL('../../acp/fixtures/omp-v17-windows-new-no-model.json', import.meta.url),
+          'utf8'
+        )
+      )
+    )
+  )
+  live = acp.read()
+  expect(live).toEqual({ models: [], current: { effort: 'off', confirmed: ['effort'] } })
+  const model = 'openai/gpt-future[1m]'
+  record.options = { model }
   const completed = await read()
   expect(completed.models).toEqual([])
   expect(completed).not.toHaveProperty('modelsKnown')
-  live = { models: [], modelsKnown: false, current: {} }
-  expect((await read()).modelsKnown).toBe(false)
-
-  live = undefined
-  const model = 'openai/gpt-future[1m]'
-  record.options = { model }
+  expect(completed.current).toMatchObject({ model, effort: 'off', confirmed: ['effort'] })
+  const seed = structuredAgentSessionSeedCatalog('omp')
+  const state = applyStructuredAgentSessionOptions(
+    createStructuredAgentSessionOptionState('omp', seed),
+    seed,
+    completed
+  )
+  expect(structuredAgentSessionOptionSnapshot(state)).toMatchObject([
+    { id: 'model', kind: { currentValue: model } },
+    { id: 'effort', kind: { currentValue: 'off' } }
+  ])
   const native = {
     id: 'openai/gpt-5.5',
     label: 'Provider authored label',
@@ -64,16 +88,23 @@ it('marks unknown resting inventory but preserves completed empty live and resti
     efforts: []
   }
   inventory = { origin: 'probe', fetchedAt: 1, models: [native] }
+  expect(
+    applyStructuredAgentSessionModelCatalog(state, seed, inventory, { newLaunch: false }).catalog
+  ).toBe(state.catalog)
+  // Constructed unfinished observation tests passthrough; ACP did not report this marker.
+  live = { ...acp.read(), modelsKnown: false }
+  expect((await read()).modelsKnown).toBe(false)
+
+  live = undefined
   const result = await read()
   expect(result.current.model).toBe(model)
   expect(result.models[0]).toBe(native)
-  const seed = structuredAgentSessionSeedCatalog('pi')
-  const state = applyStructuredAgentSessionOptions(
-    createStructuredAgentSessionOptionState('pi', seed),
+  const resting = applyStructuredAgentSessionOptions(
+    createStructuredAgentSessionOptionState('omp', seed),
     seed,
     result
   )
-  expect(structuredAgentSessionOptionSnapshot(state)[0].kind).toMatchObject({
+  expect(structuredAgentSessionOptionSnapshot(resting)[0].kind).toMatchObject({
     currentValue: model,
     choices: [
       { value: native.id, label: native.label },
