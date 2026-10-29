@@ -1223,9 +1223,6 @@ function Invoke-OrcaOperation($Operation) {
 
     switch ($Operation.tool) {
         "click" {
-            # Why: agents expect a click into a target app to make the next
-            # keyboard action safe, even when UI Automation handles the click.
-            Restore-OrcaWindow $process
             $handledByPattern = $false
             $clickCount = Get-OrcaPositiveInteger $Operation.click_count "click_count"
             $hasModifiers = -not [string]::IsNullOrWhiteSpace([string]$Operation.modifiers)
@@ -1233,6 +1230,8 @@ function Invoke-OrcaOperation($Operation) {
                 $handledByPattern = Invoke-OrcaPrimaryAction $element
             }
             if (-not $handledByPattern) {
+                # Why: mouse input lands on whichever window is on top at the point; UIA patterns need no focus.
+                Restore-OrcaWindow $process
                 $point = Get-OrcaElementScreenPoint $element
                 if ($null -eq $point) { $point = Get-OrcaScreenPoint $Operation $windowFrame }
                 Send-OrcaMouseClick $handle $point.x $point.y $Operation.mouse_button $clickCount $Operation.modifiers

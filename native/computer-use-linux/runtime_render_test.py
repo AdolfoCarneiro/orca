@@ -14,6 +14,15 @@ class FakeStateType:
     ACTIVE = 3
     SHOWING = 4
     FOCUSED = 5
+    EDITABLE = 6
+
+
+class FakeStateSet:
+    def __init__(self, *states):
+        self.states = set(states)
+
+    def contains(self, state):
+        return state in self.states
 
 
 class FakeText:
@@ -25,12 +34,42 @@ class FakeText:
     def get_text(node, start, end):
         return node.value[start:end]
 
+    @staticmethod
+    def get_caret_offset(node):
+        return node.caret
+
+    @staticmethod
+    def set_caret_offset(node, offset):
+        node.caret = offset
+        return True
+
+    @staticmethod
+    def get_n_selections(node):
+        return 1 if node.selection else 0
+
+    @staticmethod
+    def get_selection(node, _):
+        return types.SimpleNamespace(start_offset=node.selection[0], end_offset=node.selection[1])
+
+
+class FakeEditableText:
+    @staticmethod
+    def insert_text(node, position, text, length):
+        node.value = node.value[:position] + text[:length] + node.value[position:]
+        return True
+
+    @staticmethod
+    def delete_text(node, start, end):
+        node.value = node.value[:start] + node.value[end:]
+        node.selection = None
+        return True
+
 
 def load_runtime():
     gi = types.ModuleType("gi")
     repository = types.ModuleType("gi.repository")
     gi.require_version = lambda *_: None
-    repository.Atspi = types.SimpleNamespace(StateType=FakeStateType, Text=FakeText)
+    repository.Atspi = types.SimpleNamespace(StateType=FakeStateType, Text=FakeText, EditableText=FakeEditableText)
     repository.Gdk = types.SimpleNamespace()
     repository.GdkPixbuf = types.SimpleNamespace()
     gi.repository = repository
@@ -241,6 +280,53 @@ class RuntimeRenderTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "appBlocked"):
                 runtime.run_operation({"tool": "click", "app": "Fixture"})
             self.assertEqual(effects, ["clicked"])
+
+    def test_click_activates_the_window_only_for_pointer_fallback(self):
+        button = FakeAccessible("button", "Continue")
+        button.get_n_actions = lambda: 1
+        button.get_action_name = lambda _: "click"
+        button.do_action = lambda _: True
+        label = FakeAccessible("label", "Status")
+        for target, expected_path, expected_calls in (
+            (button, "accessibility", []),
+            (label, "synthetic", ["restore", "pointer"]),
+        ):
+            with self.subTest(path=expected_path), SnapshotFixture(
+                FakeAccessible("frame", "Editor", children=[button, label])
+            ) as fixture:
+                calls = []
+                fixture.restore = lambda: calls.append("restore")
+                snapshot = runtime.make_snapshot("Fixture", False)
+                element = next(item for item in snapshot["elements"] if item["name"] == target.name)
+                with patch.object(runtime, "click_at", lambda *_: calls.append("pointer")):
+                    result = runtime.run_operation({"tool": "click", "app": "Fixture", "element": element, "noScreenshot": True})
+                self.assertEqual(result["action"]["path"], expected_path)
+                self.assertEqual(calls, expected_calls)
+
+    def test_text_entry_inserts_into_the_focused_field_of_a_background_window(self):
+        for tool in ("type_text", "paste_text"):
+            field = FakeAccessible("text", "Message", value="Hello world")
+            field.caret, field.selection = 11, (6, 11)
+            field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED, FakeStateType.EDITABLE)
+            field.get_editable_text_iface = lambda: field
+            with self.subTest(tool=tool), SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])) as fixture:
+                calls = []
+                fixture.restore = lambda: calls.append("restore")
+                with patch.object(runtime, "type_text", lambda _: calls.append("keys")), \
+                     patch.object(runtime, "paste_text", lambda _: calls.append("clipboard")):
+                    result = runtime.run_operation({"tool": tool, "app": "Fixture", "text": "there", "noScreenshot": True})
+                self.assertEqual(calls, [])
+                self.assertEqual((field.value, field.caret), ("Hello there", 11))
+                self.assertEqual(result["action"]["path"], "accessibility")
+                self.assertEqual(result["action"]["verification"]["state"], "verified")
+
+    def test_text_entry_without_an_editable_focused_field_still_requires_window_focus(self):
+        field = FakeAccessible("text", "Read only", value="Hello")
+        field.get_state_set = lambda: FakeStateSet(FakeStateType.FOCUSED)
+        with SnapshotFixture(FakeAccessible("frame", "Editor", children=[field])):
+            with self.assertRaisesRegex(RuntimeError, "window_not_focused"):
+                runtime.run_operation({"tool": "type_text", "app": "Fixture", "text": "x", "noScreenshot": True})
+        self.assertEqual(field.value, "Hello")
 
     def test_compacted_browser_records_keep_their_own_frames_and_indexes(self):
         tabs = [FakeAccessible("page tab", f"Tab {i}", value="1" if i == 9 else "") for i in range(10)]

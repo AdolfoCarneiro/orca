@@ -33,7 +33,7 @@ describe.skipIf(!isLinux || !e2eOptIn)('computer-use Linux e2e (gedit)', () => {
     expect(envelope.result.screenshot?.path).toContain('orca-computer-use')
   })
 
-  test('click and type-text send synthetic input to the document', async () => {
+  test('click and type-text insert into the focused document through AT-SPI', async () => {
     const before = parseJsonOutput<{ result: ComputerSnapshotResult }>(
       (
         await runOrcaCli([
@@ -81,7 +81,7 @@ describe.skipIf(!isLinux || !e2eOptIn)('computer-use Linux e2e (gedit)', () => {
         ])
       ).stdout
     )
-    expect(typed.result.action?.path).toBe('synthetic')
+    expect(typed.result.action?.path).toBe('accessibility')
     expect(typed.result.snapshot.treeText).toContain(marker.trim())
   })
 
@@ -102,10 +102,10 @@ describe.skipIf(!isLinux || !e2eOptIn)('computer-use Linux e2e (gedit)', () => {
         ])
       ).stdout
     )
-    expect(action.result.action?.path).toBe('clipboard')
+    expect(action.result.action?.path).toBe('accessibility')
     expect(action.result.action?.verification).toMatchObject({
-      state: 'unverified',
-      reason: 'clipboard_paste'
+      state: 'verified',
+      property: 'focusedText'
     })
 
     const after = parseJsonOutput<{ result: ComputerSnapshotResult }>(
