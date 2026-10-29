@@ -134,4 +134,24 @@ describe('Codex plan menu painted after its Stop hook', () => {
 
     expect(await waitOutcome(runtime, handle, 50)).toBe('ready')
   })
+
+  // The final-frame deadline is untimed for delivery; only a retry while mail waits notices it passed.
+  it('delivers pending mail once a fresh done clears its final-frame hold after output went quiet', async () => {
+    let rows: AgentStatusIpcPayload[] = []
+    const { runtime } = await codexPane(() => rows)
+    paint(runtime, `\x1b]0;⠋ Codex\x07${QUOTED_MENU}`)
+    await vi.advanceTimersByTimeAsync(QUIESCENCE_MS + 1000)
+    rows = [doneRow(Date.now())]
+    const deliver = vi
+      .spyOn(runtime['orchestrationMailboxNotifications'], 'deliverForTerminal')
+      .mockImplementation(() => {})
+    vi.spyOn(runtime['orchestrationMailboxNotifications'], 'hasDeliverableMail').mockImplementation(
+      () => deliver.mock.calls.length === 0
+    )
+
+    runtime['deliverPendingMessagesForPty'](TRANSCRIPT_PANE_PTY_ID)
+    expect(deliver).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(deliver).toHaveBeenCalledTimes(1)
+  })
 })

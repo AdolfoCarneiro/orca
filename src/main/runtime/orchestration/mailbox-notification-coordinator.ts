@@ -8,6 +8,7 @@ import type {
   OrchestrationMailboxPointerDelivery,
   OrchestrationMessageWaiter
 } from './mailbox-pointer-delivery'
+import { selectOrchestrationPointerBatch } from './mailbox-pointer-eligibility'
 import type { OrchestrationStructuredMailboxPointerDelivery } from './structured-mailbox-pointer-delivery'
 
 type NotificationCoordinatorDependencies<TWaiter extends OrchestrationMessageWaiter> = {
@@ -43,6 +44,23 @@ export class OrchestrationMailboxNotificationCoordinator<
     for (const mailboxHandle of this.deps.mailboxOwner.resolveAll(terminal)) {
       this.deps.pointerDelivery.deliver(terminal, { mailboxHandle })
     }
+  }
+
+  /** Whether a pointer would type for this terminal now: unread, undelivered mail no waiter or held batch claims. */
+  hasDeliverableMail(terminal: OrchestrationMailboxTerminal): boolean {
+    const db = this.deps.getDb()
+    return (
+      !!db &&
+      this.deps.mailboxOwner.resolveAll(terminal).some(
+        (mailboxHandle) =>
+          selectOrchestrationPointerBatch({
+            db,
+            mailboxHandle,
+            waiters: this.deps.getMessageWaiters(mailboxHandle),
+            reservedTypes: undefined
+          }).messages.length > 0
+      )
+    )
   }
 
   notifyMessageArrived(handle: string, messageType?: string): void {

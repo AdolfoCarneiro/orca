@@ -8,6 +8,7 @@ import {
   mobileSnapshotIdentityUnchanged
 } from '../mobile-session-snapshot-equality'
 import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TerminalAgent } from '../../../shared/terminal-agent'
 import { isTuiAgent } from '../../../shared/tui-agent-config'
 import type { RuntimeStore } from '../runtime-store-contract'
 import type { RuntimeClientSettingsController } from '../runtime-client-settings'
@@ -275,12 +276,13 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
     null
 
   /** Rank launch authority first, then foreground evidence for agents Orca did not launch. */
+  protected getPaneTerminalAgent(ptyId: string | null | undefined): TerminalAgent | null {
+    const pty = ptyId ? this.ptysById.get(ptyId) : undefined
+    return pty?.launchAgent ?? pty?.foregroundAgent ?? pty?.launchCommandAgent ?? null
+  }
+
   protected getPaneAgentForTuiIdle(ptyId: string | null | undefined): TuiAgent | null {
-    if (!ptyId) {
-      return null
-    }
-    const pty = this.ptysById.get(ptyId)
-    const agent = pty?.launchAgent ?? pty?.foregroundAgent ?? pty?.launchCommandAgent ?? null
+    const agent = this.getPaneTerminalAgent(ptyId)
     return isTuiAgent(agent) ? agent : null
   }
 

@@ -120,6 +120,44 @@ describe('mailbox delivery honours the tui-idle evidence ranking', () => {
     expect(deliver).toHaveBeenCalled()
   })
 
+  // A recognized terminal agent outside the readiness-rule set still queues mid-turn text.
+  it('delivers mid-turn into a recognized foreground dsb pane', async () => {
+    const { runtime } = await makeRuntime(null, 'dsb')
+    runtime['ptysById'].get(PTY_ID)!.foregroundAgent = 'dsb'
+    const deliver = watchDelivery(runtime)
+    runtime.onPtyData(PTY_ID, `${osc('⠋ - DeepSeek Build')}working\n`, Date.now())
+    expect(deliver).toHaveBeenCalled()
+  })
+
+  // Recognition finishing only publishes a snapshot, so pending mail needs a retry past the quiet window.
+  it('delivers once foreground recognition resolves after the quiet retry', async () => {
+    let recognize: (process: string) => void = () => {}
+    const runtime = makeTuiIdleRuntime({
+      repoPath: '/tmp/followups',
+      getForegroundProcess: () => new Promise<string>((resolve) => (recognize = resolve))
+    })
+    runtime.attachWindow(1)
+    runtime.syncWindowGraph(1, GRAPH)
+    registerBoundPty(runtime, PTY_ID, WORKTREE_ID, null, {
+      tabId: TAB_ID,
+      leafId: LEAF_ID,
+      incarnationId: 'followups-inc'
+    })
+    await runtime.listTerminals(`id:${WORKTREE_ID}`)
+    const deliver = watchDelivery(runtime)
+    vi.spyOn(runtime['orchestrationMailboxNotifications'], 'hasDeliverableMail').mockImplementation(
+      () => deliver.mock.calls.length === 0
+    )
+    runtime.onPtyData(PTY_ID, `${osc('⠋ Codex')}working\n`, Date.now())
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(deliver).not.toHaveBeenCalled()
+
+    recognize('codex')
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(deliver).toHaveBeenCalledTimes(1)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('still delivers for an agent whose name is its only rest signal', async () => {
     const { runtime } = await makeRuntime('grok', 'grok')
     const deliver = watchDelivery(runtime)

@@ -99,16 +99,17 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
       return
     }
     const pty = this.ptysById.get(ptyId)
-    // Only quiet-window refusal expires with time; schedule just beyond it and re-arm from fresher output if still streaming.
+    // Schedule just beyond the quiet window and re-arm from fresher output if still streaming.
     const elapsed = pty?.lastOutputAt ? Date.now() - pty.lastOutputAt : 0
     const quietRemainingMs = TUI_IDLE_QUIESCENCE_MS - elapsed
     const holding = this.isPtyHoldingDelivery(ptyId)
-    // A refusal that outlived the quiet window is not time-bound; the next output, title or mail edge rechecks it.
-    if (!holding && quietRemainingMs <= 0 && pty?.lastOutputAt) {
+    const quietPassed = quietRemainingMs <= 0 && !!pty?.lastOutputAt
+    // Past quiet, refusal waits on untimed evidence (hook deadlines, foreground recognition), so poll slowly only while mail waits.
+    if (!holding && quietPassed && !this.hasDeliverableMailForPty(ptyId)) {
       return
     }
     // A dialog or draft lifts only when the user acts, so poll it slowly rather than at 20 Hz.
-    const delay = holding ? DIALOG_HOLD_RECHECK_MS : Math.max(quietRemainingMs, 0) + 50
+    const delay = holding || quietPassed ? DIALOG_HOLD_RECHECK_MS : quietRemainingMs + 50
     const timer = setTimeout(() => {
       this.deliveryRecheckTimersByPtyId.delete(ptyId)
       // Delivery rechecks settlement first; the agent may have become busy again.
@@ -116,6 +117,11 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
     }, delay)
     timer.unref?.()
     this.deliveryRecheckTimersByPtyId.set(ptyId, timer)
+  }
+
+  private hasDeliverableMailForPty(ptyId: string): boolean {
+    const terminal = this.getOrchestrationMailboxTerminal(ptyId)
+    return !!terminal && this.orchestrationMailboxNotifications.hasDeliverableMail(terminal)
   }
 
   /** Pointer plus Enter takes the waits' readiness ranking, plus a working verdict: agents queue or
@@ -135,7 +141,7 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
     // The ranking vetoes overlays only on ready verdicts; an overlay refuses input mid-turn too.
     // Only a recognized agent queues mid-turn text; an unknown program would read it as stdin.
     return verdict.kind === 'working'
-      ? !!evidence.agent && evidence.readScreenInputVeto() !== true
+      ? !!this.getPaneTerminalAgent(ptyId) && evidence.readScreenInputVeto() !== true
       : isTuiIdleReadyVerdict(verdict)
   }
 
