@@ -160,7 +160,8 @@ export class StructuredAgentSessionHost {
     deps: this.deps,
     sessions: this.sessions,
     serialize: this.serialize,
-    readCommands: (id) => this.clientDelivery.readCommandsSettled(id),
+    readCommands: (id, commandsOnRequest) =>
+      this.clientDelivery.readCommandsSettled(id, commandsOnRequest),
     conversation: (id) => this.lifetime.conversation(id),
     adoptOpened: this.conversationDelivery.adoptOpened
   }))

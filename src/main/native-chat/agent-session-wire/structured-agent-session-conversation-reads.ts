@@ -75,7 +75,8 @@ export function createStructuredAgentSessionConversationReads(context: () => Rea
   }))
   return {
     readModelCatalog,
-    readCommands: async (id: string) => ({ commands: await context().readCommands(id) }),
+    readCommands: (id: string, commandsOnRequest = false) =>
+      context().readCommands(id, commandsOnRequest),
     supportsCreate: (location: AgentSessionExecutionLocation, agent: string) =>
       providerSupport.adapterSupportsCreate(context().deps.adapter, location, agent),
     knownAgentIds: () => providerSupport.knownAgentIds(context().deps),

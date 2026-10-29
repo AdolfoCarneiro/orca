@@ -1,5 +1,5 @@
 export type AgentSessionDeathEvidence = {
-  kind: 'exit-observed' | 'pid-absent' | 'identity-mismatch'
+  kind: 'exit-observed' | 'kill-delivered' | 'pid-absent' | 'identity-mismatch'
   detail: string
   observedAt: number
   /** Fence of the owner (or reservation) this death is about; a fence names exactly one. Absent on

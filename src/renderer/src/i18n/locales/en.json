@@ -571,6 +571,26 @@
         "administratorSearchDescription": "See Orca’s Windows permissions or restart with administrator approval.",
         "administratorApproval": "Windows will ask for approval. Use your usual account."
       },
+      "limit": {
+        "label": "Maximum running terminals",
+        "description": "Limits your running terminals across projects on this host.",
+        "system": "System PTY limit: {{value}}",
+        "unknown": "Unavailable",
+        "shared": "Shared with other terminal apps. This is total capacity, not free slots.",
+        "disconnected": "This host is disconnected. Reconnect to view or change its terminal limit.",
+        "unsupported": "This host’s terminal service does not support changing this limit yet.",
+        "environment": "This Orca instance has a terminal limit set by its environment. Remove the override on this host to edit it here.",
+        "savedUnreadable": "Couldn’t read this host’s saved terminal limit. Using {{value}}. Enter a value and press Enter to replace it.",
+        "failed": "Couldn’t confirm the terminal limit. Try again.",
+        "retry": "Retry",
+        "unit": "terminals",
+        "search": {
+          "limit": "limit",
+          "maximum": "maximum",
+          "pty": "pty",
+          "capacity": "capacity"
+        }
+      },
       "wordSeparators": {
         "description": "Characters treated as word boundaries for double-click selection, including space.",
         "noSpaceHint": "No space included — double-click will select across spaces."
@@ -1856,11 +1876,12 @@
         }
       },
       "claudeAgentRowView": {
+        "openParentConversation": "Open parent conversation",
+        "parentViewFailed": "Claude could not open the parent conversation. Try again in the Claude pane.",
+        "childViewFailed": "Claude could not open this agent. Try again in the Claude pane.",
+        "parentNavigationSetup": "Claude could not open the parent conversation. Enable subagent navigation in Settings → Agents, then restart Claude in this pane.",
         "subagentNavigationSetup": "Enable Claude subagent navigation in Settings → Agents, then launch Claude 2.1.300+ in Orca. Check that keybindings.json still binds Ctrl+Alt+G, H, or V to command:orca-agent-view.",
-        "permissionPrompt": "Answer Claude’s permission prompt before switching agents.",
-        "agentUnavailable": "Claude cannot open this agent. It may no longer be available.",
-        "closeDialog": "Claude did not switch views. Close any open dialog and try again.",
-        "hostUnavailable": "Subagent navigation is unavailable on this host. Update Orca and restart Claude in this pane."
+        "permissionPrompt": "Answer Claude’s permission prompt before switching agents."
       },
       "wslHostWindowsDriveRefusal": {
         "addOnThisComputer": "Add on this computer",
@@ -19710,7 +19731,12 @@
       },
       "agentMessage": {
         "messageFrom": "Message from",
-        "unnamedSender": "an agent"
+        "unnamedSender": "an agent",
+        "goToAgent": "Go to agent",
+        "messageFromCoordinator": "Message from your coordinator",
+        "showMore": "Show more",
+        "taskFromCoordinator": "Task from your coordinator",
+        "updateFromWorker": "Update from your worker"
       },
       "goal": {
         "placeholder": "Describe your goal, define measurable outcomes for best results",

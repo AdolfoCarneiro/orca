@@ -106,6 +106,26 @@
         "runAdministratorHelp": "管理者ガイド",
         "standardStatus": "標準ユーザー",
         "unknownAdministrator": "判定できません"
+      },
+      "limit": {
+        "label": "実行中のターミナルの上限",
+        "description": "このホスト上の全プロジェクトで実行中のターミナル数を制限します。",
+        "system": "システムのPTY上限: {{value}}",
+        "unknown": "取得できません",
+        "shared": "他のターミナルアプリと共有されます。空き数ではなく総容量です。",
+        "disconnected": "このホストは切断されています。再接続してターミナルの上限を確認または変更してください。",
+        "unsupported": "このホストのターミナルサービスは、まだ上限の変更に対応していません。",
+        "environment": "このOrcaインスタンスのターミナル上限は環境変数で設定されています。ここで編集するには、このホストの環境変数による設定を削除してください。",
+        "savedUnreadable": "このホストに保存されたターミナル上限を読み取れませんでした。{{value}} を使用しています。値を入力し、Enter キーを押して置き換えてください。",
+        "failed": "ターミナルの上限を確認できませんでした。もう一度お試しください。",
+        "retry": "再試行",
+        "unit": "ターミナル",
+        "search": {
+          "limit": "上限",
+          "maximum": "最大",
+          "pty": "pty",
+          "capacity": "容量"
+        }
       }
     },
     "appearance": {
@@ -1350,10 +1370,7 @@
       },
       "claudeAgentRowView": {
         "subagentNavigationSetup": "設定 → Agent で Claude のサブ Agent ナビゲーションを有効にしてから、Orca で Claude 2.1.300 以降を起動してください。keybindings.json で Ctrl+Alt+G、H、または V が引き続き command:orca-agent-view に割り当てられていることを確認してください。",
-        "permissionPrompt": "Agent を切り替える前に、Claude の権限確認に応答してください。",
-        "agentUnavailable": "Claude はこの Agent を開けません。すでに利用できなくなっている可能性があります。",
-        "closeDialog": "Claude はビューを切り替えませんでした。開いているダイアログを閉じて、もう一度お試しください。",
-        "hostUnavailable": "このホストではサブ Agent ナビゲーションを利用できません。Orca を更新し、このペインで Claude を再起動してください。"
+        "permissionPrompt": "Agent を切り替える前に、Claude の権限確認に応答してください。"
       },
       "dropFailureReason": {
         "tooLarge": "このホストにアップロードするには大きすぎます。",

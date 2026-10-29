@@ -26,6 +26,7 @@ import {
   type AgentSessionProviderContextBoundary
 } from './agent-session-provider-context'
 import { isStructuredAgentId } from './agent-session-provider-handle-encoding'
+import { isNonNegativeSafeInteger } from './ssh-retained-payload-limits'
 import {
   isAgentSessionAccountHome,
   MAX_PATH_LENGTH,
@@ -244,17 +245,14 @@ function isAgentSessionDeathEvidence(value: unknown): value is AgentSessionDeath
   const { observedAt, lastProvenAliveAt, ownerFence, runtimeEnd } = evidence
   return (
     (evidence.kind === 'exit-observed' ||
+      evidence.kind === 'kill-delivered' ||
       evidence.kind === 'pid-absent' ||
       evidence.kind === 'identity-mismatch') &&
     isBoundedString(evidence.detail, MAX_AGENT_SESSION_DEATH_DETAIL_CHARS) &&
-    typeof observedAt === 'number' &&
-    Number.isSafeInteger(observedAt) &&
-    observedAt >= 0 &&
-    (ownerFence === undefined || (Number.isSafeInteger(ownerFence) && ownerFence >= 0)) &&
+    isNonNegativeSafeInteger(observedAt) &&
+    (ownerFence === undefined || isNonNegativeSafeInteger(ownerFence)) &&
     (lastProvenAliveAt === undefined ||
-      (Number.isSafeInteger(lastProvenAliveAt) &&
-        lastProvenAliveAt >= 0 &&
-        lastProvenAliveAt <= observedAt)) &&
+      (isNonNegativeSafeInteger(lastProvenAliveAt) && lastProvenAliveAt <= observedAt)) &&
     (runtimeEnd === undefined || isBoundedString(runtimeEnd, MAX_ID_LENGTH))
   )
 }
@@ -264,12 +262,11 @@ function isStoredRecordObject(value: unknown): value is Record<string, unknown> 
 }
 
 function isPersistedAgentSessionObservationLease(
-  value: unknown
-): value is PersistedAgentSessionObservationLease {
-  if (!isStoredRecordObject(value)) {
+  lease: unknown
+): lease is PersistedAgentSessionObservationLease {
+  if (!isStoredRecordObject(lease)) {
     return false
   }
-  const lease = value
   return (
     isAgentSessionId(lease.sessionId) &&
     isPersistedAgentSessionRuntimeKind(lease.runtimeKind) &&
