@@ -70,6 +70,7 @@ export type BridgeRpcClient = RpcClient & {
   onSafeAreaInsetsUpdate: (listener: (insets: BridgeSafeAreaInsets) => void) => () => void
   onKeyboardInsetUpdate: (listener: (height: number) => void) => () => void
   onColorSchemeUpdate: (listener: (scheme: BridgeShellSession['colorScheme']) => void) => () => void
+  onUiLocaleUpdate: (listener: (locale: BridgeShellSession['uiLocale']) => void) => () => void
   getShellSession: () => BridgeShellSession | null
   // False without navigate lets tap handlers fall back safely instead of throwing into uncaught UI callbacks.
   notifyNavigate: (href: string, replace?: boolean) => boolean
@@ -101,9 +102,7 @@ export function createBridgeRpcClient(options: BridgeRpcClientOptions): BridgeRp
   let closed = false
   let idCounter = 0
 
-  function report(diagnostic: BridgeRpcClientDiagnostic): void {
-    options.onDiagnostic?.(diagnostic)
-  }
+  const report = (diagnostic: BridgeRpcClientDiagnostic) => options.onDiagnostic?.(diagnostic)
 
   // Never throw: serialization/transport failure must return control to request-id cleanup. Keep JSON.stringify inside try for cycles, BigInt and throwing toJSON.
   // Refuse oversize using the shell’s exact predicate before posting, or the receiver drops it and leaves the caller waiting forever.
@@ -226,8 +225,7 @@ export function createBridgeRpcClient(options: BridgeRpcClientOptions): BridgeRp
       )
     }
     const [method, params, requestOptions] = args
-    const signal = requestOptions?.signal
-    throwIfSignalAborted(signal)
+    throwIfSignalAborted(requestOptions?.signal)
     requestOptions?.beforeSend?.()
     const id = nextId()
     const response = new Promise<RpcResponse>((resolve, reject) => {
@@ -325,6 +323,7 @@ export function createBridgeRpcClient(options: BridgeRpcClientOptions): BridgeRp
     // Allow listener registration before init so providers can observe the first state change; it reads no unprimed value.
     onStateChange: (listener) => cache.onStateChange(listener),
     notifyForeground: notifications.notifyForeground,
+    probeLivenessNow: notifications.notifyLivenessProbe,
     notifyNavigate: notifications.notifyNavigate,
     notifyNavigateBack: notifications.notifyNavigateBack,
     notifyExternalLink: notifications.notifyExternalLink,
@@ -341,6 +340,7 @@ export function createBridgeRpcClient(options: BridgeRpcClientOptions): BridgeRp
     onSafeAreaInsetsUpdate: shellSession.onSafeAreaInsetsUpdate,
     onKeyboardInsetUpdate: shellSession.onKeyboardInsetUpdate,
     onColorSchemeUpdate: shellSession.onColorSchemeUpdate,
+    onUiLocaleUpdate: shellSession.onUiLocaleUpdate,
     getShellSession: shellSession.current,
     clearRouteParam: (param, value) =>
       posted({

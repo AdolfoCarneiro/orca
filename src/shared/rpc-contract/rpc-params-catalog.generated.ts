@@ -42,7 +42,7 @@ import {
   OrcadPeerDesktopsParamsSchema
 } from '../orcad-peer-desktops-contract'
 import { OrcadTerminalCensusParamsSchema } from '../orcad-terminal-census'
-import { pluginConsentRequestSchema } from '../plugins/plugin-consent-request'
+import { pluginConsentRequestSchema } from '../plugins/approval/plugin-consent-request'
 import {
   AccountsUnsubscribeParams,
   AddClaudeFromConfigDirParams,
@@ -219,12 +219,14 @@ import {
   FileDelete,
   FileMutationOpen,
   FileRename,
+  FileReplaceWithUpload,
   FileWrite,
   FileWriteBase64,
   FileWriteBase64Chunk,
   FileWriteIfUnchanged
 } from './files-mutation-params'
 import {
+  ChatImageRead,
   DocPreviewFileRead,
   FileDirRead,
   FileListAll,
@@ -320,7 +322,7 @@ import {
   UpdatePrState,
   UpdatePrTitle
 } from './github-pull-request-update-params'
-import { RepoSelector, RepoShow, SlugRepo } from './github-repo-target-params'
+import { RepoIssueCommandRead, RepoSelector, RepoShow, SlugRepo } from './github-repo-target-params'
 import {
   IssuesList,
   RateLimit,
@@ -520,6 +522,7 @@ import {
   ProjectGroupUpdate,
   RepoClone,
   RepoCreate,
+  RepoHooksCheck,
   RepoIssueCommandWrite,
   RepoPath,
   RepoReorder,
@@ -971,6 +974,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.openDiff': FileOpenDiff,
   'files.pathsExist': FilePathsExist,
   'files.read': FileOpen,
+  'files.readChatImage': ChatImageRead,
   'files.readChunk': FileReadChunk,
   'files.readDir': FileDirRead,
   'files.readDocPreview': DocPreviewFileRead,
@@ -978,6 +982,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.readTerminalArtifact': TerminalArtifactFile,
   'files.readTerminalArtifactPreview': TerminalArtifactFile,
   'files.rename': FileRename,
+  'files.replaceWithUpload': FileReplaceWithUpload,
   'files.resolveTerminalPath': ResolveTerminalPath,
   'files.saveAbort': FileSaveAbort,
   'files.saveBegin': FileSaveBegin,
@@ -1151,6 +1156,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'layout.getRemoteSnapshots': null,
   'layout.reopenHeldPanes': LayoutReopenHeldPanesParams,
   'layout.reportView': LayoutReportViewParams,
+  'layout.startWslHeldPanes': LayoutReopenHeldPanesParams,
   'layout.subscribe': LayoutSubscribeParams,
   'layout.unsubscribe': LayoutUnsubscribeParams,
   'linear.addIssueComment': IssueCommentOfLinearParams,
@@ -1316,8 +1322,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'repo.create': RepoCreate,
   'repo.gitAvailable': null,
   'repo.hooks': RepoSelector,
-  'repo.hooksCheck': RepoSelector,
-  'repo.issueCommandRead': RepoSelector,
+  'repo.hooksCheck': RepoHooksCheck,
+  'repo.issueCommandRead': RepoIssueCommandRead,
   'repo.issueCommandWrite': RepoIssueCommandWrite,
   'repo.list': null,
   'repo.reorder': RepoReorder,

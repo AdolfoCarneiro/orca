@@ -56,6 +56,7 @@ import type { WorktreeSortOrderUpdate } from '../../shared/worktree/sort-order-u
 import { isDesktopBrowserBridgeHostEnabled } from './desktop-browser-bridge/desktop-browser-bridge-registry'
 import { DESKTOP_BROWSER_BRIDGE_RUNTIME_CAPABILITY } from '../../shared/desktop-browser-bridge-protocol'
 import { darkSwitchRuntimeCapabilities } from './dark-switch-runtime-capabilities'
+import { supportsDurableTerminalPromptDelivery } from './durable-terminal-prompt-delivery-support'
 
 type RuntimeStatusHost = {
   getAvailableAuthoritativeWindow(): unknown
@@ -66,18 +67,9 @@ type RuntimeStatusHost = {
   ): string[]
 }
 
-function supportsDurableTerminalPromptDelivery(): boolean {
-  if (typeof process.getBuiltinModule !== 'function') {
-    return false
-  }
-  try {
-    return process.getBuiltinModule('node:sqlite') !== undefined
-  } catch {
-    return false
-  }
-}
-
 export abstract class OrcaRuntimeWithGetStatus extends OrcaRuntimeWithGetRuntimeId {
+  protected abstract pruneUnregisteredWorktreeScans(): void
+
   private asRuntimeStatusHost(): RuntimeStatusHost {
     return this as unknown as RuntimeStatusHost
   }
@@ -320,6 +312,7 @@ export abstract class OrcaRuntimeWithGetStatus extends OrcaRuntimeWithGetRuntime
   }
 
   protected notifyReposChanged(): void {
+    this.pruneUnregisteredWorktreeScans()
     wakeFolderRepoGitUpgradeWatch()
     this.notifier?.reposChanged()
     this.emitClientEvent({ type: 'reposChanged' })
