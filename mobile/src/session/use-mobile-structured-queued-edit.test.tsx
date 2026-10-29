@@ -83,6 +83,19 @@ describe('mobile in-place queued Edit', () => {
       attribution: 'From Coordinator'
     })
     expect(state.hook!.queued.editor!.text).toBe(`${prefix}  Task 🐋  `)
+    await act(async () => {
+      expect(await state.hook!.queued.editor!.save()).toBe(true)
+    })
+    expect(
+      sendRequest.mock.calls.some(([method]) => method === 'agentSession.queuedMessageUpdate')
+    ).toBe(false)
+    expect(state.hook!.queued.cards[0]).toMatchObject({
+      line: '  Task 🐋  ',
+      attribution: 'From Coordinator'
+    })
+    await act(async () => {
+      await state.hook!.queued.edit!('task')
+    })
     act(() => state.hook!.queued.editor!.change(`${prefix}Edited`))
     await act(async () => {
       expect(await state.hook!.queued.editor!.save()).toBe(true)

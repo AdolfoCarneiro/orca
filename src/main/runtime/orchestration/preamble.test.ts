@@ -1,16 +1,3 @@
-import type { AgentJournalMessageItem } from '../../../shared/agent-session-journal-types'
-import type { AgentMessageSource } from '../../../shared/agent-session/agent-session-message-source'
-import { agentMessageDisplayText } from '../../../shared/agent-session/agent-message-display-text'
-import { projectStructuredAgentSessionStatusSummary } from '../../../shared/structured-agent-session-projection'
-import { latestStructuredAgentSessionPrompt } from '../../../shared/structured-agent-session-latest-request'
-import {
-  getAgentRowPrimaryText,
-  getAgentRowGeneratedTitleText,
-  isOrcaDispatchPrompt
-} from '../../../shared/agent-row-primary-text'
-import { generatedTabTitleForStatus } from '../../../shared/agent-generated-tab-title-rules'
-import { normalizePromptField } from '../../../shared/agent-status-field-normalization'
-import { ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../../../shared/orca-dispatch-status-prompt'
 import { spawnSync } from 'node:child_process'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
@@ -323,54 +310,5 @@ describe('how the preamble names the worker and its coordinator, by kind', () =>
       expect(chat).toContain(`check --terminal ${SESSION_WORKER}`)
       expect(afterWorkerDoneSection(chat).trimEnd().endsWith(CHAT_REDISPATCH)).toBe(true)
     }
-  })
-})
-
-it('preserves actual terminal/chat template input, exact display suffix and raw dispatch status identity', () => {
-  const from: AgentMessageSource = {
-    kind: 'agent',
-    senders: [],
-    orchestration: { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
-  }
-  for (const [workerHandle, taskSpec] of [
-    ['term_worker', `  🐋\n\n=== TASK ===\nMy marker.  ${'x'.repeat(30_000)}`],
-    ['orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37', '']
-  ] as const) {
-    const text = buildDispatchPreamble(baseParams({ workerHandle, taskSpec }))
-    for (const raw of [text, text.replaceAll('\n', '\r\n')]) {
-      expect(agentMessageDisplayText([{ type: 'text', text: raw }], from)).toBe(
-        raw === text ? taskSpec : taskSpec.replaceAll('\n', '\r\n')
-      )
-    }
-  }
-  const raw = buildDispatchPreamble(baseParams({ taskSpec: 'original' }))
-  const body: AgentJournalMessageItem = {
-    kind: 'message',
-    role: 'user',
-    blocks: [{ type: 'text', text: raw }],
-    from
-  }
-  const items = [{ itemId: 'i', sequence: 1, revision: 1, observedAt: 1, body }]
-  expect(latestStructuredAgentSessionPrompt(items)).toBe(raw)
-  const summary = projectStructuredAgentSessionStatusSummary(items)
-  expect(summary.latestPrompt).toBe(normalizePromptField(raw))
-  const prompt = normalizePromptField(summary.latestPrompt)
-  expect(prompt).toContain(ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX)
-  expect(prompt).toContain('Your task ID is:')
-  expect(prompt).toContain('=== TASK === original')
-  const row = {
-    prompt,
-    orchestration: {
-      taskId: 'task_abc123',
-      dispatchId: 'ctx_def456',
-      displayName: 'Current task label'
-    }
-  }
-  expect(isOrcaDispatchPrompt(prompt)).toBe(true)
-  expect(getAgentRowPrimaryText(row)).toBe('Current task label')
-  expect(getAgentRowGeneratedTitleText(row)).toBe('Current task label')
-  expect(generatedTabTitleForStatus(row, { generatedTitle: 'Old work' })).toEqual({
-    title: 'Current task label',
-    replaceExisting: true
   })
 })

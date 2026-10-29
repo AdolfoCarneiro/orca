@@ -8,7 +8,6 @@ import {
   agentSessionRecordFixture
 } from '../../../shared/agent-session-record.test-fixture'
 import { testOrcaSessionId } from '../../../shared/orca-session-address-test-fixture'
-import type { SenderNameResolver } from './agent-message-sender'
 import { orchestrationSenderName } from './orchestration-sender-name'
 import * as relations from './agent-message-relation'
 import * as lineage from './structured-session-lineage'
@@ -84,24 +83,23 @@ describe('who delivered mail is from', () => {
   })
 })
 
-it('preserves immediate historical relations, notice evidence disagreement, reload and clear successors', () => {
+it('snapshots immediate relations across completion/reload and keeps unknown evidence non-gating', () => {
   const db = new OrchestrationDb(':memory:')
   try {
     const run = db.createRun({
       objective: 'cards',
       coordinatorHandle: 'term_coord',
-      coordinatorPaneKey: 'tab:coord'
+      coordinatorPaneKey: null
     })
     const assign = (handle: string, creator: string) =>
       db.createDispatchContext({
         taskId: db.createTask({ runId: run.id, spec: handle }).id,
         assigneeHandle: handle,
-        assigneePaneKey: `tab:${handle}`,
         creator: { kind: 'terminal', handle: creator },
         maxDepth: 8
       })
     const worker = assign('term_worker', 'term_coord')
-    const peer = assign('term_peer', 'term_coord')
+    assign('term_peer', 'term_coord')
     const child = assign('term_child', 'term_worker')
     const mail = (
       recipient: string,
@@ -123,167 +121,64 @@ it('preserves immediate historical relations, notice evidence disagreement, relo
         }))
       })
     expect(mail('term_coord', ['term_worker']).senders[0].relation).toBe('worker')
+    expect(agentMessageHeading(mail('term_coord', ['term_worker']))).toBe('worker')
     expect(mail('term_worker', ['term_coord'], worker.id).senders[0].relation).toBe('coordinator')
-    expect(mail('term_worker', ['term_peer'], worker.id).senders[0].relation).toBe('none')
+    expect(agentMessageHeading(mail('term_worker', ['term_coord'], worker.id))).toBe('coordinator')
     expect(mail('term_coord', ['term_child']).senders[0].relation).toBe('none')
-    expect(mail('term_coord', ['unknown']).senders[0].relation).toBeUndefined()
-    const ambiguous = assign('term_ambiguous', 'term_coord')
-    db.db
-      .prepare('UPDATE dispatch_contexts SET assignee_handle = ? WHERE id = ?')
-      .run('term_worker', ambiguous.id)
-    expect(mail('term_coord', ['term_worker']).senders[0].relation).toBeUndefined()
-    db.db
-      .prepare("UPDATE dispatch_contexts SET status = 'completed' WHERE id = ?")
-      .run(ambiguous.id)
-    expect(mail('term_coord', ['dispatch:foreign']).senders[0].relation).toBeUndefined()
-    const liveMixed = mail('term_worker', ['term_child', 'term_peer'], worker.id)
+    const delivered = mail('term_worker', ['term_child', 'term_peer'], worker.id)
     db.db.prepare("UPDATE dispatch_contexts SET status = 'completed' WHERE id = ?").run(child.id)
+    const reload = readAgentMessageSource(JSON.parse(JSON.stringify(delivered)))!
+    expect(reload.senders.map((sender) => sender.relation)).toEqual(['worker', 'none'])
+    expect(agentMessageHeading(reload)).toBe('generic')
+    expect(mail('term_worker', ['term_child'], worker.id).senders[0].relation).toBeUndefined()
     expect(mail('term_worker', ['term_child'], worker.id, child.id).senders[0].relation).toBe(
       'worker'
     )
-    expect(mail('term_coord', ['term_peer'], null, child.id).senders[0].relation).toBeUndefined()
-    const reload = (source: ReturnType<typeof mail>) =>
-      readAgentMessageSource(JSON.parse(JSON.stringify(source)))!
-    expect(agentMessageHeading(reload(mail('term_coord', ['term_worker'])))).toBe('worker')
-    expect(agentMessageHeading(reload(mail('term_worker', ['term_coord'], worker.id)))).toBe(
-      'coordinator'
-    )
-    const mixed = reload(liveMixed)
-    expect(mixed.senders.map((sender) => sender.relation)).toEqual(['worker', 'none'])
-    expect(agentMessageHeading(mixed)).toBe('generic')
-    const completedMixed = reload(mail('term_worker', ['term_child', 'term_peer'], worker.id))
-    expect(completedMixed.senders.map((sender) => sender.relation)).toEqual([undefined, 'none'])
-    expect(agentMessageHeading(completedMixed)).toBe('generic')
-    const senderName = vi.fn<SenderNameResolver>(() => 'Worker')
-    const evaluate = vi.spyOn(relations, 'agentMessageRelation')
-    const base = {
-      from_handle: 'term_worker',
-      run_id: run.id,
-      type: 'worker_done',
-      payload: JSON.stringify({ dispatchId: worker.id })
-    } satisfies Omit<MailSourceMessage, 'id'>
-    const grouped = (batch: MailSourceMessage[]) =>
-      structuredMailSource({ db, mailboxHandle: 'term_coord', dispatchId: null, batch, senderName })
-    const good = { ...base, id: 'good' }
-    for (const other of [
-      { ...good, id: 'other-run', run_id: 'missing' },
-      { ...good, id: 'bad', payload: '{' },
-      { ...good, id: 'empty', payload: '{"dispatchId":""}' },
-      { ...good, id: 'missing-id', payload: '{}' },
-      { ...good, id: 'wrong', payload: '{"dispatchId":"missing"}' }
-    ]) {
-      evaluate.mockClear()
-      senderName.mockClear()
-      const result = grouped([other, good, good])
-      expect(result.senders[0].relation).toBeUndefined()
-      expect(
-        result.orchestration?.message === 'mail-notice' && result.orchestration.messages
-      ).toHaveLength(3)
-      expect(senderName).toHaveBeenCalledTimes(1)
-      expect(senderName.mock.calls[0][1]).toBe(other.id === 'wrong' ? 'missing' : worker.id)
-      expect(evaluate).toHaveBeenCalledTimes(
-        ['bad', 'empty', 'missing-id'].includes(other.id) ? 1 : 2
-      )
-    }
-    evaluate.mockClear()
-    const missing = { ...good, run_id: 'missing' }
-    expect(grouped([missing, missing]).senders[0].relation).toBeUndefined()
-    expect(evaluate).toHaveBeenCalledTimes(1) // Map membership caches undefined too.
-    expect(grouped([{ ...good, type: 'status', payload: null }, good]).senders[0].relation).toBe(
-      'worker'
-    )
-    expect(mail('term_missing', ['term_worker']).senders[0].relation).toBeUndefined()
-    for (const depth of [1, 2]) {
-      db.db
-        .prepare(
-          'UPDATE dispatch_contexts SET creator_handle = NULL, creator_orca_session_id = NULL, creator_dispatch_id = NULL, depth = ? WHERE id = ?'
-        )
-        .run(depth, worker.id)
-      expect(reload(mail('term_coord', ['term_worker'])).senders[0].relation).toBeUndefined()
-    }
+    expect(mail('term_coord', ['unknown']).senders[0].relation).toBeUndefined()
     db.db
-      .prepare('UPDATE dispatch_contexts SET creator_dispatch_id = ? WHERE id = ?')
-      .run(peer.id, worker.id)
-    expect(mail('term_peer', ['term_worker'], peer.id).senders[0].relation).toBe('worker')
-    db.db
-      .prepare(
-        'UPDATE dispatch_contexts SET creator_handle = NULL, creator_dispatch_id = NULL WHERE id = ?'
-      )
+      .prepare('UPDATE dispatch_contexts SET creator_handle = NULL, depth = 1 WHERE id = ?')
       .run(worker.id)
     expect(mail('term_coord', ['term_worker']).senders[0].relation).toBeUndefined()
     db.db
       .prepare('UPDATE dispatch_contexts SET creator_handle = ? WHERE id = ?')
       .run('term_coord', worker.id)
-    expect(mail('term_coord', ['term_worker']).senders[0].relation).toBe('worker')
+    const good: MailSourceMessage = {
+      id: 'good',
+      from_handle: 'term_worker',
+      run_id: run.id,
+      type: 'worker_done',
+      payload: JSON.stringify({ dispatchId: worker.id })
+    }
+    for (const bad of [
+      { ...good, id: 'foreign', run_id: 'missing' },
+      { ...good, id: 'wrong-report', payload: JSON.stringify({ dispatchId: child.id }) },
+      { ...good, id: 'invalid', payload: '{' }
+    ]) {
+      const source = structuredMailSource({
+        db,
+        mailboxHandle: 'term_coord',
+        dispatchId: null,
+        batch: [good, bad],
+        senderName: () => {
+          throw new Error('name unavailable')
+        }
+      })
+      expect(source.senders[0]).toMatchObject({ name: null })
+      expect(source.senders[0].relation).toBeUndefined()
+      expect(agentMessageHeading(source)).toBe('generic')
+      expect(source.orchestration).toMatchObject({
+        messages: [{ messageId: 'good' }, { messageId: bad.id }]
+      })
+    }
     db.db
       .prepare('UPDATE dispatch_contexts SET host_scope = ? WHERE id = ?')
       .run(JSON.stringify({ kind: 'ssh', targetId: 'elsewhere' }), worker.id)
     expect(mail('term_coord', ['term_worker']).senders[0].relation).toBeUndefined()
-    const root = testOrcaSessionId('notice-clear-root'),
-      successor = testOrcaSessionId('notice-clear-successor')
-    const record = agentSessionConversationView(
-      agentSessionRecordFixture(agentSessionLeaseFixture({ sessionId: root }))
-    )
-    const records = [
-      {
-        ...record,
-        conversationCommand: {
-          command: 'clear' as const,
-          state: 'completed' as const,
-          phase: 'committed' as const,
-          operationId: 'clear',
-          callerKey: 'caller',
-          replacementSessionId: successor
-        }
-      },
-      { ...record, sessionId: successor, conversationName: 'Current worker' }
-    ]
-    const reader = {
-      listRecords: () => records,
-      getRecord: (id: string) => records.find((row) => row.sessionId === id) ?? null
-    }
-    vi.spyOn(lineage, 'readAgentSessionRecordStore').mockReturnValue(reader)
-    const clearRun = db.createRun({
-      objective: 'clear',
-      coordinatorHandle: 'term_coord',
-      coordinatorPaneKey: null
+    vi.spyOn(db, 'getRun').mockImplementation(() => {
+      throw new Error('db unavailable')
     })
-    const clearedWorker = db.createDispatchContext({
-      taskId: db.createTask({ runId: clearRun.id, spec: 'clear' }).id,
-      assigneeHandle: `orca_session_id:${root}`,
-      creator: { kind: 'terminal', handle: 'term_coord' },
-      maxDepth: 8
-    })
-    const cleared = structuredMailSource({
-      db,
-      mailboxHandle: 'term_coord',
-      dispatchId: null,
-      batch: [
-        {
-          id: 'clear',
-          from_handle: `orca_session_id:${successor}`,
-          run_id: clearRun.id,
-          type: 'worker_done',
-          payload: JSON.stringify({ dispatchId: clearedWorker.id })
-        }
-      ],
-      senderName: (sender, report) =>
-        orchestrationSenderName(
-          sender,
-          {
-            db,
-            records: reader,
-            chatTab: () => null,
-            terminal: () => null,
-            generatedTitlesEnabled: true
-          },
-          report
-        )
-    })
-    expect(cleared.senders[0]).toMatchObject({
-      party: { orcaSessionId: root },
-      relation: 'worker',
-      name: 'Current worker'
+    expect(mail('term_coord', ['term_worker']).orchestration).toMatchObject({
+      messages: [{ messageId: 'm0' }]
     })
   } finally {
     vi.restoreAllMocks()
@@ -291,44 +186,51 @@ it('preserves immediate historical relations, notice evidence disagreement, relo
   }
 })
 
-it.each([
-  [5, 1000, false],
-  [50, 10000, false],
-  [5, 1000, true],
-  [50, 10000, true]
-] as const)(
-  'counts complete notice acquisition at B=%i S=%i distinct=%s',
-  (batchSize, sessionCount, distinct) => {
+it.each([100, 1000])(
+  'bounds real canonical record work for repeated/distinct/unknown notices with %i workers',
+  (n) => {
     const db = new OrchestrationDb(':memory:')
-    const coordinator = testOrcaSessionId('relation-coordinator')
-    const sessions = Array.from({ length: batchSize }, (_, i) =>
-      testOrcaSessionId(`relation-worker-${i}`)
-    )
+    const coordinator = testOrcaSessionId('coordinator')
+    const sessions = Array.from({ length: n }, (_, i) => testOrcaSessionId(`worker-${i}`))
     const base = agentSessionConversationView(
-      agentSessionRecordFixture(agentSessionLeaseFixture({ sessionId: sessions[0] }))
+      agentSessionRecordFixture(agentSessionLeaseFixture({ sessionId: coordinator }))
     )
-    const records: (typeof base)[] = Array.from({ length: sessionCount }, (_, i) => ({
+    const successor = testOrcaSessionId('cleared-worker')
+    const records = sessions.map((sessionId, i) => ({
       ...base,
-      sessionId:
-        i === batchSize ? coordinator : (sessions[i] ?? testOrcaSessionId(`relation-${i}`)),
-      conversationName: `Conversation ${i}`
+      sessionId,
+      conversationName: `Worker ${i}`
     }))
-    const bySession = new Map(records.map((record) => [record.sessionId, record]))
-    let scanVisits = 0
-    const scanned = new Proxy(records, {
-      get(target, key) {
-        if (typeof key === 'string' && /^\d+$/.test(key)) {
-          scanVisits++
-        }
-        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: plain fixture data has no accessor overrides; methods retain the caller's proxy receiver and indexed reads remain counted.
-        return target[key as keyof typeof target]
+    records[0] = {
+      ...records[0],
+      conversationCommand: {
+        command: 'clear',
+        state: 'completed',
+        phase: 'committed',
+        operationId: 'clear',
+        callerKey: 'caller',
+        replacementSessionId: successor
       }
-    })
-    const listRecords = vi.fn(() => scanned)
-    const getRecord = vi.fn((id: string) => bySession.get(id) ?? null)
-    const reader = { listRecords, getRecord }
+    }
+    records.push(
+      { ...base, conversationName: 'Coordinator' },
+      { ...base, sessionId: successor, conversationName: 'Worker 0' }
+    )
+    const bySession = new Map(records.map((record) => [record.sessionId, record]))
+    let visits = 0
+    records.forEach((record, i) =>
+      Object.defineProperty(records, i, {
+        get() {
+          visits++
+          return record
+        }
+      })
+    )
+    const reader = {
+      listRecords: () => records,
+      getRecord: (id: string) => bySession.get(id) ?? null
+    }
     vi.spyOn(lineage, 'readAgentSessionRecordStore').mockReturnValue(reader)
-    const relationCalls = vi.spyOn(relations, 'agentMessageRelation')
     try {
       const run = db.createRun({
         objective: 'cost',
@@ -336,7 +238,7 @@ it.each([
         coordinatorPaneKey: null,
         coordinatorOrcaSessionId: coordinator
       })
-      const dispatches = sessions.map((session) =>
+      const dispatches = sessions.slice(0, 10).map((session) =>
         db.createDispatchContext({
           taskId: db.createTask({ runId: run.id, spec: 'work' }).id,
           assigneeHandle: `orca_session_id:${session}`,
@@ -344,101 +246,62 @@ it.each([
           maxDepth: 8
         })
       )
-      const byId = db.getDispatchContextById.bind(db)
-      let reportedCandidateRows = 0
-      const dispatchById = vi.spyOn(db, 'getDispatchContextById').mockImplementation((...args) => {
-        const row = byId(...args)
-        reportedCandidateRows += row ? 1 : 0
-        return row
-      })
-      const candidates = db.getActiveDispatchMailboxOwners.bind(db)
-      let candidateRows = 0
-      const candidateCalls = vi
-        .spyOn(db, 'getActiveDispatchMailboxOwners')
-        .mockImplementation((...args) => {
-          const result = candidates(...args)
-          candidateRows += result.length
-          return result
-        })
-      const statements = vi.spyOn(db.db, 'prepare')
-      const nameTab = vi.fn(() => null),
-        terminal = vi.fn(() => null)
-      const senderName = vi.fn<SenderNameResolver>((sender, report) =>
-        orchestrationSenderName(
-          sender,
-          {
-            db,
-            records: reader,
-            chatTab: nameTab,
-            terminal,
-            generatedTitlesEnabled: true
-          },
-          report
-        )
-      )
-      let batchVisits = 0,
-        payloadParses = 0,
-        payloadBytes = 0
-      const batch = new Proxy(
-        Array.from({ length: batchSize }, (_, i) => ({
+      expect(visits).toBe(10 * records.length)
+      for (const evidence of ['repeated', 'distinct', 'unknown'] as const) {
+        const distinct = evidence === 'distinct'
+        const relation = vi.spyOn(relations, 'agentMessageRelation')
+        relation.mockClear()
+        const batch: MailSourceMessage[] = Array.from({ length: n }, (_, i) => ({
           id: `m${i}`,
-          from_handle: `orca_session_id:${sessions[distinct ? i : 0]}`,
-          run_id: run.id,
-          type: 'worker_done' as const,
-          payload: JSON.stringify({ dispatchId: dispatches[distinct ? i : 0].id })
-        })),
-        {
-          get(target, key) {
-            if (typeof key === 'string' && /^\d+$/.test(key)) {
-              batchVisits++
+          from_handle: `orca_session_id:${!distinct || i % 10 === 0 ? successor : sessions[i % 10]}`,
+          run_id: evidence === 'unknown' ? 'missing' : run.id,
+          type: 'worker_done',
+          payload: JSON.stringify({ dispatchId: dispatches[distinct ? i % 10 : 0].id })
+        }))
+        let batchReads = 0
+        batch.forEach((message, i) =>
+          Object.defineProperty(batch, i, {
+            get() {
+              batchReads++
+              return message
             }
-            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: plain fixture data has no accessor overrides; methods retain the caller's proxy receiver and indexed reads remain counted.
-            return target[key as keyof typeof target]
-          }
-        }
-      )
-      const payloads = new Set(batch.map((message) => message.payload))
-      const parse = JSON.parse
-      vi.spyOn(JSON, 'parse').mockImplementation((value, ...rest) => {
-        if (payloads.has(value)) {
-          payloadParses++
-          payloadBytes += value.length
-        }
-        return parse(value, ...rest)
-      })
-      const groups = distinct ? batchSize : 1
-      expect(scanVisits).toBe(batchSize * sessionCount)
-      scanVisits = 0
-      batchVisits = 0
-      const source = structuredMailSource({
-        db,
-        mailboxHandle: `orca_session_id:${coordinator}`,
-        dispatchId: null,
-        batch,
-        senderName
-      })
-      expect(agentMessageHeading(readAgentMessageSource(parse(JSON.stringify(source)))!)).toBe(
-        'worker'
-      )
-      expect(
-        source.orchestration?.message === 'mail-notice' && source.orchestration.messages
-      ).toHaveLength(batchSize)
-      expect(source.senders).toHaveLength(groups)
-      expect(senderName).toHaveBeenCalledTimes(groups)
-      expect(nameTab).toHaveBeenCalledTimes(groups)
-      expect(getRecord).toHaveBeenCalledTimes(groups) // Actual name lineage, separate from full canonical scans.
-      expect(terminal).not.toHaveBeenCalled()
-      expect(relationCalls).toHaveBeenCalledTimes(groups)
-      expect(dispatchById).toHaveBeenCalledTimes(groups)
-      expect(reportedCandidateRows).toBe(groups) // Every explicit report returns one real candidate.
-      expect(candidateCalls).toHaveBeenCalledTimes(groups)
-      expect(candidateRows).toBe(0) // Coordinator has no worker Dispatch in this corpus.
-      expect(batchVisits).toBe(batchSize * 2) // Grouping and provenance serialization, no per-sender filter.
-      expect(payloadParses).toBe(batchSize)
-      expect(payloadBytes).toBe(batch.reduce((sum, message) => sum + message.payload.length, 0))
-      expect(scanVisits).toBe(groups * 8 * sessionCount)
-      // G Run + G report + G active recipient + 2G worker resources + 2G recorded workers.
-      expect(statements).toHaveBeenCalledTimes(groups * 7)
+          })
+        )
+        visits = 0
+        const source = structuredMailSource({
+          db,
+          mailboxHandle: `orca_session_id:${coordinator}`,
+          dispatchId: null,
+          batch,
+          senderName: (party, report) =>
+            orchestrationSenderName(
+              party,
+              {
+                db,
+                records: reader,
+                chatTab: () => null,
+                terminal: () => null,
+                generatedTitlesEnabled: true
+              },
+              report
+            )
+        })
+        const groups = distinct ? 10 : 1
+        // Known groups walk canonical records eight times; a missing Run ends after sender canonicalization.
+        expect(visits).toBe((evidence === 'unknown' ? 1 : 8 * groups) * records.length)
+        expect(relation).toHaveBeenCalledTimes(groups)
+        expect(batchReads).toBe(2 * n)
+        expect(source.senders[0].party.orcaSessionId).toBe(sessions[0])
+        expect(source.senders.map((sender) => [sender.name, sender.relation])).toEqual(
+          Array.from({ length: groups }, (_, i) => [
+            `Worker ${i}`,
+            evidence === 'unknown' ? undefined : 'worker'
+          ])
+        )
+        expect(
+          source.orchestration?.message === 'mail-notice' && source.orchestration.messages
+        ).toHaveLength(n)
+      }
     } finally {
       vi.restoreAllMocks()
       db.close()

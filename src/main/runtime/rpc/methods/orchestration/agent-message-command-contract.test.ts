@@ -20,6 +20,14 @@ import {
   projectQueuedMessageCards,
   queuedMessageCardLine
 } from '../../../../../shared/structured-agent-session-queued-cards'
+import { projectStructuredAgentSessionStatusSummary } from '../../../../../shared/structured-agent-session-projection'
+import { latestStructuredAgentSessionPrompt } from '../../../../../shared/structured-agent-session-latest-request'
+import {
+  getAgentRowPrimaryText,
+  getAgentRowGeneratedTitleText,
+  isOrcaDispatchPrompt
+} from '../../../../../shared/agent-row-primary-text'
+import { generatedTabTitleForStatus } from '../../../../../shared/agent-generated-tab-title-rules'
 import * as placement from './worker/worker-start-agent-placement'
 import * as topology from './worker/worker-topology'
 
@@ -218,6 +226,29 @@ it.each(['worker-start', 'dispatch'] as const)(
     const raw = nativeChatMessageCopyText(body)
     expect(raw).toContain('You are working inside Orca')
     expect(raw.endsWith(task)).toBe(true)
+    const items = [{ itemId: 'task', sequence: 1, revision: 1, observedAt: 1, body }]
+    expect(latestStructuredAgentSessionPrompt(items)).toBe(raw)
+    const prompt = projectStructuredAgentSessionStatusSummary(items).latestPrompt
+    expect(isOrcaDispatchPrompt(prompt)).toBe(true)
+    expect(prompt).toContain('Your task ID is:')
+    expect(prompt).toContain('=== TASK === Current task')
+    if (from?.orchestration?.message !== 'task') {
+      throw new Error('task identity missing')
+    }
+    const row = {
+      prompt,
+      orchestration: {
+        taskId: from.orchestration.taskId,
+        dispatchId: from.orchestration.dispatchId,
+        displayName: 'Current task label'
+      }
+    }
+    expect(getAgentRowPrimaryText(row)).toBe('Current task label')
+    expect(getAgentRowGeneratedTitleText(row)).toBe('Current task label')
+    expect(generatedTabTitleForStatus(row, { generatedTitle: 'Old work' })).toEqual({
+      title: 'Current task label',
+      replaceExisting: true
+    })
     if (queued) {
       const [card] = projectQueuedMessageCards([queued], [], {})
       expect(queuedMessageCardLine(card)).toBe(task)
