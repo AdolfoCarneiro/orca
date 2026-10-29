@@ -70,7 +70,9 @@ export function classifyPullRequestUpdateError(
       return classified(c.type, 'invalidUpdate', trimmed)
     case 'unknown':
       return classified(c.type, action, trimmed)
-    default:
+    case 'issues_disabled':
+    case 'rate_limited':
+    case 'network_error':
       return c
   }
 }
@@ -95,7 +97,8 @@ export function classifyRerunChecksError(stderr: string): ClassifiedError {
     case 'issues_disabled':
     case 'unknown':
       return classified(c.type, 'github.rerunFailed', trimmed)
-    default:
+    case 'rate_limited':
+    case 'network_error':
       return c
   }
 }

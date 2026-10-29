@@ -71,7 +71,8 @@ export function classifyJobLogError(stderr: string): ClassifiedError {
     case 'issues_disabled':
     case 'unknown':
       return classified(c.type, 'gitlab.jobLogFailed', trimmed)
-    default:
+    case 'rate_limited':
+    case 'network_error':
       return c
   }
 }

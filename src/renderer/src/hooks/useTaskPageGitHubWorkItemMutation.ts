@@ -106,7 +106,12 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
       item: GitHubWorkItem
       intent: TaskPageGitHubMutationIntent
       sourceContext?: TaskSourceContext | null
-      mutate: () => Promise<{ ok?: boolean; error?: string | { message?: string } } | void>
+      mutate: () => Promise<{
+        ok?: boolean
+        error?: string | { message?: string }
+        errorCode?: unknown
+        errorDetail?: unknown
+      } | void>
       successToast?: string
       errorToast: string
       serverEntityFromResult?: (result: unknown) => Partial<GitHubWorkItem> | undefined
@@ -129,12 +134,7 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
       try {
         const result = await input.mutate()
         const activeQuery = activeQueryRef.current
-        const typed = result as {
-          ok?: boolean
-          error?: string | { message?: string }
-          errorCode?: unknown
-          errorDetail?: unknown
-        } | void
+        const typed = result
         if (typed && typeof typed === 'object' && typed.ok === false) {
           const rolled = rollbackTaskPageGitHubWorkItemMutation({
             key: began.key,
