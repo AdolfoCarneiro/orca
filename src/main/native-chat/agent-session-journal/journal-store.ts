@@ -46,7 +46,6 @@ import type {
   JournalReadSince,
   JournalTombstoneInput
 } from './journal-store-contracts'
-import type { JournalQueuedMessages } from './journal-queued-messages'
 import {
   journalQueueResumeRowBuilder,
   journalQueueReopenRowBuilder,
@@ -92,7 +91,7 @@ export class AgentSessionJournal {
   private readonly stepWriter: JournalCollaborators['stepWriter']
   private readonly restore: () => Promise<void>
   /** Queued cards never count as owed work. */
-  readonly queuedMessages: JournalQueuedMessages
+  readonly queuedMessages: JournalCollaborators['queuedMessages']
   readonly stopMarks: JournalCollaborators['stopMarks']
   readonly stops: JournalCollaborators['stops']
   readonly context: JournalCollaborators['context']
@@ -278,7 +277,9 @@ export class AgentSessionJournal {
   }
 
   /** Assign revisions here so callers cannot publish reducer-stale upserts. */
-  appendItem: JournalItemAppender['append'] = (...args) => this.itemAppender.append(...args)
+  appendItem(...args: Parameters<JournalItemAppender['append']>) {
+    return this.itemAppender.append(...args)
+  }
 
   appendClaimingAttachments: JournalItemAppender['appendClaimingAttachments'] = (...args) =>
     this.itemAppender.appendClaimingAttachments(...args)
@@ -347,11 +348,13 @@ export class AgentSessionJournal {
   appendSteps: JournalCollaborators['stepWriter']['append'] = (steps) =>
     this.stepWriter.append(steps)
 
-  appendSubmission: JournalSubmissionWriter['append'] = (...args) =>
-    this.submissionWriter.append(...args)
+  appendSubmission(...args: Parameters<JournalSubmissionWriter['append']>) {
+    return this.submissionWriter.append(...args)
+  }
 
-  resolveDispatch: JournalSubmissionWriter['resolveDispatch'] = (...args) =>
-    this.submissionWriter.resolveDispatch(...args)
+  resolveDispatch(...args: Parameters<JournalSubmissionWriter['resolveDispatch']>) {
+    return this.submissionWriter.resolveDispatch(...args)
+  }
 
   acceptLate: JournalSubmissionWriter['acceptLate'] = (i) => this.submissionWriter.acceptLate(i)
 
