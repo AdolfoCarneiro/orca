@@ -78,6 +78,7 @@ export function useEmulatorControlStream(
     releasePressedKeyboardUsages(true)
   }, [clearKeyboardTimers, releasePressedKeyboardUsages])
 
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- Cleanup closes wsRef.current, including sockets created by reconnects.
   useEffect(() => {
     if (!enabled || !wsUrl) {
       setConnected(false)
@@ -113,6 +114,9 @@ export function useEmulatorControlStream(
       }
 
       ws.onclose = () => {
+        if (disposed) {
+          return
+        }
         if (wsRef.current === ws) {
           wsRef.current = null
         }

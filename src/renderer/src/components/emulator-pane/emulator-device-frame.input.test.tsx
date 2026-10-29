@@ -91,12 +91,13 @@ afterEach(() => {
 function renderFrame(props?: {
   onGesture?: (points: unknown[]) => void
   onTap?: (x: number, y: number) => void
+  wsUrl?: string
 }): void {
   act(() => {
     root.render(
       <EmulatorDeviceFrame
         previewUrl="http://127.0.0.1:3100/stream.mjpeg"
-        wsUrl="ws://127.0.0.1:3100/ws"
+        wsUrl={props?.wsUrl ?? 'ws://127.0.0.1:3100/ws'}
         loading={false}
         isLive={true}
         visualOrientation="portrait"
@@ -264,6 +265,39 @@ describe('EmulatorDeviceFrame input', () => {
     })
 
     expect(decodedSentKeyboardFrames()).toEqual([
+      { type: 'down', usage: 225 },
+      { type: 'down', usage: 4 },
+      { type: 'up', usage: 4 },
+      { type: 'up', usage: 225 }
+    ])
+  })
+
+  it('preserves replacement keyboard frames when the retired socket closes late', () => {
+    vi.useFakeTimers()
+    renderFrame()
+    const retired = FakeWebSocket.instances[0]
+    if (!retired) {
+      throw new Error('Missing original emulator socket')
+    }
+    act(() => retired.open())
+    vi.spyOn(retired, 'close').mockImplementation(() => {})
+    renderFrame({ wsUrl: 'ws://127.0.0.1:3200/ws' })
+    const replacement = FakeWebSocket.instances[1]
+    if (!replacement) {
+      throw new Error('Missing replacement emulator socket')
+    }
+    const screen = getScreen()
+    act(() => {
+      replacement.open()
+      screen.dispatchEvent(keyEvent('keydown', { key: 'Enter' }))
+      screen.dispatchEvent(keyEvent('keydown', { key: 'A' }))
+      retired.onclose?.()
+      vi.advanceTimersByTime(12)
+    })
+
+    expect(
+      replacement.sent.map((frame) => JSON.parse(new TextDecoder().decode(frame.subarray(1))))
+    ).toEqual([
       { type: 'down', usage: 225 },
       { type: 'down', usage: 4 },
       { type: 'up', usage: 4 },
