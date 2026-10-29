@@ -43,7 +43,7 @@ import {
 } from '../orcad-peer-desktops-contract'
 import { OrcadTerminalCensusParamsSchema } from '../orcad-terminal-census'
 import { CrewSubscribeParams } from '../orchestration-crew'
-import { pluginConsentRequestSchema } from '../plugins/plugin-consent-request'
+import { pluginConsentRequestSchema } from '../plugins/approval/plugin-consent-request'
 import {
   AccountsUnsubscribeParams,
   AddClaudeFromConfigDirParams,
@@ -219,6 +219,7 @@ import {
   FileDelete,
   FileMutationOpen,
   FileRename,
+  FileReplaceWithUpload,
   FileWrite,
   FileWriteBase64,
   FileWriteBase64Chunk,
@@ -979,6 +980,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.readTerminalArtifact': TerminalArtifactFile,
   'files.readTerminalArtifactPreview': TerminalArtifactFile,
   'files.rename': FileRename,
+  'files.replaceWithUpload': FileReplaceWithUpload,
   'files.resolveTerminalPath': ResolveTerminalPath,
   'files.saveAbort': FileSaveAbort,
   'files.saveBegin': FileSaveBegin,

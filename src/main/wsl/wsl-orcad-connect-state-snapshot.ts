@@ -65,6 +65,7 @@ export function wslOrcadConnectStateCommand(
   paths: SnapshotPaths
 ): string {
   // PRESENT only when the whole file was read; a failed or oversized read is UNREADABLE.
+  // `$(cat)` drops trailing newlines, so raws are not byte-exact; every consumer parses JSON.
   const read = (path: string): string => {
     const file = quotePosixShell(path)
     return (
@@ -126,7 +127,9 @@ export function parseWslOrcadConnectState(output: string): WslOrcadConnectStateS
 export function createWslOrcadConnectStateReader() {
   let snapshot: WslOrcadConnectStateSnapshot | null = null
   return {
-    snapshot: (): WslOrcadConnectStateSnapshot | null => snapshot,
+    // No hints when the record came from the fallback read rather than the snapshot.
+    snapshot: (): WslOrcadConnectStateSnapshot | null =>
+      snapshot?.activation.state === 'unreadable' ? null : snapshot,
     readActivationRecord: async (target: {
       conn: OrcadHostTransport
       host: RemoteHostPlatform
@@ -136,9 +139,12 @@ export function createWslOrcadConnectStateReader() {
     }): Promise<OrcadActivationRecord> => {
       if (!isWindowsRemoteHost(target.host)) {
         const paths = snapshotPaths(target.host, target.remoteHome, target.userDataDir)
-        snapshot = parseWslOrcadConnectState(
-          await execOrcadRemote(target, wslOrcadConnectStateCommand(target.host, paths))
-        )
+        // A failed snapshot only costs the per-file reads; an aborted signal stops those too.
+        const output = await execOrcadRemote(
+          target,
+          wslOrcadConnectStateCommand(target.host, paths)
+        ).catch(() => null)
+        snapshot = output === null ? null : parseWslOrcadConnectState(output)
       }
       const activation = snapshot?.activation
       if (activation?.state === 'ok') {

@@ -52,7 +52,15 @@ export function createCrewPartyRegistry(deps: CrewReadDependencies) {
       roots.set(id, valid ? heads[0] : id)
     }
     if (valid) {
-      lineageAliases.set(heads[0], [...component].sort().map(formatOrcaSessionAddress))
+      lineageAliases.set(
+        heads[0],
+        [...component].sort().map((id) => {
+          if (!isOrcaSessionId(id)) {
+            throw new Error(`Not an Orca session id: ${id}`)
+          }
+          return formatOrcaSessionAddress(id)
+        })
+      )
     }
   }
   const root = (id: string) => roots.get(id) ?? id

@@ -1,7 +1,11 @@
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { mainTerminalSourceInputs } from '../../terminal/surface/pty-pane-query'
 import { runtimeLayoutLoadContext } from '../../workspace-layout-projection'
-import type { OrcaRuntimeService } from '../../orca-runtime'
+import type {
+  TerminalIdentityRawInputs,
+  TerminalIdentityReadContext
+} from '../../terminal/query/terminal-identity-read-context'
+import type { RuntimeOrchestrationSenderNames } from '../../runtime-orchestration-sender-names'
 import type { OrchestrationDb } from '../db'
 import type { CrewReadDependencies } from './crew-read-model'
 import { conversationRecordReader } from '../structured-session-lineage'
@@ -75,19 +79,28 @@ export function watchCrewRuntimeSources(
   return () => disposers.forEach((dispose) => dispose())
 }
 
+export type CrewRuntimeReaders = {
+  getTerminalWorktreeIdForHandle(
+    handle: string,
+    context?: TerminalIdentityReadContext
+  ): string | null
+  getTerminalProcessIncarnation(
+    handle: string,
+    context?: TerminalIdentityReadContext
+  ): string | null
+  getTerminalHandleForPaneKey(pane: string, context?: TerminalIdentityReadContext): string | null
+  getPaneKeyForTerminalHandle(handle: string, context?: TerminalIdentityReadContext): string | null
+  getTerminalPaneKey(handle: string, context?: TerminalIdentityReadContext): string | null
+  getOrchestrationFleetAgentStatusSnapshot(
+    context?: TerminalIdentityReadContext
+  ): CrewReadDependencies['statuses']
+  createTerminalIdentityRawInputs(): TerminalIdentityRawInputs
+  createTerminalIdentityReadContext(inputs?: TerminalIdentityRawInputs): TerminalIdentityReadContext
+  orchestrationSenderNames: Pick<RuntimeOrchestrationSenderNames, 'captureCrewInputs'>
+}
+
 export function readCrewRuntimeInputs(
-  runtime: Pick<
-    OrcaRuntimeService,
-    | 'getTerminalWorktreeIdForHandle'
-    | 'getTerminalProcessIncarnation'
-    | 'getTerminalHandleForPaneKey'
-    | 'getPaneKeyForTerminalHandle'
-    | 'getTerminalPaneKey'
-    | 'getOrchestrationFleetAgentStatusSnapshot'
-    | 'createTerminalIdentityRawInputs'
-    | 'createTerminalIdentityReadContext'
-    | 'orchestrationSenderNames'
-  >,
+  runtime: CrewRuntimeReaders,
   db: OrchestrationDb | null,
   retainedDbExists: boolean,
   hostKey: string,

@@ -1,6 +1,5 @@
 import type { TerminalIdentityReadContext } from '../query/terminal-identity-read-context'
 import { OrcaRuntimeWithBuildPtyTerminalSummary } from '../query/pty-terminal-summary'
-import type { TerminalHandleRecord } from '../../runtime-terminal-contracts'
 import type { PtyIncarnationHandleRecord } from '../../orca-runtime-core'
 import type {
   RuntimeLeafRecord,
@@ -18,15 +17,14 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     retained: PtyIncarnationHandleRecord,
     leaf: RuntimeLeafRecord
   ): void {
-    const before = this.handles.get(retained.handle)
     const leafKey = this.getLeafKey(leaf.tabId, leaf.leafId)
     if (retained.leafKey !== leafKey) {
       if (this.handleByLeafKey.get(retained.leafKey) === retained.handle) {
-        this.handleByLeafKey.delete(retained.leafKey)
+        this.terminalIdentity.unbindLeaf(retained.leafKey)
       }
-      retained.leafKey = leafKey
+      this.terminalIdentity.setIncarnationLeaf(retained, leafKey)
     }
-    this.handles.set(retained.handle, {
+    this.terminalIdentity.setHandle(retained.handle, {
       handle: retained.handle,
       runtimeId: this.runtimeId,
       rendererGraphEpoch: this.rendererGraphEpoch,
@@ -36,10 +34,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       ptyId: leaf.ptyId,
       ptyGeneration: leaf.ptyGeneration
     })
-    this.handleByLeafKey.set(leafKey, retained.handle)
-    if (!sameCrewHandle(before, this.handles.get(retained.handle))) {
-      this.crewChanges.notify()
-    }
+    this.terminalIdentity.bindLeaf(leafKey, retained.handle)
   }
 
   protected invalidatePtyIncarnationHandle(ptyId: string): void {
@@ -47,21 +42,20 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     if (!retained) {
       return
     }
-    this.handleByPtyIncarnation.delete(ptyId)
+    this.terminalIdentity.removeIncarnation(ptyId)
     if (this.handleByLeafKey.get(retained.leafKey) === retained.handle) {
-      this.handleByLeafKey.delete(retained.leafKey)
+      this.terminalIdentity.unbindLeaf(retained.leafKey)
     }
-    this.handles.delete(retained.handle)
-    this.syntheticTerminalHandles.delete(retained.handle)
+    this.terminalIdentity.removeHandle(retained.handle)
+    this.terminalIdentity.removeSynthetic(retained.handle)
     this.rejectWaitersForHandle(retained.handle, 'terminal_handle_stale')
-    this.crewChanges.notify()
   }
 
   protected clearPtyIncarnationHandles(): void {
     for (const retained of this.handleByPtyIncarnation.values()) {
-      this.syntheticTerminalHandles.delete(retained.handle)
+      this.terminalIdentity.removeSynthetic(retained.handle)
     }
-    this.handleByPtyIncarnation.clear()
+    this.terminalIdentity.clearIncarnations()
   }
 
   protected reconcilePtyIncarnationHandles(): void {
@@ -77,7 +71,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
         this.invalidatePtyIncarnationHandle(ptyId)
         continue
       }
-      retained.incarnationId = pty.incarnationId
+      this.terminalIdentity.setIncarnationProcess(retained, pty.incarnationId)
       this.bindPtyIncarnationHandle(retained, leaves[0])
     }
   }
@@ -91,8 +85,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       return null
     }
     const leafKey = this.getLeafKey(leaf.tabId, leaf.leafId)
-    const before = this.handles.get(preAllocated)
-    this.handles.set(preAllocated, {
+    this.terminalIdentity.setHandle(preAllocated, {
       handle: preAllocated,
       runtimeId: this.runtimeId,
       rendererGraphEpoch: this.rendererGraphEpoch,
@@ -102,10 +95,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       ptyId: leaf.ptyId,
       ptyGeneration: leaf.ptyGeneration
     })
-    this.handleByLeafKey.set(leafKey, preAllocated)
-    if (!sameCrewHandle(before, this.handles.get(preAllocated))) {
-      this.crewChanges.notify()
-    }
+    this.terminalIdentity.bindLeaf(leafKey, preAllocated)
     return preAllocated
   }
 
@@ -113,20 +103,15 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     pty: RuntimePtyWorktreeRecord,
     context?: TerminalIdentityReadContext
   ): string {
-    const previousHandle = this.handleByPtyId.get(pty.ptyId)
-    const before = previousHandle ? this.handles.get(previousHandle) : undefined
     const handle = this.issuePtyHandleRecord(pty, context)
     // An unbound terminal retains its issued pane stamp for recovery, including after replacement.
     const record = ORCA_LAYOUT_OWNER_IS_MAIN ? this.handles.get(handle) : undefined
     const issuedForPaneKey = record && (context ? context.paneOf(pty) : this.paneOfPty(pty)).paneKey
     if (record && issuedForPaneKey && record.issuedForPaneKey !== issuedForPaneKey) {
-      this.handles.set(handle, { ...record, issuedForPaneKey })
+      this.terminalIdentity.setHandle(handle, { ...record, issuedForPaneKey })
     }
     context?.changedHandle(handle)
     context?.changedReverseBinding(pty.ptyId)
-    if (previousHandle !== handle || !sameCrewHandle(before, this.handles.get(handle))) {
-      this.crewChanges.notify()
-    }
     return handle
   }
 
@@ -147,17 +132,17 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
         existingRecord.runtimeId === this.runtimeId &&
         existingRecord.ptyId === pty.ptyId
       ) {
-        this.handleByPtyId.set(pty.ptyId, existingHandle)
+        this.terminalIdentity.bindPty(pty.ptyId, existingHandle)
         return existingHandle
       }
     }
 
     const handle = existingHandle ?? `term_${randomUUID()}`
     if (!existingHandle) {
-      this.syntheticTerminalHandles.add(handle)
+      this.terminalIdentity.addSynthetic(handle)
     }
     const syntheticId = `pty:${pty.ptyId}`
-    this.handles.set(handle, {
+    this.terminalIdentity.setHandle(handle, {
       handle,
       runtimeId: this.runtimeId,
       rendererGraphEpoch: this.rendererGraphEpoch,
@@ -167,7 +152,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       ptyId: pty.ptyId,
       ptyGeneration: 0
     })
-    this.handleByPtyId.set(pty.ptyId, handle)
+    this.terminalIdentity.bindPty(pty.ptyId, handle)
     return handle
   }
 
@@ -205,13 +190,12 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     }
     const record = this.handles.get(handle)
     if (record?.ptyId && this.handleByPtyIncarnation.get(record.ptyId)?.handle === handle) {
-      this.handleByPtyIncarnation.delete(record.ptyId)
+      this.terminalIdentity.removeIncarnation(record.ptyId)
     }
-    this.handleByLeafKey.delete(leafKey)
-    this.handles.delete(handle)
-    this.syntheticTerminalHandles.delete(handle)
+    this.terminalIdentity.unbindLeaf(leafKey)
+    this.terminalIdentity.removeHandle(handle)
+    this.terminalIdentity.removeSynthetic(handle)
     this.rejectWaitersForHandle(handle, 'terminal_handle_stale')
-    this.crewChanges.notify()
   }
 
   protected adoptFirstPtyForLeafHandle(
@@ -224,8 +208,7 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
     if (!handle || !record || record.ptyId !== null || ptyId === null) {
       return false
     }
-    this.handles.set(handle, { ...record, ptyId, ptyGeneration })
-    this.crewChanges.notify()
+    this.terminalIdentity.setHandle(handle, { ...record, ptyId, ptyGeneration })
     return true
   }
 
@@ -239,17 +222,11 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
   }
   protected issueHandle(leaf: RuntimeLeafRecord, context?: TerminalIdentityReadContext): string {
     const retained = leaf.ptyId ? this.handleByPtyIncarnation.get(leaf.ptyId)?.handle : undefined
-    const previousHandle =
-      this.handleByLeafKey.get(this.getLeafKey(leaf.tabId, leaf.leafId)) ?? retained
-    const before = previousHandle ? this.handles.get(previousHandle) : undefined
     const handle = this.issueLeafHandleRecord(leaf)
     if (retained) {
       context?.changedHandle(retained)
     }
     context?.changedHandle(handle)
-    if (!sameCrewHandle(before, this.handles.get(handle))) {
-      this.crewChanges.notify()
-    }
     return handle
   }
 
@@ -281,8 +258,8 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       return retained.handle
     }
     const handle = `term_${randomUUID()}`
-    this.syntheticTerminalHandles.add(handle)
-    this.handles.set(handle, {
+    this.terminalIdentity.addSynthetic(handle)
+    this.terminalIdentity.setHandle(handle, {
       handle,
       runtimeId: this.runtimeId,
       rendererGraphEpoch: this.rendererGraphEpoch,
@@ -292,30 +269,10 @@ export abstract class OrcaRuntimeWithBindPtyIncarnationHandle extends OrcaRuntim
       ptyId: leaf.ptyId,
       ptyGeneration: leaf.ptyGeneration
     })
-    this.handleByLeafKey.set(leafKey, handle)
+    this.terminalIdentity.bindLeaf(leafKey, handle)
     if (leaf.ptyId) {
-      this.handleByPtyIncarnation.set(leaf.ptyId, { handle, incarnationId, leafKey })
+      this.terminalIdentity.setIncarnation(leaf.ptyId, { handle, incarnationId, leafKey })
     }
     return handle
   }
-}
-
-function sameCrewHandle(
-  a: TerminalHandleRecord | undefined,
-  b: TerminalHandleRecord | undefined
-): boolean {
-  if (!a || !b) {
-    return a === b
-  }
-  return (
-    a.handle === b.handle &&
-    a.runtimeId === b.runtimeId &&
-    a.rendererGraphEpoch === b.rendererGraphEpoch &&
-    a.worktreeId === b.worktreeId &&
-    a.tabId === b.tabId &&
-    a.leafId === b.leafId &&
-    a.ptyId === b.ptyId &&
-    a.ptyGeneration === b.ptyGeneration &&
-    a.issuedForPaneKey === b.issuedForPaneKey
-  )
 }

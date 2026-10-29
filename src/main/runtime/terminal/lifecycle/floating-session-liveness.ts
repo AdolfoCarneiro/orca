@@ -57,22 +57,14 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
           })
         }
         if (pty) {
-          const wasConnected = pty.connected
-          pty.connected = true
+          this.terminalIdentity.setPtyConnected(pty, true)
           pty.disconnectedAt = null
-          if (!wasConnected) {
-            this.crewChanges.notify()
-          }
           this.markPtyLivenessLive(ptyId)
           this.refreshPtyForegroundAgent(ptyId)
         }
       } else if (pty && !this.leafExistsForPty(ptyId)) {
-        const wasConnected = pty.connected
-        pty.connected = false
+        this.terminalIdentity.setPtyConnected(pty, false)
         pty.disconnectedAt ??= Date.now()
-        if (wasConnected) {
-          this.crewChanges.notify()
-        }
       }
     }
     this.pruneDisconnectedPtyRecords()
@@ -121,9 +113,7 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
     }
     this.advancePtyLifecycleGeneration(ptyId)
     this.pairedRendererSessionOwnedPtyIds.delete(ptyId)
-    if (this.ptysById.delete(ptyId)) {
-      this.crewChanges.notify()
-    }
+    this.terminalIdentity.removePty(ptyId)
     this.pendingPtyHandleReplacementFences.delete(ptyId)
     this.recentPtyOutputById.delete(ptyId)
     this.setupCompletionTokenByPtyId.delete(ptyId)
@@ -153,11 +143,11 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
     if (handle) {
       // Pruning can bypass onPtyExit; release leader teams here too.
       this.claudeAgentTeams.removeTeamForLeaderHandle(handle)
-      this.handleByPtyId.delete(ptyId)
-      this.syntheticTerminalHandles.delete(handle)
+      this.terminalIdentity.unbindPty(ptyId)
+      this.terminalIdentity.removeSynthetic(handle)
       const record = this.handles.get(handle)
       if (record?.tabId.startsWith('pty:')) {
-        this.handles.delete(handle)
+        this.terminalIdentity.removeHandle(handle)
       }
     }
   }
@@ -182,7 +172,7 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
     this.leavesByPtyId = next
   }
 
-  protected getLeavesForPty(ptyId: string): RuntimeLeafRecord[] {
+  protected getLeavesForPty(ptyId: string): readonly RuntimeLeafRecord[] {
     return this.leavesByPtyId.get(ptyId) ?? []
   }
 

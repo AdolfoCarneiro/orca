@@ -157,8 +157,8 @@ export abstract class OrcaRuntimeWithCollectMobileVisibleGraphChangedWorktrees e
 
   // Graph changes can alter projected handles/titles without changing snapshot bytes; compare projection fields and fan out affected workspaces.
   protected collectMobileVisibleGraphChangedWorktrees(
-    previousTabs: Map<string, RuntimeSyncedTab>,
-    previousLeaves: Map<string, RuntimeLeafRecord>
+    previousTabs: ReadonlyMap<string, RuntimeSyncedTab>,
+    previousLeaves: ReadonlyMap<string, RuntimeLeafRecord>
   ): Set<string> {
     const changed = visibleGraphChangedWorktrees(
       previousTabs,
@@ -166,9 +166,6 @@ export abstract class OrcaRuntimeWithCollectMobileVisibleGraphChangedWorktrees e
       this.tabs,
       this.leaves
     )
-    if (changed.size > 0) {
-      this.crewChanges.notify()
-    }
     return changed
   }
 
