@@ -2,6 +2,7 @@ import { useContext } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { styles } from './mobile-session-styles'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import type { MobileSessionController } from './use-mobile-session-controller'
 import { MobileSessionContentRow } from './MobileSessionContentRow'
 import { MobileSessionHeader } from './MobileSessionHeader'
@@ -17,6 +18,7 @@ import { useSessionSideRail } from './session-side-rail'
 
 export function MobileSessionSurface({ controller }: { controller: MobileSessionController }) {
   useMobileColorScheme()
+  const t = useMobileTranslation()
   const { setMobileSessionRootRef } = controller
   const server = useContext(WorkspaceServerContext)
   const besideTabs = useResponsiveLayout().isLandscapePhone && controller.visibleTabs.length > 0
@@ -72,7 +74,7 @@ export function MobileSessionSurface({ controller }: { controller: MobileSession
               active={details.active}
               obscured={obscured}
               onSettled={details.onSettled}
-              title={controller.worktreeName || 'Terminal'}
+              title={controller.worktreeName || t('session.header.terminalTitle', 'Terminal')}
               detail={controller.worktreePath}
               footer={
                 hostName ? (

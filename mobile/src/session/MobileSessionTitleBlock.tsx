@@ -5,6 +5,7 @@ import type { SessionTitleCard } from './use-session-title-card'
 import { StatusDot } from '../components/StatusDot'
 import type { ConnectionState } from '../transport/types'
 import { styles } from './mobile-session-styles'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 
 /** The session's title and status line. A tap opens a card with the full name, where it lives
  *  and its host, as desktop's tab card does, because a sideways phone cuts the title short. */
@@ -23,6 +24,7 @@ export function MobileSessionTitleBlock({
   showConnectionRetry: boolean
   onRetry: () => void
 }): React.JSX.Element {
+  const t = useMobileTranslation()
   return (
     <>
       <DetailCardFocusBoundary refs={details.boundaryRefs} index={0} active={details.active} />
@@ -53,7 +55,11 @@ export function MobileSessionTitleBlock({
             disabled={!showConnectionRetry}
             onPress={onRetry}
             accessibilityRole={showConnectionRetry ? 'button' : undefined}
-            accessibilityLabel={showConnectionRetry ? 'Reconnect to desktop' : undefined}
+            accessibilityLabel={
+              showConnectionRetry
+                ? t('session.header.reconnectToDesktop', 'Reconnect to desktop')
+                : undefined
+            }
           >
             <StatusDot state={connState} />
             <Text style={styles.sessionMetaText} numberOfLines={1}>

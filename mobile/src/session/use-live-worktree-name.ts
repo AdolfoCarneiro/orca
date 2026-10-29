@@ -6,7 +6,8 @@ import type { RpcClient } from '../transport/rpc-client'
 import type { ConnectionState } from '../transport/types'
 import { sessionWorktreeRecordRead } from './mobile-session-read-operations'
 import { getLiveWorktreeDisplayName } from './worktree-display-name'
-import { FLOATING_WORKSPACE_TITLE, isFloatingWorkspaceWorktreeId } from './floating-workspace'
+import { getFloatingWorkspaceTitle, isFloatingWorkspaceWorktreeId } from './floating-workspace'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import {
   classifyWorktreeShowResponse,
   type WorktreeShowResolution
@@ -35,6 +36,7 @@ export function useLiveWorktreeName({
   routeName,
   worktreeId
 }: Params): LiveWorktreeName {
+  useMobileTranslation()
   // Floating workspaces have no worktree record; probing would keep fallback polling forever.
   const isFloatingWorkspace = isFloatingWorkspaceWorktreeId(worktreeId)
   const routeNameHint = routeName?.trim() ?? ''
@@ -198,7 +200,7 @@ export function useLiveWorktreeName({
   )
 
   if (isFloatingWorkspace) {
-    return { name: FLOATING_WORKSPACE_TITLE, path: null, hostId: 'local', resolution: 'unknown' }
+    return { name: getFloatingWorkspaceTitle(), path: null, hostId: 'local', resolution: 'unknown' }
   }
   return {
     name: worktreeName.worktreeId === worktreeId ? worktreeName.name : routeNameHint,

@@ -6,6 +6,7 @@ import { MobileSessionTabStrip } from './MobileSessionTabStrip'
 import { MobileSessionTitleBlock } from './MobileSessionTitleBlock'
 import { styles } from './mobile-session-styles'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useHostSidebarReveal } from '../layout/host-sidebar-reveal'
 import type { SessionTitleCard } from './use-session-title-card'
 import type { MobileSessionController } from './use-mobile-session-controller'
@@ -20,6 +21,7 @@ export function MobileSessionHeader({
   backInRail: boolean
 }) {
   useMobileColorScheme()
+  const t = useMobileTranslation()
   const {
     hostId,
     isFolderWorkspaceRoute,
@@ -47,7 +49,7 @@ export function MobileSessionHeader({
       <View ref={details.barRef} onLayout={details.onAnchorLayout} style={styles.sessionTopBar}>
         {revealSidebar ? (
           <MobileSessionHeaderIconButton
-            accessibilityLabel="Show sidebar"
+            accessibilityLabel={t('session.header.showSidebar', 'Show sidebar')}
             icon={PanelLeftOpen}
             onPress={revealSidebar}
           />
@@ -55,7 +57,7 @@ export function MobileSessionHeader({
         {backInRail ? null : (
           <MobileSessionHeaderIconButton
             ref={details.backRef}
-            accessibilityLabel="Back to worktrees"
+            accessibilityLabel={t('session.header.backToWorktrees', 'Back to worktrees')}
             icon={ChevronLeft}
             onPress={() => {
               if (!details.closeFirst()) {
@@ -66,7 +68,7 @@ export function MobileSessionHeader({
         )}
 
         <MobileSessionTitleBlock
-          title={worktreeName || 'Terminal'}
+          title={worktreeName || t('session.header.terminalTitle', 'Terminal')}
           connState={presentedConnState}
           details={details}
           meta={terminalSummary}
@@ -81,7 +83,7 @@ export function MobileSessionHeader({
         {!isFloatingWorkspaceRoute && (
           <MobileSessionHeaderIconButton
             active={activePanel === 'files'}
-            accessibilityLabel="Open file explorer"
+            accessibilityLabel={t('session.header.openFileExplorer', 'Open file explorer')}
             icon={Folder}
             onPress={() => handlePanelTap('files')}
           />
@@ -89,7 +91,7 @@ export function MobileSessionHeader({
         {!isFolderWorkspaceRoute && !isFloatingWorkspaceRoute && (
           <MobileSessionHeaderIconButton
             active={activePanel === 'sourceControl'}
-            accessibilityLabel="Open source control"
+            accessibilityLabel={t('session.header.openSourceControl', 'Open source control')}
             icon={GitBranch}
             onPress={() => handlePanelTap('sourceControl')}
           />
@@ -97,7 +99,7 @@ export function MobileSessionHeader({
         {showHeaderMoreButton ? (
           <MobileSessionHeaderIconButton
             active={activePanel === 'pr'}
-            accessibilityLabel="More session actions"
+            accessibilityLabel={t('session.header.moreActions', 'More session actions')}
             icon={MoreHorizontal}
             onPress={() => setShowHeaderMoreActions(true)}
           />
