@@ -7553,7 +7553,6 @@
       "src/renderer/src/components/editor/image-viewer-zoom.test.ts": 77,
       "src/renderer/src/components/editor/ipynb-ansi.test.ts": 77,
       "src/renderer/src/components/editor/ipynb-code-cell-lines.test.ts": 62,
-      "src/renderer/src/components/editor/ipynb-execution-host.test.ts": 183,
       "src/renderer/src/components/editor/ipynb-kernel-outputs.test.ts": 258,
       "src/renderer/src/components/editor/ipynb-kernel-session-start-lifetime.test.ts": 149,
       "src/renderer/src/components/editor/ipynb-kernel-session.test.ts": 145,
