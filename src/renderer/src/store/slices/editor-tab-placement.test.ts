@@ -102,6 +102,7 @@ describe('createEditorSlice floating editor activation', () => {
 
   it('opens floating markdown tabs without changing the main active editor surface', () => {
     const store = createEditorStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       activeFileId: '/repo/main.md',
       activeTabType: 'editor',
@@ -128,6 +129,7 @@ describe('createEditorSlice floating editor activation', () => {
 
   it('opens same-path floating markdown as a separate owner-qualified tab', () => {
     const store = createEditorStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       openFiles: [
         {
@@ -218,6 +220,7 @@ describe('createEditorSlice split-group editor routing', () => {
     }
     openSourceFile(store, '/repo/seed.ts', { targetGroupId: editorGroupId })
     await main.settle()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       activeGroupIdByWorktree: { 'wt-1': terminalGroupId },
       activeTabType: 'terminal',
@@ -299,6 +302,7 @@ describe('createEditorSlice split-group editor routing', () => {
       label: 'Browser',
       targetGroupId: browserGroupId
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       activeGroupIdByWorktree: { 'wt-1': browserGroupId },
       activeTabType: 'browser',

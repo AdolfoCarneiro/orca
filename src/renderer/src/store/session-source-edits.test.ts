@@ -237,7 +237,7 @@ describe('source write identity gate', () => {
       store.subscribe(() => {
         full = Boolean(store.getSessionSourceReceipt()?.full)
       })
-      // SAFETY: this deliberately bypasses the source setter type to exercise its one runtime gate.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this deliberately bypasses the source setter type to exercise its one runtime gate.
       const unsupported = { editorDrafts: {} } as unknown as SessionSourceWrite<AppState>
       if (development) {
         expect(() => store.setState(unsupported)).toThrow(

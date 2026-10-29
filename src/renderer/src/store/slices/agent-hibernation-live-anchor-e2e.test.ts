@@ -19,6 +19,7 @@ const ROUTING = { tabId: 'tab-1', worktreeId: 'wt-bg', connectionId: null }
 const PROVIDER_SESSION = { key: 'session_id' as const, id: 'claude-session-1' }
 
 function seedWorkspace(store: ReturnType<typeof createTestStore>): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(store, {
     activeWorktreeId: 'wt-active',
     tabsByWorktree: { 'wt-bg': [makeTab({ id: 'tab-1', worktreeId: 'wt-bg' })] },

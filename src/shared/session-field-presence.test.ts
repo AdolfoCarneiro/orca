@@ -1,10 +1,10 @@
-import type { SessionEntry } from './session-unit-reader'
+import { type SessionEntry, SessionUnitReader } from './session-unit-reader'
 import { describe, expect, it } from 'vitest'
 import { observeSessionRecordCopies } from './session-record-edit'
 import { getDefaultWorkspaceSession } from './constants'
 import { SESSION_MAP_FIELDS } from './session-change-set'
 import { SessionUnitIndex } from './session-unit-index'
-import { SessionUnitReader } from './session-unit-reader'
+
 import { patchSessionUnits } from './workspace-layout/workspace-layout-record-patch'
 import type { WorkspaceSessionState } from './workspace-session-state-types'
 
@@ -39,7 +39,7 @@ class CoalescingReader extends SessionUnitReader {
   checkRetainedEntries(): void {
     for (const transition of this.transitions.values()) {
       for (const [key, entry] of transition.entries ?? []) {
-        // SAFETY: retained entry transitions belong to map fields.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: retained entry transitions belong to map fields.
         const base = transition.base.value as Readonly<Record<string, unknown>> | undefined
         expect(
           Object.hasOwn(base ?? {}, key) === entry.present && base?.[key] === entry.value
@@ -69,6 +69,7 @@ it('coalesces base-relative entries against native operations without discarded 
         value === undefined
           ? { present: false, value: undefined }
           : // SAFETY: the policy matrix uses opaque entries of the same domain as root().
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the policy matrix uses opaque entries of the same domain as root().
             { present: true, value: value as SessionEntry<typeof field> }
       )
       reader.checkRetainedEntries()
@@ -230,7 +231,7 @@ describe('resolved field transitions against independent native values', () => {
         model = { ...model, [field]: undefined }
         compare()
         const value = field === 'tabsByWorktree' ? [] : 'fresh'
-        // SAFETY: the generic policy matrix uses opaque entries; index parsing accepts unknown shapes.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the generic policy matrix uses opaque entries; index parsing accepts unknown shapes.
         const entry = value as SessionEntry<typeof field>
         reader.write(field, 'next', { present: true, value: entry })
         model = { ...model, [field]: { next: value } }
@@ -272,6 +273,7 @@ describe('resolved field transitions against independent native values', () => {
         // SAFETY: the matrix supplies the same opaque entry type used above.
         reader.replace(field, {
           present: true,
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the matrix supplies the same opaque entry type used above.
           value: ordered as NonNullable<WorkspaceSessionState[typeof field]>
         })
         model = { ...model, [field]: ordered }
@@ -282,6 +284,7 @@ describe('resolved field transitions against independent native values', () => {
         // SAFETY: native replacement keeps the matrix's opaque entry type.
         reader.replace(field, {
           present: true,
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: native replacement keeps the matrix's opaque entry type.
           value: reordered as NonNullable<WorkspaceSessionState[typeof field]>
         })
         model = { ...model, [field]: reordered }

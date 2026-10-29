@@ -63,6 +63,7 @@ describe('fetchWorktrees', () => {
     })
     const lineage = makeLineage({ worktreeId: initial.id })
     const refreshed = { ...initial, lineage }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [initial] },
@@ -98,6 +99,7 @@ describe('fetchWorktrees', () => {
     })
     const refreshed = { ...initial, linkedGitLabIssue: 321 }
     worktreeListMock.mockResolvedValue([refreshed])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [initial] },
       sortEpoch: 7
@@ -127,6 +129,7 @@ describe('fetchWorktrees', () => {
       worktreeId: worktree.id,
       parentWorktreeId: 'repo1::/remote/new-parent'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [worktree] },
@@ -183,6 +186,7 @@ describe('fetchWorktrees', () => {
       createdAt: lineage.createdAt
     })
     const detected = makeDetectedResult('repo1', [worktree])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [worktree] },
@@ -232,6 +236,7 @@ describe('fetchWorktrees', () => {
     const workspaceLineage = makeWorkspaceLineage({
       childWorkspaceKey: worktreeWorkspaceKey(worktree.id)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: {}
@@ -288,6 +293,7 @@ describe('fetchWorktrees', () => {
       branch: 'refs/heads/remote',
       hostId: 'runtime:env-1'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [worktree] },
@@ -354,6 +360,7 @@ describe('fetchWorktrees', () => {
       childWorkspaceKey: childKey,
       parentWorkspaceKey: worktreeWorkspaceKey('repo1::/remote/old-parent')
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [worktree] },
@@ -419,6 +426,7 @@ describe('fetchWorktrees', () => {
     const childKey = worktreeWorkspaceKey(worktree.id)
     const before = makeLineage({ worktreeId: worktree.id })
     const beforeWorkspace = makeWorkspaceLineage({ childWorkspaceKey: childKey })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [worktree] },
@@ -474,6 +482,7 @@ describe('fetchWorktrees', () => {
       hostId: 'runtime:env-1'
     })
     const stale = makeLineage({ worktreeId: worktree.id })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [worktree] },
@@ -505,6 +514,7 @@ describe('fetchWorktrees', () => {
       branch: 'refs/heads/remote'
     })
     const staleLineage = makeLineage({ worktreeId: refreshed.id })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: {},

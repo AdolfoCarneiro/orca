@@ -15,6 +15,7 @@ export function createUIStore() {
   return createStore<AppState>()(
     withSessionSourceTestWrites(
       (...args) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the UI slices under test.
         ({
           repos: [],
           worktreesByRepo: {},

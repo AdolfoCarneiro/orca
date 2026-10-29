@@ -250,6 +250,7 @@ describe('createWorktree base status merge', () => {
       // Why: the remote reports the worktree from its own perspective, so it comes back with the default local host.
       hostId: 'local'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -325,6 +326,7 @@ describe('createWorktree base status merge', () => {
       ...watcherWorktree,
       baseRef: 'refs/remotes/origin/main'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [watcherWorktree] }
     } as Partial<AppState>)

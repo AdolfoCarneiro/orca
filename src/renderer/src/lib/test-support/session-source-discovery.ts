@@ -32,9 +32,9 @@ function compareRecordSources(
   after: Readonly<Record<string, unknown>>
 ): { keys: Set<string>; reordered: boolean } {
   const newKeys = Object.keys(after)
-  // SAFETY: this branch handles own string-keyed Records, after excluding Maps/arrays/Sets.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this branch handles own string-keyed Records, after excluding Maps/arrays/Sets.
   const prior = before as Readonly<Record<string, unknown>>
-  // SAFETY: the same checked source domain applies to the candidate.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the same checked source domain applies to the candidate.
   const candidate = after as Readonly<Record<string, unknown>>
   const keys = new Set<string>()
   let aligned = true,

@@ -205,6 +205,7 @@ export function installLinkedPRClearStub(
       })
     }
   )
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(store, {
     repos: [{ id: args.repoId, path: args.repoPath, name: 'repo', kind: 'git' }],
     worktreesByRepo: { [args.repoId]: [args.worktree] },

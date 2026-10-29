@@ -59,6 +59,7 @@ describe('workspace session terminal binding replay', () => {
     const result = preserveMissingWorkspaceSessionTerminalBindings(
       incoming,
       prior,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The binding-recovery stub implements the queried liveness and layout methods; production supplies the full store.
       bindingRecovery as never
     )
 
@@ -92,6 +93,7 @@ describe('workspace session terminal binding replay', () => {
     const result = preserveMissingWorkspaceSessionTerminalBindings(
       incoming,
       prior,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The binding-recovery stub implements the queried liveness and layout methods; production supplies the full store.
       bindingRecovery as never
     )
 
@@ -129,6 +131,7 @@ describe('workspace session terminal binding replay', () => {
     const result = preserveMissingWorkspaceSessionTerminalBindings(
       incoming,
       prior,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The binding-recovery stub implements the queried liveness and layout methods; production supplies the full store.
       bindingRecovery as never
     )
 
@@ -180,6 +183,7 @@ describe('workspace session terminal binding replay', () => {
     const result = preserveMissingWorkspaceSessionTerminalBindings(
       incoming,
       prior,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The binding-recovery stub implements the queried liveness and layout methods; production supplies the full store.
       bindingRecovery as never
     )
 
@@ -210,6 +214,7 @@ describe('workspace session terminal binding replay', () => {
     const result = preserveMissingWorkspaceSessionTerminalBindings(
       incoming,
       prior,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The binding-recovery stub implements the queried liveness and layout methods; production supplies the full store.
       bindingRecovery as never
     )
 
@@ -233,6 +238,7 @@ describe('workspace session terminal binding replay', () => {
     const result = preserveMissingWorkspaceSessionTerminalBindings(
       incoming,
       prior,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The binding-recovery stub implements the queried liveness and layout methods; production supplies the full store.
       bindingRecovery as never
     )
     expect(reads).toBeLessThan(10_000)

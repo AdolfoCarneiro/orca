@@ -84,6 +84,7 @@ describe('useRuntimeFileListForWorktree', () => {
     const states: RuntimeFileListState[] = []
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [],
       projectGroups: [],
@@ -100,6 +101,7 @@ describe('useRuntimeFileListForWorktree', () => {
     expect(listRuntimeFilesMock).not.toHaveBeenCalled()
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         folderWorkspaces: [makeFolderWorkspace({ connectionId: 'ssh-1' })],
         projectGroups: [makeProjectGroup({ connectionId: 'ssh-1' })],
@@ -138,6 +140,7 @@ describe('useRuntimeFileListForWorktree', () => {
       Array.from({ length: QUICK_OPEN_LISTING_MAX_RESULTS }, (_, i) => `src/file-${i}.ts`)
     )
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace({ connectionId: 'ssh-1' })],
       projectGroups: [makeProjectGroup({ connectionId: 'ssh-1' })],
@@ -159,6 +162,7 @@ describe('useRuntimeFileListForWorktree', () => {
   it('routes paired folder workspace queries to the owning runtime', async () => {
     vi.useFakeTimers()
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       settings: { ...initialAppState.settings, activeRuntimeEnvironmentId: 'env-1' },
       folderWorkspaces: [
@@ -199,6 +203,7 @@ describe('useRuntimeFileListForWorktree', () => {
   it('cancels the in-flight scan with the same request token on unmount (#7721)', async () => {
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace({ connectionId: 'ssh-1' })],
       projectGroups: [makeProjectGroup({ connectionId: 'ssh-1' })],
@@ -227,6 +232,7 @@ describe('useRuntimeFileListForWorktree', () => {
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
     listRuntimeFilesMock.mockReturnValue(new Promise<string[]>(() => {}))
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace({ connectionId: 'ssh-1' })],
       projectGroups: [makeProjectGroup({ connectionId: 'ssh-1' })],
@@ -262,6 +268,7 @@ describe('useRuntimeFileListForWorktree', () => {
 
   it('does not restart the scan when unrelated ownership metadata changes', async () => {
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace({ connectionId: 'ssh-1' })],
       projectGroups: [makeProjectGroup({ connectionId: 'ssh-1' })],
@@ -273,6 +280,7 @@ describe('useRuntimeFileListForWorktree', () => {
     await waitForListRuntimeFilesCall()
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         repos: [
           {
@@ -573,6 +581,7 @@ describe('useRuntimeFileListForWorktree', () => {
 
   it('keeps the local listing across query changes without restarting it', async () => {
     const workspaceKey = folderWorkspaceKey('folder-workspace-1')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [makeFolderWorkspace()],
       projectGroups: [makeProjectGroup()],

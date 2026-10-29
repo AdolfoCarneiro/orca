@@ -1,3 +1,11 @@
+import {
+  observeSessionSourceOracle,
+  observeOrdinarySessionSourceWrites
+} from '@/lib/test-support/session-source-oracle'
+import {
+  applyWebSessionTabsSnapshotsToEdit,
+  applyWebSessionTabsSnapshotOperationsToEdit
+} from './web-session-tabs-sync/snapshot-api'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStatusChange } from '@/store/slices/agent-status/agent-status-contract'
@@ -24,11 +32,6 @@ import {
   registerRendererOwnedAgentStatusPane,
   resetRendererOwnedAgentStatusPanesForTests
 } from '@/components/terminal-pane/renderer-owned-agent-status-registry'
-import {
-  applyWebSessionTabsSnapshot,
-  applyWebSessionTabsSnapshots,
-  applyWebSessionTabsSnapshotOperations
-} from './web-session-tabs-sync/snapshot-api'
 import { applyWebSessionTabsStorePatch } from './web-session-tabs-sync/store-patch'
 import { decideWebSessionTabsSnapshot } from './web-session-tabs-sync/tracking-decisions'
 import { resetWebSessionTabsSnapshotFreshnessForTests } from './web-session-tabs-sync/tracking-lifecycle'
@@ -39,6 +42,8 @@ const HOST_TAB_ID = 'host-tab-1'
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 const NOW = 1_700_000_000_000
 const initialState = useAppStore.getInitialState()
+let stopOracle = () => {}
+let stopOrdinary = () => {}
 
 function makeAgentSnapshot(
   snapshotVersion: number,
@@ -84,14 +89,15 @@ function makeAgentSnapshot(
 function applySnapshot(snapshot: RuntimeMobileSessionTabsResult, live: boolean): void {
   const decision = decideWebSessionTabsSnapshot(snapshot, ENVIRONMENT_ID)
   applyWebSessionTabsStorePatch(
-    (state, changedAgentPaneKeys) =>
-      applyWebSessionTabsSnapshot(
+    (state, changedAgentPaneKeys, sourceEdit) =>
+      applyWebSessionTabsSnapshotsToEdit(
+        sourceEdit,
         state,
-        snapshot,
+        [snapshot],
         ENVIRONMENT_ID,
         NOW,
-        undefined,
-        changedAgentPaneKeys
+        changedAgentPaneKeys,
+        undefined
       ),
     { frames: [{ environmentId: ENVIRONMENT_ID, worktreeId: snapshot.worktree, decision }] },
     snapshot,
@@ -108,9 +114,13 @@ describe('paired session-tab agent completion notifications', () => {
     resetRendererOwnedAgentStatusPanesForTests()
     resetAgentCompletionCoordinatorIdentitiesForTest()
     setSessionTestState(useAppStore, initialState, true)
+    stopOracle = observeSessionSourceOracle(useAppStore)
+    stopOrdinary = observeOrdinarySessionSourceWrites(useAppStore)
   })
 
   afterEach(() => {
+    stopOrdinary()
+    stopOracle()
     setSessionTestState(useAppStore, initialState, true)
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetRendererOwnedAgentStatusPanesForTests()
@@ -131,24 +141,34 @@ describe('paired session-tab agent completion notifications', () => {
       const apply = (snapshot: RuntimeMobileSessionTabsResult) => {
         const decision = decideWebSessionTabsSnapshot(snapshot, ENVIRONMENT_ID)
         const settle = applyWebSessionTabsStorePatch(
-          (state, keys) => {
+          (state, keys, sourceEdit) => {
             if (kind === 'batch') {
-              return applyWebSessionTabsSnapshots(state, [snapshot], ENVIRONMENT_ID, NOW, keys)
+              return applyWebSessionTabsSnapshotsToEdit(
+                sourceEdit,
+                state,
+                [snapshot],
+                ENVIRONMENT_ID,
+                NOW,
+                keys,
+                undefined
+              )
             }
             if (kind === 'operations') {
-              return applyWebSessionTabsSnapshotOperations(
+              return applyWebSessionTabsSnapshotOperationsToEdit(
+                sourceEdit,
                 state,
                 [{ snapshot, environmentId: ENVIRONMENT_ID, decision }],
                 keys
               )
             }
-            return applyWebSessionTabsSnapshot(
+            return applyWebSessionTabsSnapshotsToEdit(
+              sourceEdit,
               state,
-              snapshot,
+              [snapshot],
               ENVIRONMENT_ID,
               NOW,
-              undefined,
-              keys
+              keys,
+              undefined
             )
           },
           { frames: [{ environmentId: ENVIRONMENT_ID, worktreeId: WORKTREE_ID, decision }] }

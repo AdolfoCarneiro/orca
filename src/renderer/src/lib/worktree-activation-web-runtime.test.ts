@@ -3,12 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SETUP_AGENT_SEQUENCE_SETUP_SCRIPT_ENV } from '../../../shared/setup-agent-sequencing'
 import { activateAndRevealFolderWorkspace, activateAndRevealWorktree } from './worktree-activation'
 import { ensureWorktreeHasInitialTerminal } from './worktree-initial-terminal-seeding'
-import type { AppStoreState } from './worktree-activation.test-fixture'
 import {
+  type AppStoreState,
   createMockStore,
   registerWorktreeActivationReset,
   createdTabStartups
 } from './worktree-activation.test-fixture'
+
 import { useAppStore } from '@/store'
 import {
   makeCreatedAgentWorktree,
@@ -175,6 +176,7 @@ describe('activateAndRevealFolderWorkspace', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     stubRuntimeEnvironmentBridge({ call: callRuntimeEnvironment })
     const settings = useAppStore.getState().settings
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       activeView: 'terminal',
       folderWorkspaces: [
@@ -330,6 +332,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
         ] as never
       }
     }))
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: {},
       getKnownWorktreeById: ((id: string) =>
@@ -348,6 +351,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(result).toBeNull()
     expect(useAppStore.getState().pendingIssueCommandSplitByTabId).toEqual({})
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-1': [{ id: 'mirror-tab-1' }] }
     } as unknown as Partial<AppStoreState>)
@@ -380,6 +384,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(store.createTab).not.toHaveBeenCalled()
     expect(store.setActiveTab).not.toHaveBeenCalled()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-1': [{ id: 'mirror-tab-1' }] }
     } as unknown as Partial<AppStoreState>)

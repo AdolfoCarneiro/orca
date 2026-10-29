@@ -262,6 +262,7 @@ function patchRecords(
             list.length === 0 && (next[key] === undefined || !current.present)
               ? { present: false, value: undefined }
               : // SAFETY: the record patch preserves this field's stored/serialized entry type.
+                // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the record patch preserves this field's stored/serialized entry type.
                 { present: true, value: list as SessionEntry<typeof name> }
           )
         } else {
@@ -273,6 +274,7 @@ function patchRecords(
               : // SAFETY: record-depth patch combines only values for this same field/key.
                 {
                   present: true,
+                  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: record-depth patch combines only values for this same field/key.
                   value: patchValue(
                     current.value,
                     previous[key],
@@ -284,7 +286,7 @@ function patchRecords(
         }
       }
     } else {
-      // SAFETY: keys come from the two typed serializer outputs, excluding map fields above.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: keys come from the two typed serializer outputs, excluding map fields above.
       const field = name as SessionScalarField
       reader.replace(
         field,

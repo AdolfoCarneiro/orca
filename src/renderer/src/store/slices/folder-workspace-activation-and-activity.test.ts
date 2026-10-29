@@ -99,6 +99,7 @@ function stubFolderWorkspaceApis(): void {
 
 function seedLocalFolderStore(folderWorkspace: FolderWorkspace) {
   const store = createTestStore()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(store, {
     projectGroups: [{ ...projectGroup, executionHostId: 'local' }],
     folderWorkspaces: [folderWorkspace],
@@ -174,6 +175,7 @@ describe('folder workspace generic activation and activity', () => {
     const folder = makeFolderWorkspace()
     const workspaceKey = folderWorkspaceKey(folder.id)
     const store = seedLocalFolderStore(folder)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       ...rememberedBrowserSurface(workspaceKey),
       groupsByWorktree: {
@@ -199,6 +201,7 @@ describe('folder workspace generic activation and activity', () => {
     const folder = makeFolderWorkspace()
     const workspaceKey = folderWorkspaceKey(folder.id)
     const store = seedLocalFolderStore(folder)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       ...rememberedBrowserSurface(workspaceKey),
       groupsByWorktree: {},
@@ -215,6 +218,7 @@ describe('folder workspace generic activation and activity', () => {
     const folder = makeFolderWorkspace()
     const workspaceKey = folderWorkspaceKey(folder.id)
     const store = seedLocalFolderStore(folder)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       groupsByWorktree: {},
       layoutByWorktree: {},

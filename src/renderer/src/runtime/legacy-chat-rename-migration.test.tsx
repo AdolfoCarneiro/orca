@@ -1,3 +1,5 @@
+import { applyWebSessionTabsSnapshotsToEdit } from './web-session-tabs-sync/snapshot-api'
+import { applyLocalStructuredSessionTabSnapshotsToEdit } from './local-structured-session-tabs-sync/snapshot-apply'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react'
@@ -41,9 +43,9 @@ import { persistWorkspaceSessionByHost } from '@/lib/workspace-session-host-pers
 import { sendMessageToAgent } from '@/lib/agent-message-send'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import type { RuntimeMobileSessionTabsResult } from '../../../shared/runtime-types'
-import { applyWebSessionTabsSnapshot } from './web-session-tabs-sync/snapshot-api'
+
 import { applyWebSessionTabsStorePatch } from './web-session-tabs-sync/store-patch'
-import { applyLocalStructuredSessionTabSnapshots } from './local-structured-session-tabs-sync/snapshot-apply'
+
 import { readStructuredAgentLaunchRecord } from '@/lib/agent-session/launch/structured-agent-session-launch-persistence'
 
 const mock = vi.hoisted(() => ({
@@ -282,10 +284,8 @@ it('bounds reconciliation scans linearly at N and 10N without resending unchange
         .map((tab) => ({ sessionId: tab.entityId, name: 'x'.repeat(200), legacyAlias: true }))
     )
 
-    // A new snapshot with identical candidates still scans, but must not send again.
     setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [workspace.id]: [...tabs] } })
     expectScan(tabs)
-    // Changing the candidate set reaches the in-flight check rather than the unchanged shortcut.
     setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [workspace.id]: tabs.slice(1) } })
     expectScan(tabs.slice(1))
     setSessionTestState(useAppStore, { unifiedTabsByWorktree: { [workspace.id]: [...tabs] } })
@@ -299,7 +299,6 @@ it('bounds reconciliation scans linearly at N and 10N without resending unchange
     ).toEqual(tabs.map((tab) => tab.customLabel))
 
     stop()
-    // Refusing cleanup lets outstanding requests settle without unrelated per-alias store writes.
     mock.layout.mockImplementation((_state, _target, _change, _local, answers) => {
       answers?.refused?.()
       return true
@@ -746,7 +745,6 @@ it('traces legacy runtime storage movement, action routing and switch-away befor
   expect(current().executionHostId).toBeUndefined()
   expect(readStructuredChatTabName(current(), useAppStore.getState())).toBe('Explicit name')
   expect(mock.rpc).toHaveBeenCalledTimes(1)
-  // The existing migration retires the copy once catalog ownership is proved.
   setSessionTestState(useAppStore, {
     folderWorkspaces: [{ ...folder, executionHostId: 'runtime:b' }]
   })
@@ -758,6 +756,26 @@ it('traces legacy runtime storage movement, action routing and switch-away befor
   )
   expect(readStructuredChatTabName(current(), useAppStore.getState())).toBe('Explicit name')
 })
+
+function applyNamingSnapshot(
+  snapshot: RuntimeMobileSessionTabsResult,
+  environmentId?: string
+): void {
+  applyWebSessionTabsStorePatch(
+    (state, keys, edit) =>
+      environmentId
+        ? applyWebSessionTabsSnapshotsToEdit(
+            edit,
+            state,
+            [snapshot],
+            environmentId,
+            undefined,
+            keys
+          )
+        : applyLocalStructuredSessionTabSnapshotsToEdit(edit, state, [snapshot]),
+    { frames: [] }
+  )()
+}
 
 it('traces a local legacy alias through foreign same-ID inventory and authoritative omission', () => {
   const tab = chat({ customLabel: 'Legacy local' })
@@ -782,10 +800,7 @@ it('traces a local legacy alias through foreign same-ID inventory and authoritat
     ]
   }
   const current = () => useAppStore.getState().unifiedTabsByWorktree[tab.worktreeId][0]
-  applyWebSessionTabsStorePatch(
-    (state) => applyLocalStructuredSessionTabSnapshots(state, [snapshot]),
-    { frames: [] }
-  )()
+  applyNamingSnapshot(snapshot)
   expect(current()).toMatchObject({
     id: tab.id,
     customLabel: 'Legacy local',
@@ -793,9 +808,7 @@ it('traces a local legacy alias through foreign same-ID inventory and authoritat
     createdAt: tab.createdAt
   })
   const localOccurrence = current()
-  applyWebSessionTabsStorePatch((state) => applyWebSessionTabsSnapshot(state, snapshot, 'a'), {
-    frames: []
-  })()
+  applyNamingSnapshot(snapshot, 'a')
   expect(current()).not.toBe(localOccurrence)
   expect(current()).toMatchObject({
     id: tab.id,
@@ -803,10 +816,6 @@ it('traces a local legacy alias through foreign same-ID inventory and authoritat
     executionHostId: 'runtime:a',
     createdAt: tab.createdAt
   })
-  applyWebSessionTabsStorePatch(
-    (state) =>
-      applyWebSessionTabsSnapshot(state, { ...snapshot, snapshotVersion: 2, tabs: [] }, 'a'),
-    { frames: [] }
-  )()
+  applyNamingSnapshot({ ...snapshot, snapshotVersion: 2, tabs: [] }, 'a')
   expect(useAppStore.getState().unifiedTabsByWorktree[tab.worktreeId] ?? []).toEqual([])
 })

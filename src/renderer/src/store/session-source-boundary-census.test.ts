@@ -64,6 +64,8 @@ describe('session source boundary completeness', () => {
     ])
     const editReplacements = new Set([
       'store/session-source-edits.ts',
+      // Persisted UI hydration reapplies the complete desktop-owned repo order.
+      'store/slices/ui/ui-slice-hydration-actions.ts',
       // Rekeying preserves native insertion order through the order-only boundary.
       'store/slices/editor/actions/rekey-open-files-action.ts',
       'store/slices/editor/actions/restored-editor-owner-transition.ts',

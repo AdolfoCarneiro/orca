@@ -8,10 +8,13 @@ import {
 } from '../../../shared/session-change-set'
 import type { SessionUnitAddress } from '../../../shared/session-unit-index'
 
-import type { SessionSourceDiscovery } from './session-source-fields'
+import {
+  type SessionSourceDiscovery,
+  SESSION_ROUTING_FIELDS,
+  SESSION_SOURCE_KINDS
+} from './session-source-fields'
 import type { OpenFile } from '../store/slices/editor'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
-import { SESSION_ROUTING_FIELDS, SESSION_SOURCE_KINDS } from './session-source-fields'
 
 import {
   SessionProjectionIndex,
@@ -60,13 +63,13 @@ export class SessionUnitProjection extends SessionProjectionIndex {
     }
     if (routedOwners.size || mutation.has('repos') || mutation.has('worktreesByRepo')) {
       for (const source of Object.keys(SOURCE_MAPS)) {
-        // SAFETY: SOURCE_MAPS only names persisted snapshot inputs.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: SOURCE_MAPS only names persisted snapshot inputs.
         changed.add(source as keyof WorkspaceSessionSnapshot)
       }
     }
     for (const [source, keys] of mutation) {
       if (SESSION_RELEVANT_FIELDS.some((field) => field === source)) {
-        // SAFETY: membership in the exhaustive source-field list establishes the snapshot key.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: membership in the exhaustive source-field list establishes the snapshot key.
         changed.add(source as keyof WorkspaceSessionSnapshot)
       }
       const field = Object.entries(SOURCE_MAPS).find(([name]) => name === source)?.[1]
@@ -84,7 +87,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
               queue.push(...this.index.references(kind, id))
             }
           }
-          // SAFETY: field is defined only for the source-to-session map domain.
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: field is defined only for the source-to-session map domain.
           const mapSource = source as keyof typeof SOURCE_MAPS
           this.index.replace(field, key, state[mapSource]?.[key])
         }
@@ -164,12 +167,13 @@ export class SessionUnitProjection extends SessionProjectionIndex {
       ...state,
       // SAFETY: this projection builds its index from renderer OpenFile occurrence sequences.
       openFiles: editorChanged
-        ? [...owners].flatMap((id) => this.index.fileOccurrences(id) as OpenFile[])
+        ? // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this projection builds its index from renderer OpenFile occurrence sequences.
+          [...owners].flatMap((id) => this.index.fileOccurrences(id) as OpenFile[])
         : [],
       repos: this.catalog.repoRows([...owners].map(getRepoIdFromWorktreeId)),
       worktreesByRepo: {}
     } satisfies AppState
-    // SAFETY: these are the declared projection map inputs.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these are the declared projection map inputs.
     for (const source of Object.keys(SOURCE_MAPS) as (keyof typeof SOURCE_MAPS)[]) {
       const field = SOURCE_MAPS[source]
       Object.assign(sparse, {

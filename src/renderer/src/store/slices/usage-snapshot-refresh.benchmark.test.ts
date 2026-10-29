@@ -31,6 +31,7 @@ async function flushImmediatePromises(): Promise<void> {
 
 function createCodexOnlyStore() {
   return create<AppState>()(
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the AppState) fixture and intentionally supplies only the scenario's members.
     withSessionSourceTestWrites((...args) => createCodexUsageSlice(...args) as AppState)
   )
 }

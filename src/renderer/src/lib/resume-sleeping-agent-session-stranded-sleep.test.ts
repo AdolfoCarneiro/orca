@@ -35,6 +35,7 @@ it('reopens a slept agent whose tab is gone in a fresh tab and retires main’s 
     origin: 'worktree-sleep',
     restoreOnTabOpenOnly: true
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     tabsByWorktree: { 'wt-1': [] },
     sleepingAgentSessionsByPaneKey: { [record.paneKey]: record }

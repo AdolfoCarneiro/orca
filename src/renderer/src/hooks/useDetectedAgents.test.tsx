@@ -146,6 +146,7 @@ describe('Floating Workspace authority', () => {
     const activeResult: { current: UseDetectedAgentsResult | null } = { current: null }
     const floatingResult: { current: UseDetectedAgentsResult | null } = { current: null }
     useAppStore.getState().clearLocalDetectedAgents()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       activeRepoId: 'repo-wsl',
       activeWorktreeId: 'worktree-wsl',

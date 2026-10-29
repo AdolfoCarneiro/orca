@@ -51,6 +51,7 @@ function createEditorStore() {
   return createStore<AppState>()(
     withSessionSourceTestWrites(
       (...args) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial store; tests read only the slices it builds.
         ({
           ...emptyTabLayoutState(),
           activeWorktreeId: 'wt-1',

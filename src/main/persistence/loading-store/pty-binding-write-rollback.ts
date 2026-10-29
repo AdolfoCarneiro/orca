@@ -89,7 +89,7 @@ export function reducePtyBindingRollback(
     if (SESSION_MAP_FIELDS.some((name) => name === field)) {
       continue
     }
-    // SAFETY: declared map fields are excluded above.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: declared map fields are excluded above.
     const key = field as SessionScalarField
     reader.replace(
       key,

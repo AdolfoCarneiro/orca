@@ -48,7 +48,7 @@ export function observeSessionSourceOracle(store: SourceTestStore): () => void {
             expect(reported?.has(key), `missing source address: ${field}/${key}`).toBe(true)
           }
         }
-        // SAFETY: only sequence fields can own occurrence collections.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only sequence fields can own occurrence collections.
         const sequenceField = field as SessionSequenceField
         const sequences = native.sequences?.[sequenceField]
         if (sequences && keys) {

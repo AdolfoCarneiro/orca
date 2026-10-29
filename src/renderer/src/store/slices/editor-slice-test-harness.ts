@@ -20,6 +20,7 @@ export function createEditorStore() {
   return createStore<AppState>()(
     withSessionSourceTestWrites(
       (...args) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the editor slices under test.
         ({
           activeWorktreeId: 'wt-1',
           tabsByWorktree: {},
@@ -42,6 +43,7 @@ export function createEditorTabsStore() {
   return createStore<AppState>()(
     withSessionSourceTestWrites(
       (...args) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
         ({
           activeWorktreeId: 'wt-1',
           tabsByWorktree: {},

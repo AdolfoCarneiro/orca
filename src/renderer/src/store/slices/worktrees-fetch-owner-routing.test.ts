@@ -126,6 +126,7 @@ describe('fetchWorktrees', () => {
       path: '/remote/wt',
       hostId: 'runtime:env-1'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -179,6 +180,7 @@ describe('fetchWorktrees', () => {
       path: '/home/orca/wt1',
       branch: 'refs/heads/ssh'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -219,6 +221,7 @@ describe('fetchWorktrees', () => {
       repoId: 'same-repo',
       path: '/local/wt'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -300,6 +303,7 @@ describe('fetchWorktrees', () => {
       path: '/ssh/wt',
       hostId: 'local'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-ambient' } as never,
       repos: []
@@ -463,6 +467,7 @@ describe('fetchWorktrees', () => {
       resolveFresh = resolve
     })
     runtimeEnvironmentCall.mockReturnValueOnce(staleResponse).mockReturnValueOnce(freshResponse)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -635,6 +640,7 @@ describe('fetchWorktrees', () => {
 
   it('surfaces one deduped scope-mismatch toast when a mobile pairing forbids worktree RPCs', async () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [

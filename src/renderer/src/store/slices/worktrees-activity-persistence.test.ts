@@ -52,6 +52,7 @@ describe('worktree remote runtime mutations', () => {
       error: { code: 'selector_not_found', message: 'selector_not_found' },
       _meta: { runtimeId: 'runtime-remote' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [wt] }
@@ -85,6 +86,7 @@ describe('worktree remote runtime mutations', () => {
     mockApi.worktrees.updateMeta.mockRejectedValueOnce(
       new Error("Error invoking remote method 'worktrees:updateMeta': Error: selector_not_found")
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
 
     try {
@@ -129,6 +131,7 @@ describe('worktree remote runtime mutations', () => {
     mockApi.worktrees.updateMeta.mockRejectedValue(
       new Error("Error invoking remote method 'worktrees:updateMeta': Error: selector_not_found")
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
 
     try {
@@ -145,6 +148,7 @@ describe('worktree remote runtime mutations', () => {
 
   it('does not persist activity for a missing worktree', async () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [] }
@@ -161,6 +165,7 @@ describe('worktree remote runtime mutations', () => {
     const store = createTestStore()
     const folderWorkspace = makeFolderWorkspace({ id: 'folder-local' })
     const folderKey = folderWorkspaceKey(folderWorkspace.id)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       folderWorkspaces: [folderWorkspace],
       worktreesByRepo: { repo1: [] }
@@ -185,6 +190,7 @@ describe('worktree remote runtime mutations', () => {
     const store = createTestStore()
     const folderWorkspace = makeFolderWorkspace({ id: 'folder-active' })
     const folderKey = folderWorkspaceKey(folderWorkspace.id)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       folderWorkspaces: [folderWorkspace],
       activeWorktreeId: folderKey
@@ -321,6 +327,7 @@ describe('worktree remote runtime mutations', () => {
     })
     const detected = makeDetectedResult('repo1', [hidden])
     detected.worktrees[0] = { ...detected.worktrees[0], ownership: 'external', visible: false }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: { repo1: detected }

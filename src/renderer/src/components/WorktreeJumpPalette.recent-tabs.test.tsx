@@ -152,6 +152,7 @@ async function flushEffects(): Promise<void> {
 }
 
 async function renderPalette(overrides: Partial<AppState>): Promise<void> {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     activeModal: 'worktree-palette',
     activeWorktreeId: null,
@@ -327,6 +328,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
 
     // Narrowing away the first page must expose later ranked rows rather than an empty section.
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: {
           'wt-many': (useAppStore.getState().unifiedTabsByWorktree['wt-many'] ?? []).filter(
@@ -509,6 +511,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     await flushEffects()
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         tabsByWorktree: hydrated.tabsByWorktree,
         unifiedTabsByWorktree: hydrated.unifiedTabsByWorktree
@@ -553,6 +556,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     await flushEffects()
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         tabsByWorktree: hydrated.tabsByWorktree,
         unifiedTabsByWorktree: hydrated.unifiedTabsByWorktree
@@ -594,6 +598,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     })
     await flushEffects()
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         tabsByWorktree: hydrated.tabsByWorktree
       } as Partial<AppState>)
@@ -619,6 +624,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toEqual(['tab-beta'])
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         tabsByWorktree: hydrated.tabsByWorktree
       } as Partial<AppState>)

@@ -1,3 +1,5 @@
+import { SESSION_SOURCE_KINDS } from '../../lib/session-source-fields'
+import type { RecordKey, Entry } from '../../store/session-source-write-types'
 import {
   AGENT_STATUS_STALE_AFTER_MS,
   agentStatusEvidenceObservedAt,
@@ -148,6 +150,45 @@ export function writableWebSessionTabsRecord<K extends WebSessionTabsBatchRecord
   return next
 }
 
+/** The mirror writes each known address through its accepted edit; pure adapters keep native Records. */
+export function setWebSessionTabsRecordEntry<K extends WebSessionTabsBatchRecordKey>(
+  state: WebSessionTabsSyncState,
+  recordKey: K,
+  key: string,
+  value: NonNullable<WebSessionTabsSyncState[K]>[string] | undefined,
+  batchContext?: WebSessionTabsBatchContext,
+  remove = false,
+  current?: NonNullable<WebSessionTabsSyncState[K]>
+): NonNullable<WebSessionTabsSyncState[K]> {
+  const edit = batchContext?.sourceEdit
+  if (edit && Object.hasOwn(SESSION_SOURCE_KINDS, recordKey)) {
+    // SAFETY: every source field in the batch-record union is keyed in the exhaustive kind table.
+    const field = recordKey as RecordKey<WebSessionTabsSyncState>
+    if (remove) {
+      edit.remove(field, key)
+    } else {
+      // SAFETY: field and value come from the same batch-record key.
+      edit.set(field, key, value as Entry<WebSessionTabsSyncState, typeof field>)
+    }
+    // SAFETY: this branch reads the exact admitted field's current Record.
+    const next = edit.read(field) as NonNullable<WebSessionTabsSyncState[K]>
+    Object.assign(state, { [recordKey]: next })
+    batchContext.changedRecords.add(recordKey)
+    return next
+  }
+  const next =
+    current && current !== state[recordKey]
+      ? current
+      : writableWebSessionTabsRecord(state, recordKey, batchContext)
+  if (remove) {
+    delete next[key]
+  } else {
+    // SAFETY: removal uses undefined; assignment carries the selected Record entry type.
+    next[key] = value as NonNullable<WebSessionTabsSyncState[K]>[string]
+  }
+  return next
+}
+
 export function withWorktreeEntry<T>(
   state: WebSessionTabsSyncState,
   recordKey: WebSessionTabsBatchRecordKey,
@@ -161,11 +202,13 @@ export function withWorktreeEntry<T>(
   if (equal(record[key], value)) {
     return record
   }
-  const next = writableWebSessionTabsRecord(state, recordKey, batchContext) as Record<string, T>
-  if (value === null && deleteNull) {
-    delete next[key]
-  } else {
-    next[key] = value as T
-  }
-  return next
+  // SAFETY: the caller's equality and value describe the selected batch Record's entry type.
+  return setWebSessionTabsRecordEntry(
+    state,
+    recordKey,
+    key,
+    value as NonNullable<WebSessionTabsSyncState[typeof recordKey]>[string],
+    batchContext,
+    value === null && deleteNull
+  ) as Record<string, T>
 }

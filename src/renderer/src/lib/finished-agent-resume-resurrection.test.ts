@@ -18,6 +18,7 @@ afterEach(() => {
 })
 
 function seedLiveLocalCodexPane(): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     activeWorktreeId: WORKTREE_ID,
     tabsByWorktree: {
@@ -108,6 +109,7 @@ describe('a finished local agent', () => {
     expect(record?.interrupted).toBe(true)
     expect(activationTreatsNoteAsFinished(record!)).toBe(false)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: { [WORKTREE_ID]: [] },
       ptyIdsByTabId: {},
@@ -127,6 +129,7 @@ describe('a finished local agent', () => {
     seedLiveLocalCodexPane()
     reportTurnFinished()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: { [WORKTREE_ID]: [] },
       ptyIdsByTabId: {},

@@ -111,7 +111,8 @@ export function updateEditorBuffer<TState extends EditorBufferState>(
 export function adoptMirroredEditorBuffers(
   records: EditorBufferRecords,
   openFiles: OpenFile[],
-  index: EditorBufferViewIndex
+  index: EditorBufferViewIndex,
+  sourceEdit?: SessionSourceEdit<Pick<EditorBufferState, 'openFiles'>>
 ): { editorBuffers: EditorBufferRecords; views: OpenFile[] } {
   const adopted = new Map<string, EditorBufferRecord>()
   for (const file of openFiles) {
@@ -140,7 +141,7 @@ export function adoptMirroredEditorBuffers(
     editorBuffers[recordId] = record
   }
   let mirrored = false
-  const nextOpenFiles = openFiles.map((file) => {
+  const mirror = (file: OpenFile): OpenFile => {
     const record = adopted.get(editorBufferIdOfView(index, file.id))
     // Why dirty only: it is the one field ORed across views; the rest each view publishes itself.
     if (!record || file.isDirty === record.isDirty) {
@@ -148,7 +149,14 @@ export function adoptMirroredEditorBuffers(
     }
     mirrored = true
     return { ...file, isDirty: record.isDirty }
-  })
+  }
+  let nextOpenFiles: OpenFile[]
+  if (sourceEdit) {
+    sourceEdit.sequence('openFiles').map(mirror)
+    nextOpenFiles = sourceEdit.read('openFiles')
+  } else {
+    nextOpenFiles = openFiles.map(mirror)
+  }
   return { editorBuffers, views: mirrored ? nextOpenFiles : openFiles }
 }
 

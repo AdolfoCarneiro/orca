@@ -10,6 +10,7 @@ const originalState = useAppStore.getState()
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 
 function seedPendingState(agentLaunchConfigByPaneKey: Record<string, unknown> = {}): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     tabsByWorktree: {
       'wt-background': [
@@ -35,6 +36,7 @@ function seedPendingState(agentLaunchConfigByPaneKey: Record<string, unknown> = 
 }
 
 function bindPendingPty(): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     agentLaunchConfigByPaneKey: {
       [`tab-background:${LEAF_ID}`]: {

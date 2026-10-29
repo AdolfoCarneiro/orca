@@ -319,6 +319,7 @@ describe('createUISlice hydratePersistedUI', () => {
     const staleDismissalKey = getSetupScriptPromptDismissalKey(
       getRepoHostIdentityForParts('stale-repo', 'local')
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'local-repo', path: '/local', displayName: 'Local', badgeColor: '#000', addedAt: 1 }

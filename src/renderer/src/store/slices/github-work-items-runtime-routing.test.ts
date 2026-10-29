@@ -53,6 +53,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
         executionHostId: 'runtime:env-1'
       }
     ]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' },
       repos
@@ -98,6 +99,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       _meta: { runtimeId: 'remote-runtime' }
     })
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: null,
       repos: [
@@ -206,6 +208,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
         addedAt: 1
       }
     ]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-runtime' },
       repos
@@ -301,6 +304,7 @@ describe('createGitHubSlice.fetchWorkItems source/error envelope', () => {
       items: [{ type: 'issue', number: 27, title: 'SSH issue', url: 'https://example.test/27' }],
       sources: { issues: { owner: 'up', repo: 'r' }, prs: { owner: 'up', repo: 'r' } }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-focused' } as AppState['settings'],
       repos: [

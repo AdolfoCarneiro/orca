@@ -36,6 +36,7 @@ function makeRecord(worktreeId: string): SleepingAgentSessionRecord {
 /** A cold start: the catalog knows the SSH workspace, but no tab row has arrived for it yet. */
 function seedColdDirectSshStart(): SleepingAgentSessionRecord {
   const record = makeRecord(WORKTREE_ID)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     repos: [
       {
@@ -119,6 +120,7 @@ describe('sleeping-agent resume across the direct-SSH hydration gap', () => {
       paneKey: 'tab-2:leaf-1',
       tabId: 'tab-2'
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       sleepingAgentSessionsByPaneKey: { [localRecord.paneKey]: localRecord }
     } as never)

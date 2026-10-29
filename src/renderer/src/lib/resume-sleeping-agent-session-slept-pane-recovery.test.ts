@@ -57,6 +57,7 @@ function makeLayout(leafId: string, ptyId = 'pty-1'): Record<string, unknown> {
 describe('waking panes slept by a manual workspace sleep', () => {
   it('keeps an interrupted worktree-sleep record owned by a preserved pane', () => {
     const record = makeRecord({ interrupted: true })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       activeWorktreeId: 'wt-1',
       activeTabType: 'terminal',
@@ -78,6 +79,7 @@ describe('waking panes slept by a manual workspace sleep', () => {
   // Inactive slept tabs are unowned; classifying their records active would spawn duplicates and strand originals as bare shells.
   it('keeps a slept done record on a non-active tab for in-place cold restore', () => {
     const record = makeRecord({ state: 'done' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       activeWorktreeId: 'wt-1',
       activeTabType: 'terminal',

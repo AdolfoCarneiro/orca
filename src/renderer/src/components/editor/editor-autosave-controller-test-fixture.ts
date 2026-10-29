@@ -100,6 +100,7 @@ export function createEditorStore() {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the editor slices under test.
   const create = withEditorBufferRecords<AppState>(
     (...args) =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture initializes only the editor slices under test.
       ({
         ...emptyTabLayoutState(),
         activeWorktreeId: 'wt-1',

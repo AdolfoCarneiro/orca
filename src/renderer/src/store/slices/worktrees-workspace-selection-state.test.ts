@@ -42,6 +42,7 @@ describe('folder workspace lookups', () => {
   it('returns a stable synthetic worktree for repeated folder workspace lookups', () => {
     const store = createTestStore()
     const folderWorkspace = makeFolderWorkspace()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { folderWorkspaces: [folderWorkspace] } as Partial<AppState>)
 
     const first = store.getState().getKnownWorktreeById(folderWorkspaceKey(folderWorkspace.id))
@@ -84,6 +85,7 @@ describe('setActiveWorktree focus handling', () => {
     registerPersistentWebview('page-1', webview)
 
     try {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         worktreesByRepo: { repo1: [current, next] },
         activeWorktreeId: current.id,
@@ -137,6 +139,7 @@ describe('markWorktreeVisited', () => {
   it('stamps a host-qualified key when the worktree owner is known', () => {
     const store = createTestStore()
     const worktree = makeWorktree({ id: 'repo1::/hosted', repoId: 'repo1', hostId: 'ssh:builder' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [worktree] } } as Partial<AppState>)
 
     store.getState().markWorktreeVisited(worktree.id, 1000)
@@ -163,6 +166,7 @@ describe('markWorktreeVisited', () => {
 
   it('seedActiveWorktreeLastVisitedIfMissing seeds only when missing', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       activeWorktreeId: 'wt-1',
       lastVisitedAtByWorktreeId: {}
@@ -178,6 +182,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps drops entries for unknown worktree IDs within hydrated repos', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       lastVisitedAtByWorktreeId: { 'repo1::/a': 100, 'repo1::/gone': 200 }
@@ -191,6 +196,7 @@ describe('markWorktreeVisited', () => {
     const id = 'repo1::/shared'
     const local = makeWorktree({ id, repoId: 'repo1', path: '/shared', hostId: 'local' })
     const ssh = makeWorktree({ id, repoId: 'repo1', path: '/shared', hostId: 'ssh:builder' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [local, ssh] },
       lastVisitedAtByWorktreeId: {
@@ -211,6 +217,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps preserves entries for not-yet-hydrated repos (e.g. SSH pre-connect)', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       lastVisitedAtByWorktreeId: { 'repo1::/a': 100, 'ssh-repo::/b': 200 }
@@ -225,6 +232,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps clears a stale activeWorktreeId gone from a hydrated repo', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
@@ -237,6 +245,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps keeps a live activeWorktreeId and defers unhydrated repos', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/a'
@@ -252,6 +261,7 @@ describe('markWorktreeVisited', () => {
 
   it('pruneLastVisitedTimestamps defers when the detected list is non-authoritative', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       detectedWorktreesByRepo: {
@@ -270,6 +280,7 @@ describe('markWorktreeVisited', () => {
 
   it('pruneLastVisitedTimestamps defers an empty list with no detected record (unhydrated shape)', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       lastVisitedAtByWorktreeId: { 'repo1::/hidden': 100 }
@@ -285,6 +296,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps clears the derived worktree-scoped active workspace key with a stale active worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
@@ -304,6 +316,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps preserves a folder-scoped active workspace key when the active worktree is stale', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
@@ -323,6 +336,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps preserves an active workspace key pointing at a different live worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
@@ -340,6 +354,7 @@ describe('markWorktreeVisited', () => {
   it('pruneLastVisitedTimestamps clears a legacy unprefixed active workspace key for the stale worktree', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: 'repo1::/gone',
@@ -379,6 +394,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id,
@@ -395,6 +411,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: true })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeWorktreeId: wt.id,
@@ -412,6 +429,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const focused = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const pinned = makeWorktree({ id: 'repo1::/b', repoId: 'repo1', path: '/b', isPinned: true })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [focused, pinned] },
       activeWorktreeId: focused.id,
@@ -430,6 +448,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const focused = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const other = makeWorktree({ id: 'repo1::/b', repoId: 'repo1', path: '/b', isPinned: false })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [focused, other] },
       activeWorktreeId: focused.id,
@@ -484,6 +503,7 @@ describe('setWorktreesPinnedAndReveal', () => {
         repoId: 'repo1'
       })
       const reveal = vi.fn()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         worktreesByRepo: { repo1: [parent, child] },
         worktreeLineageById: {
@@ -572,6 +592,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       lineage: makeLineage({ worktreeId: 'repo1::/child', parentWorktreeId: parent.id })
     }
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, child] },
       activeWorktreeId: child.id,
@@ -596,6 +617,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       repoId: 'repo1'
     })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second] },
       worktreeLineageById: {
@@ -634,6 +656,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       repoId: 'repo1'
     })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, child] },
       worktreeLineageById: {
@@ -662,6 +685,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       repoId: 'repo1'
     })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [parent, child] },
       worktreeLineageById: {
@@ -680,6 +704,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: true })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       revealWorktreeInSidebar: reveal
@@ -695,6 +720,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/a', repoId: 'repo1', path: '/a', isPinned: false })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       revealWorktreeInSidebar: reveal
@@ -709,6 +735,7 @@ describe('setWorktreesPinnedAndReveal', () => {
   it('does nothing for an empty id list', () => {
     const store = createTestStore()
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [] },
       revealWorktreeInSidebar: reveal
@@ -730,6 +757,7 @@ describe('setWorktreesPinnedAndReveal', () => {
     const first = makeWorktree({ id: 'repo1::/b', repoId: 'repo1', path: '/b', isPinned: false })
     const focused = makeWorktree({ id: 'repo1::/c', repoId: 'repo1', path: '/c', isPinned: false })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [alreadyPinned, first, focused] },
       activeWorktreeId: focused.id,
@@ -758,6 +786,7 @@ describe('setWorktreesPinnedAndReveal', () => {
       isPinned: false
     })
     const reveal = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second, elsewhere] },
       activeWorktreeId: elsewhere.id,

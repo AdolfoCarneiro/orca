@@ -376,6 +376,7 @@ it('matches full projection through dependent edits, deletion, routing and order
         })
       }
       for (const [field, value] of Object.entries(update.patch)) {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the SessionMapField)) { fixture and intentionally supplies only the scenario's members.
         if (!update.keys.has(field as SessionMapField)) {
           Object.assign(globals, { [field]: value })
         }
@@ -387,7 +388,7 @@ it('matches full projection through dependent edits, deletion, routing and order
       if (field === 'activeWorktreeIdsOnShutdown' || field === 'activeConnectionIdsAtShutdown') {
         continue
       }
-      // SAFETY: oracle entries are keys of the workspace session patch.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: oracle entries are keys of the workspace session patch.
       expect(materialized[field as keyof typeof materialized], field).toEqual(expected)
     }
     expect(JSON.stringify(prior)).toBe(frozen)

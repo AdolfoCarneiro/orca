@@ -289,6 +289,7 @@ describe('createGitHubSlice cache bounds', () => {
     })
     const store = createTestStore()
     const repoPath = '/runtime/repo'
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: null,
       repos: [
@@ -336,6 +337,7 @@ describe('createGitHubSlice cache bounds', () => {
     const repoPath = '/repo'
     const repoId = 'caller-repo-id'
     const sourceContext = githubSourceContext('runtime:source-runtime', 'runtime-repo-id')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-runtime' } as AppState['settings'],
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }]
@@ -366,6 +368,7 @@ describe('createGitHubSlice cache bounds', () => {
     })
     const store = createTestStore()
     const repoPath = '/ssh/repo'
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-focused' } as AppState['settings'],
       repos: [

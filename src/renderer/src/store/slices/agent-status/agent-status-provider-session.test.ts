@@ -175,6 +175,7 @@ describe('recordAgentProviderSession', () => {
 
   it('keeps Pi session identity durable without fabricating a visible turn', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
@@ -244,6 +245,7 @@ describe('recordAgentProviderSession', () => {
 
   it('keeps launch flags on the live record of a pane that woke from sleep', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: { 'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })] }
     } as Partial<AppState>)
@@ -279,6 +281,7 @@ describe('recordAgentProviderSession', () => {
 
   it('keeps the activity cutoff and manual-unread stamp across a heartbeat for the same pane', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: { 'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })] }
     } as Partial<AppState>)
@@ -318,6 +321,7 @@ describe('recordAgentProviderSession', () => {
 
   it('does not reuse Pi launch config when the session file identity changes', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
@@ -364,6 +368,7 @@ describe('recordAgentProviderSession', () => {
     'keeps a completed $label session resumable through manual worktree sleep',
     async ({ agent, label }) => {
       const store = createTestStore()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         tabsByWorktree: {
           'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
@@ -433,6 +438,7 @@ describe('recordAgentProviderSession', () => {
 
   it('does not turn a completed recovery record back into working on a same-session update', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
@@ -490,6 +496,7 @@ describe('recordAgentProviderSession', () => {
 
   it('keeps a completed recovery record failed on a same-session update', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
@@ -545,6 +552,7 @@ describe('recordAgentProviderSession', () => {
 
   it('does not downgrade a quit recovery record on a same-session update', () => {
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]
@@ -604,6 +612,7 @@ describe('recordAgentProviderSession', () => {
     'keeps a completed $label session resumable through quit capture',
     ({ agent, label }) => {
       const store = createTestStore()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         tabsByWorktree: {
           'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1' })]

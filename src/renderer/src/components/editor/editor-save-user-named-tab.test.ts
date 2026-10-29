@@ -17,6 +17,7 @@ function createEditorStore() {
   return createStore<AppState>()(
     withSessionSourceTestWrites(
       (...args) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the editor save path reads only the slice and fields built here.
         ({
           ...emptyTabLayoutState(),
           settings: { editorAutoSave: false },

@@ -191,7 +191,7 @@ export function sidebarInputsFeedDomains(
           keys
             .filter((key) => Object.hasOwn(facts, key))
             .map((key) => {
-              // SAFETY: own-property filtering above admits desktop fact names only.
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: own-property filtering above admits desktop fact names only.
               return [key, facts[key as keyof typeof facts]]
             })
         )

@@ -371,6 +371,7 @@ describe('SSH repo host reconciliation', () => {
 
     const staleFetch = store.getState().fetchWorktrees(repoId)
     await vi.waitFor(() => expect(worktreesListDetected).toHaveBeenCalledOnce())
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Repo] fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { repos: [owner as Repo] })
     resolveOldWorktrees(qualifiedWorktreeResult(providerRequest, staleWorktree))
     await expect(staleFetch).resolves.toBe(false)

@@ -33,6 +33,7 @@ function worktree(path: string, hostId: ExecutionHostId): Worktree {
 }
 
 afterEach(() => {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     repos: [],
     worktreesByRepo: {},

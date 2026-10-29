@@ -157,6 +157,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       })
       return worktree
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: { [repoId]: worktrees }
@@ -210,6 +211,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       })
       return worktree
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: { [repoId]: worktrees }
@@ -305,6 +307,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const worktreeId = 'repo-1::/same/path'
     const cacheKey = `${repoId}::${branch}`
     const updateWorktreeMeta = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: {
@@ -366,6 +369,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
     const worktreeId = 'repo-1::/same/path'
     const cacheKey = `ssh:ssh-1::${repoId}::${branch}`
     const updateWorktreeMeta = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -499,6 +503,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         }))
       }
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: repoId, path: repoPath, name: 'repo', kind: 'git' }],
       worktreesByRepo: { [repoId]: [worktreeA, worktreeB] },
@@ -613,6 +618,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       headSha: 'merged-head'
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
@@ -713,6 +719,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       headSha: 'merged-head'
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: testCase.worktreesByRepo,
       prCache: {

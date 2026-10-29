@@ -142,7 +142,7 @@ function readBesideFields<F extends keyof WorkspaceSessionState>(
       }
     }
   }
-  // SAFETY: every selected field has the same value type as the captured root.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: every selected field has the same value type as the captured root.
   return result as Pick<WorkspaceSessionState, F>
 }
 

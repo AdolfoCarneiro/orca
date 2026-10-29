@@ -59,7 +59,7 @@ export class SessionWriteBaselines {
       const fresh = await this.api.getWithGeneration(hostArg)
       const next = applySessionMapDeltas(fresh.session, patch.mapDeltas ?? {})
       const full: WorkspaceSessionPatch = { expectedPartitionGeneration: fresh.partitionGeneration }
-      // SAFETY: map delta keys are restricted to the session map field domain.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: map delta keys are restricted to the session map field domain.
       for (const field of Object.keys(patch.mapDeltas ?? {}) as SessionMapField[]) {
         Object.assign(full, { [field]: next[field] ?? {} })
       }
@@ -121,6 +121,7 @@ export class SessionWriteBaselines {
     const epoch = this.epoch
     // SAFETY: the splitter reads only present fields; a projection patch is a partial session.
     const slices = splitWorkspaceSessionByHost(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the splitter reads only present fields; a projection patch is a partial session.
       update.patch as WorkspaceSessionState,
       routing.hostIdByWorktreeId,
       {
@@ -169,7 +170,7 @@ export class SessionWriteBaselines {
           for (const [key, value] of Object.entries(sessionMap(slice ?? {}, field) ?? {})) {
             const id = unitId(field, key),
               hosts = this.parked.get(id) ?? new Map<ExecutionHostId, Unit>()
-            // SAFETY: parked keys come from validated execution-host partitions.
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: parked keys come from validated execution-host partitions.
             const host = hostKey as ExecutionHostId
             hosts.set(host, { field, key, value, host })
             this.parked.set(id, hosts)
@@ -204,11 +205,12 @@ export class SessionWriteBaselines {
         const value = sessionMap(update.patch, field)?.[key]
         for (const [host, slice] of Object.entries(slices)) {
           if (value !== undefined && sessionMap(slice ?? {}, field)?.[key] === value) {
-            // SAFETY: slices are keyed by the validated execution-host routing function.
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: slices are keyed by the validated execution-host routing function.
             nextUnits.set(host as ExecutionHostId, {
               field,
               key,
               value,
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: slices are keyed by the validated execution-host routing function.
               host: host as ExecutionHostId
             })
           }

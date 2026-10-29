@@ -2,8 +2,11 @@ import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState } from '../types'
 import { toast } from 'sonner'
-import type { RuntimeEnvironmentCallRequest } from '../../runtime/runtime-compatibility-test-fixture'
-import { createCompatibleRuntimeStatusResponse } from '../../runtime/runtime-compatibility-test-fixture'
+import {
+  type RuntimeEnvironmentCallRequest,
+  createCompatibleRuntimeStatusResponse
+} from '../../runtime/runtime-compatibility-test-fixture'
+
 import { WORKTREE_RENAME_ERROR_DISMISS_RUNTIME_CAPABILITY } from '../../../../shared/worktree-runtime-capabilities'
 import { getHostedReviewCacheKey } from './hosted-review-cache-identity'
 import {
@@ -114,6 +117,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...wt, comment: 'remote note' } },
       _meta: { runtimeId: 'runtime-remote' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       worktreesByRepo: { repo1: [wt] }
@@ -145,6 +149,7 @@ describe('worktree remote runtime mutations', () => {
       result: { deleted: true },
       _meta: { runtimeId: 'runtime-owner-hub' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'different-hub' } as never,
       worktreesByRepo: { 'repo-ssh': [wt] }
@@ -171,6 +176,7 @@ describe('worktree remote runtime mutations', () => {
   it('suppresses per-branch feedback for an aggregate delete', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
     vi.mocked(toast.success).mockClear()
     vi.mocked(toast.error).mockClear()
@@ -187,6 +193,7 @@ describe('worktree remote runtime mutations', () => {
   it('fails preserved branch deletion closed for two HUB owners', async () => {
     const store = createTestStore()
     const worktreeId = 'repo-ssh::/srv/same-wt'
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: {
         'repo-ssh': [
@@ -226,6 +233,7 @@ describe('worktree remote runtime mutations', () => {
       path: '/home/orca/wt1',
       hostId: 'ssh:ssh-1'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -261,6 +269,7 @@ describe('worktree remote runtime mutations', () => {
       displayName: 'Nautilus',
       pendingFirstAgentMessageRename: true
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] }
     } as Partial<AppState>)
@@ -341,6 +350,7 @@ describe('worktree remote runtime mutations', () => {
       updatedAt: '2026-05-15T00:00:00.000Z',
       mergeable: 'MERGEABLE' as const
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: focusedRuntimeSettings,
       repos: [
@@ -418,6 +428,7 @@ describe('worktree remote runtime mutations', () => {
       linkedGitLabMR: 789
     })
     const fetchHostedReviewForBranch = vi.fn().mockResolvedValue(null)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -445,6 +456,7 @@ describe('worktree remote runtime mutations', () => {
     const first = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
     const second = makeWorktree({ id: 'repo1::/path/wt2', repoId: 'repo1', path: '/path/wt2' })
     const subscriber = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [first, second] },
       sortEpoch: 7
@@ -541,6 +553,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...remote, manualOrder: 9000 } },
       _meta: { runtimeId: 'runtime-remote' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [local, remote] } } as Partial<AppState>)
 
     await store.getState().updateWorktreesMeta([{ worktreeId, updates: { manualOrder: 9000 } }])
@@ -575,6 +588,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: { ...remote, comment: 'selected' } },
       _meta: { runtimeId: 'runtime-remote' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [local, remote] } } as Partial<AppState>)
 
     await store

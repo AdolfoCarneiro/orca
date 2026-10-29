@@ -28,9 +28,10 @@ export function setSessionTestState<S extends object>(
   replace?: boolean
 ): void {
   const next = typeof partial === 'function' ? partial(store.getState()) : partial
-  // SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
   const accepted = unwrapSessionSourceWrite(next as SessionSourcePartial<S>).receipt
-    ? (next as SessionSourceWrite<S>)
+    ? // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: fixture ingress accepts raw source fields as an explicit replacement; opaque writes retain their authority.
+      (next as SessionSourceWrite<S>)
     : replaceSessionSourceFields(next, 'hydration')
   if (replace) {
     // SAFETY: the replacement overload requires a complete root, just like the store setter.

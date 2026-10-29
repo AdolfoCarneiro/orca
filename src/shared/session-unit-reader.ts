@@ -13,7 +13,12 @@ import {
   type SessionUnitChange,
   type SessionMapField
 } from './session-change-set'
-import type { SessionUnitView, SessionEntry, PreparedSession } from './session-reader-types'
+import {
+  type SessionUnitView,
+  type SessionEntry,
+  type PreparedSession,
+  isSessionUnitView
+} from './session-reader-types'
 export type {
   SessionUnitView,
   SessionPresence,
@@ -24,7 +29,7 @@ export type {
 } from './session-reader-types'
 import { SessionFieldReader } from './session-reader-fields'
 export { isSessionUnitView } from './session-reader-types'
-import { isSessionUnitView } from './session-reader-types'
+
 export class SessionUnitReader extends SessionFieldReader {
   static between(
     prior: WorkspaceSessionState,
@@ -33,7 +38,7 @@ export class SessionUnitReader extends SessionFieldReader {
   ): SessionUnitReader {
     const reader = new SessionUnitReader(prior, index)
     for (const field of new Set([...Object.keys(prior), ...Object.keys(candidate)])) {
-      // SAFETY: both enumerated roots are session DTOs.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: both enumerated roots are session DTOs.
       const key = field as keyof WorkspaceSessionState
       if (
         prior[key] === candidate[key] &&
@@ -62,7 +67,7 @@ export class SessionUnitReader extends SessionFieldReader {
       field: (field) => this.field(field, 'prior'),
       hasField: (field) => Object.hasOwn(this.prior, field),
       map: (field, keys) => {
-        // SAFETY: every selected entry comes from this same typed map in the captured root.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: every selected entry comes from this same typed map in the captured root.
         return Object.fromEntries(
           this.index
             .ordered(field, keys)
@@ -132,7 +137,7 @@ export class SessionUnitReader extends SessionFieldReader {
     field: F,
     keys: Iterable<string>
   ): NonNullable<WorkspaceSessionState[F]> {
-    // SAFETY: every value is read from this exact typed session map field.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: every value is read from this exact typed session map field.
     return Object.fromEntries(
       this.ordered(field, keys).flatMap((key) => {
         const entry = this.unit(field, key)
@@ -235,6 +240,6 @@ export function readSessionUnit<F extends SessionMapField>(
   if (isSessionUnitView(source)) {
     return source.unit(field, key).value
   }
-  // SAFETY: the selected map F and its string key retain the same entry type.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the selected map F and its string key retain the same entry type.
   return source[field]?.[key] as SessionEntry<F> | undefined
 }

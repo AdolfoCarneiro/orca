@@ -43,6 +43,7 @@ function WatchProbe(): null {
 
 function installWorkspaceState(): void {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     activeWorktreeId: SOURCE,
     settings: { editorAutoSave: false },
@@ -622,6 +623,7 @@ describe('restored editor owner reparent', () => {
   })
 
   it('reparents into a folder workspace with local save and watch authority', () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [
         {

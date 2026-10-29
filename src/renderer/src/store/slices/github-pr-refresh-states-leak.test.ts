@@ -184,6 +184,7 @@ describe('prRefreshStates stays bounded (leak regression)', () => {
     vi.setSystemTime(1_000_000)
     try {
       const store = createTestStore()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         prRefreshStates: {
           stale: { status: 'queued', reason: 'visible', updatedAt: 1_000_000 - 121_000 },

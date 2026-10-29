@@ -221,6 +221,7 @@ describe('createPreflightSlice', () => {
     resetPreflightMocks()
     preflightCheck.mockResolvedValueOnce(makeStatus(true))
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         makeRepo({
@@ -251,6 +252,7 @@ describe('createPreflightSlice', () => {
     platformGet.mockReturnValue({ platform: 'win32' })
     preflightCheck.mockResolvedValueOnce(makeStatus(true))
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         makeRepo({
@@ -297,6 +299,7 @@ describe('createPreflightSlice', () => {
     )
     const store = createTestStore()
     const repos: AppState['repos'] = [makeRepo({ id: 'repo-1', path: 'C:\\repo' })]
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: {
         localWindowsRuntimeDefault: { kind: 'wsl', distro: null }
@@ -332,6 +335,7 @@ describe('createPreflightSlice', () => {
     const debian = deferred<PreflightStatus>()
     preflightCheck.mockReturnValueOnce(ubuntu.promise).mockReturnValueOnce(debian.promise)
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [makeRepo({ id: 'repo-1', path: '\\\\wsl.localhost\\Ubuntu\\home\\alice\\repo' })],
       worktreesByRepo: {},
@@ -340,6 +344,7 @@ describe('createPreflightSlice', () => {
     } as Partial<AppState>)
 
     const first = store.getState().refreshPreflightStatus()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [makeRepo({ id: 'repo-1', path: '\\\\wsl.localhost\\Debian\\home\\alice\\repo' })]
     } as Partial<AppState>)
@@ -518,6 +523,7 @@ describe('createPreflightSlice', () => {
     await first
     expect(store.getState().preflightStatusChecked).toBe(true)
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [makeRepo({ id: 'repo-1', path: '\\\\wsl.localhost\\Ubuntu\\home\\alice\\repo' })],
       activeRepoId: 'repo-1',

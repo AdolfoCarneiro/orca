@@ -31,6 +31,7 @@ function deferred(): { promise: Promise<{ ok: true }>; resolve: () => void } {
 
 function seed(filePath = FILE_PATH): string {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     activeWorktreeId: SOURCE,
     settings: { editorAutoSave: true, editorAutoSaveDelayMs: 250 },
@@ -183,6 +184,7 @@ describe('restored editor owner save lifecycle', () => {
 
   it('fails closed when a folder root changes during save quiescence', async () => {
     const oldId = seed('/notes/todo.md')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       folderWorkspaces: [
         {

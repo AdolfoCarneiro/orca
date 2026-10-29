@@ -108,7 +108,7 @@ export class SessionProjectionIndex {
       terminalLayoutsByTabId: state.terminalLayoutsByTabId,
       openFilesByWorktree: Object.fromEntries(groupSessionFiles(state.openFiles))
     }
-    // SAFETY: these are the fixed, exhaustive source-to-session map keys.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these are the fixed, exhaustive source-to-session map keys.
     for (const source of Object.keys(SOURCE_MAPS) as (keyof typeof SOURCE_MAPS)[]) {
       Object.assign(session, { [SOURCE_MAPS[source]]: state[source] })
     }

@@ -74,6 +74,7 @@ beforeEach(() => {
   ;(window as any).api = { pty: { getCwd: getCwdMock } }
 
   setSessionTestState(useAppStore, initialAppState, true)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
   setSessionTestState(useAppStore, {
     activeWorktreeId: PARENT_ID,
     worktreesByRepo: { [REPO_ID]: [parentWorktree, childWorktree] },
@@ -121,6 +122,7 @@ describe('useChecksPanelTerminalWorktree', () => {
   })
 
   it('does not poll remote-runtime terminals', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'tab-1': ['remote:host:pty-1'] }
     } as Partial<AppState>)
@@ -208,6 +210,7 @@ describe('useChecksPanelTerminalWorktree', () => {
     expect(latest?.worktree).toBe(childWorktree)
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         ptyIdsByTabId: { 'tab-1': ['pty-2'] }
       } as Partial<AppState>)
@@ -220,6 +223,7 @@ describe('useChecksPanelTerminalWorktree', () => {
   })
 
   it('does not poll an SSH terminal (its cwd is on the relay host)', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'tab-1': ['ssh:target-1@@pty-9'] }
     } as Partial<AppState>)
@@ -248,6 +252,7 @@ describe('useChecksPanelTerminalWorktree', () => {
       path: '/runtime-repo/app',
       hostId: 'local'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       worktreesByRepo: { [REPO_ID]: [parentWorktree], [RUNTIME_REPO_ID]: [localOnRuntime] },
       repos: [repo, runtimeRepo]
@@ -276,6 +281,7 @@ describe('useChecksPanelTerminalWorktree', () => {
       repoId: SSH_REPO_ID,
       path: SSH_PATH
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       worktreesByRepo: { [REPO_ID]: [parentWorktree, childWorktree], [SSH_REPO_ID]: [sshWorktree] },
       repos: [repo, sshRepo]

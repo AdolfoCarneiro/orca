@@ -228,6 +228,7 @@ describe('createWorktree parent pick on a remote runtime', () => {
 
   function createRemoteStore() {
     const store = createRepoTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -366,6 +367,7 @@ describe('createWorktree parent pick on a remote runtime', () => {
   // Why: the folder parent comes from the active scope, not a pick, so nothing else would surface it.
   it('warns when the retry drops an active folder-workspace parent', async () => {
     const store = createRemoteStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       activeWorkspaceKey: folderWorkspaceKey('folder-1'),
       folderWorkspaces: [{ id: 'folder-1', name: 'Design docs' }]

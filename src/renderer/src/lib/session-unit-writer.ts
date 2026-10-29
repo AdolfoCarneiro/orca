@@ -74,7 +74,7 @@ export class SessionUnitWriter extends SessionWriteBaselines {
       }
     }
     for (const [hostKey, slice] of Object.entries(slices)) {
-      // SAFETY: the splitter creates only execution-host partition keys.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the splitter creates only execution-host partition keys.
       const host = hostKey as ExecutionHostId
       const desired = { ...this.desiredGlobals.get(host) }
       for (const [field, value] of Object.entries(slice ?? {})) {
@@ -92,7 +92,7 @@ export class SessionUnitWriter extends SessionWriteBaselines {
     }
     for (const host of this.pendingGlobals) {
       for (const [field, value] of Object.entries(this.desiredGlobals.get(host) ?? {})) {
-        // SAFETY: desired globals are a workspace session patch.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: desired globals are a workspace session patch.
         const name = field as keyof WorkspaceSessionPatch
         if (!same(this.globals.get(host)?.[name], value)) {
           Object.assign(ensure(host), { [field]: value })
@@ -167,7 +167,7 @@ export class SessionUnitWriter extends SessionWriteBaselines {
     }
     if (update.full) {
       for (const [hostKey, slice] of Object.entries(slices)) {
-        // SAFETY: the splitter emits execution-host keys.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the splitter emits execution-host keys.
         const host = hostKey as ExecutionHostId
         const fields =
           this.fullFields.get(host) ?? new Map<SessionMapField, Readonly<Record<string, unknown>>>()

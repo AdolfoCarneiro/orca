@@ -10,7 +10,8 @@ export class SessionSourceSequence<Row, Result> {
       groups: Map<string, Row[]>,
       keys: Set<string>,
       reordered: boolean,
-      presence: Map<string, SessionSourcePresence>
+      presence: Map<string, SessionSourcePresence>,
+      preserveSource?: boolean
     ) => Result
   ) {}
 
@@ -29,7 +30,7 @@ export class SessionSourceSequence<Row, Result> {
     return {
       before: (row: Row) => push(prior, row),
       after: (row: Row) => push(next, row),
-      finish: (rows: Row[]): Result => {
+      finish: (rows: Row[], preserveSource = false): Result => {
         const keys = new Set<string>()
         for (const [key, entries] of prior) {
           const candidate = next.get(key)
@@ -58,7 +59,8 @@ export class SessionSourceSequence<Row, Result> {
           next,
           keys,
           applied.some((key, i) => key !== order[i]),
-          new Map([...keys].map((key) => [key, { before: prior.has(key), after: next.has(key) }]))
+          new Map([...keys].map((key) => [key, { before: prior.has(key), after: next.has(key) }])),
+          preserveSource
         )
       }
     }
@@ -86,6 +88,27 @@ export class SessionSourceSequence<Row, Result> {
       return true
     })
     return receipt.finish(rows)
+  }
+
+  filterAppend(
+    keep: (row: Row) => boolean,
+    added: readonly Row[],
+    equal: (before: readonly Row[], after: readonly Row[]) => boolean
+  ): Result {
+    const receipt = this.collect()
+    const rows = this.source.filter((row) => {
+      receipt.before(row)
+      if (!keep(row)) {
+        return false
+      }
+      receipt.after(row)
+      return true
+    })
+    for (const row of added) {
+      receipt.after(row)
+      rows.push(row)
+    }
+    return receipt.finish(rows, equal(this.source, rows))
   }
 
   flatMap(

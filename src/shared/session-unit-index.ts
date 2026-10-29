@@ -27,7 +27,7 @@ type Contribution = SessionUnitAddress & {
 
 function record(value: unknown): Record<string, unknown> | undefined {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
-    // SAFETY: the object check excludes primitives and arrays; members remain unknown.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the object check excludes primitives and arrays; members remain unknown.
     return value as Record<string, unknown>
   }
   return undefined

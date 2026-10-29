@@ -1,6 +1,6 @@
 import type { SessionMapField } from '../../../shared/session-change-set'
-import type { SessionEntry } from '../../../shared/session-unit-reader'
-import { SessionUnitReader } from '../../../shared/session-unit-reader'
+import { type SessionEntry, SessionUnitReader } from '../../../shared/session-unit-reader'
+
 import {
   LOCAL_EXECUTION_HOST_ID,
   parseExecutionHostId,
@@ -129,9 +129,9 @@ export function writeRestorableSession(
       if (unit.key === null) {
         rollback.restoreField(unit.field, unit.priorPresent, unit.prior)
       } else {
-        // SAFETY: keyed receipts retain their map field and value from preparation.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: keyed receipts retain their map field and value from preparation.
         const field = unit.field as SessionMapField
-        // SAFETY: the receipt retains the original entry type for this map field.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the receipt retains the original entry type for this map field.
         const value = unit.prior as SessionEntry<typeof field>
         rollback.write(
           field,

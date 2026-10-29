@@ -197,6 +197,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
           source: 'metadata-fallback'
         })
       })
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         repos: [sshRepo],
         hasHydratedWorktreePurge,
@@ -264,6 +265,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     mockApi.worktrees.listDetected.mockResolvedValueOnce(
       makeDetectedResult('repoA', [resolvedParent, resolvedChild])
     )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [repoA],
       hasHydratedWorktreePurge: true,
@@ -298,6 +300,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       throw new Error('git error')
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [repoA, repoB],
       worktreesByRepo: { repoB: [wtB] },
@@ -337,6 +340,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     // Empty valid-id union (both repos newly-cloned, empty) isn't authoritative — defer instead of wiping tabsByWorktree.
     worktreeListMock.mockResolvedValue([])
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [repoA, repoB],
       tabsByWorktree: {
@@ -363,6 +367,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [repoA, repoB],
       folderWorkspaces: [folderWorkspace],
@@ -396,6 +401,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     })
 
     // Second call must not re-run the purge even if new stale ids appear.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         ...store.getState().tabsByWorktree,
@@ -418,6 +424,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [repoA, repoB],
       tabsByWorktree: {
@@ -450,6 +457,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       workspaceSessionReady: false,
       hydrationSucceeded: false,
@@ -492,6 +500,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : []
     )
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos: [repoA, repoB],
@@ -573,6 +582,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       _meta: { runtimeId: 'runtime-remote' }
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos: [localRepo, runtimeRepo],
@@ -639,6 +649,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       return [makeWorktree({ id: `${repoId}::/wt`, repoId, path: `/wt/${repoId}` })]
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the unknown as Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { repos } as unknown as Partial<AppState>)
 
     await store.getState().fetchAllWorktrees()
@@ -668,6 +679,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       return [makeWorktree({ id: `${repoId}::/wt`, repoId, path: `/wt/${repoId}` })]
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       hasHydratedWorktreePurge: true,
       repos
@@ -705,6 +717,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     })
 
     try {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         hasHydratedWorktreePurge: true,
         repos
@@ -726,6 +739,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     // Why: reuse is part of the coalescing key, so a foreground reuse:false scan must re-probe, not reuse a stale background failure.
     const store = createTestStore()
     const remote = makeWorktree({ id: 'repo1::/remote/wt', repoId: 'repo1', path: '/remote/wt' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       hasHydratedWorktreePurge: true,
@@ -794,6 +808,7 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
       repoId === 'repoA' ? [wtA] : [wtB]
     )
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [repoA, repoB],
       activeWorktreeId: FLOATING_TERMINAL_WORKTREE_ID,

@@ -33,9 +33,11 @@ function makeWorktree(id: string): Worktree {
 
 function createHistoryStore(worktreeIds: string[] = []): StoreApi<MinimalState> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   return createStore<AppState>()(
     withSessionSourceTestWrites(
       (set, get, api) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
         ({
           worktreesByRepo: {
             'repo-1': worktreeIds.map(makeWorktree)

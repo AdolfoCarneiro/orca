@@ -87,7 +87,7 @@ export class SessionSourceEdit<S extends object> {
   }
 
   private current<F extends RecordKey<S>>(field: F) {
-    // SAFETY: RecordKey admits only string-keyed Records and Maps, including optional ones.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: RecordKey admits only string-keyed Records and Maps, including optional ones.
     return (
       Object.hasOwn(this.partial, field) ? this.partial[field] : this.source[field]
     ) as SourceEntries
@@ -103,7 +103,7 @@ export class SessionSourceEdit<S extends object> {
     this.baseEntries.set(field, entries)
     let entry = entries.get(key)
     if (!entry) {
-      // SAFETY: RecordKey admits only the source collection domain.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: RecordKey admits only the source collection domain.
       const source = this.source[field] as SourceEntries
       entry = {
         present: source instanceof Map ? source.has(key) : Object.hasOwn(source ?? {}, key),
@@ -121,7 +121,7 @@ export class SessionSourceEdit<S extends object> {
         ? current.get(key)
         : current?.[key]
       : this.baseEntry(field, key).value
-    // SAFETY: the field/key pair admits only that Record or Map's entry type.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the field/key pair admits only that Record or Map's entry type.
     return value as Entry<S, F> | undefined
   }
 
@@ -133,7 +133,7 @@ export class SessionSourceEdit<S extends object> {
       })
       this.copied.add(field)
     }
-    // SAFETY: record fields are copied above as a Map or plain Record and never replaced here.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: record fields are copied above as a Map or plain Record and never replaced here.
     return this.partial[field] as Map<string, unknown> | Record<string, unknown>
   }
 
@@ -219,16 +219,19 @@ export class SessionSourceEdit<S extends object> {
   }
 
   sequence<F extends Extract<SourceKey<S>, SessionSourceKind<'sequence'>>>(field: F) {
-    // SAFETY: the exhaustive field-kind table permits only arrays in the sequence domain.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the exhaustive field-kind table permits only arrays in the sequence domain.
     const rows = this.read(field) as readonly SequenceRow<S, F>[]
     return new SessionSourceSequence(
       rows,
       (row) => {
-        // SAFETY: openFiles groups by owner; the three catalogs group by entity ID.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: openFiles groups by owner; the three catalogs group by entity ID.
         const identity = row as { id: string; worktreeId: string }
         return field === 'openFiles' ? identity.worktreeId : identity.id
       },
-      (rows, groups, keys, reordered, presence) => {
+      (rows, groups, keys, reordered, presence, preserveSource) => {
+        if (preserveSource) {
+          return this
+        }
         Object.assign(this.partial, { [field]: rows })
         const selected = this.changes.get(field)
         if (selected !== null) {
@@ -258,10 +261,10 @@ export class SessionSourceEdit<S extends object> {
       if (!keys || SESSION_SOURCE_KINDS[field] !== 'keyed') {
         continue
       }
-      // SAFETY: keyed changes were admitted only by this edit's RecordKey methods.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: keyed changes were admitted only by this edit's RecordKey methods.
       const after = this.current(field as RecordKey<S>)
       for (const key of keys) {
-        // SAFETY: set/remove capture the base entry before admitting a keyed edit.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: set/remove capture the base entry before admitting a keyed edit.
         const base = this.baseEntries.get(field)?.get(key) as SourceEntry
         const nextPresent = after instanceof Map ? after.has(key) : Object.hasOwn(after ?? {}, key)
         const nextValue = after instanceof Map ? after.get(key) : after?.[key]

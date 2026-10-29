@@ -1,8 +1,12 @@
-import type { SessionAdmissionKind, SessionMapDeltas } from '../../../shared/session-change-set'
+import {
+  type SessionAdmissionKind,
+  type SessionMapDeltas,
+  SESSION_MAP_FIELDS
+} from '../../../shared/session-change-set'
 import { describe, expect, it } from 'vitest'
 import { getDefaultWorkspaceSession } from '../../../shared/constants'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
-import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
+
 import { SessionUnitIndex } from '../../../shared/session-unit-index'
 import { publishSessionChanges, sessionPublication } from './session-publication'
 import { SessionUnitReader, selectSessionUnits } from '../../../shared/session-unit-reader'
@@ -131,7 +135,7 @@ describe('immutable session publication', () => {
         if (property === Symbol.iterator) {
           throw new Error('unrelated bucket inspected')
         }
-        // SAFETY: this proxy forwards the array's native keys unchanged.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this proxy forwards the array's native keys unchanged.
         return target[property as keyof typeof target]
       }
     })

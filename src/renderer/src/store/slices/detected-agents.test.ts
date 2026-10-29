@@ -48,6 +48,7 @@ function createTestStore(initial?: Partial<AppState>) {
         }) as AppState
     )
   )
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(store, {
     repos: [],
     worktreesByRepo: {},
@@ -438,6 +439,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
     expect(store.getState().detectedAgentIds).toEqual(['claude'])
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [makeRepo({ id: 'repo-1', path: 'C:\\repo' })],
       activeRepoId: 'repo-1',

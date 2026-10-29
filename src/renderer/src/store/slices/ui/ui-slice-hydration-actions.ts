@@ -48,11 +48,12 @@ import {
   withWslMovedRepoIds,
   withWslMovedSetupScriptDismissals
 } from '../../repos/wsl-moved-repo-ui-retention'
-import type { PersistedUIWriteBaseline } from '../persisted-ui-write-baseline'
 import {
+  type PersistedUIWriteBaseline,
   capturePersistedUIWriteBaseline,
   diffPersistedUIWriteFields
 } from '../persisted-ui-write-baseline'
+
 import {
   hydrateTrustedOrcaHooks,
   hydrateUnexpectedSignoutDismissal,
@@ -298,10 +299,7 @@ export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Par
         const nextWriteBaselineGeneration = writeBaselineMoved
           ? s.persistedUIWriteBaselineGeneration + 1
           : s.persistedUIWriteBaselineGeneration
-        if (
-          orderedRepos === s.repos &&
-          hydratedUIPartialMatchesState(s, hydrated as Partial<UISlice>)
-        ) {
+        if (orderedRepos === s.repos && hydratedUIPartialMatchesState(s, hydrated)) {
           if (!writeBaselineMoved) {
             return undefined
           }

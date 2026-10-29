@@ -133,6 +133,7 @@ describe('createUISlice agent send target mode', () => {
 
   function seedAgentSendState(store: StoreApi<AppState>): void {
     const now = Date.now()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       tabsByWorktree: {
         [worktreeId]: [
@@ -695,6 +696,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     const dismiss = vi.fn().mockResolvedValue({ dismissed: 0 })
     vi.stubGlobal('window', { api: { notifications: { dismiss } } })
     const store = createAgentSendStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-live': [makeTerminalTab(tabId, 'wt-live')]
@@ -748,6 +750,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     vi.stubGlobal('window', { api: { notifications: { dismiss } } })
     const store = createAgentSendStore()
     const fallbackPaneKey = makePaneKey('tab-fallback', '44444444-4444-4444-8444-444444444444')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
     setSessionTestState(store, {
       tabsByWorktree: {},
       agentStatusByPaneKey: {
@@ -778,6 +781,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     const dismiss = vi.fn().mockResolvedValue({ dismissed: 0 })
     vi.stubGlobal('window', { api: { notifications: { dismiss } } })
     const store = createAgentSendStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         'wt-live': [makeTerminalTab(tabId, 'wt-live')]

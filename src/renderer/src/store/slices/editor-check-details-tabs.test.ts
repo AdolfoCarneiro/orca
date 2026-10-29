@@ -61,6 +61,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const store = createStore<AppState>()(
       withSessionSourceTestWrites(
         (...args) =>
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
           ({
             activeWorktreeId: 'wt-1',
             repos: [{ id: 'repo-1', path: '/repo' }],
@@ -114,6 +115,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const store = createStore<AppState>()(
       withSessionSourceTestWrites(
         (...args) =>
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
           ({
             activeWorktreeId: 'wt-1',
             repos: [],
@@ -184,6 +186,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const store = createStore<AppState>()(
       withSessionSourceTestWrites(
         (...args) =>
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
           ({
             activeWorktreeId: 'wt-1',
             repos: [{ id: 'repo-1', path: '/repo' }],
@@ -236,6 +239,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const store = createStore<AppState>()(
       withSessionSourceTestWrites(
         (...args) =>
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
           ({
             activeWorktreeId: 'wt-1',
             repos: [{ id: 'repo-1', path: '/repo' }],
@@ -274,6 +278,7 @@ describe('createEditorSlice conflict status reconciliation', () => {
     const store = createStore<AppState>()(
       withSessionSourceTestWrites(
         (...args) =>
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
           ({
             activeWorktreeId: 'wt-1',
             ...createEditorSlice(...args)

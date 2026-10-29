@@ -51,6 +51,7 @@ function seedBatchStore() {
   }
   store.setState(
     replaceSessionSourceFields(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       {
         tabsByWorktree: { 'wt-1': [tab] },
         retainedAgentsByPaneKey: { [FIRST_PANE]: retained },
@@ -159,6 +160,7 @@ describe('setAgentStatuses', () => {
     })
     sequentialStore.setState(
       replaceSessionSourceFields(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
         {
           setGeneratedTabTitleFromAgentPrompt: sequentialTitleGeneration
         } as Partial<AppState>,
@@ -167,6 +169,7 @@ describe('setAgentStatuses', () => {
     )
     batchStore.setState(
       replaceSessionSourceFields(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
         {
           setGeneratedTabTitlesFromAgentPrompts: batchTitleGenerationBulk
         } as Partial<AppState>,
@@ -268,6 +271,7 @@ describe('setAgentStatuses', () => {
     )
     store.setState(
       replaceSessionSourceFields(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
         {
           settings: { ...store.getState().settings, tabAutoGenerateTitle: true },
           tabsByWorktree
@@ -435,6 +439,7 @@ describe('setAgentStatuses', () => {
     )
     store.setState(
       replaceSessionSourceFields(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState> fixture and intentionally supplies only the scenario's members.
         { agentStatusByPaneKey: entries } as Partial<AppState>,
         'hydration'
       )
@@ -480,6 +485,7 @@ describe('setAgentStatuses', () => {
       // Nested slice actions write real store; replacing it with the folded snapshot would revert those writes.
       store.setState(
         replaceSessionSourceFields(
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState> fixture and intentionally supplies only the scenario's members.
           { worktreesByRepo: { 'repo-late': [] } } as Partial<AppState>,
           'hydration'
         )

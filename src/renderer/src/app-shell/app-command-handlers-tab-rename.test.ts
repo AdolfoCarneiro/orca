@@ -6,7 +6,11 @@ import type { AppState } from '@/store/types'
 import { createTabsFocusActions } from '../store/slices/tabs/tabs-focus-actions'
 import type { TabsSliceGet, TabsSliceSet } from '../store/slices/tabs/tabs-slice-contract'
 import { buildActiveSurfacePatch } from '../store/slices/tabs/tabs-surface'
-import type { AppShortcutState, ShortcutDispatchInput } from './app-command-handlers'
+import {
+  type AppShortcutState,
+  type ShortcutDispatchInput,
+  createAppCommandHandlers
+} from './app-command-handlers'
 
 const mocks = vi.hoisted(() => ({
   requestTerminalTabRename: vi.fn(),
@@ -28,8 +32,6 @@ vi.mock('@/lib/floating-workspace-terminal-actions', () => ({
 vi.mock('@/lib/terminal-shortcut-capture-notification', () => ({
   showTerminalShortcutCaptureNotification: vi.fn()
 }))
-
-import { createAppCommandHandlers } from './app-command-handlers'
 
 const WORKTREE_ID = 'repo::/feature'
 const GROUP_ID = 'group-1'
@@ -87,6 +89,7 @@ function storeForActiveTab(activeGroupTabId: string): AppState {
   } as unknown as AppState
   const edit = editSessionSource(rawState)
   const surface = buildActiveSurfacePatch(edit, WORKTREE_ID)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   const store = {
     ...edit.view(),
     ...surface

@@ -78,6 +78,7 @@ describe('useGitStatusPolling rerender stability', () => {
     refreshMock.mockReset().mockResolvedValue(undefined)
 
     setSessionTestState(useAppStore, initialAppState, true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       activeWorktreeId: WORKTREE_ID,
       worktreesByRepo: {
@@ -227,6 +228,7 @@ describe('useGitStatusPolling rerender stability', () => {
   })
 
   it('refreshes immediately when an SSH execution host reconnects', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       repos: [{ ...repo, connectionId: 'ssh-1' }],
       sshConnectionStates: new Map([
@@ -238,6 +240,7 @@ describe('useGitStatusPolling rerender stability', () => {
     expect(refreshMock).not.toHaveBeenCalled()
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         sshConnectionStates: new Map([
           ['ssh-1', { status: 'connected', error: null, reconnectAttempt: 0 }]

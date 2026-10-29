@@ -53,14 +53,14 @@ export function withSessionSourceWrites<T extends object>(
       ): void => {
         const previousReceipt = currentReceipt
         try {
-          // SAFETY: replacement callers supply a complete root; the wrapper retains their flag.
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: replacement callers supply a complete root; the wrapper retains their flag.
           ;(write as (partial: (state: T) => T | Partial<T>, replace?: boolean) => void)(
             (state) => {
               const requested = typeof partial === 'function' ? partial(state) : partial
               if (requested === undefined) {
                 return state
               }
-              // SAFETY: raw Zustand ingress is checked by this same fixed-field gate below.
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: raw Zustand ingress is checked by this same fixed-field gate below.
               const admitted = requested as SessionSourcePartial<T>
               const accepted = prepare ? prepare(state, admitted) : admitted
               const { partial: prepared, receipt: suppliedReceipt } =
@@ -68,9 +68,9 @@ export function withSessionSourceWrites<T extends object>(
               let receipt = suppliedReceipt
               const changes = new Map(receipt?.changes)
               const unreported: string[] = []
-              // SAFETY: the fixed field domain reads only source properties of this store.
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixed field domain reads only source properties of this store.
               const priorSources = state as SourceFields<T>
-              // SAFETY: accepted partials retain the same store field types.
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: accepted partials retain the same store field types.
               const nextSources = prepared as SourceFields<T>
               for (const field of SESSION_SOURCE_FIELDS) {
                 if (
@@ -111,10 +111,10 @@ export function withSessionSourceWrites<T extends object>(
       return wrapped as typeof set
     }
     api.setState = wrap(api.setState)
-    // SAFETY: the source API and gate are installed above before this initializer receives them.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the source API and gate are installed above before this initializer receives them.
     const sourceStateCreator = createState as StateCreator<T, [], []>
     return sourceStateCreator(wrap(set), get, api)
   }
-  // SAFETY: initialize installs the source API before any slice or subscriber can access it.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: initialize installs the source API before any slice or subscriber can access it.
   return initialize as StateCreator<T, [], [['orca/session-source', never]]>
 }

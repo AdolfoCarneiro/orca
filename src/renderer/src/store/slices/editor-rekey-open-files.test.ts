@@ -126,6 +126,7 @@ describe('rekeyOpenFilesForPathChange', () => {
         activeTabId: oldId,
         recentTabIds: [oldId]
       } as never
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         unifiedTabsByWorktree: { 'wt-1': [tab] },
         groupsByWorktree: { 'wt-1': [group] }

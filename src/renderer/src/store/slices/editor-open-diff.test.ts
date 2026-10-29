@@ -313,6 +313,7 @@ describe('createEditorSlice openDiff', () => {
 
   it('does not reuse WSL aliases for SSH-owned tabs', () => {
     const store = createEditorStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-1' }],
       worktreesByRepo: {
@@ -368,6 +369,7 @@ describe('createEditorSlice openDiff', () => {
       mode: 'edit' as const
     }
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-1' }],
       sshConnectionStates: new Map([
@@ -385,6 +387,7 @@ describe('createEditorSlice openDiff', () => {
     } as never)
     store.getState().openFile({ ...file, externalSshTargetId: 'ssh-1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-2' }],
       sshConnectionStates: new Map([

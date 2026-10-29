@@ -107,6 +107,7 @@ describe('palette live status', () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     bodyRenderCount = 0
     setSessionTestState(useAppStore, initialAppState, true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-a': [makeTerminalTab('term-a', 'wt-a')] },
       ptyIdsByTabId: { 'term-a': ['pty-term-a'] },
@@ -242,6 +243,7 @@ describe('palette live status', () => {
 
   it('shows monitoring when a covered pane retains a working title', async () => {
     setAgentState('working', { workingMode: 'monitoring' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       tabsByWorktree: {
         'wt-a': [{ ...makeTerminalTab('term-a', 'wt-a'), title: 'claude [working]' }]
@@ -394,6 +396,7 @@ describe('palette live status', () => {
   })
 
   it('shows only the content icon when a terminal-backed row is inactive', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       ptyIdsByTabId: {}
     } as Partial<AppState>)

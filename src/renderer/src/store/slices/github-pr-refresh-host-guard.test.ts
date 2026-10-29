@@ -39,6 +39,7 @@ function seed(
   store: ReturnType<typeof createTestStore>,
   repo: Record<string, unknown> & { id: string; path: string }
 ) {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(store, {
     settings: { activeRuntimeEnvironmentId: null } as never,
     repos: [repo],

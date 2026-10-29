@@ -102,7 +102,7 @@ export class SessionReaderState {
         remove.push(key)
       }
     }
-    // SAFETY: entry transitions exist only for a Record base.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: entry transitions exist only for a Record base.
     const base = transition.base.value as Readonly<Record<string, unknown>>
     return (transition.resolved = { present: true, value: copySessionRecord(base, set, remove) })
   }

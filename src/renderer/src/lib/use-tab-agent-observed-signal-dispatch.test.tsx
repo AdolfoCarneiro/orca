@@ -96,6 +96,7 @@ describe('useTabAgent observed-signal dispatch', () => {
   let root: Root | undefined
 
   beforeEach(() => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       agentStatusByPaneKey: { [PANE_KEY]: workingAgentStatus() },
       terminalLayoutsByTabId: { [TAB_ID]: paneLayout('pty-a') },
@@ -129,6 +130,7 @@ describe('useTabAgent observed-signal dispatch', () => {
 
   it('still re-arms the observed signal after a pty respawn', () => {
     act(() => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         agentStatusByPaneKey: {},
         terminalLayoutsByTabId: { [TAB_ID]: paneLayout('pty-b') },
@@ -139,6 +141,7 @@ describe('useTabAgent observed-signal dispatch', () => {
     expect(latestAgent).toBeNull()
 
     act(() => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(useAppStore, {
         agentStatusByPaneKey: { [PANE_KEY]: workingAgentStatus() },
         tabsByWorktree: { [WORKTREE_ID]: [terminalTab('⠋ codex 1')] }

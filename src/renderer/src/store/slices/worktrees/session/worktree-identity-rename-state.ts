@@ -220,7 +220,7 @@ export function buildWorktreeRenameState(
     newWorktreeId,
     withNewBrowserWorktreeId
   )
-  // SAFETY: the explicit inventory and renameKey calls above contain only non-source fields.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the explicit inventory and renameKey calls above contain only non-source fields.
   const ordinary = renamed as OrdinarySourcePartial<AppState>
 
   return edit.finish({

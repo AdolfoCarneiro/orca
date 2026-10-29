@@ -155,6 +155,7 @@ describe('createUISlice settings navigation', () => {
     const prefetchWorkItems = vi.fn()
     const prefetchLinearIssues = vi.fn()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -203,6 +204,7 @@ describe('createUISlice settings navigation', () => {
       providerIdentity: { provider: 'github', owner: 'acme', repo: 'repo' }
     }
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {

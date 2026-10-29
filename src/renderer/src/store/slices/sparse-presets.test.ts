@@ -25,6 +25,7 @@ globalThis.window = { api: mockApi }
 
 function createTestStore() {
   return create<AppState>()(
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
     withSessionSourceTestWrites((...a) => ({ ...createSparsePresetsSlice(...a) }) as AppState)
   )
 }

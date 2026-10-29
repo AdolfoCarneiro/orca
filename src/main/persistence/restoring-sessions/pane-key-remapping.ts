@@ -43,7 +43,7 @@ function remapPaneKeys<T extends number>(
       }
       const value = values[paneKey]
       const existing = next[target]
-      // SAFETY: the generic values are numeric pane timestamps; Math.max preserves that value type.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the generic values are numeric pane timestamps; Math.max preserves that value type.
       next[target] = (existing === undefined ? value : Math.max(existing, value)) as T
       delete next[paneKey]
     }

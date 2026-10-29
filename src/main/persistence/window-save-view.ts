@@ -228,7 +228,7 @@ export function reduceWindowSessionPatch(
         continue
       }
       if (Object.hasOwn(joined, field)) {
-        // SAFETY: layout fields come from the saved workspace session domain.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: layout fields come from the saved workspace session domain.
         const name = field as keyof WorkspaceSessionState
         Object.assign(after, { [field]: joined[name] })
       } else {

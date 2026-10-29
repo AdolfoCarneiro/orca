@@ -127,7 +127,7 @@ export class SessionSnapshotOperations {
       ) {
         continue
       }
-      // SAFETY: validation restricts these keys to the session DTO.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: validation restricts these keys to the session DTO.
       reader.replace(field as keyof WorkspaceSessionState, { present: true, value })
     }
     for (const field of SESSION_MAP_FIELDS) {
@@ -142,6 +142,7 @@ export class SessionSnapshotOperations {
     for (const field of patch.clearFields ?? [])
     // SAFETY: the clear value is chosen from this validated field's DTO category.
     {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the clear value is chosen from this validated field's DTO category.
       reader.replace(field, { present: true, value: clearedSessionField(field) as never })
     }
     for (const field of ['activeWorktreeIdsOnShutdown', 'activeConnectionIdsAtShutdown'] as const) {

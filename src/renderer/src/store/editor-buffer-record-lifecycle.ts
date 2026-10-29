@@ -141,9 +141,9 @@ function reconcileEditorBuffers<TState extends EditorBufferStoreState>(
   return composeSessionSourceWrites(
     [
       requested,
-      // SAFETY: changed excludes both session-source fields in EditorBufferState.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: changed excludes both session-source fields in EditorBufferState.
       changed as OrdinarySourcePartial<TState>,
-      // SAFETY: sourceEdit writes the same editor fields TState extends.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: sourceEdit writes the same editor fields TState extends.
       sourceWrite as SessionSourceWrite<TState>
     ],
     true

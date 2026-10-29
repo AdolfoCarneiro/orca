@@ -505,6 +505,7 @@ describe('markLiveCodexSessionsForRestart lane scoping', () => {
   })
 
   afterEach(() => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test supplies only the preload API members exercised by its scenario.
     setSessionTestState(useAppStore, { settings: null as never, worktreesByRepo: {} as never })
     if (originalWindow) {
       ;(globalThis as { window: typeof window }).window = originalWindow

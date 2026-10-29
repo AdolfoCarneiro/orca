@@ -192,6 +192,7 @@ describe('hosted review slice', () => {
   it('uses SSH-scoped hosted review cache entries for SSH-backed repos', async () => {
     mockApi.hostedReview.forBranch.mockResolvedValueOnce(review)
     const store = makeStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [{ id: 'repo-1', path: '/repo', connectionId: 'ssh-1' } as AppState['repos'][number]]
     } as Partial<AppState>)
@@ -252,6 +253,7 @@ describe('hosted review slice', () => {
   it('routes runtime-owned review lookups through the owning runtime when local is focused', async () => {
     runtimeRpc.callRuntimeRpc.mockResolvedValueOnce(review)
     const store = makeStore(null)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -286,6 +288,7 @@ describe('hosted review slice', () => {
     const store = makeStore({
       activeRuntimeEnvironmentId: 'env-focused'
     } as AppState['settings'])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {

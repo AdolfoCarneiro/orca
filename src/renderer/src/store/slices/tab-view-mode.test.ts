@@ -36,6 +36,7 @@ function seedTwoLeafTabs(store: ReturnType<typeof createTestStore>): void {
   setSessionTestState(store, {
     worktreesByRepo: { repo1: [makeRuntimeOwnedWorktree({ id: WT, repoId: 'repo1' })] }
   })
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(store, {
     unifiedTabsByWorktree: { [WT]: [left, right] },
     groupsByWorktree: {
@@ -112,6 +113,7 @@ describe('tab view mode', () => {
 
     beforeEach(() => {
       const tabId = store.getState().createTab(WT).id
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
       setSessionTestState(store, {
         unifiedTabsByWorktree: {
           [WT]: [

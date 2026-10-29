@@ -202,6 +202,7 @@ describe('createEditorSlice activateMarkdownLink', () => {
   it('stats SSH markdown links through the source worktree connection before opening', async () => {
     const store = createEditorStore()
     pathExistsMock.mockResolvedValue(true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -589,6 +590,7 @@ describe('createEditorSlice activateMarkdownLink', () => {
 
   it('blocks external file URLs from SSH markdown sources', async () => {
     const store = createEditorStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {

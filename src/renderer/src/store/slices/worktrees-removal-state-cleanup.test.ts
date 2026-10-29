@@ -49,6 +49,7 @@ describe('removeWorktree state cleanup', () => {
       repoId: 'repo1',
       path: '/path/reused'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [removed] } } as Partial<AppState>)
     const staleProbe = beginHugeRepoWarningProbe(removed)
     expect(markHugeRepoWarningDismissed(staleProbe)).toBe(true)
@@ -70,6 +71,7 @@ describe('removeWorktree state cleanup', () => {
       repoId: 'repo1',
       path: '/path/retained'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [retained] } } as Partial<AppState>)
     const retainedProbe = beginHugeRepoWarningProbe(retained)
     expect(markHugeRepoWarningDismissed(retainedProbe)).toBe(true)
@@ -93,6 +95,7 @@ describe('removeWorktree state cleanup', () => {
       repoId: 'repo1',
       path: '/path/wt2'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] }
     } as Partial<AppState>)
@@ -113,6 +116,7 @@ describe('removeWorktree state cleanup', () => {
     const removed = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
     const surviving = makeWorktree({ id: 'repo1::/path/wt2', repoId: 'repo1', path: '/path/wt2' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       tabsByWorktree: {
@@ -143,6 +147,7 @@ describe('removeWorktree state cleanup', () => {
       path: '/path/wt2'
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [removed, surviving] },
       tabsByWorktree: {
@@ -230,6 +235,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
@@ -269,6 +275,7 @@ describe('removeWorktree state cleanup', () => {
       worktreeInstanceId: 'sibling-instance'
     })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       worktreeLineageById: {
@@ -288,6 +295,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
@@ -317,6 +325,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
@@ -346,6 +355,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
@@ -375,6 +385,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [
@@ -403,6 +414,7 @@ describe('removeWorktree state cleanup', () => {
   it('records the sidebar scroll anchor in the same tick it removes the worktree', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Partial<AppState>) fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { worktreesByRepo: { repo1: [wt] } } as Partial<AppState>)
 
     const sidebar = new EventTarget()
@@ -432,6 +444,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       expandedDirs: {
@@ -451,6 +464,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       showDotfilesByWorktree: {
@@ -470,6 +484,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       activeTabIdByWorktree: {
@@ -489,6 +504,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       tabBarOrderByWorktree: {
@@ -508,6 +524,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       pendingReconnectTabByWorktree: {
@@ -559,6 +576,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       gitStatusByWorktree: {
@@ -642,6 +660,7 @@ describe('removeWorktree state cleanup', () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       recentlyClosedBrowserTabsByWorktree: {
@@ -662,6 +681,7 @@ describe('removeWorktree state cleanup', () => {
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
 
     const drafts = { 'file-2': 'some content' }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { repo1: [wt] },
       openFiles: [],

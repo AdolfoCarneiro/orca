@@ -23,10 +23,10 @@ export class SessionFieldReader extends SessionReaderState {
     const transition = phase === 'candidate' ? this.transitions.get(field) : undefined
     const entry = transition?.entries?.get(key)
     if (entry) {
-      // SAFETY: entries are admitted by the same typed map field.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: entries are admitted by the same typed map field.
       return entry as SessionPresence<SessionEntry<F>>
     }
-    // SAFETY: transitions for a map field hold that field's admitted entries.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: transitions for a map field hold that field's admitted entries.
     const map = (transition ? transition.base.value : this.prior[field]) as
       | Readonly<Record<string, SessionEntry<F>>>
       | undefined
@@ -40,7 +40,7 @@ export class SessionFieldReader extends SessionReaderState {
     field: F,
     phase: 'prior' | 'candidate' = 'candidate'
   ): SessionPresence<WorkspaceSessionState[F]> {
-    // SAFETY: resolution retains the field's admitted value type.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: resolution retains the field's admitted value type.
     return (
       phase === 'candidate'
         ? this.resolve(field)
@@ -54,7 +54,7 @@ export class SessionFieldReader extends SessionReaderState {
     field: F,
     phase: 'prior' | 'candidate' = 'candidate'
   ): WorkspaceSessionState[F] {
-    // SAFETY: resolution retains the field's admitted value type.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: resolution retains the field's admitted value type.
     return (
       phase === 'prior' ? this.prior[field] : this.resolve(field).value
     ) as WorkspaceSessionState[F]
@@ -62,7 +62,7 @@ export class SessionFieldReader extends SessionReaderState {
 
   admitFields(requiredMaps = false): void {
     for (const field of Object.keys(SESSION_FIELD_POLICY)) {
-      // SAFETY: the keys are the declared admission policy fields.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the keys are the declared admission policy fields.
       const name = field as keyof typeof SESSION_FIELD_POLICY
       const policy = SESSION_FIELD_POLICY[name]
       const transition = this.transitions.get(name)
@@ -105,7 +105,7 @@ export class SessionFieldReader extends SessionReaderState {
       transition.intent = { kind: 'entries', present: true }
     }
     transition.entries ??= new Map()
-    // SAFETY: this transition belongs to the admitted map field.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this transition belongs to the admitted map field.
     const base = transition.base.value as Readonly<Record<string, unknown>> | null | undefined
     const basePresent = base != null && Object.hasOwn(base, key)
     if (basePresent === value.present && base?.[key] === value.value) {
@@ -153,7 +153,7 @@ export class SessionFieldReader extends SessionReaderState {
   }
 
   restoreField(field: keyof WorkspaceSessionState, present: boolean, value: unknown): void {
-    // SAFETY: rollback receipts retain the typed field value captured by this reader.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: rollback receipts retain the typed field value captured by this reader.
     const restored = value as WorkspaceSessionState[typeof field]
     this.replace(
       field,

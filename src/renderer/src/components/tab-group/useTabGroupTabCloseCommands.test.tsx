@@ -90,6 +90,7 @@ function commands(): ReturnType<typeof useTabGroupTabCloseCommands> {
 
 /** Stage a client handle before the host publishes its page. */
 function stageWorkspace(workspaceId: string): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     browserPagesByWorkspace: { [workspaceId]: [{ id: 'page-1', workspaceId }] },
     remoteBrowserPageHandlesByPageId: {
@@ -214,6 +215,7 @@ describe('closing a browser workspace owned by more than one runtime environment
       groupId: 'group-1'
     } as Tab
     stageWorkspace('workspace-a')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: { 'worktree-a': [BROWSER_TAB, hostTab] },
       browserPagesByWorkspace: {
@@ -238,6 +240,7 @@ describe('closing a browser workspace owned by more than one runtime environment
   })
 
   it('still leaves a lone owner tab for host sync to remove', () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       remoteBrowserPageHandlesByPageId: {
         'page-1': { environmentId: 'env-a', remotePageId: 'remote-1' },
@@ -261,6 +264,7 @@ describe('shared tab close policies', () => {
       entityId: 'dirty-file',
       contentType: 'editor'
     } as Tab
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(useAppStore, {
       unifiedTabsByWorktree: { 'worktree-a': [editor] },
       openFiles: [{ id: 'dirty-file', isDirty: true, worktreeId: 'worktree-a' }]

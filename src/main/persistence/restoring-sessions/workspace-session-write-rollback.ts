@@ -138,12 +138,16 @@ export function rollbackSessionUnit<T>(
 ): SessionPresence<T> {
   // SAFETY: session slots contain DTOs; rollback only retains values from the same typed slot.
   const restored = rollbackValue(
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: session slots contain DTOs; rollback only retains values from the same typed slot.
     original.present ? (original.value as RollbackSlot) : MISSING,
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: session slots contain DTOs; rollback only retains values from the same typed slot.
     staged.present ? (staged.value as RollbackSlot) : MISSING,
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: session slots contain DTOs; rollback only retains values from the same typed slot.
     current.present ? (current.value as RollbackSlot) : MISSING
   )
   // SAFETY: the recursion combines values exclusively from this slot's typed inputs.
   return restored === MISSING
     ? { present: false, value: undefined }
-    : { present: true, value: restored as T }
+    : // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the recursion combines values exclusively from this slot's typed inputs.
+      { present: true, value: restored as T }
 }

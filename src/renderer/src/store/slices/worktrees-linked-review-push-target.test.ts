@@ -86,6 +86,7 @@ describe('worktree remote runtime mutations', () => {
       baseBranch: 'origin/bot/pr-bug-scan-2504',
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         {
@@ -125,6 +126,7 @@ describe('worktree remote runtime mutations', () => {
       linkedPR: 2548,
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -152,6 +154,7 @@ describe('worktree remote runtime mutations', () => {
       linkedPR: 2548,
       pushTarget: { remoteName: 'fork', branchName: 'owner/old-pr' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -188,6 +191,7 @@ describe('worktree remote runtime mutations', () => {
       pushTarget: oldPushTarget
     })
     const fetchHostedReviewForBranch = vi.fn().mockResolvedValue(null)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -269,6 +273,7 @@ describe('worktree remote runtime mutations', () => {
       }
       throw new Error(`Unexpected runtime method ${method}`)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-env' } as never,
       repos: [
@@ -327,6 +332,7 @@ describe('worktree remote runtime mutations', () => {
       }
       throw new Error(`Unexpected runtime method ${method}`)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-env' } as never,
       repos: [
@@ -356,6 +362,7 @@ describe('worktree remote runtime mutations', () => {
   it('does not resolve a push target when metadata carries an invalid GitHub PR number', async () => {
     const store = createTestStore()
     const wt = makeWorktree({ id: 'repo1::/path/wt1', repoId: 'repo1', path: '/path/wt1' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -382,6 +389,7 @@ describe('worktree remote runtime mutations', () => {
       linkedPR: 2548,
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -411,6 +419,7 @@ describe('worktree remote runtime mutations', () => {
       baseBranch: 'origin/contributor/fix',
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -448,6 +457,7 @@ describe('worktree remote runtime mutations', () => {
       baseBranch: 'fork-head',
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -498,6 +508,7 @@ describe('worktree remote runtime mutations', () => {
       }
       throw new Error(`Unexpected runtime method ${method}`)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -558,6 +569,7 @@ describe('worktree remote runtime mutations', () => {
       }
       throw new Error(`Unexpected runtime method ${method}`)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'focused-env' } as never,
       repos: [
@@ -603,6 +615,7 @@ describe('worktree remote runtime mutations', () => {
       baseBranch: 'fork-head',
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
       repos: [
@@ -642,6 +655,7 @@ describe('worktree remote runtime mutations', () => {
       linkedPR: 5571
     })
     mockApi.worktrees.resolvePrBase.mockResolvedValueOnce({ baseBranch: 'fork-head' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -658,6 +672,7 @@ describe('worktree remote runtime mutations', () => {
   it('skips the push-target lookup for a genuinely ambiguous owner instead of throwing past the { ok, error } contract', async () => {
     const store = createTestStore()
     const worktreeId = 'repo-shared::/same/path'
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'hub-c' } as never,
       worktreesByRepo: {
@@ -708,6 +723,7 @@ describe('worktree remote runtime mutations', () => {
       result: { worktree: sshB },
       _meta: { runtimeId: 'hub-b' }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'hub-a' } as never,
       worktreesByRepo: { 'repo-shared': [sshA, sshB] }
@@ -761,6 +777,7 @@ describe('worktree remote runtime mutations', () => {
       }
       throw new Error(`Unexpected runtime method ${method}`)
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'hub-c' } as never,
       worktreesByRepo: {
@@ -784,6 +801,7 @@ describe('worktree remote runtime mutations', () => {
     expect(mockApi.worktrees.updateMeta).not.toHaveBeenCalled()
 
     // Remove twin ambiguity and retry; skipped lookups must not leave stale in-flight markers.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       worktreesByRepo: { 'repo-shared': [ownedWorktree] }
     } as Partial<AppState>)
@@ -814,6 +832,7 @@ describe('worktree remote runtime mutations', () => {
       baseBranch: 'upstream/feature/mr',
       pushTarget
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }
@@ -849,6 +868,7 @@ describe('worktree remote runtime mutations', () => {
       path: '/path/gitlab',
       linkedGitLabMR: -1
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, {
       repos: [
         { id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }

@@ -33,6 +33,7 @@ let main: TabsDrawnFromMain
 beforeEach(async () => {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   const twinRow = { id: TWIN, repoId: 'repo-a', path: '/repo-a-twin', hostId: 'local', branch: '' }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the the declared fixture domain fixture and intentionally supplies only the scenario's members.
   setSessionTestState(useAppStore, {
     activeWorktreeId: WT,
     settings: { editorAutoSave: false },

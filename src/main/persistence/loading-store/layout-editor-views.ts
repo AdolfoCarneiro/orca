@@ -195,7 +195,7 @@ export function refileEditorViews(
     if (Object.keys(bag).length) {
       continue
     }
-    // SAFETY: keys are encoded locally as a host id and workspace key above.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: keys are encoded locally as a host id and workspace key above.
     const [hostId, key] = JSON.parse(id) as [ExecutionHostId, string]
     delete edited.get(hostId)?.[key]
   }

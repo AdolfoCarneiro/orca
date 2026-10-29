@@ -135,6 +135,7 @@ describe('repo slice host identity routing', () => {
     const { executionHostId: _executionHostId, ...legacyLocalDuplicate } = localDuplicate
     reposUpdate.mockResolvedValue(undefined)
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test controls the Repo fixture and intentionally supplies only the scenario's members.
     setSessionTestState(store, { repos: [legacyLocalDuplicate as Repo, remoteDuplicate] })
 
     await store.getState().updateRepo('same-repo', { displayName: 'Local Renamed' })

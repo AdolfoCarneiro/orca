@@ -51,12 +51,13 @@ export class SessionSourceReceipts {
         this.changes.set(field, selected)
       }
     }
-    // SAFETY: receipt sequences use only the exhaustive sequence field domain.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: receipt sequences use only the exhaustive sequence field domain.
     for (const field of Object.keys(receipt.sequences ?? {}) as SessionSequenceField[]) {
-      // SAFETY: sequence properties are restricted to the exhaustive sequence field domain.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: sequence properties are restricted to the exhaustive sequence field domain.
       const incoming = receipt.sequences![field] as ReadonlyMap<string, unknown[]>
       // SAFETY: each sequence field retains its own row domain across accumulator writes.
       const pending =
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: each sequence field retains its own row domain across accumulator writes.
         (this.sequences[field] as Map<string, unknown[]> | undefined) ??
         new Map<string, unknown[]>()
       for (const [key, rows] of incoming ?? []) {
@@ -91,7 +92,7 @@ export class SessionSourceReceipts {
         changes.set(field, selected)
         continue
       }
-      // SAFETY: the field-kind branch above admits only keyed source collections.
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the field-kind branch above admits only keyed source collections.
       const name = field as SessionSourceKind<'keyed'>
       const oldEntries = before[name],
         newEntries = after[name]
