@@ -189,6 +189,10 @@ export class RuntimeMobileNotificationController {
   }
 
   dispatch(event: MobileNotificationEvent): void {
+    this.recordAndDispatch(event)
+  }
+
+  private recordAndDispatch(event: MobileNotificationEvent, project = true): void {
     if (event.type === 'notification') {
       // Decide once before recording so reconnect and buffer eviction cannot reset cooldown.
       const legacySocketAllowed =
@@ -206,16 +210,18 @@ export class RuntimeMobileNotificationController {
       }
     }
     const seq = this.replay.record(event)
+    let changed = false
     try {
-      this.dismissalStore?.record({
-        ...event,
-        notificationSeq: seq,
-        notificationEpoch: this.replay.epoch
-      })
+      changed =
+        this.dismissalStore?.record({
+          ...event,
+          notificationSeq: seq,
+          notificationEpoch: this.replay.epoch
+        }) ?? false
     } catch {
       console.warn('[notifications] Could not persist dismissal recovery state')
     }
-    this.refreshForwardedEnvironments()
+    if (changed && project) this.refreshForwardedEnvironments()
     notifyRuntimeListeners(
       this.listeners,
       (listener) =>
@@ -241,34 +247,43 @@ export class RuntimeMobileNotificationController {
   }
 
   private retireDelivery(delivery: DeliveredNotificationIdentity): void {
-    this.dispatch({
-      type: 'dismiss',
-      notificationId: delivery.notificationId,
-      dismissedDelivery: {
+    this.recordAndDispatch(
+      {
+        type: 'dismiss',
         notificationId: delivery.notificationId,
-        notificationEpoch: delivery.notificationEpoch,
-        notificationSeq: delivery.notificationSeq
-      }
-    })
+        dismissedDelivery: {
+          notificationId: delivery.notificationId,
+          notificationEpoch: delivery.notificationEpoch,
+          notificationSeq: delivery.notificationSeq
+        }
+      },
+      false
+    )
   }
 
   retireStructuredAttention(read: StructuredAttentionRead): void {
+    let changed = false
     for (const delivery of this.dismissalStore?.liveDeliveries() ?? []) {
       if (attentionOriginWasRead(delivery.structuredOrigin, read)) {
         this.retireDelivery(delivery)
+        changed = true
       }
     }
+    if (changed) this.refreshForwardedEnvironments()
   }
 
   reconcileStructuredPromptAttention(state: StructuredAttentionState): void {
     const prefix = agentSessionAttentionSubjectPrefix(state.scope, state.sessionId)
     const pending = new Set(state.pendingPromptIds)
+    let changed = false
     for (const delivery of this.dismissalStore?.liveDeliveries(prefix) ?? []) {
       const cause = delivery.structuredOrigin?.cause
       if (cause?.kind === 'prompt' && !pending.has(cause.promptId)) {
         this.retireDelivery(delivery)
+        changed = true
       }
     }
+    if (changed) this.refreshForwardedEnvironments()
   }
 
   async dispatchPlugin(input: {

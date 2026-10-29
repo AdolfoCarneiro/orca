@@ -40,7 +40,11 @@ export function collapseIdFor(
       ? [notification.notificationEpoch, notification.notificationSeq]
       : notification.notificationId
   return createHash('sha256')
-    .update(JSON.stringify([admitted ? notification.origin : hostFingerprint, identity]))
+    .update(
+      JSON.stringify(
+        admitted ? ['admitted-v1', notification.origin, identity] : [hostFingerprint, identity]
+      )
+    )
     .digest('hex')
 }
 

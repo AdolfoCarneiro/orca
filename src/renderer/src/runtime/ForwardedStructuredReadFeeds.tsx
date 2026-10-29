@@ -8,10 +8,10 @@ export function ForwardedStructuredReadFeeds(): null {
     let environments: string[] = []
     let stopped = false
     const reconcile = (): void => {
-      const known = useAppStore.getState().runtimeEnvironments
-      const wanted = new Set(
-        environments.filter((id) => known.some((environment) => environment.id === id))
+      const known = new Set(
+        useAppStore.getState().runtimeEnvironments.map((environment) => environment.id)
       )
+      const wanted = new Set(environments.filter((id) => known.has(id)))
       for (const [id, release] of held) {
         if (!wanted.has(id)) {
           release()

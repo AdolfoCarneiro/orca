@@ -91,6 +91,26 @@ beforeEach(() => {
 })
 
 describe('createNotificationDeliveryService', () => {
+  it('resolves trusted origin only after mobile cooldown, independently of desktop mute/focus', () => {
+    const harness = makeHarness(makeSettings({ enabled: false }))
+    const resolve = vi.fn(() => 'o'.repeat(16))
+    harness.deps.resolveMobileOrigin = resolve
+    const service = createNotificationDeliveryService(harness.deps)
+    const request = makeRequest({ occurrence: 'first', origin: 'renderer-value' })
+    service.dispatch(request)
+    service.dispatch(request)
+    service.dispatch({ ...request, occurrence: 'next' })
+    service.dispatch({ ...request, mobileDeliveredByHost: true })
+    service.dispatch({ ...request, source: 'test' })
+    expect(resolve).toHaveBeenCalledTimes(2)
+    expect(harness.dispatchMobileNotification).toHaveBeenCalledTimes(2)
+    expect(
+      harness.dispatchMobileNotification.mock.calls.every(
+        ([event]) => event.origin === 'o'.repeat(16)
+      )
+    ).toBe(true)
+  })
+
   it('lets a prompt re-raise reach the gateway inside the five-second cooldown', async () => {
     const push = createPushHarness({
       devices: [{ deviceId: 'phone', pushRegistration: registration() }]

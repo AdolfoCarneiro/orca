@@ -187,6 +187,10 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
     deliverNative: deliverNativeNotification,
     platform: process.platform,
     now: () => Date.now(),
+    resolveMobileOrigin: (request) =>
+      request.occurrence && request.executionHost && request.forwardingEnvironmentId
+        ? forwardedPushOrigin(app.getPath('userData'), request.forwardingEnvironmentId)
+        : undefined,
     recordAnnounced: (request) => {
       if (request.paneKey && request.notificationId) {
         announced.record(request.paneKey, request.notificationId, request.structuredOrigin)
@@ -215,10 +219,7 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
       deliveryService.dispatch({
         ...args,
         occurrence: structuredPushOccurrence(args.notificationId, args.structuredOrigin),
-        origin:
-          args.executionHost && args.forwardingEnvironmentId
-            ? forwardedPushOrigin(app.getPath('userData'), args.forwardingEnvironmentId)
-            : undefined
+        origin: undefined
       })
   )
 

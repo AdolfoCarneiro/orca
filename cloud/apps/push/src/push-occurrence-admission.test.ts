@@ -1,9 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createHash, generateKeyPairSync } from 'node:crypto'
+import type { ApnsRequest, ApnsResponse } from './apns-http2-transport.js'
+import { DurablePushWorker } from './durable-push-worker.js'
 import nacl from 'tweetnacl'
 import { pushRouteDeclarationContent } from '@orca-cloud/push-contract'
 import { PushDeviceRegistryStore } from './device-registry-store.js'
 import { declarePushRoutes } from './push-route-declarations.js'
-import { buildPushDelivery } from './push-delivery-message.js'
 import { PushDispatcher } from './push-dispatcher.js'
 import { ApnsClient } from './apns-client.js'
 import { DurablePushStore } from './durable-push-store.js'
@@ -12,7 +14,8 @@ import {
   cleanupDurablePushFixtures,
   durablePushTestDatabaseUrl,
   fixture,
-  notification
+  notification,
+  within
 } from './durable-push-store.test-fixture.js'
 
 const A = 'AAAAAAAAAAAAAAAA'
@@ -224,40 +227,236 @@ describe('occurrence admission', () => {
     expect(await f.store.admission(retried).acquire(f.device(retried))).toBe('admitted')
   })
 
-  it('does not let a foreign route-key receipt suppress the phone or skipped copies replace it', async () => {
+  it('does not let a foreign route-key receipt suppress the phone', async () => {
     const f = await setup()
     const admitted = f.store.admission(f.first)
     await admitted.acquire(f.device(f.first))
     await admitted.finalize(true)
     await f.db.query('UPDATE push_occurrence_claims SET winner_route_key = ?', ['foreign'])
     expect(await f.store.admission(f.second).acquire(f.device(f.second))).toBe('admitted')
-    await f.declare([f.second.hostFingerprint], 2)
-    expect(await f.store.admission(f.first).acquire(f.device(f.first))).toBe('skipped')
-    const shared = buildPushDelivery({
-      ...f.second,
-      notification: f.alert,
-      expiresAt: f.second.expiresAt
-    })
-    const sent: (typeof shared)[] = []
-    const dispatcher = new PushDispatcher({
-      devices: f.devices,
-      apns: Object.assign(Object.create(ApnsClient.prototype), {
-        send: async (delivery: typeof shared) => {
-          sent.push(structuredClone(delivery))
-          return { status: 'sent' as const }
-        }
+  })
+
+  it.each([
+    [A, A],
+    [A, B],
+    [B, A],
+    [B, B]
+  ])(
+    'keeps the admitted copy with retained %s and first sender %s through provider settlement',
+    async (retained, firstSender) => {
+      const f = await setup()
+      await f.declare([retained], 2)
+      await parkBoth(f)
+      await f.db.query('UPDATE push_delivery_batches SET due_at = ? WHERE host_fingerprint <> ?', [
+        f.clock() + 1000,
+        firstSender
+      ])
+      const requests: ApnsRequest[] = []
+      const worker = new DurablePushWorker(
+        f.store,
+        new PushDispatcher({
+          devices: f.devices,
+          apns: provider(f.clock, async (request) => {
+            requests.push(request)
+            return { status: 200, body: '' }
+          })
+        }),
+        { now: f.clock }
+      )
+      try {
+        await worker.runDue()
+        f.advance(1000)
+        await worker.runDue()
+        expect(requests).toHaveLength(2)
+        const admitted = requests.find(
+          (request) => JSON.parse(request.body).orca.origin === origin
+        )!
+        const legacy = requests.find((request) => !JSON.parse(request.body).orca.origin)!
+        const skipped = retained === A ? B : A
+        expect(JSON.parse(admitted.body).orca.hostFingerprint).toBe(retained)
+        expect(JSON.parse(legacy.body).orca.hostFingerprint).toBe(skipped)
+        expect(admitted.headers['apns-collapse-id']).not.toBe(legacy.headers['apns-collapse-id'])
+        expect(legacy.headers['apns-collapse-id']).toBe(
+          createHash('sha256')
+            .update(JSON.stringify([skipped, 'subject']))
+            .digest('hex')
+        )
+        expect(await f.store.pendingCount(f.a.registrationId)).toBe(0)
+        expect(await f.store.pendingCount(f.b.registrationId)).toBe(0)
+        expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe('sent')
+      } finally {
+        await worker.stop()
+      }
+    }
+  )
+
+  it.each([200, 400])(
+    'parks the competing worker and settles after winner HTTP %s, with one provider call per winner',
+    async (status) => {
+      const f = await setup()
+      await parkBoth(f)
+      await f.db.query('UPDATE push_delivery_batches SET due_at = ? WHERE host_fingerprint = ?', [
+        f.clock() + 1000,
+        B
+      ])
+      let release!: () => void
+      const held = new Promise<void>((resolve) => {
+        release = resolve
       })
-    })
-    await dispatcher.sendOnce(shared, f.store.admission(f.second))
-    const skipped = buildPushDelivery({
-      ...f.first,
-      notification: f.alert,
-      expiresAt: f.first.expiresAt
-    })
-    await dispatcher.sendOnce(skipped, f.store.admission(f.first))
-    expect(sent[0].orca.origin).toBe(origin)
-    expect(sent[1].orca.origin).toBeUndefined()
-    expect(sent[1].collapseId).not.toBe(sent[0].collapseId)
+      let entered!: () => void
+      const atProvider = new Promise<void>((resolve) => {
+        entered = resolve
+      })
+      let parked!: () => void
+      const atPark = new Promise<void>((resolve) => {
+        parked = resolve
+      })
+      const defer = vi.spyOn(f.store, 'defer').mockImplementation(async (queued) => {
+        await DurablePushStore.prototype.defer.call(f.store, queued)
+        parked()
+      })
+      const requests: ApnsRequest[] = []
+      const worker = new DurablePushWorker(
+        f.store,
+        new PushDispatcher({
+          devices: f.devices,
+          apns: provider(f.clock, async (request) => {
+            requests.push(request)
+            if (requests.length === 1) {
+              entered()
+              await held
+              return { status, body: '{"reason":"BadTopic"}' }
+            }
+            return { status: 200, body: '' }
+          })
+        }),
+        { now: f.clock }
+      )
+      const running = worker.runDue()
+      try {
+        await within(atProvider, 5000)
+        f.advance(1000)
+        const competing = worker.runDue()
+        await within(atPark, 5000)
+        expect(requests).toHaveLength(1)
+        const [row] = await f.db.query(
+          'SELECT attempts, lease_token, due_at FROM push_delivery_batches WHERE host_fingerprint = ?',
+          [B]
+        )
+        expect(Number(row.attempts)).toBe(0)
+        expect(row.lease_token).toBeNull()
+        expect(Number(row.due_at)).toBe(f.clock() + 1000)
+        release()
+        await Promise.all([running, competing])
+        f.advance(1000)
+        await worker.runDue()
+        expect(requests).toHaveLength(status === 200 ? 1 : 2)
+        if (status === 400) expect(JSON.parse(requests[1].body).orca.hostFingerprint).toBe(B)
+        expect(await f.store.pendingCount(f.a.registrationId)).toBe(0)
+        expect(await f.store.pendingCount(f.b.registrationId)).toBe(0)
+        expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe('sent')
+      } finally {
+        release()
+        await running
+        await worker.stop()
+        defer.mockRestore()
+      }
+    }
+  )
+
+  it('retains a successful provider result while retrying fenced database finalization', async () => {
+    const f = await setup()
+    await f.store.finish(f.second)
+    await f.store.defer(f.first)
+    f.advance(1000)
+    let failures = 0
+    const store = new DurablePushStore(
+      {
+        ...f.db,
+        transaction: (run) =>
+          f.db.transaction((tx) =>
+            run({
+              ...tx,
+              query: async (sql, params) => {
+                if (
+                  sql.startsWith("UPDATE push_occurrence_claims SET state = 'sent'") &&
+                  failures++ < 2
+                )
+                  throw new Error('database temporarily unavailable')
+                return tx.query(sql, params)
+              }
+            })
+          )
+      },
+      f.clock
+    )
+    const transport = vi.fn(async (_request: ApnsRequest) => ({ status: 200, body: '' }))
+    const worker = new DurablePushWorker(
+      store,
+      new PushDispatcher({ devices: f.devices, apns: provider(f.clock, transport) }),
+      { now: f.clock }
+    )
+    try {
+      await worker.runDue()
+      expect(transport).toHaveBeenCalledTimes(1)
+      expect(failures).toBe(3)
+      expect(await store.pendingCount(f.first.registrationId)).toBe(0)
+      expect((await f.db.query('SELECT state FROM push_occurrence_claims'))[0].state).toBe('sent')
+    } finally {
+      await worker.stop()
+    }
+  })
+
+  it('bounds actual gateway query and provider work at N and10N queued occurrences', async () => {
+    const samples: { count: number; queries: number; providers: number }[] = []
+    for (const count of [10, 100]) {
+      const f = await setup()
+      await f.store.finish(f.first)
+      await f.store.finish(f.second)
+      let queries = 0
+      const store = new DurablePushStore(
+        {
+          ...f.db,
+          query: (sql, params) => {
+            queries++
+            return f.db.query(sql, params)
+          },
+          transaction: (run) =>
+            f.db.transaction((tx) =>
+              run({
+                ...tx,
+                query: (sql, params) => {
+                  queries++
+                  return tx.query(sql, params)
+                }
+              })
+            )
+        },
+        f.clock
+      )
+      for (let i = 0; i < count; i++)
+        await store.accept(A, f.a.registrationId, {
+          ...f.alert,
+          notificationSeq: i + 2,
+          occurrence: String(i).padStart(43, 'o')
+        })
+      const transport = vi.fn(async (_request: ApnsRequest) => ({ status: 200, body: '' }))
+      const worker = new DurablePushWorker(
+        store,
+        new PushDispatcher({ devices: f.devices, apns: provider(f.clock, transport) }),
+        { now: f.clock }
+      )
+      try {
+        // A device's ordered head allows25 deliveries per drain; each call is the production timer wake.
+        for (let wake = 0; wake < Math.ceil(count / 25); wake++) await worker.runDue()
+        samples.push({ count, queries, providers: transport.mock.calls.length })
+        expect(transport).toHaveBeenCalledTimes(count)
+        expect(await store.pendingCount(f.a.registrationId)).toBe(0)
+      } finally {
+        await worker.stop()
+      }
+    }
+    expect(samples[1].queries).toBeLessThanOrEqual(samples[0].queries * 10)
   })
 
   it('acknowledges lost declaration responses, orders versions, and rejects unproven declarations', async () => {
@@ -283,3 +482,26 @@ describe('occurrence admission', () => {
     expect(await f.store.accept(A, 'another-phone', legacy)).toBe('queued')
   })
 })
+
+async function parkBoth(f: Awaited<ReturnType<typeof setup>>): Promise<void> {
+  await f.store.defer(f.first)
+  await f.store.defer(f.second)
+  f.advance(1000)
+}
+
+function provider(
+  now: () => number,
+  transport: (request: ApnsRequest) => Promise<ApnsResponse>
+): ApnsClient {
+  const { privateKey } = generateKeyPairSync('ec', {
+    namedCurve: 'P-256',
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    publicKeyEncoding: { type: 'spki', format: 'pem' }
+  })
+  return new ApnsClient({
+    topic: 'com.stably.orca.mobile',
+    credentials: { keyPem: privateKey, keyId: 'ABCDE12345', teamId: 'TEAM123456' },
+    transport,
+    now
+  })
+}

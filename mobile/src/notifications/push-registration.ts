@@ -281,13 +281,24 @@ export async function unregisterPushForRemovedHost(hostId: string): Promise<() =
 
 // Provider token rollover invalidates delivery, so refresh every connected host immediately.
 export function startPushTokenSync(): () => void {
-  const stopLease = startMobilePushLeaseRenewal(reconcileAllHosts)
+  let stopped = false
+  const refresh = async () => {
+    await currentToken()
+    const pending = tokenPromise
+    const token = await pending
+    if (stopped || tokenPromise !== pending) return
+    if (token) refreshPushRoutes(token)
+    await reconcileAllHosts()
+  }
+  void refresh().catch(() => {})
+  const stopLease = startMobilePushLeaseRenewal(refresh)
   const stopToken = addPushTokenListener((token) => {
     tokenPromise = Promise.resolve(token)
     refreshPushRoutes(token)
     void reconcileAllHosts()
   })
   return () => {
+    stopped = true
     stopPushRoutePublication()
     stopLease()
     stopToken()

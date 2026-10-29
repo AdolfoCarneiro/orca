@@ -44,9 +44,9 @@ export class MobileNotificationDismissalStore {
 
   record(
     event: MobileNotificationEvent & { notificationEpoch: string; notificationSeq: number }
-  ): void {
+  ): boolean {
     if (!event.notificationId) {
-      return
+      return false
     }
     const now = Date.now()
     const kept = this.entries.filter((entry) => entry.expiresAt > now)
@@ -100,7 +100,7 @@ export class MobileNotificationDismissalStore {
     next = next.slice(-LIMIT)
     this.entries = next
     if (this.unreadable) {
-      return
+      return true
     }
     const serialize = () => JSON.stringify(this.entries, null, 2)
     if (this.closed) {
@@ -110,9 +110,10 @@ export class MobileNotificationDismissalStore {
       } catch (error) {
         warnPersistFailed(error)
       }
-      return
+      return true
     }
     this.writer.write(serialize).catch(warnPersistFailed)
+    return true
   }
 
   flush(): Promise<void> {

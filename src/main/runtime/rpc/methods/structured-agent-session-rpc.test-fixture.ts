@@ -208,6 +208,7 @@ export function hostStub(): StructuredAgentSessionHost {
     subscribeStatus: vi.fn((subscriber: StructuredAgentSessionStatusSubscriber) =>
       statusFeed().subscribe(subscriber)
     ),
+    publishAttentionRead: vi.fn(),
     subscribeTurnCompletions: vi.fn(() => () => undefined),
     unsubscribe: vi.fn()
   })

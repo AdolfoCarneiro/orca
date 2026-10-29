@@ -52,7 +52,7 @@ export function occurrenceAdmission(
           candidate
         )
         if (row?.state === 'dismissed') return 'superseded'
-        if (row?.winner_route_key === device.routeKey) {
+        if (row && row.winner_route_key === device.routeKey) {
           if (row.state === 'sent') return 'superseded'
           if (
             row.state === 'inflight' &&

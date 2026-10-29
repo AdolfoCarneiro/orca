@@ -40,6 +40,7 @@ async function pipeline() {
   }
   const service = DesktopPushService.create({
     runtime: {
+      setMobilePushOrigin: controller.setPushOrigin.bind(controller),
       setMobilePushRegistrar: controller.setPushRegistrar.bind(controller),
       onNotificationDispatched: controller.onDispatched.bind(controller)
     } as never,

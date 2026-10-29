@@ -31,6 +31,7 @@ export type NotificationDeliveryDependencies = {
   now: () => number
   /** Called for each actual desktop banner or mobile alert. */
   recordAnnounced?: (request: NotificationDispatchRequest) => void
+  resolveMobileOrigin?: (request: NotificationDispatchRequest) => string | undefined
 }
 
 export type NotificationDeliveryService = {
@@ -107,6 +108,9 @@ export function createNotificationDeliveryService(
             deps.now()
           )
         ) {
+          const origin = deps.resolveMobileOrigin
+            ? deps.resolveMobileOrigin(request)
+            : request.origin
           deps.dispatchMobileNotification({
             type: 'notification',
             emittedAt: deps.now(),
@@ -123,7 +127,7 @@ export function createNotificationDeliveryService(
             ...(request.agentState ? { agentState: request.agentState } : {}),
             ...(request.attentionKey ? { attentionKey: request.attentionKey } : {}),
             ...(request.occurrence ? { occurrence: request.occurrence } : {}),
-            ...(request.origin ? { origin: request.origin } : {}),
+            ...(origin ? { origin } : {}),
             ...(request.forwardingEnvironmentId
               ? { forwardingEnvironmentId: request.forwardingEnvironmentId }
               : {}),
