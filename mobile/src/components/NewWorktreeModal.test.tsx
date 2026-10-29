@@ -574,7 +574,7 @@ describe('NewWorktreeModal project targets', () => {
     await act(async () => picker.props.onSelect(picker.props.items[1]))
     await flushUpdates()
 
-    expect(runTargetPicker(renderer).props.selectedId).toBe('runtime:env-1')
+    expect(runTargetPicker(renderer).props.selectedId).toBe('runtime:env-1::repo-1')
     expect(
       renderer.root.find((node) => node.props.runTarget !== undefined).props.runTarget.detail
     ).toBe('/srv/orca')

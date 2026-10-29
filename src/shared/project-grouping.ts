@@ -102,6 +102,10 @@ export function selectProjectGroupTarget<S extends GroupingSetup>(
       (setup) => explicit(setup) && (!hint.hostId || setup.hostId === hint.hostId)
     ) ??
     group.members.find(explicit) ??
+    group.members.find(
+      (setup) =>
+        setup.repoId === hint.contextualRepoId && (!hint.hostId || setup.hostId === hint.hostId)
+    ) ??
     group.members.find((setup) => setup.repoId === hint.contextualRepoId) ??
     group.members.find((setup) => setup.hostId === (hint.hostId ?? LOCAL_EXECUTION_HOST_ID)) ??
     group.representative

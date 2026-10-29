@@ -158,6 +158,8 @@ export function useReviewBaseSelectionFixture(initialReview?: GitHubWorkItem) {
   const project = useProjectTargetActions({
     ...common,
     handleRepoChange: target.handleRepoChange,
+    setSelectedProjectHostSetupOverrideId: vi.fn(),
+    setSelectedProjectHostSetupOverrideHostId: vi.fn(),
     actionableHostIds: new Set([LOCAL_EXECUTION_HOST_ID]),
     projectGroups: [folderGroup],
     projectHostSetups: [],

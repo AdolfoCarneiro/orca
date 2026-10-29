@@ -2,7 +2,9 @@ import type { GroupingSetup } from './project-grouping'
 import { getProjectCheckoutPathKey, getProjectHostNamespace } from './project-grouping'
 
 /** Older desktops publish no resolved keys; reproduce their display until they update. */
-export function withLegacyProjectGroupKeys<S extends GroupingSetup>(setups: readonly S[]): S[] {
+export function withLegacyProjectGroupKeys<S extends GroupingSetup>(
+  setups: readonly S[]
+): (S & { groupKey: string })[] {
   const pathsBySurface = new Map<string, Set<string>>()
   for (const setup of setups) {
     if (setup.setupMethod === 'provisioned' || setup.kind === 'folder') {
@@ -15,7 +17,7 @@ export function withLegacyProjectGroupKeys<S extends GroupingSetup>(setups: read
   }
   return setups.map((setup) => {
     if (setup.groupKey) {
-      return setup
+      return { ...setup, groupKey: setup.groupKey }
     }
     const separate =
       setup.setupMethod !== 'provisioned' &&

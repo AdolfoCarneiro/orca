@@ -20,7 +20,8 @@ function dedupeByCheckout(): (option: ReadyProjectHostSetupOption) => boolean {
     const key = getProjectCheckoutPathKey({
       ...option,
       displayName: option.detail,
-      setupMethod: 'legacy-repo'
+      setupMethod: 'legacy-repo',
+      kind: undefined
     })
     if (seen.has(key)) {
       return false

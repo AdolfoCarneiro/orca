@@ -81,6 +81,9 @@ describe('project grouping', () => {
       'second'
     )
     expect(selectProjectGroupTarget(group, { hostId: remote.hostId })).toBe(remote)
+    expect(
+      selectProjectGroupTarget(group, { contextualRepoId: first.repoId, hostId: remote.hostId })
+    ).toBe(remote)
   })
 
   it('deduplicates equivalent registrations and keeps host and filesystem namespaces distinct', () => {

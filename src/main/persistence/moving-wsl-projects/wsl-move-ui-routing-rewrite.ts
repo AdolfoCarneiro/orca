@@ -37,9 +37,8 @@ export type WslMoveUiRoutingState = Pick<
   | 'workspaceHostOrder'
   | 'setupScriptPromptDismissedRepoIds'
   | 'collapsedGroups'
-  | 'filterRepoIds'
-  | 'agentsFilterRepoIds'
->
+> &
+  Partial<Pick<PersistedUIState, 'filterRepoIds' | 'agentsFilterRepoIds'>>
 
 // Mirrors the renderer's keys (setup-script-prompt.ts, group-keys.ts); main cannot import them.
 const SETUP_SCRIPT_DISMISSAL_PREFIX = 'generation-v1:'

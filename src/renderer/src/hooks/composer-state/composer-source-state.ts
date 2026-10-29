@@ -96,6 +96,7 @@ export function useComposerSourceState(
     projectGroups: target.composerTargetStore.projectGroups,
     projectHostSetups: target.composerTargetStore.projectHostSetups,
     projects: target.composerTargetStore.projects,
+    settings: target.composerTargetStore.settings,
     repos: target.composerTargetStore.repos,
     setBaseBranch: target.workspaceIdentityState.setBaseBranch,
     setBranchNameOverride: target.workspaceIdentityState.setBranchNameOverride,
@@ -114,6 +115,10 @@ export function useComposerSourceState(
     setReuseEligibleBranch: target.workspaceIdentityState.setReuseEligibleBranch,
     setReuseSelectedBranch: target.workspaceIdentityState.setReuseSelectedBranch,
     setSelectedProjectGroupId: target.initialTargetState.setSelectedProjectGroupId,
+    setSelectedProjectHostSetupOverrideId:
+      target.initialTargetState.setSelectedProjectHostSetupOverrideId,
+    setSelectedProjectHostSetupOverrideHostId:
+      target.initialTargetState.setSelectedProjectHostSetupOverrideHostId,
     setSparseDirectories: target.asyncComposerState.setSparseDirectories,
     setSparseEnabled: target.asyncComposerState.setSparseEnabled,
     setSparseSelectedPresetId: target.asyncComposerState.setSparseSelectedPresetId,
