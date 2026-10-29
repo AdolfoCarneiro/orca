@@ -1,6 +1,6 @@
 import type { AppState } from '@/store/types'
 import { getWorkspaceClientCreationActionPolicy } from './client-creation-action-policy'
-import { openHttpLink } from './http-link-routing'
+import { openOwnedHttpLink } from './http-link-routing'
 import { getShortcutPlatform } from './shortcut-platform'
 
 // The store registers itself so link buttons need not import it.
@@ -39,9 +39,10 @@ export function openAppHttpLink(url: string, options: OpenAppHttpLinkOptions = {
     hostWorktreeId &&
     getWorkspaceClientCreationActionPolicy(state, hostWorktreeId)['managed-browser'].state ===
       'enabled'
-  openHttpLink(url, {
+  // Orca's own UI is the source; the opener still routes by the host workspace's owner.
+  openOwnedHttpLink(url, {
     worktreeId: canHost ? hostWorktreeId : null,
-    allowRemoteInApp: true,
+    sourceOwner: { kind: 'local' },
     modifierHeld: isEscapeModifierClick(options.event)
   })
 }
