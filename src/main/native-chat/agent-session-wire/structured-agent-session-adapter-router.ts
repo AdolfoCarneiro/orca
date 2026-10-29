@@ -149,9 +149,13 @@ export class StructuredAgentSessionAdapterRouter implements StructuredAgentSessi
   atRestCommands: StructuredAgentSessionAtRestCommands = {
     read: (record) =>
       this.agents.registration(record.provider)?.adapter.atRestCommands?.read(record),
-    settled: async (record, budgetMs) => {
+    snapshot: (record) =>
+      this.agents.registration(record.provider)?.adapter.atRestCommands?.snapshot?.(record) ?? {
+        commandsPending: false
+      },
+    settled: async (record, budgetMs, independent) => {
       const source = this.agents.registration(record.provider)?.adapter.atRestCommands
-      return source?.settled ? source.settled(record, budgetMs) : source?.read(record)
+      return source?.settled ? source.settled(record, budgetMs, independent) : source?.read(record)
     },
     onChange: (listener) => {
       const stops = this.adapters().flatMap((adapter) =>

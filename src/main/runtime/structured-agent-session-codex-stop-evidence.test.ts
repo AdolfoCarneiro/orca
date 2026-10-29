@@ -65,7 +65,7 @@ async function pipedChat() {
     claimKeyId: 'key-1',
     logger: { warn: vi.fn(), error: vi.fn() },
     resolveWorkspacePath: async () => directory,
-    resolveCodexCommand: () => '/fixture/codex',
+    resolveCodexCommand: () => ({ command: '/fixture/codex', prefixArgs: [] }),
     resolveLaunchArgs: () => [],
     resolveEnvironment: async () => ({}),
     resolveClaudeAuthPolicy: () => ({ account: 'managed' }),
@@ -210,7 +210,11 @@ async function pipedChat() {
     reopen: async () => {
       const database = JournalHostDatabase.open(directory)
       try {
-        const store = AgentSessionRecordStore.open({ journalDatabase: database, hostId: 'local' })
+        const store = AgentSessionRecordStore.open({
+          journalDatabase: database,
+          hostId: 'local',
+          legacySessionTabIds: []
+        })
         const journal = new AgentSessionJournal({
           database,
           identity: {
