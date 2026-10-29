@@ -8,6 +8,7 @@ import {
 } from './SourceControlAgentActionDialog'
 import type { RunSourceControlAgentActionStartArgs } from './runSourceControlAgentActionStart'
 import type { SourceControlActionRecipe } from '../../../../shared/source-control-ai-actions'
+import type { Repo } from '../../../../shared/repo-types'
 import { normalizeRepoSourceControlAiOverrides } from '../../../../shared/source-control-ai'
 import { saveSourceControlAiActionRecipeForTarget } from './source-control/ai/recipe-persistence'
 import { TEST_REPO } from '@/store/slices/worktrees-slice-test-fixtures'
@@ -21,10 +22,36 @@ import {
 } from '../../../../shared/protocol-version'
 import { normalizeSourceControlActionRecipe } from '../../../../shared/source-control-ai-actions'
 import { useSourceControlAgentActionDialog } from './useSourceControlAgentActionDialog'
-import { render, renderHook, screen, fireEvent, waitFor } from '@testing-library/react'
-import { expect, vi } from 'vitest'
+import {
+  render,
+  renderHook,
+  screen,
+  fireEvent,
+  waitFor,
+  type RenderResult,
+  type RenderHookResult
+} from '@testing-library/react'
+import { expect, vi, type Mock } from 'vitest'
 
 export type SaveAction = NonNullable<SourceControlAgentActionDialogProps['onSaveAgentDefault']>
+
+type MountedSourceDialog = {
+  view: RenderResult
+  mount: () => RenderResult
+  persist: Mock<SaveAction>
+  onStart: Mock<NonNullable<RunSourceControlAgentActionStartArgs['onStart']>>
+  props: SourceControlAgentActionDialogProps
+  repo: Repo
+}
+
+type RenderedSourceDialog = RenderHookResult<
+  ReturnType<typeof useSourceControlAgentActionDialog>,
+  unknown
+> & {
+  onStart: Mock
+  onSaveAgentDefault: Mock
+  launchPreferences: NonNullable<SourceControlActionRecipe['launchPreferences']>
+}
 
 export function mountSourceDialog(
   global: SourceControlActionRecipe,
@@ -34,7 +61,7 @@ export function mountSourceDialog(
     .fn<NonNullable<RunSourceControlAgentActionStartArgs['onStart']>>()
     .mockResolvedValue(true),
   scope: 'global' | 'repo' = 'repo'
-) {
+): MountedSourceDialog {
   const settings = {
     ...getDefaultSettings('/tmp/fc1-action'),
     defaultTuiAgent: 'claude' as const,
@@ -115,7 +142,7 @@ export function renderDialog(
   chat: boolean,
   capable = true,
   initialRecipe?: SourceControlActionRecipe
-) {
+): RenderedSourceDialog {
   const settings = { ...getDefaultSettings('/tmp/pr-3'), defaultTuiAgent: 'claude' as const }
   const launchPreferences = normalizeSourceControlActionRecipe(
     { launchPreferences: { agentId: 'codex', model: 'chosen' } },
