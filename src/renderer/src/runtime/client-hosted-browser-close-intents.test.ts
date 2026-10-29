@@ -1,3 +1,5 @@
+import { createStore } from 'zustand/vanilla'
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { editSessionSource } from '@/store/session-source-edits'
 import { describe, expect, it } from 'vitest'
 import type { AppState } from '@/store/types'
@@ -19,18 +21,28 @@ function recordClientHostedBrowserCloseIntents(
   now: number
 ) {
   const edit = editSessionSource({ clientHostedBrowserCloseIntentsByEnvironment: current })
-  return recordWithEdit(edit, closes, now)
-    ? edit.finish().clientHostedBrowserCloseIntentsByEnvironment!
-    : null
+  if (!recordWithEdit(edit, closes, now)) {
+    return null
+  }
+  const store = createStore(
+    withSessionSourceWrites(() => ({ clientHostedBrowserCloseIntentsByEnvironment: current }))
+  )
+  store.setState(edit.finish())
+  return store.getState().clientHostedBrowserCloseIntentsByEnvironment
 }
 function clearClientHostedBrowserCloseIntents(
   current: ClientHostedBrowserCloseIntentsByEnvironment,
   args: Parameters<typeof clearWithEdit>[1]
 ) {
   const edit = editSessionSource({ clientHostedBrowserCloseIntentsByEnvironment: current })
-  return clearWithEdit(edit, args)
-    ? edit.finish().clientHostedBrowserCloseIntentsByEnvironment!
-    : null
+  if (!clearWithEdit(edit, args)) {
+    return null
+  }
+  const store = createStore(
+    withSessionSourceWrites(() => ({ clientHostedBrowserCloseIntentsByEnvironment: current }))
+  )
+  store.setState(edit.finish())
+  return store.getState().clientHostedBrowserCloseIntentsByEnvironment
 }
 
 const NOW = 1_800_000_000_000

@@ -98,7 +98,7 @@ export function withSessionSourceWrites<T extends object>(
               }
               currentReceipt = receipt
               const next = { ...prepared }
-              return Object.keys(next).length ? next : state
+              return suppliedReceipt && Object.keys(next).length === 0 ? state : next
             },
             replace
           )

@@ -1,4 +1,3 @@
-import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -19,6 +18,7 @@ type ReadyToast = {
 
 const { toasts, store } = await vi.hoisted(async () => {
   const { createStore } = await import('zustand/vanilla')
+  const { withSessionSourceWrites } = await import('@/store/session-source-write-boundary')
   const toasts: ReadyToast[] = []
   const store = createStore<{
     repos: Pick<Repo, 'id' | 'kind'>[]
