@@ -1,6 +1,18 @@
+import { AgentHookServer } from '../../../agent-hooks/server'
+import { agentHookRuntimeDeps } from '../../../agent-hooks/agent-hook-runtime-deps'
+import {
+  AgentStatusObservedPaneIdentities,
+  recordObservedAgentStatusPaneIdentity
+} from '../../agent-status-observed-pane-identity'
+import type { AgentStatusIpcPayload } from '../../../../shared/agent-status-ipc-payload'
+import type { ObservedAgentStatusPaneIdentity } from '../../../ipc/agent-status-ipc-boundary'
+import { enrichAgentStatusIpcPayload } from '../../../ipc/agent-status-ipc-boundary'
+import { OrchestrationDb } from '../../orchestration/db'
+import { CrewReadModel } from '../../orchestration/crew/crew-read-model'
+import { readCrewRuntimeInputs } from '../../orchestration/crew/crew-runtime-watch'
 import { expect, it, vi } from 'vitest'
 import '../../orca-runtime-test-mocks.spec'
-import { createRuntime, TEST_WORKTREE_ID } from '../../orca-runtime-test-fixtures.spec'
+import { store, TEST_WORKTREE_ID } from '../../orca-runtime-test-fixtures.spec'
 import type {
   RuntimeLeafRecord,
   RuntimePtyWorktreeRecord
@@ -12,6 +24,7 @@ import type {
 import type { PtyIncarnationHandleRecord } from '../../orca-runtime-core'
 import type { CrewChanges } from '../../orchestration/crew/crew-changes'
 import type { RuntimeTerminalWaiterRegistry } from '../wait/terminal-waiter-registry'
+import { OrcaRuntimeService } from '../../orca-runtime'
 import type { TerminalIdentityReadContext } from './terminal-identity-read-context'
 
 const LEAF = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -48,17 +61,81 @@ type Owner = {
     pane: string,
     context?: TerminalIdentityReadContext
   ) => RuntimePtyWorktreeRecord | null
+  setPtyConnected: (pty: RuntimePtyWorktreeRecord, connected: boolean) => void
+  dropDisconnectedPtyRecord: (id: string) => void
   beginGraphReload: (windowId: number) => number
   findHandleForPtyRecord: (ptyId: string, context?: TerminalIdentityReadContext) => string | null
   issueHandle: (leaf: RuntimeLeafRecord, context?: TerminalIdentityReadContext) => string
   rejectWaitersForHandle: (handle: string, reason: string) => void
 }
 
-function fixture() {
-  const runtime = createRuntime()
-  // SAFETY: this fixture exercises the existing protected map/effect owner with its production shapes.
-  const owner = runtime as unknown as Owner
-  const rejected = vi.spyOn(owner, 'rejectWaitersForHandle')
+class IdentityRuntime extends OrcaRuntimeService {
+  identityOwner(): Owner {
+    const current = () => this
+    return {
+      get runtimeId() {
+        return current().runtimeId
+      },
+      get rendererGraphEpoch() {
+        return current().rendererGraphEpoch
+      },
+      get terminalWaiters() {
+        return current().terminalWaiters
+      },
+      get crewChanges() {
+        return current().crewChanges
+      },
+      get syntheticTerminalHandles() {
+        return current().syntheticTerminalHandles
+      },
+      get handles() {
+        return current().handles
+      },
+      get handleByPtyId() {
+        return current().handleByPtyId
+      },
+      get handleByLeafKey() {
+        return current().handleByLeafKey
+      },
+      get handleByPtyIncarnation() {
+        return current().handleByPtyIncarnation
+      },
+      get leaves() {
+        return current().leaves
+      },
+      get ptysById() {
+        return current().ptysById
+      },
+      get orchestrationCompatibilitySshTerminals() {
+        return current().orchestrationCompatibilitySshTerminals
+      },
+      getOrchestrationCompatibilitySshTerminal:
+        this.getOrchestrationCompatibilitySshTerminal.bind(this),
+      recordPtyWorktree: this.recordPtyWorktree.bind(this),
+      getLivePtyForHandle: this.getLivePtyForHandle.bind(this),
+      getPtyRecordForPaneKey: this.getPtyRecordForPaneKey.bind(this),
+      setPtyConnected: this.setPtyConnected.bind(this),
+      dropDisconnectedPtyRecord: this.dropDisconnectedPtyRecord.bind(this),
+      beginGraphReload: this.beginGraphReload.bind(this),
+      findHandleForPtyRecord: this.findHandleForPtyRecord.bind(this),
+      issueHandle: this.issueHandle.bind(this),
+      rejectWaitersForHandle: this.rejectWaitersForHandle.bind(this)
+    }
+  }
+}
+
+function fixture(deps?: ConstructorParameters<typeof IdentityRuntime>[2]) {
+  const runtime = new IdentityRuntime(store, undefined, deps)
+  const owner = runtime.identityOwner()
+  const rejected = vi.fn<(handle: string, reason: string) => void>()
+  const reject = owner.rejectWaitersForHandle
+  Object.defineProperty(runtime, 'rejectWaitersForHandle', {
+    value: (handle: string, reason: string) => {
+      rejected(handle, reason)
+      reject(handle, reason)
+    },
+    configurable: true
+  })
   const add = (id: string, handle: string, paneKey = PANE, connected = true) => {
     owner.recordPtyWorktree(id, TEST_WORKTREE_ID, { paneKey, connected })
     owner.handleByPtyId.set(id, handle)
@@ -86,7 +163,7 @@ function fixture() {
     synthetic: [...owner.syntheticTerminalHandles],
     rejected: rejected.mock.calls
   })
-  return { runtime, owner, add, stamp, state }
+  return { runtime, owner, add, stamp, state, rejected }
 }
 
 it('matches separate production runtimes across reverse repair, stale first mapping, adoption and dependent reads in either order', () => {
@@ -161,16 +238,20 @@ function countIterations<K, V>(
   map: Map<K, V>,
   counts: { entries: number; get: number; set: number; delete: number }
 ) {
-  for (const method of ['get', 'set', 'delete'] as const) {
-    const original = map[method].bind(map)
-    Object.defineProperty(map, method, {
-      configurable: true,
-      value: (...args: Parameters<typeof original>) => {
-        counts[method]++
-        // SAFETY: this transparent fixture wrapper forwards the exact selected native Map method's arguments.
-        return (original as (...input: Parameters<typeof original>) => unknown)(...args)
-      }
-    })
+  const get = map.get.bind(map)
+  const set = map.set.bind(map)
+  const remove = map.delete.bind(map)
+  map.get = (key: K) => {
+    counts.get++
+    return get(key)
+  }
+  map.set = (key: K, value: V) => {
+    counts.set++
+    return set(key, value)
+  }
+  map.delete = (key: K) => {
+    counts.delete++
+    return remove(key)
   }
   for (const method of ['entries', 'keys', 'values', Symbol.iterator] as const) {
     const original = map[method].bind(map)
@@ -348,15 +429,352 @@ it('keeps cold candidates coherent through real retained-handle invalidation and
     expect(f.owner.handleByLeafKey.get(`tab-original::${LEAF}`)).toBe(handle)
     expect(f.owner.handles.get(handle)?.ptyId).toBe('retained-pty')
     expect(f.owner.handleByPtyIncarnation.get('retained-pty')?.handle).toBe(handle)
-    expect(f.owner.rejectWaitersForHandle).toHaveBeenCalledWith(
-      'term_retained',
-      'terminal_handle_stale'
-    )
+    expect(f.rejected).toHaveBeenCalledWith('term_retained', 'terminal_handle_stale')
     return {
       retainedRemoved: !f.owner.handles.has('term_retained'),
       synthetic: f.owner.syntheticTerminalHandles.size,
-      rejected: vi.mocked(f.owner.rejectWaitersForHandle).mock.calls
+      rejected: f.rejected.mock.calls
     }
   }
   expect(run(true)).toEqual(run(false))
+})
+
+it('reuses raw inputs for new historical parties through the production Crew boundary and retires them on real owner writes', () => {
+  vi.useFakeTimers()
+  vi.setSystemTime('2026-10-28T20:00:00.000Z')
+  const measure = (population: number, captured: boolean) => {
+    const f = fixture()
+    const db = new OrchestrationDb(':memory:')
+    f.runtime.setOrchestrationDb(db)
+    f.add('coordinator', 'term_coord')
+    f.stamp('term_coord', 'coordinator')
+    for (let i = 0; i < population; i++) {
+      f.add(`unrelated-${i}`, `term_inventory_${i}`, `inventory-${i}`)
+    }
+    const counts = { entries: 0, get: 0, set: 0, delete: 0 }
+    countIterations(f.owner.handles, counts)
+    countIterations(f.owner.ptysById, counts)
+    countIterations(f.owner.handleByPtyId, counts)
+    const capture = vi.spyOn(f.runtime, 'createTerminalIdentityRawInputs')
+    const model = new CrewReadModel(
+      (previous) => {
+        const inputs = readCrewRuntimeInputs(f.runtime, db, true, 'same-host', previous)
+        if (captured) {
+          return inputs
+        }
+        delete inputs.openIdentityRead
+        delete inputs.openRuntimeIdentityRead
+        return inputs
+      },
+      (wake) => {
+        const stops = [f.owner.crewChanges.subscribe(wake), db.crewChanges.subscribe(wake)]
+        return () => stops.forEach((stop) => stop())
+      }
+    )
+    const wake = vi.fn()
+    const stop = model.subscribe(wake)
+    try {
+      expect(model.read('term_coord').sections.talkingWith).toEqual([])
+      for (let i = 0; i < population; i++) {
+        db.insertMessage({
+          from: `term_late_${i}`,
+          to: 'term_coord',
+          subject: 'Hello',
+          body: `message-${i}`
+        })
+      }
+      db.db.prepare("UPDATE messages SET created_at = '2026-10-28 20:00:00'").run()
+      const output = model.read('term_coord')
+      expect(output.sections.talkingWith).toHaveLength(population)
+      const acquisition = { ...counts }
+      if (captured) {
+        const captures = capture.mock.calls.length
+        f.owner.crewChanges.notify(new Set(['status', 'names']))
+        expect(model.read('term_coord')).toEqual(output)
+        expect(capture).toHaveBeenCalledTimes(captures)
+        expect(counts.entries).toBe(acquisition.entries)
+        // Register's actual controller handle, without another DB/status mutation, retires captured absence.
+        f.runtime.registerPty('late-pty', TEST_WORKTREE_ID, null, {
+          tabId: 'tab-late',
+          leafId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          terminalHandle: 'term_late_0'
+        })
+        const installed = model
+          .read('term_coord')
+          .sections.talkingWith.find((row) => row.sendAddress === 'term_late_0')
+        expect(installed?.openTarget).toEqual({ kind: 'terminal', handle: 'term_late_0' })
+        expect(capture.mock.calls.length).toBeGreaterThan(captures)
+        // Owner repair may dirty the generation once; the next read must settle, never feed a rebuild loop.
+        model.read('term_coord')
+        expect(capture.mock.calls.length).toBeLessThanOrEqual(captures + 2)
+        const afterInstallation = capture.mock.calls.length
+        f.owner.recordPtyWorktree('late-pty', TEST_WORKTREE_ID, {
+          lastOutputAt: 500,
+          preview: 'unconsumed output'
+        })
+        model.read('term_coord')
+        expect(capture).toHaveBeenCalledTimes(afterInstallation)
+        const mutation = (write: () => unknown) => {
+          const before = capture.mock.calls.length
+          write()
+          model.read('term_coord')
+          expect(capture.mock.calls.length).toBeGreaterThan(before)
+          model.read('term_coord')
+          const settled = capture.mock.calls.length
+          model.read('term_coord')
+          expect(capture).toHaveBeenCalledTimes(settled)
+        }
+        const pty = f.owner.ptysById.get('late-pty')!
+        mutation(() => f.owner.setPtyConnected(pty, false))
+        const disconnected = capture.mock.calls.length
+        f.owner.setPtyConnected(pty, false)
+        model.read('term_coord')
+        expect(capture).toHaveBeenCalledTimes(disconnected)
+        mutation(() => f.runtime.onPtyData('late-pty', 'resume', 500))
+        const resumed = capture.mock.calls.length
+        const normalEntries = counts.entries
+        const normalWakes = wake.mock.calls.length
+        for (let i = 0; i < population; i++) {
+          f.runtime.onPtyData('late-pty', 'ordinary output', 501 + i)
+          model.read('term_coord')
+        }
+        expect(capture).toHaveBeenCalledTimes(resumed)
+        expect(counts.entries).toBe(normalEntries)
+        expect(wake).toHaveBeenCalledTimes(normalWakes)
+        mutation(() => f.owner.setPtyConnected(pty, false))
+        mutation(() => f.runtime.onPtySpawned('late-pty', 'new-process'))
+        mutation(() =>
+          f.owner.recordPtyWorktree('late-pty', TEST_WORKTREE_ID, {
+            paneKey: 'tab-moved:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+          })
+        )
+        f.runtime.attachWindow(1)
+        mutation(() => f.owner.beginGraphReload(1))
+        mutation(() => f.owner.dropDisconnectedPtyRecord('late-pty'))
+        expect(
+          model
+            .read('term_coord')
+            .sections.talkingWith.find((row) => row.sendAddress === 'term_late_0')?.openTarget
+        ).toBeUndefined()
+        stop()
+        const beforeReenroll = capture.mock.calls.length
+        const release = model.subscribe(wake)
+        model.read('term_coord')
+        expect(capture).toHaveBeenCalledTimes(beforeReenroll + 1)
+        release()
+      }
+      return { output, acquisition }
+    } finally {
+      stop()
+      db.close()
+    }
+  }
+  try {
+    for (const population of [3, 30]) {
+      const baseline = measure(population, false)
+      const candidate = measure(population, true)
+      expect(candidate.output).toEqual(baseline.output)
+      expect(candidate.acquisition.entries).toBeLessThan(baseline.acquisition.entries)
+      expect(candidate.acquisition.entries).toBeLessThan(10 * (population + 1))
+      console.log('production Crew native acquisition', {
+        population,
+        baseline: baseline.acquisition,
+        candidate: candidate.acquisition
+      })
+    }
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('preserves actual fleet binding, ingestion Dispatch, ordinary attention faults and default IPC effects in separate production runtimes', () => {
+  vi.useFakeTimers({ now: 1_800_000_000_000 })
+  const run = (captured: boolean, fault: boolean) => {
+    const raw: AgentStatusIpcPayload[] = []
+    const observed = new Map<string, ObservedAgentStatusPaneIdentity>()
+    const effectOrder: string[] = []
+    let db: OrchestrationDb
+    const f = fixture({
+      getAgentStatusSnapshot: () => raw,
+      readObservedAgentStatusPaneIdentity: (pane) => {
+        effectOrder.push(pane)
+        if (fault && effectOrder.length === 2) {
+          db.db.exec('DROP TABLE attempt_observation_facts')
+        }
+        return observed.get(pane) ?? { kind: 'unobserved' }
+      }
+    })
+    db = new OrchestrationDb(':memory:')
+    f.runtime.setOrchestrationDb(db)
+    const run = db.createRun({
+      objective: 'Fleet',
+      coordinatorHandle: 'term_coord',
+      coordinatorPaneKey: PANE
+    })
+    const dispatches: string[] = []
+    for (let i = 0; i < 6; i++) {
+      const paneKey = `fleet-${i}:aaaaaaaa-aaaa-4aaa-8aaa-${String(i).padStart(12, '0')}`
+      const handle = `term_fleet_${i}`
+      f.add(`fleet-pty-${i}`, handle, paneKey)
+      f.owner.recordPtyWorktree(`fleet-pty-${i}`, TEST_WORKTREE_ID, {
+        incarnationId: `process-${i}`
+      })
+      const task = db.createTask({ runId: run.id, spec: 'Fleet contract' })
+      const dispatch = db.createDispatchContext({
+        taskId: task.id,
+        assigneeHandle: handle,
+        assigneePaneKey: paneKey,
+        processIncarnation: `fleet-pty-${i}:process-${i}`,
+        creator: { kind: 'system' },
+        maxDepth: 10
+      })
+      dispatches.push(dispatch.id)
+      raw.push({
+        paneKey,
+        agentType: 'codex',
+        state: 'working',
+        prompt: '',
+        connectionId: null,
+        receivedAt: 1_800_000_000_000,
+        stateStartedAt: 1_800_000_000_000,
+        ...(i === 3 ? { restoredUnconfirmed: true, isReplay: true } : {}),
+        ...(i === 4 ? { providerSessionOnly: true } : {})
+      })
+      if (i !== 1) {
+        observed.set(paneKey, {
+          kind: 'observed',
+          terminalHandle: handle,
+          processIncarnation: i === 2 ? 'replaced-process' : `fleet-pty-${i}:process-${i}`,
+          dispatchId: i === 5 ? null : `ingestion-${i}`
+        })
+      }
+    }
+    // Late row still belongs to its ingestion Dispatch, even when the ordinary current projection differs.
+    expect(f.runtime.getAgentStatusOrchestrationContextForPaneKey(raw[0].paneKey)?.dispatchId).toBe(
+      dispatches[0]
+    )
+    const context = captured ? f.runtime.createTerminalIdentityReadContext() : undefined
+    let evidence:
+      | ReturnType<IdentityRuntime['getOrchestrationFleetAgentStatusSnapshot']>
+      | undefined
+    let failure: unknown
+    try {
+      evidence = f.runtime.getOrchestrationFleetAgentStatusSnapshot(context)
+    } catch (error) {
+      failure = error
+    }
+    try {
+      if (fault) {
+        expect(failure).toBeInstanceOf(Error)
+        expect(String(failure)).toContain('attempt_observation_facts')
+        expect(effectOrder).toEqual(raw.slice(0, 2).map((row) => row.paneKey))
+      } else {
+        expect(failure).toBeUndefined()
+        expect(evidence?.[0].binding).toMatchObject({ kind: 'worker', dispatchId: 'ingestion-0' })
+        expect(evidence?.[1].binding).toMatchObject({ kind: 'worker', dispatchId: dispatches[1] })
+        expect(evidence?.[2].binding).toEqual({ kind: 'unresolved', reason: 'stale_incarnation' })
+        expect(evidence?.[5].binding.kind).toBe('pane')
+        // Default IPC still acquires the full public context, including attention.
+        expect(enrichAgentStatusIpcPayload(raw[0], f.runtime).orchestration).toMatchObject({
+          dispatchId: dispatches[0],
+          attention: expect.any(Object)
+        })
+      }
+      const normalize = (value: unknown) => {
+        let text = JSON.stringify(value)
+        for (let i = 0; i < dispatches.length; i++) {
+          text = text.replaceAll(dispatches[i], `current-${i}`)
+        }
+        return JSON.parse(text)
+      }
+      return {
+        evidence: normalize(evidence ?? null),
+        state: f.state(),
+        effectOrder,
+        error: String(failure)
+      }
+    } finally {
+      db.close()
+    }
+  }
+  try {
+    for (const fault of [false, true]) {
+      expect(run(true, fault)).toEqual(run(false, fault))
+    }
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('keeps the real OSC hook producer and observation owner authoritative after a newer current Dispatch', () => {
+  vi.useFakeTimers({ now: 1_800_000_000_000 })
+  const run = (captured: boolean) => {
+    const server = new AgentHookServer()
+    const observations = new AgentStatusObservedPaneIdentities()
+    const f = fixture(
+      agentHookRuntimeDeps(server, observations, () => ({ agentStatusHooksEnabled: false }))
+    )
+    const detach = f.runtime.attachAgentStatusStore(server)
+    const stop = server.subscribeEnrichedStatus((event) =>
+      recordObservedAgentStatusPaneIdentity(observations, event, f.runtime)
+    )
+    const db = new OrchestrationDb(':memory:')
+    f.runtime.setOrchestrationDb(db)
+    f.add('hook-pty', 'term_hook', PANE)
+    f.owner.recordPtyWorktree('hook-pty', TEST_WORKTREE_ID, { incarnationId: 'hook-process' })
+    f.stamp('term_hook', 'hook-pty')
+    const group = db.createRun({
+      objective: 'Observed',
+      coordinatorHandle: 'term_coord',
+      coordinatorPaneKey: PANE
+    })
+    const assign = () =>
+      db.createDispatchContext({
+        taskId: db.createTask({ runId: group.id, spec: 'Hook contract' }).id,
+        assigneeHandle: 'term_hook',
+        assigneePaneKey: PANE,
+        processIncarnation: 'hook-pty:hook-process',
+        creator: { kind: 'system' },
+        maxDepth: 10
+      })
+    try {
+      const first = assign()
+      f.runtime.onPtyData(
+        'hook-pty',
+        '\x1b]9999;{"state":"working","prompt":"busy","agentType":"codex"}\x07',
+        1_800_000_000_000
+      )
+      expect(server.getStatusSnapshot()).toHaveLength(1)
+      expect(observations.read(PANE)).toMatchObject({ kind: 'observed', dispatchId: first.id })
+      db.completeDispatch(first.id)
+      const second = assign()
+      expect(f.runtime.getAgentStatusOrchestrationContextForPaneKey(PANE)?.dispatchId).toBe(
+        second.id
+      )
+      const evidence = f.runtime.getOrchestrationFleetAgentStatusSnapshot(
+        captured ? f.runtime.createTerminalIdentityReadContext() : undefined
+      )
+      expect(evidence[0].binding).toMatchObject({
+        kind: 'worker',
+        dispatchId: first.id,
+        processIncarnation: 'hook-pty:hook-process'
+      })
+      return evidence.map((row) => ({
+        ...row,
+        binding:
+          row.binding.kind === 'worker'
+            ? { ...row.binding, dispatchId: '<ingestion>' }
+            : row.binding
+      }))
+    } finally {
+      stop()
+      detach()
+      db.close()
+    }
+  }
+  try {
+    expect(run(true)).toEqual(run(false))
+  } finally {
+    vi.useRealTimers()
+  }
 })

@@ -63,6 +63,12 @@ it('captures actual raw naming reads once at N/10N and preserves naming preceden
     ]) {
       expect(read).toHaveBeenCalledTimes(population)
     }
+    const capturedPane = vi.fn((handle: string) => `tab_${handle}:leaf`)
+    vi.mocked(deps.getTerminalPaneKey).mockClear()
+    const scoped = names.captureCrewInputs()
+    expect(parties.map((party) => scoped(party, 'Task', null, capturedPane))).toEqual(expected)
+    expect(capturedPane).toHaveBeenCalledTimes(population)
+    expect(deps.getTerminalPaneKey).not.toHaveBeenCalled()
     session.tabsByWorktree = { workspace: [{ id: 'tab_term_0', customTitle: 'Changed' }] }
     expect(captured(parties[0], 'Task', null)).toBe(expected[0])
     expect(names.captureCrewInputs()(parties[0], 'Task', null)).toBe('Changed')

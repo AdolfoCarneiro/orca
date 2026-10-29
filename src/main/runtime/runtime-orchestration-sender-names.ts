@@ -157,7 +157,8 @@ export class RuntimeOrchestrationSenderNames {
     return (
       party: AgentMessageSender['party'],
       taskName: string | null,
-      records: AgentSessionRecordReader | null
+      records: AgentSessionRecordReader | null,
+      readPane = this.deps.getTerminalPaneKey
     ) =>
       orchestrationSenderName(
         party,
@@ -175,7 +176,8 @@ export class RuntimeOrchestrationSenderNames {
                 handle,
                 session,
                 (worktreeId, tabId) => terminalTabs.get(worktreeId)?.get(tabId),
-                allStatuses ? (pane) => statuses.get(pane) ?? [] : this.statusRowsForPane
+                allStatuses ? (pane) => statuses.get(pane) ?? [] : this.statusRowsForPane,
+                readPane
               )
               terminals.set(handle, naming ? structuredClone(naming) : null)
             }
@@ -199,7 +201,8 @@ export class RuntimeOrchestrationSenderNames {
       worktreeId: string,
       tabId: string
     ) => (Pick<TerminalTab, 'id'> & Partial<ConversationNameTab>) | undefined,
-    readStatuses = this.statusRowsForPane
+    readStatuses = this.statusRowsForPane,
+    readPane = this.deps.getTerminalPaneKey
   ): TerminalSenderNaming | null {
     const record = this.deps.getHandleRecord(handle)
     if (!record) {
@@ -212,7 +215,7 @@ export class RuntimeOrchestrationSenderNames {
       : session?.tabsByWorktree?.[record.worktreeId]?.find(
           (candidate) => candidate.id === record.tabId
         )
-    const paneKey = this.deps.getTerminalPaneKey(handle)
+    const paneKey = readPane(handle)
     const status = paneKey
       ? readStatuses(paneKey)
           .filter(

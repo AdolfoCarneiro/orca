@@ -1,5 +1,6 @@
 import type { TerminalIdentityReadContext } from '../terminal/query/terminal-identity-read-context'
 import type * as Calls from './runtime-host-service-calls'
+import type { selectFreshExplicitAgentStatus } from '../runtime-hook-agent-row-selection'
 import type { IPtyProvider } from '../../providers/pty-provider-contract'
 import type {
   RuntimePtyWorktreeRecord,
@@ -22,8 +23,7 @@ import type { OrchestrationDb } from '../orchestration/db/orchestration-db'
 import type { ResolvedWorktree } from '../runtime-worktree-path-identity'
 import type {
   RuntimeTerminalShow,
-  RuntimeTerminalSummary,
-  RuntimeTerminalAgentStatus
+  RuntimeTerminalSummary
 } from '../../../shared/runtime-terminal-contracts'
 import type { RuntimeSyncedLeaf } from '../../../shared/runtime-session-contracts'
 import type { readOrchestrationFleetAgentStatusSnapshot } from '../orchestration-fleet-agent-status-snapshot'
@@ -284,7 +284,11 @@ export abstract class RuntimeConstructionServices {
   protected abstract getTrackedDisplayTitleForPty(ptyId: string): string | null
   protected abstract getLeavesForPty(ptyId: string): RuntimeLeafRecord[]
   abstract notifyMessageArrived(handle: string, messageType?: string): void
-  protected abstract resolveWorktreeSelector(selector: string): Promise<ResolvedWorktree>
+  protected abstract resolveGitWorktreeSelector(selector: string): Promise<ResolvedWorktree>
+  protected abstract resolveWorkspaceSelector(
+    selector: string,
+    options?: { requireUsableFolderPath?: boolean }
+  ): Promise<ResolvedWorktree>
   protected abstract refreshPtyWorktreeRecordsWithControllerInventory(
     resolvedWorktrees: ResolvedWorktree[],
     targetWorktreeId?: string | null,
@@ -296,9 +300,5 @@ export abstract class RuntimeConstructionServices {
   protected abstract getFreshExplicitAgentStatusForHandle(
     handle: string,
     paneKeyOverride?: string | null
-  ): {
-    status: NonNullable<RuntimeTerminalAgentStatus['status']>
-    updatedAt: number
-    stateStartedAt: number
-  } | null
+  ): ReturnType<typeof selectFreshExplicitAgentStatus>
 }

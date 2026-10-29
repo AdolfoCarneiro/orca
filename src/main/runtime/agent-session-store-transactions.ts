@@ -229,6 +229,7 @@ export class AgentSessionStoreTransactions {
           freezeRows(draft, writes)
           this.published = draft
           const topologyChanged =
+            writes.sessionTabs !== null ||
             writes.records.remove.length > 0 ||
             writes.records.upsert.some(([id]) => {
               const before = published.records.get(id)
@@ -236,6 +237,7 @@ export class AgentSessionStoreTransactions {
               return (
                 !before ||
                 !after ||
+                before.lease.claimStatus !== after.lease.claimStatus ||
                 before.provider !== after.provider ||
                 before.location !== after.location ||
                 before.conversationCommand !== after.conversationCommand

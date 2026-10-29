@@ -7,6 +7,7 @@ import {
 import { isPublicOrchestrationAddress } from '../../../../shared/orchestration-agent-reference'
 import { createCanonicalSessionPaneResolver, clearedInto } from '../structured-session-lineage'
 import type { CrewReadDependencies } from './crew-read-model'
+import type { CrewIdentityRead } from './crew-party-snapshot'
 
 export type Party = AgentMessageSender['party'] & { paneKey: string | null }
 
@@ -63,7 +64,7 @@ export function createCrewPartyRegistry(deps: CrewReadDependencies) {
       }
     : null
   const canonicalPane = createCanonicalSessionPaneResolver(records)
-  const build = (base?: CrewPartyLookup) => {
+  const build = (base?: CrewPartyLookup, identity?: CrewIdentityRead) => {
     const parties = new Map<string, Party>()
     const aliases = new Map<string, string>()
     const aliasesByParty = new Map<string, Set<string>>()
@@ -85,13 +86,15 @@ export function createCrewPartyRegistry(deps: CrewReadDependencies) {
       storedHandle: string | null,
       pane: string | null,
       fallback?: string,
-      process?: string | null
+      process?: string | null,
+      read?: CrewIdentityRead
     ): Party | undefined => {
+      const inputs = read ?? identity ?? deps.openIdentityRead?.() ?? deps
       const sessionId = session ? root(session) : null
-      const liveHandle = pane ? deps.handleForPane(pane) : null
+      const liveHandle = pane ? inputs.handleForPane(pane) : null
       const candidateHandle =
-        liveHandle ?? (storedHandle && deps.liveHandle(storedHandle) ? storedHandle : null)
-      const currentProcess = candidateHandle ? deps.processForHandle?.(candidateHandle) : null
+        liveHandle ?? (storedHandle && inputs.liveHandle(storedHandle) ? storedHandle : null)
+      const currentProcess = candidateHandle ? inputs.processForHandle?.(candidateHandle) : null
       const mismatch = Boolean(process && currentProcess && process !== currentProcess)
       const handle = mismatch ? null : candidateHandle
       const publicHandle = handle?.startsWith('term_') ? handle : null
@@ -141,7 +144,7 @@ export function createCrewPartyRegistry(deps: CrewReadDependencies) {
       alias,
       party,
       records,
-      fork: () => build(lookup)
+      fork: (identity?: CrewIdentityRead) => build(lookup, identity)
     }
   }
   return build()

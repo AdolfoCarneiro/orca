@@ -3,6 +3,9 @@ import type { CrewReadDependencies } from './crew-read-model'
 /** Capture each runtime identity fact once in the host input generation, including absent facts. */
 export function captureCrewIdentityInputs(deps: CrewReadDependencies): CrewReadDependencies {
   const { statuses, ...sources } = deps
+  if (deps.openIdentityRead) {
+    return { ...sources, statuses: structuredClone(statuses) }
+  }
   const capture = <T>(read: (key: string) => T) => {
     const facts = new Map<string, T>()
     return (key: string): T => {

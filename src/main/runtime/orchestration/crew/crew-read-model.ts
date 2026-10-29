@@ -18,7 +18,7 @@ export class CrewReadModel {
   private unwatch: (() => void) | undefined
 
   constructor(
-    private readonly readDependencies: () => CrewReadDependencies,
+    private readonly readDependencies: (previous?: CrewReadDependencies) => CrewReadDependencies,
     private readonly watch: (wake: (facets: CrewInvalidation) => void) => () => void
   ) {}
 
@@ -73,7 +73,7 @@ export class CrewReadModel {
     } else if (dirty.has('status') || dirty.has('names')) {
       const previous = this.host
       this.host = undefined
-      const deps = this.readDependencies()
+      const deps = this.readDependencies(previous.deps)
       if (dirty.has('status')) {
         const { statuses, ...sources } = deps
         const identities = (rows: typeof statuses) =>
@@ -99,7 +99,15 @@ export class CrewReadModel {
           listRecords: () => [...captured.values()]
         }
       }
-      this.host = { ...this.host, deps: { ...this.host.deps, records, name: deps.name } }
+      this.host = {
+        ...this.host,
+        deps: {
+          ...this.host.deps,
+          records,
+          name: deps.name,
+          openIdentityRead: deps.openIdentityRead
+        }
+      }
     }
     return buildCrewSnapshot(address, { ...this.host.deps, now }, this.host)
   }

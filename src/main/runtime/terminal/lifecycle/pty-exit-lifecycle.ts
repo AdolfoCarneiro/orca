@@ -233,10 +233,14 @@ export abstract class OrcaRuntimeWithOnPtyExit extends OrcaRuntimeWithOnClientDi
         this.rememberPtyLivenessVerdict(ptyId, { status: 'exited' })
       }
       if (pty) {
+        const wasConnected = pty.connected
         pty.connected = false
         pty.runtimeSessionOwned = false
         this.setPairedRendererSessionOwnership(pty.ptyId, false)
         pty.disconnectedAt = Date.now()
+        if (wasConnected) {
+          this.crewChanges.notify()
+        }
         pty.lastExitCode = exitCode
         pty.lastExitCause = exitCause
         // Same-id replacements must earn live idle evidence before delivery; retain status only for display.
