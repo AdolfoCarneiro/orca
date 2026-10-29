@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { translate } from '@/i18n/i18n'
+import { getIntlLocale, translate } from '@/i18n/i18n'
 import { buildResourcePtyRows, groupResourcePtyRows } from './resource-pty-view-model'
 import { ResourcePtyList } from './ResourcePtyList'
 import type { useResourceSessionInventory } from './use-resource-session-inventory'
@@ -73,7 +73,7 @@ export function ResourcePtyPanel({
         {inventory.observedAt !== null && (
           <div className="text-xs text-muted-foreground">
             {translate('resourceManager.pty.observedTime', 'Last observed {{time}}', {
-              time: new Date(inventory.observedAt).toLocaleTimeString()
+              time: new Date(inventory.observedAt).toLocaleTimeString(getIntlLocale())
             })}
           </div>
         )}
