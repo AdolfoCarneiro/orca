@@ -196,20 +196,6 @@ export function agentArgsSetPermission(agent: TuiAgent, text: string | null | un
   })
 }
 
-export function agentCommandSetsPermission(
-  agent: TuiAgent,
-  text: string | null | undefined
-): boolean {
-  if (!text) {
-    return false
-  }
-  return PERMISSION_LAUNCH_GRAMMARS.some((grammar) => {
-    const parsed = tokenizeStartupCommand(text, grammar)
-    const firstArg = parsed.ok ? parsed.spans[1] : undefined
-    return firstArg !== undefined && agentArgsSetPermission(agent, text.slice(firstArg.start))
-  })
-}
-
 export function agentChoiceCliForms(agent: TuiAgent) {
   const catalog = getAgentSessionOptionLaunchCatalog(agent)
   const options = [

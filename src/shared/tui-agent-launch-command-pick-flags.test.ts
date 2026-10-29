@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { resolveAgentLaunchCommand } from './tui-agent-launch-command'
-import { resolveAgentStartupPlanInputs } from './agent-startup-plan-inputs'
-import { buildAgentStartupPlan } from './tui-agent-startup'
-import { tokenizeStartupCommand } from './tui-agent-startup-shell'
 
 function launch(args: Partial<Parameters<typeof resolveAgentLaunchCommand>[0]>) {
   const result = resolveAgentLaunchCommand({
@@ -118,55 +115,5 @@ describe('a saved permission mode on terminals', () => {
     })
     expect(result.command).toBe("claude '--dangerously-skip-permissions'")
     expect(result.appliedSessionOptions).toEqual({})
-  })
-})
-
-describe.each(['posix', 'powershell', 'cmd'] as const)('command permission on %s', (shell) => {
-  it.each(['--yolo', '-y'])('keeps Kimi %s without adding the Full access recipe', (permission) => {
-    for (const sessionOptions of [undefined, { permissionMode: 'full-access' }]) {
-      const plan = buildAgentStartupPlan({
-        ...resolveAgentStartupPlanInputs({
-          agent: 'kimi',
-          settings: {
-            agentPermissionDefault: 'full-access',
-            agentCmdOverrides: { kimi: `kimi ${permission}` },
-            agentDefaultArgs: { kimi: '' }
-          },
-          platform: shell === 'posix' ? 'linux' : 'win32',
-          isRemote: false,
-          shell,
-          sessionOptions
-        }),
-        prompt: '',
-        allowEmptyPromptLaunch: true
-      })
-      expect(plan).not.toBeNull()
-      expect(tokenizeStartupCommand(plan?.launchCommand ?? '', shell)).toMatchObject({
-        ok: true,
-        tokens: ['kimi', permission]
-      })
-    }
-  })
-
-  it('honors a Claude command permission while retaining its other arguments', () => {
-    const plan = buildAgentStartupPlan({
-      ...resolveAgentStartupPlanInputs({
-        agent: 'claude',
-        settings: {
-          agentPermissionDefault: 'full-access',
-          agentCmdOverrides: { claude: 'claude --permission-mode plan' },
-          agentDefaultArgs: { claude: '--model opus' }
-        },
-        platform: shell === 'posix' ? 'linux' : 'win32',
-        isRemote: false,
-        shell
-      }),
-      prompt: '',
-      allowEmptyPromptLaunch: true
-    })
-    expect(tokenizeStartupCommand(plan?.launchCommand ?? '', shell)).toMatchObject({
-      ok: true,
-      tokens: ['claude', '--permission-mode', 'plan', '--model', 'opus']
-    })
   })
 })

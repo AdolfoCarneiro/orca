@@ -56,17 +56,15 @@ export function resolveAgentLaunchCommand(args: {
   if (!trailingTokens.ok) {
     return { ok: false, error: `CLI arguments are invalid: ${trailingTokens.error}` }
   }
-  const overrideTokens = override ? tokenizeStartupCommand(override, args.shell) : null
   const resolvedOptions = resolveAgentSessionOptionLaunch(
     args.agent,
     args.sessionOptions,
     args.sessionOptionsOverrideAgentArgs ? [] : trailingTokens.tokens,
     !args.sessionOptionsOverrideAgentArgs,
-    overrideTokens?.ok
-      ? [...overrideTokens.tokens.slice(1), ...trailingTokens.tokens]
-      : trailingTokens.tokens
+    trailingTokens.tokens
   )
-  if (overrideTokens && args.sessionOptionsOverrideAgentArgs) {
+  if (override && args.sessionOptionsOverrideAgentArgs) {
+    const overrideTokens = tokenizeStartupCommand(override, args.shell)
     if (!overrideTokens.ok) {
       return { ok: false, error: `Agent command override is invalid: ${overrideTokens.error}` }
     }
