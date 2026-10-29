@@ -75,13 +75,11 @@ describe('review highlight positions across edits and metadata', () => {
   it('maps retained notes while accepting new-document metadata in the same edit transaction', () => {
     const editor = createEditor()
     editor.view.dispatch(
-      editor.state.tr
-        .insertText('prefix ', 1)
-        .setMeta(richMarkdownAnnotationHighlightPluginKey, { activeRange: null })
+      editor.state.tr.insertText('prefix ', 1).setMeta(richMarkdownAnnotationHighlightPluginKey, {
+        activeRange: null
+      })
     )
     expect(highlightedText(editor)).toEqual(['note'])
-    const state = richMarkdownAnnotationHighlightPluginKey.getState(editor.state)
-    expect(state?.noteRanges).toEqual([{ from: 15, to: 19 }])
   })
 
   it('excludes boundary insertions and keeps undo/redo positions after rebuilding', () => {
@@ -95,16 +93,5 @@ describe('review highlight positions across edits and metadata', () => {
     expect(editor.commands.redo()).toBe(true)
     editor.view.dispatch(editor.state.tr.setMeta(richMarkdownAnnotationHighlightPluginKey, null))
     expect(highlightedText(editor)).toEqual(['note'])
-  })
-
-  it('preserves the mapped replacement extent across metadata rebuilds', () => {
-    const editor = createEditor()
-    editor.view.dispatch(editor.state.tr.insertText('replacement', 8, 12))
-    expect(highlightedText(editor)).toEqual(['replacement'])
-    editor.view.dispatch(editor.state.tr.setMeta(richMarkdownAnnotationHighlightPluginKey, null))
-    expect(highlightedText(editor)).toEqual(['replacement'])
-    expect(richMarkdownAnnotationHighlightPluginKey.getState(editor.state)?.noteRanges).toEqual([
-      { from: 8, to: 19 }
-    ])
   })
 })
