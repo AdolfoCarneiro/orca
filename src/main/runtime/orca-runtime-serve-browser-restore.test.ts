@@ -325,6 +325,34 @@ describe('a saved browser tab on a host with no window', () => {
     expect(createTab).not.toHaveBeenCalled()
   })
 
+  it('tells a window wake whether a saved tab could mount', () => {
+    const docLocation = {
+      kind: 'workspace-doc' as const,
+      worktreeId: TEST_WORKTREE_ID,
+      filePath: 'a.md'
+    }
+    const saved = savedServeTabs()
+    const docsOnly = {
+      ...saved,
+      browserPagesByWorkspace: Object.fromEntries(
+        Object.entries(saved.browserPagesByWorkspace ?? {}).map(([tabId, pages]) => [
+          tabId,
+          pages.map((page) => ({ ...page, docLocation }))
+        ])
+      )
+    }
+
+    const tabs = (session: WorkspaceSessionState) =>
+      restartedServe(session).runtime['serveBrowserTabs']
+    expect(tabs(saved).hasStartable(TEST_WORKTREE_ID)).toBe(true)
+    expect(tabs(saved).hasStartable(undefined)).toBe(true)
+    expect(tabs(docsOnly).hasStartable(TEST_WORKTREE_ID)).toBe(false)
+    expect(tabs(docsOnly).hasStartable(undefined)).toBe(false)
+    expect(tabs(makeWorkspaceSessionWithHeadlessTerminal()).hasStartable(TEST_WORKTREE_ID)).toBe(
+      false
+    )
+  })
+
   it('reports no tab when no worktree is named and no page runs, as a window does', async () => {
     const { runtime, createTab } = restartedServe()
 
