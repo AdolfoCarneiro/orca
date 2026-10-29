@@ -81,21 +81,19 @@ export function createRemountTerminalTabForRecovery(
         ...(recovery ? { recovery } : {})
       }
       result = { remounted: true, generation: recovery?.generation ?? 0 }
-      return {
-        tabsByWorktree: {
-          ...s.tabsByWorktree,
-          [worktreeId]: nextTabs
-        },
-        ...(pendingStartup
-          ? {
-              // Remount needs a distinct startup record so stale-pane teardown cannot consume the successor’s command.
-              pendingStartupByTabId: {
-                ...s.pendingStartupByTabId,
-                [tabId]: { ...pendingStartup }
+      return editSessionSource(s)
+        .set('tabsByWorktree', worktreeId, nextTabs)
+        .finish(
+          pendingStartup
+            ? {
+                // Remount needs a distinct startup record so stale-pane teardown cannot consume the successor’s command.
+                pendingStartupByTabId: {
+                  ...s.pendingStartupByTabId,
+                  [tabId]: { ...pendingStartup }
+                }
               }
-            }
-          : {})
-      }
+            : {}
+        )
     })
     return result
   }
@@ -157,7 +155,10 @@ export function createPurgeWorktreeTerminalState(
       )
     )
     settleAttentionRemovedBy(set, get, () =>
-      set((s) => buildWorktreePurgeState(s, purgeableWorktreeTargets))
+      set((s) => {
+        const edit = editSessionSource(s)
+        return edit.finish(buildWorktreePurgeState(edit, purgeableWorktreeTargets))
+      })
     )
   }
 }

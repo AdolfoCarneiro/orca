@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { toast } from 'sonner'
 import type { AppState } from '../types'
@@ -116,17 +117,17 @@ export function createRepoAddActions(
           if (s.repos.some((r) => getRepoHostIdentity(r) === repoIdentity)) {
             return s
           }
-          const nextRepos = [...s.repos, repo]
+          const sourceEdit = editSessionSource(s).sequence('repos').append(repo)
+          const nextRepos = sourceEdit.read('repos')
           const hostId = getRepoExecutionHostId(repo)
-          return {
-            repos: nextRepos,
+          return sourceEdit.finish({
             ...mergeProjectCompatibilityForHostRepoChange({
               previous: { projects: s.projects, projectHostSetups: s.projectHostSetups },
               nextRepos,
               hostId
             }),
             folderWorkspacePathStatuses: {}
-          }
+          })
         })
         if (alreadyAdded) {
           toast.info(translate('auto.store.slices.repos.a8e4b3af5b', 'Project already added'), {

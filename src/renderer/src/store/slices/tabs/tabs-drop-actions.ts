@@ -1,9 +1,10 @@
+import { editSessionSource } from '../../session-source-edits'
+import { collapseGroupLayoutEdit } from './tab-group-layout-edits'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import type { TabGroup } from '../../../../../shared/tab-types'
 import type { TabsSlice, TabsSliceGet, TabsSliceSet } from './tabs-slice-contract'
 import { isPaneColumnSplitDropNoOp } from '../../../../../shared/workspace-layout/pane-column-split-drop-no-op'
 import {
-  collapseGroupLayout,
   buildSplitNode,
   replaceLeaf
 } from '../../../../../shared/workspace-layout/tab-group-layout-tree'
@@ -61,8 +62,7 @@ export function createTabsDropActions(
         moved = true
 
         let nextGroups = state.groupsByWorktree[worktreeId] ?? []
-        let nextLayoutByWorktree = state.layoutByWorktree
-        let nextActiveGroupIdByWorktree = state.activeGroupIdByWorktree
+        const edit = editSessionSource(state)
         let resolvedTargetGroupId = target.groupId
 
         if (target.splitDirection) {
@@ -74,7 +74,8 @@ export function createTabsDropActions(
             tabOrder: []
           }
           const currentLayout =
-            nextLayoutByWorktree[worktreeId] ?? ({ type: 'leaf', groupId: target.groupId } as const)
+            edit.entry('layoutByWorktree', worktreeId) ??
+            ({ type: 'leaf', groupId: target.groupId } as const)
           const replacement = buildSplitNode(
             target.groupId,
             newGroupId,
@@ -86,14 +87,12 @@ export function createTabsDropActions(
 
           resolvedTargetGroupId = newGroupId
           nextGroups = [...nextGroups, newGroup]
-          nextLayoutByWorktree = {
-            ...nextLayoutByWorktree,
-            [worktreeId]: replaceLeaf(currentLayout, target.groupId, replacement)
-          }
-          nextActiveGroupIdByWorktree = {
-            ...nextActiveGroupIdByWorktree,
-            [worktreeId]: newGroupId
-          }
+          edit.set(
+            'layoutByWorktree',
+            worktreeId,
+            replaceLeaf(currentLayout, target.groupId, replacement)
+          )
+          edit.set('activeGroupIdByWorktree', worktreeId, newGroupId)
         }
 
         const dedupedSourceGroupOrder = dedupeTabOrder(sourceGroup.tabOrder)
@@ -146,52 +145,23 @@ export function createTabsDropActions(
 
         if (sourceOrder.length === 0) {
           nextGroups = nextGroups.filter((group) => group.id !== sourceGroup.id)
-          const collapsedState = collapseGroupLayout(
-            nextLayoutByWorktree,
-            nextActiveGroupIdByWorktree,
-            worktreeId,
-            sourceGroup.id,
-            resolvedTargetGroupId
-          )
-          nextLayoutByWorktree = collapsedState.layoutByWorktree
-          nextActiveGroupIdByWorktree = collapsedState.activeGroupIdByWorktree
+          collapseGroupLayoutEdit(edit, worktreeId, sourceGroup.id, resolvedTargetGroupId)
         } else {
-          nextActiveGroupIdByWorktree = {
-            ...nextActiveGroupIdByWorktree,
-            [worktreeId]: resolvedTargetGroupId
-          }
+          edit.set('activeGroupIdByWorktree', worktreeId, resolvedTargetGroupId)
         }
-
-        const nextUnifiedTabsByWorktree = {
-          ...state.unifiedTabsByWorktree,
-          [worktreeId]: (state.unifiedTabsByWorktree[worktreeId] ?? []).map((candidate) =>
+        edit.set(
+          'unifiedTabsByWorktree',
+          worktreeId,
+          (state.unifiedTabsByWorktree[worktreeId] ?? []).map((candidate) =>
             candidate.id === tabId ? { ...candidate, groupId: resolvedTargetGroupId } : candidate
           )
-        }
-        const nextGroupsByWorktree = {
-          ...state.groupsByWorktree,
-          [worktreeId]: nextGroups
-        }
-
-        return {
-          unifiedTabsByWorktree: nextUnifiedTabsByWorktree,
-          groupsByWorktree: nextGroupsByWorktree,
-          layoutByWorktree: nextLayoutByWorktree,
-          activeGroupIdByWorktree: nextActiveGroupIdByWorktree,
-          ...(state.activeWorktreeId === worktreeId
-            ? buildActiveSurfacePatch(
-                {
-                  ...state,
-                  unifiedTabsByWorktree: nextUnifiedTabsByWorktree,
-                  groupsByWorktree: nextGroupsByWorktree,
-                  layoutByWorktree: nextLayoutByWorktree,
-                  activeGroupIdByWorktree: nextActiveGroupIdByWorktree
-                },
-                worktreeId,
-                resolvedTargetGroupId
-              )
-            : {})
-        }
+        )
+        edit.set('groupsByWorktree', worktreeId, nextGroups)
+        return edit.finish(
+          state.activeWorktreeId === worktreeId
+            ? buildActiveSurfacePatch(edit, worktreeId, resolvedTargetGroupId)
+            : {}
+        )
       })
       if (moved) {
         get().recordFeatureInteraction?.('terminal-tabs')

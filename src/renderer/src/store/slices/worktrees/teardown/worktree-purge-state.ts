@@ -1,3 +1,4 @@
+import type { SessionSourceEdit, OrdinarySourcePartial } from '../../../session-source-edits'
 import type { AppState } from '../../../types'
 import { forgetCombinedDiffViewsForWorktrees } from '@/components/editor/combined-diff/remember-view/combined-diff-view-cache'
 import type { WorktreePurgeTarget, WorktreePurgeTargets } from '../../worktree-helpers'
@@ -9,7 +10,7 @@ import { createWorktreePurgeOmitters } from './worktree-purge-omitters'
 import { omitSleepingAgentSessionsForWorktrees } from './sleeping-agent-session-omission'
 import { removeDeleteStatesForWorktreeIds } from './worktree-delete-state'
 import { omitRecordKeys } from './record-key-omission'
-import { removeWorktreeVisitEntriesForTargets } from '@/lib/worktree-visit-recency'
+import { worktreeVisitKeysForTargets } from '@/lib/worktree-visit-recency'
 import { forgetAmbiguousOwnerWarnings } from '@/lib/ambiguous-owner-warning'
 import { forgetWorktreeSleepIntent } from '@/lib/worktree-sleep-intent'
 import { removeWorktreeLayout } from '../../tabs/worktree-layout-lifecycle'
@@ -29,21 +30,22 @@ import { composeWorktreeHostIdentity } from '../../../../../../shared/worktree/h
  * attributable state; everything else purges every bucket under the id.
  */
 export function buildWorktreePurgeState(
-  s: AppState,
+  edit: SessionSourceEdit<AppState>,
   worktreeTargets: WorktreePurgeTargets
-): Partial<AppState> {
+): OrdinarySourcePartial<AppState> {
+  const s = edit.view()
   const targets: WorktreePurgeTarget[] = worktreeTargets.map((target) =>
     typeof target === 'string' ? { id: target } : target
   )
   const twinScopes = collectHostTwinPurgeScopes(s, targets)
   if (twinScopes.size === 0) {
-    return buildFullWorktreePurgeState(s, targets)
+    return buildFullWorktreePurgeState(edit, targets)
   }
   const twinIds = new Set([...twinScopes.values()].flatMap((twins) => [...twins.keys()]))
   const fullTargets = targets.filter((target) => !target.hostId || !twinIds.has(target.id))
-  let patch = fullTargets.length > 0 ? buildFullWorktreePurgeState(s, fullTargets) : {}
+  let patch = fullTargets.length > 0 ? buildFullWorktreePurgeState(edit, fullTargets) : {}
   for (const [hostId, twinHostIds] of twinScopes) {
-    const twinPatch = buildHostTwinPurgeState({ ...s, ...patch }, hostId, twinHostIds)
+    const twinPatch = buildHostTwinPurgeState(edit, hostId, twinHostIds, patch)
     patch = {
       ...patch,
       ...twinPatch,
@@ -60,13 +62,13 @@ export function buildWorktreePurgeState(
     ),
     ...[...twinScopes].flatMap(([hostId, twins]) => [...twins.keys()].map((id) => ({ id, hostId })))
   ]
-  const next = { ...s, ...patch }
+  const next = edit.view(patch)
+  edit.removeKeys(
+    'lastVisitedAtByWorktreeId',
+    worktreeVisitKeysForTargets(next.lastVisitedAtByWorktreeId, hostKeys)
+  )
   return {
     ...patch,
-    lastVisitedAtByWorktreeId: removeWorktreeVisitEntriesForTargets(
-      next.lastVisitedAtByWorktreeId,
-      hostKeys
-    ),
     deleteStateByWorktreeId: omitRecordKeys(
       next.deleteStateByWorktreeId,
       hostKeys.map((target) => composeWorktreeHostIdentity(target.hostId, target.id))
@@ -76,9 +78,10 @@ export function buildWorktreePurgeState(
 
 /** Drops every bucket under the targets' ids; visit recency alone stays host-scoped. */
 export function buildFullWorktreePurgeState(
-  s: AppState,
+  edit: SessionSourceEdit<AppState>,
   normalizedTargets: readonly WorktreePurgeTarget[]
-): Partial<AppState> {
+): OrdinarySourcePartial<AppState> {
+  const s = edit.view()
   const worktreeIdSet = new Set(normalizedTargets.map((target) => target.id))
   forgetCombinedDiffViewsForWorktrees(worktreeIdSet)
   // Why: bulk purges bypass close actions, so provisional ownership must die before tab state does.
@@ -131,24 +134,33 @@ export function buildFullWorktreePurgeState(
     }
     return next
   })()
-  const tabPrefixedSleeping = {
-    sleepingAgentSessionsByPaneKey: omitByPaneKeyTabPrefix(s.sleepingAgentSessionsByPaneKey),
-    agentLaunchConfigByPaneKey: omitByPaneKeyTabPrefix(s.agentLaunchConfigByPaneKey)
-  }
-  // Why both: tab-prefix omission misses a sleeping record whose tab is already gone.
+  const prefixKeys = [
+    ...new Set([
+      ...Object.keys(s.sleepingAgentSessionsByPaneKey ?? {}),
+      ...Object.keys(s.agentLaunchConfigByPaneKey ?? {})
+    ])
+  ].filter((paneKey) => {
+    const sep = paneKey.indexOf(':')
+    return sep > 0 && doomed.doomedTabIds.has(paneKey.slice(0, sep))
+  })
   const nextSleeping = {
-    ...tabPrefixedSleeping,
-    ...omitSleepingAgentSessionsForWorktrees(tabPrefixedSleeping, worktreeIdSet)
+    agentLaunchConfigByPaneKey: omitByPaneKeyTabPrefix(s.agentLaunchConfigByPaneKey),
+    ...omitSleepingAgentSessionsForWorktrees(edit, worktreeIdSet, prefixKeys)
   }
+  edit.removeKeys(
+    'lastVisitedAtByWorktreeId',
+    worktreeVisitKeysForTargets(s.lastVisitedAtByWorktreeId, normalizedTargets)
+  )
+  edit.removeKeys('defaultTerminalTabsAppliedByWorktreeId', worktreeIdSet)
 
   return {
     editorBufferKeepRequest,
-    ...removeWorktreeLayout(s, {
+    ...removeWorktreeLayout(edit, {
       worktreeIds: worktreeIdSet,
       tabIds: doomed.doomedTabIds,
       activeFileCleared
     }),
-    ...buildWorktreePurgeSurfacePatch(s, omitters, doomed.doomedTabIds, nextSleeping),
+    ...buildWorktreePurgeSurfacePatch(edit, omitters, doomed, nextSleeping),
     worktreeLineageById: omitByWorktree(s.worktreeLineageById),
     workspaceLineageByChildKey: omitWorkspaceLineageByWorktree(s.workspaceLineageByChildKey),
     deleteStateByWorktreeId: removeDeleteStatesForWorktreeIds(
@@ -183,13 +195,6 @@ export function buildFullWorktreePurgeState(
     recentlyClosedTerminalTabsByWorktree: omitByWorktree(s.recentlyClosedTerminalTabsByWorktree),
     recentlyClosedTabKindsByWorktree: omitByWorktree(s.recentlyClosedTabKindsByWorktree),
     everActivatedWorktreeIds: nextEverActivatedWorktreeIds,
-    lastVisitedAtByWorktreeId: removeWorktreeVisitEntriesForTargets(
-      s.lastVisitedAtByWorktreeId,
-      normalizedTargets
-    ),
-    defaultTerminalTabsAppliedByWorktreeId: omitByWorktree(
-      s.defaultTerminalTabsAppliedByWorktreeId
-    ),
     activeWorktreeId: removedActive ? null : s.activeWorktreeId,
     activeWorkspaceExecutionHostId: removedActive ? null : s.activeWorkspaceExecutionHostId,
     activeWorkspaceKey: (() => {

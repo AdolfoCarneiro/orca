@@ -1,3 +1,4 @@
+import { sessionTestEdit } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as intent from '@/lib/worktree-sleep-intent'
@@ -164,7 +165,9 @@ describe('worktree sleep intent lifecycle', () => {
     const woke = vi.fn()
     intent.onWorktreeSleepIntentCleared(WORKTREE_ID, woke)
 
-    store.setState(buildWorktreePurgeState(store.getState(), [WORKTREE_ID]))
+    store.setState(
+      sessionTestEdit(store.getState(), (edit) => buildWorktreePurgeState(edit, [WORKTREE_ID]))
+    )
 
     expect(hasWorktreeSleepIntent(WORKTREE_ID)).toBe(false)
     expect(woke).not.toHaveBeenCalled()
@@ -184,7 +187,9 @@ describe('worktree sleep intent lifecycle', () => {
         activate: false
       })
       const dispose = vi.spyOn(owner, 'dispose')
-      store.setState(buildWorktreePurgeState(store.getState(), [workspaceId]))
+      store.setState(
+        sessionTestEdit(store.getState(), (edit) => buildWorktreePurgeState(edit, [workspaceId]))
+      )
       expect(findStructuredAgentSessionReadOwner('created-chat', target)).toBeUndefined()
       expect(findStructuredAgentSessionReadOwner('created-chat', { kind: 'local' })).toBe(local)
       expect(dispose).toHaveBeenCalledOnce()

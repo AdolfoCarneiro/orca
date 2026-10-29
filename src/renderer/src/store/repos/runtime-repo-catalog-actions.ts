@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -71,7 +72,7 @@ export function createRuntimeRepoCatalogActions(
           finalizedHostRepos = finalizedRepos.filter(
             (repo) => getRepoExecutionHostId(repo) === result.hostId
           )
-          return {
+          return replaceSessionSourceFields({
             repos: finalizedRepos,
             ...(visibilityDefaults === undefined
               ? {}
@@ -114,7 +115,7 @@ export function createRuntimeRepoCatalogActions(
               s.setupScriptPromptDismissedRepoIds,
               validRepoHostIdentities
             )
-          }
+          })
         })
         scheduleSafeAutoForkSync(finalizedHostRepos)
         return finalizedHostRepos

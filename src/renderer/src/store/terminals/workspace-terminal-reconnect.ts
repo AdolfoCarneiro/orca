@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import { editSessionSource } from '@/store/session-source-edits'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { buildByIdIndex, buildWorktreeByIdIndex } from '../slices/worktree-by-id-index'
@@ -111,16 +112,18 @@ export function createWorkspaceTerminalReconnectActions(
       if (signal?.aborted) {
         return
       }
-      set({
-        // Only each row's ptyId changes, a field the frame merge leaves to the window.
-        ...(reconnectedTabsByWorktree ? { tabsByWorktree: reconnectedTabsByWorktree } : {}),
-        ...(reconnectedPtyIdsByTabId ? { ptyIdsByTabId: reconnectedPtyIdsByTabId } : {}),
-        workspaceSessionReady: true,
-        pendingReconnectWorktreeIds: [],
-        pendingReconnectTabByWorktree: {},
-        pendingReconnectPtyIdByTabId: {},
-        deferredSshSessionIdsByTabId
-      })
+      set(
+        replaceSessionSourceFields({
+          // Only each row's ptyId changes, a field the frame merge leaves to the window.
+          ...(reconnectedTabsByWorktree ? { tabsByWorktree: reconnectedTabsByWorktree } : {}),
+          ...(reconnectedPtyIdsByTabId ? { ptyIdsByTabId: reconnectedPtyIdsByTabId } : {}),
+          workspaceSessionReady: true,
+          pendingReconnectWorktreeIds: [],
+          pendingReconnectTabByWorktree: {},
+          pendingReconnectPtyIdByTabId: {},
+          deferredSshSessionIdsByTabId
+        })
+      )
     }
   }
 }

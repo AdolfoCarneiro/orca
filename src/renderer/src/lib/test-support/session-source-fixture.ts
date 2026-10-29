@@ -1,4 +1,10 @@
-import type { SessionSourceSet } from '../../store/session-source-edits'
+import {
+  editSessionSource,
+  type SessionSourceSet,
+  type SessionSourceEdit,
+  type SessionSourceWrite,
+  type OrdinarySourcePartial
+} from '../../store/session-source-edits'
 import { replaceSessionSourceFields } from '../../store/session-source-write-boundary'
 
 type FixtureStore<S> = { getState(): S; setState: SessionSourceSet<S> }
@@ -26,4 +32,13 @@ export function setSessionTestState<S extends object>(
   } else {
     store.setState(replaceSessionSourceFields(next))
   }
+}
+
+/** Exercises an edit-taking production helper against a test root. */
+export function sessionTestEdit<S extends object>(
+  state: S,
+  apply: (edit: SessionSourceEdit<S>) => OrdinarySourcePartial<S>
+): SessionSourceWrite<S> {
+  const edit = editSessionSource(state)
+  return edit.finish(apply(edit))
 }

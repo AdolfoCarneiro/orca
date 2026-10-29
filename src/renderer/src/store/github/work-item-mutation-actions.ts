@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
@@ -76,11 +77,14 @@ export const createWorkItemMutationActions = (
     // Why: map 'auto' to undefined so persistence drops the key entirely (see main/persistence.ts#updateRepo).
     const issueSourcePreference = preference === 'auto' ? undefined : preference
     // Why: optimistically patch the row so the segmented control updates this frame; a twin's other row keeps its own.
-    set((s) => ({
-      repos: s.repos.map((r) =>
-        repoMatchesHostIdentity(r, repoId, hostId) ? { ...r, issueSourcePreference } : r
-      )
-    }))
+    set((s) =>
+      editSessionSource(s)
+        .sequence('repos')
+        .map((r) =>
+          repoMatchesHostIdentity(r, repoId, hostId) ? { ...r, issueSourcePreference } : r
+        )
+        .finish({})
+    )
     // Why: updateRepo routes by the row's host, so a twin's write lands on the row the user changed.
     const saved = await get().updateRepo(repoId, { issueSourcePreference }, { hostId })
     if (!saved) {

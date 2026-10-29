@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import { toRuntimeExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
@@ -53,10 +54,10 @@ export function createFolderWorkspaceCatalogActions(
       if (arrayElementsUnchanged(folderWorkspaces, current.folderWorkspaces)) {
         return current
       }
-      return {
+      return replaceSessionSourceFields({
         folderWorkspaces,
         folderWorkspacePathStatuses: {}
-      }
+      })
     })
     return applied
   }
@@ -104,7 +105,7 @@ export function createFolderWorkspaceCatalogActions(
           return restoredRuntimeHostIdByWorkspaceSessionKey ===
             s.restoredRuntimeHostIdByWorkspaceSessionKey
             ? s
-            : { restoredRuntimeHostIdByWorkspaceSessionKey }
+            : replaceSessionSourceFields({ restoredRuntimeHostIdByWorkspaceSessionKey })
         })
       }
       try {

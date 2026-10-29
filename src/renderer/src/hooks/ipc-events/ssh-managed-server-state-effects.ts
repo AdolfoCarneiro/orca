@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type {
   SshConnectionState,
   SshManagedServerLinkedProject
@@ -121,10 +122,9 @@ async function loadManagedServerCatalogs(targetId: string, load: CatalogLoad): P
   const isCurrent = (): boolean => catalogLoadByTarget.get(targetId) === load
   // Pin existing desktop pages before the catalogs change their workspace owner.
   useAppStore.setState((state) => {
-    const browserPagesByWorkspace = preserveConvertedSshBrowserPages(state, targetId)
-    return browserPagesByWorkspace === state.browserPagesByWorkspace
-      ? state
-      : { browserPagesByWorkspace }
+    const edit = editSessionSource(state)
+    preserveConvertedSshBrowserPages(state, targetId, edit)
+    return edit.changed ? edit.finish() : state
   })
   const store = useAppStore.getState()
   // Conversion must refresh the server catalog too because host badges read its names.

@@ -1,3 +1,4 @@
+import { editSessionSource } from '../../../session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { appliedWorktreeCatalogVersionPatch } from './worktree-catalog-version-state'
 import type { AppState } from '../../../types'
@@ -260,19 +261,17 @@ export function mergeFetchedWorktrees(
     ) {
       return s
     }
-    return {
+    const edit = editSessionSource(s)
+    if (worktreesChanged) {
+      edit.set('worktreesByRepo', args.repoId, mergedWorktrees)
+    }
+    return edit.finish({
       ...versionPatch,
       ...(worktreesChanged
-        ? {
-            worktreesByRepo: {
-              ...s.worktreesByRepo,
-              [args.repoId]: mergedWorktrees
-            },
-            // Why: an order save re-reads as a sortOrder-only change; re-sorting on it would schedule the next save (#27268).
-            ...(worktreesDifferOnlyInSortOrder(s.worktreesByRepo[args.repoId], mergedWorktrees)
-              ? { sortOrderEpoch: s.sortOrderEpoch + 1 }
-              : { sortEpoch: s.sortEpoch + 1 })
-          }
+        ? // An order save must not schedule the next order save (#27268).
+          worktreesDifferOnlyInSortOrder(s.worktreesByRepo[args.repoId], mergedWorktrees)
+          ? { sortOrderEpoch: s.sortOrderEpoch + 1 }
+          : { sortEpoch: s.sortEpoch + 1 }
         : {}),
       ...(detectedChanged
         ? {
@@ -284,11 +283,11 @@ export function mergeFetchedWorktrees(
         : {}),
       ...(removedIds.length > 0
         ? buildWorktreePurgeState(
-            s,
+            edit,
             removedIds.map((id) => hostWorktreeTarget({ id, hostId: args.hostId }))
           )
         : {})
-    }
+    })
   })
   if (decision.outcome === 'applied') {
     // Why: applied outside the updater so a repeated updater call cannot double-apply the removal memory.

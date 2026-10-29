@@ -219,11 +219,12 @@ export function mutateDiffComments(
         return s
       }
       next = computed
-      return {
-        folderWorkspaces: s.folderWorkspaces.map((workspace) =>
+      return editSessionSource(s)
+        .sequence('folderWorkspaces')
+        .map((workspace) =>
           workspace === target ? { ...workspace, diffComments: computed } : workspace
         )
-      }
+        .finish({})
     }
     const repoList = s.worktreesByRepo[repoId]
     const found = findDiffCommentRows(
@@ -270,11 +271,12 @@ function rollback(
       if (!target || target.diffComments !== expectedCurrent) {
         return s
       }
-      return {
-        folderWorkspaces: s.folderWorkspaces.map((workspace) =>
+      return editSessionSource(s)
+        .sequence('folderWorkspaces')
+        .map((workspace) =>
           workspace === target ? { ...workspace, diffComments: previous } : workspace
         )
-      }
+        .finish({})
     }
     const repoList = s.worktreesByRepo[repoId]
     if (!repoList) {

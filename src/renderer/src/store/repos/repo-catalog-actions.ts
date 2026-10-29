@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -74,13 +75,13 @@ export function createRepoCatalogActions(
           compatibility.projectHostSetups,
           getProjectHostSetupOwnerKey
         )
-        return {
+        return replaceSessionSourceFields({
           repos,
           pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
           ...worktreeState,
           projects,
           projectHostSetups
-        }
+        })
       }),
 
     fetchRepos: async (options) => {
@@ -125,7 +126,7 @@ export function createRepoCatalogActions(
           finalizedHostRepos = prunedRepos.filter(
             (repo) => getRepoExecutionHostId(repo) === result.hostId
           )
-          return {
+          return replaceSessionSourceFields({
             repos: prunedRepos,
             pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
             ...reconcileFetchedCatalogWorktreeState(s, catalog, prunedRepos),
@@ -140,7 +141,7 @@ export function createRepoCatalogActions(
               s.setupScriptPromptDismissedRepoIds,
               validRepoHostIdentities
             )
-          }
+          })
         })
         scheduleSafeAutoForkSync(finalizedHostRepos)
       } catch (err) {

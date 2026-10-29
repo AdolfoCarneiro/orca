@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -42,11 +43,13 @@ export function createRepoOrderingActions(
         return
       }
       const manualRepoOrder = getManualRepoOrder(next)
-      set({
-        repos: next,
-        manualRepoOrder,
-        folderWorkspacePathStatuses: {}
-      })
+      set(
+        replaceSessionSourceFields({
+          repos: next,
+          manualRepoOrder,
+          folderWorkspacePathStatuses: {}
+        })
+      )
       try {
         // Why: each host persists only its own repos and rejects non-permutations; dispatch one per-host permutation per owner.
         const groups = splitRepoReorderByHost(orderedIds, next, get().settings)

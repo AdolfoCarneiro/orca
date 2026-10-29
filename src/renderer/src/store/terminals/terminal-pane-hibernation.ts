@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import {
@@ -104,32 +105,36 @@ export function createTerminalPaneHibernationActions(
       }
       const rollbackTargetShutdownState = (): void => {
         set((s) => {
+          const sourceEdit = editSessionSource(s)
+
           const next = { ...s.suppressedPtyExitIds }
           for (const ptyId of exitGuardPtyIds) {
             delete next[ptyId]
           }
-          const nextSleeping = { ...s.sleepingAgentSessionsByPaneKey }
+
           for (const key of sleepingRecordKeys) {
             const replaced = replacedSleepingRecords[key]
             if (replaced) {
-              nextSleeping[key] = replaced
+              sourceEdit.set('sleepingAgentSessionsByPaneKey', key, replaced)
             } else {
-              delete nextSleeping[key]
+              sourceEdit.remove('sleepingAgentSessionsByPaneKey', key)
             }
           }
-          return { suppressedPtyExitIds: next, sleepingAgentSessionsByPaneKey: nextSleeping }
+          return sourceEdit.finish({ suppressedPtyExitIds: next })
         })
       }
-      set((s) => ({
-        suppressedPtyExitIds: {
-          ...s.suppressedPtyExitIds,
-          ...Object.fromEntries(exitGuardPtyIds.map((ptyId) => [ptyId, true] as const))
-        },
-        sleepingAgentSessionsByPaneKey: {
-          ...s.sleepingAgentSessionsByPaneKey,
-          ...sleepingAgentSessionRecords
+      set((s) => {
+        const edit = editSessionSource(s)
+        for (const [key, record] of Object.entries(sleepingAgentSessionRecords)) {
+          edit.set('sleepingAgentSessionsByPaneKey', key, record)
         }
-      }))
+        return edit.finish({
+          suppressedPtyExitIds: {
+            ...s.suppressedPtyExitIds,
+            ...Object.fromEntries(exitGuardPtyIds.map((ptyId) => [ptyId, true] as const))
+          }
+        })
+      })
       if (expectedRuntimePtyIds.length > 0) {
         if (!runtimeEnvironmentId) {
           rollbackTargetShutdownState()
@@ -196,11 +201,13 @@ export function createTerminalPaneHibernationActions(
       }
       settleAttentionRemovedBy(set, get, () =>
         set((s) => {
+          const sourceEdit = editSessionSource(s)
+
           const existingPtyIds = s.ptyIdsByTabId[opts.tabId] ?? []
           const shutdownPtyIdSet = new Set(rendererShutdownPtyIds)
           const remainingPtyIds = existingPtyIds.filter((ptyId) => !shutdownPtyIdSet.has(ptyId))
-          const nextTabsByWorktree = { ...s.tabsByWorktree }
-          const tabs = nextTabsByWorktree[worktreeId] ?? []
+
+          const tabs = sourceEdit.read('tabsByWorktree')[worktreeId] ?? []
           const tabIndex = tabs.findIndex((candidate) => candidate.id === opts.tabId)
           if (tabIndex !== -1) {
             const nextTabs = [...tabs]
@@ -208,7 +215,7 @@ export function createTerminalPaneHibernationActions(
               ...nextTabs[tabIndex],
               ptyId: remainingPtyIds.at(-1) ?? null
             }
-            nextTabsByWorktree[worktreeId] = nextTabs
+            sourceEdit.set('tabsByWorktree', worktreeId, nextTabs)
           }
           const nextCodexRestartNoticeByPtyId = { ...s.codexRestartNoticeByPtyId }
           for (const ptyId of exitGuardPtyIds) {
@@ -238,8 +245,7 @@ export function createTerminalPaneHibernationActions(
           }
           const nextLastTerminalInputAtByPaneKey = { ...s.lastTerminalInputAtByPaneKey }
           delete nextLastTerminalInputAtByPaneKey[opts.paneKey]
-          return {
-            tabsByWorktree: nextTabsByWorktree,
+          return sourceEdit.finish({
             ptyIdsByTabId: {
               ...s.ptyIdsByTabId,
               [opts.tabId]: remainingPtyIds
@@ -255,7 +261,7 @@ export function createTerminalPaneHibernationActions(
               : {}),
             ...removePanesAttention(s, new Set([opts.paneKey])),
             lastTerminalInputAtByPaneKey: nextLastTerminalInputAtByPaneKey
-          }
+          })
         })
       )
       get().dropHibernatedAgentStatusPane(worktreeId, opts.paneKey, {

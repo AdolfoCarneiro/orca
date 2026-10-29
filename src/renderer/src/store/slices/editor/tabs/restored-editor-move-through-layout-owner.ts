@@ -1,3 +1,4 @@
+import { editSessionSource } from '../../../session-source-edits'
 // Restore reownership proposes IDs to main (same-workspace reownership is rename); move frames atomically rekey content (F42).
 
 import type { Tab } from '../../../../../../shared/tab-types'
@@ -102,7 +103,7 @@ export function reparentRestoredEditorThroughLayoutOwner(
   today: () => void
 ): RestoredEditorOwnerResult | null {
   const state = get()
-  const destination = resolveRestoredEditorOwnerDestination(state, args)
+  const destination = resolveRestoredEditorOwnerDestination(editSessionSource(state), args)
   const to = args.targetWorktreeId
   if (!destination.ok || runtimeEnvironmentIdUnlessTwin(state, to)) {
     return null
@@ -122,8 +123,13 @@ export function reparentRestoredEditorThroughLayoutOwner(
   const groupId = restoredEditorTargetGroupId(state, to)
   const transitionOf = (s: AppState) => {
     let ok = false
-    const next = buildRestoredEditorOwnerTransition(args, (result) => (ok = result.ok), groupId)(s)
-    return ok ? next : null
+    const edit = editSessionSource(s)
+    const next = buildRestoredEditorOwnerTransition(
+      args,
+      (result) => (ok = result.ok),
+      groupId
+    )(s, edit)
+    return ok ? { ...next, patch: edit.finish(next.patch) } : null
   }
   const planned = transitionOf(state)
   if (!planned) {

@@ -32,7 +32,8 @@ let sentSoFar = 0
 
 function installWorkspaceState(): void {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial catalog with only the fields the owner route reads, as restored-editor-owner-reparent.test.ts uses.
     {
       activeWorktreeId: SOURCE,

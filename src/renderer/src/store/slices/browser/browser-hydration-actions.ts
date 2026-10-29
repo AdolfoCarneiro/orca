@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import { editSessionSource } from '@/store/session-source-edits'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/constants'
 import { folderWorkspaceKey } from '../../../../../shared/workspace-scope'
@@ -54,7 +55,9 @@ export function createBrowserHydrationActions(
           validWorktreeIds.add(folderWorkspaceKey(workspace.id))
         }
         addAdditionalValidWorkspaceKeys(validWorktreeIds, options)
-        return projectHydratedBrowserSession(s, session, validWorktreeIds)
+        return replaceSessionSourceFields(
+          projectHydratedBrowserSession(s, session, validWorktreeIds)
+        )
       })
 
       const state = get()

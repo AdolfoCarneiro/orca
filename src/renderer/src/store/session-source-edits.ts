@@ -56,6 +56,14 @@ export class SessionSourceEdit<S extends object> {
     return Object.hasOwn(this.partial, field) ? this.partial[field]! : this.source[field]
   }
 
+  get changed(): boolean {
+    return this.changes.size !== 0
+  }
+
+  view(other: OrdinarySourcePartial<S> = {}): S {
+    return Object.assign({}, this.source, other, this.partial)
+  }
+
   private mark(field: SourceKey<S>, key: string): void {
     if (this.changes.get(field) === null) {
       return
@@ -71,6 +79,11 @@ export class SessionSourceEdit<S extends object> {
       | ReadonlyMap<string, unknown>
       | Readonly<Record<string, unknown>>
       | undefined
+  }
+
+  has<F extends RecordKey<S>>(field: F, key: string): boolean {
+    const current = this.current(field)
+    return current instanceof Map ? current.has(key) : Object.hasOwn(current ?? {}, key)
   }
 
   private baseEntry<F extends RecordKey<S>>(field: F, key: string) {
@@ -111,7 +124,7 @@ export class SessionSourceEdit<S extends object> {
     return this.partial[field] as Map<string, unknown> | Record<string, unknown>
   }
 
-  set<F extends RecordKey<S>>(field: F, key: string, value: Entry<S, F>): this {
+  set<F extends RecordKey<S>>(field: F, key: string, value: Entry<S, F> | undefined): this {
     const current = this.current(field)
     const base = this.baseEntry(field, key)
     const edited = Object.hasOwn(this.partial, field)
@@ -154,8 +167,7 @@ export class SessionSourceEdit<S extends object> {
 
   remove<F extends RecordKey<S>>(field: F, key: string): this {
     this.baseEntry(field, key)
-    const current = this.current(field)
-    if (!(current instanceof Map ? current.has(key) : Object.hasOwn(current ?? {}, key))) {
+    if (!this.has(field, key)) {
       return this
     }
     this.transition(field, key, true, false)
@@ -166,6 +178,13 @@ export class SessionSourceEdit<S extends object> {
       Reflect.deleteProperty(record, key)
     }
     this.mark(field, key)
+    return this
+  }
+
+  removeKeys<F extends RecordKey<S>>(field: F, keys: Iterable<string>): this {
+    for (const key of keys) {
+      this.remove(field, key)
+    }
     return this
   }
 

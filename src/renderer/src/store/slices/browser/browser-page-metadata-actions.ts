@@ -38,16 +38,16 @@ export function createBrowserPageMetadataActions(
     removeRemoteBrowserPageHandle: (pageId, remotePageId) => {
       let removedHandle: RemoteBrowserPageHandle | null = null
       set((s) => {
+        const sourceEdit = editSessionSource(s)
+
         const current = s.remoteBrowserPageHandlesByPageId[pageId]
         if (!current || (remotePageId && current.remotePageId !== remotePageId)) {
           return s
         }
         removedHandle = current
-        const nextRemoteBrowserPageHandlesByPageId = {
-          ...s.remoteBrowserPageHandlesByPageId
-        }
-        delete nextRemoteBrowserPageHandlesByPageId[pageId]
-        return { remoteBrowserPageHandlesByPageId: nextRemoteBrowserPageHandlesByPageId }
+
+        sourceEdit.remove('remoteBrowserPageHandlesByPageId', pageId)
+        return sourceEdit.finish({})
       })
       return removedHandle
     },

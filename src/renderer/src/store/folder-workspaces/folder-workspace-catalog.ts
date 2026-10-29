@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
@@ -248,23 +249,33 @@ export async function reconcileFailedFolderWorkspaceUpdate(args: {
     const refreshed = catalog.folderWorkspaces.find(
       (workspace) => workspace.id === args.folderWorkspaceId
     )
-    args.set((state) => ({
-      folderWorkspaces: refreshed
-        ? state.folderWorkspaces.map((workspace) =>
+    args.set((state) => {
+      const edit = editSessionSource(state)
+      if (refreshed) {
+        edit
+          .sequence('folderWorkspaces')
+          .map((workspace) =>
             workspace.id === args.folderWorkspaceId &&
             getFolderWorkspaceHostId(workspace, state.projectGroups) === args.ownerHostId
               ? mergeFolderWorkspaceUpdateResponse(workspace, refreshed, latestFields)
               : workspace
           )
-        : state.folderWorkspaces.filter(
+      } else {
+        edit
+          .sequence('folderWorkspaces')
+          .filter(
             (workspace) =>
               workspace.id !== args.folderWorkspaceId ||
               getFolderWorkspaceHostId(workspace, state.projectGroups) !== args.ownerHostId
-          ),
-      ...(folderWorkspaceUpdateInvalidatesPathStatus(latestFields) || !refreshed
-        ? { folderWorkspacePathStatuses: {} }
-        : {})
-    }))
+          )
+      }
+      return edit.finish(
+        folderWorkspaceUpdateInvalidatesPathStatus(latestFields) || !refreshed
+          ? { folderWorkspacePathStatuses: {} }
+          : {}
+      )
+    })
+
     if (!refreshed) {
       args.get().purgeWorktreeTerminalState([
         hostWorktreeTarget({

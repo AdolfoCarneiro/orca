@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -144,73 +145,77 @@ export function createRepoUpdateActions(
                   )
                 ).repo
           set((s) => {
-            const nextRepos = s.repos.map((r) => {
-              const matchesOwner = ownerHasExplicitHost
-                ? repoMatchesHostIdentity(r, projectId, ownerHostId)
-                : repoMatchesHostIdentity(r, projectId, ownerHostId) || r === ownerRepo
-              if (!matchesOwner) {
-                return r
-              }
-              if (updatedRepo) {
-                return adoptFromEndpoint(target, { kind: 'repo', row: updatedRepo })
-              }
-              let mergedRepo: Repo = r
-              const {
-                sourceControlAi,
-                externalWorktreeDiscoverySuppressedAt,
-                ghAccount,
-                externalWorktreeVisibility,
-                agentWorktreeVisibility,
-                ...updatesWithoutClearSentinels
-              } = sanitizedUpdates
-              mergedRepo = { ...mergedRepo, ...updatesWithoutClearSentinels }
-              if (sourceControlAi === null) {
-                const { sourceControlAi: _sourceControlAi, ...repoWithoutSourceControlAi } =
-                  mergedRepo
-                mergedRepo = repoWithoutSourceControlAi
-              } else if (sourceControlAi !== undefined) {
-                mergedRepo = { ...mergedRepo, sourceControlAi }
-              }
-              if (externalWorktreeVisibility === null) {
-                const { externalWorktreeVisibility: _visibility, ...repoWithoutVisibility } =
-                  mergedRepo
-                mergedRepo = { ...repoWithoutVisibility, externalWorktreeVisibilityLegacy: false }
-              } else if (externalWorktreeVisibility !== undefined) {
-                mergedRepo = { ...mergedRepo, externalWorktreeVisibility }
-              }
-              if (agentWorktreeVisibility === null) {
-                const { agentWorktreeVisibility: _agentVisibility, ...repoWithoutAgentVisibility } =
-                  mergedRepo
-                mergedRepo = repoWithoutAgentVisibility
-              } else if (agentWorktreeVisibility !== undefined) {
-                mergedRepo = { ...mergedRepo, agentWorktreeVisibility }
-              }
-              if (externalWorktreeDiscoverySuppressedAt === null) {
+            const sourceEdit = editSessionSource(s)
+              .sequence('repos')
+              .map((r) => {
+                const matchesOwner = ownerHasExplicitHost
+                  ? repoMatchesHostIdentity(r, projectId, ownerHostId)
+                  : repoMatchesHostIdentity(r, projectId, ownerHostId) || r === ownerRepo
+                if (!matchesOwner) {
+                  return r
+                }
+                if (updatedRepo) {
+                  return adoptFromEndpoint(target, { kind: 'repo', row: updatedRepo })
+                }
+                let mergedRepo: Repo = r
                 const {
-                  externalWorktreeDiscoverySuppressedAt: _suppressedAt,
-                  ...repoWithoutSuppression
-                } = mergedRepo
-                mergedRepo = repoWithoutSuppression
-              } else if (externalWorktreeDiscoverySuppressedAt !== undefined) {
-                mergedRepo = { ...mergedRepo, externalWorktreeDiscoverySuppressedAt }
-              }
-              if (ghAccount === null) {
-                const { ghAccount: _ghAccount, ...repoWithoutGhAccount } = mergedRepo
-                mergedRepo = repoWithoutGhAccount
-              } else if (ghAccount !== undefined) {
-                mergedRepo = { ...mergedRepo, ghAccount }
-              }
-              return mergedRepo
-            })
-            return {
-              repos: nextRepos,
+                  sourceControlAi,
+                  externalWorktreeDiscoverySuppressedAt,
+                  ghAccount,
+                  externalWorktreeVisibility,
+                  agentWorktreeVisibility,
+                  ...updatesWithoutClearSentinels
+                } = sanitizedUpdates
+                mergedRepo = { ...mergedRepo, ...updatesWithoutClearSentinels }
+                if (sourceControlAi === null) {
+                  const { sourceControlAi: _sourceControlAi, ...repoWithoutSourceControlAi } =
+                    mergedRepo
+                  mergedRepo = repoWithoutSourceControlAi
+                } else if (sourceControlAi !== undefined) {
+                  mergedRepo = { ...mergedRepo, sourceControlAi }
+                }
+                if (externalWorktreeVisibility === null) {
+                  const { externalWorktreeVisibility: _visibility, ...repoWithoutVisibility } =
+                    mergedRepo
+                  mergedRepo = { ...repoWithoutVisibility, externalWorktreeVisibilityLegacy: false }
+                } else if (externalWorktreeVisibility !== undefined) {
+                  mergedRepo = { ...mergedRepo, externalWorktreeVisibility }
+                }
+                if (agentWorktreeVisibility === null) {
+                  const {
+                    agentWorktreeVisibility: _agentVisibility,
+                    ...repoWithoutAgentVisibility
+                  } = mergedRepo
+                  mergedRepo = repoWithoutAgentVisibility
+                } else if (agentWorktreeVisibility !== undefined) {
+                  mergedRepo = { ...mergedRepo, agentWorktreeVisibility }
+                }
+                if (externalWorktreeDiscoverySuppressedAt === null) {
+                  const {
+                    externalWorktreeDiscoverySuppressedAt: _suppressedAt,
+                    ...repoWithoutSuppression
+                  } = mergedRepo
+                  mergedRepo = repoWithoutSuppression
+                } else if (externalWorktreeDiscoverySuppressedAt !== undefined) {
+                  mergedRepo = { ...mergedRepo, externalWorktreeDiscoverySuppressedAt }
+                }
+                if (ghAccount === null) {
+                  const { ghAccount: _ghAccount, ...repoWithoutGhAccount } = mergedRepo
+                  mergedRepo = repoWithoutGhAccount
+                } else if (ghAccount !== undefined) {
+                  mergedRepo = { ...mergedRepo, ghAccount }
+                }
+                return mergedRepo
+              })
+            const nextRepos = sourceEdit.read('repos')
+            return sourceEdit.finish({
               ...mergeProjectCompatibilityForHostRepoChange({
                 previous: { projects: s.projects, projectHostSetups: s.projectHostSetups },
                 nextRepos,
                 hostId: ownerHostId
               }),
               folderWorkspacePathStatuses: {}
-            }
+            })
           })
           return true
         } catch (err) {

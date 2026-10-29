@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { summary } from './structured-status-launch-directory.test-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
@@ -306,17 +307,11 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
       expect(mocks.applyStatus).toHaveBeenCalledOnce()
       linearWork()
       resetWork()
-      const activationWork = measureMembership(() =>
-        useAppStore.setState(
-          tabActivationPatch(
-            useAppStore.getState(),
-            tabs[1],
-            FLOATING_TERMINAL_WORKTREE_ID,
-            undefined,
-            false
-          )
-        )
-      )
+      const activationWork = measureMembership(() => {
+        const edit = editSessionSource(useAppStore.getState())
+        tabActivationPatch(edit, tabs[1], FLOATING_TERMINAL_WORKTREE_ID, undefined, false)
+        useAppStore.setState(edit.finish())
+      })
       expect(activationWork.members).toBeLessThanOrEqual(4 * count)
       expect(activationWork.groups).toBeLessThanOrEqual(5 * hostCount)
       expect(commits).toBe(0)

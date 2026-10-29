@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import { runtimeTargetForOwnerEnvironment } from '../../runtime/runtime-client-target'
@@ -31,10 +32,10 @@ export function createProjectGroupCatalogActions(
       if (arrayElementsUnchanged(projectGroups, s.projectGroups)) {
         return s
       }
-      return {
+      return replaceSessionSourceFields({
         projectGroups,
         folderWorkspacePathStatuses: {}
-      }
+      })
     })
   }
 

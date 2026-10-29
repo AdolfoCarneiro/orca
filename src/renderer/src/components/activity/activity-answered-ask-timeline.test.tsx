@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
@@ -202,7 +203,9 @@ describe("an answered subagent ask on a settled parent's Activity row", () => {
       const focus = (current: Tab) =>
         act(() => {
           const state = useAppStore.getState()
-          useAppStore.setState(tabActivationPatch(state, current, 'wt-1', undefined, false))
+          const edit = editSessionSource(state)
+          tabActivationPatch(edit, current, 'wt-1', undefined, false)
+          useAppStore.setState(edit.finish())
         })
       for (let i = 0; i < 2; i += 1) {
         const before = useAppStore.getState().unifiedTabsByWorktree['wt-1'][0]

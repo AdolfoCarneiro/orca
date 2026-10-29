@@ -1,3 +1,4 @@
+import { editSessionSource, type SessionSourceEdit } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
 import type {
@@ -144,10 +145,10 @@ export function projectLocalWorktreeLineageUpdate(
   state: Pick<AppState, 'repos' | 'worktreesByRepo'>,
   hostId: ExecutionHostId,
   worktreeId: string,
-  lineage: WorktreeLineage | null
+  lineage: WorktreeLineage | null,
+  edit: SessionSourceEdit<Pick<AppState, 'repos' | 'worktreesByRepo'>> = editSessionSource(state)
 ): Record<string, Worktree[]> {
   const { worktreesByRepo } = state
-  let nextByRepo = worktreesByRepo
   for (const [repoId, worktrees] of Object.entries(worktreesByRepo)) {
     const options = worktreeHostMatchOptions(state, repoId, hostId)
     let repoChanged = false
@@ -182,13 +183,10 @@ export function projectLocalWorktreeLineageUpdate(
       return worktree
     })
     if (repoChanged) {
-      if (nextByRepo === worktreesByRepo) {
-        nextByRepo = { ...worktreesByRepo }
-      }
-      nextByRepo[repoId] = projected
+      edit.set('worktreesByRepo', repoId, projected)
     }
   }
-  return nextByRepo
+  return edit.read('worktreesByRepo')
 }
 
 export function applyWorktreeLineageUpdate(
@@ -197,6 +195,7 @@ export function applyWorktreeLineageUpdate(
   result: WorktreeLineageUpdateResult
 ): void {
   set((s) => {
+    const edit = editSessionSource(s)
     const next = { ...s.worktreeLineageById }
     if (result.lineage) {
       next[worktreeId] = result.lineage
@@ -204,26 +203,25 @@ export function applyWorktreeLineageUpdate(
       delete next[worktreeId]
     }
     // Why the result's host: focus can name the twin of a row another host just answered for.
-    const worktreesByRepo =
-      result.target.kind === 'local'
-        ? projectLocalWorktreeLineageUpdate(s, result.hostId, worktreeId, result.lineage)
-        : result.updatedRemoteWorktree
-          ? replaceWorktreeInRepoLists(
-              s,
-              withRepoHostOwnership(result.updatedRemoteWorktree, result.hostId),
-              result.hostId
-            )
-          : s.worktreesByRepo
-    return {
+    if (result.target.kind === 'local') {
+      projectLocalWorktreeLineageUpdate(s, result.hostId, worktreeId, result.lineage, edit)
+    } else if (result.updatedRemoteWorktree) {
+      replaceWorktreeInRepoLists(
+        s,
+        withRepoHostOwnership(result.updatedRemoteWorktree, result.hostId),
+        result.hostId,
+        edit
+      )
+    }
+    return edit.finish({
       worktreeLineageById: next,
       workspaceLineageByChildKey: projectWorktreeLineageToWorkspaceLineage(
         worktreeId,
         result.lineage,
         s.workspaceLineageByChildKey
       ),
-      worktreesByRepo,
       sortEpoch: s.sortEpoch + 1
-    }
+    })
   })
 }
 

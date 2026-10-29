@@ -92,20 +92,24 @@ export function createOpenConflictFile(
             (file) => file.id === replaceablePreviewId
           )
           if (replaceablePreviewIndex !== -1) {
-            return {
-              openFiles: s.openFiles.map((file, index) =>
-                index === replaceablePreviewIndex ? newFile : file
-              ),
-              ...removeEditorStateForReplacedPreview(s, s.openFiles[replaceablePreviewIndex], id),
-              activeFileId: id,
-              activeTabType: 'editor',
-              activeFileIdByWorktree: { ...s.activeFileIdByWorktree, [worktreeId]: id },
-              activeTabTypeByWorktree: { ...s.activeTabTypeByWorktree, [worktreeId]: 'editor' },
-              trackedConflictPathsByWorktree:
-                nextTracked === s.trackedConflictPathsByWorktree[worktreeId]
-                  ? s.trackedConflictPathsByWorktree
-                  : { ...s.trackedConflictPathsByWorktree, [worktreeId]: nextTracked }
-            }
+            return sourceEdit
+              .sequence('openFiles')
+              .map((file, index) => (index === replaceablePreviewIndex ? newFile : file))
+              .set('activeFileIdByWorktree', worktreeId, id)
+              .set('activeTabTypeByWorktree', worktreeId, 'editor')
+              .finish({
+                ...removeEditorStateForReplacedPreview(
+                  sourceEdit,
+                  s.openFiles[replaceablePreviewIndex],
+                  id
+                ),
+                activeFileId: id,
+                activeTabType: 'editor',
+                trackedConflictPathsByWorktree:
+                  nextTracked === s.trackedConflictPathsByWorktree[worktreeId]
+                    ? s.trackedConflictPathsByWorktree
+                    : { ...s.trackedConflictPathsByWorktree, [worktreeId]: nextTracked }
+              })
           }
         }
 

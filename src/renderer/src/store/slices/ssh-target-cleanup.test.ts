@@ -126,7 +126,9 @@ describe('SSH target cleanup tab map', () => {
     expect(store.getState()).toBe(before)
     store.setState({ deferredSshReconnectTargets: ['removed'] })
     const patch = buildRemovedSshTargetCleanupPatch(store.getState(), 'removed')
-    expect(patch).toEqual({ deferredSshReconnectTargets: [] })
+    expect(patch && Object.fromEntries(Object.entries(patch))).toEqual({
+      deferredSshReconnectTargets: []
+    })
     store.getState().clearRemovedSshTargetState('removed')
     expect(store.getState().tabsByWorktree).toBe(tabsByWorktree)
   })

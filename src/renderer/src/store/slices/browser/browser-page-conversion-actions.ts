@@ -43,6 +43,8 @@ export function createBrowserPageConversionActions(
         let docPageIdToRelease: string | null = null
         let remotePageToClose: { worktreeId: string; handle: RemoteBrowserPageHandle } | null = null
         set((s) => {
+          const sourceEdit = editSessionSource(s)
+
           const plan = planBrowserPageConversion(s, pageId, target, {
             ...options,
             ...(newPageId ? { newPageId } : {})
@@ -59,40 +61,38 @@ export function createBrowserPageConversionActions(
           if (remoteHandle) {
             remotePageToClose = { worktreeId: plan.oldPage.worktreeId, handle: remoteHandle }
           }
-          const nextRemoteBrowserPageHandlesByPageId = { ...s.remoteBrowserPageHandlesByPageId }
-          delete nextRemoteBrowserPageHandlesByPageId[plan.oldPage.id]
+
+          sourceEdit.remove('remoteBrowserPageHandlesByPageId', plan.oldPage.id)
           const nextBrowserAnnotationsByPageId = { ...s.browserAnnotationsByPageId }
           const nextBrowserAnnotationMarkerIdsByPageId = { ...s.browserAnnotationMarkerIdsByPageId }
           delete nextBrowserAnnotationsByPageId[plan.oldPage.id]
           delete nextBrowserAnnotationMarkerIdsByPageId[plan.oldPage.id]
           const nextBrowserCertificateFailuresByPageId = { ...s.browserCertificateFailuresByPageId }
           delete nextBrowserCertificateFailuresByPageId[plan.oldPage.id]
-          return {
-            browserPagesByWorkspace: {
-              ...s.browserPagesByWorkspace,
-              [plan.workspace.id]: plan.nextPages
-            },
-            browserTabsByWorktree: {
-              ...s.browserTabsByWorktree,
-              [plan.workspace.worktreeId]: (
-                s.browserTabsByWorktree[plan.workspace.worktreeId] ?? []
-              ).map((tab) => (tab.id === plan.workspace.id ? plan.nextWorkspace : tab))
-            },
-            pendingAddressBarFocusByPageId: Object.fromEntries(
-              Object.entries(s.pendingAddressBarFocusByPageId).filter(
-                ([pendingPageId]) => pendingPageId !== plan.oldPage.id
+          return sourceEdit
+            .set('browserPagesByWorkspace', plan.workspace.id, plan.nextPages)
+            .set(
+              'browserTabsByWorktree',
+              plan.workspace.worktreeId,
+              (s.browserTabsByWorktree[plan.workspace.worktreeId] ?? []).map((tab) =>
+                tab.id === plan.workspace.id ? plan.nextWorkspace : tab
               )
-            ),
-            pendingAddressBarFocusByTabId: Object.fromEntries(
-              Object.entries(s.pendingAddressBarFocusByTabId).filter(
-                ([pendingPageId]) => pendingPageId !== plan.oldPage.id
-              )
-            ),
-            remoteBrowserPageHandlesByPageId: nextRemoteBrowserPageHandlesByPageId,
-            browserCertificateFailuresByPageId: nextBrowserCertificateFailuresByPageId,
-            browserAnnotationsByPageId: nextBrowserAnnotationsByPageId,
-            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId
-          }
+            )
+            .finish({
+              pendingAddressBarFocusByPageId: Object.fromEntries(
+                Object.entries(s.pendingAddressBarFocusByPageId).filter(
+                  ([pendingPageId]) => pendingPageId !== plan.oldPage.id
+                )
+              ),
+              pendingAddressBarFocusByTabId: Object.fromEntries(
+                Object.entries(s.pendingAddressBarFocusByTabId).filter(
+                  ([pendingPageId]) => pendingPageId !== plan.oldPage.id
+                )
+              ),
+              browserCertificateFailuresByPageId: nextBrowserCertificateFailuresByPageId,
+              browserAnnotationsByPageId: nextBrowserAnnotationsByPageId,
+              browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId
+            })
         })
         // Why the casts: the assignments happen inside set()'s callback, which TS's flow analysis does
         // not track, so the initializers' null narrowing would otherwise read these as never.

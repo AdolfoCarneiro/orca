@@ -18,14 +18,6 @@ import {
 import { getDiskBaselineSignature } from '../../../../../../shared/disk-baseline-signature'
 import { editorBufferSiblingViewIds } from '../buffers/editor-buffer-views'
 
-function withoutKeys<T>(record: Record<string, T>, keys: readonly string[]): Record<string, T> {
-  const next = { ...record }
-  for (const key of keys) {
-    delete next[key]
-  }
-  return next
-}
-
 export function createOpenFileMutations(
   set: EditorSet,
   get: EditorGet
@@ -112,35 +104,33 @@ export function createOpenFileMutations(
         if (ORCA_LAYOUT_OWNER_IS_MAIN && needsPreviewClear) {
           promoted.push(...previewEditorTabsOf(s.unifiedTabsByWorktree, fileId))
         }
-        return {
-          ...writeEditorBuffer(
-            s,
-            fileId,
-            { isDirty: dirty },
-            needsPreviewClear ? { isPreview: undefined } : undefined
-          ),
-          // Why every view: views of one record share one draft.
-          ...(dropDraft
-            ? { editorDrafts: withoutKeys(s.editorDrafts, editorBufferSiblingViewIds(s, fileId)) }
-            : {}),
-          ...(needsPreviewClear
-            ? {
-                unifiedTabsByWorktree: Object.fromEntries(
-                  Object.entries(s.unifiedTabsByWorktree ?? {}).map(([worktreeId, tabs]) => [
-                    worktreeId,
-                    tabs.map((tab) =>
-                      tab.entityId === fileId &&
-                      isEditorTabContentType(tab.contentType) &&
-                      // Switch point: main's frame ends a preview main owns.
-                      endsPreviewHere(s, worktreeId)
-                        ? withPreviewEnded(tab)
-                        : tab
-                    )
-                  ])
-                )
-              }
-            : {})
+        const edit = editSessionSource(s)
+        const bufferPatch = writeEditorBuffer(
+          edit,
+          fileId,
+          { isDirty: dirty },
+          needsPreviewClear ? { isPreview: undefined } : undefined
+        )
+        if (dropDraft) {
+          for (const id of editorBufferSiblingViewIds(s, fileId)) {
+            edit.remove('editorDrafts', id)
+          }
         }
+        if (needsPreviewClear) {
+          for (const [worktreeId, tabs] of Object.entries(s.unifiedTabsByWorktree ?? {})) {
+            const next = tabs.map((tab) =>
+              tab.entityId === fileId &&
+              isEditorTabContentType(tab.contentType) &&
+              endsPreviewHere(s, worktreeId)
+                ? withPreviewEnded(tab)
+                : tab
+            )
+            if (next.some((tab, index) => tab !== tabs[index])) {
+              edit.set('unifiedTabsByWorktree', worktreeId, next)
+            }
+          }
+        }
+        return edit.finish(bufferPatch)
       })
       // Switch point: main makes the edited preview tabs permanent.
       if (ORCA_LAYOUT_OWNER_IS_MAIN && promoted.length > 0) {
@@ -149,10 +139,18 @@ export function createOpenFileMutations(
     },
 
     setExternalMutation: (fileId, mutation) =>
-      set((s) => updateEditorBuffer(s, fileId, { externalMutation: mutation ?? undefined })),
+      set((s) => {
+        const edit = editSessionSource(s)
+        const patch = updateEditorBuffer(edit, fileId, { externalMutation: mutation ?? undefined })
+        return patch ? edit.finish(patch) : s
+      }),
 
     setLastKnownDiskSignature: (fileId, signature) =>
-      set((s) => updateEditorBuffer(s, fileId, { lastKnownDiskSignature: signature })),
+      set((s) => {
+        const edit = editSessionSource(s)
+        const patch = updateEditorBuffer(edit, fileId, { lastKnownDiskSignature: signature })
+        return patch ? edit.finish(patch) : s
+      }),
 
     // Why: never touches readOnly, which also guards transcripts and keeps dirty drafts out of sessions.
     setTerminalArtifactGrant: (fileId, grantId) =>

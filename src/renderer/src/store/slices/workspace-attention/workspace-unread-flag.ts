@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { parseWorkspaceKey } from '../../../../../shared/workspace-scope'
 import { applyWorktreeUpdates } from '../worktree-helpers'
 import {
@@ -105,12 +106,14 @@ function raiseWorkspaceUnreadFlag(
     if (!marked || marked.isUnread) {
       return
     }
-    set((s) => ({
-      folderWorkspaces: s.folderWorkspaces.map((workspace) =>
-        workspace === marked ? { ...workspace, isUnread: true, ...stamp } : workspace
-      ),
-      sortEpoch: s.sortEpoch + 1
-    }))
+    set((s) =>
+      editSessionSource(s)
+        .sequence('folderWorkspaces')
+        .map((workspace) =>
+          workspace === marked ? { ...workspace, isUnread: true, ...stamp } : workspace
+        )
+        .finish({ sortEpoch: s.sortEpoch + 1 })
+    )
     // Why the row's own host: the row flipped here is the owner updateFolderWorkspace writes.
     void get().updateFolderWorkspace(
       folderWorkspaceId,
@@ -186,11 +189,14 @@ export function clearWorkspaceUnreadFlag(
       return
     }
     // Why: flip locally first so repeated reads dedupe on the guard above before the IPC round-trip lands.
-    set((s) => ({
-      folderWorkspaces: s.folderWorkspaces.map((workspace) =>
-        cleared.includes(workspace) ? { ...workspace, isUnread: false } : workspace
-      )
-    }))
+    set((s) =>
+      editSessionSource(s)
+        .sequence('folderWorkspaces')
+        .map((workspace) =>
+          cleared.includes(workspace) ? { ...workspace, isUnread: false } : workspace
+        )
+        .finish({})
+    )
     for (const workspace of cleared) {
       void get().updateFolderWorkspace(
         folderWorkspaceId,

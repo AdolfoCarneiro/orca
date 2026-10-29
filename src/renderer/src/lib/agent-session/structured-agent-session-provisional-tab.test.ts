@@ -1,3 +1,4 @@
+import { sessionTestEdit } from '@/lib/test-support/session-source-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -433,7 +434,9 @@ it.each(['expiry', 'purge'])('created pane publication: %s', async (order) => {
     groupId
   })
   if (order === 'purge') {
-    useAppStore.setState(buildFullWorktreePurgeState(store(), [{ id: 'wt-1' }]))
+    useAppStore.setState(
+      sessionTestEdit(store(), (edit) => buildFullWorktreePurgeState(edit, [{ id: 'wt-1' }]))
+    )
   }
   await vi.advanceTimersByTimeAsync(30_000)
   expect(unlisted.isUnlistedCreatedChat('wt-1', chat.entityId)).toBe(false)

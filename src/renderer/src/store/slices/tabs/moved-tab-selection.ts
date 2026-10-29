@@ -1,3 +1,5 @@
+import { editSessionSource, type SessionSourceSet } from '../../session-source-edits'
+import { replaceSessionSourceFields } from '../../session-source-write-boundary'
 // Select moved tabs with the frame showing the move (L120); a later reply may already be superseded by another drag.
 
 import type { AppState } from '../../types'
@@ -29,20 +31,19 @@ function movedTabSelectionPatch(state: AppState, intent: MovedTabSelection): Par
     return {}
   }
   // The preview kept, no focus time recorded.
-  const selected = tabActivationPatch(
-    state,
+  const edit = editSessionSource(state)
+  tabActivationPatch(
+    edit,
     tab,
     worktreeId,
     { preservePreview: true, recordFocus: false },
     endsPreviewHere(state, worktreeId)
   )
-  return {
-    ...selected,
-    // As focusing a group does: only the active workspace's surface follows.
-    ...(state.activeWorktreeId === worktreeId
-      ? buildActiveSurfacePatch({ ...state, ...selected }, worktreeId, tab.groupId)
-      : {})
-  }
+  return edit.finish(
+    state.activeWorktreeId === worktreeId
+      ? buildActiveSurfacePatch(edit, worktreeId, tab.groupId)
+      : {}
+  )
 }
 
 /** `patch` plus the selection of each moved tab it shows out of its old group, and those moves. */
@@ -84,13 +85,13 @@ export function withMovedTabsSelected(
 
 /** Writes a frame's patch, with the selection of each moved tab it shows; returns those moves. */
 export function showFramePatch(
-  store: { getState: () => AppState; setState: (patch: Partial<AppState>) => void },
+  store: { getState: () => AppState; setState: SessionSourceSet<AppState> },
   patch: Partial<AppState>
 ): MovedTabSelection[] {
   if (Object.keys(patch).length === 0) {
     return []
   }
   const shown = withMovedTabSelections(store.getState(), patch)
-  store.setState(shown.patch)
+  store.setState(replaceSessionSourceFields(shown.patch))
   return shown.taken
 }

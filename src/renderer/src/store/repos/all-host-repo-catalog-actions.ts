@@ -1,3 +1,4 @@
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -82,7 +83,7 @@ export function createAllHostRepoCatalogActions(
           hostRepos = finalizedRepos.filter(
             (repo) => getRepoExecutionHostId(repo) === result.hostId
           )
-          return {
+          return replaceSessionSourceFields({
             repos: finalizedRepos,
             pendingSshRepoReadoptions: reconciliation.pendingReadoptions,
             ...reconcileFetchedCatalogWorktreeState(s, catalog, finalizedRepos),
@@ -93,7 +94,7 @@ export function createAllHostRepoCatalogActions(
             activeRepoId: s.activeRepoId,
             filterRepoIds: s.filterRepoIds,
             setupScriptPromptDismissedRepoIds: s.setupScriptPromptDismissedRepoIds
-          }
+          })
         })
         // Why: keep the safe-auto fork sync (as fetchRepos does) so cold-start, which now routes here, still updates safe-auto forks.
         scheduleSafeAutoForkSync(hostRepos)

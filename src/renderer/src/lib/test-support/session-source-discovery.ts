@@ -99,7 +99,7 @@ export function discoverSessionSources(
   for (const field of fields) {
     const before = previous[field],
       after = next[field]
-    if (before === after) {
+    if (before === after && Object.hasOwn(previous, field) === Object.hasOwn(next, field)) {
       continue
     }
     if (field === 'openFiles') {

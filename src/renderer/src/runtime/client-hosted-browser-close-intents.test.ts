@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import { describe, expect, it } from 'vitest'
 import type { AppState } from '@/store/types'
 import {
@@ -5,12 +6,32 @@ import {
   MAX_CLIENT_HOSTED_BROWSER_CLOSE_INTENTS
 } from '../../../shared/client-hosted-browser-close-intent'
 import {
-  clearClientHostedBrowserCloseIntents,
+  clearClientHostedBrowserCloseIntents as clearWithEdit,
   collectPendingClientHostedBrowserCloses,
   listClientHostedBrowserCloseIntents,
-  recordClientHostedBrowserCloseIntents,
+  recordClientHostedBrowserCloseIntents as recordWithEdit,
   type ClientHostedBrowserCloseIntentsByEnvironment
 } from './client-hosted-browser-close-intents'
+
+function recordClientHostedBrowserCloseIntents(
+  current: ClientHostedBrowserCloseIntentsByEnvironment,
+  closes: Parameters<typeof recordWithEdit>[1],
+  now: number
+) {
+  const edit = editSessionSource({ clientHostedBrowserCloseIntentsByEnvironment: current })
+  return recordWithEdit(edit, closes, now)
+    ? edit.finish().clientHostedBrowserCloseIntentsByEnvironment!
+    : null
+}
+function clearClientHostedBrowserCloseIntents(
+  current: ClientHostedBrowserCloseIntentsByEnvironment,
+  args: Parameters<typeof clearWithEdit>[1]
+) {
+  const edit = editSessionSource({ clientHostedBrowserCloseIntentsByEnvironment: current })
+  return clearWithEdit(edit, args)
+    ? edit.finish().clientHostedBrowserCloseIntentsByEnvironment!
+    : null
+}
 
 const NOW = 1_800_000_000_000
 

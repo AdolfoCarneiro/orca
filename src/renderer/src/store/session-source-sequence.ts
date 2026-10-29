@@ -104,6 +104,18 @@ export class SessionSourceSequence<Row, Result> {
     return receipt.finish(rows)
   }
 
+  prepend(...added: Row[]): Result {
+    const receipt = this.collect()
+    for (const row of added) {
+      receipt.after(row)
+    }
+    for (const row of this.source) {
+      receipt.before(row)
+      receipt.after(row)
+    }
+    return receipt.finish([...added, ...this.source])
+  }
+
   append(...added: Row[]): Result {
     const receipt = this.collect()
     for (const row of this.source) {

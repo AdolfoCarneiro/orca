@@ -1,3 +1,9 @@
+import {
+  editSessionSource,
+  type SessionSourceWrite,
+  type OrdinarySourcePartial
+} from '../../session-source-edits'
+import { replaceSessionSourceFields } from '../../session-source-write-boundary'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/constants'
 import { folderWorkspaceKey } from '../../../../../shared/workspace-scope'
 import type { TabsSlice, TabsSliceGet, TabsSliceSet } from './tabs-slice-contract'
@@ -28,20 +34,18 @@ function replaceWorkspaceRecordKeys<T>(
 function projectWorktreeTabModelReconciliations(
   state: AppState,
   worktreeIds: readonly string[]
-): Partial<AppState> {
+): SessionSourceWrite<AppState> {
   const batch = createWorktreeTabModelReconciliationBatch(state)
-  // Private working copy so batch-owned maps can be written in place.
-  const working = { ...state }
-  const merged: Partial<AppState> = {}
+  const edit = editSessionSource(state)
+  const merged: OrdinarySourcePartial<AppState> = {}
   for (const worktreeId of worktreeIds) {
-    const { patch } = projectWorktreeTabModelReconciliation(working, worktreeId, batch)
+    const { patch } = projectWorktreeTabModelReconciliation(edit, worktreeId, batch, merged)
     if (Object.keys(patch).length === 0) {
       continue
     }
     Object.assign(merged, patch)
-    Object.assign(working, patch)
   }
-  return merged
+  return edit.finish(merged)
 }
 
 export function createTabsSessionActions(
@@ -67,10 +71,14 @@ export function createTabsSessionActions(
     },
 
     reconcileWorktreeTabModel: (worktreeId) => {
-      const reconciliation = projectWorktreeTabModelReconciliation(get(), worktreeId)
+      const edit = editSessionSource(get())
+      const reconciliation = projectWorktreeTabModelReconciliation(edit, worktreeId)
       // Switch point: the counts only; main's frames draw the tab bar.
-      if (!ORCA_LAYOUT_OWNER_IS_MAIN && Object.keys(reconciliation.patch).length > 0) {
-        set(reconciliation.patch)
+      if (
+        !ORCA_LAYOUT_OWNER_IS_MAIN &&
+        (edit.changed || Object.keys(reconciliation.patch).length > 0)
+      ) {
+        set(edit.finish(reconciliation.patch))
       }
       return {
         renderableTabCount: reconciliation.renderableTabCount,
@@ -89,32 +97,34 @@ export function createTabsSessionActions(
       addAdditionalValidWorkspaceKeys(validWorktreeIds, options)
       const hydrated = buildHydratedTabState(session, validWorktreeIds)
       if (!options?.replaceWorkspaceKeys) {
-        set(hydrated)
+        set(replaceSessionSourceFields(hydrated))
         return
       }
       const replaceWorkspaceKeys = new Set(options.replaceWorkspaceKeys)
-      set((current) => ({
-        unifiedTabsByWorktree: replaceWorkspaceRecordKeys(
-          current.unifiedTabsByWorktree,
-          hydrated.unifiedTabsByWorktree,
-          replaceWorkspaceKeys
-        ),
-        groupsByWorktree: replaceWorkspaceRecordKeys(
-          current.groupsByWorktree,
-          hydrated.groupsByWorktree,
-          replaceWorkspaceKeys
-        ),
-        activeGroupIdByWorktree: replaceWorkspaceRecordKeys(
-          current.activeGroupIdByWorktree,
-          hydrated.activeGroupIdByWorktree,
-          replaceWorkspaceKeys
-        ),
-        layoutByWorktree: replaceWorkspaceRecordKeys(
-          current.layoutByWorktree,
-          hydrated.layoutByWorktree,
-          replaceWorkspaceKeys
-        )
-      }))
+      set((current) =>
+        replaceSessionSourceFields({
+          unifiedTabsByWorktree: replaceWorkspaceRecordKeys(
+            current.unifiedTabsByWorktree,
+            hydrated.unifiedTabsByWorktree,
+            replaceWorkspaceKeys
+          ),
+          groupsByWorktree: replaceWorkspaceRecordKeys(
+            current.groupsByWorktree,
+            hydrated.groupsByWorktree,
+            replaceWorkspaceKeys
+          ),
+          activeGroupIdByWorktree: replaceWorkspaceRecordKeys(
+            current.activeGroupIdByWorktree,
+            hydrated.activeGroupIdByWorktree,
+            replaceWorkspaceKeys
+          ),
+          layoutByWorktree: replaceWorkspaceRecordKeys(
+            current.layoutByWorktree,
+            hydrated.layoutByWorktree,
+            replaceWorkspaceKeys
+          )
+        })
+      )
     }
   }
 }

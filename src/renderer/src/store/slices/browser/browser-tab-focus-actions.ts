@@ -1,3 +1,4 @@
+import { editSessionSource } from '@/store/session-source-edits'
 import type {
   BrowserSlice,
   BrowserSliceGet,
@@ -113,19 +114,14 @@ export function createBrowserTabFocusActions(
         }
         // Floating/background activation must not move global selection or break agent-auto-ack targeting (agent-auto-ack-targets.ts).
         const scopeWorktreeId = targetWorktreeId ?? browserTab.worktreeId
-        return {
-          ...(scopeWorktreeId === s.activeWorktreeId
-            ? { activeBrowserTabId: tabId, activeTabType: 'browser' as const }
-            : {}),
-          activeBrowserTabIdByWorktree: {
-            ...s.activeBrowserTabIdByWorktree,
-            [browserTab.worktreeId]: tabId
-          },
-          activeTabTypeByWorktree: {
-            ...s.activeTabTypeByWorktree,
-            [browserTab.worktreeId]: 'browser'
-          }
-        }
+        return editSessionSource(s)
+          .set('activeBrowserTabIdByWorktree', browserTab.worktreeId, tabId)
+          .set('activeTabTypeByWorktree', browserTab.worktreeId, 'browser')
+          .finish(
+            scopeWorktreeId === s.activeWorktreeId
+              ? { activeBrowserTabId: tabId, activeTabType: 'browser' as const }
+              : {}
+          )
       })
 
       // Why: notify the CDP bridge of the active guest; it keys on page IDs not workspace IDs, so resolve the workspace's active page.

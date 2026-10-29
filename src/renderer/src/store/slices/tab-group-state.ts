@@ -60,29 +60,23 @@ export function findTabByEntityInGroup(
 }
 
 export function ensureGroup(
-  groupsByWorktree: Record<string, TabGroup[]>,
-  activeGroupIdByWorktree: Record<string, string>,
+  edit: SessionSourceEdit<Pick<AppState, 'groupsByWorktree' | 'activeGroupIdByWorktree'>>,
   worktreeId: string,
   preferredGroupId?: string
-): {
-  group: TabGroup
-  groupsByWorktree: Record<string, TabGroup[]>
-  activeGroupIdByWorktree: Record<string, string>
-} {
+): TabGroup {
+  const groupsByWorktree = edit.read('groupsByWorktree')
   const existing =
     groupsByWorktree[worktreeId]?.find((group) => group.id === preferredGroupId) ??
     groupsByWorktree[worktreeId]?.[0]
   if (existing) {
-    return { group: existing, groupsByWorktree, activeGroupIdByWorktree }
+    return existing
   }
-  // Switch point: the root group id main and the Loader mint for a workspace with no group.
+  // Main and the loader mint the same root for a workspace with no group.
   const groupId = ORCA_LAYOUT_OWNER_IS_MAIN ? workspaceRootGroupId(worktreeId) : createBrowserUuid()
   const group: TabGroup = { id: groupId, worktreeId, activeTabId: null, tabOrder: [] }
-  return {
-    group,
-    groupsByWorktree: { ...groupsByWorktree, [worktreeId]: [group] },
-    activeGroupIdByWorktree: { ...activeGroupIdByWorktree, [worktreeId]: groupId }
-  }
+  edit.set('groupsByWorktree', worktreeId, [group])
+  edit.set('activeGroupIdByWorktree', worktreeId, groupId)
+  return group
 }
 
 /** Pick the nearest neighbor in visual order (right first, then left). */
