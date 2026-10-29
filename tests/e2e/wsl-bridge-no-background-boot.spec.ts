@@ -11,23 +11,30 @@
  * process-host (wsl-availability's missing-kernel `--exec /bin/true` is a documented exception)
  * or spawns in children that drop the environment.
  */
-import { execFile } from 'node:child_process'
 import { rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import type { Page } from '@stablyai/playwright-test'
+import type { ElectronApplication, Page, TestInfo } from '@stablyai/playwright-test'
 import { expect, test } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import { waitForActivePanePtyId } from './helpers/terminal'
 import { visitSettingsPanes } from './helpers/settings-pane-visits'
-import { buildWslExecArgs } from '../../src/shared/wsl-login-shell-command'
 import { quotePosixShell } from '../../src/shared/shell-argument-quoting'
 import {
   readDiagnosticLog,
-  recordMainProcessWslDiagnostics,
-  UNC_TOUCH,
-  type DiagnosticRecord
+  recordMainProcessWslDiagnostics
 } from './helpers/wsl-boot-diagnostics-log'
+import {
+  activate,
+  cycleWindowFocus,
+  isDistroRunning,
+  runInDistro,
+  startsDistro,
+  timeline,
+  waitForWslLaunchesToSettle,
+  watchDistroRunning,
+  wsl
+} from './helpers/wsl-boot-guard'
 
 const DISTRO = process.env.ORCA_E2E_WSL_TERMINATE_DISTRO?.trim() ?? ''
 
@@ -43,236 +50,112 @@ const SETTINGS_PANES = [
   'automations'
 ] as const
 
-const WSL_EXE = /(^|[\\/])wsl(\.exe)?$/i
-
 const SPAWN_LOG = path.join(os.tmpdir(), `orca-e2e-wsl-spawns-${process.pid}-${Date.now()}.jsonl`)
 // Every process-host spawn in the app (main, worker threads, inheriting children) lands here.
 test.use({ launchEnv: { ORCA_E2E_SPAWN_LOG: SPAWN_LOG } })
 
-/** Async with a timeout: a hung wsl.exe must fail the test, never block the worker past its timeout. */
-function wsl(args: readonly string[], timeoutMs = 60_000): Promise<string> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      'wsl.exe',
-      [...args],
-      // UTF-8 instead of wsl.exe's default UTF-16 for its own listings.
-      {
-        encoding: 'utf8',
-        env: { ...process.env, WSL_UTF8: '1' },
-        timeout: timeoutMs,
-        windowsHide: true
-      },
-      (error, stdout, stderr) =>
-        error
-          ? reject(new Error(`wsl ${args.join(' ')} failed: ${String(error)} ${stderr}`))
-          : resolve(stdout)
-    )
-  })
-}
+type WslWorkspace = { linuxRoot: string; worktreeId: string; repoId: string }
 
-/** Timestamped steps in the test output, so a lane failure shows when each read and act happened. */
-const startedAt = Date.now()
-function timeline(event: string, at = Date.now()): void {
-  console.log(`[e9-guard +${Math.round(at - startedAt)}ms] ${event}`)
-}
-
-/**
- * `--list --running` never starts a distro. Exit 1 is "no running distributions"; any other
- * failure (timeout, spawn error, other exit) rejects, so it can never read as "stopped".
- */
-function isDistroRunning(distro: string): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      'wsl.exe',
-      ['--list', '--running', '--quiet'],
-      {
-        encoding: 'utf8',
-        env: { ...process.env, WSL_UTF8: '1' },
-        timeout: 5_000,
-        windowsHide: true
-      },
-      (error, stdout) => {
-        if (error) {
-          if (error.code === 1 && !error.killed) {
-            resolve(false)
-          } else {
-            reject(error)
-          }
-          return
-        }
-        resolve(
-          stdout
-            .split(/\r?\n/)
-            .map((line) => line.replaceAll('\0', '').trim().toLowerCase())
-            .includes(distro.toLowerCase())
-        )
-      }
-    )
-  })
-}
-
-/** How long a just-terminated instance may still be listed: two reads, each up to 5 s on a loaded runner. */
-const TERMINATE_GRACE_MS = 10_000
-
-/**
- * Polls the running list once a second, never overlapping, from right after `--terminate`.
- * `stopped` resolves on the first not-running read, which must come within the grace; only
- * running reads before it are forgiven, so a real boot is never waited out. Any running read
- * after it is a boot. Three failed reads in a row fail the guard.
- */
-function watchDistroRunning(distro: string): {
-  stopped: Promise<void>
-  stop: () => Promise<{ seenRunning: boolean; reads: number }>
-} {
-  let finished = false
-  let confirmedStopped = false
-  let seenRunning = false
-  let reads = 0
-  let failures = 0
-  let failure: unknown = null
-  let timer: ReturnType<typeof setTimeout> | undefined
-  let current: Promise<void> = Promise.resolve()
-  let resolveStopped: () => void = () => {}
-  let rejectStopped: (error: Error) => void = () => {}
-  const stopped = new Promise<void>((resolve, reject) => {
-    resolveStopped = resolve
-    rejectStopped = reject
-  })
-  const grace = setTimeout(
-    () =>
-      rejectStopped(
-        new Error(`${distro} was still listed ${TERMINATE_GRACE_MS} ms after --terminate`)
-      ),
-    TERMINATE_GRACE_MS
+/** A git project inside the lane's distro, opened and focused while it runs, its terminal settled. */
+async function openWslWorkspace(
+  electronApp: ElectronApplication,
+  page: Page
+): Promise<WslWorkspace> {
+  const linuxRoot = `/tmp/orca-e9-${Date.now()}`
+  const repoLinuxPath = `${linuxRoot}/repo`
+  await runInDistro(
+    DISTRO,
+    `mkdir -p ${quotePosixShell(`${repoLinuxPath}/src`)} && cd ${quotePosixShell(repoLinuxPath)} && ` +
+      'git init -q -b main . && printf "# e9\\n" > README.md && printf "e9\\n" > src/main.txt && ' +
+      'git add . && git -c user.name=e2e -c user.email=e2e@example.com commit -qm init'
   )
-  // Spawns are interleaved into the timeline so a boot can be matched to the launch before it.
-  let spawnsSeen = readDiagnosticLog(SPAWN_LOG).length
-  const logNewWslSpawns = (): void => {
-    const spawns = readDiagnosticLog(SPAWN_LOG)
-    for (const spawn of spawns.slice(spawnsSeen)) {
-      if (WSL_EXE.test(spawn.file) || spawn.file === UNC_TOUCH) {
-        // `at` is when it happened; the line prints at this poll, up to a second later.
-        timeline(
-          `${spawn.file === UNC_TOUCH ? 'unc' : 'spawn'} ${spawn.file} ${spawn.args.join(' ')}`,
-          spawn.at
-        )
-        if (startsDistro(spawn, distro) || spawn.file === UNC_TOUCH) {
-          for (const frame of spawn.stack ?? []) {
-            timeline(`    ${frame}`, spawn.at)
-          }
-        }
-      }
+  const uncPath = `\\\\wsl.localhost\\${DISTRO}${repoLinuxPath.replaceAll('/', '\\')}`
+  // Its sidebar card carries a linked issue and PR, whose refreshes must not start it either.
+  const opened = await page.evaluate(async (path) => {
+    const store = window.__store!
+    const added = await window.api.repos.add({ path, kind: 'git' })
+    if ('error' in added) {
+      throw new Error(added.error)
     }
-    spawnsSeen = spawns.length
-  }
-  const tick = (): void => {
-    logNewWslSpawns()
-    current = isDistroRunning(distro)
-      .then((running) => {
-        reads += 1
-        failures = 0
-        timeline(`running list: ${distro} ${running ? 'RUNNING' : 'stopped'}`)
-        if (confirmedStopped) {
-          seenRunning ||= running
-        } else if (!running) {
-          confirmedStopped = true
-          clearTimeout(grace)
-          resolveStopped()
-        }
-      })
-      .catch((error: unknown) => {
-        failures += 1
-        timeline(`running-list read failed: ${String(error)}`)
-        if (failures >= 3) {
-          failure = error
-          rejectStopped(new Error(`wsl --list --running kept failing: ${String(error)}`))
-        }
-      })
-      .finally(() => {
-        if (!finished && failure === null) {
-          timer = setTimeout(tick, 1_000)
-        }
-      })
-  }
-  tick()
-  return {
-    stopped,
-    stop: async () => {
-      finished = true
-      clearTimeout(timer)
-      clearTimeout(grace)
-      await current
-      logNewWslSpawns()
-      if (failure !== null) {
-        throw new Error(`wsl --list --running kept failing: ${String(failure)}`)
-      }
-      return { seenRunning, reads }
+    await store.getState().fetchWorktrees(added.repo.id)
+    const worktree = store
+      .getState()
+      .worktreesByRepo[added.repo.id]?.find((row) => row.isMainWorktree)
+    if (!worktree) {
+      throw new Error('WSL checkout missing')
     }
-  }
+    await store.getState().updateWorktreeMeta(worktree.id, { linkedIssue: 1, linkedPR: 2 })
+    return { worktreeId: worktree.id, repoId: added.repo.id }
+  }, uncPath)
+  // Focusing it opens a WSL terminal. Let that launch (its PTY, hook relay and agent probes)
+  // finish before the terminate, or it boots the distro after it.
+  await recordMainProcessWslDiagnostics(electronApp, SPAWN_LOG)
+  await activate(page, opened.worktreeId)
+  await ensureTerminalVisible(page, 60_000)
+  await waitForActivePanePtyId(page, 60_000)
+  await waitForWslLaunchesToSettle(SPAWN_LOG)
+  timeline('WSL workspace terminal launched and settled')
+  return { linuxRoot, ...opened }
 }
 
-function runInDistro(distro: string, script: string): Promise<string> {
-  return wsl(['-u', 'root', ...buildWslExecArgs(distro, ['sh', '-c', script])])
+/**
+ * Terminates the distro, runs `window` once a read has seen it stopped, and fails if anything
+ * started it meanwhile. Then the user opens a terminal there, which must start it.
+ */
+async function expectNothingStartsTheStoppedDistro(
+  page: Page,
+  testInfo: TestInfo,
+  workspace: WslWorkspace,
+  window: () => Promise<void>
+): Promise<void> {
+  // Counted from before the terminate, so work started while it stops counts too.
+  const spawnsBefore = readDiagnosticLog(SPAWN_LOG).length
+  timeline('terminate')
+  await wsl(['--terminate', DISTRO], 30_000)
+  timeline('terminated')
+  // WSL1 instances can live only seconds, so watch the running list from the terminate on.
+  const watcher = watchDistroRunning(DISTRO, SPAWN_LOG)
+  let watched: { seenRunning: boolean; reads: number } | undefined
+  try {
+    // The window starts only once a read has seen it stopped, within the grace.
+    await watcher.stopped
+    timeline('confirmed stopped')
+    await window()
+    await page.screenshot({ path: testInfo.outputPath('wsl-bridge-background-window.png') })
+    // ast-grep-ignore: test-no-real-time-wait -- the claim is that nothing boots over a window of real background work
+    await page.waitForTimeout(15_000)
+  } finally {
+    watched = await watcher.stop()
+  }
+  // Authoritative: the distro never ran during the window.
+  expect(watched.reads).toBeGreaterThan(10)
+  expect(watched.seenRunning).toBe(false)
+  expect(await isDistroRunning(DISTRO)).toBe(false)
+  // Diagnostics that name the caller; non-empty so the check cannot pass vacuously.
+  const background = readDiagnosticLog(SPAWN_LOG).slice(spawnsBefore)
+  expect(background.length).toBeGreaterThan(0)
+  expect(background.filter((spawn) => startsDistro(spawn, DISTRO))).toEqual([])
+
+  timeline(`window done: ${background.length} spawns`)
+  // The user opens the WSL workspace and a terminal in it: that act starts the distro.
+  await activate(page, workspace.worktreeId)
+  await page.getByRole('button', { name: 'New tab', exact: true }).first().click()
+  await page
+    .getByRole('menuitem', { name: /New Terminal/ })
+    .first()
+    .click()
+  await expect(page.locator('.xterm:visible').first()).toBeVisible({ timeout: 60_000 })
+  await expect.poll(() => isDistroRunning(DISTRO), { timeout: 60_000 }).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('wsl-bridge-after-terminal.png') })
 }
 
-/** wsl.exe verbs that never start a distro; any other launch counts as starting the default one. */
-const NON_BOOTING_WSL_VERBS = new Set([
-  '-l',
-  '--list',
-  '--status',
-  '--version',
-  '-v',
-  '-t',
-  '--terminate',
-  '--shutdown',
-  '--help'
-])
-
-/** Fails closed: a wsl.exe launch starts `distro` unless it names another one or only lists. */
-function startsDistro(spawn: DiagnosticRecord, distro: string): boolean {
-  if (!WSL_EXE.test(spawn.file)) {
-    return false
-  }
-  // main's ChildProcess#spawn args carry argv0; process-host's do not.
-  const raw = WSL_EXE.test(spawn.args[0] ?? '') ? spawn.args.slice(1) : spawn.args
-  const args = raw.map((arg) => arg.toLowerCase())
-  const named = args.findIndex((arg) => arg === '-d' || arg === '--distribution')
-  if (named !== -1) {
-    return args[named + 1] === distro.toLowerCase()
-  }
-  return !NON_BOOTING_WSL_VERBS.has(args[0] ?? '')
-}
-
-/** Waits until no wsl.exe launch has been logged for 3 s, so a user act's tail is over. */
-async function waitForWslLaunchesToSettle(): Promise<void> {
-  let last = { count: -1, since: 0 }
-  await expect
-    .poll(
-      () => {
-        const count = readDiagnosticLog(SPAWN_LOG).filter((spawn) =>
-          WSL_EXE.test(spawn.file)
-        ).length
-        const now = performance.now()
-        if (count !== last.count) {
-          last = { count, since: now }
-        }
-        return now - last.since >= 3_000
-      },
-      { timeout: 60_000, intervals: [500] }
+async function removeWslWorkspace(workspace: WslWorkspace | undefined): Promise<void> {
+  if (workspace) {
+    await runInDistro(DISTRO, `rm -rf ${quotePosixShell(workspace.linuxRoot)}`).catch(
+      (error: unknown) => timeline(`cleanup failed: ${String(error)}`)
     )
-    .toBe(true)
-}
-
-async function cycleWindowFocus(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event('blur'))
-    document.dispatchEvent(new Event('visibilitychange'))
-    window.dispatchEvent(new Event('focus'))
-  })
-}
-
-async function activate(page: Page, worktreeId: string | null): Promise<void> {
-  await page.evaluate((id) => window.__store?.getState().setActiveWorktree(id), worktreeId)
+  }
+  rmSync(SPAWN_LOG, { force: true })
 }
 
 test.describe('E9: background work on a stopped real WSL distro', () => {
@@ -289,55 +172,12 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
     test.setTimeout(300_000)
     await waitForSessionReady(page)
     const localWorktreeId = await waitForActiveWorktree(page)
-    const linuxRoot = `/tmp/orca-e9-${Date.now()}`
-    const repoLinuxPath = `${linuxRoot}/repo`
-    await runInDistro(
-      DISTRO,
-      `mkdir -p ${quotePosixShell(repoLinuxPath)} && cd ${quotePosixShell(repoLinuxPath)} && ` +
-        'git init -q -b main . && printf "# e9\\n" > README.md && git add . && ' +
-        'git -c user.name=e2e -c user.email=e2e@example.com commit -qm init'
-    )
-    const uncPath = `\\\\wsl.localhost\\${DISTRO}${repoLinuxPath.replaceAll('/', '\\')}`
+    let workspace: WslWorkspace | undefined
     try {
-      // Open the WSL project while the distro runs: its sidebar card carries a linked issue and PR.
-      const wslWorktreeId = await page.evaluate(async (path) => {
-        const store = window.__store!
-        const added = await window.api.repos.add({ path, kind: 'git' })
-        if ('error' in added) {
-          throw new Error(added.error)
-        }
-        await store.getState().fetchWorktrees(added.repo.id)
-        const worktree = store
-          .getState()
-          .worktreesByRepo[added.repo.id]?.find((row) => row.isMainWorktree)
-        if (!worktree) {
-          throw new Error('WSL checkout missing')
-        }
-        await store.getState().updateWorktreeMeta(worktree.id, { linkedIssue: 1, linkedPR: 2 })
-        return { worktreeId: worktree.id, repoId: added.repo.id }
-      }, uncPath)
-      // Focusing it is a user act that opens a WSL terminal. Let that launch (its PTY, hook relay
-      // and agent probes) finish before the terminate, or it boots the distro after it.
-      await recordMainProcessWslDiagnostics(electronApp, SPAWN_LOG)
-      await activate(page, wslWorktreeId.worktreeId)
-      await ensureTerminalVisible(page, 60_000)
-      await waitForActivePanePtyId(page, 60_000)
-      await waitForWslLaunchesToSettle()
-      timeline('WSL workspace terminal launched and settled')
+      workspace = await openWslWorkspace(electronApp, page)
+      const { repoId } = workspace
       await activate(page, localWorktreeId)
-
-      // Counted from before the terminate, so work started while it stops counts too.
-      const spawnsBefore = readDiagnosticLog(SPAWN_LOG).length
-      timeline('terminate')
-      await wsl(['--terminate', DISTRO], 30_000)
-      timeline('terminated')
-      // WSL1 instances can live only seconds, so watch the running list from the terminate on.
-      const watcher = watchDistroRunning(DISTRO)
-      let watched: { seenRunning: boolean; reads: number } | undefined
-      try {
-        // The rounds start only once a read has seen it stopped, within the grace.
-        await watcher.stopped
-        timeline('confirmed stopped')
+      await expectNothingStartsTheStoppedDistro(page, testInfo, workspace, async () => {
         for (let round = 0; round < 2; round += 1) {
           timeline(`round ${round}: focus and workspace switches`)
           await cycleWindowFocus(page)
@@ -345,7 +185,7 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
           await cycleWindowFocus(page)
           await activate(page, localWorktreeId)
           timeline(`round ${round}: settings`)
-          await visitSettingsPanes(page, SETTINGS_PANES, wslWorktreeId.repoId)
+          await visitSettingsPanes(page, SETTINGS_PANES, repoId)
           timeline(`round ${round}: tasks and account switches`)
           await page.evaluate(() => window.__store?.getState().setActiveView('tasks'))
           await page.evaluate(async () => {
@@ -355,37 +195,47 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
           })
           await page.evaluate(() => window.__store?.getState().setActiveView('terminal'))
         }
-        await page.screenshot({ path: testInfo.outputPath('wsl-bridge-background-window.png') })
-        // ast-grep-ignore: test-no-real-time-wait -- the claim is that nothing boots over a window of real background work
-        await page.waitForTimeout(15_000)
-      } finally {
-        watched = await watcher.stop()
-      }
-      // Authoritative: the distro never ran during the window.
-      expect(watched.reads).toBeGreaterThan(10)
-      expect(watched.seenRunning).toBe(false)
-      expect(await isDistroRunning(DISTRO)).toBe(false)
-      // Diagnostics that name the caller; non-empty so the check cannot pass vacuously.
-      const background = readDiagnosticLog(SPAWN_LOG).slice(spawnsBefore)
-      expect(background.length).toBeGreaterThan(0)
-      expect(background.filter((spawn) => startsDistro(spawn, DISTRO))).toEqual([])
-
-      timeline(`window done: ${background.length} spawns`)
-      // The user opens the WSL workspace and a terminal in it: that act starts the distro.
-      await activate(page, wslWorktreeId.worktreeId)
-      await page.getByRole('button', { name: 'New tab', exact: true }).first().click()
-      await page
-        .getByRole('menuitem', { name: /New Terminal/ })
-        .first()
-        .click()
-      await expect(page.locator('.xterm:visible').first()).toBeVisible({ timeout: 60_000 })
-      await expect.poll(() => isDistroRunning(DISTRO), { timeout: 60_000 }).toBe(true)
-      await page.screenshot({ path: testInfo.outputPath('wsl-bridge-after-terminal.png') })
+      })
     } finally {
-      await runInDistro(DISTRO, `rm -rf ${quotePosixShell(linuxRoot)}`).catch((error: unknown) =>
-        timeline(`cleanup failed: ${String(error)}`)
-      )
-      rmSync(SPAWN_LOG, { force: true })
+      await removeWslWorkspace(workspace)
+    }
+  })
+
+  test('a focused WSL workspace left idle through the stop never starts it again', async ({
+    electronApp,
+    orcaPage: page
+  }, testInfo) => {
+    test.setTimeout(300_000)
+    await waitForSessionReady(page)
+    let workspace: WslWorkspace | undefined
+    try {
+      workspace = await openWslWorkspace(electronApp, page)
+      // The user's view: the Explorer with a folder expanded, then Source Control.
+      await page.evaluate(() => {
+        const state = window.__store?.getState()
+        state?.setRightSidebarOpen(true)
+        state?.setRightSidebarTab('explorer')
+      })
+      const row = (name: string) =>
+        page
+          .locator('[data-file-explorer-row]')
+          .filter({ has: page.getByText(name, { exact: true }) })
+      await row('src').click()
+      await expect(row('main.txt')).toBeVisible({ timeout: 30_000 })
+      await page.evaluate(() => window.__store?.getState().setRightSidebarTab('source-control'))
+      await waitForWslLaunchesToSettle(SPAWN_LOG)
+      timeline('focused: explorer expanded, source control shown')
+      // Nothing more from the user: the stop's own fallout (bridge exit, watcher stop, host loss and
+      // the re-renders they cause) is all that runs, half with Explorer and half with Source Control.
+      await expectNothingStartsTheStoppedDistro(page, testInfo, workspace, async () => {
+        await page.evaluate(() => window.__store?.getState().setRightSidebarTab('explorer'))
+        // ast-grep-ignore: test-no-real-time-wait -- the Explorer must sit visible while the stop lands
+        await page.waitForTimeout(7_500)
+        timeline('idle: source control shown')
+        await page.evaluate(() => window.__store?.getState().setRightSidebarTab('source-control'))
+      })
+    } finally {
+      await removeWslWorkspace(workspace)
     }
   })
 })
