@@ -1,5 +1,10 @@
 import { createMarkdownTokenizerStart } from './markdown-tokenizer-start'
-import { getRenderedAttributes, mergeAttributes, type AnyExtension } from '@tiptap/core'
+import {
+  getRenderedAttributes,
+  mergeAttributes,
+  type AnyExtension,
+  type Editor
+} from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { RichMarkdownTrailingParagraph } from './rich-markdown-trailing-paragraph'
 import Link from '@tiptap/extension-link'
@@ -108,6 +113,8 @@ export function createRichMarkdownExtensions({
         }
       },
       addNodeView() {
+        // The extensionManager.attributes getter recomputes across all extensions; resolve it once per editor.
+        let imageAttributes: Editor['extensionManager']['attributes'] | undefined
         return ({ node, HTMLAttributes, editor }) => {
           // A wrapper prevents native image-byte dragging from conflicting with ProseMirror’s schema-node relocation.
           const dom = document.createElement('span')
@@ -204,7 +211,12 @@ export function createRichMarkdownExtensions({
               syncImageAttributes(
                 mergeAttributes(
                   this.options.HTMLAttributes,
-                  getRenderedAttributes(updatedNode, editor.extensionManager.attributes)
+                  getRenderedAttributes(
+                    updatedNode,
+                    (imageAttributes ??= editor.extensionManager.attributes.filter(
+                      (attribute) => attribute.type === 'image'
+                    ))
+                  )
                 )
               )
               const newSrc = updatedNode.attrs.src as string | undefined
