@@ -1,7 +1,6 @@
 import { OrcaRuntimeWithMaybeHydrateHeadlessFromRenderer } from './headless-terminal-hydration'
 import type { RuntimeHeadlessTerminal } from '../../runtime-terminal-state-records'
 import { HeadlessEmulator } from '../../../daemon/headless-emulator'
-import { DAEMON_SESSION_SCROLLBACK_ROWS } from '../../../daemon/daemon-session-scrollback-window'
 import { shouldForwardHeadlessTerminalQueryReply } from '../../headless-terminal-query-reply-policy'
 import { isNativeWindowsConptyPty } from '../../terminal-model-query-authority'
 import { getTerminalViewAttributes } from '../../terminal-view-attribute-store'
@@ -42,9 +41,7 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
     const emulator = new HeadlessEmulator({
       cols: dims.cols,
       rows: dims.rows,
-      scrollback: this.unviewedSurvivorMirrorPtys.has(ptyId)
-        ? Math.min(DAEMON_SESSION_SCROLLBACK_ROWS, this.headlessTerminalScrollbackRows)
-        : this.headlessTerminalScrollbackRows,
+      scrollback: this.headlessTerminalScrollbackRows,
       pathFlavor,
       remotePosixFileUriAuthority:
         !!this.ptysById.get(ptyId)?.connectionId && pathFlavor !== 'win32',

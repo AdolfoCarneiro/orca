@@ -41,10 +41,6 @@ export abstract class OrcaRuntimeWithNotifyRemoteTerminalViewPresenceChanged ext
   ): Promise<WriteSettlement | undefined>
 
   protected notifyRemoteTerminalViewPresenceChanged(ptyId: string): void {
-    // A viewed survivor's mirror grows to full depth from the rows it kept.
-    if (this.hasTerminalViewer(ptyId) && this.unviewedSurvivorMirrorPtys.delete(ptyId)) {
-      this.headlessTerminals.get(ptyId)?.emulator.setScrollback(this.headlessTerminalScrollbackRows)
-    }
     try {
       this.onRemoteTerminalViewPresenceChanged?.(ptyId)
     } catch (err) {

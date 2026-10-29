@@ -23,7 +23,7 @@ import {
   type TerminalViewAttributeResponder
 } from './terminal-view-attribute-responder'
 import { installDeviceAttributesResponder } from './startup-device-attributes-responder'
-import type { TerminalSnapshot } from './types'
+import type { TerminalSnapshot, TerminalModes } from './types'
 import type { TerminalOscLinkRange } from '../../shared/terminal-osc-link-ranges'
 import type { TerminalCursorContext } from '../../shared/terminal-composer-draft'
 import { readTerminalCursorLineContext } from '../../shared/terminal-cursor-line-context'
@@ -241,7 +241,7 @@ export class HeadlessEmulator {
   }
 
   getSnapshot(opts: { scrollbackRows?: number } = {}): TerminalSnapshot {
-    const modes = readTerminalModes(this.terminal)
+    const modes = this.getModes()
     // Absolute cursor restore avoids wrap-pending drift; carry the saved register for DECRC.
     const serializedAnsi = serializeWithAbsoluteCursor(
       this.serializer,
@@ -345,11 +345,6 @@ export class HeadlessEmulator {
     this.restoredOscLinks = links?.slice() ?? []
   }
 
-  /** Growing keeps every retained row; shrinking drops the oldest. */
-  setScrollback(rows: number): void {
-    this.terminal.options.scrollback = rows
-  }
-
   clearScrollback(): void {
     this.restoredOscLinks = []
     this.terminal.clear()
@@ -358,5 +353,9 @@ export class HeadlessEmulator {
   dispose(): void {
     this.disposed = true
     this.terminal.dispose()
+  }
+
+  private getModes(): TerminalModes {
+    return readTerminalModes(this.terminal)
   }
 }

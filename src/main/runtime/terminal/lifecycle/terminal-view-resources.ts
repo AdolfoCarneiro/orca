@@ -53,9 +53,6 @@ export abstract class OrcaRuntimeWithFitOverrideListeners extends OrcaRuntimeWit
 
   protected providerSnapshotPreferredPtys = new Set<string>()
 
-  // Survivors main attached with no view hold the daemon's live window, not a full-depth copy.
-  protected unviewedSurvivorMirrorPtys = new Set<string>()
-
   protected providerModeTrackersByPtyId = new Map<string, TerminalKittyKeyboardModeTracker>()
 
   protected providerModeSnapshotScansByPtyId = new Map<

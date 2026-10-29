@@ -13,7 +13,6 @@ import {
   encodeTerminalStreamFrame,
   encodeTerminalStreamJson
 } from '../../shared/terminal-stream-protocol'
-import { DAEMON_SESSION_SCROLLBACK_ROWS } from '../daemon/daemon-session-scrollback-window'
 
 const WORKTREE_ID = 'repo-1::/tmp/wt'
 const PTY_ID = `${WORKTREE_ID}@@1a2b3c4d`
@@ -25,7 +24,7 @@ type RuntimeInternals = {
     state?: { connected?: boolean; connectionId?: string | null }
   ) => unknown
   issuePtyHandle: (pty: unknown) => string
-  headlessTerminals: Map<string, { writeChain: Promise<unknown> }>
+  headlessTerminals: Map<string, unknown>
   refreshPtyWorktreeRecordsWithControllerInventory: (
     worktrees: [],
     targetWorktreeId: string | null
@@ -264,19 +263,6 @@ function snapshotText(harness: ReturnType<typeof startMultiplex>): string {
     .join('')
 }
 
-function numberedLines(from: number, to: number): string {
-  return Array.from(
-    { length: to - from + 1 },
-    (_, i) => `L${String(from + i).padStart(4, '0')}`
-  ).join('\r\n')
-}
-
-async function retainedLines(runtime: OrcaRuntimeService, ptyId: string): Promise<string[]> {
-  await internals(runtime).headlessTerminals.get(ptyId)?.writeChain
-  const snapshot = await runtime.serializeMainTerminalBuffer(ptyId, { scrollbackRows: 10_000 })
-  return `${snapshot?.scrollbackAnsi ?? ''}${snapshot?.data ?? ''}`.match(/L\d{4}/g) ?? []
-}
-
 describe('subscriber-driven daemon attach (never-activated tab)', () => {
   it('attaches on first desktop multiplex subscribe and streams bytes (snapshot-null daemon)', async () => {
     const { runtime, model, handle, mountSpy } = setupNeverAttachedDaemonSession({
@@ -443,43 +429,6 @@ describe('subscriber-driven daemon attach (never-activated tab)', () => {
     expect(model.emitData(PTY_ID, 'worker still printing\r\n')).toBe(true)
     const read = await runtime.readTerminal(handle)
     expect(read.tail.join('\n')).toContain('worker still printing')
-  })
-
-  it('keeps unviewed survivors to the daemon window and grows a viewed one from it', async () => {
-    const runtime = new OrcaRuntimeService()
-    const model = createDaemonProviderModel({ snapshotCapable: false })
-    model.bind(runtime)
-    runtime.setPtyController(model.controller as never)
-    const ptyIds = Array.from({ length: 10 }, (_, i) => `${WORKTREE_ID}@@0000000${i}`)
-    const records = ptyIds.map((ptyId) => {
-      model.sessions.set(ptyId, { cols: 137, rows: 41, attached: false, screen: '' })
-      return internals(runtime).recordPtyWorktree(ptyId, WORKTREE_ID, { connected: true })
-    })
-    await internals(runtime).refreshPtyWorktreeRecordsWithControllerInventory([], null)
-    await vi.waitFor(() => expect(model.attachCalls).toHaveLength(10))
-
-    for (const ptyId of ptyIds) {
-      expect(model.emitData(ptyId, numberedLines(1, 3000))).toBe(true)
-    }
-    const retained = await Promise.all(ptyIds.map((ptyId) => retainedLines(runtime, ptyId)))
-    const windowRows = DAEMON_SESSION_SCROLLBACK_ROWS + 41
-    expect(retained.map((lines) => lines.length)).toEqual(ptyIds.map(() => windowRows))
-    expect(retained[0].at(-1)).toBe('L3000')
-
-    // The first view paints exactly the rows the mirror kept, then the mirror grows past the window.
-    const harness = startMultiplex(runtime)
-    await vi.waitFor(() => expect(harness.handlers.has(0)).toBe(true))
-    sendSubscribe(harness, 1, internals(runtime).issuePtyHandle(records[0]))
-    await waitForSubscribed(harness, 1)
-    expect(snapshotText(harness).match(/L\d{4}/g)).toEqual(retained[0])
-    model.emitData(ptyIds[0], `\r\n${numberedLines(3001, 6000)}`)
-    model.emitData(ptyIds[1], `\r\n${numberedLines(3001, 6000)}`)
-    await vi.waitFor(() => expect(outputText(harness)).toContain('L6000'))
-    expect(await retainedLines(runtime, ptyIds[0])).toEqual([
-      ...retained[0],
-      ...numberedLines(3001, 6000).split('\r\n')
-    ])
-    expect(await retainedLines(runtime, ptyIds[1])).toHaveLength(windowRows)
   })
 
   it('does not subscriber-attach or provider-read a session this app already spawned', async () => {
