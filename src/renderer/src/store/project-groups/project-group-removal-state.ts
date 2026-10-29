@@ -8,6 +8,7 @@ import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared
 import { catalogOwnsHost, getProjectGroupHostId } from '../slices/project-group-owner-routing'
 import type { RepoSlice } from '../repos/repo-state'
 import { getFolderWorkspaceHostId } from '../../../../shared/folder-workspace-execution-host'
+import { selectFolderWorkspaces } from '../workspace-record-selectors'
 
 // Why: a group id can exist on several hosts; only the deleted owner's rows may be cascaded away.
 export function applyProjectGroupDeleteCascade(
@@ -49,11 +50,11 @@ export function completeProjectGroupDeleteCascade(
   target: RuntimeClientTarget
 ): ReturnType<typeof applyProjectGroupDeleteCascade> {
   const cascade = applyProjectGroupDeleteCascade(state, groupId, ownerHostId)
-  const survivors = new Set(cascade.folderWorkspaces)
+  const survivors = new Set(selectFolderWorkspaces(cascade))
   const catalogHostId = ownerHostId ?? getRuntimeTargetHostId(target)
   forgetHostModelCatalogSnapshotsForWorkspaces(
     catalogHostId,
-    state.folderWorkspaces
+    selectFolderWorkspaces(state)
       .filter(
         (workspace) =>
           !survivors.has(workspace) &&
