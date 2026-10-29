@@ -40,12 +40,12 @@ export function useTaskCreationDraftRetention<Draft, Signature = Draft>({
     }
     const next = { signature, draft }
     draftRef.current = next
-    // Why: skipped text can rebase a closed snapshot after its close cleanup already ran.
-    if (!open && signature !== undefined) {
-      writeDraftRef.current(next.draft, previous.draft)
-    }
     // Why: generic immediate discard keeps its existing open-instance contract.
     discardRef.current = signature === undefined && discardRef.current === previous ? next : null
+    // Why: a later committed closing result replaces the projection after close cleanup.
+    if (!open && signature !== undefined) {
+      writeDraftRef.current(next.draft)
+    }
   })
   useEffect(() => {
     if (!open) {
