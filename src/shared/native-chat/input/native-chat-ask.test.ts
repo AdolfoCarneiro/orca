@@ -169,7 +169,7 @@ describe('async questions', () => {
       { stoppedBeforeStart: true },
       { awaitsRetry: true },
       { sentWhileStopping: true }
-    ]) {
+    ] as const) {
       expect(extractPendingAsk([asked, userRow('pending', flags)])).toEqual(
         extractPendingAsk([asked])
       )
@@ -226,18 +226,19 @@ describe('async questions', () => {
         expect(read(rows.map((row) => ({ ...row, blocks: [...row.blocks] })))).toEqual(first)
       }
 
-      const noAsync = rows.map((row) => ({
-        ...row,
-        blocks: row.blocks.map((block) => ({
-          ...block,
-          get type() {
-            blockReads += 1
-            return 'tool-call' as const
-          },
-          name: 'Bash',
-          input: {}
-        }))
-      }))
+      const noAsync = rows.map((row) =>
+        message(
+          row.id,
+          row.blocks.map(() => ({
+            get type() {
+              blockReads += 1
+              return 'tool-call' as const
+            },
+            name: 'Bash',
+            input: {}
+          }))
+        )
+      )
       expect(read(noAsync)).toEqual({
         key: null,
         blockReads: first.blockReads,
