@@ -1,3 +1,4 @@
+import { getSshTargetIdForExecutionHost } from '../../../src/shared/execution-host'
 import { vi } from 'vitest'
 import type { RpcClient } from '../transport/rpc-client'
 import type { ConnectionState, RpcResponse } from '../transport/types'
@@ -83,6 +84,15 @@ export function automationTargets(): AutomationTargets {
       hostScope: { hostIds: ['local'], omittedHostIds: [] }
     },
     sshTargets: []
+  }
+}
+export function automationRepo(setup = automationTargets().setups[0]!) {
+  return {
+    id: setup.repoId,
+    displayName: setup.displayName,
+    path: setup.path,
+    executionHostId: setup.hostId,
+    connectionId: getSshTargetIdForExecutionHost(setup.hostId)
   }
 }
 export function automationClient(respond: (method: string, params: unknown) => unknown) {

@@ -18,6 +18,7 @@ import { MobileSegmentedControl } from '../components/MobileSegmentedControl'
 import {
   deferred,
   automationClient,
+  automationRepo,
   automationTargets,
   savedAutomation,
   savedRun
@@ -92,7 +93,11 @@ async function press(label: string) {
 function text(node: ReactTestInstance): string {
   return JSON.stringify(node.props.children)
 }
-async function mount(loseCreate: boolean | 'legacy' = false, confirmSetup = false) {
+async function mount(
+  loseCreate: boolean | 'legacy' = false,
+  confirmSetup = false,
+  repoRow = automationRepo
+) {
   const pendingList = deferred<unknown>()
   let created = false
   let automation = savedAutomation()
@@ -101,9 +106,7 @@ async function mount(loseCreate: boolean | 'legacy' = false, confirmSetup = fals
   let runs = [oldRun]
   const port = automationClient((method, params) => {
     if (method === 'repo.list') {
-      return {
-        repos: [{ id: 'repo-1', displayName: 'Project', path: '/repo', executionHostId: 'local' }]
-      }
+      return { repos: [repoRow()] }
     }
     if (method === 'repo.hooks') {
       return {
@@ -709,7 +712,8 @@ describe('mobile automation navigation and setup', () => {
         setups: [...targets.setups, sshSetup],
         sshTargets: [{ id: 'builder', label: 'Builder', generation: 7 }]
       })
-      const port = await mount(true)
+      let inspectionSetup = targets.setups[0]!
+      const port = await mount(true, false, () => automationRepo(inspectionSetup))
       await press('New automation')
       const field = (label: string) =>
         root()
@@ -775,6 +779,7 @@ describe('mobile automation navigation and setup', () => {
       expect(
         port.send.mock.calls.filter(([method]) => method === 'automation.update')
       ).toHaveLength(0)
+      inspectionSetup = sshSetup
       await press('Save changes')
       expect(port.send).toHaveBeenCalledWith(
         'automation.update',
