@@ -150,6 +150,7 @@ export function openBrowserPagePrompt<K extends BrowserPagePromptKind>(args: {
   target: BrowserPagePromptTarget | null
   details: () => BrowserPagePromptDetails<K>
   coalesceKey?: string
+  settleOnCoalesce?: boolean
   parseAnswer: (value: unknown) => BrowserPagePromptAnswer<K> | undefined
   settle: SettlePrompt<BrowserPagePromptAnswer<K>>
 }): BrowserPagePromptOpening {
@@ -177,7 +178,9 @@ export function openBrowserPagePrompt<K extends BrowserPagePromptKind>(args: {
       pending.kind === args.kind &&
       pending.coalesceKey === args.coalesceKey
     ) {
-      pending.settles.push(bindSettle(args.parseAnswer, args.settle))
+      if (args.settleOnCoalesce !== false) {
+        pending.settles.push(bindSettle(args.parseAnswer, args.settle))
+      }
       return 'prompting'
     }
     return 'refused'

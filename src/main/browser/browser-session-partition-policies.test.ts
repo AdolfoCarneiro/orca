@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BrowserSessionProfile } from '../../shared/browser-workspace-types'
 
 const mocks = vi.hoisted(() => ({
@@ -151,6 +151,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   sessionsByPartition.clear()
   vi.resetModules()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('partition download policy', () => {
@@ -305,56 +309,70 @@ describe('partition permission policy', () => {
     await expect(request('about:blank')).resolves.toBe(false)
   })
 
-  it('asks when a page checks local network access, since Electron never requests it', async () => {
-    const install = await loadInstaller()
-    const store = await import('./browser-site-permission-store')
-    store.configureBrowserSitePermissionStore(mkdtempSync(join(tmpdir(), 'orca-site-permissions-')))
-    const { respondToBrowserPagePrompt } = await import('./browser-page-prompts')
-    const send = vi.fn()
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: prompts only read id, isDestroyed, send and subscribe to the window's lifecycle events.
-    const renderer = {
-      id: 10,
-      isDestroyed: () => false,
-      send,
-      on: vi.fn(),
-      off: vi.fn()
-    } as unknown as Electron.WebContents
-    mocks.resolvePagePromptTarget.mockReturnValue({ browserPageId: 'page-1', renderer })
-    install(profileFor('persist:browsing-lna'))
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the installer registered exactly this handler on the fake session.
-    const checkHandler = sessionsByPartition.get('persist:browsing-lna')?.setPermissionCheckHandler
-      .mock.calls[0]?.[0] as (
-      webContents: EventEmitter,
-      permission: string,
-      origin: string
-    ) => boolean
-    const tab = (url: string): EventEmitter =>
-      Object.assign(new EventEmitter(), { id: 20, isDestroyed: () => false, getURL: () => url })
-    const prompts = () =>
-      send.mock.calls.filter(([channel]) => channel === 'browser:page-prompt-requested')
-    const signIn = tab('https://login.example.com/signin')
+  it.each(['allow', 'block'] as const)(
+    'remembers %s once for repeated local-network checks',
+    async (decision) => {
+      const install = await loadInstaller()
+      const store = await import('./browser-site-permission-store')
+      store.configureBrowserSitePermissionStore(
+        mkdtempSync(join(tmpdir(), 'orca-site-permissions-'))
+      )
+      const remember = vi.spyOn(store, 'setBrowserSitePermissionDecisions')
+      const { respondToBrowserPagePrompt } = await import('./browser-page-prompts')
+      const send = vi.fn()
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: prompts only read id, isDestroyed, send and subscribe to the window's lifecycle events.
+      const renderer = {
+        id: 10,
+        isDestroyed: () => false,
+        send,
+        on: vi.fn(),
+        off: vi.fn()
+      } as unknown as Electron.WebContents
+      mocks.resolvePagePromptTarget.mockReturnValue({ browserPageId: 'page-1', renderer })
+      install(profileFor('persist:browsing-lna'))
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the installer registered exactly this handler on the fake session.
+      const checkHandler = sessionsByPartition.get('persist:browsing-lna')
+        ?.setPermissionCheckHandler.mock.calls[0]?.[0] as (
+        webContents: EventEmitter,
+        permission: string,
+        origin: string
+      ) => boolean
+      const tab = (url: string): EventEmitter =>
+        Object.assign(new EventEmitter(), { id: 20, isDestroyed: () => false, getURL: () => url })
+      const prompts = () =>
+        send.mock.calls.filter(([channel]) => channel === 'browser:page-prompt-requested')
+      const signIn = tab('https://login.example.com/signin')
 
-    // Chromium 150 asks loopback-network for 127.0.0.1; older pages query the legacy name.
-    expect(checkHandler(signIn, 'loopback-network', 'https://login.example.com')).toBe(false)
-    expect(checkHandler(signIn, 'local-network-access', 'https://login.example.com')).toBe(false)
-    expect(prompts()).toMatchObject([
-      [
-        'browser:page-prompt-requested',
-        { details: { origin: 'https://login.example.com', permissions: ['local-network'] } }
-      ]
-    ])
-    await respondToBrowserPagePrompt(renderer, {
-      requestId: prompts()[0][1].requestId,
-      answer: 'allow'
-    })
-    expect(checkHandler(signIn, 'loopback-network', 'https://login.example.com')).toBe(true)
+      // Chromium 150 asks loopback-network for 127.0.0.1; older pages query the legacy name.
+      for (let index = 0; index < 100; index++) {
+        const permission = ['loopback-network', 'local-network', 'local-network-access'][index % 3]
+        expect(checkHandler(signIn, permission, 'https://login.example.com')).toBe(false)
+      }
+      expect(prompts()).toMatchObject([
+        [
+          'browser:page-prompt-requested',
+          { details: { origin: 'https://login.example.com', permissions: ['local-network'] } }
+        ]
+      ])
+      await respondToBrowserPagePrompt(renderer, {
+        requestId: prompts()[0][1].requestId,
+        answer: decision
+      })
+      expect(remember).toHaveBeenCalledTimes(1)
+      expect(store.listBrowserSitePermissions('persist:browsing-lna')).toEqual([
+        { origin: 'https://login.example.com', decisions: { 'local-network': decision } }
+      ])
+      expect(checkHandler(signIn, 'loopback-network', 'https://login.example.com')).toBe(
+        decision === 'allow'
+      )
 
-    // Chrome never gates loopback pages, so localhost dev servers neither ask nor read denied.
-    expect(
-      checkHandler(tab('http://localhost:5173/'), 'loopback-network', 'http://localhost:5173')
-    ).toBe(true)
-    expect(prompts()).toHaveLength(1)
-  })
+      // Chrome never gates loopback pages, so localhost dev servers neither ask nor read denied.
+      expect(
+        checkHandler(tab('http://localhost:5173/'), 'loopback-network', 'http://localhost:5173')
+      ).toBe(true)
+      expect(prompts()).toHaveLength(1)
+    }
+  )
 
   it("keeps a paired server's pages off this computer's saved answers for the same profile id", async () => {
     const install = await loadInstaller()

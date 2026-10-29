@@ -140,32 +140,48 @@ export function isBrowserSitePermissionAllowed(args: {
   )
 }
 
-export function decideBrowserSitePermissions(args: {
+type SitePermissionRequest = {
   requester: Electron.WebContents
   frameOrigin: string | null
   memory: BrowserSitePermissionMemory
   permissions: readonly BrowserSitePermission[]
-}): Promise<boolean> {
+}
+
+export function decideBrowserSitePermissions(args: SitePermissionRequest): Promise<boolean> {
+  const { promise, resolve, reject } = Promise.withResolvers<boolean>()
+  promptBrowserSitePermissions(args, resolve, reject)
+  return promise
+}
+
+function promptBrowserSitePermissions(
+  args: SitePermissionRequest,
+  onDecision?: (allowed: boolean) => void,
+  onFailure?: (error: unknown) => void
+): void {
   const { requester, memory, permissions } = args
   const { origin, mayAsk } = answeringSite(
     { pageUrl: requester.getURL(), frameOrigin: args.frameOrigin },
     permissions
   )
   if (origin === null || permissions.length === 0) {
-    return Promise.resolve(false)
+    onDecision?.(false)
+    return
   }
   const decisions = permissions.map((permission) => memory.get(origin, permission))
   if (decisions.includes('block')) {
-    return Promise.resolve(false)
+    onDecision?.(false)
+    return
   }
   const unanswered = permissions.filter((_, index) => decisions[index] === undefined)
   if (unanswered.length === 0) {
-    return Promise.resolve(true)
+    onDecision?.(true)
+    return
   }
   if (!mayAsk) {
-    return Promise.resolve(false)
+    onDecision?.(false)
+    return
   }
-  return new Promise((resolve) => {
+  try {
     const opening = openBrowserPagePrompt({
       kind: 'site-permission',
       requester,
@@ -173,19 +189,26 @@ export function decideBrowserSitePermissions(args: {
       details: () => ({ origin, permissions: unanswered }),
       // Coalesce repeated requests until the user answers.
       coalesceKey: `${origin} ${unanswered.join(' ')}`,
+      settleOnCoalesce: onDecision !== undefined,
       parseAnswer: (value) => (isBrowserSitePermissionDecision(value) ? value : undefined),
       settle: (decision) => {
         if (decision) {
           memory.set(origin, unanswered, decision)
         }
-        resolve(decision === 'allow')
+        onDecision?.(decision === 'allow')
       }
     })
     // A missing, suppressed or already-open prompt cannot grant an unanswered permission.
     if (opening !== 'prompting') {
-      resolve(false)
+      onDecision?.(false)
     }
-  })
+  } catch (error: unknown) {
+    if (onFailure) {
+      onFailure(error)
+    } else {
+      queueMicrotask(() => console.error('[permissions] Local network prompt failed:', error))
+    }
+  }
 }
 
 function isLoopbackPage(pageUrl: string | null): boolean {
@@ -214,13 +237,11 @@ export function answerBrowserLocalNetworkCheck(args: {
     return true
   }
   if (requester) {
-    decideBrowserSitePermissions({
+    promptBrowserSitePermissions({
       requester,
       frameOrigin: source.frameOrigin,
       memory,
       permissions: LOCAL_NETWORK
-    }).catch((error: unknown) => {
-      console.error('[permissions] Local network prompt failed:', error)
     })
   }
   return false

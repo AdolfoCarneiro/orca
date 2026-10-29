@@ -18,6 +18,7 @@ import type { BrowserPagePromptRequest } from '../../shared/browser-page-prompt'
 import type { BrowserSitePermission } from '../../shared/browser-site-permission'
 import { BROWSER_PAGE_PROMPT_TIMEOUT_MS, respondToBrowserPagePrompt } from './browser-page-prompts'
 import {
+  answerBrowserLocalNetworkCheck,
   decideBrowserSitePermissions,
   isBrowserSitePermissionAllowed,
   savedBrowserSitePermissions,
@@ -121,6 +122,7 @@ describe('browser site permission prompts', () => {
       guest.emit('destroyed')
     }
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('asks once for camera and microphone together, then remembers Allow', async () => {
@@ -153,6 +155,95 @@ describe('browser site permission prompts', () => {
 
     await expect(ask(['camera', 'microphone'])).resolves.toBe(false)
     expect(sentRequests(renderer)).toHaveLength(2)
+  })
+
+  it.each([false, true])(
+    'settles every async request sharing local-network checks (requests first: %s)',
+    async (requestsFirst) => {
+      const guest = mockGuest()
+      const memory = savedBrowserSitePermissions('default')
+      const remember = vi.spyOn(memory, 'set')
+      const check = (): boolean =>
+        answerBrowserLocalNetworkCheck({
+          requester: guest,
+          source: { pageUrl: guest.getURL(), frameOrigin: guest.getURL() },
+          memory
+        })
+      const requests: Promise<boolean>[] = []
+      const request = (): void => {
+        requests.push(ask(['local-network'], { guest, memory }))
+        requests.push(ask(['local-network'], { guest, memory }))
+      }
+      if (requestsFirst) {
+        request()
+      }
+      for (let index = 0; index < 100; index++) {
+        expect(check()).toBe(false)
+      }
+      if (!requestsFirst) {
+        request()
+      }
+      expect(sentRequests(renderer)).toHaveLength(1)
+
+      await answerLatest('allow')
+
+      await expect(Promise.all(requests)).resolves.toEqual([true, true])
+      expect(remember).toHaveBeenCalledTimes(requestsFirst ? 2 : 3)
+      expect(listBrowserSitePermissions('default')).toEqual([
+        { origin: 'https://meet.example.com', decisions: { 'local-network': 'allow' } }
+      ])
+      expect(check()).toBe(true)
+      expect(sentRequests(renderer)).toHaveLength(1)
+      expect(vi.getTimerCount()).toBe(0)
+    }
+  )
+
+  it('retires mixed local-network checks and requests before a new document asks again', async () => {
+    const guest = mockGuest()
+    const memory = savedBrowserSitePermissions('default')
+    const remember = vi.spyOn(memory, 'set')
+    const checks = (): void => {
+      for (let index = 0; index < 100; index++) {
+        expect(
+          answerBrowserLocalNetworkCheck({
+            requester: guest,
+            source: { pageUrl: guest.getURL(), frameOrigin: guest.getURL() },
+            memory
+          })
+        ).toBe(false)
+      }
+    }
+    checks()
+    const retired = [
+      ask(['local-network'], { guest, memory }),
+      ask(['local-network'], { guest, memory })
+    ]
+    const oldRequestId = sentRequests(renderer)[0].requestId
+    guest.emit('did-navigate', {}, guest.getURL())
+    await expect(Promise.all(retired)).resolves.toEqual([false, false])
+    expect(remember).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+
+    checks()
+    const successor = [
+      ask(['local-network'], { guest, memory }),
+      ask(['local-network'], { guest, memory })
+    ]
+    expect(sentRequests(renderer)).toHaveLength(2)
+    expect(sentRequests(renderer)[1].requestId).not.toBe(oldRequestId)
+    await expect(
+      respondToBrowserPagePrompt(renderer, {
+        requestId: oldRequestId,
+        answer: 'allow'
+      })
+    ).resolves.toBe('rejected')
+    expect(remember).not.toHaveBeenCalled()
+    await answerLatest('allow')
+    await expect(Promise.all(successor)).resolves.toEqual([true, true])
+    expect(remember).toHaveBeenCalledTimes(3)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(guest.listenerCount('did-navigate')).toBe(0)
+    expect(guest.listenerCount('destroyed')).toBe(0)
   })
 
   it('forgets a dismissed prompt, so the site is asked again later', async () => {
@@ -244,6 +335,27 @@ describe('browser site permission prompts', () => {
 
     await expect(ask(['camera'])).resolves.toBe(false)
     expect(sentRequests(renderer)).toEqual([])
+  })
+
+  it('keeps preflight failures synchronous and prompt-opening failures asynchronous', async () => {
+    const guest = mockGuest()
+    const memory = savedBrowserSitePermissions('default')
+    const failure = new Error('Permission boundary failed')
+    const request = () => ask(['local-network'], { guest, memory, frameOrigin: null })
+    vi.spyOn(guest, 'getURL').mockImplementationOnce(() => {
+      throw failure
+    })
+    expect(request).toThrow(failure)
+    vi.spyOn(memory, 'get').mockImplementationOnce(() => {
+      throw failure
+    })
+    expect(request).toThrow(failure)
+    mocks.resolvePagePromptTarget.mockImplementationOnce(() => {
+      throw failure
+    })
+    await expect(request()).rejects.toThrow(failure)
+    expect(sentRequests(renderer)).toEqual([])
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('remembers answers across a restart', async () => {
