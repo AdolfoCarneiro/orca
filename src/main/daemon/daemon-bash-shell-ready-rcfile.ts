@@ -15,8 +15,12 @@ __orca_ready_marker=""
 __orca_has_feature ready && __orca_ready_marker=1
 unset _orca_shell_features
 unset -f __orca_has_feature
-# ble.sh cannot be loaded yet, so any attach state here was inherited.
-unset _ble_attached _ble_decode_bind_state
+# A system bashrc may already run ble.sh; it never exports this state, so exported copies are inherited.
+for __orca_ble_var in _ble_attached _ble_decode_bind_state; do
+  [[ -n "\${!__orca_ble_var+set}" ]] || continue
+  case "$(declare -p "$__orca_ble_var" 2>/dev/null)" in "declare -x"*) unset "$__orca_ble_var" ;; esac
+done
+unset __orca_ble_var
 [[ -f /etc/profile ]] && source /etc/profile
 if [[ -f "$HOME/.bash_profile" ]]; then
   source "$HOME/.bash_profile"
