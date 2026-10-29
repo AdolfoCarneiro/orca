@@ -44,10 +44,12 @@ function useToggleCardProperty(): (property: WorktreeCardProperty, checked: bool
 
 function AgentModelProperty(): React.JSX.Element {
   const showAgentModels = useAppStore((s) => s.showAgentModels !== false)
+  const persistedUIReady = useAppStore((s) => s.persistedUIReady)
   const setShowAgentModels = useAppStore((s) => s.setShowAgentModels)
   return (
     <DropdownMenuCheckboxItem
       checked={showAgentModels}
+      disabled={!persistedUIReady}
       onCheckedChange={(checked) => setShowAgentModels(checked === true)}
       onSelect={(e) => e.preventDefault()}
     >

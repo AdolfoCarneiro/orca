@@ -35,6 +35,7 @@ vi.mock('@/store', () => ({
   useAppStore: (selector: (state: unknown) => unknown) =>
     selector({
       agentActivityDisplayMode: 'compact',
+      persistedUIReady: true,
       showAgentModels,
       setShowAgentModels,
       projectGroups,
