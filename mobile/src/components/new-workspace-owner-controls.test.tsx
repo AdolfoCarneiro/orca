@@ -30,6 +30,15 @@ const fixture = vi.hoisted(
     push: ReturnType<typeof vi.fn>
   } => ({ client: null, back: vi.fn(), replace: vi.fn(), push: vi.fn() })
 )
+const removedShellCache = vi.hoisted(() => ({
+  forgetHostUpdateFailures: vi.fn(async () => {
+    throw new Error('Creation must not remove host cache')
+  }),
+  deleteHostPageCache: vi.fn(async () => {
+    throw new Error('Creation must not remove host cache')
+  })
+}))
+vi.mock('../mobile-web-shell/removed-host-shell-cache', () => removedShellCache)
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: async () => null, setItem: async () => {}, removeItem: async () => {} }
 }))
@@ -153,6 +162,8 @@ const flush = async () => {
 }
 afterEach(() => {
   act(() => renderer?.unmount())
+  expect(removedShellCache.forgetHostUpdateFailures).not.toHaveBeenCalled()
+  expect(removedShellCache.deleteHostPageCache).not.toHaveBeenCalled()
   renderer = undefined
   fixture.client = null
   vi.useRealTimers()

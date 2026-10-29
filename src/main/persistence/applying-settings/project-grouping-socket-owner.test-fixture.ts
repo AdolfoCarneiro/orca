@@ -29,6 +29,7 @@ export async function createProjectGroupingSocketOwner(
     deliver?: (method: string, response: string, reply: (response: string) => void) => void
     strictOld?: boolean
     response?: (method: string, response: string) => string
+    deviceScope?: 'mobile' | 'runtime'
   } = {}
 ) {
   const directory = mkdtempSync(join(tmpdir(), 'orca-grouping-peer-'))
@@ -57,7 +58,7 @@ export async function createProjectGroupingSocketOwner(
   })
   const registry = new DeviceRegistry(directory)
   server['deviceRegistry'] = registry
-  const device = registry.addDevice('Fixture paired client', 'runtime')
+  const device = registry.addDevice('Fixture paired client', options.deviceScope ?? 'runtime')
   const desktop = generateKeyPair()
   const publicKeyB64 = Buffer.from(desktop.publicKey).toString('base64')
   const requests: { method: string; params?: unknown }[] = []

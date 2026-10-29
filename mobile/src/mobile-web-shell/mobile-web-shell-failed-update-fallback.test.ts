@@ -17,7 +17,6 @@ type Doubles = {
     hostProtocolWindow: { protocolVersion: number; minCompatibleMobileVersion: number }
   }
   manifest: MobileWebBundleManifestRead | null
-  currentGates?: unknown
   fetch: () => Promise<MobileWebBundleFetchResult>
 }
 
@@ -41,10 +40,13 @@ vi.mock('expo-file-system', () => ({ Directory: class {}, File: class {}, Paths:
 vi.mock('../transport/mobile-endpoint-supervisor-support', () => ({
   encodeBase64Url: () => 'session-id'
 }))
-vi.mock('../components/host-protocol-gates-context', () => ({
-  useHostProtocolGates: () => doubles.gates,
-  useOptionalHostProtocolGates: () => doubles.currentGates
-}))
+vi.mock('../components/host-protocol-gates-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../components/host-protocol-gates-context')>()
+  return {
+    ...actual,
+    useHostProtocolGates: () => actual.useOptionalHostProtocolGates() ?? doubles.gates
+  }
+})
 vi.mock('../transport/host-client-hooks', () => ({ useHostClient: () => doubles.connection }))
 vi.mock('../transport/rpc-operation', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../transport/rpc-operation')>()
@@ -401,6 +403,10 @@ import { createProjectGroupingSocketOwner } from '../../../src/main/persistence/
 import { DirectRpcClient } from '../transport/direct-rpc-client'
 import { createBridgePortPair } from './bridge/bridge-port-pair-test-harness'
 import { useHostStatusGates } from '../transport/host-status-gates'
+import {
+  HostStatusGatesContext,
+  useOptionalHostProtocolGates
+} from '../components/host-protocol-gates-context'
 import { useHostScreenState } from '../host-screen/use-host-screen-state'
 import { useHostViewSettings } from '../host-screen/use-host-view-settings'
 import { useHostViewSettings as useReleasedSettings } from '../host-screen/project-grouping-released-view-settings.test-fixture'
@@ -416,7 +422,7 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
   'joins failed-download compatible cache, %s controls, opaque bridge, auth and disk',
   async (composition) => {
     expect(ORCA_SIDEBAR_INPUTS_IS_MAIN).toBe(false)
-    const owner = await createProjectGroupingSocketOwner()
+    const owner = await createProjectGroupingSocketOwner({ deviceScope: 'mobile' })
     vi.stubGlobal('WebSocket', WebSocket)
     const endpoint = owner.environment.endpoints[0]
     // Physical sender and opaque bridge are byte-identical to the released version; pins are in review evidence.
@@ -428,6 +434,7 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
     )
     const Q = 'runtime:server\0same'
     const renders: ReactTestRenderer[] = []
+    const controlFrames = new Map<RpcClient, unknown>()
     let cached: Mounted | undefined
     let pair: ReturnType<typeof createBridgePortPair> | undefined
     const catalogRepos = [
@@ -465,16 +472,34 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
       if (!Control) {
         throw new Error('Missing Project page')
       }
-      function Controls() {
-        doubles.currentGates = useHostStatusGates({
+      function GateOwner() {
+        const gates = useHostStatusGates({
           client,
           hostId: HOST_ID,
           connState: client.getState()
         })
+        return createElement(
+          HostStatusGatesContext.Provider,
+          { value: gates },
+          createElement(Controls)
+        )
+      }
+      function Controls() {
+        const gates = useOptionalHostProtocolGates()
         const state = useHostScreenState(HOST_ID)
         const current = useHostViewSettings({ client, connState: 'connected', state })
         const old = useReleasedSettings({ client, connState: 'connected', state })
         const settings = released ? old : current
+        controlFrames.set(client, {
+          released,
+          selected: state.view.filters.filterRepoIds,
+          ready: current.projectRepoFiltersReady,
+          actionError: state.actionError,
+          statusPending: gates?.statusPending,
+          statusReadable: gates?.statusReadable,
+          support: gates?.projectRepoFilterSupport,
+          generation: gates?.statusGeneration
+        })
         useEffect(() => {
           state.clientRef.current = client
           void settings.syncViewSettingsFromDesktop()
@@ -489,17 +514,19 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
       }
       let tree!: ReactTestRenderer
       await act(async () => {
-        tree = create(createElement(Controls))
+        tree = create(createElement(GateOwner))
       })
       renders.push(tree)
       return tree
     }
     const press = async (tree: ReactTestRenderer, label: string) => {
-      await act(async () =>
-        tree.root
-          .findByProps({ accessibilityLabel: label, accessibilityRole: 'checkbox' })
-          .props.onPress()
-      )
+      const row = () =>
+        tree.root.findByProps({
+          accessibilityLabel: label,
+          accessibilityRole: 'checkbox'
+        })
+      await vi.waitFor(() => expect(row().props.disabled).not.toBe(true))
+      await act(async () => row().props.onPress())
     }
     try {
       await vi.waitFor(() => expect(direct.getState()).toBe('connected'))
@@ -542,7 +569,20 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
       )
       owner.store.updateUI({ filterRepoIds: [] })
       const native = await mountControls(direct, composition.endsWith('released-native'))
+      expect(
+        native.root.findByProps({
+          accessibilityLabel: 'Server',
+          accessibilityRole: 'checkbox'
+        }).props.accessibilityState.checked
+      ).toBe(false)
       await press(native, 'Server')
+      await vi.waitFor(() =>
+        expect(owner.requests.findLast((r) => r.method === 'ui.set')?.params).toEqual(
+          composition.endsWith('released-native')
+            ? { filterRepoIds: ['same'] }
+            : { filterRepoIds: [Q], filterRepoIdsMode: 'exact' }
+        )
+      )
       await vi.waitFor(() =>
         expect(owner.store.getUI().filterRepoIds).toEqual(
           composition.endsWith('released-native') ? ['same'] : [Q]
@@ -564,6 +604,17 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
       expect(readDataFile().ui).not.toHaveProperty('filterRepoIdsMode')
       await closeTestStores()
       expect(createStore().getUI().filterRepoIds).toEqual([])
+    } catch (error) {
+      console.info(
+        'PG35595 mixed-composition failure',
+        JSON.stringify({
+          composition,
+          controls: [...controlFrames.values()],
+          writes: owner.requests.filter((request) => request.method === 'ui.set'),
+          ownerFilter: owner.store.getUI().filterRepoIds
+        })
+      )
+      throw error
     } finally {
       await act(async () => renders.forEach((tree) => tree.unmount()))
       await cached?.unmount()
@@ -571,7 +622,6 @@ it.each(['released-page/current-native', 'current-page/released-native'] as cons
       pair?.host.dispose()
       direct.close()
       await owner.close()
-      doubles.currentGates = undefined
       vi.unstubAllGlobals()
     }
   },
