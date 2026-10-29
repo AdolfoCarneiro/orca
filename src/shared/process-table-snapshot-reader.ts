@@ -243,9 +243,9 @@ async function readLinuxProcessStartTimes(
   return new Map(starts.filter((entry) => entry !== null))
 }
 
-async function captureProcessTable(args: readonly string[], timeout = PS_TIMEOUT_MS) {
+async function captureProcessTable(args: readonly string[], timeout = PS_TIMEOUT_MS, ps = false) {
   const env = psLocaleEnvironment()
-  let stdout = await readPsStdoutInProcess(args, { env, timeoutMs: timeout })
+  let stdout = ps ? null : await readPsStdoutInProcess(args, { env, timeoutMs: timeout })
   try {
     stdout ??= (
       await execFile('ps', [...args], {

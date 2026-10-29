@@ -299,6 +299,15 @@ describe('runPsInProcess', () => {
     expect(await Promise.all(capped)).toEqual(
       Array(8).fill(expect.objectContaining({ timedOut: true }))
     )
+
+    // Past the cool-down with the cap still held, callers learn it at once instead of after their timeout.
+    await vi.advanceTimersByTimeAsync(30_000)
+    let settled: unknown = 'pending'
+    void read(8000, 5_000).then((result) => {
+      settled = result
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(settled).toBeNull()
   })
 
   it('recovers argv for a sudo use_pty tree on its own pty, but not for root daemons or GUI helpers', async () => {

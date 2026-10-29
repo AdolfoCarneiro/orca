@@ -1,6 +1,6 @@
 import { runProcess } from '@orca/process-host'
 import type { LibprocProcessRow } from './libproc-addon'
-import { monotonicNow } from './libproc-native-reads'
+import { monotonicNow } from './deadline-settle-notifier'
 import { NODEV } from './libproc-ps-format'
 
 const SZOMB_STATUS = 5

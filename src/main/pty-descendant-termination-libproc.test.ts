@@ -1,4 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+// A native read that times out falls back to ps; keep that fallback from reading the real host.
+vi.mock('node:child_process', () => ({
+  execFile: (_file: string, _args: string[], _options: unknown, callback: (error: Error) => void) =>
+    callback(new Error('ps unavailable in this test'))
+}))
 import {
   setLibprocAddonForTests,
   type LibprocProcessRow,

@@ -1,14 +1,12 @@
 import { nameDarwinTerminalDevices } from './darwin-terminal-names'
 import {
   claimDarwinTerminalNaming,
-  darwinTerminalNamingDrained
+  waitForDarwinTerminalNaming
 } from './darwin-terminal-naming-single-flight'
 import { loadLibprocAddon, type LibprocProcessRow, type LibprocQuery } from './libproc-addon'
+import { DEADLINE_PASSED, beforeDeadline, monotonicNow } from './deadline-settle-notifier'
 import {
-  DEADLINE_PASSED,
-  beforeDeadline,
   isNativeReaderHealthy,
-  monotonicNow,
   readFreshNativeTable,
   registerNativeRequest
 } from './libproc-native-reads'
@@ -61,11 +59,12 @@ function lstartZoneIsUtc(env: NodeJS.ProcessEnv): boolean | null {
   return /^(?:UTC|GMT)0?$/.test(zone) ? true : null
 }
 
-/** One naming pass at a time; wait out another (within the deadline) rather than burst /bin/ps at startup restore. */
+/** One naming pass at a time: wait out a short one (startup restore) rather than burst /bin/ps; a stalled one
+ * returns 'stalled' so the caller runs ps, which names terminals out of process. */
 async function nameTerminals(
   devices: ReadonlySet<string>,
   deadline: number
-): Promise<ReadonlyMap<string, string> | typeof DEADLINE_PASSED> {
+): Promise<ReadonlyMap<string, string> | typeof DEADLINE_PASSED | 'stalled'> {
   for (;;) {
     const controller = new AbortController()
     const naming = claimDarwinTerminalNaming(() =>
@@ -78,8 +77,9 @@ async function nameTerminals(
       }
       return named
     }
-    if ((await beforeDeadline(darwinTerminalNamingDrained(), deadline)) === DEADLINE_PASSED) {
-      return DEADLINE_PASSED
+    const waited = await waitForDarwinTerminalNaming(deadline)
+    if (waited !== 'drained') {
+      return waited
     }
   }
 }
@@ -132,6 +132,9 @@ export async function runPsInProcess(
       )
       if (devices.size > 0) {
         const named = await nameTerminals(devices, deadline)
+        if (named === 'stalled') {
+          return null
+        }
         if (named === DEADLINE_PASSED) {
           return TIMED_OUT
         }

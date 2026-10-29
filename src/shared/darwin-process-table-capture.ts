@@ -11,7 +11,11 @@ import { withTimeout } from './promise-timeout-fallback'
 let deviceColumnUnsupported = false
 
 export async function captureDarwinProcessTable(
-  capture: (args: readonly string[], timeoutMs?: number) => Promise<string>,
+  capture: (
+    args: readonly string[],
+    timeoutMs?: number,
+    /** Skip the in-process reader. */ subprocess?: boolean
+  ) => Promise<string>,
   validate: (stdout: string) => string,
   budgetMs: number
 ): Promise<string> {
@@ -24,7 +28,12 @@ export async function captureDarwinProcessTable(
     return remaining
   }
   const canonicalCapture = (): Promise<string> => capture(PS_ARGS, remainingBudget())
-  if (deviceColumnUnsupported || isDarwinTerminalNamingInFlight()) {
+  // ps names terminals out of process, so a busy naming slot (perhaps a stalled lstat) never blocks it.
+  const subprocessCapture = (): Promise<string> => capture(PS_ARGS, remainingBudget(), true)
+  if (isDarwinTerminalNamingInFlight()) {
+    return subprocessCapture()
+  }
+  if (deviceColumnUnsupported) {
     return canonicalCapture()
   }
   let captured: string
@@ -52,7 +61,7 @@ export async function captureDarwinProcessTable(
     nameDarwinTerminals(captured, undefined, controller.signal)
   )
   if (!pending) {
-    return canonicalCapture()
+    return subprocessCapture()
   }
   let remainingMs: number
   try {

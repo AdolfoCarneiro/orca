@@ -30,17 +30,21 @@ function hasUsableTty(tty: string): boolean {
 
 async function runPs(pid: number): Promise<string> {
   const args = ['-p', String(pid), '-o', 'pid=,tpgid=,tty=']
+  // Half the budget in process: a read stuck behind a busy pool still leaves ps time before signalling.
+  const nativeTimeoutMs = Math.floor(PROCESS_TABLE_QUERY_TIMEOUT_MS / 2)
+  const inProcess = await runPsInProcess(args, {
+    timeoutMs: nativeTimeoutMs,
+    maxOutputBytes: PROCESS_TABLE_MAX_BYTES
+  })
   const result =
-    (await runPsInProcess(args, {
-      timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS,
-      maxOutputBytes: PROCESS_TABLE_MAX_BYTES
-    })) ??
-    (await runProcess({
-      program: 'ps',
-      args,
-      timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS,
-      maxOutputBytes: PROCESS_TABLE_MAX_BYTES
-    }))
+    inProcess && !inProcess.timedOut
+      ? inProcess
+      : await runProcess({
+          program: 'ps',
+          args,
+          timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS - (inProcess ? nativeTimeoutMs : 0),
+          maxOutputBytes: PROCESS_TABLE_MAX_BYTES
+        })
   if (result.code !== 0 || result.timedOut || result.outputTruncated) {
     throw new Error('PTY foreground group is unavailable')
   }
