@@ -95,15 +95,21 @@ export function BrowserPageAnnotationTray({
 
   const handleCancelEdit = (): void => {
     setEditingAnnotationId(null)
+    editImages.resetImages()
   }
 
+  const canSaveEdit = Boolean(editComment.trim()) && !editImages.saving
   const handleSaveEdit = (): void => {
-    const trimmed = editComment.trim()
-    if (!trimmed || !editingAnnotationId || editImages.saving) {
+    if (!canSaveEdit || !editingAnnotationId) {
       return
     }
-    handleUpdateBrowserAnnotation(editingAnnotationId, trimmed, editIntent, editImages.imagePaths)
-    setEditingAnnotationId(null)
+    handleUpdateBrowserAnnotation(
+      editingAnnotationId,
+      editComment.trim(),
+      editIntent,
+      editImages.imagePaths
+    )
+    handleCancelEdit()
   }
 
   return (
@@ -244,8 +250,7 @@ export function BrowserPageAnnotationTray({
                       className="min-w-0 flex-1"
                       data-slot="annotation-edit"
                       onKeyDown={(event) => {
-                        // Why: bail-out selector in useGrabMode lets this reach any focused child, not just the textarea.
-                        // An image preview's portal is a React child too; its Escape only closes the preview.
+                        // Why: useGrabMode's bail-out lets this reach any focused child; an image preview's portal only closes itself.
                         if (
                           event.key === 'Escape' &&
                           event.target instanceof Node &&
@@ -318,11 +323,7 @@ export function BrowserPageAnnotationTray({
                             'Cancel'
                           )}
                         </Button>
-                        <Button
-                          size="xs"
-                          disabled={!editComment.trim() || editImages.saving}
-                          onClick={handleSaveEdit}
-                        >
+                        <Button size="xs" disabled={!canSaveEdit} onClick={handleSaveEdit}>
                           {translate(
                             'auto.components.browser.pane.annotate.browser.page.annotation.tray.c16f932cb3',
                             'Save'

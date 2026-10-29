@@ -1,19 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { getConnectionId } from '@/lib/connection-context'
-import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { formatClipboardImagePasteError } from '@/components/terminal-pane/terminal-pane-paste-execution'
+import { resolveTerminalPasteRuntimeEnvironmentId } from '@/components/terminal-pane/terminal-paste-runtime'
 import { clipboardEventImageFile } from '@/components/native-chat/native-chat-clipboard-payload'
+import { useNativeChatComposerAttachmentPreviews } from '@/components/native-chat/use-native-chat-composer-attachment-previews'
 import type { NativeChatComposerImageAttachment } from '@/components/native-chat/NativeChatComposerField'
+
+const NO_PENDING: readonly NativeChatComposerImageAttachment[] = []
 
 /** Save where a terminal paste in this worktree would, so the agent can open the path. */
 function saveAnnotationClipboardImage(worktreeId: string): Promise<string | null> {
   return window.api.ui.saveClipboardImageAsTempFile({
     connectionId: getConnectionId(worktreeId) ?? null,
-    runtimeEnvironmentId: runtimeEnvironmentIdOrLocalUnlessTwin(useAppStore.getState(), worktreeId)
+    runtimeEnvironmentId: resolveTerminalPasteRuntimeEnvironmentId(
+      useAppStore.getState(),
+      worktreeId,
+      null
+    )
   })
 }
 
@@ -27,20 +34,10 @@ export function useBrowserAnnotationImages(worktreeId: string): {
 } {
   const mountedRef = useMountedRef()
   const [images, setImages] = useState<NativeChatComposerImageAttachment[]>([])
-  const previewUrlsRef = useRef(new Map<string, string>())
-
-  const revokePreviews = useCallback((): void => {
-    previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-    previewUrlsRef.current.clear()
-  }, [])
-  useEffect(() => revokePreviews, [revokePreviews])
+  // Releases each clipboard preview once its image leaves the list or the field unmounts.
+  const { previews, setPreview } = useNativeChatComposerAttachmentPreviews(images, NO_PENDING)
 
   const removeImage = useCallback((id: string): void => {
-    const previewUrl = previewUrlsRef.current.get(id)
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-      previewUrlsRef.current.delete(id)
-    }
     setImages((current) => current.filter((image) => image.id !== id))
   }, [])
 
@@ -53,9 +50,8 @@ export function useBrowserAnnotationImages(worktreeId: string): {
       }
       event.preventDefault()
       const id = createBrowserUuid()
-      const previewUrl = URL.createObjectURL(file)
-      previewUrlsRef.current.set(id, previewUrl)
-      setImages((current) => [...current, { id, path: '', previewUrl, pending: true }])
+      setImages((current) => [...current, { id, path: '', pending: true }])
+      setPreview(id, URL.createObjectURL(file))
       const settle = (path: string | null): void => {
         if (!mountedRef.current) {
           return
@@ -73,19 +69,17 @@ export function useBrowserAnnotationImages(worktreeId: string): {
         toast.error(formatClipboardImagePasteError(error))
       })
     },
-    [mountedRef, removeImage, worktreeId]
+    [mountedRef, removeImage, setPreview, worktreeId]
   )
 
-  const resetImages = useCallback(
-    (paths: readonly string[] = []): void => {
-      revokePreviews()
-      setImages(paths.map((path) => ({ id: path, path })))
-    },
-    [revokePreviews]
-  )
+  const resetImages = useCallback((paths: readonly string[] = []): void => {
+    setImages(paths.map((path) => ({ id: path, path })))
+  }, [])
 
   return {
-    images,
+    images: images.map((image) =>
+      previews.has(image.id) ? { ...image, previewUrl: previews.get(image.id) } : image
+    ),
     imagePaths: images.flatMap((image) => (image.pending ? [] : [image.path])),
     saving: images.some((image) => image.pending),
     handlePaste,
