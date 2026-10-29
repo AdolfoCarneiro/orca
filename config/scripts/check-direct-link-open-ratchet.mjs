@@ -20,7 +20,7 @@ const DIRECT_OPEN = /\bshell\.openUrl\(|\bwindow\.open\(/g
 // Block and line comments; `://` inside a string (a URL) is not a line comment.
 const COMMENT = /\/\*[\s\S]*?\*\/|(?<![:'"`\\])\/\/.*$/gm
 
-export function isScannedPath(rel) {
+function isScannedPath(rel) {
   return (
     SCAN_ROOTS.some((root) => rel.startsWith(`${root}/`)) &&
     /\.(ts|tsx)$/.test(rel) &&
@@ -31,7 +31,7 @@ export function isScannedPath(rel) {
   )
 }
 
-export function collectDirectLinkOpenCounts(root = process.cwd()) {
+function collectDirectLinkOpenCounts(root = process.cwd()) {
   const counts = new Map()
   for (const [rel, source] of readTrackedSources(root, SCAN_ROOTS, isScannedPath)) {
     const count = source.replace(COMMENT, ' ').match(DIRECT_OPEN)?.length ?? 0

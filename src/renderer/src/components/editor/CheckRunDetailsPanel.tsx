@@ -397,7 +397,7 @@ export function CheckRunDetailsPanel({
             type="button"
             variant="outline"
             size="sm"
-            onClick={(event) => openAppHttpLink(openUrl, { worktreeId: worktreeId, event })}
+            onClick={(event) => openAppHttpLink(openUrl, { worktreeId, event })}
           >
             {translate('auto.components.editor.CheckRunDetailsPanel.a916648574', 'Open details')}
             <ExternalLink className="size-3.5" />
