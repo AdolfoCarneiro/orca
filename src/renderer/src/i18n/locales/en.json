@@ -19809,7 +19809,8 @@
         "reconnect": "Reconnect",
         "stopped": "{{distro}} is stopped",
         "start": "Start",
-        "unverifiable": "Orca couldn't check whether {{distro}} is running"
+        "unverifiable": "Orca couldn't check whether {{distro}} is running",
+        "startToSend": "Start {{distro}} to send."
       },
       "interruptedContinue": {
         "continue": "Continue",
@@ -22721,6 +22722,7 @@
       "agentNeverStarted": "Automation agent never started after the prompt was submitted.",
       "agentNoCompletion": "Automation agent did not report completion.",
       "watchTimedOut": "Orca stopped watching this run after 6h without a completion signal.",
+      "wslDistroStopped": "The WSL distro {{distro}} is stopped, so this scheduled run did not start it. Start the distro or use Run now; later runs go ahead while it runs.",
       "projectSetupState": {
         "notSetUp": "The project is not set up on the selected automation host.",
         "settingUp": "The project is still being set up on the selected automation host.",

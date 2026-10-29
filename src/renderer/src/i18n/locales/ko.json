@@ -18920,7 +18920,8 @@
         "reconnect": "다시 연결",
         "stopped": "{{distro}}이(가) 중지되었습니다",
         "start": "시작",
-        "unverifiable": "Orca가 {{distro}}이(가) 실행 중인지 확인하지 못했습니다"
+        "unverifiable": "Orca가 {{distro}}이(가) 실행 중인지 확인하지 못했습니다",
+        "startToSend": "보내려면 {{distro}}을(를) 시작하세요."
       },
       "interruptedContinue": {
         "continue": "계속",
@@ -22221,6 +22222,7 @@
       "agentNeverStarted": "프롬프트를 제출한 후 자동화 에이전트가 시작되지 않았습니다.",
       "agentNoCompletion": "자동화 에이전트가 완료를 보고하지 않았습니다.",
       "watchTimedOut": "완료 신호 없이 6시간이 지나 Orca가 이 실행의 모니터링을 중단했습니다.",
+      "wslDistroStopped": "WSL 배포판 {{distro}}이(가) 중지되어 있어 이 예약 실행에서 시작하지 않았습니다. 배포판을 시작하거나 지금 실행을 사용하세요. 실행 중인 동안에는 이후 실행이 진행됩니다.",
       "projectSetupState": {
         "notSetUp": "선택한 자동화 호스트에 프로젝트가 설정되어 있지 않습니다.",
         "settingUp": "선택한 자동화 호스트에서 아직 프로젝트를 설정 중입니다.",

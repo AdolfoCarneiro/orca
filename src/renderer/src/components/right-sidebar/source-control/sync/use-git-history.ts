@@ -4,15 +4,13 @@ import type { RuntimeClientTarget } from '../../../../../../shared/runtime-clien
 import { getConnectionId } from '@/lib/connection-context'
 import { getRuntimeGitHistory } from '@/runtime/runtime-git-status-client'
 import type { GitHistoryPanelState } from './git-history-panel'
-import { takeWorkspaceSwitchWake } from '@/lib/workspace-switch-user-act'
+import { takeRecentWorkspaceSwitchWake } from '@/lib/workspace-switch-user-act'
 
 const EMPTY_GIT_HISTORY_STATE: GitHistoryPanelState = { status: 'idle' }
 
 /** `wakeWslDistro`: the user opening Commits or its Refresh, a user act that may start a stopped WSL distro. */
 type HistoryRefresh = { wakeWslDistro?: boolean }
 const SHOWN_HISTORY_LOAD: HistoryRefresh = { wakeWslDistro: true }
-// The mounts and re-shows a user's own workspace switch causes land within this window.
-const SWITCH_MOUNT_WINDOW_MS = 10_000
 
 /** Cache/prune history per worktree and reject superseded requests; refreshGitHistoryRef lets effects refresh without callback resubscription. */
 export function useSourceControlGitHistory({
@@ -169,10 +167,7 @@ export function useSourceControlGitHistory({
     // workspace (once per switch). A remount, restore or Orca's own re-show stays background (E9).
     const userAct =
       userExpanded ||
-      (activeWorktreeId !== null &&
-        takeWorkspaceSwitchWake(activeWorktreeId, 'git-history', {
-          withinMs: SWITCH_MOUNT_WINDOW_MS
-        }))
+      (activeWorktreeId !== null && takeRecentWorkspaceSwitchWake(activeWorktreeId, 'git-history'))
     void refreshGitHistoryRef.current(userAct ? SHOWN_HISTORY_LOAD : undefined)
   }, [
     // History uses compareBaseRef, which can move independently of effectiveBaseRef.

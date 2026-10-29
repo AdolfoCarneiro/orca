@@ -18920,7 +18920,8 @@
         "reconnect": "再接続",
         "stopped": "{{distro}} は停止しています",
         "start": "起動",
-        "unverifiable": "Orca は {{distro}} が実行中かどうかを確認できませんでした"
+        "unverifiable": "Orca は {{distro}} が実行中かどうかを確認できませんでした",
+        "startToSend": "送信するには {{distro}} を開始してください。"
       },
       "interruptedContinue": {
         "continue": "続行",
@@ -22221,6 +22222,7 @@
       "agentNeverStarted": "プロンプトの送信後、オートメーションの Agent が起動しませんでした。",
       "agentNoCompletion": "オートメーションの Agent から完了の報告がありませんでした。",
       "watchTimedOut": "完了シグナルがないまま 6 時間が経過したため、Orca はこの実行の監視を終了しました。",
+      "wslDistroStopped": "WSL ディストリビューション {{distro}} が停止しているため、このスケジュール実行では起動しませんでした。ディストリビューションを起動するか、「今すぐ実行」を使ってください。起動中は以降の実行が行われます。",
       "projectSetupState": {
         "notSetUp": "選択したオートメーションのホストでは、プロジェクトがセットアップされていません。",
         "settingUp": "選択したオートメーションのホストで、プロジェクトをまだセットアップ中です。",

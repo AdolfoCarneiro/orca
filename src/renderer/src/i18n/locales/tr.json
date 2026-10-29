@@ -19369,7 +19369,8 @@
         "reconnect": "Yeniden bağlan",
         "stopped": "{{distro}} durduruldu",
         "start": "Başlat",
-        "unverifiable": "Orca, {{distro}} öğesinin çalışıp çalışmadığını denetleyemedi"
+        "unverifiable": "Orca, {{distro}} öğesinin çalışıp çalışmadığını denetleyemedi",
+        "startToSend": "Göndermek için {{distro}} dağıtımını başlatın."
       },
       "interruptedContinue": {
         "continue": "Devam et",
@@ -22237,6 +22238,7 @@
       "agentNeverStarted": "İstem gönderildikten sonra otomasyon ajanı hiç başlatılmadı.",
       "agentNoCompletion": "Otomasyon ajanı tamamlanma bildirimi göndermedi.",
       "watchTimedOut": "Orca, 6 saat boyunca tamamlanma sinyali gelmeyince bu çalıştırmayı izlemeyi durdurdu.",
+      "wslDistroStopped": "WSL dağıtımı {{distro}} durdurulmuş, bu yüzden bu zamanlanmış çalıştırma onu başlatmadı. Dağıtımı başlatın veya Şimdi çalıştır'ı kullanın; dağıtım çalıştığı sürece sonraki çalıştırmalar devam eder.",
       "projectSetupState": {
         "notSetUp": "Proje seçili otomasyon sunucusunda kurulu değil.",
         "settingUp": "Proje seçili otomasyon sunucusunda hâlâ kuruluyor.",
