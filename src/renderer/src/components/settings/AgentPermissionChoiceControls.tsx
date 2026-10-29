@@ -1,5 +1,5 @@
 import { AgentPermissionMenuOptions } from './AgentPermissionMenuOptions'
-import { ChevronDown, Terminal, X } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import type { Ref } from 'react'
 import type { AgentChatPermissionMode } from '../../../../shared/agent-chat-permission-mode'
 import type { AgentPermissionChoice } from '../../../../shared/tui-agent-permission-choice'
@@ -11,17 +11,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '../ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { nativeChatPermissionModeLabel } from '../native-chat/native-chat-permission-mode-labels'
-import {
-  NativeChatPermissionModeItems,
-  NativeChatPermissionModeName
-} from '../native-chat/NativeChatPermissionModePicker'
-import { SettingsSegmentedControl } from './SettingsFormControls'
+import { AgentPermissionChoiceItems, AgentPermissionChoiceName } from './AgentPermissionChoiceItems'
 
 /** Use chat-mode wording; own names the agent when available. */
 export function agentPermissionChoiceLabel(
@@ -36,19 +30,6 @@ export function agentPermissionChoiceLabel(
         agent: agentLabel
       })
     : translate('settings.agents.permissionOwnAll', "Agents' own settings")
-}
-
-function ownDescription(chatOwnSupported: boolean): string {
-  if (!chatOwnSupported) {
-    return translate(
-      'settings.agents.permissionOwnLegacyDescription',
-      'Orca adds no permission flag in terminals; chats use Settings → Chat.'
-    )
-  }
-  return translate(
-    'settings.agents.permissionOwnDescription',
-    'Terminals and chats follow the agent’s own permission settings.'
-  )
 }
 
 export function AllAgentsPermissionSetting({
@@ -67,6 +48,10 @@ export function AllAgentsPermissionSetting({
 }): React.JSX.Element {
   const title = translate('settings.agents.permissionsTitle', 'Permissions')
   const ownLabel = translate('settings.agents.permissionEachOwn', "Each agent's own settings")
+  const withoutAutoTitle = translate(
+    'settings.agents.otherAgentsPermissionsLabel',
+    'Permissions for other agents'
+  )
   return (
     <section className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -82,35 +67,20 @@ export function AllAgentsPermissionSetting({
             >
               {choice === null ? (
                 <span className="h-4" />
-              ) : choice === 'own' ? (
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <Terminal className="size-3.5 shrink-0" />
-                  {ownLabel}
-                </span>
               ) : (
-                <NativeChatPermissionModeName mode={choice} truncate />
+                <AgentPermissionChoiceName choice={choice} ownLabel={ownLabel} truncate />
               )}
               <ChevronDown className="size-3 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" collisionPadding={8} className="w-72">
             <DropdownMenuRadioGroup aria-label={title} value={choice ?? ''}>
-              <NativeChatPermissionModeItems
-                modes={['ask', 'auto', 'full-access']}
+              <AgentPermissionChoiceItems
+                choices={['ask', 'auto', 'full-access', 'own']}
+                ownLabel={ownLabel}
+                chatOwnSupported={chatOwnSupported}
                 onSelect={onChange}
               />
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioItem value="own" onSelect={() => onChange('own')}>
-                <div className="min-w-0 py-0.5">
-                  <span className="flex items-center gap-1.5">
-                    <Terminal className="size-3.5 shrink-0" />
-                    {ownLabel}
-                  </span>
-                  <div className="text-xs font-normal text-muted-foreground">
-                    {ownDescription(chatOwnSupported)}
-                  </div>
-                </div>
-              </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -127,26 +97,43 @@ export function AllAgentsPermissionSetting({
             <span className="text-xs text-muted-foreground">
               {translate('settings.agents.permissionWithoutAuto', 'Agents without Approve for me')}
             </span>
-            <SettingsSegmentedControl<AgentPermissionChoice | 'mixed'>
-              value={withoutAutoChoice ?? 'mixed'}
-              onChange={(next) => {
-                if (next !== 'mixed') {
-                  onChangeWithoutAuto(next)
-                }
-              }}
-              ariaLabel={translate(
-                'settings.agents.otherAgentsPermissionsLabel',
-                'Permissions for other agents'
-              )}
-              size="sm"
-              options={(['own', 'full-access'] as const).map((value) => ({
-                value,
-                label:
-                  value === 'own'
-                    ? translate('settings.agents.permissionOwnShort', 'Own settings')
-                    : nativeChatPermissionModeLabel(value)
-              }))}
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  aria-label={withoutAutoTitle}
+                  className="min-w-0 max-w-full"
+                >
+                  {withoutAutoChoice === null ? (
+                    <span className="truncate">
+                      {translate('settings.agents.permissionMixed', 'Mixed')}
+                    </span>
+                  ) : (
+                    <AgentPermissionChoiceName
+                      choice={withoutAutoChoice}
+                      ownLabel={ownLabel}
+                      truncate
+                    />
+                  )}
+                  <ChevronDown className="size-3 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" collisionPadding={8} className="w-72">
+                <DropdownMenuRadioGroup
+                  aria-label={withoutAutoTitle}
+                  value={withoutAutoChoice ?? ''}
+                >
+                  <AgentPermissionChoiceItems
+                    choices={['full-access', 'own']}
+                    ownLabel={ownLabel}
+                    chatOwnSupported={chatOwnSupported}
+                    onSelect={onChangeWithoutAuto}
+                  />
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ) : null}
       </div>
@@ -194,7 +181,7 @@ export function AgentPermissionMenu({
 }): React.JSX.Element {
   const followAll =
     inheritLabel ?? translate('settings.agents.permissionSameAsAll', 'Same as all agents')
-  const current = rawValue ?? agentPermissionChoiceLabel(permission.choice, label)
+  const ownLabel = agentPermissionChoiceLabel('own', label)
   return (
     <div
       className={cn(
@@ -230,8 +217,13 @@ export function AgentPermissionMenu({
             })}
             className={cn('min-w-0 max-w-full', layout === 'stacked' && 'w-full justify-between')}
           >
-            <span className="truncate text-xs">
-              {permission.source === 'all' ? `${followAll} · ${current}` : current}
+            <span className="flex min-w-0 items-center gap-1.5 text-xs">
+              {permission.source === 'all' ? <span className="shrink-0">{followAll} ·</span> : null}
+              <AgentPermissionChoiceName
+                choice={rawValue ? 'own' : permission.choice}
+                ownLabel={rawValue ?? ownLabel}
+                truncate
+              />
             </span>
             <ChevronDown className="size-3 shrink-0" />
           </Button>
@@ -244,8 +236,7 @@ export function AgentPermissionMenu({
             rawValue={rawValue}
             showInherited={showInherited}
             followAll={followAll}
-            choiceLabel={(choice) => agentPermissionChoiceLabel(choice, label)}
-            ownDescription={ownDescription(permission.chatOwnSupported === true)}
+            ownLabel={ownLabel}
           />
         </DropdownMenuContent>
       </DropdownMenu>

@@ -12,6 +12,34 @@ import {
   type AgentPickerEntry
 } from '../../../../shared/agent-launch-picker'
 
+it('uses chat-style permission icons and separated own settings while keeping raw CLI text selected', () => {
+  act(() =>
+    root.render(
+      <TooltipProvider>
+        <AgentLaunchSetupPanel entry={entry} onUse={onUse} />
+      </TooltipProvider>
+    )
+  )
+  const trigger = host.querySelector<HTMLButtonElement>('button[aria-label="Claude permissions"]')!
+  expect(trigger.textContent).toBe('plan')
+  expect(trigger.querySelector('svg.lucide-terminal')).not.toBeNull()
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+  const rows = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')]
+  const raw = rows.find((row) => row.textContent === 'plan')!
+  expect(raw.getAttribute('aria-checked')).toBe('true')
+  expect(raw.querySelector('svg.lucide-terminal')).not.toBeNull()
+  const full = rows.find((row) => row.textContent?.startsWith('Full access'))!
+  expect(full.querySelector('.text-status-warning svg')).not.toBeNull()
+  expect(full.textContent).toContain('Never asks before edits or commands')
+  const own = rows.find((row) => row.textContent?.includes("Use Claude's own settings"))!
+  expect(own.previousElementSibling?.getAttribute('role')).toBe('separator')
+  expect(own.querySelector('svg.lucide-terminal')).not.toBeNull()
+  expect(rows.some((row) => row.textContent?.includes('Same as all agents'))).toBe(false)
+  fireEvent.click(full)
+  expect(trigger.querySelector('.text-status-warning svg')).not.toBeNull()
+  expect(onUse).not.toHaveBeenCalled()
+})
+
 it.each(['missing-default', 'pending', 'known-default', 'explicit'] as const)(
   'keeps Effort authority separate from declared choices: %s',
   (state) => {
