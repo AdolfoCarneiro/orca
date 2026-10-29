@@ -57,10 +57,10 @@ it.each([100, 1000])(
         expect(agentMessageDisplayText(blocks, task)).toBe(suffix)
       }
       expect(parse).not.toHaveBeenCalled()
-      for (const blocks of inputs) {
+      for (const _blocks of inputs) {
         expect(
-          agentMessageDisplayText([{ type: 'text', text: prefix + suffix + 'edited' }], task)
-        ).toBe(suffix + 'edited')
+          agentMessageDisplayText([{ type: 'text', text: `${prefix}${suffix}edited` }], task)
+        ).toBe(`${suffix}edited`)
       }
       expect(parse).toHaveBeenCalledTimes(n)
     } finally {
