@@ -73,7 +73,8 @@ export function EntryActionRow({
         aria-selected={selected}
         disabled={disabled}
         className={cn(
-          'flex h-6 w-full items-center gap-1.5 rounded-[7px] px-1 text-left text-[11px] leading-5 outline-none disabled:cursor-not-allowed disabled:opacity-50',
+          // Why min-w-0: a long agent setup must truncate so the row's › stays inside the menu.
+          'flex h-6 w-full min-w-0 items-center gap-1.5 rounded-[7px] px-1 text-left text-[11px] leading-5 outline-none disabled:cursor-not-allowed disabled:opacity-50',
           selected
             ? 'bg-black/8 text-accent-foreground dark:bg-white/14'
             : // Why: CSS :hover still matches a disabled button, so a pending row would
