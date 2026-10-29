@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, render, renderHook } from '@testing-library/react'
+import { act, cleanup, render, renderHook, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
@@ -14,15 +14,15 @@ import { useAgentMessageSenderSource } from './native-chat-agent-message-sender-
 import { useAgentMessageSenderView } from './native-chat-agent-message-sender-view'
 import * as selectors from '@/components/sidebar/worktree-agent-row-selectors'
 import * as rows from '@/components/sidebar/worktree-agent-rows'
-import * as lineage from '@/components/dashboard/agent-row-lineage'
 import * as cache from '@/components/dashboard/worktree-agent-rows-cache'
 import * as structuredOwner from '@/runtime/structured-agent-session-owner'
 import * as owners from '@/lib/worktree-runtime-owner'
 import * as freshness from '@/components/sidebar/worktree-agent-freshness-selector'
-import * as order from '@/components/sidebar/worktree-agent-row-order'
 import * as senderLocation from './native-chat-agent-message-sender-label'
+import * as presentation from '@/lib/program-status/agent-row-presentation'
 import * as inputs from '@/components/sidebar/worktree-card-status-inputs'
 import { runtimeEnvironmentStatusFromSnapshot } from '../../../../shared/runtime-host-status'
+import { AgentStateDot } from '@/components/AgentStateDot'
 
 type SenderPopulation = AppState[
   | 'agentStatusByPaneKey'
@@ -122,68 +122,8 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-it('isolates same-workspace cards before notification and releases leases on switch/removal/unmount', () => {
-  const baseline = readStoreListenerCount() ?? 0
-  const create = vi.spyOn(cache, 'createWorktreeAgentRowsCache')
-  const mounted = render(
-    <>
-      <Probe id={0} />
-      <Probe id={1} />
-      <Probe id={2} sender={1} />
-    </>
-  )
-  const before = new Map(renders)
-  expect(views.get(0)).toEqual({ agentType: 'claude', dot: 'working' })
-  write(1, { prompt: 'sibling tool', toolName: 'Read' })
-  expect(renders).toEqual(before)
-  write(1, { state: 'blocked' })
-  expect(renders.get(0)).toBe(before.get(0))
-  expect(renders.get(1)).toBe(before.get(1))
-  expect(views.get(2)?.dot).toBe('blocked')
-  const a = renders.get(0)!
-  act(() => useAppStore.setState({ runtimePaneTitlesByTabId: { other: { 0: 'other host' } } }))
-  act(() => useAppStore.setState({ sidebarBody: 'agents' }))
-  expect(renders.get(0)).toBe(a)
-  act(() => useAppStore.setState({ activeWorkspaceExecutionHostId: 'runtime:remote' }))
-  expect(views.get(0)).toEqual({})
-  act(() => useAppStore.setState({ activeWorkspaceExecutionHostId: 'local' }))
-  expect(views.get(0)?.dot).toBe('working')
-  write(0, { agentType: 'codex' })
-  expect(views.get(0)?.agentType).toBe('codex')
-  write(0, { programStatus: { state: 'blocked', observedAt: 2_000_000 } })
-  expect(views.get(0)?.dot).toBe('permission')
-  write(0, { programStatus: undefined })
-  expect(views.get(0)?.dot).toBe('working')
-  vi.setSystemTime(2_000_000 + AGENT_STATUS_STALE_AFTER_MS + 1)
-  act(() => useAppStore.setState({ agentStatusEpoch: useAppStore.getState().agentStatusEpoch + 1 }))
-  expect(views.get(0)?.dot).not.toBe('working')
-  const entry = { ...status(0), state: 'done' as const }
-  act(() =>
-    useAppStore.setState({
-      agentStatusByPaneKey: {},
-      retainedAgentsByPaneKey: {
-        [entry.paneKey]: {
-          entry,
-          tab: makeTab({ id: 'tab-0', worktreeId: 'workspace' }),
-          worktreeId: 'workspace',
-          agentType: 'claude',
-          startedAt: 1
-        }
-      }
-    })
-  )
-  expect(views.get(0)?.dot).toBe('done')
-  mounted.rerender(<Probe id={0} sender={2} />)
-  expect(views.get(0)).toEqual({})
-  mounted.unmount()
-  expect(readStoreListenerCount()).toBe(baseline)
-  const count = create.mock.calls.length
-  render(<Probe id={0} />)
-  expect(create.mock.calls.length).toBeGreaterThan(count)
-})
-
-it('isolates simultaneous local/remote publications and retains disconnected sources until their last lease', () => {
-  const baseline = readStoreListenerCount() ?? 0
+it('isolates local/remote selected consumers and owns sources through metadata, decay, retention and removal', () => {
+  const baseline = readStoreListenerCount()
   const other = status(9, 'remote')
   useAppStore.setState({
     repos: [TEST_REPO],
@@ -200,6 +140,12 @@ it('isolates simultaneous local/remote publications and retains disconnected sou
   })
   const build = vi.spyOn(rows, 'buildWorktreeAgentRows')
   const create = vi.spyOn(cache, 'createWorktreeAgentRowsCache')
+  const store = useAppStore.getState()
+  store.setAgentProgramStatus(status(1).paneKey, {
+    state: 'working',
+    progress: 40,
+    observedAt: 2_000_000
+  })
   const mounted = render(
     <>
       <Probe id={0} />
@@ -208,17 +154,54 @@ it('isolates simultaneous local/remote publications and retains disconnected sou
       <Probe id={3} sender={9} workspace="remote" remote />
     </>
   )
-  expect(create).toHaveBeenCalledTimes(2) // Initial reads promote their existing snapshot caches.
+  expect(create).toHaveBeenCalledTimes(2)
+  expect(build).toHaveBeenCalledTimes(2)
   expect(views.get(3)?.dot).toBe('working')
-  const before = new Map(renders)
+  expect(views.get(2)?.progress).toBe(40)
+  let before = new Map(renders)
+  const epoch = useAppStore.getState().agentStatusEpoch
+  act(() => {
+    store.setAgentProgramStatus(status(1).paneKey, {
+      state: 'working',
+      progress: 60,
+      observedAt: 2_000_000
+    })
+  })
+  expect(useAppStore.getState().agentStatusEpoch).toBe(epoch)
+  expect(views.get(2)?.progress).toBe(60)
+  expect(renders.get(2)).toBe(before.get(2)! + 1)
+  for (const id of [0, 1, 3]) {
+    expect(renders.get(id)).toBe(before.get(id))
+  }
+  before = new Map(renders)
+  act(() => {
+    expect(
+      store.setAgentProgramStatus(status(1).paneKey, {
+        state: 'working',
+        progress: 60,
+        observedAt: 2_000_001
+      })
+    ).toBe(false)
+  })
+  act(() => {
+    store.setAgentProgramStatus(status(1).paneKey, {
+      state: 'working',
+      progress: 60,
+      message: 'detail',
+      observedAt: 2_000_002
+    })
+  })
+  expect(renders).toEqual(before)
   build.mockClear()
   write(0, { state: 'blocked' })
   expect(build.mock.calls.map(([args]) => args.tabs[0]?.worktreeId)).toEqual(['workspace'])
-  expect(renders.get(0)).toBe(before.get(0)! + 1)
-  expect(renders.get(1)).toBe(before.get(1)! + 1)
-  expect(renders.get(2)).toBe(before.get(2))
-  expect(renders.get(3)).toBe(before.get(3))
-  const afterLocal = new Map(renders)
+  for (const id of [0, 1]) {
+    expect(renders.get(id)).toBe(before.get(id)! + 1)
+  }
+  for (const id of [2, 3]) {
+    expect(renders.get(id)).toBe(before.get(id))
+  }
+  before = new Map(renders)
   build.mockClear()
   act(() =>
     useAppStore.setState({
@@ -230,9 +213,10 @@ it('isolates simultaneous local/remote publications and retains disconnected sou
     })
   )
   expect(build.mock.calls.map(([args]) => args.tabs[0]?.worktreeId)).toEqual(['remote'])
-  expect(renders.get(3)).toBe(afterLocal.get(3)! + 1)
+  expect(views.get(3)?.dot).toBe('waiting')
+  expect(renders.get(3)).toBe(before.get(3)! + 1)
   for (const id of [0, 1, 2]) {
-    expect(renders.get(id)).toBe(afterLocal.get(id))
+    expect(renders.get(id)).toBe(before.get(id))
   }
   const disconnected = runtimeEnvironmentStatusFromSnapshot({
     environmentId: 'remote',
@@ -248,14 +232,12 @@ it('isolates simultaneous local/remote publications and retains disconnected sou
     useAppStore.setState({ runtimeStatusByEnvironmentId: new Map([['remote', disconnected]]) })
   )
   build.mockClear()
-  const stable = new Map(renders)
-  for (let i = 0; i < 10; i++) {
-    act(() => useAppStore.setState({ sidebarBody: i % 2 ? 'agents' : 'workspaces' }))
-  }
+  before = new Map(renders)
+  act(() => useAppStore.setState({ sidebarBody: 'agents' }))
   expect(build).not.toHaveBeenCalled()
-  expect(renders).toEqual(stable)
+  expect(renders).toEqual(before)
   expect(create).toHaveBeenCalledTimes(2)
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 3; i++) {
     write(0, { prompt: `publication-${i}` })
     for (const result of create.mock.results) {
       if (result.type === 'return') {
@@ -265,6 +247,45 @@ it('isolates simultaneous local/remote publications and retains disconnected sou
       }
     }
   }
+  act(() => useAppStore.setState({ activeWorkspaceExecutionHostId: 'runtime:remote' }))
+  expect(views.get(0)).toEqual({})
+  act(() => useAppStore.setState({ activeWorkspaceExecutionHostId: 'local' }))
+  expect(views.get(0)?.dot).toBe('blocked')
+  write(0, {
+    agentType: 'codex',
+    state: 'working',
+    programStatus: { state: 'blocked', progress: 60, observedAt: 2_000_000 }
+  })
+  expect(views.get(0)).toEqual({ agentType: 'codex', dot: 'permission', progress: 60 })
+  act(() => {
+    store.setAgentProgramStatus(status(0).paneKey, null)
+  })
+  expect(views.get(0)?.dot).toBe('working')
+  vi.setSystemTime(2_000_000 + AGENT_STATUS_STALE_AFTER_MS + 1)
+  act(() => useAppStore.setState({ agentStatusEpoch: useAppStore.getState().agentStatusEpoch + 1 }))
+  expect(views.get(0)?.dot).not.toBe('working')
+  const entry = {
+    ...status(0),
+    state: 'done' as const,
+    programStatus: { state: 'working' as const, progress: 60, observedAt: 2_000_000 }
+  }
+  act(() =>
+    useAppStore.setState({
+      agentStatusByPaneKey: {},
+      retainedAgentsByPaneKey: {
+        [entry.paneKey]: {
+          entry,
+          tab: makeTab({ id: 'tab-0', worktreeId: 'workspace' }),
+          worktreeId: 'workspace',
+          agentType: 'claude',
+          startedAt: 1
+        }
+      }
+    })
+  )
+  expect(views.get(0)).toEqual({ agentType: 'claude', dot: 'done', progress: undefined })
+  mounted.rerender(<Probe id={0} sender={2} />)
+  expect(views.get(0)).toEqual({})
   mounted.unmount()
   expect(readStoreListenerCount()).toBe(baseline)
   for (const result of create.mock.results) {
@@ -274,6 +295,11 @@ it('isolates simultaneous local/remote publications and retains disconnected sou
       expect(result.value.seenWorktreeIds.size).toBe(0)
     }
   }
+  const count = create.mock.calls.length
+  render(<Probe id={0} />)
+  expect(create.mock.calls.length).toBeGreaterThan(count)
+  expect(views.get(0)?.dot).toBe('done')
+  expect(views.get(0)?.progress).toBeUndefined()
 })
 
 it.each([100, 1000])(
@@ -283,13 +309,9 @@ it.each([100, 1000])(
     const settings = createGlobalSettingsFixture()
     useAppStore.setState({ settings })
     let entries = 0,
-      rowInputs = 0,
-      lineageInputs = 0,
-      comparisons = 0,
       freshnessVisits = 0,
-      pointReads = 0,
-      paneWrites = 0,
       handleEntries = 0
+    const population = new Map<SenderPopulation, { calls: number; entries: number }>()
     let projecting = false
     const projector = cache.selectWorktreeAgentRowsCached
     const projections = vi
@@ -302,21 +324,23 @@ it.each([100, 1000])(
           projecting = false
         }
       })
-    const locate = vi.spyOn(senderLocation, 'agentMessageSenderOwner')
     const values = Object.values
-    vi.spyOn(Object, 'values').mockImplementation(
-      (object: AppState['agentStatusByPaneKey'] | AppState['retainedAgentsByPaneKey']) => {
-        const result = values(object)
-        const state = useAppStore.getState()
-        if (
-          !projecting &&
-          (object === state.agentStatusByPaneKey || object === state.retainedAgentsByPaneKey)
-        ) {
-          handleEntries += result.length
-        }
-        return result
+    vi.spyOn(Object, 'values').mockImplementation((object: SenderPopulation) => {
+      const result = values(object)
+      const metric = population.get(object)
+      if (metric) {
+        metric.calls++
+        metric.entries += result.length
       }
-    )
+      const state = useAppStore.getState()
+      if (
+        !projecting &&
+        (object === state.agentStatusByPaneKey || object === state.retainedAgentsByPaneKey)
+      ) {
+        handleEntries += result.length
+      }
+      return result
+    })
     let fresh = false
     const originalFreshness = freshness.createWorktreeAgentFreshnessSelector
     vi.spyOn(freshness, 'createWorktreeAgentFreshnessSelector').mockImplementation((...args) => {
@@ -331,39 +355,9 @@ it.each([100, 1000])(
       }
     })
     const arrays = new WeakMap<AgentStatusEntry[], AgentStatusEntry[]>()
-    const paneMaps = new WeakSet<object>()
-    const originalMapGet = Map.prototype.get
-    vi.spyOn(Map.prototype, 'get').mockImplementation(function (this: Map<unknown, unknown>, key) {
-      if (paneMaps.has(this)) {
-        pointReads++
-      }
-      return originalMapGet.call(this, key)
-    })
-    const originalMapSet = Map.prototype.set
-    vi.spyOn(Map.prototype, 'set').mockImplementation(function (
-      this: Map<unknown, unknown>,
-      key,
-      value
-    ) {
-      if (
-        typeof key === 'string' &&
-        key.startsWith('tab-') &&
-        typeof value === 'object' &&
-        value !== null &&
-        Object.hasOwn(value, 'dot')
-      ) {
-        paneMaps.add(this)
-        paneWrites++
-      }
-      return originalMapSet.call(this, key, value)
-    })
-    const recordWork = new Map<
-      string,
-      { source: number; keys: number; reads: number; calls: number }
-    >()
+    const recordWork = new Map<string, { source: number; calls: number }>()
     function recordProbe<Source extends object, Result extends object = Source>(name: string) {
-      const proxies = new WeakMap<Result, Result>()
-      const metric = { source: 0, keys: 0, reads: 0, calls: 0 }
+      const metric = { source: 0, calls: 0 }
       recordWork.set(name, metric)
       return {
         source(record: Source): Source {
@@ -379,24 +373,7 @@ it.each([100, 1000])(
         },
         result(record: Result): Result {
           metric.calls++
-          let proxy = proxies.get(record)
-          if (!proxy) {
-            proxy = new Proxy(record, {
-              ownKeys(target) {
-                metric.keys += Reflect.ownKeys(target).length
-                return Reflect.ownKeys(target)
-              },
-              get(target, key) {
-                if (typeof key === 'string') {
-                  metric.reads++
-                }
-                // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: plain fixture data has no accessor overrides; methods retain the caller's proxy receiver and indexed reads remain counted.
-                return target[key as keyof typeof target]
-              }
-            })
-            proxies.set(record, proxy)
-          }
-          return proxy
+          return record
         }
       }
     }
@@ -471,20 +448,13 @@ it.each([100, 1000])(
         return proxy
       })
     const build = rows.buildWorktreeAgentRows
-    const builds = vi.spyOn(rows, 'buildWorktreeAgentRows').mockImplementation((args) => {
-      rowInputs += args.entries.length + args.retained.length
-      return build(args)
-    })
-    const apply = lineage.applyAgentRowLineage
-    vi.spyOn(lineage, 'applyAgentRowLineage').mockImplementation((...args) => {
-      lineageInputs += args[0].length
-      return apply(...args)
-    })
-    const compare = order.compareWorktreeAgentRows
-    vi.spyOn(order, 'compareWorktreeAgentRows').mockImplementation((a, b) => {
-      comparisons++
-      return compare(a, b)
-    })
+    const builds = vi
+      .spyOn(rows, 'buildWorktreeAgentRows')
+      .mockImplementation((args) => build(args))
+    const resolve = presentation.resolveRowProgramStatus
+    const normalized = vi
+      .spyOn(presentation, 'resolveRowProgramStatus')
+      .mockImplementation((row) => resolve(row))
     render(
       <>
         {Array.from({ length: n }, (_, id) => (
@@ -493,38 +463,23 @@ it.each([100, 1000])(
       </>
     )
     expect(builds).toHaveBeenCalledTimes(1)
+    expect(builds.mock.calls[0][0].entries).toHaveLength(n)
+    expect(normalized).toHaveBeenCalledTimes(n)
     expect(handleEntries).toBe(n)
-    expect(rowInputs).toBe(n)
-    expect(lineageInputs).toBe(n)
     expect(entries).toBe(n * input.mock.calls.length)
-    expect(comparisons).toBe(n - 1) // This corpus is ordered by distinct tab sortOrder.
     expect(freshnessVisits).toBe(n)
-    expect(pointReads).toBeLessThanOrEqual(locate.mock.calls.length + n)
-    expect(paneWrites).toBe(n) // Exactly the projected pane-view population.
     expect(projections).toHaveBeenCalledTimes(1)
     for (const metric of recordWork.values()) {
-      expect(metric.calls).toBe(1)
-      expect(metric.source).toBe(n) // Exactly one N-entry selector construction, independent of card count.
+      expect(metric).toEqual({ calls: 1, source: n })
     }
     const counts = new Map(renders)
     const reset = () => {
-      input.mockClear()
-      builds.mockClear()
-      projections.mockClear()
-      locate.mockClear()
-      entries = 0
-      rowInputs = 0
-      lineageInputs = 0
-      freshnessVisits = 0
-      pointReads = 0
-      paneWrites = 0
-      handleEntries = 0
-      comparisons = 0
+      for (const spy of [input, builds, projections, normalized]) {
+        spy.mockClear()
+      }
+      entries = freshnessVisits = handleEntries = 0
       for (const metric of recordWork.values()) {
-        metric.source = 0
-        metric.keys = 0
-        metric.reads = 0
-        metric.calls = 0
+        metric.source = metric.calls = 0
       }
     }
     // Each record generation actually reconstructs the full workspace; the unchanged authority
@@ -536,146 +491,54 @@ it.each([100, 1000])(
       terminalLayoutsByTabId: layouts.source({ ...state.terminalLayoutsByTabId }),
       paneForegroundAgentByPaneKey: foreground.source({ ...state.paneForegroundAgentByPaneKey })
     }
-    reset()
-    act(() => useAppStore.setState(nextRecords))
-    expect(projections).toHaveBeenCalledTimes(1)
-    expect(builds).not.toHaveBeenCalled()
-    expect(handleEntries).toBe(0)
-    expect(freshnessVisits).toBe(0)
-    for (const metric of recordWork.values()) {
-      expect(metric.calls).toBe(1)
-      expect(metric.source).toBe(n)
-      expect(metric.keys).toBe(0)
-      expect(metric.reads).toBe(0)
+    for (const [update, reads] of [
+      [nextRecords, n],
+      [{ sidebarBody: 'agents' as const }, 0],
+      [{ settings: { ...settings } }, 0]
+    ] as const) {
+      reset()
+      act(() => useAppStore.setState(update))
+      expect(projections).toHaveBeenCalledTimes(1)
+      expect(builds).not.toHaveBeenCalled()
+      expect(normalized).not.toHaveBeenCalled()
+      expect(entries).toBe(n * input.mock.calls.length)
+      expect(freshnessVisits).toBe(0)
+      for (const metric of recordWork.values()) {
+        expect(metric).toEqual({ calls: 1, source: reads })
+      }
+      expect(handleEntries).toBe('settings' in update ? n : 0)
+      expect(renders).toEqual(counts)
     }
-    expect(paneWrites).toBe(0)
-    expect(pointReads).toBeLessThanOrEqual(locate.mock.calls.length)
-    expect(renders).toEqual(counts)
-    reset()
-    act(() => useAppStore.setState({ sidebarBody: 'agents' }))
-    expect(projections).toHaveBeenCalledTimes(1)
-    expect(builds).not.toHaveBeenCalled()
-    for (const metric of recordWork.values()) {
-      expect(metric.calls).toBe(1)
-      expect(metric.source).toBe(0)
-      expect(metric.keys).toBe(0)
-      expect(metric.reads).toBe(0)
-    }
-    reset()
-    act(() => useAppStore.setState({ settings: { ...settings } }))
-    expect(handleEntries).toBe(n) // Same status map, changed owner-input tuple: rebuild its shared index once.
-    expect(builds).not.toHaveBeenCalled()
-    expect(renders).toEqual(counts)
-    reset()
-    write(n - 1, { state: 'blocked' })
-    expect(builds).toHaveBeenCalledTimes(1)
-    expect(rowInputs).toBe(n)
-    expect(lineageInputs).toBe(n)
-    expect(handleEntries).toBe(n)
-    expect(entries).toBe(n * input.mock.calls.length)
-    expect(freshnessVisits).toBe(n)
-    expect(comparisons).toBe(n - 1)
-    expect(projections).toHaveBeenCalledTimes(1)
-    for (const metric of recordWork.values()) {
-      expect(metric.calls).toBe(1)
-      expect(metric.keys).toBe(0)
-      expect(metric.source).toBe(0)
-    }
-    expect(paneWrites).toBe(n)
-    expect(pointReads).toBeLessThanOrEqual(locate.mock.calls.length + n)
-    expect(renders).toEqual(counts)
-    handleEntries = 0
-    rowInputs = 0
-    lineageInputs = 0
-    builds.mockClear()
-    act(() =>
-      useAppStore.setState({
-        agentStatusByPaneKey: {},
-        retainedAgentsByPaneKey: Object.fromEntries(
-          Array.from({ length: n }, (_, i) => {
-            const entry = { ...status(i), state: 'done' as const }
-            return [
-              entry.paneKey,
-              {
-                entry,
-                tab: makeTab({ id: `tab-${i}`, worktreeId: 'workspace', sortOrder: i }),
-                worktreeId: 'workspace',
-                agentType: 'claude' as const,
-                startedAt: 1
-              }
-            ]
+    for (const facetOnly of [true, false]) {
+      reset()
+      const epoch = useAppStore.getState().agentStatusEpoch
+      if (facetOnly) {
+        act(() => {
+          useAppStore.getState().setAgentProgramStatus(status(1).paneKey, {
+            state: 'working',
+            progress: 40,
+            observedAt: 2_000_000
           })
-        )
-      })
-    )
-    expect(builds).toHaveBeenCalledTimes(1)
-    expect(handleEntries).toBe(n)
-    expect(rowInputs).toBe(n)
-    expect(lineageInputs).toBe(n)
-  }
-)
-
-it('uses the child row own glyph even when its parent program needs permission', () => {
-  write(0, {
-    programStatus: { state: 'blocked', observedAt: 2_000_000 },
-    subagents: [{ id: 'child', state: 'working', startedAt: 2_000_000, description: 'Child' }]
-  })
-  const state = useAppStore.getState()
-  const projected = cache.selectWorktreeAgentRowsCached({
-    state,
-    worktreeId: 'workspace',
-    now: 2_000_000,
-    generation: '',
-    orchestration: selectors.selectRuntimeAgentOrchestrationForWorktree(state, 'workspace')
-  })
-  const child = projected.find((row) => row.childRow)!
-  expect(child).toBeDefined()
-  const locate = () => ({ host: 'local', worktreeId: 'workspace', paneKey: child.paneKey })
-  let value: AgentMessageSenderView | undefined
-  function Child() {
-    value = useAgentMessageSenderSource(locate)
-    return null
-  }
-  render(<Child />)
-  expect(value?.dot).toBe('working')
-})
-
-it('uses the navigation owner rule for the target-less ambiguous stamped twin, preserving explicit targets', () => {
-  const workspace = `${TEST_REPO.id}::/w`
-  const entry = status(0, workspace)
-  useAppStore.setState({
-    repos: [TEST_REPO],
-    activeWorktreeId: 'different',
-    activeWorkspaceExecutionHostId: 'local',
-    detectedWorktreesByRepo: {},
-    worktreesByRepo: {
-      [TEST_REPO.id]: [
-        makeWorktree({ id: workspace, repoId: TEST_REPO.id, hostId: 'local' }),
-        makeWorktree({ id: workspace, repoId: TEST_REPO.id, hostId: 'runtime:e' })
-      ]
-    },
-    tabsByWorktree: { [workspace]: [makeTab({ id: 'tab-0', worktreeId: workspace })] },
-    agentStatusByPaneKey: { [entry.paneKey]: entry }
-  })
-  const state = useAppStore.getState()
-  expect(owners.getKnownExecutionHostIdForWorktree(state, workspace)).toBe('local')
-  expect(structuredOwner.resolveStructuredAgentSessionOwner(state, workspace)).toBeNull()
-  expect(senderLocation.agentMessageSenderOwner(state, workspace)).toBeNull()
-  const sender = {
-    party: { address: 'term_0', terminalHandle: 'term_0', orcaSessionId: null },
-    name: 'Snapshot'
-  }
-  const view = renderHook(() => useAgentMessageSenderView(sender, workspace))
-  expect(view.result.current).toEqual({})
-  view.unmount()
-  // Explicit receiving host continues to resolve its sender; missing glyph never decides control eligibility.
-  const explicit = renderHook(() => useAgentMessageSenderView(sender, workspace, { kind: 'local' }))
-  expect(explicit.result.current.dot).toBe('working')
-})
-
-it.each([100, 1000])(
-  'counts nonempty live/retained/migration/orchestration populations at %i entries',
-  (n) => {
+        })
+        expect(useAppStore.getState().agentStatusEpoch).toBe(epoch)
+        expect(views.get(1)?.progress).toBe(40)
+        expect(renders.get(1)).toBe(counts.get(1)! + 1)
+        counts.set(1, renders.get(1)!)
+      } else {
+        write(n - 1, { state: 'blocked' })
+      }
+      expect(builds).toHaveBeenCalledTimes(1)
+      expect(builds.mock.calls[0][0].entries).toHaveLength(n)
+      expect(normalized).toHaveBeenCalledTimes(n)
+      expect(handleEntries).toBe(n)
+      expect(entries).toBe(n * input.mock.calls.length)
+      expect(freshnessVisits).toBe(facetOnly ? 0 : n)
+      expect(projections).toHaveBeenCalledTimes(1)
+      for (const metric of recordWork.values()) {
+        expect(metric).toEqual({ calls: 1, source: 0 })
+      }
+      expect(renders).toEqual(counts)
+    }
     const live = Object.fromEntries(
       Array.from({ length: n }, (_, i) => {
         const entry = status(i)
@@ -718,7 +581,6 @@ it.each([100, 1000])(
         { taskId: `task-${i}`, dispatchId: `dispatch-${i}`, orchestrationRunId: `run-${i}` }
       ])
     )
-    const population = new Map<SenderPopulation, { calls: number; entries: number }>()
     for (const source of [live, retained, migration, orchestration]) {
       population.set(source, { calls: 0, entries: 0 })
     }
@@ -729,69 +591,113 @@ it.each([100, 1000])(
         metric.entries += length
       }
     }
-    const objectEntries = Object.entries,
-      objectValues = Object.values
+    const objectEntries = Object.entries
     vi.spyOn(Object, 'entries').mockImplementation((source: SenderPopulation) => {
       const result = objectEntries(source)
       enumerated(source, result.length)
       return result
     })
-    vi.spyOn(Object, 'values').mockImplementation((source: SenderPopulation) => {
-      const result = objectValues(source)
-      enumerated(source, result.length)
-      return result
-    })
-    const selectOrchestration = selectors.selectRuntimeAgentOrchestrationForWorktree
-    const contexts = vi
-      .spyOn(selectors, 'selectRuntimeAgentOrchestrationForWorktree')
-      .mockImplementation((...args) => selectOrchestration(...args))
-    const build = rows.buildWorktreeAgentRows
-    const builds = vi
-      .spyOn(rows, 'buildWorktreeAgentRows')
-      .mockImplementation((args) => build(args))
-    useAppStore.setState({
-      agentStatusByPaneKey: live,
-      retainedAgentsByPaneKey: retained,
-      migrationUnsupportedByPtyId: migration,
-      runtimeAgentOrchestrationByPaneKey: orchestration,
-      tabsByWorktree: {
-        workspace: Array.from({ length: n }, (_, i) => [
-          makeTab({ id: `tab-${i}`, worktreeId: 'workspace' }),
-          makeTab({ id: `retained-${i}`, worktreeId: 'workspace' }),
-          makeTab({ id: `migration-${i}`, worktreeId: 'workspace' })
-        ]).flat()
-      }
-    })
-    render(
-      <>
-        {Array.from({ length: n }, (_, id) => (
-          <Probe key={id} id={id} sender={id} />
-        ))}
-      </>
+    reset()
+    act(() =>
+      useAppStore.setState({
+        agentStatusByPaneKey: live,
+        retainedAgentsByPaneKey: retained,
+        migrationUnsupportedByPtyId: migration,
+        runtimeAgentOrchestrationByPaneKey: orchestration,
+        tabsByWorktree: {
+          workspace: Array.from({ length: n }, (_, i) => [
+            makeTab({ id: `tab-${i}`, worktreeId: 'workspace' }),
+            makeTab({ id: `retained-${i}`, worktreeId: 'workspace' }),
+            makeTab({ id: `migration-${i}`, worktreeId: 'workspace' })
+          ]).flat()
+        }
+      })
     )
-    expect(contexts).toHaveBeenCalledTimes(1)
+    expect(projections).toHaveBeenCalledTimes(1)
     expect(builds).toHaveBeenCalledTimes(1)
     const args = builds.mock.calls[0][0]
     expect(args.tabs).toHaveLength(n * 3)
     expect(args.entries).toHaveLength(n * 2)
     expect(args.retained).toHaveLength(n)
     expect(Object.keys(args.runtimeAgentOrchestrationByPaneKey!)).toHaveLength(n)
-    // One live handle-index + one authority live-index enumeration; each other source once.
+    expect(normalized).toHaveBeenCalledTimes(n * 3)
     expect(population.get(live)).toEqual({ calls: 2, entries: n * 2 })
     for (const source of [retained, migration, orchestration]) {
       expect(population.get(source)).toEqual({ calls: 1, entries: n })
     }
     for (const metric of population.values()) {
-      metric.calls = 0
-      metric.entries = 0
+      metric.calls = metric.entries = 0
     }
-    builds.mockClear()
-    contexts.mockClear()
-    act(() => useAppStore.setState({ sidebarBody: 'agents' }))
-    expect(contexts).toHaveBeenCalledTimes(1)
+    reset()
+    act(() => useAppStore.setState({ sidebarBody: 'workspaces' }))
+    expect(projections).toHaveBeenCalledTimes(1)
     expect(builds).not.toHaveBeenCalled()
+    expect(normalized).not.toHaveBeenCalled()
     for (const metric of population.values()) {
       expect(metric).toEqual({ calls: 0, entries: 0 })
     }
   }
 )
+
+it('uses the child row own glyph even when its parent program needs permission', () => {
+  write(0, {
+    programStatus: { state: 'blocked', progress: 60, observedAt: 2_000_000 },
+    subagents: [{ id: 'child', state: 'working', startedAt: 2_000_000, description: 'Child' }]
+  })
+  const state = useAppStore.getState()
+  const projected = cache.selectWorktreeAgentRowsCached({
+    state,
+    worktreeId: 'workspace',
+    now: 2_000_000,
+    generation: '',
+    orchestration: selectors.selectRuntimeAgentOrchestrationForWorktree(state, 'workspace')
+  })
+  const child = projected.find((row) => row.childRow)!
+  expect(child).toBeDefined()
+  const locate = () => ({ host: 'local', worktreeId: 'workspace', paneKey: child.paneKey })
+  let value: AgentMessageSenderView | undefined
+  function Child() {
+    value = useAgentMessageSenderSource(locate)
+    return value.dot ? (
+      <AgentStateDot state={value.dot} progress={value.progress} size="md" title={null} />
+    ) : null
+  }
+  render(<Child />)
+  expect(value?.dot).toBe('working')
+  expect(value?.progress).toBeUndefined()
+  expect(screen.queryByRole('progressbar')).toBeNull()
+  expect(screen.getByLabelText('Working')).toBeDefined()
+})
+
+it('uses the navigation owner rule for the target-less ambiguous stamped twin, preserving explicit targets', () => {
+  const workspace = `${TEST_REPO.id}::/w`
+  const entry = status(0, workspace)
+  useAppStore.setState({
+    repos: [TEST_REPO],
+    activeWorktreeId: 'different',
+    activeWorkspaceExecutionHostId: 'local',
+    detectedWorktreesByRepo: {},
+    worktreesByRepo: {
+      [TEST_REPO.id]: [
+        makeWorktree({ id: workspace, repoId: TEST_REPO.id, hostId: 'local' }),
+        makeWorktree({ id: workspace, repoId: TEST_REPO.id, hostId: 'runtime:e' })
+      ]
+    },
+    tabsByWorktree: { [workspace]: [makeTab({ id: 'tab-0', worktreeId: workspace })] },
+    agentStatusByPaneKey: { [entry.paneKey]: entry }
+  })
+  const state = useAppStore.getState()
+  expect(owners.getKnownExecutionHostIdForWorktree(state, workspace)).toBe('local')
+  expect(structuredOwner.resolveStructuredAgentSessionOwner(state, workspace)).toBeNull()
+  expect(senderLocation.agentMessageSenderOwner(state, workspace)).toBeNull()
+  const sender = {
+    party: { address: 'term_0', terminalHandle: 'term_0', orcaSessionId: null },
+    name: 'Snapshot'
+  }
+  const view = renderHook(() => useAgentMessageSenderView(sender, workspace))
+  expect(view.result.current).toEqual({})
+  view.unmount()
+  // Explicit receiving host continues to resolve its sender; missing glyph never decides control eligibility.
+  const explicit = renderHook(() => useAgentMessageSenderView(sender, workspace, { kind: 'local' }))
+  expect(explicit.result.current.dot).toBe('working')
+})

@@ -5,6 +5,7 @@ export const AGENT_MESSAGE_FOLDED_LINES = 3
 export type AgentMessageHeading = 'task' | 'coordinator' | 'worker' | 'generic'
 export type AgentMessageSenderView = Readonly<{
   agentType?: AgentStatusEntry['agentType']
+  progress?: number
   dot?:
     | 'working'
     | 'monitoring'

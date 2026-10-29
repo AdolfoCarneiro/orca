@@ -25,7 +25,7 @@ export type SenderLocation = {
 type LocateSender = (state: AppState) => SenderLocation | undefined
 
 function equalView(a: AgentMessageSenderView, b: AgentMessageSenderView): boolean {
-  return a.agentType === b.agentType && a.dot === b.dot
+  return a.agentType === b.agentType && a.dot === b.dot && a.progress === b.progress
 }
 
 function createSource(worktreeId: string) {
@@ -62,9 +62,11 @@ function createSource(worktreeId: string) {
             if (indexed.has(row.paneKey)) {
               continue
             }
+            const { presentation, dotStateOverride } = resolveRowProgramStatus(row)
             const value = {
               agentType: row.agentType,
-              dot: resolveRowProgramStatus(row).dotStateOverride ?? agentRowDisplayDotState(row)
+              dot: dotStateOverride ?? agentRowDisplayDotState(row),
+              progress: presentation.progress
             }
             const previous = views.get(row.paneKey)
             indexed.set(row.paneKey, previous && equalView(previous, value) ? previous : value)

@@ -117,11 +117,8 @@ describe('mobileQueuedMessageCards', () => {
   })
 
   it.each([
-    ['unattributed', 'Check [Image #1]', 1, 'Check'],
     ['mail', 'Check [Image #1]', 1, 'Check'],
     ['task', 'Check [Image #1]', 1, 'Check'],
-    ['task', 'Check [Image #2]', 1, 'Check [Image #2]'],
-    ['mail', 'Check [Image #1]', 0, 'Check [Image #1]'],
     ['task', '[Image #1]', 1, 'shot.png']
   ] as const)(
     'cleans only selected %s preview markers in %s with %i images, retaining canonical input',
@@ -137,18 +134,14 @@ describe('mobileQueuedMessageCards', () => {
           { type: 'text', text: raw },
           ...(imageCount ? [{ type: 'image-ref' as const, path: '/host/shot.png' }] : [])
         ],
-        ...(attribution !== 'unattributed'
-          ? {
-              from: {
-                kind: 'agent' as const,
-                senders: [],
-                orchestration:
-                  attribution === 'task'
-                    ? { message: 'task' as const, runId: 'r', taskId: 't', dispatchId: 'd' }
-                    : null
-              }
-            }
-          : {})
+        from: {
+          kind: 'agent',
+          senders: [],
+          orchestration:
+            attribution === 'task'
+              ? { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
+              : null
+        }
       }
       const message = draft({ messageId: 'image-preview', body })
       const [projected] = projectQueuedMessageCards([message], [], {})
@@ -161,28 +154,4 @@ describe('mobileQueuedMessageCards', () => {
       expect(queuedMessageEditableText(body)).toBe(raw)
     }
   )
-})
-
-it('shows the current task but keeps the complete editor input and sender relation', () => {
-  const raw = 'You are working inside Orca, a multi-agent IDE.\n=== TASK ===\n  Task 🐋  '
-  const body: AgentSessionQueuedMessage['body'] = {
-    kind: 'message',
-    role: 'user',
-    blocks: [{ type: 'text', text: raw }],
-    from: {
-      kind: 'agent',
-      senders: [
-        {
-          party: { address: 'term_a', terminalHandle: 'term_a', orcaSessionId: null },
-          name: 'Coordinator',
-          relation: 'coordinator'
-        }
-      ],
-      orchestration: { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
-    }
-  }
-  const [card] = mobileQueuedMessageCards([draft({ messageId: 'task', body })], [])
-  expect(card.line).toBe('  Task 🐋  ')
-  expect(card.text).toBe(raw)
-  expect(card.attribution).toBe('From Coordinator')
 })

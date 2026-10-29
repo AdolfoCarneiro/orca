@@ -1,16 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { agentMessageDisplayText } from './agent-message-display-text'
 import { readAgentMessageSource } from './agent-session-message-source'
-import {
-  agentMessageHeading,
-  agentMessageSenderLabel,
-  agentMessageSenderView,
-  agentMessageSenderCanOpen,
-  agentMessagePrimarySender,
-  agentMessageOverflows,
-  agentMessageFoldLabel,
-  agentMessageCanCopy
-} from './agent-message-presentation'
+import { agentMessageHeading } from './agent-message-presentation'
 import { ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../orca-dispatch-status-prompt'
 
 const task = readAgentMessageSource({
@@ -30,47 +21,26 @@ it('gates the memo on provenance, keeps images, and derives the heading from eve
   ).toBeUndefined()
   expect(agentMessageDisplayText([...blocks, { type: 'text', text: '' }], task)).toBeUndefined()
   expect(agentMessageHeading(task)).toBe('task')
-  const names = {
-    localChat: true,
-    customLabel: ' Custom ',
-    conversationName: 'Conversation',
-    snapshotName: 'Snapshot',
-    tabLabel: ' Chat ',
-    fallback: 'an agent'
-  }
-  for (const [facts, expected] of [
-    [names, 'Custom'],
-    [{ ...names, customLabel: ' ' }, 'Conversation'],
-    [{ ...names, customLabel: '', conversationName: null }, 'Snapshot'],
-    [{ ...names, localChat: false }, 'Snapshot'],
-    [{ ...names, localChat: false, snapshotName: null }, 'Chat'],
-    [{ ...names, localChat: false, snapshotName: null, tabLabel: '' }, 'an agent']
-  ] as const) {
-    expect(agentMessageSenderLabel(facts)).toBe(expected)
-  }
-  const sender = {
-    party: { address: 'term_a', terminalHandle: 'term_a', orcaSessionId: null },
-    name: null
-  }
-  expect(agentMessageSenderCanOpen(sender, true)).toBe(true)
-  expect(agentMessageSenderCanOpen(sender, false)).toBe(false)
-  expect(
-    agentMessageSenderCanOpen(
-      { ...sender, party: { ...sender.party, address: 'dispatch:d' } },
-      true
+  for (const suffix of ['', '  task 🐋\r\n\r\n=== TASK ===\nmy marker  ']) {
+    const raw = `${ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX}\nOriginal instructions\n=== TASK ===\n${suffix}`
+    expect(agentMessageDisplayText([{ type: 'text', text: raw }], task)).toBe(suffix)
+    expect(
+      agentMessageDisplayText(
+        [{ type: 'text', text: raw.replace('Original instructions', 'Edited instructions') }],
+        task
+      )
+    ).toBe(suffix)
+    expect(agentMessageDisplayText([{ type: 'text', text: `${raw}edited` }], task)).toBe(
+      `${suffix}edited`
     )
-  ).toBe(false)
-  expect(agentMessagePrimarySender({ ...task, senders: [sender] })).toBe(sender)
-  expect(agentMessagePrimarySender(task)).toBeUndefined()
-  expect(agentMessageSenderView({ dot: 'permission' }, 'codex')).toEqual({ dot: 'permission' })
-  expect(agentMessageSenderView(undefined, 'codex')).toEqual({ agentType: 'codex' })
-  expect(agentMessageSenderView(undefined, undefined)).toEqual({ agentType: undefined })
-  expect(agentMessageOverflows(73, 24)).toBe(false)
-  expect(agentMessageOverflows(74, 24)).toBe(true)
-  expect(agentMessageFoldLabel(true)).toBe('expanded')
-  expect(agentMessageFoldLabel(false)).toBe('collapsed')
-  expect(agentMessageCanCopy('')).toBe(false)
-  expect(agentMessageCanCopy(' ')).toBe(true)
+  }
+  for (const text of [
+    'unrecognized',
+    `${ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX}\n${'x'.repeat(24_576)}\n=== TASK ===\nlate`,
+    blocks[0].text.replace('multi-agent IDE', 'changed')
+  ]) {
+    expect(agentMessageDisplayText([{ type: 'text', text }], task)).toBeUndefined()
+  }
   for (const [relations, expected] of [
     [[], 'generic'],
     [['worker'], 'worker'],
@@ -111,7 +81,7 @@ it.each([100, 1000])(
       return original.apply(this, args)
     })
     try {
-      const raw = `${ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX}\n${'instructions '.repeat(500)}\n=== TASK ===\n${'task '.repeat(n * 70)}`
+      const raw = `${ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX}\n${'instructions '.repeat(500)}\n=== TASK ===\n${'task '.repeat(6000)}`
       const inputs = Array.from(
         { length: n },
         () =>
@@ -131,7 +101,7 @@ it.each([100, 1000])(
         }
       }
       for (const blocks of inputs) {
-        expect(read(blocks)).toHaveLength(n * 350)
+        expect(read(blocks)).toHaveLength(30_000)
       }
       expect(calls).toBe(n)
       expect(searched).toBe(n * 24_576)

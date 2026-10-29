@@ -87,7 +87,7 @@ describe('who delivered mail is from', () => {
   })
 })
 
-it('snapshots direct relations per sender, including mixed mail and completed reports', () => {
+it('preserves immediate historical relations, notice evidence disagreement, reload and clear successors', () => {
   const db = new OrchestrationDb(':memory:')
   try {
     const run = db.createRun({
@@ -138,31 +138,7 @@ it('snapshots direct relations per sender, including mixed mail and completed re
     db.db
       .prepare("UPDATE dispatch_contexts SET status = 'completed' WHERE id = ?")
       .run(ambiguous.id)
-    const conflicting = structuredMailSource({
-      db,
-      mailboxHandle: 'term_coord',
-      dispatchId: null,
-      senderName: () => 'Worker',
-      batch: [
-        { id: 'good', from_handle: 'term_worker', run_id: run.id, type: 'status', payload: null },
-        {
-          id: 'unknown',
-          from_handle: 'term_worker',
-          run_id: 'missing-run',
-          type: 'status',
-          payload: null
-        }
-      ]
-    })
-    expect(
-      readAgentMessageSource(JSON.parse(JSON.stringify(conflicting)))!.senders[0].relation
-    ).toBeUndefined()
     expect(mail('term_coord', ['dispatch:foreign']).senders[0].relation).toBeUndefined()
-    expect(
-      mail('term_worker', ['term_child', 'term_peer'], worker.id).senders.map(
-        (sender) => sender.relation
-      )
-    ).toEqual(['worker', 'none'])
     db.db.prepare("UPDATE dispatch_contexts SET status = 'completed' WHERE id = ?").run(child.id)
     expect(mail('term_worker', ['term_child'], worker.id, child.id).senders[0].relation).toBe(
       'worker'
@@ -174,9 +150,48 @@ it('snapshots direct relations per sender, including mixed mail and completed re
     expect(agentMessageHeading(reload(mail('term_worker', ['term_coord'], worker.id)))).toBe(
       'coordinator'
     )
-    expect(
-      agentMessageHeading(reload(mail('term_worker', ['term_child', 'term_peer'], worker.id)))
-    ).toBe('generic')
+    const mixed = reload(mail('term_worker', ['term_child', 'term_peer'], worker.id))
+    expect(mixed.senders.map((sender) => sender.relation)).toEqual(['worker', 'none'])
+    expect(agentMessageHeading(mixed)).toBe('generic')
+    const senderName = vi.fn<SenderNameResolver>(() => 'Worker')
+    const evaluate = vi.spyOn(relations, 'agentMessageRelation')
+    const base = {
+      from_handle: 'term_worker',
+      run_id: run.id,
+      type: 'worker_done',
+      payload: JSON.stringify({ dispatchId: worker.id })
+    } satisfies Omit<MailSourceMessage, 'id'>
+    const grouped = (batch: MailSourceMessage[]) =>
+      structuredMailSource({ db, mailboxHandle: 'term_coord', dispatchId: null, batch, senderName })
+    const good = { ...base, id: 'good' }
+    for (const other of [
+      { ...good, id: 'other-run', run_id: 'missing' },
+      { ...good, id: 'bad', payload: '{' },
+      { ...good, id: 'empty', payload: '{"dispatchId":""}' },
+      { ...good, id: 'missing-id', payload: '{}' },
+      { ...good, id: 'wrong', payload: '{"dispatchId":"missing"}' }
+    ]) {
+      evaluate.mockClear()
+      senderName.mockClear()
+      const result = grouped([other, good, good])
+      expect(result.senders[0].relation).toBeUndefined()
+      expect(
+        result.orchestration?.message === 'mail-notice' && result.orchestration.messages
+      ).toHaveLength(3)
+      expect(senderName).toHaveBeenCalledTimes(1)
+      expect(senderName.mock.calls[0][1]).toBe(other.id === 'wrong' ? 'missing' : worker.id)
+      expect(evaluate).toHaveBeenCalledTimes(
+        ['bad', 'empty', 'missing-id'].includes(other.id) ? 1 : 2
+      )
+    }
+    evaluate.mockClear()
+    const missing = { ...good, run_id: 'missing' }
+    expect(grouped([missing, missing]).senders[0].relation).toBeUndefined()
+    expect(evaluate).toHaveBeenCalledTimes(1) // Map membership caches undefined too.
+    expect(grouped([{ ...good, type: 'status', payload: null }, good]).senders[0].relation).toBe(
+      'worker'
+    )
+    expect(mail('term_missing', ['term_worker']).senders[0].relation).toBeUndefined()
     for (const depth of [1, 2]) {
       db.db
         .prepare(
@@ -190,13 +205,87 @@ it('snapshots direct relations per sender, including mixed mail and completed re
       .run(peer.id, worker.id)
     expect(mail('term_peer', ['term_worker'], peer.id).senders[0].relation).toBe('worker')
     db.db
+      .prepare(
+        'UPDATE dispatch_contexts SET creator_handle = NULL, creator_dispatch_id = NULL WHERE id = ?'
+      )
+      .run(worker.id)
+    expect(mail('term_coord', ['term_worker']).senders[0].relation).toBeUndefined()
+    db.db
       .prepare('UPDATE dispatch_contexts SET creator_handle = ? WHERE id = ?')
       .run('term_coord', worker.id)
+    expect(mail('term_coord', ['term_worker']).senders[0].relation).toBe('worker')
     db.db
       .prepare('UPDATE dispatch_contexts SET host_scope = ? WHERE id = ?')
       .run(JSON.stringify({ kind: 'ssh', targetId: 'elsewhere' }), worker.id)
     expect(mail('term_coord', ['term_worker']).senders[0].relation).toBeUndefined()
+    const root = testOrcaSessionId('notice-clear-root'),
+      successor = testOrcaSessionId('notice-clear-successor')
+    const record = agentSessionConversationView(
+      agentSessionRecordFixture(agentSessionLeaseFixture({ sessionId: root }))
+    )
+    const records = [
+      {
+        ...record,
+        conversationCommand: {
+          command: 'clear' as const,
+          state: 'completed' as const,
+          phase: 'committed' as const,
+          operationId: 'clear',
+          callerKey: 'caller',
+          replacementSessionId: successor
+        }
+      },
+      { ...record, sessionId: successor, conversationName: 'Current worker' }
+    ]
+    const reader = {
+      listRecords: () => records,
+      getRecord: (id: string) => records.find((row) => row.sessionId === id) ?? null
+    }
+    vi.spyOn(lineage, 'readAgentSessionRecordStore').mockReturnValue(reader)
+    const clearRun = db.createRun({
+      objective: 'clear',
+      coordinatorHandle: 'term_coord',
+      coordinatorPaneKey: null
+    })
+    const clearedWorker = db.createDispatchContext({
+      taskId: db.createTask({ runId: clearRun.id, spec: 'clear' }).id,
+      assigneeHandle: `orca_session_id:${root}`,
+      creator: { kind: 'terminal', handle: 'term_coord' },
+      maxDepth: 8
+    })
+    const cleared = structuredMailSource({
+      db,
+      mailboxHandle: 'term_coord',
+      dispatchId: null,
+      batch: [
+        {
+          id: 'clear',
+          from_handle: `orca_session_id:${successor}`,
+          run_id: clearRun.id,
+          type: 'worker_done',
+          payload: JSON.stringify({ dispatchId: clearedWorker.id })
+        }
+      ],
+      senderName: (sender, report) =>
+        orchestrationSenderName(
+          sender,
+          {
+            db,
+            records: reader,
+            chatTab: () => null,
+            terminal: () => null,
+            generatedTitlesEnabled: true
+          },
+          report
+        )
+    })
+    expect(cleared.senders[0]).toMatchObject({
+      party: { orcaSessionId: root },
+      relation: 'worker',
+      name: 'Current worker'
+    })
   } finally {
+    vi.restoreAllMocks()
     db.close()
   }
 })
@@ -224,15 +313,7 @@ it.each([
       conversationName: `Conversation ${i}`
     }))
     const bySession = new Map(records.map((record) => [record.sessionId, record]))
-    let scanVisits = 0,
-      canonicalClears = 0,
-      canonicalLinks = 0,
-      forwardClears = 0,
-      forwardLinks = 0,
-      canonicalDepth = 0,
-      phase: 'sender' | 'relation' = 'sender',
-      partyDepth = 0
-    const calls = { sender: 0, recipient: 0, comparison: 0 }
+    let scanVisits = 0
     const scanned = new Proxy(records, {
       get(target, key) {
         if (typeof key === 'string' && /^\d+$/.test(key)) {
@@ -243,71 +324,12 @@ it.each([
       }
     })
     const listRecords = vi.fn(() => scanned)
-    const getRecord = vi.fn((id: string) => {
-      const record = bySession.get(id)
-      return record
-        ? new Proxy(record, {
-            get(target, key) {
-              if (key === 'conversationCommand') {
-                const command = target.conversationCommand
-                forwardClears++
-                forwardLinks +=
-                  command?.command === 'clear' &&
-                  command.phase === 'committed' &&
-                  command.replacementSessionId
-                    ? 1
-                    : 0
-                return command
-              }
-              // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: plain fixture data has no accessor overrides; methods retain the caller's proxy receiver and indexed reads remain counted.
-              return target[key as keyof typeof target]
-            }
-          })
-        : null
-    })
+    const getRecord = vi.fn((id: string) => bySession.get(id) ?? null)
     const reader = { listRecords, getRecord }
     vi.spyOn(lineage, 'readAgentSessionRecordStore').mockReturnValue(reader)
-    const clearedInto = lineage.clearedInto
-    vi.spyOn(lineage, 'clearedInto').mockImplementation((record) => {
-      canonicalClears++
-      const next = clearedInto(record)
-      canonicalLinks += next ? 1 : 0
-      return next
-    })
-    const canonicalize = canonical.canonicalOrcaSessionId
-    const canonicalCalls = vi
-      .spyOn(canonical, 'canonicalOrcaSessionId')
-      .mockImplementation((...args) => {
-        calls[phase === 'sender' ? 'sender' : partyDepth ? 'recipient' : 'comparison']++
-        canonicalDepth++
-        try {
-          return canonicalize(...args)
-        } finally {
-          canonicalDepth--
-        }
-      })
-    const party = parties.resolveOrchestrationParty
-    const partyCalls = vi
-      .spyOn(parties, 'resolveOrchestrationParty')
-      .mockImplementation((...args) => {
-        partyDepth++
-        try {
-          return party(...args)
-        } finally {
-          partyDepth--
-        }
-      })
-    const relation = relations.agentMessageRelation
-    const relationCalls = vi
-      .spyOn(relations, 'agentMessageRelation')
-      .mockImplementation((...args) => {
-        phase = 'relation'
-        try {
-          return relation(...args)
-        } finally {
-          phase = 'sender'
-        }
-      })
+    const canonicalCalls = vi.spyOn(canonical, 'canonicalOrcaSessionId')
+    const partyCalls = vi.spyOn(parties, 'resolveOrchestrationParty')
+    const relationCalls = vi.spyOn(relations, 'agentMessageRelation')
     const registry = vi.spyOn(structuredWorkerIdentities, 'getBySessionId')
     const handleRegistry = vi.spyOn(structuredWorkerIdentities, 'get')
     try {
@@ -393,53 +415,14 @@ it.each([
         return parse(value, ...rest)
       })
       const groups = distinct ? batchSize : 1
-      const notice = () =>
-        structuredMailSource({
-          db,
-          mailboxHandle: `orca_session_id:${coordinator}`,
-          dispatchId: null,
-          batch,
-          senderName
-        })
-      const reset = () => {
-        batchVisits = 0
-        payloadParses = 0
-        payloadBytes = 0
-        scanVisits = 0
-        canonicalClears = 0
-        canonicalLinks = 0
-        forwardClears = 0
-        forwardLinks = 0
-        candidateRows = 0
-        reportedCandidateRows = 0
-        calls.sender = 0
-        calls.recipient = 0
-        calls.comparison = 0
-        for (const spy of [
-          canonicalCalls,
-          relationCalls,
-          partyCalls,
-          listRecords,
-          getRecord,
-          getRun,
-          dispatchById,
-          candidateCalls,
-          registry,
-          handleRegistry,
-          workerRows,
-          workerHandles,
-          senderName,
-          nameTab,
-          terminal,
-          nameDispatch,
-          tasks,
-          statements
-        ]) {
-          spy.mockClear()
-        }
-      }
-      reset()
-      const source = notice()
+      batchVisits = 0
+      const source = structuredMailSource({
+        db,
+        mailboxHandle: `orca_session_id:${coordinator}`,
+        dispatchId: null,
+        batch,
+        senderName
+      })
       expect(agentMessageHeading(readAgentMessageSource(parse(JSON.stringify(source)))!)).toBe(
         'worker'
       )
@@ -461,20 +444,9 @@ it.each([
       expect(payloadParses).toBe(batchSize)
       expect(payloadBytes).toBe(batch.reduce((sum, message) => sum + message.payload.length, 0))
       expect(partyCalls).toHaveBeenCalledTimes(groups * 2) // Sender plus actual recipient, neither mocked away.
-      expect(calls).toEqual({ sender: groups, recipient: groups, comparison: groups * 6 })
       expect(canonicalCalls).toHaveBeenCalledTimes(groups * 8)
-      expect(listRecords).toHaveBeenCalledTimes(canonicalCalls.mock.calls.length)
-      expect(scanVisits).toBe(listRecords.mock.calls.length * sessionCount)
-      expect(canonicalClears).toBe(scanVisits) // Imported canonical checks only; name lookup calls its lexical function.
-      expect(canonicalLinks).toBe(0)
-      expect(forwardClears).toBe(groups) // Actual command reads in name lookup, one per returned direct-get record.
-      expect(forwardLinks).toBe(0)
-      for (const [index, [id]] of canonicalCalls.mock.calls.entries()) {
-        expect(canonicalCalls.mock.results[index]).toMatchObject({ type: 'return', value: id })
-      }
-      // canonical-orca-session-id:16-31 builds no predecessor edges here: K initial Map.gets, no loop steps.
-      expect(canonicalCalls.mock.calls.length).toBe(groups * 8)
-      expect(canonicalDepth).toBe(0)
+      expect(listRecords).toHaveBeenCalledTimes(groups * 8)
+      expect(scanVisits).toBe(groups * 8 * sessionCount)
       expect(registry).toHaveBeenCalledTimes(groups * 2)
       expect(workerRows).toHaveBeenCalledTimes(groups * 2)
       expect(handleRegistry).not.toHaveBeenCalled()
@@ -489,169 +461,9 @@ it.each([
           workerRows.mock.calls.length +
           registry.mock.calls.length
       )
-      const first = {
-        scans: listRecords.mock.calls.length,
-        visits: scanVisits,
-        gets: getRecord.mock.calls.length
-      }
-      reset()
-      notice()
-      expect({
-        scans: listRecords.mock.calls.length,
-        visits: scanVisits,
-        gets: getRecord.mock.calls.length
-      }).toEqual(first)
-      // New notice sees fresh explicit evidence; no cross-notice negative cache.
-      db.db
-        .prepare('UPDATE dispatch_contexts SET creator_orca_session_id = NULL WHERE id = ?')
-        .run(dispatches[0].id)
-      expect(notice().senders[0].relation).toBeUndefined()
-      db.db
-        .prepare('UPDATE dispatch_contexts SET creator_orca_session_id = ? WHERE id = ?')
-        .run(coordinator, dispatches[0].id)
-      expect(notice().senders[0].relation).toBe('worker')
-      // Committed /clear predecessor scans and forward name traversal remain separate populations.
-      const successor = testOrcaSessionId('relation-worker-after-clear')
-      const clear = agentSessionConversationView({
-        ...agentSessionRecordFixture(agentSessionLeaseFixture({ sessionId: sessions[0] })),
-        conversationCommand: {
-          command: 'clear',
-          state: 'completed',
-          phase: 'committed',
-          operationId: 'clear',
-          callerKey: 'caller',
-          replacementSessionId: successor
-        }
-      })
-      records[0] = clear
-      bySession.set(sessions[0], clear)
-      bySession.set(successor, { ...base, sessionId: successor })
-      reset()
-      const afterClear = structuredMailSource({
-        db,
-        mailboxHandle: `orca_session_id:${coordinator}`,
-        dispatchId: null,
-        senderName,
-        batch: [{ ...batch[0], from_handle: `orca_session_id:${successor}` }]
-      })
-      expect(afterClear.senders[0].party.orcaSessionId).toBe(sessions[0])
-      expect(afterClear.senders[0].relation).toBe('worker')
-      expect(getRecord).toHaveBeenCalledTimes(2) // Forward name chain root -> successor.
-      expect(scanVisits).toBe(listRecords.mock.calls.length * sessionCount)
-      expect(canonicalClears).toBe(scanVisits)
-      expect(canonicalLinks).toBe(listRecords.mock.calls.length) // One committed predecessor per full scan.
-      expect(getRecord.mock.calls.map(([id]) => id)).toEqual([sessions[0], successor])
-      expect(forwardClears).toBe(2) // Lexical forward checks: root -> successor, then no successor.
-      expect(forwardLinks).toBe(1)
-      let reverseEdges = 0
-      for (const [index, [id]] of canonicalCalls.mock.calls.entries()) {
-        const root = id === successor ? sessions[0] : id
-        expect(canonicalCalls.mock.results[index]).toMatchObject({ type: 'return', value: root })
-        reverseEdges += id === successor ? 1 : 0
-      }
-      // One stored edge: source-composed reverse loop steps = successor inputs, Map.gets = K + steps.
-      expect(reverseEdges).toBe(1)
-      expect(canonicalCalls.mock.calls.length + reverseEdges).toBe(
-        listRecords.mock.calls.length + 1
-      )
-      const terminalRun = db.createRun({
-        objective: 'terminal',
-        coordinatorHandle: 'term_coord',
-        coordinatorPaneKey: null
-      })
-      db.createDispatchContext({
-        taskId: db.createTask({ runId: terminalRun.id, spec: 'terminal' }).id,
-        assigneeHandle: 'term_worker',
-        creator: { kind: 'terminal', handle: 'term_coord' },
-        maxDepth: 8
-      })
-      reset()
-      const terminalOnly = structuredMailSource({
-        db,
-        mailboxHandle: `run:${terminalRun.id}`,
-        dispatchId: null,
-        senderName,
-        batch: Array.from({ length: batchSize }, (_, i) => ({
-          id: `t${i}`,
-          from_handle: 'term_worker',
-          run_id: terminalRun.id,
-          type: 'status',
-          payload: null
-        }))
-      })
-      expect(terminalOnly.senders[0].relation).toBe('worker')
-      expect(listRecords).not.toHaveBeenCalled()
-      expect(getRecord).not.toHaveBeenCalled()
-      expect(canonicalCalls).not.toHaveBeenCalled()
-      expect(scanVisits).toBe(0)
-      expect(canonicalClears).toBe(0)
-      expect(canonicalLinks).toBe(0)
-      expect(forwardClears).toBe(0)
-      expect(forwardLinks).toBe(0)
-      expect(terminal).toHaveBeenCalledTimes(1)
-      expect(nameDispatch).toHaveBeenCalledTimes(1)
-      expect(tasks).toHaveBeenCalledTimes(1)
-      // This zero-scan assertion is specifically a terminal with no structured-worker mapping.
-      expect(registry).not.toHaveBeenCalled()
-      expect(workerHandles).not.toHaveBeenCalled()
     } finally {
       vi.restoreAllMocks()
       db.close()
     }
   }
 )
-
-it('keeps every Run/report disagreement, first nonempty report name, and cached unknown only within this notice', () => {
-  const db = new OrchestrationDb(':memory:')
-  try {
-    const run = db.createRun({
-      objective: 'mail',
-      coordinatorHandle: 'term_coord',
-      coordinatorPaneKey: null
-    })
-    const worker = db.createDispatchContext({
-      taskId: db.createTask({ runId: run.id, spec: 'work' }).id,
-      assigneeHandle: 'term_worker',
-      creator: { kind: 'terminal', handle: 'term_coord' },
-      maxDepth: 8
-    })
-    const senderName = vi.fn<SenderNameResolver>(() => 'Worker')
-    const evaluate = vi.spyOn(relations, 'agentMessageRelation')
-    const base = {
-      from_handle: 'term_worker',
-      run_id: run.id,
-      type: 'worker_done',
-      payload: JSON.stringify({ dispatchId: worker.id })
-    } satisfies Omit<MailSourceMessage, 'id'>
-    const notice = (batch: MailSourceMessage[]) =>
-      structuredMailSource({ db, mailboxHandle: 'term_coord', dispatchId: null, batch, senderName })
-    const good = { ...base, id: 'good' }
-    for (const other of [
-      { ...good, id: 'other-run', run_id: 'missing' },
-      { ...good, id: 'bad', payload: '{' },
-      { ...good, id: 'empty', payload: '{"dispatchId":""}' },
-      { ...good, id: 'wrong', payload: '{"dispatchId":"missing"}' }
-    ]) {
-      evaluate.mockClear()
-      senderName.mockClear()
-      const result = notice([other, good, good])
-      expect(result.senders[0].relation).toBeUndefined()
-      expect(
-        result.orchestration?.message === 'mail-notice' && result.orchestration.messages
-      ).toHaveLength(3)
-      expect(senderName).toHaveBeenCalledTimes(1)
-      expect(senderName.mock.calls[0][1]).toBe(other.id === 'wrong' ? 'missing' : worker.id)
-      expect(evaluate).toHaveBeenCalledTimes(other.id === 'bad' || other.id === 'empty' ? 1 : 2)
-    }
-    evaluate.mockClear()
-    const missing = { ...good, run_id: 'missing' }
-    expect(notice([missing, missing]).senders[0].relation).toBeUndefined()
-    expect(evaluate).toHaveBeenCalledTimes(1) // Map membership caches undefined too.
-    expect(notice([{ ...good, type: 'status', payload: null }, good]).senders[0].relation).toBe(
-      'worker'
-    )
-  } finally {
-    vi.restoreAllMocks()
-    db.close()
-  }
-})

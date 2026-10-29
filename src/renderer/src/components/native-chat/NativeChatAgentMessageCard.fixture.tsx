@@ -32,9 +32,15 @@ function cards() {
               address:
                 kind === 'generic' && index === 0
                   ? 'dispatch:missing'
-                  : `term_sender${index || ''}`,
+                  : kind === 'task'
+                    ? 'term_progress'
+                    : `term_sender${index || ''}`,
               terminalHandle:
-                kind === 'generic' && index === 0 ? null : `term_sender${index || ''}`,
+                kind === 'generic' && index === 0
+                  ? null
+                  : kind === 'task'
+                    ? 'term_progress'
+                    : `term_sender${index || ''}`,
               orcaSessionId: null
             },
             name,
@@ -91,7 +97,9 @@ function cards() {
 const store = {
   activeWorktreeId: workspace,
   activeWorkspaceExecutionHostId: 'local' as const,
-  tabsByWorktree: { [workspace]: [makeTab({ id: 'sender', worktreeId: workspace })] },
+  tabsByWorktree: {
+    [workspace]: ['sender', 'progress'].map((id) => makeTab({ id, worktreeId: workspace }))
+  },
   agentStatusByPaneKey: {
     [pane]: {
       paneKey: pane,
@@ -103,6 +111,18 @@ const store = {
       updatedAt: 1_800_000_000_000,
       stateStartedAt: 1_800_000_000_000,
       stateHistory: []
+    },
+    'progress:11111111-1111-4111-8111-111111111111': {
+      paneKey: 'progress:11111111-1111-4111-8111-111111111111',
+      worktreeId: workspace,
+      terminalHandle: 'term_progress',
+      agentType: 'claude' as const,
+      state: 'working' as const,
+      prompt: 'Parser worker',
+      updatedAt: 1_800_000_000_000,
+      stateStartedAt: 1_800_000_000_000,
+      stateHistory: [],
+      programStatus: { state: 'working' as const, progress: 40, observedAt: 1_800_000_000_000 }
     }
   }
 }

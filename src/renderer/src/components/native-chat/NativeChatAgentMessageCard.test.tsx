@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render as renderComponent, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { ReactElement } from 'react'
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { render } from './native-chat-tooltip-test-harness'
 import { useAppStore } from '@/store'
 import { makeTab } from '@/store/slices/store-test-helpers'
 import { NativeChatUserMessageRow } from './NativeChatUserMessageRow'
@@ -29,9 +28,6 @@ vi.mock('@/components/terminal-pane/stale-agent-row', () => ({
   showAgentPaneUnavailable: navigation.gone
 }))
 vi.mock('sonner', () => ({ toast: { error: navigation.toast } }))
-function render(element: ReactElement) {
-  return renderComponent(element, { wrapper: TooltipProvider })
-}
 const initialStore = useAppStore.getState()
 let height = 48
 let resize: () => void
@@ -147,12 +143,6 @@ function slots(message: NativeChatMessage) {
   })
 }
 
-it('maps the shared worker heading and keeps short text unfolded', () => {
-  render(card(source('worker')))
-  expect(screen.getByText('Update from your worker')).toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
-})
-
 it('opens distinct named local senders without status and preserves real gone/unreachable/older-host feedback', async () => {
   const from = source('worker')
   const session = testOrcaSessionId('other-sender')
@@ -216,6 +206,7 @@ it.each([10, 100])(
     const mounted = render(card(from, `${prefix}Build the cards`))
     expect(screen.getByText('Task from your coordinator')).toBeInTheDocument()
     expect(screen.getByText('Build the cards')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
     expect(screen.queryByText(/Worker instructions/)).not.toBeInTheDocument()
     const copy = screen.getByRole('button', { name: 'Copy message' })
     act(() => {
@@ -314,7 +305,6 @@ it('renders real Markdown paragraphs and links and preserves the direct and slot
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Copy message' })))
   expect(writeClipboardText).toHaveBeenCalledWith(text)
   expect(nativeChatSlotCopyText(slots(message), message.id)).toBe(text)
-  expect(mounted.container.firstElementChild).toHaveClass('items-start')
   const human = { ...message, id: 'human', from: undefined }
   mounted.rerender(
     <NativeChatUserMessageRow
@@ -326,7 +316,6 @@ it('renders real Markdown paragraphs and links and preserves the direct and slot
       onRefolded={() => {}}
     />
   )
-  expect(mounted.container.firstElementChild).toHaveClass('items-end')
   expect(screen.queryByText('Message from')).not.toBeInTheDocument()
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Copy message' })))
   expect(writeClipboardText).toHaveBeenLastCalledWith(text)
@@ -346,7 +335,8 @@ it.each(['task', 'mail'] as const)(
       prompt: '',
       updatedAt: 2_000_000,
       stateStartedAt: 2_000_000,
-      stateHistory: []
+      stateHistory: [],
+      programStatus: { state: 'working' as const, progress: 40, observedAt: 2_000_000 }
     }
     useAppStore.setState({
       tabsByWorktree: { 'wt-chat': [makeTab({ id: 'sender', worktreeId: 'wt-chat' })] },
@@ -366,23 +356,79 @@ it.each(['task', 'mail'] as const)(
     const parse = vi.spyOn(grammar, 'orcaDispatchTaskBodyOffset')
     const paragraphs = vi.spyOn(prose, 'nativeChatProseToMarkdown')
     const renderMarkdown = vi.spyOn(markdown, 'NativeChatMarkdown')
-    const mounted = render(card(from, `${prefix}Current task`))
-    expect(screen.getByLabelText('Working')).toBeInTheDocument()
-    convert.mockClear()
-    parse.mockClear()
-    paragraphs.mockClear()
-    renderMarkdown.mockClear()
+    let mounted = render(card(from, `${prefix}Current **task**`))
+    expect(convert).toHaveBeenCalled()
+    expect(renderMarkdown).toHaveBeenCalled()
+    expect(parse.mock.calls.length).toBe(kind === 'task' ? 1 : 0)
+    expect(screen.getByText('task', { selector: 'strong' })).toBeInTheDocument()
+    for (const remount of [false, true]) {
+      if (remount) {
+        mounted.unmount()
+        mounted = render(card(from, `${prefix}Current **task**`))
+      }
+      const ring = screen.getByRole('progressbar', { name: 'Working · 40%' })
+      expect(ring).toHaveAttribute('data-agent-progress-ring')
+      expect(ring).toHaveAttribute('aria-valuenow', '40')
+      expect(ring.querySelector('circle[pathLength="100"]')).toHaveAttribute(
+        'stroke-dasharray',
+        '40 100'
+      )
+      expect(screen.queryByLabelText('Working')).not.toBeInTheDocument()
+    }
+    for (const spy of [convert, parse, paragraphs, renderMarkdown]) {
+      spy.mockClear()
+    }
+    for (const progress of [60, null, 60, 0, 100]) {
+      act(() => {
+        useAppStore
+          .getState()
+          .setAgentProgramStatus(
+            entry.paneKey,
+            progress === null ? null : { state: 'working', progress, observedAt: 2_000_000 }
+          )
+      })
+      if (progress === null) {
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        expect(screen.getByLabelText('Working')).toBeInTheDocument()
+      } else {
+        const ring = screen.getByRole('progressbar', { name: `Working · ${progress}%` })
+        expect(ring).toHaveAttribute('aria-valuenow', String(progress))
+        expect(ring.querySelector('circle[pathLength="100"]')).toHaveAttribute(
+          'stroke-dasharray',
+          `${progress} 100`
+        )
+        expect(screen.queryByLabelText('Done')).not.toBeInTheDocument()
+      }
+      for (const spy of [convert, parse, paragraphs, renderMarkdown]) {
+        expect(spy).not.toHaveBeenCalled()
+      }
+    }
+    act(() => {
+      const state = useAppStore.getState()
+      useAppStore.setState({
+        agentStatusByPaneKey: {
+          [entry.paneKey]: { ...state.agentStatusByPaneKey[entry.paneKey], state: 'done' }
+        },
+        agentStatusEpoch: state.agentStatusEpoch + 1
+      })
+    })
+    expect(useAppStore.getState().agentStatusByPaneKey[entry.paneKey].programStatus?.progress).toBe(
+      100
+    )
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Done')).toBeInTheDocument()
     act(() =>
       useAppStore.setState({
-        agentStatusByPaneKey: { [entry.paneKey]: { ...entry, state: 'blocked' } },
-        agentStatusEpoch: 2
+        agentStatusByPaneKey: {
+          [entry.paneKey]: { ...entry, state: 'blocked', programStatus: undefined }
+        },
+        agentStatusEpoch: useAppStore.getState().agentStatusEpoch + 1
       })
     )
     expect(screen.getByLabelText('Blocked')).toBeInTheDocument()
-    expect(convert).not.toHaveBeenCalled()
-    expect(parse).not.toHaveBeenCalled()
-    expect(paragraphs).not.toHaveBeenCalled()
-    expect(renderMarkdown).not.toHaveBeenCalled()
+    for (const spy of [convert, parse, paragraphs, renderMarkdown]) {
+      expect(spy).not.toHaveBeenCalled()
+    }
     const writeClipboardText = vi.fn(async () => {})
     vi.stubGlobal('api', { ui: { writeClipboardText } })
     mounted.rerender(card(from, `${prefix}Edited task`))

@@ -61,22 +61,28 @@ describe('mobile in-place queued Edit', () => {
       body: {
         kind: 'message',
         role: 'user',
-        blocks: [{ type: 'text', text: `${prefix}Task` }],
+        blocks: [{ type: 'text', text: `${prefix}  Task 🐋  ` }],
         from: {
           kind: 'agent',
-          senders: [],
+          senders: [
+            {
+              party: { address: 'term_coord', terminalHandle: 'term_coord', orcaSessionId: null },
+              name: 'Coordinator',
+              relation: 'coordinator'
+            }
+          ],
           orchestration: { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
         }
       }
     })
     await mount(message)
     expect(state.hook!.queued.cards[0]).toMatchObject({
-      text: `${prefix}Task`,
-      displayText: 'Task',
-      line: 'Task',
-      attribution: 'From an agent'
+      text: `${prefix}  Task 🐋  `,
+      displayText: '  Task 🐋  ',
+      line: '  Task 🐋  ',
+      attribution: 'From Coordinator'
     })
-    expect(state.hook!.queued.editor!.text).toBe(`${prefix}Task`)
+    expect(state.hook!.queued.editor!.text).toBe(`${prefix}  Task 🐋  `)
     act(() => state.hook!.queued.editor!.change(`${prefix}Edited`))
     await act(async () => {
       expect(await state.hook!.queued.editor!.save()).toBe(true)

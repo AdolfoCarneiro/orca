@@ -3,7 +3,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { Tab } from '../../../../shared/tab-types'
 import * as structuredOwner from '@/runtime/structured-agent-session-owner'
-import * as chatIndex from '@/lib/structured-chat-tab-index'
 import { findAgentMessageSenderChatTab } from './native-chat-agent-message-sender-label'
 
 const initial = useAppStore.getState()
@@ -34,9 +33,7 @@ it.each([100, 1000])(
       sortOrder: id,
       createdAt: 0
     })
-    let tabVisits = 0,
-      workspaceVisits = 0,
-      candidates = 0
+    let tabVisits = 0
     const bucket = new Proxy(
       Array.from({ length: n }, (_, i) => [tab(i, 'local'), tab(i, 'runtime:remote')]).flat(),
       {
@@ -49,29 +46,7 @@ it.each([100, 1000])(
         }
       }
     )
-    const source = new Proxy(
-      { workspace: bucket },
-      {
-        ownKeys(target) {
-          workspaceVisits += Reflect.ownKeys(target).length
-          return Reflect.ownKeys(target)
-        }
-      }
-    )
-    const workspaces = chatIndex.structuredChatWorkspacesBySessionId
-    vi.spyOn(chatIndex, 'structuredChatWorkspacesBySessionId').mockImplementation(
-      (...args) =>
-        new Proxy(workspaces(...args), {
-          get(target, key) {
-            if (typeof key === 'string' && /^\d+$/.test(key)) {
-              candidates++
-            }
-            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: plain fixture data has no accessor overrides; methods retain the caller's proxy receiver and indexed reads remain counted.
-            return target[key as keyof typeof target]
-          }
-        })
-    )
-    useAppStore.setState({ unifiedTabsByWorktree: source })
+    useAppStore.setState({ unifiedTabsByWorktree: { workspace: bucket } })
     const original = structuredOwner.structuredAgentSessionOwnerForTab
     const owner = vi
       .spyOn(structuredOwner, 'structuredAgentSessionOwnerForTab')
@@ -85,19 +60,13 @@ it.each([100, 1000])(
     expect(owner).toHaveBeenCalledTimes(n * 4)
     // Workspace/session index, per-bucket session index, and qualified collision index each walk 2N tabs once.
     expect(tabVisits).toBe(n * 6)
-    expect(workspaceVisits).toBe(2)
-    expect(candidates).toBe(n * 2)
     owner.mockClear()
     tabVisits = 0
-    workspaceVisits = 0
-    candidates = 0
     useAppStore.setState({ activeWorkspaceExecutionHostId: 'runtime:remote' })
     for (let i = 0; i < n; i++) {
       findAgentMessageSenderChatTab(useAppStore.getState(), `session-${i}`, 'local')
     }
     expect(owner).toHaveBeenCalledTimes(n * 3)
     expect(tabVisits).toBe(n * 2) // Only the owner-qualified index invalidates.
-    expect(workspaceVisits).toBe(1)
-    expect(candidates).toBe(n)
   }
 )

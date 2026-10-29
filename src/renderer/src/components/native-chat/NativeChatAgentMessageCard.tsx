@@ -176,7 +176,7 @@ function AgentMessageAvatar({
       <AgentTypeIcon agentType={view.agentType} size={16} />
       {view.dot ? (
         <span className="absolute -right-0.5 -bottom-0.5 rounded-full bg-card ring-2 ring-card">
-          <AgentStateDot state={view.dot} size="md" />
+          <AgentStateDot state={view.dot} size="md" progress={view.progress} />
         </span>
       ) : null}
     </div>

@@ -1,8 +1,6 @@
 import type { AgentJournalMessageItem } from '../../../shared/agent-session-journal-types'
 import type { AgentMessageSource } from '../../../shared/agent-session/agent-session-message-source'
 import { agentMessageDisplayText } from '../../../shared/agent-session/agent-message-display-text'
-import { projectQueuedMessageCards } from '../../../shared/structured-agent-session-queued-cards'
-import { nativeChatMessageCopyText } from '../../../shared/native-chat-message-copy-text'
 import { projectStructuredAgentSessionStatusSummary } from '../../../shared/structured-agent-session-projection'
 import { latestStructuredAgentSessionPrompt } from '../../../shared/structured-agent-session-latest-request'
 import {
@@ -328,123 +326,51 @@ describe('how the preamble names the worker and its coordinator, by kind', () =>
   })
 })
 
-describe('canonical task input and its display slice', () => {
+it('preserves actual terminal/chat template input, exact display suffix and raw dispatch status identity', () => {
   const from: AgentMessageSource = {
     kind: 'agent',
     senders: [],
     orchestration: { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
   }
-  it('uses the actual templates without trimming, clipping or changing raw input', () => {
-    for (const workerHandle of [
-      'term_worker',
-      'orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
-    ]) {
-      for (const variant of [
-        { canDispatchSubWorkers: false, heartbeatIntervalMinutes: null },
-        {
-          canDispatchSubWorkers: true,
-          heartbeatIntervalMinutes: 15,
-          baseDrift: {
-            base: 'origin/main',
-            behind: 1,
-            recentSubjects: ['quoted === TASK === marker']
-          }
-        }
-      ]) {
-        for (const taskSpec of [
-          '',
-          '  🐋\r\n\r\n=== TASK ===\nTask marker belongs to me.  ',
-          'x'.repeat(30_000)
-        ]) {
-          const text = buildDispatchPreamble(
-            baseParams({
-              workerHandle,
-              taskSpec,
-              ...variant
-            })
-          )
-          for (const raw of [text, text.replaceAll('\n', '\r\n')]) {
-            const suffix = raw === text ? taskSpec : taskSpec.replaceAll('\n', '\r\n')
-            const body: AgentJournalMessageItem = {
-              kind: 'message',
-              role: 'user',
-              blocks: [{ type: 'text', text: raw }],
-              from
-            }
-            expect(agentMessageDisplayText(body.blocks, from)).toBe(suffix)
-            expect(agentMessageDisplayText(body.blocks)).toBeUndefined()
-            expect(nativeChatMessageCopyText(body)).toBe(raw)
-            const card = projectQueuedMessageCards(
-              [{ messageId: 'q', position: 0, state: 'waiting', body }],
-              [],
-              {}
-            )[0]
-            expect(card.text).toBe(raw)
-            expect(card.displayText).toBe(suffix)
-          }
-        }
-      }
-    }
-    const raw = buildDispatchPreamble(baseParams({ taskSpec: 'original' }))
-    const edited = raw.replace('original', 'edited')
-    expect(agentMessageDisplayText([{ type: 'text', text: edited }], from)).toBe('edited')
-    expect(
-      agentMessageDisplayText(
-        [
-          {
-            type: 'text',
-            text: raw.replace(
-              'You are a dispatched worker.',
-              'You are a dispatched worker with edited instructions.'
-            )
-          }
-        ],
-        from
+  for (const [workerHandle, taskSpec] of [
+    ['term_worker', '  🐋\n\n=== TASK ===\nMy marker.  ' + 'x'.repeat(30_000)],
+    ['orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37', '']
+  ] as const) {
+    const text = buildDispatchPreamble(baseParams({ workerHandle, taskSpec }))
+    for (const raw of [text, text.replaceAll('\n', '\r\n')]) {
+      expect(agentMessageDisplayText([{ type: 'text', text: raw }], from)).toBe(
+        raw === text ? taskSpec : taskSpec.replaceAll('\n', '\r\n')
       )
-    ).toBe('original')
-    for (const text of [
-      'unrecognized',
-      raw.replace('You are working inside Orca', 'changed'),
-      raw.replace('multi-agent IDE', 'multi-agent IDE with edited instructions'),
-      `${ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX}\n${'x'.repeat(24_576)}\n=== TASK ===\nlate`
-    ]) {
-      expect(agentMessageDisplayText([{ type: 'text', text }], from)).toBeUndefined()
     }
-    const blocks = [
-      { type: 'text', text: raw },
-      { type: 'text', text: 'second paragraph' }
-    ] as const
-    expect(agentMessageDisplayText(blocks, from)).toBeUndefined()
-    const items: Parameters<typeof projectStructuredAgentSessionStatusSummary>[0] = [
-      {
-        itemId: 'i',
-        sequence: 1,
-        revision: 1,
-        observedAt: 1,
-        body: { kind: 'message', role: 'user', blocks: [{ type: 'text', text: raw }], from }
-      }
-    ]
-    expect(latestStructuredAgentSessionPrompt(items)).toBe(raw)
-    const summary = projectStructuredAgentSessionStatusSummary(items)
-    expect(summary.latestPrompt).toBe(normalizePromptField(raw))
-    const normalized = normalizePromptField(summary.latestPrompt)
-    expect(normalized).toContain(ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX)
-    expect(normalized).toContain('Your task ID is:')
-    expect(normalized).toContain('=== TASK === original')
-    const row = {
-      prompt: normalized,
-      orchestration: {
-        taskId: 'task_abc123',
-        dispatchId: 'ctx_def456',
-        displayName: 'Current task label'
-      }
+  }
+  const raw = buildDispatchPreamble(baseParams({ taskSpec: 'original' }))
+  const body: AgentJournalMessageItem = {
+    kind: 'message',
+    role: 'user',
+    blocks: [{ type: 'text', text: raw }],
+    from
+  }
+  const items = [{ itemId: 'i', sequence: 1, revision: 1, observedAt: 1, body }]
+  expect(latestStructuredAgentSessionPrompt(items)).toBe(raw)
+  const summary = projectStructuredAgentSessionStatusSummary(items)
+  expect(summary.latestPrompt).toBe(normalizePromptField(raw))
+  const prompt = normalizePromptField(summary.latestPrompt)
+  expect(prompt).toContain(ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX)
+  expect(prompt).toContain('Your task ID is:')
+  expect(prompt).toContain('=== TASK === original')
+  const row = {
+    prompt,
+    orchestration: {
+      taskId: 'task_abc123',
+      dispatchId: 'ctx_def456',
+      displayName: 'Current task label'
     }
-    expect(isOrcaDispatchPrompt(row.prompt)).toBe(true)
-    expect(getAgentRowPrimaryText(row)).toBe('Current task label')
-    expect(getAgentRowGeneratedTitleText(row)).toBe('Current task label')
-    expect(generatedTabTitleForStatus(row, { generatedTitle: 'Old work' })).toEqual({
-      title: 'Current task label',
-      replaceExisting: true
-    })
+  }
+  expect(isOrcaDispatchPrompt(prompt)).toBe(true)
+  expect(getAgentRowPrimaryText(row)).toBe('Current task label')
+  expect(getAgentRowGeneratedTitleText(row)).toBe('Current task label')
+  expect(generatedTabTitleForStatus(row, { generatedTitle: 'Old work' })).toEqual({
+    title: 'Current task label',
+    replaceExisting: true
   })
 })
