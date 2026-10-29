@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseWslHostsPolicy, wslHostsPolicyBlocks } from '../../shared/wsl-hosts-policy'
+import { parseWslHostsPolicy, wslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 import {
   readCachedWslHostsPolicy,
   WslHostsPolicyLiveUpdater,
@@ -36,10 +36,10 @@ describe('WSL hosts policy parsing', () => {
     expect(parseWslHostsPolicy(text).ok).toBe(false)
   })
 
-  it('blocks only on an explicit block', () => {
-    expect(wslHostsPolicyBlocks(null)).toBe(false)
-    expect(wslHostsPolicyBlocks({ version: 1, revision: 1, wslHosts: 'allow' })).toBe(false)
-    expect(wslHostsPolicyBlocks({ version: 1, revision: 1, wslHosts: 'block' })).toBe(true)
+  it('reads no policy as missing, never as a block', () => {
+    expect(wslHostsPolicyState(null)).toBe('missing')
+    expect(wslHostsPolicyState({ version: 1, revision: 1, wslHosts: 'allow' })).toBe('allow')
+    expect(wslHostsPolicyState({ version: 1, revision: 1, wslHosts: 'block' })).toBe('block')
   })
 })
 

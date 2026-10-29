@@ -31,7 +31,9 @@ export function parseWslHostsPolicy(text: string): WslHostsPolicyParse {
   }
 }
 
-/** No policy, or an unreadable one, blocks nothing: the local gate alone decides. */
-export function wslHostsPolicyBlocks(policy: WslHostsPolicy | null): boolean {
-  return policy?.wslHosts === 'block'
+/** `missing` (none cached, or unreadable) blocks nothing: the local gate alone decides. */
+export type WslHostsPolicyState = 'allow' | 'block' | 'missing'
+
+export function wslHostsPolicyState(policy: WslHostsPolicy | null): WslHostsPolicyState {
+  return policy?.wslHosts ?? 'missing'
 }
