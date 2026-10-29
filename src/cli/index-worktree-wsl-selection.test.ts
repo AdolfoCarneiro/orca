@@ -1,4 +1,5 @@
 import { win32 } from 'node:path'
+import type * as NodePath from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
 const {
@@ -43,7 +44,7 @@ vi.mock('child_process', async () => {
 
 // Exercise production UNC resolution on every CI host; keep matching and elections real.
 vi.mock('node:path', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:path')>()
+  const actual = await importOriginal<typeof NodePath>()
   return { ...actual, resolve: actual.win32.resolve }
 })
 
@@ -72,7 +73,7 @@ describe('WSL enclosing selection with Windows path resolution on every platform
 
   it.each([
     [UPPER, String.raw`\\wsl$\ubuntu\home\Alice\App\src`],
-    [String.raw`\\wsl$\Ubuntu\home\Alice\App` + '\\', '//wsl.localhost/ubuntu/home/Alice/App/src'],
+    ['\\\\wsl$\\Ubuntu\\home\\Alice\\App\\', '//wsl.localhost/ubuntu/home/Alice/App/src'],
     ['//wsl.localhost/Ubuntu/home/Alice/App/', String.raw`\\wsl$\Ubuntu\home\Alice\App\src`]
   ])('retains original identity for uppercase-tail aliases: %s', (root, cwd) => {
     const row = buildWorktree(root, 'main', 'abc', 'repo-a')
@@ -184,7 +185,7 @@ describe('WSL enclosing selection with Windows path resolution on every platform
           }
         },
         ...[[], ['--worktree', 'current']].map((scope) => ({
-          args: ['browser', 'snapshot', ...scope],
+          args: ['snapshot', ...scope],
           method: 'browser.snapshot',
           target: { worktree: selector }
         })),
@@ -219,7 +220,17 @@ describe('WSL enclosing selection with Windows path resolution on every platform
               return okFixture('scoped', { terminal: { text: 'ready' }, snapshot: 'ready' })
             })
             await main([...command.args, '--json'], win32.join(owner.path, 'src'))
-            expect(process.exitCode).toBe(priorExitCode)
+            expect(
+              process.exitCode,
+              JSON.stringify({
+                args: [...command.args, '--json'],
+                cwd: win32.join(owner.path, 'src'),
+                caller: caller ?? null,
+                catalogIds: rows.map((row) => row.id),
+                output: JSON.stringify(logSpy.mock.calls).slice(0, 4000),
+                calls: JSON.stringify(callMock.mock.calls).slice(0, 4000)
+              })
+            ).toBe(priorExitCode)
             expect(callMock).toHaveBeenCalledWith(
               command.method,
               expect.objectContaining(command.target)
