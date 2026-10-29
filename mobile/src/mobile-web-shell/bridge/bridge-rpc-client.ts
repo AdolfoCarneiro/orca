@@ -1,3 +1,4 @@
+import { throwIfSignalAborted } from '../../../../src/shared/abort-signal-reason'
 import type { RpcClient, SendRequestOptions } from '../../transport/rpc-client'
 import type { ConnectionState, RpcResponse, RpcSuccess } from '../../transport/types'
 import {
@@ -225,9 +226,12 @@ export function createBridgeRpcClient(options: BridgeRpcClientOptions): BridgeRp
       )
     }
     const [method, params, requestOptions] = args
-    return new Promise<RpcResponse>((resolve, reject) => {
+    const signal = requestOptions?.signal
+    throwIfSignalAborted(signal)
+    requestOptions?.beforeSend?.()
+    const id = nextId()
+    const response = new Promise<RpcResponse>((resolve, reject) => {
       const frameOptions = readBridgeRequestFrameOptions(requestOptions, hasGrant)
-      const id = nextId()
       requests.open(id, { resolve, reject })
       const outcome = sendFrame({
         v: BRIDGE_PROTOCOL_VERSION,
@@ -245,6 +249,9 @@ export function createBridgeRpcClient(options: BridgeRpcClientOptions): BridgeRp
           outcome === 'oversized' ? new BridgeRequestOversizedError() : new BridgeSendFailedError()
         )
       }
+    })
+    return requests.wait(id, response, requestOptions, () => {
+      sendFrame({ v: BRIDGE_PROTOCOL_VERSION, type: 'cancel', id, target: 'request' })
     })
   }
 

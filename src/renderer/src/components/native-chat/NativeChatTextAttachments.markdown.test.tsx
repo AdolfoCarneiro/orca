@@ -30,33 +30,50 @@ const path =
   '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/orca-paste-123-abc.txt'
 const renderText = (content: string) =>
   createElement(NativeChatMarkdown, { rowKey: 'architecture35636', content, variant: 'document' })
-it('preserves fenced and inline literals and whole-document formatting around an actionable reference', () => {
-  const content = [
-    'Literal:\n\n```text\n@',
-    path,
-    '\nKEEP THIS CODE\n```\n\nOUTSIDE CODE\n\n`@',
-    path,
-    '`\n\n**Read @',
-    path,
-    ' then stop**'
-  ].join('')
-  const view = render(
-    createElement(NativeChatTextAttachments, { content, structured: true, renderText })
-  )
-  const code = [...view.container.querySelectorAll('pre')].map((node) => node.textContent).join('|')
-  expect(code).toContain(`@${path}`)
-  expect(code).toContain('KEEP THIS CODE')
-  expect(code).not.toContain('OUTSIDE CODE')
-  expect(view.container.querySelector('strong')?.textContent).toBe(`Read @${path} then stop`)
-  expect(view.container.querySelectorAll('button')).toHaveLength(1)
-  view.rerender(
-    createElement(NativeChatTextAttachments, {
-      content: ['```text\n@', path, '\n```\n\n`@', path, '`'].join(''),
-      structured: true,
-      renderText
-    })
-  )
-  expect(view.container.querySelectorAll('button')).toHaveLength(0)
+it('keeps original whole-body interpretation independent of exact lexical actions and terminal eligibility', async () => {
+  const references = await import('../../../../shared/native-chat-text-attachment-references')
+  const recognize = vi.spyOn(references, 'nativeChatTextAttachmentPaths')
+  const contents = [
+    `Literal:\n\n\`\`\`text\n@${path}\nKEEP THIS CODE\n\`\`\`\n\nOUTSIDE CODE`,
+    `\` @${path} \``,
+    `    @${path}\n`,
+    `> - \` @${path} \``,
+    `**Read @${path} then stop**`,
+    `\\*escaped* @${path} `,
+    `see@${path.replace(/orca-paste-[^/]+$/, 'a&copy;.txt')} `,
+    `@${path.replace(/orca-paste-[^/]+$/, 'a`b.txt')} @${path.replace(/orca-paste-[^/]+$/, 'c`d.txt')} `,
+    `\` @${path}\``
+  ]
+  for (const content of contents) {
+    const direct = render(renderText(content))
+    const expected = direct.container.innerHTML
+    direct.unmount()
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(NativeChatTextAttachments, {
+          content,
+          structured: true,
+          renderText: (text) => createElement('div', { 'data-testid': 'body' }, renderText(text))
+        })
+      )
+    )
+    expect(view.getByTestId('body').innerHTML).toBe(expected)
+    expect(view.container.querySelectorAll('button')).toHaveLength(
+      references.nativeChatTextAttachmentPaths(content).length
+    )
+    view.unmount()
+    recognize.mockClear()
+    const terminal = render(
+      createElement(NativeChatTextAttachments, { content, structured: false, renderText })
+    )
+    expect(terminal.container.innerHTML).toBe(expected)
+    expect(recognize).not.toHaveBeenCalled()
+    terminal.unmount()
+  }
+  expect(rpc).not.toHaveBeenCalled()
+  recognize.mockRestore()
 })
 
 it('recognizes only changed rows at N and 10N without reading attachment bodies before open', async () => {
@@ -92,4 +109,33 @@ it('recognizes only changed rows at N and 10N without reading attachment bodies 
   }
   expect(rpc).not.toHaveBeenCalled()
   recognize.mockRestore()
+})
+
+it('opens original descriptor-less POSIX, Windows and UNC tokens without entity, escape or punctuation normalization', async () => {
+  const { formatNativeChatFileReference } = await import('../../../../shared/agent-image-paste')
+  const { NativeChatTextAttachmentOpener } = await import('./NativeChatTextAttachments')
+  const uuid = '12345678-1234-1234-1234-123456789abc'
+  const paths = [
+    `/root/agent-session-attachments/${uuid}/normal.txt`,
+    `/root [@] ' " (x)/agent-session-attachments/${uuid}/_notes_.txt`,
+    `/root/agent-session-attachments/${uuid}/a&copy;.txt`,
+    `/root/agent-session-attachments/${uuid}/a©.txt`,
+    `/root/agent-session-attachments/${uuid}/a\`b\`.txt`,
+    `/root/agent-session-attachments/${uuid}/literal.txt\``,
+    `/root/agent-session-attachments/${uuid}/literal.txt)`,
+    `C:\\Orca data\\agent-session-attachments\\${uuid}\\brackets[1](2).txt`,
+    `\\\\server\\root @ ' "\\agent-session-attachments\\${uuid}\\日本語.txt`
+  ]
+  const opened: string[] = []
+  const content = paths.map(formatNativeChatFileReference).join(' ')
+  const view = render(
+    createElement(
+      NativeChatTextAttachmentOpener.Provider,
+      { value: (path) => opened.push(path) },
+      createElement(NativeChatTextAttachments, { content, structured: true, renderText })
+    )
+  )
+  view.container.querySelectorAll('button').forEach((button) => button.click())
+  expect(opened).toEqual(paths)
+  view.unmount()
 })

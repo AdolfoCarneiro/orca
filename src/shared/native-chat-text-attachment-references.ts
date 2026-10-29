@@ -14,7 +14,7 @@ export function isCommittedChatAttachmentCandidate(path: string): boolean {
 }
 
 export type ChatAttachmentPart = { text: string; path?: string }
-/** Scan only the rendered row, preserving the exact stored representation and surrounding text. */
+/** Discover exact source tokens independently of their presentation. */
 export function nativeChatTextAttachmentParts(
   text: string,
   structured: boolean
@@ -27,7 +27,7 @@ export function nativeChatTextAttachmentParts(
   let end = 0
   for (const match of text.matchAll(pattern)) {
     const token = match[0]
-    if (token.length > 8192 || (match.index > 0 && !/\s/.test(text[match.index - 1]!))) {
+    if (token.length > 8192) {
       continue
     }
     const quoted = token[1] === '"' || token[1] === "'"
@@ -56,26 +56,10 @@ export function chatTextAttachmentName(path: string): string {
   return /^orca-paste-.*\.txt$/.test(name) ? 'Pasted text' : name
 }
 
-type AttachmentMarkdownNode = {
-  type: string
-  value?: string
-  children?: readonly AttachmentMarkdownNode[]
-}
-
-/** Attachment actions follow parsed prose; literal code remains an ordinary part of the document. */
-export function nativeChatTextAttachmentPaths(tree: AttachmentMarkdownNode): string[] {
-  const paths = new Set<string>()
-  const visit = (node: typeof tree) => {
-    if (node.type === 'text' && node.value) {
-      for (const part of nativeChatTextAttachmentParts(node.value, true)) {
-        if (part.path) {
-          paths.add(part.path)
-        }
-      }
-    } else if (node.type !== 'code' && node.type !== 'inlineCode') {
-      node.children?.forEach(visit)
-    }
-  }
-  visit(tree)
-  return [...paths]
+export function nativeChatTextAttachmentPaths(text: string): string[] {
+  return [
+    ...new Set(
+      nativeChatTextAttachmentParts(text, true).flatMap((part) => (part.path ? [part.path] : []))
+    )
+  ]
 }

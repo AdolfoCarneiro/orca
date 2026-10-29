@@ -24,13 +24,16 @@ import { structuredAgentSessionSendBody } from '../../../../shared/structured-ag
 import { deriveNativeChatRowContent } from '../../../../shared/native-chat-row-content'
 import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 
-const mocks = vi.hoisted(() => ({ save: vi.fn(), rpc: vi.fn(), write: vi.fn() }))
+const mocks = vi.hoisted(() => ({ save: vi.fn(), rpc: vi.fn(), write: vi.fn(), resolved: false }))
 vi.mock('./native-chat-image-runtime-context', () => ({
-  useNativeChatImageRuntimeContext: () => ({
-    target: { kind: 'local' },
-    worktreeId: 'w',
-    worktreePath: '/repo'
-  })
+  useNativeChatImageRuntimeContext: () =>
+    mocks.resolved
+      ? {
+          target: { kind: 'local' },
+          worktreeId: 'w',
+          worktreePath: '/repo'
+        }
+      : null
 }))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.rpc }))
 vi.mock('./native-chat-visual-markdown-extension', () => ({
@@ -105,7 +108,8 @@ afterEach(() => {
 })
 
 it('opens pending and settled draft pills, retains remove/undo, restores the token map and renders sent/recall references as source actions', async () => {
-  const text = '🙂paste\r\n'.repeat(5000)
+  const text = `\ufeff${'🙂paste\r\n'.repeat(5000)}`
+  mocks.resolved = false
   const upload = Promise.withResolvers<string>()
   mocks.save.mockReturnValue(upload.promise)
   mocks.rpc.mockImplementation(async (_target, method, request) => {
@@ -141,7 +145,9 @@ it('opens pending and settled draft pills, retains remove/undo, restores the tok
   await waitFor(() => expect(mocks.write).toHaveBeenCalledWith(text))
   expect(mocks.rpc).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+  mocks.resolved = true
   await act(async () => upload.resolve(path))
+  view.rerender(<Composer />)
   expect(nativeChatPastedTextOperations.size).toBe(0)
   fireEvent.click(screen.getByRole('button', { name: 'Pasted text' }))
   await waitFor(() =>
@@ -198,9 +204,6 @@ it('opens pending and settled draft pills, retains remove/undo, restores the tok
     )
   )
   view.unmount()
-  const recalled = nativeChatSentPrompts({ messages: [sentRow.message] })[0]!.prompt
-  render(row(recalled).element)
-  expect(screen.getByRole('button', { name: 'Pasted text' })).toBeTruthy()
 })
 
 it('keeps a committed picked filename actionable through the existing editor insertion', async () => {

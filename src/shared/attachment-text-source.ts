@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { waitForPromiseWithSignal } from './abort-signal-reason'
 import { AGENT_SESSION_ATTACHMENT_MAX_BYTES } from './agent-session-attachments'
 import { MAX_FILE_RANGE_READ_BYTES, validateFileRangeRequest } from './file-range-read'
 
@@ -80,7 +81,10 @@ export class AttachmentTextSource {
     validateFileRangeRequest(offset, length)
     const previous = this.tail
     const operation = (async () => {
-      await previous.catch(() => {})
+      await waitForPromiseWithSignal(
+        previous.catch(() => {}),
+        this.abort.signal
+      )
       this.assertCurrent()
       const parsed = attachmentTextChunkSchema.safeParse(
         await this.read(

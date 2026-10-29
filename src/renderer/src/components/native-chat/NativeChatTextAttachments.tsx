@@ -1,6 +1,3 @@
-import { unified } from 'unified'
-import remarkParse from 'remark-parse'
-import remarkGfm from 'remark-gfm'
 import { createContext, useCallback, useContext, useState, useMemo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
@@ -93,8 +90,6 @@ function AttachmentButton({
   )
 }
 
-const attachmentMarkdown = unified().use(remarkParse).use(remarkGfm)
-
 export function NativeChatTextAttachments({
   content,
   structured,
@@ -107,7 +102,7 @@ export function NativeChatTextAttachments({
   renderText: (text: string) => ReactNode
 }) {
   const paths = useMemo(
-    () => (structured ? nativeChatTextAttachmentPaths(attachmentMarkdown.parse(content)) : []),
+    () => (structured ? nativeChatTextAttachmentPaths(content) : []),
     [content, structured]
   )
   return (

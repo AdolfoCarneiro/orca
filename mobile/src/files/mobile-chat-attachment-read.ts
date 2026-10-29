@@ -1,3 +1,4 @@
+import { sharedPromiseSettlementWaiters } from '../../../src/shared/promise-settlement-waiters'
 import { hostStatusProbe } from '../transport/host-status-probe-operations'
 import { bindDeferredRpcOperation, defineRpcOperation } from '../transport/rpc-operation'
 import { rpcResultVariant } from '../transport/rpc-operation-result-reader'
@@ -45,8 +46,16 @@ export function createMobileChatAttachmentReader(
       if (!request.expectedSnapshot) {
         status = undefined
       }
-      status ??= hostStatusProbe.request(client!)
-      const statusReply = await status
+      status ??= hostStatusProbe.request(client!, undefined, {
+        signal,
+        timeoutMs: 15_000,
+        failWhenDisconnected: true,
+        beforeSend: assertCurrent
+      })
+      const statusReply = await sharedPromiseSettlementWaiters(status).wait({
+        signal,
+        timeoutMs: 15_000
+      })
       signal?.throwIfAborted()
       assertCurrent()
       const runtimeId = statusReply._meta?.runtimeId
@@ -59,7 +68,15 @@ export function createMobileChatAttachmentReader(
           'This host cannot open text attachments yet. Update Orca on that host, then retry.'
         )
       }
-      const reply = await textRead.request(client!, request, { timeoutMs: 15_000 })
+      const reply = await sharedPromiseSettlementWaiters(
+        textRead.request(client!, request, {
+          timeoutMs: 15_000,
+          failWhenDisconnected: true,
+          beforeSend: assertCurrent,
+          signal
+        })
+      ).wait({ signal, timeoutMs: 15_000 })
+      signal?.throwIfAborted()
       assertCurrent()
       if (runtimeId && reply._meta?.runtimeId !== runtimeId) {
         throw new Error('The attachment host changed. Close it and reopen it.')

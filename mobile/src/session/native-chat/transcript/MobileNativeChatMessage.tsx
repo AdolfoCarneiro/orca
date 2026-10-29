@@ -1,4 +1,3 @@
-import { parseMobileMarkdownTree } from '../../../components/mobile-markdown-tree'
 import {
   nativeChatTextAttachmentPaths,
   chatTextAttachmentName
@@ -376,10 +375,7 @@ const TextAttachmentActions = memo(function TextAttachmentActions({
   text: string
   onOpenFile?: (path: string) => void
 }) {
-  const paths = useMemo(
-    () => nativeChatTextAttachmentPaths(parseMobileMarkdownTree(text, false)),
-    [text]
-  )
+  const paths = useMemo(() => nativeChatTextAttachmentPaths(text), [text])
   return paths.map((path) => (
     <Text
       key={path}

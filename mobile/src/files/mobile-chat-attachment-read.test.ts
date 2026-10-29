@@ -135,3 +135,134 @@ it('does not admit a body read after disposal during status and preserves a same
     )
   }
 })
+
+it('carries local ownership through logical/execution-host/direct admission, detaches old replies and preserves wire fields', async () => {
+  const { RpcClientRequestTracker } = await import('../transport/rpc-client-request-tracker')
+  const { RpcClientConnectionState } = await import('../transport/rpc-client-connection-state')
+  const { createStableLogicalRpcClient } = await import('../transport/stable-logical-rpc-client')
+  const { scopeRpcClientToExecutionHost } =
+    await import('../transport/execution-host-scoped-rpc-client')
+  const state = new RpcClientConnectionState({
+    endpoint: 'ws://test35636',
+    getReconnectAttempt: () => 0,
+    isClosed: () => false
+  })
+  state.publish('connected')
+  const frames: { id: string; method: string; params?: unknown; envelope?: unknown }[] = []
+  let serial = 0
+  let currentMethod = ''
+  let atConnected: (() => void) | undefined
+  let holdBody = false
+  const tracker = new RpcClientRequestTracker({
+    nextId: () => String(++serial),
+    getState: () => state.get(),
+    waitForConnected: (timeout) => {
+      const connected = state.waitForConnected(timeout)
+      return currentMethod === 'agentSessionAttachment.readTextChunk' && atConnected
+        ? connected.then(atConnected)
+        : connected
+    },
+    sendFrame: (frame) => {
+      frames.push(frame)
+      if (!holdBody || frame.method === 'status.get') {
+        queueMicrotask(() =>
+          tracker.resolve({
+            id: frame.id,
+            ok: true,
+            result:
+              frame.method === 'status.get'
+                ? { capabilities: [AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY] }
+                : {
+                    snapshot: 'a'.repeat(64),
+                    size: 1,
+                    bytesRead: 1,
+                    contentBase64: 'eA==',
+                    eof: true
+                  },
+            _meta: { runtimeId: 'owner35636' }
+          })
+        )
+      }
+      return true
+    }
+  })
+  const physical = {
+    sendRequest: (
+      method: string,
+      params?: unknown,
+      options?: import('../transport/rpc-client').SendRequestOptions
+    ) => {
+      currentMethod = method
+      return tracker.sendRequest(method, params, options)
+    },
+    getState: () => state.get(),
+    getLastConnectedAt: () => state.getLastConnectedAt(),
+    getReconnectAttempt: () => 0,
+    onStateChange: (listener: Parameters<typeof state.addListener>[0]) =>
+      state.addListener(listener),
+    notifyForeground: () => {},
+    close: () => tracker.rejectAll('closed'),
+    subscribe: () => () => {},
+    updateTerminalSubscriptionViewport: () => {}
+  }
+  const logical = createStableLogicalRpcClient(physical, 'lan')
+  const client = scopeRpcClientToExecutionHost(logical, 'runtime:server35636')
+  const read = createMobileChatAttachmentReader(client)
+  const old = new AttachmentTextSource('/source35636', read)
+  atConnected = () => {
+    atConnected = undefined
+    old.dispose()
+  }
+  await expect(old.copyText()).rejects.toMatchObject({ name: 'AbortError' })
+  expect(frames.map((frame) => frame.method)).toEqual(['status.get'])
+  const retry = new AttachmentTextSource('/source35636', read)
+  expect(await retry.copyText()).toBe('x')
+  expect(frames.every((frame) => !('signal' in frame) && !('beforeSend' in frame))).toBe(true)
+  expect(
+    frames.every(
+      (frame) =>
+        JSON.stringify(frame.envelope) === JSON.stringify({ executionHost: 'runtime:server35636' })
+    )
+  ).toBe(true)
+  const bodyCount = () =>
+    frames.filter((frame) => frame.method === 'agentSessionAttachment.readTextChunk').length
+  const beforeMigration = bodyCount()
+  atConnected = () => {
+    atConnected = undefined
+    return logical.migrateTo({ ...physical }, 'lan')
+  }
+  const stale = new AttachmentTextSource('/source35636', read)
+  await expect(stale.copyText()).rejects.toThrow('RPC interrupted by connection migration')
+  expect(bodyCount()).toBe(beforeMigration)
+  atConnected = () => {
+    atConnected = undefined
+    state.publish('disconnected')
+  }
+  const disconnected = new AttachmentTextSource(
+    '/source35636',
+    createMobileChatAttachmentReader(client)
+  )
+  await expect(disconnected.copyText()).rejects.toThrow('Not connected')
+  expect(bodyCount()).toBe(beforeMigration)
+  state.publish('connected')
+  const reconnected = new AttachmentTextSource(
+    '/source35636',
+    createMobileChatAttachmentReader(client)
+  )
+  expect(await reconnected.copyText()).toBe('x')
+  reconnected.dispose()
+  holdBody = true
+  const admitted = new AttachmentTextSource(
+    '/source35636',
+    createMobileChatAttachmentReader(client)
+  )
+  const pending = admitted.copyText().catch((error) => error)
+  await vi.waitFor(() => expect(tracker.size()).toBe(1))
+  const lateId = frames.at(-1)!.id
+  admitted.dispose()
+  expect((await pending).name).toBe('AbortError')
+  expect(tracker.size()).toBe(0)
+  expect(tracker.resolve({ id: lateId, ok: true, result: {} })).toBe(false)
+  retry.dispose()
+  logical.close()
+})

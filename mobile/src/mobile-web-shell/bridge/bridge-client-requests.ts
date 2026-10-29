@@ -1,3 +1,5 @@
+import { sharedPromiseSettlementWaiters } from '../../../../src/shared/promise-settlement-waiters'
+import type { SendRequestOptions } from '../../transport/rpc-client'
 import { markRpcDeliveryUnknown } from '../../transport/rpc-delivery-ambiguity'
 import type { RpcResponse } from '../../transport/types'
 import { BridgeClientClosedError, BridgeReplyRefusedError } from './bridge-client-errors'
@@ -29,6 +31,24 @@ export class BridgeClientRequests {
   // A frame that never left has no assembler slot; settle it locally.
   abandon(id: string): void {
     this.pending.delete(id)
+  }
+
+  wait(
+    id: string,
+    response: Promise<RpcResponse>,
+    options: SendRequestOptions | undefined,
+    cancel: () => void
+  ): Promise<RpcResponse> {
+    return options?.signal
+      ? sharedPromiseSettlementWaiters(response).wait({
+          signal: options.signal,
+          timeoutMs: options.timeoutMs ?? 30_000,
+          onAbandon: () => {
+            this.fail(id, new Error('Request abandoned'))
+            cancel()
+          }
+        })
+      : response
   }
 
   acceptReply(message: BridgeReplyMessage): void {

@@ -67,7 +67,22 @@ vi.mock('lucide-react-native', () => ({
   SquareTerminal: 'SquareTerminal',
   Wrench: 'Wrench'
 }))
-vi.mock('../../../components/MobileMarkdown', () => ({ MobileMarkdown: 'MobileMarkdown' }))
+const markdownImplementation = vi.hoisted(
+  (): { current?: typeof import('../../../components/MobileMarkdown').MobileMarkdown } => ({})
+)
+vi.mock('../../../components/MobileMarkdown', async () => {
+  const { createElement } = await import('react')
+  return {
+    MobileMarkdown: (
+      props: React.ComponentProps<
+        typeof import('../../../components/MobileMarkdown').MobileMarkdown
+      >
+    ) => createElement(markdownImplementation.current ?? 'MobileMarkdown', props)
+  }
+})
+vi.mock('../../../components/pr-sidebar/MermaidDiagram', () => ({
+  MermaidDiagram: 'MermaidDiagram'
+}))
 vi.mock('./MobileNativeChatMessageActionsSheet', () => ({
   MobileNativeChatMessageActionsSheet: 'MessageActionsSheet'
 }))
@@ -638,52 +653,6 @@ describe('MobileNativeChatMessage', () => {
   })
 })
 
-it('keeps the complete phone Markdown document and excludes code literals from attachment actions', () => {
-  const path = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/report.txt'
-  const content =
-    '```text\n@' + path + '\nKEEP CODE\n```\n\nOUTSIDE\n\n**Read @' + path + ' then stop**'
-  const onOpenFile = vi.fn()
-  let tree: ReactTestRenderer
-  act(() => {
-    tree = create(
-      createElement(MobileNativeChatMessage, {
-        message: userMessage([{ type: 'text', text: content }]),
-        structuredActivityUi: true,
-        onOpenFile
-      })
-    )
-  })
-  try {
-    const markdown = findAllByHostType(tree!.root, 'MobileMarkdown')
-    expect(markdown).toHaveLength(1)
-    expect(markdown[0]!.props.content).toBe(content)
-    const actions = tree!.root.findAll(
-      (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
-    )
-    expect(actions).toHaveLength(1)
-    act(() => actions[0]!.props.onPress())
-    expect(onOpenFile).toHaveBeenCalledWith(path)
-    act(() =>
-      tree!.update(
-        createElement(MobileNativeChatMessage, {
-          message: userMessage([
-            { type: 'text', text: '```text\n@' + path + '\n```\n\n`@' + path + '`' }
-          ]),
-          structuredActivityUi: true,
-          onOpenFile
-        })
-      )
-    )
-    expect(
-      tree!.root.findAll(
-        (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
-      )
-    ).toHaveLength(0)
-  } finally {
-    act(() => tree!.unmount())
-  }
-})
-
 it('bounds phone row recognition at N and 10N during unchanged and one-row updates', async () => {
   const references =
     await import('../../../../../src/shared/native-chat-text-attachment-references')
@@ -727,4 +696,134 @@ it('bounds phone row recognition at N and 10N during unchanged and one-row updat
     act(() => tree!.unmount())
   }
   recognize.mockRestore()
+})
+
+it('uses exact raw identity for phone actions across prose and code without interpreting filenames', async () => {
+  const { formatNativeChatFileReference } =
+    await import('../../../../../src/shared/agent-image-paste')
+  const prefix = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/'
+  const paths = [
+    '_notes_.txt',
+    'a&copy;.txt',
+    'a©.txt',
+    'a`b.txt',
+    'c`d.txt',
+    '[a](b).txt',
+    "space @ apostrophe'.txt",
+    '日本語.txt'
+  ].map((name) => prefix + name)
+  const content =
+    'see' +
+    paths.map(formatNativeChatFileReference).join(' ') +
+    '\n\n```text\n' +
+    formatNativeChatFileReference(paths[0]!) +
+    '\n```'
+  const onOpenFile = vi.fn()
+  let tree: ReactTestRenderer
+  act(() => {
+    tree = create(
+      createElement(MobileNativeChatMessage, {
+        message: userMessage([{ type: 'text', text: content }]),
+        structuredActivityUi: true,
+        onOpenFile
+      })
+    )
+  })
+  try {
+    expect(findAllByHostType(tree!.root, 'MobileMarkdown')[0]!.props.content).toBe(content)
+    const actions = tree!.root.findAll(
+      (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
+    )
+    act(() => actions.forEach((action) => action.props.onPress()))
+    expect(onOpenFile.mock.calls.map(([path]) => path)).toEqual(paths)
+    onOpenFile.mockClear()
+    act(() =>
+      tree!.update(
+        createElement(MobileNativeChatMessage, {
+          message: userMessage([{ type: 'text', text: content }]),
+          structuredActivityUi: false,
+          onOpenFile
+        })
+      )
+    )
+    expect(
+      tree!.root.findAll(
+        (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
+      )
+    ).toHaveLength(0)
+    expect(findAllByHostType(tree!.root, 'MobileMarkdown')[0]!.props.content).toBe(content)
+    expect(onOpenFile).not.toHaveBeenCalled()
+  } finally {
+    act(() => tree!.unmount())
+  }
+})
+
+it('renders each original phone message through the shipping Markdown renderer with separate lexical actions', async () => {
+  const actual = await vi.importActual<typeof import('../../../components/MobileMarkdown')>(
+    '../../../components/MobileMarkdown'
+  )
+  const adapter = await import('../../../components/MobileMarkdown')
+  const path = '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/report.txt'
+  const cases: [string, string[]][] = [
+    [`\`\`\`text\n@${path}\nKEEP\n\`\`\`\n\nOUTSIDE`, [path]],
+    [`\` @${path} \``, [path]],
+    [`    @${path}\n`, [path]],
+    [`> - \` @${path} \``, [path]],
+    [`**Read @${path} then stop**`, [path]],
+    [
+      `\\*escaped* see@${path.replace('report.txt', 'a&copy;.txt')} `,
+      [path.replace('report.txt', 'a&copy;.txt')]
+    ],
+    [
+      `@${path.replace('report.txt', 'a`b.txt')} @${path.replace('report.txt', 'c`d.txt')} `,
+      [path.replace('report.txt', 'a`b.txt'), path.replace('report.txt', 'c`d.txt')]
+    ],
+    [`\` @${path}\``, [path + '`']]
+  ]
+  const hostContent = (root: ReactTestInstance) =>
+    root
+      .findAll((node) => typeof node.type === 'string')
+      .map((node) => [
+        node.type,
+        node.props.style,
+        node.children.filter((child) => typeof child === 'string')
+      ])
+  markdownImplementation.current = actual.MobileMarkdown
+  try {
+    for (const [content, paths] of cases) {
+      const onOpenFile = vi.fn()
+      let row: ReactTestRenderer
+      let direct: ReactTestRenderer | undefined
+      act(() => {
+        row = create(
+          createElement(MobileNativeChatMessage, {
+            message: userMessage([{ type: 'text', text: content }]),
+            structuredActivityUi: true,
+            onOpenFile
+          })
+        )
+      })
+      try {
+        const body = row!.root.findAllByType(adapter.MobileMarkdown)
+        expect(body).toHaveLength(1)
+        expect(body[0]!.props.content).toBe(content)
+        act(() => {
+          direct = create(createElement(actual.MobileMarkdown, body[0]!.props))
+        })
+        expect(hostContent(body[0]!)).toEqual(hostContent(direct!.root))
+        const actions = row!.root.findAll(
+          (node) => String(node.type) === 'Text' && node.props.accessibilityRole === 'button'
+        )
+        act(() => actions.forEach((action) => action.props.onPress()))
+        expect(onOpenFile.mock.calls.map(([path]) => path)).toEqual(paths)
+      } finally {
+        act(() => {
+          row!.unmount()
+          direct?.unmount()
+        })
+      }
+    }
+  } finally {
+    markdownImplementation.current = undefined
+  }
 })

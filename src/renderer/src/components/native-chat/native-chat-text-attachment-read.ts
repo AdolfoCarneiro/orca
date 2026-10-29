@@ -1,3 +1,6 @@
+import { useAppStore } from '@/store'
+import { getPairedWebClientEnvironmentId } from '@/lib/paired-web-client-host'
+import { sharedPromiseSettlementWaiters } from '../../../../shared/promise-settlement-waiters'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import {
   captureRuntimeEnvironmentRequestRevision,
@@ -30,15 +33,23 @@ export function createChatAttachmentReader(
       throw new Error('The attachment host is unavailable. Reconnect and retry.')
     }
   }
+  const environmentId =
+    target.kind === 'local' ? getPairedWebClientEnvironmentId(useAppStore.getState()) : null
+  if (environmentId) {
+    target = { kind: 'environment', environmentId }
+  }
+  const owner = target
+  const wait = <T>(promise: Promise<T>, signal?: AbortSignal) =>
+    sharedPromiseSettlementWaiters(promise).wait({ signal, timeoutMs: 15_000 })
   const expectedEnvironmentPairingRevision =
-    target.kind === 'environment'
-      ? captureRuntimeEnvironmentRequestRevision(target.environmentId)
+    owner.kind === 'environment'
+      ? captureRuntimeEnvironmentRequestRevision(owner.environmentId)
       : undefined
   let status: Promise<RuntimeStatus> | undefined
   const assertCurrent = () => {
     if (
-      target.kind === 'environment' &&
-      getRuntimeEnvironmentRevision(target.environmentId) !== expectedEnvironmentPairingRevision
+      owner.kind === 'environment' &&
+      getRuntimeEnvironmentRevision(owner.environmentId) !== expectedEnvironmentPairingRevision
     ) {
       throw new Error('Connection changed. Close this attachment and reopen it.')
     }
@@ -50,10 +61,12 @@ export function createChatAttachmentReader(
       if (!request.expectedSnapshot) {
         status = undefined
       }
-      status ??= callRuntimeRpc<RuntimeStatus>(target, 'status.get', undefined, {
-        expectedEnvironmentPairingRevision
+      status ??= callRuntimeRpc<RuntimeStatus>(owner, 'status.get', undefined, {
+        expectedEnvironmentPairingRevision,
+        signal,
+        timeoutMs: 15_000
       })
-      const host = await status
+      const host = await wait(status, signal)
       signal?.throwIfAborted()
       assertCurrent()
       if (!host.capabilities?.includes(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY)) {
@@ -62,12 +75,17 @@ export function createChatAttachmentReader(
         )
       }
       try {
-        return await callRuntimeRpc(target, 'agentSessionAttachment.readTextChunk', request, {
-          expectedEnvironmentPairingRevision,
-          expectedEnvironmentRuntimeId: host.runtimeId,
-          timeoutMs: 15_000
-        })
+        return await wait(
+          callRuntimeRpc(owner, 'agentSessionAttachment.readTextChunk', request, {
+            expectedEnvironmentPairingRevision,
+            expectedEnvironmentRuntimeId: host.runtimeId,
+            timeoutMs: 15_000,
+            signal
+          }),
+          signal
+        )
       } catch {
+        signal?.throwIfAborted()
         throw new Error(
           'Unable to read this attachment on its host. Reconnect and try again. The file may have been removed or changed.'
         )
