@@ -162,8 +162,8 @@ describe('SshConnectionManager on a password host', () => {
     const targetStore = new SshConnectionStore(
       new Store({ dataFile: join(root, 'state.json'), serializedState: '{}' })
     )
-    vi.spyOn(targetStore, 'getTarget').mockImplementation(
-      (id) => targets.find((target) => target.id === id) ?? null
+    vi.spyOn(targetStore, 'getTarget').mockImplementation((id) =>
+      targets.find((target) => target.id === id)
     )
     vi.spyOn(registry, 'getSshTargetRegistryStore').mockReturnValue(targetStore)
     vi.spyOn(registry, 'getSshConnectionManager').mockReturnValue(manager)
