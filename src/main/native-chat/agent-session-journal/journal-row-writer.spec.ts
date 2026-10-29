@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AGENT_SESSION_JOURNAL_SCHEMA_VERSION } from '../../../shared/agent-session-journal-types'
 import type { JournalHostDatabase } from './journal-host-database'
-import type { JournalRow } from './journal-row-schema'
+import type { JournalItemRow, JournalRow } from './journal-row-schema'
 import { JournalRowWriter } from './journal-row-writer'
 import { JournalWriteQueue } from './journal-write-queue'
 import { readJournalRowsAfter } from './journal-row-table'
@@ -73,7 +73,11 @@ export function registerJournalRowWriterTests(): void {
       return { writer, committedRows }
     }
 
-    function textRow(seq: number, itemId: string, revision: number): JournalRow {
+    function textRow(
+      seq: number,
+      itemId: string,
+      revision: number
+    ): JournalItemRow & { observedAt: number } {
       return {
         ...row(seq, 0),
         kind: 'item',
