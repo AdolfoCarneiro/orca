@@ -51,16 +51,16 @@ function reconnectErrorText(
 }
 
 function resolveNativeChatWslProject(state: AppState, worktreeId: string): boolean | null {
-  const projectRuntime = getLocalProjectExecutionRuntimeContext(state, worktreeId)
-  if (projectRuntime) {
-    return projectRuntime.status === 'resolved' ? projectRuntime.runtime.kind === 'wsl' : null
-  }
   const owner = parseExecutionHostId(getResolvedExecutionHostIdForWorktree(state, worktreeId) ?? '')
   if (!owner) {
     return null
   }
   if (owner.kind === 'local') {
-    return getRendererAppPlatform() === 'win32' ? null : false
+    if (getRendererAppPlatform() !== 'win32') {
+      return false
+    }
+    const projectRuntime = getLocalProjectExecutionRuntimeContext(state, worktreeId)
+    return projectRuntime?.status === 'resolved' ? projectRuntime.runtime.kind === 'wsl' : null
   }
   if (owner.kind === 'ssh') {
     return false
@@ -85,8 +85,22 @@ function resolveNativeChatWslProject(state: AppState, worktreeId: string): boole
     : false
 }
 
+const nativeChatWslByState = new WeakMap<AppState, Map<string, boolean | null>>()
+
+export function selectNativeChatWslProject(state: AppState, worktreeId: string): boolean | null {
+  let byWorktree = nativeChatWslByState.get(state)
+  if (!byWorktree) {
+    byWorktree = new Map()
+    nativeChatWslByState.set(state, byWorktree)
+  }
+  if (!byWorktree.has(worktreeId)) {
+    byWorktree.set(worktreeId, resolveNativeChatWslProject(state, worktreeId))
+  }
+  return byWorktree.get(worktreeId) ?? null
+}
+
 function computeTerminalPaneHostState(state: AppState, worktreeId: string): TerminalPaneHostState {
-  const nativeChatIsWslProject = resolveNativeChatWslProject(state, worktreeId)
+  const nativeChatIsWslProject = selectNativeChatWslProject(state, worktreeId)
   const connectionId = getConnectionIdFromState(state, worktreeId)
   const nativeChatTranscriptIsLocalReadableResult =
     isNativeChatTranscriptLocalReadable(connectionId)

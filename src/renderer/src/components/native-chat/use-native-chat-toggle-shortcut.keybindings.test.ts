@@ -13,7 +13,7 @@ const plugins = vi.hoisted((): { commands: ActivePluginCommand[] } => ({ command
 vi.mock('@/store/plugin-panels', () => ({ usePluginCommands: () => plugins.commands }))
 vi.mock('@/lib/plugin-command-execution', () => ({ executePluginCommand: vi.fn(async () => {}) }))
 vi.mock('../terminal-pane/terminal-pane-host-state', () => ({
-  selectTerminalPaneHostState: () => ({ nativeChatIsWslProject: true })
+  selectNativeChatWslProject: () => true
 }))
 vi.mock('@/lib/shortcut-platform', () => ({ getShortcutPlatform: () => 'win32' }))
 vi.mock('@/app-shell/app-window-chrome', () => ({ shortcutPlatform: 'win32' }))

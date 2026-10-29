@@ -10,7 +10,8 @@ import type { AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTarget'
 import { getConnectionIdFromState } from '@/lib/connection-context'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
-import { selectTerminalPaneHostState } from '../terminal-pane/terminal-pane-host-state'
+import { selectNativeChatWslProject } from '../terminal-pane/terminal-pane-host-state'
+import { isNativeChatTranscriptLocalReadable } from '../../../../shared/native-chat/transcript/native-chat-transcript-readability'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { runtimeTargetForOwnerEnvironment } from '@/runtime/runtime-client-target'
 import { useOptionalShortcutLabel, useShortcutLabel } from '@/hooks/useShortcutLabel'
@@ -235,14 +236,9 @@ export function useTabBarRuntimeModel({
   // Why: every retained TabBar observes the same hot maps; one selector shares their projections.
   const { nativeChatEnabled, tabAgentTypesByTabId, nativeChatTabWideFallbackUnsafeTabsById } =
     useAppStore(useShallow(selectTabBarAgentProjections))
-  const { nativeChatIsWslProject, nativeChatTranscriptIsLocalReadable } = useAppStore(
-    useShallow((s) => {
-      const host = selectTerminalPaneHostState(s, worktreeId)
-      return {
-        nativeChatIsWslProject: host.nativeChatIsWslProject,
-        nativeChatTranscriptIsLocalReadable: host.nativeChatTranscriptIsLocalReadable
-      }
-    })
+  const nativeChatIsWslProject = useAppStore((s) => selectNativeChatWslProject(s, worktreeId))
+  const nativeChatTranscriptIsLocalReadable = useAppStore((s) =>
+    isNativeChatTranscriptLocalReadable(getConnectionIdFromState(s, worktreeId))
   )
 
   return {
