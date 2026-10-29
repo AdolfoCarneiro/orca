@@ -31,7 +31,7 @@ import type { TaskSourceContext } from '../../src/shared/task-source-context'
 import { useTaskPageLinearInOrcaEffects } from '../../src/renderer/src/components/task-page/linear/use-task-page-linear-in-orca-effects'
 import { useTaskPageDetailRouting } from '../../src/renderer/src/components/task-page/use-task-page-detail-routing'
 import { useLinearIssueWorkspaceDetail } from '../../src/renderer/src/components/linear-issue-workspace-detail-state'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor, render, fireEvent, screen } from '@testing-library/react'
 import { deferred } from '../../src/renderer/src/store/slices/linear-slice-test-harness'
 import { clearLinearRequestMaps } from '../../src/renderer/src/store/slices/linear/linear-slice-request-state'
@@ -58,6 +58,7 @@ describe('Linear refresh row authority', () => {
       })
       wire(view).mockResolvedValue(response(view, 'Done'))
       const result = await read(s, view)
+      assert(result !== null)
       const rows = Array.isArray(result) ? result : result.items
       expect(rows[0].state.name).toBe('Done')
       expect(display(s, rows, view).result.current.displayedLinearIssues[0].state.name).toBe('Done')
@@ -70,7 +71,9 @@ it.each(['connect', 'test'] as const)(
   async (action) => {
     const s = store()
     reads.list.mockResolvedValue(response('list', 'In Review'))
-    const { items } = await s.getState().listLinearIssues(listArgs, { force: true })
+    const result = await s.getState().listLinearIssues(listArgs, { force: true })
+    assert(result !== null)
+    const { items } = result
     const workspace = workspaceFromLinearData(
       { displayName: 'User', email: null },
       { id: 'w', name: 'Acme' }
@@ -333,6 +336,7 @@ it.each(['project', 'custom-view'] as const)(
     await load(12, origin)
     wire(view).mockRejectedValueOnce(new Error('raw network details'))
     const result = await load(36, origin)
+    assert(result !== null)
     expect(result.items[0].state.name).toBe('In Review')
     // The fallback error is not cached; selection must retain this request's error beside cached rows.
     const model = {
@@ -477,7 +481,7 @@ it('bounds partial-workspace retention at N/10N through the real list action', a
     const result = await read(s, 'list')
     operations.push(ids)
     expect(ids).toBeLessThanOrEqual(n * 4)
-    expect(!Array.isArray(result) && result.items.map((row) => row.workspaceId)).toEqual([
+    expect(!Array.isArray(result) && result?.items.map((row) => row.workspaceId)).toEqual([
       ...Array(n).fill('healthy'),
       ...Array(n).fill('w')
     ])

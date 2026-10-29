@@ -12,6 +12,7 @@ import {
 } from './task-page-linear-refresh-test-fixtures'
 import {
   pendingLinearIssueWrites,
+  mapLinearIssueRead,
   registerLinearIssueConsumer
 } from '@/store/slices/linear/linear-issue-publication'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
@@ -209,7 +210,7 @@ it('does not revive a cold abandoned query on drain and never joins a foreign so
   const foreign = await s
     .getState()
     .searchLinearIssues('DAT-124', 36, { sourceContext: source('runtime:other') })
-  expect(foreign[0].state.name).toBe('Foreign')
+  expect(foreign?.[0].state.name).toBe('Foreign')
   await act(async () => {
     pending.resolve({ ok: true })
     await saving
@@ -642,3 +643,33 @@ it.each([false, true])(
     lease.release()
   }
 )
+
+it('cached null is a terminal hit mapped to a settled preview, with fresh force and reacquisition', async () => {
+  const s = store()
+  s.setState({
+    linearSearchCache: { 'w::search::cached-null::12': { data: null, fetchedAt: cacheTime } }
+  })
+  const map = vi.fn((data: LinearIssue[] | null) => ({ issue: data?.[0] ?? null, loading: false }))
+  const read = s.getState().searchLinearIssues('cached-null', 12)
+  const lease = mapLinearIssueRead(read, map).acquire()
+  expect(lease.currentView()).toEqual({ kind: 'data', data: { issue: null, loading: false } })
+  expect(map).toHaveBeenCalledExactlyOnceWith(null)
+  expect(reads.search).not.toHaveBeenCalled()
+  reads.search.mockResolvedValueOnce([task('Fresh')])
+  s.getState().searchLinearIssues('cached-null', 12, { force: true })
+  expect(lease.currentView().kind).toBe('loading')
+  expect((await lease.waitForCurrentTerminal()).data?.issue?.state.name).toBe('Fresh')
+  expect(reads.search).toHaveBeenCalledTimes(1)
+  lease.release()
+  const reacquired = s.getState().searchLinearIssues('cached-null', 12).acquire()
+  expect(reacquired.currentView()).toMatchObject({
+    kind: 'data',
+    data: [{ state: { name: 'Fresh' } }]
+  })
+  expect(reads.search).toHaveBeenCalledTimes(1)
+  reacquired.release()
+  reads.search.mockResolvedValueOnce([])
+  expect(await s.getState().searchLinearIssues('miss', 12)).toEqual([])
+  expect(reads.search).toHaveBeenCalledTimes(2)
+  expect(pendingLinearIssueWrites.size).toBe(0)
+})

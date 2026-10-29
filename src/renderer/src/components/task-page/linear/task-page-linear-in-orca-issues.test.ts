@@ -191,6 +191,6 @@ describe('readLinkedLinearIssuesWithLimit', () => {
     )
 
     expect(maxActive).toBe(3)
-    expect(results.map((item) => item?.identifier)).toEqual(refs.map((ref) => ref.identifier))
+    expect(results?.map((item) => item?.identifier)).toEqual(refs.map((ref) => ref.identifier))
   })
 })

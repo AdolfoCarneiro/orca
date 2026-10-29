@@ -106,7 +106,7 @@ it.each(
     ])
     reads.list.mockResolvedValue({ items: [task('External')] })
     const external = await read(s, 'list')
-    expect(!Array.isArray(external) && external.items[0].state.name).toBe('External')
+    expect(!Array.isArray(external) && external?.items[0].state.name).toBe('External')
   }
 )
 

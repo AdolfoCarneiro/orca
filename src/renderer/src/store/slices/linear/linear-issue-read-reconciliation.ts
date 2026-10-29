@@ -72,7 +72,7 @@ export function createLinearIssueReconciler<T extends LinearIssueData>(
     }
   }
   const hasCandidates = () => !candidates().next().done
-  const reconcile = (data: T): T | null => {
+  const reconcile = (data: T | null): T | null => {
     const pending = [...candidates()]
     if (!pending.length) {
       return data

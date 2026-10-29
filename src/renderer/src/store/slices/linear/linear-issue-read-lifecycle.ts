@@ -3,7 +3,7 @@ import type { LinearReadScope } from './linear-slice-scope'
 
 export type LinearIssueView<T> =
   | { kind: 'loading'; data: T | null }
-  | { kind: 'data'; data: T }
+  | { kind: 'data'; data: T | null }
   | { kind: 'error'; error: unknown; data: T | null }
   | { kind: 'abandoned'; data: null }
 export type LinearIssueLease<T> = {
@@ -132,7 +132,7 @@ export async function consumeLinearIssueRead<T>(
 
 export function mapLinearIssueRead<T, U>(
   read: LinearIssueRead<T>,
-  map: (data: T) => U,
+  map: (data: T | null) => U,
   onError?: (error: unknown) => U
 ): LinearIssueRead<U> {
   return {

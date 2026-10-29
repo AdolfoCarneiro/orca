@@ -1,3 +1,4 @@
+import { useTaskPageDetailRouting } from '../use-task-page-detail-routing'
 import type * as ReactModule from 'react'
 import type { LinearEditState } from '../../linear-item-drawer-types'
 import { useCallback } from 'react'
@@ -418,3 +419,17 @@ export function source(hostId: TaskSourceContext['hostId']): TaskSourceContext {
 }
 
 export { reads }
+
+export function useRoutingFixture(
+  context: ReturnType<typeof source> | null,
+  initial: LinearIssue | null = null
+) {
+  const noop = vi.fn()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
+  return useTaskPageDetailRouting({
+    pageData: { openLinearIssue: initial ?? undefined },
+    linearTaskSourceContext: context,
+    setDialogWorkItem: noop,
+    openTaskPage: noop
+  } as never)
+}

@@ -138,10 +138,10 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
             : undefined
         }
       )
+      discardNewLinearIssueDraft()
       if (!isLive()) {
         return
       }
-      discardNewLinearIssueDraft()
       setNewLinearIssueOpen(false)
       setNewLinearIssueTitle('')
       setNewLinearIssueBody('')

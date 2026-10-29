@@ -112,10 +112,8 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
       }
     ) => {
       const committedSelection = committed.current?.saved.value
-      if (!issue && committedSelection?.id === null && !options?.isCurrent) {
-        return
-      }
-      const expectedRequest = options?.expectedSelection ?? committedSelection?.request
+      const expectedRequest =
+        options?.expectedSelection ?? (options?.isCurrent ? committedSelection?.request : undefined)
       const next = {
         request: {},
         id: issue?.id ?? null,
@@ -123,7 +121,7 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
         canFloat: Boolean(issue && options?.allowOutsideList)
       }
       publish(() => next, options?.isCurrent, {
-        matches: (previous) => previous.request === expectedRequest,
+        matches: expectedRequest ? (previous) => previous.request === expectedRequest : undefined,
         acknowledge:
           options?.isCurrent &&
           issue?.id === committedSelection?.id &&

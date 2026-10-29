@@ -9,6 +9,7 @@ import type { AppState } from '../types'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearProjectSummary } from '../../../../shared/linear/project-types'
 import { createLinearSlice } from './linear'
+import { createTaskCreationDraftsSlice } from './task-creation-drafts'
 import type { LinearSlice } from './linear/linear-slice-contract'
 
 type IssueReadAction =
@@ -18,14 +19,14 @@ type IssueReadAction =
   | 'listLinearIssues'
   | 'listLinearProjectIssues'
   | 'listLinearCustomViewIssues'
-type AwaitableRead<T> = LinearIssueRead<T> & PromiseLike<T>
+type AwaitableRead<T> = LinearIssueRead<T> & PromiseLike<T | null>
 type TestAppState = Omit<AppState, IssueReadAction> & {
   [K in IssueReadAction]: AppState[K] extends (...args: infer A) => LinearIssueRead<infer T>
     ? (...args: A) => AwaitableRead<T>
     : never
 }
 
-export async function readLinearIssueForTest<T>(read: LinearIssueRead<T>): Promise<T> {
+export async function readLinearIssueForTest<T>(read: LinearIssueRead<T>): Promise<T | null> {
   const lease = read.acquire()
   try {
     const view = await lease.waitForCurrentTerminal()
@@ -55,6 +56,7 @@ export function createTestStore() {
     const state = {
       settings: null,
       ...slice,
+      ...createTaskCreationDraftsSlice(...a),
       fetchLinearIssue: (...args) => awaitableRead(slice.fetchLinearIssue(...args)),
       refreshLinearIssue: (...args) => awaitableRead(slice.refreshLinearIssue(...args)),
       searchLinearIssues: (...args) => awaitableRead(slice.searchLinearIssues(...args)),

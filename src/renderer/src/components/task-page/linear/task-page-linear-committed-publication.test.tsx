@@ -4,8 +4,14 @@ import {
   task,
   store,
   source,
-  deferredIssueSetters
+  deferredIssueSetters,
+  useRoutingFixture
 } from './task-page-linear-refresh-test-fixtures'
+import { reads as issueReadRegistry } from '@/store/slices/linear/linear-issue-read-lifecycle'
+import { useTaskCreationDraftRetention } from '../../use-task-creation-draft-retention'
+import { writeNewLinearIssueDraft } from '../task-page-draft-storage'
+import { useAppStore } from '@/store'
+import { toast } from 'sonner'
 import { pendingLinearIssueWrites } from '@/store/slices/linear/linear-issue-publication'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
@@ -18,7 +24,7 @@ import { deferred } from '../../../store/slices/linear-slice-test-harness'
 
 import { Suspense, startTransition, useState, useLayoutEffect } from 'react'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
-import { useTaskPageDetailRouting } from '../use-task-page-detail-routing'
+import type { useTaskPageDetailRouting } from '../use-task-page-detail-routing'
 import { useTaskPageLinearIssueCreation } from './use-task-page-linear-issue-creation'
 import { useTaskPageLinearCustomViewEffects } from './use-task-page-linear-custom-view-effects'
 
@@ -81,6 +87,7 @@ it.each([true, false])(
       pending.resolve({ ok: false })
       await saving
       expect(pendingLinearIssueWrites.size).toBe(0)
+      expect(issueReadRegistry.size).toBe(0)
     }
   }
 )
@@ -106,16 +113,17 @@ it.each([
       committed: string[] = []
     let navigate!: (value: boolean) => void
     let create!: () => Promise<void>
+    let currentForm!: ReturnType<typeof useCreateFixture>
     function Consumer({ b }: { b: boolean }) {
       const context = b && change === 'source' ? B : A
       const model = useCreateFixture(context)
-      const route = model
-      const isB = change === 'source' ? b : route.selectedLinearIssue?.id === 'selected-B'
+      const isB = change === 'source' ? b : model.selectedLinearIssue?.id === 'selected-B'
       useLayoutEffect(() => {
         create = model.handleCreateNewLinearIssue
+        currentForm = model
         committed.push(isB ? 'B' : 'A')
         if (change === 'selection') {
-          navigate = () => route.setSelectedLinearIssue({ ...task('Selected B'), id: 'selected-B' })
+          navigate = () => model.setSelectedLinearIssue({ ...task('Selected B'), id: 'selected-B' })
         }
       })
       seen.push(isB ? 'B' : 'A')
@@ -124,7 +132,7 @@ it.each([
       }
       return (
         <output data-testid="creation-scope">
-          {isB ? 'B' : 'A'}:{route.selectedLinearIssue?.state.name ?? 'none'}:
+          {isB ? 'B' : 'A'}:{model.selectedLinearIssue?.state.name ?? 'none'}:
           {String(model.submitting)}
         </output>
       )
@@ -150,6 +158,12 @@ it.each([
     })
     expect(seen).toContain('B')
     expect(committed.includes('B')).toBe(!suspend)
+    if (!suspend) {
+      act(() => {
+        currentForm.setNewLinearIssueTitle('Successor')
+        currentForm.setNewLinearIssueBody('Successor body')
+      })
+    }
     await act(async () => {
       creating.resolve({ ok: true, id: task().id, identifier: task().identifier })
       await saving
@@ -165,6 +179,13 @@ it.each([
     }
     const visible = screen.getByTestId('creation-scope').textContent
     try {
+      if (!suspend) {
+        expect(currentForm).toMatchObject({
+          title: 'Successor',
+          body: 'Successor body',
+          open: true
+        })
+      }
       expect(visible).toBe(
         suspend
           ? 'A:Created External:false'
@@ -174,6 +195,8 @@ it.each([
       )
     } finally {
       mounted.unmount()
+      expect(pendingLinearIssueWrites.size).toBe(0)
+      expect(issueReadRegistry.size).toBe(0)
     }
   }
 )
@@ -183,8 +206,7 @@ it.each([true, false])(
   async (suspend) => {
     const s = store()
     s.setState({ jiraIssueCache: {}, jiraSearchCache: {} })
-    const context = defaultScopeSource(null),
-      noop = vi.fn()
+    const context = defaultScopeSource(null)
     const pendingPriority = deferred<{ ok: boolean }>(),
       pendingTitle = deferred<{ ok: boolean }>(),
       pendingEarlierTitle = deferred<{ ok: boolean }>()
@@ -198,13 +220,7 @@ it.each([true, false])(
     let block = true
     function Consumer() {
       const [tick, setTick] = useState(0)
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
-      const current = useTaskPageDetailRouting({
-        pageData: {},
-        linearTaskSourceContext: null,
-        setDialogWorkItem: noop,
-        openTaskPage: noop
-      } as never)
+      const current = useRoutingFixture(null)
       useLayoutEffect(() => {
         route = current
         pulse = () => setTick((n) => n + 1)
@@ -300,6 +316,7 @@ it.each([true, false])(
       pendingEarlierTitle.resolve({ ok: false })
       await Promise.all([prioritySaving, titleSaving, earlierTitleSaving])
       expect(pendingLinearIssueWrites.size).toBe(0)
+      expect(issueReadRegistry.size).toBe(0)
     }
   }
 )
@@ -396,6 +413,9 @@ it('committed hydration survives actual skipped-lane replay, force loading and t
   first.resolve(task('retired'))
   await first.promise
   expect(pendingLinearIssueWrites.size).toBe(0)
+  expect(issueReadRegistry.size).toBe(0)
+  act(() => s.getState().patchLinearIssue(task().id, { priority: 4 }))
+  expect(reads.detail).toHaveBeenCalledTimes(4)
 })
 
 it('acknowledges only captured field t, leaving newer u delivered before layout acknowledgement', async () => {
@@ -441,6 +461,7 @@ it('acknowledges only captured field t, leaving newer u delivered before layout 
   t.resolve({ ok: false })
   await Promise.all([savingT, savingU])
   expect(pendingLinearIssueWrites.size).toBe(0)
+  expect(issueReadRegistry.size).toBe(0)
 })
 
 it('committed field t reconstructs while newer u is in a genuinely suspended lane', async () => {
@@ -496,21 +517,26 @@ it('committed field t reconstructs while newer u is in a genuinely suspended lan
   u.resolve({ ok: false })
   await Promise.all([savingT, savingU])
   expect(pendingLinearIssueWrites.size).toBe(0)
+  expect(issueReadRegistry.size).toBe(0)
 })
 
-function useCreateFixture(context: ReturnType<typeof source>, initial: LinearIssue | null = null) {
+function useCreateFixture(
+  context: ReturnType<typeof source>,
+  initial: LinearIssue | null = null,
+  initialTitle = 'Created'
+) {
+  const draft = useAppStore.getState().newLinearIssueDraft
   const noop = vi.fn(),
-    [title, setTitle] = useState('Created'),
+    [title, setTitle] = useState(draft?.title ?? initialTitle),
+    [body, setBody] = useState(draft?.body ?? (initialTitle ? 'Body' : '')),
+    [open, setOpen] = useState(true),
     [submitting, setSubmitting] = useState(false)
-  // SAFETY: this fixture uses only Linear routing; unrelated provider/page dependencies are inert.
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
-  const route = useTaskPageDetailRouting({
-    pageData: { openLinearIssue: initial ?? undefined },
-    linearTaskSourceContext: context,
-    setDialogWorkItem: noop,
-    openTaskPage: noop
-  } as never)
-  // SAFETY: exact exercised creation inputs are supplied; other page actions are not called.
+  const route = useRoutingFixture(context, initial)
+  const discard = useTaskCreationDraftRetention({
+    open,
+    draft: { title, body },
+    writeDraft: writeNewLinearIssueDraft
+  })
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
   const creation = useTaskPageLinearIssueCreation({
     ...route,
@@ -520,11 +546,11 @@ function useCreateFixture(context: ReturnType<typeof source>, initial: LinearIss
     linearTaskSourceContext: context,
     setLinearRefreshNonce: noop,
     selectedLinearProject: null,
-    setNewLinearIssueOpen: noop,
+    setNewLinearIssueOpen: setOpen,
     newLinearIssueTitle: title,
     setNewLinearIssueTitle: setTitle,
-    newLinearIssueBody: '',
-    setNewLinearIssueBody: noop,
+    newLinearIssueBody: body,
+    setNewLinearIssueBody: setBody,
     newLinearIssueSubmitting: submitting,
     setNewLinearIssueSubmitting: setSubmitting,
     newLinearIssueStateId: null,
@@ -537,21 +563,26 @@ function useCreateFixture(context: ReturnType<typeof source>, initial: LinearIss
     setNewLinearIssueProjectId: noop,
     newLinearIssueLabelIds: [],
     setNewLinearIssueLabelIds: noop,
-    discardNewLinearIssueDraft: noop,
+    discardNewLinearIssueDraft: discard,
     newLinearIssueTargetTeam: { id: 'team-1', workspaceId: 'w' }
   } as never)
-  return { ...creation, submitting }
+  return { ...creation, submitting, title, body, open }
 }
 
-it.each([false, true])(
-  'create held over unmount=%s cannot leave orphan detail demand',
-  async (unmount) => {
+it.each([
+  { unmount: false, ok: true },
+  { unmount: true, ok: true },
+  { unmount: true, ok: false }
+])(
+  'create held over unmount=$unmount ok=$ok completes the session draft without orphan demand',
+  async ({ unmount, ok }) => {
     const s = store(),
       context = source('local')
     s.setState({ recordFeatureInteraction: vi.fn(), jiraIssueCache: {}, jiraSearchCache: {} })
     const creating = deferred<{ ok: boolean; id: string; identifier: string }>()
     reads.create.mockReturnValue(creating.promise)
     reads.detail.mockResolvedValue({ ...task('Created'), id: 'N' })
+    const success = vi.spyOn(toast, 'success')
     const hook = renderHook(() => useCreateFixture(context))
     let saving!: Promise<void>
     act(() => {
@@ -559,18 +590,32 @@ it.each([false, true])(
     })
     if (unmount) {
       hook.unmount()
+      expect(s.getState().newLinearIssueDraft).toEqual({ title: 'Created', body: 'Body' })
     }
     await act(async () => {
-      creating.resolve({ ok: true, id: 'N', identifier: 'ENG-2' })
+      creating.resolve({ ok, id: 'N', identifier: 'ENG-2' })
       await saving
     })
     expect(reads.create).toHaveBeenCalledTimes(1)
+    expect(success).toHaveBeenCalledTimes(ok ? 1 : 0)
+    expect(s.getState().newLinearIssueDraft).toEqual(ok ? null : { title: 'Created', body: 'Body' })
     expect(reads.detail).toHaveBeenCalledTimes(unmount ? 0 : 1)
     if (!unmount) {
       await waitFor(() => expect(hook.result.current.selectedLinearIssue?.id).toBe('N'))
-      expect(hook.result.current.submitting).toBe(false)
+      expect(hook.result.current).toMatchObject({
+        submitting: false,
+        open: false,
+        title: '',
+        body: ''
+      })
       hook.unmount()
     }
+    expect(pendingLinearIssueWrites.size).toBe(0)
+    expect(issueReadRegistry.size).toBe(0)
+    const reopened = renderHook(() => useCreateFixture(context, null, ''))
+    expect(reopened.result.current.title).toBe(ok ? '' : 'Created')
+    expect(reopened.result.current.body).toBe(ok ? '' : 'Body')
+    reopened.unmount()
     act(() => s.getState().patchLinearIssue('N', { priority: 4 }, { sourceContext: context }))
     expect(reads.detail).toHaveBeenCalledTimes(unmount ? 0 : 1)
   }
@@ -634,6 +679,7 @@ it('create selects N before pending A settles, without waiting for N follow-up h
   held.resolve(null)
   await held.promise
   expect(pendingLinearIssueWrites.size).toBe(0)
+  expect(issueReadRegistry.size).toBe(0)
 })
 
 it('an empty-list selection clear preserves a pending create and its successful selection', async () => {
@@ -646,6 +692,7 @@ it('an empty-list selection clear preserves a pending create and its successful 
   const hook = renderHook(() => {
     const model = useCreateFixture(context)
     const [emptyRows, setEmptyRows] = useState<LinearIssue[]>([])
+    const [connected, setConnected] = useState(true)
     const noop = vi.fn()
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only existing selection effect inputs execute; catalog effects are disabled/inert.
     useTaskPageLinearCustomViewEffects({
@@ -653,14 +700,14 @@ it('an empty-list selection clear preserves a pending create and its successful 
       taskResumeApplied: true,
       taskSource: 'linear',
       linearMode: 'issues',
-      linearConnected: true,
+      linearConnected: connected,
       selectedLinearCustomView: null,
       linearCustomViewIssueResult: { read: noop, setLoading: noop },
       setLinearCustomViewIssuesResult: noop,
       setLinearCustomViewProjectsResult: noop,
       filteredLinearIssues: emptyRows
     } as never)
-    return { ...model, deliver: () => setEmptyRows([]) }
+    return { ...model, deliver: () => setEmptyRows([]), setConnected }
   })
   let saving!: Promise<void>
   try {
@@ -668,17 +715,36 @@ it('an empty-list selection clear preserves a pending create and its successful 
       saving = hook.result.current.handleCreateNewLinearIssue()
     })
     expect(hook.result.current.submitting).toBe(true)
+    const request = hook.result.current.linearSelectionRequest
     act(() => hook.result.current.deliver())
-    const pendingSubmitting = hook.result.current.submitting
+    expect(hook.result.current.linearSelectionRequest).toBe(request)
+    act(() => hook.result.current.setConnected(false))
+    expect(hook.result.current.linearSelectionRequest).toBe(request)
+    expect(hook.result.current.submitting).toBe(true)
+    act(() => hook.result.current.setConnected(true))
+    expect(reads.create).toHaveBeenCalledTimes(1)
     await act(async () => {
       creating.resolve({ ok: true, id: 'N', identifier: 'ENG-2' })
       await saving
     })
-    expect(pendingSubmitting).toBe(true)
     await waitFor(() => expect(hook.result.current.selectedLinearIssue?.id).toBe('N'))
+    expect(hook.result.current.submitting).toBe(false)
+    expect(reads.detail).toHaveBeenCalledTimes(1)
+    act(() => hook.result.current.deliver())
+    expect(hook.result.current.selectedLinearIssue?.id).toBe('N')
+    act(() => hook.result.current.setSelectedLinearIssue(task()))
+    expect(hook.result.current.selectedLinearIssue).toBeNull()
+    act(() => hook.result.current.setSelectedLinearIssue(task(), { allowOutsideList: true }))
+    expect(hook.result.current.selectedLinearIssue?.id).toBe(task().id)
+    act(() => hook.result.current.setConnected(false))
+    expect(hook.result.current.selectedLinearIssue).toBeNull()
   } finally {
     hook.unmount()
     creating.resolve({ ok: true, id: 'N', identifier: 'ENG-2' })
     await saving
+    expect(pendingLinearIssueWrites.size).toBe(0)
+    expect(issueReadRegistry.size).toBe(0)
+    act(() => s.getState().patchLinearIssue('N', { priority: 4 }, { sourceContext: context }))
+    expect(reads.detail).toHaveBeenCalledTimes(1)
   }
 })

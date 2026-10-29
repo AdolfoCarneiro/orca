@@ -25,7 +25,7 @@ export function openLinearIssueRead<T extends LinearIssueData>(args: {
   identifier?: string
   workspaces?: LinearWorkspace[]
   seed: T | null
-  cached?: T
+  cached?: T | null
   dispatch: (force: boolean) => Promise<T>
   publish: (data: T) => void
   isCurrent: () => boolean

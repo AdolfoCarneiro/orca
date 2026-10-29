@@ -451,7 +451,7 @@ describe('account observations stay separate from query transport', () => {
       new Error('Timed out while waiting for SSH authentication')
     )
     const result = await store.getState().listLinearProjectIssues('project', 'workspace-1')
-    expect(result.errors).toMatchObject([{ workspaceId: 'workspace-1', type: 'unknown' }])
+    expect(result?.errors).toMatchObject([{ workspaceId: 'workspace-1', type: 'unknown' }])
     await getInflightStatusRequest()?.promise
     expect(store.getState().linearStatus).toBe(confirmed)
     expect(getInflightStatusRequest()).toBeNull()

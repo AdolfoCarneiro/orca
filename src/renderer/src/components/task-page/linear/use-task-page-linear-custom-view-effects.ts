@@ -24,7 +24,8 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
     taskResumeApplied,
     selectedLinearIssueId,
     selectedLinearIssueCanFloat,
-    clearSelectedLinearIssue,
+    setSelectedLinearIssue,
+    linearSelectionRequest,
     linearMode,
     linearRefreshNonce,
     setLinearCustomViewsResult,
@@ -182,30 +183,20 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
     setLinearCustomViewIssuesResult
   ])
   useEffect(() => {
-    if (!taskResumeApplied || taskSource !== 'linear') {
+    if (!taskResumeApplied || taskSource !== 'linear' || !selectedLinearIssueId) {
       return
     }
-    if (!linearConnected) {
-      clearSelectedLinearIssue()
-      return
-    }
-    if (filteredLinearIssues.length === 0) {
-      if (!selectedLinearIssueCanFloat) {
-        clearSelectedLinearIssue()
-      }
-      return
-    }
-
-    // Why: list-first — keep an open inspector only while its issue stays in the filter, not auto-open row 1; user-directed sub-issue nav stays.
+    // Why: an observed invalid selection can clear only the request it observed.
     if (
-      selectedLinearIssueId &&
-      !selectedLinearIssueCanFloat &&
-      !filteredLinearIssues.some((issue) => issue.id === selectedLinearIssueId)
+      !linearConnected ||
+      (!selectedLinearIssueCanFloat &&
+        !filteredLinearIssues.some((issue) => issue.id === selectedLinearIssueId))
     ) {
-      clearSelectedLinearIssue()
+      setSelectedLinearIssue(null, { expectedSelection: linearSelectionRequest })
     }
   }, [
-    clearSelectedLinearIssue,
+    setSelectedLinearIssue,
+    linearSelectionRequest,
     filteredLinearIssues,
     linearConnected,
     selectedLinearIssueCanFloat,

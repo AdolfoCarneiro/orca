@@ -73,7 +73,7 @@ async function installLinearFixture(
       ipcMain.handle('linear:getIssue', async (_event, { workspaceId }) => {
         if (holdLookup) {
           await new Promise<void>((resolve) =>
-            ipcMain.once('pr34591-release-linear-lookup', resolve)
+            ipcMain.once('pr34591-release-linear-lookup', () => resolve())
           )
         }
         return resolvedIssue && workspaceId === resolvedIssue.workspaceId ? resolvedIssue : null
