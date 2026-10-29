@@ -60,6 +60,9 @@ vi.mock('./use-mobile-source-control-state', () => ({
     stagedCount: 0,
     branchEntries: [],
     abortConflictOperation: () => Promise.resolve(),
+    resolveConflict: () => Promise.resolve(),
+    completeMerge: () => Promise.resolve(),
+    hasUnresolvedConflicts: false,
     primaryActionArgs: {
       status: null,
       hasUnresolvedConflicts: false,

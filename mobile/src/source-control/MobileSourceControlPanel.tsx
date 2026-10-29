@@ -21,6 +21,7 @@ import { styles } from './mobile-source-control-styles'
 import { hubStyles } from './mobile-source-control-hub-styles'
 import type { SourceControlHubTab } from './mobile-source-control-hub-tab'
 import { buildMobilePrChipSummary, countUnresolvedReviewThreads } from './mobile-pr-chip-summary'
+import { MOBILE_COMPLETE_MERGE_ACTION_ID } from './mobile-source-control-conflict-actions'
 import { isMobileConflictAborting } from './mobile-source-control-conflict-abort'
 import { useMobilePrSidebarController } from '../session/use-mobile-pr-sidebar-controller'
 import { prSidebarDetailsNeedFetch } from '../session/mobile-pr-sidebar-state'
@@ -116,7 +117,9 @@ export function MobileSourceControlPanel({
     unstagedCount,
     stagedCount,
     branchEntries,
-    abortConflictOperation
+    abortConflictOperation,
+    completeMerge,
+    hasUnresolvedConflicts
   } = state
   const ioBusy = busyAction !== null || openingPath !== null || openingBranchPath !== null
   const ready = screenState.kind === 'ready'
@@ -310,6 +313,12 @@ export function MobileSourceControlPanel({
           conflictBusy={busyAction !== null}
           conflictAborting={conflictAborting}
           onAbortConflict={(operation) => void abortConflictOperation(operation)}
+          onCompleteMerge={
+            conflictOperation === 'merge' && !hasUnresolvedConflicts
+              ? () => void completeMerge()
+              : null
+          }
+          completingMerge={busyAction === MOBILE_COMPLETE_MERGE_ACTION_ID}
           prChip={prChip}
           onOpenPr={openPrTab}
         />
