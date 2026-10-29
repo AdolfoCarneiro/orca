@@ -232,7 +232,7 @@ export function CrewPanelContent({
               ref={tab}
               variant="outline"
               size="xs"
-              className="absolute right-0 top-2 max-w-80 rounded-r-none bg-card text-card-foreground"
+              className="absolute right-0 top-2 max-w-80"
               aria-label={`Show crew: ${label}`}
               aria-expanded={false}
               onClick={() => changeOpen(true)}
@@ -252,8 +252,8 @@ export function CrewPanelContent({
               {pending > 0 ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-status-warning">
-                      {pending}
+                    <Badge variant="outline">
+                      <span className="text-status-warning">{pending}</span>
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>{pending} waiting for you</TooltipContent>
@@ -297,7 +297,8 @@ function CrewRowView({
       <div className="flex items-center gap-1 px-2 py-2">
         <Button
           variant="ghost"
-          className="h-auto min-w-0 flex-1 justify-start gap-2 px-1 py-1 text-left"
+          size="xs"
+          className="h-auto min-w-0 flex-1 justify-start text-left"
           disabled={!canMention || !row.sendAddress}
           onPointerDown={(event) => event.preventDefault()}
           onClick={mention}

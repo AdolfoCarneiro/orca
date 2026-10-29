@@ -149,7 +149,13 @@ it('shares complete host derivation across N/10N handled assignments and subscri
 it('counts the real status qualification/projection SQL on a decoration wake without global reacquisition', async () => {
   const now = 1_800_000_000_000
   vi.useFakeTimers({ now })
-  const measurements = []
+  const measurements: {
+    population: number
+    get: number
+    all: number
+    iterate: number
+    rows: number
+  }[] = []
   for (const population of [3, 30]) {
     const { db, deps, assign, handles } = fixture()
     assign('term_worker')

@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 import { OrcaRuntimeService } from './orca-runtime'
 import type { OrchestrationDb } from './orchestration/db'
 import { ORCHESTRATION_METHODS } from './rpc/methods/orchestration'
-import { eraseRpcMethods } from './rpc/core'
+import { isStreamingMethod, eraseRpcMethods } from './rpc/core'
 
 type Db = InstanceType<typeof OrchestrationDb>
 type Runtime = InstanceType<typeof OrcaRuntimeService>
@@ -18,9 +18,9 @@ export function rpcRuntime(db: Db): {
   return {
     runtime,
     call: async (name, params) => {
-      const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-        (candidate) => candidate.name === name
-      )
+      const method = eraseRpcMethods(ORCHESTRATION_METHODS)
+        .filter((method) => !isStreamingMethod(method))
+        .find((candidate) => candidate.name === name)
       if (!method?.params) {
         throw new Error(`Method not found: ${name}`)
       }

@@ -1,29 +1,33 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render } from '@testing-library/react'
+import { useLayoutEffect } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import type { RuntimeRpcSubscriptionHandlers } from '@/runtime/runtime-rpc-subscribe'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
 import { useOrchestrationCrew } from './use-orchestration-crew'
 
-const rig = vi.hoisted(() => ({
-  streams: [] as {
+const rig = vi.hoisted(() => {
+  const streams: {
     target: RuntimeClientTarget
     party: string
     handlers: RuntimeRpcSubscriptionHandlers
     unsubscribe: ReturnType<typeof vi.fn>
-  }[],
-  listeners: new Set<() => void>(),
-  state: {
-    unusedLocalState: 0,
-    runtimeStatusByEnvironmentId: new Map([
-      [
-        'crew-host',
-        { status: { runtimeId: 'runtime-one' }, connectionGeneration: 1, hostContactEpoch: 1 }
-      ]
-    ])
+  }[] = []
+  return {
+    streams,
+    listeners: new Set<() => void>(),
+    state: {
+      unusedLocalState: 0,
+      runtimeStatusByEnvironmentId: new Map([
+        [
+          'crew-host',
+          { status: { runtimeId: 'runtime-one' }, connectionGeneration: 1, hostContactEpoch: 1 }
+        ]
+      ])
+    }
   }
-}))
+})
 vi.mock('@/runtime/runtime-rpc-subscribe', () => ({
   subscribeRuntimeRpc: vi.fn(
     async (
@@ -67,7 +71,9 @@ function Pane({
   renderCount: () => void
 }) {
   const crew = useOrchestrationCrew(target, party)
-  renderCount()
+  useLayoutEffect(() => {
+    renderCount()
+  })
   return (
     <>
       <output data-testid={party}>

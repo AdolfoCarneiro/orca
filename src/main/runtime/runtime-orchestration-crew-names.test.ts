@@ -32,7 +32,8 @@ it('captures actual raw naming reads once at N/10N and preserves naming preceden
           paneKey: `tab_${handle}:leaf`,
           worktreeId: 'workspace',
           agentType: 'codex' as const,
-          receivedAt: 1
+          receivedAt: 1,
+          connectionId: null
         }))
       ),
       getAgentStatusSnapshotForPane: vi.fn(() => []),

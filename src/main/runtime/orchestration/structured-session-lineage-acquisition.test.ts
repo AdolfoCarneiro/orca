@@ -70,7 +70,7 @@ function reader(records: readonly AgentSessionConversationView[], thrown = '') {
 it('preserves the entire root-relative authority result for shared, failed and cyclic captured chains in either order', () => {
   const base = record('pending', 'C')
   const committed = base.conversationCommand!
-  const records = [
+  const records: AgentSessionConversationView[] = [
     record('A', 'B'),
     record('B', 'C'),
     record('C'),
