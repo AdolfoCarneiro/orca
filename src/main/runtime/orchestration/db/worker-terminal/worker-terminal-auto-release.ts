@@ -174,7 +174,7 @@ export function nextWorkerTerminalAutoReleaseAtMs(this: OrchestrationDb): number
           WHERE ${WORKER_TERMINAL_AUTO_RELEASE_LIVE_SQL}
          UNION ALL
          SELECT MIN(home_auto_release_at) FROM federated_dispatches
-          WHERE home_auto_release_state = 'armed'
+          WHERE home_auto_release_state = 'armed' AND home_auto_release_at IS NOT NULL
        )`
     )
     .get() as { at: string | null }
