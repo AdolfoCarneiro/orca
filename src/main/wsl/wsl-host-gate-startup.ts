@@ -1,5 +1,5 @@
 import { readWslHostDeployments } from '../../shared/wsl-host-deployment-store'
-import { wslHostsPolicyBlocks } from '../../shared/wsl-hosts-policy'
+import { wslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 import { listWslMoveCutovers } from '../persistence/moving-wsl-projects/wsl-move-cutover-journal'
 import { configureWslHostsGate } from './wsl-host-gate'
 import { readCachedWslHostsPolicy } from './wsl-hosts-policy-live-update'
@@ -10,6 +10,6 @@ export function configureWslHostsGateFromDisk(userDataPath: string, appVersion: 
     hasSavedWslHost: () => readWslHostDeployments(userDataPath).deployments.length > 0,
     // Any journal entry, committed or not: recovery must reset an in-flight move whose host is gone.
     hasWslMoveCutover: () => listWslMoveCutovers(userDataPath).length > 0,
-    policyBlocks: () => wslHostsPolicyBlocks(readCachedWslHostsPolicy(userDataPath, appVersion))
+    policy: () => wslHostsPolicyState(readCachedWslHostsPolicy(userDataPath, appVersion))
   })
 }

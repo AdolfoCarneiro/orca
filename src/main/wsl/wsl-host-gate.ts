@@ -8,6 +8,7 @@ import {
   type WslHostsGateState
 } from '../../shared/wsl-host-internal-gate'
 import type { OrcadDeploymentLink } from '../../shared/runtime-environments'
+import type { WslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 
 export const WSL_HOSTS_GATED_OFF_MESSAGE = 'WSL hosts are not available in this build.'
 export const WSL_HOSTS_NEW_WORK_PAUSED_MESSAGE =
@@ -17,8 +18,10 @@ export const WSL_HOSTS_NEW_WORK_PAUSED_MESSAGE =
 let promoted: { hasSavedWslHost: boolean; hasWslMoveCutover: boolean } | null = null
 // Also fixed for the run: a mid-run flip could pull a live host or an in-flight move from under the user.
 let policyBlocked = false
+// The cached remote policy this launch read; null when the internal gate was closed, so none was read.
+let policyState: WslHostsPolicyState | null = null
 
-// Unreadable state counts as absent: today's closed behavior, and an unreadable policy blocks nothing.
+// Unreadable state counts as absent: today's closed behavior.
 function readFact(fact: () => boolean): boolean {
   try {
     return fact()
@@ -27,9 +30,22 @@ function readFact(fact: () => boolean): boolean {
   }
 }
 
-function notePolicyBlocked(blocked: boolean): void {
-  policyBlocked = blocked
-  noteWslHostsPolicyBlocked(blocked)
+// An unreadable policy is missing, which blocks nothing.
+function readPolicy(read: (() => WslHostsPolicyState) | undefined): WslHostsPolicyState | null {
+  if (!isWslHostsInternalGateOpen(process.env)) {
+    return null
+  }
+  try {
+    return read?.() ?? 'missing'
+  } catch {
+    return 'missing'
+  }
+}
+
+function notePolicy(state: WslHostsPolicyState | null): void {
+  policyState = state
+  policyBlocked = state === 'block'
+  noteWslHostsPolicyBlocked(policyBlocked)
 }
 
 /**
@@ -39,12 +55,9 @@ function notePolicyBlocked(blocked: boolean): void {
 export function configureWslHostsGate(facts: {
   hasSavedWslHost: () => boolean
   hasWslMoveCutover: () => boolean
-  policyBlocks?: () => boolean
+  policy?: () => WslHostsPolicyState
 }): void {
-  const { policyBlocks } = facts
-  notePolicyBlocked(
-    isWslHostsInternalGateOpen(process.env) && policyBlocks !== undefined && readFact(policyBlocks)
-  )
+  notePolicy(readPolicy(facts.policy))
   if (wslHostsGateOpen()) {
     promoted = null
     noteWslHostsServeOnly(false)
@@ -60,7 +73,7 @@ export function configureWslHostsGate(facts: {
 export function resetWslHostsGateForTests(): void {
   promoted = null
   noteWslHostsServeOnly(false)
-  notePolicyBlocked(false)
+  notePolicy(null)
 }
 
 export function wslHostsGateState(): WslHostsGateState {
@@ -87,6 +100,11 @@ export function wslHostsGateOpen(): boolean {
 /** The launch environment opened the gate, but the cached remote policy closed it for this run. */
 export function wslHostsPolicyBlocked(): boolean {
   return policyBlocked
+}
+
+/** The cached remote policy this launch applied; null when the internal gate was closed. */
+export function wslHostsAppliedPolicyState(): WslHostsPolicyState | null {
+  return policyState
 }
 
 /** Saved hosts and moved projects stay reachable: `open` or `serve-only`. */

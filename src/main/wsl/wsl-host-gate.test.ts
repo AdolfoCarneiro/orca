@@ -5,6 +5,7 @@ import {
   isGatedOffWslHost,
   resetWslHostsGateForTests,
   wslHostsGateOpen,
+  wslHostsAppliedPolicyState,
   wslHostsGateState,
   wslHostsPolicyBlocked,
   wslHostsServing,
@@ -98,7 +99,7 @@ describe('WSL hosts gate', () => {
   describe('remote policy block', () => {
     const blocked = (hasSavedWslHost: boolean, hasWslMoveCutover: boolean) => ({
       ...facts(hasSavedWslHost, hasWslMoveCutover),
-      policyBlocks: () => true
+      policy: () => 'block' as const
     })
 
     it('closes an open internal gate for the run, in main and in shared readers', () => {
@@ -129,11 +130,12 @@ describe('WSL hosts gate', () => {
 
     it('is not read, and changes nothing, behind a closed internal gate', () => {
       vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', undefined)
-      const policyBlocks = vi.fn(() => true)
-      configureWslHostsGate({ ...facts(true, false), policyBlocks })
+      const policy = vi.fn(() => 'block' as const)
+      configureWslHostsGate({ ...facts(true, false), policy })
 
-      expect(policyBlocks).not.toHaveBeenCalled()
+      expect(policy).not.toHaveBeenCalled()
       expect(wslHostsPolicyBlocked()).toBe(false)
+      expect(wslHostsAppliedPolicyState()).toBeNull()
       expect(wslHostsWindowArguments()).toEqual(['--orca-wsl-hosts-serve-only'])
     })
 
@@ -141,12 +143,13 @@ describe('WSL hosts gate', () => {
       vi.stubEnv('ORCA_INTERNAL_WSL_HOSTS', '1')
       configureWslHostsGate({
         ...facts(false, false),
-        policyBlocks: () => {
+        policy: () => {
           throw new Error('unreadable')
         }
       })
 
       expect(wslHostsGateState()).toBe('open')
+      expect(wslHostsAppliedPolicyState()).toBe('missing')
       expect(wslHostsWindowArguments()).toEqual([])
     })
 

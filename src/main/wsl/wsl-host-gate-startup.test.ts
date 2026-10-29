@@ -8,6 +8,7 @@ import { seedWslMoveCutover } from '../persistence/__fixtures__/wsl-mover/wsl-mo
 import { wslMoveJournalDirectory } from '../persistence/moving-wsl-projects/wsl-move-cutover-journal'
 import {
   resetWslHostsGateForTests,
+  wslHostsAppliedPolicyState,
   wslHostsGateOpen,
   wslHostsGateState,
   wslHostsPolicyBlocked
@@ -90,6 +91,20 @@ describe('WSL hosts gate startup promotion', () => {
 
       expect(wslHostsGateState()).toBe('open')
       expect(wslHostsPolicyBlocked()).toBe(false)
+      expect(wslHostsAppliedPolicyState()).toBe('missing')
+    })
+
+    // A move or host running in this session is never pulled out from under the user.
+    it('applies a block cached mid-run only at the next launch', () => {
+      configureWslHostsGateFromDisk(userDataPath, STABLE)
+      cachePolicy('block')
+
+      expect(wslHostsGateOpen()).toBe(true)
+      expect(wslHostsAppliedPolicyState()).toBe('missing')
+
+      configureWslHostsGateFromDisk(userDataPath, STABLE)
+      expect(wslHostsGateOpen()).toBe(false)
+      expect(wslHostsAppliedPolicyState()).toBe('block')
     })
 
     it('stays open on an allow', () => {

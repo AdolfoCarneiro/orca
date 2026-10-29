@@ -1,5 +1,6 @@
 // Count distro identities locally; only buckets/booleans reach the telemetry payload.
 import type { WslHostsGateState } from '../../shared/wsl-host-internal-gate'
+import type { WslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 import type { Repo } from '../../shared/repo-types'
 import type { ProjectExecutionRuntimeResolution } from '../../shared/project-execution-runtime'
 import { isDrvfsLinuxPath, parseWslUncPath } from '../../shared/wsl-paths'
@@ -34,8 +35,8 @@ export type WslUsageSnapshotInput = {
   windowsDriveReposWithWslWorktrees: number
   wslHostsGateOpen: boolean
   wslHostsGateState?: WslHostsGateState
-  /** The launch environment opened the gate but a cached remote policy closed it. */
-  wslHostsPolicyBlocked?: boolean
+  /** The cached remote policy applied at launch; absent when the internal gate left it unread. */
+  wslHostsPolicy?: WslHostsPolicyState | null
 }
 
 /** `2.4.13.0` → `2.4`; anything else is dropped rather than sent. */
@@ -119,8 +120,6 @@ export function buildWslUsageSnapshot(input: WslUsageSnapshotInput): WslUsageSna
     project_distros_used: bucketWslUsageCount(projectDistros.size),
     wsl_hosts_gate_open: input.wslHostsGateOpen,
     ...(input.wslHostsGateState ? { wsl_hosts_gate_state: input.wslHostsGateState } : {}),
-    ...(input.wslHostsPolicyBlocked !== undefined
-      ? { wsl_hosts_policy_blocked: input.wslHostsPolicyBlocked }
-      : {})
+    ...(input.wslHostsPolicy ? { wsl_hosts_policy: input.wslHostsPolicy } : {})
   }
 }

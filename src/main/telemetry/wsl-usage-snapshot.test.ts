@@ -125,11 +125,20 @@ describe('buildWslUsageSnapshot', () => {
     expect(buildWslUsageSnapshot(baseInput)).not.toHaveProperty('wsl_hosts_gate_state')
   })
 
-  it('reports a remote policy block when known, as an optional field', () => {
-    const props = buildWslUsageSnapshot({ ...baseInput, wslHostsPolicyBlocked: true })
-    expect(props.wsl_hosts_policy_blocked).toBe(true)
-    expect(validate('wsl_usage_snapshot', props).ok).toBe(true)
-    expect(buildWslUsageSnapshot(baseInput)).not.toHaveProperty('wsl_hosts_policy_blocked')
+  it.each(['allow', 'block', 'missing'] as const)(
+    'reports the applied remote policy %s as an optional field',
+    (wslHostsPolicy) => {
+      const props = buildWslUsageSnapshot({ ...baseInput, wslHostsPolicy })
+      expect(props.wsl_hosts_policy).toBe(wslHostsPolicy)
+      expect(validate('wsl_usage_snapshot', props).ok).toBe(true)
+    }
+  )
+
+  it('omits the remote policy when the internal gate left it unread', () => {
+    expect(buildWslUsageSnapshot({ ...baseInput, wslHostsPolicy: null })).not.toHaveProperty(
+      'wsl_hosts_policy'
+    )
+    expect(buildWslUsageSnapshot(baseInput)).not.toHaveProperty('wsl_hosts_policy')
   })
 
   it('reports no WSL and an unreadable registry without a version', () => {
