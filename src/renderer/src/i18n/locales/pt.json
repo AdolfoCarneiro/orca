@@ -20140,7 +20140,10 @@
       "hostOutage": {
         "offline": "{{hostName}} está offline",
         "reconnecting": "{{hostName}} está reconectando…",
-        "reconnect": "Reconectar"
+        "reconnect": "Reconectar",
+        "stopped": "{{distro}} está parado",
+        "start": "Iniciar",
+        "unverifiable": "O Orca não conseguiu verificar se {{distro}} está em execução"
       },
       "interruptedContinue": {
         "continue": "Continuar",

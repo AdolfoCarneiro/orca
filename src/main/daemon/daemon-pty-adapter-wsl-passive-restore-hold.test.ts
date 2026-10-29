@@ -5,7 +5,7 @@ import type * as DistroGate from '../wsl-background-distro-gate'
 import type { DaemonServer } from './daemon-server'
 import type { DaemonPtyAdapter } from './daemon-pty-adapter'
 import { createMockSubprocess, startDaemonAdapterHarness } from './daemon-pty-adapter-test-harness'
-import { parseWslDistroStoppedHold } from '../../shared/wsl-distro-stopped-hold'
+import { parseWslDistroHold } from '../../shared/wsl-distro-stopped-hold'
 
 const readState = vi.hoisted(() =>
   vi.fn(
@@ -54,7 +54,10 @@ describe('a passive restore of a WSL bridge pane (E9)', () => {
 
   it('is held, starting nothing, when a settled read finds the distro stopped', async () => {
     const error = await restore({ wslPassiveRestore: true }).catch((caught: unknown) => caught)
-    expect(error instanceof Error ? parseWslDistroStoppedHold(error.message) : null).toBe('Ubuntu')
+    expect(error instanceof Error ? parseWslDistroHold(error.message) : null).toEqual({
+      distro: 'Ubuntu',
+      state: 'stopped'
+    })
     expect(spawns).toBe(0)
     expect(readState).toHaveBeenCalledWith('Ubuntu', { retryUnverifiable: true })
   })
@@ -69,7 +72,11 @@ describe('a passive restore of a WSL bridge pane (E9)', () => {
   it('holds when the read cannot tell, too', async () => {
     readState.mockResolvedValue('unverifiable')
     const error = await restore({ wslPassiveRestore: true }).catch((caught: unknown) => caught)
-    expect(error instanceof Error ? parseWslDistroStoppedHold(error.message) : null).toBe('Ubuntu')
+    // Named as such, so the card says Orca couldn't check rather than that the distro stopped.
+    expect(error instanceof Error ? parseWslDistroHold(error.message) : null).toEqual({
+      distro: 'Ubuntu',
+      state: 'unverifiable'
+    })
     expect(spawns).toBe(0)
   })
 

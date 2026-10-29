@@ -18907,7 +18907,10 @@
       "hostOutage": {
         "offline": "{{hostName}}이(가) 오프라인입니다",
         "reconnecting": "{{hostName}}에 다시 연결하는 중…",
-        "reconnect": "다시 연결"
+        "reconnect": "다시 연결",
+        "stopped": "{{distro}}이(가) 중지되었습니다",
+        "start": "시작",
+        "unverifiable": "Orca가 {{distro}}이(가) 실행 중인지 확인하지 못했습니다"
       },
       "interruptedContinue": {
         "continue": "계속",

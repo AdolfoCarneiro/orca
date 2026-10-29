@@ -19608,7 +19608,10 @@
       "hostOutage": {
         "offline": "{{hostName}} est hors ligne",
         "reconnecting": "{{hostName}} se reconnecte…",
-        "reconnect": "Reconnecter"
+        "reconnect": "Reconnecter",
+        "stopped": "{{distro}} est arrêté",
+        "start": "Démarrer",
+        "unverifiable": "Orca n'a pas pu vérifier si {{distro}} est en cours d'exécution"
       },
       "interruptedContinue": {
         "continue": "Continuer",

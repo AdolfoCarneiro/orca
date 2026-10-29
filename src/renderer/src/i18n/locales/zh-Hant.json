@@ -18990,7 +18990,10 @@
       "hostOutage": {
         "offline": "{{hostName}} 已離線",
         "reconnecting": "正在重新連線 {{hostName}}…",
-        "reconnect": "重新連線"
+        "reconnect": "重新連線",
+        "stopped": "{{distro}} 已停止",
+        "start": "啟動",
+        "unverifiable": "Orca 無法確認 {{distro}} 是否正在執行"
       },
       "interruptedContinue": {
         "continue": "繼續",

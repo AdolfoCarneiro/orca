@@ -19681,7 +19681,8 @@
         "reconnecting": "{{hostName}} is reconnecting…",
         "reconnect": "Reconnect",
         "stopped": "{{distro}} is stopped",
-        "start": "Start"
+        "start": "Start",
+        "unverifiable": "Orca couldn't check whether {{distro}} is running"
       },
       "interruptedContinue": {
         "continue": "Continue",

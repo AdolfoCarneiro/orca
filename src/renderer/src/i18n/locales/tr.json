@@ -19246,7 +19246,10 @@
       "hostOutage": {
         "offline": "{{hostName}} çevrimdışı",
         "reconnecting": "{{hostName}} yeniden bağlanıyor…",
-        "reconnect": "Yeniden bağlan"
+        "reconnect": "Yeniden bağlan",
+        "stopped": "{{distro}} durduruldu",
+        "start": "Başlat",
+        "unverifiable": "Orca, {{distro}} öğesinin çalışıp çalışmadığını denetleyemedi"
       },
       "interruptedContinue": {
         "continue": "Devam et",

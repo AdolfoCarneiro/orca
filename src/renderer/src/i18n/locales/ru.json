@@ -19856,7 +19856,10 @@
       "hostOutage": {
         "offline": "{{hostName}} не в сети",
         "reconnecting": "Повторное подключение к {{hostName}}…",
-        "reconnect": "Подключиться снова"
+        "reconnect": "Подключиться снова",
+        "stopped": "{{distro}} остановлен",
+        "start": "Запустить",
+        "unverifiable": "Orca не удалось проверить, запущен ли {{distro}}"
       },
       "interruptedContinue": {
         "continue": "Продолжить",

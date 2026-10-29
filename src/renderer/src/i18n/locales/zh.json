@@ -18877,7 +18877,10 @@
       "hostOutage": {
         "offline": "{{hostName}} 已离线",
         "reconnecting": "正在重新连接 {{hostName}}…",
-        "reconnect": "重新连接"
+        "reconnect": "重新连接",
+        "stopped": "{{distro}} 已停止",
+        "start": "启动",
+        "unverifiable": "Orca 无法确认 {{distro}} 是否正在运行"
       },
       "interruptedContinue": {
         "continue": "继续",

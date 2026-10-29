@@ -18907,7 +18907,10 @@
       "hostOutage": {
         "offline": "{{hostName}} はオフラインです",
         "reconnecting": "{{hostName}} に再接続しています…",
-        "reconnect": "再接続"
+        "reconnect": "再接続",
+        "stopped": "{{distro}} は停止しています",
+        "start": "起動",
+        "unverifiable": "Orca は {{distro}} が実行中かどうかを確認できませんでした"
       },
       "interruptedContinue": {
         "continue": "続行",

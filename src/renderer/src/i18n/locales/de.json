@@ -19264,7 +19264,8 @@
         "reconnecting": "{{hostName}} stellt die Verbindung wieder her…",
         "reconnect": "Erneut verbinden",
         "stopped": "{{distro}} ist gestoppt",
-        "start": "Starten"
+        "start": "Starten",
+        "unverifiable": "Orca konnte nicht prüfen, ob {{distro}} läuft"
       },
       "interruptedContinue": {
         "continue": "Fortfahren",
