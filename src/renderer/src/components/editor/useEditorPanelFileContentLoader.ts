@@ -84,6 +84,7 @@ export function useEditorPanelFileContentLoader({
           return false
         }
         try {
+          acquisition?.assertCurrent()
           return true
         } catch {
           return false

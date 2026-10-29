@@ -1,3 +1,6 @@
+import { AUTOMATION_ORPHAN_ISSUES } from '../../../../shared/automation-list-scope'
+import { AUTOMATION_CAPTURED_HOST_REFUSALS } from '../../../../shared/automation-owner-conflict'
+import type { AutomationCapturedOwner } from './automation-captured-owner'
 import { createElement } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -46,6 +49,10 @@ export function registerCapturedAutomationRunActionTests({
     ['local', true],
     ['ssh', false],
     ['ssh', true],
+    ['ssh-offline', false],
+    ['ssh-offline', true],
+    ['reselection-connected', false],
+    ['reselection-disconnected', false],
     ['runtime', false],
     ['runtime', true],
     ['runtime-ssh', false],
@@ -60,12 +67,23 @@ export function registerCapturedAutomationRunActionTests({
       vi.clearAllMocks()
       const isRuntime =
         kind === 'runtime' || kind === 'runtime-ssh' || kind === 'runtime-ssh-offline'
-      const blocked = kind === 'ambiguous' || kind === 'runtime-ssh-offline'
-      const blockedMessage =
-        kind === 'ambiguous'
+      const reselection = kind === 'reselection-connected' || kind === 'reselection-disconnected'
+      const blocked =
+        kind === 'ambiguous' ||
+        kind === 'runtime-ssh-offline' ||
+        kind === 'ssh-offline' ||
+        reselection
+      const blockedMessage = reselection
+        ? AUTOMATION_CAPTURED_HOST_REFUSALS[AUTOMATION_ORPHAN_ISSUES.hostReselection]
+        : kind === 'ambiguous'
           ? 'The target project is no longer available.'
           : 'Connect this SSH host before running manually.'
-      const isSsh = kind === 'ssh' || kind === 'runtime-ssh' || kind === 'runtime-ssh-offline'
+      const isSsh =
+        kind === 'ssh' ||
+        kind === 'ssh-offline' ||
+        kind === 'runtime-ssh' ||
+        kind === 'runtime-ssh-offline' ||
+        reselection
       const host = isRuntime ? 'runtime:gpu' : isSsh ? 'ssh:box' : 'local'
       const owner: AutomationOwnerRef = {
         authority: isRuntime
@@ -73,11 +91,19 @@ export function registerCapturedAutomationRunActionTests({
           : { kind: 'desktop' },
         selector: isSsh ? { kind: 'ssh', targetId: 'box', targetGeneration: 7 } : { kind: 'self' }
       }
+      const captured: AutomationCapturedOwner = reselection
+        ? {
+            owner: null,
+            authority: owner.authority,
+            selector: { kind: 'orphan', issue: AUTOMATION_ORPHAN_ISSUES.hostReselection }
+          }
+        : { owner, selector: owner.selector }
+      const capturedOwners = new Map([[`row-${kind}`, captured]])
       const saved = makeAutomation({
         enabled: false,
         agentId: 'claude',
-        executionTargetType: isSsh ? 'ssh' : 'local',
-        executionTargetId: isSsh ? 'box' : 'local',
+        executionTargetType: isSsh && !reselection ? 'ssh' : 'local',
+        executionTargetId: isSsh && !reselection ? 'box' : 'local',
         runContext: {
           kind: 'workspace-run',
           projectId: 'project-1',
@@ -180,7 +206,15 @@ export function registerCapturedAutomationRunActionTests({
               : [
                   [
                     'box',
-                    { targetId: 'box', status: 'connected', error: null, reconnectAttempt: 0 }
+                    {
+                      targetId: 'box',
+                      status:
+                        kind === 'ssh-offline' || kind === 'reselection-disconnected'
+                          ? 'disconnected'
+                          : 'connected',
+                      error: null,
+                      reconnectAttempt: 0
+                    }
                   ]
                 ]
         ),
@@ -224,6 +258,7 @@ export function registerCapturedAutomationRunActionTests({
         const workspace = store.worktreeForRow(row, repo)
         const availability = getAutomationTargetAvailability({
           automation: saved,
+          capturedOwner: captured,
           repo,
           workspace,
           projectHostSetups: store.projectHostSetups,
@@ -236,6 +271,7 @@ export function registerCapturedAutomationRunActionTests({
           null,
           createElement(AutomationListLocalRow, {
             ...store,
+            capturedOwners,
             row,
             selectedRowKey: row.key,
             isSelectedLocal: true,
@@ -283,7 +319,7 @@ export function registerCapturedAutomationRunActionTests({
             isRuntime ? { kind: 'environment', environmentId: 'gpu' } : { kind: 'local' },
           automationDispatchContext: {
             authority: { kind: 'desktop' },
-            capturedOwners: new Map([[row.key, { owner, selector: owner.selector }]])
+            capturedOwners
           },
           reportOwnerAction: vi.fn(),
           invalidateRowHost: vi.fn()

@@ -1,3 +1,4 @@
+import { capturedAutomationOwner } from './automation-captured-owner'
 import { useCallback, useEffect, useMemo } from 'react'
 import {
   getLocalExecutionHostLabel,
@@ -53,6 +54,7 @@ export function useAutomationsPagePresentationState({
   const selectedRunNowAvailability = selectedRow
     ? getAutomationTargetAvailability({
         automation: selectedRow.automation,
+        capturedOwner: capturedAutomationOwner(list.capturedAutomationOwners, selectedRow.key),
         repo: selectedRepo,
         workspace: selectedWorktree,
         projectHostSetups,

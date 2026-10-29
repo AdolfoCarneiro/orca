@@ -257,6 +257,7 @@ export function AutomationsListPanel(props: AutomationsListPanelProps): React.JS
   }
   const emptyState = resolveAutomationListEmptyState(emptyStateInput)
   const rowProps = {
+    capturedOwners: hostCatalog.rows.capturedOwners,
     selectedRowKey,
     isSelectedLocal: selectedExternalKey === null,
     lastRunByAutomationId: EMPTY_AUTOMATION_RUNS,

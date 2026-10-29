@@ -1,4 +1,5 @@
 import { translate } from '@/i18n/i18n'
+import type { AutomationUsageSummary } from '../../../../shared/automation-usage-summary'
 import type { AutomationRunUsage } from '../../../../shared/automations-types'
 
 // Keep retained-run summaries shared across owning authorities; only display formatting belongs to the renderer.
@@ -53,6 +54,39 @@ export function getAutomationUsageStatusLabel(
     : translate(
         'auto.components.automations.usage.tokensAndCost_other',
         '{{tokens}} tokens · {{cost}}',
+        params
+      )
+}
+
+export function formatAutomationUsageSummary(summary: AutomationUsageSummary | undefined): string {
+  if (!summary || summary.unavailableRuns > 0) {
+    return summary?.knownRuns
+      ? usageAmountText(summary)
+      : translate(
+          'auto.components.automations.AutomationsPage.usageUnavailable',
+          'Usage unavailable'
+        )
+  }
+  return summary.knownRuns > 0
+    ? usageAmountText(summary)
+    : translate('auto.components.automations.AutomationsPage.noRunUsageYet', 'No run usage yet')
+}
+
+function usageAmountText(summary: AutomationUsageSummary): string {
+  const params = {
+    count: summary.totalTokens,
+    cost: formatAutomationCost(summary.estimatedCostUsd),
+    tokens: formatAutomationTokens(summary.totalTokens)
+  }
+  return summary.totalTokens === 1
+    ? translate(
+        'auto.components.automations.AutomationsPage.runUsageSummaryTokens_one',
+        '{{cost}} est. · {{tokens}} token',
+        params
+      )
+    : translate(
+        'auto.components.automations.AutomationsPage.runUsageSummaryTokens_other',
+        '{{cost}} est. · {{tokens}} tokens',
         params
       )
 }

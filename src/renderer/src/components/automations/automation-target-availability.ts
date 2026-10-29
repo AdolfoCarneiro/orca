@@ -1,3 +1,7 @@
+import {
+  automationHostReselectionMessage,
+  type AutomationCapturedOwner
+} from './automation-captured-owner'
 import type { Automation } from '../../../../shared/automations-types'
 import { parseExecutionHostId } from '../../../../shared/execution-host'
 import {
@@ -21,36 +25,12 @@ import type { Worktree } from '../../../../shared/worktree/types'
 import type { RuntimeEnvironmentSshBucket } from '../../store/slices/runtime-environment-ssh'
 import type { TaskSourceHostAvailability } from '../task-source-context-summary'
 
-export type AutomationTargetAvailability =
-  | {
-      canRunNow: true
-      reason: 'available'
-      message: null
-    }
-  | {
-      canRunNow: false
-      reason:
-        | 'missing-project'
-        | 'missing-project-host-setup'
-        | 'project-host-setup-not-ready'
-        | 'missing-workspace'
-        | 'host-mismatch'
-        | 'unsupported-host'
-        | 'runtime-checking'
-        | 'runtime-unavailable'
-        | 'runtime-update-required'
-        | 'ssh-auth-needed'
-        | 'ssh-unavailable'
-        | 'ssh-connecting'
-        | 'source-auth-needed'
-        | 'source-tool-unavailable'
-        | 'source-provider-unsupported'
-        | 'source-host-unavailable'
-      message: string
-    }
+import type { AutomationTargetAvailability } from './automation-target-availability-types'
+export type { AutomationTargetAvailability } from './automation-target-availability-types'
 
 type AutomationTargetAvailabilityArgs = {
   automation: Automation
+  capturedOwner?: AutomationCapturedOwner
   repo: Repo | null | undefined
   workspace: Worktree | null | undefined
   projectHostSetups: readonly ProjectHostSetup[]
@@ -63,6 +43,7 @@ type AutomationTargetAvailabilityArgs = {
 
 export function getAutomationTargetAvailability({
   automation,
+  capturedOwner,
   repo,
   workspace,
   projectHostSetups,
@@ -72,6 +53,10 @@ export function getAutomationTargetAvailability({
   automationHostTarget,
   sourceHostAvailability
 }: AutomationTargetAvailabilityArgs): AutomationTargetAvailability {
+  const reselection = automationHostReselectionMessage(capturedOwner)
+  if (reselection) {
+    return unavailable('host-reselection', reselection)
+  }
   if (!repo) {
     return unavailable('missing-project', 'The target project is no longer available.')
   }

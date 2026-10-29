@@ -1,3 +1,8 @@
+import {
+  capturedAutomationOwner,
+  type AutomationCapturedOwner,
+  type AutomationRowAction
+} from './automation-captured-owner'
 import type { RuntimeEnvironmentSshBucket } from '../../store/slices/runtime-environment-ssh'
 import React from 'react'
 import { MoreHorizontal, Pause, Pencil, Play, Trash2 } from 'lucide-react'
@@ -33,7 +38,6 @@ import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { RuntimeEnvironmentStatus } from '../../../../shared/runtime-host-status'
 import type { TaskSourceHostAvailability } from '../task-source-context-summary'
-import type { AutomationRowAction } from './automation-captured-owner'
 import type { AutomationHostTarget } from './automation-host-client'
 import {
   getAutomationRowLastRunSnapshot,
@@ -44,11 +48,7 @@ import { formatAutomationDateTimeWithRelative } from './automation-page-parts'
 import { getAutomationTargetAvailability } from './automation-target-availability'
 import { getAgentLabel } from './automation-draft-model'
 import type { AutomationListRow } from './automation-list-row-identity'
-import {
-  formatAutomationCost,
-  formatAutomationTokens,
-  type AutomationUsageSummary
-} from './automation-usage-model'
+import { formatAutomationUsageSummary } from './automation-usage-model'
 import { AUTOMATIONS_TABLE_GRID_CLASS } from './automations-table-layout'
 import {
   LIST_TABLE_ROW_CLASS,
@@ -63,6 +63,7 @@ import { wslMovedProjectForAutomation } from '@/store/repos/wsl-moved-projects'
 
 export type AutomationListLocalRowProps = {
   row: AutomationListRow
+  capturedOwners?: ReadonlyMap<string, AutomationCapturedOwner>
   selectedRowKey: string | null | undefined
   isSelectedLocal: boolean
   lastRunByAutomationId: ReadonlyMap<string, AutomationRun>
@@ -88,40 +89,8 @@ export type AutomationListLocalRowProps = {
 
 const EMPTY_HOST_LABELS: ReadonlyMap<string, string> = new Map()
 
-function automationUsageText(summary: AutomationUsageSummary | undefined): string {
-  if (!summary || summary.unavailableRuns > 0) {
-    return summary?.knownRuns
-      ? usageAmountText(summary)
-      : translate(
-          'auto.components.automations.AutomationsPage.usageUnavailable',
-          'Usage unavailable'
-        )
-  }
-  return summary.knownRuns > 0
-    ? usageAmountText(summary)
-    : translate('auto.components.automations.AutomationsPage.noRunUsageYet', 'No run usage yet')
-}
-
-function usageAmountText(summary: AutomationUsageSummary): string {
-  const params = {
-    count: summary.totalTokens,
-    cost: formatAutomationCost(summary.estimatedCostUsd),
-    tokens: formatAutomationTokens(summary.totalTokens)
-  }
-  return summary.totalTokens === 1
-    ? translate(
-        'auto.components.automations.AutomationsPage.runUsageSummaryTokens_one',
-        '{{cost}} est. · {{tokens}} token',
-        params
-      )
-    : translate(
-        'auto.components.automations.AutomationsPage.runUsageSummaryTokens_other',
-        '{{cost}} est. · {{tokens}} tokens',
-        params
-      )
-}
-
 export function AutomationListLocalRow({
+  capturedOwners,
   row,
   selectedRowKey,
   isSelectedLocal,
@@ -158,6 +127,7 @@ export function AutomationListLocalRow({
     : null
   const automationRunAvailability = getAutomationTargetAvailability({
     automation,
+    capturedOwner: capturedAutomationOwner(capturedOwners, row.key),
     repo: automationRepo,
     workspace: automationWorktree,
     projectHostSetups,
@@ -187,7 +157,7 @@ export function AutomationListLocalRow({
     (hostId
       ? (hostLabelById.get(hostId) ?? getExecutionHostLabel(hostId))
       : getLocalExecutionHostLabel())
-  const agentTooltipLabel = `${agentLabel} · ${hostLabel} · ${automationUsageText(row.usageSummary ?? undefined)}`
+  const agentTooltipLabel = `${agentLabel} · ${hostLabel} · ${formatAutomationUsageSummary(row.usageSummary ?? undefined)}`
   const canRunNow = automationRunAvailability.canRunNow && allows(row, 'run')
   const lastRun = lastRunByAutomationId.get(automation.id)
   // Use the projected newest retained run when history is absent; the list does not download history.

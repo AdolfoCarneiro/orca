@@ -154,6 +154,7 @@ describe('recorded automation target without visible projects', () => {
       label: saved.runContext!.path
     })
     expect(mocks.editorDialog?.repos).toEqual([])
+    expect(screen.queryByTestId('automation-create-no-projects')).toBeNull()
     await act(async () => {
       await mocks.editorDialog?.onSave()
     })
@@ -173,4 +174,49 @@ describe('recorded automation target without visible projects', () => {
     expect(api.automations.delete).not.toHaveBeenCalled()
     expect(mocks.toastError).not.toHaveBeenCalled()
   })
+  it.each(['wrong-host', 'wrong-project'] as const)(
+    'keeps the empty-project warning when the recorded repair choice is invalid (%s)',
+    async (invalid) => {
+      const saved = hiddenRecordedTarget(false)
+      await renderPage()
+      await settleHostQueries()
+      const row = listedRows().find((candidate) => candidate.automation.id === saved.id)
+      if (!row) {
+        throw new Error('Missing recorded automation')
+      }
+      await act(async () => {
+        await mocks.listPanel?.openEditDialog(row)
+      })
+      const entry = mocks.editorDialog?.editDestination?.entries.find(
+        (candidate) =>
+          candidate.stableRef.selector.kind === (invalid === 'wrong-host' ? 'self' : 'ssh')
+      )
+      if (!entry) {
+        throw new Error('Missing host')
+      }
+      await act(async () => {
+        mocks.editorDialog?.editDestination?.onSelect(entry.stableKey)
+      })
+      if (invalid === 'wrong-project') {
+        await act(async () => {
+          mocks.editorDialog?.onDraftChange((current) => {
+            if (!current || typeof current !== 'object') {
+              throw new Error('Missing draft')
+            }
+            return { ...current, projectId: 'not-the-recorded-project' }
+          })
+        })
+      }
+      expect(mocks.editorDialog?.editDestination?.recordedProject).toBeUndefined()
+      expect(screen.getByTestId('automation-create-no-projects').textContent).toContain(
+        'No projects'
+      )
+      await act(async () => {
+        await mocks.editorDialog?.onSave()
+      })
+      expect(api.automations.update).not.toHaveBeenCalled()
+      expect(api.automations.create).not.toHaveBeenCalled()
+      expect(api.automations.runNow).not.toHaveBeenCalled()
+    }
+  )
 })

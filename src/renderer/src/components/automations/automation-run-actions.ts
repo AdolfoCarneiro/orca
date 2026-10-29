@@ -1,3 +1,4 @@
+import { capturedAutomationOwner } from './automation-captured-owner'
 import { toast } from 'sonner'
 import type { AutomationRun } from '../../../../shared/automations-types'
 import { translate } from '@/i18n/i18n'
@@ -71,6 +72,7 @@ export function createAutomationRunActions({
     const rowHostTarget = automationHostTargetFor(row)
     const availability = getAutomationTargetAvailability({
       automation: row.automation,
+      capturedOwner: capturedAutomationOwner(automationDispatchContext.capturedOwners, row.key),
       repo,
       workspace,
       projectHostSetups,

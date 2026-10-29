@@ -17601,7 +17601,8 @@
         },
         "capturedOwner": {
           "orphan": "This automation has no host to run on. Delete it, or re-add the host it belongs to.",
-          "unfenced": "Orca on this host needs an update before you can view run history or manage this automation. Scheduled runs may still continue on the host."
+          "unfenced": "Orca on this host needs an update before you can view run history or manage this automation. Scheduled runs may still continue on the host.",
+          "hostReselection": "Edit the automation and reselect its host before running it."
         },
         "hostStatus": {
           "authority": {
