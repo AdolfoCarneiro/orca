@@ -10,15 +10,11 @@ export function AutomationSurfaceField({
   draft,
   settings,
   supported,
-  groupClassName,
-  itemClassName,
   onDraftChange
 }: {
   draft: AutomationDraft
   settings: GlobalSettings | null
   supported: boolean | null
-  groupClassName: string
-  itemClassName: string
   onDraftChange: (updater: (current: AutomationDraft) => AutomationDraft) => void
 }): React.JSX.Element | null {
   if (supported === false && draft.surface !== 'chat') {
@@ -39,7 +35,7 @@ export function AutomationSurfaceField({
         type="single"
         spacing={1}
         size="sm"
-        className={groupClassName}
+        className="grid w-full grid-cols-2 rounded-md bg-muted p-0.5"
         value={automationDraftSurface(draft, settings, supported)}
         disabled={supported === null}
         onValueChange={(surface) => {
@@ -54,7 +50,7 @@ export function AutomationSurfaceField({
             aria-checked={automationDraftSurface(draft, settings, supported) === surface}
             key={surface}
             value={surface}
-            className={itemClassName}
+            className="h-7 rounded-sm border-0 bg-transparent shadow-none hover:bg-card/70 data-[state=on]:bg-card data-[state=on]:text-card-foreground data-[state=on]:shadow-xs"
             disabled={surface === 'chat' && supported !== true}
           >
             {surface === 'chat'

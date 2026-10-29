@@ -91,8 +91,6 @@ export function AutomationEditorSettingsSidebar({
             draft={draft}
             settings={settings}
             supported={chatSupported}
-            groupClassName={segmentedGroupClassName}
-            itemClassName={segmentedItemClassName}
             onDraftChange={onDraftChange}
           />
           {surface === 'terminal' ? (

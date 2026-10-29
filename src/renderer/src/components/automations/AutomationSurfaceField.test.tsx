@@ -41,14 +41,7 @@ afterEach(cleanup)
 it('places the current default on the right, highlights it, and preserves arguments through toggles', () => {
   const change = vi.fn()
   render(
-    <AutomationSurfaceField
-      draft={draft}
-      settings={settings}
-      supported
-      groupClassName=""
-      itemClassName=""
-      onDraftChange={change}
-    />
+    <AutomationSurfaceField draft={draft} settings={settings} supported onDraftChange={change} />
   )
   const radios = screen.getAllByRole('radio')
   expect(radios.map((radio) => radio.textContent)).toEqual(['Terminal', 'Chat'])
@@ -67,7 +60,7 @@ it('keeps legacy automations Terminal when the current default is Chat', () => {
   expect(automationDraftSurface(legacy, settings, true)).toBe('terminal')
 })
 it('reserves disabled controls until host support is known and hides Chat on unsupported hosts', () => {
-  const props = { draft, settings, groupClassName: '', itemClassName: '', onDraftChange: vi.fn() }
+  const props = { draft, settings, onDraftChange: vi.fn() }
   const view = render(<AutomationSurfaceField {...props} supported={null} />)
   expect(screen.getAllByRole('radio').every((radio) => radio.hasAttribute('disabled'))).toBe(true)
   expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('aria-checked'))).toEqual([
