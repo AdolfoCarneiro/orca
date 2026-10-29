@@ -4,6 +4,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { RpcDispatcher } from '../../src/main/runtime/rpc/dispatcher'
 import { TERMINAL_METHODS } from '../../src/main/runtime/rpc/methods/terminal'
 import type { OrcaRuntimeService } from '../../src/main/runtime/orca-runtime'
+import type { PanePtyBinding } from '../../src/renderer/src/components/terminal-pane/pty-connection/pane-pty-binding'
 import {
   TerminalStreamOpcode,
   decodeTerminalStreamFrame,
@@ -424,7 +425,7 @@ describe('host-rejected paired-runtime input reaches a pane remount', () => {
         getPtyIdForPane: (id) => deps.paneTransportsRef.current.get(id)?.getPtyId() ?? null,
         getTabWideAgentHintLeafId: () => null
       })
-      let binding: ReturnType<typeof connectPanePty> | undefined
+      let binding: PanePtyBinding | undefined
       try {
         binding = connectPanePty(...args)
         await vi.waitFor(() => {
