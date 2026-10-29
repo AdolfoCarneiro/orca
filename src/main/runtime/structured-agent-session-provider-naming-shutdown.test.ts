@@ -8,6 +8,7 @@ import { codexProviderHandle } from '../../shared/agent-session-provider-handle-
 import * as processSpawn from '../codex/codex-app-server-process-tree-kill'
 import { closeTestJournalHostDatabase } from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import { agentSessionRecordFixture } from '../native-chat/agent-session-record-test-fixture'
+import { StructuredAgentSessionAdapterRouter } from '../native-chat/agent-session-wire/structured-agent-session-adapter-router'
 import { createStructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
 import { seedTestAgentSessionRecordStore } from './agent-session-record-store-test-harness'
 import {
@@ -23,6 +24,7 @@ it('stops naming admission and joins native helper finalization before runtime c
   onTestFinished
 }) => {
   const root = await mkdtemp(join(tmpdir(), 'orca-naming-shutdown-'))
+  const sessionId = 'chat-shutdown-1'
   const argumentsReady = Promise.withResolvers<string[]>()
   const stdinEnded = Promise.withResolvers<void>()
   const helperExit = Promise.withResolvers<void>()
@@ -63,7 +65,7 @@ it('stops naming admission and joins native helper finalization before runtime c
   await seedTestAgentSessionRecordStore(root, {
     records: [
       agentSessionRecordFixture({
-        sessionId: 'chat-1',
+        sessionId,
         provider: 'codex',
         accountHome: { variable: 'CODEX_HOME', path: join(root, 'codex-home') },
         providerHandleChain: [
@@ -93,8 +95,18 @@ it('stops naming admission and joins native helper finalization before runtime c
     resolveLaunchArgs,
     resolveClaudeAuthPolicy: () => ({ account: 'managed' })
   })
-  const closeAll = host.deps.adapter.closeAll.bind(host.deps.adapter)
-  const closeAdapters = vi.spyOn(host.deps.adapter, 'closeAll').mockImplementation(async () => {
+  expect(host.deps.store.getRecord(sessionId)).toMatchObject({
+    sessionId,
+    provider: 'codex',
+    conversationName: 'Saved name',
+    conversationNameSource: 'user'
+  })
+  const adapter = host.deps.adapter
+  if (!(adapter instanceof StructuredAgentSessionAdapterRouter)) {
+    throw new Error('expected the installed runtime adapter router')
+  }
+  const closeAll = adapter.closeAll.bind(adapter)
+  const closeAdapters = vi.spyOn(adapter, 'closeAll').mockImplementation(async () => {
     order.push('adapter-close')
     await closeAll()
   })
@@ -104,7 +116,7 @@ it('stops naming admission and joins native helper finalization before runtime c
     close()
   })
   const stopDelivery = vi.spyOn(host, 'stopDelivery')
-  host.deps.nameProviderConversation?.('chat-1')
+  host.deps.nameProviderConversation?.(sessionId)
   await vi.waitFor(() => expect(resolveLaunchArgs).toHaveBeenCalledOnce())
   let stopped = false
   const stopping = stopStructuredAgentSessionRuntime().then(() => {
@@ -112,7 +124,7 @@ it('stops naming admission and joins native helper finalization before runtime c
   })
   await vi.waitFor(() => expect(stopDelivery).toHaveBeenCalledOnce())
   // A retained callback must neither admit a new push nor coalesce another pass.
-  host.deps.nameProviderConversation?.('chat-1')
+  host.deps.nameProviderConversation?.(sessionId)
   expect(stopped).toBe(false)
   expect(closeAdapters).not.toHaveBeenCalled()
   expect(closeDatabase).not.toHaveBeenCalled()
