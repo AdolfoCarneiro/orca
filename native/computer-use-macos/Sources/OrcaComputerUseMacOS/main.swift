@@ -1366,6 +1366,10 @@ private func withTransportErrors<T>(_ body: () throws -> T) throws -> T {
             throw ProviderError.coded("app_not_found", "the target app quit before input was delivered")
         case .eventCreationFailed:
             throw ProviderError.coded("accessibility_error", "failed to create input event")
+        case .targetWindowNotKey:
+            throw ProviderError.coded("background_unavailable", "background input cannot change the key window of the active app; retry with --restore-window to target this window explicitly")
+        case let .focusRecordFailed(status):
+            throw ProviderError.coded("window_not_focused", "background key-window focus record failed (status \(status)); input may already have been delivered, so inspect current state before retrying")
         }
     }
 }

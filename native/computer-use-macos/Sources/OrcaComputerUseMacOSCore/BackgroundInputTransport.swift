@@ -23,6 +23,8 @@ public enum BackgroundInputTransport {
         case unavailable(missingSymbols: [String])
         case processNotFound
         case eventCreationFailed
+        case targetWindowNotKey
+        case focusRecordFailed(status: Int32)
     }
 
     /// What the app's accessibility tree has under a point, which decides how a pointer event may be sent.
@@ -202,29 +204,47 @@ public enum BackgroundInputTransport {
         }
     }
 
-    /// Makes `target` the app's key window without activating or raising it (WindowServer's front app
-    /// and key focus stay with the user), runs `body`, then hands key status back if the app was inactive.
+    /// Refuses to change an active app's key window; inactive apps receive a temporary key-window scope.
     static func withKeyWindow(_ target: Target, _ body: () throws -> Void) throws {
         let symbols = try PrivateSymbols.shared.require()
         let wasActive = NSRunningApplication(processIdentifier: target.pid)?.isActive == true
+        if wasActive {
+            let appElement = AXUIElementCreateApplication(target.pid)
+            var focused: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focused) == .success,
+                  let focused, CFGetTypeID(focused) == AXUIElementGetTypeID()
+            else { throw Failure.targetWindowNotKey }
+            // SAFETY: the CFTypeID check above proves focused is an AXUIElement.
+            let window = focused as! AXUIElement
+            var number: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(window, "AXWindowNumber" as CFString, &number) == .success,
+                  let number = number as? NSNumber, number.uint32Value == target.windowID
+            else { throw Failure.targetWindowNotKey }
+            try body()
+            return
+        }
         var psn = ProcessSerialNumber()
         guard symbols.getProcessForPID(target.pid, &psn) == noErr else {
             throw Failure.processNotFound
         }
-        postRecord(keyFocusRecord(windowID: target.windowID, focus: true), psn: psn, symbols: symbols)
-        usleep(20_000)
-        for kind: UInt8 in [0x01, 0x02] {
-            postRecord(makeKeyRecord(windowID: target.windowID, kind: kind), psn: psn, symbols: symbols)
+        func defocus() throws {
+            // Why: focus records and input events travel different paths, so let the input arrive first.
+            usleep(50_000)
+            try postRecord(keyFocusRecord(windowID: target.windowID, focus: false), psn: psn, symbols: symbols)
         }
-        usleep(50_000)
-        defer {
-            if !wasActive {
-                // Why: the records travel a different path than the events; defocusing at once can beat them in.
-                usleep(50_000)
-                postRecord(keyFocusRecord(windowID: target.windowID, focus: false), psn: psn, symbols: symbols)
+        do {
+            try postRecord(keyFocusRecord(windowID: target.windowID, focus: true), psn: psn, symbols: symbols)
+            usleep(20_000)
+            for kind: UInt8 in [0x01, 0x02] {
+                try postRecord(makeKeyRecord(windowID: target.windowID, kind: kind), psn: psn, symbols: symbols)
             }
+            usleep(50_000)
+            try body()
+        } catch {
+            try defocus()
+            throw error
         }
-        try body()
+        try defocus()
     }
 
     /// yabai/cua focus-without-raise record: 0x0d at 0x08, window id at 0x3c, 1 = focus / 2 = defocus at 0x8a.
@@ -290,10 +310,11 @@ public enum BackgroundInputTransport {
         symbols.setWindowLocation(event, CGPoint(x: point.x - target.windowFrame.minX, y: point.y - target.windowFrame.minY))
     }
 
-    private static func postRecord(_ record: [UInt8], psn: ProcessSerialNumber, symbols: PrivateSymbols.Loaded) {
+    private static func postRecord(_ record: [UInt8], psn: ProcessSerialNumber, symbols: PrivateSymbols.Loaded) throws {
         var record = record
         var recordPSN = psn
-        _ = symbols.postEventRecordTo(&recordPSN, &record)
+        let status = symbols.postEventRecordTo(&recordPSN, &record)
+        guard status == noErr else { throw Failure.focusRecordFailed(status: status) }
     }
 
     private static func keyEvent(_ keyCode: CGKeyCode, down: Bool, flags: CGEventFlags) throws -> CGEvent {
