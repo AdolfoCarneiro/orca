@@ -20115,7 +20115,8 @@
       "count_one": "Çalışan {{count}} terminal",
       "count_other": "Çalışan {{count}} terminal"
     },
-    "restartedInputNotSent": "Siz yazarken terminal yeniden başlatıldı, bu nedenle girdilerinizin bir kısmı terminale ulaşmamış olabilir. Yeniden yazmadan önce yeni kabuğu kontrol edin."
+    "restartedInputNotSent": "Siz yazarken terminal yeniden başlatıldı, bu nedenle girdilerinizin bir kısmı terminale ulaşmamış olabilir. Yeniden yazmadan önce yeni kabuğu kontrol edin.",
+    "typingBeforeStartNotSent": "Terminal başlatılırken yazılan bazı tuşlar gönderilmedi."
   },
   "fileExplorer": {
     "root": {

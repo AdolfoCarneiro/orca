@@ -20389,7 +20389,8 @@
       "count_one": "{{count}} running terminal",
       "count_other": "{{count}} running terminals"
     },
-    "restartedInputNotSent": "The terminal restarted while you were typing, so some input may not have reached it. Check the new shell before typing it again."
+    "restartedInputNotSent": "The terminal restarted while you were typing, so some input may not have reached it. Check the new shell before typing it again.",
+    "typingBeforeStartNotSent": "Some keys typed while the terminal was starting were not sent."
   },
   "fileExplorer": {
     "root": {

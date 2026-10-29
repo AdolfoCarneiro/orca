@@ -26,14 +26,20 @@ export function resolveWslHostsGateState(facts: {
 
 // Main records serve-only here so shared readers in its process agree; other processes never set it.
 let serveOnlyNoted = false
+// Main records a remote policy block the same way: it closes the internal gate for the run.
+let policyBlockNoted = false
 
 export function noteWslHostsServeOnly(serveOnly: boolean): void {
   serveOnlyNoted = serveOnly
 }
 
+export function noteWslHostsPolicyBlocked(blocked: boolean): void {
+  policyBlockNoted = blocked
+}
+
 /** Open, or main found saved WSL work behind the closed gate. */
 export function isWslHostsServing(env: Readonly<Record<string, string | undefined>>): boolean {
-  return isWslHostsInternalGateOpen(env) || serveOnlyNoted
+  return (isWslHostsInternalGateOpen(env) && !policyBlockNoted) || serveOnlyNoted
 }
 
 // Preload has no disk access, so main stamps the promoted state into the window's argv at birth.
@@ -45,4 +51,22 @@ export function formatWslHostsServeOnlyArgument(): string {
 
 export function hasWslHostsServeOnlyArgument(argv: readonly string[]): boolean {
   return argv.includes(SERVE_ONLY_ARGUMENT)
+}
+
+// The remote policy closed an internal gate the launch environment opened.
+const POLICY_BLOCKED_ARGUMENT = '--orca-wsl-hosts-policy-blocked'
+
+export function formatWslHostsPolicyBlockedArgument(): string {
+  return POLICY_BLOCKED_ARGUMENT
+}
+
+/** Preload's view of the gate: the launch environment, less a remote block, plus serve-only. */
+export function isWslHostsServingForWindow(
+  env: Readonly<Record<string, string | undefined>>,
+  argv: readonly string[]
+): boolean {
+  return (
+    (isWslHostsInternalGateOpen(env) && !argv.includes(POLICY_BLOCKED_ARGUMENT)) ||
+    hasWslHostsServeOnlyArgument(argv)
+  )
 }
