@@ -74,7 +74,5 @@ export type EphemeralVmApi = {
     payloadJson: string
     cleanupDisabled: boolean
     message?: string
-    messageCode?: string
-    messageParams?: Record<string, string | number>
   }>
 }
