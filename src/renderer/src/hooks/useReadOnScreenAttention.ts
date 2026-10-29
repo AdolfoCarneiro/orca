@@ -4,6 +4,7 @@ import { subscribeAutoAckPresenceSignals } from './agent-auto-ack-presence'
 import { useAppStore } from '@/store'
 import { isWebClientLocation } from '@/lib/web-client-location'
 import { startOnScreenAttentionScan } from './on-screen-attention-scan'
+import { reportWorkerTouch } from '@/lib/worker-terminal-takeover-report'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../shared/sidebar-inputs-switch'
 import {
   createClientWorkspaceViewReporter,
@@ -18,6 +19,7 @@ export function useReadOnScreenAttention(): void {
           ? null
           : async () => window.api?.notifications?.getDesktopAwayState?.(),
         subscribeStructuredViews: subscribeStructuredAttentionViews,
+        reportWorkerTouch,
         ...(ORCA_SIDEBAR_INPUTS_IS_MAIN
           ? {
               subscribePresenceSignals: subscribeViewReportPresenceSignals,

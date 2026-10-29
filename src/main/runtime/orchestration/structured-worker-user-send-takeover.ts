@@ -14,6 +14,8 @@ export function recordStructuredWorkerUserSend<Result extends { ok: boolean }>(
     const db = runtime.getExistingOrchestrationDb()
     const paneKey = resolveStructuredWorkerIdentityForSession(sessionId, db)?.paneKey
     if (db && paneKey) {
+      // The keep first cancels an automatic close already past its archive commit, so the takeover applies.
+      db.markWorkerTouched(paneKey)
       db.markWorkerTerminalUserOwned(paneKey)
     }
   } catch (error) {

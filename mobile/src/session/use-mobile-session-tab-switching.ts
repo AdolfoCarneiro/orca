@@ -1,10 +1,11 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { STARTUP_CWD_FALLBACK_SENTENCE } from '../../../src/shared/startup-cwd-fallback'
 import { triggerSelection } from '../platform/haptics'
 import type { RpcResponse } from '../transport/types'
 import { isCachedActiveDocumentRetap } from './mobile-session-active-document-retap'
 import { activateMobileSessionTab } from './mobile-session-tab-activation'
 import { activatedAtWorkspaceRoot } from './session-write-reply-schema'
+import { reportMobileWorkerTouch, workerTouchSubjectOf } from './mobile-worker-touch-report'
 import type { MobileSessionTab } from './mobile-session-route-types'
 import type { MobileSessionKeyboardStateModel } from './use-mobile-session-keyboard-state'
 
@@ -63,6 +64,7 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
       }
       subscribeToTerminal(handle)
       if (client) {
+        reportMobileWorkerTouch(client, { terminal: handle })
         if (matchingTab) {
           void activateMobileSessionTab(client, {
             worktree: `id:${worktreeId}`,
@@ -134,6 +136,9 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
       activeHandleRef.current = null
       setActiveHandle(null)
       if (client) {
+        if (tab.type === 'agent-session') {
+          reportMobileWorkerTouch(client, { sessionId: tab.sessionId })
+        }
         void activateMobileSessionTab(client, {
           worktree: `id:${worktreeId}`,
           tabId: tab.id,
@@ -175,6 +180,16 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
     ]
   )
   switchSessionTabRef.current = switchSessionTab
+  // The tab a session opens on is on screen as surely as one the user switches to.
+  const openReportedWorktreeRef = useRef<string | null>(null)
+  const openTab = sessionTabs.find((tab) => tab.id === activeSessionTabId)
+  useEffect(() => {
+    const subject = openTab ? workerTouchSubjectOf(openTab) : null
+    if (client && subject && openReportedWorktreeRef.current !== worktreeId) {
+      openReportedWorktreeRef.current = worktreeId
+      reportMobileWorkerTouch(client, subject)
+    }
+  }, [client, openTab, worktreeId])
   return {
     switchTab,
     switchSessionTab

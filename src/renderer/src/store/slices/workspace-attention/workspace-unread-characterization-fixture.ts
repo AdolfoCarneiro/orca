@@ -9,7 +9,10 @@ import {
   resetFloatingWorkspaceUnreadSelectorCacheForTest,
   selectFloatingWorkspaceHasUnread
 } from '@/store/selectors'
-import { startOnScreenAttentionScan } from '@/hooks/on-screen-attention-scan'
+import {
+  startOnScreenAttentionScan,
+  type OnScreenAttentionEnvironment
+} from '@/hooks/on-screen-attention-scan'
 
 // Store setup and observables for the unread characterization suites; the events live in the driver.
 
@@ -61,7 +64,8 @@ export function installAttentionScreen(
   store: AttentionStore,
   onScreen: boolean,
   /** Main's desktop idle answer; undefined runs ungated, like a browser. */
-  desktopAway?: boolean | (() => boolean)
+  desktopAway?: boolean | (() => boolean),
+  reportWorkerTouch?: OnScreenAttentionEnvironment['reportWorkerTouch']
 ): void {
   let windowOnScreen = onScreen
   vi.stubGlobal('document', {
@@ -78,6 +82,7 @@ export function installAttentionScreen(
         ? null
         : async () => (typeof desktopAway === 'function' ? desktopAway() : desktopAway),
     subscribeStructuredViews: () => () => {},
+    reportWorkerTouch,
     subscribePresenceSignals: (onRescan, onInput) => {
       rescan = onRescan
       input = onInput
@@ -98,6 +103,7 @@ export function createAttentionStore(options?: {
   /** Orca's window starts visible and focused unless false. */
   windowOnScreen?: boolean
   desktopAway?: boolean | (() => boolean)
+  reportWorkerTouch?: OnScreenAttentionEnvironment['reportWorkerTouch']
 }): {
   store: AttentionStore
   persists: () => PersistCall[]
@@ -130,7 +136,12 @@ export function createAttentionStore(options?: {
     },
     updateFolderWorkspace
   })
-  installAttentionScreen(store, options?.windowOnScreen !== false, options?.desktopAway)
+  installAttentionScreen(
+    store,
+    options?.windowOnScreen !== false,
+    options?.desktopAway,
+    options?.reportWorkerTouch
+  )
   return {
     store,
     persists: () => {

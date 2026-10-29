@@ -20,17 +20,17 @@ export function reportStructuredSessionUserInput(
   reportTakeover({ sessionId }, runtimeEnvironmentId)
 }
 
-/** Edge-triggered by the chat view, so no throttle: a finished worker's chat stays open once its host hears of it. */
-export function reportStructuredSessionTouch(
-  sessionId: string,
-  runtimeEnvironmentId: string | null
-): void {
-  void callRuntimeRpc(
-    runtimeTarget(runtimeEnvironmentId),
-    'orchestration.workerChatTouch',
-    { sessionId },
-    { suppressFeatureInteraction: true, reuseRecentCompatibilityFailure: true }
-  ).catch(() => {})
+export type WorkerTouch = {
+  subject: { paneKey: string } | { sessionId: string }
+  target: RuntimeClientTarget
+}
+
+/** The user saw this terminal or chat; its owning host keeps it if it is a worker. */
+export function reportWorkerTouch({ subject, target }: WorkerTouch): Promise<unknown> {
+  return callRuntimeRpc(target, 'orchestration.workerChatTouch', subject, {
+    suppressFeatureInteraction: true,
+    reuseRecentCompatibilityFailure: true
+  })
 }
 
 function runtimeTarget(runtimeEnvironmentId: string | null): RuntimeClientTarget {

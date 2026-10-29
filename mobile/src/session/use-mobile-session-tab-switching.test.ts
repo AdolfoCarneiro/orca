@@ -9,6 +9,7 @@ import { MobileTerminalDiagnostics } from './mobile-terminal-diagnostics'
 import type { FileDocState, MarkdownDocState, MobileSessionTab } from './mobile-session-route-types'
 import { isCachedActiveDocumentRetap } from './mobile-session-active-document-retap'
 import { useMobileSessionTabSwitching } from './use-mobile-session-tab-switching'
+import type { RpcClient } from '../transport/rpc-client'
 
 const markdownTab: MobileSessionTab = {
   type: 'markdown',
@@ -44,6 +45,7 @@ function mountSwitching(args: {
   activeSessionTabId: string | null
   markdownDocs?: Map<string, MarkdownDocState>
   fileDocs?: Map<string, FileDocState>
+  client?: Pick<RpcClient, 'sendRequest'>
 }) {
   const readMarkdownTab = vi.fn()
   const readFileTab = vi.fn()
@@ -64,8 +66,12 @@ function mountSwitching(args: {
         pendingSelectionRef: { current: null },
         activeSessionTabTypeRef: { current: null },
         activeHandleRef: { current: null },
-        client: null,
-        sessionTabs: []
+        client: args.client ?? null,
+        sessionTabs: [],
+        unsubscribeTerminal: vi.fn(),
+        subscribeToTerminal: vi.fn(),
+        terminalUnsubsRef: { current: new Map() },
+        defaultTerminalHandlesToLiveInput: vi.fn()
       })
     )
   })
@@ -165,6 +171,40 @@ describe('useMobileSessionTabSwitching active document retap', () => {
     try {
       harness.switchTo(markdownTab)
       expect(harness.readMarkdownTab).toHaveBeenCalledOnce()
+    } finally {
+      harness.unmount()
+    }
+  })
+})
+
+describe('useMobileSessionTabSwitching worker touch', () => {
+  it('tells the host the user saw the terminal or chat they switched to', () => {
+    const sendRequest = vi.fn<RpcClient['sendRequest']>(async () => ({
+      id: 'rpc',
+      ok: true,
+      result: { changed: 1 }
+    }))
+    const harness = mountSwitching({ activeSessionTabId: null, client: { sendRequest } })
+    try {
+      harness.switchTo({
+        type: 'agent-session',
+        id: 'chat',
+        title: 'Worker',
+        sessionId: 's1',
+        agent: 'claude',
+        isActive: false
+      })
+      harness.switchTo({
+        type: 'terminal',
+        id: 'term',
+        title: 'Worker',
+        terminal: 'pty-1',
+        isActive: false
+      })
+      const touches = sendRequest.mock.calls
+        .filter(([method]) => method === 'orchestration.workerChatTouch')
+        .map(([, params]) => params)
+      expect(touches).toEqual([{ sessionId: 's1' }, { terminal: 'pty-1' }])
     } finally {
       harness.unmount()
     }
