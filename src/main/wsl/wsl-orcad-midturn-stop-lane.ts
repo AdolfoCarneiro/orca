@@ -204,8 +204,8 @@ async function stopMidTurnThenContinue(
   await vi.waitFor(
     async () => {
       expect(held.errors).toEqual([])
-      expect(held.text).toContain('Packaged server ')
       const rows = await items()
+      expect(held.text, JSON.stringify(rows.map((row) => row.body))).toContain('Packaged server ')
       expect(rows.some((row) => readAgentJournalTurn(row.body)?.state === 'running')).toBe(true)
     },
     { timeout: 30_000, interval: 250 }

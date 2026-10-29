@@ -30,7 +30,7 @@ import { listenWslOrcadStdioBridge } from './wsl-orcad-stdio-bridge'
 import { createWslDistroHolder, type WslDistroHolder } from './wsl-distro-holder'
 import { proveWslStructuredChat } from './wsl-orcad-structured-chat-contract'
 import { createLaneWslHost, proveWslMidTurnStopAndContinue } from './wsl-orcad-midturn-stop-lane'
-import { WSL_CHAT_GUEST_BIN, wslChatFixtureRoot } from './wsl-orcad-chat-provider-fixture'
+import { reinstallWslGuestCli, WSL_CHAT_GUEST_BIN } from './wsl-orcad-chat-provider-fixture'
 import {
   WSL_CHAT_WINDOWS_DECOY,
   WSL_CHAT_WINDOWS_DECOY_AGENTS,
@@ -645,14 +645,6 @@ async function releaseHolder(distro: string) {
 
 /** verify-7's device script, with Start through the production host service and connector. */
 async function proveMidTurnStop(distro: string) {
-  // The git project and guest Claude the chat contract installed.
-  const home = (await guest(distro, 'printf %s "$HOME"')).trim()
-  const repo = `${home}/wsl-orcad-lane-repo`
-  const fixture = {
-    root: wslChatFixtureRoot(home),
-    worktree: `path:${repo}`,
-    cwd: repo
-  }
   // Hand the distro from the lane's own bridge and holder to the host service's.
   await manager.close(distro)
   await releaseHolder(distro)
@@ -676,21 +668,31 @@ async function proveMidTurnStop(distro: string) {
       }
       return connection
     }
+    const chat = {
+      rpc: <T>(method: string, params?: unknown) => rpc<T>(current(), method, params),
+      guest: (command: string) => guest(distro, command)
+    }
+    const { pid } = current()
+    if (pid === null) {
+      throw new Error(`${distro} host connection has no runtime PID`)
+    }
+    // The chat contract's Windows-decoy probe deleted the guest claude; install it again.
+    const install = await reinstallWslGuestCli({ ...chat, runtimePid: pid }, 'claude')
+    const repo = `${install.home}/wsl-orcad-lane-repo`
     return await proveWslMidTurnStopAndContinue(
       {
+        ...chat,
         distro,
         environmentId: added.environmentId,
         host,
-        rpc: (method, params) => rpc(current(), method, params),
         pairing: () => pairedConnection(current()),
-        guest: (command) => guest(distro, command),
         terminate: async () => {
           const terminated = await wslExe(['--terminate', distro])
           expect(terminated.code, terminated.output).toBe(0)
         },
         runningDistros
       },
-      fixture
+      { root: install.root, worktree: `path:${repo}`, cwd: repo }
     )
   } finally {
     await host.connector.disconnect(distro).catch(() => {})

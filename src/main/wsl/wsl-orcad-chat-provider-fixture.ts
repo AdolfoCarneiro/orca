@@ -44,35 +44,20 @@ export type WslScriptedProviderInstall = WslGuestCli & {
   ackPath: string
 }
 
-/** Where the fixture keeps its scripts, scenario and reports in the guest's home. */
-export function wslChatFixtureRoot(home: string): string {
-  return `${home}/wsl chat fixture`
-}
+type GuestCliPlace = { home: string; root: string; runtime: string }
 
-/** Install each wire fixture as its agent's command on the guest's login PATH, run by the guest's packaged runtime. */
-export async function installWslChatFixture(lane: WslChatHost) {
-  const home = (await lane.guest('printf %s "$HOME"')).trim()
-  const root = wslChatFixtureRoot(home)
-  const dirs = [
-    `${root}/codex-home`,
-    `${root}/grok-home`,
-    `${root}/opencode-home`,
-    `${home}/${WSL_CHAT_GUEST_BIN}`
-  ]
-  await lane.guest(`mkdir -p ${dirs.map(quotePosixShell).join(' ')}`)
-  const runtime = (await lane.guest(`readlink -f /proc/${lane.runtimePid}/exe`)).trim()
-  const installCli = async (agent: WslChatGuestAgent): Promise<WslGuestCli> => {
-    const script = `${root}/${agent}-scripted.mjs`
-    const cli = `${home}/${WSL_CHAT_GUEST_BIN}/${agent}`
-    await writeChatFixtureFile(
-      lane,
-      script,
-      readFileSync(resolve(GUEST_CLI_FIXTURES[agent]), 'utf8')
-    )
-    await writeChatFixtureFile(
-      lane,
-      cli,
-      `#!/bin/sh
+async function installGuestCli(
+  lane: Pick<WslChatHost, 'guest'>,
+  { home, root, runtime }: GuestCliPlace,
+  agent: WslChatGuestAgent
+): Promise<WslGuestCli> {
+  const script = `${root}/${agent}-scripted.mjs`
+  const cli = `${home}/${WSL_CHAT_GUEST_BIN}/${agent}`
+  await writeChatFixtureFile(lane, script, readFileSync(resolve(GUEST_CLI_FIXTURES[agent]), 'utf8'))
+  await writeChatFixtureFile(
+    lane,
+    cli,
+    `#!/bin/sh
 export ORCA_LANE_CLI_WRAPPER="$0"
 ${
   agent === 'claude'
@@ -89,10 +74,36 @@ done
 `
     : ''
 }exec ${quotePosixShell(runtime)} ${quotePosixShell(script)} "$@"\n`
-    )
-    await lane.guest(`chmod 700 ${quotePosixShell(cli)}`)
-    return { script, cli }
-  }
+  )
+  await lane.guest(`chmod 700 ${quotePosixShell(cli)}`)
+  return { script, cli }
+}
+
+/** Puts one agent's command back after a step removed it, e.g. the Windows-decoy probe. */
+export async function reinstallWslGuestCli(
+  lane: WslChatHost,
+  agent: WslChatGuestAgent
+): Promise<GuestCliPlace & WslGuestCli> {
+  const home = (await lane.guest('printf %s "$HOME"')).trim()
+  const runtime = (await lane.guest(`readlink -f /proc/${lane.runtimePid}/exe`)).trim()
+  const place = { home, root: `${home}/wsl chat fixture`, runtime }
+  return { ...place, ...(await installGuestCli(lane, place, agent)) }
+}
+
+/** Install each wire fixture as its agent's command on the guest's login PATH, run by the guest's packaged runtime. */
+export async function installWslChatFixture(lane: WslChatHost) {
+  const home = (await lane.guest('printf %s "$HOME"')).trim()
+  const root = `${home}/wsl chat fixture`
+  const dirs = [
+    `${root}/codex-home`,
+    `${root}/grok-home`,
+    `${root}/opencode-home`,
+    `${home}/${WSL_CHAT_GUEST_BIN}`
+  ]
+  await lane.guest(`mkdir -p ${dirs.map(quotePosixShell).join(' ')}`)
+  const runtime = (await lane.guest(`readlink -f /proc/${lane.runtimePid}/exe`)).trim()
+  const installCli = (agent: WslChatGuestAgent) =>
+    installGuestCli(lane, { home, root, runtime }, agent)
   const claude = await installCli('claude')
   const scripted = async (
     agent: WslScriptedProviderInstall['agent']
