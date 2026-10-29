@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { translate } from '@/i18n/i18n'
 import { dirname, joinPath } from '@/lib/path'
 import { useAppStore } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
@@ -54,7 +55,12 @@ export function useUntitledFileRename({
           newPath !== oldPath && (await runtimePathExists(fileContext, newPath))
         acquisition.assertCurrent()
         if (destinationExists) {
-          setRenameError('A file with that name already exists')
+          setRenameError(
+            translate(
+              'auto.components.editor.UntitledFileRenameDialog.nameTaken',
+              'A file with that name already exists'
+            )
+          )
           return
         }
 
@@ -65,7 +71,12 @@ export function useUntitledFileRename({
           try {
             await requestEditorFileSave({ fileId: renameDialogFile.id, fallbackContent: draft })
           } catch {
-            setRenameError('Failed to save file')
+            setRenameError(
+              translate(
+                'auto.components.editor.UntitledFileRenameDialog.saveFailed',
+                'Failed to save file'
+              )
+            )
             return
           }
         }

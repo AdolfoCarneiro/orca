@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { translate } from '@/i18n/i18n'
 import { readEditorPanelFileContent } from './editor-panel-file-reads'
 import type { OpenFile } from '@/store/slices/editor'
 import { getConnectionIdForFile, isWorktreeConnectionResolved } from '@/lib/connection-context'
@@ -19,7 +20,10 @@ import {
   type UseEditorPanelFileContentLoaderParams
 } from './editor-panel-content-types'
 import type { EditorPanelContentLoadOptions } from './useEditorPanelExternalContentEvents'
-import { migrateRestoredEditorFileOwner } from './migrate-restored-editor-file-owner'
+import {
+  migrateRestoredEditorFileOwner,
+  restoredOwnerMigrationErrorMessage
+} from './migrate-restored-editor-file-owner'
 import { findRestoredEditorWorkspaceRuntimeOwner } from './restored-editor-workspace-runtime-owner'
 import type { RuntimeWorkspaceFileRoute } from '@/lib/runtime-workspace-file-route'
 import { editorTabFileAccess, isClientLocalReadOnlyTab } from '@/lib/local-file-access'
@@ -126,11 +130,7 @@ export function useEditorPanelFileContentLoader({
         ): Promise<void> => {
           const migration = await migrateRestoredEditorFileOwner(id, route, runtimeEnvironmentId)
           if (!migration.ok) {
-            throw new Error(
-              migration.reason === 'collision'
-                ? 'The sibling file is already open; close one tab before restoring it.'
-                : 'The sibling file owner changed while the tab was restoring.'
-            )
+            throw new Error(restoredOwnerMigrationErrorMessage(migration.reason))
           }
           fileReadGenerationRef.current[id] = ++fileReadGenerationCounterRef.current
           setFileContents((prev) => {
@@ -259,7 +259,10 @@ export function useEditorPanelFileContentLoader({
         acquisition?.assertCurrent()
         if (result.csvPreview && useAppStore.getState().editorDrafts[id] !== undefined) {
           throw new Error(
-            'CSV grew too large for editing. Your draft has been kept; reopen the file to preview it.'
+            translate(
+              'auto.components.editor.EditorPanel.csvGrewTooLarge',
+              'CSV grew too large for editing. Your draft has been kept; reopen the file to preview it.'
+            )
           )
         }
         if (result.csvPreview || restoredOpenFile?.csvPreviewOnly) {
