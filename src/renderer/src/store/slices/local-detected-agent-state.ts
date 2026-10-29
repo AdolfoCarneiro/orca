@@ -216,7 +216,8 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
         internalContextKeys: [
           ...lifecycle.detectPromises.keys(),
           ...lifecycle.refreshPromises.keys(),
-          ...lifecycle.failedDetectContextKeys
+          ...lifecycle.failedDetectContextKeys,
+          ...lifecycle.refusedContextKeys
         ],
         detectedContextKey: lifecycle.detectedContextKey,
         legacyDetectContextKey: lifecycle.legacyDetectContextKey,
@@ -229,6 +230,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
         lifecycle.detectPromises.delete(contextKey)
         lifecycle.refreshPromises.delete(contextKey)
         lifecycle.failedDetectContextKeys.delete(contextKey)
+        lifecycle.refusedContextKeys.delete(contextKey)
       }
       lifecycle.detectedContextKey = eviction.detectedContextKey
       lifecycle.legacyDetectContextKey = eviction.legacyDetectContextKey
@@ -242,6 +244,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
       lifecycle.detectPromises.clear()
       lifecycle.refreshPromises.clear()
       lifecycle.failedDetectContextKeys.clear()
+      lifecycle.refusedContextKeys.clear()
       lifecycle.detectedContextKey = null
       lifecycle.legacyDetectContextKey = null
       lifecycle.legacyRefreshContextKey = null

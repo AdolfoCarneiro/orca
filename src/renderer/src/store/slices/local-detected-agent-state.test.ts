@@ -169,6 +169,16 @@ describe('local detected agent context lifecycle', () => {
     expect(store.getState().isLocalAgentInventoryRefused()).toBe(false)
   })
 
+  it('forgets a refusal when the local inventory is cleared', async () => {
+    const store = createTestStore([makeRepo('repo-1')])
+    detectAgents.mockRejectedValueOnce(new Error("WSL distro 'Ubuntu' is not running."))
+    await store.getState().ensureDetectedAgents()
+    expect(store.getState().isLocalAgentInventoryRefused()).toBe(true)
+
+    store.getState().clearLocalDetectedAgents()
+    expect(store.getState().isLocalAgentInventoryRefused()).toBe(false)
+  })
+
   it('re-detects re-enabled agents and prevents pre-change requests from restoring caches', async () => {
     const store = createTestStore([])
     let finishOld: (ids: string[]) => void = () => {}
