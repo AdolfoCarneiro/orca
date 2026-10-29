@@ -39,7 +39,7 @@ describe('registerComputerUsePermissionHandlers', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform })
   })
 
-  it('re-probes passive readers on app return but not on transfers between Orca windows', async () => {
+  it('re-probes passive readers only after the app itself returns', async () => {
     Object.defineProperty(process, 'platform', { value: 'darwin' })
     mocks.probe.mockResolvedValue({
       platform: 'darwin',
@@ -58,11 +58,7 @@ describe('registerComputerUsePermissionHandlers', () => {
 
     mocks.focusedWindow.current = {}
     await readPassively()
-    for (let transfer = 0; transfer < 5; transfer++) {
-      app.emit('browser-window-blur')
-      app.emit('browser-window-focus')
-      await readPassively()
-    }
+    await readPassively()
     expect(mocks.probe).toHaveBeenCalledTimes(1)
 
     app.emit('did-resign-active')

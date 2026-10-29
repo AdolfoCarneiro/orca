@@ -16,7 +16,7 @@ type InFlightProbe = {
 }
 
 export type PermissionStatusReadOptions = {
-  // Passive status badges opt into the denied backoff; omitted keeps older clients near-live.
+  // Local passive badges opt into the denied backoff; foreground reads never get a cached denial.
   background?: boolean
 }
 
@@ -100,6 +100,20 @@ export function createPermissionStatusProbeGate(options: {
     return entry.promise
   }
 
+  const reuseLimit = (
+    entry: { outcome: ProbeOutcome; finishedAt: number },
+    readOptions: PermissionStatusReadOptions
+  ): number => {
+    if (readOptions.background) {
+      return reuseUntil
+    }
+    // Foreground readers may have just granted; only passive badges accept a finished denial.
+    if (entry.outcome.ok && isMissingPermission(entry.outcome.result)) {
+      return 0
+    }
+    return entry.finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS
+  }
+
   const read = (
     readOptions: PermissionStatusReadOptions = {}
   ): Promise<ComputerUsePermissionStatusResult> => {
@@ -117,10 +131,7 @@ export function createPermissionStatusProbeGate(options: {
       return current.followUp
     }
     if (cached && cached.epoch === epoch) {
-      const limit = readOptions.background
-        ? reuseUntil
-        : cached.finishedAt + PERMISSION_STATUS_RESULT_REUSE_MS
-      if (now() < limit) {
+      if (now() < reuseLimit(cached, readOptions)) {
         const { outcome } = cached
         return outcome.ok ? Promise.resolve(outcome.result) : Promise.reject(outcome.error)
       }

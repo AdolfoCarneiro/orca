@@ -65,10 +65,10 @@ export const COMPUTER_METHODS = [
     name: 'computer.permissionsStatus',
     permission: 'workspace',
     params: ComputerPermissionsStatusParams,
-    handler: async (params) => {
+    handler: async () => {
       const { computerUsePermissionStatusGate } =
         await import('../../../computer/macos-computer-use-permission-status-gate')
-      return computerUsePermissionStatusGate.read({ background: params.background === true })
+      return computerUsePermissionStatusGate.read()
     }
   }),
   defineMethod({

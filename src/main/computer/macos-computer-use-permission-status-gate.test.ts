@@ -109,16 +109,20 @@ describe('createPermissionStatusProbeGate', () => {
     await expect(gate.read(background)).resolves.toBe(granted)
   })
 
-  it('keeps callers that omit background, like older clients, within 2s of live', async () => {
+  it('never serves a finished denial to foreground readers, even on a quick return', async () => {
     let clock = 0
     const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
     const gate = createPermissionStatusProbeGate({ probe, now: () => clock })
 
     await gate.read()
-    clock += 2_000 - 1
-    await expect(gate.read()).resolves.toBe(denied)
-    clock += 1
+    // The user grants at 250ms and the browser returns at 500ms.
+    clock += 500
     await expect(gate.read(background)).resolves.toBe(denied)
+    const reads = await Promise.all([gate.read(), gate.read(), gate.read()])
+    expect(reads).toEqual([granted, granted, granted])
+    expect(probe).toHaveBeenCalledTimes(2)
+
+    clock += 2_000 - 1
     await expect(gate.read()).resolves.toBe(granted)
     expect(probe).toHaveBeenCalledTimes(2)
   })
