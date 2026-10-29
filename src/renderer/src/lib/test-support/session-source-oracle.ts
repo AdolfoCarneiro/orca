@@ -3,8 +3,8 @@ import type { AppState } from '../../store/types'
 import type { SessionSourceDiscovery, SessionSequenceField } from '../session-source-fields'
 import { discoverSessionSources } from './session-source-discovery'
 
-type SourceTestStore = {
-  subscribe(listener: (after: AppState, before: AppState) => void): () => void
+type SourceTestStore<S> = {
+  subscribe(listener: (after: S, before: S) => void): () => void
   getSessionSourceReceipt(): SessionSourceDiscovery | undefined
 }
 
@@ -14,7 +14,9 @@ export function isSessionSourceOracleActive(): boolean {
 }
 
 /** Every test-store notification is checked independently of the producer and projection. */
-export function observeSessionSourceOracle(store: SourceTestStore): () => void {
+export function observeSessionSourceOracle<S extends Partial<AppState>>(
+  store: SourceTestStore<S>
+): () => void {
   return store.subscribe((after, before) => {
     oracleDepth++
     try {
@@ -67,7 +69,9 @@ export function observeSessionSourceOracle(store: SourceTestStore): () => void {
 }
 
 /** Ordinary actions cannot hide behind an authorized complete-domain replacement. */
-export function observeOrdinarySessionSourceWrites(store: SourceTestStore): () => void {
+export function observeOrdinarySessionSourceWrites<S extends Partial<AppState>>(
+  store: SourceTestStore<S>
+): () => void {
   return store.subscribe(() => {
     expect(store.getSessionSourceReceipt()?.full, 'ordinary action publishes keyed receipts').toBe(
       false

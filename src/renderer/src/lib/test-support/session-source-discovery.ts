@@ -96,8 +96,8 @@ function compareRecordSources(
 
 /** Discovery compares source identities once per flush; ACKs have a separate baseline. */
 export function discoverSessionSources(
-  previous: AppState,
-  next: AppState,
+  previous: Partial<AppState>,
+  next: Partial<AppState>,
   fields: Iterable<SessionSourceField> = SESSION_SOURCE_FIELDS
 ): SessionSourceDiscovery {
   const changes = new Map<SessionSourceField, ReadonlySet<string> | null>()
@@ -111,8 +111,8 @@ export function discoverSessionSources(
       continue
     }
     if (field === 'openFiles') {
-      const prior = groupSessionFiles(previous.openFiles)
-      filesByOwner = groupSessionFiles(next.openFiles)
+      const prior = groupSessionFiles(previous.openFiles ?? [])
+      filesByOwner = groupSessionFiles(next.openFiles ?? [])
       const owners = new Set<string>()
       for (const [owner, rows] of prior) {
         const current = filesByOwner.get(owner)
@@ -164,11 +164,14 @@ export function discoverSessionSources(
         return current
       }
       if (field === 'repos') {
-        catalogs.repos = discover(previous.repos, next.repos)
+        catalogs.repos = discover(previous.repos ?? [], next.repos ?? [])
       } else if (field === 'folderWorkspaces') {
-        catalogs.folderWorkspaces = discover(previous.folderWorkspaces, next.folderWorkspaces)
+        catalogs.folderWorkspaces = discover(
+          previous.folderWorkspaces ?? [],
+          next.folderWorkspaces ?? []
+        )
       } else {
-        catalogs.projectGroups = discover(previous.projectGroups, next.projectGroups)
+        catalogs.projectGroups = discover(previous.projectGroups ?? [], next.projectGroups ?? [])
       }
     } else if (
       !before ||

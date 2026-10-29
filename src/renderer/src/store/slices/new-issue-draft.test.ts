@@ -1,3 +1,4 @@
+import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { create } from 'zustand'
 import { describe, expect, it } from 'vitest'
 import { createNewIssueDraftSlice } from './new-issue-draft'
@@ -6,8 +7,11 @@ import type { GitHubAssignableUser } from '../../../../shared/github/pull-reques
 
 function makeStore() {
   return create<Pick<AppState, 'newIssueDraft' | 'setNewIssueDraft' | 'clearNewIssueDraft'>>()(
-    (...args) =>
+    withSessionSourceTestWrites<
+      Pick<AppState, 'newIssueDraft' | 'setNewIssueDraft' | 'clearNewIssueDraft'>
+    >((...args) =>
       createNewIssueDraftSlice(...(args as unknown as Parameters<typeof createNewIssueDraftSlice>))
+    )
   )
 }
 
