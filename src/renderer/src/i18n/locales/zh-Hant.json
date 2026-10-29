@@ -20060,6 +20060,31 @@
       "loading": "正在載入子代理程式…",
       "loadError": "無法載入所有子代理程式。",
       "empty": "找不到子代理程式。"
+    },
+    "scanIssues": {
+      "issuesOmitted": "已省略其他掃描問題。",
+      "sessionMetadataUnreadable": "本次掃描無法讀取工作階段後設資料。",
+      "openCodeScannerUnavailable": "由於無法啟動背景掃描器，已跳過 OpenCode 歷史記錄；應用程式仍可正常回應。",
+      "openCodeScanIncomplete": "OpenCode 歷史記錄掃描未完成：{{detail}}",
+      "openCodeWslReaderPreparing": "正在準備 WSL SQLite 讀取器。設定完成後請重新整理 Vault。",
+      "openCodeWslReaderNotPrepared": "WSL SQLite 讀取器尚未準備就緒。請重新整理 Vault 以重試。",
+      "openCodeDatabaseBusy": "{{label}} 正在寫入 {{name}}，因此已跳過其歷史記錄。下次重新整理時會再次讀取。",
+      "openCodeDatabaseUnreadable": "無法讀取 {{label}} 在 {{name}} 中的歷史記錄：{{detail}}",
+      "openCodeWslDatabaseUnsupported": "目前尚無法從 Windows 搜尋 WSL 內的 {{label}} 工作階段。",
+      "openCodeWriteAheadLogUnreadable": "無法讀取 {{label}} 在 {{name}} 中的歷史記錄。此檔案系統無法以唯讀模式開啟其預寫式日誌。請正常結束 {{label}}，以將日誌寫入資料庫。",
+      "wslTranscriptFsSlow": "由於存取檔案系統耗時過久，暫時無法使用 WSL 工作階段記錄檔。請稍後再試，若問題持續，請重新啟動 Orca。",
+      "wslTranscriptFsCapacity": "由於已有太多檔案系統存取要求等待處理，暫時無法尋找 WSL 工作階段記錄。請稍後再試，若問題持續，請重新啟動 Orca。",
+      "wslTranscriptFsProcessFailed": "由於檔案系統輔助行程失敗（{{detail}}），暫時無法使用 WSL 工作階段記錄檔。請稍後再試，若問題持續，請重新啟動 Orca。",
+      "wslDistroNotRunning": "由於 WSL 發行版「{{distro}}」目前未執行，無法使用 WSL 工作階段記錄檔。請在該發行版中開啟終端機以啟動它。",
+      "wslDistroUnverifiable": "WSL 未回覆「{{distro}}」是否正在執行，因此無法使用 WSL 工作階段記錄檔。請稍後再試。",
+      "scopePathsTruncated": "僅掃描了前 {{limit}} 個專案路徑。",
+      "invalidResultsSkipped_other": "已跳過代理程式工作階段歷史中的 {{count}} 筆無效結果項目。",
+      "scanTimedOutOnSshHost": "工作階段掃描在此 SSH 主機上執行 {{seconds}} 秒後逾時。請重新整理以重試。",
+      "scanTimedOut": "工作階段掃描在 {{seconds}} 秒後逾時，電腦可能正忙。請重新整理以重試。",
+      "scannerPaused": "工作階段掃描因多次失敗而暫停。請重新整理以重試。",
+      "scannerBusy": "同時進行的工作階段掃描過多。請稍候再重新整理。",
+      "scannerMissing": "此 Orca 安裝中缺少工作階段掃描器。重新安裝 Orca 即可還原。",
+      "scannerStopped": "工作階段掃描器意外停止。請重新整理以重試。"
     }
   },
   "common": {
@@ -20613,7 +20638,12 @@
       "settings": "設定",
       "dialogTitle": "對話自動命名失敗",
       "dialogDescriptionStart": "Orca 無法根據第一則訊息為",
-      "dialogDescriptionEnd": "產生名稱。"
+      "dialogDescriptionEnd": "產生名稱。",
+      "errors": {
+        "noName": "對話命名代理程式未傳回名稱。",
+        "agentNotRun": "Orca 無法執行對話命名代理程式。",
+        "noAgentAvailable": "此工作區中沒有可執行的對話命名代理程式。"
+      }
     }
   },
   "updates": {

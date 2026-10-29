@@ -20299,7 +20299,32 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → 命令行界面",
     "continueInCli": "在 CLI 中继续",
-    "continueInCliNewTab": "在新选项卡中继续使用 CLI"
+    "continueInCliNewTab": "在新选项卡中继续使用 CLI",
+    "scanIssues": {
+      "issuesOmitted": "已省略其他扫描问题。",
+      "sessionMetadataUnreadable": "本次扫描未能读取会话元数据。",
+      "openCodeScannerUnavailable": "由于无法启动后台扫描器，已跳过 OpenCode 历史记录；应用仍可正常响应。",
+      "openCodeScanIncomplete": "OpenCode 历史记录扫描未完成：{{detail}}",
+      "openCodeWslReaderPreparing": "正在准备 WSL SQLite 读取器。设置完成后请刷新 Vault。",
+      "openCodeWslReaderNotPrepared": "WSL SQLite 读取器尚未准备就绪。请刷新 Vault 以重试。",
+      "openCodeDatabaseBusy": "{{label}} 正在写入 {{name}}，因此已跳过其历史记录。下次刷新时会重新读取。",
+      "openCodeDatabaseUnreadable": "无法读取 {{label}} 在 {{name}} 中的历史记录：{{detail}}",
+      "openCodeWslDatabaseUnsupported": "目前尚无法从 Windows 搜索 WSL 内的 {{label}} 会话。",
+      "openCodeWriteAheadLogUnreadable": "无法读取 {{label}} 在 {{name}} 中的历史记录。此文件系统不支持以只读方式打开其预写日志。请正常退出 {{label}} 以将日志写入数据库。",
+      "wslTranscriptFsSlow": "由于文件系统访问耗时过长，WSL 会话记录文件暂时不可用。请稍后重试；如果问题持续，请重启 Orca。",
+      "wslTranscriptFsCapacity": "由于已有太多文件系统请求在排队，暂时无法查找 WSL 会话记录。请稍后重试；如果问题持续，请重启 Orca。",
+      "wslTranscriptFsProcessFailed": "由于文件系统辅助进程失败（{{detail}}），WSL 会话记录文件暂时不可用。请稍后重试；如果问题持续，请重启 Orca。",
+      "wslDistroNotRunning": "由于 WSL 发行版“{{distro}}”未运行，WSL 会话记录文件不可用。请在该发行版中打开终端以启动它。",
+      "wslDistroUnverifiable": "WSL 未回应“{{distro}}”是否正在运行，因此无法使用 WSL 会话记录文件。请稍后重试。",
+      "scopePathsTruncated": "仅扫描了前 {{limit}} 个项目路径。",
+      "invalidResultsSkipped_other": "已跳过智能体会话历史中 {{count}} 条无效的结果条目。",
+      "scanTimedOutOnSshHost": "此 SSH 主机上的会话扫描在 {{seconds}} 秒后超时。请刷新以重试。",
+      "scanTimedOut": "会话扫描在 {{seconds}} 秒后超时，计算机可能正忙。请刷新以重试。",
+      "scannerPaused": "会话扫描因多次失败而暂停。请刷新以重试。",
+      "scannerBusy": "同时进行的会话扫描过多。请稍等片刻，然后刷新。",
+      "scannerMissing": "此 Orca 安装中缺少会话扫描器。重新安装 Orca 可将其恢复。",
+      "scannerStopped": "会话扫描器意外停止。请刷新以重试。"
+    }
   },
   "common": {
     "retry": "重试",
@@ -20913,7 +20938,12 @@
       "settings": "设置",
       "dialogTitle": "聊天自动命名失败",
       "dialogDescriptionStart": "Orca 无法根据第一条消息为",
-      "dialogDescriptionEnd": "生成名称。"
+      "dialogDescriptionEnd": "生成名称。",
+      "errors": {
+        "noName": "聊天命名智能体未返回名称。",
+        "agentNotRun": "Orca 无法运行聊天命名智能体。",
+        "noAgentAvailable": "此工作区中没有可运行的聊天命名智能体。"
+      }
     }
   },
   "jira": {

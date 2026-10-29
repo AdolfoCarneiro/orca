@@ -20348,6 +20348,32 @@
       "loading": "Unteragenten werden geladen…",
       "loadError": "Nicht alle Unteragenten konnten geladen werden.",
       "empty": "Keine Unteragenten gefunden."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Weitere Probleme beim Scannen wurden ausgelassen.",
+      "sessionMetadataUnreadable": "Sitzungsmetadaten konnten bei diesem Scan nicht gelesen werden.",
+      "openCodeScannerUnavailable": "Der OpenCode-Verlauf wurde übersprungen, weil der Hintergrundscanner nicht starten konnte; die App reagiert weiterhin.",
+      "openCodeScanIncomplete": "Der Scan des OpenCode-Verlaufs wurde nicht abgeschlossen: {{detail}}",
+      "openCodeWslReaderPreparing": "Das SQLite-Leseprogramm für WSL wird vorbereitet. Nach Abschluss der Einrichtung Vault aktualisieren.",
+      "openCodeWslReaderNotPrepared": "Das SQLite-Leseprogramm für WSL ist nicht vorbereitet. Zum Wiederholen Vault aktualisieren.",
+      "openCodeDatabaseBusy": "{{label}} schreibt gerade in {{name}}, daher wurde der Verlauf übersprungen. Er wird bei der nächsten Aktualisierung erneut gelesen.",
+      "openCodeDatabaseUnreadable": "Der Verlauf von {{label}} in {{name}} konnte nicht gelesen werden: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "{{label}}-Sitzungen innerhalb von WSL können noch nicht von Windows aus durchsucht werden.",
+      "openCodeWriteAheadLogUnreadable": "Der Verlauf von {{label}} in {{name}} konnte nicht gelesen werden. Das Write-Ahead-Log lässt sich auf diesem Dateisystem nicht schreibgeschützt öffnen. {{label}} ordnungsgemäß beenden, damit das Log in die Datenbank geschrieben wird.",
+      "wslTranscriptFsSlow": "WSL-Protokolldateien sind vorübergehend nicht verfügbar, weil der Dateisystemzugriff zu lange dauert. In Kürze erneut versuchen oder Orca neu starten, falls das Problem anhält.",
+      "wslTranscriptFsCapacity": "Die Suche nach WSL-Protokolldateien ist vorübergehend nicht verfügbar, weil bereits zu viele Dateisystemanfragen warten. In Kürze erneut versuchen oder Orca neu starten, falls das Problem anhält.",
+      "wslTranscriptFsProcessFailed": "WSL-Protokolldateien sind vorübergehend nicht verfügbar, weil der Dateisystem-Hilfsprozess fehlgeschlagen ist ({{detail}}). In Kürze erneut versuchen oder Orca neu starten, falls das Problem anhält.",
+      "wslDistroNotRunning": "WSL-Protokolldateien sind nicht verfügbar, weil die WSL-Distribution „{{distro}}“ nicht läuft. Zum Starten ein Terminal darin öffnen.",
+      "wslDistroUnverifiable": "WSL-Protokolldateien sind nicht verfügbar, weil WSL nicht geantwortet hat, ob „{{distro}}“ läuft. In Kürze erneut versuchen.",
+      "scopePathsTruncated": "Nur die ersten {{limit}} Projektpfade wurden gescannt.",
+      "invalidResultsSkipped_one": "{{count}} ungültiger Ergebniseintrag aus dem Verlauf der Agentensitzungen wurde übersprungen.",
+      "invalidResultsSkipped_other": "{{count}} ungültige Ergebniseinträge aus dem Verlauf der Agentensitzungen wurden übersprungen.",
+      "scanTimedOutOnSshHost": "Zeitüberschreitung beim Sitzungs-Scan nach {{seconds}} s auf diesem SSH-Host. Zum Wiederholen aktualisieren.",
+      "scanTimedOut": "Zeitüberschreitung beim Sitzungs-Scan nach {{seconds}} s — der Rechner ist möglicherweise ausgelastet. Zum Wiederholen aktualisieren.",
+      "scannerPaused": "Das Scannen von Sitzungen wurde nach wiederholten Fehlern pausiert. Zum Wiederholen aktualisieren.",
+      "scannerBusy": "Zu viele Sitzungs-Scans gleichzeitig. Kurz warten und dann aktualisieren.",
+      "scannerMissing": "Der Sitzungs-Scanner fehlt in dieser Orca-Installation. Eine Neuinstallation von Orca stellt ihn wieder her.",
+      "scannerStopped": "Der Sitzungs-Scanner wurde unerwartet beendet. Zum Wiederholen aktualisieren."
     }
   },
   "common": {
@@ -20907,7 +20933,12 @@
       "settings": "Einstellungen",
       "dialogTitle": "Automatische Chat-Benennung fehlgeschlagen",
       "dialogDescriptionStart": "Orca konnte für",
-      "dialogDescriptionEnd": "keinen Namen aus der ersten Nachricht generieren."
+      "dialogDescriptionEnd": "keinen Namen aus der ersten Nachricht generieren.",
+      "errors": {
+        "noName": "Der Agent zur Chat-Benennung hat keinen Namen zurückgegeben.",
+        "agentNotRun": "Orca konnte den Agenten zur Chat-Benennung nicht ausführen.",
+        "noAgentAvailable": "In diesem Arbeitsbereich kann kein Agent zur Chat-Benennung ausgeführt werden."
+      }
     }
   },
   "updates": {

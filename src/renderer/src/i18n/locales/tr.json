@@ -20329,6 +20329,32 @@
       "loading": "Alt ajanlar yükleniyor…",
       "loadError": "Tüm alt ajanlar yüklenemedi.",
       "empty": "Alt ajan bulunamadı."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Ek tarama sorunları gösterilmedi.",
+      "sessionMetadataUnreadable": "Bu taramada oturum meta verileri okunamadı.",
+      "openCodeScannerUnavailable": "Arka plan tarayıcısı başlatılamadığı için OpenCode geçmişi atlandı; uygulama yanıt vermeye devam ediyor.",
+      "openCodeScanIncomplete": "OpenCode geçmiş taraması tamamlanamadı: {{detail}}",
+      "openCodeWslReaderPreparing": "WSL SQLite okuyucusu hazırlanıyor. Kurulum tamamlandıktan sonra Vault bölümünü yenileyin.",
+      "openCodeWslReaderNotPrepared": "WSL SQLite okuyucusu hazır değil. Yeniden denemek için Vault bölümünü yenileyin.",
+      "openCodeDatabaseBusy": "{{label}} şu anda {{name}} dosyasına yazdığı için geçmişi atlandı. Sonraki yenilemede yeniden okunacak.",
+      "openCodeDatabaseUnreadable": "{{name}} içindeki {{label}} geçmişi okunamadı: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "WSL içindeki {{label}} oturumları henüz Windows üzerinden aranamıyor.",
+      "openCodeWriteAheadLogUnreadable": "{{name}} içindeki {{label}} geçmişi okunamadı. Ön yazma günlüğü bu dosya sisteminde salt okunur olarak açılamıyor. Günlüğü diske aktarmak için {{label}} uygulamasından düzgün biçimde çıkın.",
+      "wslTranscriptFsSlow": "Dosya sistemine erişim çok uzun sürdüğü için WSL oturum dökümü dosyaları geçici olarak kullanılamıyor. Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
+      "wslTranscriptFsCapacity": "Zaten çok fazla dosya sistemi isteği beklediği için WSL oturum dökümlerini bulma işlemi geçici olarak kullanılamıyor. Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
+      "wslTranscriptFsProcessFailed": "Dosya sistemi yardımcı işlemi hata verdiği için WSL oturum dökümü dosyaları geçici olarak kullanılamıyor ({{detail}}). Kısa süre sonra yeniden deneyin veya sorun devam ederse Orca'yı yeniden başlatın.",
+      "wslDistroNotRunning": "'{{distro}}' WSL dağıtımı çalışmadığı için WSL oturum dökümü dosyaları kullanılamıyor. Dağıtımı başlatmak için içinde bir terminal açın.",
+      "wslDistroUnverifiable": "WSL, '{{distro}}' dağıtımının çalışıp çalışmadığına yanıt vermediği için WSL oturum dökümü dosyaları kullanılamıyor. Kısa süre sonra yeniden deneyin.",
+      "scopePathsTruncated": "Yalnızca ilk {{limit}} proje yolu tarandı.",
+      "invalidResultsSkipped_one": "Ajan Oturum Geçmişi sonuçlarındaki {{count}} geçersiz girdi atlandı.",
+      "invalidResultsSkipped_other": "Ajan Oturum Geçmişi sonuçlarındaki {{count}} geçersiz girdi atlandı.",
+      "scanTimedOutOnSshHost": "Bu SSH sunucusundaki oturum taraması {{seconds}} saniye sonra zaman aşımına uğradı. Yeniden denemek için yenileyin.",
+      "scanTimedOut": "Oturum taraması {{seconds}} saniye sonra zaman aşımına uğradı — bilgisayar meşgul olabilir. Yeniden denemek için yenileyin.",
+      "scannerPaused": "Tekrarlanan hatalardan sonra oturum taraması duraklatıldı. Yeniden denemek için yenileyin.",
+      "scannerBusy": "Aynı anda çok fazla oturum taraması çalışıyor. Biraz bekleyip yenileyin.",
+      "scannerMissing": "Bu Orca kurulumunda oturum tarayıcısı eksik. Orca'yı yeniden yüklemek onu geri getirir.",
+      "scannerStopped": "Oturum tarayıcısı beklenmedik şekilde durdu. Yeniden denemek için yenileyin."
     }
   },
   "common": {
@@ -20888,7 +20914,12 @@
       "settings": "Ayarlar",
       "dialogTitle": "Sohbete otomatik ad verilemedi",
       "dialogDescriptionStart": "Orca tarafından",
-      "dialogDescriptionEnd": "sohbetinin ilk mesajından bir ad oluşturulamadı."
+      "dialogDescriptionEnd": "sohbetinin ilk mesajından bir ad oluşturulamadı.",
+      "errors": {
+        "noName": "Sohbeti adlandıran ajan bir ad döndürmedi.",
+        "agentNotRun": "Sohbeti adlandıran ajan Orca tarafından çalıştırılamadı.",
+        "noAgentAvailable": "Bu çalışma alanında sohbeti adlandıran hiçbir ajan çalıştırılamaz."
+      }
     }
   },
   "updates": {

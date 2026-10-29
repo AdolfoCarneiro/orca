@@ -21201,6 +21201,33 @@
       "loading": "Cargando subagentes…",
       "loadError": "No se pudieron cargar todos los subagentes.",
       "empty": "No se encontraron subagentes."
+    },
+    "scanIssues": {
+      "issuesOmitted": "Se omitieron problemas adicionales del escaneo.",
+      "sessionMetadataUnreadable": "No se pudieron leer los metadatos de las sesiones en este escaneo.",
+      "openCodeScannerUnavailable": "Se omitió el historial de OpenCode porque su escáner en segundo plano no pudo iniciarse; la aplicación sigue respondiendo.",
+      "openCodeScanIncomplete": "El escaneo del historial de OpenCode no se completó: {{detail}}",
+      "openCodeWslReaderPreparing": "Preparando el lector SQLite de WSL. Actualiza Vault cuando termine la configuración.",
+      "openCodeWslReaderNotPrepared": "El lector SQLite de WSL no está preparado. Actualiza Vault para reintentarlo.",
+      "openCodeDatabaseBusy": "{{label}} está escribiendo en {{name}}, por lo que se ha omitido su historial. Se volverá a leer en la próxima actualización.",
+      "openCodeDatabaseUnreadable": "No se pudo leer el historial de {{label}} en {{name}}: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "Aún no se pueden buscar sesiones de {{label}} dentro de WSL desde Windows.",
+      "openCodeWriteAheadLogUnreadable": "No se pudo leer el historial de {{label}} en {{name}}. Su registro de escritura anticipada no se puede abrir en modo de solo lectura en este sistema de archivos. Cierra {{label}} correctamente para volcar el registro.",
+      "wslTranscriptFsSlow": "Los archivos de transcripción de WSL no están disponibles temporalmente porque el acceso al sistema de archivos está tardando demasiado. Inténtalo de nuevo en breve o reinicia Orca si el problema persiste.",
+      "wslTranscriptFsCapacity": "La búsqueda de transcripciones de WSL no está disponible temporalmente porque ya hay demasiadas solicitudes al sistema de archivos en espera. Inténtalo de nuevo en breve o reinicia Orca si el problema persiste.",
+      "wslTranscriptFsProcessFailed": "Los archivos de transcripción de WSL no están disponibles temporalmente porque falló el proceso auxiliar del sistema de archivos ({{detail}}). Inténtalo de nuevo en breve o reinicia Orca si el problema persiste.",
+      "wslDistroNotRunning": "Los archivos de transcripción de WSL no están disponibles porque la distro WSL «{{distro}}» no está en ejecución. Abre un terminal en ella para iniciarla.",
+      "wslDistroUnverifiable": "Los archivos de transcripción de WSL no están disponibles porque WSL no respondió si «{{distro}}» está en ejecución. Inténtalo de nuevo en breve.",
+      "scopePathsTruncated": "Solo se escanearon las primeras {{limit}} rutas de proyectos.",
+      "invalidResultsSkipped_one": "Se omitió {{count}} entrada de resultado no válida del historial de sesiones de agentes.",
+      "invalidResultsSkipped_other": "Se omitieron {{count}} entradas de resultado no válidas del historial de sesiones de agentes.",
+      "invalidResultsSkipped_many": "Se omitieron {{count}} entradas de resultado no válidas del historial de sesiones de agentes.",
+      "scanTimedOutOnSshHost": "El escaneo de sesiones agotó el tiempo de espera tras {{seconds}} s en este host SSH. Actualiza para reintentarlo.",
+      "scanTimedOut": "El escaneo de sesiones agotó el tiempo de espera tras {{seconds}} s — el equipo puede estar ocupado. Actualiza para reintentarlo.",
+      "scannerPaused": "El escaneo de sesiones se pausó tras varios fallos. Actualiza para reintentarlo.",
+      "scannerBusy": "Hay demasiados escaneos de sesiones en curso. Espera un momento y luego actualiza.",
+      "scannerMissing": "El escáner de sesiones no está en esta instalación de Orca. Reinstalar Orca lo restaura.",
+      "scannerStopped": "El escáner de sesiones se detuvo inesperadamente. Actualiza para reintentarlo."
     }
   },
   "fileSearch": {
@@ -21569,7 +21596,12 @@
       "dialogTitle": "Falló el nombre automático del chat",
       "dialogDescriptionStart": "Orca no pudo generar un nombre para",
       "dialogDescriptionEnd": "a partir de su primer mensaje.",
-      "settings": "Ajustes"
+      "settings": "Ajustes",
+      "errors": {
+        "noName": "El agente de nombres de chat no devolvió ningún nombre.",
+        "agentNotRun": "Orca no pudo ejecutar el agente de nombres de chat.",
+        "noAgentAvailable": "No hay ningún agente de nombres de chat que pueda ejecutarse en este espacio de trabajo."
+      }
     }
   },
   "updates": {

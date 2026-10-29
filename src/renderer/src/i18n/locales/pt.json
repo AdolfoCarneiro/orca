@@ -191,7 +191,34 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → CLI",
     "continueInCli": "Continuar na CLI",
-    "continueInCliNewTab": "Continuar na CLI em nova aba"
+    "continueInCliNewTab": "Continuar na CLI em nova aba",
+    "scanIssues": {
+      "issuesOmitted": "Outros problemas da verificação foram omitidos.",
+      "sessionMetadataUnreadable": "Não foi possível ler os metadados das sessões nesta verificação.",
+      "openCodeScannerUnavailable": "O histórico do OpenCode foi ignorado porque seu verificador em segundo plano não pôde ser iniciado; o aplicativo continua respondendo.",
+      "openCodeScanIncomplete": "A verificação do histórico do OpenCode não foi concluída: {{detail}}",
+      "openCodeWslReaderPreparing": "Preparando o leitor SQLite do WSL. Atualize o Vault após a conclusão da configuração.",
+      "openCodeWslReaderNotPrepared": "O leitor SQLite do WSL não está preparado. Atualize o Vault para tentar novamente.",
+      "openCodeDatabaseBusy": "{{label}} está gravando em {{name}}, por isso seu histórico foi ignorado. Ele será lido novamente na próxima atualização.",
+      "openCodeDatabaseUnreadable": "Não foi possível ler o histórico de {{label}} em {{name}}: {{detail}}",
+      "openCodeWslDatabaseUnsupported": "Ainda não é possível pesquisar sessões de {{label}} dentro do WSL a partir do Windows.",
+      "openCodeWriteAheadLogUnreadable": "Não foi possível ler o histórico de {{label}} em {{name}}. Seu log de gravação antecipada não pode ser aberto em modo somente leitura neste sistema de arquivos. Encerre {{label}} normalmente para descarregar o log.",
+      "wslTranscriptFsSlow": "Os arquivos de transcrição do WSL estão temporariamente indisponíveis porque o acesso ao sistema de arquivos está demorando demais. Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslTranscriptFsCapacity": "A busca por transcrições do WSL está temporariamente indisponível porque já há solicitações demais ao sistema de arquivos em espera. Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslTranscriptFsProcessFailed": "Os arquivos de transcrição do WSL estão temporariamente indisponíveis porque o processo auxiliar do sistema de arquivos falhou ({{detail}}). Tente novamente em instantes ou reinicie o Orca se o problema persistir.",
+      "wslDistroNotRunning": "Os arquivos de transcrição do WSL estão indisponíveis porque a distribuição WSL '{{distro}}' não está em execução. Abra um terminal nela para iniciá-la.",
+      "wslDistroUnverifiable": "Os arquivos de transcrição do WSL estão indisponíveis porque o WSL não respondeu se '{{distro}}' está em execução. Tente novamente em instantes.",
+      "scopePathsTruncated": "Apenas os primeiros {{limit}} caminhos de projetos foram verificados.",
+      "invalidResultsSkipped_one": "{{count}} entrada de resultado inválida do Histórico de Sessões de Agente foi ignorada.",
+      "invalidResultsSkipped_other": "{{count}} entradas de resultado inválidas do Histórico de Sessões de Agente foram ignoradas.",
+      "invalidResultsSkipped_many": "{{count}} entradas de resultado inválidas do Histórico de Sessões de Agente foram ignoradas.",
+      "scanTimedOutOnSshHost": "A verificação de sessões excedeu o tempo limite de {{seconds}} s neste host SSH. Atualize para tentar novamente.",
+      "scanTimedOut": "A verificação de sessões excedeu o tempo limite de {{seconds}} s — a máquina pode estar ocupada. Atualize para tentar novamente.",
+      "scannerPaused": "A verificação de sessões foi pausada após falhas repetidas. Atualize para tentar novamente.",
+      "scannerBusy": "Há verificações de sessões demais em andamento. Aguarde um momento e atualize.",
+      "scannerMissing": "O verificador de sessões está ausente nesta instalação do Orca. Reinstalar o Orca o restaura.",
+      "scannerStopped": "O verificador de sessões parou inesperadamente. Atualize para tentar novamente."
+    }
   },
   "checksPanel": {
     "unlinked": {
@@ -21325,7 +21352,12 @@
       "dialogTitle": "Falha ao nomear o chat automaticamente",
       "dialogDescriptionStart": "O Orca não conseguiu gerar um nome para",
       "dialogDescriptionEnd": "a partir da primeira mensagem.",
-      "settings": "Configurações"
+      "settings": "Configurações",
+      "errors": {
+        "noName": "O agente que nomeia os chats não retornou nenhum nome.",
+        "agentNotRun": "O Orca não conseguiu executar o agente que nomeia os chats.",
+        "noAgentAvailable": "Nenhum agente que nomeia os chats pode ser executado neste espaço de trabalho."
+      }
     }
   },
   "updates": {

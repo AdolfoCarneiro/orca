@@ -20880,7 +20880,34 @@
     "antigravityIdeToCli": "IDE → CLI",
     "antigravity2ToCli": "2.0 → CLI",
     "continueInCli": "Continuer en CLI",
-    "continueInCliNewTab": "Continuer dans la CLI dans un nouvel onglet"
+    "continueInCliNewTab": "Continuer dans la CLI dans un nouvel onglet",
+    "scanIssues": {
+      "issuesOmitted": "D’autres problèmes d’analyse ont été omis.",
+      "sessionMetadataUnreadable": "Les métadonnées des sessions n’ont pas pu être lues lors de cette analyse.",
+      "openCodeScannerUnavailable": "L’historique OpenCode a été ignoré, car son analyseur en arrière-plan n’a pas pu démarrer ; l’application reste réactive.",
+      "openCodeScanIncomplete": "L’analyse de l’historique OpenCode ne s’est pas terminée : {{detail}}",
+      "openCodeWslReaderPreparing": "Préparation du lecteur SQLite WSL. Actualisez Vault une fois la configuration terminée.",
+      "openCodeWslReaderNotPrepared": "Le lecteur SQLite WSL n’est pas prêt. Actualisez Vault pour réessayer.",
+      "openCodeDatabaseBusy": "{{label}} écrit actuellement dans {{name}}, son historique a donc été ignoré. Il sera relu à la prochaine actualisation.",
+      "openCodeDatabaseUnreadable": "Impossible de lire l’historique de {{label}} dans {{name}} : {{detail}}",
+      "openCodeWslDatabaseUnsupported": "La recherche de sessions {{label}} dans WSL depuis Windows n’est pas encore possible.",
+      "openCodeWriteAheadLogUnreadable": "Impossible de lire l’historique de {{label}} dans {{name}}. Son journal de préécriture ne peut pas être ouvert en lecture seule sur ce système de fichiers. Quittez {{label}} proprement pour enregistrer les données du journal.",
+      "wslTranscriptFsSlow": "Les fichiers de transcription WSL sont temporairement indisponibles, car l’accès au système de fichiers prend trop de temps. Réessayez dans un instant ou redémarrez Orca si le problème persiste.",
+      "wslTranscriptFsCapacity": "La recherche de transcriptions WSL est temporairement indisponible, car trop de requêtes au système de fichiers sont déjà en attente. Réessayez dans un instant ou redémarrez Orca si le problème persiste.",
+      "wslTranscriptFsProcessFailed": "Les fichiers de transcription WSL sont temporairement indisponibles, car le processus auxiliaire du système de fichiers a échoué ({{detail}}). Réessayez dans un instant ou redémarrez Orca si le problème persiste.",
+      "wslDistroNotRunning": "Les fichiers de transcription WSL sont indisponibles, car la distro WSL « {{distro}} » n’est pas en cours d’exécution. Ouvrez-y un terminal pour la démarrer.",
+      "wslDistroUnverifiable": "Les fichiers de transcription WSL sont indisponibles, car WSL n’a pas indiqué si « {{distro}} » est en cours d’exécution. Réessayez dans un instant.",
+      "scopePathsTruncated": "Seuls les {{limit}} premiers chemins de projet ont été analysés.",
+      "invalidResultsSkipped_one": "{{count}} entrée de résultat invalide de l’historique des sessions d’agent ignorée.",
+      "invalidResultsSkipped_other": "{{count}} entrées de résultat invalides de l’historique des sessions d’agent ignorées.",
+      "invalidResultsSkipped_many": "{{count}} entrées de résultat invalides de l’historique des sessions d’agent ignorées.",
+      "scanTimedOutOnSshHost": "Le délai d’analyse des sessions a expiré après {{seconds}} s sur cet hôte SSH. Actualisez pour réessayer.",
+      "scanTimedOut": "Le délai d’analyse des sessions a expiré après {{seconds}} s — la machine est peut-être occupée. Actualisez pour réessayer.",
+      "scannerPaused": "L’analyse des sessions a été suspendue après plusieurs échecs. Actualisez pour réessayer.",
+      "scannerBusy": "Trop d’analyses de sessions en cours. Patientez un instant, puis actualisez.",
+      "scannerMissing": "L’analyseur de sessions est absent de cette installation d’Orca. Réinstaller Orca permet de le restaurer.",
+      "scannerStopped": "L’analyseur de sessions s’est arrêté de manière inattendue. Actualisez pour réessayer."
+    }
   },
   "common": {
     "retry": "Réessayer",
@@ -21569,7 +21596,12 @@
       "dialogTitle": "Échec du nommage automatique du chat",
       "dialogDescriptionStart": "Orca n’a pas pu générer de nom pour",
       "dialogDescriptionEnd": "à partir de son premier message.",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "errors": {
+        "noName": "L’agent de nommage des chats n’a renvoyé aucun nom.",
+        "agentNotRun": "Orca n’a pas pu exécuter l’agent de nommage des chats.",
+        "noAgentAvailable": "Aucun agent de nommage des chats ne peut s’exécuter dans cet espace de travail."
+      }
     }
   },
   "jira": {
