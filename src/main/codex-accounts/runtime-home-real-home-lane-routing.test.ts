@@ -242,7 +242,7 @@ describe('CodexRuntimeHomeService', () => {
         'wsl-pane',
         'unknown-pane'
       ])
-    ).toEqual([getRuntimeCodexHomePath(), accountHome])
+    ).toEqual([getSystemCodexHomePath(), accountHome, getRuntimeCodexHomePath()])
   })
 
   it.each([8, 80])(
@@ -287,7 +287,7 @@ describe('CodexRuntimeHomeService', () => {
         ).toHaveLength(1)
       }
       settings.codexManagedAccounts = []
-      expect(service.getRetainedHostCodexHookHomePaths(ids)).toEqual([])
+      expect(service.getRetainedHostCodexHookHomePaths(ids)).toEqual([getSystemCodexHomePath()])
     }
   )
 

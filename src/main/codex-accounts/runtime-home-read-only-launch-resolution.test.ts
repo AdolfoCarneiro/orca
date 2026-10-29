@@ -183,7 +183,7 @@ describe('resolveHostCodexHomePathForLaunchReadOnly', () => {
 
     // Prove the spies detect actual launch side effects.
     expect(service.prepareForCodexLaunch()).toBe(readOnlyHome)
-    expect(sideEffects.syncResources).not.toHaveBeenCalled()
+    expect(sideEffects.syncResources).toHaveBeenCalledExactlyOnceWith(managedHomePath)
     expect(sideEffects.accountBridge).not.toHaveBeenCalled()
   })
 
