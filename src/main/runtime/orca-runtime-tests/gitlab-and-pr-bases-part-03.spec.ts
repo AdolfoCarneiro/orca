@@ -41,8 +41,7 @@ describe('OrcaRuntimeService', () => {
     gitSpy.mockRestore()
   })
 
-  it('keeps the MR source base when the optional compare-base fetch fails', async () => {
-    // #6263: deleted merged-MR target refs must not fall back to the default branch.
+  it('keeps the MR source and selected compare base when the optional target fetch fails', async () => {
     const localRepo = {
       id: TEST_REPO_ID,
       path: TEST_REPO_PATH,
@@ -88,9 +87,9 @@ describe('OrcaRuntimeService', () => {
 
       expect(result).toEqual({
         baseBranch: 'origin/feature/fix',
+        compareBaseRef: 'refs/remotes/origin/main',
         pushTarget: { remoteName: 'origin', branchName: 'feature/fix' }
       })
-      expect(result).not.toHaveProperty('compareBaseRef')
       expect(result).not.toHaveProperty('error')
     } finally {
       warnSpy.mockRestore()

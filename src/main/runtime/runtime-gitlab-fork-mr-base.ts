@@ -57,10 +57,10 @@ export async function resolveRuntimeGitLabForkMrBase(args: {
     if (!sha) {
       return { error: `Could not resolve fork MR !${args.mrIid} head after fetch.` }
     }
-    const compareBaseFetched = await args.fetchCompareBaseRef()
+    await args.fetchCompareBaseRef()
     return {
       baseBranch: sha,
-      ...(compareBaseFetched ? { compareBaseRef: args.compareBaseRef } : {})
+      ...(args.compareBaseRef ? { compareBaseRef: args.compareBaseRef } : {})
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -71,10 +71,10 @@ export async function resolveRuntimeGitLabForkMrBase(args: {
           '[runtime:resolveManagedMrBase] MR head fetch failed; using durable local ref',
           { remote: args.remote, mrIid: args.mrIid, error: message.split('\n')[0] }
         )
-        const compareBaseFetched = await args.fetchCompareBaseRef()
+        await args.fetchCompareBaseRef()
         return {
           baseBranch: localSha,
-          ...(compareBaseFetched ? { compareBaseRef: args.compareBaseRef } : {})
+          ...(args.compareBaseRef ? { compareBaseRef: args.compareBaseRef } : {})
         }
       }
     }

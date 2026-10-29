@@ -276,126 +276,138 @@ describe('OrcaRuntimeService', () => {
     }
   })
 
-  it('captures the fork MR head from a dedicated ref, not the shared FETCH_HEAD', async () => {
-    const localRepo = {
-      id: TEST_REPO_ID,
-      path: TEST_REPO_PATH,
-      displayName: 'repo',
-      badgeColor: 'blue',
-      addedAt: 1,
-      issueSourcePreference: 'origin' as const
-    }
-    const runtimeStore = {
-      ...store,
-      getRepos: () => [localRepo],
-      getRepo: (id: string) => (id === localRepo.id ? localRepo : undefined)
-    }
-    getGitLabProjectRefForRemoteMock.mockResolvedValue({
-      host: 'gitlab.example',
-      path: 'group/repo'
-    })
-    const runtime = new OrcaRuntimeService(runtimeStore as never)
-    // Concurrent fetch overwrites FETCH_HEAD; durable Orca MR refs must retain compare-base authority.
-    const gitSpy = vi.spyOn(gitRunner, 'gitExecFileAsync').mockImplementation(async (args) => {
-      if (args[0] === 'remote' && args[1] === 'get-url') {
-        return { stdout: `${ORIGIN_REMOTE_URL}\n`, stderr: '' }
+  it.each([false, true])(
+    'captures the fork MR head with optional target-fetch failure: %s',
+    async (compareBaseFetchFails) => {
+      const localRepo = {
+        id: TEST_REPO_ID,
+        path: TEST_REPO_PATH,
+        displayName: 'repo',
+        badgeColor: 'blue',
+        addedAt: 1,
+        issueSourcePreference: 'origin' as const
       }
-      if (args[0] === 'fetch') {
-        return { stdout: '', stderr: '' }
+      const runtimeStore = {
+        ...store,
+        getRepos: () => [localRepo],
+        getRepo: (id: string) => (id === localRepo.id ? localRepo : undefined)
       }
-      if (args[0] === 'rev-parse') {
-        const ref = args.at(-1)
-        if (ref === 'FETCH_HEAD') {
-          return { stdout: 'mainbranchtip000\n', stderr: '' }
+      getGitLabProjectRefForRemoteMock.mockResolvedValue({
+        host: 'gitlab.example',
+        path: 'group/repo'
+      })
+      const runtime = new OrcaRuntimeService(runtimeStore as never)
+      // Concurrent fetch overwrites FETCH_HEAD; durable Orca MR refs must retain compare-base authority.
+      const gitSpy = vi.spyOn(gitRunner, 'gitExecFileAsync').mockImplementation(async (args) => {
+        if (args[0] === 'remote' && args[1] === 'get-url') {
+          return { stdout: `${ORIGIN_REMOTE_URL}\n`, stderr: '' }
         }
-        if (ref === `refs/orca/merge-requests/${ORIGIN_HEAD_COMPONENT}/42^{commit}`) {
-          return { stdout: 'mrheadsha111\n', stderr: '' }
+        if (args[0] === 'fetch') {
+          if (compareBaseFetchFails && args[1] === 'origin') {
+            throw new Error("couldn't find remote ref refs/heads/main")
+          }
+          return { stdout: '', stderr: '' }
         }
-        throw new Error(`unexpected rev-parse ref: ${ref}`)
-      }
-      throw new Error(`unexpected git call: ${args.join(' ')}`)
-    })
-    gitSpy.mockClear()
-    try {
-      const result = await runtime.resolveManagedMrBase({
-        repoSelector: 'id:repo-1',
-        mrIid: 42,
-        sourceBranch: 'contrib/fix',
-        targetBranch: 'main',
-        isCrossRepository: true
+        if (args[0] === 'rev-parse') {
+          const ref = args.at(-1)
+          if (ref === 'FETCH_HEAD') {
+            return { stdout: 'mainbranchtip000\n', stderr: '' }
+          }
+          if (ref === `refs/orca/merge-requests/${ORIGIN_HEAD_COMPONENT}/42^{commit}`) {
+            return { stdout: 'mrheadsha111\n', stderr: '' }
+          }
+          throw new Error(`unexpected rev-parse ref: ${ref}`)
+        }
+        throw new Error(`unexpected git call: ${args.join(' ')}`)
       })
+      gitSpy.mockClear()
+      try {
+        const result = await runtime.resolveManagedMrBase({
+          repoSelector: 'id:repo-1',
+          mrIid: 42,
+          sourceBranch: 'contrib/fix',
+          targetBranch: 'main',
+          isCrossRepository: true
+        })
 
-      expect(result).toEqual({
-        baseBranch: 'mrheadsha111',
-        compareBaseRef: 'refs/remotes/origin/main'
-      })
-      expect(gitSpy).not.toHaveBeenCalledWith(
-        ['rev-parse', '--verify', 'FETCH_HEAD'],
-        expect.anything()
-      )
-    } finally {
-      gitSpy.mockRestore()
+        expect(result).toEqual({
+          baseBranch: 'mrheadsha111',
+          compareBaseRef: 'refs/remotes/origin/main'
+        })
+        expect(gitSpy).not.toHaveBeenCalledWith(
+          ['rev-parse', '--verify', 'FETCH_HEAD'],
+          expect.anything()
+        )
+      } finally {
+        gitSpy.mockRestore()
+      }
     }
-  })
+  )
 
-  it('keeps the durable MR head when the head fetch fails but the local ref resolves', async () => {
-    // Transient compare-base fetch failures may reuse already-pinned MR refs.
-    const localRepo = {
-      id: TEST_REPO_ID,
-      path: TEST_REPO_PATH,
-      displayName: 'repo',
-      badgeColor: 'blue',
-      addedAt: 1,
-      issueSourcePreference: 'origin' as const
-    }
-    const runtimeStore = {
-      ...store,
-      getRepos: () => [localRepo],
-      getRepo: (id: string) => (id === localRepo.id ? localRepo : undefined)
-    }
-    getGitLabProjectRefForRemoteMock.mockResolvedValue({
-      host: 'gitlab.example',
-      path: 'group/repo'
-    })
-    const runtime = new OrcaRuntimeService(runtimeStore as never)
-    const gitSpy = vi.spyOn(gitRunner, 'gitExecFileAsync').mockImplementation(async (args) => {
-      if (args[0] === 'remote' && args[1] === 'get-url') {
-        return { stdout: `${ORIGIN_REMOTE_URL}\n`, stderr: '' }
+  it.each([false, true])(
+    'keeps the durable MR head with optional target-fetch failure: %s',
+    async (compareBaseFetchFails) => {
+      // Transient compare-base fetch failures may reuse already-pinned MR refs.
+      const localRepo = {
+        id: TEST_REPO_ID,
+        path: TEST_REPO_PATH,
+        displayName: 'repo',
+        badgeColor: 'blue',
+        addedAt: 1,
+        issueSourcePreference: 'origin' as const
       }
-      if (args[0] === 'fetch' && args[1] === '--no-tags') {
-        throw new Error('fatal: unable to access repo: Could not resolve host: gitlab.example')
+      const runtimeStore = {
+        ...store,
+        getRepos: () => [localRepo],
+        getRepo: (id: string) => (id === localRepo.id ? localRepo : undefined)
       }
-      if (args[0] === 'fetch') {
-        return { stdout: '', stderr: '' }
-      }
-      if (
-        args[0] === 'rev-parse' &&
-        args[2] === `refs/orca/merge-requests/${ORIGIN_HEAD_COMPONENT}/42^{commit}`
-      ) {
-        return { stdout: 'pinned-mr-sha\n', stderr: '' }
-      }
-      throw new Error(`unexpected git call: ${args.join(' ')}`)
-    })
-    gitSpy.mockClear()
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    try {
-      const result = await runtime.resolveManagedMrBase({
-        repoSelector: 'id:repo-1',
-        mrIid: 42,
-        sourceBranch: 'contrib/fix',
-        targetBranch: 'main',
-        isCrossRepository: true
+      getGitLabProjectRefForRemoteMock.mockResolvedValue({
+        host: 'gitlab.example',
+        path: 'group/repo'
       })
+      const runtime = new OrcaRuntimeService(runtimeStore as never)
+      const gitSpy = vi.spyOn(gitRunner, 'gitExecFileAsync').mockImplementation(async (args) => {
+        if (args[0] === 'remote' && args[1] === 'get-url') {
+          return { stdout: `${ORIGIN_REMOTE_URL}\n`, stderr: '' }
+        }
+        if (args[0] === 'fetch' && args[1] === '--no-tags') {
+          throw new Error('fatal: unable to access repo: Could not resolve host: gitlab.example')
+        }
+        if (args[0] === 'fetch') {
+          if (compareBaseFetchFails && args[1] === 'origin') {
+            throw new Error("couldn't find remote ref refs/heads/main")
+          }
+          return { stdout: '', stderr: '' }
+        }
+        if (
+          args[0] === 'rev-parse' &&
+          args[2] === `refs/orca/merge-requests/${ORIGIN_HEAD_COMPONENT}/42^{commit}`
+        ) {
+          return { stdout: 'pinned-mr-sha\n', stderr: '' }
+        }
+        throw new Error(`unexpected git call: ${args.join(' ')}`)
+      })
+      gitSpy.mockClear()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const result = await runtime.resolveManagedMrBase({
+          repoSelector: 'id:repo-1',
+          mrIid: 42,
+          sourceBranch: 'contrib/fix',
+          targetBranch: 'main',
+          isCrossRepository: true
+        })
 
-      expect(result).toEqual({
-        baseBranch: 'pinned-mr-sha',
-        compareBaseRef: 'refs/remotes/origin/main'
-      })
-    } finally {
-      warnSpy.mockRestore()
-      gitSpy.mockRestore()
+        expect(result).toEqual({
+          baseBranch: 'pinned-mr-sha',
+          compareBaseRef: 'refs/remotes/origin/main'
+        })
+      } finally {
+        warnSpy.mockRestore()
+        gitSpy.mockRestore()
+      }
     }
-  })
+  )
 
   it.each([
     ["fatal: couldn't find remote ref refs/merge-requests/42/head", 'deleted MR / cleaned fork'],

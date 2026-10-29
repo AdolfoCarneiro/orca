@@ -144,10 +144,10 @@ export async function resolveRuntimeGitLabWorktreeBase(
   } catch {
     return { error: `Remote ref ${remoteRef} does not exist after fetch.` }
   }
-  const compareBaseFetched = await fetchCompareBaseRef()
+  await fetchCompareBaseRef()
   return {
     baseBranch: remoteRef,
-    ...(compareBaseFetched ? { compareBaseRef } : {}),
+    ...(compareBaseRef ? { compareBaseRef } : {}),
     pushTarget: { remoteName: remote, branchName: sourceBranch }
   }
 }
