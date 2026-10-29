@@ -438,6 +438,7 @@ function makeOrchestrationDbStub(toHandle: () => string) {
       getCurrentRunForPane: () => ({ id: 'run_test' }),
       runsBoundToPane: () => [{ id: 'run_test' }],
       getRun: () => ({ id: 'run_test', coordinator_handle: toHandle() }),
+      listSessionDispatchesForPresentation: () => [],
       hasUndeliveredDirectMessageForRun: (runId: string, handle: string) =>
         rows.some(
           (row) =>
