@@ -4,6 +4,7 @@ import {
 } from '@/store/slices/linear/linear-issue-publication'
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
 import type { LinearCollectionResult } from '../../../../../shared/linear/workspace-types'
+import { taskProviderErrorText } from '@/lib/task-provider-error-copy'
 import type { TaskPageGlobalEffectsModel } from '../use-task-page-global-effects'
 import { useEffect } from 'react'
 import { isIntegrationCredentialDecryptionError } from '../../../../../shared/integration-credential-errors'
@@ -253,9 +254,9 @@ export function useTaskPageLinearListEffects(model: TaskPageGlobalEffectsModel) 
             ? {
                 error:
                   view.kind === 'error'
-                    ? linearIssueReadError(view.error)
+                    ? taskProviderErrorText(linearIssueReadError(view.error))
                     : result && !Array.isArray(result) && result.errors?.length
-                      ? linearIssueReadError(result.errors[0].message)
+                      ? taskProviderErrorText(linearIssueReadError(result.errors[0].message))
                       : null
               }
             : {}),

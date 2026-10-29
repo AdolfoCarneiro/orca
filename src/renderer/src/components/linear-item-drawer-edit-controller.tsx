@@ -1,5 +1,6 @@
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
+import { taskProviderErrorMessage, taskProviderErrorText } from '@/lib/task-provider-error-copy'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -75,7 +76,8 @@ export function useLinearIssueEditController({
           useAppStore.getState().invalidateLinearIssueLists({ scope })
           useAppStore.getState().recordFeatureInteraction('linear-tasks')
         },
-        onError: (err) => toast.error(err)
+        formatError: taskProviderErrorMessage,
+        onError: (err) => toast.error(taskProviderErrorText(err))
       })
     },
     [issue, editState, providerSettings, states.data, run]
@@ -94,7 +96,8 @@ export function useLinearIssueEditController({
           useAppStore.getState().invalidateLinearIssueLists({ scope })
           useAppStore.getState().recordFeatureInteraction('linear-tasks')
         },
-        onError: (err) => toast.error(err)
+        formatError: taskProviderErrorMessage,
+        onError: (err) => toast.error(taskProviderErrorText(err))
       })
     },
     [issue, editState, providerSettings, run]
@@ -111,7 +114,8 @@ export function useLinearIssueEditController({
         onSuccess: () => {
           useAppStore.getState().recordFeatureInteraction('linear-tasks')
         },
-        onError: (err) => toast.error(err)
+        formatError: taskProviderErrorMessage,
+        onError: (err) => toast.error(taskProviderErrorText(err))
       })
     },
     [issue, editState, providerSettings, run]
@@ -158,7 +162,8 @@ export function useLinearIssueEditController({
           useAppStore.getState().invalidateLinearIssueLists({ scope })
           useAppStore.getState().recordFeatureInteraction('linear-tasks')
         },
-        onError: (err) => toast.error(err)
+        formatError: taskProviderErrorMessage,
+        onError: (err) => toast.error(taskProviderErrorText(err))
       })
     },
     [issue, editState, providerSettings, members.data, run]
@@ -194,7 +199,8 @@ export function useLinearIssueEditController({
           useAppStore.getState().invalidateLinearIssueLists({ scope })
           useAppStore.getState().recordFeatureInteraction('linear-tasks')
         },
-        onError: (err) => toast.error(err)
+        formatError: taskProviderErrorMessage,
+        onError: (err) => toast.error(taskProviderErrorText(err))
       })
     },
     [issue, editState, localLabelIds, providerSettings, labels.data, run]

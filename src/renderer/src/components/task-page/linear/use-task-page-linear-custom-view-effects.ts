@@ -1,5 +1,6 @@
 import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
 import { linearIssueReadError } from '@/lib/linear-read-error'
+import { taskProviderErrorText } from '@/lib/task-provider-error-copy'
 import type { TaskPageLinearInOrcaEffectsModel } from './use-task-page-linear-in-orca-effects'
 import { useEffect } from 'react'
 import {
@@ -77,7 +78,7 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
       })
       .catch((error) => {
         if (!cancelled) {
-          setLinearCustomViewsError(linearIssueReadError(error))
+          setLinearCustomViewsError(taskProviderErrorText(linearIssueReadError(error)))
           setLinearCustomViewsLoading(false)
         }
       })
@@ -134,9 +135,9 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
             ...(view.data ? { data: view.data } : {}),
             error:
               view.kind === 'error'
-                ? linearIssueReadError(view.error)
+                ? taskProviderErrorText(linearIssueReadError(view.error))
                 : view.data?.errors?.length
-                  ? linearIssueReadError(view.data.errors[0].message)
+                  ? taskProviderErrorText(linearIssueReadError(view.data.errors[0].message))
                   : null,
             loading: view.kind === 'loading'
           })
@@ -157,7 +158,7 @@ export function useTaskPageLinearCustomViewEffects(model: TaskPageLinearInOrcaEf
         })
         .catch((error) => {
           if (!cancelled) {
-            setLinearCustomViewContentsError(linearIssueReadError(error))
+            setLinearCustomViewContentsError(taskProviderErrorText(linearIssueReadError(error)))
             setLinearCustomViewContentsLoading(false)
           }
         })

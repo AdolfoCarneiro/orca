@@ -1,5 +1,7 @@
 import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
 import { linearIssueReadError } from '@/lib/linear-read-error'
+import { taskProviderErrorText } from '@/lib/task-provider-error-copy'
+import { translate } from '@/i18n/i18n'
 import type { TaskPageLinearInOrcaEffectsModel } from './use-task-page-linear-in-orca-effects'
 import { useEffect } from 'react'
 import { LINEAR_ITEM_LIMIT } from '../task-page-source-context'
@@ -75,7 +77,7 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
       })
       .catch((error) => {
         if (!cancelled) {
-          setLinearProjectsError(linearIssueReadError(error))
+          setLinearProjectsError(taskProviderErrorText(linearIssueReadError(error)))
           setLinearProjectsLoading(false)
         }
       })
@@ -118,7 +120,9 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
             setSelectedLinearProject(null)
             setLinearProjectParentView(null)
             setLinearProjectDetailError(null)
-            setLinearProjectsError('Project was not found.')
+            setLinearProjectsError(
+              translate('taskProviders.linear.projectNotFound', 'Project was not found.')
+            )
             setTaskResumeState({
               linearContext: undefined
             })
@@ -127,7 +131,7 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
       })
       .catch((error) => {
         if (!cancelled) {
-          setLinearProjectDetailError(linearIssueReadError(error))
+          setLinearProjectDetailError(taskProviderErrorText(linearIssueReadError(error)))
           setLinearProjectDetailLoading(false)
         }
       })
@@ -178,9 +182,9 @@ export function useTaskPageLinearCollectionEffectsPrelude(model: TaskPageLinearI
           ...(view.data ? { data: view.data } : {}),
           error:
             view.kind === 'error'
-              ? linearIssueReadError(view.error)
+              ? taskProviderErrorText(linearIssueReadError(view.error))
               : view.data?.errors?.length
-                ? linearIssueReadError(view.data.errors[0].message)
+                ? taskProviderErrorText(linearIssueReadError(view.data.errors[0].message))
                 : null,
           loading: view.kind === 'loading'
         })

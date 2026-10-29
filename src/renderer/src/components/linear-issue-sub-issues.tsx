@@ -1,4 +1,5 @@
 import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
+import { taskProviderErrorMessage, taskProviderErrorText } from '@/lib/task-provider-error-copy'
 import { ImeInput } from '@/lib/ime-text-field'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, LoaderCircle, Plus } from 'lucide-react'
@@ -150,14 +151,14 @@ export function LinearIssueSubIssues({
           setTitle('')
           setOpen(false)
         } else {
-          toast.error(result.error)
+          toast.error(taskProviderErrorMessage(result))
         }
       })
       .catch((error) => {
         if (mountedRef.current && requestId === createRequestIdRef.current) {
           toast.error(
             error instanceof Error
-              ? error.message
+              ? taskProviderErrorText(error.message)
               : translate(
                   'auto.components.LinearIssueWorkspace.b25e453c9d',
                   'Failed to create sub-issue'

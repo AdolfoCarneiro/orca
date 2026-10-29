@@ -1,5 +1,9 @@
 import type { BrowserCookieImportResult } from '../../shared/browser-workspace-types'
 import {
+  browserCookieImportFailure,
+  type BrowserCookieImportFailure
+} from '../../shared/browser-cookie-import-failure-copy'
+import {
   detectInstalledBrowsers,
   importCookiesFromBrowser,
   selectBrowserProfile
@@ -29,7 +33,7 @@ export async function importCookiesIntoClientRoutePartition(
   }
   const profile = browserSessionRegistry.getProfile(request.browserProfileId)
   if (!profile) {
-    return { ok: false, reason: 'Session profile not found.' }
+    return browserCookieImportFailure('profileNotFound')
   }
   const browser = resolveImportSource(request)
   if ('reason' in browser) {
@@ -45,13 +49,7 @@ export async function importCookiesIntoClientRoutePartition(
   // Re-pairing during import can change the destination; reject a stale success.
   const settled = settledRoutePartition(request)
   if (settled !== partition) {
-    return {
-      ok: false,
-      reason:
-        settled === null
-          ? 'The connection to this server ended during the import. Reconnect and try again.'
-          : 'This server was re-paired during the import. Try again.'
-    }
+    return browserCookieImportFailure(settled === null ? 'connectionEnded' : 'serverRepaired')
   }
   if (!result.ok) {
     return result
@@ -66,7 +64,19 @@ export async function importCookiesIntoClientRoutePartition(
       importedAt: Date.now()
     }
   })
-  return { ...result, profileId: request.browserProfileId }
+  return {
+    ...result,
+    profileId: request.browserProfileId,
+    googleCookieClearTarget: {
+      label: profile.label,
+      local: {
+        profileId: profile.id,
+        environmentId: request.environmentId,
+        partition,
+        routeIdentity: JSON.stringify(routeIdentity)
+      }
+    }
+  }
 }
 
 function settledRoutePartition(request: ClientRouteCookieImportRequest): string | null {
@@ -81,7 +91,7 @@ function settledRoutePartition(request: ClientRouteCookieImportRequest): string 
   }
 }
 
-function bindRoutePartition(
+export function bindRoutePartition(
   routeIdentity: NonNullable<ReturnType<typeof getPairedRuntimeBrowserClientRouteIdentity>>,
   browserProfileId: string
 ): string {
@@ -125,27 +135,26 @@ function bindRoutePartition(
 
 function resolveImportSource(
   request: ClientRouteCookieImportRequest
-): { source: DetectedBrowser } | { ok: false; reason: string } {
+): { source: DetectedBrowser } | BrowserCookieImportFailure {
   // Profile names become filesystem path segments.
   if (
     request.browserProfile &&
     (/[/\\]/.test(request.browserProfile) || request.browserProfile.includes('..'))
   ) {
-    return { ok: false, reason: 'Invalid browser profile name.' }
+    return browserCookieImportFailure('invalidBrowserProfile')
   }
   const browser = detectInstalledBrowsers().find((entry) => entry.family === request.browserFamily)
   if (!browser) {
-    return { ok: false, reason: 'Browser not found on this system.' }
+    return browserCookieImportFailure('browserNotFound')
   }
   if (!request.browserProfile || request.browserProfile === browser.selectedProfile) {
     return { source: browser }
   }
   const reselected = selectBrowserProfile(browser, request.browserProfile)
   if (!reselected) {
-    return {
-      ok: false,
-      reason: `No cookies database found for profile "${request.browserProfile}".`
-    }
+    return browserCookieImportFailure('browserProfileDatabaseMissing', {
+      profile: request.browserProfile
+    })
   }
   return { source: reselected }
 }

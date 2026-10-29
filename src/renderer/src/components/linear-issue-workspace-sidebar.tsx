@@ -61,12 +61,12 @@ function LinearIssueActionsCard({
     {
       label: translate('auto.components.LinearIssueWorkspace.9a9a884236', 'Copy URL'),
       icon: Clipboard,
-      action: () => void copyLinearIssueText(issue.url, 'URL')
+      action: () => void copyLinearIssueText(issue.url, 'url')
     },
     {
       label: translate('auto.components.LinearIssueWorkspace.30c1242f3a', 'Copy identifier'),
       icon: Clipboard,
-      action: () => void copyLinearIssueText(issue.identifier, 'Identifier')
+      action: () => void copyLinearIssueText(issue.identifier, 'identifier')
     },
     {
       label: translate(
@@ -74,8 +74,7 @@ function LinearIssueActionsCard({
         'Copy suggested branch name'
       ),
       icon: GitBranch,
-      action: () =>
-        void copyLinearIssueText(buildLinearIssueBranchName(issue), 'Suggested branch name')
+      action: () => void copyLinearIssueText(buildLinearIssueBranchName(issue), 'branchName')
     },
     {
       label: translate('auto.components.LinearIssueWorkspace.f6c6381593', 'Copy prompt'),
@@ -88,7 +87,7 @@ function LinearIssueActionsCard({
             version: 1,
             renderedText
           }) ?? renderedText
-        void copyLinearIssueText(prompt, 'Prompt')
+        void copyLinearIssueText(prompt, 'prompt')
       }
     }
   ]

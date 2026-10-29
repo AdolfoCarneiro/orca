@@ -2,6 +2,8 @@ import { useAppStore } from '@/store'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
+import { translate } from '@/i18n/i18n'
+import { taskProviderErrorText } from '@/lib/task-provider-error-copy'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { createBrowserUuid } from '@/lib/browser-uuid'
@@ -96,8 +98,8 @@ export function useLinearIssueWorkspaceDetail({
               // react-doctor-disable-next-line react-doctor/no-impure-state-updater -- Read-only lifetime predicate must run at consumption; it mutates no state or token.
               current()
                 ? error instanceof Error
-                  ? error.message
-                  : 'Failed to load comments.'
+                  ? taskProviderErrorText(error.message)
+                  : translate('taskProviders.linear.commentsLoadFailed', 'Failed to load comments.')
                 : previous
             )
           }

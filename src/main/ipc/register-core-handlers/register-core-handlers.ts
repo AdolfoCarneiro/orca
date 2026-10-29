@@ -2,6 +2,8 @@ import { app } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
 import { registerWslMoveWiring } from '../wsl-move-driver-wiring'
+import { registerWslDriveProjectHandlers } from '../wsl-drive-project-handlers'
+import { installProjectRuntimeGitRouter } from '../../project-runtime-git-router'
 import { registerCliHandlers } from '../cli'
 import { registerPreflightHandlers } from '../preflight'
 import type { Store } from '../../persistence/loading-store/store'
@@ -182,7 +184,7 @@ export function registerCoreHandlers(
     onBeforeRelaunchExit: () => closeNotificationDismissalsBeforeRelaunch(runtime)
   })
   registerCliHandlers()
-  registerPreflightHandlers()
+  registerPreflightHandlers(store)
   registerUsageProviderHandlers({ claudeUsage, codexUsage, openCodeUsage, museUsage })
   registerCodexAccountHandlers(codexAccounts, () => store.getSettings())
   registerAgentHookHandlers(runtime, { getPtyIdForPaneKey })
@@ -250,11 +252,7 @@ export function registerCoreHandlers(
   registerWorkspaceSpaceHandlers(store)
   registerWorkspacePortHandlers(store)
   registerLocalhostWorktreeLabelHandlers(store)
-  if (commitMessageAgentEnv) {
-    registerFilesystemHandlers(store, commitMessageAgentEnv)
-  } else {
-    registerFilesystemHandlers(store)
-  }
+  registerFilesystemHandlers(store, commitMessageAgentEnv)
   registerFilesystemWatcherHandlers()
   registerRuntimeHandlers(runtime)
   registerRuntimeEnvironmentHandlers(store)
@@ -264,6 +262,8 @@ export function registerCoreHandlers(
     invalidateTransport: invalidateRuntimeEnvironmentTransport
   })
   registerWslMoveWiring(store, runtime)
+  registerWslDriveProjectHandlers(store, runtime)
+  installProjectRuntimeGitRouter(store)
   registerEphemeralVmHandlers(store, pluginService)
   // Session history and terminal resume are not chats; a refused host leaves nothing to check.
   const ensureStructuredSessionOwnership = () =>

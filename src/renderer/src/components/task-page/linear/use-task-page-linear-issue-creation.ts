@@ -1,5 +1,6 @@
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { observeLinearIssueRead } from '@/store/slices/linear/linear-issue-publication'
+import { taskProviderErrorMessage } from '@/lib/task-provider-error-copy'
 import type { TaskPageLinearProjectCreationModel } from './use-task-page-linear-project-creation'
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
@@ -119,7 +120,7 @@ export function useTaskPageLinearIssueCreation(model: TaskPageLinearProjectCreat
       }
       if (!result.ok) {
         toast.error(
-          result.error ||
+          taskProviderErrorMessage(result) ||
             translate('auto.components.TaskPage.7437e340b4', 'Failed to create issue.')
         )
         return

@@ -1,5 +1,6 @@
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { writeLinearIssue } from '@/lib/linear-issue-write'
+import { taskProviderErrorMessage } from '@/lib/task-provider-error-copy'
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
 import type { LinearCustomViewModel } from '../../../../../shared/linear/project-types'
 import type {
@@ -119,7 +120,7 @@ export function LinearStateCell({
           }
           if (result.ok === false) {
             toast.error(
-              result.error ??
+              taskProviderErrorMessage(result) ||
                 translate('auto.components.TaskPage.6775c05483', 'Failed to update Linear state')
             )
             return

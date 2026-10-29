@@ -2,6 +2,7 @@ import { linearIssueReadError } from '@/lib/linear-read-error'
 import type { TaskPageProviderMetadataModel } from '../use-task-page-provider-metadata'
 import { useState, useMemo, useEffect } from 'react'
 import { LINEAR_ISSUE_LIST_MAX } from '../../../../../shared/linear/issue-read-limits'
+import { translate } from '@/i18n/i18n'
 import type { LinearTeam } from '../../../../../shared/linear/workspace-types'
 import {
   buildLinearTeamUrl,
@@ -89,9 +90,13 @@ export function useTaskPageLinearListSelectionPrelude(model: TaskPageProviderMet
         : undefined
   const activeLinearIssueHasCollectionError = (activeLinearIssueCollectionErrors?.length ?? 0) > 0
   const activeLinearIssueContextLabel = selectedLinearProject
-    ? `Project: ${selectedLinearProject.name}`
+    ? translate('auto.components.TaskPage.linearProjectContext', 'Project: {{name}}', {
+        name: selectedLinearProject.name
+      })
     : selectedLinearCustomView?.model === 'issue'
-      ? `View: ${selectedLinearCustomView.name}`
+      ? translate('auto.components.TaskPage.linearViewContext', 'View: {{name}}', {
+          name: selectedLinearCustomView.name
+        })
       : null
   const canLoadMorePlainLinearIssues =
     !activeLinearIssueContextLabel &&

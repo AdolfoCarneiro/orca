@@ -8,6 +8,7 @@ import { openLinearIssueWorkspaceOrStart } from '@/lib/linear-issue-workspace-op
 import { getWorktreeAttachmentLabel } from '@/lib/worktree-attachment-label'
 import { folderWorkspaceToWorktree } from '../../../shared/folder-workspace-worktree'
 import { useAppStore } from '@/store'
+import { translate } from '@/i18n/i18n'
 import { useAllWorktrees } from '@/store/selectors'
 import type { LinearComment } from '../../../shared/linear/issue-types'
 import { linearIssueComments } from '@/runtime/runtime-linear-issue-mutations'
@@ -150,7 +151,7 @@ export default function LinearItemDrawer({
       id: comment.id,
       body: comment.body,
       createdAt: comment.createdAt,
-      user: { displayName: 'You' }
+      user: { displayName: translate('auto.components.issueComments.you', 'You') }
     }
     optimisticCommentsRef.current.push(newComment)
     setComments((prev) => [...prev, newComment])
