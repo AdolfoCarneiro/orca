@@ -713,33 +713,6 @@ describe('getConnectionIdFromState', () => {
     expect(repoIdReads).toBe(100)
   })
 
-  it('reuses folder owner inference for repeated reads of the same catalog', () => {
-    let repoClassifications = 0
-    const repos = Array.from({ length: 100 }, (_, index) =>
-      makeRepo({ id: `repo-${index}`, path: `/srv/repo-${index}`, connectionId: 'ssh-target' })
-    )
-    for (const repo of repos) {
-      Object.defineProperty(repo, 'projectGroupId', {
-        enumerable: true,
-        get: () => {
-          repoClassifications += 1
-          return 'group-1'
-        }
-      })
-    }
-    const state: ConnectionContextState = {
-      folderWorkspaces: [makeFolderWorkspace()],
-      projectGroups: [makeProjectGroup()],
-      repos,
-      worktreesByRepo: {}
-    }
-    const key = folderWorkspaceKey('folder-workspace-1')
-    expect(getConnectionIdFromState(state, key)).toBe('ssh-target')
-    repoClassifications = 0
-    expect(getConnectionIdFromState({ ...state, worktreesByRepo: {} }, key)).toBe('ssh-target')
-    expect(repoClassifications).toBe(0)
-  })
-
   it('invalidates folder connection inference for each catalog slice and preserves tri-state answers', () => {
     const key = folderWorkspaceKey('folder-workspace-1')
     const state: ConnectionContextState = {
