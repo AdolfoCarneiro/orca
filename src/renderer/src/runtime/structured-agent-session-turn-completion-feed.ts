@@ -89,6 +89,10 @@ function createOwner(target: RuntimeClientTarget): OwnedTurnCompletionFeed {
           return
         }
         reconnectAttempt = 0
+        if (event.type === 'read') {
+          void window.api.notifications.applyRemoteStructuredRead(event.read)
+          return
+        }
         // An arm this build cannot name is dropped, not handed on half-read.
         if (event.type === 'completion' || event.type === 'prompt') {
           deliver(event)

@@ -50,7 +50,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification
+      } as never
     )
 
     const handler = getDispatchHandler()
@@ -94,7 +97,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification
+      } as never
     )
 
     const handler = getDispatchHandler()
@@ -121,7 +127,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification
+      } as never
     )
 
     const handler = getDispatchHandler()
@@ -154,7 +163,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification
+      } as never
     )
 
     const handler = getDispatchHandler()
@@ -192,7 +204,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification
+      } as never
     )
 
     const handler = getDispatchHandler()
@@ -223,7 +238,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification
+      } as never
     )
 
     const handler = getDispatchHandler()
@@ -246,7 +264,11 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dispatchMobileNotification, dismissMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dispatchMobileNotification,
+        dismissMobileNotification
+      } as never
     )
 
     const dispatchHandler = getDispatchHandler()
@@ -276,7 +298,10 @@ describe('registerNotificationHandlers', () => {
           }
         })
       } as never,
-      { dismissMobileNotification } as never
+      {
+        onForwardedNotificationEnvironmentsChanged: () => () => {},
+        dismissMobileNotification
+      } as never
     )
 
     const dismissHandler = getDismissHandler()

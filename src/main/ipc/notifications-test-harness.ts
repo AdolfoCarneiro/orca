@@ -36,6 +36,7 @@ export const readAuthorizationStatusMock = vi.fn(
 
 export function createElectronModuleMock(): Record<string, unknown> {
   return {
+    powerMonitor: { on: vi.fn(), getSystemIdleTime: vi.fn(() => 0) },
     ipcMain: {
       removeHandler: removeHandlerMock,
       handle: handleMock
@@ -49,7 +50,8 @@ export function createElectronModuleMock(): Record<string, unknown> {
       getAllWindows: getAllWindowsMock
     },
     app: {
-      focus: vi.fn()
+      focus: vi.fn(),
+      getPath: vi.fn(() => process.cwd())
     },
     shell: {
       openExternal: shellOpenExternalMock

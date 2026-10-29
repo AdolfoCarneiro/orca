@@ -1,4 +1,9 @@
-import { BrowserWindow, Notification, ipcMain, powerMonitor } from 'electron'
+import { app, BrowserWindow, Notification, ipcMain, powerMonitor } from 'electron'
+import {
+  structuredPushOccurrence,
+  forwardedPushOrigin
+} from '../notifications/structured-push-identity'
+import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { readDesktopAwayState } from '../notifications/desktop-away-state'
 import type { Store } from '../persistence'
 import type {
@@ -91,6 +96,26 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
   )
 
   const announced = createAnnouncedNotificationRegistry()
+  ipcMain.removeHandler('notifications:getForwardedEnvironments')
+  ipcMain.handle(
+    'notifications:getForwardedEnvironments',
+    () => runtime?.getForwardedNotificationEnvironments() ?? []
+  )
+  runtime?.onForwardedNotificationEnvironmentsChanged((environments) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) {
+        window.webContents.send('notifications:forwardedEnvironments', environments)
+      }
+    }
+  })
+  powerMonitor.on('resume', () => runtime?.refreshForwardedNotificationEnvironments())
+
+  ipcMain.removeHandler('notifications:applyRemoteStructuredRead')
+  ipcMain.handle('notifications:applyRemoteStructuredRead', (_event, read: unknown) => {
+    if (isStructuredAttentionRead(read)) {
+      runtime?.retireStructuredAttention(read)
+    }
+  })
 
   ipcMain.removeHandler('notifications:dismiss')
   ipcMain.handle(
@@ -127,6 +152,7 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
           removeReadMacosNotifications(paneKey, retired)
           if (read) {
             runtime?.retireStructuredAttention(read)
+            getStructuredAgentSessionHost()?.publishAttentionRead(read)
           }
         }
       }
@@ -186,7 +212,14 @@ export function registerNotificationHandlers(store: Store, runtime?: OrcaRuntime
       _event,
       args: NotificationDispatchRequest
     ): NotificationDispatchResult | Promise<NotificationDispatchResult> =>
-      deliveryService.dispatch(args)
+      deliveryService.dispatch({
+        ...args,
+        occurrence: structuredPushOccurrence(args.notificationId, args.structuredOrigin),
+        origin:
+          args.executionHost && args.forwardingEnvironmentId
+            ? forwardedPushOrigin(app.getPath('userData'), args.forwardingEnvironmentId)
+            : undefined
+      })
   )
 
   registerNotificationSoundHandlers(store)

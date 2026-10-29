@@ -3,6 +3,7 @@ import { structuredAgentSessionFailureWordsContext } from './structured-agent-se
 import { AT_REST_COMMANDS_READ_BUDGET_MS } from './at-rest-command-catalog'
 import type { AgentSessionStatusSummary } from '../../../shared/agent-session-wire'
 import { AgentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
+import type { StructuredAttentionRead } from '../../../shared/agent-session-attention'
 import type { AgentChildWorkEvidence } from '../../../shared/agent-status-child-work-evidence'
 import type { AgentChildWorkView } from '../../../shared/agent-status-child-work-view'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
@@ -35,6 +36,12 @@ export class StructuredAgentSessionClientDelivery {
   private stopAtRestCommandUpdates: () => void = () => undefined
   private readonly statusFeed
   private readonly turnCompletionFeed
+  publishAttentionRead = (read: StructuredAttentionRead): void => {
+    const record = this.deps().store.getRecord(read.sessionId)
+    if (record) {
+      this.turnCompletionFeed.publishRead({ ...read, scope: record.location })
+    }
+  }
   readonly requestFailures
   private readonly sendSettlement
   private readonly journalObservers = new Map<string, Set<() => void>>()

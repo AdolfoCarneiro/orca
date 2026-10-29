@@ -110,6 +110,9 @@ function dispatchStructuredAttention(
           notificationId: attentionKey,
           attentionKey,
           structuredOrigin: origin,
+          ...(subscriptionTarget?.kind === 'environment'
+            ? { forwardingEnvironmentId: subscriptionTarget.environmentId }
+            : {}),
           // A local session's host is this app's own main, which already pushed its phones.
           ...(subscriptionTarget?.kind === 'local' ? { mobileDeliveredByHost: true } : {}),
           worktreeId: request.workspaceId,

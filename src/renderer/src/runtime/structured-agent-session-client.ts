@@ -305,7 +305,7 @@ export async function acknowledgeStructuredAgentSessionAttention(
 
 /** Turns that settle, and prompts raised, from now on. The host sends no snapshot and replays
  *  nothing, so a subscriber that reconnects has missed whatever happened while it was away. */
-export function subscribeStructuredAgentSessionTurnCompletions(
+export async function subscribeStructuredAgentSessionTurnCompletions(
   target: RuntimeClientTarget,
   onEvent: (event: AgentSessionTurnCompletionEvent) => void,
   onError: (error: unknown) => void,
@@ -315,7 +315,12 @@ export function subscribeStructuredAgentSessionTurnCompletions(
     target,
     'agentSession.subscribeTurnCompletions',
     // An older host ignores this and sends completions only: it raises no prompt alert, as before.
-    { includePrompts: true },
+    {
+      includePrompts: true,
+      ...((await structuredAgentSessionHostSupports(target, 'agent-session.attention-read.v1'))
+        ? { includeReads: true }
+        : {})
+    },
     onEvent,
     onError,
     onClose
