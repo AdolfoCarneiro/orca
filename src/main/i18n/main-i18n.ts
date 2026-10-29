@@ -6,10 +6,7 @@ import i18next, {
   type TOptions
 } from 'i18next'
 
-import {
-  resolvePluralFamilyKey,
-  withPluralCategoriesFromOther
-} from '../../shared/i18n-plural-family'
+import { resolvePluralFamilyKey } from '../../shared/i18n-plural-family'
 import { isPseudoLocalizationLocale, pseudoLocalizeString } from '../../shared/pseudo-localization'
 import { DEFAULT_UI_LOCALE, resolveUiLocale, type SupportedUiLocale } from '../../shared/ui-locale'
 import { UI_LANGUAGE_SYSTEM, type UiLanguage } from '../../shared/ui-language'
@@ -49,14 +46,7 @@ const lazyLocaleBackend: BackendModule = {
       return
     }
     loader().then(
-      (mod) =>
-        callback(
-          null,
-          withPluralCategoriesFromOther(
-            mod.default,
-            new Intl.PluralRules(language).resolvedOptions().pluralCategories
-          )
-        ),
+      (mod) => callback(null, mod.default),
       (error) => callback(error instanceof Error ? error : new Error(String(error)), false)
     )
   }

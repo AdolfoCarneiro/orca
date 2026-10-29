@@ -5093,7 +5093,8 @@
           "description": "{{value0}} aktualisieren, damit Agenten den aktuellen Anweisungen für diese Orca-Version folgen.",
           "updateOne": "Skill aktualisieren",
           "updateMany": "Skills aktualisieren",
-          "title_other": "{{count}} installierte Orca-Skills sind veraltet"
+          "title_other": "{{count}} installierte Orca-Skills sind veraltet",
+          "title_one": "{{count}} installierte Orca-Skills sind veraltet"
         },
         "SkillFreshnessUpdateDialog": {
           "title": "Skills aktualisieren",
@@ -5116,6 +5117,7 @@
           "updateServer": "Zum Aktualisieren der dortigen Orca-Skills Orca auf dem Server aktualisieren.",
           "connectHost": "Eine Verbindung zu diesem SSH-Host herstellen, um die dortigen Orca-Skills zu prüfen.",
           "upToDate_other": "{{count}} Skills sind auf dem neuesten Stand.",
+          "upToDate_one": "{{count}} Skills sind auf dem neuesten Stand.",
           "update_one": "{{count}} Aktualisierung verfügbar",
           "update_other": "{{count}} Aktualisierungen verfügbar",
           "current_one": "{{count}} Skill ist auf dem neuesten Stand",
@@ -5480,7 +5482,8 @@
           "placementSummaryParts": "Entfernt {{parts}} in {{roots}}.",
           "placementJoin": " und ",
           "retainedSource": "Der Skill selbst bleibt unter {{path}} erhalten.",
-          "nothing_other": "Keiner der {{count}} ausgewählten Skills kann hier gelöscht werden."
+          "nothing_other": "Keiner der {{count}} ausgewählten Skills kann hier gelöscht werden.",
+          "nothing_one": "Keiner der {{count}} ausgewählten Skills kann hier gelöscht werden."
         },
         "skillPlanOpCopy": {
           "busy": "Eine andere Installation läuft noch",
@@ -18845,11 +18848,13 @@
         "runWebSearch_one": "{{count}}-mal im Web gesucht",
         "runWebSearch_other": "{{count}}-mal im Web gesucht",
         "runBrowser_other": "Browser {{count}}-mal verwendet",
+        "runBrowser_one": "Browser {{count}}-mal verwendet",
         "runIntegration_one": "{{count}} Integration verwendet",
         "runIntegration_other": "{{count}} Integrationen verwendet",
         "runAgent_one": "{{count}} Agent ausgeführt",
         "runAgent_other": "{{count}} Agenten ausgeführt",
         "runPlan_other": "Plan {{count}}-mal aktualisiert",
+        "runPlan_one": "Plan {{count}}-mal aktualisiert",
         "runTool_one": "{{count}} Werkzeug verwendet",
         "runTool_other": "{{count}} Werkzeuge verwendet",
         "runLiveRead_one": "{{count}} Datei wird gelesen",
@@ -18865,11 +18870,13 @@
         "runLiveWebSearch_one": "{{count}} Websuche läuft",
         "runLiveWebSearch_other": "{{count}} Websuchen laufen",
         "runLiveBrowser_other": "Browser wird {{count}}-mal verwendet",
+        "runLiveBrowser_one": "Browser wird {{count}}-mal verwendet",
         "runLiveIntegration_one": "{{count}} Integration wird verwendet",
         "runLiveIntegration_other": "{{count}} Integrationen werden verwendet",
         "runLiveAgent_one": "{{count}} Agent wird ausgeführt",
         "runLiveAgent_other": "{{count}} Agenten werden ausgeführt",
         "runLivePlan_other": "Plan wird {{count}}-mal aktualisiert",
+        "runLivePlan_one": "Plan wird {{count}}-mal aktualisiert",
         "runLiveTool_one": "{{count}} Werkzeug wird verwendet",
         "runLiveTool_other": "{{count}} Werkzeuge werden verwendet"
       },

@@ -183,6 +183,34 @@ describe('verify-localization-catalog', () => {
     await expect(verifyLocalizationCatalog(root)).resolves.toBe(1)
   })
 
+  it('commits CLDR plural forms a locale lacks beside its _other form', async () => {
+    const { root, localesDir } = makeProject({
+      sourceText: 'export {}\n',
+      enCatalog: {
+        files_one: 'One file',
+        files_other: '{{count}} files',
+        name: 'Name'
+      }
+    })
+    const frenchPath = path.join(localesDir, 'fr.json')
+    writeJson(frenchPath, { files_other: '{{count}} fichiers', name: 'Nom' })
+    const report = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await expect(verifyLocalizationCatalog(root, { fix: false })).resolves.toBe(1)
+    } finally {
+      report.mockRestore()
+    }
+    await expect(verifyLocalizationCatalog(root, { fix: true })).resolves.toBe(0)
+
+    expect(Object.entries(readJson(frenchPath))).toEqual([
+      ['files_other', '{{count}} fichiers'],
+      ['files_one', '{{count}} fichiers'],
+      ['files_many', '{{count}} fichiers'],
+      ['name', 'Nom']
+    ])
+    await expect(verifyLocalizationCatalog(root, { fix: false })).resolves.toBe(0)
+  })
+
   it('reports partial plugin catalog gaps but rejects malformed interpolation', async () => {
     const { root } = makeProject({
       sourceText: 'export {}\n',
