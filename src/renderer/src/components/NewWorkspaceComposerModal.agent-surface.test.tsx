@@ -331,7 +331,7 @@ it('submits the untouched refusal-aware OpenCode CLI instead of the registered c
   const callsBeforeClose = mocks.observe.mock.calls.length
   const streamsBeforeClose = streams.length
   const submitsBeforeClose = mocks.submit.mock.calls.length
-  await act(async () => useAppStore.setState({ activeModal: null }))
+  await act(async () => useAppStore.getState().closeModal())
   expect(screen.queryByRole('button', { name: 'Create' })).toBeNull()
   expect(screen.queryByRole('combobox')).toBeNull()
   expect(mocks.observe).toHaveBeenCalledTimes(callsBeforeClose)

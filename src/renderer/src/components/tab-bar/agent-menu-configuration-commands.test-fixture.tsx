@@ -71,7 +71,7 @@ export function exerciseAgentMenuConfigurationCommands(mocks: ConfigurationMocks
 export async function exerciseAgentMenuConfigurationCommandWork(
   mocks: ConfigurationWorkMocks
 ): Promise<void> {
-  const work = []
+  const work: { candidates: number; rows: number; built: number; selections: number }[] = []
   for (const count of [10, 100]) {
     useAppStore.setState({
       repos: [TEST_REPO],

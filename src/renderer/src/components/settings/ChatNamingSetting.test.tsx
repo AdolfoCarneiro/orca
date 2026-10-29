@@ -130,7 +130,9 @@ describe('Chat names setting', () => {
     expect(screen.getByRole('button', { name: 'Advanced' }).getAttribute('aria-expanded')).toBe(
       'false'
     )
-    state.settingsSearchQuery = 'naming agent'
+    act(() => {
+      useAppStore.setState({ settingsSearchQuery: 'naming agent' })
+    })
     rerender(element())
     expect(screen.getByRole('combobox').textContent).toContain('Use chat agent')
     expect(screen.getByRole('button', { name: 'Advanced' }).hasAttribute('disabled')).toBe(true)

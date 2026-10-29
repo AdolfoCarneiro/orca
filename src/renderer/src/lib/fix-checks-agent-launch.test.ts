@@ -298,7 +298,7 @@ describe('startFixChecksAgent', () => {
 
     expect(mocks.launchAgentInNewTab).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentArgs: '--dangerously-bypass-approvals-and-sandbox --model "unterminated'
+        agentArgs: '--model "unterminated'
       })
     )
     expect(mocks.toastError).not.toHaveBeenCalled()

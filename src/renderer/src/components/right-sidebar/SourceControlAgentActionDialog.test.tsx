@@ -4,7 +4,7 @@ import type * as RuntimeGitStatusClientModule from '@/runtime/runtime-git-status
 import path from 'node:path'
 import React, { type ReactNode, useState, act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { SourceControlActionRecipe } from '../../../../shared/source-control-ai-actions'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -95,11 +95,12 @@ type EnvironmentTransport = Pick<
   RuntimeApi['runtimeEnvironments'],
   'call' | 'subscribe' | 'cancelSubscription'
 >
+type PreferencesUnsubscribe = Awaited<ReturnType<EnvironmentTransport['subscribe']>>['unsubscribe']
 const preferencesStreams: {
   callbacks: Parameters<EnvironmentTransport['subscribe']>[1]
   handle: Awaited<ReturnType<EnvironmentTransport['subscribe']>>
   subscriptionId: string | undefined
-  unsubscribe: ReturnType<typeof vi.fn>
+  unsubscribe: Mock<PreferencesUnsubscribe>
 }[] = []
 function settingsWithGlobalRecipe(
   recipe: SourceControlActionRecipe | null = {
@@ -342,7 +343,7 @@ describe('SourceControlAgentActionDialog', () => {
           expectedEnvironmentPairingRevision: revision,
           expectedEnvironmentRuntimeId: 'action-host'
         })
-        const unsubscribe = vi.fn()
+        const unsubscribe = vi.fn<PreferencesUnsubscribe>()
         const handle: Awaited<ReturnType<EnvironmentTransport['subscribe']>> = {
           unsubscribe,
           sendBinary: vi.fn()

@@ -24,7 +24,8 @@ import { rowLabel } from '@/components/tab-bar/tab-agent-row-presentation'
 import {
   SurfaceAgentItems,
   surfaceCommandValues,
-  useSurfaceRowArming
+  useSurfaceRowArming,
+  type AgentComboboxSurfaceRows
 } from './agent-combobox-surface-items'
 
 const BLANK_VALUE = '__none__'

@@ -281,6 +281,7 @@ it.each(['failed', 'retained', 'empty', 'disabled', 'retargeted', 'missing'] as 
           ? {
               item: {
                 id: 'pr-1',
+                repoId: TEST_REPO.id,
                 type: 'pr' as const,
                 number: 1,
                 title: 'Checks',
