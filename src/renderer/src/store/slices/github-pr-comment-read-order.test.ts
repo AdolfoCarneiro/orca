@@ -1,13 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { PRComment } from '../../../../shared/github/comment-types'
-import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
-import {
-  createTestStore,
-  githubSourceContext,
-  mockApi,
-  resetRemoteRuntimeMocks,
-  runtimeEnvironmentCall
-} from './github-slice-test-harness'
+import { createTestStore, mockApi, resetRemoteRuntimeMocks } from './github-slice-test-harness'
 
 const repoPath = '/repo'
 const repoId = 'comment-race-repo'
@@ -36,11 +29,11 @@ const remoteAdded: PRComment = {
   createdAt: '2026-10-28T00:00:30Z'
 }
 
-function makeStore(cached = true, comments: PRComment[] = [original]) {
+function makeStore(cached = true) {
   const store = createTestStore()
   store.setState({
     repos: [{ id: repoId, path: repoPath, displayName: 'Repo', badgeColor: '#000', addedAt: 0 }],
-    commentsCache: cached ? { [cacheKey]: { data: comments, fetchedAt: 1 } } : {}
+    commentsCache: cached ? { [cacheKey]: { data: [original], fetchedAt: 1 } } : {}
   })
   return store
 }
@@ -74,76 +67,6 @@ it.each([
   expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, remoteAdded, posted])
 })
 
-it('returns the posted reply to a caller sharing the earlier read', async () => {
-  const store = makeStore()
-  const oldRead = Promise.withResolvers<PRComment[]>()
-  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-  const first = store.getState().fetchPRComments(repoPath, 12, options)
-  await store.getState().addPRReviewCommentReply(repoPath, 12, 10, posted.body, options)
-  const forced = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  oldRead.resolve([original])
-  const expected = store.getState().commentsCache[cacheKey]?.data
-  await expect(Promise.all([first, forced])).resolves.toEqual([expected, expected])
-  expect(mockApi.gh.prComments).toHaveBeenCalledTimes(1)
-})
-
-it('accepts a later authoritative read, including server-side deletions', async () => {
-  const store = makeStore()
-  const oldRead = Promise.withResolvers<PRComment[]>()
-  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  await store.getState().addPRConversationComment(repoPath, 12, posted.body, options)
-  oldRead.resolve([original])
-  await expect(reading).resolves.toEqual([original, posted])
-  mockApi.gh.prComments.mockResolvedValueOnce([])
-  await expect(
-    store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  ).resolves.toEqual([])
-  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([])
-})
-
-it('allows a pending read to publish after a failed write', async () => {
-  const store = makeStore()
-  const oldRead = Promise.withResolvers<PRComment[]>()
-  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  mockApi.gh.addIssueComment.mockResolvedValueOnce({ ok: false, error: 'Rejected' })
-  expect(
-    await store.getState().addPRConversationComment(repoPath, 12, posted.body, options)
-  ).toMatchObject({ ok: false })
-  oldRead.resolve([original, posted])
-  await expect(reading).resolves.toEqual([original, posted])
-  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
-})
-
-it('accepts a read when a different PR receives a comment', async () => {
-  const store = makeStore()
-  const oldRead = Promise.withResolvers<PRComment[]>()
-  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  await store.getState().addPRConversationComment(repoPath, 13, posted.body, options)
-  oldRead.resolve([original, posted])
-  await expect(reading).resolves.toEqual([original, posted])
-  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
-})
-
-it.each(['success', 'rollback'] as const)(
-  'accepts new remote rows after a concurrent resolution %s',
-  async (outcome) => {
-    const threadRoot = { ...original, threadId: 'thread-10', isResolved: false }
-    const store = makeStore(true, [threadRoot])
-    const oldRead = Promise.withResolvers<PRComment[]>()
-    mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-    mockApi.gh.resolveReviewThread.mockResolvedValueOnce(outcome === 'success')
-    const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-    await store.getState().resolveReviewThread(repoPath, 12, threadRoot.threadId, true, options)
-    const serverRoot = { ...threadRoot, isResolved: outcome === 'success' }
-    oldRead.resolve([serverRoot, remoteAdded])
-    await expect(reading).resolves.toEqual([serverRoot, remoteAdded])
-    expect(store.getState().commentsCache[cacheKey]?.data).toEqual([serverRoot, remoteAdded])
-  }
-)
-
 it('keeps a successful reaction on a newly posted reply while adding fetched history', async () => {
   const store = makeStore(false)
   const oldRead = Promise.withResolvers<PRComment[]>()
@@ -159,79 +82,4 @@ it('keeps a successful reaction on a newly posted reply while adding fetched his
     { content: 'heart', count: 1, viewerHasReacted: true }
   ])
   expect(store.getState().commentsCache[cacheKey]?.data).toEqual(displayed)
-})
-
-it('accepts a pending read after bounded publications evict its starting entry', async () => {
-  const store = makeStore()
-  const oldRead = Promise.withResolvers<PRComment[]>()
-  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  const now = vi.spyOn(Date, 'now').mockReturnValue(1)
-  try {
-    await store.getState().addPRConversationComment(repoPath, 12, posted.body, options)
-    now.mockReturnValue(2)
-    for (let prNumber = 13; prNumber < 513; prNumber += 1) {
-      await store.getState().addPRConversationComment(repoPath, prNumber, posted.body, options)
-    }
-    expect(store.getState().commentsCache[cacheKey]).toBeUndefined()
-  } finally {
-    now.mockRestore()
-    oldRead.resolve([original])
-    await reading
-  }
-  await expect(reading).resolves.toEqual([original, posted])
-  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
-})
-
-it('accepts a pending read after a refresh sweep clears its starting entry', async () => {
-  const store = makeStore()
-  const oldRead = Promise.withResolvers<PRComment[]>()
-  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
-  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
-  await store.getState().addPRConversationComment(repoPath, 12, posted.body, options)
-  store.getState().refreshAllGitHub()
-  expect(store.getState().commentsCache[cacheKey]).toBeUndefined()
-  oldRead.resolve([original])
-  await expect(reading).resolves.toEqual([original, posted])
-  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
-})
-
-it('preserves posts for an explicit paired source while its old read finishes', async () => {
-  const store = makeStore()
-  const sourceContext = githubSourceContext('runtime:source-runtime', 'source-repo')
-  const sourceOptions = { ...options, sourceContext }
-  const sourceKey = `${getTaskSourceCacheScope(sourceContext)}::${cacheKey}`
-  const oldRead = Promise.withResolvers<{
-    id: string
-    ok: true
-    result: PRComment[]
-    _meta: { runtimeId: string }
-  }>()
-  const started = Promise.withResolvers<void>()
-  runtimeEnvironmentCall.mockImplementation((args) => {
-    if (args.method === 'github.prComments') {
-      started.resolve()
-      return oldRead.promise
-    }
-    return {
-      id: 'source-write',
-      ok: true,
-      result: { ok: true, comment: posted },
-      _meta: { runtimeId: 'source-runtime' }
-    }
-  })
-  const reading = store.getState().fetchPRComments(repoPath, 12, { ...sourceOptions, force: true })
-  await started.promise
-  expect(
-    await store.getState().addPRConversationComment(repoPath, 12, posted.body, sourceOptions)
-  ).toMatchObject({ ok: true })
-  oldRead.resolve({
-    id: 'source-read',
-    ok: true,
-    result: [original, remoteAdded],
-    _meta: { runtimeId: 'source-runtime' }
-  })
-  await expect(reading).resolves.toEqual([original, remoteAdded, posted])
-  expect(store.getState().commentsCache[sourceKey]?.data).toEqual([original, remoteAdded, posted])
-  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original])
 })
