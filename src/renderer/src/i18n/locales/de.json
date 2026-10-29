@@ -839,6 +839,12 @@
         "discardFailed": "Datei zur Prüfung konnte nicht verworfen werden",
         "deleteFailed": "Gesendete Diagnosedaten konnten nicht gelöscht werden"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Repository-Symbole müssen PNG-Dateien sein.",
+        "tooLarge": "Das Bild für das Repository-Symbol darf höchstens 256 KB groß sein."
+      }
     }
   },
   "menu": {
@@ -22226,5 +22232,39 @@
     "repairing": "Orca repariert gerade die Berechtigungen.",
     "repairFailed": "Orca konnte sie nicht reparieren. Meist sind für den Ordner Administratorrechte erforderlich.",
     "runCommands": "Diese Befehle in einer Eingabeaufforderung mit Administratorrechten ausführen und Orca anschließend erneut starten:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "Nicht unterstützte Datei. PNG, APNG, JPG, GIF, WebP oder SVG auswählen.",
+      "fileUnreadable": "Die ausgewählte Datei konnte nicht gelesen werden.",
+      "notAFile": "Der ausgewählte Pfad ist keine Datei",
+      "fileTooLarge": "Die Datei ist zu groß ({{size}} MB). Maximal {{max}} MB.",
+      "saveFailed": "Das Haustier konnte nicht gespeichert werden.",
+      "pathUnreadable": "Der ausgewählte Pfad konnte nicht gelesen werden.",
+      "manifestMissing": "Im Paket fehlt pet.json.",
+      "manifestInvalid": "pet.json ist ungültig.",
+      "manifestSymlink": "pet.json darf kein symbolischer Link sein.",
+      "manifestParseFailed": "Ungültige pet.json: {{detail}}",
+      "bundleSaveFailed": "Das Haustierpaket konnte nicht gespeichert werden.",
+      "sheetPathNotRelative": "spritesheetPath muss relativ zum Paket sein.",
+      "sheetPathIsRoot": "spritesheetPath muss auf eine Datei verweisen, nicht auf das Stammverzeichnis des Pakets.",
+      "sheetPathEscapes": "spritesheetPath liegt außerhalb des Pakets.",
+      "sheetSymlink": "Das Spritesheet darf kein symbolischer Link sein.",
+      "sheetUnsupportedType": "Das Spritesheet muss eine PNG-, APNG-, JPG-, GIF- oder WebP-Datei sein.",
+      "sheetNotFound": "Spritesheet-Datei nicht gefunden.",
+      "sheetNotAFile": "Der Spritesheet-Pfad ist keine Datei.",
+      "sheetTooLarge": "Das Spritesheet ist zu groß ({{size}} MB).",
+      "sheetSizeLimitExceeded": "Das Spritesheet überschreitet die Größenbegrenzung.",
+      "sheetUndecodable": "Das Spritesheet-Bild konnte nicht dekodiert werden.",
+      "sheetFrameMismatch": "Spritesheet {{sheetWidth}}×{{sheetHeight}} ist kein ganzzahliges Vielfaches der Frame-Größe {{frameWidth}}×{{frameHeight}}.",
+      "animationRowOutOfRange": "Animation „{{name}}“ verweist auf Zeile {{row}}, aber die Zeilenanzahl im Spritesheet beträgt nur {{rows}}.",
+      "animationTooManyFrames": "Die Frame-Anzahl der Animation „{{name}}“ ({{frames}}) übersteigt die Spaltenanzahl des Spritesheets ({{columns}}).",
+      "animationDurationMismatch": "Bei der Animation „{{name}}“ stimmt die Anzahl der angegebenen Frame-Dauern ({{durations}}) nicht mit der Frame-Anzahl ({{frames}}) überein.",
+      "defaultAnimationMissing": "defaultAnimation „{{name}}“ ist nicht in animations enthalten."
+    },
+    "defaultLabels": {
+      "image": "Benutzerdefiniertes Haustier",
+      "bundle": "Haustierpaket"
+    }
   }
 }

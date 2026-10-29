@@ -816,6 +816,12 @@
         "discardFailed": "無法丟棄檢視檔案",
         "deleteFailed": "無法刪除已傳送的診斷資訊"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "存放庫圖示必須是 PNG 檔案。",
+        "tooLarge": "存放庫圖示圖片不得超過 256 KB。"
+      }
     }
   },
   "menu": {
@@ -21929,5 +21935,39 @@
     "repairing": "Orca 正在修復權限。",
     "repairFailed": "Orca 無法修復權限，這通常表示該資料夾需要系統管理員權限。",
     "runCommands": "在以系統管理員身分開啟的命令提示字元中執行以下指令，然後重新啟動 Orca："
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "不支援此檔案。請選擇 PNG、APNG、JPG、GIF、WebP 或 SVG。",
+      "fileUnreadable": "無法讀取所選檔案。",
+      "notAFile": "所選路徑不是檔案",
+      "fileTooLarge": "檔案過大（{{size}} MB）。上限為 {{max}} MB。",
+      "saveFailed": "無法儲存寵物。",
+      "pathUnreadable": "無法讀取所選路徑。",
+      "manifestMissing": "套件缺少 pet.json。",
+      "manifestInvalid": "pet.json 無效。",
+      "manifestSymlink": "pet.json 不得為符號連結。",
+      "manifestParseFailed": "無效的 pet.json：{{detail}}",
+      "bundleSaveFailed": "無法儲存寵物套件。",
+      "sheetPathNotRelative": "spritesheetPath 必須是相對於套件的路徑。",
+      "sheetPathIsRoot": "spritesheetPath 必須指向檔案，而非套件的根目錄。",
+      "sheetPathEscapes": "spritesheetPath 指向套件以外的路徑。",
+      "sheetSymlink": "精靈圖集不得為符號連結。",
+      "sheetUnsupportedType": "精靈圖集必須是 PNG、APNG、JPG、GIF 或 WebP 檔案。",
+      "sheetNotFound": "找不到精靈圖集檔案。",
+      "sheetNotAFile": "精靈圖集路徑不是檔案。",
+      "sheetTooLarge": "精靈圖集過大（{{size}} MB）。",
+      "sheetSizeLimitExceeded": "精靈圖集超過大小限制。",
+      "sheetUndecodable": "無法解碼精靈圖集影像。",
+      "sheetFrameMismatch": "精靈圖集尺寸 {{sheetWidth}}×{{sheetHeight}} 不是影格尺寸 {{frameWidth}}×{{frameHeight}} 的整數倍。",
+      "animationRowOutOfRange": "動畫「{{name}}」參照第 {{row}} 列，但精靈圖集只有 {{rows}} 列。",
+      "animationTooManyFrames": "動畫「{{name}}」有 {{frames}} 個影格，但精靈圖集只有 {{columns}} 欄。",
+      "animationDurationMismatch": "動畫「{{name}}」宣告了 {{durations}} 個影格持續時間，但有 {{frames}} 個影格。",
+      "defaultAnimationMissing": "defaultAnimation 「{{name}}」不在 animations 中。"
+    },
+    "defaultLabels": {
+      "image": "自訂寵物",
+      "bundle": "寵物套件"
+    }
   }
 }

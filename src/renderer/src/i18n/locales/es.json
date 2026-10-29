@@ -478,6 +478,12 @@
         "discardFailed": "No se pudo descartar el archivo de revisión",
         "deleteFailed": "No se pudieron eliminar los diagnósticos enviados"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Los iconos del repositorio deben ser archivos PNG.",
+        "tooLarge": "La imagen del icono del repositorio debe tener un tamaño máximo de 256 KB."
+      }
     }
   },
   "menu": {
@@ -22843,5 +22849,39 @@
     "repairing": "Orca está reparando los permisos.",
     "repairFailed": "Orca no pudo repararlos, lo que normalmente significa que la carpeta requiere permisos de administrador.",
     "runCommands": "Ejecuta estos comandos en un Símbolo del sistema abierto como administrador y luego vuelve a iniciar Orca:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "Archivo no compatible. Elige un PNG, APNG, JPG, GIF, WebP o SVG.",
+      "fileUnreadable": "No se pudo leer el archivo seleccionado.",
+      "notAFile": "La ruta seleccionada no es un archivo",
+      "fileTooLarge": "El archivo es demasiado grande ({{size}} MB). El máximo es {{max}} MB.",
+      "saveFailed": "No se pudo guardar la mascota.",
+      "pathUnreadable": "No se pudo leer la ruta seleccionada.",
+      "manifestMissing": "Falta pet.json en el bundle.",
+      "manifestInvalid": "pet.json no es válido.",
+      "manifestSymlink": "pet.json no puede ser un enlace simbólico.",
+      "manifestParseFailed": "pet.json no válido: {{detail}}",
+      "bundleSaveFailed": "No se pudo guardar el bundle de mascota.",
+      "sheetPathNotRelative": "spritesheetPath debe ser una ruta relativa al bundle.",
+      "sheetPathIsRoot": "spritesheetPath debe apuntar a un archivo, no a la raíz del bundle.",
+      "sheetPathEscapes": "spritesheetPath apunta fuera del bundle.",
+      "sheetSymlink": "La hoja de sprites no puede ser un enlace simbólico.",
+      "sheetUnsupportedType": "La hoja de sprites debe ser un archivo PNG, APNG, JPG, GIF o WebP.",
+      "sheetNotFound": "No se encontró el archivo de la hoja de sprites.",
+      "sheetNotAFile": "La ruta de la hoja de sprites no es un archivo.",
+      "sheetTooLarge": "La hoja de sprites es demasiado grande ({{size}} MB).",
+      "sheetSizeLimitExceeded": "La hoja de sprites superó el límite de tamaño.",
+      "sheetUndecodable": "No se pudo decodificar la imagen de la hoja de sprites.",
+      "sheetFrameMismatch": "La hoja de sprites de {{sheetWidth}}×{{sheetHeight}} no es un múltiplo exacto del fotograma de {{frameWidth}}×{{frameHeight}}.",
+      "animationRowOutOfRange": "La animación «{{name}}» hace referencia a la fila {{row}}, pero la hoja solo tiene {{rows}}.",
+      "animationTooManyFrames": "El número de fotogramas de la animación «{{name}}» ({{frames}}) supera el número de columnas de la hoja ({{columns}}).",
+      "animationDurationMismatch": "En la animación «{{name}}», el número de duraciones de fotograma declaradas ({{durations}}) no coincide con el número de fotogramas ({{frames}}).",
+      "defaultAnimationMissing": "defaultAnimation «{{name}}» no está en animations."
+    },
+    "defaultLabels": {
+      "image": "Mascota personalizada",
+      "bundle": "Bundle de mascota"
+    }
   }
 }

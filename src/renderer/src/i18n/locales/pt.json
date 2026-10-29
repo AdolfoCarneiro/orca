@@ -1412,6 +1412,12 @@
         "discardFailed": "Não foi possível descartar o arquivo de revisão",
         "deleteFailed": "Não foi possível excluir os diagnósticos enviados"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Os ícones do repositório devem ser arquivos PNG.",
+        "tooLarge": "A imagem do ícone do repositório deve ter no máximo 256 KB."
+      }
     }
   },
   "auto": {
@@ -22656,5 +22662,39 @@
     "repairing": "O Orca está corrigindo as permissões.",
     "repairFailed": "O Orca não conseguiu corrigi-las, o que geralmente significa que a pasta exige permissões de administrador.",
     "runCommands": "Execute estes comandos em um Prompt de Comando como administrador e abra o Orca novamente:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "Arquivo não compatível. Escolha um PNG, APNG, JPG, GIF, WebP ou SVG.",
+      "fileUnreadable": "Não foi possível ler o arquivo selecionado.",
+      "notAFile": "O caminho selecionado não é um arquivo",
+      "fileTooLarge": "O arquivo é muito grande ({{size}} MB). O máximo é {{max}} MB.",
+      "saveFailed": "Não foi possível salvar o bichinho.",
+      "pathUnreadable": "Não foi possível ler o caminho selecionado.",
+      "manifestMissing": "O pacote não contém pet.json.",
+      "manifestInvalid": "pet.json é inválido.",
+      "manifestSymlink": "pet.json não pode ser um link simbólico.",
+      "manifestParseFailed": "pet.json inválido: {{detail}}",
+      "bundleSaveFailed": "Não foi possível salvar o pacote do bichinho.",
+      "sheetPathNotRelative": "spritesheetPath deve ser relativo ao pacote.",
+      "sheetPathIsRoot": "spritesheetPath deve apontar para um arquivo, não para a raiz do pacote.",
+      "sheetPathEscapes": "spritesheetPath aponta para fora do pacote.",
+      "sheetSymlink": "A folha de sprites não pode ser um link simbólico.",
+      "sheetUnsupportedType": "A folha de sprites deve ser um arquivo PNG, APNG, JPG, GIF ou WebP.",
+      "sheetNotFound": "Arquivo da folha de sprites não encontrado.",
+      "sheetNotAFile": "O caminho da folha de sprites não é um arquivo.",
+      "sheetTooLarge": "A folha de sprites é muito grande ({{size}} MB).",
+      "sheetSizeLimitExceeded": "A folha de sprites excedeu o limite de tamanho.",
+      "sheetUndecodable": "Não foi possível decodificar a imagem da folha de sprites.",
+      "sheetFrameMismatch": "A folha de sprites {{sheetWidth}}×{{sheetHeight}} não é um múltiplo exato do quadro {{frameWidth}}×{{frameHeight}}.",
+      "animationRowOutOfRange": "A animação \"{{name}}\" faz referência à linha {{row}}, mas a folha tem apenas {{rows}}.",
+      "animationTooManyFrames": "O número de quadros da animação \"{{name}}\" ({{frames}}) excede o número de colunas da folha ({{columns}}).",
+      "animationDurationMismatch": "Na animação \"{{name}}\", o número de durações de quadro declaradas ({{durations}}) não corresponde ao número de quadros ({{frames}}).",
+      "defaultAnimationMissing": "defaultAnimation \"{{name}}\" não está em animations."
+    },
+    "defaultLabels": {
+      "image": "Bichinho personalizado",
+      "bundle": "Pacote do bichinho"
+    }
   }
 }

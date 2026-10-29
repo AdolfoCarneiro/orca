@@ -827,6 +827,12 @@
         "discardFailed": "Не удалось удалить файл для проверки",
         "deleteFailed": "Не удалось удалить отправленную диагностику"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Значки репозитория должны быть файлами PNG.",
+        "tooLarge": "Размер изображения значка репозитория не должен превышать 256 КБ."
+      }
     }
   },
   "menu": {
@@ -22901,5 +22907,39 @@
     "repairing": "Orca исправляет права доступа.",
     "repairFailed": "Orca не удалось их исправить. Обычно это означает, что для изменения прав доступа к папке нужны права администратора.",
     "runCommands": "Выполните эти команды в командной строке от имени администратора, затем снова запустите Orca:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "Неподдерживаемый файл. Выберите PNG, APNG, JPG, GIF, WebP или SVG.",
+      "fileUnreadable": "Не удалось прочитать выбранный файл.",
+      "notAFile": "Выбранный путь не указывает на файл",
+      "fileTooLarge": "Файл слишком большой ({{size}} МБ). Максимум — {{max}} МБ.",
+      "saveFailed": "Не удалось сохранить питомца.",
+      "pathUnreadable": "Не удалось прочитать выбранный путь.",
+      "manifestMissing": "В пакете отсутствует pet.json.",
+      "manifestInvalid": "Файл pet.json некорректен.",
+      "manifestSymlink": "pet.json не должен быть символической ссылкой.",
+      "manifestParseFailed": "Некорректный pet.json: {{detail}}",
+      "bundleSaveFailed": "Не удалось сохранить пакет питомца.",
+      "sheetPathNotRelative": "spritesheetPath должен быть путём относительно пакета.",
+      "sheetPathIsRoot": "spritesheetPath должен указывать на файл, а не на корневую папку пакета.",
+      "sheetPathEscapes": "spritesheetPath выходит за пределы пакета.",
+      "sheetSymlink": "Спрайт-лист не должен быть символической ссылкой.",
+      "sheetUnsupportedType": "Спрайт-лист должен быть файлом PNG, APNG, JPG, GIF или WebP.",
+      "sheetNotFound": "Файл спрайт-листа не найден.",
+      "sheetNotAFile": "Путь к спрайт-листу не указывает на файл.",
+      "sheetTooLarge": "Спрайт-лист слишком большой ({{size}} МБ).",
+      "sheetSizeLimitExceeded": "Размер спрайт-листа превышает допустимый предел.",
+      "sheetUndecodable": "Не удалось декодировать изображение спрайт-листа.",
+      "sheetFrameMismatch": "Размер спрайт-листа {{sheetWidth}}×{{sheetHeight}} не кратен размеру кадра {{frameWidth}}×{{frameHeight}}.",
+      "animationRowOutOfRange": "Анимация «{{name}}» ссылается на строку {{row}}, но число строк в спрайт-листе — {{rows}}.",
+      "animationTooManyFrames": "В анимации «{{name}}» кадров: {{frames}}, но в спрайт-листе столбцов всего {{columns}}.",
+      "animationDurationMismatch": "В анимации «{{name}}» число длительностей кадров — {{durations}}, а число кадров — {{frames}}.",
+      "defaultAnimationMissing": "defaultAnimation «{{name}}» отсутствует в animations."
+    },
+    "defaultLabels": {
+      "image": "Пользовательский питомец",
+      "bundle": "Пакет питомца"
+    }
   }
 }

@@ -660,6 +660,12 @@
         "discardFailed": "Impossible d’abandonner le fichier de révision",
         "deleteFailed": "Impossible de supprimer les diagnostics envoyés"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Les icônes de dépôt doivent être des fichiers PNG.",
+        "tooLarge": "L’image de l’icône du dépôt doit faire 256 Ko maximum."
+      }
     }
   },
   "menu": {
@@ -22843,5 +22849,39 @@
     "repairing": "Orca corrige les autorisations.",
     "repairFailed": "Orca n'a pas pu les corriger, ce qui signifie généralement que le dossier nécessite des droits d'administrateur.",
     "runCommands": "Exécutez ces commandes dans une invite de commandes ouverte en tant qu'administrateur, puis relancez Orca :"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "Fichier non pris en charge. Choisissez un PNG, APNG, JPG, GIF, WebP ou SVG.",
+      "fileUnreadable": "Impossible de lire le fichier sélectionné.",
+      "notAFile": "Le chemin sélectionné n’est pas un fichier",
+      "fileTooLarge": "Le fichier est trop volumineux ({{size}} Mo). Maximum : {{max}} Mo.",
+      "saveFailed": "Impossible d’enregistrer le compagnon.",
+      "pathUnreadable": "Impossible de lire le chemin sélectionné.",
+      "manifestMissing": "Le bundle ne contient pas pet.json.",
+      "manifestInvalid": "pet.json n’est pas valide.",
+      "manifestSymlink": "pet.json ne doit pas être un lien symbolique.",
+      "manifestParseFailed": "pet.json non valide : {{detail}}",
+      "bundleSaveFailed": "Impossible d’enregistrer le bundle de compagnon.",
+      "sheetPathNotRelative": "spritesheetPath doit être relatif au bundle.",
+      "sheetPathIsRoot": "spritesheetPath doit pointer vers un fichier, pas vers la racine du bundle.",
+      "sheetPathEscapes": "spritesheetPath pointe en dehors du bundle.",
+      "sheetSymlink": "La feuille de sprites ne doit pas être un lien symbolique.",
+      "sheetUnsupportedType": "La feuille de sprites doit être un fichier PNG, APNG, JPG, GIF ou WebP.",
+      "sheetNotFound": "Fichier de feuille de sprites introuvable.",
+      "sheetNotAFile": "Le chemin de la feuille de sprites n’est pas un fichier.",
+      "sheetTooLarge": "La feuille de sprites est trop volumineuse ({{size}} Mo).",
+      "sheetSizeLimitExceeded": "La feuille de sprites a dépassé la taille limite.",
+      "sheetUndecodable": "Impossible de décoder l’image de la feuille de sprites.",
+      "sheetFrameMismatch": "La feuille de sprites {{sheetWidth}}×{{sheetHeight}} n’est pas un multiple exact du format d’image {{frameWidth}}×{{frameHeight}}.",
+      "animationRowOutOfRange": "L’animation « {{name}} » fait référence à la ligne {{row}}, mais la feuille n’en a que {{rows}}.",
+      "animationTooManyFrames": "Le nombre d’images de l’animation « {{name}} » ({{frames}}) dépasse le nombre de colonnes de la feuille ({{columns}}).",
+      "animationDurationMismatch": "Pour l’animation « {{name}} », le nombre de durées d’image déclarées ({{durations}}) ne correspond pas au nombre d’images ({{frames}}).",
+      "defaultAnimationMissing": "defaultAnimation « {{name}} » n’est pas dans animations."
+    },
+    "defaultLabels": {
+      "image": "Compagnon personnalisé",
+      "bundle": "Bundle de compagnon"
+    }
   }
 }

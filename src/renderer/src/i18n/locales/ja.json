@@ -474,6 +474,12 @@
         "discardFailed": "確認用ファイルを破棄できませんでした",
         "deleteFailed": "送信済みの診断情報を削除できませんでした"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "リポジトリアイコンには PNG ファイルを使用してください。",
+        "tooLarge": "リポジトリアイコンの画像は 256 KB 以下にしてください。"
+      }
     }
   },
   "menu": {
@@ -22227,5 +22233,39 @@
     "repairing": "Orca が権限を修復しています。",
     "repairFailed": "Orca は権限を修復できませんでした。通常、フォルダーへの操作に管理者権限が必要な場合に発生します。",
     "runCommands": "管理者権限のコマンドプロンプトで次のコマンドを実行し、Orca を再起動してください:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "未対応のファイルです。PNG、APNG、JPG、GIF、WebP、SVG のいずれかを選択してください。",
+      "fileUnreadable": "選択したファイルを読み取れませんでした。",
+      "notAFile": "選択したパスはファイルではありません",
+      "fileTooLarge": "ファイルが大きすぎます（{{size}} MB）。上限は {{max}} MB です。",
+      "saveFailed": "ペットを保存できませんでした。",
+      "pathUnreadable": "選択したパスを読み取れませんでした。",
+      "manifestMissing": "バンドルに pet.json がありません。",
+      "manifestInvalid": "pet.json が無効です。",
+      "manifestSymlink": "pet.json はシンボリックリンクにできません。",
+      "manifestParseFailed": "無効な pet.json: {{detail}}",
+      "bundleSaveFailed": "ペットバンドルを保存できませんでした。",
+      "sheetPathNotRelative": "spritesheetPath はバンドルからの相対パスである必要があります。",
+      "sheetPathIsRoot": "spritesheetPath はバンドルのルートではなく、ファイルを指す必要があります。",
+      "sheetPathEscapes": "spritesheetPath がバンドルの外を指しています。",
+      "sheetSymlink": "スプライトシートはシンボリックリンクにできません。",
+      "sheetUnsupportedType": "スプライトシートは PNG、APNG、JPG、GIF、WebP のいずれかである必要があります。",
+      "sheetNotFound": "スプライトシートのファイルが見つかりません。",
+      "sheetNotAFile": "スプライトシートのパスはファイルではありません。",
+      "sheetTooLarge": "スプライトシートが大きすぎます（{{size}} MB）。",
+      "sheetSizeLimitExceeded": "スプライトシートがサイズ上限を超えました。",
+      "sheetUndecodable": "スプライトシート画像をデコードできませんでした。",
+      "sheetFrameMismatch": "スプライトシートのサイズ {{sheetWidth}}×{{sheetHeight}} はフレームサイズ {{frameWidth}}×{{frameHeight}} の整数倍ではありません。",
+      "animationRowOutOfRange": "アニメーション「{{name}}」は {{row}} 行目を参照していますが、シートには {{rows}} 行しかありません。",
+      "animationTooManyFrames": "アニメーション「{{name}}」には {{frames}} フレームありますが、シートには {{columns}} 列しかありません。",
+      "animationDurationMismatch": "アニメーション「{{name}}」で指定されたフレーム時間は {{durations}} 個ですが、フレーム数は {{frames}} です。",
+      "defaultAnimationMissing": "defaultAnimation「{{name}}」が animations にありません。"
+    },
+    "defaultLabels": {
+      "image": "カスタムペット",
+      "bundle": "ペットバンドル"
+    }
   }
 }

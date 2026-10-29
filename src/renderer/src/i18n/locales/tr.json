@@ -817,6 +817,12 @@
         "discardFailed": "İnceleme dosyası atılamadı",
         "deleteFailed": "Gönderilen tanılama bilgileri silinemedi"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Repo simgeleri PNG dosyaları olmalıdır.",
+        "tooLarge": "Repo simgesi görseli 256 KB veya daha küçük olmalıdır."
+      }
     }
   },
   "menu": {
@@ -22207,5 +22213,39 @@
     "repairing": "Orca şu anda izinleri onarıyor.",
     "repairFailed": "İzinler Orca tarafından onarılamadı. Bu genellikle klasör için yönetici yetkisi gerektiği anlamına gelir.",
     "runCommands": "Yönetici olarak açılan Komut İstemi penceresinde bu komutları çalıştırın, ardından Orca'yı yeniden başlatın:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "Desteklenmeyen dosya. PNG, APNG, JPG, GIF, WebP veya SVG seçin.",
+      "fileUnreadable": "Seçilen dosya okunamadı.",
+      "notAFile": "Seçilen yol bir dosya değil",
+      "fileTooLarge": "Dosya çok büyük ({{size}} MB). En fazla {{max}} MB olabilir.",
+      "saveFailed": "Evcil hayvan kaydedilemedi.",
+      "pathUnreadable": "Seçilen yol okunamadı.",
+      "manifestMissing": "Pakette pet.json eksik.",
+      "manifestInvalid": "pet.json geçersiz.",
+      "manifestSymlink": "pet.json sembolik bağlantı olmamalıdır.",
+      "manifestParseFailed": "Geçersiz pet.json: {{detail}}",
+      "bundleSaveFailed": "Evcil hayvan paketi kaydedilemedi.",
+      "sheetPathNotRelative": "spritesheetPath, pakete göre göreli bir yol olmalıdır.",
+      "sheetPathIsRoot": "spritesheetPath, paket kökü yerine bir dosyayı göstermelidir.",
+      "sheetPathEscapes": "spritesheetPath paket dışına çıkıyor.",
+      "sheetSymlink": "Sprite sayfası sembolik bağlantı olmamalıdır.",
+      "sheetUnsupportedType": "Sprite sayfası PNG, APNG, JPG, GIF veya WebP olmalıdır.",
+      "sheetNotFound": "Sprite sayfası dosyası bulunamadı.",
+      "sheetNotAFile": "Sprite sayfasının yolu bir dosya değil.",
+      "sheetTooLarge": "Sprite sayfası çok büyük ({{size}} MB).",
+      "sheetSizeLimitExceeded": "Sprite sayfası boyut sınırını aştı.",
+      "sheetUndecodable": "Sprite sayfası görüntüsünün kodu çözülemedi.",
+      "sheetFrameMismatch": "Sprite sayfası boyutu {{sheetWidth}}×{{sheetHeight}}, kare boyutu {{frameWidth}}×{{frameHeight}} değerinin tam katı değil.",
+      "animationRowOutOfRange": "\"{{name}}\" animasyonu {{row}}. satıra başvuruyor, ancak sayfada {{rows}} satır var.",
+      "animationTooManyFrames": "\"{{name}}\" animasyonunda {{frames}} kare var, ancak sayfada yalnızca {{columns}} sütun var.",
+      "animationDurationMismatch": "\"{{name}}\" animasyonu {{durations}} kare süresi tanımlıyor, ancak {{frames}} kare içeriyor.",
+      "defaultAnimationMissing": "defaultAnimation \"{{name}}\", animations içinde yok."
+    },
+    "defaultLabels": {
+      "image": "Özel evcil hayvan",
+      "bundle": "Evcil hayvan paketi"
+    }
   }
 }

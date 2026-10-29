@@ -474,6 +474,12 @@
         "discardFailed": "검토 파일을 버리지 못했습니다",
         "deleteFailed": "전송한 진단 정보를 삭제하지 못했습니다"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "저장소 아이콘은 PNG 파일이어야 합니다.",
+        "tooLarge": "저장소 아이콘 이미지는 256 KB 이하여야 합니다."
+      }
     }
   },
   "menu": {
@@ -22227,5 +22233,39 @@
     "repairing": "Orca가 권한을 복구하고 있습니다.",
     "repairFailed": "Orca가 권한을 복구하지 못했습니다. 일반적으로 해당 폴더에 관리자 권한이 필요하다는 뜻입니다.",
     "runCommands": "관리자 권한으로 연 명령 프롬프트에서 다음 명령을 실행한 후 Orca를 다시 실행하세요:"
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "지원하지 않는 파일입니다. PNG, APNG, JPG, GIF, WebP 또는 SVG를 선택하세요.",
+      "fileUnreadable": "선택한 파일을 읽지 못했습니다.",
+      "notAFile": "선택한 경로가 파일이 아닙니다",
+      "fileTooLarge": "파일이 너무 큽니다({{size}} MB). 최대 크기는 {{max}} MB입니다.",
+      "saveFailed": "애완동물을 저장하지 못했습니다.",
+      "pathUnreadable": "선택한 경로를 읽지 못했습니다.",
+      "manifestMissing": "번들에 pet.json이 없습니다.",
+      "manifestInvalid": "pet.json이 유효하지 않습니다.",
+      "manifestSymlink": "pet.json은 심볼릭 링크일 수 없습니다.",
+      "manifestParseFailed": "유효하지 않은 pet.json: {{detail}}",
+      "bundleSaveFailed": "애완동물 번들을 저장하지 못했습니다.",
+      "sheetPathNotRelative": "spritesheetPath는 번들 기준 상대 경로여야 합니다.",
+      "sheetPathIsRoot": "spritesheetPath는 번들 루트가 아닌 파일을 가리켜야 합니다.",
+      "sheetPathEscapes": "spritesheetPath가 번들 외부를 가리킵니다.",
+      "sheetSymlink": "스프라이트 시트는 심볼릭 링크일 수 없습니다.",
+      "sheetUnsupportedType": "스프라이트 시트는 PNG, APNG, JPG, GIF 또는 WebP 파일이어야 합니다.",
+      "sheetNotFound": "스프라이트 시트 파일을 찾을 수 없습니다.",
+      "sheetNotAFile": "스프라이트 시트 경로가 파일이 아닙니다.",
+      "sheetTooLarge": "스프라이트 시트가 너무 큽니다({{size}} MB).",
+      "sheetSizeLimitExceeded": "스프라이트 시트가 크기 제한을 초과했습니다.",
+      "sheetUndecodable": "스프라이트 시트 이미지를 디코딩하지 못했습니다.",
+      "sheetFrameMismatch": "스프라이트 시트({{sheetWidth}}×{{sheetHeight}})의 크기가 프레임({{frameWidth}}×{{frameHeight}}) 크기의 정수배가 아닙니다.",
+      "animationRowOutOfRange": "\"{{name}}\" 애니메이션은 {{row}}행을 참조하지만 시트에는 {{rows}}행만 있습니다.",
+      "animationTooManyFrames": "애니메이션 \"{{name}}\"에 {{frames}}개의 프레임이 있지만 시트에는 {{columns}}개의 열만 있습니다.",
+      "animationDurationMismatch": "애니메이션 \"{{name}}\"에 프레임 지속 시간이 {{durations}}개 지정되어 있지만 프레임은 {{frames}}개입니다.",
+      "defaultAnimationMissing": "defaultAnimation으로 지정된 \"{{name}}\" 애니메이션이 animations에 없습니다."
+    },
+    "defaultLabels": {
+      "image": "사용자 정의 애완동물",
+      "bundle": "애완동물 번들"
+    }
   }
 }

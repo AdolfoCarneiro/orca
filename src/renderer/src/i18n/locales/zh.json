@@ -474,6 +474,12 @@
         "discardFailed": "无法丢弃查看文件",
         "deleteFailed": "无法删除已发送的诊断信息"
       }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "仓库图标必须是 PNG 文件。",
+        "tooLarge": "仓库图标图片不得超过 256 KB。"
+      }
     }
   },
   "menu": {
@@ -22228,5 +22234,39 @@
     "repairing": "Orca 正在修复权限。",
     "repairFailed": "Orca 无法修复权限，这通常意味着该文件夹需要管理员权限。",
     "runCommands": "在以管理员身份运行的命令提示符中执行以下命令，然后重新启动 Orca："
+  },
+  "pet": {
+    "importErrors": {
+      "unsupportedFile": "不支持此文件。请选择 PNG、APNG、JPG、GIF、WebP 或 SVG。",
+      "fileUnreadable": "无法读取所选文件。",
+      "notAFile": "所选路径不是文件",
+      "fileTooLarge": "文件过大（{{size}} MB）。最大允许 {{max}} MB。",
+      "saveFailed": "无法保存宠物。",
+      "pathUnreadable": "无法读取所选路径。",
+      "manifestMissing": "包中缺少 pet.json。",
+      "manifestInvalid": "pet.json 无效。",
+      "manifestSymlink": "pet.json 不能是符号链接。",
+      "manifestParseFailed": "无效的 pet.json：{{detail}}",
+      "bundleSaveFailed": "无法保存宠物包。",
+      "sheetPathNotRelative": "spritesheetPath 必须是相对于包的路径。",
+      "sheetPathIsRoot": "spritesheetPath 必须指向文件，而不是包的根目录。",
+      "sheetPathEscapes": "spritesheetPath 指向包之外的路径。",
+      "sheetSymlink": "精灵图不能是符号链接。",
+      "sheetUnsupportedType": "精灵图必须是 PNG、APNG、JPG、GIF 或 WebP 文件。",
+      "sheetNotFound": "找不到精灵图文件。",
+      "sheetNotAFile": "精灵图路径不是文件。",
+      "sheetTooLarge": "精灵图过大（{{size}} MB）。",
+      "sheetSizeLimitExceeded": "精灵图超出了大小限制。",
+      "sheetUndecodable": "无法解码精灵图图像。",
+      "sheetFrameMismatch": "精灵图尺寸 {{sheetWidth}}×{{sheetHeight}} 不是帧尺寸 {{frameWidth}}×{{frameHeight}} 的整数倍。",
+      "animationRowOutOfRange": "动画“{{name}}”引用了第 {{row}} 行，但精灵图只有 {{rows}} 行。",
+      "animationTooManyFrames": "动画“{{name}}”有 {{frames}} 帧，但精灵图只有 {{columns}} 列。",
+      "animationDurationMismatch": "动画“{{name}}”声明了 {{durations}} 个帧时长，但有 {{frames}} 帧。",
+      "defaultAnimationMissing": "defaultAnimation “{{name}}” 不在 animations 中。"
+    },
+    "defaultLabels": {
+      "image": "自定义宠物",
+      "bundle": "宠物包"
+    }
   }
 }

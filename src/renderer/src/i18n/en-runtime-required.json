@@ -1949,6 +1949,40 @@
   "menu": {
     "quitApp": "Quit {{appName}}"
   },
+  "pet": {
+    "defaultLabels": {
+      "bundle": "Pet bundle",
+      "image": "Custom pet"
+    },
+    "importErrors": {
+      "animationDurationMismatch": "Animation \"{{name}}\" declares {{durations}} frame durations but {{frames}} frames.",
+      "animationRowOutOfRange": "Animation \"{{name}}\" references row {{row}} but sheet has {{rows}}.",
+      "animationTooManyFrames": "Animation \"{{name}}\" has {{frames}} frames but sheet only has {{columns}} columns.",
+      "bundleSaveFailed": "Could not save the pet bundle.",
+      "defaultAnimationMissing": "defaultAnimation \"{{name}}\" not in animations.",
+      "fileTooLarge": "File is too large ({{size}} MB). Max is {{max}} MB.",
+      "fileUnreadable": "Could not read the selected file.",
+      "manifestInvalid": "pet.json is invalid.",
+      "manifestMissing": "Bundle is missing pet.json.",
+      "manifestParseFailed": "Invalid pet.json: {{detail}}",
+      "manifestSymlink": "pet.json must not be a symlink.",
+      "notAFile": "Selected path is not a file",
+      "pathUnreadable": "Could not read the selected path.",
+      "saveFailed": "Could not save the pet.",
+      "sheetFrameMismatch": "Spritesheet {{sheetWidth}}×{{sheetHeight}} is not a clean multiple of frame {{frameWidth}}×{{frameHeight}}.",
+      "sheetNotAFile": "Spritesheet path is not a file.",
+      "sheetNotFound": "Spritesheet file not found.",
+      "sheetPathEscapes": "spritesheetPath escapes the bundle.",
+      "sheetPathIsRoot": "spritesheetPath must point to a file, not the bundle root.",
+      "sheetPathNotRelative": "spritesheetPath must be relative to the bundle.",
+      "sheetSizeLimitExceeded": "Spritesheet exceeded the size limit.",
+      "sheetSymlink": "spritesheet must not be a symlink.",
+      "sheetTooLarge": "Spritesheet is too large ({{size}} MB).",
+      "sheetUndecodable": "Could not decode the spritesheet image.",
+      "sheetUnsupportedType": "Spritesheet must be a PNG, APNG, JPG, GIF, or WebP.",
+      "unsupportedFile": "Unsupported file. Pick a PNG, APNG, JPG, GIF, WebP, or SVG."
+    }
+  },
   "projectViews": {
     "error": {
       "tooLargeCount_one": "This view has {{count}} item — too large to render in Orca. Narrow the view's filter on GitHub.",
@@ -2014,6 +2048,12 @@
         "missingHost": "Proxy URL must include a host.",
         "tooLong": "Proxy URL is too long.",
         "unsupportedProtocol": "Use an http, https, socks, socks4, or socks5 proxy URL."
+      }
+    },
+    "repository": {
+      "iconPickErrors": {
+        "notPng": "Repo icons must be PNG files.",
+        "tooLarge": "Repo icon image must be 256KB or smaller."
       }
     },
     "shortcuts": {
