@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from 'react'
+import { createElement, type ComponentProps, type ReactNode } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../../../../../src/shared/orca-dispatch-status-prompt'
@@ -21,6 +21,7 @@ import {
 import { MobileAgentMessageContext, mobileAgentMessageTabs } from './mobile-agent-message-context'
 import type { AgentMessageSource } from '../../../../../src/shared/agent-session/agent-session-message-source'
 
+import type { MobileMarkdown as MobileMarkdownComponent } from '../../../components/MobileMarkdown'
 import { stubRpcClient } from '../../../transport/rpc-client-test-stub'
 
 vi.mock('react-native', async () => {
@@ -85,7 +86,7 @@ const proseRenders = vi.hoisted(() => ({ count: 0 }))
 vi.mock('../../../components/MobileMarkdown', async () => {
   const React = await import('react')
   return {
-    MobileMarkdown: (props: object) => {
+    MobileMarkdown: (props: ComponentProps<typeof MobileMarkdownComponent>) => {
       proseRenders.count++
       return React.createElement('MobileMarkdown', props)
     }
