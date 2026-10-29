@@ -322,14 +322,16 @@ describe('opt-in browser API and actual renderer attempt boundary', () => {
         results.every((result) => !result.ok && result.failure.fact.kind === 'cancelled')
       ).toBe(true)
       expect(enqueue).toHaveBeenCalledTimes(8 + count)
-      const queued: unknown = Reflect.get(session.runtimeCallQueuePool, 'queuedCallCount')
+      const queueOwner: object = session.runtimeCallQueuePool
+      const queued: unknown =
+        'queuedCallCount' in queueOwner ? queueOwner.queuedCallCount : undefined
       expect(queued).toBe(0)
       expect(CrewSocket.sockets).toHaveLength(1) // Only the unchanged primary exists.
       held.resolve()
       await Promise.all(blockers)
       await flushCrewWork()
       expect(CrewSocket.sockets).toHaveLength(1)
-      const queues: unknown = Reflect.get(session.runtimeCallQueuePool, 'queues')
+      const queues: unknown = 'queues' in queueOwner ? queueOwner.queues : undefined
       expect(queues instanceof Map && queues.size).toBe(0)
     }
   )

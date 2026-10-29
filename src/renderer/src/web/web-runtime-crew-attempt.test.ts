@@ -20,7 +20,8 @@ import {
 } from './web-runtime-crew.test-fixture'
 
 function transport(client: WebRuntimeClient): WebRuntimeConnectionTransport {
-  const value: unknown = Reflect.get(client, 'transport')
+  const clientOwner: object = client
+  const value: unknown = 'transport' in clientOwner ? clientOwner.transport : undefined
   if (!(value instanceof WebRuntimeConnectionTransport)) {
     throw new Error('Missing transport')
   }
@@ -28,7 +29,8 @@ function transport(client: WebRuntimeClient): WebRuntimeConnectionTransport {
 }
 
 function children(client: WebRuntimeClient): WebRuntimeClient[] {
-  const value: unknown = Reflect.get(client, 'childClients')
+  const clientOwner: object = client
+  const value: unknown = 'childClients' in clientOwner ? clientOwner.childClients : undefined
   if (!(value instanceof Set)) {
     throw new Error('Missing children')
   }
@@ -41,11 +43,14 @@ function children(client: WebRuntimeClient): WebRuntimeClient[] {
 }
 
 function waiterCount(client: WebRuntimeClient): number {
-  const owner: unknown = Reflect.get(transport(client), 'connectionWaiters')
+  const transportOwner: object = transport(client)
+  const owner: unknown =
+    'connectionWaiters' in transportOwner ? transportOwner.connectionWaiters : undefined
   if (!(owner instanceof WebRuntimeConnectionWaiters)) {
     throw new Error('Missing wait owner')
   }
-  const waiters: unknown = Reflect.get(owner, 'waiters')
+  const waiterOwner: object = owner
+  const waiters: unknown = 'waiters' in waiterOwner ? waiterOwner.waiters : undefined
   if (!Array.isArray(waiters)) {
     throw new Error('Missing waiters')
   }
