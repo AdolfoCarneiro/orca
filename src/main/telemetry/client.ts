@@ -7,7 +7,7 @@ import type { AgentDashboardSurface } from '../../shared/telemetry-agent-dashboa
 import type { Store } from '../persistence'
 import { consumeBurstToken, resetBurstCapsForSession } from './burst-cap'
 import { getCohortAtEmit } from './cohort-classifier'
-import { resolveConsent } from './consent'
+import { isConsentEnvOverridden, resolveConsent } from './consent'
 import * as postHogStart from './posthog-client-start'
 import { buildCommonProps, createPostHogClient, waitForCaptureEnqueue } from './posthog-transport'
 import { commonPropsSchema, validate } from './validator'
@@ -251,14 +251,14 @@ export async function setOptIn(via: OptInVia, optedIn: boolean): Promise<void> {
 
   const client = posthog
   if (optedIn) {
-    if (client) {
+    if (client && !isConsentEnvOverridden()) {
       await client.optIn()
     }
     // Settings opt-in also starts an observable session that needs an adoption denominator.
     trackAppOpenedOnce()
     track('telemetry_opted_in', { via })
   } else {
-    if (!client) {
+    if (!client || isConsentEnvOverridden()) {
       return
     }
     // Enqueue opt-out directly before disabling SDK; track would reject it under the newly stored preference.
@@ -307,7 +307,7 @@ export async function persistBannerAcknowledgeWithoutEmitting(): Promise<void> {
     },
     { notifyListeners: true }
   )
-  if (posthog) {
+  if (posthog && !isConsentEnvOverridden()) {
     await posthog.optIn()
   }
   // Banner resolution is first app_opened eligibility; re-enable SDK before capture.
