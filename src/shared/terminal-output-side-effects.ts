@@ -24,7 +24,6 @@ import {
   type TerminalGitHubPRLink
 } from './terminal-github-pr-link-detector'
 import { createOsc133CommandFinishedScanner } from './terminal-osc133-command-finished'
-import { createLaunchExitReceiptScanner } from './agent-launch-exit-receipt'
 
 /** Ms of title-less output after a working title before it is cleared. */
 export const STALE_WORKING_TITLE_TIMEOUT_MS = 3000
@@ -56,8 +55,6 @@ export type TerminalTitleTrackerCallbacks = {
   onBell?: () => void
   /** Complete OSC 133;D with best-effort exit code; fact and byte paths must retire stale agent rows alike. */
   onCommandFinished?: (bestEffortExitCode: number | null) => void
-  /** The shell printed a launch's exit receipt: the agent it launched has returned. */
-  onLaunchExitReceipt?: (receiptId: string) => void
   /** Fired per complete OSC 133;C: the shell exec'd a command, so the pane's foreground changed. */
   onCommandStarted?: () => void
   /** Fired once per newly observed GitHub PR URL (chunk-boundary-safe, deduplicated per tracker). */
@@ -101,7 +98,6 @@ export function createTerminalTitleTracker(
     onProgramActivity,
     onBell,
     onCommandFinished,
-    onLaunchExitReceipt,
     onCommandStarted,
     onPrLink,
     onMode2031Subscribe,
@@ -116,9 +112,6 @@ export function createTerminalTitleTracker(
           onCommandStarted ? () => onCommandStarted() : undefined
         )
       : null
-  const launchExitReceiptScanner = onLaunchExitReceipt
-    ? createLaunchExitReceiptScanner(onLaunchExitReceipt)
-    : null
   let prLinkDetector = onPrLink ? createTerminalGitHubPRLinkDetector() : null
   let transientSideEffectScanningEnabled = true
   let transientFactScanningSuppressed = false
@@ -236,7 +229,6 @@ export function createTerminalTitleTracker(
     }
     // Fact order (matches renderer drain): titles → command-finished → pr-link → 2031-subscribe → bell; bell last.
     if (!transientFactScanningSuppressed) {
-      launchExitReceiptScanner?.scan(data)
       commandFinishedScanner?.scan(data)
       if (prLinkDetector) {
         for (const link of prLinkDetector(data)) {
@@ -308,7 +300,6 @@ export function createTerminalTitleTracker(
         // Cross-chunk carry predates the gapped span; reset it so stale state can't swallow real bells or mint phantom facts.
         bellDetector?.reset()
         commandFinishedScanner?.reset()
-        launchExitReceiptScanner?.reset()
         mode2031ReplyScanState = INITIAL_MODE_2031_REPLY_SCAN_STATE
         if (prLinkDetector) {
           prLinkDetector = createTerminalGitHubPRLinkDetector()
@@ -330,7 +321,6 @@ export function createTerminalTitleTracker(
       agentTracker?.reset()
       bellDetector?.reset()
       commandFinishedScanner?.reset()
-      launchExitReceiptScanner?.reset()
       mode2031ReplyScanState = INITIAL_MODE_2031_REPLY_SCAN_STATE
     }
   }

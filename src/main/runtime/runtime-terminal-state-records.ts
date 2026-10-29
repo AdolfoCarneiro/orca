@@ -81,8 +81,6 @@ export type RuntimePtyWorktreeRecord = RuntimeTerminalTailState & {
   launchConfig: SleepingAgentLaunchConfig | null
   launchToken: string | null
   launchIncarnationId: PtyIncarnationId | null
-  /** The launch its shell's exit receipt must name; authority retirement leaves it, so a later receipt still matches. */
-  launchExitReceipt?: { id: string; incarnationId: PtyIncarnationId | null } | null
   launchAgent: TuiAgent | null
   /** Identify flagged unmanaged --command panes before foreground reads; null for adopted/restored panes. */
   launchCommandAgent: TuiAgent | null

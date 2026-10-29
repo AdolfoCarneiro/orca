@@ -14,7 +14,6 @@ export type PtyDataEvent = {
 export type PtyTransientFact =
   | { kind: 'bell' }
   | { kind: 'command-finished'; exitCode: number | null }
-  | { kind: 'launch-exit-receipt'; receiptId: string }
   | { kind: 'pr-link'; link: TerminalGitHubPRLink }
   | { kind: '2031-subscribe' }
   | { kind: '2031-unsubscribe' }

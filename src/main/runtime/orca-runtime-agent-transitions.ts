@@ -56,26 +56,6 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
     readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 })
   })
 
-  /** Only the receipt of this PTY's current launch counts: a nested shell has none, a relaunch names a new one. */
-  protected observeLaunchExitReceipt(ptyId: string, receiptId: string): void {
-    const pty = this.ptysById.get(ptyId)
-    if (!pty) {
-      return
-    }
-    const launch = pty.launchExitReceipt
-    // A PTY reattached after restart has no launch in memory; its Dispatch's commitment names the receipt.
-    const restoredReceiptId = pty.launchToken === null ? receiptId : undefined
-    if (!restoredReceiptId) {
-      if (!launch || launch.id !== receiptId || launch.incarnationId !== pty.incarnationId) {
-        return
-      }
-      pty.launchExitReceipt = null
-    }
-    for (const paneKey of this.collectPaneKeysForPty(ptyId)) {
-      this.terminalWorkerTurnStops.observeAgentExited(paneKey, restoredReceiptId)
-    }
-  }
-
   private readonly externalConversations = installExternalConversations(this.store, this)
 
   /** The connector seam while `experimentalConnectors` is on; null refuses every connector call. */

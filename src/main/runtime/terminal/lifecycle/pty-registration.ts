@@ -5,7 +5,6 @@ import { isValidTerminalTabId } from '../../../../shared/terminal-tab-id'
 import { isTerminalLeafId, makePaneKey } from '../../../../shared/stable-pane-id'
 import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import { spawnSurfaceClaimSequence } from '../../pty-recorded-surface-topology'
-import { bindLaunchExitReceipt } from '../launch/terminal-launch-result'
 import type {
   PtyRegistrationClaim,
   RuntimePtyWorktreeRecord
@@ -145,7 +144,6 @@ export abstract class OrcaRuntimeWithRegisterPty extends OrcaRuntimeWithInvalida
       pty.launchToken = agentLaunchAuthority.launchToken
       pty.launchIncarnationId = binding.incarnationId
       pty.launchAgent = agentLaunchAuthority.launchAgent
-      bindLaunchExitReceipt(pty)
     }
     const providerReattachLaunchIdentity = binding?.providerReattachLaunchIdentity
     if (

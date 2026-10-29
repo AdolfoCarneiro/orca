@@ -2,7 +2,7 @@ import type { AgentStatusOrchestrationContext } from '../../../../shared/agent-s
 import type { OrchestrationDb } from '../../orchestration/db/orchestration-db'
 import { OrcaRuntimeWithVerifyOrchestrationCompatibilityCaller } from '../../orchestration/terminal-authority/verify-orchestration-compatibility-caller'
 import type { OrchestrationCompatibilityTerminalAuthority } from '../../runtime-terminal-contracts'
-import { agentLaunchTokenHash } from '../../../agent-launch/agent-launch-token'
+import { createHash } from 'node:crypto'
 import {
   isTerminalLeafId,
   makePaneKey,
@@ -126,7 +126,9 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
       worktreeId: pty.worktreeId,
       processIncarnation: this.getTerminalProcessIncarnation(terminalHandle),
       paneKey: this.paneOfPty(pty).paneKey,
-      launchTokenHash: pty.launchToken ? agentLaunchTokenHash(pty.launchToken) : null,
+      launchTokenHash: pty.launchToken
+        ? createHash('sha256').update(pty.launchToken).digest('hex')
+        : null,
       hostScope
     }
   }
