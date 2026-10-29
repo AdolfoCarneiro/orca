@@ -4,7 +4,7 @@ import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
 import { Tabs, TabsList, TabsTrigger } from '../../ui/tabs'
 
-export type PluginCatalogFilter = 'all' | 'installed' | 'updates'
+export type PluginCatalogFilter = 'all' | 'installed' | 'available' | 'updates'
 
 type PluginCatalogLayoutProps = {
   filter: PluginCatalogFilter
@@ -18,10 +18,10 @@ type PluginCatalogLayoutProps = {
 }
 
 function isPluginCatalogFilter(value: string): value is PluginCatalogFilter {
-  return value === 'all' || value === 'installed' || value === 'updates'
+  return value === 'all' || value === 'installed' || value === 'available' || value === 'updates'
 }
 
-/** Filter tabs, search and tools above the plugin list. */
+/** Install-state filter, search and tools above the one plugin list. */
 export function PluginCatalogLayout({
   filter,
   onFilterChange,
@@ -63,6 +63,12 @@ export function PluginCatalogLayout({
               <span className="text-xs font-normal tabular-nums text-muted-foreground">
                 {installedCount}
               </span>
+            </TabsTrigger>
+            <TabsTrigger value="available">
+              {translate(
+                'auto.components.pluginCatalog.PluginCatalogLayout.notInstalled',
+                'Not installed'
+              )}
             </TabsTrigger>
             {updateCount > 0 ? (
               <TabsTrigger value="updates">

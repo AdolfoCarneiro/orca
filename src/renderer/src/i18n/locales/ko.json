@@ -11396,9 +11396,7 @@
           "installing": "설치 중…",
           "reviewLabel": "{{value0}} 검토 후 설치",
           "review": "검토 후 설치",
-          "retry": "다시 시도",
-          "disable": "비활성화",
-          "enable": "활성화"
+          "retry": "다시 시도"
         },
         "PluginSettingsRow": {
           "loadingLogs": "로그 로딩 중…",
@@ -12563,10 +12561,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "새 접근 권한이 있을 때만 다시 묻습니다"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "이전 설치된 플러그인",
-          "next": "다음 설치된 플러그인"
         },
         "PluginInUseAction": {
           "inUseDark": "사용 중 · 다크",

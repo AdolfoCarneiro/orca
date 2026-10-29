@@ -11396,9 +11396,7 @@
           "installing": "インストール中…",
           "reviewLabel": "{{value0}} を確認してインストール",
           "review": "確認してインストール",
-          "retry": "再試行",
-          "disable": "無効にする",
-          "enable": "有効にする"
+          "retry": "再試行"
         },
         "PluginSettingsRow": {
           "loadingLogs": "ログを読み込み中…",
@@ -12563,10 +12561,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "新しいアクセスがあるときだけ確認します"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "前のインストール済みプラグイン",
-          "next": "次のインストール済みプラグイン"
         },
         "PluginInUseAction": {
           "inUseDark": "使用中 · ダーク",

@@ -11396,9 +11396,7 @@
           "installing": "正在安装…",
           "reviewLabel": "审核并安装 {{value0}}",
           "review": "审核并安装",
-          "retry": "重试",
-          "disable": "禁用",
-          "enable": "启用"
+          "retry": "重试"
         },
         "PluginSettingsRow": {
           "loadingLogs": "正在加载日志…",
@@ -12596,10 +12594,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "仅在需要新访问权限时再次询问"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "上一组已安装插件",
-          "next": "下一组已安装插件"
         },
         "PluginInUseAction": {
           "inUseDark": "使用中 · 深色",

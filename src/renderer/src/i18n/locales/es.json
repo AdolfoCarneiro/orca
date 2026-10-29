@@ -11679,9 +11679,7 @@
           "installing": "Instalando…",
           "reviewLabel": "Revisar e instalar {{value0}}",
           "review": "Revisar e instalar",
-          "retry": "Reintentar",
-          "disable": "Desactivar",
-          "enable": "Activar"
+          "retry": "Reintentar"
         },
         "PluginSettingsRow": {
           "loadingLogs": "Cargando registros…",
@@ -12849,10 +12847,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "Solo vuelve a preguntar por accesos nuevos"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "Plugins instalados anteriores",
-          "next": "Siguientes plugins instalados"
         },
         "PluginInUseAction": {
           "inUseDark": "En uso · Oscuro",

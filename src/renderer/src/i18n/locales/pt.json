@@ -9250,10 +9250,6 @@
             "description": "Cores do app para este modo."
           }
         },
-        "InstalledPluginCarousel": {
-          "previous": "Plugins instalados anteriores",
-          "next": "Próximos plugins instalados"
-        },
         "PluginInUseAction": {
           "inUseDark": "Em uso · Escuro",
           "inUseLight": "Em uso · Claro",

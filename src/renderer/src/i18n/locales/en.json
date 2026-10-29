@@ -13098,7 +13098,10 @@
           "browseAll": "Browse all plugins",
           "resultCount": "{{value0}} plugins match",
           "resultCountOne": "1 plugin matches",
-          "updateAll": "Update all…"
+          "updateAll": "Update all…",
+          "notFromCatalog": "not from a catalog",
+          "allInstalledTitle": "Every catalog plugin is installed",
+          "showInstalled": "Show installed plugins"
         },
         "PluginDetailPage": {
           "bundled": "Bundled with Orca",
@@ -13239,9 +13242,7 @@
           "installing": "Installing…",
           "reviewLabel": "Review and install {{value0}}",
           "review": "Review & install",
-          "retry": "Try again",
-          "disable": "Disable",
-          "enable": "Enable"
+          "retry": "Try again"
         },
         "PluginInstallConsent": {
           "install": "Install & enable",
@@ -13328,12 +13329,6 @@
           "updateNeedsReview": "Update needs review",
           "updatedTo": "Updated to {{value0}}",
           "devUnverified": "Dev · unverified"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "Previous installed plugins",
-          "next": "Next installed plugins",
-          "heading": "Installed",
-          "seeAllCount": "See all {{value0}}"
         },
         "PluginInUseAction": {
           "inUseDark": "In use · Dark",
@@ -18445,7 +18440,8 @@
           "searchLabel": "Search plugins",
           "searchPlaceholder": "Search plugins",
           "updates": "Updates",
-          "clearSearch": "Clear search"
+          "clearSearch": "Clear search",
+          "notInstalled": "Not installed"
         },
         "PluginListGroup": {
           "showAll": "Show {{value0}} more",
