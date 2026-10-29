@@ -4,6 +4,8 @@ import type { PtySpawnOptions } from '../providers/pty-provider-contract'
 
 /** A probe started this close before a hold still counts as that spawn's own read. */
 const WSL_HOLD_READ_ANCHOR_SLACK_MS = 1
+/** Even this spawn's own read goes stale: a daemon respawn or a session lock can sit between holds. */
+export const WSL_HOLD_READ_MAX_AGE_MS = 2_000
 
 /** The anchor a spawn's first hold reads after; later holds of the same spawn reuse that read. */
 export function wslHoldReadAnchor(): number {
@@ -36,7 +38,14 @@ export async function holdPassiveRestoreOfStoppedWslDistro(
   }
   // Without this spawn's anchor the read is fresh; a noted stop or wake still raises the floor.
   const state = await readWslDistroRunningState(wslDistro, {
-    ...(opts.wslHoldReadAnchor === undefined ? {} : { startedAfter: opts.wslHoldReadAnchor }),
+    ...(opts.wslHoldReadAnchor === undefined
+      ? {}
+      : {
+          startedAfter: Math.max(
+            opts.wslHoldReadAnchor,
+            performance.now() - WSL_HOLD_READ_MAX_AGE_MS
+          )
+        }),
     retryUnverifiable: true
   })
   if (state !== 'running') {

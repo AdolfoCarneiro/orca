@@ -11,6 +11,7 @@ import {
 import { parseWslDistroHold } from '../../shared/wsl-distro-stopped-hold'
 import {
   holdPassiveRestoreOfStoppedWslDistro,
+  WSL_HOLD_READ_MAX_AGE_MS,
   wslHoldReadAnchor
 } from './daemon-wsl-passive-restore-hold'
 
@@ -85,6 +86,14 @@ describe('a held WSL spawn reuses only its own running read (E9)', () => {
     const provider = hold(anchor).catch((error: unknown) => error)
     await vi.advanceTimersByTimeAsync(1_000)
     expect(heldState(await provider)).toBe('stopped')
+    expect(probe).toHaveBeenCalledTimes(2)
+  })
+
+  it("reads fresh once the spawn's own read is older than the cap (a respawn between holds)", async () => {
+    const anchor = wslHoldReadAnchor()
+    await hold(anchor)
+    vi.advanceTimersByTime(WSL_HOLD_READ_MAX_AGE_MS + 1)
+    await hold(anchor)
     expect(probe).toHaveBeenCalledTimes(2)
   })
 })
