@@ -15,7 +15,7 @@ import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
 // Route workspace readers here; check-workspace-record-read-ratchet.mjs enforces this boundary.
 
 export type WorkspaceRecordState = Pick<AppState, 'worktreesByRepo' | 'folderWorkspaces'> &
-  Partial<Pick<AppState, 'repos' | 'projectGroups'>>
+  Pick<QualifiedFolderHostState, 'repos' | 'projectGroups'>
 
 /** Git worktrees per repo id, in listing order. */
 export function selectWorktreesByRepo<TState extends { worktreesByRepo?: unknown }>(

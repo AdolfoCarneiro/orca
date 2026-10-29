@@ -38,9 +38,7 @@ describe('inherited folder consumer identity', () => {
       const folderWorkspaces = reverse ? [inherited, local] : [local, inherited]
       const state = {
         folderWorkspaces,
-        projectGroups: [
-          { ...makeProjectGroup(), id: 'inherited', executionHostId: 'ssh:box' as const }
-        ],
+        projectGroups: [{ id: 'inherited', executionHostId: 'ssh:box' as const }],
         repos: [],
         worktreesByRepo: {},
         detectedWorktreesByRepo: {},

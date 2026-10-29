@@ -19,6 +19,7 @@ import { findWorktreeById, withoutErasedRequiredWorktreeFields } from '../../wor
 import { worktreeMatchesHost } from './worktree-host-ownership'
 import { hostWorktreeTarget } from '../../../../../../shared/worktree/host-qualified-identity'
 import {
+  type WorkspaceRecordState,
   getFolderWorkspaceWorktree,
   resolveQualifiedIndexedFolderWorkspace,
   selectFolderWorkspaces,
@@ -77,11 +78,7 @@ export function folderWorkspaceMatchesHost(
 }
 
 export function findKnownWorktreeById(
-  state: Pick<
-    AppState,
-    'worktreesByRepo' | 'detectedWorktreesByRepo' | 'folderWorkspaces' | 'floatingWorkspacePath'
-  > &
-    Partial<Pick<AppState, 'projectGroups' | 'repos'>>,
+  state: WorkspaceRecordState & Pick<AppState, 'detectedWorktreesByRepo' | 'floatingWorkspacePath'>,
   worktreeId: string,
   executionHostId?: ExecutionHostId
 ): Worktree | DetectedWorktreeListResult['worktrees'][number] | undefined {
