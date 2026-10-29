@@ -434,6 +434,28 @@ it('keeps the old Codex workspace-write Ask literal and explains that terminal t
   ).toBeDefined()
 })
 
+it.each([
+  { model: undefined, controls: 2, fast: false },
+  { model: 'unlisted-host-model', controls: 2, fast: false },
+  { model: 'opus', controls: 3, fast: true }
+])('offers only model-advertised action mode controls for $model', ({ model, controls, fast }) => {
+  render(
+    <TooltipProvider>
+      <SourceControlActionArguments
+        agent="claude"
+        value="--verbose"
+        preferences={{ agentId: 'claude', model }}
+        onArgsChange={vi.fn()}
+        onPreferencesChange={vi.fn()}
+      />
+    </TooltipProvider>
+  )
+  expect(screen.getAllByRole('combobox')).toHaveLength(controls)
+  expect(screen.queryByText('Fast mode') !== null).toBe(fast)
+  expect(screen.getByRole('button', { name: 'Claude permissions' })).toBeDefined()
+  expect(screen.getByRole('textbox', { name: 'Arguments' })).toHaveProperty('value', '--verbose')
+})
+
 it('edits and saves a sparse repository model without authoring the inherited permission', async () => {
   write.mockClear()
   const source = {
