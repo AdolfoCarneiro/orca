@@ -432,6 +432,7 @@ it.runIf(ORCA_LAYOUT_OWNER_IS_MAIN)(
     layoutApplyTestTransport.emitFrame({ type: 'removed', key: 'wt-1' })
     await main.settle()
     expect(useAppStore.getState().getTab(handle.tab.id)?.entityId).toBe(handle.sessionId)
+    // ast-grep-ignore: test-no-real-time-wait-tsx -- Attach the still-live destination after the former 1s expiry.
     await new Promise((resolve) => setTimeout(resolve, 1050))
     const input = createRef<NativeChatComposerInput>()
     const view = render(

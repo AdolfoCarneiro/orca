@@ -238,6 +238,7 @@ it.each(['before', 'mounted', 'delayed-disabled', 'metadata', 'ordinary', 'repla
         )
       }
       if (schedule === 'delayed-disabled') {
+        // ast-grep-ignore: test-no-real-time-wait-tsx -- Cross the former 1s expiry before hidden/disabled attachment.
         await new Promise((resolve) => setTimeout(resolve, 1050))
       }
     }
@@ -286,6 +287,7 @@ it.each(['plain', 'rich', 'append'] as const)(
     if (kind === 'append') {
       act(() => appendNativeChatDraftCache(scope, 'newer'))
     }
+    // ast-grep-ignore: test-no-real-time-wait-tsx -- Release the actual saved load after the 1500ms startup wait.
     await new Promise((resolve) => setTimeout(resolve, 1550))
     const document =
       kind === 'rich'
