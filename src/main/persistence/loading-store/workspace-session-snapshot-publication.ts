@@ -12,7 +12,7 @@ import { SessionUnitReader, selectSessionUnits } from '../../../shared/session-u
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
 import { reduceTerminalScrollbackBuffers } from '../../../shared/workspace-session-terminal-buffers'
 
-import { migrateTerminalLayoutScrollbackSnapshots } from '../../terminal-scrollback-snapshots'
+import { migrateTerminalLayoutScrollbackSnapshots } from '../../terminal-scrollback-snapshot-layout-migration'
 import { migrateWorkspaceSessionTerminalScrollbackSnapshotsAsync } from '../../terminal-scrollback-snapshot-async-migration'
 import { reduceRuntimeAuthoredSessionFields } from '../runtime-authored-workspace-session-fields'
 import { reduceClosedTerminalTabFence } from '../closed-terminal-tab-write-fence'

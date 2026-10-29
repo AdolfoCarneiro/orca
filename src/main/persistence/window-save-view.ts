@@ -1,10 +1,19 @@
 import { deriveIndexedShutdownReconnectFacts } from '../runtime/terminal/recovery/shutdown-reconnect-fact-index'
 import type { SessionUnitReader, SessionUnitSelection } from '../../shared/session-unit-reader'
 import { SESSION_MAP_FIELDS } from '../../shared/session-change-set'
-import { loadWorkspaceLayoutUnits } from '../../shared/workspace-layout/workspace-layout-load'
-import { patchSessionUnits } from '../../shared/workspace-layout/workspace-layout-record-patch'
+import {
+  loadWorkspaceLayoutUnits,
+  loadWorkspaceLayoutWithoutReport
+} from '../../shared/workspace-layout/workspace-layout-load'
+import {
+  patchSessionUnits,
+  patchStoredSession
+} from '../../shared/workspace-layout/workspace-layout-record-patch'
 import { isWorkspaceSleepRecord } from '../../shared/workspace-sleep'
-import type { ReconnectFactSources } from '../runtime/terminal/recovery/shutdown-reconnect-facts'
+import type {
+  ReconnectFactSources,
+  ShutdownReconnectFacts
+} from '../runtime/terminal/recovery/shutdown-reconnect-facts'
 // Preserve main-owned layout while merging renderer views/facts; paired-server mirrors pass through.
 
 import {
@@ -18,13 +27,12 @@ import type {
   WorkspaceSessionState
 } from '../../shared/workspace-session-state-types'
 import { SESSION_FIELD_OWNERS } from '../../shared/workspace-layout/workspace-layout-beside'
-import { loadWorkspaceLayoutWithoutReport } from '../../shared/workspace-layout/workspace-layout-load'
+
 import type { LoadedWorkspaceLayout } from '../../shared/workspace-layout/workspace-layout-load-types'
 import { nameBasedLoadContext } from '../../shared/workspace-layout/workspace-layout-minted-ids'
 import type { WorkspaceLayoutModel } from '../../shared/workspace-layout/workspace-layout-model'
-import { patchStoredSession } from '../../shared/workspace-layout/workspace-layout-record-patch'
+
 import { saveWorkspaceLayout } from '../../shared/workspace-layout/workspace-layout-save'
-import type { ShutdownReconnectFacts } from '../runtime/terminal/recovery/shutdown-reconnect-facts'
 
 const FIELD_OWNERS: Readonly<Record<string, string>> = SESSION_FIELD_OWNERS
 

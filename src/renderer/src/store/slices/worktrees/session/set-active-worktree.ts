@@ -137,7 +137,7 @@ export function createSetActiveWorktree(
         stateTransition !== undefined
       if (!hasStateChange) {
         // Why: preserve the root Zustand reference on a no-op re-activation so session persistence/runtime sync don't fan out.
-        return s
+        return undefined
       }
 
       if (activeTabTypeChanged) {

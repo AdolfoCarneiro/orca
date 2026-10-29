@@ -1,7 +1,14 @@
 import { SessionUnitReader, selectSessionUnits } from '../../../shared/session-unit-reader'
-import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
+import {
+  SESSION_MAP_FIELDS,
+  isSessionMapField,
+  type SessionPatchAck
+} from '../../../shared/session-change-set'
 import { reduceWindowSessionPatch, type SessionWindowAdmission } from '../window-save-view'
-import { publishWorkspaceSessionSnapshot } from './workspace-session-snapshot-publication'
+import {
+  publishWorkspaceSessionSnapshot,
+  setLocalWorkspaceSession
+} from './workspace-session-snapshot-publication'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import type {
   WorkspaceSessionPatch,
@@ -9,22 +16,21 @@ import type {
 } from '../../../shared/workspace-session-state-types'
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
 
-import { setLocalWorkspaceSession } from './workspace-session-snapshot-publication'
 import type { StoreRuntimeState } from './store-runtime-state'
-import type { SessionHostPartitionOperations } from './session-host-partitions'
-import type { TerminalBindingRecoveryOperations } from './terminal-binding-recovery'
-import type { WriteSchedulingOperations } from './write-scheduling'
 import {
+  type SessionHostPartitionOperations,
   resolveHostId,
   setHostWorkspaceSession,
   withRequiredWorkspaceSessionMaps
 } from './session-host-partitions'
+import type { TerminalBindingRecoveryOperations } from './terminal-binding-recovery'
+import { type WriteSchedulingOperations, scheduleSave } from './write-scheduling'
+
 import { keepWslMoveFrozenSessionsForStore } from '../moving-wsl-projects/wsl-move-session-freeze'
-import { scheduleSave } from './write-scheduling'
+
 import { orderTerminalRowsByTabGroups } from '../../../shared/workspace-layout/terminal-row-order'
-import { publishSessionReplacement } from './session-publication'
-import { sessionPublication } from './session-publication'
-import { isSessionMapField, type SessionPatchAck } from '../../../shared/session-change-set'
+import { publishSessionReplacement, sessionPublication } from './session-publication'
+
 import { validateSessionPatch } from '../../../shared/session-patch-validation'
 
 type SessionSnapshotOperationsRuntime = Pick<

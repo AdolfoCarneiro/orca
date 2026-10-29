@@ -13,8 +13,8 @@ import { createTerminalTabAppearanceActions } from './terminals/terminal-tab-app
 import { createTerminalTabAgentLaunchPaneActions } from './terminals/terminal-tab-agent-launch-pane'
 import { createTerminalTabPresentationActions } from './terminals/terminal-tab-presentation'
 import { createAgentStatusRuntime } from './slices/agent-status/agent-status-runtime'
-import { makeTab } from './slices/store-session-test-harness'
-import { makeOpenFile } from './slices/store-session-test-harness'
+import { makeTab, makeOpenFile } from './slices/store-session-test-harness'
+
 import { createOpenFileState } from './slices/editor/actions/open-file-state'
 import { createOpenFileMutations } from './slices/editor/actions/open-file-mutations'
 

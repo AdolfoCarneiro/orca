@@ -1,13 +1,21 @@
-import type { SessionEntry } from '../../shared/session-unit-reader'
-import type { SessionPresence } from '../../shared/session-unit-reader'
+import {
+  type SessionEntry,
+  type SessionPresence,
+  SessionUnitReader,
+  selectSessionUnits
+} from '../../shared/session-unit-reader'
+
 import type { SessionMapField } from '../../shared/session-change-set'
-import { SessionUnitReader, selectSessionUnits } from '../../shared/session-unit-reader'
+
 import { sessionPublication, publishSessionChanges } from './loading-store/session-publication'
 import {
   deriveIndexedShutdownReconnectFacts,
   invalidateShutdownReconnectPty
 } from '../runtime/terminal/recovery/shutdown-reconnect-fact-index'
-import type { ReconnectFactSources } from '../runtime/terminal/recovery/shutdown-reconnect-facts'
+import {
+  type ReconnectFactSources,
+  deriveShutdownReconnectFacts
+} from '../runtime/terminal/recovery/shutdown-reconnect-facts'
 import { describe, expect, it } from 'vitest'
 import { toSshExecutionHostId } from '../../shared/execution-host'
 import type { SshConnectionStatus } from '../../shared/ssh-types'
@@ -19,7 +27,7 @@ import {
   SSH_KEY
 } from '../../shared/workspace-layout/workspace-layout-session.test-fixture'
 import type { WorkspaceSessionState } from '../../shared/workspace-session-state-types'
-import { deriveShutdownReconnectFacts } from '../runtime/terminal/recovery/shutdown-reconnect-facts'
+
 import { windowViewPatchForMain, windowViewSaveForMain } from './window-save-view'
 
 const TARGET = 'target'

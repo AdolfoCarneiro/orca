@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { getDefaultPersistedState } from '../../../shared/constants'
-import { getDefaultWorkspaceSession } from '../../../shared/constants'
+import { getDefaultPersistedState, getDefaultWorkspaceSession } from '../../../shared/constants'
+
 import {
   reduceSessionTerminalRetirements,
   sanitizeWorkspaceSessionTerminalRetirements

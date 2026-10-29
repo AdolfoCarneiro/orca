@@ -131,10 +131,6 @@ export function commandSessionReferences(command: LayoutCommand): SessionReferen
     case 'setDefaultTabsApplied':
     case 'setGroupRatios':
       break
-    default: {
-      const exhaustive: never = command
-      return exhaustive
-    }
   }
   if (command.type === 'closeTabs') {
     for (const id of command.tabIds) {

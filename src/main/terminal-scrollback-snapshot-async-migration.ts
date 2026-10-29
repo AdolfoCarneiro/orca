@@ -52,7 +52,7 @@ export async function migrateWorkspaceSessionTerminalScrollbackSnapshotsAsync(
         terminalLayoutsByTabId[tabId] = commit()
       }
     } finally {
-      await Promise.all([...prepared.values()].map((entry) => entry?.discard()))
+      await Promise.all([...prepared.values()].map(async (entry) => entry?.discard()))
     }
   }
   return terminalLayoutsByTabId ? { ...session, terminalLayoutsByTabId } : session

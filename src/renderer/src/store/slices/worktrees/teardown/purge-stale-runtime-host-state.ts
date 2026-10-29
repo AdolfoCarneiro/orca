@@ -6,6 +6,7 @@ import type { ProjectHostSetup } from '../../../../../../shared/project-types'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { DetectedWorktreeListResult } from '../../../../../../shared/worktree/types'
 import {
+  type ExecutionHostId,
   getRepoExecutionHostId,
   toRuntimeExecutionHostId
 } from '../../../../../../shared/execution-host'

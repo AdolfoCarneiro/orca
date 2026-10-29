@@ -1,5 +1,9 @@
-import type { SessionSourceSet } from '@/store/session-source-edits'
-import { editSessionSource, type SessionSourceEdit } from '@/store/session-source-edits'
+import {
+  type SessionSourceSet,
+  editSessionSource,
+  type SessionSourceEdit
+} from '@/store/session-source-edits'
+
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
 import type {

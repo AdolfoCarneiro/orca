@@ -1,11 +1,14 @@
-import { sessionTestEdit } from '@/lib/test-support/session-source-fixture'
-import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
+import { sessionTestEdit, setSessionTestState } from '@/lib/test-support/session-source-fixture'
+
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store/index'
 import type * as launchModule from '../structured-agent-session-launch-create-call'
-import type { AgentSessionLaunchPlan } from '../agent-session-launch-plan'
-import { adoptAgentSessionLaunchVerdict } from '../agent-session-launch-plan'
+import {
+  type AgentSessionLaunchPlan,
+  adoptAgentSessionLaunchVerdict
+} from '../agent-session-launch-plan'
+
 import { beginStructuredAgentSessionProvisionalLaunch } from './structured-agent-session-provisional-tab'
 import { StructuredAgentSessionCreateRefusalError } from '../structured-agent-session-launch-errors'
 import { act, renderHook } from '@testing-library/react'

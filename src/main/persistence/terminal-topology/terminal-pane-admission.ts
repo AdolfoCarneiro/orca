@@ -5,11 +5,14 @@ import type { WorkspaceSessionState } from '../../../shared/workspace-session-st
 import type {
   LayoutApplyOutcome,
   LayoutCommand,
-  LayoutEffects
+  LayoutEffects,
+  CommandOf,
+  LayoutContext,
+  LayoutRefusalCode
 } from '../../../shared/workspace-layout/workspace-layout-command-types'
 import type { LoadedWorkspaceLayout } from '../../../shared/workspace-layout/workspace-layout-load-types'
 
-import type { PartitionEditorViews } from '../loading-store/layout-editor-views'
+import { type PartitionEditorViews, editorViewsOfModel } from '../loading-store/layout-editor-views'
 import {
   commandSessionReferences,
   loadLayoutOperation,
@@ -62,18 +65,13 @@ import { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { randomUUID } from 'node:crypto'
 
 import { locatePane } from '../../../shared/workspace-layout/workspace-layout-command-steps'
-import type {
-  CommandOf,
-  LayoutContext,
-  LayoutRefusalCode
-} from '../../../shared/workspace-layout/workspace-layout-command-types'
+
 import { applyLayoutCommand } from '../../../shared/workspace-layout/workspace-layout-commands'
 
 import { paneKeyOf } from '../../../shared/workspace-layout/workspace-layout-model'
 import { saveWorkspaceLayout } from '../../../shared/workspace-layout/workspace-layout-save'
 
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
-import { editorViewsOfModel } from '../loading-store/layout-editor-views'
 
 export type TerminalPaneAdmission =
   | (CommandOf<'createTerminalTab'> & { tabId: string; leafId: string })

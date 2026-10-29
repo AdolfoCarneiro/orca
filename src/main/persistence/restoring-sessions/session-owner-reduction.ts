@@ -4,10 +4,10 @@ import {
   isRepoWorktreeId
 } from '../../orca-profiles/profile-project-worktree-identity'
 import { markdownFileIdCandidates } from '../../orca-profiles/profile-session-markdown-transfer'
-import { parseWorkspaceKey } from '../../../shared/workspace-scope'
+import { parseWorkspaceKey, worktreeWorkspaceKey } from '../../../shared/workspace-scope'
 import type { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
-import { worktreeWorkspaceKey } from '../../../shared/workspace-scope'
+
 import { isSessionMapField } from '../../../shared/session-change-set'
 import { OWNER_KEYED_SESSION_FIELDS_DELETED_WITH_THEIR_OWNER } from './session-owner-fields'
 

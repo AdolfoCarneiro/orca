@@ -1,8 +1,12 @@
-import type { SessionMapField } from '../session-change-set'
-import type { SessionScalarField } from '../session-unit-reader'
-import { SessionUnitReader, type SessionEntry } from '../session-unit-reader'
+import { type SessionMapField, isSessionMapField, sessionMap } from '../session-change-set'
+import {
+  type SessionScalarField,
+  SessionUnitReader,
+  type SessionEntry
+} from '../session-unit-reader'
+
 import { SessionUnitIndex } from '../session-unit-index'
-import { isSessionMapField, sessionMap } from '../session-change-set'
+
 // Isolate command edits by diffing saves before/after the command; patch only those fields onto stored data so unrelated Loader normalizations remain unwritten.
 
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../layout-owner-switch'

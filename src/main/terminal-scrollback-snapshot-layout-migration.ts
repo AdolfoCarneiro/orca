@@ -1,6 +1,9 @@
 import type { WorkspaceSessionState } from '../shared/workspace-session-state-types'
 
-import { writeTerminalScrollbackSnapshotSync } from './terminal-scrollback-snapshots'
+import {
+  type TerminalScrollbackSnapshotStorage,
+  writeTerminalScrollbackSnapshotSync
+} from './terminal-scrollback-snapshots'
 export function migrateWorkspaceSessionTerminalScrollbackSnapshots(
   session: WorkspaceSessionState,
   storage?: TerminalScrollbackSnapshotStorage

@@ -122,7 +122,7 @@ export const createSshSlice: SessionStateCreator<AppState, SshSlice> = (set) => 
       }
     }),
   clearRemovedSshTargetState: (targetId) =>
-    set((s) => buildRemovedSshTargetCleanupPatch(s, targetId) ?? s),
+    set((s) => buildRemovedSshTargetCleanupPatch(s, targetId) ?? undefined),
   enqueueSshCredentialRequest: (req) =>
     set((s) => ({ sshCredentialQueue: [...s.sshCredentialQueue, req] })),
   removeSshCredentialRequest: (requestId) =>

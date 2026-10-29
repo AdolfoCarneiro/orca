@@ -1,9 +1,5 @@
 import type { WorkspaceSessionState } from '../shared/workspace-session-state-types'
 
-export {
-  migrateWorkspaceSessionTerminalScrollbackSnapshots,
-  migrateTerminalLayoutScrollbackSnapshots
-} from './terminal-scrollback-snapshot-layout-migration'
 import { createHash } from 'node:crypto'
 import {
   closeSync,

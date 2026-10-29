@@ -11,9 +11,7 @@ export function withSessionSourceTestWrites(createState: SessionStateCreator<App
   return withSessionSourceWrites((...args) => {
     const collections = Object.fromEntries(
       Object.entries(SESSION_SOURCE_KINDS).flatMap(([field, kind]) =>
-        kind === 'field'
-          ? []
-          : [[field, kind === 'sequence' ? [] : field === 'sshConnectionStates' ? new Map() : {}]]
+        kind === 'sequence' ? [[field, []]] : []
       )
     )
     const state = createState(...args)

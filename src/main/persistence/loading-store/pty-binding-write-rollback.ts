@@ -1,12 +1,13 @@
-import type { SessionScalarField } from '../../../shared/session-unit-reader'
-import { isDeepStrictEqual } from 'node:util'
-import { isTerminalLeafId } from '../../../shared/stable-pane-id'
-import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
 import type {
+  SessionScalarField,
   SessionUnitReader,
   SessionPresence,
   SessionEntry
 } from '../../../shared/session-unit-reader'
+import { isDeepStrictEqual } from 'node:util'
+import { isTerminalLeafId } from '../../../shared/stable-pane-id'
+import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
+
 import { rollbackSessionUnit } from '../restoring-sessions/workspace-session-write-rollback'
 
 /** The inverse reads only the slots owned by the failed publication. */

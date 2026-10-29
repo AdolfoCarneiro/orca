@@ -1,23 +1,20 @@
-import type {
-  SidebarInputsChangedEvent,
-  SidebarInputsReadParams,
-  SidebarInputsReadResult
-} from '../../../shared/sidebar-list/sidebar-inputs-feed-contract'
-import type { FeedChange } from './sidebar-inputs-feed-pages'
-import type { FeedRevisionChanges } from './sidebar-inputs-feed-log'
-
 import {
+  type SidebarInputsChangedEvent,
+  type SidebarInputsReadParams,
+  type SidebarInputsReadResult,
   SIDEBAR_INPUTS_PAGE_MAX_BYTES,
   SIDEBAR_INPUTS_PAGE_MIN_BYTES,
   SIDEBAR_INPUTS_SCHEMA_VERSION,
   SIDEBAR_INPUTS_SEMANTICS_VERSION
 } from '../../../shared/sidebar-list/sidebar-inputs-feed-contract'
 import {
+  type FeedChange,
   feedEntityFromJson,
   paginateFeedChanges,
   type FeedEntity
 } from './sidebar-inputs-feed-pages'
-import { FeedChangeLog } from './sidebar-inputs-feed-log'
+import { type FeedRevisionChanges, FeedChangeLog } from './sidebar-inputs-feed-log'
+
 import { FeedPins, feedPageToken } from './sidebar-inputs-feed-pins'
 
 // A change after a quiet spell publishes at once; the rest of its burst at most this often.

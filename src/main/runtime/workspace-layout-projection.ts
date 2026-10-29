@@ -1,9 +1,12 @@
-import { loadWorkspaceLayoutUnits } from '../../shared/workspace-layout/workspace-layout-load'
+import {
+  loadWorkspaceLayoutUnits,
+  loadWorkspaceLayoutWithoutReport
+} from '../../shared/workspace-layout/workspace-layout-load'
 // Reproject dirty Store partitions and publish each workspace only from its owning partition.
 
 import type { ExecutionHostId } from '../../shared/execution-host'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
-import { loadWorkspaceLayoutWithoutReport } from '../../shared/workspace-layout/workspace-layout-load'
+
 import { stableJson } from '../../shared/workspace-layout/workspace-layout-load-report'
 import type {
   LoadedWorkspaceLayout,

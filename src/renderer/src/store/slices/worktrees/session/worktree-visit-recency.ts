@@ -83,34 +83,26 @@ export function createPruneLastVisitedTimestamps(
           result.worktrees.forEach(addValidWorktree)
         }
       }
-      let changed = false
-      const next: Record<string, number> = {}
-      for (const [key, ts] of Object.entries(s.lastVisitedAtByWorktreeId)) {
+      const edit = editSessionSource(s)
+      for (const key of Object.keys(s.lastVisitedAtByWorktreeId)) {
         const id = getWorktreeIdFromVisitKey(key)
         const repoId = getRepoIdFromWorktreeId(id)
         const repoIds = validIdsByRepo.get(repoId)
         if (!repoIds) {
           // Repo not yet hydrated (e.g. SSH not connected). Keep the entry.
-          next[key] = ts
           continue
         }
         // Legacy bare keys remain valid when any host still publishes the id;
         // qualified keys must match the exact host-qualified row.
-        if (getWorktreeIdFromVisitKey(key) === key ? repoIds.has(id) : validVisitKeys.has(key)) {
-          next[key] = ts
-        } else {
-          changed = true
+        if (!(getWorktreeIdFromVisitKey(key) === key ? repoIds.has(id) : validVisitKeys.has(key))) {
+          edit.remove('lastVisitedAtByWorktreeId', key)
         }
       }
       const patch: {
-        lastVisitedAtByWorktreeId?: Record<string, number>
         activeWorktreeId?: null
         activeWorkspaceKey?: null
         activeWorkspaceExecutionHostId?: null
       } = {}
-      if (changed) {
-        patch.lastVisitedAtByWorktreeId = next
-      }
       // Web localStorage lacks main’s stale-pointer GC; clear active worktrees only after their repo proves them gone or phantom workspaces survive.
       const activeId = s.activeWorktreeId
       if (activeId) {
@@ -127,7 +119,7 @@ export function createPruneLastVisitedTimestamps(
           patch.activeWorkspaceExecutionHostId = null
         }
       }
-      return Object.keys(patch).length > 0 ? patch : undefined
+      return edit.changed || Object.keys(patch).length > 0 ? edit.finish(patch) : undefined
     })
   }
   return () => runAsAutomaticDeselection(prune)

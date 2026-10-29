@@ -40,21 +40,21 @@ export const createWorkspaceAttentionSlice: SessionStateCreator<
     // Why: a marker stays until its tab is read on screen, Marked as read, or closed.
     set((s) =>
       s.unreadTerminalTabs[tabId]
-        ? s
+        ? undefined
         : { unreadTerminalTabs: { ...s.unreadTerminalTabs, [tabId]: reason } }
     )
   }
   const markPaneUnread = (paneKey: string, reason: AgentAttentionUnreadReason): void => {
     set((s) =>
       s.unreadTerminalPanes[paneKey]
-        ? s
+        ? undefined
         : { unreadTerminalPanes: { ...s.unreadTerminalPanes, [paneKey]: reason } }
     )
   }
   const markCompletionUnread = (paneKey: string, reason: AgentAttentionUnreadReason): void => {
     set((s) =>
       s.unreadAgentCompletionPanes[paneKey]
-        ? s
+        ? undefined
         : { unreadAgentCompletionPanes: { ...s.unreadAgentCompletionPanes, [paneKey]: reason } }
     )
   }

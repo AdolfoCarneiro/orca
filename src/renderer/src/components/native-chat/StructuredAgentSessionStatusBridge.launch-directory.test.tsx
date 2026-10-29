@@ -1,3 +1,4 @@
+import type { SessionSourceSet } from '@/store/session-source-edits'
 import { editSessionSource } from '@/store/session-source-edits'
 import { summary } from './structured-status-launch-directory.test-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
@@ -21,7 +22,7 @@ import { makeWorktree } from '@/store/slices/store-test-helpers'
 
 type TestStore = {
   getState: () => AppState
-  setState: (state: Partial<AppState>) => void
+  setState: SessionSourceSet<AppState>
 }
 
 const mocks = vi.hoisted(() => {
@@ -41,11 +42,17 @@ const mocks = vi.hoisted(() => {
   return hoisted
 })
 
+function setMockState(partial: Partial<AppState>): void {
+  if (mocks.store) {
+    setSessionTestState(mocks.store, partial)
+  }
+}
+
 vi.mock('@/store', async () => {
   const { createTestStore } = await import('@/store/slices/store-test-helpers')
   const useAppStore = createTestStore()
   const { transactAgentStatuses } = useAppStore.getState()
-  useAppStore.setState({
+  setSessionTestState(useAppStore, {
     transactAgentStatuses: (operation) =>
       transactAgentStatuses((transaction) =>
         operation({
@@ -169,7 +176,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
     resetStructuredAgentSessionStatusFeedsForTests()
     mocks.subscribeStatus.mockResolvedValue({ unsubscribe: mocks.unsubscribe })
     mocks.supportsCapability.mockResolvedValue(true)
-    mocks.store?.setState({
+    setMockState({
       structuredSessionLaunchDirectoryByTabId: {},
       structuredChatSleptAtByPaneKey: {},
       agentStatusByPaneKey: {},
@@ -643,7 +650,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
       const cleared = { [paneKey]: 90 }
       useAppStore.getState().registerAgentLaunchConfig(paneKey, { agentArgs: '', agentEnv: {} })
       const configs = useAppStore.getState().agentLaunchConfigByPaneKey
-      useAppStore.setState({
+      setSessionTestState(useAppStore, {
         acknowledgedAgentsByPaneKey: acknowledged,
         manuallyUnreadTurnsByPaneKey: manual,
         activityClearedAtByPaneKey: cleared
@@ -736,7 +743,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
       [floatingTab.id]: { sessionId: 'session-1', launchDirectory: '/home/me/original' }
     })
 
-    act(() => mocks.store?.setState({ unifiedTabsByWorktree: {} }))
+    act(() => setMockState({ unifiedTabsByWorktree: {} }))
     view.rerender(<StructuredAgentSessionStatusBridge />)
     expect(pins()).toEqual({})
   })
@@ -805,7 +812,7 @@ describe('StructuredAgentSessionStatusBridge pinned launch directory', () => {
   })
 
   it('never records a path published by a remote runtime', async () => {
-    mocks.store?.setState({
+    setMockState({
       unifiedTabsByWorktree: {
         [FLOATING_TERMINAL_WORKTREE_ID]: [
           { ...floatingTab, executionHostId: toRuntimeExecutionHostId('env-1') }

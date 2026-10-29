@@ -24,7 +24,7 @@ export function createFileSearchActions(
         const next = { ...(existing || defaultFileSearchState()), ...updates }
         // Switching workspaces cancels the outgoing idle search; a no-op write would re-notify every subscriber.
         if (existing && shallow(existing, next)) {
-          return s
+          return undefined
         }
         return {
           fileSearchStateByWorktree: {

@@ -134,7 +134,7 @@ export function createUiTrustActions(set: UISliceSet, _get: UISliceGet): Partial
     dismissPluginsAlphaNotice: () =>
       set((s) => {
         if (s.pluginsAlphaNoticeDismissed) {
-          return s
+          return undefined
         }
         window.api.ui.set({ pluginsAlphaNoticeDismissed: true }).catch(console.error)
         return { pluginsAlphaNoticeDismissed: true }

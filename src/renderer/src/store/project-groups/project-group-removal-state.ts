@@ -3,12 +3,12 @@ import type { ProjectGroup } from '../../../../shared/project-group-types'
 import { getProjectGroupSubtreeIds } from '../../../../shared/project-groups'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
 import { catalogOwnsHost, getProjectGroupHostId } from '../slices/project-group-owner-routing'
-import type { RepoSlice } from '../repos/repo-state'
+import type { AppState } from '../types'
 import { getFolderWorkspaceHostId } from '../../../../shared/folder-workspace-execution-host'
 
 // Why: a group id can exist on several hosts; only the deleted owner's rows may be cascaded away.
 export function applyProjectGroupDeleteCascade(
-  state: Pick<RepoSlice, 'projectGroups' | 'folderWorkspaces' | 'repos'>,
+  state: AppState,
   groupId: string,
   ownerHostId: ExecutionHostId | null
 ) {
@@ -37,12 +37,5 @@ export function applyProjectGroupDeleteCascade(
         ? { ...repo, projectGroupId: null }
         : repo
     )
-  const write = edit.finish()
-  return {
-    ...write,
-    projectGroups: write.projectGroups!,
-    folderWorkspaces: write.folderWorkspaces!,
-    repos: write.repos!,
-    folderWorkspacePathStatuses: {}
-  }
+  return edit.finish({ folderWorkspacePathStatuses: {} })
 }

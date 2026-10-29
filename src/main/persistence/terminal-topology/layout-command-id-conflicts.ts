@@ -1,17 +1,18 @@
 import type {
   LayoutApplyOutcome,
-  LayoutCommand
+  LayoutCommand,
+  CommandOf
 } from '../../../shared/workspace-layout/workspace-layout-command-types'
 
-import type { WorkspaceLayoutModel } from '../../../shared/workspace-layout/workspace-layout-model'
+import {
+  type WorkspaceLayoutModel,
+  paneKeyOf
+} from '../../../shared/workspace-layout/workspace-layout-model'
 
 import {
   leafIdsOf,
   locatePane
 } from '../../../shared/workspace-layout/workspace-layout-command-steps'
-import type { CommandOf } from '../../../shared/workspace-layout/workspace-layout-command-types'
-
-import { paneKeyOf } from '../../../shared/workspace-layout/workspace-layout-model'
 
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 

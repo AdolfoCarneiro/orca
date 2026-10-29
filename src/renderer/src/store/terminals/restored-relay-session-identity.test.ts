@@ -144,7 +144,7 @@ describe.each([false, true])(
 
       const payload = buildWorkspaceSessionPayload(store.getState())
 
-      expect(payload.remoteSessionIdsByTabId).toBeUndefined()
+      expect(payload.remoteSessionIdsByTabId).toEqual({})
       expect(payload.activeWorktreeIdsOnShutdown).toEqual([])
     })
   }

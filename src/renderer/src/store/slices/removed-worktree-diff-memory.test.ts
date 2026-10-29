@@ -1,5 +1,5 @@
-import { sessionTestEdit } from '@/lib/test-support/session-source-fixture'
-import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
+import { sessionTestEdit, setSessionTestState } from '@/lib/test-support/session-source-fixture'
+
 import { afterEach, describe, expect, it } from 'vitest'
 import { hostWorktreeTarget } from '../../../../shared/worktree/host-qualified-identity'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'

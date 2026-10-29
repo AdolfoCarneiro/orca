@@ -1,5 +1,5 @@
-import { isSessionUnitView, type SessionUnitView } from '../session-unit-reader'
-import { readSessionUnit } from '../session-unit-reader'
+import { isSessionUnitView, type SessionUnitView, readSessionUnit } from '../session-unit-reader'
+
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../layout-owner-switch'
 import type { Tab } from '../tab-types'
 import { normalizeTerminalLayoutPtyOwnership } from '../terminal-layout-pty-ownership'
