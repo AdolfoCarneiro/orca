@@ -85,6 +85,16 @@ export class JournalHostDatabase {
     return result
   }
 
+  /** Autocommit maintenance may commit earlier statements even when a later statement fails. */
+  writeAutocommit<T>(run: (db: Database.Database) => T): T {
+    const db = this.db
+    try {
+      return run(db)
+    } finally {
+      this.checkpoint?.afterCommit()
+    }
+  }
+
   /** Close after stores drain; preserve failed-close handles for teardown retry. */
   close(): Promise<void> {
     this.closing ??= this.finishClose().catch((error: unknown) => {

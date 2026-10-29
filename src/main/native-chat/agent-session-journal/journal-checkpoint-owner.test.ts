@@ -3,6 +3,11 @@ import { afterEach, expect, it, vi } from 'vitest'
 import Database from '../../sqlite/sync-database'
 import { JournalCheckpointOwner } from './journal-checkpoint-owner'
 
+vi.mock('node:timers', () => ({
+  setTimeout: vi.fn((run: () => void, ms?: number) => globalThis.setTimeout(run, ms)),
+  clearTimeout: (timer: ReturnType<typeof globalThis.setTimeout>) => globalThis.clearTimeout(timer)
+}))
+
 class CheckpointThread extends EventEmitter {
   postMessage = vi.fn((message: unknown) => {
     if (message === 'close') {

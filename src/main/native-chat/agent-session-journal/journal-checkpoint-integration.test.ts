@@ -24,6 +24,20 @@ async function open() {
 }
 
 it('moves checkpoints off the writer, retries a pinned idle tail, reclaims on reuse, and closes last', async () => {
+  let checked: { log: number; checkpointed: number } | undefined
+  let observed = false
+  const post = Worker.prototype.postMessage
+  vi.spyOn(Worker.prototype, 'postMessage').mockImplementation(function (this: Worker, request) {
+    if (!observed && request?.type === 'check') {
+      observed = true
+      this.on('message', (message) => {
+        if (message.type === 'checked') {
+          checked = message
+        }
+      })
+    }
+    return post.call(this, request)
+  })
   const database = await open()
   const db = database.db
   expect(db.pragma('wal_autocheckpoint', { simple: true })).toBe(1000)
@@ -43,7 +57,11 @@ it('moves checkpoints off the writer, retries a pinned idle tail, reclaims on re
         writer.exec('INSERT INTO checkpoint_probe VALUES (zeroblob(200000))')
       )
     }
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    const pinnedEnd = db.prepare('PRAGMA wal_checkpoint(NOOP)').get()!.log
+    await vi.waitFor(() => {
+      expect(checked?.log).toBe(pinnedEnd)
+      expect(Number(checked?.log)).toBeGreaterThan(Number(checked?.checkpointed))
+    })
     const pinned = db.prepare('PRAGMA wal_checkpoint(NOOP)').get()!
     expect(Number(pinned.log)).toBeGreaterThan(Number(pinned.checkpointed))
     reader.exec('COMMIT')
@@ -68,9 +86,9 @@ it('moves checkpoints off the writer, retries a pinned idle tail, reclaims on re
   expect(host.db.prepare('SELECT count(*) AS n FROM checkpoint_probe').get()?.n).toBe(5)
 })
 
-it.each([false, true])(
-  'does not reject a committed write when maintenance fails (streamed=%s)',
-  async (streamed) => {
+it.each(['ordinary', 'streamed', 'autocommit'])(
+  'does not reject a committed %s write when maintenance fails',
+  async (mode) => {
     const database = await open()
     const db = database.db
     await vi.waitFor(() => expect(db.pragma('wal_autocheckpoint', { simple: true })).toBe(0))
@@ -88,11 +106,12 @@ it.each([false, true])(
     vi.spyOn(console, 'warn').mockImplementation(() => {
       throw new Error('log failed')
     })
+    const insert = (writer: Database.Database) =>
+      writer.exec('INSERT INTO checkpoint_probe VALUES (1)')
     expect(
-      database.transaction(
-        (writer) => writer.exec('INSERT INTO checkpoint_probe VALUES (1)'),
-        streamed
-      )
+      mode === 'autocommit'
+        ? database.writeAutocommit(insert)
+        : database.transaction(insert, mode === 'streamed')
     ).toBeUndefined()
     expect(post).toHaveBeenCalled()
     expect(db.prepare('SELECT count(*) AS n FROM checkpoint_probe').get()?.n).toBe(1)
