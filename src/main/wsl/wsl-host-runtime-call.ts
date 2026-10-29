@@ -10,6 +10,7 @@ import {
   wslHostRunRefusal
 } from './wsl-host-add-admission'
 import { admitConnectToPendingHost } from './wsl-host-removal'
+import type { WslOrcadConnection } from './wsl-orcad-connection'
 
 export type WslHostRuntimeCallPort = {
   record: WslHostDeploymentRecord | null
@@ -21,6 +22,7 @@ export type WslHostRuntimeCallPort = {
   isVisible: () => boolean
   /** Shown as liveness shows a stop, so the host's panes offer Start. */
   publishStopped: (record: WslHostDeploymentRecord) => void
+  publishReady: (record: WslHostDeploymentRecord, connection: WslOrcadConnection) => void
   /** The same call again, once the distro is confirmed running. */
   retry: () => Promise<void>
 }
@@ -73,8 +75,26 @@ function parkStopped(record: WslHostDeploymentRecord, port: WslHostRuntimeCallPo
   }
   const deferUntilRunning = port.deps.deferUntilRunning ?? deferUntilWslDistroRunning
   deferUntilRunning(distro, `wsl-host-parked:${environmentId}`, () => {
-    if (port.parked.delete(environmentId) && port.isVisible()) {
-      void port.retry().catch(() => {})
+    if (port.parked.delete(environmentId)) {
+      void resumeAfterStop(record, port).catch(() => {})
     }
   })
+}
+
+async function resumeAfterStop(
+  record: WslHostDeploymentRecord,
+  port: WslHostRuntimeCallPort
+): Promise<void> {
+  // A stop published after liveness had already reconnected would leave Start on a working host.
+  const connection = port.connector?.get(record.distro) ?? null
+  if (
+    connection &&
+    (await port.connector?.reachability(record.distro, record.environmentId)) === 'available'
+  ) {
+    port.publishReady(record, connection)
+    return
+  }
+  if (port.isVisible()) {
+    await port.retry()
+  }
 }

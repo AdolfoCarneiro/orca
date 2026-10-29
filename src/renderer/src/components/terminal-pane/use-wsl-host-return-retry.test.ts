@@ -29,11 +29,14 @@ describe('a stopped WSL host coming back on its own', () => {
   it("retries the host's panes once it is ready again, and only those", () => {
     hostStatus('ready')
     const hostPane = pane('wsl:ubuntu')
+    // A pane whose create failed before it reached the host has no server yet: still the host's.
+    const unboundPane = pane(null)
     const otherPane = pane('ssh:desk')
     const transports = {
       current: new Map([
         [1, hostPane],
-        [2, otherPane]
+        [2, unboundPane],
+        [3, otherPane]
       ])
     }
     const { rerender } = renderHook(() =>
@@ -46,6 +49,7 @@ describe('a stopped WSL host coming back on its own', () => {
       rerender()
     }
     expect(hostPane.retryRecovery).toHaveBeenCalledOnce()
+    expect(unboundPane.retryRecovery).toHaveBeenCalledOnce()
     expect(otherPane.retryRecovery).not.toHaveBeenCalled()
 
     // Ready again with no stop between leaves healthy panes alone.

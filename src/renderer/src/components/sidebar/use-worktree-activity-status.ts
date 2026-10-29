@@ -12,8 +12,26 @@ import {
 import { selectWorktreeAgentActivitySummary } from './worktree-agent-activity-summary'
 import { selectStoppedWslDistro } from '@/lib/wsl-host-stopped-status'
 import { selectWorkspaceRuntimeEnvironmentId } from '../terminal-pane/remote-server-outage'
+import { parseRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 
-const NO_LIVE_PTYS: Record<string, string[]> = {}
+/** The Start card's rule: a pane with no server yet, or on the stopped one, ended with its distro. */
+function withoutStoppedHostPtys(
+  ptyIdsByTabId: Record<string, string[]>,
+  stoppedEnvironmentId: string
+): Record<string, string[]> {
+  const live: Record<string, string[]> = {}
+  for (const [tabId, ptyIds] of Object.entries(ptyIdsByTabId)) {
+    const kept = ptyIds.filter((ptyId) => {
+      const environmentId = parseRemoteRuntimePtyId(ptyId)?.environmentId
+      return environmentId != null && environmentId !== stoppedEnvironmentId
+    })
+    // Same array when nothing dropped, so useShallow keeps the card from re-rendering.
+    if (kept.length > 0) {
+      live[tabId] = kept.length === ptyIds.length ? ptyIds : kept
+    }
+  }
+  return live
+}
 
 // Why the cheap check first: every card's selector runs on each store update, and few hosts stop.
 function hasStoppedWslHost(state: {
@@ -38,13 +56,17 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
   )
   // Why one selector: a second subscription per card costs a store listener on every workspace.
   const ptyIdsForWorktree = useAppStore(
-    useShallow((s) =>
-      // A stopped distro ended every terminal in it, whatever bindings the panes keep for its Start.
-      hasStoppedWslHost(s) &&
-      selectStoppedWslDistro(s, selectWorkspaceRuntimeEnvironmentId(s, worktreeId)) !== null
-        ? NO_LIVE_PTYS
-        : selectLivePtyIdsForWorktree(s, worktreeId)
-    )
+    useShallow((s) => {
+      const ptyIds = selectLivePtyIdsForWorktree(s, worktreeId)
+      if (!hasStoppedWslHost(s)) {
+        return ptyIds
+      }
+      // A stopped distro ended its terminals, whatever bindings the panes keep for its Start.
+      const owner = selectWorkspaceRuntimeEnvironmentId(s, worktreeId)
+      return owner && selectStoppedWslDistro(s, owner) !== null
+        ? withoutStoppedHostPtys(ptyIds, owner)
+        : ptyIds
+    })
   )
   const terminalLayoutRootsByTabId = useAppStore(
     useShallow((s) => selectTerminalLayoutRootsForWorktree(s, worktreeId))

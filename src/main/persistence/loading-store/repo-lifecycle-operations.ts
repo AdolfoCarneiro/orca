@@ -16,6 +16,7 @@ import { RepoOrderPersistenceOperations } from '../tracking-repos/repo-order-ope
 import { pruneWorktreeStateForRepo as pruneWorktreeStateForRepoOperation } from '../tracking-repos/repo-worktree-pruning'
 import { collectDeregisteredRepoIds } from '../tracking-repos/deregistered-repo-residue'
 import { retireLocalWorktreeMetadataPruneStateForRepo } from '../../local-worktree-metadata-prune-gate'
+import { releaseWslStoppedWorktreeRescan } from '../../wsl-stopped-worktree-rescan-registry'
 import { hydrateRepo as hydrateRepoOperation } from '../tracking-repos/repo-hydration'
 import { RepoUpdatePersistenceOperations } from '../tracking-repos/repo-update-operations'
 import { ProjectHostSetupPersistenceOperations } from '../tracking-repos/project-host-setup-update'
@@ -90,6 +91,7 @@ export class RepoLifecycleOperations {
     )
     if (!idStillPresent) {
       retireLocalWorktreeScanGeneration(id)
+      releaseWslStoppedWorktreeRescan(id)
       dropRepoRestoreHints(this, id)
       delete this[repoLifecycleOperationsContext].runtime.state.sparsePresetsByRepo[id]
       delete this[repoLifecycleOperationsContext].runtime.state.retiredWorktreeNamesByRepo?.[id]
@@ -115,6 +117,7 @@ export class RepoLifecycleOperations {
     }
     for (const repoId of orphanRepoIds) {
       retireLocalWorktreeScanGeneration(repoId)
+      releaseWslStoppedWorktreeRescan(repoId)
       dropRepoRestoreHints(this, repoId)
       pruneWorktreeStateForRepo(this, repoId, null)
       removePublishedRepoSessions(state, repoId)
