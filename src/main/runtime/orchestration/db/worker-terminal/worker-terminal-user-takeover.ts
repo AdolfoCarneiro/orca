@@ -34,28 +34,61 @@ function findUserClaimableResources(db: OrchestrationDb, paneKey: string): UserC
 }
 
 export function markWorkerTerminalUserOwned(this: OrchestrationDb, paneKey: string): number {
-  this.db.exec('BEGIN IMMEDIATE')
+  return takeOverForUser(
+    this,
+    () => findUserClaimableResources(this, paneKey),
+    USER_CLAIMABLE_RESOURCE_SQL
+  )
+}
+
+// A touch yields only an automatic release, until its close is admitted in the session lane.
+const TOUCH_CLAIMABLE_RESOURCE_SQL = `ownership_state = 'owned' AND auto_release_at IS NOT NULL
+  AND auto_release_dispatch_id = owner_dispatch_id
+  AND release_state IN ('not_requested', 'requested', 'releasing')`
+
+/** The user opened or watched a finished worker's chat; running workers and explicit releases ignore it. */
+export function markWorkerChatTouched(this: OrchestrationDb, paneKey: string): number {
+  return takeOverForUser(
+    this,
+    () =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this projection selects exactly the three columns the row type names.
+      this.db
+        .prepare(
+          `SELECT id, owner_dispatch_id, pane_key FROM worker_terminal_resources
+            WHERE pane_key = ? AND ${TOUCH_CLAIMABLE_RESOURCE_SQL}`
+        )
+        .all(paneKey) as UserClaimableResource[],
+    TOUCH_CLAIMABLE_RESOURCE_SQL
+  )
+}
+
+function takeOverForUser(
+  database: OrchestrationDb,
+  findCandidates: () => UserClaimableResource[],
+  claimableSql: string
+): number {
+  database.db.exec('BEGIN IMMEDIATE')
   try {
-    const update = this.db.prepare(
+    const update = database.db.prepare(
       `UPDATE worker_terminal_resources
        SET ownership_state = 'user_owned', release_state = 'retained',
            retained_reason = 'user_takeover', auto_release_at = NULL, updated_at = datetime('now')
-       WHERE id = ? AND ${USER_CLAIMABLE_RESOURCE_SQL}`
+       WHERE id = ? AND ${claimableSql}`
     )
     let changed = 0
-    for (const candidate of findUserClaimableResources(this, paneKey)) {
+    for (const candidate of findCandidates()) {
       const result = Number(update.run(candidate.id).changes)
       if (result > 0) {
-        this.db
+        database.db
           .prepare('DELETE FROM worker_terminal_archives WHERE dispatch_id = ?')
           .run(candidate.owner_dispatch_id)
         changed += result
       }
     }
-    this.db.exec('COMMIT')
+    database.db.exec('COMMIT')
     return changed
   } catch (error) {
-    this.db.exec('ROLLBACK')
+    database.db.exec('ROLLBACK')
     throw error
   }
 }

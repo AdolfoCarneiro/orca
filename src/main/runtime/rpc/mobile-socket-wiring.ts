@@ -151,6 +151,11 @@ export class MobileSocketWiring {
     return this.connectionIds.get(ws)
   }
 
+  /** Live per-socket lists; a phone reads empty until its post-auth capability update. */
+  authenticatedClientCapabilities(): (readonly RuntimeCapability[])[] {
+    return [...this.authenticatedSockets.values()].map((socket) => socket.clientCapabilities)
+  }
+
   get channelCount(): number {
     return this.channels.size
   }

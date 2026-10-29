@@ -6,6 +6,7 @@ import {
   retainFederatedWorker
 } from '../federation/federated-worker-release'
 import { ORCHESTRATION_WORKER_LIST_METHOD } from './worker-list-method'
+import { resolveStructuredWorkerIdentityForSession } from '../../../../structured-worker-authority'
 import { resolvePinnedFederatedServer } from './worker-observation'
 import { archiveSummary, exposeWorkerRetainReceipt } from './worker-terminal-resource-presentation'
 import {
@@ -149,6 +150,20 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
         ? runtime.getOrchestrationDb().retainWorkerTerminalForUser(paneKey)
         : 0
       return { changed }
+    }
+  }),
+  defineMethod({
+    name: 'orchestration.workerChatTouch',
+    permission: 'workspace',
+    params: OrchestrationWorkerTerminalUserInputParams,
+    // Clients cannot tell worker chats apart, so every chat reports; only a finished worker's pending close yields.
+    handler: (params, { runtime }) => {
+      const db = runtime.getOrchestrationDb()
+      // Durable identity, not live authority: a closing chat's hidden tab must still be touchable.
+      const paneKey = params.sessionId
+        ? resolveStructuredWorkerIdentityForSession(params.sessionId, db)?.paneKey
+        : resolveUserWorkerPaneKey(runtime, params)
+      return { changed: paneKey ? db.markWorkerChatTouched(paneKey) : 0 }
     }
   })
 ]

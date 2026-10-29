@@ -12,7 +12,7 @@ export const WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS = 2 * 60_000
 const RELEASABLE_STATES_SQL = WORKER_RELEASABLE_STATES.map((state) => `'${state}'`).join(', ')
 
 /** Arm once per owning Dispatch inside its settlement transaction; a repeat report never extends it.
- *  Chat workers are excluded: no draft-edit signal proves the user is not mid-message. */
+ *  Chat workers arm only while every connected client reports touches; otherwise they stay on manual release. */
 export function armWorkerTerminalAutoReleaseStatement(
   this: OrchestrationDb,
   dispatchId: string,
@@ -26,11 +26,12 @@ export function armWorkerTerminalAutoReleaseStatement(
         WHERE owner_dispatch_id = ? AND ownership_state = 'owned'
           AND release_state = 'not_requested'
           AND auto_release_dispatch_id IS NOT owner_dispatch_id
-          AND substr(terminal_handle, 1, ?) != ?`
+          AND (? OR substr(terminal_handle, 1, ?) != ?)`
     )
     .run(
       toSqliteUtcTimestamp(nowMs + WORKER_TERMINAL_AUTO_RELEASE_GRACE_MS),
       dispatchId,
+      this.chatWorkerAutoReleaseArmable?.() ? 1 : 0,
       STRUCTURED_WORKER_HANDLE_PREFIX.length,
       STRUCTURED_WORKER_HANDLE_PREFIX
     )
@@ -67,6 +68,40 @@ export function claimDueWorkerTerminalAutoReleases(this: OrchestrationDb, nowMs:
   )
 }
 
+/** The automatic chat close's last word, run in the session lane right before Stop. Clearing the deadline
+ *  ends touches; a client that cannot report touches cancels it back to manual release. Explicit releases pass. */
+export function admitWorkerChatReleaseClose(this: OrchestrationDb, resourceId: string): boolean {
+  this.db.exec('BEGIN IMMEDIATE')
+  try {
+    const resource = this.getWorkerTerminalResource(resourceId)
+    let admitted = resource?.ownership_state === 'owned' && resource.release_state === 'releasing'
+    if (admitted && resource!.auto_release_at !== null) {
+      admitted = this.chatWorkerAutoReleaseArmable?.() === true
+      this.db
+        .prepare(
+          admitted
+            ? `UPDATE worker_terminal_resources SET auto_release_at = NULL, updated_at = datetime('now')
+                WHERE id = ?`
+            : `UPDATE worker_terminal_resources
+                  SET release_state = 'not_requested', auto_release_at = NULL, archive_source = NULL,
+                      archive_status = NULL, release_requested_at = NULL, updated_at = datetime('now')
+                WHERE id = ?`
+        )
+        .run(resourceId)
+      if (!admitted) {
+        this.db
+          .prepare('DELETE FROM worker_terminal_archives WHERE dispatch_id = ?')
+          .run(resource!.owner_dispatch_id)
+      }
+    }
+    this.db.exec('COMMIT')
+    return admitted
+  } catch (error) {
+    this.db.exec('ROLLBACK')
+    throw error
+  }
+}
+
 export function nextWorkerTerminalAutoReleaseAtMs(this: OrchestrationDb): number | null {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: an aggregate SELECT always returns exactly this one-column row.
   const row = this.db
@@ -89,6 +124,7 @@ export type WorkerTerminalAutoReleaseMethods = {
   getLiveWorkerTerminalAutoReleaseAt: typeof getLiveWorkerTerminalAutoReleaseAt
   armWorkerTerminalAutoReleaseStatement: typeof armWorkerTerminalAutoReleaseStatement
   claimDueWorkerTerminalAutoReleases: typeof claimDueWorkerTerminalAutoReleases
+  admitWorkerChatReleaseClose: typeof admitWorkerChatReleaseClose
   nextWorkerTerminalAutoReleaseAtMs: typeof nextWorkerTerminalAutoReleaseAtMs
 }
 
@@ -97,6 +133,7 @@ export function attachWorkerTerminalAutoRelease(ctor: { prototype: object }): vo
     getLiveWorkerTerminalAutoReleaseAt,
     armWorkerTerminalAutoReleaseStatement,
     claimDueWorkerTerminalAutoReleases,
+    admitWorkerChatReleaseClose,
     nextWorkerTerminalAutoReleaseAtMs
   })
 }

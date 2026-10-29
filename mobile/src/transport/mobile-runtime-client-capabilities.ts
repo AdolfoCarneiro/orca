@@ -20,6 +20,7 @@ import {
 import { AGENT_SESSION_OPTIONAL_MODEL_CLIENT_CAPABILITY } from '../../../src/shared/agent-session-optional-model-capability'
 import { remoteRuntimeClientCapabilities } from '../../../src/shared/remote-runtime/remote-runtime-client-capabilities'
 import { AGENT_SESSION_CREATE_MESSAGE_RUNTIME_CAPABILITY } from '../../../src/shared/agent-session-create-capabilities'
+import { ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY } from '../../../src/shared/orchestration-runtime-capabilities'
 
 export const MOBILE_RUNTIME_CLIENT_CAPABILITIES = remoteRuntimeClientCapabilities([
   AGENT_SESSION_COHERENT_MODEL_CATALOG_CAPABILITY,
@@ -46,7 +47,9 @@ export const MOBILE_RUNTIME_CLIENT_CAPABILITIES = remoteRuntimeClientCapabilitie
   // Native chat offers no Stop for a turn the host restored but could not confirm.
   AGENT_STATUS_RESTORED_UNCONFIRMED_RUNTIME_CAPABILITY,
   AGENT_SESSION_CREATE_MESSAGE_RUNTIME_CAPABILITY,
-  AGENT_SESSION_QUEUED_IMAGE_CARDS_CLIENT_CAPABILITY
+  AGENT_SESSION_QUEUED_IMAGE_CARDS_CLIENT_CAPABILITY,
+  // Reports opening or watching a finished worker's chat, so the host may close untouched ones.
+  ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY
 ])
 
 export const MOBILE_RUNTIME_CLIENT_CAPABILITY_UPDATE_METHOD =

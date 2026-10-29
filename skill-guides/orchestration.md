@@ -65,9 +65,8 @@ Never:
 - Lost track? `ORCA orchestration inbox --terminal run:<run_id> --limit 50 --full --json`
   shows mail `check` already handled.
 
-Finished terminal workers close on their own; release a chat worker with
-`worker-release --dispatch <dispatch_id>`. To keep one for a follow-up, run
-`ORCA orchestration worker-retain --dispatch <dispatch_id> --json`.
+Finished workers close on their own unless the user opened them. To keep one
+for a follow-up, run `ORCA orchestration worker-retain --dispatch <dispatch_id> --json`.
 
 ## Task spec
 

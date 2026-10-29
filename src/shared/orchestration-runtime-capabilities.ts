@@ -16,6 +16,9 @@ export const ORCHESTRATION_FEDERATION_RELEASE_ARCHIVE_RUNTIME_CAPABILITY =
 /** Settled workers release after a grace period; retain and reuse forward to the execution host. */
 export const ORCHESTRATION_WORKER_AUTO_RELEASE_RUNTIME_CAPABILITY =
   'orchestration.worker-auto-release.v1' as const
+/** A client that reports when the user opens or watches a finished worker's chat; any client without it keeps chat workers on manual release. */
+export const ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY =
+  'orchestration.worker-chat-touch.v1' as const
 export const ORCHESTRATION_FEDERATION_CONTROL_MAIL_PROTOCOL_VERSION = 2 as const
 export const ORCHESTRATION_FEDERATION_LIFECYCLE_SETTLEMENT_PROTOCOL_VERSION = 3 as const
 export const ORCHESTRATION_CONTRACT_VERSION = 1 as const

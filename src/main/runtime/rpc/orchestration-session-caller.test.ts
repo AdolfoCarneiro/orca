@@ -56,7 +56,10 @@ const NAMES_NO_RESOLVED_PARTY: Readonly<Record<string, string>> = {
   'orchestration.workerTerminalUserInput sessionId':
     'names the worker session, as its terminal does',
   'orchestration.workerTerminalUserKeep terminal': 'names the worker terminal',
-  'orchestration.workerTerminalUserKeep sessionId': 'names the worker session, as its terminal does'
+  'orchestration.workerTerminalUserKeep sessionId':
+    'names the worker session, as its terminal does',
+  'orchestration.workerChatTouch terminal': 'names the worker terminal',
+  'orchestration.workerChatTouch sessionId': 'names the worker session, as its terminal does'
 }
 
 /** One request per identity-consulting method, valid enough to reach the dispatcher entry. */
