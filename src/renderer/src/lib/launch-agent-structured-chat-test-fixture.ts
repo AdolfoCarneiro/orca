@@ -51,6 +51,27 @@ type UnifiedTabFixture = {
   label?: string
 }
 const emptyUnifiedTabsByWorktree: Record<string, UnifiedTabFixture[]> = {}
+type StructuredLaunchFixtureSettings = {
+  agentCmdOverrides: Record<string, string>
+  agentDefaultArgs: Record<string, string>
+  agentDefaultEnv: Record<string, Record<string, string>>
+  activeRuntimeEnvironmentId: string | null
+  experimentalNativeChat: boolean
+  nativeChatProviders: Record<string, boolean>
+  nativeChatSessionOptions?: Record<
+    string,
+    { model?: string; valuesByModel?: Record<string, Record<string, string | boolean>> }
+  >
+}
+const settings: StructuredLaunchFixtureSettings = {
+  agentCmdOverrides: {},
+  agentDefaultArgs: {},
+  agentDefaultEnv: {},
+  activeRuntimeEnvironmentId: null,
+  experimentalNativeChat: true,
+  nativeChatProviders: {},
+  nativeChatSessionOptions: undefined
+}
 
 export function structuredLaunchIntent(worktreeId: string, sessionId = 'codex-session-1') {
   return {
@@ -76,20 +97,7 @@ export const store = {
   readLocalAgentInventory: () => ({ ids: null, state: 'pending' }),
   activeRepoId: 'repo-1',
   activeWorktreeId: 'wt-1',
-  settings: {
-    agentCmdOverrides: {},
-    agentDefaultArgs: {},
-    agentDefaultEnv: {},
-    activeRuntimeEnvironmentId: null as string | null,
-    experimentalNativeChat: true,
-    nativeChatProviders: {} as Record<string, boolean>,
-    nativeChatSessionOptions: undefined as
-      | Record<
-          string,
-          { model?: string; valuesByModel?: Record<string, Record<string, string | boolean>> }
-        >
-      | undefined
-  },
+  settings,
   projects: [{ id: 'repo-1', localWindowsRuntimePreference: { kind: 'inherit-global' as const } }],
   repos: [{ id: 'repo-1', connectionId: null as string | null, path: '/repo' }],
   sshConnectionStates: new Map([

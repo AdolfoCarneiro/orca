@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { readHostAgentLaunchSettings } from '../settings/agent-launch-settings-transport'
 import type { NewTabAgentMenuModel } from '../tab-bar/use-new-tab-agent-menu-rows'
 import { useAppStore } from '@/store'
@@ -32,7 +32,9 @@ export function useAgentLaunchPickerInventory(
   selected?: AgentPickerEntry['agent']
 ): AgentPickerEntry[] {
   const selectedRef = useRef(selected)
-  selectedRef.current = selected
+  useLayoutEffect(() => {
+    selectedRef.current = selected
+  }, [selected])
   const context = model.state === 'settled' ? model.pickerContext : undefined
   const settings = context ? context.settings : useAppStore.getState().settings
   const executionHostId =
@@ -80,7 +82,6 @@ export function useAgentLaunchPickerInventory(
           formatAgentTypeLabel
         )
       : []
-  /* oxlint-disable react-hooks/exhaustive-deps -- The semantic key covers the rows, detection, target and defaults; object identities must not restart a batch. */
   const fallback = useMemo(
     () =>
       target?.kind === 'environment'
@@ -94,6 +95,7 @@ export function useAgentLaunchPickerInventory(
             ownerKey: key
           }))
         : build(settings).map((entry) => ({ ...entry, ownerKey: key })),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- The semantic key covers rows, detection, target and defaults without restarting for object identity.
     [key]
   )
   useEffect(() => {
@@ -203,8 +205,8 @@ export function useAgentLaunchPickerInventory(
         publish: (entries) => setSnapshot({ generation, entries: [...entries] })
       }
     )
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Only semantic inputs and visibility own observation; selected priority publishes independently after commit.
   }, [key, open])
-  /* oxlint-enable react-hooks/exhaustive-deps */
   return snapshot?.generation === generation
     ? snapshot.entries
     : ((open ? currentAgentPickerAcquisition(key) : undefined) ?? fallback)

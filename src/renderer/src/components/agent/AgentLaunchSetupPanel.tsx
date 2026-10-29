@@ -192,7 +192,7 @@ export function AgentLaunchSetupPanel({
             aria-label={translate('agentPicker.searchModels', 'Search models')}
             placeholder={translate('agentPicker.searchModels', 'Search models')}
           />
-          <CommandList className="max-h-48 scrollbar-sleek">
+          <CommandList className="max-h-48">
             <CommandEmpty>
               {translate('agentPicker.noModels', 'No models match your search.')}
             </CommandEmpty>
@@ -268,39 +268,47 @@ export function AgentLaunchSetupPanel({
       />
       {renderOptions(optionRows.filter((row) => row.id === 'fastMode' || row.id === 'serviceTier'))}
       {entry.surfaces.includes('terminal') ? (
-        <Collapsible open={argumentsOpen} onOpenChange={setArgumentsOpen} className="relative pl-4">
-          <CollapsibleTrigger
-            aria-label={translate('agentPicker.toggleArguments', 'Toggle Arguments')}
-            className="absolute top-0 left-0 flex items-center text-muted-foreground"
-          >
-            <ChevronRight className={argumentsOpen ? 'size-3 rotate-90' : 'size-3'} />
-          </CollapsibleTrigger>
-          {!argumentsOpen ? (
-            <Label variant="settings">{translate('agentPicker.arguments', 'Arguments')}</Label>
-          ) : null}
-          <CollapsibleContent>
-            <AgentDefaultArgsInput
-              defaultArgs={argumentsView.text}
-              argsOverride={argumentsView.text}
-              disabled={disabled || !argumentsKnown}
-              onSaveArgs={() => {}}
-              onDraftChange={(text) =>
-                setDraft(editAgentPickerPanelText(entry, draft, text, currentModel))
-              }
-              choiceChips={argumentsView.chips.map((chip) => ({
-                key: chip.key,
-                label: entry.label,
-                source: 'arguments',
-                flag: chip.flag,
-                onRemove: (text) => {
-                  setDraft(chip.remove())
-                  return text
+        <div className="relative pl-4">
+          <Collapsible open={argumentsOpen} onOpenChange={setArgumentsOpen}>
+            <CollapsibleTrigger
+              aria-label={translate('agentPicker.toggleArguments', 'Toggle Arguments')}
+              className="absolute top-0 left-0 flex items-center"
+            >
+              <ChevronRight
+                className={
+                  argumentsOpen
+                    ? 'size-3 text-muted-foreground rotate-90'
+                    : 'size-3 text-muted-foreground'
                 }
-              }))}
-              note={translate('agentPicker.argumentsHint', 'Applies only to CLI launches.')}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+              />
+            </CollapsibleTrigger>
+            {!argumentsOpen ? (
+              <Label variant="settings">{translate('agentPicker.arguments', 'Arguments')}</Label>
+            ) : null}
+            <CollapsibleContent>
+              <AgentDefaultArgsInput
+                defaultArgs={argumentsView.text}
+                argsOverride={argumentsView.text}
+                disabled={disabled || !argumentsKnown}
+                onSaveArgs={() => {}}
+                onDraftChange={(text) =>
+                  setDraft(editAgentPickerPanelText(entry, draft, text, currentModel))
+                }
+                choiceChips={argumentsView.chips.map((chip) => ({
+                  key: chip.key,
+                  label: entry.label,
+                  source: 'arguments',
+                  flag: chip.flag,
+                  onRemove: (text) => {
+                    setDraft(chip.remove())
+                    return text
+                  }
+                }))}
+                note={translate('agentPicker.argumentsHint', 'Applies only to CLI launches.')}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       ) : null}
       <div className="flex justify-end gap-2 border-t border-border pt-3">
         {agentPickerButtonOrder(entry).map((surface) => (

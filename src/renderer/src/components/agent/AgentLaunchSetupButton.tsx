@@ -62,7 +62,7 @@ export function AgentLaunchSetupButton({
       <PopoverContent
         side="right"
         align="start"
-        className="w-auto p-0"
+        className="w-auto"
         onClick={(event) => event.stopPropagation()}
       >
         <AgentLaunchSetupPanel
