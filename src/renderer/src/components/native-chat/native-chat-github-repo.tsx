@@ -2,9 +2,15 @@ import { createContext, useEffect, useMemo, useState, type ReactNode } from 'rea
 import { useAppStore } from '@/store'
 import { findKnownWorktreeById } from '@/store/slices/worktrees/listing/detected-worktree-meta'
 import { resolveRepoSlug } from '@/lib/repo-slug-index'
-import { readRepoSlugCache, repoSlugCacheKey, repoUpstreamIdentityKey } from '@/lib/repo-slug-cache'
+import {
+  readRepoSlugCache,
+  REPO_SLUG_FAILURE_TTL_MS,
+  repoSlugCacheKey,
+  repoUpstreamIdentityKey
+} from '@/lib/repo-slug-cache'
+import { getKnownExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import type { Repo } from '../../../../shared/repo-types'
-import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { getRepoExecutionHostId, isUnresolvedOwnerHostId } from '../../../../shared/execution-host'
 import {
   githubHostFromIdentityKey,
   githubRepoIdentityKey
@@ -37,25 +43,31 @@ export const NativeChatGitHubRepoContext = createContext<NativeChatGitHubRepo | 
 /** The git repo behind the chat's workspace, with its GitHub remotes once resolved. */
 function useNativeChatGitHubRepo(worktreeId: string | undefined): NativeChatGitHubRepo | null {
   const repo = useAppStore((state) => {
-    const worktree = worktreeId ? findKnownWorktreeById(state, worktreeId) : null
+    // The same owner the chat's file links route to; twins on other hosts must not answer for it.
+    const hostId = worktreeId ? getKnownExecutionHostIdForWorktree(state, worktreeId) : null
+    if (!worktreeId || !hostId || isUnresolvedOwnerHostId(hostId)) {
+      return null
+    }
+    const worktree = findKnownWorktreeById(state, worktreeId, hostId)
     if (!worktree) {
       return null
     }
-    // Route by the worktree's own host; an ambiguous repo id gets no cards rather than the focused host's.
     const owners = state.repos.filter(
       (candidate) =>
-        candidate.id === worktree.repoId &&
-        (!worktree.hostId || getRepoExecutionHostId(candidate) === worktree.hostId)
+        candidate.id === worktree.repoId && getRepoExecutionHostId(candidate) === hostId
     )
     const found = owners.length === 1 ? owners[0] : null
     return found && (!found.kind || found.kind === 'git') ? found : null
   })
   const [resolved, setResolved] = useState(() => ({
     repo,
-    originKey: readCachedOriginKey(repo)
+    originKey: readCachedOriginKey(repo),
+    failed: false
   }))
   const originKey = resolved.repo === repo ? resolved.originKey : readCachedOriginKey(repo)
+  const failed = resolved.repo === repo && resolved.failed
 
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     if (!repo) {
       return
@@ -63,13 +75,22 @@ function useNativeChatGitHubRepo(worktreeId: string | undefined): NativeChatGitH
     let cancelled = false
     void resolveRepoSlug(repo).then((key) => {
       if (!cancelled) {
-        setResolved({ repo, originKey: key })
+        setResolved({ repo, originKey: key, failed: !key })
       }
     })
     return () => {
       cancelled = true
     }
-  }, [repo])
+  }, [repo, attempt])
+
+  // A failed lookup is cached briefly; ask again once it expires so cards recover.
+  useEffect(() => {
+    if (!failed) {
+      return
+    }
+    const retry = setTimeout(() => setAttempt((value) => value + 1), REPO_SLUG_FAILURE_TTL_MS)
+    return () => clearTimeout(retry)
+  }, [failed, attempt])
 
   return useMemo(() => {
     if (!repo || !originKey) {

@@ -4,6 +4,7 @@ import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import type { Repo } from '../../../../shared/repo-types'
 import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
 import { buildTaskSourceContextFromRepo } from '../../../../shared/task-source-context'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 
 const FRESH_MS = 60_000
 const MAX_ENTRIES = 200
@@ -15,8 +16,9 @@ type Entry = {
 }
 const previews = new Map<string, Entry>()
 
-function previewKey(repo: Repo, link: GitHubIssueOrPRLink): string {
-  return `${repo.id}:${githubRepoIdentityKey(link.slug)}#${link.number}:${link.type}`
+/** Repo ids repeat across hosts, and each host answers with its own GitHub account. */
+export function githubLinkPreviewKey(repo: Repo, link: GitHubIssueOrPRLink): string {
+  return `${getRepoExecutionHostId(repo)}:${repo.id}:${githubRepoIdentityKey(link.slug)}#${link.number}:${link.type}`
 }
 
 async function lookup(
@@ -52,7 +54,7 @@ export function readCachedGitHubLinkPreview(
   repo: Repo,
   link: GitHubIssueOrPRLink
 ): GitHubWorkItem | null {
-  return previews.get(previewKey(repo, link))?.value ?? null
+  return previews.get(githubLinkPreviewKey(repo, link))?.value ?? null
 }
 
 /** One request per link at a time; successes stay fresh for a minute, failures retry on the next open. */
@@ -60,7 +62,7 @@ export function loadGitHubLinkPreview(
   repo: Repo,
   link: GitHubIssueOrPRLink
 ): Promise<GitHubWorkItem | null> {
-  const key = previewKey(repo, link)
+  const key = githubLinkPreviewKey(repo, link)
   const cached = previews.get(key)
   if (cached && (cached.settledAt === null || Date.now() - cached.settledAt < FRESH_MS)) {
     return cached.promise
