@@ -51,7 +51,7 @@ export function useTaskCreationDraftRetention<Draft, Signature = Draft>({
     if (!open) {
       return
     }
-    if (signature === undefined) {
+    if (draftRef.current.signature === undefined) {
       discardRef.current = null
     }
     return () => {
@@ -59,7 +59,6 @@ export function useTaskCreationDraftRetention<Draft, Signature = Draft>({
         writeDraftRef.current(draftRef.current.draft)
       }
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- Why: layout publishes final committed text; only open/close acquires retention cleanup.
   }, [open])
   const discard = useCallback(() => {
     discardRef.current = draftRef.current
