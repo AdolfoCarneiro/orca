@@ -1,6 +1,5 @@
 import { structuredLaunchSlotIds } from '@/lib/agent-session/launch/structured-agent-session-launch-persistence'
-import type { TabGroup, TabGroupLayoutNode } from '../../../shared/tab-types'
-import type { Tab } from '../../../shared/tab-types'
+import type { Tab, TabGroup, TabGroupLayoutNode } from '../../../shared/tab-types'
 import type { SessionTabOpenPlacement } from '../../../shared/session-tab-placement'
 import { insertOpenPlacementTab } from '../lib/session-tab-open-placement-order'
 import {
