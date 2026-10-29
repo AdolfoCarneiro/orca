@@ -107,6 +107,10 @@ const store = {
   allWorktrees: vi.fn(() => store.worktreesByRepo['repo-1']),
   tabsByWorktree: { 'wt-1': [{ id: 'tab-1' }] },
   unifiedTabsByWorktree: emptyUnifiedTabsByWorktree,
+  getTab: (tabId: string): UnifiedTabFixture | null =>
+    Object.values(store.unifiedTabsByWorktree)
+      .flat()
+      .find((tab) => tab.id === tabId) ?? null,
   groupsByWorktree: {},
   layoutByWorktree: {},
   activeGroupIdByWorktree: {},
