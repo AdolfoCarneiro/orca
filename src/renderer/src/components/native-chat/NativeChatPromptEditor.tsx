@@ -1,8 +1,9 @@
+import { nativeChatDraftPositions } from './native-chat-composer-draft-memory'
 import { createNativeChatPastedTextHistory } from './native-chat-pasted-text-history'
 import { resolveNativeChatPastedText } from './native-chat-composer-pasted-text-references'
 import { NativeChatPastedTextScopeProvider } from './native-chat-pasted-text-state'
 import {
-  readNativeChatDraftDocument,
+  readNativeChatDraftSnapshot,
   writeNativeChatDraftDocument
 } from './native-chat-draft-cache'
 import {
@@ -13,6 +14,7 @@ import { closeHistory } from '@tiptap/pm/history'
 import { Slice } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 import {
+  useCallback,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -40,6 +42,7 @@ import { mountedEditorView } from './native-chat-mounted-editor-view'
 
 type Props = Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'onSelect'> & {
   scopeKey?: string
+  positionTarget?: string
   /** The composer's thumbnail ids, in order, which number its image chips. */
   imageRow?: readonly string[]
   inputRef: RefObject<NativeChatComposerInput | null>
@@ -54,6 +57,7 @@ const NO_IMAGES: readonly string[] = []
 
 export function NativeChatPromptEditor({
   scopeKey,
+  positionTarget,
   imageRow = NO_IMAGES,
   inputRef,
   initialValue,
@@ -65,6 +69,16 @@ export function NativeChatPromptEditor({
   ...events
 }: Props): React.JSX.Element {
   const historyPaths = useMemo(() => createNativeChatPastedTextHistory(scopeKey ?? ''), [scopeKey])
+  const adopted = useRef(readNativeChatDraftSnapshot(scopeKey, initialValue))
+  const userOwned = useRef(false)
+  const appliedPosition = useRef<unknown>(undefined)
+  const claimSelection = () => {
+    userOwned.current = true
+    const position = adopted.current && nativeChatDraftPositions.get(adopted.current)
+    if (position?.at === 'end' && position.target === positionTarget) {
+      position.pending = false
+    }
+  }
   const placeholderRef = useRef(placeholder)
   placeholderRef.current = placeholder
   const editor = useEditor(
@@ -97,9 +111,7 @@ export function NativeChatPromptEditor({
           showOnlyWhenEditable: false
         })
       ],
-      content:
-        (scopeKey && readNativeChatDraftDocument(scopeKey, initialValue)) ||
-        promptTextContent(initialValue),
+      content: adopted.current?.document || promptTextContent(initialValue),
       editable: !disabled,
       editorProps: {
         attributes: {
@@ -133,6 +145,12 @@ export function NativeChatPromptEditor({
           )
       },
       onTransaction: ({ editor: current, transaction }) => {
+        if (
+          !transaction.getMeta('preventUpdate') &&
+          (transaction.docChanged || transaction.selectionSet)
+        ) {
+          claimSelection()
+        }
         const pastedTextFiles = transaction.docChanged
           ? historyPaths(current.state.doc, transaction.docs)
           : undefined
@@ -165,12 +183,45 @@ export function NativeChatPromptEditor({
     []
   )
 
-  useLayoutEffect(() => {
-    if (editor) {
-      // Initial content needs the same end caret as text adopted into an empty editor.
-      editor.view.dispatch(editor.state.tr.setSelection(TextSelection.atEnd(editor.state.doc)))
-    }
-  }, [editor])
+  const applyPosition = useCallback(
+    (previousRange?: { from: number; to: number }) => {
+      const position = adopted.current && nativeChatDraftPositions.get(adopted.current)
+      if (
+        !editor ||
+        !position?.pending ||
+        appliedPosition.current === position ||
+        (position.at === 'end' && position.target !== positionTarget)
+      ) {
+        return
+      }
+      if (userOwned.current) {
+        if (position.at === 'end') {
+          position.pending = false
+        } else if (previousRange) {
+          editor.commands.setTextSelection({
+            from: promptTextPosition(editor.state.doc, previousRange.from),
+            to: promptTextPosition(editor.state.doc, previousRange.to)
+          })
+        }
+        return
+      }
+      appliedPosition.current = position
+      editor.view.dispatch(
+        editor.state.tr
+          .setSelection(
+            position.at === 'end'
+              ? TextSelection.atEnd(editor.state.doc)
+              : TextSelection.atStart(editor.state.doc)
+          )
+          .setMeta('preventUpdate', true)
+      )
+      if (position.at === 'end') {
+        position.pending = false
+      }
+    },
+    [editor, positionTarget]
+  )
+  useLayoutEffect(() => applyPosition(), [applyPosition])
 
   useLayoutEffect(() => {
     if (!editor || !scopeKey) {
@@ -205,13 +256,20 @@ export function NativeChatPromptEditor({
                 return
               }
               // A draft loaded or adopted whole keeps its skill chips: its stored document wins.
-              const stored = scopeKey ? readNativeChatDraftDocument(scopeKey, value) : undefined
+              const previousRange = {
+                from: promptTextOffset(doc, editor.state.selection.from),
+                to: promptTextOffset(doc, editor.state.selection.to)
+              }
+              adopted.current = readNativeChatDraftSnapshot(scopeKey, value)
+              const stored = adopted.current?.document
               if (stored) {
                 editor.commands.setContent(stored, { emitUpdate: false })
+                applyPosition(previousRange)
                 return
               }
               if (!value) {
                 editor.commands.setContent(promptTextContent(''), { emitUpdate: false })
+                applyPosition(previousRange)
                 return
               }
               let start = 0
@@ -239,6 +297,7 @@ export function NativeChatPromptEditor({
                 tr.setMeta('preventUpdate', true)
                 return true
               })
+              applyPosition(previousRange)
             },
             get disabled() {
               return !editor.isEditable
@@ -338,7 +397,7 @@ export function NativeChatPromptEditor({
             }
           }
         : null,
-    [editor, scopeKey]
+    [editor, scopeKey, applyPosition]
   )
   useImperativeHandle(inputRef, () => input!, [input])
 
@@ -348,6 +407,7 @@ export function NativeChatPromptEditor({
         <EditorContent
           editor={editor}
           {...events}
+          onCompositionStartCapture={claimSelection}
           data-disabled={disabled || undefined}
           className="data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
         />

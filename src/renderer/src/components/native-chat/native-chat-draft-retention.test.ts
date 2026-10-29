@@ -37,11 +37,16 @@ it('hydrates and explicitly deletes retained closed drafts with linear saved-rec
     }
     let visits = 0
     class SavedRecords extends Map<string, StoredNativeChatComposerDraft> {
-      override *[Symbol.iterator]() {
+      override *[Symbol.iterator](): Generator<
+        [string, StoredNativeChatComposerDraft],
+        undefined,
+        unknown
+      > {
         for (const entry of super[Symbol.iterator]()) {
           visits++
           yield entry
         }
+        return undefined
       }
     }
     const load = vi.fn(async () => new SavedRecords(storage.drafts))

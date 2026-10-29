@@ -1,3 +1,5 @@
+import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
+import { findStructuredLaunchTab } from './structured-agent-session-launch-surface'
 import {
   readNativeChatComposerDraft,
   structuredAgentSessionDraftScopeKey,
@@ -24,6 +26,12 @@ export function seedStructuredAgentLaunchDraft(
   updateNativeChatComposerDraft(
     scopeKey,
     { text: options.prompt, document, owner: { workspaceId: worktreeId, executionHostId } },
-    'immediate'
+    'immediate',
+    undefined,
+    {
+      at: 'end',
+      target: findStructuredLaunchTab(state.intent)?.id ?? structuredAgentSessionTabId(sessionId),
+      pending: true
+    }
   )
 }

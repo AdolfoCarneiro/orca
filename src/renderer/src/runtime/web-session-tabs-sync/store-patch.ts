@@ -1,3 +1,4 @@
+import { retireRemovedNativeChatDraftPositions } from '@/components/native-chat/native-chat-draft-cache'
 import {
   markStructuredAgentSessionLaunchesPublished,
   publishedStructuredSessions
@@ -34,7 +35,10 @@ export function applyWebSessionTabsStorePatch(
   buildPatch: (state: AppState) => WebSessionTabsSyncState | Partial<WebSessionTabsSyncState>,
   hostMirrorVerdict: HostSessionMirrorPatchVerdict,
   agentStatusSnapshots?: RuntimeMobileSessionTabsResult | readonly RuntimeMobileSessionTabsResult[],
-  allowCompletionNotification = false
+  allowCompletionNotification = false,
+  affectedWorkspaces = hostMirrorVerdict.frames
+    .filter(({ decision }) => decision.apply)
+    .map(({ worktreeId }) => worktreeId)
 ): HostSessionMirrorSettle {
   let mirroredAgentStatusChanged = false
   // Zustand commits before notifying subscribers, so a completed producer has landed even if a subscriber throws.
@@ -176,6 +180,12 @@ export function applyWebSessionTabsStorePatch(
           })
         }
       }
+    }
+    for (const key of new Set(affectedWorkspaces)) {
+      retireRemovedNativeChatDraftPositions(
+        state.unifiedTabsByWorktree[key] ?? [],
+        (patch.unifiedTabsByWorktree ?? state.unifiedTabsByWorktree)[key] ?? []
+      )
     }
     patchCommitted = true
     return patch

@@ -1,3 +1,4 @@
+import { retireRemovedNativeChatDraftPositions } from '@/components/native-chat/native-chat-draft-cache'
 import { retireStructuredAgentSessionReadOwner } from '@/components/native-chat/structured-agent-session-read-owner-registry'
 import type { TabsSlice, TabsSliceGet, TabsSliceSet } from './tabs-slice-contract'
 import { collapseGroupLayout } from '../../../../../shared/workspace-layout/tab-group-layout-tree'
@@ -119,9 +120,12 @@ export function createTabsCloseActions(
       const closeHere = (): void =>
         settleAttentionRemovedBy(set, get, () =>
           set((current) => {
-            const nextTabs = (current.unifiedTabsByWorktree[worktreeId] ?? []).filter(
-              (item) => item.id !== tabId
-            )
+            const nextTabs = (current.unifiedTabsByWorktree[worktreeId] ?? []).filter((item) => {
+              if (item.id === tabId) {
+                retireRemovedNativeChatDraftPositions([item], [])
+              }
+              return item.id !== tabId
+            })
             // Bulk closes bypass terminals.closeTab, so clear entity-keyed unread markers here too.
             const nextUnreadTerminalTabs = terminalEntityId
               ? omitRecordKeys(current.unreadTerminalTabs, [terminalEntityId])

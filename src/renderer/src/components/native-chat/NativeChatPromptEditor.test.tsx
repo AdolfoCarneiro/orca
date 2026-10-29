@@ -9,8 +9,6 @@ import {
   type NativeChatComposerInput
 } from './native-chat-composer-input'
 import { promptEditor } from './native-chat-prompt-editor.test-support'
-import { updateNativeChatComposerDraft } from './native-chat-composer-draft-store'
-import { promptTextContent } from './native-chat-prompt-document-text'
 
 afterEach(cleanup)
 
@@ -36,51 +34,6 @@ function setup(value = '') {
 }
 
 describe('native chat skill editor', () => {
-  it.each(['before-mount', 'after-mount'] as const)(
-    'starts an ordinary draft adopted %s at the end and preserves later selection',
-    async (schedule) => {
-      const scopeKey = `agent-session:initial-selection-${schedule}`
-      const text = 'hand-off\ncontext'
-      const seed = () =>
-        updateNativeChatComposerDraft(
-          scopeKey,
-          { text, document: promptTextContent(text) },
-          'immediate'
-        )
-      if (schedule === 'before-mount') {
-        seed()
-      }
-      const inputRef = createRef<NativeChatComposerInput>()
-      const props = {
-        scopeKey,
-        inputRef,
-        initialValue: schedule === 'before-mount' ? text : '',
-        disabled: false,
-        placeholder: 'Message',
-        onChange: vi.fn(),
-        onSelect: vi.fn()
-      }
-      const view = render(<NativeChatPromptEditor {...props} />)
-      const input = inputRef.current!
-      await act(async () => {
-        if (schedule === 'after-mount') {
-          seed()
-          input.value = text
-        }
-        input.focus()
-      })
-      expect(input.selectionStart).toBe(text.length)
-      expect(input.selectionEnd).toBe(text.length)
-      act(() => input.insertText!('!'))
-      expect(input.value).toBe(`${text}!`)
-      act(() => input.setSelectionRange(2, 5))
-      view.rerender(<NativeChatPromptEditor {...props} initialValue={`${text}!`} />)
-      await act(async () => input.focus())
-      expect(input.selectionStart).toBe(2)
-      expect(input.selectionEnd).toBe(5)
-    }
-  )
-
   it('renders only picker insertions as pills and serializes the exact invocation', async () => {
     const { input, container } = setup('Please $rev')
     await act(async () => input.insertSkill!(7, 11, '$review'))

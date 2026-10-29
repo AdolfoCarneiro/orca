@@ -81,7 +81,10 @@ export function applyStructuredSessionTabSnapshots(
         framesDraw: ORCA_LAYOUT_OWNER_IS_MAIN ? framesDrawWorkspace(state) : undefined,
         onDrawnChatLabel: (change) => drawnChatLabels.push(change)
       }),
-    { frames: [] }
+    { frames: [] },
+    undefined,
+    false,
+    snapshots.map(({ worktree }) => worktree)
   )
   settleStructuredSessionMirror()
   const { setTabLabel } = useAppStore.getState()

@@ -364,6 +364,7 @@ export const NativeChatComposerPane = forwardRef<NativeChatComposerHandle, Nativ
       <div ref={root} data-native-chat-composer-scope={draftScopeKey}>
         <NativeChatComposerField
           draftScopeKey={draftScopeKey}
+          positionTarget={editSession ? undefined : terminalTabId}
           textareaRef={textareaRef}
           draft={draft}
           disabled={disabled}
