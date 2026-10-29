@@ -554,10 +554,15 @@ it.each(['chat', 'terminal'] as const)(
   }
 )
 
-it.each(['chat', 'terminal'] as const)(
-  'keeps saved Fast Args removable for an unlisted model with a %s default',
-  (surface) => {
-    const args = `--model host-private --settings '{"fastMode":true,"theme":"light"}' --add-dir docs`
+it.each([
+  { surface: 'chat', model: 'host-private' },
+  { surface: 'terminal', model: 'host-private' },
+  { surface: 'terminal', model: 'sonnet' },
+  { surface: 'terminal', model: 'haiku' }
+] as const)(
+  'keeps saved Fast Args removable for $model with a $surface default',
+  ({ surface, model }) => {
+    const args = `--model ${model} --settings '{"fastMode":true,"theme":"light"}' --add-dir docs`
     const own: AgentPickerEntry = {
       ...entry,
       defaultSurface: surface,
@@ -580,7 +585,7 @@ it.each(['chat', 'terminal'] as const)(
     expect(chip).not.toBeNull()
     const input = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Arguments"]')!
     expect(input.parentElement?.contains(chip)).toBe(true)
-    expect(input.value).toContain('--model host-private')
+    expect(input.value).toContain(`--model ${model}`)
     expect(input.value).toContain('"theme":"light"')
     expect(input.value).toContain('--add-dir docs')
     for (const way of ['Open chat', 'Open terminal']) {
@@ -604,7 +609,7 @@ it.each(['chat', 'terminal'] as const)(
           ok: true,
           tokens: [
             '--model',
-            'host-private',
+            model,
             '--settings',
             '{"theme":"light","fastMode":false}',
             '--add-dir',
