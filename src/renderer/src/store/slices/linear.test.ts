@@ -261,6 +261,15 @@ describe('createLinearSlice', () => {
 
     expect(store.getState().linearStatus.connected).toBe(false)
     expect(store.getState().linearStatusContextKey).toBeNull()
+    store.setState({
+      linearSearchCache: {
+        'other::search::warm::12': { data: [issue('old-runtime')], fetchedAt: 1 }
+      }
+    })
+    const workspace = workspaceFromLinearData(viewer, { id: 'workspace-1', name: 'Remote Org' })
+    linearConnect.mockResolvedValueOnce({ ok: true, viewer: workspace, workspace })
+    await store.getState().connectLinear('new-runtime-key')
+    expect(store.getState().linearSearchCache).toEqual({})
   })
 
   it('preserves an actual Connect result while a later account snapshot owns availability', async () => {

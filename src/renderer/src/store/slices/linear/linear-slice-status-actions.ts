@@ -35,7 +35,7 @@ export function publishLinearAccountStatus(
     affectedWorkspaceIds !== undefined ||
     !matching ||
     linearStatusScopeSignature(previous) !== linearStatusScopeSignature(status)
-  let affected = affectedWorkspaceIds ? new Set(affectedWorkspaceIds) : undefined
+  let affected = matching && affectedWorkspaceIds ? new Set(affectedWorkspaceIds) : undefined
   if (matching && previous.workspaces && status.workspaces) {
     const before = new Map(previous.workspaces.map((workspace) => [workspace.id, workspace]))
     const after = new Map(status.workspaces.map((workspace) => [workspace.id, workspace]))
