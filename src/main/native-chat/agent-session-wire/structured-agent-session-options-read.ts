@@ -31,7 +31,8 @@ export async function readStructuredAgentSessionOptions(
   context: Pick<
     StructuredAgentSessionMutationContext,
     'deps' | 'serialize' | 'openConversation' | 'conversation'
-  >,
+  > &
+    Partial<Pick<StructuredAgentSessionMutationContext, 'deliveryOrder'>>,
   sessionId: string,
   reader: StructuredAgentSessionOptionsReader
 ): Promise<AgentSessionOptionsResult> {
@@ -39,24 +40,34 @@ export async function readStructuredAgentSessionOptions(
     ? reader
     : { ...reader, deadline: reader.deadline ?? Date.now() + AGENT_MODEL_CATALOG_PICKER_WAIT_MS }
   const { adapter, agents, store } = context.deps
-  const started = await context.serialize(sessionId, async () => {
-    const session = await context.openConversation(sessionId).catch((error: unknown) => {
-      throw journalOpenReadRefusal(error, context.deps.logger, sessionId)
+  const readCurrent = (allowJoin: boolean) =>
+    context.serialize(sessionId, async () => {
+      const session = await context.openConversation(sessionId).catch((error: unknown) => {
+        throw journalOpenReadRefusal(error, context.deps.logger, sessionId)
+      })
+      const child = session?.child
+      if (!child || child.phase === 'starting') {
+        return { kind: 'rest' as const }
+      }
+      if (!adapter.readOptions) {
+        throw new Error('structured_agent_session_options_unsupported')
+      }
+      const pending = allowJoin ? context.deliveryOrder?.optionsReady(sessionId) : undefined
+      if (pending) {
+        return { kind: 'pending' as const, pending }
+      }
+      return {
+        kind: 'live' as const,
+        session,
+        child,
+        options: await adapter.readOptions({ sessionId, fence: child.fence })
+      }
     })
-    const child = session?.child
-    if (!child || child.phase === 'starting') {
-      return { kind: 'rest' as const }
-    }
-    if (!adapter.readOptions) {
-      throw new Error('structured_agent_session_options_unsupported')
-    }
-    return {
-      kind: 'live' as const,
-      session,
-      child,
-      options: await adapter.readOptions({ sessionId, fence: child.fence })
-    }
-  })
+  let started = await readCurrent(true)
+  if (started.kind === 'pending') {
+    await started.pending.catch(() => undefined)
+    started = await readCurrent(false)
+  }
   const live: StructuredAgentSessionLiveOptions | null =
     started.kind === 'live' ? started.options : null
   let rested: RestingOptions | undefined
