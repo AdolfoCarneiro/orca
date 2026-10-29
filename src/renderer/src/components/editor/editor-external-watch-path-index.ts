@@ -2,12 +2,13 @@ import { joinPath } from '@/lib/path'
 import { getExternalFileChangeRelativePath } from '@/components/right-sidebar/useFileExplorerWatch'
 import type { OpenFile } from '@/store/slices/editor'
 import type { FsChangedPayload } from '../../../../shared/filesystem-entry-types'
-import { externalChangePathKeyFor } from '@/store/slices/editor/buffers/editor-buffer-identity'
 import {
-  getLocalWindowsWslPathIdentity,
-  normalizeRuntimePathForComparison,
-  type LocalWindowsWslPathIdentity
-} from '../../../../shared/cross-platform-path'
+  EditorOpenFilePathIndex,
+  editorPathIdentity,
+  type IndexedEditorPath,
+  type IndexedEditorFileChange
+} from './editor-open-file-path-index'
+import type { LocalWindowsWslPathIdentity } from '../../../../shared/cross-platform-path'
 
 type WatchScope = {
   worktreeId: string
@@ -16,20 +17,7 @@ type WatchScope = {
   allowLocalWindowsWslAliases?: true
 }
 
-type IndexedPath = {
-  absolutePath: string
-  identity: LocalWindowsWslPathIdentity
-}
-
-type IndexedOpenFile = {
-  file: OpenFile
-  index: number
-  identity: LocalWindowsWslPathIdentity | null
-}
-
-export type IndexedExternalWatchChange = IndexedPath & {
-  relativePath: string
-}
+export type IndexedExternalWatchChange = IndexedEditorFileChange
 
 export type EditorExternalWatchBatchPathIndex = {
   createOrUpdatePaths: ReadonlyMap<string, string>
@@ -43,27 +31,14 @@ export type EditorExternalWatchBatchPathIndex = {
   ) => OpenFile[]
 }
 
-function openFileRuntimeOwner(file: Pick<OpenFile, 'runtimeEnvironmentId'>): string | null {
-  return file.runtimeEnvironmentId?.trim() || null
-}
-
-function addToListMap<T>(map: Map<string, T[]>, key: string, value: T): void {
-  const existing = map.get(key)
-  if (existing) {
-    existing.push(value)
-  } else {
-    map.set(key, [value])
-  }
-}
-
-class IndexedPathLookup<T> {
+class IndexedEditorPathLookup<T> {
   private readonly direct = new Map<string, T>()
   private readonly aliases = new Map<string, T>()
   private readonly wslAliases = new Map<string, T>()
 
   constructor(private readonly allowAliases: boolean) {}
 
-  add(path: IndexedPath, value: T): void {
+  add(path: IndexedEditorPath, value: T): void {
     this.direct.set(path.identity.normalizedPath, value)
     if (!this.allowAliases) {
       return
@@ -85,106 +60,14 @@ class IndexedPathLookup<T> {
   }
 }
 
-function pathIdentity(value: string, allowAliases: boolean): LocalWindowsWslPathIdentity {
-  if (allowAliases) {
-    return getLocalWindowsWslPathIdentity(value)
-  }
-  const normalizedPath = normalizeRuntimePathForComparison(value)
-  return { normalizedPath, aliasComparisonPath: normalizedPath, isWslUnc: false }
-}
-
-function collectMatchingFiles(
-  direct: readonly IndexedOpenFile[],
-  aliases: readonly IndexedOpenFile[],
-  diffs: readonly IndexedOpenFile[]
-): OpenFile[] {
-  const byIndex = new Map<number, OpenFile>()
-  for (const entry of [...direct, ...aliases, ...diffs]) {
-    byIndex.set(entry.index, entry.file)
-  }
-  return [...byIndex.entries()].sort(([left], [right]) => left - right).map(([, file]) => file)
-}
-
-class IndexedOpenFileLookup {
-  private readonly directEditors = new Map<string, IndexedOpenFile[]>()
-  private readonly aliasEditors = new Map<string, IndexedOpenFile[]>()
-  private readonly wslAliasEditors = new Map<string, IndexedOpenFile[]>()
-  private readonly diffsByRelativePath = new Map<string, IndexedOpenFile[]>()
-  readonly indexedOpenFiles = new Map<string, IndexedOpenFile>()
-  readonly hasCombinedDiffConsumer: boolean
-
-  private readonly directKey: (filePath: string) => string
-
-  constructor(
-    openFiles: OpenFile[],
-    scope: WatchScope,
-    private readonly allowAliases: boolean
-  ) {
-    this.directKey = externalChangePathKeyFor(scope.worktreePath)
-    let hasCombinedDiffConsumer = false
-    for (const [index, file] of openFiles.entries()) {
-      if (
-        file.worktreeId !== scope.worktreeId ||
-        openFileRuntimeOwner(file) !== scope.runtimeEnvironmentId
-      ) {
-        continue
-      }
-      if (
-        file.mode === 'diff' &&
-        (file.diffSource === 'combined-uncommitted' || file.diffSource === 'combined-all')
-      ) {
-        hasCombinedDiffConsumer = true
-        continue
-      }
-      if (file.mode === 'diff') {
-        if (file.diffSource === 'unstaged' || file.diffSource === 'staged') {
-          addToListMap(this.diffsByRelativePath, file.relativePath, {
-            file,
-            index,
-            identity: null
-          })
-        }
-        continue
-      }
-      if (file.mode !== 'edit' && file.mode !== 'markdown-preview') {
-        continue
-      }
-      const identity = pathIdentity(file.filePath, allowAliases)
-      const indexedFile = { file, index, identity }
-      this.indexedOpenFiles.set(file.id, indexedFile)
-      addToListMap(this.directEditors, this.directKey(file.filePath), indexedFile)
-      if (allowAliases) {
-        addToListMap(this.aliasEditors, identity.aliasComparisonPath, indexedFile)
-        if (identity.isWslUnc) {
-          addToListMap(this.wslAliasEditors, identity.aliasComparisonPath, indexedFile)
-        }
-      }
-    }
-    this.hasCombinedDiffConsumer = hasCombinedDiffConsumer
-  }
-
-  matchingOpenFiles(change: IndexedExternalWatchChange): OpenFile[] {
-    const aliases = !this.allowAliases
-      ? []
-      : change.identity.isWslUnc
-        ? (this.aliasEditors.get(change.identity.aliasComparisonPath) ?? [])
-        : (this.wslAliasEditors.get(change.identity.aliasComparisonPath) ?? [])
-    return collectMatchingFiles(
-      this.directEditors.get(this.directKey(change.absolutePath)) ?? [],
-      aliases,
-      this.diffsByRelativePath.get(change.relativePath) ?? []
-    )
-  }
-}
-
 export function indexEditorExternalWatchBatchPaths(
   payload: FsChangedPayload,
   openFiles: OpenFile[],
   scope: WatchScope
 ): EditorExternalWatchBatchPathIndex {
   const allowAliases = scope.allowLocalWindowsWslAliases === true
-  const createOrUpdateLookup = new IndexedPathLookup<IndexedPath>(allowAliases)
-  const deleteLookup = new IndexedPathLookup<IndexedPath>(allowAliases)
+  const createOrUpdateLookup = new IndexedEditorPathLookup<IndexedEditorPath>(allowAliases)
+  const deleteLookup = new IndexedEditorPathLookup<IndexedEditorPath>(allowAliases)
   const createOrUpdatePaths = new Map<string, string>()
   const changesByRelativePath = new Map<string, IndexedExternalWatchChange>()
 
@@ -192,9 +75,9 @@ export function indexEditorExternalWatchBatchPaths(
     if (event.kind === 'overflow') {
       continue
     }
-    const eventPath: IndexedPath = {
+    const eventPath: IndexedEditorPath = {
       absolutePath: event.absolutePath,
-      identity: pathIdentity(event.absolutePath, allowAliases)
+      identity: editorPathIdentity(event.absolutePath, allowAliases)
     }
     if (event.kind === 'delete') {
       deleteLookup.add(eventPath, eventPath)
@@ -219,27 +102,27 @@ export function indexEditorExternalWatchBatchPaths(
     }
   }
 
-  const initialOpenFileLookup = new IndexedOpenFileLookup(openFiles, scope, allowAliases)
-  const openFileLookups = new WeakMap<OpenFile[], IndexedOpenFileLookup>()
+  const initialOpenFileLookup = new EditorOpenFilePathIndex(openFiles, scope, allowAliases)
+  const openFileLookups = new WeakMap<OpenFile[], EditorOpenFilePathIndex>()
   openFileLookups.set(openFiles, initialOpenFileLookup)
-  const getOpenFileLookup = (currentOpenFiles: OpenFile[]): IndexedOpenFileLookup => {
+  const getOpenFileLookup = (currentOpenFiles: OpenFile[]): EditorOpenFilePathIndex => {
     const existing = openFileLookups.get(currentOpenFiles)
     if (existing) {
       return existing
     }
-    const indexed = new IndexedOpenFileLookup(currentOpenFiles, scope, allowAliases)
+    const indexed = new EditorOpenFilePathIndex(currentOpenFiles, scope, allowAliases)
     openFileLookups.set(currentOpenFiles, indexed)
     return indexed
   }
   const matchesCreateOrUpdate = (file: OpenFile): boolean => {
     const identity =
       initialOpenFileLookup.indexedOpenFiles.get(file.id)?.identity ??
-      pathIdentity(file.filePath, allowAliases)
+      editorPathIdentity(file.filePath, allowAliases)
     return createOrUpdateLookup.get(identity) !== undefined
   }
   const deletedOpenEditors: { file: OpenFile; normalizedDeletePath: string }[] = []
   for (const indexedFile of initialOpenFileLookup.indexedOpenFiles.values()) {
-    const deletedPath = deleteLookup.get(indexedFile.identity!)
+    const deletedPath = deleteLookup.get(indexedFile.identity)
     if (deletedPath) {
       deletedOpenEditors.push({
         file: indexedFile.file,

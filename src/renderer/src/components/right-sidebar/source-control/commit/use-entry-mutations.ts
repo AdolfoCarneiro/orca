@@ -5,6 +5,7 @@ import {
   notifyEditorExternalFileChange,
   requestEditorSaveQuiesce
 } from '@/components/editor/editor-autosave'
+import { notifyEditorExternalFileChanges } from '@/components/editor/editor-external-file-notifications'
 import { getConnectionId } from '@/lib/connection-context'
 import { basename } from '@/lib/path'
 import {
@@ -174,14 +175,10 @@ export function useSourceControlEntryMutations({
           },
           filePaths
         )
-        for (const relativePath of filePaths) {
-          notifyEditorExternalFileChange({
-            worktreeId: activeWorktreeId,
-            worktreePath,
-            relativePath,
-            runtimeEnvironmentId
-          })
-        }
+        notifyEditorExternalFileChanges(
+          { worktreeId: activeWorktreeId, worktreePath, runtimeEnvironmentId },
+          filePaths
+        )
       } finally {
         for (const release of releases) {
           release()

@@ -123,6 +123,9 @@ export function useEditorPanelExternalContentEvents({
       const invalidatedFileIds: string[] = []
       const storeState = useAppStore.getState()
       const siblingIds = externalChangeRecordViewIds(storeState, openFilesRef.current, detail)
+      if (siblingIds.size === 0) {
+        return
+      }
       for (const file of openFilesRef.current.filter((tab) => siblingIds.has(tab.id))) {
         // Preserve unsaved shared buffers, including clean sibling views; the conflict banner owns their resolution.
         if (

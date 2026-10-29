@@ -69,11 +69,14 @@ export function withRecordDiskText(
 /** Include views of the same record in other workspaces when reloading an externally changed path. */
 export function externalChangeRecordViewIds(
   state: AppState | undefined,
-  panelFiles: readonly OpenFile[],
+  panelFiles: OpenFile[],
   target: EditorPathMutationTarget
 ): Set<string> {
   const storeFiles = state?.openFiles ?? []
-  const matched = getOpenFilesForExternalFileChange([...panelFiles, ...storeFiles], target)
+  const matched = [
+    ...getOpenFilesForExternalFileChange(panelFiles, target),
+    ...getOpenFilesForExternalFileChange(storeFiles, target)
+  ]
   return new Set(
     matched.flatMap((file) =>
       state && storeFiles.some((tab) => tab.id === file.id)
