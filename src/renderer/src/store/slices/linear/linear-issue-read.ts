@@ -114,7 +114,7 @@ export function openLinearIssueRead<T extends LinearIssueData>(args: {
   }
   const lifecycle = {
     scope: args.scope,
-    patch: (id: string, patch: Delta) => {
+    patch: (id: string, patch: Partial<LinearIssue>) => {
       if (view.kind === 'abandoned' || warm === null || !rows(warm).some((row) => row.id === id)) {
         return
       }

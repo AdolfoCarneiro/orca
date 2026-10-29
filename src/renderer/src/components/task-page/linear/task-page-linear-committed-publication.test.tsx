@@ -20,6 +20,7 @@ import { Suspense, startTransition, useState, useLayoutEffect } from 'react'
 import { useLinearIssuePublication } from '@/hooks/useLinearIssuePublication'
 import { useTaskPageDetailRouting } from '../use-task-page-detail-routing'
 import { useTaskPageLinearIssueCreation } from './use-task-page-linear-issue-creation'
+import { useTaskPageLinearCustomViewEffects } from './use-task-page-linear-custom-view-effects'
 
 it.each([true, false])(
   'publication speculative B (suspend=%s) preserves committed authority',
@@ -633,4 +634,51 @@ it('create selects N before pending A settles, without waiting for N follow-up h
   held.resolve(null)
   await held.promise
   expect(pendingLinearIssueWrites.size).toBe(0)
+})
+
+it('an empty-list selection clear preserves a pending create and its successful selection', async () => {
+  const s = store(),
+    context = source('local')
+  s.setState({ recordFeatureInteraction: vi.fn(), jiraIssueCache: {}, jiraSearchCache: {} })
+  const creating = deferred<{ ok: boolean; id: string; identifier: string }>()
+  reads.create.mockReturnValue(creating.promise)
+  reads.detail.mockResolvedValue({ ...task('Created'), id: 'N' })
+  const hook = renderHook(() => {
+    const model = useCreateFixture(context)
+    const [emptyRows, setEmptyRows] = useState<LinearIssue[]>([])
+    const noop = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only existing selection effect inputs execute; catalog effects are disabled/inert.
+    useTaskPageLinearCustomViewEffects({
+      ...model,
+      taskResumeApplied: true,
+      taskSource: 'linear',
+      linearMode: 'issues',
+      linearConnected: true,
+      selectedLinearCustomView: null,
+      linearCustomViewIssueResult: { read: noop, setLoading: noop },
+      setLinearCustomViewIssuesResult: noop,
+      setLinearCustomViewProjectsResult: noop,
+      filteredLinearIssues: emptyRows
+    } as never)
+    return { ...model, deliver: () => setEmptyRows([]) }
+  })
+  let saving!: Promise<void>
+  try {
+    act(() => {
+      saving = hook.result.current.handleCreateNewLinearIssue()
+    })
+    expect(hook.result.current.submitting).toBe(true)
+    act(() => hook.result.current.deliver())
+    const pendingSubmitting = hook.result.current.submitting
+    await act(async () => {
+      creating.resolve({ ok: true, id: 'N', identifier: 'ENG-2' })
+      await saving
+    })
+    expect(pendingSubmitting).toBe(true)
+    await waitFor(() => expect(hook.result.current.selectedLinearIssue?.id).toBe('N'))
+  } finally {
+    hook.unmount()
+    creating.resolve({ ok: true, id: 'N', identifier: 'ENG-2' })
+    await saving
+  }
 })

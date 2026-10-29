@@ -59,10 +59,10 @@ async function installLinearFixture(
   electronApp: ElectronApplication,
   page: Page,
   issue: LinearIssue | null = LINEAR_ISSUE,
-  lookupDelayMs: number | null = 150
+  holdLookup = false
 ): Promise<void> {
   await electronApp.evaluate(
-    ({ ipcMain }, { resolvedIssue, lookupDelayMs }) => {
+    ({ ipcMain }, { resolvedIssue, holdLookup }) => {
       // Main-only fixture signal: production preload/runtime and owned reads stay in the path.
       ipcMain.removeAllListeners('pr34591-release-linear-lookup')
       for (const method of ['linear:searchIssues', 'linear:listIssues', 'linear:getIssue']) {
@@ -71,13 +71,15 @@ async function installLinearFixture(
       ipcMain.handle('linear:searchIssues', () => [])
       ipcMain.handle('linear:listIssues', () => ({ items: [] }))
       ipcMain.handle('linear:getIssue', async (_event, { workspaceId }) => {
-        await (lookupDelayMs === null
-          ? new Promise<void>((resolve) => ipcMain.once('pr34591-release-linear-lookup', resolve))
-          : new Promise<void>((resolve) => setTimeout(resolve, lookupDelayMs)))
+        if (holdLookup) {
+          await new Promise<void>((resolve) =>
+            ipcMain.once('pr34591-release-linear-lookup', resolve)
+          )
+        }
         return resolvedIssue && workspaceId === resolvedIssue.workspaceId ? resolvedIssue : null
       })
     },
-    { resolvedIssue: issue, lookupDelayMs }
+    { resolvedIssue: issue, holdLookup }
   )
   await page.evaluate((status) => {
     if (!window.__store) {
@@ -132,7 +134,7 @@ test.describe('Linear URL workspace entry', () => {
     electronApp,
     orcaPage
   }, testInfo) => {
-    await installLinearFixture(electronApp, orcaPage, LINEAR_ISSUE, null)
+    await installLinearFixture(electronApp, orcaPage, LINEAR_ISSUE, true)
     await openSidebarWorkspaceComposer(orcaPage)
     const dialog = orcaPage.getByRole('dialog', { name: /Create (Workspace|Worktree)/i })
     const input = dialog.locator('[data-workspace-name-input="true"]')
@@ -180,6 +182,7 @@ test.describe('Linear URL workspace entry', () => {
   })
 
   test('a Linear URL lookup miss falls back to an arbitrary workspace name', async ({
+    electronApp,
     orcaPage
   }) => {
     await installLinearFixture(electronApp, orcaPage, null)

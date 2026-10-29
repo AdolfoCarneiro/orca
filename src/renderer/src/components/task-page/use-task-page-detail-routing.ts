@@ -112,6 +112,9 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
       }
     ) => {
       const committedSelection = committed.current?.saved.value
+      if (!issue && committedSelection?.id === null && !options?.isCurrent) {
+        return
+      }
       const expectedRequest = options?.expectedSelection ?? committedSelection?.request
       const next = {
         request: {},
