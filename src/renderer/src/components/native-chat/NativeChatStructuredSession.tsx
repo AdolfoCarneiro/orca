@@ -322,7 +322,7 @@ export function NativeChatStructuredSession(
                   awaitingInput={prompt === null ? null : 'shown'}
                   turnActivity={controller.turnActivity}
                   stopping={stopControls.stopping}
-                  {...fileLinkProps}
+                  {...{ ...fileLinkProps, structuredAttachments: true }}
                   runtimeContext={imageRuntimeContext}
                   deliveryNotices={deliveryNotices}
                 />
