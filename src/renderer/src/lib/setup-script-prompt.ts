@@ -202,14 +202,13 @@ export function buildImportedHookSettings(
 
 // Product names stay as detected; descriptive labels translate by provider.
 function candidateLabel(candidate: SetupScriptImportCandidate): string {
-  switch (candidate.provider) {
-    case 'codex':
-      return translate('setupScriptPrompt.candidateLabels.codexEnvironment', 'Codex environment')
-    case 'package-manager':
-      return translate('setupScriptPrompt.candidateLabels.packageManager', 'package manager')
-    default:
-      return candidate.label
+  if (candidate.provider === 'codex') {
+    return translate('setupScriptPrompt.candidateLabels.codexEnvironment', 'Codex environment')
   }
+  if (candidate.provider === 'package-manager') {
+    return translate('setupScriptPrompt.candidateLabels.packageManager', 'package manager')
+  }
+  return candidate.label
 }
 
 export function formatCandidateSource(candidate: SetupScriptImportCandidate): string {
