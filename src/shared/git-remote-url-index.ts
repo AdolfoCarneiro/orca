@@ -48,3 +48,19 @@ export function findGitRemoteNameByFetchUrl(
   }
   return null
 }
+
+export function findUniqueGitRemoteNameByFetchUrl(
+  stdout: string,
+  matchesUrl: (url: string) => boolean
+): string | null {
+  let match: string | null = null
+  for (const [name, url] of parseGitRemoteFetchUrls(stdout)) {
+    if (matchesUrl(url)) {
+      if (match !== null) {
+        return null
+      }
+      match = name
+    }
+  }
+  return match
+}

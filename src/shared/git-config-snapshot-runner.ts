@@ -10,8 +10,13 @@ export class GitConfigSnapshotKeyNotFoundError extends Error {
   }
 }
 
-function isConfigGetCommand(args: string[]): boolean {
-  return args.length === 3 && args[0] === 'config' && args[1] === '--get'
+function isConfigGetCommand(args: string[], includeAllValues = false): boolean {
+  return (
+    args[0] === 'config' &&
+    ((args.length === 3 &&
+      (args[1] === '--get' || (includeAllValues && args[1] === '--get-all'))) ||
+      (includeAllValues && args.length === 4 && args[1] === '--null' && args[2] === '--get-all'))
+  )
 }
 
 function canonicalizeGitConfigLookupKey(key: string): string {
@@ -42,7 +47,10 @@ function parseGitConfigListSnapshot(stdout: string): GitConfigSnapshot {
   return snapshot
 }
 
-export function createGitConfigSnapshotRunner(runGit: GitCommandRunner): GitCommandRunner {
+export function createGitConfigSnapshotRunner(
+  runGit: GitCommandRunner,
+  options: { propagateReadErrors?: boolean; includeAllValues?: boolean } = {}
+): GitCommandRunner {
   let snapshotPromise: Promise<GitConfigSnapshot | null> | null = null
   let snapshot: GitConfigSnapshot | null = null
   let interceptionDisabled = false
@@ -59,13 +67,20 @@ export function createGitConfigSnapshotRunner(runGit: GitCommandRunner): GitComm
             snapshot = parseGitConfigListSnapshot(stdout)
             return snapshot
           })
-          .catch(() => {
+          .catch((error) => {
+            if (options.propagateReadErrors) {
+              throw error
+            }
             // Fall back to real Git this round if snapshot loading fails.
             interceptionDisabled = true
             snapshotPromise = null
             return null
           })
-      } catch {
+      } catch (error) {
+        if (options.propagateReadErrors) {
+          snapshotPromise = Promise.reject(error)
+          return snapshotPromise
+        }
         interceptionDisabled = true
         snapshotPromise = null
         return Promise.resolve(null)
@@ -75,7 +90,7 @@ export function createGitConfigSnapshotRunner(runGit: GitCommandRunner): GitComm
   }
 
   return async (args) => {
-    if (interceptionDisabled || !isConfigGetCommand(args)) {
+    if (interceptionDisabled || !isConfigGetCommand(args, options.includeAllValues)) {
       return runGit(args)
     }
 
@@ -84,15 +99,19 @@ export function createGitConfigSnapshotRunner(runGit: GitCommandRunner): GitComm
       return runGit(args)
     }
 
-    const key = args[2] ?? ''
+    const key = args.at(-1) ?? ''
     const values = configSnapshot.get(canonicalizeGitConfigLookupKey(key))
     if (!values?.length) {
       // Missing keys must reject like real config --get; callers branch on rejection.
       throw new GitConfigSnapshotKeyNotFoundError(key)
     }
 
+    if (args[1] === '--null') {
+      return { stdout: values.map((value) => `${value}\0`).join('') }
+    }
+
     // Multivar reads use the last occurrence, matching config --get.
-    return { stdout: values.at(-1) ?? '' }
+    return { stdout: args[1] === '--get-all' ? values.join('\n') : (values.at(-1) ?? '') }
   }
 }
 import { iterateNulDelimitedFields } from './nul-delimited-fields'

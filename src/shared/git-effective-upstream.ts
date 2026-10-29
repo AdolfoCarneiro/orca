@@ -2,7 +2,9 @@ import { isNoUpstreamError } from './git-remote-error'
 import { isSafeGitRefName } from './git-status-upstream-ref'
 import type { GitUpstreamStatus } from './git-status-types'
 import {
-  getConfiguredBranchRemoteUpstream,
+  resolveConfiguredBranchRemoteTrackingUpstream,
+  recoverUrlValuedConfiguredUpstream,
+  readRemoteTrackingUpstreamName,
   hasConfiguredBranchPushTarget
 } from './git-configured-branch-target'
 import { splitRemoteBranchName } from './git-remote-branch-name'
@@ -142,33 +144,17 @@ async function getConfiguredUpstream(
   }
 }
 
-async function readRemoteTrackingUpstreamName(
-  runGit: GitCommandRunner,
-  remoteName: string,
-  branchName: string
-): Promise<string | null> {
-  const remoteRef = `refs/remotes/${remoteName}/${branchName}`
-  if (!isSafeGitRefName(remoteRef)) {
-    return null
-  }
-  try {
-    const { stdout } = await runGit([
-      'for-each-ref',
-      '--format=%(refname)%00',
-      '--count=1',
-      remoteRef
-    ])
-    return stdout.replace(/\r?\n$/, '') === `${remoteRef}\0` ? remoteRef : null
-  } catch {
-    return null
-  }
-}
-
 async function resolveEffectiveGitUpstreamForBranch(
   runGit: GitCommandRunner,
-  currentBranchName: string | null
+  currentBranchName: string | null,
+  execGit: GitCommandRunner
 ): Promise<ResolvedGitUpstream | null> {
-  const configuredTarget = await getConfiguredUpstream(runGit, currentBranchName)
+  let configuredTarget: Awaited<ReturnType<typeof getConfiguredUpstream>>
+  try {
+    configuredTarget = await getConfiguredUpstream(runGit, currentBranchName)
+  } catch (error) {
+    return recoverUrlValuedConfiguredUpstream(execGit, currentBranchName, error)
+  }
   let configured = configuredTarget?.upstream
 
   if (configured) {
@@ -210,18 +196,12 @@ async function resolveEffectiveGitUpstreamForBranch(
   }
 
   if (currentBranchName) {
-    let comparisonRef: string | null = null
-    const branchRemoteUpstream = await getConfiguredBranchRemoteUpstream(
+    const branchRemoteUpstream = await resolveConfiguredBranchRemoteTrackingUpstream(
       runGit,
-      currentBranchName,
-      async (remoteName, branchName) => {
-        comparisonRef = await readRemoteTrackingUpstreamName(runGit, remoteName, branchName)
-        return comparisonRef !== null
-      }
+      currentBranchName
     )
     if (branchRemoteUpstream) {
-      // URL-valued branch.remote breaks HEAD@{u}; legacy fork-review worktrees can still supply a usable merge target.
-      return { upstream: branchRemoteUpstream, comparisonRef: comparisonRef ?? undefined }
+      return branchRemoteUpstream
     }
   }
 
@@ -249,7 +229,8 @@ export async function resolveEffectiveGitUpstream(
   const runGit = createGitConfigSnapshotRunner(execGit)
   const resolved = await resolveEffectiveGitUpstreamForBranch(
     runGit,
-    await getGitCurrentBranchName(runGit)
+    await getGitCurrentBranchName(runGit),
+    execGit
   )
   return resolved?.upstream ?? null
 }
@@ -261,7 +242,7 @@ export async function getEffectiveGitUpstreamStatus(
 ): Promise<GitUpstreamStatus> {
   const runGit = createGitConfigSnapshotRunner(execGit)
   const currentBranchName = await getGitCurrentBranchName(runGit)
-  const resolved = await resolveEffectiveGitUpstreamForBranch(runGit, currentBranchName)
+  const resolved = await resolveEffectiveGitUpstreamForBranch(runGit, currentBranchName, execGit)
   const upstream = resolved?.upstream
   if (!upstream) {
     const hasConfiguredPushTarget = currentBranchName

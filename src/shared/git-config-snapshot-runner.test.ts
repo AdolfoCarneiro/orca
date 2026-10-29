@@ -124,6 +124,67 @@ describe('createGitConfigSnapshotRunner', () => {
     })
   })
 
+  it('preserves raw multivalue boundaries in opt-in NUL reads', async () => {
+    const values = ['refs/heads/topic\nrefs/heads/other', '', ' ']
+    const runGit = vi.fn<GitCommandRunner>(async () => ({
+      stdout: listSnapshot(values.map((value) => `branch.topic.merge\n${value}`))
+    }))
+    const runner = createGitConfigSnapshotRunner(runGit, {
+      propagateReadErrors: true,
+      includeAllValues: true
+    })
+
+    await expect(runner(['config', '--null', '--get-all', 'branch.topic.merge'])).resolves.toEqual({
+      stdout: values.map((value) => `${value}\0`).join('')
+    })
+    await expect(runner(['config', '--get-all', 'branch.topic.merge'])).resolves.toEqual({
+      stdout: values.join('\n')
+    })
+    await expect(runner(['config', '--get', 'branch.topic.merge'])).resolves.toEqual({
+      stdout: ' '
+    })
+    await expect(
+      runner(['config', '--null', '--get-all', 'branch.missing.merge'])
+    ).rejects.toBeInstanceOf(GitConfigSnapshotKeyNotFoundError)
+    expect(runGit.mock.calls).toEqual([[['config', '--list', '-z']]])
+  })
+
+  it.each([
+    { args: ['config', '--get-all', 'branch.topic.merge'] },
+    { args: ['config', '--null', '--get-all', 'branch.topic.merge'] }
+  ])('passes an all-values query through by default: $args', async ({ args }) => {
+    const runGit = vi.fn<GitCommandRunner>(async () => ({ stdout: 'first\0second\0' }))
+    const runner = createGitConfigSnapshotRunner(runGit)
+
+    await expect(runner(args)).resolves.toEqual({ stdout: 'first\0second\0' })
+    expect(runGit.mock.calls).toEqual([[args]])
+  })
+
+  it.each([false, true])('shares a strict snapshot failure (synchronous: %s)', async (sync) => {
+    const failure = new Error('snapshot unavailable')
+    const runGit = vi.fn<GitCommandRunner>(() => {
+      if (sync) {
+        throw failure
+      }
+      return Promise.reject(failure)
+    })
+    const runner = createGitConfigSnapshotRunner(runGit, {
+      propagateReadErrors: true,
+      includeAllValues: true
+    })
+
+    const results = await Promise.allSettled([
+      runner(['config', '--null', '--get-all', 'branch.topic.merge']),
+      runner(['config', '--get', 'branch.topic.remote'])
+    ])
+
+    expect(results).toEqual([
+      { status: 'rejected', reason: failure },
+      { status: 'rejected', reason: failure }
+    ])
+    expect(runGit.mock.calls).toEqual([[['config', '--list', '-z']]])
+  })
+
   it('parses valueless boolean keys without corrupting adjacent records', async () => {
     const runGit = vi.fn<GitCommandRunner>(async () => ({
       stdout: listSnapshot([
