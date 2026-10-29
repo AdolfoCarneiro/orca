@@ -69,10 +69,14 @@ export function getResolvedWorktreeExecutionOwner<
     state.activeWorktreeId === worktreeId
       ? (state.activeWorkspaceExecutionHostId ?? undefined)
       : undefined
-  const worktree =
-    (preferredHostId
-      ? findIndexedWorktreeOwnerForHost(state.worktreesByRepo, worktreeId, preferredHostId)
-      : null) ?? findIndexedWorktreeOwner(state.worktreesByRepo, worktreeId)
+  const qualifiedWorktree = preferredHostId
+    ? findIndexedWorktreeOwnerForHost(state.worktreesByRepo, worktreeId, preferredHostId)
+    : null
+  const physicalOwner = parseExecutionHostId(qualifiedWorktree?.hostId)
+  if (qualifiedWorktree && physicalOwner) {
+    return { hostId: physicalOwner.id, workspace: qualifiedWorktree }
+  }
+  const worktree = qualifiedWorktree ?? findIndexedWorktreeOwner(state.worktreesByRepo, worktreeId)
   if (!worktree) {
     return null
   }

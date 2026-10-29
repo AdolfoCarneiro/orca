@@ -152,9 +152,8 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
   const effectiveChatViewMode = isChatViewMode && savedOwnerDisposition !== 'retire'
   const applyNativeChatLeafRoute = useCallback(
     (route: NativeChatLeafRoute): void => {
-      const state = useAppStore.getState()
       const currentMode = selectUnifiedTerminalTabFields(
-        state.unifiedTabsByWorktree,
+        useAppStore.getState().unifiedTabsByWorktree,
         worktreeId,
         tabId
       ).isChatViewMode
@@ -237,13 +236,14 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
         toggleTabViewMode(unifiedTabId)
         return
       }
-      setChatLeafId(leafId)
+      applyNativeChatLeafRoute({ chatLeafId: leafId, exitChat: false })
       if (!effectiveChatViewMode) {
         toggleTabViewMode(unifiedTabId)
       }
     },
     [
       chatLeafId,
+      applyNativeChatLeafRoute,
       effectiveChatViewMode,
       isChatViewMode,
       setChatLeafId,

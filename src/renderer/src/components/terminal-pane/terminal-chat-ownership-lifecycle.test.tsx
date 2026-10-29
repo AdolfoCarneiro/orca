@@ -6,7 +6,7 @@ import { useAppStore } from '../../store'
 import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
 import { useTerminalPaneChatState } from './use-terminal-pane-chat-state'
 import { useTerminalPaneLayoutPersistence } from './use-terminal-pane-layout-persistence'
-import { makeGroup, makeTerminalTab } from '../worktree-jump-palette-test-fixtures'
+import { makeGroup, makeTerminalTab, makeUnifiedTab } from '../worktree-jump-palette-test-fixtures'
 import { selectNativeChatWslProject } from './terminal-pane-host-state'
 import { makeFolderWorkspace } from '@/store/slices/worktrees-slice-test-fixtures'
 import { createGlobalSettingsFixture } from '../../../../shared/global-settings-test-fixture'
@@ -14,8 +14,18 @@ import { useTerminalPaneProjection } from './use-terminal-pane-projection'
 import { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
 import {
   captureTerminalPaneRecoveryGeneration,
+  _resetTerminalPaneRecoveryForTests,
+  registerTerminalPaneRecoveryInstance,
+  settleTerminalPaneRecovery,
   requestTerminalPaneRecovery
 } from './terminal-pane-recovery'
+import { canRemountTerminalPaneWithoutChatOwner } from './terminal-pane-recovery-ownership'
+import { registerRuntimeTerminalTab } from '@/runtime/mounted-terminal-tab-registry'
+import { createTestStore } from '@/store/slices/store-test-helpers'
+import {
+  createRemountTerminalTabForRecovery,
+  createSettleTerminalTabRecovery
+} from '@/store/slices/worktrees/session/worktree-slice-lookups'
 import { resolveActiveNativeChatSplitTarget } from '../native-chat/native-chat-layout-actions'
 import { requestActiveTerminalPaneSplit } from '../tab-bar/request-active-terminal-pane-split'
 import { REQUEST_ACTIVE_TERMINAL_PANE_SPLIT_EVENT } from '@/constants/terminal'
@@ -25,6 +35,7 @@ import { detachTerminalLayoutLeaf } from './terminal-layout-leaf-detach'
 import { parseWorkspaceSession } from '../../../../shared/workspace-session-schema'
 import type { RemotePaneLayoutPusher } from './remote-pane-layout-push'
 import type * as TabsHostMirroring from '../../store/slices/tabs/tabs-host-mirroring'
+import { isTerminalLeafId } from '../../../../shared/stable-pane-id'
 
 vi.mock('@/lib/renderer-app-platform', () => ({ getRendererAppPlatform: () => 'win32' }))
 
@@ -151,10 +162,9 @@ function makeFixture(
 function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: string | null) {
   const [chatLeafId, setChatLeafId] = useState(initialOwner)
   const input = { ...fixture, chatLeafId, setChatLeafId }
-  const chat = useTerminalPaneChatState(
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The fixture supplies every field read by the chat hook.
-    input as unknown as Parameters<typeof useTerminalPaneChatState>[0]
-  )
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The fixture supplies every manager method and controller field exercised here.
+  const controller = input as unknown as Parameters<typeof useTerminalPaneChatState>[0]
+  const chat = useTerminalPaneChatState(controller)
   const layoutInput = { ...input, ...chat, setTabLayout: mocks.state.setTabLayout }
   const layout = useTerminalPaneLayoutPersistence(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The fixture supplies every field read by the persistence hook.
@@ -164,15 +174,36 @@ function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: strin
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This fixture supplies every projection field; unrelated continuation paths have no provider session.
     layoutInput as unknown as Parameters<typeof useTerminalPaneProjection>[0]
   )
-  return { ...chat, ...layout, ...projection, chatLeafId, setChatLeafId }
+  return {
+    ...chat,
+    ...layout,
+    ...projection,
+    chatLeafId,
+    setChatLeafId,
+    manager: controller.managerRef.current
+  }
 }
 
 beforeEach(() => {
+  _resetTerminalPaneRecoveryForTests()
+  useAppStore.setState(createTestStore().getState(), true)
   const actions = createTabsLabelActions(useAppStore.setState, useAppStore.getState)
   mocks.state.setTabViewMode = actions.setTabViewMode
   mocks.state.toggleTabViewMode = actions.toggleTabViewMode
   useAppStore.setState({
     ...actions,
+    setTabLayout: mocks.state.setTabLayout,
+    unifiedTabsByWorktree: {
+      wt: [{ ...makeUnifiedTab('tab', 'wt', 'tab', 'codex'), viewMode: 'chat' }]
+    },
+    remountTerminalTabForRecovery: createRemountTerminalTabForRecovery(
+      useAppStore.setState,
+      useAppStore.getState
+    ),
+    settleTerminalTabRecovery: createSettleTerminalTabRecovery(
+      useAppStore.setState,
+      useAppStore.getState
+    ),
     agentStatusByPaneKey: {},
     paneForegroundAgentByPaneKey: {},
     tabsByWorktree: { wt: [{ ...makeTerminalTab('tab', 'wt', 'codex'), viewMode: 'chat' }] }
@@ -198,6 +229,229 @@ afterEach(() => {
 })
 
 describe('terminal chat ownership lifecycle', () => {
+  it.each([
+    { wake: 'identity', population: 10 },
+    { wake: 'return', population: 100 }
+  ] as const)(
+    'heals pending intent at $population panes, then handles $wake',
+    async ({ wake, population }) => {
+      const fixture = makeFixture(undefined, undefined, null)
+      useAppStore.setState({
+        runtimePaneTitlesByTabId: { tab: {} },
+        tabsByWorktree: {
+          wt: [
+            {
+              ...useAppStore.getState().tabsByWorktree.wt[0],
+              ptyId: 'same-pty',
+              viewMode: wake === 'return' ? undefined : 'chat'
+            }
+          ]
+        }
+      })
+      const saved = {
+        ...mocks.state.terminalLayoutsByTabId.tab,
+        ptyIdsByLeafId: { [LEFT]: 'same-pty' }
+      }
+      delete saved.chatLeafId
+      mocks.state.setTabLayout('tab', saved)
+      const hook = renderHook(() => useFixture(fixture, null))
+      const manager = hook.result.current.manager
+      if (!manager) {
+        throw new Error('mounted manager missing')
+      }
+      let leafReads = 0
+      let coverageReads = 0
+      const basePane = manager.getPanes()[0]
+      const panes = Array.from({ length: population }, (_, index) => {
+        const leafId =
+          index === 0
+            ? LEFT
+            : index === 1
+              ? RIGHT
+              : `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
+        if (!isTerminalLeafId(leafId)) {
+          throw new Error('invalid fixture leaf')
+        }
+        const container = document.createElement('div')
+        return {
+          ...basePane,
+          id: index + 1,
+          get container() {
+            coverageReads += 1
+            return container
+          },
+          get leafId() {
+            leafReads += 1
+            return leafId
+          }
+        }
+      })
+      vi.spyOn(manager, 'getPanes').mockReturnValue(panes)
+      const requestLeafVisits: number[] = []
+      const requestCoverageVisits: number[] = []
+      const unregister = registerRuntimeTerminalTab({
+        tabId: 'tab',
+        worktreeId: 'wt',
+        getManager: () => manager,
+        getContainer: () => fixture.containerRef.current,
+        getPtyIdForPane: () => 'same-pty',
+        getTabWideAgentHintLeafId: () => null
+      })
+      const instance = registerTerminalPaneRecoveryInstance('tab', () => {
+        const before = leafReads
+        const beforeCoverage = coverageReads
+        const allowed = canRemountTerminalPaneWithoutChatOwner('wt', 'tab', manager)
+        requestLeafVisits.push(leafReads - before)
+        requestCoverageVisits.push(coverageReads - beforeCoverage)
+        return allowed
+      })
+      try {
+        expect(hook.result.current.chatPane).toBeNull()
+        expect(hook.result.current.chatLeafId).toBeNull()
+        await act(async () => {
+          expect(
+            await requestTerminalPaneRecovery({
+              tabId: 'tab',
+              ptyId: 'same-pty',
+              reason: 'restore-blocked',
+              terminalRecoveryGeneration: 0,
+              terminalRecoveryInstanceId: instance.id
+            })
+          ).toBe(true)
+          settleTerminalPaneRecovery('tab', 1, 'success')
+        })
+        expect(requestLeafVisits).toEqual([2 * population + 2, 2 * population + 2])
+        expect(requestCoverageVisits).toEqual([population, population])
+        expect(useAppStore.getState().tabsByWorktree.wt[0]).toMatchObject({
+          ptyId: 'same-pty',
+          recovery: { generation: 1, outcome: 'success' }
+        })
+        expect(useAppStore.getState().unifiedTabsByWorktree.wt[0].viewMode).toBe('chat')
+        expect(useAppStore.getState().terminalLayoutsByTabId.tab).toEqual(saved)
+        expect(manager.getPanes()[0].serializeAddon.serialize()).toBe('retained scrollback')
+        if (wake === 'return') {
+          act(() => hook.result.current.handleContextMenuToggleNativeChat())
+        }
+        act(() => useAppStore.setState({ runtimePaneTitlesByTabId: { tab: { 1: 'claude' } } }))
+        expect(hook.result.current.chatPane).toBe(
+          wake === 'identity' ? manager.getPanes()[0] : null
+        )
+        expect(useAppStore.getState().tabsByWorktree.wt[0].viewMode).toBe(
+          wake === 'identity' ? 'chat' : 'terminal'
+        )
+      } finally {
+        instance.unregister()
+        unregister()
+      }
+    }
+  )
+
+  it.each([
+    'covered sibling',
+    'saved sibling',
+    'acquired identity',
+    'acquired sibling',
+    'disposed',
+    'stale'
+  ] as const)(
+    'refuses a tab-wide remount for %s, including changes during authoritative liveness',
+    async (change) => {
+      const fixture = makeFixture(undefined, undefined, null)
+      useAppStore.setState({ runtimePaneTitlesByTabId: { tab: {} } })
+      const saved = { ...mocks.state.terminalLayoutsByTabId.tab }
+      if (change !== 'saved sibling') {
+        delete saved.chatLeafId
+      }
+      mocks.state.setTabLayout('tab', saved)
+      if (change === 'acquired sibling') {
+        fixture.nativeChatIsWslProject = true
+        mocks.state.setTabViewMode('tab', 'terminal')
+      }
+      const hook = renderHook(() => useFixture(fixture, saved.chatLeafId ?? null))
+      const manager = hook.result.current.manager
+      if (!manager) {
+        throw new Error('mounted manager missing')
+      }
+      const unregister = registerRuntimeTerminalTab({
+        tabId: 'tab',
+        worktreeId: 'wt',
+        getManager: () => manager,
+        getContainer: () => fixture.containerRef.current,
+        getPtyIdForPane: () => 'same-pty',
+        getTabWideAgentHintLeafId: () => null
+      })
+      const instance = registerTerminalPaneRecoveryInstance('tab', () =>
+        canRemountTerminalPaneWithoutChatOwner('wt', 'tab', manager)
+      )
+      const remount = vi.fn(useAppStore.getState().remountTerminalTabForRecovery)
+      useAppStore.setState({ remountTerminalTabForRecovery: remount })
+      let resolveProbe: (live: boolean) => void = () => {
+        throw new Error('probe not started')
+      }
+      const hasPty = vi.fn(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveProbe = resolve
+          })
+      )
+      vi.stubGlobal('window', { api: { pty: { hasPty } } })
+      try {
+        if (change === 'covered sibling') {
+          const cover = document.createElement('div')
+          cover.className = 'native-chat-pane-shell'
+          manager.getPanes()[1].container.append(cover)
+        }
+        const pending = requestTerminalPaneRecovery({
+          tabId: 'tab',
+          ptyId: 'same-pty',
+          reason: 'input-undeliverable',
+          requireAuthoritativeLiveness: true,
+          terminalRecoveryGeneration: 0,
+          terminalRecoveryInstanceId: instance.id
+        })
+        if (change === 'acquired identity') {
+          // Before React commits an owner/cover, the current supported leaf already owns the route.
+          act(() => {
+            useAppStore.setState({ runtimePaneTitlesByTabId: { tab: { 1: 'codex' } } })
+            expect(canRemountTerminalPaneWithoutChatOwner('wt', 'tab', manager)).toBe(false)
+          })
+        } else if (change === 'acquired sibling') {
+          // A user chooses an inactive sibling while the old terminal probe is outstanding.
+          act(() => {
+            useAppStore.setState({ runtimePaneTitlesByTabId: { tab: { 2: 'codex' } } })
+          })
+          act(() => {
+            hook.result.current.toggleNativeChatForLeaf(RIGHT)
+            expect(canRemountTerminalPaneWithoutChatOwner('wt', 'tab', manager)).toBe(false)
+          })
+          expect(useAppStore.getState().terminalLayoutsByTabId.tab.chatLeafId).toBe(RIGHT)
+        } else if (change === 'disposed') {
+          instance.unregister()
+        } else if (change === 'stale') {
+          act(() => {
+            createRemountTerminalTabForRecovery(useAppStore.setState, useAppStore.getState)('tab', {
+              reason: 'write-stalled',
+              trigger: 'automatic',
+              generation: 0,
+              now: Date.now()
+            })
+          })
+        }
+        const blockedAtStart = change === 'covered sibling' || change === 'saved sibling'
+        if (!blockedAtStart) {
+          resolveProbe(true)
+        }
+        expect(await pending).toBe(false)
+        expect(hasPty).toHaveBeenCalledTimes(blockedAtStart ? 0 : 1)
+        expect(remount).not.toHaveBeenCalled()
+      } finally {
+        instance.unregister()
+        unregister()
+        vi.unstubAllGlobals()
+      }
+    }
+  )
+
   it('drives the pane menu from actual folder runtime facts through entry and retirement', () => {
     mocks.state.setTabViewMode('tab', 'terminal')
     const fixture = makeFixture()

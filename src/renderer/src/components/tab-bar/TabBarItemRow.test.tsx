@@ -12,6 +12,8 @@ import { i18n } from '@/i18n/i18n'
 import type { TabBarItem } from './tab-bar-item-model'
 import type { WorkspaceVisibleTabType } from '../../../../shared/tab-types'
 import type { AppState } from '@/store/types'
+import { createTestStore } from '@/store/slices/store-test-helpers'
+import { makeRepo, makeWorktree } from '../worktree-jump-palette-test-fixtures'
 import { selectNativeChatWslProject } from '../terminal-pane/terminal-pane-host-state'
 import type { AgentType } from '../../../../shared/agent-status-types'
 import {
@@ -448,10 +450,11 @@ describe('real tabs while a client-hosted row is selected', () => {
 it.each([true, false, null])(
   'gates the tab menu from addressed runtime facts and keeps Return (%s)',
   (runtime) => {
-    const state = {
+    const state: AppState = {
+      ...createTestStore().getState(),
       activeWorktreeId: null,
       activeWorkspaceExecutionHostId: null,
-      repos: [{ id: 'repo', executionHostId: 'local' }],
+      repos: [{ ...makeRepo(), id: 'repo', executionHostId: 'local' }],
       projects: [],
       settings: null,
       worktreesByRepo:
@@ -459,16 +462,14 @@ it.each([true, false, null])(
           ? {}
           : {
               repo: [
-                {
-                  id: 'wt-1',
+                makeWorktree('wt-1', 'Main', {
                   repoId: 'repo',
                   hostId: 'local',
                   path: runtime ? '//wsl.localhost/Ubuntu/work' : 'C:/work'
-                }
+                })
               ]
             }
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The runtime selector reads only these local-owner/runtime facts.
-    } as unknown as AppState
+    }
     renderStrip({ nativeChatState: state, nativeChatAgent: 'codex' })
     expect(lastRender('terminal-1').canToggleViewMode).toBe(runtime === true)
     renderStrip({ nativeChatState: state, nativeChatAgent: 'zcode' })
