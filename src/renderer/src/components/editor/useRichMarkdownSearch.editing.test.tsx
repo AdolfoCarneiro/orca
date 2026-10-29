@@ -232,7 +232,14 @@ describe('rich markdown editing with Find open', () => {
         }
         const from = editor.view.posAtDOM(text, 2)
         const to = editor.view.posAtDOM(text, 7)
-        document.getSelection()?.setBaseAndExtent(text, 7, text, 2)
+        const holdSelectionChange = (event: Event) => event.stopImmediatePropagation()
+        document.addEventListener('selectionchange', holdSelectionChange, true)
+        try {
+          // Model a native notification that has not arrived before the next captured key/action.
+          document.getSelection()?.setBaseAndExtent(text, 7, text, 2)
+        } finally {
+          document.removeEventListener('selectionchange', holdSelectionChange, true)
+        }
         expect(editor.state.selection.from).not.toBe(from)
         scrollTo.mockClear()
         if (entry === 'Escape') {

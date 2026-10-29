@@ -15,7 +15,7 @@ import {
 import { createRichMarkdownSearchMatchesCache } from './rich-markdown-search-matches-cache'
 import { useRichMarkdownSearchHighlights } from './useRichMarkdownSearchHighlights'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
-import { completeRichMarkdownSelection } from './drag-selection-guard'
+import { prepareRichMarkdownSearchClose } from './rich-markdown-search-focus'
 
 export function useRichMarkdownSearch({
   editor,
@@ -123,16 +123,7 @@ export function useRichMarkdownSearch({
   }, [isSearchOpen])
 
   const closeSearch = useCallback(() => {
-    if (editor && !editor.isDestroyed && editor.view.dom.isConnected) {
-      const view = editor.view
-      const panel = searchInputRef.current?.closest('.rich-markdown-search')
-      if (panel?.contains(view.root.activeElement)) {
-        view.focus()
-      } else if (view.hasFocus()) {
-        // Capture-handled Escape bypasses the editor's keydown completion before highlights are removed.
-        completeRichMarkdownSelection(view)
-      }
-    }
+    prepareRichMarkdownSearchClose(editor, searchInputRef.current)
     setIsSearchOpen(false)
     setIsReplaceMode(false)
     setSearchQuery('')

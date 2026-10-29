@@ -1,4 +1,23 @@
 import type { EditorView } from '@tiptap/pm/view'
+import type { Editor } from '@tiptap/core'
+import { completeRichMarkdownSelection } from './drag-selection-guard'
+
+export function prepareRichMarkdownSearchClose(
+  editor: Editor | null,
+  searchInput: HTMLElement | null
+): void {
+  if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) {
+    return
+  }
+  const view = editor.view
+  const panel = searchInput?.closest('.rich-markdown-search')
+  if (panel?.contains(view.root.activeElement)) {
+    view.focus()
+  } else if (view.hasFocus()) {
+    // Capture-handled Escape bypasses the editor's keydown completion before highlights are removed.
+    completeRichMarkdownSelection(view)
+  }
+}
 
 export function focusRichMarkdownEditorFromSearch(
   event: MouseEvent,
