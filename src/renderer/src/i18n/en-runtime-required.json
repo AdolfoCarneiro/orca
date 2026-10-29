@@ -2204,7 +2204,7 @@
   },
   "updates": {
     "failure": {
-      "channelUnsupportedPlatform": "{{channel}} builds are produced only for {{platforms}}.",
+      "channelUnsupportedPlatform": "{{channel}} builds are produced only for macOS and Windows.",
       "invalidReleaseTag": "\"{{tag}}\" is not a valid release tag.",
       "linuxPackageExternallyManaged": "This copy of Orca is managed by your system package manager, so Orca cannot install updates itself. Update Orca through your distribution instead.",
       "linuxPackageHashMismatch": "The downloaded package no longer matches the verified release, so Orca will not hand it to a package manager. Download the update again, or get it from the official release page.",
