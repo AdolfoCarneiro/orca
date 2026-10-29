@@ -15,3 +15,5 @@ export const SlugRepo = z.object({
   // Preserve Enterprise host through parsing for host-qualified gh requests.
   host: OptionalString
 })
+
+export const RepoWithGitHubTarget = RepoSelector.extend({ ownerRepo: SlugRepo.optional() })

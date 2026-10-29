@@ -1,15 +1,18 @@
+import { getGitHubMutationTarget } from './github-work-item-mutation-target'
+export { getGitHubMutationTarget } from './github-work-item-mutation-target'
+import { prepareGitHubWorkItemTargetRequest } from '@/lib/github-work-item-target-request'
 import { useAppStore } from '@/store'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
-import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import {
   getGitHubRepoRoutingTarget,
   getGitHubRuntimeRepoId,
   getGitHubSourceRuntimeHost
 } from '@/lib/github-source-runtime-context'
-import { isTwinRepo, runtimeTargetForRepoOwner } from '@/lib/repo-runtime-owner'
 import { taskSourceRuntimeTarget } from '@/lib/task-source-runtime-target'
-import { projectViewCacheKeyTarget } from '@/store/github/cache-identity'
-import type { GitHubWorkItemProjectOrigin } from '@/components/github/github-work-item-identity'
+import {
+  resolvePullRequestRepo,
+  type GitHubWorkItemProjectOrigin
+} from '@/components/github/github-work-item-identity'
 import { notifyWorkItemDetailsMutation } from '@/components/github/github-work-item-comment-mutations'
 import { githubProjectHost } from '../../../../shared/github/project-identity'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
@@ -17,36 +20,18 @@ import type { GitHubOwnerRepo } from '../../../../shared/github/pull-request-typ
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import { codeHostErrorText } from '@/lib/code-host-error-copy'
 
-// Route Project edits to the row’s repository; callers throw on failed IPC results for optimistic rollback.
-export function getGitHubMutationTarget(
-  repoId: string | null | undefined,
-  projectOrigin: GitHubWorkItemProjectOrigin | undefined
-): RuntimeClientTarget {
-  // Why: even slug-addressed project-origin mutations must run on the backing repo's owner host when its id is known.
-  const state = useAppStore.getState()
-  const owner = runtimeTargetForRepoOwner(state, repoId)
-  if (owner) {
-    return owner
-  }
-  // Why: a twin is tracked on two hosts; only the row's own source may stand in for its owner.
-  if (isTwinRepo(state, repoId) && !projectOrigin) {
-    throw new Error(`No single host owns project ${repoId}.`)
-  }
-  // Untracked Project rows use their source host; other slug edits use local credentials, never the focused server.
-  return projectOrigin ? projectViewCacheKeyTarget(projectOrigin.cacheKey) : { kind: 'local' }
-}
-
 export async function runIssueUpdate(args: {
   repoPath: string | null
   repoId?: string | null
   sourceContext?: TaskSourceContext | null
   projectOrigin: GitHubWorkItemProjectOrigin | undefined
   issueRepo?: GitHubOwnerRepo | null
+  type?: 'issue' | 'pr'
   number: number
   updates: Parameters<typeof window.api.gh.updateIssue>[0]['updates']
 }): Promise<void> {
   const issueRepo = args.projectOrigin
-  if (issueRepo) {
+  if (issueRepo && !args.repoPath && !getGitHubSourceRuntimeHost(args.sourceContext)) {
     const target =
       args.sourceContext?.provider === 'github'
         ? taskSourceRuntimeTarget(args.sourceContext)
@@ -77,17 +62,30 @@ export async function runIssueUpdate(args: {
         repoPath: args.repoPath ?? '',
         repoId: args.repoId ?? undefined,
         sourceContext: args.sourceContext,
-        type: 'issue',
+        type: args.type ?? 'issue',
         number: args.number
       },
       { local: target.kind !== 'environment' }
     )
     return
   }
-  const runtimeHost = getGitHubSourceRuntimeHost(args.sourceContext)
+  const target = getGitHubRepoRoutingTarget(useAppStore.getState(), args.repoId, args.sourceContext)
+  const runtimeHost = target.kind === 'environment' ? target : null
   if (!args.repoPath && !runtimeHost) {
     throw new Error('No repo context available for this edit.')
   }
+  const repository = args.projectOrigin ?? args.issueRepo
+  const exactArgs = repository
+    ? await prepareGitHubWorkItemTargetRequest({
+        target: runtimeHost
+          ? { kind: 'environment', environmentId: runtimeHost.environmentId }
+          : { kind: 'local' },
+        resource: { repository, number: args.number, type: args.type ?? 'issue' },
+        repoPath: args.repoPath,
+        repoId: args.repoId ?? '',
+        sourceContext: args.sourceContext
+      })
+    : {}
   const res = runtimeHost
     ? await callRuntimeRpc<Awaited<ReturnType<typeof window.api.gh.updateIssue>>>(
         { kind: 'environment', environmentId: runtimeHost.environmentId },
@@ -95,7 +93,8 @@ export async function runIssueUpdate(args: {
         {
           repo: getGitHubRuntimeRepoId(args.sourceContext, args.repoId ?? ''),
           number: args.number,
-          updates: args.updates
+          updates: args.updates,
+          ...exactArgs
         },
         { timeoutMs: 30_000 }
       )
@@ -105,21 +104,21 @@ export async function runIssueUpdate(args: {
         sourceContext: args.sourceContext,
         number: args.number,
         updates: args.updates,
-        ...(args.issueRepo ? { ownerRepo: args.issueRepo } : {})
+        ...exactArgs
       })
   if (!res.ok) {
     throw new Error(codeHostErrorText(res))
   }
-  if (runtimeHost) {
+  if (runtimeHost || args.type === 'pr') {
     notifyWorkItemDetailsMutation(
       {
         repoPath: args.repoPath ?? '',
         repoId: args.repoId ?? undefined,
         sourceContext: args.sourceContext,
-        type: 'issue',
+        type: args.type ?? 'issue',
         number: args.number
       },
-      { local: false }
+      { local: !runtimeHost }
     )
   }
 }
@@ -133,15 +132,22 @@ export async function runWorkItemBodyUpdate(args: {
   parsedSlug: GitHubOwnerRepo | null
 }): Promise<void> {
   if (args.item.type === 'pr') {
-    const targetSlug = args.projectOrigin
-      ? {
-          owner: args.projectOrigin.owner,
-          repo: args.projectOrigin.repo,
-          host: args.projectOrigin.host
-        }
-      : args.parsedSlug
+    const targetSlug = resolvePullRequestRepo(args.item, args.projectOrigin) ?? args.parsedSlug
     if (!targetSlug) {
       throw new Error('No GitHub repository context available for this pull request.')
+    }
+    if (args.repoPath || getGitHubSourceRuntimeHost(args.sourceContext)) {
+      await runIssueUpdate({
+        repoPath: args.repoPath,
+        repoId: args.item.repoId,
+        sourceContext: args.sourceContext,
+        projectOrigin: args.projectOrigin,
+        issueRepo: targetSlug,
+        type: 'pr',
+        number: args.item.number,
+        updates: { body: args.body }
+      })
+      return
     }
     const target =
       args.sourceContext?.provider === 'github'

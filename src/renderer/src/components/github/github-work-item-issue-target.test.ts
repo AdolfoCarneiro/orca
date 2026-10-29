@@ -4,7 +4,7 @@ import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import { runGHEditLabelToggle } from '../github-item-dialog/edit-item-fields/gh-edit-section-mutations'
 
-vi.mock('@/store', () => ({ useAppStore: { getState: vi.fn() } }))
+vi.mock('@/store', () => ({ useAppStore: { getState: vi.fn(() => ({ repos: [] })) } }))
 vi.mock('@/components/github/github-work-item-comment-mutations', () => ({
   notifyWorkItemDetailsMutation: vi.fn()
 }))
@@ -80,12 +80,15 @@ describe('issue edits retain the displayed repository', () => {
       parsedSlug: UPSTREAM
     })
 
-    expect(window.api.gh.updateIssueBySlug).toHaveBeenCalledWith({
-      ...UPSTREAM,
+    expect(window.api.gh.updateIssue).toHaveBeenCalledWith({
+      repoPath: '/home/fixture/fork-widgets',
+      repoId: item.repoId,
+      sourceContext: localSource,
+      ownerRepo: UPSTREAM,
       number: 12,
       updates: { body: 'Project edit' }
     })
-    expect(window.api.gh.updateIssue).not.toHaveBeenCalled()
+    expect(window.api.gh.updateIssueBySlug).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -105,12 +108,15 @@ describe('issue edits retain the displayed repository', () => {
       updates
     })
 
-    expect(window.api.gh.updateIssueBySlug).toHaveBeenCalledWith({
-      ...UPSTREAM,
+    expect(window.api.gh.updateIssue).toHaveBeenCalledWith({
+      repoPath: '/home/fixture/fork-widgets',
+      repoId: item.repoId,
+      sourceContext: localSource,
+      ownerRepo: UPSTREAM,
       number: 12,
       updates
     })
-    expect(window.api.gh.updateIssue).not.toHaveBeenCalled()
+    expect(window.api.gh.updateIssueBySlug).not.toHaveBeenCalled()
   })
 
   it.each([

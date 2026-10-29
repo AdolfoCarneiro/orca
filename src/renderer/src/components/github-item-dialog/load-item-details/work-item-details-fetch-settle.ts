@@ -1,3 +1,8 @@
+import {
+  GitHubWorkItemTargetError,
+  requireGitHubWorkItemTargetDetails,
+  type GitHubWorkItemTarget
+} from '../../../../../shared/github/work-item-target'
 import type { GitHubWorkItemDetails } from '../../../../../shared/github/work-item-types'
 import {
   WORK_ITEM_DETAILS_UNAVAILABLE_MESSAGE,
@@ -10,10 +15,14 @@ export function settleWorkItemDetailsFetch(args: {
   detailsCacheKey: string
   inflight: Promise<GitHubWorkItemDetails | null>
   launchedAtGeneration: number
+  target?: GitHubWorkItemTarget | null
 }): void {
   const { detailsCacheKey, inflight, launchedAtGeneration } = args
   void inflight
     .then((result) => {
+      if (args.target) {
+        requireGitHubWorkItemTargetDetails(result, args.target)
+      }
       const invalidatedMidFlight = workItemDetailsCacheGeneration !== launchedAtGeneration
       const prev = workItemDetailsCache.get(detailsCacheKey)
       if (invalidatedMidFlight && prev?.pending !== inflight) {
@@ -50,8 +59,8 @@ export function settleWorkItemDetailsFetch(args: {
       }
       // Keep cached details on error, but drop the pending promise so later opens can retry.
       touchWorkItemDetailsCache(detailsCacheKey, {
-        details: prev?.details ?? null,
-        fetchedAt: prev?.fetchedAt ?? 0,
+        details: err instanceof GitHubWorkItemTargetError ? null : (prev?.details ?? null),
+        fetchedAt: err instanceof GitHubWorkItemTargetError ? 0 : (prev?.fetchedAt ?? 0),
         error: message
       })
     })

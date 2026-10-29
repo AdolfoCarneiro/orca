@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { RepoSelector } from './github-repo-target-params'
+import { RepoSelector, SlugRepo } from './github-repo-target-params'
 import { OptionalFiniteNumber, OptionalString, requiredString } from './rpc-param-primitives'
 
 export const WorkItemsList = RepoSelector.extend({
@@ -27,7 +27,7 @@ export const WorkItemByOwnerRepo = RepoSelector.extend({
   type: z.enum(['issue', 'pr'])
 })
 
-export const WorkItemDetails = WorkItem
+export const WorkItemDetails = WorkItem.extend({ ownerRepo: SlugRepo.optional() })
 
 export const WorkItemsCount = RepoSelector.extend({
   query: OptionalString

@@ -175,7 +175,7 @@ export function GitHubItemDialogPRTabs({
             </TabsContent>
 
             <TabsContent value="files" className="mt-0 h-full min-h-0 overflow-hidden">
-              {loading && files.length === 0 ? (
+              {(loading || !detailsLoaded) && files.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
                   <LoaderCircle className="size-5 animate-spin text-muted-foreground" />
                 </div>

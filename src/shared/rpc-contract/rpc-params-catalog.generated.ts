@@ -321,12 +321,13 @@ import {
   UpdatePrState,
   UpdatePrTitle
 } from './github-pull-request-update-params'
-import { RepoSelector, RepoShow, SlugRepo } from './github-repo-target-params'
+import { RepoSelector, RepoShow, RepoWithGitHubTarget, SlugRepo } from './github-repo-target-params'
 import {
   IssuesList,
   RateLimit,
   WorkItem,
   WorkItemByOwnerRepo,
+  WorkItemDetails,
   WorkItemsCount,
   WorkItemsList
 } from './github-repo-work-item-params'
@@ -348,7 +349,7 @@ import {
   UpdateMrReviewers,
   UpdateMrState,
   WorkItemByPath,
-  WorkItemDetails,
+  WorkItemDetails as WorkItemDetailsOfGitlabParams,
   WorkItemsList as WorkItemsListOfGitlabParams
 } from './gitlab-params'
 import {
@@ -1042,10 +1043,10 @@ export const RPC_PARAMS_BY_METHOD = {
   'github.countWorkItems': WorkItemsCount,
   'github.createIssue': CreateIssue,
   'github.issue': Issue,
-  'github.listAssignableUsers': RepoSelector,
+  'github.listAssignableUsers': RepoWithGitHubTarget,
   'github.listBindableAccounts': BindableAccounts,
   'github.listIssues': IssuesList,
-  'github.listLabels': RepoSelector,
+  'github.listLabels': RepoWithGitHubTarget,
   'github.listWorkItems': WorkItemsList,
   'github.markPRReadyForReview': MarkPrReadyForReview,
   'github.mergePR': MergePr,
@@ -1087,7 +1088,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'github.validateAccountBinding': ValidateAccountBinding,
   'github.workItem': WorkItem,
   'github.workItemByOwnerRepo': WorkItemByOwnerRepo,
-  'github.workItemDetails': WorkItem,
+  'github.workItemDetails': WorkItemDetails,
   'gitlab.addIssueComment': AddIssueComment,
   'gitlab.addMRComment': AddMRComment,
   'gitlab.addMRInlineComment': AddMRInlineComment,
@@ -1109,7 +1110,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'gitlab.updateMRReviewers': UpdateMrReviewers,
   'gitlab.updateMRState': UpdateMrState,
   'gitlab.workItemByPath': WorkItemByPath,
-  'gitlab.workItemDetails': WorkItemDetails,
+  'gitlab.workItemDetails': WorkItemDetailsOfGitlabParams,
   'host.declareClient': OrcadDeclareClientParamsSchema,
   'host.gitBash.isAvailable': null,
   'host.peerDesktops': OrcadPeerDesktopsParamsSchema,

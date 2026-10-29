@@ -70,15 +70,15 @@ export async function getWorkItemDetails(
   preference?: IssueSourcePreference,
   repositoryOverride?: unknown
 ): Promise<GitHubWorkItemDetails | null> {
-  let issueRepositoryOverride: GitHubApiRepository | null = null
-  if (type === 'issue' && repositoryOverride != null) {
+  let repositoryTarget: GitHubApiRepository | null = null
+  if (type && repositoryOverride != null) {
     if (!isValidGitHubApiRepository(repositoryOverride)) {
       return null
     }
-    issueRepositoryOverride = (
+    repositoryTarget = (
       await resolveGitHubRepoExecution(repoPath, repositoryOverride, connectionId, localGitOptions)
     ).ownerRepo
-    if (!issueRepositoryOverride) {
+    if (!repositoryTarget) {
       return null
     }
   }
@@ -86,17 +86,17 @@ export async function getWorkItemDetails(
     item,
     repository: selectedRepository,
     issueDetails
-  } = issueRepositoryOverride
+  } = repositoryTarget
     ? {
         item: await getWorkItemByOwnerRepo(
           repoPath,
-          issueRepositoryOverride,
+          repositoryTarget,
           number,
-          'issue',
+          type === 'pr' ? 'pr' : 'issue',
           connectionId,
           localGitOptions
         ),
-        repository: issueRepositoryOverride,
+        repository: repositoryTarget,
         issueDetails: undefined
       }
     : await getWorkItemWithRepository(
@@ -112,12 +112,13 @@ export async function getWorkItemDetails(
     return null
   }
 
-  // Keep the conversation in the same repository as the selected issue.
+  // The clone selects execution; an addressed item selects every detail read.
   const resolvedRepository =
-    item.type === 'issue'
+    repositoryTarget ??
+    (item.type === 'issue'
       ? selectedRepository
       : (await resolveGitHubRepoExecution(repoPath, item.prRepo, connectionId, localGitOptions))
-          .ownerRepo
+          .ownerRepo)
 
   if (item.type === 'issue') {
     return withWorkItemDetailsPermit(async () => {

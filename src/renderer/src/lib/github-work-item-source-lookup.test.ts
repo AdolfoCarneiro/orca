@@ -11,7 +11,8 @@ vi.mock('@/runtime/runtime-rpc-client', async () => {
   const actual = await vi.importActual<typeof RuntimeRpcClient>('@/runtime/runtime-rpc-client')
   return {
     ...actual,
-    callRuntimeRpc: vi.fn()
+    callRuntimeRpc: vi.fn(),
+    runtimeEnvironmentSupportsCapability: vi.fn().mockResolvedValue(false)
   }
 })
 
@@ -104,7 +105,7 @@ describe('GitHub source lookup routing', () => {
         type: 'issue',
         ownerRepo: { owner: 'fork-owner', repo: 'widgets', host: 'github.com' }
       })
-    ).resolves.toBeNull()
+    ).rejects.toThrow('fork-owner/widgets#42')
 
     expect(callRuntimeRpc).toHaveBeenCalledWith(
       { kind: 'environment', environmentId: 'env-1' },
@@ -166,13 +167,15 @@ describe('GitHub source lookup routing', () => {
     const ownerRepo = { owner: 'fork-owner', repo: 'widgets', host: 'github.com' }
     vi.mocked(window.api.gh.workItemDetails).mockResolvedValue(null)
 
-    await lookupGitHubWorkItemDetailsForSource({
-      repoPath: '/home/fixture/widgets',
-      repoId: 'local-repo',
-      number: 12,
-      type: 'issue',
-      ownerRepo
-    })
+    await expect(
+      lookupGitHubWorkItemDetailsForSource({
+        repoPath: '/home/fixture/widgets',
+        repoId: 'local-repo',
+        number: 12,
+        type: 'issue',
+        ownerRepo
+      })
+    ).rejects.toThrow('fork-owner/widgets#12')
 
     expect(window.api.gh.workItemDetails).toHaveBeenCalledWith(
       expect.objectContaining({ repoPath: '/home/fixture/widgets', ownerRepo })

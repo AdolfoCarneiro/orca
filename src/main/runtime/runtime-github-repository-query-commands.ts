@@ -1,3 +1,4 @@
+import type { GitHubOwnerRepo } from '../../shared/github/pull-request-types'
 import type { ListWorkItemsResult } from '../../shared/github/work-item-types'
 import type { Repo } from '../../shared/repo-types'
 import type { LocalProjectGhExecOptions } from '../project-runtime-git-options'
@@ -101,7 +102,8 @@ export class RuntimeGitHubRepositoryQueryCommands {
   async getRepoWorkItemDetails(
     repoSelector: string,
     number: number,
-    type?: 'issue' | 'pr'
+    type?: 'issue' | 'pr',
+    ownerRepo?: GitHubOwnerRepo
   ): Promise<Awaited<ReturnType<typeof getWorkItemDetails>>> {
     const repo = await this.deps.resolveRepo(repoSelector)
     return getWorkItemDetails(
@@ -110,7 +112,8 @@ export class RuntimeGitHubRepositoryQueryCommands {
       type,
       getRepoRoutingConnectionId(repo),
       this.deps.getLocalGitArgs(repo)[0] ?? {},
-      repo.issueSourcePreference
+      repo.issueSourcePreference,
+      ...(ownerRepo ? ([ownerRepo] as const) : ([] as const))
     )
   }
 
@@ -125,25 +128,33 @@ export class RuntimeGitHubRepositoryQueryCommands {
     )
   }
 
-  async listRepoLabels(repoSelector: string): Promise<Awaited<ReturnType<typeof listLabels>>> {
+  async listRepoLabels(
+    repoSelector: string,
+    ownerRepo?: GitHubOwnerRepo
+  ): Promise<Awaited<ReturnType<typeof listLabels>>> {
     const repo = await this.deps.resolveRepo(repoSelector)
     return listLabels(
       repo.path,
       repo.issueSourcePreference,
       getRepoRoutingConnectionId(repo),
-      ...this.deps.getLocalGitArgs(repo)
+      ...(ownerRepo
+        ? ([this.deps.getLocalGitArgs(repo)[0] ?? {}, ownerRepo] as const)
+        : this.deps.getLocalGitArgs(repo))
     )
   }
 
   async listRepoAssignableUsers(
-    repoSelector: string
+    repoSelector: string,
+    ownerRepo?: GitHubOwnerRepo
   ): Promise<Awaited<ReturnType<typeof listAssignableUsers>>> {
     const repo = await this.deps.resolveRepo(repoSelector)
     return listAssignableUsers(
       repo.path,
       repo.issueSourcePreference,
       getRepoRoutingConnectionId(repo),
-      ...this.deps.getLocalGitArgs(repo)
+      ...(ownerRepo
+        ? ([this.deps.getLocalGitArgs(repo)[0] ?? {}, ownerRepo] as const)
+        : this.deps.getLocalGitArgs(repo))
     )
   }
 

@@ -1,3 +1,4 @@
+import { useGitHubWorkItemTarget } from '../load-item-details/github-work-item-target-context'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
@@ -29,6 +30,9 @@ import { useGitHubDuplicateIssueCandidates } from '@/components/github/github-du
 
 export function GHEditSection(props: GitHubItemDialogEditSectionProps): React.JSX.Element | null {
   const { item, projectOrigin } = props
+  if (item.type === 'pr') {
+    return null
+  }
   const repository = projectOrigin ?? parseOwnerRepoFromItemUrl(item.url)
   const itemKey = `${item.repoId}\0${repository ? githubRepoIdentityKey(repository) : item.url}\0${item.type}\0${item.id}`
   return <GHEditSectionItem key={itemKey} {...props} />
@@ -68,7 +72,20 @@ function GHEditSectionItem({
   const ownerTarget = useAppStore(
     useShallow((s) => getGitHubRepoRoutingTarget(s, item.repoId ?? null, sourceContext))
   )
-  const { isPending, run } = useImmediateMutation()
+  const bound = useGitHubWorkItemTarget()
+  const { isPending, run: runMutation } = useImmediateMutation()
+  const run: typeof runMutation = useCallback(
+    (key, options) =>
+      runMutation(key, {
+        ...options,
+        onError: (message) => {
+          if (!bound?.reportError(message)) {
+            options.onError?.(message)
+          }
+        }
+      }),
+    [bound, runMutation]
+  )
   // Patch Project rows too; patchWorkItem updates only workItemsCache, leaving projectViewCache stale.
   const patchProjectRowIfNeeded = useCallback(
     (patch: Parameters<typeof patchProjectRowContent>[2]) => {

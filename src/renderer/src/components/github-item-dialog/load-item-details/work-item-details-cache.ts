@@ -1,3 +1,10 @@
+import type { PRComment } from '../../../../../shared/github/comment-types'
+import {
+  GitHubWorkItemTargetError,
+  matchesGitHubWorkItemTarget,
+  type GitHubWorkItemTarget
+} from '../../../../../shared/github/work-item-target'
+import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { PRCheckDetail } from '../../../../../shared/github/check-types'
 import type {
   GitHubAssignableUser,
@@ -7,7 +14,6 @@ import type {
 import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
 import type { GitHubWorkItemDetails } from '../../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
-import { getGitHubSourceRuntimeHost } from '@/lib/github-source-runtime-context'
 import { onGitHubWorkItemDetailsCacheMutation } from '@/lib/github-work-item-details-cache-events'
 
 // Bound cached details for instant reopen; refresh stale entries on open. See docs/gh-work-item-drawer-cache.md.
@@ -47,10 +53,9 @@ export function getWorkItemDetailsCacheKey(args: {
   ownerRepo?: GitHubOwnerRepo | null
 }): string {
   // NUL-separate routing axes to prevent key collisions; keep repoPath second for path-only invalidation events.
-  const sourceKey =
-    args.ownerRepo && !getGitHubSourceRuntimeHost(args.sourceContext)
-      ? githubRepoIdentityKey(args.ownerRepo)
-      : (args.issueSourcePreference ?? 'auto')
+  const sourceKey = args.ownerRepo
+    ? githubRepoIdentityKey(args.ownerRepo)
+    : (args.issueSourcePreference ?? 'auto')
   const keyParts = args.sourceCacheScope
     ? [args.repoId, args.repoPath, args.sourceCacheScope, sourceKey, args.type]
     : [args.repoId, args.repoPath, sourceKey, args.type]
@@ -208,4 +213,46 @@ if (import.meta !== undefined && import.meta.hot) {
     workItemMutatedUnsub?.()
     workItemDetailsCacheEventUnsub?.()
   })
+}
+
+export function getAcceptedWorkItemDetails({
+  cachedEntry,
+  resource,
+  workItem,
+  opt
+}: {
+  cachedEntry: WorkItemDetailsCacheEntry | undefined
+  resource: GitHubWorkItemTarget | null
+  workItem: GitHubWorkItem | null
+  opt: PRComment[]
+}): GitHubWorkItemDetails | null {
+  if (resource && cachedEntry?.error === new GitHubWorkItemTargetError(resource).message) {
+    return null
+  }
+  if (workItem && resource && !matchesGitHubWorkItemTarget(workItem, resource)) {
+    return null
+  }
+  const cachedDetails = cachedEntry?.details ?? null
+  if (cachedDetails && resource && !matchesGitHubWorkItemTarget(cachedDetails.item, resource)) {
+    return null
+  }
+  if (!cachedDetails) {
+    // Show pre-fetch optimistic comments in a minimal shell while full details load.
+    if (opt.length > 0 && workItem) {
+      return { item: workItem, body: '', comments: [...opt] }
+    }
+    return null
+  }
+  if (opt.length === 0) {
+    return cachedDetails
+  }
+  const ids = new Set(cachedDetails.comments.map((c) => c.id))
+  const missing = opt.filter((c) => !ids.has(c.id))
+  if (missing.length === 0) {
+    return cachedDetails
+  }
+  return {
+    ...cachedDetails,
+    comments: [...cachedDetails.comments, ...missing]
+  }
 }

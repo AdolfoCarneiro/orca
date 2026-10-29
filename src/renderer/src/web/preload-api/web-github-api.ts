@@ -1,3 +1,5 @@
+import { GITHUB_EXACT_WORK_ITEM_TARGET_RUNTIME_CAPABILITY } from '../../../../shared/source-control-runtime-capabilities'
+import { requireGitHubWorkItemTargetDetails } from '../../../../shared/github/work-item-target'
 import type { PreloadApi } from '../../../../preload/api-types'
 import {
   GITHUB_MARK_PR_READY_RUNTIME_CAPABILITY,
@@ -53,8 +55,24 @@ export function createGitHubApi(): WebGitHubApi {
         ...args,
         ownerRepo
       }),
-    workItemDetails: (args) =>
-      route<WebGitHubResult<'workItemDetails'>>(GITHUB_WEB_RPC_METHODS.workItemDetails, args),
+    workItemDetails: async ({ ownerRepo, ...args }) => {
+      const supported =
+        ownerRepo &&
+        (await getRemoteRuntimeStatus().catch(() => null))?.capabilities?.includes(
+          GITHUB_EXACT_WORK_ITEM_TARGET_RUNTIME_CAPABILITY
+        )
+      const details = await route<WebGitHubResult<'workItemDetails'>>(
+        GITHUB_WEB_RPC_METHODS.workItemDetails,
+        { ...args, ...(supported ? { ownerRepo } : {}) }
+      )
+      return ownerRepo && args.type
+        ? requireGitHubWorkItemTargetDetails(details, {
+            repository: ownerRepo,
+            type: args.type,
+            number: args.number
+          })
+        : details
+    },
     notifyWorkItemMutated: () => Promise.resolve(false),
     prFileContents: (args) =>
       route<WebGitHubResult<'prFileContents'>>(GITHUB_WEB_RPC_METHODS.prFileContents, args),

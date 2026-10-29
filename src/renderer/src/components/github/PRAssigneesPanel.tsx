@@ -1,3 +1,4 @@
+import { useGitHubWorkItemTarget } from '@/components/github-item-dialog/load-item-details/github-work-item-target-context'
 import React, { useCallback, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { LoaderCircle, Pencil } from 'lucide-react'
@@ -33,6 +34,7 @@ export function PRAssigneesPanel({
   sourceContext?: TaskSourceContext | null
   onMutated: () => void
 }): React.JSX.Element {
+  const bound = useGitHubWorkItemTarget()
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false)
   const [localAssignees, setLocalAssignees] = useState<GitHubAssignableUser[]>(
     () => item.assignees ?? []
@@ -71,23 +73,24 @@ export function PRAssigneesPanel({
   const assigneeLogins = useMemo(() => localAssignees.map((user) => user.login), [localAssignees])
   const assigneeSlug = useMemo(() => parseOwnerRepoFromItemUrl(item.url), [item.url])
   const prRepo = useMemo(() => resolvePullRequestRepo(item, projectOrigin), [item, projectOrigin])
+  const boundRepo = Boolean(bound && (repoPath || ownerTarget.kind === 'environment'))
   const slugOwner = projectOrigin?.owner ?? assigneeSlug?.owner ?? null
   const slugRepo = projectOrigin?.repo ?? assigneeSlug?.repo ?? null
   const repoAssigneesBySlug = useRepoAssigneesBySlug(
-    slugOwner,
-    slugRepo,
+    boundRepo ? null : slugOwner,
+    boundRepo ? null : slugRepo,
     assigneeLogins,
     ownerTarget,
     projectOrigin?.host ?? assigneeSlug?.host
   )
-  const usesSlug = Boolean(slugOwner && slugRepo)
+  const usesSlug = !boundRepo && Boolean(slugOwner && slugRepo)
   const repoAssigneesByPath = useRepoAssignees(
-    usesSlug ? null : repoPath,
-    usesSlug ? null : item.repoId,
-    { target: ownerTarget }
+    usesSlug || (boundRepo && !assigneePopoverOpen) ? null : repoPath,
+    usesSlug || (boundRepo && !assigneePopoverOpen) ? null : item.repoId,
+    { target: ownerTarget, ownerRepo: prRepo }
   )
-  const repoAssignees = slugOwner && slugRepo ? repoAssigneesBySlug : repoAssigneesByPath
-  const canEditAssignees = Boolean(projectOrigin || repoPath)
+  const repoAssignees = usesSlug ? repoAssigneesBySlug : repoAssigneesByPath
+  const canEditAssignees = Boolean(projectOrigin || repoPath || ownerTarget.kind === 'environment')
   const assigneesByLogin = useMemo(
     () => new Map(repoAssignees.data.map((user) => [user.login.toLowerCase(), user])),
     [repoAssignees.data]
@@ -113,6 +116,7 @@ export function PRAssigneesPanel({
             sourceContext,
             projectOrigin,
             issueRepo: prRepo,
+            type: item.type,
             number: item.number,
             updates: isAssigned ? { removeAssignees: [login] } : { addAssignees: [login] }
           }),
@@ -136,11 +140,17 @@ export function PRAssigneesPanel({
           useAppStore.getState().recordFeatureInteraction('github-tasks')
           onMutated()
         },
-        onError: (err) => toast.error(err)
+        onError: (err) => {
+          if (!bound?.reportError(err)) {
+            toast.error(err)
+          }
+        }
       })
     },
     [
       assigneesByLogin,
+      bound,
+      item.type,
       item.id,
       item.number,
       item.repoId,
