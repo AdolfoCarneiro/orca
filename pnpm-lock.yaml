@@ -183,6 +183,7 @@ patchedDependencies:
   '@xterm/xterm@6.1.0-beta.304': 6a96a556cb32825d4084043f7e18fe16203686d8352affd2f01613c0b464a6ed
   i18next-cli@1.74.2: 2ee32eef742615cd133e1a6940f027deb3723a8430bb7953bba3a6769b0aac47
   lint-staged@16.4.0: 7333b3837f80a7fbd045964db6d76ba4fc118e49134bdbabb00585b6b7b60673
+  marked@17.0.6: c3ce8d559ebbc7987e25188cb23e974678df2e276cf47ff9c86d1011410972cd
   monaco-editor@0.55.1: 53b71f7d8a7c00b76ffdb73ce83d18e31692f193f5fafa6a390e48f5b3fdd636
   node-pty@1.1.0: 3072026a166d508c622ee025bfceb011ce97e2133efc93bd014e9374f3febf43
   oxlint-plugin-anti-slop@0.1.2: c10c871702365a0c2c59e9f1c5fb92df97cae5755d534c0a3d83c6368f6feafe
@@ -500,7 +501,7 @@ importers:
         version: 0.577.0(@types/react@19.2.18)(react@19.2.8)
       marked:
         specifier: ^17.0.1
-        version: 17.0.6
+        version: 17.0.6(patch_hash=c3ce8d559ebbc7987e25188cb23e974678df2e276cf47ff9c86d1011410972cd)
       mermaid:
         specifier: ^11.17.2
         version: 11.17.2
@@ -10636,7 +10637,7 @@ snapshots:
     dependencies:
       '@tiptap/core': 3.31.3(@tiptap/pm@3.31.3)
       '@tiptap/pm': 3.31.3
-      marked: 17.0.6
+      marked: 17.0.6(patch_hash=c3ce8d559ebbc7987e25188cb23e974678df2e276cf47ff9c86d1011410972cd)
 
   '@tiptap/pm@3.31.3':
     dependencies:
@@ -13111,7 +13112,7 @@ snapshots:
 
   marked@16.4.2: {}
 
-  marked@17.0.6: {}
+  marked@17.0.6(patch_hash=c3ce8d559ebbc7987e25188cb23e974678df2e276cf47ff9c86d1011410972cd): {}
 
   matcher@3.0.0:
     dependencies:
