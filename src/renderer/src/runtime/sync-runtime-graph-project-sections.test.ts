@@ -86,7 +86,7 @@ describe("the sidebar's Project catalog in the window graph", () => {
       setups: [
         {
           id: 'repo-1',
-          groupKey: 'repo:repo-1',
+          groupKey: 'project:repo:repo-1',
           projectId: 'repo:repo-1',
           hostId: 'local',
           repoId: 'repo-1',
