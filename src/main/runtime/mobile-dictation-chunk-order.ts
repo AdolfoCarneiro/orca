@@ -4,6 +4,8 @@ export type MobileDictationChunk = { audioBase64: string; sampleRate: number }
 
 // Past what the phone holds through a reconnect, a missing chunk is given up on.
 const MAX_HELD_BASE64_LENGTH = Math.ceil(MOBILE_DICTATION_MAX_PENDING_AUDIO_BYTES / 3) * 4
+// The grace's worth of native microphone events, one chunk per ~32ms; tiny chunks must not pile up under the byte cap.
+const MAX_HELD_CHUNKS = 1_000
 
 // A chunk resent after a drop can land behind audio captured later, so release audio in seq order and each seq once.
 export class MobileDictationChunkOrder {
@@ -17,8 +19,11 @@ export class MobileDictationChunkOrder {
     }
     this.held.set(seq, chunk)
     this.heldLength += chunk.audioBase64.length
-    if (this.heldLength > MAX_HELD_BASE64_LENGTH) {
-      this.nextSeq = Math.min(...this.held.keys())
+    if (this.heldLength > MAX_HELD_BASE64_LENGTH || this.held.size > MAX_HELD_CHUNKS) {
+      this.nextSeq = Infinity
+      for (const held of this.held.keys()) {
+        this.nextSeq = Math.min(this.nextSeq, held)
+      }
     }
     const ready: MobileDictationChunk[] = []
     for (let next = this.held.get(this.nextSeq); next; next = this.held.get(this.nextSeq)) {

@@ -102,16 +102,18 @@ describe('mobile dictation across a phone reconnect', () => {
     expect(fed).toEqual([0, 1, 2, 4])
   })
 
-  it('stops waiting for a chunk that never comes', async () => {
+  // 35s of speech, or more tiny chunks than 30s of native microphone events, is more than a reconnect holds back.
+  it.each([
+    { held: 'long chunks', count: 7, audioBase64: Buffer.alloc(160_000).toString('base64') },
+    { held: 'tiny chunks', count: 1001, audioBase64: 'AAA=' }
+  ])('stops waiting for a chunk that never comes behind $held', async ({ count, audioBase64 }) => {
     const controller = await startPhoneDictation()
-    // 35s of speech behind a chunk that never comes is more than a reconnect holds back.
-    const longChunk = { ...chunk, audioBase64: Buffer.alloc(160_000).toString('base64') }
 
-    for (let seq = 1; seq <= 7; seq += 1) {
-      controller.feed({ ...longChunk, seq })
+    for (let seq = 1; seq <= count; seq += 1) {
+      controller.feed({ ...chunk, audioBase64, seq })
     }
 
-    expect(feedAudio).toHaveBeenCalledTimes(7)
+    expect(feedAudio).toHaveBeenCalledTimes(count)
   })
 })
 
