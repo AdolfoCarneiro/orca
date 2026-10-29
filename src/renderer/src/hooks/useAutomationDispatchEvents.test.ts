@@ -75,6 +75,7 @@ const state = {
 function makeAutomation(overrides: Record<string, unknown> = {}) {
   return {
     id: 'automation-1',
+    name: 'Nightly setup',
     projectId: 'repo-1',
     prompt: 'run this',
     precheck: null,
@@ -282,6 +283,20 @@ describe('useAutomationDispatchEvents setup launch', () => {
     await registerAndDispatch()
     expect(mockCreateWorktree.mock.calls[0]?.at(-1)).toEqual(
       expect.objectContaining({ executionHostId: undefined })
+    )
+  })
+
+  // #34433: a runtime host records this as a label; `local` sends the badge's lookup back to this desktop.
+  it('offers the run as a label that names this desktop as its owner', async () => {
+    state.repos[0]!.connectionId = 'box'
+    await registerAndDispatch(
+      makeAutomation({ runContext: { repoId: 'repo-1', hostId: 'ssh:box', path: '/repo' } })
+    )
+
+    expect(mockCreateWorktree.mock.calls[0]?.at(-1)).toEqual(
+      expect.objectContaining({
+        clientAutomationProvenance: expect.objectContaining({ hostId: 'local' })
+      })
     )
   })
 

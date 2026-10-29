@@ -150,7 +150,7 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
     sourceDefaultsSupported = true
   ): ResolvedWorktreeSnapshot {
     const visibilitySettings = this.store?.getSettings()
-    const visibilitySourceMatchersByRepoId = this.buildRuntimeVisibilitySourceMatchersByRepoId(
+    const sourceMatchersByRepoId = this.buildRuntimeVisibilitySourceMatchersByRepoId(
       snapshot.worktrees,
       sourceDefaultsSupported,
       visibilitySettings
@@ -168,9 +168,7 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
         return this.isRuntimeWorktreeVisible(
           worktree,
           owner.kind === 'resolved'
-            ? visibilitySourceMatchersByRepoId.get(
-                getRepoHostIdentityForParts(worktree.repoId, owner.hostId)
-              )
+            ? sourceMatchersByRepoId.get(getRepoHostIdentityForParts(worktree.repoId, owner.hostId))
             : undefined,
           sourceDefaultsSupported,
           visibilitySettings
@@ -215,6 +213,7 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
   async openAgentSessionRecordStore(): Promise<AgentSessionRecordStore> {
     const { store } = await openAgentSessionRecordStoreOnce({
       stateDirectory: getProfileUserDataPath(),
+      legacySessionTabIds: this.legacyStructuredSessionTabIds,
       hostId: LOCAL_EXECUTION_HOST_ID,
       logger: neverThrowingStructuredAgentSessionLogger(createStructuredAgentSessionLogger())
     })
@@ -245,6 +244,7 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
     )
     await installStructuredAgentSessionHost({
       stateDirectory: getProfileUserDataPath(),
+      legacySessionTabIds: this.legacyStructuredSessionTabIds,
       hostId: LOCAL_EXECUTION_HOST_ID,
       claimKeyId: this.agentSessionClaimSigner.keyId,
       logger,

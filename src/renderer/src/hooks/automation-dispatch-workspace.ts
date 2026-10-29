@@ -16,6 +16,7 @@ import {
 } from '../../../shared/automation-precheck'
 import { getRepoSshConnectionId, parseExecutionHostId } from '../../../shared/execution-host'
 import { resolveQualifiedFolderWorkspaceResult } from '../../../shared/folder-workspace-execution-host'
+import { buildClientAutomationWorkspaceProvenance } from '../../../shared/automation-workspace-provenance'
 import type { Worktree } from '../../../shared/worktree/types'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import {
@@ -218,7 +219,8 @@ export async function prepareAutomationDispatchWorkspace(args: {
               automationRunId: run.id,
               dispatchToken,
               createRequestId: automationWorkspaceCreateRequestId
-            }
+            },
+            clientAutomationProvenance: buildClientAutomationWorkspaceProvenance(automation, run)
           }
         )
       : null
