@@ -4,6 +4,7 @@ import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import type { AppState } from '@/store/types'
 import { collectAiVaultTitleRequests } from './ai-vault-tab-title-requests'
+import { worktreeOwnerRowsTokenOf } from './worktree-owner-rows-token'
 import {
   selectDetectedWorktreesByRepo,
   selectFolderWorkspaces,
@@ -151,11 +152,48 @@ function activePanesEqual(current: AppState, previous: AppState): boolean {
   )
 }
 
+type RequestWorktreeIdsInputs = Pick<
+  AppState,
+  | 'agentStatusByPaneKey'
+  | 'retainedAgentsByPaneKey'
+  | 'sleepingAgentSessionsByPaneKey'
+  | 'tabsByWorktree'
+  | 'terminalLayoutsByTabId'
+>
+let cachedRequestWorktreeIds: { inputs: RequestWorktreeIdsInputs; worktreeIds: string[] } | null =
+  null
+
+// Request membership reads only these maps, so owner-only updates reuse it instead of re-collecting every tab.
+function requestWorktreeIds(state: AppState): string[] {
+  const cached = cachedRequestWorktreeIds
+  if (
+    cached?.inputs.agentStatusByPaneKey === state.agentStatusByPaneKey &&
+    cached.inputs.retainedAgentsByPaneKey === state.retainedAgentsByPaneKey &&
+    cached.inputs.sleepingAgentSessionsByPaneKey === state.sleepingAgentSessionsByPaneKey &&
+    cached.inputs.tabsByWorktree === state.tabsByWorktree &&
+    cached.inputs.terminalLayoutsByTabId === state.terminalLayoutsByTabId
+  ) {
+    return cached.worktreeIds
+  }
+  const worktreeIds = [
+    ...new Set(collectAiVaultTitleRequests(state).map((request) => request.worktreeId))
+  ]
+  cachedRequestWorktreeIds = {
+    inputs: {
+      agentStatusByPaneKey: state.agentStatusByPaneKey,
+      retainedAgentsByPaneKey: state.retainedAgentsByPaneKey,
+      sleepingAgentSessionsByPaneKey: state.sleepingAgentSessionsByPaneKey,
+      tabsByWorktree: state.tabsByWorktree,
+      terminalLayoutsByTabId: state.terminalLayoutsByTabId
+    },
+    worktreeIds
+  }
+  return worktreeIds
+}
+
 function requestOwnersEqual(current: AppState, previous: AppState): boolean {
-  const worktreeIds = new Set([
-    ...collectAiVaultTitleRequests(current).map((request) => request.worktreeId),
-    ...collectAiVaultTitleRequests(previous).map((request) => request.worktreeId)
-  ])
+  // Previous first, so the single cache entry ends on current: the next update's previous.
+  const worktreeIds = new Set([...requestWorktreeIds(previous), ...requestWorktreeIds(current)])
   for (const worktreeId of worktreeIds) {
     const currentHost = getExecutionHostIdForWorktree(current, worktreeId)
     const previousHost = getExecutionHostIdForWorktree(previous, worktreeId)
@@ -186,7 +224,8 @@ export function aiVaultTitleSyncInputsChanged(current: AppState, previous: AppSt
 
   const ownerInputsChanged =
     current.repos !== previous.repos ||
-    selectWorktreesByRepo(current) !== selectWorktreesByRepo(previous) ||
+    worktreeOwnerRowsTokenOf(selectWorktreesByRepo(current)) !==
+      worktreeOwnerRowsTokenOf(selectWorktreesByRepo(previous)) ||
     selectDetectedWorktreesByRepo(current) !== selectDetectedWorktreesByRepo(previous) ||
     selectFolderWorkspaces(current) !== selectFolderWorkspaces(previous) ||
     current.projectGroups !== previous.projectGroups ||

@@ -214,6 +214,39 @@ describe('AI Vault title subscription inputs', () => {
     }
   })
 
+  it('skips owner rescans for rank-only rows but reports a conversation workspace moving host', () => {
+    // No active selection, so the row's host decides ownership.
+    const state = {
+      ...makeState(200),
+      activeWorktreeId: null,
+      activeWorkspaceExecutionHostId: null
+    }
+    const row = state.worktreesByRepo.fixture[0]
+    const tabs = Object.values(state.tabsByWorktree).flat()
+    const tabValues = vi.spyOn(state.tabsByWorktree, 'wt-title', 'get').mockReturnValue(tabs)
+    // A rank/unread patch replaces the row map without changing who owns any row.
+    const ranked: AppState = {
+      ...state,
+      worktreesByRepo: { fixture: [{ ...row, sortOrder: 5, isUnread: true }] }
+    }
+    expect(aiVaultTitleSyncInputsChanged(ranked, state)).toBe(false)
+    expect(tabValues).not.toHaveBeenCalled()
+
+    const settingsOnly: AppState = { ...ranked, settings: structuredClone(ranked.settings) }
+    expect(aiVaultTitleSyncInputsChanged(settingsOnly, ranked)).toBe(false)
+    expect(aiVaultTitleSyncInputsChanged({ ...settingsOnly }, settingsOnly)).toBe(false)
+    // Membership was collected once and reused across owner-only updates.
+    expect(tabValues.mock.calls.length).toBeLessThanOrEqual(1)
+
+    const moved: AppState = {
+      ...settingsOnly,
+      worktreesByRepo: {
+        fixture: [{ ...row, hostId: 'runtime:server-1', runtimeOwnerEnvironmentId: 'server-1' }]
+      }
+    }
+    expect(aiVaultTitleSyncInputsChanged(moved, settingsOnly)).toBe(true)
+  })
+
   it('still checks active panes and stored titles after unchanged record collections', () => {
     const state = makeState()
     const agentStatusByPaneKey = { ...state.agentStatusByPaneKey }
