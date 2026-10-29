@@ -22318,5 +22318,32 @@
         "forkHeadUnresolved": "Não foi possível resolver o head do MR !{{number}} de um fork após o fetch."
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "Repositório não encontrado: {{repoId}}",
+      "remoteRepoUnsupported": "Na v1, as receitas de VM efêmeras são executadas no host local do aplicativo desktop.",
+      "recipeNotFound": "Receita não encontrada: {{recipeId}}",
+      "runtimeNotFound": "Runtime de VM efêmera desconhecido: {{runtimeId}}",
+      "runtimeRepoMissing": "O runtime de VM efêmera não tem ID de repositório: {{runtimeId}}",
+      "provisionCancelled": "Provisionamento cancelado.",
+      "startRefUnresolved": "Não foi possível resolver a referência inicial da raiz provisionada: {{ref}}",
+      "defaultStartRefUnresolved": "Não foi possível resolver uma referência inicial padrão para a raiz provisionada.",
+      "recipeExited": "A receita terminou com o código {{exitCode}}.",
+      "recipeResultMissing": "A receita não produziu nenhum resultado JSON.",
+      "recipeResultNotJsonObject": "A saída stdout da receita deve ser um único objeto JSON.",
+      "recipeResultPairingCodeInvalid": "O campo pairingCode do resultado da receita não é um código de pareamento válido do Orca.",
+      "recipeResultProjectRootNotAbsolute": "O campo projectRoot do resultado da receita deve ser um caminho absoluto no runtime.",
+      "provisionedRootResultRequired": "Receitas de raiz provisionada devem retornar schemaVersion 2 com checkoutMode \"provisioned-root\".",
+      "provisionedRootNotConfigured": "O resultado da receita solicita um checkout com raiz provisionada, mas a receita não está configurada para isso.",
+      "destroyExited": "A destruição terminou com o código {{exitCode}}.",
+      "destroyFailed": "Falha na destruição.",
+      "destroyDisabled": "A destruição está desativada para esta receita.",
+      "cleanupStopped": "Limpeza interrompida pelo usuário.",
+      "cleanupInterrupted": "A limpeza foi interrompida. Tente a limpeza novamente para continuar.",
+      "sshTargetRemoveFailed": "Não foi possível remover o destino SSH oculto.",
+      "recipeExitedWithoutCode": "A receita terminou com um código desconhecido.",
+      "destroyExitedWithoutCode": "A destruição terminou com um código desconhecido."
+    }
   }
 }

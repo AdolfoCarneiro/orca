@@ -22559,5 +22559,32 @@
         "forkHeadUnresolved": "Не удалось определить вершину MR !{{number}} из форка после получения изменений."
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "Репозиторий не найден: {{repoId}}",
+      "remoteRepoUnsupported": "В v1 рецепты временных ВМ запускаются на локальном компьютере с настольным приложением.",
+      "recipeNotFound": "Рецепт не найден: {{recipeId}}",
+      "runtimeNotFound": "Неизвестная среда выполнения временной ВМ: {{runtimeId}}",
+      "runtimeRepoMissing": "У среды выполнения временной ВМ нет идентификатора репозитория: {{runtimeId}}",
+      "provisionCancelled": "Подготовка отменена.",
+      "startRefUnresolved": "Не удалось определить начальную ссылку для подготовленного корня проекта: {{ref}}",
+      "defaultStartRefUnresolved": "Не удалось определить начальную ссылку по умолчанию для подготовленного корня проекта.",
+      "recipeExited": "Рецепт завершился с кодом {{exitCode}}.",
+      "recipeResultMissing": "Рецепт не вернул результат JSON.",
+      "recipeResultNotJsonObject": "stdout рецепта должен содержать ровно один объект JSON.",
+      "recipeResultPairingCodeInvalid": "Поле pairingCode в результате рецепта не является допустимым кодом сопряжения Orca.",
+      "recipeResultProjectRootNotAbsolute": "Поле projectRoot в результате рецепта должно содержать абсолютный путь в среде выполнения.",
+      "provisionedRootResultRequired": "Рецепты с подготовкой корня проекта должны возвращать schemaVersion 2 с checkoutMode \"provisioned-root\".",
+      "provisionedRootNotConfigured": "Результат рецепта запрашивает режим работы с подготовленным корнем проекта, но рецепт для этого не настроен.",
+      "destroyExited": "Уничтожение завершилось с кодом {{exitCode}}.",
+      "destroyFailed": "Уничтожение завершилось ошибкой.",
+      "destroyDisabled": "Уничтожение отключено для этого рецепта.",
+      "cleanupStopped": "Очистка остановлена пользователем.",
+      "cleanupInterrupted": "Очистка прервана. Повторите очистку, чтобы продолжить.",
+      "sshTargetRemoveFailed": "Не удалось удалить скрытую цель SSH-подключения.",
+      "recipeExitedWithoutCode": "Рецепт завершился с неизвестным кодом.",
+      "destroyExitedWithoutCode": "Уничтожение завершилось с неизвестным кодом."
+    }
   }
 }

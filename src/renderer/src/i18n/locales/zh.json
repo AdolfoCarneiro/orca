@@ -21889,5 +21889,32 @@
         "forkHeadUnresolved": "获取后，无法解析来自 fork 的 MR !{{number}} 的头部引用。"
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "未找到仓库：{{repoId}}",
+      "remoteRepoUnsupported": "在 v1 中，临时虚拟机环境模板在本地桌面主机上运行。",
+      "recipeNotFound": "未找到环境模板：{{recipeId}}",
+      "runtimeNotFound": "未知的临时虚拟机运行时：{{runtimeId}}",
+      "runtimeRepoMissing": "临时虚拟机运行时没有仓库 ID：{{runtimeId}}",
+      "provisionCancelled": "预配已取消。",
+      "startRefUnresolved": "无法解析已预配根目录的起始引用：{{ref}}",
+      "defaultStartRefUnresolved": "无法解析已预配根目录的默认起始引用。",
+      "recipeExited": "环境模板已退出，退出码为 {{exitCode}}。",
+      "recipeResultMissing": "环境模板未生成 JSON 结果。",
+      "recipeResultNotJsonObject": "环境模板的 stdout 必须是单个 JSON 对象。",
+      "recipeResultPairingCodeInvalid": "环境模板结果中的 pairingCode 不是有效的 Orca 配对码。",
+      "recipeResultProjectRootNotAbsolute": "环境模板结果中的 projectRoot 必须是运行时中的绝对路径。",
+      "provisionedRootResultRequired": "使用已预配根目录的环境模板必须返回 schemaVersion 2，且 checkoutMode 为 \"provisioned-root\"。",
+      "provisionedRootNotConfigured": "环境模板结果请求使用已预配根目录检出模式，但环境模板未配置为使用此模式。",
+      "destroyExited": "销毁操作已退出，退出码为 {{exitCode}}。",
+      "destroyFailed": "销毁失败。",
+      "destroyDisabled": "此环境模板已禁用销毁。",
+      "cleanupStopped": "用户已停止清理。",
+      "cleanupInterrupted": "清理已中断。请重试清理以继续。",
+      "sshTargetRemoveFailed": "无法移除隐藏的 SSH 目标。",
+      "recipeExitedWithoutCode": "环境模板已退出，退出码未知。",
+      "destroyExitedWithoutCode": "销毁操作已退出，退出码未知。"
+    }
   }
 }

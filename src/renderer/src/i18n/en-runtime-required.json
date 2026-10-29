@@ -1798,6 +1798,33 @@
       "subagents_other": "{{count}} subagents"
     }
   },
+  "ephemeralVm": {
+    "errors": {
+      "cleanupInterrupted": "Cleanup was interrupted. Retry cleanup to continue.",
+      "cleanupStopped": "Cleanup stopped by user.",
+      "defaultStartRefUnresolved": "Could not resolve a default provisioned-root start ref.",
+      "destroyDisabled": "Destroy is disabled for this recipe.",
+      "destroyExited": "Destroy exited with code {{exitCode}}.",
+      "destroyExitedWithoutCode": "Destroy exited with code unknown.",
+      "destroyFailed": "Destroy failed.",
+      "provisionCancelled": "Provisioning cancelled.",
+      "provisionedRootNotConfigured": "Recipe result requests provisioned-root checkout, but the recipe is not configured for it.",
+      "provisionedRootResultRequired": "Provisioned-root recipes must return schemaVersion 2 with checkoutMode \"provisioned-root\".",
+      "recipeExited": "Recipe exited with code {{exitCode}}.",
+      "recipeExitedWithoutCode": "Recipe exited with code unknown.",
+      "recipeNotFound": "Recipe not found: {{recipeId}}",
+      "recipeResultMissing": "Recipe produced no JSON result.",
+      "recipeResultNotJsonObject": "Recipe stdout must be one JSON object.",
+      "recipeResultPairingCodeInvalid": "Recipe result pairingCode is not a valid Orca pairing code.",
+      "recipeResultProjectRootNotAbsolute": "Recipe result projectRoot must be an absolute runtime path.",
+      "remoteRepoUnsupported": "Ephemeral VM recipes run on the local desktop host in v1.",
+      "repoNotFound": "Repo not found: {{repoId}}",
+      "runtimeNotFound": "Unknown ephemeral VM runtime: {{runtimeId}}",
+      "runtimeRepoMissing": "Ephemeral VM runtime has no repo id: {{runtimeId}}",
+      "sshTargetRemoveFailed": "Failed to remove the hidden SSH target.",
+      "startRefUnresolved": "Could not resolve provisioned-root start ref: {{ref}}"
+    }
+  },
   "jira": {
     "workspace": {
       "linkedCount_one": "{{count}} workspace linked to {{key}}",

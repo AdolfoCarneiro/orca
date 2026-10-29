@@ -21886,5 +21886,32 @@
         "forkHeadUnresolved": "Der Head von Fork-MR !{{number}} konnte nach dem Fetch nicht aufgelöst werden."
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "Repo nicht gefunden: {{repoId}}",
+      "remoteRepoUnsupported": "Rezepte für temporäre VMs werden in v1 auf dem lokalen Desktop-Host ausgeführt.",
+      "recipeNotFound": "Rezept nicht gefunden: {{recipeId}}",
+      "runtimeNotFound": "Unbekannte Laufzeitumgebung für temporäre VMs: {{runtimeId}}",
+      "runtimeRepoMissing": "Laufzeitumgebung für temporäre VMs hat keine Repo-ID: {{runtimeId}}",
+      "provisionCancelled": "Bereitstellung abgebrochen.",
+      "startRefUnresolved": "Startreferenz für das bereitgestellte Stammverzeichnis konnte nicht aufgelöst werden: {{ref}}",
+      "defaultStartRefUnresolved": "Es konnte keine Standard-Startreferenz für das bereitgestellte Stammverzeichnis aufgelöst werden.",
+      "recipeExited": "Rezept wurde mit Code {{exitCode}} beendet.",
+      "recipeResultMissing": "Rezept hat kein JSON-Ergebnis erzeugt.",
+      "recipeResultNotJsonObject": "stdout des Rezepts muss genau ein JSON-Objekt sein.",
+      "recipeResultPairingCodeInvalid": "pairingCode im Rezeptergebnis ist kein gültiger Orca-Kopplungscode.",
+      "recipeResultProjectRootNotAbsolute": "projectRoot im Rezeptergebnis muss ein absoluter Pfad in der Laufzeitumgebung sein.",
+      "provisionedRootResultRequired": "Rezepte mit bereitgestelltem Stammverzeichnis müssen schemaVersion 2 mit checkoutMode \"provisioned-root\" zurückgeben.",
+      "provisionedRootNotConfigured": "Das Rezeptergebnis fordert einen Checkout mit bereitgestelltem Stammverzeichnis an, aber das Rezept ist dafür nicht konfiguriert.",
+      "destroyExited": "Löschen wurde mit Code {{exitCode}} beendet.",
+      "destroyFailed": "Löschen fehlgeschlagen.",
+      "destroyDisabled": "Löschen ist für dieses Rezept deaktiviert.",
+      "cleanupStopped": "Bereinigung durch Benutzer gestoppt.",
+      "cleanupInterrupted": "Bereinigung wurde unterbrochen. Zum Fortsetzen die Bereinigung erneut versuchen.",
+      "sshTargetRemoveFailed": "Das verborgene SSH-Ziel konnte nicht entfernt werden.",
+      "recipeExitedWithoutCode": "Rezept wurde mit unbekanntem Code beendet.",
+      "destroyExitedWithoutCode": "Löschen wurde mit unbekanntem Code beendet."
+    }
   }
 }

@@ -21867,5 +21867,32 @@
         "forkHeadUnresolved": "Getirme işleminden sonra fork MR !{{number}} için head çözümlenemedi."
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "Repo bulunamadı: {{repoId}}",
+      "remoteRepoUnsupported": "v1'de geçici VM tarifleri yerel masaüstü ana makinesinde çalışır.",
+      "recipeNotFound": "Tarif bulunamadı: {{recipeId}}",
+      "runtimeNotFound": "Bilinmeyen geçici VM çalışma zamanı: {{runtimeId}}",
+      "runtimeRepoMissing": "Geçici VM çalışma zamanında repo kimliği yok: {{runtimeId}}",
+      "provisionCancelled": "Hazırlama iptal edildi.",
+      "startRefUnresolved": "Sağlanmış kökün başlangıç referansı çözümlenemedi: {{ref}}",
+      "defaultStartRefUnresolved": "Sağlanmış kök için varsayılan bir başlangıç referansı çözümlenemedi.",
+      "recipeExited": "Tarif {{exitCode}} koduyla sonlandı.",
+      "recipeResultMissing": "Tarif hiçbir JSON sonucu üretmedi.",
+      "recipeResultNotJsonObject": "Tarifin stdout çıktısı tek bir JSON nesnesi olmalıdır.",
+      "recipeResultPairingCodeInvalid": "Tarif sonucundaki pairingCode geçerli bir Orca eşleştirme kodu değil.",
+      "recipeResultProjectRootNotAbsolute": "Tarif sonucundaki projectRoot, çalışma zamanı ortamındaki mutlak bir yol olmalıdır.",
+      "provisionedRootResultRequired": "Sağlanmış kök tarifleri, checkoutMode \"provisioned-root\" ile schemaVersion 2 döndürmelidir.",
+      "provisionedRootNotConfigured": "Tarif sonucu sağlanmış kök checkout'u istiyor, ancak tarif bunun için yapılandırılmamış.",
+      "destroyExited": "Yok etme işlemi {{exitCode}} koduyla sonlandı.",
+      "destroyFailed": "Yok etme işlemi gerçekleştirilemedi.",
+      "destroyDisabled": "Bu tarifte yok etme devre dışı.",
+      "cleanupStopped": "Temizleme kullanıcı tarafından durduruldu.",
+      "cleanupInterrupted": "Temizleme kesintiye uğradı. Devam etmek için temizlemeyi yeniden deneyin.",
+      "sshTargetRemoveFailed": "Gizli SSH hedefi kaldırılamadı.",
+      "recipeExitedWithoutCode": "Tarif bilinmeyen bir kodla sonlandı.",
+      "destroyExitedWithoutCode": "Yok etme işlemi bilinmeyen bir kodla sonlandı."
+    }
   }
 }

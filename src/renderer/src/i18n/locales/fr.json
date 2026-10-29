@@ -22503,5 +22503,32 @@
         "forkHeadUnresolved": "Impossible de résoudre la tête de la MR !{{number}} issue d'un fork après récupération."
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "Dépôt introuvable : {{repoId}}",
+      "remoteRepoUnsupported": "En v1, les recettes de VM éphémères s’exécutent sur l’hôte local de l’application de bureau.",
+      "recipeNotFound": "Recette introuvable : {{recipeId}}",
+      "runtimeNotFound": "Runtime de VM éphémère inconnu : {{runtimeId}}",
+      "runtimeRepoMissing": "Le runtime de VM éphémère n’a pas d’identifiant de dépôt : {{runtimeId}}",
+      "provisionCancelled": "Provisionnement annulé.",
+      "startRefUnresolved": "Impossible de résoudre la référence de départ de la racine provisionnée : {{ref}}",
+      "defaultStartRefUnresolved": "Impossible de résoudre une référence de départ par défaut pour la racine provisionnée.",
+      "recipeExited": "La recette s’est terminée avec le code {{exitCode}}.",
+      "recipeResultMissing": "La recette n’a produit aucun résultat JSON.",
+      "recipeResultNotJsonObject": "La sortie stdout de la recette doit être un seul objet JSON.",
+      "recipeResultPairingCodeInvalid": "Le champ pairingCode du résultat de la recette n’est pas un code d’appairage Orca valide.",
+      "recipeResultProjectRootNotAbsolute": "Le champ projectRoot du résultat de la recette doit être un chemin absolu sur le runtime.",
+      "provisionedRootResultRequired": "Les recettes à racine provisionnée doivent renvoyer schemaVersion 2 avec checkoutMode \"provisioned-root\".",
+      "provisionedRootNotConfigured": "Le résultat de la recette demande un checkout à racine provisionnée, mais la recette n’est pas configurée pour cela.",
+      "destroyExited": "La destruction s’est terminée avec le code {{exitCode}}.",
+      "destroyFailed": "Échec de la destruction.",
+      "destroyDisabled": "La destruction est désactivée pour cette recette.",
+      "cleanupStopped": "Nettoyage arrêté par l’utilisateur.",
+      "cleanupInterrupted": "Le nettoyage a été interrompu. Réessayez le nettoyage pour continuer.",
+      "sshTargetRemoveFailed": "Impossible de supprimer la cible SSH masquée.",
+      "recipeExitedWithoutCode": "La recette s’est terminée avec un code inconnu.",
+      "destroyExitedWithoutCode": "La destruction s’est terminée avec un code inconnu."
+    }
   }
 }

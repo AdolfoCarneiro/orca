@@ -21889,5 +21889,32 @@
         "forkHeadUnresolved": "フェッチ後にフォークの MR !{{number}} のヘッドを解決できませんでした。"
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "リポジトリが見つかりません: {{repoId}}",
+      "remoteRepoUnsupported": "v1 では、一時的な VM のレシピはローカルのデスクトップホストで実行されます。",
+      "recipeNotFound": "レシピが見つかりません: {{recipeId}}",
+      "runtimeNotFound": "不明な一時 VM ランタイム: {{runtimeId}}",
+      "runtimeRepoMissing": "一時 VM ランタイムにリポジトリ ID がありません: {{runtimeId}}",
+      "provisionCancelled": "プロビジョニングがキャンセルされました。",
+      "startRefUnresolved": "プロビジョニングされたルートの開始参照を解決できませんでした: {{ref}}",
+      "defaultStartRefUnresolved": "プロビジョニングされたルートのデフォルトの開始参照を解決できませんでした。",
+      "recipeExited": "レシピはコード {{exitCode}} で終了しました。",
+      "recipeResultMissing": "レシピが JSON の結果を出力しませんでした。",
+      "recipeResultNotJsonObject": "レシピの stdout は単一の JSON オブジェクトである必要があります。",
+      "recipeResultPairingCodeInvalid": "レシピの結果の pairingCode は有効な Orca ペアリングコードではありません。",
+      "recipeResultProjectRootNotAbsolute": "レシピの結果の projectRoot はランタイム内の絶対パスである必要があります。",
+      "provisionedRootResultRequired": "プロビジョニングされたルートレシピは、schemaVersion 2 と checkoutMode \"provisioned-root\" を返す必要があります。",
+      "provisionedRootNotConfigured": "レシピの結果はプロビジョニングされたルートでのチェックアウトを要求していますが、レシピはそのように設定されていません。",
+      "destroyExited": "破棄処理はコード {{exitCode}} で終了しました。",
+      "destroyFailed": "破棄に失敗しました。",
+      "destroyDisabled": "このレシピでは破棄が無効になっています。",
+      "cleanupStopped": "ユーザーがクリーンアップを停止しました。",
+      "cleanupInterrupted": "クリーンアップが中断されました。続行するにはクリーンアップを再試行してください。",
+      "sshTargetRemoveFailed": "非表示の SSH ターゲットを削除できませんでした。",
+      "recipeExitedWithoutCode": "レシピは不明なコードで終了しました。",
+      "destroyExitedWithoutCode": "破棄処理は不明なコードで終了しました。"
+    }
   }
 }

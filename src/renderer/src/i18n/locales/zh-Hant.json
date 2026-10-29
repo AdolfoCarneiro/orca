@@ -21589,5 +21589,32 @@
         "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 MR !{{number}} 的頂端參照。"
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "找不到存放庫：{{repoId}}",
+      "remoteRepoUnsupported": "在 v1 中，臨時虛擬機器環境範本會在本機桌面主機上執行。",
+      "recipeNotFound": "找不到環境範本：{{recipeId}}",
+      "runtimeNotFound": "未知的臨時虛擬機器執行環境：{{runtimeId}}",
+      "runtimeRepoMissing": "臨時虛擬機器執行環境沒有存放庫 ID：{{runtimeId}}",
+      "provisionCancelled": "已取消佈建。",
+      "startRefUnresolved": "無法解析已佈建根目錄的起始參照：{{ref}}",
+      "defaultStartRefUnresolved": "無法解析已佈建根目錄的預設起始參照。",
+      "recipeExited": "環境範本已結束，結束代碼為 {{exitCode}}。",
+      "recipeResultMissing": "環境範本未產生 JSON 結果。",
+      "recipeResultNotJsonObject": "環境範本的 stdout 必須是單一 JSON 物件。",
+      "recipeResultPairingCodeInvalid": "環境範本結果中的 pairingCode 不是有效的 Orca 配對碼。",
+      "recipeResultProjectRootNotAbsolute": "環境範本結果中的 projectRoot 必須是執行環境中的絕對路徑。",
+      "provisionedRootResultRequired": "使用已佈建根目錄的環境範本必須回傳 schemaVersion 2，且 checkoutMode 為 \"provisioned-root\"。",
+      "provisionedRootNotConfigured": "環境範本結果要求使用已佈建根目錄檢出模式，但環境範本尚未設定為使用此模式。",
+      "destroyExited": "銷燬作業已結束，結束代碼為 {{exitCode}}。",
+      "destroyFailed": "銷燬失敗。",
+      "destroyDisabled": "此環境範本已停用銷燬。",
+      "cleanupStopped": "使用者已停止清理。",
+      "cleanupInterrupted": "清理已中斷。請重試清理以繼續。",
+      "sshTargetRemoveFailed": "無法移除隱藏的 SSH 目標。",
+      "recipeExitedWithoutCode": "環境範本已結束，結束代碼未知。",
+      "destroyExitedWithoutCode": "銷燬作業已結束，結束代碼未知。"
+    }
   }
 }

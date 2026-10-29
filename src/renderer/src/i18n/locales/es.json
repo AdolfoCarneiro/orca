@@ -22503,5 +22503,32 @@
         "forkHeadUnresolved": "No se pudo resolver el head de la MR !{{number}} de un fork tras el fetch."
       }
     }
+  },
+  "ephemeralVm": {
+    "errors": {
+      "repoNotFound": "Repositorio no encontrado: {{repoId}}",
+      "remoteRepoUnsupported": "En v1, las recetas de VM efímeras se ejecutan en el host de escritorio local.",
+      "recipeNotFound": "Receta no encontrada: {{recipeId}}",
+      "runtimeNotFound": "Entorno de ejecución de VM efímera desconocido: {{runtimeId}}",
+      "runtimeRepoMissing": "El entorno de ejecución de VM efímera no tiene ID de repositorio: {{runtimeId}}",
+      "provisionCancelled": "Aprovisionamiento cancelado.",
+      "startRefUnresolved": "No se pudo resolver la referencia inicial de la raíz aprovisionada: {{ref}}",
+      "defaultStartRefUnresolved": "No se pudo resolver una referencia inicial predeterminada de la raíz aprovisionada.",
+      "recipeExited": "La receta finalizó con el código {{exitCode}}.",
+      "recipeResultMissing": "La receta no produjo ningún resultado JSON.",
+      "recipeResultNotJsonObject": "La salida stdout de la receta debe ser un único objeto JSON.",
+      "recipeResultPairingCodeInvalid": "El campo pairingCode del resultado de la receta no es un código de emparejamiento de Orca válido.",
+      "recipeResultProjectRootNotAbsolute": "El campo projectRoot del resultado de la receta debe ser una ruta absoluta en el entorno de ejecución.",
+      "provisionedRootResultRequired": "Las recetas de raíz aprovisionada deben devolver schemaVersion 2 con checkoutMode \"provisioned-root\".",
+      "provisionedRootNotConfigured": "El resultado de la receta solicita un checkout con raíz aprovisionada, pero la receta no está configurada para ello.",
+      "destroyExited": "La destrucción finalizó con el código {{exitCode}}.",
+      "destroyFailed": "No se pudo destruir.",
+      "destroyDisabled": "La destrucción está deshabilitada para esta receta.",
+      "cleanupStopped": "Limpieza detenida por el usuario.",
+      "cleanupInterrupted": "La limpieza se interrumpió. Vuelve a intentar la limpieza para continuar.",
+      "sshTargetRemoveFailed": "No se pudo eliminar el destino SSH oculto.",
+      "recipeExitedWithoutCode": "La receta finalizó con un código desconocido.",
+      "destroyExitedWithoutCode": "La destrucción finalizó con un código desconocido."
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
 import type { OrcaVmRecipe } from '../../../shared/orca-yaml-hook-types'
+import { ephemeralVmErrorText } from '@/lib/ephemeral-vm-error-copy'
 
 type EphemeralVmRecipeOptionsArgs = {
   enabled: boolean
@@ -64,7 +65,16 @@ export function useEphemeralVmRecipeOptions(args: EphemeralVmRecipeOptionsArgs):
             return `${recipeLabel}${fieldLabel}: ${diagnostic.message}`
           })
           setError(
-            [result.status === 'error' ? result.message : null, ...diagnosticMessages]
+            [
+              result.status === 'error' && result.message
+                ? ephemeralVmErrorText({
+                    error: result.message,
+                    errorCode: result.messageCode,
+                    errorParams: result.messageParams
+                  })
+                : null,
+              ...diagnosticMessages
+            ]
               .filter((message): message is string => Boolean(message))
               .join('\n') || null
           )
