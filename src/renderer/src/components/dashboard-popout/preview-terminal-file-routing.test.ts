@@ -7,14 +7,31 @@ import type { FileOpenFailure } from '@/components/terminal-pane/terminal-file-o
 
 const harness = vi.hoisted(() => {
   const state: { value: Record<string, unknown> } = { value: {} }
+  const pane: { startupCwd: string; terminalHomePath: string | null } = {
+    startupCwd: '/home/u/proj/package',
+    terminalHomePath: '/home/u'
+  }
   return {
     state,
     stat: vi.fn(async () => ({ isDirectory: false, size: 1, mtime: 0 })),
-    rpc: vi.fn(async () => ({ isDirectory: false, size: 1, mtime: 0 })),
+    rpc: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({
+      isDirectory: false,
+      size: 1,
+      mtime: 0
+    })),
+    download: vi.fn(),
+    startDownload: vi.fn(),
+    appendDownload: vi.fn(),
+    finishDownload: vi.fn(),
+    cancelDownload: vi.fn(),
+    openLocal: vi.fn(),
+    unresolved: vi.fn(),
     open: vi.fn(() => null),
     reveal: vi.fn(),
     failure: vi.fn<(path: string, failure: FileOpenFailure) => void>(),
-    pane: { startupCwd: '/home/u/proj/package', terminalHomePath: '/home/u' }
+    pane,
+    registered: true,
+    ptyId: 'pty-1'
   }
 })
 vi.mock('@/store', () => ({ useAppStore: { getState: () => harness.state.value } }))
@@ -25,6 +42,9 @@ vi.mock('@/lib/worktree-activation', () => ({
 vi.mock('@/lib/file-link-open-failure-toast', () => ({
   showFileLinkOpenFailureToast: harness.failure
 }))
+vi.mock('@/components/native-chat/native-chat-file-link-toasts', () => ({
+  showFileLinkUnresolvedToast: harness.unresolved
+}))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: harness.rpc }))
 vi.mock('@/components/terminal-pane/terminal-pane-wsl-distro', () => ({
   resolvePaneWslDistro: () => null
@@ -34,13 +54,16 @@ vi.mock('@/lib/workspace-browser-route-eligibility', () => ({
   canOpenWorkspaceBrowserTabOnSsh: () => false
 }))
 vi.mock('@/runtime/mounted-terminal-tab-registry', () => ({
-  findRegisteredTerminalTab: () => ({
-    tab: {
-      getManager: () => ({ getNumericIdForLeaf: () => 1 }),
-      getPtyIdForPane: () => 'pty-1',
-      getLinkContextForPane: () => harness.pane
-    }
-  })
+  findRegisteredTerminalTab: () =>
+    harness.registered
+      ? {
+          tab: {
+            getManager: () => ({ getNumericIdForLeaf: () => 1 }),
+            getPtyIdForPane: () => harness.ptyId,
+            getLinkContextForPane: () => harness.pane
+          }
+        }
+      : null
 }))
 
 const id = 'repo::/home/u/proj'
@@ -87,15 +110,39 @@ function source(executionHostId: 'local' | 'ssh:box', worktreeId = id) {
 }
 async function settle(): Promise<void> {
   // Drain the production stat/open chain without a wall-clock wait.
-  for (let i = 0; i < 12; i++) await Promise.resolve()
+  for (let i = 0; i < 24; i++) {
+    await Promise.resolve()
+  }
 }
 beforeEach(() => {
   vi.clearAllMocks()
   harness.stat.mockResolvedValue({ isDirectory: false, size: 1, mtime: 0 })
   harness.rpc.mockResolvedValue({ isDirectory: false, size: 1, mtime: 0 })
+  harness.registered = true
+  harness.ptyId = 'pty-1'
+  harness.pane.startupCwd = '/home/u/proj/package'
+  harness.pane.terminalHomePath = '/home/u'
   harness.state.value = state('local')
   vi.stubGlobal('navigator', { userAgent: 'Macintosh' })
-  vi.stubGlobal('window', { api: { fs: { stat: harness.stat } } })
+  harness.startDownload.mockResolvedValue({ canceled: false, transferId: 'download-1' })
+  harness.appendDownload.mockResolvedValue({ ok: true })
+  harness.finishDownload.mockResolvedValue({
+    canceled: false,
+    destinationPath: '/downloads/config.ts'
+  })
+  vi.stubGlobal('window', {
+    api: {
+      fs: {
+        stat: harness.stat,
+        downloadFile: harness.download,
+        startDownloadedFile: harness.startDownload,
+        appendDownloadedFileChunk: harness.appendDownload,
+        finishDownloadedFile: harness.finishDownload,
+        cancelDownloadedFile: harness.cancelDownload
+      },
+      shell: { openFilePath: harness.openLocal }
+    }
+  })
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -182,6 +229,121 @@ describe('preview source through OSC file opening', () => {
     expect(harness.reveal).toHaveBeenCalledWith(
       id,
       expect.objectContaining({ executionHostId: 'ssh:box' })
+    )
+  })
+
+  it.each(['modifier', 'menu'] as const)(
+    'downloads the proxied SSH source through its owning transport via %s',
+    async (activation) => {
+      harness.state.value = state('local', true)
+      harness.rpc.mockImplementation(async (_target, method) =>
+        method === 'files.readChunk'
+          ? { contentBase64: 'eA==', bytesRead: 1, eof: true }
+          : { isDirectory: false, size: 1, mtime: 0 }
+      )
+      const context = previewTerminalLinkContext(source('ssh:box'))
+      const request = vi.fn<(request: TerminalLinkActionRequest) => void>()
+      handleOscLink(
+        'file:///home/u/proj/config.ts',
+        {
+          metaKey: activation === 'modifier',
+          ctrlKey: false,
+          shiftKey: activation === 'modifier',
+          type: activation === 'menu' ? 'contextmenu' : 'click',
+          button: activation === 'menu' ? 2 : 0
+        },
+        {
+          ...context,
+          linkActionContext: {
+            paneId: 0,
+            pointerGesture: { canRequestAction: () => false, dispose: vi.fn() },
+            claimPtyMouse: () => true,
+            request,
+            focusTerminal: vi.fn(),
+            sourceOwner: context.sourceOwner
+          }
+        }
+      )
+      if (activation === 'menu') {
+        expect(request).toHaveBeenCalledOnce()
+        const alternate = request.mock.calls[0]?.[0].alternate
+        expect(alternate?.label).toBe('Download & open with default app')
+        alternate?.run()
+      }
+      await settle()
+      expect(harness.rpc).toHaveBeenCalledWith(
+        { kind: 'environment', environmentId: 'hub' },
+        'files.readChunk',
+        expect.objectContaining({ worktree: `id:${id}`, relativePath: 'config.ts', offset: 0 }),
+        expect.anything()
+      )
+      expect(harness.appendDownload).toHaveBeenCalledWith({
+        transferId: 'download-1',
+        contentBase64: 'eA=='
+      })
+      expect(harness.openLocal).toHaveBeenCalledExactlyOnceWith('/downloads/config.ts', 'local')
+      expect(harness.download).not.toHaveBeenCalled()
+      expect(harness.open).not.toHaveBeenCalled()
+      expect(harness.reveal).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['absent', 'mismatched', 'missing-inputs'] as const)(
+    'refuses unknown relative/home bases for %s sources while opening genuine absolute paths',
+    async (availability) => {
+      harness.registered = availability !== 'absent'
+      harness.ptyId = availability === 'mismatched' ? 'other-pty' : 'pty-1'
+      if (availability === 'missing-inputs') {
+        harness.pane.startupCwd = ''
+        harness.pane.terminalHomePath = null
+      }
+      // A persisted startup directory is not the cwd of the unavailable source process.
+      harness.state.value = {
+        ...state('local'),
+        tabsByWorktree: { [id]: [{ id: 'tab', startupCwd: '/wrong' }] }
+      }
+      const context = previewTerminalLinkContext(source('ssh:box'))
+      for (const target of ['src/main.ts:12', '~/note.ts']) {
+        handleOscLink(target, { metaKey: true, ctrlKey: false }, context)
+        await settle()
+      }
+      expect(harness.unresolved.mock.calls).toEqual([['src/main.ts'], ['~/note.ts']])
+      expect(harness.stat).not.toHaveBeenCalled()
+      expect(harness.open).not.toHaveBeenCalled()
+      for (const target of ['/home/u/proj/config.ts', 'file:///home/u/proj/config.ts']) {
+        handleOscLink(target, { metaKey: true, ctrlKey: false }, context)
+        await settle()
+        expect(harness.stat).toHaveBeenLastCalledWith(
+          expect.objectContaining({ filePath: `${path}/config.ts`, connectionId: 'box' })
+        )
+      }
+      expect(harness.open).toHaveBeenCalledTimes(2)
+    }
+  )
+
+  it('uses known home without cwd and refuses unknown home outside an inferable home directory', async () => {
+    harness.pane.startupCwd = ''
+    handleOscLink(
+      '~/note.ts',
+      { metaKey: true, ctrlKey: false },
+      previewTerminalLinkContext(source('ssh:box'))
+    )
+    await settle()
+    expect(harness.stat).toHaveBeenCalledWith(
+      expect.objectContaining({ filePath: '/home/u/note.ts' })
+    )
+    harness.stat.mockClear()
+    harness.pane.startupCwd = '/workspace/package'
+    harness.pane.terminalHomePath = null
+    const context = previewTerminalLinkContext(source('ssh:box'))
+    handleOscLink('~/note.ts', { metaKey: true, ctrlKey: false }, context)
+    await settle()
+    expect(harness.unresolved).toHaveBeenCalledExactlyOnceWith('~/note.ts')
+    expect(harness.stat).not.toHaveBeenCalled()
+    handleOscLink('src/main.ts', { metaKey: true, ctrlKey: false }, context)
+    await settle()
+    expect(harness.stat).toHaveBeenCalledWith(
+      expect.objectContaining({ filePath: '/workspace/package/src/main.ts' })
     )
   })
 

@@ -52,8 +52,9 @@ export function installPreviewTerminalLinks(
     const browserAction = (action: LinkAction): LinkAction => ({
       ...action,
       run: () => {
-        if (!action.external && !isHttpLinkBackgroundOpen({ settings: deps.getSettings() }))
+        if (!action.external && !isHttpLinkBackgroundOpen({ settings: deps.getSettings() })) {
           navigate()
+        }
         return action.run()
       }
     })
@@ -92,8 +93,9 @@ export function installPreviewTerminalLinks(
         event.shiftKey
       ) === 'orca' &&
       !isHttpLinkBackgroundOpen({ settings: deps.getSettings() })
-    )
+    ) {
       navigate()
+    }
     if (handled) {
       terminal.clearSelection()
     }

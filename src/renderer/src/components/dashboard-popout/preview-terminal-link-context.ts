@@ -2,7 +2,6 @@ import { useAppStore } from '@/store'
 import { resolveOwner } from '@/lib/resolve-owner'
 import { hostRouteForAuthority } from '@/runtime/runtime-client-target'
 import { findRegisteredTerminalTab } from '@/runtime/mounted-terminal-tab-registry'
-import { resolveTerminalStartupCwd } from '../../../../shared/terminal-startup-cwd'
 import { resolveWorkspaceDirectory } from '@/lib/workspace-directory'
 import { resolvePaneWslDistro } from '@/components/terminal-pane/terminal-pane-wsl-distro'
 import { httpLinkActionDestinationsFor } from '@/lib/http-link-destinations'
@@ -45,7 +44,6 @@ export function previewTerminalLinkContext(
   const owner =
     source && host ? resolveOwner(state, { workspaceId: worktreeId, hostId: host.id }) : null
   const route = owner?.kind === 'resolved' ? hostRouteForAuthority(owner.owner) : null
-  const tab = state.tabsByWorktree?.[worktreeId]?.find((tab) => tab.id === source?.tabId)
   const mounted = source ? findRegisteredTerminalTab(source.tabId, worktreeId)?.tab : null
   const paneId = source?.leafId ? mounted?.getManager()?.getNumericIdForLeaf(source.leafId) : null
   const paneContext =
@@ -54,11 +52,7 @@ export function previewTerminalLinkContext(
       : null
   return {
     ...paneContext,
-    startupCwd:
-      paneContext?.startupCwd ??
-      resolveTerminalStartupCwd(worktreePath ?? '', tab?.startupCwd) ??
-      worktreePath ??
-      '',
+    startupCwd: paneContext?.startupCwd ?? '',
     fileContext: {
       target: route?.target ?? { kind: 'local' },
       worktreeId,

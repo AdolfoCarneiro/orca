@@ -258,12 +258,17 @@ describe('preview terminal link routes', () => {
         if (listener && observed.has(type) && (this === document || this === window)) {
           const wrapped: EventListener = (event) => {
             callbacks++
-            if (typeof listener === 'function') listener.call(this, event)
-            else listener.handleEvent(event)
+            if (typeof listener === 'function') {
+              listener.call(this, event)
+            } else {
+              listener.handleEvent(event)
+            }
           }
           records.push({ target: this, type, listener, wrapped })
           add.call(this, type, wrapped, options)
-        } else add.call(this, type, listener, options)
+        } else {
+          add.call(this, type, listener, options)
+        }
       })
       vi.spyOn(EventTarget.prototype, 'removeEventListener').mockImplementation(function (
         this: EventTarget,
@@ -278,11 +283,15 @@ describe('preview terminal link routes', () => {
         if (record) {
           records.splice(index, 1)
           remove.call(this, type, record.wrapped, options)
-        } else remove.call(this, type, listener, options)
+        } else {
+          remove.call(this, type, listener, options)
+        }
       })
       const start = disposers.length
       try {
-        for (let i = 0; i < population; i++) install(undefined, { actions: false })
+        for (let i = 0; i < population; i++) {
+          install(undefined, { actions: false })
+        }
         document.dispatchEvent(new MouseEvent('mousemove'))
         document.dispatchEvent(new MouseEvent('mouseup'))
         window.dispatchEvent(new Event('blur'))
@@ -303,7 +312,7 @@ describe('preview terminal link routes', () => {
         expect(active.request).toHaveBeenCalledOnce()
         disposers
           .splice(start)
-          .reverse()
+          .toReversed()
           .forEach((dispose) => dispose())
         expect(records).toHaveLength(0)
         callbacks = 0
@@ -314,7 +323,7 @@ describe('preview terminal link routes', () => {
       } finally {
         disposers
           .splice(start)
-          .reverse()
+          .toReversed()
           .forEach((dispose) => dispose())
         vi.restoreAllMocks()
       }

@@ -1,4 +1,5 @@
 import { showFileLinkOpenFailureToast } from '@/lib/file-link-open-failure-toast'
+import { showFileLinkUnresolvedToast } from '@/components/native-chat/native-chat-file-link-toasts'
 import { resolveTerminalFileLink } from '../../../../shared/terminal-links'
 import { isWindowsAbsolutePathLike } from '../../../../shared/cross-platform-path'
 import type { LinkHandlerDeps } from './terminal-link-handlers'
@@ -81,9 +82,9 @@ export function handleOscLink(
 
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the link handlers read only the MouseEvent fields TerminalLinkEvent picks.
   const mouseEvent = event as MouseEvent
-  const cwd = deps.startupCwd || deps.worktreePath
+  const cwd = deps.startupCwd ?? deps.worktreePath
   const target = classifyTerminalOscLinkTarget(rawText, {
-    windowsPathsFirst: isWindowsAbsolutePathLike(cwd),
+    windowsPathsFirst: isWindowsAbsolutePathLike(cwd || deps.worktreePath),
     // Reject foreign file hosts except standard Windows UNC file://server/share paths.
     allowUncHost:
       navigator.userAgent.includes('Windows') &&
@@ -107,7 +108,7 @@ export function handleOscLink(
       })
     )
   }
-  if (!cwd) {
+  if (!cwd && !deps.worktreePath) {
     return false
   }
   const file =
@@ -121,6 +122,9 @@ export function handleOscLink(
         ? resolveTerminalFileLink(target.link, cwd, deps.terminalHomePath)
         : null
   if (!file) {
+    if (target?.kind === 'path') {
+      showFileLinkUnresolvedToast(target.link.pathText)
+    }
     return false
   }
   return finish(
