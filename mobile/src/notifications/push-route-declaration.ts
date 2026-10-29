@@ -1,5 +1,8 @@
 import type { MobilePushToken } from './push-token'
-import { buildPushRouteDeclaration } from './push-route-declaration-build'
+import {
+  buildPushRouteDeclaration,
+  type RouteDeclarationPreparation
+} from './push-route-declaration-build'
 export { mobilePushRouteKey } from './push-route-declaration-build'
 
 const GATEWAY_ORIGIN = process.env.EXPO_PUBLIC_PUSH_GATEWAY_ORIGIN ?? 'https://push.onorca.dev'
@@ -41,6 +44,7 @@ export function startPushRoutePublication(
         remaining: number
         running: boolean
         pendingWake: boolean
+        preparation?: RouteDeclarationPreparation
         timer?: ReturnType<typeof setTimeout>
       }
     | undefined
@@ -56,6 +60,7 @@ export function startPushRoutePublication(
   }
   function retire() {
     generation++
+    build?.preparation?.release()
     clearTimeout(build?.timer)
     clearTransport()
     build = undefined
@@ -107,10 +112,16 @@ export function startPushRoutePublication(
     }, delay)
   }
   function startBuild() {
+    build?.preparation?.release()
     clearTimeout(build?.timer)
     clearTransport()
     publication = undefined
-    const slot = { generation: ++generation, remaining: 2, running: false, pendingWake: false }
+    const slot: NonNullable<typeof build> = {
+      generation: ++generation,
+      remaining: 2,
+      running: false,
+      pendingWake: false
+    }
     build = slot
     void attemptBuild(slot)
   }
@@ -121,15 +132,16 @@ export function startPushRoutePublication(
     }
     slot.running = true
     try {
-      const body = await buildPushRouteDeclaration(desired.token, enrolled, () =>
+      slot.preparation = buildPushRouteDeclaration(desired.token, enrolled, () =>
         valid(slot.generation)
       )
+      const result = await slot.preparation.result
       if (!valid(slot.generation)) {
         return
       }
-      if (body) {
+      if (result.status === 'ready') {
         publication = {
-          body,
+          body: result.body,
           generation: slot.generation,
           acknowledged: false,
           sending: false,
@@ -137,7 +149,7 @@ export function startPushRoutePublication(
         }
         build = undefined
         void send(publication)
-      } else if (slot.pendingWake) {
+      } else if (result.status === 'unavailable' && slot.pendingWake) {
         startBuild()
       }
     } catch {
@@ -155,6 +167,8 @@ export function startPushRoutePublication(
         startBuild()
       }
     } finally {
+      slot.preparation?.release()
+      slot.preparation = undefined
       slot.running = false
     }
   }

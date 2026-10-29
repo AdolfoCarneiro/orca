@@ -166,6 +166,12 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
     expect(joined.keyWrites).toBe(0)
     expect(routeAttempts).toBe(0)
     expect(actors.registered()).toEqual([{}, {}])
+    const retired = record(await mobile('retire-first-use'))
+    expect(retired.retired).toBe(4)
+    expect(retired.preparations).toBe(6)
+    expect(retired.preparationState).toMatchObject({ keyTask: 1, keyEntries: 3, creator: 0 })
+    expect(routeAttempts).toBe(0)
+    expect(actors.registered()).toEqual([{}, {}])
     await mobile('release-key')
     await deadline(
       Promise.all(['A', 'B'].map((host) => bridge.wait(`first-committed:${host}:${T2}`))),

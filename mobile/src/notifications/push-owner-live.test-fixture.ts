@@ -12,6 +12,7 @@ import {
 import type { RpcOperationSender } from '../transport/rpc-operation-sender'
 import { AppState } from 'react-native'
 import * as publication from './push-route-declaration'
+import { pushRoutePreparationSnapshotForTests } from './push-route-declaration-build'
 import {
   attachPushRegistration,
   resetPushRegistrationForTests,
@@ -28,8 +29,13 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
   const bothPreparations = Promise.withResolvers<void>()
   const prepare = publication.mobilePushRouteKey
   let preparationCount = 0
+  const retired: boolean[] = []
   const preparations = vi.spyOn(publication, 'mobilePushRouteKey').mockImplementation((current) => {
     const result = prepare(current)
+    const index = retired.push(false) - 1
+    void result.result.then((value) => {
+      retired[index] = value.status === 'retired'
+    })
     if (++preparationCount === 2) {
       bothPreparations.resolve()
     }
@@ -100,9 +106,28 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
           detach.push(attachPushRegistration(host, client(host)))
         }
         await bothPreparations.promise
+      } else if (op === 'retire-first-use') {
+        for (const token of ['c'.repeat(64), 'b'.repeat(64)]) {
+          if (!ports.listener) {
+            throw new Error('Missing current native owner')
+          }
+          ports.native = { ...ports.native, token }
+          ports.listener(ports.native)
+          await drain()
+          expect(pushRoutePreparationSnapshotForTests()).toMatchObject({
+            keyTask: 1,
+            keyEntries: 3,
+            creator: 0,
+            builder: 1,
+            latest: 0
+          })
+        }
+        expect(retired.slice(0, 4)).toEqual([true, true, true, true])
+        expect(ports.keyReads).toBe(1)
+        expect(ports.keyWrites).toBe(0)
       } else if (op === 'release-key') {
-        expect(preparations).toHaveBeenCalledTimes(2)
-        expect(preparations.mock.calls.every(([current]) => current())).toBe(true)
+        expect(preparations).toHaveBeenCalledTimes(6)
+        expect(preparations.mock.calls.slice(-2).every(([current]) => current())).toBe(true)
         expect(ports.keyWrites).toBe(0)
         expect(ports.keyReads).toBe(1)
         ports.keyRead?.resolve()
@@ -165,6 +190,8 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
         writes: ports.writes,
         bytes: ports.bytes,
         preparations: preparations.mock.calls.length,
+        retired: retired.filter(Boolean).length,
+        preparationState: pushRoutePreparationSnapshotForTests(),
         keyReads: ports.keyReads,
         keyWrites: ports.keyWrites,
         metadataReads: ports.metadataReads,

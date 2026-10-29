@@ -126,7 +126,7 @@ beforeEach(async () => {
   state.storage.set('orca:pushServiceNotificationsEnabled', 'true')
   hosts(1)
   publisher = await import('./push-route-declaration')
-  await publisher.mobilePushRouteKey(() => true)
+  expect(await publisher.mobilePushRouteKey(() => true).result).toMatchObject({ status: 'ready' })
 })
 afterEach(() => {
   stop?.()
@@ -341,9 +341,16 @@ it('preserves a registration wake racing a permanent refusal and retries transie
   expect(send).toHaveBeenCalledTimes(parked + 1)
 })
 
-it.each([4, 40])(
-  'coalesces actual startup/probe/listener/lease work for %s staggered hosts',
-  async (count) => {
+it.each([
+  { count: 4, changes: 0, phase: 'initial' },
+  { count: 40, changes: 0, phase: 'initial' },
+  ...['initial', 'fresh', 'issued'].flatMap((phase) => [
+    { count: 4, changes: 10, phase },
+    { count: 40, changes: 100, phase }
+  ])
+])(
+  'bounds actual startup/probe/listener/lease interests for $count hosts and $changes changes behind $phase',
+  async ({ count, changes, phase }) => {
     state.keys.clear()
     state.metadataReads = 0
     state.metadataWrites = 0
@@ -352,14 +359,53 @@ it.each([4, 40])(
     vi.mocked(SecureStore.getItemAsync).mockClear()
     vi.mocked(SecureStore.setItemAsync).mockClear()
     const heldRead = Promise.withResolvers<string | null>()
-    vi.mocked(SecureStore.getItemAsync).mockImplementationOnce(() => heldRead.promise)
+    if (phase === 'initial') {
+      vi.mocked(SecureStore.getItemAsync).mockImplementationOnce(() => heldRead.promise)
+    } else if (phase === 'fresh') {
+      vi.mocked(SecureStore.getItemAsync)
+        .mockResolvedValueOnce(null)
+        .mockImplementationOnce(() => heldRead.promise)
+    } else {
+      vi.mocked(SecureStore.setItemAsync).mockImplementationOnce(async (key, value) => {
+        await heldRead.promise
+        state.keys.set(key, value)
+      })
+    }
     hosts(count)
-    const preparations = vi.spyOn(publisher, 'mobilePushRouteKey')
+    const source = await import('./push-route-declaration-build')
+    const prepare = publisher.mobilePushRouteKey
+    const interests: {
+      handle: ReturnType<typeof prepare>
+      predicate: ReturnType<typeof vi.fn<() => boolean>>
+      retired: boolean
+      calls: number
+    }[] = []
+    const preparations = vi.spyOn(publisher, 'mobilePushRouteKey').mockImplementation((current) => {
+      const predicate = vi.fn(current)
+      const handle = prepare(predicate)
+      const interest = { handle, predicate, retired: false, calls: 0 }
+      interests.push(interest)
+      void handle.result.then((result) => {
+        if (result.status === 'retired') {
+          interest.retired = true
+          interest.calls = predicate.mock.calls.length
+        }
+      })
+      return handle
+    })
     const { send } = requests()
     const fingerprint = await import('./push-host-fingerprint')
     const hashes = vi.spyOn(fingerprint, 'deriveHostFingerprint')
     const signs = vi.spyOn(nacl.sign, 'detached')
     const { getDevicePushToken } = await import('./push-token')
+    const filters = vi.spyOn(
+      await import('./notification-delivery-preferences'),
+      'loadNotificationDeliveryPreferences'
+    )
+    const consentReads = vi.spyOn(
+      await import('../storage/preferences'),
+      'loadPushNotificationsEnabled'
+    )
     const registration = await import('./push-registration')
     const replies = Array.from({ length: count }, () => Promise.withResolvers<void>())
     const clients = replies.map((gate) => ({
@@ -388,15 +434,51 @@ it.each([4, 40])(
     stop = registration.startPushTokenSync()
     await settle()
     expect(preparations).toHaveBeenCalledTimes(count)
-    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(1)
-    expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
+    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(phase === 'initial' ? 1 : 2)
+    expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(phase === 'issued' ? 1 : 0)
+    const upstream: { filters: number; consent: number }[] = []
+    for (let i = 0; i < changes; i++) {
+      const beforeFilters = filters.mock.calls.length
+      const beforeConsent = consentReads.mock.calls.length
+      state.callbacks.listener?.({ ...token, token: (i + 1).toString(16).padStart(64, '0') })
+      await settle()
+      expect(source.pushRoutePreparationSnapshotForTests()).toMatchObject({
+        keyEntries: count + 1,
+        keyTask: 1,
+        creator: 0,
+        creatorCells: phase === 'initial' ? 0 : 1,
+        builder: 1,
+        latest: 0,
+        builderCallables: 1
+      })
+      expect(registration.pushRegistrationSnapshotForTests()).toEqual({
+        preparations: count,
+        runners: count
+      })
+      upstream.push({
+        filters: filters.mock.calls.length - beforeFilters,
+        consent: consentReads.mock.calls.length - beforeConsent
+      })
+      const before = preparations.mock.calls.length
+      state.callbacks.listener?.({ ...token, token: (i + 1).toString(16).padStart(64, '0') })
+      await settle()
+      expect(preparations).toHaveBeenCalledTimes(before)
+      expect(interests.filter((interest) => interest.retired)).toHaveLength(count * (i + 1))
+    }
+    for (const work of upstream) {
+      expect(work.filters).toBeGreaterThanOrEqual(count)
+      expect(work.filters).toBeLessThanOrEqual(count * 2)
+      expect(work.consent).toBeGreaterThanOrEqual(count)
+      expect(work.consent).toBeLessThanOrEqual(count * 2 + 1)
+    }
+    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(phase === 'initial' ? 1 : 2)
     heldRead.resolve(null)
     await settle()
     for (const reply of replies) {
       reply.resolve()
       await settle()
     }
-    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(2)
+    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(phase === 'fresh' ? 3 : 2)
     expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(1)
     expect(state.keys.size).toBe(1)
     expect(state.metadataReads).toBe(1)
@@ -412,9 +494,24 @@ it.each([4, 40])(
         client.sendRequest.mock.calls.filter(([method]) => method === 'notifications.registerPush')
       ).toHaveLength(1)
     }
-    state.callbacks.listener?.(token)
+    for (const interest of interests.filter((interest) => interest.retired)) {
+      expect(interest.predicate).toHaveBeenCalledTimes(interest.calls)
+    }
+    expect(source.pushRoutePreparationSnapshotForTests()).toMatchObject({
+      keyEntries: 0,
+      keyTask: 0,
+      creator: 0,
+      builder: 0,
+      latest: 0,
+      builderCallables: 0,
+      builderPayloads: 0,
+      builderBodies: 0
+    })
+    state.callbacks.listener?.(
+      changes ? { ...token, token: changes.toString(16).padStart(64, '0') } : token
+    )
     await settle()
-    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(2)
+    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(phase === 'fresh' ? 3 : 2)
     expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(1)
     expect(send).toHaveBeenCalledTimes(1)
     await vi.advanceTimersByTimeAsync(15 * 60_000)
@@ -422,7 +519,7 @@ it.each([4, 40])(
     expect(hashes).toHaveBeenCalledTimes(count * 2)
     expect(signs).toHaveBeenCalledTimes(2)
     expect(send).toHaveBeenCalledTimes(2)
-    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(2)
+    expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(phase === 'fresh' ? 3 : 2)
     expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(1)
     expect(state.metadataReads).toBe(1)
     expect(state.metadataWrites).toBe(0)
@@ -465,6 +562,27 @@ it.each(['saved', 'missing'] as const)(
       const pending = Promise.withResolvers<string | null>()
       vi.mocked(SecureStore.getItemAsync).mockImplementationOnce(() => pending.promise)
       publisher = await import('./push-route-declaration')
+      const source = await import('./push-route-declaration-build')
+      const prepare = publisher.mobilePushRouteKey
+      const held: {
+        result: ReturnType<typeof prepare>['result']
+        predicate: ReturnType<typeof vi.fn<() => boolean>>
+        retired: boolean
+        calls: number
+      }[] = []
+      vi.spyOn(publisher, 'mobilePushRouteKey').mockImplementation((current) => {
+        const predicate = vi.fn(current)
+        const handle = prepare(predicate)
+        const entry = { result: handle.result, predicate, retired: false, calls: 0 }
+        held.push(entry)
+        void handle.result.then((result) => {
+          if (result.status === 'retired') {
+            entry.retired = true
+            entry.calls = predicate.mock.calls.length
+          }
+        })
+        return handle
+      })
       const { send } = requests()
       const registration = await import('./push-registration')
       const client = () => ({
@@ -537,8 +655,23 @@ it.each(['saved', 'missing'] as const)(
           old.sendRequest.mock.calls.some(([method]) => method === 'notifications.unregisterPush')
         ).toBe(true)
       }
+      expect(held[0]?.retired).toBe(true)
+      expect(source.pushRoutePreparationSnapshotForTests().keyEntries).toBeLessThanOrEqual(2)
+      if (['disable', 'stop', 'background', 'remove'].includes(action)) {
+        expect(source.pushRoutePreparationSnapshotForTests()).toMatchObject({
+          keyEntries: 0,
+          creator: 0,
+          builderCallables: 0,
+          builderPayloads: 0,
+          builderBodies: 0
+        })
+      }
       pending.resolve(kind === 'saved' ? (state.keys.get('orca.push-route-key') ?? null) : null)
       await settle()
+      for (const entry of held.filter((entry) => entry.retired)) {
+        expect(entry.predicate).toHaveBeenCalledTimes(entry.calls)
+      }
+      expect(source.pushRoutePreparationSnapshotForTests().keyEntries).toBe(0)
       const absent =
         action === 'disable' || action === 'stop' || action === 'background' || action === 'remove'
       expect(registerCalls()).toHaveLength(
@@ -613,7 +746,10 @@ it('completes Off during an issued key write, keeps the committed installation k
   if (!sent || !sent[1] || typeof sent[1] !== 'object' || !('routeKey' in sent[1])) {
     throw new Error('Missing keyed register')
   }
-  expect(sent[1].routeKey).toBe(await publisher.mobilePushRouteKey(() => true))
+  expect(await publisher.mobilePushRouteKey(() => true).result).toEqual({
+    status: 'ready',
+    routeKey: sent[1].routeKey
+  })
   expect(SecureStore.setItemAsync).toHaveBeenCalledOnce()
 })
 
@@ -631,13 +767,55 @@ it('hands a retired first creator to the current waiter and recovers a committed
   await settle()
   expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
   current = false
+  first.release()
   const successor = publisher.mobilePushRouteKey(() => true)
+  await expect(first.result).resolves.toEqual({ status: 'retired' })
   fresh.resolve(null)
-  await expect(first).resolves.toBeUndefined()
-  const key = await successor
-  expect(key).toBeTypeOf('string')
+  const key = await successor.result
+  expect(key).toMatchObject({ status: 'ready', routeKey: expect.any(String) })
   expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(1)
-  expect(await publisher.mobilePushRouteKey(() => true)).toBe(key)
+  expect(await publisher.mobilePushRouteKey(() => true).result).toEqual(key)
+
+  state.keys.clear()
+  vi.resetModules()
+  publisher = await import('./push-route-declaration')
+  const keychain = await import('../transport/pairing-keychain')
+  const queued = Promise.withResolvers<void>()
+  const entered = Promise.withResolvers<void>()
+  let prior: Promise<void> | undefined
+  vi.mocked(SecureStore.getItemAsync)
+    .mockResolvedValueOnce(null)
+    .mockImplementationOnce(async () => {
+      prior = keychain.writePairingKeychainItem('r5-prior-write', 'owned')
+      return null
+    })
+  vi.mocked(SecureStore.setItemAsync)
+    .mockClear()
+    .mockImplementationOnce(async (name, value) => {
+      entered.resolve()
+      await queued.promise
+      state.keys.set(name, value)
+    })
+  const predicate = vi.fn(() => true)
+  const waiting = publisher.mobilePushRouteKey(predicate)
+  await settle()
+  await entered.promise
+  waiting.release()
+  await expect(waiting.result).resolves.toEqual({ status: 'retired' })
+  const calls = predicate.mock.calls.length
+  const next = publisher.mobilePushRouteKey(() => true)
+  expect(
+    (await import('./push-route-declaration-build')).pushRoutePreparationSnapshotForTests()
+  ).toMatchObject({ keyTask: 1, keyEntries: 1, creator: 0 })
+  queued.resolve()
+  await prior
+  expect(await next.result).toMatchObject({ status: 'ready' })
+  expect(predicate).toHaveBeenCalledTimes(calls)
+  expect(
+    vi
+      .mocked(SecureStore.setItemAsync)
+      .mock.calls.filter(([name]) => name === 'orca.push-route-key')
+  ).toHaveLength(1)
 
   state.keys.clear()
   vi.resetModules()
@@ -646,7 +824,9 @@ it('hands a retired first creator to the current waiter and recovers a committed
     state.keys.set(name, value)
     throw new Error('native committed but acknowledgement lost')
   })
-  await expect(publisher.mobilePushRouteKey(() => true)).resolves.toBeUndefined()
+  await expect(publisher.mobilePushRouteKey(() => true).result).resolves.toEqual({
+    status: 'unavailable'
+  })
   const persisted = state.keys.get('orca.push-route-key')
   if (!persisted) {
     throw new Error('Native write did not commit')
@@ -655,7 +835,10 @@ it('hands a retired first creator to the current waiter and recovers a committed
     nacl.sign.keyPair.fromSecretKey(Buffer.from(persisted, 'base64')).publicKey
   ).toString('base64url')
   vi.mocked(SecureStore.setItemAsync).mockClear()
-  await expect(publisher.mobilePushRouteKey(() => true)).resolves.toBe(recovered)
+  await expect(publisher.mobilePushRouteKey(() => true).result).resolves.toEqual({
+    status: 'ready',
+    routeKey: recovered
+  })
   expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
 })
 
@@ -670,14 +853,17 @@ it('does not replace readable corrupt keys or thrown reads, and retries only on 
       vi.mocked(SecureStore.getItemAsync).mockRejectedValueOnce(new Error('temporarily locked'))
     }
     const results = await Promise.all(
-      Array.from({ length: 4 }, () => publisher.mobilePushRouteKey(() => true))
+      Array.from({ length: 4 }, () => publisher.mobilePushRouteKey(() => true).result)
     )
-    expect(results).toEqual([undefined, undefined, undefined, undefined])
+    expect(results).toEqual(Array.from({ length: 4 }, () => ({ status: 'unavailable' })))
     expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(60 * 60_000)
     expect(SecureStore.setItemAsync).not.toHaveBeenCalled()
     state.keys.clear()
-    expect(await publisher.mobilePushRouteKey(() => true)).toBeTypeOf('string')
+    expect(await publisher.mobilePushRouteKey(() => true).result).toMatchObject({
+      status: 'ready',
+      routeKey: expect.any(String)
+    })
     expect(SecureStore.setItemAsync).toHaveBeenCalledOnce()
   }
 })
@@ -700,3 +886,123 @@ it('withdraws the prior100 declaration for the exact102 then removed→101 catal
   await vi.advanceTimersByTimeAsync(60_000)
   expect(bodies).toHaveLength(quiet)
 })
+
+it.each(['version-read', 'barrier', 'catalog', 'version-save'] as const)(
+  'retires complete publisher interests across root replacement while %s is held',
+  async (stage) => {
+    const storage = (await import('@react-native-async-storage/async-storage')).default
+    const source = await import('./push-route-declaration-build')
+    const registration = await import('./push-registration')
+    const queue = await import('../transport/host-list-mutation-queue')
+    state.storage.set('orca:push-route-version', '1')
+    const gate = Promise.withResolvers<void>()
+    let issuedVersion: number | undefined
+    const get = storage.getItem.bind(storage)
+    const set = storage.setItem.bind(storage)
+    let held = false
+    vi.spyOn(storage, 'getItem').mockImplementation(async (key) => {
+      if (
+        !held &&
+        ((stage === 'version-read' && key === 'orca:push-route-version') ||
+          (stage === 'catalog' && key === 'orca:hosts'))
+      ) {
+        held = true
+        await gate.promise
+      }
+      return get(key)
+    })
+    vi.spyOn(storage, 'setItem').mockImplementation(async (key, value) => {
+      if (!held && stage === 'version-save' && key === 'orca:push-route-version') {
+        held = true
+        issuedVersion = Number(value)
+        await gate.promise
+      }
+      return set(key, value)
+    })
+    if (stage === 'barrier') {
+      void queue.enqueueHostListMutation(async () => {
+        held = true
+        await gate.promise
+      })
+    }
+    const build = source.buildPushRouteDeclaration
+    const interests: {
+      retired: boolean
+      calls: number
+      predicate: ReturnType<typeof vi.fn<() => boolean>>
+    }[] = []
+    vi.spyOn(source, 'buildPushRouteDeclaration').mockImplementation((value, enrolled, current) => {
+      const predicate = vi.fn(current)
+      const handle = build(value, enrolled, predicate)
+      const interest = { predicate, retired: false, calls: 0 }
+      interests.push(interest)
+      void handle.result.then((result) => {
+        if (result.status === 'retired') {
+          interest.retired = true
+          interest.calls = predicate.mock.calls.length
+        }
+      })
+      return handle
+    })
+    const { bodies, send } = requests()
+    try {
+      for (const changes of [10, 100]) {
+        for (let i = 0; i < changes; i++) {
+          stop?.()
+          stop = registration.startPushTokenSync()
+          await register()
+          state.callbacks.listener?.({
+            ...token,
+            token: (changes + i).toString(16).padStart(64, '0')
+          })
+          await settle()
+          expect(held).toBe(true)
+          expect(send).not.toHaveBeenCalled()
+          expect(source.pushRoutePreparationSnapshotForTests()).toMatchObject({
+            keyTask: 0,
+            keyEntries: 0,
+            builder: 1,
+            latest: 1,
+            builderCallables: 1,
+            builderPayloads: 1,
+            builderBodies: 0
+          })
+        }
+        stop?.()
+        stop = undefined
+        await settle()
+        expect(interests.every((interest) => interest.retired)).toBe(true)
+        expect(source.pushRoutePreparationSnapshotForTests()).toMatchObject({
+          keyEntries: 0,
+          builder: 1,
+          latest: 0,
+          builderCallables: 0,
+          builderPayloads: 0,
+          builderBodies: 0
+        })
+      }
+      stop = registration.startPushTokenSync()
+      await register()
+      gate.resolve()
+      await settle()
+      expect(send).toHaveBeenCalledOnce()
+      expect(bodies[0]).toMatchObject({ token: token.token })
+      if (issuedVersion !== undefined) {
+        expect(bodies[0]?.version).toBeGreaterThan(issuedVersion)
+      }
+      for (const interest of interests.filter((interest) => interest.retired)) {
+        expect(interest.predicate).toHaveBeenCalledTimes(interest.calls)
+      }
+      expect(source.pushRoutePreparationSnapshotForTests()).toMatchObject({
+        builder: 0,
+        latest: 0,
+        builderCallables: 0,
+        builderPayloads: 0,
+        builderBodies: 0
+      })
+    } finally {
+      gate.resolve()
+      await settle()
+    }
+  }
+)

@@ -10,6 +10,7 @@ export type MobilePushOwner = ReturnType<typeof createMobilePushOwner>
 export function createMobilePushOwner(
   current: () => boolean,
   generation: () => number,
+  localIntentSettled: () => boolean,
   changed: () => void
 ) {
   let active = true
@@ -41,7 +42,7 @@ export function createMobilePushOwner(
         ? { token: root.token, intent: root.intent }
         : undefined
     ),
-    isCurrent: () => active && current() && root.intent === generation(),
+    isCurrent: () => active && current() && localIntentSettled() && root.intent === generation(),
     invalidate() {
       root.enabled = undefined
       changed()

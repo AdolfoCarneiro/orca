@@ -27,6 +27,7 @@ const hostsById = new Map<string, HostPushState>()
 let owner: MobilePushOwner | undefined
 // A late registration must not overwrite a newer preference or consent choice.
 let consentGeneration = 0
+let localOperations = 0
 
 function hostState(hostId: string): HostPushState {
   let state = hostsById.get(hostId)
@@ -52,14 +53,16 @@ async function sendUnregister(client: PushClient, timeoutMs: number): Promise<bo
 async function reconcileHost(hostId: string): Promise<void> {
   const state = hostsById.get(hostId)
   const client = state?.connection.client
-  if (!state || !client) {
+  if (!state || !client || localOperations > 0) {
     return
   }
   const root = owner
   const generation = consentGeneration
   const isCurrent = () => hostsById.get(hostId) === state && state.connection.client === client
+  const dispatchCurrent = () =>
+    localOperations === 0 && generation === consentGeneration && isCurrent()
   const value = await readRecords()
-  if (!isCurrent()) {
+  if (!dispatchCurrent()) {
     return
   }
   // Unregister intent takes priority even before the capability probe answers.
@@ -67,21 +70,26 @@ async function reconcileHost(hostId: string): Promise<void> {
     if (state.supported === false || !(await sendUnregister(client, REQUEST_TIMEOUT_MS))) {
       return
     }
-    if (!isCurrent()) {
+    if (!dispatchCurrent()) {
       return
     }
     state.target = { root, client, target: 'disabled', acknowledged: true }
     await mutateRecords((current) => {
-      current.pending.delete(hostId)
-      current.registered.delete(hostId)
+      if (dispatchCurrent()) {
+        current.pending.delete(hostId)
+        current.registered.delete(hostId)
+      }
     })
     // A preference change can invalidate a register without disabling push.
-    if (!(await loadPushNotificationsEnabled()) || !isCurrent()) {
+    if (!dispatchCurrent()) {
+      return
+    }
+    if (!(await loadPushNotificationsEnabled()) || !dispatchCurrent()) {
       return
     }
   }
   if (state.supported == null) {
-    if (!isCurrent()) {
+    if (!dispatchCurrent()) {
       return
     }
     state.capabilityProbeStop ??= startRuntimeCapabilityProbe(client, (capabilities) => {
@@ -90,15 +98,15 @@ async function reconcileHost(hostId: string): Promise<void> {
       }
       state.supported = capabilities.includes(NOTIFICATIONS_REMOTE_PUSH_CAPABILITY)
       state.routeKeySupported = capabilities.includes('notifications.push-route-key.v1')
-      void enqueueReconcile(hostId)
+      enqueueReconcile(hostId)
     })
     return
   }
-  if (!state.supported || !isCurrent()) {
+  if (!state.supported || !dispatchCurrent()) {
     return
   }
   const enabled = await loadPushNotificationsEnabled()
-  if (!isCurrent() || generation !== consentGeneration) {
+  if (!dispatchCurrent()) {
     return
   }
   if (!enabled) {
@@ -111,13 +119,13 @@ async function reconcileHost(hostId: string): Promise<void> {
       state.target.target !== 'disabled' ||
       !state.target.acknowledged
     ) {
-      if (!(await sendUnregister(client, REQUEST_TIMEOUT_MS)) || !isCurrent()) {
+      if (!(await sendUnregister(client, REQUEST_TIMEOUT_MS)) || !dispatchCurrent()) {
         return
       }
       state.target = { root, client, target: 'disabled', acknowledged: true }
     }
     await mutateRecords((current) => {
-      if (isCurrent()) {
+      if (dispatchCurrent()) {
         current.pending.delete(hostId)
         current.registered.delete(hostId)
       }
@@ -139,19 +147,19 @@ async function reconcileHost(hostId: string): Promise<void> {
       }
     })
     state.dirty = true
-  } else if (result === true) {
+  } else if (result === true && dispatchCurrent()) {
     await mutateRecords((current) => {
-      if (owner === root && root.isCurrent() && generation === consentGeneration && isCurrent()) {
+      if (owner === root && root.isCurrent() && dispatchCurrent()) {
         current.registered.add(hostId)
       }
     })
   }
 }
 
-function enqueueReconcile(hostId: string): Promise<void> {
+function enqueueReconcile(hostId: string): void {
   const state = hostsById.get(hostId)
   if (!state) {
-    return Promise.resolve()
+    return
   }
   state.preparation?.releaseIfObsolete()
   state.dirty = true
@@ -172,11 +180,12 @@ function enqueueReconcile(hostId: string): Promise<void> {
       state.running = false
     })()
   }
-  return state.chain
 }
 
-async function reconcileAllHosts(): Promise<void> {
-  await Promise.all([...hostsById.keys()].map((hostId) => enqueueReconcile(hostId)))
+function reconcileAllHosts(): void {
+  for (const hostId of hostsById.keys()) {
+    enqueueReconcile(hostId)
+  }
 }
 
 // Keep tracked host intent across disconnects; this disposer detaches only its current connected client.
@@ -192,7 +201,7 @@ export function attachPushRegistration(hostId: string, client: PushClient): () =
   if (owner && !owner.token) {
     owner.refresh()
   }
-  void enqueueReconcile(hostId)
+  enqueueReconcile(hostId)
   const connection = state.connection
   return () => {
     if (connection.client === client) {
@@ -214,35 +223,39 @@ export function attachPushRegistration(hostId: string, client: PushClient): () =
 
 // Consent completion covers local persistence; host reconciliation runs in the background.
 export async function setRemotePushEnabled(enabled: boolean): Promise<void> {
+  localOperations++
   invalidateIntent()
   try {
     await savePushNotificationsEnabled(enabled)
-  } catch (error) {
-    rederiveOwner()
-    throw error
-  }
-  try {
     await mutateRecords((current) => {
       if (!enabled) {
         for (const hostId of current.registered) {
           current.pending.add(hostId)
         }
-        return
+      } else {
+        current.pending.clear()
       }
-      current.pending.clear()
     })
   } finally {
-    rederiveOwner()
+    completeLocalOperation()
   }
 }
 
 export async function setNotificationDeliveryPreferences(
   value: NotificationDeliveryPreferences
 ): Promise<void> {
+  localOperations++
   invalidateIntent()
   try {
     await saveNotificationDeliveryPreferences(value)
   } finally {
+    completeLocalOperation()
+  }
+}
+
+function completeLocalOperation(): void {
+  localOperations--
+  if (localOperations === 0) {
     rederiveOwner()
   }
 }
@@ -275,7 +288,7 @@ export async function unregisterPushForRemovedHost(hostId: string): Promise<() =
     if (state && !hostsById.has(hostId)) {
       // Preserve disconnect ownership without reviving stale registration work.
       hostsById.set(hostId, { ...state, supported: null, capabilityProbeStop: null })
-      void enqueueReconcile(hostId)
+      enqueueReconcile(hostId)
     }
   }
 }
@@ -287,7 +300,7 @@ function invalidateIntent(): void {
 
 function rederiveOwner(): void {
   owner?.rederive()
-  void reconcileAllHosts()
+  reconcileAllHosts()
 }
 
 export function startPushTokenSync(): () => void {
@@ -295,11 +308,12 @@ export function startPushTokenSync(): () => void {
   const root = createMobilePushOwner(
     () => owner === root,
     () => consentGeneration,
+    () => localOperations === 0,
     () => {
       for (const state of hostsById.values()) {
         state.preparation?.releaseIfObsolete()
       }
-      void reconcileAllHosts()
+      reconcileAllHosts()
     }
   )
   owner = root
@@ -318,4 +332,12 @@ export function resetPushRegistrationForTests(): void {
   hostsById.clear()
   resetRegistrationRecords()
   consentGeneration = 0
+  localOperations = 0
+}
+
+export function pushRegistrationSnapshotForTests() {
+  return {
+    preparations: [...hostsById.values()].filter((state) => state.preparation !== undefined).length,
+    runners: [...hostsById.values()].filter((state) => state.running).length
+  }
 }

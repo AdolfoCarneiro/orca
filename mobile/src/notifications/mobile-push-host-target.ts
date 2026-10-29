@@ -2,6 +2,7 @@ import { AppState } from 'react-native'
 import type { RpcOperationSender } from '../transport/rpc-operation-sender'
 import type { MobilePushOwner } from './mobile-push-token-owner'
 import { mobilePushRouteKey } from './push-route-declaration'
+import type { RouteKeyPreparation } from './push-route-declaration-build'
 import {
   loadNotificationDeliveryPreferences,
   notificationPreferencesFilter
@@ -15,7 +16,7 @@ export type HostPushState = {
   routeKeySupported?: boolean
   capabilityProbeStop: (() => void) | null
   chain: Promise<void>
-  preparation?: { releaseIfObsolete(): void }
+  preparation?: RouteKeyPreparation & { releaseIfObsolete(): void }
   running?: boolean
   dirty?: boolean
   target?: {
@@ -58,19 +59,25 @@ export async function registerMobilePushTarget(
   }
   let routeKey: string | undefined
   if (capable) {
-    const release = Promise.withResolvers<undefined>()
+    const handle = mobilePushRouteKey(valid)
     const preparation = {
+      ...handle,
       releaseIfObsolete() {
         if (!valid()) {
           released = true
-          release.resolve(undefined)
+          handle.release()
         }
       }
     }
     state.preparation = preparation
     try {
-      routeKey = await Promise.race([mobilePushRouteKey(valid), release.promise])
+      const result = await handle.result
+      if (result.status === 'retired') {
+        return
+      }
+      routeKey = result.status === 'ready' ? result.routeKey : undefined
     } finally {
+      handle.release()
       if (state.preparation === preparation) {
         state.preparation = undefined
       }
