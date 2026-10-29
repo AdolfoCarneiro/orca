@@ -13,6 +13,7 @@ export function installForegroundGridDriftProbe(session: ConnectPanePtySession):
   // Why: proposeDimensions() forces style/layout; after a matching probe, wait for a geometry signal or the backstop.
   session.foregroundGridDriftProbeSettled = false
   session.foregroundGridDriftTrailingTimer = null
+  session.foregroundGridDriftTrailingDeadline = Number.POSITIVE_INFINITY
   session.clearForegroundGridDriftTrailingProbe = (): void => {
     if (session.foregroundGridDriftTrailingTimer !== null) {
       clearTimeout(session.foregroundGridDriftTrailingTimer)
@@ -36,11 +37,20 @@ export function installForegroundGridDriftProbe(session: ConnectPanePtySession):
     const elapsedMs = now - session.lastForegroundGridDriftCheckAt
     if (!force && elapsedMs < minIntervalMs) {
       // Why: the last write in a burst may land inside the interval; one trailing probe keeps drift from sticking once output stops.
-      if (session.foregroundGridDriftTrailingTimer === null) {
-        session.foregroundGridDriftTrailingTimer = setTimeout(() => {
-          session.foregroundGridDriftTrailingTimer = null
-          session.scheduleForegroundGridDriftCheck()
-        }, minIntervalMs - elapsedMs)
+      const deadline = session.lastForegroundGridDriftCheckAt + minIntervalMs
+      if (
+        session.foregroundGridDriftTrailingTimer === null ||
+        deadline < session.foregroundGridDriftTrailingDeadline
+      ) {
+        session.clearForegroundGridDriftTrailingProbe()
+        session.foregroundGridDriftTrailingDeadline = deadline
+        session.foregroundGridDriftTrailingTimer = setTimeout(
+          () => {
+            session.foregroundGridDriftTrailingTimer = null
+            session.scheduleForegroundGridDriftCheck()
+          },
+          Math.ceil(minIntervalMs - elapsedMs)
+        )
       }
       return
     }

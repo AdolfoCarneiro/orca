@@ -346,6 +346,26 @@ export function registerPtyConnectionVisibilityResumeSizeTests(): void {
         expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
       })
 
+      it('pulls an armed settled trailing probe forward when a geometry signal restores the fast cadence', async () => {
+        const { binding, transport, fit, setProposedGrid, emitFrame } =
+          await connectStreamingDriftPane()
+        emitFrame('frame 1')
+        await vi.advanceTimersByTimeAsync(50)
+        setProposedGrid({ cols: 65, rows: 63 })
+        emitFrame('frame 2')
+        await vi.advanceTimersByTimeAsync(50)
+        binding.noteVisibilityResume()
+        await vi.advanceTimersByTimeAsync(50)
+        emitFrame('last frame')
+        await vi.advanceTimersByTimeAsync(50)
+        expect(fit).not.toHaveBeenCalled()
+
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(fit).toHaveBeenCalled()
+        expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
+      })
+
       it('keeps the fast probe cadence when the fit proposal is unavailable', async () => {
         const { transport, fit, setProposedGrid, emitFrame } = await connectStreamingDriftPane()
         setProposedGrid(undefined)
