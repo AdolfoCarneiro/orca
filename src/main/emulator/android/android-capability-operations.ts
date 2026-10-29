@@ -1,4 +1,5 @@
 import { EmulatorError } from '../emulator-errors'
+import { runKeyedSerializedOperation } from '../../cli/keyed-promise-queue'
 import type { AndroidCommandRunner } from './android-command-runner'
 import type { AndroidSdkPaths } from './android-sdk-discovery'
 import { ensureAdbOk } from './android-adb-result'
@@ -8,6 +9,7 @@ import { logcatArgs, parseLogcatLine, type LogcatEntry } from './android-logcat'
 import { parseUiAutomatorXml, type AndroidAxNode } from './uiautomator-tree'
 
 const UIAUTOMATOR_DUMP_PATH = '/sdcard/window_dump.xml'
+const accessibilityReads = new Map<string, Promise<void>>()
 
 export async function installAndroidApk(
   runner: AndroidCommandRunner,
@@ -58,17 +60,20 @@ export async function dumpAndroidAccessibilityTree(
   sdk: AndroidSdkPaths,
   serial: string
 ): Promise<AndroidAxNode> {
-  // uiautomator reports idle/root failures with exit 0 and leaves the previous XML untouched.
-  ensureAdbOk(
-    await runner(sdk.adb, ['-s', serial, 'shell', 'uiautomator', 'dump', UIAUTOMATOR_DUMP_PATH]),
-    'uiautomator dump',
-    { checkErrorOutput: true }
-  )
-  const xml = ensureAdbOk(
-    await runner(sdk.adb, ['-s', serial, 'shell', 'cat', UIAUTOMATOR_DUMP_PATH]),
-    'read ui dump'
-  )
-  return parseUiAutomatorXml(xml.stdout)
+  // uiautomator owns one automation connection and dump file per device.
+  return runKeyedSerializedOperation(accessibilityReads, serial, async () => {
+    // uiautomator reports idle/root failures with exit 0 and leaves the previous XML untouched.
+    ensureAdbOk(
+      await runner(sdk.adb, ['-s', serial, 'shell', 'uiautomator', 'dump', UIAUTOMATOR_DUMP_PATH]),
+      'uiautomator dump',
+      { checkErrorOutput: true }
+    )
+    const xml = ensureAdbOk(
+      await runner(sdk.adb, ['-s', serial, 'shell', 'cat', UIAUTOMATOR_DUMP_PATH]),
+      'read ui dump'
+    )
+    return parseUiAutomatorXml(xml.stdout)
+  })
 }
 
 export async function captureAndroidLogcat(

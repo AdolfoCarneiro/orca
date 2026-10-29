@@ -35,6 +35,112 @@ describe('installAndroidApk', () => {
 })
 
 describe('dumpAndroidAccessibilityTree', () => {
+  it('keeps each device dump paired with its read before starting the next snapshot', async () => {
+    let releaseRead = (): void => {}
+    let readStarted = (): void => {}
+    const readGate = new Promise<void>((resolve) => {
+      releaseRead = resolve
+    })
+    const started = new Promise<void>((resolve) => {
+      readStarted = resolve
+    })
+    let dumps = 0
+    let xml = ''
+    const runner: AndroidCommandRunner = async (_binary, args) => {
+      if (args[3] === 'uiautomator') {
+        xml = `<hierarchy><node text="Snapshot ${++dumps}"/></hierarchy>`
+        return ok('')
+      }
+      if (dumps === 1) {
+        readStarted()
+        await readGate
+      }
+      return ok(xml)
+    }
+    const first = dumpAndroidAccessibilityTree(runner, SDK, 'paired')
+    await started
+    const second = dumpAndroidAccessibilityTree(runner, SDK, 'paired')
+    await Promise.resolve()
+    releaseRead()
+
+    expect((await first).children[0]).toMatchObject({ text: 'Snapshot 1' })
+    expect((await second).children[0]).toMatchObject({ text: 'Snapshot 2' })
+  })
+
+  it('waits for the active automation connection and advances after a failed dump', async () => {
+    let releaseDump = (): void => {}
+    const dumpGate = new Promise<void>((resolve) => {
+      releaseDump = resolve
+    })
+    let active = false
+    let dumps = 0
+    const runner: AndroidCommandRunner = async (_binary, args) => {
+      if (args[3] !== 'uiautomator') {
+        return ok('<hierarchy><node text="Recovered"/></hierarchy>')
+      }
+      if (active) {
+        return { stdout: '', stderr: 'UiAutomationService already registered!', code: 1 }
+      }
+      active = true
+      const first = ++dumps === 1
+      await dumpGate
+      active = false
+      return first ? { stdout: '', stderr: 'ERROR: could not get idle state.', code: 0 } : ok('')
+    }
+    const first = dumpAndroidAccessibilityTree(runner, SDK, 'recovery')
+    const rejection = expect(first).rejects.toMatchObject({ code: 'emulator_error' })
+    const second = dumpAndroidAccessibilityTree(runner, SDK, 'recovery').then(
+      (tree) => ({ tree }),
+      (error) => ({ error })
+    )
+    releaseDump()
+
+    await rejection
+    expect(await second).toMatchObject({ tree: { children: [{ text: 'Recovered' }] } })
+    expect((await dumpAndroidAccessibilityTree(runner, SDK, 'recovery')).children[0]).toMatchObject(
+      { text: 'Recovered' }
+    )
+  })
+
+  it.each(['read', 'parse'])('continues queued snapshots after a %s failure', async (failure) => {
+    const runner = vi
+      .fn<AndroidCommandRunner>()
+      .mockResolvedValueOnce(ok(''))
+      .mockResolvedValueOnce(
+        failure === 'read' ? { stdout: '', stderr: 'read failed', code: 1 } : ok('<hierarchy>')
+      )
+      .mockResolvedValueOnce(ok(''))
+      .mockResolvedValueOnce(ok('<hierarchy><node text="Recovered"/></hierarchy>'))
+    const first = dumpAndroidAccessibilityTree(runner, SDK, 'read-failure')
+    const rejection = expect(first).rejects.toMatchObject({ code: 'emulator_error' })
+    const second = dumpAndroidAccessibilityTree(runner, SDK, 'read-failure')
+
+    await rejection
+    expect((await second).children[0]).toMatchObject({ text: 'Recovered' })
+  })
+
+  it('lets another device finish while the first device is still dumping', async () => {
+    let releaseDump = (): void => {}
+    const dumpGate = new Promise<void>((resolve) => {
+      releaseDump = resolve
+    })
+    const runner: AndroidCommandRunner = async (_binary, args) => {
+      if (args[1] === 'blocked' && args[3] === 'uiautomator') {
+        await dumpGate
+      }
+      return ok(args[3] === 'cat' ? `<hierarchy><node text="${args[1]}"/></hierarchy>` : '')
+    }
+    const first = dumpAndroidAccessibilityTree(runner, SDK, 'blocked')
+    try {
+      expect(
+        (await dumpAndroidAccessibilityTree(runner, SDK, 'independent')).children[0]
+      ).toMatchObject({ text: 'independent' })
+    } finally {
+      releaseDump()
+      await first
+    }
+  })
+
   it.each([
     { stdout: '', stderr: 'ERROR: could not get idle state.' },
     { stdout: '', stderr: 'ERROR: null root node returned by UiTestAutomationBridge.' },
