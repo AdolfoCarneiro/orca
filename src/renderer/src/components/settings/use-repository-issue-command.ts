@@ -88,7 +88,7 @@ export function useRepositoryIssueCommand({
         })
     }
     // Subscribed before the read (#35812's pattern): main signals once a refusing distro runs.
-    const onDistroRunning = window.api.preflight?.onWslDistroRunning
+    const onDistroRunning = window.api?.preflight?.onWslDistroRunning
     const stopWaiting =
       typeof onDistroRunning === 'function'
         ? onDistroRunning((distro) => {
