@@ -6,8 +6,8 @@ final class StableElementIndexesTests: XCTestCase {
 
     private func assign(_ current: [(String, String)], previous: [Previous] = [], nextFresh: Int = 0) -> (indexes: [Int], nextFreshIndex: Int) {
         StableElementIndexes.assign(
-            current: current.map { (key: $0.0, signature: $0.1) },
-            previous: previous,
+            current: current.map { $0.0 },
+            previous: previous.map { (key: $0.key, index: $0.index) },
             previousNextFreshIndex: nextFresh
         )
     }
@@ -42,8 +42,7 @@ final class StableElementIndexesTests: XCTestCase {
         XCTAssertEqual(result.indexes, [0, 3, 1, 2])
     }
 
-    func testElementsRebuiltOnEveryReadKeepTheirIndexesBySignature() {
-        // Views that create fresh AX objects per read never match by identity.
+    func testElementsRebuiltOnEveryReadReceiveFreshIndexes() {
         let previous: [Previous] = [("window", 0, "AXWindow"), ("cell-old-1", 1, "AXCell|Name"), ("cell-old-2", 2, "AXCell|Size")]
 
         let result = assign(
@@ -52,7 +51,20 @@ final class StableElementIndexesTests: XCTestCase {
             nextFresh: 3
         )
 
-        XCTAssertEqual(result.indexes, [0, 1, 2])
+        XCTAssertEqual(result.indexes, [0, 3, 4])
+        XCTAssertEqual(result.nextFreshIndex, 5)
+    }
+
+    func testALookalikeReplacementCannotInheritARemovedElementsIndex() {
+        let previous: [Previous] = [("window", 0, "AXWindow"), ("buttonA", 1, "AXButton|Delete"), ("buttonB", 2, "AXButton|Keep")]
+
+        let result = assign(
+            [("window", "AXWindow"), ("buttonC", "AXButton|Delete"), ("buttonB", "AXButton|Keep")],
+            previous: previous,
+            nextFresh: 3
+        )
+
+        XCTAssertEqual(result.indexes, [0, 3, 2])
     }
 
     func testARemovedIndexIsNeverHandedToADifferentNewElement() {

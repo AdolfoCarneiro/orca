@@ -2138,9 +2138,9 @@ extension TreeRenderer {
     func carryOverIndexes(from previous: Snapshot?) -> (order: [Int], nextFreshIndex: Int) {
         let walked = records.values.sorted { $0.index < $1.index }
         let assignment = StableElementIndexes.assign(
-            current: walked.map { (key: $0.element, signature: $0.signature) },
+            current: walked.map(\.element),
             previous: previous?.elementOrder.compactMap { index in
-                previous?.elements[index].map { (key: $0.element, index: index, signature: $0.signature) }
+                previous?.elements[index].map { (key: $0.element, index: index) }
             } ?? [],
             previousNextFreshIndex: previous?.nextFreshElementIndex ?? 0
         )
