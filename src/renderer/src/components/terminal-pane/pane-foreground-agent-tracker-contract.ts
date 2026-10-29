@@ -2,7 +2,7 @@ import type { RecognizedAgentProcess } from '../../../../shared/agent-process-re
 import type { PaneForegroundAgentEntry } from '@/store/slices/pane-foreground-agent'
 import type { RuntimeTerminalProcessInspection } from '@/runtime/runtime-terminal-inspection'
 
-export type ForegroundReadReason = 'command' | 'visible-pty' | 'command-finished'
+export type ForegroundReadReason = 'command' | 'visible-pty' | 'command-finished' | 'accepted-input'
 
 export type PaneForegroundAgentTrackerDeps = {
   getPtyId: () => string | null

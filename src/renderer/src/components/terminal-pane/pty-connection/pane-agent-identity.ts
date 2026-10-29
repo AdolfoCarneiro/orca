@@ -209,7 +209,6 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
   })
   // Bytes and main facts share command-finished policy to preserve drop/interrupt semantics across authority modes.
   session.handleCommandFinished = (bestEffortExitCode: number | null): void => {
-    session.clearCommandInferredPaneAgentAfterPtySideEffects()
     session.visibleForegroundSamplePending = false
     const shouldDeferStatusDrop = session.paneForegroundAgentTracker.onCommandFinished()
     // Commands can change HEAD/index; nudge git UI immediately instead of waiting for polling.
@@ -270,9 +269,6 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
     session.visibleForegroundSamplePending =
       session.paneForegroundAgentTracker.onVisiblePtyBound(expectsAgent)
   }
-  session.startAcceptedInferredCommand = (agent) => {
-    session.paneForegroundAgentTracker.onCommandStarted(agent)
-  }
   session.requestKnownWindowsShiftEnterReconfirmation = () => {
     const foreground = useAppStore.getState().paneForegroundAgentByPaneKey[session.cacheKey]
     // Revoke display-only reattach/launch hints on input or exit evidence until provider confirmation restores routing authority.
@@ -282,7 +278,7 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
       foreground.routingTrusted !== true ||
       TUI_AGENT_CONFIG[foreground.agent].windowsShiftEnterEncoding !== 'csi-u'
     ) {
-      return
+      return false
     }
     // No-OSC shells retain display hints but require fresh provider evidence before byte routing.
     useAppStore.getState().setPaneForegroundAgent(session.cacheKey, {
@@ -294,7 +290,7 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
     session.visibleForegroundSamplePending = false
     session.visibleForegroundSampleSettled = false
     // Hooks can suppress display sampling but cannot restore explicitly revoked byte authority.
-    session.sampleVisiblePaneForegroundAgent(true)
+    session.paneForegroundAgentTracker.onAcceptedCommandBoundary()
     if (session.paneForegroundAgentTracker.hasReadInFlight()) {
       useAppStore.getState().setPaneForegroundAgent(session.cacheKey, {
         agent: foreground.agent,
@@ -304,6 +300,7 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
         routingConfirmationPending: true
       })
     }
+    return true
   }
   session.commandLifecycle = createTerminalCommandLifecycle({
     onCommandStarted: () => {
@@ -312,8 +309,8 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
       dismissRetainedProgramResult(session.cacheKey, useAppStore.getState())
       session.visibleForegroundSamplePending = false
       session.visibleForegroundSampleSettled = false
-      // Typed aliases may widen confirmation timing but cannot supply routing evidence.
-      session.paneForegroundAgentTracker.onCommandStarted(session.commandInferredPaneAgent)
+      // Confirm the actual process even when the shell command is an alias or wrapper.
+      session.paneForegroundAgentTracker.onCommandStarted(true)
     },
     onCommandFinished: session.handleCommandFinished
   })

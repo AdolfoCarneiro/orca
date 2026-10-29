@@ -9,16 +9,24 @@ describe('process-backed compatible status identity correction', () => {
   it('changes only compatible identity/title and preserves the accepted turn and attention', () => {
     vi.useFakeTimers()
     const store = createTestStore()
-    store.getState().setAgentStatus(PANE, { state: 'done', agentType: 'pi', prompt: 'task' }, 'Pi ready')
+    store
+      .getState()
+      .setAgentStatus(PANE, { state: 'done', agentType: 'pi', prompt: 'task' }, 'Pi ready')
     store.getState().setPaneForegroundAgent(PANE, {
-      agent: 'omp', agentEvidence: 'process-read', shellForeground: false
+      agent: 'omp',
+      agentEvidence: 'process-read',
+      shellForeground: false
     })
     const before = store.getState()
     const entry = before.agentStatusByPaneKey[PANE]
     const foreground = before.paneForegroundAgentByPaneKey[PANE]
     expect(before.correctAgentStatusIdentity(PANE, entry, foreground)).toBe(true)
     const after = store.getState()
-    expect(after.agentStatusByPaneKey[PANE]).toEqual({ ...entry, agentType: 'omp', terminalTitle: 'OMP ready' })
+    expect(after.agentStatusByPaneKey[PANE]).toEqual({
+      ...entry,
+      agentType: 'omp',
+      terminalTitle: 'OMP ready'
+    })
     expect(after.agentStatusEpoch).toBe(before.agentStatusEpoch)
     expect(after.sortEpoch).toBe(before.sortEpoch)
     expect(after.unreadAgentCompletionPanes).toBe(before.unreadAgentCompletionPanes)
@@ -30,7 +38,9 @@ describe('process-backed compatible status identity correction', () => {
     const store = createTestStore()
     store.getState().setAgentStatus(PANE, { state: 'working', agentType: 'pi', prompt: '' })
     store.getState().setPaneForegroundAgent(PANE, {
-      agent: 'omp', agentEvidence: 'process-read', shellForeground: false
+      agent: 'omp',
+      agentEvidence: 'process-read',
+      shellForeground: false
     })
     const old = store.getState()
     const entry = old.agentStatusByPaneKey[PANE]
@@ -39,7 +49,11 @@ describe('process-backed compatible status identity correction', () => {
     expect(store.getState().correctAgentStatusIdentity(PANE, entry, foreground)).toBe(false)
     const row = store.getState().agentStatusByPaneKey[PANE]
     expect(store.getState().correctAgentStatusIdentity(PANE, row, foreground)).toBe(false)
-    store.getState().setPaneForegroundAgent(PANE, { agent: 'omp', agentEvidence: 'launch-record', shellForeground: false })
+    store.getState().setPaneForegroundAgent(PANE, {
+      agent: 'omp',
+      agentEvidence: 'launch-record',
+      shellForeground: false
+    })
     expect(store.getState().correctAgentStatusIdentity(PANE, row, foreground)).toBe(false)
     store.getState().retireAgentPaneAuthority(PANE)
     expect(store.getState().correctAgentStatusIdentity(PANE, entry, foreground)).toBe(false)

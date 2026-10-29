@@ -122,6 +122,7 @@ export type StoreState = {
   clearAgentLaunchConfig: ReturnType<typeof vi.fn>
   observeTerminalGitHubPullRequestLink: ReturnType<typeof vi.fn>
   recordTerminalInput: ReturnType<typeof vi.fn>
+  correctAgentStatusIdentity: ReturnType<typeof vi.fn>
   setAgentStatus: ReturnType<typeof vi.fn>
   removeAgentStatus: ReturnType<typeof vi.fn>
   dropAgentStatus: ReturnType<typeof vi.fn>

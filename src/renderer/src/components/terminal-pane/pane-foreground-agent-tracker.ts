@@ -5,7 +5,6 @@ import {
 } from '../../../../shared/agent-process-recognition'
 import { resolveCompatibleAgentTypeForOwner } from '../../../../shared/agent-title-owner'
 import { isShellProcess } from '../../../../shared/shell-process-detection'
-import type { TerminalAgent } from '../../../../shared/terminal-agent'
 import { createPaneForegroundProcessReader } from './pane-foreground-process-reader'
 import { FOREGROUND_COMMAND_READS } from '../../../../shared/foreground-command-settle'
 import type {
@@ -20,7 +19,9 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
   /** True while any read is scheduled or running, whatever its authority. */
   hasReadInFlight: () => boolean
   onVisiblePtyBound: (expectsAgent?: boolean) => boolean
-  onCommandStarted: (expectedAgent?: TerminalAgent | null) => void
+  onCommandStarted: (requireConfirmation?: boolean) => void
+  /** Accepted input requests evidence without asserting a shell lifecycle boundary. */
+  onAcceptedCommandBoundary: () => void
   onAgentStartupObserved: () => void
   /** True when pane identity must remain visible until an async shell confirmation. */
   onCommandFinished: () => boolean
@@ -86,6 +87,10 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     activeReadReason === 'command' ||
     scheduledReadReason === 'command-finished' ||
     activeReadReason === 'command-finished'
+  const hasBoundaryReadInFlight = (): boolean =>
+    hasCommandReadInFlight() ||
+    scheduledReadReason === 'accepted-input' ||
+    activeReadReason === 'accepted-input'
 
   // Release retained capabilities when a read ends; superseded reads delegate settlement to their successor.
   const releaseRetainedCapability = (hadReadInFlight: boolean): void => {
@@ -112,6 +117,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     }
     const requiresRoutingConfirmation =
       reason === 'command-finished' ||
+      reason === 'accepted-input' ||
       hasForegroundAgentEvidence ||
       hasKnownAgentEvidence ||
       hasAgentExpectation
@@ -148,7 +154,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       if (!remote) {
         deps.onAgentProcessRead?.(recognized)
       }
-      if (reason === 'visible-pty') {
+      if (reason === 'visible-pty' || reason === 'accepted-input') {
         deps.onVisibleForegroundSettled?.('agent')
       }
       return
@@ -167,6 +173,11 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     if (shouldRetry) {
       // Bound retries across PowerShell-to-WMIC enrichment, which may initially hide a live agent.
       scheduleRead(retryDelay, retryIndex + 1, reason)
+      return
+    }
+    if (reason === 'accepted-input') {
+      hasAgentExpectation = false
+      deps.onVisibleForegroundSettled?.('inconclusive')
       return
     }
     if (reason === 'command') {
@@ -225,7 +236,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     },
     onVisiblePtyBound(expectsAgent = false) {
       // Lower-authority visibility recovery must not cancel command-boundary reads that own the exit decision.
-      if (hasCommandReadInFlight()) {
+      if (hasBoundaryReadInFlight()) {
         return false
       }
       const hadReadBeforeVisibleBind = hasPendingRead()
@@ -241,8 +252,23 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       scheduleRead(VISIBLE_PTY_SETTLE_MS, 0, 'visible-pty')
       return true
     },
-    onCommandStarted(expectedAgent = null) {
+    onAcceptedCommandBoundary() {
+      if (disposed || hasBoundaryReadInFlight()) {
+        return
+      }
+      cancelPendingRead()
+      if (!trackablePtyId()) {
+        return
+      }
+      hasAgentExpectation = true
+      scheduleRead(FOREGROUND_COMMAND_READS.settleMs, 0, 'accepted-input')
+    },
+    onCommandStarted(requireConfirmation = false) {
       startupSampled = false
+      // An accepted submit may already own this boundary's confirmation ladder.
+      if (scheduledReadReason === 'accepted-input' || activeReadReason === 'accepted-input') {
+        return
+      }
       const hadReadBeforeCommandStart = hasPendingRead()
       cancelPendingRead()
       const ptyId = trackablePtyId()
@@ -251,7 +277,7 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
         return
       }
       const alreadyHasKnownIdentity = deps.hasKnownAgentIdentity?.() === true
-      hasAgentExpectation = expectedAgent !== null
+      hasAgentExpectation = requireConfirmation
       if (alreadyHasKnownIdentity) {
         hasKnownAgentEvidence = true
       }
@@ -316,8 +342,8 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       cancelPendingRead()
       clearAgentEvidence()
       startupSampled = false
-      // Without command marks, shellForeground would never lift and would block Enter from identifying the next agent.
-      deps.publish({ agent: null, shellForeground: false })
+      // Accepted submits can discover the next agent without retaining the exited interface's authority.
+      deps.publish({ agent: null, shellForeground: true })
       if (hadVisibleRead) {
         deps.onVisibleForegroundSettled?.('shell')
       }
