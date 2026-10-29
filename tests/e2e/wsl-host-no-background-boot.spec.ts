@@ -14,6 +14,7 @@ import { callEnvironment } from './helpers/paired-host-terminal'
 import { buildFakeAgentCommandOverride } from './helpers/fake-agent-command-override'
 import { SUPPORTED, test } from './helpers/structured-claude-stub'
 import { waitForSessionReady } from './helpers/store'
+import { visitSettingsPanes } from './helpers/settings-pane-visits'
 import {
   createGitProject,
   fakeWslConnects,
@@ -165,6 +166,11 @@ test.describe('E9: background work on a stopped WSL host', () => {
         )
         .toContain('Ubuntu was stopped')
       const connectsWhileStopped = fakeWslConnects(connectLogFile).length
+      const wslRepoId = await page.evaluate(
+        (wslPath) =>
+          window.__store?.getState().repos.find((repo) => repo.path === wslPath)?.id ?? null,
+        wslProjectPath
+      )
 
       // The background window: nothing here is the user acting on the WSL workspace.
       for (let round = 0; round < 2; round += 1) {
@@ -172,20 +178,7 @@ test.describe('E9: background work on a stopped WSL host', () => {
         await activateLocal(page, null)
         await cycleWindowFocus(page)
         await activateLocal(page, localWorktreeId)
-        for (const pane of SETTINGS_PANES) {
-          await page.evaluate(
-            (pane) => window.__store?.getState().openSettingsTarget({ pane, repoId: null }),
-            pane
-          )
-        }
-        await page.evaluate(
-          (repoId) => window.__store?.getState().openSettingsTarget({ pane: 'repo', repoId }),
-          await page.evaluate(
-            (wslPath) =>
-              window.__store?.getState().repos.find((repo) => repo.path === wslPath)?.id ?? null,
-            wslProjectPath
-          )
-        )
+        await visitSettingsPanes(page, SETTINGS_PANES, wslRepoId)
         await page.evaluate(() => window.__store?.getState().setActiveView('tasks'))
         await expect
           .poll(() => page.evaluate(() => window.__store?.getState().activeView))
