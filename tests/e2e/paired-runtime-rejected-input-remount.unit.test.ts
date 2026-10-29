@@ -6,6 +6,14 @@ import { TERMINAL_METHODS } from '../../src/main/runtime/rpc/methods/terminal'
 import type { OrcaRuntimeService } from '../../src/main/runtime/orca-runtime'
 import type { PanePtyBinding } from '../../src/renderer/src/components/terminal-pane/pty-connection/pane-pty-binding'
 import {
+  createPane,
+  createManager,
+  takeTerminalTestPanes
+} from '../../src/renderer/src/components/terminal-pane/pty-connection-test-pane-fixtures'
+import { buildPaneConnectionDeps } from '../../src/renderer/src/components/terminal-pane/pty-connection-test-deps'
+import { mockPanePtyArgs } from '../../src/renderer/src/components/terminal-pane/pty-connection-test-connect-mock-pane'
+import type { StoreState as ConnectionStoreState } from '../../src/renderer/src/components/terminal-pane/pty-connection-test-store-state'
+import {
   TerminalStreamOpcode,
   decodeTerminalStreamFrame,
   decodeTerminalStreamJson,
@@ -33,7 +41,10 @@ const TERMINAL_HANDLE = 'terminal-1'
 const REMOTE_PTY_ID = `remote:${ENVIRONMENT_ID}@@${TERMINAL_HANDLE}`
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 
-type StoreState = Record<string, unknown>
+type StoreState = ConnectionStoreState & {
+  activeWorkspaceExecutionHostId: string
+  remountTerminalTabForRecovery: typeof remountTerminalTabForRecovery
+}
 
 let mockStoreState: StoreState
 let storeSubscribers: ((state: StoreState) => void)[] = []
@@ -186,90 +197,14 @@ function startHost(): {
   return { bridge, sendTerminal, hostOpcodes }
 }
 
-function createPane() {
-  const activeBuffer = { type: 'normal' as const, viewportY: 0, baseY: 0, cursorY: 0, cursorX: 0 }
-  const container = new EventTarget() as HTMLElement
-  container.querySelector = () => null
-  Object.defineProperty(container, 'dataset', { configurable: true, value: {} })
-  const terminal = {
-    cols: 120,
-    rows: 40,
-    element: {},
-    buffer: { active: activeBuffer },
-    modes: { bracketedPasteMode: false, sendFocusMode: false },
-    options: { scrollback: 5_000, ignoreBracketedPasteMode: false, theme: {} },
-    write: vi.fn((data: string, callback?: () => void) => {
-      if (data === '' || callback?.name === 'runParsedSteps') {
-        callback?.()
-      }
-    }),
-    resize: vi.fn(),
-    clear: vi.fn(),
-    scrollToBottom: vi.fn(),
-    scrollToLine: vi.fn(),
-    scrollLines: vi.fn(),
-    paste: vi.fn(),
-    onData: vi.fn(() => ({ dispose: vi.fn() })),
-    onResize: vi.fn(() => ({ dispose: vi.fn() })),
-    onRender: vi.fn(() => ({ dispose: vi.fn() })),
-    onTitleChange: vi.fn(() => ({ dispose: vi.fn() })),
-    hasSelection: vi.fn(() => false),
-    parser: {
-      registerCsiHandler: vi.fn(() => ({ dispose: vi.fn() })),
-      registerOscHandler: vi.fn(() => ({ dispose: vi.fn() }))
-    }
-  }
-  return { id: 1, leafId: LEAF_ID, stablePaneId: LEAF_ID, terminal, container }
-}
-
-function createManager(pane: ReturnType<typeof createPane>) {
-  const panes = [pane]
-  return {
-    setPaneGpuRendering: vi.fn(),
-    markPaneHasComplexScriptOutput: vi.fn(),
-    rebuildPaneWebgl: vi.fn(),
-    hasWebglRenderer: vi.fn(() => false),
-    getPanes: vi.fn(() => panes),
-    closePane: vi.fn(),
-    getActivePane: vi.fn(() => panes[0]),
-    getNumericIdForLeaf: vi.fn(() => 1),
-    setActivePane: vi.fn()
-  }
-}
-
 function createDeps() {
-  return {
-    tabId: 'tab-1',
-    worktreeId: 'wt-1',
-    cwd: '/tmp/wt-1',
-    startup: null,
+  return buildPaneConnectionDeps(() => mockStoreState, {
     restoredLeafId: LEAF_ID,
     restoredPtyIdByLeafId: { [LEAF_ID]: REMOTE_PTY_ID },
-    paneTransportsRef: { current: new Map() },
-    paneMode2031Ref: { current: new Map() },
-    paneKittyKeyboardModesRef: { current: new Map() },
-    paneLastThemeModeRef: { current: new Map() },
-    replayingPanesRef: { current: new Map() },
-    isActiveRef: { current: true },
-    isVisibleRef: { current: true },
-    onPtyExitRef: { current: vi.fn() },
-    onAgentExitedRef: { current: vi.fn() },
-    onPtyErrorRef: { current: vi.fn() },
-    clearTabPtyId: vi.fn(),
-    consumeSuppressedPtyExit: vi.fn(() => false),
-    isPtyShutdownPending: vi.fn(() => false),
-    updateTabTitle: vi.fn(),
-    setRuntimePaneTitle: vi.fn(),
-    clearRuntimePaneTitle: vi.fn(),
     updateTabPtyId: vi.fn(),
-    markTerminalBell: vi.fn(),
-    readTerminalPaneOnInput: vi.fn(),
-    dispatchNotification: vi.fn(),
-    onShowSessionRestoredBanner: vi.fn(),
-    setCacheTimerStartedAt: vi.fn(),
     syncPanePtyLayoutBinding: vi.fn(),
-    clearExitedPanePtyLayoutBinding: vi.fn()
-  }
+    readTerminalPaneOnInput: vi.fn()
+  })
 }
 
 /** Every answer main can give for a `remote:` id it owns no registry entry for. */
@@ -340,6 +275,7 @@ describe('host-rejected paired-runtime input reaches a pane remount', () => {
       removeAgentStatus: vi.fn(),
       dropAgentStatus: vi.fn(),
       retireAgentPaneAuthority: vi.fn(),
+      restoreAgentPaneAuthority: vi.fn(),
       setPaneForegroundAgent: vi.fn(),
       clearPaneForegroundAgent: vi.fn(),
       markTerminalBell: vi.fn(),
@@ -354,6 +290,7 @@ describe('host-rejected paired-runtime input reaches a pane remount', () => {
   })
 
   afterEach(() => {
+    takeTerminalTestPanes()
     delete (globalThis as { window?: unknown }).window
   })
 
@@ -413,23 +350,27 @@ describe('host-rejected paired-runtime input reaches a pane remount', () => {
         await import('@/components/terminal-pane/terminal-pane-recovery')
       _resetTerminalPaneRecoveryForTests()
 
-      const pane = createPane()
+      const pane = createPane(1)
+      pane.container.querySelector = () => null
+      const manager = createManager(1, 1)
+      manager.getPanes.mockReturnValue([pane])
+      manager.getActivePane.mockReturnValue(pane)
       const deps = createDeps()
       const { registerRuntimeTerminalTab } = await import('@/runtime/mounted-terminal-tab-registry')
-      const args = [pane as never, createManager(pane) as never, deps as never] as const
+      const args = mockPanePtyArgs(pane, manager, deps)
       const unregister = registerRuntimeTerminalTab({
         tabId: deps.tabId,
         worktreeId: deps.worktreeId,
         getManager: () => args[1],
         getContainer: () => null,
-        getPtyIdForPane: (id) => deps.paneTransportsRef.current.get(id)?.getPtyId() ?? null,
+        getPtyIdForPane: (id) => args[2].paneTransportsRef.current.get(id)?.getPtyId() ?? null,
         getTabWideAgentHintLeafId: () => null
       })
       let binding: PanePtyBinding | undefined
       try {
         binding = connectPanePty(...args)
         await vi.waitFor(() => {
-          expect(deps.paneTransportsRef.current.get(1)?.getPtyId()).toBe(REMOTE_PTY_ID)
+          expect(args[2].paneTransportsRef.current.get(1)?.getPtyId()).toBe(REMOTE_PTY_ID)
         })
 
         sendTerminalInput(pane, 'ls\r')
