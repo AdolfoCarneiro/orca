@@ -1,6 +1,6 @@
 /**
- * Invariant: an `orca://plugins/...` link opens the plugin's page in Settings, behind "Turn on
- * plugins" when plugins are off, and never installs. A malformed link only toasts, and an unknown
+ * Invariant: an `orca://plugins/...` link opens the plugin's page in Settings, waiting while
+ * plugins are off until they are turned back on, and never installs. A malformed link only toasts, and an unknown
  * catalog asks first. The link is delivered through main's open-url handler; no protocol is
  * registered on the machine running the test.
  */
@@ -53,7 +53,12 @@ test('an install link opens the plugin page and never installs', async ({}, test
     await expect(page.getByText('That plugin link isn’t valid.')).toBeVisible({ timeout: 15_000 })
 
     await openLink(app, `orca://plugins/${GLEAM_PLUGIN_KEY}?catalog=official`)
-    await page.getByRole('button', { name: 'Turn on plugins', exact: true }).click()
+    await expect(page.getByText('Plugins are off')).toBeVisible({ timeout: 15_000 })
+    // Off comes only from a saved choice now; turning it back on lands on the waiting link's page.
+    await page.evaluate(async () => {
+      const settings = await window.api.settings.set({ pluginSystemEnabled: true })
+      window.__store?.setState({ settings })
+    })
     const pluginPage = page.getByRole('article')
     await expect(pluginPage.locator('#plugin-detail-heading')).toContainText('Gleam', {
       timeout: 30_000
