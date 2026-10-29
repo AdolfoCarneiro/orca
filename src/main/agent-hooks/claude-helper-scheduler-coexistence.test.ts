@@ -20,7 +20,11 @@ afterEach(() => vi.restoreAllMocks())
 
 class DesktopProbe extends AgentHookServer {
   schedule(source: AgentHookSource, row: EnrichedAgentHookEventPayload) {
-    this.scheduleTranscriptPoll(source, {}, row)
+    if (source === 'claude') {
+      this.applyObservedLocalHook(row)
+    } else {
+      this.scheduleTranscriptPoll(source, {}, row)
+    }
   }
   clear(pane: string) {
     this.clearTranscriptPoll(pane)
@@ -73,7 +77,7 @@ it.each(['desktop', 'relay'])(
         desktop.schedule('claude', row)
       } else {
         relay.scheduleTranscriptPoll('muse', {}, muse)
-        relay.scheduleTranscriptPoll('claude', {}, row)
+        relay.observeClaudeHook(row)
       }
       const contexts = calls.mock.contexts.slice(-2)
       expect(contexts).toHaveLength(2)

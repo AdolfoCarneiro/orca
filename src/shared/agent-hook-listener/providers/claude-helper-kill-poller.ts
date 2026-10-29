@@ -55,8 +55,13 @@ export class ClaudeHelperKillPoller {
     })
   }
 
-  schedule(row: AgentHookEventPayload): void {
-    if (row.payload.agentType !== 'claude' || row.connectionId !== null) {
+  schedule(row: AgentHookEventPayload, receivedAt = Date.now()): void {
+    if (
+      row.payload.agentType !== 'claude' ||
+      row.connectionId !== null ||
+      row.providerSessionOnly ||
+      row.structuredHost
+    ) {
       return
     }
     const path = row.providerSession?.transcriptPath
@@ -70,7 +75,7 @@ export class ClaudeHelperKillPoller {
       entry = {
         sessionId,
         launchToken: row.launchToken,
-        observedAt: Date.now(),
+        observedAt: Math.min(receivedAt, Date.now()),
         resumedAt: new Map(),
         launches: new Map(),
         parent: createClaudeTranscriptCursor(path),
@@ -79,6 +84,12 @@ export class ClaudeHelperKillPoller {
       this.observations.set(row.paneKey, entry)
     }
     this.arm(row.paneKey, entry)
+  }
+
+  activate(): void {
+    for (const [paneKey, entry] of this.observations) {
+      this.arm(paneKey, entry)
+    }
   }
 
   clear(paneKey: string): void {

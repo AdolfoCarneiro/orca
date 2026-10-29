@@ -104,10 +104,12 @@ export class AgentHookResultRetryScheduler {
     this.claudeHelperKills.clear(paneKey)
   }
 
-  scheduleRecoveredClaudeHelpers(): void {
-    for (const row of this.host.state.lastStatusByPaneKey.values()) {
-      this.claudeHelperKills.schedule(row)
-    }
+  observeClaudeHook(row: AgentHookEventPayload, receivedAt?: number): void {
+    this.claudeHelperKills.schedule(row, receivedAt)
+  }
+
+  activateClaudeHelperObservations(): void {
+    this.claudeHelperKills.activate()
   }
 
   scheduleTranscriptPoll(
@@ -118,7 +120,6 @@ export class AgentHookResultRetryScheduler {
     version?: string
   ): void {
     if (source === 'claude') {
-      this.claudeHelperKills.schedule(original)
       return
     }
     // Why: a nested CLI of another kind inherits ORCA_PANE_KEY, so clearing here would silently end a live poll.
