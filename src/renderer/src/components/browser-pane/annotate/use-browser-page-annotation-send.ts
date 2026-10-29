@@ -33,7 +33,8 @@ export function useBrowserPageAnnotationSend({
   handleUpdateBrowserAnnotation: (
     annotationId: string,
     comment: string,
-    intent: BrowserAnnotationIntent
+    intent: BrowserAnnotationIntent,
+    imagePaths: string[]
   ) => void
   handleBrowserAnnotationsSentToAgent: () => void
   handleBrowserAnnotationsHandedOff: (delivered: Promise<unknown>) => void
@@ -187,8 +188,13 @@ export function useBrowserPageAnnotationSend({
   )
 
   const handleUpdateBrowserAnnotation = useCallback(
-    (annotationId: string, comment: string, intent: BrowserAnnotationIntent): void => {
-      updateBrowserPageAnnotation(browserTabId, annotationId, { comment, intent })
+    (
+      annotationId: string,
+      comment: string,
+      intent: BrowserAnnotationIntent,
+      imagePaths: string[]
+    ): void => {
+      updateBrowserPageAnnotation(browserTabId, annotationId, { comment, intent, imagePaths })
       recordFeatureInteraction('browser-annotations')
     },
     [browserTabId, recordFeatureInteraction, updateBrowserPageAnnotation]
