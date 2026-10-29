@@ -51,7 +51,7 @@ export type MockTransport = {
 
 export function createMockTransport(initialPtyId: string | null = null): MockTransport {
   let ptyId = initialPtyId
-  const sendInput: MockTransport['sendInput'] = vi.fn(() => true)
+  const sendInput = vi.fn<(data: string) => boolean>(() => true)
   const transport: MockTransport = {
     attach: vi.fn<PtyTransport['attach']>(({ existingPtyId }) => {
       ptyId = existingPtyId

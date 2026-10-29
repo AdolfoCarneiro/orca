@@ -123,7 +123,7 @@ describe('folder cwd ownership across IPC and renderer copy', () => {
       if (!controller?.spawn) {
         throw new Error('Runtime PTY controller was not registered')
       }
-      const spawn = (cwd: string) =>
+      const spawn = async (cwd: string) =>
         handlers.get('pty:spawn')!(null, {
           cols: 80,
           rows: 24,

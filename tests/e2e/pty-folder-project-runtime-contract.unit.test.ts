@@ -24,6 +24,7 @@ import {
   restoreTerminalTestGlobals
 } from '../../src/renderer/src/components/terminal-pane/pty-connection-test-environment'
 import type { StoreState } from '../../src/renderer/src/components/terminal-pane/pty-connection-test-store-state'
+import type { AppState } from '../../src/renderer/src/store/types'
 import type {
   IpcPtyTransportOptions,
   PtyTransport
@@ -39,7 +40,8 @@ import {
   type WorkspaceSessionWrite
 } from '../../src/renderer/src/lib/session-write-subscriber'
 
-let state: StoreState
+type FixtureState = StoreState & Pick<AppState, 'projectHostSetups'>
+let state: FixtureState | AppState
 let mountedOptions: IpcPtyTransportOptions | undefined
 
 vi.mock('@/store', () => ({ useAppStore: { getState: () => state, subscribe: () => () => {} } }))
@@ -161,7 +163,11 @@ describe('mounted folder plain-shell project runtime', () => {
 
   beforeEach(async () => {
     mountedOptions = undefined
-    state = createInitialStoreState(() => state)
+    const fixtureState: FixtureState = {
+      ...createInitialStoreState(() => fixtureState),
+      projectHostSetups: []
+    }
+    state = fixtureState
     await installTerminalTestGlobals()
     Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
   })
