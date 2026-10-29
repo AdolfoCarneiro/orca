@@ -1222,17 +1222,10 @@ private func focusedSystemWindow(systemWide: AXUIElement, app: AppDescriptor) ->
 }
 
 private func isTargetWindowFocused(_ snapshot: Snapshot) -> Bool {
-    guard let focusedWindow = focusedSystemWindow(systemWide: AXUIElementCreateSystemWide(), app: snapshot.app) else {
-        return false
-    }
-    if windowNumber(focusedWindow) == snapshot.windowId {
-        return true
-    }
-    guard let frame = absoluteFrame(focusedWindow) else {
-        return false
-    }
-    let intersection = frame.intersection(snapshot.windowBounds)
-    return !intersection.isNull && intersection.area >= min(frame.area, snapshot.windowBounds.area) * 0.75
+    focusedSyntheticClickRecipient(
+        targetPID: snapshot.app.pid,
+        targetCandidates: { WindowCapture.candidates(pid: snapshot.app.pid) }
+    ) == .focused(syntheticClickRecipient(pid: snapshot.app.pid, windowId: snapshot.windowId))
 }
 
 private enum AXElementProbe {
@@ -1316,19 +1309,8 @@ private func focusedSyntheticClickRecipient(
         return .unavailable
     }
 
-    if let windowId = windowNumber(focusedWindow) {
-        return .focused(syntheticClickRecipient(pid: ownerPID, windowId: windowId))
-    }
-    guard ownerPID == targetPID else { return .unavailable }
-    guard let frame = absoluteFrame(focusedWindow),
-          let candidate = SyntheticMouseClickDelivery.uniqueWindowCandidate(
-            from: targetCandidates(),
-            matching: {
-              windowFramesMatch($0.bounds, frame)
-            }
-          )
-    else { return .unavailable }
-    return .focused(syntheticClickRecipient(pid: ownerPID, windowId: candidate.windowId))
+    guard pidAttribute(focusedWindow) == ownerPID else { return .unavailable }
+    return pointerRecipient(of: focusedWindow, targetPID: targetPID, targetCandidates: targetCandidates)
 }
 
 private func hitTestSyntheticClickRecipient(
@@ -1364,13 +1346,13 @@ private func pointerRecipient(
     guard let ownerPID = pidAttribute(element), let window = containingWindow(element) else {
         return .unavailable
     }
-    var numberValue: CFTypeRef?
-    let numberStatus = AXUIElementCopyAttributeValue(window, "AXWindowNumber" as CFString, &numberValue)
-    if numberStatus == .success {
-        guard let number = numberValue as? NSNumber else { return .unavailable }
-        return .focused(syntheticClickRecipient(pid: ownerPID, windowId: CGWindowID(number.uint32Value)))
+    do {
+        if let windowID = try AccessibilityWindowIdentity.windowID(of: window) {
+            return .focused(syntheticClickRecipient(pid: ownerPID, windowId: windowID))
+        }
+    } catch {
+        return .unavailable
     }
-    guard numberStatus == .attributeUnsupported || numberStatus == .noValue else { return .unavailable }
     guard ownerPID == targetPID, let frame = absoluteFrame(window),
           let windows = copyArray(AXUIElementCreateApplication(ownerPID), kAXWindowsAttribute as String)
     else { return .unavailable }
@@ -1778,27 +1760,8 @@ private func numberAttribute(_ element: AXUIElement, _ attribute: String) -> NSN
     return value as? NSNumber
 }
 
-private typealias AXUIElementGetWindowFunction = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
-
-private let axUIElementGetWindow: AXUIElementGetWindowFunction? = {
-    guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementGetWindow") else {
-        return nil
-    }
-    // SAFETY: HIServices exports `AXError _AXUIElementGetWindow(AXUIElementRef, CGWindowID *)`, the signature yabai and Hammerspoon call.
-    return unsafeBitCast(symbol, to: AXUIElementGetWindowFunction.self)
-}()
-
 private func windowNumber(_ element: AXUIElement) -> CGWindowID? {
-    // Why: AppKit and WebKit windows don't answer AXWindowNumber, so matching fell back to frames and
-    // paired a capture with whichever same-frame window AX listed first (#27252).
-    var windowId: CGWindowID = 0
-    if let axUIElementGetWindow, axUIElementGetWindow(element, &windowId) == .success, windowId != 0 {
-        return windowId
-    }
-    guard let number = numberAttribute(element, "AXWindowNumber") else {
-        return nil
-    }
-    return CGWindowID(number.uint32Value)
+    try? AccessibilityWindowIdentity.windowID(of: element)
 }
 
 private func absoluteFrame(_ element: AXUIElement) -> CGRect? {
