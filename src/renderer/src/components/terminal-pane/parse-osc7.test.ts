@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { OSC7_PARSER_AGREEMENT_CASES } from '../../../../shared/osc7-parser-agreement-cases'
 import { parseOsc7 } from './parse-osc7'
 
 describe('parseOsc7', () => {
@@ -52,17 +53,22 @@ describe('parseOsc7', () => {
     expect(parseOsc7('file:///tmp/%FF')).toBeNull()
   })
 
-  it.each([
-    'file:///tmp/%00x',
-    'file:///tmp/a\u0000b',
-    'file:///tmp/%0Ax',
-    'file:///tmp/a\tb',
-    'file:///tmp/%1Bx'
-  ])('returns null for a folder with a control character: %j', (uri) => {
+  it.each(['file:///tmp/%00x', 'file:///tmp/a\u0000b'])('returns null for a NUL: %j', (uri) => {
     expect(parseOsc7(uri)).toBeNull()
   })
 
-  it('keeps DEL, which is not a C0 control', () => {
-    expect(parseOsc7('file:///tmp/%7Fx')).toBe('/tmp/\u007fx')
+  it.each([
+    ['file:///tmp/%01x', '/tmp/\u0001x'],
+    ['file:///tmp/%0Ax', '/tmp/\nx'],
+    ['file:///tmp/%1Bx', '/tmp/\u001bx'],
+    ['file:///tmp/%7Fx', '/tmp/\u007fx']
+  ])('keeps other control characters, which folder names may hold: %j', (uri, path) => {
+    expect(parseOsc7(uri)).toBe(path)
+  })
+})
+
+describe('OSC 7 payloads both parsers must agree on (renderer side)', () => {
+  it.each(OSC7_PARSER_AGREEMENT_CASES)('%s', (_case, uri, path) => {
+    expect(parseOsc7(uri)).toBe(path)
   })
 })
