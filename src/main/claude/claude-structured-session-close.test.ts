@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { checkpointJournalRig, closeCheckpointTestJournals } from './claude-checkpoint-test-support'
 import type { StructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import type {
   ClaudeStructuredSessionAdapterDeps,
@@ -15,6 +16,68 @@ import { AgentSessionAcquisitionRootExitObservedError } from '../native-chat/age
 import { ClaudePromptRegistry } from './claude-structured-prompt-replies'
 import { claudeRootExitObserved, closeClaudeSession } from './claude-structured-session-close'
 import { ClaudeAcquisitionRegistry } from './structured/claude-structured-session-state'
+
+afterEach(closeCheckpointTestJournals)
+
+it.each(['close', 'exit'] as const)(
+  'delivers a pulled frame through the actual adapter after %s publication, before final cursor persistence',
+  async (boundary) => {
+    const r = await checkpointJournalRig()
+    r.translator.dispose()
+    const claude = fakeClaude()
+    const persisted = vi.fn<NonNullable<ClaudeStructuredSessionAdapterDeps['persistHandle']>>()
+    const adapter = adapterFor(claude, {}, [], [], undefined, persisted)
+    await adapter.acquire({
+      identity: identityFor(),
+      fence: 7,
+      spawnToken: 'spawn',
+      events: r.deferred.sink
+    })
+    const connection = claude.connections[0]!
+    const delivered = Promise.withResolvers<void>()
+    connection.outputDrained = delivered.promise
+    const stream = (event: Record<string, unknown>) =>
+      connection.handlers.onMessage?.({
+        type: 'stream_event',
+        session_id: PROVIDER_SESSION_ID,
+        uuid: 'stream',
+        event
+      })
+    await stream({ type: 'message_start', message: { id: 'reply' } })
+    await stream({
+      type: 'content_block_delta',
+      index: 0,
+      delta: { type: 'text_delta', text: 'prefix' }
+    })
+    const key = `claude:${PROVIDER_SESSION_ID}:block%3Areply%3A0`
+    await vi.waitFor(() =>
+      expect(r.journal.itemBody(key)).toMatchObject({ blocks: [{ type: 'text', text: 'prefix' }] })
+    )
+    if (boundary === 'close') {
+      await expect(adapter.closeSession('session-1')).resolves.toBe(true)
+    } else {
+      connection.exitVerdict = { root: 'exited', tree: 'exited' }
+      connection.handlers.onExit?.(new Error('exited'), { expected: false })
+      await adapter.drainObservedExits()
+    }
+    expect(persisted).not.toHaveBeenCalled()
+    await stream({
+      type: 'content_block_delta',
+      index: 0,
+      delta: { type: 'text_delta', text: ' tail' }
+    })
+    delivered.resolve()
+    await r.deferred.outputDrained?.()
+    await vi.waitFor(() => expect(persisted).toHaveBeenCalledOnce())
+    expect(r.journal.itemBody(key)).toMatchObject({
+      blocks: [{ type: 'text', text: 'prefix tail' }]
+    })
+    await r.journal.close()
+    expect((await r.reopen()).itemBody(key)).toMatchObject({
+      blocks: [{ type: 'text', text: 'prefix tail' }]
+    })
+  }
+)
 
 describe('Claude published session close lifecycle', () => {
   it('never reads a failed spawn as an observed root exit, whatever checks it first', async () => {

@@ -68,15 +68,6 @@ export function settleClaudeUnexpectedExit(
 ): Promise<void> {
   const { exits, deps } = lifecycle
   exit.settlementPromise ??= (async () => {
-    exit.session.unbindReadingControl?.()
-    if (exits.get(sessionId) !== exit) {
-      settleClaudeExitedSession(exit.session)
-      return
-    }
-    // Save the completed-turn cursor before recovery permits reacquisition.
-    await persistClaudeSessionHandle(sessionId, exit.session, deps).catch((error: unknown) => {
-      console.warn('[claude-resume-point] exit cursor was not persisted:', { sessionId, error })
-    })
     if (exits.get(sessionId) !== exit) {
       settleClaudeExitedSession(exit.session)
       return
@@ -102,6 +93,10 @@ export function settleClaudeUnexpectedExit(
       lifecycle.emit(exit.session, ended)
     } finally {
       settleClaudeExitedSession(exit.session)
+      // Optional cursor bookkeeping cannot delay first-hand process-exit reporting.
+      void persistClaudeSessionHandle(sessionId, exit.session, deps).catch((error: unknown) => {
+        console.warn('[claude-resume-point] exit cursor was not persisted:', { sessionId, error })
+      })
     }
   })()
   return exit.settlementPromise

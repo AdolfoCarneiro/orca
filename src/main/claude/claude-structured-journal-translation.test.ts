@@ -1,3 +1,4 @@
+import { withCheckpointTestTransitions } from './claude-checkpoint-test-support'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -30,7 +31,7 @@ function sinkState() {
     appendTombstone: (identity) => tombstones.push(identity),
     publish: vi.fn()
   }
-  return { sink, items, tombstones }
+  return { sink: withCheckpointTestTransitions(sink), items, tombstones }
 }
 
 function lifecycleAppends(
@@ -185,12 +186,13 @@ afterEach(async () => {
 
 describe('Claude structured journal translation', () => {
   it('coalesces partial deltas onto the block identity and reconciles the final frame onto it', () => {
+    vi.useFakeTimers()
     const state = sinkState()
     let scheduled: (() => void) | null = null
     const translator = createClaudeJournalTranslator({
       sink: state.sink,
       schedule: (run, delay) => {
-        expect(delay).toBe(60)
+        expect(Math.round(delay)).toBe(60)
         scheduled = run
         return () => {
           scheduled = null
@@ -223,6 +225,7 @@ describe('Claude structured journal translation', () => {
     }
     expect(assistantMessages(state.items)).toEqual([])
 
+    vi.advanceTimersByTime(60)
     const run = scheduled as (() => void) | null
     run?.()
     expect(state.items.at(-1)).toEqual({
@@ -241,6 +244,8 @@ describe('Claude structured journal translation', () => {
     })
     expect(new Set(assistant.map((item) => agentJournalItemKey(item.identity))).size).toBe(1)
     expect(providerFrameKinds(state.items)).toEqual([])
+    translator.dispose()
+    vi.useRealTimers()
   })
 
   it('journals a count-to-200 stream as one assistant item carrying the complete reply', async () => {

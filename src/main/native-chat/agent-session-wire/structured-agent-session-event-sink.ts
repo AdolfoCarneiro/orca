@@ -1,3 +1,4 @@
+import { structuredAgentSessionOutputDrain } from './structured-agent-session-output-drain'
 import type { JournalItemEcho } from '../agent-session-journal/journal-item-echo'
 import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
 import type {
@@ -71,6 +72,8 @@ export type StructuredAgentSessionItemAppendOptions = StructuredAgentSessionAppe
 export type StructuredAgentSessionRevisionOptions = StructuredAgentSessionItemAppendOptions
 
 export type StructuredAgentSessionEventSink = StructuredAgentSessionTransitionSink & {
+  /** Internal output continuation, awaited by the host before retiring this writer's fence. */
+  bindOutputDrain?(drain: () => Promise<void>): () => void
   observeExit?: StructuredAgentSessionExitObservation['record']
   appendItem(
     identity: AgentJournalItemIdentity,
@@ -150,16 +153,8 @@ export type StructuredAgentSessionEventTarget = {
   publish: (activity?: AgentSessionTurnActivity | null) => void
 }
 
-export type DeferredStructuredAgentSessionEventSink = {
-  sink: StructuredAgentSessionEventSink
-  exitObservation(): Pick<StructuredAgentSessionExitObservation, 'heldSends' | 'observedAt'>
-  bind(target: StructuredAgentSessionEventTarget): void
-  unbind(): void
-  close(): void
-  drained(): Promise<StructuredAgentSessionSinkBarrier>
-  lifecycleBarrier(): Promise<StructuredAgentSessionSinkBarrier>
-  state(): StructuredAgentSessionSinkState
-}
+import type { DeferredStructuredAgentSessionEventSink } from './structured-agent-session-sink-operation'
+export type { DeferredStructuredAgentSessionEventSink } from './structured-agent-session-sink-operation'
 
 export type StructuredAgentSessionSinkWatermarks = {
   pauseQueuedBytes: number
@@ -175,6 +170,7 @@ export type StructuredAgentSessionSinkWatermarks = {
 export type StructuredAgentSessionReadingControl = {
   pauseReading(): void
   resumeReading(): void
+  failReading?(error: unknown): void
 }
 
 const DEFAULT_WATERMARKS: StructuredAgentSessionSinkWatermarks = {
@@ -214,6 +210,7 @@ export function createDeferredStructuredAgentSessionEventSink(deps: {
     ...(deps.onBackpressureChange ? { onBackpressureChange: deps.onBackpressureChange } : {})
   })
   const resolvedAppend = createStructuredAgentSessionResolvedAppend(queue)
+  const outputDrain = structuredAgentSessionOutputDrain(queue.written)
 
   const appendLifecycleBatch = (
     settlementId: string,
@@ -269,6 +266,7 @@ export function createDeferredStructuredAgentSessionEventSink(deps: {
   return {
     exitObservation: () => exit,
     sink: {
+      bindOutputDrain: outputDrain.bind,
       observeExit: exit.record,
       appendItem: (identity, body, options) => void appendItem(identity, body, options),
       tryAppendItem: appendItem,
@@ -324,6 +322,7 @@ export function createDeferredStructuredAgentSessionEventSink(deps: {
     close: () => queue.close(),
     drained: queue.barrier,
     lifecycleBarrier: queue.barrier,
+    outputDrained: outputDrain.written,
     state: queue.state
   }
 }

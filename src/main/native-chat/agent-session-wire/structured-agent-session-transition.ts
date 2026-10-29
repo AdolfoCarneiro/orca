@@ -23,6 +23,16 @@ export type StructuredAgentSessionTransitionJournal = Pick<
 
 export type StructuredAgentSessionTransitionStep =
   | {
+      kind: 'materialized-item'
+      /** Charge retained input now; charge expanded working allocation at ordered execution. */
+      reservedBytes: number
+      resolve: (journal: StructuredAgentSessionTransitionJournal) => {
+        bytes: number
+        compose: () => { identity: AgentJournalItemIdentity; body: AgentJournalItemBody }
+      } | null
+      options: StructuredAgentSessionItemAppendOptions
+    }
+  | {
       kind: 'item'
       /** Exceeding the reservation fails the sink. */
       reservedBytes: number
@@ -86,22 +96,34 @@ function transitionAppend(
         const { journal, fence } = bound
         const wrote = await journal.appendSteps(
           transition.steps.map((step): JournalStep =>
-            step.kind === 'item'
-              ? {
-                  kind: 'item',
-                  resolve: () => {
-                    const resolved = step.resolve(journal)
-                    if (
-                      resolved &&
-                      estimateStructuredAgentSessionItemBytes(resolved.identity, resolved.body) >
-                        step.reservedBytes
-                    ) {
-                      throw new Error(STEP_OVERFLOW)
-                    }
-                    return resolved
-                  },
-                  options: structuredAgentSessionJournalAppendOptions(fence, step.options)
-                }
+            step.kind !== 'settlement'
+              ? (() => {
+                  let release: (() => void) | undefined
+                  return {
+                    kind: 'item',
+                    resolve: () => {
+                      if (step.kind === 'materialized-item') {
+                        const prepared = step.resolve(journal)
+                        if (!prepared) {
+                          return null
+                        }
+                        release = queue.allocate(prepared.bytes, transition.lifecycle)
+                        return prepared.compose()
+                      }
+                      const resolved = step.resolve(journal)
+                      if (
+                        resolved &&
+                        estimateStructuredAgentSessionItemBytes(resolved.identity, resolved.body) >
+                          step.reservedBytes
+                      ) {
+                        throw new Error(STEP_OVERFLOW)
+                      }
+                      return resolved
+                    },
+                    release: () => release?.(),
+                    options: structuredAgentSessionJournalAppendOptions(fence, step.options)
+                  }
+                })()
               : {
                   kind: 'settlement',
                   batch: {

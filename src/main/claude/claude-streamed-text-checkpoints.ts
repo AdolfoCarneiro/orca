@@ -1,184 +1,303 @@
 import { agentJournalLinkageFields } from '../../shared/agent-session-journal-producer'
 import {
   AGENT_JOURNAL_THREAD_SCOPE,
-  type AgentJournalItemIdentity
+  type AgentJournalItemIdentity,
+  type AgentJournalMessageItem
 } from '../../shared/agent-session-journal-types'
 import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key'
-import type {
-  StructuredAgentSessionAppendOptions,
-  StructuredAgentSessionItemAppendOptions
-} from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
+import type { StructuredAgentSessionItemAppendOptions } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import {
-  AGENT_SESSION_TEXT_CHECKPOINT_MS,
-  createAgentSessionDeltaCoalescer,
-  type AgentSessionDeltaCoalescerDeps
+  AGENT_SESSION_DELTA_COALESCE_MS,
+  AGENT_SESSION_TEXT_CHECKPOINT_MS
 } from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
-import type { ClaudeSubagentLinkageSource } from './claude-subagent-linkage'
+import { claudeCheckpointStep, type ClaudeCheckpointIntent } from './claude-checkpoint-intent'
 
-export type ClaudeStreamedTextCheckpointDeps = {
-  /** Rewrite accumulated text; ended marks the last write when no final frame will arrive. */
-  persist: (
-    identity: AgentJournalItemIdentity,
-    text: string,
-    options: StructuredAgentSessionItemAppendOptions,
-    ended?: ClaudeStreamedBlockEnd
-  ) => boolean | void
-  producer: ClaudeSubagentLinkageSource
-  coalesceMs?: number
-  schedule?: AgentSessionDeltaCoalescerDeps['schedule']
-}
-
-/** Host time of completion or interruption. */
-export type ClaudeStreamedBlockEnd = { completedAt?: number }
-
-export type ClaudeStreamedTextCheckpoints = {
-  /** Coalesce deltas on a fixed checkpoint interval to avoid per-token journal rewrites. */
-  append: (
-    identity: AgentJournalItemIdentity,
-    text: string,
-    parentToolUseId?: string | null,
-    options?: StructuredAgentSessionItemAppendOptions
-  ) => void
-  flush: () => void
-  /** Correct provisional producers even for blocks that stopped receiving checkpoints. */
-  reattribute: () => void
-  forget: (key: string) => void
-  latest: (key: string) => string | undefined
-  /** End matching rows whose final frames will never arrive; discard empty blocks. */
-  finish: (ended: ClaudeStreamedBlockEnd, only?: (key: string) => boolean) => void
-  /** Clear settled streams while preserving refused terminal snapshots for retry. */
-  settle: () => void
-  readonly pending: number
-  dispose: () => void
-}
-
-function sameLinkage(
-  left: StructuredAgentSessionAppendOptions,
-  right: StructuredAgentSessionAppendOptions
-): boolean {
-  return (
-    left.agentId === right.agentId &&
-    left.parentAgentId === right.parentAgentId &&
-    left.providerParentRef === right.providerParentRef &&
-    left.producerKind === right.producerKind &&
-    left.attempt === right.attempt
-  )
-}
-
-export function createClaudeStreamedTextCheckpoints(
-  deps: ClaudeStreamedTextCheckpointDeps
-): ClaudeStreamedTextCheckpoints {
-  const identities = new Map<
-    string,
-    {
-      identity: AgentJournalItemIdentity
-      options: StructuredAgentSessionItemAppendOptions
-      ended?: ClaudeStreamedBlockEnd
+import {
+  consumeClaudeCheckpointFrame,
+  type HeldClaudeCheckpointFrame,
+  type Route,
+  type Debt,
+  type ClaudeStreamedBlockEnd,
+  type ClaudeStreamedTextCheckpointDeps
+} from './claude-checkpoint-input'
+/** Only unadmitted input is budget.bytes; clean routes contain scalars, never full text. */
+export function createClaudeStreamedTextCheckpoints(deps: ClaudeStreamedTextCheckpointDeps) {
+  const routes = new Map<string, Route>()
+  const dirty = new Map<string, Debt>()
+  const budget = deps.deliveryBudget ?? { bytes: 0, transfer: () => transfer(dirty.keys()) }
+  let cancel: (() => void) | undefined
+  let timerAt = Infinity
+  let failed = false
+  let held: HeldClaudeCheckpointFrame | undefined
+  const window = deps.coalesceMs ?? AGENT_SESSION_DELTA_COALESCE_MS
+  const schedule =
+    deps.schedule ??
+    ((run, ms) => {
+      const timer = setTimeout(run, ms)
+      timer.unref?.()
+      return () => clearTimeout(timer)
+    })
+  const optionsFor = (route: Route) => ({
+    ...route.options,
+    ...(route.parent === null || route.options.providerParentRef !== undefined
+      ? {}
+      : agentJournalLinkageFields(deps.producer.settledLinkageFor(route.parent).linkage)),
+    ...(route.ended ? { lifecycle: true } : {})
+  })
+  const owe = (key: string, route: Route): Debt => {
+    let debt = dirty.get(key)
+    if (!debt) {
+      debt = {
+        chunks: [],
+        bytes: 0,
+        due:
+          route.lastAccepted === undefined
+            ? performance.now() + window
+            : Math.max(performance.now(), route.lastAccepted + AGENT_SESSION_TEXT_CHECKPOINT_MS)
+      }
+      dirty.set(key, debt)
     }
-  >()
-  /** Retain producer scope because persist has no frame to read. */
-  const scopes = new Map<string, string | null>()
-  /** Last written linkage, used only to skip revisions that change nothing. */
-  const writtenLinkage = new Map<string, StructuredAgentSessionAppendOptions>()
-
-  /** Resolve each checkpoint afresh; later announcements revise provisional producers on the same row. */
-  const producerOptions = (key: string): StructuredAgentSessionAppendOptions => {
-    const scope = scopes.get(key) ?? null
-    if (scope === null) {
-      return {}
-    }
-    return agentJournalLinkageFields(deps.producer.settledLinkageFor(scope).linkage)
+    return debt
   }
-
-  const persist = (key: string, text: string): boolean => {
-    const block = identities.get(key)
-    if (!block) {
-      return true
+  const arm = (at: number) => {
+    if (failed || at >= timerAt) {
+      return
     }
-    const options = { ...block.options, ...producerOptions(key) }
-    if (deps.persist(block.identity, text, options, block.ended) === false) {
+    cancel?.()
+    timerAt = at
+    cancel = schedule(
+      () => {
+        cancel = undefined
+        timerAt = Infinity
+        const now = performance.now()
+        for (const [key, debt] of dirty) {
+          if (debt.due <= now) {
+            transfer([key])
+          }
+        }
+        resumeHeld()
+        rearm()
+      },
+      Math.max(0, at - performance.now())
+    )
+  }
+  const rearm = () => {
+    cancel?.()
+    cancel = undefined
+    timerAt = Infinity
+    for (const debt of dirty.values()) {
+      arm(debt.due)
+    }
+  }
+  const transfer = (keys: Iterable<string>, finalTail = false): boolean => {
+    const intents: { key: string; route: Route; debt: Debt; intent: ClaudeCheckpointIntent }[] = []
+    for (const key of keys) {
+      const debt = dirty.get(key),
+        route = routes.get(key)
+      if (debt && route) {
+        intents.push({
+          key,
+          route,
+          debt,
+          intent: {
+            identity: route.identity,
+            role: deps.role,
+            suffix: debt.chunks,
+            replacement: debt.replacement,
+            ended: route.ended,
+            options: optionsFor(route)
+          }
+        })
+      }
+    }
+    if (!intents.length) {
+      return !failed
+    }
+    const steps = intents.map(({ intent }) => claudeCheckpointStep(intent))
+    // Journal resolution may run synchronously and release pressure reentrantly.
+    for (const { key, debt } of intents) {
+      dirty.delete(key)
+      budget.bytes -= debt.bytes
+    }
+    const result = deps.sink.tryAppendTransition?.({
+      steps,
+      lifecycle: intents.some(({ route }) => route.ended !== undefined),
+      finalTail: finalTail ? true : undefined,
+      publish: true
+    })
+    if (!result) {
+      // Isolated transcript projection/legacy test sinks only submit supplied full bodies.
+      for (const { intent } of intents) {
+        if (!intent.replacement && !intent.suffix.length) {
+          continue
+        }
+        if (!intent.replacement) {
+          throw new Error('Claude incremental checkpoints require an ordered journal sink')
+        }
+        deps.sink.appendItem(intent.identity, intent.replacement, intent.options)
+      }
+      deps.sink.publish()
+    } else if (!result.accepted) {
+      failed = result.reason !== 'backpressure'
+      for (const { key, debt } of intents) {
+        dirty.set(key, debt)
+        budget.bytes += debt.bytes
+        debt.due = performance.now() + window
+      }
       return false
     }
-    writtenLinkage.set(key, options)
-    if (block.ended) {
-      drop(key)
+    for (const { key, route, intent } of intents) {
+      route.lastAccepted = performance.now()
+      route.written = JSON.stringify(intent.options)
+      if (route.parent !== null && deps.producer.linkageFor(route.parent).kind === 'linked') {
+        route.options = intent.options
+      }
+      if (route.retired && !dirty.has(key)) {
+        routes.delete(key)
+      }
     }
     return true
   }
-
-  const coalescer = createAgentSessionDeltaCoalescer({
-    ...(deps.coalesceMs === undefined ? {} : { windowMs: deps.coalesceMs }),
-    ...(deps.schedule ? { schedule: deps.schedule } : {}),
-    checkpointMs: () => AGENT_SESSION_TEXT_CHECKPOINT_MS,
-    emit: persist
-  })
-
-  const drop = (key: string): void => {
-    coalescer.forget(key)
-    identities.delete(key)
-    scopes.delete(key)
-    writtenLinkage.delete(key)
+  const consume = (frame: HeldClaudeCheckpointFrame) =>
+    consumeClaudeCheckpointFrame(frame, { dirty, budget, owe, arm })
+  const resumeHeld = () => {
+    const frame = held
+    if (!frame) {
+      return
+    }
+    held = undefined
+    if (failed || consume(frame)) {
+      frame.resolve()
+    } else {
+      held = frame
+    }
   }
-
+  const flush = (keys: Iterable<string> = dirty.keys(), finalTail = false) => {
+    const accepted = transfer(keys, finalTail)
+    resumeHeld()
+    rearm()
+    return accepted && !held
+  }
+  const routeFor = (
+    identity: AgentJournalItemIdentity,
+    parent: string | null,
+    options: StructuredAgentSessionItemAppendOptions
+  ) => {
+    const key = agentJournalItemKey(identity)
+    let route = routes.get(key)
+    if (!route) {
+      route = { identity, parent, options, bytes: 0, truncated: false, retired: false }
+      routes.set(key, route)
+    }
+    route.retired = false
+    return { key, route }
+  }
+  let delivery: Promise<void> = Promise.resolve()
   return {
     append: (
-      identity,
-      text,
-      parentToolUseId = null,
-      options = { turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+      identity: AgentJournalItemIdentity,
+      text: string,
+      parent: string | null = null,
+      options: StructuredAgentSessionItemAppendOptions = { turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     ) => {
-      const key = agentJournalItemKey(identity)
-      if (!identities.has(key)) {
-        identities.set(key, { identity, options })
+      if (held) {
+        throw new Error('Claude output advanced before delivery drained')
       }
-      scopes.set(key, parentToolUseId)
-      coalescer.append(key, text)
+      const { key, route } = routeFor(identity, parent, options)
+      delivery = new Promise<void>((resolve) => {
+        const frame = { key, route, text, offset: 0, resolve }
+        if (consume(frame)) {
+          resolve()
+        } else {
+          held = frame
+          arm(performance.now() + window)
+        }
+      })
     },
-    flush: () => {
-      coalescer.flushAll()
+    replace: (
+      identity: AgentJournalItemIdentity,
+      body: AgentJournalMessageItem | undefined,
+      parent: string | null,
+      options: StructuredAgentSessionItemAppendOptions,
+      ended?: ClaudeStreamedBlockEnd
+    ) => {
+      const { key, route } = routeFor(identity, parent, options)
+      const debt = owe(key, route)
+      if (body) {
+        budget.bytes -= debt.bytes
+        debt.chunks = []
+        debt.bytes = 0
+        debt.replacement = body
+      }
+      route.ended ??= ended
+      route.bytes = 0
+      route.truncated = false
+      flush([key])
     },
+    flush,
+    admit: () => transfer(dirty.keys()),
+    transfer: (keys: Iterable<string>) => flush(keys),
     reattribute: () => {
-      for (const [key, block] of identities) {
-        const text = coalescer.snapshot(key)?.text
-        if (text === undefined) {
-          continue
-        }
-        const options = { ...block.options, ...producerOptions(key) }
-        const written = writtenLinkage.get(key)
-        if (written && sameLinkage(written, options)) {
-          continue
-        }
-        if (persist(key, text)) {
-          coalescer.markFlushed(key)
+      for (const [key, route] of routes) {
+        if (route.written && route.written !== JSON.stringify(optionsFor(route))) {
+          owe(key, route)
         }
       }
+      flush()
     },
-    forget: drop,
-    latest: (key) => coalescer.snapshot(key)?.text,
-    finish: (ended, only) => {
-      for (const [key, block] of identities) {
-        if (only && !only(key)) {
-          continue
+    finish: (ended: ClaudeStreamedBlockEnd, only?: (key: string) => boolean, finalTail = false) => {
+      for (const [key, route] of routes) {
+        if ((!only || only(key)) && !route.ended) {
+          route.ended = ended
+          route.bytes = 0
+          route.truncated = false
+          owe(key, route)
         }
-        block.ended ??= ended
-        coalescer.flush(key, true)
       }
+      flush(dirty.keys(), finalTail)
     },
+    retire: (sessionId: string, parent: string | null, completedAt: number) => {
+      for (const [key, route] of routes) {
+        if (
+          route.identity.provider === 'claude' &&
+          route.identity.sessionId === sessionId &&
+          route.parent === parent
+        ) {
+          route.retired = true
+          if (!route.ended) {
+            route.ended = { completedAt }
+            owe(key, route)
+          }
+          if (!dirty.has(key)) {
+            routes.delete(key)
+          }
+        }
+      }
+      flush()
+    },
+    finalize: () => flush(dirty.keys(), true),
     settle: () => {
-      for (const [key, block] of identities) {
-        if (!block.ended) {
-          drop(key)
+      for (const [key, route] of routes) {
+        route.retired = true
+        if (!dirty.has(key)) {
+          routes.delete(key)
         }
       }
     },
+    whenDelivered: () => delivery,
     get pending() {
-      return identities.size
+      return dirty.size + (held ? 1 : 0)
     },
     dispose: () => {
-      coalescer.dispose()
-      identities.clear()
-      scopes.clear()
-      writtenLinkage.clear()
+      cancel?.()
+      cancel = undefined
+      routes.clear()
+      for (const debt of dirty.values()) {
+        budget.bytes -= debt.bytes
+      }
+      dirty.clear()
+      failed = true
+      resumeHeld()
     }
   }
 }

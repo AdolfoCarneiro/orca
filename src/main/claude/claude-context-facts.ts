@@ -1,3 +1,4 @@
+import type { ClaudeJournalTranslator } from './claude-journal-translator-contract'
 import {
   contextTokensFromUsage,
   MAX_CONTEXT_MODEL_ID_CHARS,
@@ -215,5 +216,24 @@ export class ClaudeContextFacts {
     for (const listener of this.requestListeners) {
       listener(target)
     }
+  }
+}
+
+export function claudeContextReportMembers(
+  context: ClaudeContextFacts
+): Pick<
+  ClaudeJournalTranslator,
+  | 'markContextActivity'
+  | 'subscribeContextUsageRequests'
+  | 'recordContextReport'
+  | 'modelMayHaveChanged'
+  | 'modelWritten'
+> {
+  return {
+    markContextActivity: () => context.markActivity(),
+    subscribeContextUsageRequests: (listener) => context.subscribeReportRequests(listener),
+    recordContextReport: (target, report, part) => context.recordReport(target, report, part),
+    modelMayHaveChanged: () => context.modelMayHaveChanged(),
+    modelWritten: (model) => context.modelWritten(model)
   }
 }

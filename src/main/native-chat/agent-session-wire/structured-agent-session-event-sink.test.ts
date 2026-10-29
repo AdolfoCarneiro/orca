@@ -505,11 +505,15 @@ describe('deferred structured agent-session event sink', () => {
         method,
         params: { threadId: 'thread-1', turnId: 'turn-1', turn: { id: 'turn-1' }, ...params }
       })
+    let checkpointAt = performance.now()
     const checkpoint = (text: string) => {
       notify('item/agentMessage/delta', { itemId: 'reply', delta: text })
+      checkpointAt += 400
+      const clock = vi.spyOn(performance, 'now').mockReturnValue(checkpointAt)
       for (const run of window.splice(0)) {
         run()
       }
+      clock.mockRestore()
     }
     notify('turn/started', {})
     notify('item/started', { item: { type: 'agentMessage', id: 'reply', text: '' } })

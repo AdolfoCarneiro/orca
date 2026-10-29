@@ -43,7 +43,10 @@ export class AcpHistoryJournalOverlay {
           if (step.kind === 'settlement') {
             step.resolve(this.journal).forEach((mutation) => this.write(mutation))
           } else {
-            const resolved = step.resolve(this.journal)
+            const resolved =
+              step.kind === 'materialized-item'
+                ? step.resolve(this.journal)?.compose()
+                : step.resolve(this.journal)
             if (resolved) {
               this.write(
                 journalLifecycleItemMutation(step.options, resolved.identity, resolved.body)

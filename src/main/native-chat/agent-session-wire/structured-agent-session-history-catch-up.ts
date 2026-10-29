@@ -39,6 +39,7 @@ export type HistoryCatchUpPlan = {
   keys: string[]
   reservedBytes: number
   expectedItems?: readonly ExpectedHistoryItem[]
+  affectedKeys?: readonly string[]
 }
 
 /** Stage the whole bounded plan before any sink admission. */
@@ -139,6 +140,8 @@ export async function runHistoryCatchUp<View>(input: {
   /** Reject commits if saved facts changed since planning. */
   sameView: (planned: View, current: View) => boolean
   prepare: (context: HistoryCatchUpContext<View>) => Promise<HistoryCatchUpPlan | null>
+  /** Transfer earlier live observations immediately before the checked transition, without yielding. */
+  beforeCommit?: (plan: HistoryCatchUpPlan) => boolean
 }): Promise<HistoryCatchUpOutcome> {
   const controller = new AbortController()
   const abort = () => controller.abort(input.signal?.reason)
@@ -195,6 +198,9 @@ export async function runHistoryCatchUp<View>(input: {
       return 'nothing'
     }
     let resolved = false
+    if (input.beforeCommit?.(plan) === false) {
+      return 'skipped'
+    }
     const admission = sink.tryAppendTransition({
       lifecycle: true,
       publish: true,

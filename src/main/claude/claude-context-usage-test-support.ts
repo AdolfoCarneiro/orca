@@ -13,6 +13,7 @@ import { createJournalReducerState } from '../native-chat/agent-session-journal/
 import { personStopDecidesTurn } from '../native-chat/agent-session-journal/journal-stop-turn-end'
 import type { ClaudeContextReportTarget } from './claude-context-facts'
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
+import { withCheckpointTestTransitions } from './claude-checkpoint-test-support'
 import { claudeTurnLifecycleIdentity } from './claude-turn-lifecycle-item'
 
 export function journal({ deferred = false } = {}) {
@@ -175,7 +176,10 @@ export function setup({
   deferred = false
 }: { init?: string | null; deferred?: boolean } = {}) {
   const state = journal({ deferred })
-  const translator = createClaudeJournalTranslator({ sink: state.sink, coalesceMs: 0 })
+  const translator = createClaudeJournalTranslator({
+    sink: withCheckpointTestTransitions(state.sink),
+    coalesceMs: 0
+  })
   const requests: ClaudeContextReportTarget[] = []
   translator.subscribeContextUsageRequests((target) => requests.push(target))
   const handle = (event: Parameters<typeof translator.handle>[0]): void => {

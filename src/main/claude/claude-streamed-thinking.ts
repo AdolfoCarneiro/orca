@@ -1,9 +1,8 @@
-import { appendAgentSessionItemAndPublish } from '../native-chat/agent-session-wire/structured-agent-session-item-publication'
 import type {
-  AgentJournalItemIdentity,
-  AgentJournalMessageItem,
-  AgentJournalTurnScope
-} from '../../shared/agent-session-journal-types'
+  ClaudeCheckpointDeliveryBudget,
+  ClaudeStreamedBlockEnd
+} from './claude-checkpoint-input'
+import type { AgentJournalTurnScope } from '../../shared/agent-session-journal-types'
 import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key'
 import {
   endedJournalReasoning,
@@ -12,10 +11,7 @@ import {
 import type { AgentSessionDeltaCoalescerDeps } from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
 import type { StructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import { createClaudeStreamedBlockRegistry } from './claude-streamed-block-identity'
-import {
-  createClaudeStreamedTextCheckpoints,
-  type ClaudeStreamedBlockEnd
-} from './claude-streamed-text-checkpoints'
+import { createClaudeStreamedTextCheckpoints } from './claude-streamed-text-checkpoints'
 import {
   claudeRecord,
   claudeText,
@@ -36,14 +32,9 @@ function streamScope(frame: Record<string, unknown>): string | null {
 
 export type ClaudeStreamedThinking = ReturnType<typeof createClaudeStreamedThinking>
 
-export type ClaudeReasoningFinal = {
-  identity: AgentJournalItemIdentity
-  body: AgentJournalMessageItem
-  startedAt?: number
-}
-
 /** Keep thinking deltas and their final frame on one row until finalization or turn end. */
 export function createClaudeStreamedThinking(deps: {
+  deliveryBudget?: ClaudeCheckpointDeliveryBudget
   sink: StructuredAgentSessionEventSink
   producer: ClaudeSubagentLinkageSource
   turnScope: () => AgentJournalTurnScope
@@ -54,28 +45,18 @@ export function createClaudeStreamedThinking(deps: {
   const blocks = createClaudeStreamedBlockRegistry('thinking')
   const open = new Map<string, { scope: string }>()
   const checkpoints = createClaudeStreamedTextCheckpoints({
+    sink: deps.sink,
+    deliveryBudget: deps.deliveryBudget,
+    role: 'reasoning',
     ...(deps.coalesceMs === undefined ? {} : { coalesceMs: deps.coalesceMs }),
     ...(deps.schedule ? { schedule: deps.schedule } : {}),
-    producer: deps.producer,
-    persist: (identity, text, options, ended) => {
-      const body = journalReasoningBody(
-        text,
-        ended ? endedJournalReasoning(ended.completedAt) : { state: 'running' }
-      )
-      if (body) {
-        const attribution = {
-          ...options,
-          // Preserve terminal writes under pressure so reasoning cannot remain open.
-          ...(ended ? { lifecycle: true } : {})
-        }
-        return appendAgentSessionItemAndPublish(deps.sink, identity, body, attribution).accepted
-      }
-    }
+    producer: deps.producer
   })
-  const finish = (ended: ClaudeStreamedBlockEnd, scope?: string): void => {
+  const finish = (ended: ClaudeStreamedBlockEnd, scope?: string, finalTail = false): void => {
     checkpoints.finish(
       ended,
-      scope === undefined ? undefined : (key) => open.get(key)?.scope === scope
+      scope === undefined ? undefined : (key) => open.get(key)?.scope === scope,
+      finalTail
     )
     for (const [key, block] of open) {
       if (scope === undefined || block.scope === scope) {
@@ -90,6 +71,10 @@ export function createClaudeStreamedThinking(deps: {
       const restarted = streamScope(frame)
       if (restarted !== null) {
         finish({ completedAt: observedAt }, restarted)
+        const sessionId = claudeText(frame.session_id)
+        if (sessionId) {
+          checkpoints.retire(sessionId, claudeText(frame.parent_tool_use_id), observedAt)
+        }
       }
       const delta = blocks.observe(frame, observedAt)
       if (!delta) {
@@ -111,33 +96,48 @@ export function createClaudeStreamedThinking(deps: {
     /** Close the streamed row if present; only streaming gives us an observed end time. */
     finalize: (
       envelope: ClaudeMessageEnvelope,
-      observedAt: number
-    ): ClaudeReasoningFinal | null => {
+      observedAt: number,
+      openTurn: () => void
+    ): boolean => {
       if (!envelope.content.some((part) => claudeRecord(part)?.type === 'thinking')) {
-        return null
+        return false
       }
       const streamed = blocks.reconcile(envelope)
       const identity =
         streamed?.identity ?? claudeThinkingIdentity(envelope.sessionId, envelope.uuid)
       const key = agentJournalItemKey(identity)
       // A textless final frame still closes its streamed row.
-      const text = claudeThinkingText(envelope) ?? checkpoints.latest(key) ?? ''
-      checkpoints.forget(key)
+      const text = claudeThinkingText(envelope) ?? ''
       open.delete(key)
       const body = journalReasoningBody(
         text,
         endedJournalReasoning(streamed ? observedAt : undefined)
       )
-      return body
-        ? { identity, body, ...(streamed ? { startedAt: streamed.startedAt } : {}) }
-        : null
+      if (body || streamed) {
+        openTurn()
+      }
+      checkpoints.replace(
+        identity,
+        body ?? undefined,
+        envelope.parentToolUseId,
+        {
+          turnScope: deps.turnScope(),
+          lifecycle: true,
+          ...(streamed ? { observedAt: streamed.startedAt } : {})
+        },
+        streamed ? { completedAt: observedAt } : {}
+      )
+      return body !== null || streamed !== null
     },
-    finishOpen: (completedAt: number): void => {
-      finish({ completedAt })
-      blocks.clear()
+    finishOpen: (completedAt: number, finalTail = false): void => {
+      finish({ completedAt }, undefined, finalTail)
     },
     flush: checkpoints.flush,
+    admit: checkpoints.admit,
     reattribute: checkpoints.reattribute,
+    transfer: checkpoints.transfer,
+    whenDelivered: checkpoints.whenDelivered,
+    finalizeOutput: checkpoints.finalize,
     dispose: (): void => {
       blocks.clear()
       open.clear()

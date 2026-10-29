@@ -17,7 +17,7 @@ afterEach(async () => {
 
 describe("a stream writes only while its row's turn runs", () => {
   it('saves a paused tail at its deadline and closes without losing the next tail', async () => {
-    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout', 'clearTimeout'] })
     vi.setSystemTime(0)
     const rig = await openProviderTimelineRig({
       schedule: (run, ms) => {

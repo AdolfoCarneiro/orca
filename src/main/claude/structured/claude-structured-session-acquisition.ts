@@ -31,15 +31,12 @@ import {
   createClaudeSessionJournalTranslator
 } from '../claude-structured-session-journal-control'
 import { isRootClaudeFrame } from '../claude-turn-opening'
+import { deliverClaudeAcquisitionOutput } from '../claude-structured-event-delivery'
 
-export async function acquireClaudeSession({
-  input,
-  deps,
-  sessions,
-  acquisitions,
-  exits,
-  callbacks
-}: sessionState.ClaudeSessionAcquisitionInput): Promise<AgentSessionAcquisition> {
+export async function acquireClaudeSession(
+  args: sessionState.ClaudeSessionAcquisitionInput
+): Promise<AgentSessionAcquisition> {
+  const { input, deps, sessions, acquisitions, exits, callbacks } = args
   const sessionId = input.identity.sessionId
   const prompts = new ClaudePromptRegistry()
   const { previous, attempt } = acquisitions.start(sessionId, prompts)
@@ -68,7 +65,7 @@ export async function acquireClaudeSession({
   const contextActivity = translator?.contextActivity ?? 0
   const recordTurnEnd = claudeTurnResumePointWriter(sessionId, sessions, deps)
   const observedOptions: sessionState.ClaudeSession['reportedOptions'] = {}
-  const onMessage = (message: Record<string, unknown>): void => {
+  const onMessage = (message: Record<string, unknown>): void | Promise<void> => {
     const init = readClaudeInit(message)
     if (readClaudeFrameString(message, 'session_id') !== expectedProviderSessionId) {
       // Foreign init frames refuse startup; ordinary foreign frames are ignored.
@@ -122,7 +119,7 @@ export async function acquireClaudeSession({
       ])
     }
     try {
-      callbacks.deliver(attempt, sessionId, () => {
+      deliverClaudeAcquisitionOutput(attempt, () => {
         if (liveSession && (modelChanged || permissionChanged)) {
           callbacks.emit(liveSession, input.events, {
             type: 'options-reported',
@@ -159,6 +156,7 @@ export async function acquireClaudeSession({
         }
       }
     }
+    return translator?.whenDelivered?.()
   }
   const emit = (event: Parameters<typeof callbacks.emit>[2]): void =>
     callbacks.deliver(attempt, sessionId, () => callbacks.emit(liveSession, input.events, event))
@@ -296,7 +294,6 @@ export async function acquireClaudeSession({
     }
     return acquisition
   } catch (error) {
-    unbindReadingControl?.()
     throw await resolveClaudeAcquisitionError({
       error,
       sessionId,

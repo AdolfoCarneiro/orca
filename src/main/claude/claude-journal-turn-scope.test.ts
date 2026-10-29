@@ -1,3 +1,4 @@
+import { withCheckpointTestTransitions } from './claude-checkpoint-test-support'
 import { expect, it, vi } from 'vitest'
 import type {
   AgentJournalItemBody,
@@ -26,7 +27,7 @@ function recorder() {
         write.body.kind === 'message' &&
         write.body.blocks.some((block) => block.type === 'text' && block.text === text)
     )?.options.turnScope
-  return { sink, writes, scopeOfProse }
+  return { sink: withCheckpointTestTransitions(sink), writes, scopeOfProse }
 }
 
 function frame(message: Record<string, unknown>, startsTurn = false) {

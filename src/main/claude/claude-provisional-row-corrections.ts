@@ -1,3 +1,4 @@
+import type { StructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 // Publish before task_started using the spawn ID; correct attribution later without replacing content.
 
 import { agentJournalLinkageFields } from '../../shared/agent-session-journal-producer'
@@ -180,4 +181,24 @@ function sameLinkage(
     left.producerKind === right.producerKind &&
     left.attempt === right.attempt
   )
+}
+
+export function claudeProvisionalRowCorrections(
+  sink: StructuredAgentSessionEventSink,
+  producer: ClaudeSubagentLinkageSource,
+  turnScope: () => AgentJournalTurnScope
+) {
+  return new ClaudeProvisionalRowCorrections({
+    ...producer,
+    turnScope,
+    rewrite: (identity, body, options) => {
+      const admission = sink.tryAppendItem?.(identity, body, options)
+      if (admission === undefined) {
+        sink.appendItem(identity, body, options)
+        return true
+      }
+      return admission.accepted
+    },
+    publish: () => sink.publish()
+  })
 }
