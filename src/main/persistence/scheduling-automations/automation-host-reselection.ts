@@ -41,7 +41,9 @@ export function retainAutomationReselectionContexts(
   if (
     !sameContext ||
     (updates.sourceContext !== undefined &&
-      !areTaskSourceContextsEqual(updates.sourceContext, current.sourceContext)) ||
+      (updates.sourceContext === null
+        ? current.sourceContext !== null
+        : !areTaskSourceContextsEqual(updates.sourceContext, current.sourceContext))) ||
     (updates.projectId ?? current.projectId) !== current.projectId ||
     (updates.workspaceMode ?? current.workspaceMode) !== current.workspaceMode ||
     (updates.workspaceId !== undefined && updates.workspaceId !== current.workspaceId)

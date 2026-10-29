@@ -21,12 +21,10 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { resetAutomationCapabilityProbes } from './automation-scoped-list-client'
 import {
   addRuntimeProject as addRuntimeProjectFixture,
-  RUNTIME_REPO_ID,
-  RUNTIME_WORKSPACE_ID,
   selfScopedList
 } from './automations-page-runtime-fixtures'
 
-export { RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID }
+export { RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID } from './automations-page-runtime-fixtures'
 
 export type ListPanelProps = {
   sortedListItems: readonly AutomationListViewItem[]

@@ -6,7 +6,7 @@ import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Automation } from '../../../../shared/automations-types'
 import { hostStableKey } from '../../../../shared/automation-owner-key'
-import { unscopedAutomationListRows, type AutomationListRow } from './automation-list-row-identity'
+import { unscopedAutomationListRows } from './automation-list-row-identity'
 import {
   addRuntimeProject,
   api,
@@ -353,53 +353,71 @@ describe('AutomationsPage create destination', () => {
 })
 
 describe('AutomationsPage edit fencing', () => {
-  async function editAndSave(row: AutomationListRow): Promise<void> {
+  async function renameOpenDraft(): Promise<unknown> {
+    expect(mocks.editorDialog?.open).toBe(true)
     await act(async () => {
-      void mocks.listPanel?.openEditDialog(row)
+      mocks.editorDialog?.onDraftChange((current) => {
+        if (!current || typeof current !== 'object') {
+          throw new Error('Missing editor draft')
+        }
+        return { ...current, name: 'Renamed' }
+      })
     })
-    await act(async () => {
-      mocks.editorDialog?.onDraftChange((current) => ({
-        ...(current as Record<string, unknown>),
-        name: 'Renamed'
-      }))
-    })
-    await save()
+    return structuredClone(mocks.editorDialog?.draft)
   }
 
-  function updatePreconditions(): unknown[] {
-    return api.automations.update.mock.calls.map(
-      ([payload]) => (payload as { expectedOwner?: unknown }).expectedOwner
+  async function expectUnavailableSave(draft: unknown): Promise<void> {
+    const { ensureHooksConfirmed } = await import('@/lib/ensure-hooks-confirmed')
+    const { checkRuntimeHooks } = await import('@/runtime/runtime-hooks-client')
+    // Opening may read hooks; Save must refuse before any further probe.
+    vi.mocked(checkRuntimeHooks).mockClear()
+    await save()
+
+    expect(api.automations.update).not.toHaveBeenCalled()
+    expect(api.automations.create).not.toHaveBeenCalled()
+    expect(api.automations.delete).not.toHaveBeenCalled()
+    expect(api.automations.runNow).not.toHaveBeenCalled()
+    expect(mocks.callRuntimeRpc.mock.calls.map((call) => call[1])).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^automation\.(?:create|update|delete|runNow|precheck)$/)
+      ])
+    )
+    expect(ensureHooksConfirmed).not.toHaveBeenCalled()
+    expect(checkRuntimeHooks).not.toHaveBeenCalled()
+    expect(mocks.editorDialog?.open).toBe(true)
+    expect(mocks.editorDialog?.draft).toEqual(draft)
+    expect(mocks.toastError).toHaveBeenCalledWith(
+      'This automation is no longer available. Refresh and try again.'
     )
   }
 
-  it('fences the save even when the record cannot be re-read', async () => {
+  it('refuses a save when the captured record disappears after the editor opens', async () => {
     const automation = makeAutomation({ id: 'a-1' })
     api.automations.list.mockResolvedValue([])
     scopedList([automation])
 
     await renderPage()
     await settleHostQueries()
-    // The row is gone from its host by the time the form is saved.
+    await act(async () => {
+      mocks.listPanel?.openEditDialog(listedRow(automation.id))
+    })
+    const draft = await renameOpenDraft()
     scopedList([])
-    await editAndSave(listedRow(automation.id))
-
-    expect(api.automations.update).toHaveBeenCalled()
-    expect(updatePreconditions()).not.toContain(undefined)
+    await expectUnavailableSave(draft)
   })
 
-  it('refuses the save when nothing names the record’s host', async () => {
+  it('opens a legacy snapshot but refuses Save without a fresh owner-addressable record', async () => {
     const automation = makeAutomation({ id: 'a-1' })
-    // No host answered, so no owner was captured; the legacy-addressable record is also gone.
     api.automations.listScoped.mockRejectedValue(new Error('offline'))
     api.automations.list.mockResolvedValue([])
 
     await renderPage()
     await settleHostQueries()
-    // Only the pre-catalog projection could have supplied the clicked key before any host answered.
-    await editAndSave(unscopedAutomationListRows([automation])[0]!)
-
-    expect(api.automations.update).not.toHaveBeenCalled()
-    expect(mocks.editorDialog?.notice?.message).toBeTruthy()
+    await act(async () => {
+      mocks.listPanel?.openEditDialog(unscopedAutomationListRows([automation])[0]!)
+    })
+    const draft = await renameOpenDraft()
+    await expectUnavailableSave(draft)
   })
 })
 

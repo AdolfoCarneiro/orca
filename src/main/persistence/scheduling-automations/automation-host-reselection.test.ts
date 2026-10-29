@@ -244,4 +244,39 @@ describe('same-record host reselection transaction', () => {
     expect(updated.sourceContext).toEqual(sourceContext)
     expect(operations.flush).toHaveBeenCalledTimes(1)
   })
+
+  it('retains an explicit source clear when the saved source context is absent', () => {
+    const { operations, current, repo, state, history } = fixture()
+    delete current.sourceContext
+    const updated = updateAutomation(
+      operations,
+      current.id,
+      {
+        projectId: repo.id,
+        runContext: current.runContext,
+        sourceContext: null
+      },
+      { destination, expectedOwner, resolvedRepo: repo }
+    )
+    expect(Object.hasOwn(updated, 'sourceContext')).toBe(true)
+    expect(updated.sourceContext).toBeNull()
+    expect(updated.runContext).toEqual({
+      kind: 'workspace-run',
+      projectId: 'logical-project',
+      hostId: 'ssh:box',
+      projectHostSetupId: 'saved-setup',
+      repoId: repo.id,
+      path: repo.path
+    })
+    expect(updated).toMatchObject({
+      id: current.id,
+      executionTargetType: 'ssh',
+      executionTargetId: 'box',
+      executionTargetGeneration: 7,
+      schedulerOwner: 'ssh_bridge'
+    })
+    expect(state.automationRuns).toBe(history)
+    expect(state.automations).toEqual([updated])
+    expect(operations.flush).toHaveBeenCalledTimes(1)
+  })
 })
