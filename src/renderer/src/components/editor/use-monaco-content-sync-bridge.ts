@@ -13,7 +13,6 @@ export type MonacoContentSyncBridge = {
   lastSyncedContentRef: MutableRefObject<string>
   contentSyncModeRef: MutableRefObject<MonacoContentSyncMode>
   isApplyingProgrammaticContentRef: MutableRefObject<boolean>
-  isApplyingLargePasteRef: MutableRefObject<boolean>
   handleChange: (value: string | undefined) => void
 }
 
@@ -35,17 +34,11 @@ export function useMonacoContentSyncBridge(params: {
 
   // Suppress reconciliation’s real edit events so programmatic updates do not mark the file dirty.
   const isApplyingProgrammaticContentRef = useRef(false)
-  const isApplyingLargePasteRef = useRef(false)
 
   const handleChange = useCallback(
     (value: string | undefined) => {
       if (value !== undefined) {
         if (editorRef.current?.getModel()?.uri.toString() !== modelKey) {
-          return
-        }
-        // Publish chunked pastes only on completion instead of scheduling saves for intermediate content.
-        if (isApplyingLargePasteRef.current) {
-          lastSyncedContentRef.current = value
           return
         }
         if (
@@ -90,7 +83,6 @@ export function useMonacoContentSyncBridge(params: {
     lastSyncedContentRef,
     contentSyncModeRef,
     isApplyingProgrammaticContentRef,
-    isApplyingLargePasteRef,
     handleChange
   }
 }

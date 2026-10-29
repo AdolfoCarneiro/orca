@@ -58,14 +58,15 @@ export function wslDistroForPath(path: string, wslDistro?: string | null): strin
  */
 export async function blockedWslDistroForPath(
   path: string,
-  wslDistro?: string | null
+  wslDistro?: string | null,
+  options: { leaseMs?: number } = {}
 ): Promise<BlockedWslDistro | null> {
   const distro = wslDistroForPath(path, wslDistro)
   if (!distro || isWslUserActFor(distro)) {
     return null
   }
   const state = await readWslDistroRunningState(distro, {
-    startedAfter: performance.now() - WSL_UNC_RUNNING_LEASE_MS,
+    startedAfter: performance.now() - (options.leaseMs ?? WSL_UNC_RUNNING_LEASE_MS),
     retryUnverifiable: true
   })
   return state === 'running' ? null : { distro, state }
