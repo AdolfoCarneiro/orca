@@ -129,8 +129,9 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
     // would spin, so delivery keeps its own, blocked-blind, reading of the same ranking.
     const verdict = evaluateTuiIdle({ ...evidence, readTailBlockedReason: () => null })
     // The ranking vetoes overlays only on ready verdicts; an overlay refuses input mid-turn too.
+    // Only a recognized agent queues mid-turn text; an unknown program would read it as stdin.
     return verdict.kind === 'working'
-      ? evidence.readScreenInputVeto() !== true
+      ? !!evidence.agent && evidence.readScreenInputVeto() !== true
       : isTuiIdleReadyVerdict(verdict)
   }
 
