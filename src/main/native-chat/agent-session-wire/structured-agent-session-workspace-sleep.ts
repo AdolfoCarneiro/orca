@@ -21,6 +21,11 @@ type WorkspaceSleepHost = {
 
 type WorkspaceSleepVerdict = { stopped: true } | { stopped: false; fence: number } | null
 
+export function createStructuredAgentSessionWorkspaceSleeper(context: () => WorkspaceSleepHost) {
+  return (workspaceId: string, markAsleep?: boolean) =>
+    sleepStructuredAgentSessionWorkspace(context(), workspaceId, markAsleep)
+}
+
 /** Return only this call’s current proven stops; markAsleep marks exactly those receipts. */
 export async function sleepStructuredAgentSessionWorkspace(
   host: WorkspaceSleepHost,

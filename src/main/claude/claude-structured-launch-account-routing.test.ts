@@ -62,7 +62,7 @@ it('launches each acquisition under the current selection, not the account it wa
     store: { getRecord: () => record, pinLaunchDirectory: vi.fn() },
     resolveLaunchArgs: () => [],
     resolveWorkspacePath: async (id) => `/repos/${id}`,
-    resolveCommand: () => '/usr/local/bin/claude',
+    resolveCommand: () => ({ command: '/usr/local/bin/claude', prefixArgs: [] }),
     resolveInheritedEnv: async () => ({ PATH: '/usr/bin' }),
     resolveAuthPolicy: () => ({ account: 'system' })
   })
@@ -136,7 +136,7 @@ function routedResumeFixture(rewind?: AgentSessionRewindRecord, transcriptFiles 
     store: { getRecord: () => record, pinLaunchDirectory: vi.fn() },
     resolveLaunchArgs: () => [],
     resolveWorkspacePath: async (id) => `/repos/${id}`,
-    resolveCommand: () => '/usr/local/bin/claude',
+    resolveCommand: () => ({ command: '/usr/local/bin/claude', prefixArgs: [] }),
     resolveInheritedEnv: async () => ({ PATH: '/usr/bin' }),
     resolveAuthPolicy: () => ({ account: 'system' }),
     hasTranscript: transcriptFiles

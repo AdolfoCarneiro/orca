@@ -2,12 +2,7 @@ import {
   createStructuredAgentSessionCatalogReads,
   structuredAgentSessionCatalogScopeOwned
 } from './structured-agent-session-catalog-reads'
-import type { createRestartReconciler } from './structured-agent-session-restart-reconcile'
-import type { StructuredAgentSessionHostRuntimeState } from './structured-agent-session-host-runtime-state'
-import {
-  createStructuredAgentSessionHostRestore,
-  revealStructuredAgentSession
-} from './structured-agent-session-reveal'
+import { revealStructuredAgentSession } from './structured-agent-session-reveal'
 import type { StructuredAgentSessionClientDelivery } from './structured-agent-session-client-delivery'
 import type { AgentSessionExecutionLocation } from '../../../shared/agent-session-record'
 import * as providerSupport from './structured-agent-session-provider-support'
@@ -23,7 +18,6 @@ type ReadContext = {
   deps: StructuredAgentSessionHostDeps
   sessions: Map<string, StructuredAgentSessionHostSession>
   serialize: <T>(id: string, task: () => Promise<T>) => Promise<T>
-  restore: ReturnType<typeof createStructuredAgentSessionHostRestore>
   readCommands: StructuredAgentSessionClientDelivery['readCommandsSettled']
   conversation: (id: string) => Promise<StructuredAgentSessionHostSession>
   adoptOpened: (id: string, opened: OpenedStructuredAgentSessionConversation) => Promise<void>
@@ -81,25 +75,6 @@ export function createStructuredAgentSessionConversationReads(context: () => Rea
   }))
   return {
     readModelCatalog,
-    createRestore: (
-      reconcileLeases: ReturnType<typeof createRestartReconciler>,
-      runtimeState: StructuredAgentSessionHostRuntimeState,
-      tabs: { markUnopened: (id: string) => void }
-    ) => {
-      const { deps, sessions, serialize, adoptOpened } = context()
-      return createStructuredAgentSessionHostRestore(deps, {
-        reconcileLeases,
-        reconcileRestartLeases: () => reconcileLeases(),
-        resolveRecovery: (id) => runtimeState.resolveRecovery(id),
-        serialize,
-        hasSession: (id) => sessions.has(id),
-        onReadable: adoptOpened,
-        onUnopened: (id) => tabs.markUnopened(id)
-      })
-    },
-    reconcileRestartLeases: () => context().restore.reconcileRestartLeases(),
-    restoreReadableSessions: (ids?: readonly string[]) =>
-      context().restore.restoreReadableSessions(ids),
     readCommands: async (id: string) => ({ commands: await context().readCommands(id) }),
     supportsCreate: (location: AgentSessionExecutionLocation, agent: string) =>
       providerSupport.adapterSupportsCreate(context().deps.adapter, location, agent),

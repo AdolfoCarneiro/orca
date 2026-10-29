@@ -1,3 +1,4 @@
+import type { AgentSessionDeathEvidence } from './agent-session-death-evidence'
 import { isAgentSessionRewindRecord, type AgentSessionRewindRecord } from './agent-session-rewind'
 import { isAgentSessionLaunchArgs } from './agent-session-launch-args'
 import { isAgentSessionConversationName } from './agent-session/agent-session-conversation-name'
@@ -10,6 +11,7 @@ import {
 } from './agent-session-legacy-handoff-lease'
 /** Identity pins location, provider and account home independently of terminal tabs; the lease separately grants one process writer authority. */
 
+import type { AgentSessionLastTurn } from './agent-session-last-turn'
 import type { ExecutionHostId } from './execution-host'
 import {
   isAgentSessionConversationCommandRecord,
@@ -30,6 +32,7 @@ import {
   type AgentSessionAccountHome
 } from './agent-session-account-home'
 
+export type { AgentSessionDeathEvidence } from './agent-session-death-evidence'
 export type { AgentSessionAccountHome } from './agent-session-account-home'
 export type { AgentSessionOptionsReplacement } from './agent-session-options-replacement'
 
@@ -72,19 +75,6 @@ export type AgentSessionProcessIdentity = {
 
 /** released has no owner; conflicted retains a legacy terminal owner that recovery waits for and never stops because it is the user's agent. */
 export type AgentSessionClaimStatus = 'reserved' | 'live' | 'conflicted' | 'released'
-
-export type AgentSessionDeathEvidence = {
-  kind: 'exit-observed' | 'pid-absent' | 'identity-mismatch'
-  detail: string
-  observedAt: number
-  /** Fence of the owner (or reservation) this death is about; a fence names exactly one. Absent on
-   *  evidence older builds wrote, which then speaks for no turn. */
-  ownerFence?: number
-  /** Last liveness proof by the transport holder; absent for surface release, failed start or older evidence. */
-  lastProvenAliveAt?: number
-  /** Quit/update/crash when the provider died with its runtime; absent for independent/unknown death. Keep open strings and read with isAgentSessionOrcaStopCause. */
-  runtimeEnd?: string
-}
 
 export type AgentSessionLease = {
   sessionId: string
@@ -142,6 +132,8 @@ export type AgentSessionRecord = {
   conversationNameSource?: 'user'
   /** When the user's Sleep stopped this chat; the next admitted send clears it. */
   sleptAt?: number
+  /** Latest turn edge for lists that must not open conversation history. */
+  lastTurn?: AgentSessionLastTurn
   launchArgs?: AgentSessionLaunchArgs
   lease: AgentSessionLease
   createdAt: number

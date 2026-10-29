@@ -6,9 +6,8 @@ import { StructuredConversationCommandController } from './structured-conversati
 // Serialize durable mutations per conversation; open at rest and start a child only when work needs it.
 
 import type { AgentSessionSubscribeInput } from './structured-agent-session-subscribers'
-import { createRestartReconciler } from './structured-agent-session-restart-reconcile'
+import * as leases from './structured-agent-session-restart-reconcile'
 import { StructuredAgentSessionTaskQueue } from './structured-agent-session-task-queue'
-import type * as reveal from './structured-agent-session-reveal'
 import { structuredAgentSessionOwnerStatus } from './structured-agent-session-owner-status'
 import { StructuredAgentSessionHostRuntimeState } from './structured-agent-session-host-runtime-state'
 import { structuredAgentSessionEntryDelegates } from './structured-agent-session-create'
@@ -30,7 +29,7 @@ import { structuredAgentSessionRestartResumeSurfaces } from './structured-agent-
 import * as conversation from './structured-agent-session-host-delivery'
 import { wireStructuredAgentSessionQueuedMessages as wireQueuedMessages } from './structured-agent-session-queued-wiring'
 import * as sessionLogger from './structured-agent-session-logger'
-import { sleepStructuredAgentSessionWorkspace } from './structured-agent-session-workspace-sleep'
+import { createStructuredAgentSessionWorkspaceSleeper } from './structured-agent-session-workspace-sleep'
 export type { StructuredAgentSessionHostDeps } from './structured-agent-session-host-types'
 
 export class StructuredAgentSessionHost {
@@ -65,8 +64,9 @@ export class StructuredAgentSessionHost {
   private readonly subscribers = this.clientDelivery.subscribers
   private readonly tasks = new StructuredAgentSessionTaskQueue()
   private readonly runtimeState: StructuredAgentSessionHostRuntimeState
-  private readonly reconcileLeases: ReturnType<typeof createRestartReconciler>
-  private readonly restore: ReturnType<typeof reveal.createStructuredAgentSessionHostRestore>
+  private readonly reconcileLeases: ReturnType<typeof leases.createRestartReconciler>
+  private readonly startup: ReturnType<typeof leases.createStartupRecovery>
+  readonly reconcileRestartLeases = () => this.startup.reconcileRestartLeases()
   private readonly lifetime: lifetime.StructuredAgentSessionConversationLifetime
   private readonly conversationDelivery: conversation.StructuredAgentSessionConversationDelivery
   private readonly eventRecovery: StructuredAgentSessionEventRecovery
@@ -91,7 +91,7 @@ export class StructuredAgentSessionHost {
       (id, e) => this.eventRecovery.recoverAfterSinkFailure(id, e),
       (expired) => this.lifetime.expireStartup(expired)
     )
-    this.reconcileLeases = createRestartReconciler({
+    this.reconcileLeases = leases.createRestartReconciler({
       store: deps.store,
       probe: (record) => this.runtimeState.probeRecord(record),
       ...(deps.probeOwners ? { probeMany: deps.probeOwners } : {}),
@@ -113,7 +113,7 @@ export class StructuredAgentSessionHost {
       stopOutgrownAgent: (id) => this.lifetime.stopAgent(id, { cause: 'evict', resting: true }),
       clientDelivery: this.clientDelivery
     })
-    this.restore = this.reads.createRestore(this.reconcileLeases, this.runtimeState, this.tabs)
+    this.startup = leases.createStartupRecovery(deps, this.reconcileLeases, this.runtimeState)
     this.eventRecovery = new StructuredAgentSessionEventRecovery({
       deps,
       store: deps.store,
@@ -160,7 +160,6 @@ export class StructuredAgentSessionHost {
     deps: this.deps,
     sessions: this.sessions,
     serialize: this.serialize,
-    restore: this.restore,
     readCommands: (id) => this.clientDelivery.readCommandsSettled(id),
     conversation: (id) => this.lifetime.conversation(id),
     adoptOpened: this.conversationDelivery.adoptOpened
@@ -203,29 +202,31 @@ export class StructuredAgentSessionHost {
     this.lifetime.close(sessionId, cause)
 
   /** Stop hidden children too, using one bounded host snapshot. */
-  sleepWorkspace = (workspaceId: string, markAsleep?: boolean) =>
-    sleepStructuredAgentSessionWorkspace(
-      {
-        deps: this.deps,
-        tasks: this.tasks,
-        lifetime: this.lifetime,
-        sessions: this.sessions,
-        // Starts registered after Stop are newer work.
-        deliveryRunning: (id) =>
-          this.conversationDelivery.loop.isRunning(id) || this.runtimeState.startFlights.has(id),
-        childWorkIncomplete: this.clientDelivery.childWorkIncomplete,
-        publishRecordNotes: this.clientDelivery.publishRecordNotes
-      },
-      workspaceId,
-      markAsleep
-    )
+  sleepWorkspace = createStructuredAgentSessionWorkspaceSleeper(() => ({
+    deps: this.deps,
+    tasks: this.tasks,
+    lifetime: this.lifetime,
+    sessions: this.sessions,
+    // Starts registered after Stop are newer work.
+    deliveryRunning: (id) =>
+      this.conversationDelivery.loop.isRunning(id) || this.runtimeState.startFlights.has(id),
+    childWorkIncomplete: this.clientDelivery.childWorkIncomplete,
+    publishRecordNotes: this.clientDelivery.publishRecordNotes
+  }))
 
   supportsCreate = this.reads.supportsCreate
   agentDefinitions = this.reads.agentDefinitions
   knownAgentIds = this.reads.knownAgentIds
 
-  private readonly tabs = createTabs(this, this.sessions, this.clientDelivery.forgetStatus)
+  private readonly tabs = createTabs(
+    this,
+    this.sessions,
+    this.clientDelivery.forgetStatus,
+    this.clientDelivery.publishSavedStatusGroup,
+    (ids) => this.startup.recover(ids)
+  )
   listSessionTabs = this.tabs.listSessionTabs
+  isSessionTabVisible = this.tabs.isSessionTabVisible
   getPersistedVisibleSessionTabIndex = this.tabs.getPersistedVisibleSessionTabIndex
   getSessionTabId = this.tabs.getSessionTabId
   showSessionTabs = this.tabs.showSessionTabs
@@ -235,8 +236,9 @@ export class StructuredAgentSessionHost {
   holdsSessions = this.reads.holdsSessions
   onSessionsHeld = this.reads.onSessionsHeld
 
-  reconcileRestartLeases = this.reads.reconcileRestartLeases
-  restoreReadableSessions = this.reads.restoreReadableSessions
+  seedSessionTabs = this.tabs.seedSessionTabs
+
+  drainStatusWrites = (): Promise<void> => this.clientDelivery.drainStatusWrites()
 
   revealSession = this.reads.revealSession
 

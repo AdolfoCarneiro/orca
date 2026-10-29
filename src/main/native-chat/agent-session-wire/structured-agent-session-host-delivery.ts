@@ -232,6 +232,7 @@ export function createStructuredAgentSessionConversationDelivery(input: {
     sessions.set(sessionId, session)
     input.clientDelivery.publishRestored(sessionId)
     await settleInterruptedStructuredAgentSessionCommands(deps, sessionId, session)
+    input.clientDelivery.publishRestored(sessionId)
     if (session.journal.submissions().some(isQueuedAgentJournalSubmission)) {
       loop.wake(sessionId)
     }
