@@ -76,7 +76,7 @@ describe('OSC 7 payloads both parsers must agree on (renderer side)', () => {
   // Real traffic: the renderer only sees what xterm's OSC parser delivers.
   it.each(OSC7_PARSER_AGREEMENT_CASES)(
     '$name, through xterm',
-    async ({ uri, folder, viaXterm }) => {
+    async ({ uri, folder, viaXterm, xtermCancels }) => {
       const term = new Terminal({ allowProposedApi: true })
       const payloads: string[] = []
       term.parser.registerOscHandler(7, (data) => {
@@ -85,6 +85,10 @@ describe('OSC 7 payloads both parsers must agree on (renderer side)', () => {
       })
       await new Promise<void>((resolve) => term.write(`\x1b]7;${uri}\x07`, resolve))
       term.dispose()
+      if (xtermCancels) {
+        expect(payloads).toEqual([])
+        return
+      }
       expect(payloads.map((data) => parseOsc7(data))).toEqual([
         viaXterm === undefined ? folder : viaXterm
       ])
