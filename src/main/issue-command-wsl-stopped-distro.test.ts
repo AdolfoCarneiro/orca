@@ -5,6 +5,10 @@ import type * as NodeFs from 'node:fs'
 const mocks = vi.hoisted(() => ({
   readWslDistroRunningState: vi.fn(),
   existsSync: vi.fn((_path: string) => false),
+  // Fakes: a real write of a UNC path off Windows would land in the working directory.
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  rmSync: vi.fn(),
   loadHooks: vi.fn((_path: string) => null)
 }))
 
@@ -14,11 +18,20 @@ vi.mock('./wsl-background-distro-gate', async (importOriginal) => ({
 }))
 vi.mock('node:fs', async (importOriginal) => ({
   ...(await importOriginal<typeof NodeFs>()),
-  existsSync: mocks.existsSync
+  existsSync: mocks.existsSync,
+  writeFileSync: mocks.writeFileSync,
+  mkdirSync: mocks.mkdirSync,
+  rmSync: mocks.rmSync
+}))
+vi.mock('./git/check-ignored-paths', () => ({
+  checkIgnoredPaths: vi.fn(async () => new Set(['']))
 }))
 vi.mock('./hooks', () => ({ loadHooks: mocks.loadHooks }))
 
-import { readIssueCommandUnlessWslStopped } from './issue-command-file'
+import {
+  readIssueCommandUnlessWslStopped,
+  writeIssueCommandUnlessWslStopped
+} from './issue-command-file'
 import { RuntimeRepositoryIssueCommand } from './runtime/runtime-repository-issue-command'
 
 const WSL_REPO = '\\\\wsl.localhost\\Ubuntu\\home\\me\\repo'
@@ -32,6 +45,8 @@ describe('issue command reads for a stopped WSL distro (E9)', () => {
     mocks.readWslDistroRunningState.mockReset().mockResolvedValue('stopped')
     mocks.existsSync.mockClear()
     mocks.loadHooks.mockClear()
+    mocks.writeFileSync.mockClear()
+    mocks.rmSync.mockClear()
   })
 
   afterEach(() => {
@@ -45,7 +60,8 @@ describe('issue command reads for a stopped WSL distro (E9)', () => {
       sharedContent: null,
       effectiveContent: null,
       source: 'none',
-      localFilePath: expect.stringContaining('issue-command')
+      localFilePath: expect.stringContaining('issue-command'),
+      refusedWslDistro: 'Ubuntu'
     })
     expect(mocks.existsSync).not.toHaveBeenCalled()
     expect(mocks.loadHooks).not.toHaveBeenCalled()
@@ -82,5 +98,23 @@ describe('issue command reads for a stopped WSL distro (E9)', () => {
     expect(mocks.loadHooks).not.toHaveBeenCalled()
     await reader.read('id:repo-1', { wakeWslDistro: true })
     expect(mocks.loadHooks).toHaveBeenCalledWith(WSL_REPO)
+  })
+
+  it("refuses a write the user didn't make, leaving the hidden file and the distro alone", async () => {
+    await expect(writeIssueCommandUnlessWslStopped(WSL_REPO, 'x', {})).rejects.toThrow(
+      "WSL distro 'Ubuntu' is not running"
+    )
+    await expect(writeIssueCommandUnlessWslStopped(WSL_REPO, '', {})).rejects.toThrow()
+    expect(mocks.writeFileSync).not.toHaveBeenCalled()
+    expect(mocks.rmSync).not.toHaveBeenCalled()
+  })
+
+  it("saves the user's own edit, a user act that may start the distro", async () => {
+    await writeIssueCommandUnlessWslStopped(WSL_REPO, 'mine', {}, { wakeWslDistro: true })
+    expect(mocks.writeFileSync).toHaveBeenCalledWith(
+      expect.stringContaining('issue-command'),
+      'mine\n',
+      'utf-8'
+    )
   })
 })

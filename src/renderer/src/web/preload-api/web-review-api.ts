@@ -20,8 +20,12 @@ export function createHooksApi(): NonNullable<Partial<PreloadApi>['hooks']> {
         repo: repoId,
         ...(wakeWslDistro ? { wakeWslDistro } : {})
       }),
-    writeIssueCommand: async ({ repoId, content }) => {
-      await callRuntimeResult('repo.issueCommandWrite', { repo: repoId, content })
+    writeIssueCommand: async ({ repoId, content, wakeWslDistro }) => {
+      await callRuntimeResult('repo.issueCommandWrite', {
+        repo: repoId,
+        content,
+        ...(wakeWslDistro ? { wakeWslDistro } : {})
+      })
     }
   }
 }

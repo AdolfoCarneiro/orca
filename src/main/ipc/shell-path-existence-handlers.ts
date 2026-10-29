@@ -4,7 +4,7 @@ import {
   type ShellPathExistence
 } from '../../shared/path-existence-batch'
 import { pathExists } from './shell-owned-path-target'
-import { guardWslUncPathAccess } from '../wsl/wsl-unc-access-gate'
+import { guardWslUncPathAccess, WslDistroStoppedError } from '../wsl/wsl-unc-access-gate'
 
 /** Existence checks of host paths; a stopped WSL distro's UNC path is refused unless a user act asks (E9). */
 export function registerShellPathExistenceHandlers(): void {
@@ -32,6 +32,11 @@ export function registerShellPathExistenceHandlers(): void {
       // Settings mounts ask unprompted, and a UNC stat boots a stopped distro (E9); clicks wake it.
       guardWslUncPathAccess(filePath, () => pathExists(filePath), {
         wake: options?.wakeWslDistro === true
+      }).catch((error: unknown) => {
+        // A mount's own Retry asks again in the background, so it can't start the distro either.
+        throw error instanceof WslDistroStoppedError
+          ? new WslDistroStoppedError(error.distro, { retryStartsIt: false })
+          : error
       })
   )
 }

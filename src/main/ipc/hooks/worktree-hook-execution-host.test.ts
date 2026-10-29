@@ -27,7 +27,7 @@ vi.mock('../../hooks', () => ({
 }))
 vi.mock('../../issue-command-file', () => ({
   readIssueCommandUnlessWslStopped: mocks.localRead,
-  writeIssueCommand: mocks.localWrite
+  writeIssueCommandUnlessWslStopped: mocks.localWrite
 }))
 vi.mock('../../project-runtime-git-options', () => ({
   getLocalProjectWorktreeGitOptions: () => ({})

@@ -272,6 +272,8 @@ export const REPO_METHODS = [
     permission: 'workspace',
     params: RepoIssueCommandWrite,
     handler: async (params, { runtime }) =>
-      runtime.writeRepoIssueCommand(params.repo, params.content)
+      runtime.writeRepoIssueCommand(params.repo, params.content, {
+        wakeWslDistro: params.wakeWslDistro
+      })
   })
 ]

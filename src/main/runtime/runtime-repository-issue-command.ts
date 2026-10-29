@@ -1,7 +1,10 @@
 import { getRepoDialableSshTargetId } from '../../shared/execution-host'
 import type { GitRuntimeOptions } from '../git/git-runtime-options'
 import type { Repo } from '../../shared/repo-types'
-import { readIssueCommandUnlessWslStopped, writeIssueCommand } from '../issue-command-file'
+import {
+  readIssueCommandUnlessWslStopped,
+  writeIssueCommandUnlessWslStopped
+} from '../issue-command-file'
 import { isFolderRepo } from '../../shared/repo-kind'
 import { joinWorktreeRelativePath } from './runtime-relative-paths'
 import type { RuntimeStore } from './runtime-store-contract'
@@ -43,7 +46,11 @@ export class RuntimeRepositoryIssueCommand {
   }
 
   /** Save a private override on its execution host; blank content restores the shared command. */
-  async write(repoSelector: string, content: string): Promise<{ ok: true }> {
+  async write(
+    repoSelector: string,
+    content: string,
+    options: { wakeWslDistro?: boolean } = {}
+  ): Promise<{ ok: true }> {
     const repo = await this.deps.resolveRepo(repoSelector)
     assertWslMoveRepoWritable(this.deps.getStore?.() ?? undefined, repo)
     if (isFolderRepo(repo)) {
@@ -51,7 +58,12 @@ export class RuntimeRepositoryIssueCommand {
     }
     // Why: an `ssh:` repo is not served here; the write is dropped, as when it was unreachable.
     if (!getRepoDialableSshTargetId(repo)) {
-      await writeIssueCommand(repo.path, content, () => this.deps.getLocalGitArgs(repo)[0] ?? {})
+      await writeIssueCommandUnlessWslStopped(
+        repo.path,
+        content,
+        () => this.deps.getLocalGitArgs(repo)[0] ?? {},
+        options
+      )
     }
     return { ok: true }
   }

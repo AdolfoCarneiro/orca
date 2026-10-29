@@ -8489,7 +8489,8 @@
           "issueCommandDescription": "Optional override. Use <artifactUrl>{{artifact_url}}</artifactUrl> for the linked issue or PR URL.",
           "issueCommandSharedDefault": "Leave blank to use the repo default from <yaml>orca.yaml</yaml>.",
           "issueCommandOptionalDefault": "Leave blank to use the repo default from <yaml>orca.yaml</yaml> when one exists.",
-          "commandSourceDescription": "When both <yaml>orca.yaml</yaml> and local commands exist, choose which run."
+          "commandSourceDescription": "When both <yaml>orca.yaml</yaml> and local commands exist, choose which run.",
+          "issueCommandWslStopped": "WSL distro {{distro}} is stopped. Open a terminal in it to see or edit this command."
         },
         "RepositoryIconPicker": {
           "2b7d27b93c": "Use {{value0}} repo color",

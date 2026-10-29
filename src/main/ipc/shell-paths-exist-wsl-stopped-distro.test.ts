@@ -77,7 +77,9 @@ describe('shell:pathsExist never starts a stopped WSL distro (E9)', () => {
   })
 
   it('shell:pathExists refuses a background check of a stopped distro path without touching it', async () => {
-    await expect(pathExists(UNC_FILE)).rejects.toThrow("WSL distro 'Ubuntu' is not running")
+    await expect(pathExists(UNC_FILE)).rejects.toThrow(
+      "WSL distro 'Ubuntu' is not running. Open a terminal in it to start it."
+    )
     expect(mocks.pathExists).not.toHaveBeenCalled()
     await expect(pathExists(HOST_FILE)).resolves.toBe(true)
   })

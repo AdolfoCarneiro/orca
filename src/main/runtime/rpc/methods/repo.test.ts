@@ -423,7 +423,9 @@ describe('repo RPC methods', () => {
       ['repo-1', { wakeWslDistro: true }],
       ['repo-1', { wakeWslDistro: undefined }]
     ])
-    expect(runtime.writeRepoIssueCommand).toHaveBeenCalledWith('repo-1', 'Fix it')
+    expect(runtime.writeRepoIssueCommand).toHaveBeenCalledWith('repo-1', 'Fix it', {
+      wakeWslDistro: undefined
+    })
   })
 
   it('persists GitHub issue source preference updates', async () => {

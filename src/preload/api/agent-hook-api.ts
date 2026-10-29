@@ -28,10 +28,12 @@ export type HooksApi = {
     effectiveContent: string | null
     localFilePath: string
     source: 'local' | 'shared' | 'none'
+    refusedWslDistro?: string
   }>
   writeIssueCommand: (args: {
     repoId: string
     content: string
     hostId?: ExecutionHostId
+    wakeWslDistro?: boolean
   }) => Promise<void>
 }

@@ -64,7 +64,7 @@ export function readIssueCommand(repoPath: string): ResolvedIssueCommand {
 export async function readIssueCommandUnlessWslStopped(
   repoPath: string,
   options: { wakeWslDistro?: boolean } = {}
-): Promise<ResolvedIssueCommand & { status?: 'error' }> {
+): Promise<ResolvedIssueCommand & { status?: 'error'; refusedWslDistro?: string }> {
   try {
     return await guardWslUncPathAccess(repoPath, async () => readIssueCommand(repoPath), {
       wake: options.wakeWslDistro === true
@@ -77,11 +77,28 @@ export async function readIssueCommandUnlessWslStopped(
         sharedContent: null,
         effectiveContent: null,
         localFilePath: getIssueCommandFilePath(repoPath),
-        source: 'none'
+        source: 'none',
+        // Names the distro so the editor can stay read-only and re-read once it runs.
+        refusedWslDistro: error.distro
       }
     }
     throw error
   }
+}
+
+/**
+ * `writeIssueCommand` that refuses a stopped WSL distro's repo unless the user is saving their own
+ * edit (`wakeWslDistro`): a write the user never made must not start it or replace a hidden file.
+ */
+export async function writeIssueCommandUnlessWslStopped(
+  repoPath: string,
+  content: string,
+  gitOptions: IssueCommandGitOptions,
+  options: { wakeWslDistro?: boolean } = {}
+): Promise<void> {
+  await guardWslUncPathAccess(repoPath, () => writeIssueCommand(repoPath, content, gitOptions), {
+    wake: options.wakeWslDistro === true
+  })
 }
 
 /** Empty content removes the local override so the shared orca.yaml command applies. */
