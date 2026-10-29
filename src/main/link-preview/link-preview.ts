@@ -65,6 +65,9 @@ export function getLinkPreview(request: LinkPreviewRequest): Promise<LinkPreview
         if (result.kind === 'page' && cache.get(key) === entry) {
           entry.bytes = linkPreviewSize(result.preview)
           cacheBytes += entry.bytes
+          // Re-insert as newest so the budget evicts older previews, not this one.
+          cache.delete(key)
+          cache.set(key, entry)
           evictOldest(key)
         }
         return result

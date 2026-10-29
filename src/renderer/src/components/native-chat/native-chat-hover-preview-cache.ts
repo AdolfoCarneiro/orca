@@ -51,6 +51,9 @@ export function createHoverPreviewCache<T>({
             entry.value = value
             entry.bytes = budget?.sizeOf(value) ?? 0
             totalBytes += entry.bytes
+            // Re-insert as newest so the budget evicts older answers, not this one.
+            entries.delete(key)
+            entries.set(key, entry)
             evictOldest(key)
           }
           return value

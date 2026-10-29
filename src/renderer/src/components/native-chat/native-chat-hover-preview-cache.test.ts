@@ -16,4 +16,22 @@ describe('createHoverPreviewCache', () => {
     expect(cache.read('b')).toBe('bbbb')
     expect(cache.read('c')).toBe('cccc')
   })
+
+  it('stays within the budget when an older request finishes last', async () => {
+    const cache = createHoverPreviewCache<string>({
+      freshMs: 60_000,
+      maxEntries: 100,
+      budget: { maxBytes: 10, sizeOf: (value) => value.length }
+    })
+    let finishSlow: (value: string) => void = () => {}
+    const slow = cache.load('slow', () => new Promise((resolve) => (finishSlow = resolve)))
+    await cache.load('b', async () => 'bbbb')
+    await cache.load('c', async () => 'cccc')
+    finishSlow('ssss')
+    await slow
+
+    expect(cache.read('slow')).toBe('ssss')
+    expect(cache.read('b')).toBeNull()
+    expect(cache.read('c')).toBe('cccc')
+  })
 })

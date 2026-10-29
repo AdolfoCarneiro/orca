@@ -9,6 +9,7 @@ import { parseGitHubIssueOrPRLink, type GitHubIssueOrPRLink } from '../../../../
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import type { Repo } from '../../../../shared/repo-types'
 import {
+  githubLinkPreviewKey,
   loadGitHubLinkPreview,
   readCachedGitHubLinkPreview
 } from './native-chat-github-link-preview'
@@ -65,9 +66,8 @@ export function NativeChatGitHubPeekBody({
   repo: Repo
   link: GitHubIssueOrPRLink
 }): React.JSX.Element {
-  const key = `${repo.id}:${link.slug.host ?? ''}/${link.slug.owner}/${link.slug.repo}#${link.number}:${link.type}`
   const { state, retry } = useNativeChatHoverPreview(
-    key,
+    githubLinkPreviewKey(repo, link),
     () => readCachedGitHubLinkPreview(repo, link),
     () => loadGitHubLinkPreview(repo, link)
   )
