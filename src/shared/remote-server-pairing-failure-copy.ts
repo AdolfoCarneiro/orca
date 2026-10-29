@@ -44,20 +44,19 @@ export type RemoteServerPairingFailureFields = {
   errorParams?: { name: string }
 }
 
+const ALREADY_PAIRED_GUARD_CODES: Partial<
+  Record<RemoteServerPairingFailureCode, RemoteServerPairingFailureCode>
+> = {
+  managedDeployment: 'alreadyPairedManagedDeployment',
+  sshAccessChangePending: 'alreadyPairedSshAccessChangePending',
+  sshAccessLinked: 'alreadyPairedSshAccessLinked'
+}
+
 /** The "already paired as" form of an SSH-access guard, or null for any other code. */
 export function alreadyPairedGuardCode(
   code: RemoteServerPairingFailureCode
 ): RemoteServerPairingFailureCode | null {
-  switch (code) {
-    case 'managedDeployment':
-      return 'alreadyPairedManagedDeployment'
-    case 'sshAccessChangePending':
-      return 'alreadyPairedSshAccessChangePending'
-    case 'sshAccessLinked':
-      return 'alreadyPairedSshAccessLinked'
-    default:
-      return null
-  }
+  return ALREADY_PAIRED_GUARD_CODES[code] ?? null
 }
 
 export function remoteServerPairingFailureText(
