@@ -16,6 +16,14 @@ export function claimDarwinTerminalNaming<T>(name: () => Promise<T>): Promise<T>
   return pending
 }
 
+/** Settles once the in-flight pass drains, whatever its outcome. */
+export function darwinTerminalNamingDrained(): Promise<void> {
+  return (namingInFlight ?? Promise.resolve()).then(
+    () => {},
+    () => {}
+  )
+}
+
 export function isDarwinTerminalNamingInFlight(): boolean {
   return namingInFlight !== null
 }

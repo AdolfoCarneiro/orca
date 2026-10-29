@@ -1,10 +1,14 @@
 import { nameDarwinTerminalDevices } from './darwin-terminal-names'
-import { claimDarwinTerminalNaming } from './darwin-terminal-naming-slot'
+import {
+  claimDarwinTerminalNaming,
+  darwinTerminalNamingDrained
+} from './darwin-terminal-naming-single-flight'
 import {
   loadLibprocAddon,
   type LibprocAddon,
   type LibprocProcessRow,
-  type LibprocQuery
+  type LibprocQuery,
+  type LibprocTableRead
 } from './libproc-addon'
 import { completeCommands } from './libproc-argv-completion'
 import {
@@ -23,6 +27,8 @@ export type LibprocPsResult = {
   stderr: ''
   timedOut: boolean
   outputTruncated: boolean
+  /** When the native read began, never before the request: identity boundaries may rely on it. */
+  startedAtMs?: number
 }
 
 export type InProcessPsOptions = {
@@ -75,19 +81,15 @@ async function beforeDeadline<T>(
 }
 
 // Identical reads share one worker; each caller still races its own deadline, so a stalled pool times them all out.
-const nativeReadsInFlight = new Map<string, Promise<LibprocProcessRow[] | null>>()
+const nativeReadsInFlight = new Map<string, Promise<LibprocTableRead>>()
 // Workers queued behind a saturated libuv pool would otherwise pile up one per poll.
 const MAX_NATIVE_READS_IN_FLIGHT = 8
 
-function readNativeTable(
+function startNativeRead(
   addon: LibprocAddon,
-  query: LibprocQuery
-): Promise<LibprocProcessRow[] | null> | null {
-  const key = JSON.stringify(query)
-  const shared = nativeReadsInFlight.get(key)
-  if (shared) {
-    return shared
-  }
+  query: LibprocQuery,
+  key: string
+): Promise<LibprocTableRead> | null {
   if (nativeReadsInFlight.size >= MAX_NATIVE_READS_IN_FLIGHT) {
     return null
   }
@@ -102,6 +104,61 @@ function readNativeTable(
   return pending
 }
 
+/** Rows read no earlier than `requestedAtMs`. A shared read that began before this request (an earlier
+ * poll's abandoned one) is refused: its exited pids may since be reused, and teardown would signal them. */
+async function readNativeTableSince(
+  addon: LibprocAddon,
+  query: LibprocQuery,
+  requestedAtMs: number,
+  deadline: number
+): Promise<LibprocTableRead | typeof DEADLINE_PASSED> {
+  const key = JSON.stringify(query)
+  for (;;) {
+    const pending = nativeReadsInFlight.get(key) ?? startNativeRead(addon, query, key)
+    if (!pending) {
+      // At the cap (a startup-restore burst, or a stalled pool): queue behind a read instead of bursting ps.
+      const settled = Promise.race(nativeReadsInFlight.values()).then(
+        () => {},
+        () => {}
+      )
+      if ((await beforeDeadline(settled, deadline)) === DEADLINE_PASSED) {
+        return DEADLINE_PASSED
+      }
+      continue
+    }
+    const read = await beforeDeadline(pending, deadline)
+    if (read === DEADLINE_PASSED || read.startedAtMs >= requestedAtMs) {
+      return read
+    }
+    if (nativeReadsInFlight.get(key) === pending) {
+      nativeReadsInFlight.delete(key)
+    }
+  }
+}
+
+/** One naming pass at a time; wait out another (within the deadline) rather than burst /bin/ps at startup restore. */
+async function nameTerminals(
+  devices: ReadonlySet<string>,
+  deadline: number
+): Promise<ReadonlyMap<string, string> | typeof DEADLINE_PASSED> {
+  for (;;) {
+    const controller = new AbortController()
+    const naming = claimDarwinTerminalNaming(() =>
+      nameDarwinTerminalDevices(devices, undefined, controller.signal)
+    )
+    if (naming) {
+      const named = await beforeDeadline(naming, deadline)
+      if (named === DEADLINE_PASSED) {
+        controller.abort()
+      }
+      return named
+    }
+    if ((await beforeDeadline(darwinTerminalNamingDrained(), deadline)) === DEADLINE_PASSED) {
+      return DEADLINE_PASSED
+    }
+  }
+}
+
 /** ps output for `args`, read in process; null when the addon or the invocation is unsupported so callers run ps. */
 export async function runPsInProcess(
   args: readonly string[],
@@ -112,7 +169,8 @@ export async function runPsInProcess(
   if (!addon || !query) {
     return null
   }
-  const deadline = Date.now() + options.timeoutMs
+  const requestedAtMs = Date.now()
+  const deadline = requestedAtMs + options.timeoutMs
   const env = options.env ?? process.env
   const utc = lstartZoneIsUtc(env)
   const needsLstart = query.columns.includes('lstart')
@@ -132,34 +190,23 @@ export async function runPsInProcess(
     ...(includeCommand ? { ctype } : {})
   }
   let rows: LibprocProcessRow[] | null
+  let startedAtMs: number
   let ttyNames: ReadonlyMap<string, string> = new Map()
   try {
-    const pending = readNativeTable(addon, nativeQuery)
-    if (!pending) {
-      return null
-    }
-    const read = await beforeDeadline(pending, deadline)
+    const read = await readNativeTableSince(addon, nativeQuery, requestedAtMs, deadline)
     if (read === DEADLINE_PASSED) {
       return TIMED_OUT
     }
+    startedAtMs = read.startedAtMs
     // Shared reads hand every caller the same rows; command completion writes per caller.
-    rows = read?.map((row) => ({ ...row })) ?? null
+    rows = read.rows?.map((row) => ({ ...row })) ?? null
     if (rows && query.columns.includes('tty')) {
       const devices = new Set(
         rows.map((row) => formatDarwinDevice(row.tdev)).filter((device) => device !== null)
       )
       if (devices.size > 0) {
-        const controller = new AbortController()
-        const naming = claimDarwinTerminalNaming(() =>
-          nameDarwinTerminalDevices(devices, undefined, controller.signal)
-        )
-        // Another naming pass is still draining the pool: run ps, as the capture's guard always has.
-        if (!naming) {
-          return null
-        }
-        const named = await beforeDeadline(naming, deadline)
+        const named = await nameTerminals(devices, deadline)
         if (named === DEADLINE_PASSED) {
-          controller.abort()
           return TIMED_OUT
         }
         ttyNames = named
@@ -176,7 +223,7 @@ export async function runPsInProcess(
   }
   // ps exits 1 when -t names no terminal or a -p/-t selection matched nothing.
   if (rows === null) {
-    return { ...TIMED_OUT, code: 1, signal: null, timedOut: false }
+    return { ...TIMED_OUT, code: 1, signal: null, timedOut: false, startedAtMs }
   }
   const ttyOf = (row: LibprocProcessRow): string =>
     ttyNames.get(formatDarwinDevice(row.tdev) ?? '') ?? '??'
@@ -216,7 +263,8 @@ export async function runPsInProcess(
     stdout,
     stderr: '',
     timedOut: false,
-    outputTruncated
+    outputTruncated,
+    startedAtMs
   }
 }
 

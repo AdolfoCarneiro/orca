@@ -47,6 +47,7 @@ async function readFreshProcessTable(
   const capturedAtMs = Date.now()
   // Pin lstart’s locale so delayed identity checks parse it consistently.
   const env = { ...process.env, LANG: 'C', LC_ALL: 'C' }
+  // The in-process reader never serves a scan begun before this stamp (an abandoned earlier one).
   const inProcess = await readPsStdoutInProcess(DESCENDANT_PS_ARGS, { env, timeoutMs })
   if (inProcess !== null) {
     return { rows: parseProcessTable(inProcess), capturedAtMs }

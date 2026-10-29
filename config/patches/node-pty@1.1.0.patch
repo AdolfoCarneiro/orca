@@ -297,7 +297,7 @@ index 181ccabbbe9c4948a9725fb1db907a68e9de01fc..67f31facf85562b67adbfbd04ce28ddd
  process.send!({ consoleProcessList });
  process.exit(0);
 diff --git a/src/unix/pty.cc b/src/unix/pty.cc
-index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af387224f243 100644
+index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..896d51812c5c3fe9c8ca5d403a785f0b4d1e928e 100644
 --- a/src/unix/pty.cc
 +++ b/src/unix/pty.cc
 @@ -23,8 +23,11 @@
@@ -352,17 +352,18 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  /* Some platforms name VWERASE and VDISCARD differently */
  #if !defined(VWERASE) && defined(VWERSE)
  #define VWERASE	VWERSE
-@@ -67,6 +103,9 @@
+@@ -67,6 +103,10 @@
  #include <sys/event.h>
  #include <sys/sysctl.h>
  #include <termios.h>
++#include <sys/time.h>
 +#include <vis.h>
 +#include <xlocale.h>
 +#include <algorithm>
  #endif
  
  /* NSIG - macro for highest signal + 1, should be defined */
-@@ -228,6 +267,9 @@ Napi::Value PtyGetProc(const Napi::CallbackInfo& info);
+@@ -228,6 +268,9 @@ Napi::Value PtyGetProc(const Napi::CallbackInfo& info);
  static int
  pty_nonblock(int);
  
@@ -372,7 +373,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  #if defined(__APPLE__)
  static char *
  pty_getproc(int);
-@@ -237,13 +279,23 @@ pty_getproc(int, char *);
+@@ -237,13 +280,23 @@ pty_getproc(int, char *);
  #endif
  
  #if defined(__APPLE__) || defined(__OpenBSD__)
@@ -397,7 +398,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  #endif
  
  struct DelBuf {
-@@ -345,8 +397,8 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
+@@ -345,8 +398,8 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
    term->c_cc[VSTATUS] = 20;
    #endif
  
@@ -408,7 +409,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  
    // helperPath
    std::string helper_path = info[9].As<Napi::String>();
-@@ -367,14 +419,18 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
+@@ -367,14 +420,18 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
      argv[i + 3] = strdup(arg.c_str());
    }
  
@@ -431,7 +432,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  #else
    int argc = argv_.Length();
    int argl = argc + 2;
-@@ -445,6 +501,9 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
+@@ -445,6 +502,9 @@ Napi::Value PtyFork(const Napi::CallbackInfo& info) {
        if (pty_nonblock(master) == -1) {
          throw Napi::Error::New(napiEnv, "Could not set master fd to nonblocking.");
        }
@@ -441,7 +442,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
    }
  #endif
  
-@@ -586,6 +645,23 @@ pty_nonblock(int fd) {
+@@ -586,6 +646,23 @@ pty_nonblock(int fd) {
    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
  }
  
@@ -465,7 +466,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  /**
   * pty_getproc
   * Taken from tmux.
-@@ -684,15 +760,73 @@ pty_getproc(int fd, char *tty) {
+@@ -684,15 +761,73 @@ pty_getproc(int fd, char *tty) {
  #endif
  
  #if defined(__APPLE__)
@@ -541,25 +542,25 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  
    for (; count < 3; count++) {
      low_fds[count] = posix_openpt(O_RDWR);
-@@ -706,81 +840,460 @@ pty_posix_spawn(char** argv, char** env,
+@@ -706,81 +841,469 @@ pty_posix_spawn(char** argv, char** env,
                POSIX_SPAWN_SETSID;
    *master = posix_openpt(O_RDWR);
    if (*master == -1) {
 -    return;
 +    pty_set_spawn_error(err, "posix_openpt", errno);
 +    goto done;
++  }
++
++  res = grantpt(*master);
++  if (res == -1) {
++    pty_set_spawn_error(err, "grantpt", errno);
++    goto done;
    }
  
 -  int res = grantpt(*master) || unlockpt(*master);
-+  res = grantpt(*master);
++  res = unlockpt(*master);
    if (res == -1) {
 -    return;
-+    pty_set_spawn_error(err, "grantpt", errno);
-+    goto done;
-+  }
-+
-+  res = unlockpt(*master);
-+  if (res == -1) {
 +    pty_set_spawn_error(err, "unlockpt", errno);
 +    goto done;
    }
@@ -735,7 +736,9 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +  out->assign(encoded.data(), length);
 +  return true;
 +}
-+
+ 
+-  for (; count > 0; count--) {
+-    close(low_fds[count]);
 +static bool
 +orca_read_kinfo(int what, int flag, std::vector<struct kinfo_proc>* procs) {
 +  int mib[4] = { CTL_KERN, KERN_PROC, what, flag };
@@ -886,9 +889,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +  }
 +  return 0;
 +}
- 
--  for (; count > 0; count--) {
--    close(low_fds[count]);
++
 +static Napi::Array
 +orca_process_rows_to_js(Napi::Env env, bool include_command, const std::vector<orca_process_row>& rows) {
 +  Napi::Array result = Napi::Array::New(env, rows.size());
@@ -906,17 +907,18 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +    row.Set("nice", Napi::Number::New(env, proc.kp_proc.p_nice));
 +    row.Set("sessionLeader", Napi::Boolean::New(env, (proc.kp_eproc.e_flag & EPROC_SLEADER) != 0));
 +    row.Set("startSec", Napi::Number::New(env, (double)proc.kp_proc.p_starttime.tv_sec));
++    row.Set("startUsec", Napi::Number::New(env, (double)proc.kp_proc.p_starttime.tv_usec));
 +    row.Set("comm", Napi::String::New(env, proc.kp_proc.p_comm, strnlen(proc.kp_proc.p_comm, sizeof(proc.kp_proc.p_comm))));
 +    if (include_command) {
 +      row.Set("command", Napi::String::New(env, entry.command));
 +      row.Set("commandIncomplete", Napi::Boolean::New(env, entry.command_incomplete));
 +    }
 +    result.Set(index++, row);
-   }
++  }
 +  return result;
 +}
 +
-+// readProcessTable({ command, pids?, tty?, ctype? }): pids and tty are exclusive selections, as Orca issues them.
++// readProcessTable({ command, pids?, tty?, ctype? }) -> { startedAtMs, rows | null }: pids and tty are exclusive selections, as Orca issues them.
 +static orca_process_query
 +orca_read_process_query(const Napi::CallbackInfo& info) {
 +  Napi::Env env(info.Env());
@@ -941,7 +943,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +      }
 +    }
 +    query.select_pids = true;
-+  }
+   }
 +  Napi::Value tty = options.Get("tty");
 +  if (tty.IsString()) {
 +    if (query.select_pids) {
@@ -963,11 +965,15 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +      : Napi::AsyncWorker(env),
 +        deferred_(Napi::Promise::Deferred::New(env)),
 +        query_(std::move(query)),
-+        status_(-1) {}
++        status_(-1),
++        started_at_ms_(0) {}
 +
 +  Napi::Promise Promise() { return deferred_.Promise(); }
 +
 +  void Execute() override {
++    // Callers must not mistake a read queued before their request for a fresh one.
++    struct timeval now;
++    started_at_ms_ = gettimeofday(&now, NULL) == 0 ? (double)now.tv_sec * 1000.0 + (double)now.tv_usec / 1000.0 : 0;
 +    status_ = orca_gather_process_table(query_, &rows_);
 +    if (status_ < 0) {
 +      SetError("orca: process table sysctl failed");
@@ -976,9 +982,12 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +
 +  void OnOK() override {
 +    Napi::Env env = Env();
++    Napi::Object result = Napi::Object::New(env);
++    result.Set("startedAtMs", Napi::Number::New(env, started_at_ms_));
 +    // ps exits 1 without output when -t names no terminal.
-+    deferred_.Resolve(status_ == 1 ? env.Null()
-+                                   : Napi::Value(orca_process_rows_to_js(env, query_.include_command, rows_)));
++    result.Set("rows", status_ == 1 ? env.Null()
++                                    : Napi::Value(orca_process_rows_to_js(env, query_.include_command, rows_)));
++    deferred_.Resolve(result);
 +  }
 +
 +  void OnError(const Napi::Error& error) override {
@@ -989,6 +998,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
 +  Napi::Promise::Deferred deferred_;
 +  orca_process_query query_;
 +  int status_;
++  double started_at_ms_;
 +  std::vector<orca_process_row> rows_;
 +};
 +
@@ -1026,7 +1036,7 @@ index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..e2073f38a38b918a731f8c7b2258af38
  }
  #endif
  
-@@ -793,6 +1306,11 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
+@@ -793,6 +1316,11 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
    exports.Set("open",    Napi::Function::New(env, PtyOpen));
    exports.Set("resize",  Napi::Function::New(env, PtyResize));
    exports.Set("process", Napi::Function::New(env, PtyGetProc));

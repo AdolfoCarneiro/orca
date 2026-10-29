@@ -3,7 +3,7 @@ import {
   claimDarwinTerminalNaming,
   isDarwinTerminalNamingInFlight,
   resetDarwinTerminalNamingForTests
-} from './darwin-terminal-naming-slot'
+} from './darwin-terminal-naming-single-flight'
 import { errorMessage } from './error-message'
 import { ProcessTableCaptureError, PS_ARGS } from './process-table-snapshot'
 import { withTimeout } from './promise-timeout-fallback'

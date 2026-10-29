@@ -11,7 +11,8 @@ import {
   setLibprocAddonForTests,
   type LibprocAddon,
   type LibprocProcessRow,
-  type LibprocQuery
+  type LibprocQuery,
+  type LibprocTableRead
 } from './libproc-addon'
 import { runPsInProcess } from './libproc-process-table'
 import { parseCheapProcessTableRows, parseStrictProcessTableRows } from './process-table-snapshot'
@@ -87,7 +88,14 @@ const TABLE = [
   row({})
 ]
 
-function tableFor(query: LibprocQuery, table = TABLE): LibprocProcessRow[] | null {
+function tableFor(query: LibprocQuery, table = TABLE): LibprocTableRead {
+  return { startedAtMs: Date.now(), rows: rowsFor(query, table) }
+}
+
+function rowsFor(
+  query: LibprocQuery,
+  table: readonly LibprocProcessRow[]
+): LibprocProcessRow[] | null {
   if (query.tty !== undefined && !/^(?:\/dev\/)?ttys004$/.test(query.tty)) {
     return null
   }
@@ -251,5 +259,100 @@ describe('runPsInProcess', () => {
         args: ['-ww', '-o', 'pid=,command=', '-p', '4500']
       })
     )
+  })
+
+  it('refuses a shared read that began before the request, so stale rows never reach a caller', async () => {
+    let finishStale: (read: LibprocTableRead) => void = () => {}
+    const stale = new Promise<LibprocTableRead>((resolve) => {
+      finishStale = resolve
+    })
+    const startedBefore = Date.now() - 5_000
+    const readProcessTable = vi
+      .fn<(query: LibprocQuery) => Promise<LibprocTableRead>>()
+      .mockReturnValueOnce(stale)
+      .mockImplementation(async (query) => tableFor(query))
+    installAddon({ readProcessTable })
+    const args = ['-axo', 'pid=,ppid=']
+
+    expect(await runPsInProcess(args, { timeoutMs: 10 })).toMatchObject({ timedOut: true })
+    const fresh = runPsInProcess(args, BUDGET)
+    finishStale({ startedAtMs: startedBefore, rows: [row({ pid: 9999, ppid: 4242 })] })
+    const result = await fresh
+    expect(result?.stdout).not.toContain('9999')
+    expect(result?.startedAtMs).toBeGreaterThan(startedBefore)
+    expect(readProcessTable).toHaveBeenCalledTimes(2)
+  })
+
+  it('recovers argv for a sudo use_pty tree on its own pty, but not for root daemons or GUI helpers', async () => {
+    const TTYS005 = (16 << 24) | 5
+    const root = { commandIncomplete: true, flags: 0x2 }
+    const table = [
+      ...TABLE,
+      row({
+        ...root,
+        pid: 4600,
+        ppid: 4242,
+        tdev: TTYS004,
+        comm: 'sudo',
+        command: '/usr/bin/sudo'
+      }),
+      row({
+        ...root,
+        pid: 4601,
+        ppid: 4600,
+        tdev: TTYS005,
+        comm: 'sudo',
+        command: '/usr/bin/sudo'
+      }),
+      row({ ...root, pid: 4602, ppid: 4601, tdev: TTYS005, comm: 'zsh', command: '/bin/zsh' }),
+      row({ ...root, pid: 4603, ppid: 4602, tdev: TTYS005, comm: 'node', command: '/opt/node' }),
+      row({ pid: 300, ppid: 1, comm: 'syslogd', command: '/usr/sbin/syslogd' }),
+      row({
+        pid: 700,
+        ppid: 1,
+        comm: 'Orca',
+        command: '/Applications/Orca',
+        commandIncomplete: false
+      }),
+      row({ pid: 701, ppid: 700, comm: 'helper', command: '/usr/libexec/helper' })
+    ]
+    installAddon({ readProcessTable: vi.fn(async (query: LibprocQuery) => tableFor(query, table)) })
+    runProcess.mockResolvedValue({ code: 0, signal: null, stdout: '', stderr: '', timedOut: false })
+
+    await runPsInProcess(['-axo', 'pid=,command='], { env: { LC_ALL: 'C' }, timeoutMs: 1000 })
+    const pids = runProcess.mock.calls[0]?.[0].args.at(-1).split(',').map(Number).sort()
+    expect(pids).toEqual([4600, 4601, 4602, 4603])
+  })
+
+  it('asks ps again once exec changes the program behind a cached pid and start time', async () => {
+    const shell = row({ pid: 4700, ppid: 4242, tdev: TTYS004, comm: 'zsh', command: '/bin/zsh' })
+    let current = shell
+    installAddon({
+      readProcessTable: vi.fn(async (query: LibprocQuery) => tableFor(query, [...TABLE, current]))
+    })
+    runProcess.mockImplementation(async () => ({
+      code: 0,
+      signal: null,
+      stdout: current === shell ? ' 4700 -zsh\n' : ' 4700 node /opt/claude/cli.js\n',
+      stderr: '',
+      timedOut: false
+    }))
+    const args = ['-p', '4700', '-o', 'command=']
+    const options = { env: { LC_ALL: 'C' }, timeoutMs: 1000 }
+
+    expect((await runPsInProcess(args, options))?.stdout).toBe('-zsh\n')
+    expect((await runPsInProcess(args, options))?.stdout).toBe('-zsh\n')
+    current = { ...shell, comm: 'node', command: '/opt/node' }
+    expect((await runPsInProcess(args, options))?.stdout).toBe('node /opt/claude/cli.js\n')
+    expect(runProcess).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets concurrent tty= readers wait out one naming pass instead of running ps', async () => {
+    installAddon()
+    // 4300's read is still stalled from the timeout case above.
+    const args = ['-o', 'pid=,tty=', '-p', '4242']
+    const results = await Promise.all([1, 2, 3].map(() => runPsInProcess(args, BUDGET)))
+    expect(results.map((result) => result?.stdout)).toEqual(Array(3).fill('4242 ttys004\n'))
+    expect(runProcess).not.toHaveBeenCalled()
   })
 })

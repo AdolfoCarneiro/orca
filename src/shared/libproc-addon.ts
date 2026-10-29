@@ -15,6 +15,8 @@ export type LibprocProcessRow = {
   nice?: number
   sessionLeader: boolean
   startSec: number
+  /** `p_starttime.tv_usec`, telling apart processes a reused pid started within one second. */
+  startUsec?: number
   comm: string
   /** ps's command text (getproclline + strvis in the query's LC_CTYPE). */
   command?: string
@@ -30,9 +32,15 @@ export type LibprocQuery = {
   ctype?: string
 }
 
+export type LibprocTableRead = {
+  /** Wall clock when the worker began reading; a read queued behind a busy pool starts late. */
+  startedAtMs: number
+  rows: LibprocProcessRow[] | null
+}
+
 export type LibprocAddon = {
   /** Reads on a libuv worker thread; argv for a whole table costs ~20ms of syscalls. */
-  readProcessTable: (query: LibprocQuery) => Promise<LibprocProcessRow[] | null>
+  readProcessTable: (query: LibprocQuery) => Promise<LibprocTableRead>
   processCwd: (pid: number) => string | null
   processPath: (pid: number) => string | null
 }
