@@ -1543,6 +1543,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "Notificaciones del escritorio",
+      "silentName": "Notificaciones silenciosas de Orca"
+    },
     "notificationDeliverySection": {
       "footer": "Los tipos de alerta dependen de la configuración de notificaciones de cada escritorio emparejado. Las notificaciones se pausan tras 7 días sin usar esta aplicación; ábrela y vuelve a conectarte para reanudarlas.",
       "onlyWhenAway": "Solo cuando no uses el escritorio",

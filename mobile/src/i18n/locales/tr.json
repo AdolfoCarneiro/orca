@@ -1509,6 +1509,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "Masaüstü Bildirimleri",
+      "silentName": "Orca sessiz bildirimleri"
+    },
     "notificationDeliverySection": {
       "footer": "Uyarı türleri, eşleştirilen her bilgisayarın bildirim ayarlarına göre belirlenir. Bu uygulama 7 gün kullanılmazsa bildirimler duraklatılır; sürdürmek için uygulamayı açıp yeniden bağlanın.",
       "onlyWhenAway": "Yalnızca bilgisayardan uzaktayken",

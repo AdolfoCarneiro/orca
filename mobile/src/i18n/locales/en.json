@@ -695,6 +695,10 @@
       "suppressWhileFocused": "Suppress while focused",
       "suppressWhileFocusedHint": "Skip alerts for the workspace open on this phone.",
       "footer": "Alert types follow each paired desktop’s notification settings. Notifications pause after 7 days without using this app; open it and reconnect to resume."
+    },
+    "desktopChannel": {
+      "silentName": "Orca silent notifications",
+      "name": "Desktop Notifications"
     }
   },
   "onboarding": {

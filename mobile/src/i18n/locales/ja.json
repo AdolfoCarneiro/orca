@@ -1502,6 +1502,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "デスクトップ通知",
+      "silentName": "Orca のサイレント通知"
+    },
     "notificationDeliverySection": {
       "footer": "通知の種類は、ペアリング済みの各デスクトップの通知設定に従います。このアプリを7日間使用しないと通知が一時停止します。再開するには、アプリを開いて再接続してください。",
       "onlyWhenAway": "デスクトップから離れているときのみ",

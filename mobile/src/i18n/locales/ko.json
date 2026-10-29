@@ -1502,6 +1502,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "데스크톱 알림",
+      "silentName": "Orca 무음 알림"
+    },
     "notificationDeliverySection": {
       "footer": "알림 유형은 페어링된 각 데스크톱의 알림 설정을 따릅니다. 이 앱을 7일 동안 사용하지 않으면 알림이 일시 중지됩니다. 다시 받으려면 앱을 열고 다시 연결하세요.",
       "onlyWhenAway": "데스크톱을 사용하지 않을 때만",

@@ -1543,6 +1543,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "Notifications de l'ordinateur",
+      "silentName": "Notifications silencieuses Orca"
+    },
     "notificationDeliverySection": {
       "footer": "Les types d'alertes suivent les paramètres de notification de chaque ordinateur appairé. Les notifications sont suspendues après 7 jours sans utilisation de cette application ; ouvrez-la et reconnectez-vous pour les réactiver.",
       "onlyWhenAway": "Uniquement si vous n'êtes pas à l'ordinateur",

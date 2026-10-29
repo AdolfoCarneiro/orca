@@ -1546,6 +1546,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "Notificações do desktop",
+      "silentName": "Notificações silenciosas do Orca"
+    },
     "notificationDeliverySection": {
       "footer": "Os tipos de alerta seguem as configurações de notificação de cada desktop pareado. As notificações são pausadas após 7 dias sem usar este app; abra-o e reconecte-se para retomá-las.",
       "onlyWhenAway": "Só quando estiver longe do desktop",

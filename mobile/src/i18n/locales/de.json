@@ -1506,6 +1506,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "Desktop-Benachrichtigungen",
+      "silentName": "Lautlose Orca-Benachrichtigungen"
+    },
     "notificationDeliverySection": {
       "footer": "Die Benachrichtigungsarten richten sich nach den Benachrichtigungseinstellungen des jeweiligen gekoppelten Computers. Nach 7 Tagen ohne Nutzung dieser App werden Benachrichtigungen pausiert; zum Fortsetzen die App öffnen und erneut verbinden.",
       "onlyWhenAway": "Nur bei Abwesenheit vom Computer",

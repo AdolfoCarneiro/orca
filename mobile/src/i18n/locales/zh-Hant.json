@@ -1502,6 +1502,10 @@
     }
   },
   "notifications": {
+    "desktopChannel": {
+      "name": "桌面通知",
+      "silentName": "Orca 靜音通知"
+    },
     "notificationDeliverySection": {
       "footer": "通知類型依各台已配對電腦的通知設定而定。若連續 7 天未使用此應用程式，通知將暫停；開啟應用程式並重新連線即可恢復。",
       "onlyWhenAway": "僅在離開電腦時",
