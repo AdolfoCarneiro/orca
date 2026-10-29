@@ -21,6 +21,13 @@ import { readActiveManagedOrcadReadiness } from './orcad-managed-bound-port'
 import { OrcadManagedIdentityError } from './orcad-managed-tunnel-identity'
 import { OrcadManagedPairingRepairFailedError } from './orcad-managed-pairing-repair-failure'
 import { notifyManagedOrcadPairingRepaired } from './orcad-managed-pairing-repaired-listener'
+import {
+  RuntimeEnvironmentSetupGuardError,
+  runtimeEnvironmentSetupFailure,
+  type RuntimeEnvironmentSetupFailure,
+  type RuntimeEnvironmentSetupOutcome
+} from '../../../shared/runtime-environment-subscription-setup'
+import type { SshSessionStartObserver } from '../../ssh/ssh-session-start-failure'
 
 // Cap servers that keep refusing fresh pairing offers to avoid endless repair.
 export const MAX_PAIRING_REPAIRS_PER_WINDOW = 3
@@ -34,7 +41,10 @@ export type ManagedOrcadPairingRepairDeps<
   Access extends ManagedOrcadHostAccess = ManagedOrcadHostAccess
 > = {
   resolve: (environmentId: string) => KnownRuntimeEnvironment
-  connect: (environment: KnownRuntimeEnvironment) => Promise<Access>
+  connect: (
+    environment: KnownRuntimeEnvironment,
+    observeFailure?: SshSessionStartObserver
+  ) => Promise<Access>
   readReadiness: (input: Access) => Promise<ServeReadiness | null>
   /** Override ports for bridges; SSH uses deployment ports by default. */
   ports?: (environment: KnownRuntimeEnvironment) => { localPort: number; remotePort: number } | null
@@ -58,12 +68,18 @@ export function liveManagedOrcadPairingRepairDeps(
   }
 }
 
-async function connectManagedOrcadHost(environment: KnownRuntimeEnvironment) {
+async function connectManagedOrcadHost(
+  environment: KnownRuntimeEnvironment,
+  observeFailure?: SshSessionStartObserver
+) {
   const deployment = getOrcadSshDeployment(environment)
   const store = getSshTargetRegistryStore()
   const connections = getSshConnectionManager()
   if (!deployment || !store || !connections) {
-    throw new Error('SSH is unavailable on this client')
+    throw new RuntimeEnvironmentSetupGuardError('SSH is unavailable on this client', {
+      kind: 'binding',
+      reason: 'services-unavailable'
+    })
   }
   const target = store.getTarget(deployment.sshTargetId)
   if (
@@ -71,9 +87,15 @@ async function connectManagedOrcadHost(environment: KnownRuntimeEnvironment) {
     target.generation !== deployment.sshTargetGeneration ||
     getManagedOrcadFenceEnvironmentId(target) !== environment.id
   ) {
-    throw new Error('the SSH registration for this server was removed or re-created')
+    throw new RuntimeEnvironmentSetupGuardError(
+      'the SSH registration for this server was removed or re-created',
+      {
+        kind: 'binding',
+        reason: 'registration-changed'
+      }
+    )
   }
-  return { target, connection: await connections.connect(target) }
+  return { target, connection: await connections.connect(target, undefined, observeFailure) }
 }
 
 /** Refusal revisions prevent repeating repairs already stored by another attempt. */
@@ -82,12 +104,17 @@ export function pairingRevisionOf(environment: KnownRuntimeEnvironment): number 
 }
 
 type StandingFailure = { error: Error; revision: number; until: number }
+type PairingRepairOutcome = RuntimeEnvironmentSetupOutcome<KnownRuntimeEnvironment>
+type PairingRepairOperation = {
+  outcome: Promise<PairingRepairOutcome>
+  ordinary?: Promise<KnownRuntimeEnvironment>
+}
 
 /** Coalesce and cap repairs per environment; refusals of older revisions reuse the stored pairing. */
 export class ManagedOrcadPairingRepairs<
   Access extends ManagedOrcadHostAccess = ManagedOrcadHostAccess
 > {
-  private readonly inFlight = new Map<string, Promise<KnownRuntimeEnvironment>>()
+  private readonly inFlight = new Map<string, PairingRepairOperation>()
   private readonly attemptedAt = new Map<string, number[]>()
   private readonly standing = new Map<string, StandingFailure>()
   // In-flight repairs must not undo an explicit user reset.
@@ -104,15 +131,45 @@ export class ManagedOrcadPairingRepairs<
   }
 
   repair(environmentId: string, refusedRevision: number): Promise<KnownRuntimeEnvironment> {
+    const entry = this.operation(environmentId, refusedRevision)
+    entry.ordinary ??= entry.outcome.then((outcome) => {
+      if (!outcome.ok) {
+        throw outcome.failure.error
+      }
+      return outcome.value
+    })
+    return entry.ordinary
+  }
+
+  repairObserved(environmentId: string, refusedRevision: number): Promise<PairingRepairOutcome> {
+    return this.operation(environmentId, refusedRevision).outcome
+  }
+
+  private operation(environmentId: string, refusedRevision: number): PairingRepairOperation {
     const pending = this.inFlight.get(environmentId)
     if (pending) {
       return pending
     }
-    const operation = this.run(environmentId, refusedRevision).finally(() => {
-      this.inFlight.delete(environmentId)
+    let failure: RuntimeEnvironmentSetupFailure | undefined
+    const outcome = this.run(environmentId, refusedRevision, (value) => {
+      failure = value
     })
-    this.inFlight.set(environmentId, operation)
-    return operation
+      .then<PairingRepairOutcome, PairingRepairOutcome>(
+        (value) => ({ ok: true, value }),
+        (error: unknown) => ({
+          ok: false,
+          failure:
+            failure !== undefined && failure.error === error
+              ? failure
+              : runtimeEnvironmentSetupFailure(error, 'managed-preparation')
+        })
+      )
+      .finally(() => {
+        this.inFlight.delete(environmentId)
+      })
+    const entry = { outcome }
+    this.inFlight.set(environmentId, entry)
+    return entry
   }
 
   /** Charge refusal to the attempted revision; newer untried pairings must remain eligible. */
@@ -134,7 +191,8 @@ export class ManagedOrcadPairingRepairs<
 
   private async run(
     environmentId: string,
-    refusedRevision: number
+    refusedRevision: number,
+    observeFailure: SshSessionStartObserver
   ): Promise<KnownRuntimeEnvironment> {
     const environment = this.deps.resolve(environmentId)
     if (pairingRevisionOf(environment) !== refusedRevision) {
@@ -156,7 +214,9 @@ export class ManagedOrcadPairingRepairs<
       throw new OrcadManagedPairingRepairFailedError('this server has no managed deployment')
     }
     // Losing host contact proves nothing about pairing; count only completed reads.
-    const readiness = await this.deps.readReadiness(await this.deps.connect(environment))
+    const readiness = await this.deps.readReadiness(
+      await this.deps.connect(environment, observeFailure)
+    )
     // Updates may store new pairings during SSH reads; recheck before synchronous validation/write.
     const current = this.deps.resolve(environmentId)
     if (pairingRevisionOf(current) !== refusedRevision) {
@@ -235,7 +295,12 @@ export class ManagedOrcadPairingRepairs<
 
 export type ManagedOrcadPairingGate = Pick<
   ManagedOrcadPairingRepairs,
-  'standingFailure' | 'repair' | 'recordRefusedAfterRepair' | 'resetEpoch' | 'forgetFailures'
+  | 'standingFailure'
+  | 'repair'
+  | 'repairObserved'
+  | 'recordRefusedAfterRepair'
+  | 'resetEpoch'
+  | 'forgetFailures'
 >
 
 function capSpentError(attempts: number): Error {

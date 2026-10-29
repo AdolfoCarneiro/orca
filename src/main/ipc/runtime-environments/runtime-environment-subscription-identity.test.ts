@@ -24,6 +24,8 @@ import {
   type RetainedRemoteRuntimeSubscription
 } from './runtime-environment-subscription-handlers'
 
+import { crewSubscriptionSetupFailure } from './runtime-environment-subscription-setup'
+
 const remoteRuntimeSubscriptions = new Map<string, RetainedRemoteRuntimeSubscription>()
 const pendingSubscriptions = new Map<string, PendingRuntimeSubscription>()
 
@@ -254,4 +256,38 @@ it('fences an already-gone frame and a changed source, while preserving early-cl
   expect(closed.close).toHaveBeenCalledOnce()
   expect(remoteRuntimeSubscriptions.size).toBe(0)
   expect(pendingSubscriptions.size).toBe(0)
+})
+
+it('distinguishes no observation from an observed undefined rejection without changing default rejection', async () => {
+  const fact = { kind: 'ssh', decision: 'stopped' } as const
+  expect(
+    crewSubscriptionSetupFailure('crew', undefined, undefined, 'subscription', undefined)
+  ).toEqual({
+    subscriptionId: 'crew',
+    ok: false,
+    failure: { message: 'undefined', fact: { kind: 'operation', operation: 'subscription' } }
+  })
+  expect(
+    crewSubscriptionSetupFailure(
+      'crew',
+      undefined,
+      { error: undefined, fact },
+      'subscription',
+      undefined
+    )
+  ).toEqual({
+    subscriptionId: 'crew',
+    ok: false,
+    failure: { message: 'undefined', fact }
+  })
+  mocks.subscribe.mockRejectedValue(undefined)
+  await expect(openCrew()).resolves.toEqual({
+    subscriptionId: 'crew',
+    ok: false,
+    failure: { message: 'undefined', fact: { kind: 'operation', operation: 'subscription' } }
+  })
+  await expect(open()).rejects.toBeUndefined()
+  expect(pendingSubscriptions.size).toBe(0)
+  expect(remoteRuntimeSubscriptions.size).toBe(0)
+  expect(sender.eventNames()).toEqual([])
 })

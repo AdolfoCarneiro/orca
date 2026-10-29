@@ -203,7 +203,7 @@ export async function subscribeRuntimeEnvironment(
   const environment = crewAttempt
     ? await waitForPromiseWithSignal(prepared, signal).catch((error: unknown) => {
         crewAttempt.observeFailure(
-          preparationFailure?.error === error
+          preparationFailure !== undefined && preparationFailure.error === error
             ? preparationFailure
             : runtimeEnvironmentSetupFailure(error, 'managed-preparation')
         )
