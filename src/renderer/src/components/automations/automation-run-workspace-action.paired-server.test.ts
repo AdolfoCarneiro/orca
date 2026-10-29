@@ -177,7 +177,7 @@ function seed(rows: Worktree[], authority: AutomationAuthorityRef = desktop) {
     setPageView: vi.fn(),
     setRunPageOrigin: vi.fn(),
     isDetailOpen: false,
-    rerunRunIdsInFlight: new Set(),
+    rerunRunIdsInFlight: new Set<string>(),
     setIsDetailOpen: vi.fn(),
     setActivePaneTab: vi.fn()
   }

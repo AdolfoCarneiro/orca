@@ -88,7 +88,7 @@ export function useCombinedDiffSectionLoader({
       }
 
       let result: GitDiffResult
-      let operation: DiffSection['operation']
+      let operation: ReturnType<typeof acquireCombinedDiffSectionOperation> | undefined
       let error: string | undefined
       try {
         operation = acquireCombinedDiffSectionOperation(file, entry.path)

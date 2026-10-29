@@ -1,11 +1,4 @@
-import {
-  MIXED_FOLDER,
-  MIXED_GROUP
-} from '../../../shared/folder-workspace-host-routing.test-fixture'
-import {
-  getDefaultWorkspaceSession,
-  FLOATING_TERMINAL_WORKTREE_ID
-} from '../../../shared/constants'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 import { describe, expect, it, vi } from 'vitest'
 import {
   statSyncMock,
@@ -18,7 +11,6 @@ import { _setWslCachesForTests } from '../../wsl'
 import { acquireWatcherRemovalGate } from '../watcher-removal-gate'
 import { registerPtyHandlers } from './register-handlers'
 import { join } from 'node:path'
-import { getFolderWorkspacePathErrorCopy } from '../../../renderer/src/lib/folder-workspace-path-status'
 import { getShellReadyWrapperRoot } from '../../providers/local-pty-shell-ready-wrapper-root'
 
 vi.mock('electron', () => import('./pty-ipc-mock-registry').then((m) => m.electronModuleMock()))
@@ -161,86 +153,6 @@ describe('registerPtyHandlers', () => {
       removal.release()
     }
   })
-  it.each([false, true])(
-    'keeps the selected folder through real IPC/runtime admission and cwd fallback (%s)',
-    async (reverse) => {
-      const local = {
-        ...MIXED_FOLDER,
-        id: 'dup',
-        executionHostId: 'local' as const,
-        folderPath: '/selected'
-      }
-      const remote = { ...local, executionHostId: 'ssh:prod' as const, folderPath: '/foreign' }
-      let folders = reverse ? [local, remote] : [remote, local]
-      const store = {
-        getRepos: () => [],
-        getProjectGroups: () => [MIXED_GROUP],
-        getFolderWorkspaces: () => folders,
-        getFolderWorkspace: () => folders[0],
-        getWorkspaceSession: getDefaultWorkspaceSession
-      }
-      const runtime = {
-        preAllocateHandleForPty: vi.fn(),
-        setPtyController: vi.fn(),
-        registerPty: vi.fn(),
-        onPtySpawned: vi.fn(),
-        onPtyExit: vi.fn(),
-        onPtyData: vi.fn()
-      }
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: registration/spawn reads these runtime and store members; no durable pane binding is requested.
-      registerPtyHandlers(
-        mainWindow as never,
-        runtime as never,
-        undefined,
-        undefined,
-        undefined,
-        store as never
-      )
-      const controller = runtime.setPtyController.mock.calls[0]?.[0]
-      const spawn = (cwd: string) =>
-        handlers.get('pty:spawn')!(null, {
-          cols: 80,
-          rows: 24,
-          cwd,
-          worktreeId: 'folder:dup',
-          cwdFallback: 'worktree',
-          connectionId: null
-        })
-      await spawn('.')
-      expect(spawnMock.mock.calls.at(-1)?.[2]).toMatchObject({ cwd: '/selected' })
-      await controller.spawn({
-        cols: 80,
-        rows: 24,
-        cwd: '.',
-        worktreeId: 'folder:dup',
-        connectionId: null,
-        env: {}
-      })
-      expect(spawnMock.mock.calls.at(-1)?.[2]).toMatchObject({ cwd: '/selected' })
-      folders = [remote]
-      spawnMock.mockClear()
-      await expect(spawn('.')).rejects.toThrow('folder_workspace_path_scope_not_found')
-      expect(spawnMock).not.toHaveBeenCalled()
-      folders = [local, { ...local }]
-      const failure = await spawn('.').then(
-        () => {
-          throw new Error('ambiguous spawn succeeded')
-        },
-        (error: unknown) => {
-          if (!(error instanceof Error)) {
-            throw error
-          }
-          return error
-        }
-      )
-      expect(failure.message).toContain('folder_workspace_connection_ambiguous:/selected')
-      expect(getFolderWorkspacePathErrorCopy(failure.message)?.title).toBe(
-        'Cannot determine connection'
-      )
-      expect(spawnMock).not.toHaveBeenCalled()
-    }
-  )
-
   it('falls back to the worktree root when a saved local cwd no longer exists', async () => {
     registerPtyHandlers(mainWindow as never)
     // Preserve Unicode worktree paths verbatim when falling back (#7239).

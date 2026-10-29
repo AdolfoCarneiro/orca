@@ -2,6 +2,7 @@ import { mockPanePtyArgs } from '../../src/renderer/src/components/terminal-pane
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as React from 'react'
 import type { PtyApi } from '../../src/preload/api/pty-api'
+import type { RuntimePtyController } from '../../src/main/runtime/runtime-pty-controller-contract'
 import type { Project, ProjectHostSetup } from '../../src/shared/project-types'
 import { getDefaultSettings, getDefaultWorkspaceSession } from '../../src/shared/constants'
 import {
@@ -63,7 +64,7 @@ vi.mock('@/components/terminal-pane/pty-transport', () => ({
         connectOptions,
         typeof connectOptions.sessionId === 'string' ? connectOptions.sessionId : undefined
       )
-      transport.attach({ existingPtyId: result.id })
+      transport.attach({ existingPtyId: result.id, callbacks: connectOptions.callbacks })
       return result
     })
     return Object.assign(transport, { connect })
@@ -243,7 +244,7 @@ describe('mounted folder plain-shell project runtime', () => {
       getWorkspaceSession: () => session
     }
     const runtime = {
-      setPtyController: vi.fn(),
+      setPtyController: vi.fn<(controller: RuntimePtyController) => void>(),
       registerPty: vi.fn(),
       onPtySpawned: vi.fn(),
       onPtyExit: vi.fn(),
@@ -260,6 +261,9 @@ describe('mounted folder plain-shell project runtime', () => {
       store as never
     )
     const controller = runtime.setPtyController.mock.calls[0]?.[0]
+    if (!controller?.spawn) {
+      throw new Error('Runtime PTY controller was not registered')
+    }
     existsSyncMock.mockClear()
     wslUncDirectoryExistsAsyncMock.mockClear()
     const savedSessionId = 'repo1::\\\\wsl.localhost\\Saved\\work@@abc12345'
