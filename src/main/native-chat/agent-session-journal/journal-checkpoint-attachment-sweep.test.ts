@@ -48,7 +48,8 @@ it.each(['expired', 'resumed', 'orphan', 'partial-prune'])(
     const upload = join(store.rootDir, 'expired-upload')
     await mkdir(upload, { recursive: true })
     await writeFile(join(upload, 'image.png'), 'bytes')
-    const old = new Date(Date.now() - sweeps.UNCLAIMED_ATTACHMENT_MAX_AGE_MS - 60000)
+    const now = 1_700_000_000_000
+    const old = new Date(now - sweeps.UNCLAIMED_ATTACHMENT_MAX_AGE_MS - 60000)
     await utimes(upload, old, old)
     database.transaction((db) => {
       if (path === 'resumed') {
@@ -88,7 +89,7 @@ it.each(['expired', 'resumed', 'orphan', 'partial-prune'])(
     expect(database.db.pragma('wal_autocheckpoint', { simple: true })).toBe(0)
     expect(facts).toBeDefined()
     idle = false
-    const sweep = sweeps.sweepAgentSessionAttachments(store, facts!)
+    const sweep = sweeps.sweepAgentSessionAttachments(store, facts!, now)
     if (path === 'partial-prune') {
       await expect(sweep).rejects.toThrow('records unavailable')
       expect(
