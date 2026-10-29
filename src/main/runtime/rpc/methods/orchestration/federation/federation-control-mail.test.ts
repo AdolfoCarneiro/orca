@@ -9,6 +9,7 @@ import type { RpcRequest } from '../../../core'
 import { RpcDispatcher } from '../../../dispatcher'
 import { fingerprintAuthenticatedPairingCredential } from '../../../../device-principal'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
+import { attachRemoteDispatch } from './federated-message-targeting.test-fixture'
 import { syncFederationBarrier } from './federation-sync-barrier.test-support'
 
 describe('orchestration federation control mail', () => {
@@ -140,48 +141,67 @@ describe('orchestration federation control mail', () => {
     workerDb.close()
   })
 
-  it('routes an exact Dispatch message through the durable relay', async () => {
-    vi.spyOn(homeRuntime, 'ensureOrchestrationFederationRelay').mockImplementation(() => {})
-    const sent = await homeDispatcher.dispatch({
-      id: 'send-control',
-      authToken: 'coordinator-token',
-      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION,
-      orchestrationRequestId: 'send-control-request',
-      method: 'orchestration.send',
-      params: {
+  it.each([false, true])(
+    'routes an exact Dispatch message through the durable relay, sender attached=%s',
+    async (attached) => {
+      if (attached) {
+        attachRemoteDispatch(homeDb, homeRuntime, 'foreign-home', {
+          paneKey: coordinatorPaneKey,
+          terminalHandle: 'term_coord'
+        })
+      }
+      const payload = attached
+        ? JSON.stringify({ dispatchId: 'ctx_remote_targeting', note: 'caller provenance' })
+        : undefined
+      vi.spyOn(homeRuntime, 'ensureOrchestrationFederationRelay').mockImplementation(() => {})
+      const sent = await homeDispatcher.dispatch({
+        id: 'send-control',
+        authToken: 'coordinator-token',
+        orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION,
+        orchestrationRequestId: 'send-control-request',
+        method: 'orchestration.send',
+        params: {
+          from: 'term_coord',
+          to: `dispatch:${dispatchId}`,
+          subject: 'Continue',
+          body: 'Run the focused follow-up.',
+          payload,
+          type: 'status'
+        }
+      })
+
+      expect(sent).toMatchObject({
+        ok: true,
+        result: { relay: { dispatchId, accepted: true } }
+      })
+      const queued = homeDb.listPendingFederationRelay(dispatchId, 'to_worker')
+      expect(queued).toHaveLength(1)
+      expect(JSON.parse(queued[0].payload)).toMatchObject({
         from: 'term_coord',
-        to: `dispatch:${dispatchId}`,
-        subject: 'Continue',
-        body: 'Run the focused follow-up.',
-        type: 'status'
-      }
-    })
+        payload: payload ?? null
+      })
+      expect(homeDb.listPendingFederationRelay('ctx_remote_targeting', 'to_home')).toEqual([])
 
-    expect(sent).toMatchObject({
-      ok: true,
-      result: { relay: { dispatchId, accepted: true } }
-    })
-    expect(homeDb.listPendingFederationRelay(dispatchId, 'to_worker')).toHaveLength(1)
+      await syncFederationBarrier(homeRuntime, homeDb)
+      const checked = await workerDispatcher.dispatch(checkRequest('check-imported'))
 
-    await syncFederationBarrier(homeRuntime, homeDb)
-    const checked = await workerDispatcher.dispatch(checkRequest('check-imported'))
-
-    expect(checked).toMatchObject({
-      ok: true,
-      result: {
-        dispatchId,
-        count: 1,
-        messages: [
-          {
-            to_handle: `dispatch:${dispatchId}`,
-            subject: 'Continue',
-            body: 'Run the focused follow-up.'
-          }
-        ]
-      }
-    })
-    expect(homeDb.listPendingFederationRelay(dispatchId, 'to_worker')).toHaveLength(0)
-  })
+      expect(checked).toMatchObject({
+        ok: true,
+        result: {
+          dispatchId,
+          count: 1,
+          messages: [
+            {
+              to_handle: `dispatch:${dispatchId}`,
+              subject: 'Continue',
+              body: 'Run the focused follow-up.'
+            }
+          ]
+        }
+      })
+      expect(homeDb.listPendingFederationRelay(dispatchId, 'to_worker')).toHaveLength(0)
+    }
+  )
 
   it('wakes a remote worker waiter when control mail imports', async () => {
     const waiting = workerDispatcher.dispatch(checkRequest('wait-for-control', true))

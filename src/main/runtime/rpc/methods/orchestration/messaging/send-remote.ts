@@ -6,10 +6,9 @@ import { waitForFederatedLifecycleSettlement } from '../../../../orchestration/f
 import { bindCoordinatorMutationPayload } from '../../../../orchestration/dispatch-message-binding'
 import { ORCHESTRATION_FEDERATION_LIFECYCLE_SETTLEMENT_PROTOCOL_VERSION } from '../../../../../../shared/protocol-version'
 import type { z } from 'zod'
-import { parseRemoteWorkerPayload } from '../schemas'
 import type { SendParams } from '../schemas'
 import { rejectFederatedExplicitTarget } from '../routing'
-import { assertWorkerCanReport } from '../../../../orchestration/worker-report-admission'
+import { assertRemoteAttachmentSendAdmission } from './remote-attachment-send-admission'
 
 type SendParamsInput = z.infer<typeof SendParams>
 
@@ -32,7 +31,7 @@ export async function sendRemoteMessage(args: {
 }) {
   const { params, runtime, db, from, senderPaneKey, remoteAttachment } = args
   rejectFederatedExplicitTarget(params, remoteAttachment.home_run_id)
-  assertWorkerCanReport({
+  const payload = assertRemoteAttachmentSendAdmission({
     dispatchId: remoteAttachment.dispatch_id,
     from,
     workerState: remoteAttachment.state,
@@ -40,20 +39,11 @@ export async function sendRemoteMessage(args: {
       dispatchId: remoteAttachment.dispatch_id,
       paneKey: senderPaneKey,
       processIncarnation: args.processIncarnation ?? null
-    })
+    }),
+    payload: params.payload
   })
 
   const type = (params.type ?? 'status') as MessageType
-  const payload = parseRemoteWorkerPayload(params.payload)
-  if (
-    typeof payload.dispatchId === 'string' &&
-    payload.dispatchId !== remoteAttachment.dispatch_id
-  ) {
-    throw new OrchestrationError(
-      'dispatch_inactive',
-      `Dispatch ${payload.dispatchId} is not the active remote Dispatch for this pane.`
-    )
-  }
   const outcome =
     type === 'worker_done' && (payload.outcome === 'succeeded' || payload.outcome === 'failed')
       ? payload.outcome

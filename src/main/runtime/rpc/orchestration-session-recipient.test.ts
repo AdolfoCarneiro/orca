@@ -1,4 +1,10 @@
 import './unused-default-rpc-methods.test-fixture'
+import { createHash } from 'node:crypto'
+import {
+  OrcaRuntimeService,
+  type OrchestrationCompatibilityTerminalAuthority
+} from '../orca-runtime'
+import { ORCHESTRATION_SEND_METHODS } from './methods/orchestration/messaging/send-methods'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   mintStructuredWorkerHandle,
@@ -19,6 +25,7 @@ import {
   SESSION_Y,
   sessionRecord,
   WORKER_HANDLE,
+  WORKER_PANE,
   type SessionCallerHarness
 } from './orchestration-session-caller-test-fixture'
 
@@ -27,15 +34,23 @@ vi.mock('../../native-chat/agent-session-wire/structured-agent-session-registry'
   getStructuredAgentSessionHost: () => hostRef.current
 }))
 
+import { attachRemoteDispatch } from './methods/orchestration/federation/federated-message-targeting.test-fixture'
+
 type Row = Record<string, unknown>
 
-describe('a send addressed to an agent session', () => {
+describe.each([false, true])('a send addressed to an agent session, attached=%s', (attached) => {
   let h: SessionCallerHarness
   let visible: string[]
 
   beforeEach(() => {
     h = createSessionCallerHarness(hostRef, () => ({ present: true, sessionIds: visible }))
     visible = [SESSION_X, SESSION_Y]
+    if (attached) {
+      attachRemoteDispatch(h.db, h.runtime, 'run-home', {
+        paneKey: WORKER_PANE,
+        terminalHandle: WORKER_HANDLE
+      })
+    }
   })
 
   afterEach(() => {
@@ -81,6 +96,28 @@ describe('a send addressed to an agent session', () => {
       ok: true,
       result: { message: { to_handle: `run:${runId}` } }
     })
+  })
+
+  it('keeps canonical, bare and committed clear-successor recipient spellings on the same mailbox', async () => {
+    h.records.set(SESSION_X, {
+      ...sessionRecord(SESSION_X),
+      conversationCommand: {
+        command: 'clear',
+        state: 'completed',
+        replacementSessionId: SESSION_Y,
+        operationId: 'clear-op',
+        callerKey: 'caller',
+        phase: 'committed'
+      }
+    })
+    visible = [SESSION_Y]
+    for (const to of [ADDRESS_X, ADDRESS_Y, SESSION_Y]) {
+      expect(await send(to)).toMatchObject({
+        ok: true,
+        result: { message: { to_handle: ADDRESS_X } }
+      })
+    }
+    expect(h.db.getInbox()).toHaveLength(3)
   })
 
   it.each([
@@ -337,5 +374,145 @@ describe('mail sent to a session address reaches the mailbox that session reads'
       dispatchId: dispatch.id,
       messages: [{ subject: 'to the worker' }]
     })
+  })
+})
+
+describe('attached local send across the actual session-host await', () => {
+  let h: SessionCallerHarness
+  beforeEach(() => {
+    h = createSessionCallerHarness(hostRef)
+    attachRemoteDispatch(h.db, h.runtime, 'run-home', {
+      paneKey: WORKER_PANE,
+      terminalHandle: WORKER_HANDLE
+    })
+  })
+  afterEach(() => {
+    h.close()
+    vi.restoreAllMocks()
+  })
+
+  it.each([false, true])(
+    'revalidates the attested process through graph remount, replaced=%s',
+    async (replaced) => {
+      const token = 'fixture-launch-token'
+      const tokenHash = createHash('sha256').update(token).digest('hex')
+      const runtime = new OrcaRuntimeService(null, undefined, {
+        attestAgentHookCompatibilityAuthority: ({ paneKey, launchTokenHash }) =>
+          paneKey === WORKER_PANE && launchTokenHash === tokenHash
+            ? { paneKey, source: 'hydrated_commitment' }
+            : null
+      })
+      runtime.setOrchestrationDb(h.db)
+      let source: OrchestrationCompatibilityTerminalAuthority = {
+        runtimeId: runtime.getRuntimeId(),
+        terminalHandle: WORKER_HANDLE,
+        ptyId: 'pty-original',
+        worktreeId: 'repo::worker',
+        paneKey: WORKER_PANE,
+        processIncarnation: 'worker_epoch:pty:1',
+        launchTokenHash: tokenHash,
+        hostScope: { kind: 'local', hostId: 'local' }
+      }
+      vi.spyOn(runtime, 'getOrchestrationDispatchAuthority').mockImplementation(() => source)
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockReturnValue(null)
+      const evidence = { terminalHandle: WORKER_HANDLE, paneKey: WORKER_PANE, launchToken: token }
+      const authority = runtime.verifyOrchestrationCompatibilityCaller(evidence)
+      if (!authority) {
+        throw new Error('Fixture authority must be verified before sending')
+      }
+      const entered = Promise.withResolvers<void>()
+      const release = Promise.withResolvers<void>()
+      vi.spyOn(runtime, 'ensureStructuredAgentSessionHost').mockImplementation(async () => {
+        entered.resolve()
+        await release.promise
+      })
+      const method = ORCHESTRATION_SEND_METHODS[0]
+      const pending = method.handler(
+        method.params.parse({ from: WORKER_HANDLE, to: ADDRESS_X, subject: 'Attested local mail' }),
+        {
+          runtime,
+          orchestrationCompatibilityCallerAuthority: authority,
+          orchestrationCompatibilityEvidence: evidence
+        }
+      )
+      const outcome = pending.then(
+        (value) => ({ ok: true, value }),
+        (error) => ({ ok: false, error })
+      )
+      await entered.promise
+      if (replaced) {
+        source = { ...source, processIncarnation: 'successor:pty:2' }
+      }
+      release.resolve()
+      expect(await outcome).toMatchObject(
+        replaced
+          ? { ok: false, error: { code: 'worker_identity_changed' } }
+          : { ok: true, value: { message: { to_handle: ADDRESS_X, from_handle: WORKER_HANDLE } } }
+      )
+      expect(h.db.getInbox()).toHaveLength(replaced ? 0 : 1)
+      runtime.stopOrchestrationFederationRelay()
+    }
+  )
+
+  it.each([
+    'current',
+    'stopping',
+    'stop_unknown',
+    'removed',
+    'new_process',
+    'new_pane',
+    'new_attachment'
+  ] as const)('retains captured sender authority when source becomes %s', async (change) => {
+    const entered = Promise.withResolvers<void>()
+    const release = Promise.withResolvers<void>()
+    vi.mocked(h.runtime.ensureStructuredAgentSessionHost).mockImplementation(async () => {
+      entered.resolve()
+      await release.promise
+    })
+    const pending = h.dispatch(
+      orchestrationRequest('orchestration.send', {
+        from: WORKER_HANDLE,
+        to: ADDRESS_X,
+        subject: 'After install'
+      })
+    )
+    await entered.promise
+    expect(h.db.getInbox()).toEqual([])
+    if (['stopping', 'stop_unknown', 'removed', 'new_attachment'].includes(change)) {
+      h.db.beginRemoteAttachmentStop('ctx_remote_targeting')
+      if (change === 'stop_unknown') {
+        h.db.markRemoteAttachmentStopUnknown('ctx_remote_targeting', 'outcome uncertain')
+      } else if (change !== 'stopping') {
+        h.db.settleRemoteAttachmentStop('ctx_remote_targeting')
+      }
+    }
+    if (change === 'new_process') {
+      vi.mocked(h.runtime.getTerminalProcessIncarnation).mockReturnValue('successor:pty:2')
+    }
+    if (change === 'new_pane') {
+      vi.mocked(h.runtime.getTerminalPaneKey).mockReturnValue(
+        'tab_other:88888888-8888-4888-8888-888888888888'
+      )
+    }
+    if (change === 'new_attachment') {
+      attachRemoteDispatch(h.db, h.runtime, 'run-successor-home', {
+        paneKey: WORKER_PANE,
+        terminalHandle: WORKER_HANDLE,
+        dispatchId: 'ctx_successor'
+      })
+    }
+    release.resolve()
+    const response = await pending
+    const accepted = change === 'current' || change === 'stop_unknown'
+    expect(response).toMatchObject(
+      accepted
+        ? { ok: true, result: { message: { to_handle: ADDRESS_X } } }
+        : {
+            ok: false,
+            error: { code: change === 'stopping' ? 'dispatch_inactive' : 'worker_identity_changed' }
+          }
+    )
+    expect(h.db.getInbox()).toHaveLength(accepted ? 1 : 0)
+    expect(h.db.listPendingFederationRelay('ctx_remote_targeting', 'to_home')).toEqual([])
   })
 })

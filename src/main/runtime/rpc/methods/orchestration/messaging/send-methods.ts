@@ -12,7 +12,7 @@ import {
   isWorkerReportOutcome,
   parseRemoteWorkerPayload
 } from '../schemas'
-import { resolveMessageRun } from '../routing'
+import { rejectRemotelyHomedRun, resolveMessageRun } from '../routing'
 import {
   assertDispatchMailboxDeliverable,
   resolveBareOrchestrationRecipient,
@@ -27,6 +27,10 @@ import {
 import { replayMutationNudge } from './mutation-replay-nudge'
 import { handBackReplayTargets } from '../../../../orchestration/db/messages/helper-mailbox-hand-back'
 import { sendRemoteMessage } from './send-remote'
+import {
+  admitAttachedLocalSend,
+  usesAttachedLocalRecipient
+} from './remote-attachment-send-admission'
 import { mayNameSession } from './session-recipient'
 import { sendPointToPointMessage } from './send-point-to-point'
 import { sendGroupMessage } from './send-group'
@@ -98,7 +102,26 @@ export const ORCHESTRATION_SEND_METHODS = [
       const remoteAttachment = senderPaneKey
         ? db.findActiveRemoteAttachmentForPane(senderPaneKey)
         : undefined
-      if (remoteAttachment && senderPaneKey) {
+      const processIncarnation = remoteAttachment
+        ? (attestedCaller?.processIncarnation ??
+          runtime.getTerminalProcessIncarnation(from) ??
+          undefined)
+        : undefined
+      const localAttachmentSend =
+        remoteAttachment && senderPaneKey && usesAttachedLocalRecipient(params, remoteAttachment)
+          ? admitAttachedLocalSend({
+              runtime,
+              db,
+              from,
+              senderPaneKey,
+              attachment: remoteAttachment,
+              processIncarnation,
+              payload: params.payload,
+              callerAuthority: attestedCaller,
+              evidence: orchestrationCompatibilityEvidence
+            })
+          : undefined
+      if (remoteAttachment && senderPaneKey && !localAttachmentSend) {
         return sendRemoteMessage({
           params,
           runtime,
@@ -106,10 +129,7 @@ export const ORCHESTRATION_SEND_METHODS = [
           from,
           senderPaneKey,
           remoteAttachment,
-          processIncarnation:
-            attestedCaller?.processIncarnation ??
-            runtime.getTerminalProcessIncarnation(from) ??
-            undefined,
+          processIncarnation,
           signal
         })
       }
@@ -121,8 +141,13 @@ export const ORCHESTRATION_SEND_METHODS = [
         sender,
         to: params.to,
         runId: runGroup ? undefined : params.run,
-        payload: runGroup ? undefined : params.payload,
-        type: params.type
+        payload: runGroup
+          ? undefined
+          : localAttachmentSend
+            ? localAttachmentSend.routingPayload
+            : params.payload,
+        type: params.type,
+        ...(localAttachmentSend ? { attachedLocalSender: true } : {})
       })
       if (
         params.type === 'worker_done' &&
@@ -209,6 +234,12 @@ export const ORCHESTRATION_SEND_METHODS = [
             to = runBound.to
             messageRunId = runBound.runId
             sendWarnings.push(runBound.warning)
+          }
+        }
+        if (localAttachmentSend) {
+          localAttachmentSend.revalidate()
+          if (messageRunId) {
+            rejectRemotelyHomedRun(db, messageRunId, true)
           }
         }
         const federatedControl = sendFederatedControlMail({
