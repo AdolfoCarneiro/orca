@@ -148,6 +148,21 @@ describe('app menu paste', () => {
     expect(performNativePaste).toHaveBeenCalledWith({ mode: 'paste' })
   })
 
+  it('native-pastes an image-only clipboard so the control can take the image', async () => {
+    const textarea = appendTextarea()
+    textarea.focus()
+    const performNativePaste = vi.fn()
+
+    const result = await handleAppMenuPasteRequest({
+      readClipboardText: vi.fn(async () => ''),
+      performNativePaste,
+      dispatchOwnedPasteEvent: () => false
+    })
+
+    expect(result).toEqual({ status: 'native-fallback', reason: 'no-clipboard-text' })
+    expect(performNativePaste).toHaveBeenCalledWith({ mode: 'paste' })
+  })
+
   it('does not native-fallback when clipboard read fails after focus moves', async () => {
     const textarea = appendTextarea('unchanged')
     const other = appendTextarea('other')

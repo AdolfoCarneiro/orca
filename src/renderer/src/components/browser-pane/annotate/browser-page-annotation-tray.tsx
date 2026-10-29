@@ -245,7 +245,12 @@ export function BrowserPageAnnotationTray({
                       data-slot="annotation-edit"
                       onKeyDown={(event) => {
                         // Why: bail-out selector in useGrabMode lets this reach any focused child, not just the textarea.
-                        if (event.key === 'Escape') {
+                        // An image preview's portal is a React child too; its Escape only closes the preview.
+                        if (
+                          event.key === 'Escape' &&
+                          event.target instanceof Node &&
+                          event.currentTarget.contains(event.target)
+                        ) {
                           event.preventDefault()
                           event.stopPropagation()
                           handleCancelEdit()

@@ -27,13 +27,22 @@ export function useBrowserAnnotationImages(worktreeId: string): {
 } {
   const mountedRef = useMountedRef()
   const [images, setImages] = useState<NativeChatComposerImageAttachment[]>([])
-  const previewUrlsRef = useRef<string[]>([])
+  const previewUrlsRef = useRef(new Map<string, string>())
 
   const revokePreviews = useCallback((): void => {
     previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-    previewUrlsRef.current = []
+    previewUrlsRef.current.clear()
   }, [])
   useEffect(() => revokePreviews, [revokePreviews])
+
+  const removeImage = useCallback((id: string): void => {
+    const previewUrl = previewUrlsRef.current.get(id)
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      previewUrlsRef.current.delete(id)
+    }
+    setImages((current) => current.filter((image) => image.id !== id))
+  }, [])
 
   const handlePaste = useCallback(
     (event: React.ClipboardEvent): void => {
@@ -45,16 +54,18 @@ export function useBrowserAnnotationImages(worktreeId: string): {
       event.preventDefault()
       const id = createBrowserUuid()
       const previewUrl = URL.createObjectURL(file)
-      previewUrlsRef.current.push(previewUrl)
+      previewUrlsRef.current.set(id, previewUrl)
       setImages((current) => [...current, { id, path: '', previewUrl, pending: true }])
       const settle = (path: string | null): void => {
         if (!mountedRef.current) {
           return
         }
+        if (!path) {
+          removeImage(id)
+          return
+        }
         setImages((current) =>
-          path
-            ? current.map((image) => (image.id === id ? { ...image, path, pending: false } : image))
-            : current.filter((image) => image.id !== id)
+          current.map((image) => (image.id === id ? { ...image, path, pending: false } : image))
         )
       }
       saveAnnotationClipboardImage(worktreeId).then(settle, (error: unknown) => {
@@ -62,12 +73,8 @@ export function useBrowserAnnotationImages(worktreeId: string): {
         toast.error(formatClipboardImagePasteError(error))
       })
     },
-    [mountedRef, worktreeId]
+    [mountedRef, removeImage, worktreeId]
   )
-
-  const removeImage = useCallback((id: string): void => {
-    setImages((current) => current.filter((image) => image.id !== id))
-  }, [])
 
   const resetImages = useCallback(
     (paths: readonly string[] = []): void => {
