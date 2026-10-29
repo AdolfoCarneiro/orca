@@ -73,134 +73,100 @@ export function registerJournalRowWriterTests(): void {
       return { writer, committedRows }
     }
 
-    function textRow(seq: number, itemId = 'text', revision = seq): JournalRow {
+    function textRow(seq: number, itemId: string, revision: number): JournalRow {
       return {
         ...row(seq, 0),
         v: 2,
-        kind: 'item',
         itemId,
         revision,
+        observedAt: 11,
+        ownerFence: 0,
+        executionOwner: 0,
+        providerParentRef: 'parent',
         body: {
           kind: 'message',
           role: 'reasoning',
           state: 'running',
-          blocks: [{ type: 'text', text: 'saved text' }]
+          blocks: [{ type: 'text', text: `${itemId}:${revision}` }]
         }
       }
     }
 
     it.each(['single', 'batch'] as const)(
-      'blanks only the previous text in a %s write',
+      'keeps original full rows through native failures and legitimate %s retry',
       async (kind) => {
-        const { writer } = writerHarness()
-        const write = (build: (seq: number) => JournalRow) =>
-          kind === 'single' ? writer.enqueue(build) : writer.enqueueRows(() => [build])
-        await write((seq) => textRow(seq))
-        const before = readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0)[0]
-        await write((seq) => textRow(seq))
-        if (kind === 'batch') {
-          await writer.enqueueRows(() => [(seq) => textRow(seq), (seq) => textRow(seq)])
-        }
-        const saved = readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0)
-        const blanked = JSON.parse(before.rowJson)
-        blanked.body.blocks[0].text = ''
-        expect(saved[0]).toEqual({ ...before, rowJson: JSON.stringify(blanked) })
-        expect(
-          saved.slice(0, -1).every((entry) => JSON.parse(entry.rowJson).body.blocks[0].text === '')
-        ).toBe(true)
-        expect(JSON.parse(saved.at(-1)!.rowJson).body.blocks[0].text).toBe('saved text')
-      }
-    )
-
-    it.each(['single', 'batch'] as const)(
-      'does constant predecessor work after N/10N unrelated items in a %s write',
-      async (kind) => {
-        const counts: number[] = []
-        for (const population of [100, 1000]) {
-          const { writer } = writerHarness()
-          for (let index = 0; index < population; index++) {
-            await writer.enqueue((seq) => textRow(seq, `reply-${population}-${index}`, 1))
+        const { writer, committedRows } = writerHarness()
+        await writer.enqueue((seq) => textRow(seq, 'a', 1))
+        await writer.enqueue((seq) => textRow(seq, 'b', 1))
+        database.db.exec(`
+          CREATE TABLE receipt_fact (sequence INTEGER);
+          CREATE TABLE receipt_parent (id INTEGER PRIMARY KEY);
+          CREATE TABLE receipt_child (id INTEGER REFERENCES receipt_parent(id) DEFERRABLE INITIALLY DEFERRED);
+          CREATE TRIGGER reject_retirement BEFORE UPDATE ON journal_rows
+            BEGIN SELECT RAISE(ROLLBACK, 'unexpected foreground retirement'); END;
+        `)
+        let fault: 'insert-abort' | 'insert-rollback' | 'receipt' | 'commit' | null = null
+        const committed = vi.fn()
+        const write = vi.fn((db: JournalHostDatabase['db'], target?: JournalRow) => {
+          expect(target?.seq).toBe(kind === 'single' ? 3 : 4)
+          db.prepare('INSERT INTO receipt_fact VALUES (?)').run(target!.seq)
+          if (fault === 'commit') {
+            db.exec('INSERT INTO receipt_child VALUES (99)')
           }
-          const saved = Reflect.get(Reflect.get(writer, 'textPredecessors'), 'saved')
-          const items: Map<unknown, unknown> = saved.items
-          let visits = 0
-          const iterator = items[Symbol.iterator].bind(items)
-          const get = items.get.bind(items)
-          vi.spyOn(items, Symbol.iterator).mockImplementation(function* () {
-            for (const entry of iterator()) {
-              visits++
-              yield entry
-            }
-          })
-          vi.spyOn(items, 'get').mockImplementation((key) => {
-            visits++
-            return get(key)
-          })
-          const build = (seq: number) => ({ ...row(seq, 1), itemId: 'unrelated-status' })
-          await (kind === 'single' ? writer.enqueue(build) : writer.enqueueRows(() => [build]))
-          const revision = (seq: number) => textRow(seq, `reply-${population}-0`, 2)
-          await (kind === 'single'
-            ? writer.enqueue(revision)
-            : writer.enqueueRows(() => [revision]))
-          counts.push(visits)
-          vi.restoreAllMocks()
-          // Start the next independent writer sample with an empty row table.
-          database.db.prepare('DELETE FROM journal_rows WHERE session_id = ?').run(SESSION_ID)
+        })
+        const receipt = { write, committed }
+        const append = () =>
+          kind === 'single'
+            ? writer.enqueue((seq) => textRow(seq, 'a', 2), receipt)
+            : writer.enqueueRows(
+                () => [(seq) => textRow(seq, 'a', 2), (seq) => textRow(seq, 'b', 2)],
+                receipt,
+                (rows) => rows.at(-1)
+              )
+        const original = readTestJournalRows(database.db, SESSION_ID, EPOCH)
+        const folded = [...committedRows]
+        for (const boundary of ['insert-abort', 'insert-rollback', 'receipt', 'commit'] as const) {
+          fault = boundary
+          if (boundary.startsWith('insert')) {
+            database.db.exec(`CREATE TRIGGER reject_insert BEFORE INSERT ON journal_rows
+              WHEN NEW.seq = ${kind === 'single' ? 3 : 4}
+              BEGIN SELECT RAISE(${boundary === 'insert-abort' ? 'ABORT' : 'ROLLBACK'}, 'native insert failure'); END`)
+          } else if (boundary === 'receipt') {
+            database.db.exec(`CREATE TRIGGER reject_receipt AFTER INSERT ON receipt_fact
+              BEGIN SELECT RAISE(ROLLBACK, 'native receipt failure'); END`)
+          }
+          await expect(append()).rejects.toThrow(
+            boundary === 'commit' ? /FOREIGN KEY/ : /native (insert|receipt) failure/
+          )
+          expect(database.db.isTransaction).toBe(false)
+          expect(committed).not.toHaveBeenCalled()
+          expect(committedRows).toEqual(folded)
+          // Read disk through a fresh connection before any retry can hide a failed write.
+          database.close()
+          database = openTestJournalHostDatabase(root)
+          expect(readTestJournalRows(database.db, SESSION_ID, EPOCH)).toEqual(original)
+          expect(database.db.prepare('SELECT * FROM receipt_fact').all()).toEqual([])
+          database.db.exec(
+            'DROP TRIGGER IF EXISTS reject_insert; DROP TRIGGER IF EXISTS reject_receipt'
+          )
         }
-        expect(counts[0]).toBeLessThanOrEqual(2)
-        expect(counts[1]).toBe(counts[0])
+        fault = null
+        await append()
+        expect(committed).toHaveBeenCalledOnce()
+        expect(database.db.prepare('SELECT sequence FROM receipt_fact').all()).toEqual([
+          { sequence: kind === 'single' ? 3 : 4 }
+        ])
+        const saved = readTestJournalRows(database.db, SESSION_ID, EPOCH)
+        expect(saved.slice(0, 2)).toEqual(original)
+        expect(saved.map((entry) => JSON.parse(entry.rowJson))).toEqual(committedRows)
+        expect(committedRows.map((entry) => entry.seq)).toEqual(
+          kind === 'single' ? [1, 2, 3] : [1, 2, 3, 4]
+        )
+        expect(committedRows.slice(2)).toEqual(
+          kind === 'single' ? [textRow(3, 'a', 2)] : [textRow(3, 'a', 2), textRow(4, 'b', 2)]
+        )
       }
     )
-
-    it('does not publish rolled-back predecessors when their sequence is reused', async () => {
-      const { writer } = writerHarness()
-      await writer.enqueue((seq) => textRow(seq))
-      const exec = database.db.exec.bind(database.db)
-      const spy = vi.spyOn(database.db, 'exec').mockImplementationOnce((sql) => exec(sql))
-      spy.mockImplementation((sql) => {
-        if (sql === 'COMMIT') {
-          throw new Error('commit failed')
-        }
-        exec(sql)
-      })
-      await expect(writer.enqueue((seq) => textRow(seq))).rejects.toThrow('commit failed')
-      spy.mockRestore()
-      await writer.enqueue((seq) => textRow(seq, 'other'))
-      await writer.enqueue((seq) => textRow(seq))
-      const saved = readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0).map((entry) =>
-        JSON.parse(entry.rowJson)
-      )
-      expect(saved.map((entry) => entry.body.blocks[0].text)).toEqual([
-        '',
-        'saved text',
-        'saved text'
-      ])
-      expect(saved[1].itemId).toBe('other')
-    })
-
-    it('skips mismatched or refused rewrites and never targets a retired epoch', async () => {
-      const { writer } = writerHarness()
-      await writer.enqueue((seq) => textRow(seq))
-      database.db
-        .prepare(
-          "UPDATE journal_rows SET row_json = json_set(row_json, '$.itemId', 'other') WHERE seq = 1"
-        )
-        .run()
-      await writer.enqueue((seq) => textRow(seq))
-      database.db.exec(
-        "CREATE TRIGGER refuse_blanking BEFORE UPDATE ON journal_rows BEGIN SELECT RAISE(ABORT, 'refused'); END"
-      )
-      await writer.enqueue((seq) => textRow(seq))
-      expect(readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0)).toHaveLength(3)
-      database.db.exec('DROP TRIGGER refuse_blanking')
-      await writer.enqueue((seq) => ({ ...textRow(seq), epoch: 'epoch-2' }))
-      expect(
-        readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0).map(
-          (entry) => JSON.parse(entry.rowJson).body.blocks[0].text
-        )
-      ).toEqual(['saved text', 'saved text', 'saved text'])
-      expect(readJournalRowsAfter(database.db, SESSION_ID, 'epoch-2', 0)).toHaveLength(1)
-    })
 
     it('prepares a receipt once from built rows, preserves its target, and leaves empty or failed plans unwritten', async () => {
       const { writer, committedRows } = writerHarness()

@@ -118,6 +118,7 @@ export function createCodexStructuredItemStreams(
         previous === undefined || performance.now() - previous >= AGENT_SESSION_TEXT_CHECKPOINT_MS
       )
     }
+    // Tool output keeps growth-based checkpoints to avoid rewriting large previews.
     return codexStreamCheckpointDue(checkpointLengths.get(key) ?? 0, textLength)
   }
 
@@ -276,7 +277,7 @@ export function createCodexStructuredItemStreams(
       }
       const delta = method === REASONING_PART_METHOD ? '\n' : paramsRecord.delta
       if (typeof delta === 'string' && delta.length > 0) {
-        // Buffer allocation can evict a time-skipped snapshot even with retained metadata.
+        // Save skipped full text before an incoming append evicts its buffer.
         const evicted = coalescer.evictionFor(key)
         const buffered = evicted === undefined ? null : coalescer.snapshot(evicted)
         if (

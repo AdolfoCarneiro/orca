@@ -209,7 +209,7 @@ it.each(['drain', 'closed', 'tracked-incoming'] as const)(
   }
 )
 
-it.each(['own-key', 'two-live', 'tracked-first', 'empty-existing'] as const)(
+it.each(['own-key', 'two-live', 'tracked-first'] as const)(
   'preserves live full owners after refused metadata creation: %s',
   async (shape) => {
     const h = await pressureRig()
@@ -235,7 +235,7 @@ it.each(['own-key', 'two-live', 'tracked-first', 'empty-existing'] as const)(
       h.send('item/agentMessage/delta', { itemId: 'm5', delta: 'X' })
       await h.tick()
     }
-    if (shape === 'empty-existing') {
+    if (shape === 'own-key') {
       expect(h.send('item/agentMessage/delta', { itemId: 'm0', delta: '' })).toEqual({
         accepted: true
       })

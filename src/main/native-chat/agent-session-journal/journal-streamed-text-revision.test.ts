@@ -155,7 +155,7 @@ it('keeps image and goal transitions FULL, streams text at NORMAL, and restores 
   await journal.close()
 })
 
-it('retains one full text copy and replays its original position and annotations after reopen', async () => {
+it('retains admitted full snapshots and replays the final body with its original position and annotations', async () => {
   const database = openTestJournalHostDatabase(root)
   const options = {
     database,
@@ -191,14 +191,31 @@ it('retains one full text copy and replays its original position and annotations
   const rows = saved.map((entry) => parseJournalRow(entry.rowJson))
   expect(rows.every((row) => row.ok)).toBe(true)
   const originalRow = JSON.parse(original)
-  originalRow.body.blocks[0].text = ''
   expect(JSON.parse(saved[1].rowJson)).toEqual(originalRow)
   const storedBytes = saved.reduce((bytes, row) => bytes + Buffer.byteLength(row.rowJson), 0)
-  expect(storedBytes).toBeLessThan(Buffer.byteLength(JSON.stringify(final)) * 1.3)
+  expect(saved).toHaveLength(102)
+  expect(
+    rows.flatMap((result) =>
+      result.ok && result.row.kind === 'item' && result.row.body.kind === 'message'
+        ? result.row.body.blocks
+        : []
+    )
+  ).toEqual([
+    ...Array.from({ length: 100 }, (_, index) => ({
+      type: 'text',
+      text: 'x'.repeat((index + 1) * 4096)
+    })),
+    ...final.blocks
+  ])
+  expect(storedBytes).toBeGreaterThan(
+    Buffer.byteLength(JSON.stringify(final)) + (4096 * 100 * 101) / 2
+  )
   expect(snapshot[0]).toMatchObject({
     sequence: 2,
     observedAt: 1,
     turnScope: AGENT_JOURNAL_THREAD_SCOPE,
+    agentId: 'child',
+    providerParentRef: 'parent',
     body: final
   })
   await journal.close()

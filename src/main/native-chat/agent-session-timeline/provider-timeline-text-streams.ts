@@ -46,7 +46,7 @@ export type ProviderTimelineStream = {
   named: boolean
   channel: ProviderTimelineTextChannel
   producer: AgentJournalProducerLinkage | undefined
-  /** Monotonic content admission time; blank first attempts consume no window. */
+  /** Last accepted content time on the monotonic clock. */
   acceptedAt?: number
   bytes: number
   /** Once a write finds a settled turn, later text cannot land. */

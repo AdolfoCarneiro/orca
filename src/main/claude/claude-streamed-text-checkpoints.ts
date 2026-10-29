@@ -10,7 +10,7 @@ import {
 import type { ClaudeSubagentLinkageSource } from './claude-subagent-linkage'
 
 export type ClaudeStreamedTextCheckpointDeps = {
-  /** Return whether real content append and publication were admitted, not written/durable. */
+  /** Return whether the content append and publication were admitted. */
   persist: (
     identity: AgentJournalItemIdentity,
     text: string,
@@ -26,7 +26,7 @@ export type ClaudeStreamedTextCheckpointDeps = {
 export type ClaudeStreamedBlockEnd = { completedAt?: number }
 
 export type ClaudeStreamedTextCheckpoints = {
-  /** Coalesce full snapshots with elapsed ordinary-save eligibility. */
+  /** Coalesce ordinary full-text saves. */
   append: (
     identity: AgentJournalItemIdentity,
     text: string,

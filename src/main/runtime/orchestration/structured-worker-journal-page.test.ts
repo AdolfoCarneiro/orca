@@ -9,7 +9,12 @@ import type {
 } from '../../../shared/agent-session-journal-types'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
 import type { AgentSessionHistoryRequest } from '../../../shared/agent-session-wire'
-import { createTrackedJournalOpener } from '../../native-chat/agent-session-journal/journal-host-database-test-support'
+import {
+  createTrackedJournalOpener,
+  openTestJournalHostDatabase,
+  liveTestJournalRows,
+  updateTestJournalRowJson
+} from '../../native-chat/agent-session-journal/journal-host-database-test-support'
 import type { AgentSessionJournal } from '../../native-chat/agent-session-journal/journal-store'
 import type { AgentSessionHistoryScope } from '../../native-chat/agent-session-wire/agent-session-history-page'
 import { readStructuredAgentSessionHistoryResult } from '../../native-chat/agent-session-wire/structured-agent-session-history-result'
@@ -131,94 +136,107 @@ describe("a worker's journal page", () => {
   })
 })
 
-it('projects blanked text history through worker, public, activity and quit consumers after reopen', async () => {
-  const journal = host.journal!
-  const turn = { provider: 'claude', sessionId: 'claude-1', uuid: 'turn' } as const
-  const scope = { kind: 'turn', turnItemId: 'claude:claude-1:turn' } as const
-  await journal.appendItem(
-    turn,
-    { kind: 'turn', turnId: 'turn', state: 'running' },
-    {
-      fence: 1,
-      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+it.each(['append-only', 'already-blanked'] as const)(
+  'projects %s text history through worker, public, activity and quit consumers after reopen',
+  async (storage) => {
+    const journal = host.journal!
+    const turn = { provider: 'claude', sessionId: 'claude-1', uuid: 'turn' } as const
+    const scope = { kind: 'turn', turnItemId: 'claude:claude-1:turn' } as const
+    await journal.appendItem(
+      turn,
+      { kind: 'turn', turnId: 'turn', state: 'running' },
+      {
+        fence: 1,
+        turnScope: AGENT_JOURNAL_THREAD_SCOPE
+      }
+    )
+    const reply = { provider: 'claude', sessionId: 'claude-1', uuid: 'reply' } as const
+    for (const value of ['first', 'first more', 'complete answer']) {
+      await journal.appendItem(reply, said(value), {
+        fence: 1,
+        ownerFence: 1,
+        executionOwner: 1,
+        turnScope: scope
+      })
     }
-  )
-  const reply = { provider: 'claude', sessionId: 'claude-1', uuid: 'reply' } as const
-  for (const value of ['first', 'first more', 'complete answer']) {
-    await journal.appendItem(reply, said(value), {
-      fence: 1,
-      ownerFence: 1,
-      executionOwner: 1,
-      turnScope: scope
-    })
-  }
-  const rows = journal.readSince({ epoch: journal.epoch, sequence: 0 })
-  expect(rows.ok).toBe(true)
-  if (!rows.ok) {
-    throw new Error('missing rows')
-  }
-  expect(
-    rows.rows
-      .filter((row) => row.kind === 'item' && row.itemId === 'claude:claude-1:reply')
-      .map((row) => (row.kind === 'item' ? row.body : null))
-  ).toEqual([said(''), said(''), said('complete answer')])
-  const expected = journal.snapshot().items
-  const activity = journal.lastProviderActivityAt(1)
-  expect(activity).toBe(clock)
-  await journals.closeAll()
-  host.journal = await openJournal()
-  const reopened = host.journal
-  expect(reopened.snapshot().items).toEqual(expected)
-  expect(reopened.lastProviderActivityAt(1)).toBe(activity)
-  expect(reopened.publicRead().snapshot.items).toEqual(expected)
-  const history = readStructuredAgentSessionHistoryResult({
-    journal: reopened,
-    record: null,
-    request: {
-      sessionId: 'session-1',
-      direction: 'after',
-      cursor: { epoch: reopened.epoch, sequence: 0 }
+    const rows = journal.readSince({ epoch: journal.epoch, sequence: 0 })
+    expect(rows.ok).toBe(true)
+    if (!rows.ok) {
+      throw new Error('missing rows')
     }
-  })
-  const state = reduceStructuredAgentSession(EMPTY_STRUCTURED_AGENT_SESSION, {
-    type: 'history-page',
-    page: history.page
-  })
-  expect(state.items).toEqual(expected)
-  const page = await readStructuredJournalPage('session-1')
-  expect(page?.items).toEqual(expected)
-  for (const items of [state.items, page!.items]) {
-    expect(projectStructuredItemsToNativeChat(items).flatMap((message) => message.blocks)).toEqual([
-      { type: 'text', text: 'complete answer' }
-    ])
-    expect(projectStructuredAgentSessionStatusSummary(items, [])).toMatchObject({
-      status: 'working'
+    expect(
+      rows.rows
+        .filter((row) => row.kind === 'item' && row.itemId === 'claude:claude-1:reply')
+        .map((row) => (row.kind === 'item' ? row.body : null))
+    ).toEqual([said('first'), said('first more'), said('complete answer')])
+    const expected = journal.snapshot().items
+    const activity = journal.lastProviderActivityAt(1)
+    expect(activity).toBe(clock)
+    await journals.closeAll()
+    if (storage === 'already-blanked') {
+      const { db } = openTestJournalHostDatabase(root)
+      for (const saved of liveTestJournalRows(db, 'session-1')) {
+        const row = JSON.parse(saved.rowJson)
+        if (row.kind === 'item' && row.itemId === 'claude:claude-1:reply' && row.revision < 3) {
+          row.body.blocks[0].text = ''
+          updateTestJournalRowJson(db, 'session-1', saved.seq, JSON.stringify(row), saved.ts)
+        }
+      }
+    }
+    host.journal = await openJournal()
+    const reopened = host.journal
+    expect(reopened.snapshot().items).toEqual(expected)
+    expect(reopened.lastProviderActivityAt(1)).toBe(activity)
+    expect(reopened.publicRead().snapshot.items).toEqual(expected)
+    const history = readStructuredAgentSessionHistoryResult({
+      journal: reopened,
+      record: null,
+      request: {
+        sessionId: 'session-1',
+        direction: 'after',
+        cursor: { epoch: reopened.epoch, sequence: 0 }
+      }
+    })
+    const state = reduceStructuredAgentSession(EMPTY_STRUCTURED_AGENT_SESSION, {
+      type: 'history-page',
+      page: history.page
+    })
+    expect(state.items).toEqual(expected)
+    const page = await readStructuredJournalPage('session-1')
+    expect(page?.items).toEqual(expected)
+    for (const items of [state.items, page!.items]) {
+      expect(
+        projectStructuredItemsToNativeChat(items).flatMap((message) => message.blocks)
+      ).toEqual([{ type: 'text', text: 'complete answer' }])
+      expect(projectStructuredAgentSessionStatusSummary(items, [])).toMatchObject({
+        status: 'working'
+      })
+    }
+    expect(
+      structuredAgentSessionWorkingAtStop({
+        sessionId: 'session-1',
+        session: { journal: reopened, child: { fence: 1, phase: 'ready' } },
+        getRecord: () => ({
+          providerHandleChain: [
+            {
+              linkId: 'link',
+              handle: claudeProviderHandle('claude-1', null),
+              origin: 'created',
+              mintedAtFence: 1,
+              observedAt: 1000
+            }
+          ]
+        }),
+        childWork: () => [],
+        childWorkOpen: () => false,
+        trigger: 'quit',
+        teardownId: 'test-quit',
+        now: clock
+      })
+    ).toMatchObject({
+      work: { kind: 'turn', id: 'turn' },
+      journalCursor: reopened.cursor(),
+      activity: { state: 'working', prompts: [], tasks: [] }
     })
   }
-  expect(
-    structuredAgentSessionWorkingAtStop({
-      sessionId: 'session-1',
-      session: { journal: reopened, child: { fence: 1, phase: 'ready' } },
-      getRecord: () => ({
-        providerHandleChain: [
-          {
-            linkId: 'link',
-            handle: claudeProviderHandle('claude-1', null),
-            origin: 'created',
-            mintedAtFence: 1,
-            observedAt: 1000
-          }
-        ]
-      }),
-      childWork: () => [],
-      childWorkOpen: () => false,
-      trigger: 'quit',
-      teardownId: 'test-quit',
-      now: clock
-    })
-  ).toMatchObject({
-    work: { kind: 'turn', id: 'turn' },
-    journalCursor: reopened.cursor(),
-    activity: { state: 'working', prompts: [], tasks: [] }
-  })
-})
+)

@@ -35,7 +35,7 @@ export type AgentSessionDeltaCoalescerDeps = {
 export type AgentSessionDeltaCoalescer = {
   /** False means a retained stream could not flush to admit this key. */
   append: (key: string, delta: string) => boolean
-  /** Actual count victim immediately before a nonempty append; does not allocate or mutate. */
+  /** Next nonempty append's count victim; does not allocate or mutate. */
   evictionFor: (key: string) => string | undefined
   flush: (key: string) => boolean
   /** Lifecycle barriers flush every stream first. */
