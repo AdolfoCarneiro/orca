@@ -7,7 +7,7 @@ import {
   ORCA_EDITOR_FILE_SAVED_EVENT,
   type EditorFileSavedDetail
 } from './editor-autosave'
-import { flushPendingEditorBuffer, hasPendingEditorBufferChange } from './editor-pending-flush'
+import { flushEditorViewsForSave, hasPendingEditorBufferChange } from './editor-pending-flush'
 import { createAutoSaveHolds, editorPathHoldKey } from './editor-autosave-holds'
 import {
   editorBufferIdOfView,
@@ -41,6 +41,7 @@ import {
 } from './editor-save-writer-view'
 import { createEditorSaveSlots, type EditorSaveRequest } from './editor-save-slots'
 import { EditorSaveDiscardedError, editorDiscardEpoch } from './editor-discard-epoch'
+import { hasEditorBytesDraft, saveEditorBytesDraft } from './editor-bytes-documents'
 
 export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'setState' | 'subscribe'>
 
@@ -125,7 +126,9 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     if (discarded()) {
       return nothingToWrite
     }
-    flushPendingEditorBuffer(store.getState(), fileId, trigger === 'autosave')
+    if (!(await flushEditorViewsForSave(store.getState, fileId, trigger === 'autosave'))) {
+      return discarded() ? nothingToWrite : 'failed'
+    }
     // Earlier saves or reloads can leave a queued dirty request with nothing to write.
     const isDirty = store.getState().openFiles.find((file) => file.id === fileId)?.isDirty === true
     if (!isDirty && request.requestedDirty && trigger !== 'overwrite') {
@@ -142,6 +145,22 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     operation.assertAuthorityCurrent()
     const fileContext = operation.mutationContext()
     const connectionId = fileContext.connectionId
+    const assertWriterCurrent = (): void => {
+      operation.assertAuthorityCurrent()
+      if (!liveEditorSaveWriter(store.getState(), fileId, recordViewIds, trigger, operation.file)) {
+        throw new Error('This file is no longer open for saving.')
+      }
+    }
+    if (hasEditorBytesDraft(fileId)) {
+      return saveEditorBytesDraft(
+        store.getState,
+        liveFile,
+        fileContext,
+        trigger,
+        discarded,
+        assertWriterCurrent
+      )
+    }
     const precondition = editorSavePrecondition(liveFile, trigger)
     if (precondition.kind === 'blocked') {
       setModelExternalMutation(store.getState(), fileId, 'changed')
@@ -164,12 +183,7 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
         precondition,
         // Remote host checks await; a discard during them must still prevent the write.
         () => {
-          operation.assertAuthorityCurrent()
-          if (
-            !liveEditorSaveWriter(store.getState(), fileId, recordViewIds, trigger, operation.file)
-          ) {
-            throw new Error('This file is no longer open for saving.')
-          }
+          assertWriterCurrent()
           if (discarded()) {
             throw new EditorSaveDiscardedError()
           }
@@ -289,7 +303,7 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
   const settleFileSaves = async (fileId: string, flush = true): Promise<void> => {
     // Flush debounced rich-text serialization before dropping its timer.
     if (flush) {
-      flushPendingEditorBuffer(store.getState(), fileId)
+      await flushEditorViewsForSave(store.getState, fileId)
     }
     const key = recordKeyOf(fileId)
     clearScheduledAutoSave(key)
@@ -316,11 +330,5 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     holds.dispose()
   }
 
-  return {
-    queueSave,
-    settleFileSaves,
-    holdAutoSave: holds.hold,
-    syncAutoSave,
-    dispose
-  }
+  return { queueSave, settleFileSaves, holdAutoSave: holds.hold, syncAutoSave, dispose }
 }

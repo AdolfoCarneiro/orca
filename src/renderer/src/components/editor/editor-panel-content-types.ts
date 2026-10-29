@@ -3,6 +3,7 @@ import type { OpenFile } from '@/store/slices/editor'
 import type { EditorPanelContentLoadOptions } from './useEditorPanelExternalContentEvents'
 import type { GitDiffResult } from '../../../../shared/git-diff-compare-types'
 import type { CsvFilePreview } from './csv/csv-file-content'
+import type { RuntimeFileReadArgs } from '@/runtime/runtime-file-client-types'
 
 /** Transient owner hydration/connection failure; retry instead of reading remote paths locally and latching access errors. */
 export const WORKTREE_OWNER_NOT_READY_ERROR =
@@ -36,6 +37,8 @@ export type FileContent = {
   loadErrorCode?: string
   /** Superseded by an external change; still rendered until the lazy reload lands. */
   isStale?: boolean
+  /** How the loader reached the file, so a binary custom editor can page its bytes from the same host. */
+  byteSource?: RuntimeFileReadArgs
 }
 
 export type DiffContent = GitDiffResult & {

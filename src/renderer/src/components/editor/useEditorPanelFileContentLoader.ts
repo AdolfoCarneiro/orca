@@ -33,6 +33,7 @@ import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-wor
 import { grantRestoredHostFile } from './restored-host-file-grant'
 import { captureRuntimeEnvironmentRequestRevision } from '@/runtime/runtime-environment-revision'
 import { chatScratchFileAddress } from '@/runtime/runtime-chat-scratch-file-address'
+import type { RuntimeFileReadArgs } from '@/runtime/runtime-file-client-types'
 import { stampCleanTabDiskBaseline } from './editor-clean-tab-disk-baseline'
 import {
   applyEditorFileLoadFailure,
@@ -83,7 +84,6 @@ export function useEditorPanelFileContentLoader({
           return false
         }
         try {
-          acquisition?.assertCurrent()
           return true
         } catch {
           return false
@@ -231,31 +231,28 @@ export function useEditorPanelFileContentLoader({
           !restoredOpenFile?.isDirty &&
           (!/\.(csv|tsv)$/i.test(filePath) || useAppStore.getState().editorDrafts[id] === undefined)
         // Keep file authorization and editable drafts isolated between concurrent reads.
+        const readArgs: RuntimeFileReadArgs = {
+          target: readTarget,
+          filePath,
+          relativePath: restoredOpenFile?.relativePath ?? relativePath,
+          worktreeId,
+          connectionId: readConnectionId,
+          expectedExternalSshTargetId: restoredOpenFile?.externalSshTargetId,
+          includeLocalLogMetadata: isLiveTailLogTab,
+          access,
+          terminalArtifactGrantId: readGrantId,
+          expectedEnvironmentPairingRevision: readGrantPairing,
+          pageOversizedBinary: true,
+          ...(options?.wakeWslDistro ? { wakeWslDistro: true } : {})
+        }
         const readPathKey = `${readScope ?? ''}::${filePath}`
         const key = `${readPathKey}::${JSON.stringify(acquisition?.file.operationProvenance)}::${access?.kind ?? ''}${allowPagedPreview ? '' : '::editable'}${options?.wakeWslDistro ? '::wake' : ''}`
         const result = await readEditorPanelFileContent(key, options, () =>
-          readEditorCsvFileContent(
-            {
-              target: readTarget,
-              filePath,
-              relativePath: restoredOpenFile?.relativePath ?? relativePath,
-              worktreeId,
-              connectionId: readConnectionId,
-              expectedExternalSshTargetId: restoredOpenFile?.externalSshTargetId,
-              includeLocalLogMetadata: isLiveTailLogTab,
-              access,
-              terminalArtifactGrantId: readGrantId,
-              expectedEnvironmentPairingRevision: readGrantPairing,
-              pageOversizedBinary: true,
-              ...(options?.wakeWslDistro ? { wakeWslDistro: true } : {})
-            },
-            allowPagedPreview
-          )
+          readEditorCsvFileContent(readArgs, allowPagedPreview)
         )
         if (!requestCurrent()) {
           return
         }
-        acquisition?.assertCurrent()
         if (result.csvPreview && useAppStore.getState().editorDrafts[id] !== undefined) {
           throw new Error(
             translate(
@@ -268,7 +265,10 @@ export function useEditorPanelFileContentLoader({
           useAppStore.getState().setCsvPreviewOnly(id, Boolean(result.csvPreview))
         }
         delete fileLoadRetryAttemptsRef.current[id]
-        setFileContents((prev) => (requestCurrent() ? { ...prev, [id]: result } : prev))
+        // Why: a bytes custom editor pages a binary file on the same route; a grant has no ranged reads.
+        const byteSource = result.isBinary && !readArgs.terminalArtifactGrantId ? readArgs : null
+        const loaded = byteSource ? { ...result, byteSource } : result
+        setFileContents((prev) => (requestCurrent() ? { ...prev, [id]: loaded } : prev))
         stampCleanTabDiskBaseline(id, result)
       } catch (err) {
         if (!requestCurrent()) {
