@@ -2,7 +2,7 @@
  * The WSL move dialog against a fake move transport: no wsl.exe or distro in CI. Main's
  * `wslMove:*` handlers are swapped for a scripted host, so the real dialog runs open preview →
  * blockers → skip → start → progress → refusal → start again → moved → reload. A second test
- * proves that with the internal gate closed none of it shows and main refuses.
+ * proves that a saved host remains visible with the gate closed while moves are refused.
  */
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -429,8 +429,13 @@ test('with the internal gate closed, no move entry shows and main refuses', asyn
     await expect(page.getByText('No saved servers', { exact: true })).toBeVisible({
       timeout: 30_000
     })
-    await expect(page.locator('[data-settings-section="wsl-hosts"]')).toHaveCount(0)
-    await expect(page.getByText('Move projects from this distro…')).toHaveCount(0)
+    const hosts = page.locator('[data-settings-section="wsl-hosts"]')
+    await expect(hosts).toBeVisible()
+    await hosts.getByRole('button', { name: `More actions for ${DISTRO} (WSL)` }).click()
+    await expect(page.getByRole('menuitem', { name: 'Remove…' })).toBeVisible()
+    await expect(
+      page.getByRole('menuitem', { name: 'Move projects from this distro…' })
+    ).toHaveCount(0)
     await expect(page.getByTestId('wsl-move-dialog')).toHaveCount(0)
   } finally {
     await desktop.dispose()

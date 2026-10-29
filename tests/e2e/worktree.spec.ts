@@ -111,6 +111,9 @@ test.describe('Create Workspace', () => {
     const workspaceName = '🚀🧪✨'
 
     try {
+      await orcaPage.evaluate(async () => {
+        await window.__store!.getState().updateSettingsOrThrow({ autoRenameBranchFromWork: false })
+      })
       await openSidebarWorkspaceComposer(orcaPage)
 
       const dialog = orcaPage.getByRole('dialog', { name: /Create (Workspace|Worktree)/i })
