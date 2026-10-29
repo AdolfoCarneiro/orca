@@ -746,6 +746,7 @@ describe('LocalPtyProvider', () => {
         })
       ).rejects.toThrow(wslDistroHoldMessage('Ubuntu', 'stopped'))
       expect(readWslDistroRunningStateMock).toHaveBeenCalledWith('Ubuntu', {
+        startedAfter: expect.any(Number),
         retryUnverifiable: true
       })
       expect(spawnMock).not.toHaveBeenCalled()

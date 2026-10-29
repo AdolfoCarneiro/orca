@@ -59,7 +59,11 @@ describe('a passive restore of a WSL bridge pane (E9)', () => {
       state: 'stopped'
     })
     expect(spawns).toBe(0)
-    expect(readState).toHaveBeenCalledWith('Ubuntu', { retryUnverifiable: true })
+    // The daemon's hold accepts a read from just before it (the startup-target hold's), within a short lease.
+    expect(readState).toHaveBeenCalledWith('Ubuntu', {
+      startedAfter: expect.any(Number),
+      retryUnverifiable: true
+    })
   })
 
   it('starts as before once a settled read proves the distro running', async () => {
