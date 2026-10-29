@@ -2,7 +2,7 @@ import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitOptionsForWorktree } from '../git-runtime-options'
 import { gitExecFileAsync } from '../runner'
 import { invalidateGitReadCaches } from './git-read-cache-invalidation'
-import { literalPathspec } from './git-pathspec'
+import { gitReportedPath, literalPathspec } from './git-pathspec'
 import { encodeGitPathspecs } from '../../../shared/git-pathspec-stdin'
 import type { ConflictResolution } from '../../../shared/source-control-entry-actions'
 import {
@@ -49,10 +49,12 @@ export function resolveConflict(
       gitOptionsForWorktree(worktreePath, options)
     )
     // Exact path only: a directory pathspec would match its conflicts and then stage the whole directory.
+    const reportedPath = gitReportedPath(filePath, worktreePath, options)
     const unmerged = stdout
       .split('\0')
       .find(
-        (record) => record.startsWith('u ') && record.split(' ').slice(10).join(' ') === filePath
+        (record) =>
+          record.startsWith('u ') && record.split(' ').slice(10).join(' ') === reportedPath
       )
     if (!unmerged) {
       throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
