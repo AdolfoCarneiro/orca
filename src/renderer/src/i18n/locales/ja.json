@@ -340,10 +340,8 @@
       "permissionSameAsAll": "すべての Agent と同じ",
       "permissionChipRemove": "{{flag}} を削除して {{agent}} 独自の設定を使用",
       "permissionChipTooltip": "権限によって追加されました。{{agent}} 独自の設定を使用するには削除してください。",
-      "permissionOverridesKept": "{{count}} 個の Agent は引き続き独自の権限設定を使用します:",
       "permissionOverridesKept_one": "{{count}} 個の Agent は引き続き独自の権限設定を使用します:",
       "permissionOverridesKept_other": "{{count}} 個の Agent は引き続き独自の権限設定を使用します:",
-      "permissionOverridesFollow": "{{count}} 個の Agent が {{mode}} に従うようになりました",
       "permissionOverridesFollow_one": "{{count}} 個の Agent が {{mode}} に従うようになりました",
       "permissionOverridesFollow_other": "{{count}} 個の Agent が {{mode}} に従うようになりました",
       "permissionOverrideFollows": "{{agent}} が {{mode}} に従うようになりました",
@@ -1320,7 +1318,6 @@
         "folderWorkspaceCreateFailedMessage": "フォルダーワークスペースを作成できませんでした。上のエラー詳細を確認して、もう一度お試しください。",
         "setupAgentStartupPolicySaveFailed": "セットアップ時の起動設定を保存できませんでした。",
         "5f3d2c8a1b": "MR のベースブランチを特定できませんでした。",
-        "dropPartiallyAttached": "{{count}} 個のアイテムのうち {{failureCount}} 個を接続できませんでした。",
         "dropPartiallyAttached_one": "{{count}} アイテムの {{failureCount}} を接続できませんでした。",
         "dropPartiallyAttached_other": "{{count}} 個のアイテムのうち {{failureCount}} 個を接続できませんでした。"
       },
@@ -1335,7 +1332,6 @@
         "ownerChanged": "このワークスペースを所有するホストを確認できませんでした。再接続してから、もう一度お試しください。",
         "nativeDropUnresolvedPathsDescription": "まずそれらをディスクに保存してから、保存したファイルをドロップします。",
         "nativeDropUnresolvedPaths": "Orca はドロップされたファイルのパスを読み取ることができませんでした。",
-        "nativeDropTempCopyFailed": "ドロップされた {{count}} 個のファイルを Orca でコピーできませんでした。",
         "nativeDropTempCopyFailed_one": "ドロップされた {{count}} 個のファイルを Orca でコピーできませんでした。",
         "nativeDropTempCopyFailed_other": "ドロップされた {{count}} 個のファイルを Orca でコピーできませんでした。",
         "hostMismatch": "このエディターは別のホスト上にあります。元のワークスペースからファイルを開いてください。",
@@ -6307,23 +6303,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git では、マージされていないコミットが含まれる可能性があるため、{{count}} ローカルブランチを保持しました。保持されたブランチはワークスペースフォルダーを保持しません。彼らのコミットはリポジトリに残ります。 Orca はバックグラウンドでワークスペースのディスク領域を解放し続ける可能性があります。",
                 "a3cdd9d9e6_one": "マージされていないコミットが含まれている可能性があるため、Git は {{count}} ローカルブランチを保持しました。保持されたブランチはワークスペースフォルダーを保持しません。彼らのコミットはリポジトリに残ります。 Orca はバックグラウンドでワークスペースのディスク領域を解放し続ける可能性があります。",
                 "a3cdd9d9e6_other": "Git では、マージされていないコミットが含まれる可能性があるため、{{count}} ローカルブランチを保持しました。保持されたブランチはワークスペースフォルダーを保持しません。彼らのコミットはリポジトリに残ります。 Orca はバックグラウンドでワークスペースのディスク領域を解放し続ける可能性があります。",
-                "6310412304": "{{count}} ブランチを確認する",
                 "6310412304_one": "{{count}} ブランチをレビューする",
                 "6310412304_other": "{{count}} ブランチを確認する",
-                "cea24c2b7d": "{{count}} ワークスペースが削除されました",
                 "cea24c2b7d_one": "{{count}} ワークスペースが削除されました",
                 "cea24c2b7d_other": "{{count}} ワークスペースが削除されました",
-                "0e0379f24a": "{{count}} ブランチが保持されました",
                 "0e0379f24a_one": "{{count}} ブランチは保持されました",
                 "0e0379f24a_other": "{{count}} ブランチが保持されました",
                 "4cf75caab7": "{{value0}}、{{value1}}",
                 "e61d78054f": "ローカルブランチの削除: {{value0}}",
                 "1e1a5f6763": "ローカルブランチが削除されました: {{value0}}",
                 "43d9395605": "{{value0}} は削除されましたが、{{value1}} は削除されていません",
-                "d42f1f14e0": "{{count}} ブランチを再試行",
                 "d42f1f14e0_one": "{{count}} ブランチを再試行します",
                 "d42f1f14e0_other": "{{count}} ブランチを再試行"
               }
@@ -6338,7 +6329,6 @@
           "ee39e872d5": "統合されていない可能性があります",
           "676db406fd": "ヘッドが使用不可",
           "285e1e4882": "キャンセル",
-          "a0f9863597": "{{count}} ブランチを強制的に削除",
           "a0f9863597_one": "{{count}} ブランチを強制削除",
           "a0f9863597_other": "{{count}} ブランチを強制的に削除"
         },
@@ -11981,10 +11971,8 @@
           "olderTerminalsUnverifiable": "以前のバージョンの Orca で開始されたターミナルが終了したことを確認できませんでした。再接続してもう一度お試しください。",
           "olderTerminals_one": "以前のバージョンの Orca で開始された {{count}} 個のターミナルがこのホストでまだ実行中で、自動では終了しません。そのバージョンの Orca で閉じるか、ホスト上で終了してから再接続してください。",
           "olderTerminals_other": "以前のバージョンの Orca で開始された {{count}} 個のターミナルがこのホストでまだ実行中で、自動では終了しません。そのバージョンの Orca で閉じるか、ホスト上で終了してから再接続してください。",
-          "olderTerminals": "以前のバージョンの Orca で開始された {{count}} 個のターミナルがこのホストでまだ実行中で、自動では終了しません。そのバージョンの Orca で閉じるか、ホスト上で終了してから再接続してください。",
           "linkedProjects_one": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブと {{count}} 件のオートメーションは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
           "linkedProjects_other": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブと {{count}} 件のオートメーションは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
-          "linkedProjects": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブと {{count}} 件のオートメーションは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
           "linkedProjectsNoAutomations": "このホストの Orca サーバーには {{paths}} が既にあったため、このデスクトップはサーバーのコピーを使用します。このデスクトップのタブは移動されず、ここで作成したワークツリーは外部ワークツリーとして表示されます。",
           "nodeDownloadBlocked": "Orca のサーバーに必要な Node.js を、このコンピュータとこのホストのどちらもダウンロードできませんでした。Node.js のミラーを使うか、両方のマシンのネットワークを確認してください。",
           "nodeDownloadBlockedNoMirror": "Orca のサーバーに必要な Node.js を、このコンピュータとこのホストのどちらもダウンロードできませんでした。両方のマシンのネットワークまたはプロキシを確認してから、もう一度接続してください。",
@@ -12003,8 +11991,7 @@
           "automationsLeftDisabled_one": "このホストの Orca サーバーは {{count}} 件の自動化を引き継ぎましたが、再度オンにできませんでした。自動化でオンにしてください。",
           "automationsLeftDisabled_other": "このホストの Orca サーバーは {{count}} 件の自動化を引き継ぎましたが、再度オンにできませんでした。自動化でオンにしてください。",
           "windowsBuildUnsupported": "このホストは Windows 10 および Windows Server 2016 より古いバージョンの Windows を実行しているため、Orca のサーバーを実行できません。より新しいバージョンの Windows のホスト、または Linux か macOS のホストを使用してください。",
-          "windowsNoExtractor": "この Windows ホストには tar.exe も PowerShell の Expand-Archive もないため、Orca はサーバーを展開できません。ホストに Windows PowerShell 5.1 をインストールしてから、もう一度接続してください。",
-          "automationsLeftDisabled": "このホストの Orca サーバーは {{count}} 件の自動化を引き継ぎましたが、再度オンにできませんでした。自動化でオンにしてください。"
+          "windowsNoExtractor": "この Windows ホストには tar.exe も PowerShell の Expand-Archive もないため、Orca はサーバーを展開できません。ホストに Windows PowerShell 5.1 をインストールしてから、もう一度接続してください。"
         },
         "deltaMove": {
           "action": "新規プロジェクトを移動…",
@@ -14954,7 +14941,6 @@
           "0f806a2ab1": "キャンセル",
           "b6c3b84476": "ファイルツリーを表示",
           "39f8007549": "競合をレビューする",
-          "skippedConflictsExcluded": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
           "skippedConflictsExcluded_one": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
           "skippedConflictsExcluded_other": "未解決の競合 {{count}} 件がこの差分ビューから除外されました。",
           "820ec01f24": "競合したファイルは個別にレビューされます",
@@ -16970,10 +16956,7 @@
           "markManyUnread_one": "{{count}} 件の Agent を未読としてマークする",
           "markManyUnread_other": "{{count}} 件の Agent を未読としてマークする",
           "clearMany_one": "{{count}} 件の Agent をリストから消去",
-          "clearMany_other": "{{count}} 件の Agent をリストから消去",
-          "markManyRead": "{{count}} 件の Agent に既読マークを付ける",
-          "markManyUnread": "{{count}} 件の Agent を未読としてマークする",
-          "clearMany": "{{count}} 件の Agent をリストから消去"
+          "clearMany_other": "{{count}} 件の Agent をリストから消去"
         }
       },
       "confirmation": {
@@ -18616,7 +18599,6 @@
         "editFailed": "このメッセージは編集できません。",
         "editGone": "このメッセージはすでに送信または削除されています。編集したテキストはチャット入力欄にあります。",
         "editGonePrompt": "このメッセージはすでに送信または削除されています。Agent に回答すると、編集したテキストがチャット入力欄に表示されます。",
-        "imageCount": "画像 {{count}} 枚",
         "imageCount_one": "画像 {{count}} 枚",
         "imageCount_other": "画像 {{count}} 枚",
         "collapse": "折りたたむ",
@@ -20233,19 +20215,15 @@
       "resumableBody": "作業を続けるには、ここで再度開いてください。Agent セッションが再開されます。",
       "reopening": "再度開いています…",
       "tryAgain": "再試行",
-      "reopenTerminal": "{{count}} 個のターミナルを再度開く",
       "reopenTerminal_one": "ターミナルを再度開く",
       "reopenTerminal_other": "{{count}} 個のターミナルを再度開く",
-      "reopened": "{{count}} 個のターミナルを再度開きました",
       "reopened_one": "{{count}} 個のターミナルを再度開きました",
       "reopened_other": "{{count}} 個のターミナルを再度開きました",
-      "resumed": "{{count}} 個の Agent セッションを再開しました。",
       "resumed_one": "{{count}} 個の Agent セッションを再開しました。",
       "resumed_other": "{{count}} 個の Agent セッションを再開しました。"
     },
     "severedDaemonBanner": {
       "unknownCount": "実行中のターミナル",
-      "count": "実行中のターミナル {{count}} 個",
       "unverifiable": "Orca はターミナルサービスのプロセスを確認できなかったため、何も停止していません。",
       "alreadyReplaced": "ターミナルサービスはすでに置き換えられていたため、何も停止していません。",
       "restarted": "ターミナルサービスを再起動しました。",

@@ -74,18 +74,11 @@ export function getDiscardAreaConfirmationCopy(
   switch (area) {
     case 'untracked':
       return {
-        title:
-          count === 1
-            ? translate(
-                'sourceControl.discard.deleteUntrackedTitle_one',
-                'Delete {{count}} untracked file?',
-                { count }
-              )
-            : translate(
-                'sourceControl.discard.deleteUntrackedTitle_other',
-                'Delete {{count}} untracked files?',
-                { count }
-              ),
+        title: translate(
+          'sourceControl.discard.deleteUntrackedTitle',
+          'Delete {{count}} untracked files?',
+          { count, defaultValue_one: 'Delete {{count}} untracked file?' }
+        ),
         description:
           count === 1
             ? translate(

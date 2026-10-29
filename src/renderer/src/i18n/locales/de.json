@@ -624,10 +624,8 @@
       "permissionSameAsAll": "Wie alle Agenten",
       "permissionChipRemove": "{{flag}} entfernen und eigene Einstellungen von {{agent}} verwenden",
       "permissionChipTooltip": "Durch „Berechtigungen“ hinzugefügt. Entfernen, um die eigenen Einstellungen von {{agent}} zu verwenden.",
-      "permissionOverridesKept": "{{count}} Agenten verwenden weiterhin ihre eigene Berechtigungseinstellung:",
       "permissionOverridesKept_one": "{{count}} Agent verwendet weiterhin seine eigene Berechtigungseinstellung:",
       "permissionOverridesKept_other": "{{count}} Agenten verwenden weiterhin ihre eigene Berechtigungseinstellung:",
-      "permissionOverridesFollow": "{{count}} Agenten verwenden jetzt {{mode}}",
       "permissionOverridesFollow_one": "{{count}} Agent verwendet jetzt {{mode}}",
       "permissionOverridesFollow_other": "{{count}} Agenten verwenden jetzt {{mode}}",
       "permissionOverrideFollows": "{{agent}} verwendet jetzt {{mode}}",
@@ -1618,7 +1616,6 @@
         "folderWorkspaceCreateFailedMessage": "Der Ordner-Arbeitsbereich konnte nicht erstellt werden. Die Fehlerdetails oben prüfen und erneut versuchen.",
         "setupAgentStartupPolicySaveFailed": "Das Startverhalten bei der Einrichtung konnte nicht gespeichert werden.",
         "5f3d2c8a1b": "Die MR-Basis konnte nicht ermittelt werden.",
-        "dropPartiallyAttached": "{{failureCount}} von {{count}} Elementen konnten nicht angehängt werden.",
         "dropPartiallyAttached_one": "{{failureCount}} von {{count}} Element konnte nicht angehängt werden.",
         "dropPartiallyAttached_other": "{{failureCount}} von {{count}} Elementen konnten nicht angehängt werden."
       },
@@ -1635,7 +1632,6 @@
         "workspaceOpenFailed": "{{fileName}} konnte nicht geöffnet werden. Die Datei aus ihrem ursprünglichen Arbeitsbereich öffnen und erneut versuchen.",
         "nativeDropUnresolvedPathsDescription": "Die Dateien zuerst auf dem Datenträger speichern und dann die gespeicherten Dateien ablegen.",
         "nativeDropUnresolvedPaths": "Orca konnte keinen Pfad für die abgelegten Dateien lesen.",
-        "nativeDropTempCopyFailed": "Orca konnte {{count}} abgelegte Dateien nicht kopieren.",
         "nativeDropTempCopyFailed_one": "Orca konnte {{count}} abgelegte Datei nicht kopieren.",
         "nativeDropTempCopyFailed_other": "Orca konnte {{count}} abgelegte Dateien nicht kopieren."
       },
@@ -6740,23 +6736,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git hat {{count}} lokale Branches beibehalten, da sie möglicherweise nicht gemergte Commits enthalten. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
                 "a3cdd9d9e6_one": "Git hat {{count}} lokalen Branch beibehalten, da er möglicherweise nicht gemergte Commits enthält. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
                 "a3cdd9d9e6_other": "Git hat {{count}} lokale Branches beibehalten, da sie möglicherweise nicht gemergte Commits enthalten. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
-                "6310412304": "{{count}} Branches prüfen",
                 "6310412304_one": "{{count}} Branch prüfen",
                 "6310412304_other": "{{count}} Branches prüfen",
-                "cea24c2b7d": "{{count}} Arbeitsbereiche entfernt",
                 "cea24c2b7d_one": "{{count}} Arbeitsbereich entfernt",
                 "cea24c2b7d_other": "{{count}} Arbeitsbereiche entfernt",
-                "0e0379f24a": "{{count}} Branches beibehalten",
                 "0e0379f24a_one": "{{count}} Branch beibehalten",
                 "0e0379f24a_other": "{{count}} Branches beibehalten",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "Lokale Branches werden gelöscht: {{value0}}",
                 "1e1a5f6763": "Lokale Branches gelöscht: {{value0}}",
                 "43d9395605": "{{value0}} gelöscht, {{value1}} nicht gelöscht",
-                "d42f1f14e0": "Für {{count}} Branches erneut versuchen",
                 "d42f1f14e0_one": "Für {{count}} Branch erneut versuchen",
                 "d42f1f14e0_other": "Für {{count}} Branches erneut versuchen"
               }
@@ -6771,7 +6762,6 @@
           "ee39e872d5": "Möglicherweise nicht gemergt",
           "676db406fd": "HEAD nicht verfügbar",
           "285e1e4882": "Abbrechen",
-          "a0f9863597": "Löschen von {{count}} Branches erzwingen",
           "a0f9863597_one": "Löschen von {{count}} Branch erzwingen",
           "a0f9863597_other": "Löschen von {{count}} Branches erzwingen"
         },
@@ -12397,10 +12387,8 @@
           "olderTerminalsUnverifiable": "Orca konnte nicht bestätigen, dass die von einer älteren Orca-Version gestarteten Terminals beendet wurden. Zum erneuten Versuch wieder verbinden.",
           "olderTerminals_one": "Auf diesem Host läuft noch {{count}} Terminal, das von einer älteren Orca-Version gestartet wurde und nicht von selbst endet. Dieses in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
           "olderTerminals_other": "Auf diesem Host laufen noch {{count}} Terminals, die von einer älteren Orca-Version gestartet wurden und nicht von selbst enden. Diese in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
-          "olderTerminals": "Auf diesem Host laufen noch {{count}} Terminals, die von einer älteren Orca-Version gestartet wurden und nicht von selbst enden. Diese in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
           "linkedProjects_one": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierung dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "linkedProjects_other": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierungen dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
-          "linkedProjects": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierungen dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "linkedProjectsNoAutomations": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "automationsLeftDisabled_one": "Der Orca-Server dieses Hosts hat {{count}} Automatisierung übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren.",
           "automationsLeftDisabled_other": "Der Orca-Server dieses Hosts hat {{count}} Automatisierungen übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren.",
@@ -12419,8 +12407,7 @@
           "refusedLeaveBehind": "Einige gespeicherte Elemente für diesen Host können nicht auf seinen Orca-Server verschoben werden: {{items}}. „Trotzdem verschieben“ verbindet den Host und behält diese Elemente auf diesem Computer.",
           "refusedLeaveBehindUnnamed": "Einige gespeicherte Elemente für diesen Host können nicht auf seinen Orca-Server verschoben werden. „Trotzdem verschieben“ verbindet den Host und behält diese Elemente auf diesem Computer.",
           "windowsBuildUnsupported": "Auf diesem Host läuft eine ältere Windows-Version als Windows 10 bzw. Windows Server 2016. Daher kann er den Orca-Server nicht ausführen. Einen Host mit einer neueren Windows-Version oder einen Linux- oder macOS-Host verwenden.",
-          "windowsNoExtractor": "Dieser Windows-Host verfügt weder über tar.exe noch über Expand-Archive von PowerShell. Daher kann Orca seinen Server dort nicht entpacken. Windows PowerShell 5.1 auf dem Host installieren und anschließend erneut verbinden.",
-          "automationsLeftDisabled": "Der Orca-Server dieses Hosts hat {{count}} Automatisierungen übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren."
+          "windowsNoExtractor": "Dieser Windows-Host verfügt weder über tar.exe noch über Expand-Archive von PowerShell. Daher kann Orca seinen Server dort nicht entpacken. Windows PowerShell 5.1 auf dem Host installieren und anschließend erneut verbinden."
         },
         "ZcodeCliSetupSection": {
           "title": "GLM mit ZCode verwenden",
@@ -15446,7 +15433,6 @@
           "0f806a2ab1": "Abbrechen",
           "b6c3b84476": "Dateibaum anzeigen",
           "39f8007549": "Konflikte prüfen",
-          "skippedConflictsExcluded": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
           "skippedConflictsExcluded_one": "{{count}} ungelöster Konflikt wurde aus dieser Diff-Ansicht ausgeschlossen.",
           "skippedConflictsExcluded_other": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
           "820ec01f24": "Dateien mit Konflikten werden separat geprüft",
@@ -17490,10 +17476,7 @@
           "markManyUnread_one": "{{count}} Agenten als ungelesen markieren",
           "markManyUnread_other": "{{count}} Agenten als ungelesen markieren",
           "clearMany_one": "{{count}} Agenten aus der Liste entfernen",
-          "clearMany_other": "{{count}} Agenten aus der Liste entfernen",
-          "markManyRead": "{{count}} Agenten als gelesen markieren",
-          "markManyUnread": "{{count}} Agenten als ungelesen markieren",
-          "clearMany": "{{count}} Agenten aus der Liste entfernen"
+          "clearMany_other": "{{count}} Agenten aus der Liste entfernen"
         }
       },
       "confirmation": {
@@ -19166,7 +19149,6 @@
         "editFailed": "Diese Nachricht kann nicht bearbeitet werden.",
         "editGone": "Diese Nachricht wurde bereits gesendet oder entfernt. Die bearbeitete Fassung steht im Chat-Eingabefeld.",
         "editGonePrompt": "Diese Nachricht wurde bereits gesendet oder entfernt. Die bearbeitete Fassung steht nach der Antwort an den Agenten im Chat-Eingabefeld.",
-        "imageCount": "{{count}} Bilder",
         "imageCount_one": "{{count}} Bild",
         "imageCount_other": "{{count}} Bilder",
         "collapse": "Einklappen",
@@ -20325,13 +20307,10 @@
       "resumableBody": "Hier erneut öffnen, um weiterzuarbeiten. Die Agentensitzung wird fortgesetzt.",
       "reopening": "Wird erneut geöffnet…",
       "tryAgain": "Erneut versuchen",
-      "reopenTerminal": "{{count}} Terminals erneut öffnen",
       "reopenTerminal_one": "Terminal erneut öffnen",
       "reopenTerminal_other": "{{count}} Terminals erneut öffnen",
-      "reopened": "{{count}} Terminals erneut geöffnet",
       "reopened_one": "{{count}} Terminal erneut geöffnet",
       "reopened_other": "{{count}} Terminals erneut geöffnet",
-      "resumed": "{{count}} Agentensitzungen fortgesetzt.",
       "resumed_one": "{{count}} Agentensitzung fortgesetzt.",
       "resumed_other": "{{count}} Agentensitzungen fortgesetzt."
     },
@@ -20342,7 +20321,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "seine laufenden Terminals",
-      "count": "{{count}} laufende Terminals",
       "unverifiable": "Orca konnte den Prozess des Terminaldienstes nicht verifizieren. Daher wurde nichts gestoppt.",
       "alreadyReplaced": "Der Terminaldienst wurde bereits ersetzt. Es wurde nichts gestoppt.",
       "restarted": "Terminaldienst neu gestartet.",

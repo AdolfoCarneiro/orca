@@ -616,10 +616,8 @@
       "permissionSameAsAll": "與所有代理程式相同",
       "permissionChipRemove": "移除 {{flag}} 並使用 {{agent}} 自身的設定",
       "permissionChipTooltip": "由「權限」設定加入。移除後會使用 {{agent}} 自身的設定。",
-      "permissionOverridesKept": "{{count}} 個代理程式仍使用自身的權限設定：",
       "permissionOverridesKept_one": "{{count}} 個代理程式仍使用自身的權限設定：",
       "permissionOverridesKept_other": "{{count}} 個代理程式仍使用自身的權限設定：",
-      "permissionOverridesFollow": "{{count}} 個代理程式現已改用 {{mode}}",
       "permissionOverridesFollow_one": "{{count}} 個代理程式現已改用 {{mode}}",
       "permissionOverridesFollow_other": "{{count}} 個代理程式現已改用 {{mode}}",
       "permissionOverrideFollows": "{{agent}} 現已改用 {{mode}}",
@@ -1596,7 +1594,6 @@
         "folderWorkspaceCreateFailedMessage": "無法建立資料夾工作區。請檢視上方錯誤詳情，然後重試。",
         "setupAgentStartupPolicySaveFailed": "儲存設定啟動行為失敗",
         "5f3d2c8a1b": "解析 MR 基礎分支失敗",
-        "dropPartiallyAttached": "無法附加 {{count}} 項中的 {{failureCount}} 項。",
         "dropPartiallyAttached_one": "{{count}} 項中有 {{failureCount}} 項無法附加。",
         "dropPartiallyAttached_other": "無法附加 {{count}} 項中的 {{failureCount}} 項。"
       },
@@ -1613,7 +1610,6 @@
         "workspaceOpenFailed": "無法開啟 {{fileName}}。請從其來源工作區開啟後再試一次。",
         "nativeDropUnresolvedPathsDescription": "首先將它們儲存到磁碟，然後拖放已儲存的檔案。",
         "nativeDropUnresolvedPaths": "Orca 無法讀取拖放檔案的路徑。",
-        "nativeDropTempCopyFailed": "Orca 無法複製 {{count}} 個拖放的檔案。",
         "nativeDropTempCopyFailed_one": "Orca 無法複製 {{count}} 個拖放的檔案。",
         "nativeDropTempCopyFailed_other": "Orca 無法複製 {{count}} 個拖放的檔案。"
       },
@@ -6604,23 +6600,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git 已保留 {{count}} 個本機分支，因為其中可能含有未合併的提交。保留分支不會一併保留工作區資料夾；提交仍會留在存放庫中。Orca 可能會繼續在背景釋放工作區的磁碟空間。",
                 "a3cdd9d9e6_one": "Git 已保留 {{count}} 個本機分支，因為其中可能含有未合併的提交。保留分支不會一併保留工作區資料夾；提交仍會留在存放庫中。Orca 可能會繼續在背景釋放工作區的磁碟空間。",
                 "a3cdd9d9e6_other": "Git 已保留 {{count}} 個本機分支，因為其中可能含有未合併的提交。保留分支不會一併保留工作區資料夾；提交仍會留在存放庫中。Orca 可能會繼續在背景釋放工作區的磁碟空間。",
-                "6310412304": "審查 {{count}} 個分支",
                 "6310412304_one": "審查 {{count}} 個分支",
                 "6310412304_other": "審查 {{count}} 個分支",
-                "cea24c2b7d": "已移除 {{count}} 個工作區",
                 "cea24c2b7d_one": "已移除 {{count}} 個工作區",
                 "cea24c2b7d_other": "已移除 {{count}} 個工作區",
-                "0e0379f24a": "已保留 {{count}} 個分支",
                 "0e0379f24a_one": "已保留 {{count}} 個分支",
                 "0e0379f24a_other": "已保留 {{count}} 個分支",
                 "4cf75caab7": "{{value0}}，{{value1}}",
                 "e61d78054f": "刪除本機分支：{{value0}}",
                 "1e1a5f6763": "已刪除本機分支：{{value0}}",
                 "43d9395605": "{{value0}} 已刪除，{{value1}} 未刪除",
-                "d42f1f14e0": "重試刪除 {{count}} 個分支",
                 "d42f1f14e0_one": "重試刪除 {{count}} 個分支",
                 "d42f1f14e0_other": "重試刪除 {{count}} 個分支"
               }
@@ -6635,7 +6626,6 @@
           "ee39e872d5": "可能尚未合併",
           "676db406fd": "無法取得分支頂端提交",
           "285e1e4882": "取消",
-          "a0f9863597": "強制刪除 {{count}} 個分支",
           "a0f9863597_one": "強制刪除 {{count}} 個分支",
           "a0f9863597_other": "強制刪除 {{count}} 個分支"
         },
@@ -12258,10 +12248,8 @@
           "olderTerminalsUnverifiable": "Orca 無法確認由舊版本 Orca 啟動的終端機是否已結束執行。請重新連線後重試。",
           "olderTerminals_one": "由舊版本 Orca 啟動的 {{count}} 個終端機仍在此主機上執行，且不會自行停止。請在該版本的 Orca 中關閉它，或在主機上結束它，然後重新連線。",
           "olderTerminals_other": "由舊版本 Orca 啟動的 {{count}} 個終端機仍在此主機上執行，且不會自行停止。請在該版本的 Orca 中關閉它們，或在主機上結束它們，然後重新連線。",
-          "olderTerminals": "由舊版本 Orca 啟動的 {{count}} 個終端機仍在此主機上執行，且不會自行停止。請在該版本的 Orca 中關閉它們，或在主機上結束它們，然後重新連線。",
           "linkedProjects_one": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁和 {{count}} 個自動化未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
           "linkedProjects_other": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁和 {{count}} 個自動化未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
-          "linkedProjects": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁和 {{count}} 個自動化未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
           "linkedProjectsNoAutomations": "此主機的 Orca 伺服器已有 {{paths}}，因此此桌面現在使用伺服器的副本。此桌面在那裡的分頁未被遷移，它在那裡建立的工作樹會顯示為外部工作樹。",
           "automationsLeftDisabled_one": "此主機的 Orca 伺服器已接管 {{count}} 項自動化，但無法重新啟用。請在「自動化」中啟用。",
           "automationsLeftDisabled_other": "此主機的 Orca 伺服器已接管 {{count}} 項自動化，但無法重新啟用。請在「自動化」中啟用。",
@@ -12280,8 +12268,7 @@
           "refusedLeaveBehind": "此主機的部分已儲存內容無法遷移至其 Orca 伺服器：{{items}}。選擇「仍要遷移」會連線至主機，並將這些內容保留在這臺電腦上。",
           "refusedLeaveBehindUnnamed": "此主機的部分已儲存內容無法遷移至其 Orca 伺服器。選擇「仍要遷移」會連線至主機，並將這些內容保留在這臺電腦上。",
           "windowsBuildUnsupported": "此主機的 Windows 版本早於 Windows 10 與 Windows Server 2016，因此無法執行 Orca 伺服器。請使用 Windows 版本較新的主機，或改用 Linux 或 macOS 主機。",
-          "windowsNoExtractor": "此 Windows 主機既沒有 tar.exe，也沒有 PowerShell 的 Expand-Archive，因此 Orca 無法在該處解壓縮伺服器。請在主機上安裝 Windows PowerShell 5.1，再重新連線。",
-          "automationsLeftDisabled": "此主機的 Orca 伺服器已接管 {{count}} 項自動化，但無法重新啟用。請在「自動化」中啟用。"
+          "windowsNoExtractor": "此 Windows 主機既沒有 tar.exe，也沒有 PowerShell 的 Expand-Archive，因此 Orca 無法在該處解壓縮伺服器。請在主機上安裝 Windows PowerShell 5.1，再重新連線。"
         },
         "ZcodeCliSetupSection": {
           "title": "透過 ZCode 使用 GLM",
@@ -15272,7 +15259,6 @@
           "0f806a2ab1": "取消",
           "b6c3b84476": "顯示檔案樹",
           "39f8007549": "審查衝突",
-          "skippedConflictsExcluded": "{{count}} 個未解決的衝突已被排除在此差異檢視之外。",
           "skippedConflictsExcluded_one": "{{count}} 個未解決的衝突已被排除在此差異檢視之外。",
           "skippedConflictsExcluded_other": "{{count}} 個未解決的衝突已被排除在此差異檢視之外。",
           "820ec01f24": "衝突檔案單獨審查",
@@ -17288,10 +17274,7 @@
           "markManyUnread_one": "將 {{count}} 個代理程式標記為未讀",
           "markManyUnread_other": "將 {{count}} 個代理程式標記為未讀",
           "clearMany_one": "從清單中清除 {{count}} 個代理程式",
-          "clearMany_other": "從清單中清除 {{count}} 個代理程式",
-          "markManyRead": "將 {{count}} 個代理程式標記為已讀",
-          "markManyUnread": "將 {{count}} 個代理程式標記為未讀",
-          "clearMany": "從清單中清除 {{count}} 個代理程式"
+          "clearMany_other": "從清單中清除 {{count}} 個代理程式"
         }
       },
       "confirmation": {
@@ -18923,7 +18906,6 @@
         "editFailed": "此訊息無法編輯。",
         "editGone": "此訊息已傳送或移除。你編輯的內容已放入聊天輸入框。",
         "editGonePrompt": "此訊息已傳送或移除。回答代理程式後，你編輯的內容會出現在聊天輸入框中。",
-        "imageCount": "{{count}} 張圖片",
         "imageCount_one": "{{count}} 張圖片",
         "imageCount_other": "{{count}} 張圖片",
         "collapse": "收合",
@@ -20064,13 +20046,10 @@
       "resumableBody": "在此重新開啟以繼續工作。您的代理程式工作階段將會恢復。",
       "reopening": "正在重新開啟…",
       "tryAgain": "重試",
-      "reopenTerminal": "重新開啟 {{count}} 個終端機",
       "reopenTerminal_one": "重新開啟終端機",
       "reopenTerminal_other": "重新開啟 {{count}} 個終端機",
-      "reopened": "已重新開啟 {{count}} 個終端機",
       "reopened_one": "已重新開啟 {{count}} 個終端機",
       "reopened_other": "已重新開啟 {{count}} 個終端機",
-      "resumed": "已恢復 {{count}} 個代理程式工作階段。",
       "resumed_one": "已恢復 {{count}} 個代理程式工作階段。",
       "resumed_other": "已恢復 {{count}} 個代理程式工作階段。"
     },
@@ -20081,7 +20060,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "其正在執行的終端機",
-      "count": "{{count}} 個正在執行的終端機",
       "unverifiable": "Orca 無法驗證終端機服務行程，因此未停止任何行程。",
       "alreadyReplaced": "終端機服務已被替換；未停止任何行程。",
       "restarted": "終端機服務已重新啟動。",

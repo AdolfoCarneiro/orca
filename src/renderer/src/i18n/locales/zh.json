@@ -337,10 +337,8 @@
       "permissionSameAsAll": "与所有智能体相同",
       "permissionChipRemove": "移除 {{flag}} 并使用 {{agent}} 自己的设置",
       "permissionChipTooltip": "由权限设置添加。移除后使用 {{agent}} 自己的设置。",
-      "permissionOverridesKept": "{{count}} 个智能体仍在使用自己的权限设置：",
       "permissionOverridesKept_one": "{{count}} 个智能体仍在使用自己的权限设置：",
       "permissionOverridesKept_other": "{{count}} 个智能体仍在使用自己的权限设置：",
-      "permissionOverridesFollow": "{{count}} 个智能体现已遵循 {{mode}}",
       "permissionOverridesFollow_one": "{{count}} 个智能体现已遵循 {{mode}}",
       "permissionOverridesFollow_other": "{{count}} 个智能体现已遵循 {{mode}}",
       "permissionOverrideFollows": "{{agent}} 现已遵循 {{mode}}",
@@ -1320,7 +1318,6 @@
         "folderWorkspaceCreateFailedMessage": "无法创建文件夹工作区。请查看上方错误详情，然后重试。",
         "setupAgentStartupPolicySaveFailed": "保存设置启动行为失败",
         "5f3d2c8a1b": "解析 MR 基础分支失败",
-        "dropPartiallyAttached": "无法附加 {{count}} 项中的 {{failureCount}} 项。",
         "dropPartiallyAttached_one": "无法附加 {{count}} 项目的 {{failureCount}}。",
         "dropPartiallyAttached_other": "无法附加 {{count}} 项中的 {{failureCount}} 项。"
       },
@@ -1337,7 +1334,6 @@
         "workspaceOpenFailed": "无法打开 {{fileName}}。请从其源工作区打开后重试。",
         "nativeDropUnresolvedPathsDescription": "首先将它们保存到磁盘，然后删除保存的文件。",
         "nativeDropUnresolvedPaths": "Orca 无法读取已删除文件的路径。",
-        "nativeDropTempCopyFailed": "Orca 无法复制 {{count}} 个拖放的文件。",
         "nativeDropTempCopyFailed_one": "Orca 无法复制 {{count}} 个拖放的文件。",
         "nativeDropTempCopyFailed_other": "Orca 无法复制 {{count}} 个拖放的文件。"
       },
@@ -6307,23 +6303,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git 保留 {{count}} 本地分支，因为它们可能包含未合并的提交。保留的分支不保留工作区文件夹；他们的提交保留在仓库中。 Orca 可能会继续在后台释放工作区磁盘空间。",
                 "a3cdd9d9e6_one": "Git 保留 {{count}} 本地分支，因为它可能包含未合并的提交。保留的分支不保留工作区文件夹；他们的提交保留在仓库中。 Orca 可能会继续在后台释放工作区磁盘空间。",
                 "a3cdd9d9e6_other": "Git 保留 {{count}} 本地分支，因为它们可能包含未合并的提交。保留的分支不保留工作区文件夹；他们的提交保留在仓库中。 Orca 可能会继续在后台释放工作区磁盘空间。",
-                "6310412304": "审查 {{count}} 分支",
                 "6310412304_one": "审查 {{count}} 分行",
                 "6310412304_other": "审查 {{count}} 分支",
-                "cea24c2b7d": "{{count}} 工作区已删除",
                 "cea24c2b7d_one": "{{count}} 工作区已删除",
                 "cea24c2b7d_other": "{{count}} 工作区已删除",
-                "0e0379f24a": "保留 {{count}} 分支",
                 "0e0379f24a_one": "保留 {{count}} 分支",
                 "0e0379f24a_other": "保留 {{count}} 分支",
                 "4cf75caab7": "{{value0}}，{{value1}}",
                 "e61d78054f": "删除本地分支：{{value0}}",
                 "1e1a5f6763": "已删除本地分支：{{value0}}",
                 "43d9395605": "{{value0}} 已删除，{{value1}} 未删除",
-                "d42f1f14e0": "重试 {{count}} 分支",
                 "d42f1f14e0_one": "重试 {{count}} 分支",
                 "d42f1f14e0_other": "重试 {{count}} 分支"
               }
@@ -6338,7 +6329,6 @@
           "ee39e872d5": "可能会取消合并",
           "676db406fd": "头不可用",
           "285e1e4882": "取消",
-          "a0f9863597": "强制删除 {{count}} 分支",
           "a0f9863597_one": "强制删除 {{count}} 分支",
           "a0f9863597_other": "强制删除 {{count}} 分支"
         },
@@ -11995,10 +11985,8 @@
           "olderTerminalsUnverifiable": "Orca 无法确认由旧版本 Orca 启动的终端是否已退出。请重新连接后重试。",
           "olderTerminals_one": "由旧版本 Orca 启动的 {{count}} 个终端仍在此主机上运行，且不会自行停止。请在该版本的 Orca 中关闭它们，或在主机上结束它们，然后重新连接。",
           "olderTerminals_other": "由旧版本 Orca 启动的 {{count}} 个终端仍在此主机上运行，且不会自行停止。请在该版本的 Orca 中关闭它们，或在主机上结束它们，然后重新连接。",
-          "olderTerminals": "由旧版本 Orca 启动的 {{count}} 个终端仍在此主机上运行，且不会自行停止。请在该版本的 Orca 中关闭它们，或在主机上结束它们，然后重新连接。",
           "linkedProjects_one": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页和 {{count}} 个自动化未被迁移，它在那里创建的工作树会显示为外部工作树。",
           "linkedProjects_other": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页和 {{count}} 个自动化未被迁移，它在那里创建的工作树会显示为外部工作树。",
-          "linkedProjects": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页和 {{count}} 个自动化未被迁移，它在那里创建的工作树会显示为外部工作树。",
           "linkedProjectsNoAutomations": "此主机的 Orca 服务器已有 {{paths}}，因此此桌面现在使用服务器的副本。此桌面在那里的标签页未被迁移，它在那里创建的工作树会显示为外部工作树。",
           "automationsLeftDisabled_one": "此主机上的 Orca 服务器接管了 {{count}} 个自动化任务，但无法重新启用。请在“自动化”中开启。",
           "automationsLeftDisabled_other": "此主机上的 Orca 服务器接管了 {{count}} 个自动化任务，但无法重新启用。请在“自动化”中开启。",
@@ -12016,7 +12004,6 @@
           "refusedLeaveBehindUnnamed": "此主机的部分已保存项目无法移到其 Orca 服务器。“仍要迁移”会连接此主机，并将这些项目保留在这台电脑上。",
           "windowsBuildUnsupported": "此主机运行的 Windows 版本低于 Windows 10 和 Windows Server 2016，无法运行 Orca 的服务器。请使用 Windows 版本较新的主机，或 Linux、macOS 主机。",
           "windowsNoExtractor": "此 Windows 主机上既没有 tar.exe 也没有 PowerShell 的 Expand-Archive，Orca 无法在其中解包服务器。请先在主机上安装 Windows PowerShell 5.1，然后重新连接。",
-          "automationsLeftDisabled": "此主机上的 Orca 服务器接管了 {{count}} 个自动化任务，但无法重新启用。请在“自动化”中开启。",
           "runtimeNoexec": "此主机不允许执行 ~/.orca-remote 中的程序，因此 Orca 无法在那里启动服务器。这通常是因为主目录以 noexec 选项挂载。请联系主机管理员，允许在该目录中执行程序，然后重新连接。",
           "setupContactLost": "Orca 在设置服务器时失去了与此主机的联系。主机上没有任何进程被停止。请重新连接以继续。"
         },
@@ -14954,7 +14941,6 @@
           "0f806a2ab1": "取消",
           "b6c3b84476": "显示文件树",
           "39f8007549": "评审冲突",
-          "skippedConflictsExcluded": "{{count}} 个未解决的冲突已被排除在此差异视图之外。",
           "skippedConflictsExcluded_one": "{{count}} 个未解决的冲突已被排除在此差异视图之外。",
           "skippedConflictsExcluded_other": "{{count}} 个未解决的冲突已被排除在此差异视图之外。",
           "820ec01f24": "冲突文件单独评审",
@@ -16970,10 +16956,7 @@
           "markManyUnread_one": "将 {{count}} 个智能体标记为未读",
           "markManyUnread_other": "将 {{count}} 个智能体标记为未读",
           "clearMany_one": "从列表中清除 {{count}} 个智能体",
-          "clearMany_other": "从列表中清除 {{count}} 个智能体",
-          "markManyRead": "将 {{count}} 个智能体标记为已读",
-          "markManyUnread": "将 {{count}} 个智能体标记为未读",
-          "clearMany": "从列表中清除 {{count}} 个智能体"
+          "clearMany_other": "从列表中清除 {{count}} 个智能体"
         }
       },
       "confirmation": {
@@ -18588,7 +18571,6 @@
         "editFailed": "此消息无法编辑。",
         "editGone": "此消息已发送或移除。你编辑的内容已放入聊天输入框。",
         "editGonePrompt": "此消息已发送或移除。回答智能体后，你编辑的内容会出现在聊天输入框中。",
-        "imageCount": "{{count}} 张图片",
         "imageCount_one": "{{count}} 张图片",
         "imageCount_other": "{{count}} 张图片",
         "collapse": "收起",
@@ -20233,19 +20215,15 @@
       "resumableBody": "在此重新打开以继续工作。您的智能体会话将会恢复。",
       "reopening": "正在重新打开…",
       "tryAgain": "重试",
-      "reopenTerminal": "重新打开 {{count}} 个终端",
       "reopenTerminal_one": "重新打开终端",
       "reopenTerminal_other": "重新打开 {{count}} 个终端",
-      "reopened": "已重新打开 {{count}} 个终端",
       "reopened_one": "已重新打开 {{count}} 个终端",
       "reopened_other": "已重新打开 {{count}} 个终端",
-      "resumed": "已恢复 {{count}} 个智能体会话。",
       "resumed_one": "已恢复 {{count}} 个智能体会话。",
       "resumed_other": "已恢复 {{count}} 个智能体会话。"
     },
     "severedDaemonBanner": {
       "unknownCount": "其正在运行的终端",
-      "count": "{{count}} 个正在运行的终端",
       "unverifiable": "Orca 无法验证终端服务进程，因此未停止任何内容。",
       "alreadyReplaced": "终端服务已被替换；未停止任何内容。",
       "restarted": "终端服务已重新启动。",

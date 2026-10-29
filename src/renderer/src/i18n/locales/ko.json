@@ -340,10 +340,8 @@
       "permissionSameAsAll": "모든 에이전트와 동일",
       "permissionChipRemove": "{{flag}}을(를) 제거하고 {{agent}} 자체 설정 사용",
       "permissionChipTooltip": "권한에 의해 추가되었습니다. {{agent}} 자체 설정을 사용하려면 제거하세요.",
-      "permissionOverridesKept": "에이전트 {{count}}개는 여전히 자체 권한 설정을 사용합니다:",
       "permissionOverridesKept_one": "에이전트 {{count}}개는 여전히 자체 권한 설정을 사용합니다:",
       "permissionOverridesKept_other": "에이전트 {{count}}개는 여전히 자체 권한 설정을 사용합니다:",
-      "permissionOverridesFollow": "이제 에이전트 {{count}}개가 {{mode}}을(를) 따릅니다",
       "permissionOverridesFollow_one": "이제 에이전트 {{count}}개가 {{mode}}을(를) 따릅니다",
       "permissionOverridesFollow_other": "이제 에이전트 {{count}}개가 {{mode}}을(를) 따릅니다",
       "permissionOverrideFollows": "이제 {{agent}}이(가) {{mode}}을(를) 따릅니다",
@@ -1320,7 +1318,6 @@
         "folderWorkspaceCreateFailedMessage": "폴더 워크스페이스를 만들 수 없습니다. 위의 오류 세부 정보를 확인한 뒤 다시 시도하세요.",
         "setupAgentStartupPolicySaveFailed": "시작 동작 저장 실패",
         "5f3d2c8a1b": "MR베이스 확인 실패",
-        "dropPartiallyAttached": "{{count}} 항목 중 {{failureCount}}개 항목을 첨부할 수 없습니다.",
         "dropPartiallyAttached_one": "{{count}} 항목 중 {{failureCount}}을(를) 첨부할 수 없습니다.",
         "dropPartiallyAttached_other": "{{count}} 항목 중 {{failureCount}}개 항목을 첨부할 수 없습니다."
       },
@@ -1335,7 +1332,6 @@
         "ownerChanged": "이 워크스페이스를 소유한 호스트를 확인할 수 없습니다. 다시 연결한 후 다시 시도하세요.",
         "nativeDropUnresolvedPathsDescription": "먼저 디스크에 저장한 다음 저장된 파일을 삭제하세요.",
         "nativeDropUnresolvedPaths": "Orca가 삭제된 파일의 경로를 읽을 수 없습니다.",
-        "nativeDropTempCopyFailed": "Orca가 드롭한 파일 {{count}}개를 복사하지 못했습니다.",
         "nativeDropTempCopyFailed_one": "Orca가 드롭한 파일 {{count}}개를 복사하지 못했습니다.",
         "nativeDropTempCopyFailed_other": "Orca가 드롭한 파일 {{count}}개를 복사하지 못했습니다.",
         "hostMismatch": "이 편집기는 다른 호스트에 있습니다. 원본 워크스페이스에서 파일을 여세요.",
@@ -6307,23 +6303,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git은 병합되지 않은 커밋을 포함할 수 있으므로 {{count}} 로컬 브랜치를 유지했습니다. 유지된 브랜치에는 워크스페이스 폴더가 유지되지 않습니다. 해당 커밋은 저장소에 남아 있습니다. Orca는 백그라운드에서 워크스페이스 디스크 공간을 계속 확보할 수 있습니다.",
                 "a3cdd9d9e6_one": "Git에는 병합되지 않은 커밋이 포함될 수 있으므로 {{count}} 로컬 브랜치를 유지했습니다. 유지된 브랜치에는 워크스페이스 폴더가 유지되지 않습니다. 해당 커밋은 저장소에 남아 있습니다. Orca는 백그라운드에서 워크스페이스 디스크 공간을 계속 확보할 수 있습니다.",
                 "a3cdd9d9e6_other": "Git은 병합되지 않은 커밋을 포함할 수 있으므로 {{count}} 로컬 브랜치를 유지했습니다. 유지된 브랜치에는 워크스페이스 폴더가 유지되지 않습니다. 해당 커밋은 저장소에 남아 있습니다. Orca는 백그라운드에서 워크스페이스 디스크 공간을 계속 확보할 수 있습니다.",
-                "6310412304": "{{count}} 브랜치 검토",
                 "6310412304_one": "{{count}} 브랜치 검토",
                 "6310412304_other": "{{count}} 브랜치 검토",
-                "cea24c2b7d": "{{count}} 워크스페이스가 제거되었습니다.",
                 "cea24c2b7d_one": "{{count}} 워크스페이스가 제거되었습니다.",
                 "cea24c2b7d_other": "{{count}} 워크스페이스가 제거되었습니다.",
-                "0e0379f24a": "{{count}} 가지 유지",
                 "0e0379f24a_one": "{{count}} 브랜치 유지",
                 "0e0379f24a_other": "{{count}} 가지 유지",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "지역 브랜치 삭제 중: {{value0}}",
                 "1e1a5f6763": "삭제된 지역 브랜치: {{value0}}",
                 "43d9395605": "{{value0}} 삭제됨, {{value1}} 삭제되지 않음",
-                "d42f1f14e0": "{{count}} 브랜치을 다시 시도하세요.",
                 "d42f1f14e0_one": "{{count}} 브랜치을 다시 시도하세요.",
                 "d42f1f14e0_other": "{{count}} 브랜치을 다시 시도하세요."
               }
@@ -6338,7 +6329,6 @@
           "ee39e872d5": "병합되지 않을 수 있음",
           "676db406fd": "헤드를 사용할 수 없음",
           "285e1e4882": "취소",
-          "a0f9863597": "{{count}} 브랜치 강제 삭제",
           "a0f9863597_one": "강제 삭제 {{count}} 브랜치",
           "a0f9863597_other": "{{count}} 브랜치 강제 삭제"
         },
@@ -11981,10 +11971,8 @@
           "olderTerminalsUnverifiable": "이전 버전의 Orca에서 시작한 터미널이 종료되었는지 확인할 수 없습니다. 다시 연결하여 다시 시도하세요.",
           "olderTerminals_one": "이전 버전의 Orca에서 시작한 터미널 {{count}}개가 이 호스트에서 아직 실행 중이며 저절로 종료되지 않습니다. 해당 버전의 Orca에서 닫거나 호스트에서 종료한 후 다시 연결하세요.",
           "olderTerminals_other": "이전 버전의 Orca에서 시작한 터미널 {{count}}개가 이 호스트에서 아직 실행 중이며 저절로 종료되지 않습니다. 해당 버전의 Orca에서 닫거나 호스트에서 종료한 후 다시 연결하세요.",
-          "olderTerminals": "이전 버전의 Orca에서 시작한 터미널 {{count}}개가 이 호스트에서 아직 실행 중이며 저절로 종료되지 않습니다. 해당 버전의 Orca에서 닫거나 호스트에서 종료한 후 다시 연결하세요.",
           "linkedProjects_one": "이 호스트의 Orca 서버에 {{paths}}이(가) 이미 있어 이 데스크톱은 이제 서버의 사본을 사용합니다. 이 데스크톱의 탭과 자동화 {{count}}개는 이동되지 않았으며, 여기서 만든 워크트리는 외부 워크트리로 표시됩니다.",
           "linkedProjects_other": "이 호스트의 Orca 서버에 {{paths}}이(가) 이미 있어 이 데스크톱은 이제 서버의 사본을 사용합니다. 이 데스크톱의 탭과 자동화 {{count}}개는 이동되지 않았으며, 여기서 만든 워크트리는 외부 워크트리로 표시됩니다.",
-          "linkedProjects": "이 호스트의 Orca 서버에 {{paths}}이(가) 이미 있어 이 데스크톱은 이제 서버의 사본을 사용합니다. 이 데스크톱의 탭과 자동화 {{count}}개는 이동되지 않았으며, 여기서 만든 워크트리는 외부 워크트리로 표시됩니다.",
           "linkedProjectsNoAutomations": "이 호스트의 Orca 서버에 {{paths}}이(가) 이미 있어 이 데스크톱은 이제 서버의 사본을 사용합니다. 이 데스크톱의 탭은 이동되지 않았으며, 여기서 만든 워크트리는 외부 워크트리로 표시됩니다.",
           "nodeDownloadBlocked": "이 컴퓨터와 이 호스트 모두 Orca 서버에 필요한 Node.js를 다운로드하지 못했습니다. Node.js 미러를 사용하거나 두 컴퓨터의 네트워크를 확인하세요.",
           "nodeDownloadBlockedNoMirror": "이 컴퓨터와 이 호스트 모두 Orca 서버에 필요한 Node.js를 다운로드하지 못했습니다. 두 컴퓨터의 네트워크나 프록시를 확인한 뒤 다시 연결하세요.",
@@ -12003,8 +11991,7 @@
           "automationsLeftDisabled_one": "이 호스트의 Orca 서버가 자동화 {{count}}개를 인계받았지만 다시 켜지 못했습니다. 자동화에서 켜세요.",
           "automationsLeftDisabled_other": "이 호스트의 Orca 서버가 자동화 {{count}}개를 인계받았지만 다시 켜지 못했습니다. 자동화에서 켜세요.",
           "windowsBuildUnsupported": "이 호스트는 Windows 10 및 Windows Server 2016보다 오래된 Windows 버전을 실행하므로 Orca 서버를 실행할 수 없습니다. 더 최신 버전의 Windows를 실행하는 호스트나 Linux 또는 macOS 호스트를 사용하세요.",
-          "windowsNoExtractor": "이 Windows 호스트에는 tar.exe와 PowerShell의 Expand-Archive가 모두 없어 Orca가 서버의 압축을 풀 수 없습니다. 호스트에 Windows PowerShell 5.1을 설치한 다음 다시 연결하세요.",
-          "automationsLeftDisabled": "이 호스트의 Orca 서버가 자동화 {{count}}개를 인계받았지만 다시 켜지 못했습니다. 자동화에서 켜세요."
+          "windowsNoExtractor": "이 Windows 호스트에는 tar.exe와 PowerShell의 Expand-Archive가 모두 없어 Orca가 서버의 압축을 풀 수 없습니다. 호스트에 Windows PowerShell 5.1을 설치한 다음 다시 연결하세요."
         },
         "deltaMove": {
           "action": "새 프로젝트 이동…",
@@ -14954,7 +14941,6 @@
           "0f806a2ab1": "취소",
           "b6c3b84476": "파일 트리 표시",
           "39f8007549": "충돌 리뷰",
-          "skippedConflictsExcluded": "미해결 충돌 {{count}}개가 이 차이점 보기에서 제외되었습니다.",
           "skippedConflictsExcluded_one": "미해결 충돌 {{count}}개가 이 차이점 보기에서 제외되었습니다.",
           "skippedConflictsExcluded_other": "미해결 충돌 {{count}}개가 이 차이점 보기에서 제외되었습니다.",
           "820ec01f24": "충돌하는 파일은 별도로 리뷰됩니다.",
@@ -16970,10 +16956,7 @@
           "markManyUnread_one": "에이전트 {{count}}개 읽지 않은 것으로 표시",
           "markManyUnread_other": "에이전트 {{count}}개 읽지 않은 것으로 표시",
           "clearMany_one": "목록에서 에이전트 {{count}}개 지우기",
-          "clearMany_other": "목록에서 에이전트 {{count}}개 지우기",
-          "markManyRead": "에이전트 {{count}}개 읽음으로 표시",
-          "markManyUnread": "에이전트 {{count}}개 읽지 않은 것으로 표시",
-          "clearMany": "목록에서 에이전트 {{count}}개 지우기"
+          "clearMany_other": "목록에서 에이전트 {{count}}개 지우기"
         }
       },
       "confirmation": {
@@ -18616,7 +18599,6 @@
         "editFailed": "이 메시지는 편집할 수 없습니다.",
         "editGone": "이 메시지는 이미 전송되었거나 삭제되었습니다. 편집한 내용은 채팅 입력란에 있습니다.",
         "editGonePrompt": "이 메시지는 이미 전송되었거나 삭제되었습니다. 에이전트에 답하면 편집한 내용이 채팅 입력란에 표시됩니다.",
-        "imageCount": "이미지 {{count}}개",
         "imageCount_one": "이미지 {{count}}개",
         "imageCount_other": "이미지 {{count}}개",
         "collapse": "접기",
@@ -20233,19 +20215,15 @@
       "resumableBody": "계속 작업하려면 여기에서 다시 여세요. 에이전트 세션이 재개됩니다.",
       "reopening": "다시 여는 중…",
       "tryAgain": "다시 시도",
-      "reopenTerminal": "터미널 {{count}}개 다시 열기",
       "reopenTerminal_one": "터미널 다시 열기",
       "reopenTerminal_other": "터미널 {{count}}개 다시 열기",
-      "reopened": "터미널 {{count}}개를 다시 열었습니다",
       "reopened_one": "터미널 {{count}}개를 다시 열었습니다",
       "reopened_other": "터미널 {{count}}개를 다시 열었습니다",
-      "resumed": "에이전트 세션 {{count}}개가 재개되었습니다.",
       "resumed_one": "에이전트 세션 {{count}}개가 재개되었습니다.",
       "resumed_other": "에이전트 세션 {{count}}개가 재개되었습니다."
     },
     "severedDaemonBanner": {
       "unknownCount": "실행 중인 터미널",
-      "count": "실행 중인 터미널 {{count}}개",
       "unverifiable": "Orca가 터미널 서비스 프로세스를 확인할 수 없어 아무것도 중지되지 않았습니다.",
       "alreadyReplaced": "터미널 서비스가 이미 교체되었으므로 아무것도 중지되지 않았습니다.",
       "restarted": "터미널 서비스가 다시 시작되었습니다.",

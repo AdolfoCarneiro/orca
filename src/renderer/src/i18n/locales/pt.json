@@ -1115,11 +1115,9 @@
       "permissionSameAsAll": "Igual a todos os agentes",
       "permissionChipRemove": "Remover {{flag}} e usar as configurações próprias de {{agent}}",
       "permissionChipTooltip": "Adicionada por Permissões. Remova-a para usar as configurações próprias de {{agent}}.",
-      "permissionOverridesKept": "{{count}} agentes ainda usam a própria configuração de permissão:",
       "permissionOverridesKept_one": "{{count}} agente ainda usa a própria configuração de permissão:",
       "permissionOverridesKept_other": "{{count}} agentes ainda usam a própria configuração de permissão:",
       "permissionOverridesKept_many": "{{count}} agentes ainda usam a própria configuração de permissão:",
-      "permissionOverridesFollow": "{{count}} agentes agora seguem {{mode}}",
       "permissionOverridesFollow_one": "{{count}} agente agora segue {{mode}}",
       "permissionOverridesFollow_other": "{{count}} agentes agora seguem {{mode}}",
       "permissionOverridesFollow_many": "{{count}} agentes agora seguem {{mode}}",
@@ -1595,7 +1593,6 @@
         "folderWorkspaceCreateFailedMessage": "Não foi possível criar o espaço de trabalho de pasta. Verifique os detalhes do erro acima e tente novamente.",
         "setupAgentStartupPolicySaveFailed": "Falha ao salvar o comportamento de inicialização da configuração.",
         "5f3d2c8a1b": "Falha ao resolver a base do MR.",
-        "dropPartiallyAttached": "{{failureCount}} de {{count}} itens não puderam ser anexados.",
         "dropPartiallyAttached_one": "{{failureCount}} de {{count}} item não pôde ser anexado.",
         "dropPartiallyAttached_other": "{{failureCount}} de {{count}} itens não puderam ser anexados.",
         "dropPartiallyAttached_many": "{{failureCount}} de {{count}} itens não puderam ser anexados."
@@ -1611,7 +1608,6 @@
         "ownerChanged": "Não foi possível verificar qual host possui este espaço de trabalho. Tente novamente após ele se reconectar.",
         "nativeDropUnresolvedPathsDescription": "Salve-os no disco primeiro e depois solte os arquivos salvos.",
         "nativeDropUnresolvedPaths": "O Orca não conseguiu ler um caminho para os arquivos soltos.",
-        "nativeDropTempCopyFailed": "O Orca não conseguiu copiar {{count}} arquivos arrastados.",
         "nativeDropTempCopyFailed_one": "O Orca não conseguiu copiar {{count}} arquivo arrastado.",
         "nativeDropTempCopyFailed_other": "O Orca não conseguiu copiar {{count}} arquivos arrastados.",
         "nativeDropTempCopyFailed_many": "O Orca não conseguiu copiar {{count}} arquivos arrastados.",
@@ -8426,11 +8422,9 @@
           "olderTerminals_one": "{{count}} terminal iniciado por uma versão anterior do Orca ainda está em execução neste host e não para sozinho. Feche-o naquela versão do Orca ou encerre-o no host e conecte novamente.",
           "olderTerminals_other": "{{count}} terminais iniciados por uma versão anterior do Orca ainda estão em execução neste host e não param sozinhos. Feche-os naquela versão do Orca ou encerre-os no host e conecte novamente.",
           "olderTerminals_many": "{{count}} terminais iniciados por uma versão anterior do Orca ainda estão em execução neste host e não param sozinhos. Feche-os naquela versão do Orca ou encerre-os no host e conecte novamente.",
-          "olderTerminals": "{{count}} terminais iniciados por uma versão anterior do Orca ainda estão em execução neste host e não param sozinhos. Feche-os naquela versão do Orca ou encerre-os no host e conecte novamente.",
           "linkedProjects_one": "O servidor Orca deste host já tinha {{paths}}, então este computador agora usa a cópia do servidor. As abas e {{count}} automação deste computador nesse host não foram movidas, e os worktrees que ele criou lá aparecem como worktrees externos.",
           "linkedProjects_other": "O servidor Orca deste host já tinha {{paths}}, então este computador agora usa a cópia do servidor. As abas e {{count}} automações deste computador nesse host não foram movidas, e os worktrees que ele criou lá aparecem como worktrees externos.",
           "linkedProjects_many": "O servidor Orca deste host já tinha {{paths}}, então este computador agora usa a cópia do servidor. As abas e {{count}} automações deste computador nesse host não foram movidas, e os worktrees que ele criou lá aparecem como worktrees externos.",
-          "linkedProjects": "O servidor Orca deste host já tinha {{paths}}, então este computador agora usa a cópia do servidor. As abas e {{count}} automações deste computador nesse host não foram movidas, e os worktrees que ele criou lá aparecem como worktrees externos.",
           "linkedProjectsNoAutomations": "O servidor Orca deste host já tinha {{paths}}, então este computador agora usa a cópia do servidor. As abas deste computador nesse host não foram movidas, e os worktrees que ele criou lá aparecem como worktrees externos.",
           "launchSessionEnded": "Os terminais neste Mac podem ter perdido o acesso à rede local porque a sessão SSH que iniciou o servidor Orca deste host foi encerrada. Reinicie o servidor Orca para restaurá-lo.",
           "behindRolledBack": "Executa uma versão do servidor Orca anterior à deste aplicativo; a última atualização foi revertida. Use Atualizar servidor para tentar novamente.",
@@ -8450,8 +8444,7 @@
           "automationsLeftDisabled_other": "O servidor do Orca deste host assumiu {{count}} automações, mas não conseguiu reativá-las. Ative-as em Automações.",
           "automationsLeftDisabled_many": "O servidor do Orca deste host assumiu {{count}} automações, mas não conseguiu reativá-las. Ative-as em Automações.",
           "windowsBuildUnsupported": "Este host executa uma versão do Windows anterior ao Windows 10 e ao Windows Server 2016, então não consegue executar o servidor do Orca. Use um host com uma versão mais recente do Windows, ou um host Linux ou macOS.",
-          "windowsNoExtractor": "Este host Windows não tem tar.exe nem o Expand-Archive do PowerShell, então o Orca não consegue descompactar o servidor nele. Instale o Windows PowerShell 5.1 no host e conecte novamente.",
-          "automationsLeftDisabled": "O servidor do Orca deste host assumiu {{count}} automações, mas não conseguiu reativá-las. Ative-as em Automações."
+          "windowsNoExtractor": "Este host Windows não tem tar.exe nem o Expand-Archive do PowerShell, então o Orca não consegue descompactar o servidor nele. Instale o Windows PowerShell 5.1 no host e conecte novamente."
         },
         "ZcodeCliSetupSection": {
           "title": "Usar GLM com ZCode",
@@ -10891,19 +10884,15 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "O Git manteve {{count}} branches locais porque podem conter commits não mesclados. As branches mantidas não retêm as pastas de espaço de trabalho; seus commits permanecem no repositório. O Orca pode continuar liberando espaço em disco do espaço de trabalho em segundo plano.",
                 "a3cdd9d9e6_one": "O Git manteve {{count}} branch local porque pode conter commits não mesclados. As branches mantidas não retêm as pastas de espaço de trabalho; seus commits permanecem no repositório. O Orca pode continuar liberando espaço em disco do espaço de trabalho em segundo plano.",
                 "a3cdd9d9e6_other": "O Git manteve {{count}} branches locais porque podem conter commits não mesclados. As branches mantidas não retêm as pastas de espaço de trabalho; seus commits permanecem no repositório. O Orca pode continuar liberando espaço em disco do espaço de trabalho em segundo plano.",
                 "a3cdd9d9e6_many": "O Git manteve {{count}} branches locais porque podem conter commits não mesclados. As branches mantidas não retêm as pastas de espaço de trabalho; seus commits permanecem no repositório. O Orca pode continuar liberando espaço em disco do espaço de trabalho em segundo plano.",
-                "6310412304": "Revisar {{count}} Branches",
                 "6310412304_one": "Revisar {{count}} Branch",
                 "6310412304_other": "Revisar {{count}} Branches",
                 "6310412304_many": "Revisar {{count}} Branches",
-                "cea24c2b7d": "{{count}} espaços de trabalho removidos",
                 "cea24c2b7d_one": "{{count}} espaço de trabalho removido",
                 "cea24c2b7d_other": "{{count}} espaços de trabalho removidos",
                 "cea24c2b7d_many": "{{count}} espaços de trabalho removidos",
-                "0e0379f24a": "{{count}} branches mantidas",
                 "0e0379f24a_one": "{{count}} branch mantida",
                 "0e0379f24a_other": "{{count}} branches mantidas",
                 "0e0379f24a_many": "{{count}} branches mantidas",
@@ -10911,7 +10900,6 @@
                 "e61d78054f": "Excluindo branches locais: {{value0}}",
                 "1e1a5f6763": "Branches locais excluídas: {{value0}}",
                 "43d9395605": "{{value0}} excluída(s), {{value1}} não excluída(s)",
-                "d42f1f14e0": "Tentar Novamente {{count}} Branches",
                 "d42f1f14e0_one": "Tentar Novamente {{count}} Branch",
                 "d42f1f14e0_other": "Tentar Novamente {{count}} Branches",
                 "d42f1f14e0_many": "Tentar Novamente {{count}} Branches"
@@ -11222,7 +11210,6 @@
           "ee39e872d5": "Pode estar não mesclada",
           "676db406fd": "Head indisponível",
           "285e1e4882": "Cancelar",
-          "a0f9863597": "Forçar Exclusão de {{count}} Branches",
           "a0f9863597_one": "Forçar Exclusão de {{count}} Branch",
           "a0f9863597_other": "Forçar Exclusão de {{count}} Branches",
           "a0f9863597_many": "Forçar Exclusão de {{count}} Branches"
@@ -11932,7 +11919,6 @@
           "0f806a2ab1": "Cancelar",
           "b6c3b84476": "Mostrar árvore de arquivos",
           "39f8007549": "Revisar conflitos",
-          "skippedConflictsExcluded": "{{count}} conflitos não resolvidos foram excluídos desta visualização de diff.",
           "skippedConflictsExcluded_one": "{{count}} conflito não resolvido foi excluído desta visualização de diff.",
           "skippedConflictsExcluded_other": "{{count}} conflitos não resolvidos foram excluídos desta visualização de diff.",
           "skippedConflictsExcluded_many": "{{count}} conflitos não resolvidos foram excluídos desta visualização de diff.",
@@ -17186,10 +17172,7 @@
           "markManyUnread_many": "Marcar {{count}} agentes como não lidos",
           "clearMany_one": "Remover {{count}} agente da lista",
           "clearMany_other": "Remover {{count}} agentes da lista",
-          "clearMany_many": "Remover {{count}} agentes da lista",
-          "markManyRead": "Marcar {{count}} agentes como lidos",
-          "markManyUnread": "Marcar {{count}} agentes como não lidos",
-          "clearMany": "Remover {{count}} agentes da lista"
+          "clearMany_many": "Remover {{count}} agentes da lista"
         }
       },
       "emulator": {
@@ -19825,7 +19808,6 @@
         "editFailed": "Esta mensagem não pode ser editada.",
         "editGone": "Esta mensagem já foi enviada ou removida. Sua versão está no campo de texto do chat.",
         "editGonePrompt": "Esta mensagem já foi enviada ou removida. Sua versão estará no campo de texto do chat depois que você responder ao agente.",
-        "imageCount": "{{count}} imagens",
         "imageCount_one": "{{count}} imagem",
         "imageCount_other": "{{count}} imagens",
         "imageCount_many": "{{count}} imagens",
@@ -20603,15 +20585,12 @@
       "resumableBody": "Reabra-o aqui para continuar trabalhando. Sua sessão de agente será retomada.",
       "reopening": "Reabrindo…",
       "tryAgain": "Tentar novamente",
-      "reopenTerminal": "Reabrir {{count}} terminais",
       "reopenTerminal_one": "Reabrir terminal",
       "reopenTerminal_other": "Reabrir {{count}} terminais",
       "reopenTerminal_many": "Reabrir {{count}} terminais",
-      "reopened": "{{count}} terminais reabertos",
       "reopened_one": "{{count}} terminal reaberto",
       "reopened_other": "{{count}} terminais reabertos",
       "reopened_many": "{{count}} terminais reabertos",
-      "resumed": "{{count}} sessões de agentes retomadas.",
       "resumed_one": "{{count}} sessão de agente retomada.",
       "resumed_other": "{{count}} sessões de agentes retomadas.",
       "resumed_many": "{{count}} sessões de agentes retomadas."
@@ -20623,7 +20602,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "seus terminais em execução",
-      "count": "{{count}} terminais em execução",
       "unverifiable": "O Orca não conseguiu verificar o processo do serviço de terminais, então nada foi interrompido.",
       "alreadyReplaced": "O serviço de terminais já foi substituído; nada foi interrompido.",
       "restarted": "Serviço de terminais reiniciado.",
