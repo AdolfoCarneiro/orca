@@ -14131,6 +14131,7 @@
       },
       "mobile": {
         "MobileHero": {
+          "downloadApp": "앱 다운로드",
           "a8fb43cf1c": "Continue",
           "3f90dbd274": "완료",
           "b622eba64d": "뒤로",
@@ -14219,10 +14220,7 @@
               },
               "stable": {
                 "tagline": "정식 출시 버전, 매주 업데이트."
-              },
-              "downloadApk": "APK 다운로드",
-              "openTestFlight": "TestFlight 열기",
-              "openAppStore": "App Store 열기"
+              }
             }
           }
         },
@@ -20264,6 +20262,7 @@
       "count_one": "실행 중인 터미널 {{count}}개"
     },
     "restartedInputNotSent": "입력하는 동안 터미널이 다시 시작되어 일부 입력이 전달되지 않았을 수 있습니다. 다시 입력하기 전에 새 셸을 확인하세요.",
+    "typingBeforeStartNotSent": "터미널이 시작되는 동안 입력한 일부 키는 전송되지 않았습니다.",
     "stalledDaemonBanner": {
       "body": "이 컴퓨터의 백그라운드 작업이 멈췄습니다. 입력과 새 터미널이 작동하지 않을 수 있습니다. 터미널 서비스를 다시 시작하면 실행 중인 터미널과 명령이 종료됩니다.",
       "review": "다시 시작 옵션 검토",

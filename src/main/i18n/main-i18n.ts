@@ -123,9 +123,9 @@ export function setMainPluginLanguagePacks(
   if (pluginLanguagePacks === packs) {
     return false
   }
-  replacePluginLanguagePackResources(mainI18n, pluginLanguagePacks, packs)
+  const changed = replacePluginLanguagePackResources(mainI18n, pluginLanguagePacks, packs)
   pluginLanguagePacks = packs
-  return true
+  return changed.size > 0
 }
 
 export function translateMain(key: string, fallback: string, options?: TOptions): string {
