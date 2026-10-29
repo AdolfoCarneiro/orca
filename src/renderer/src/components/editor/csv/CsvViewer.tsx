@@ -37,7 +37,7 @@ export default function CsvViewer({
   onContentChange?: (content: string) => void
   onSave?: (content: string) => Promise<boolean>
 }): React.JSX.Element {
-  useUiLanguageRevision()
+  const languageRevision = useUiLanguageRevision()
   const [delimiterChoice, setDelimiterChoice] = useState<CsvDelimiterChoice>('auto')
   const detectedDelimiter = useMemo(
     () => detectCsvDelimiter(filePath, content),
@@ -70,7 +70,8 @@ export default function CsvViewer({
   const effectiveSort = sort && sort.column < (document?.columnCount ?? 0) ? sort : null
   const inspectionRows = useMemo(
     () => (document ? csvInspectionRows(document.rows, filter, effectiveSort) : null),
-    [document, filter, effectiveSort]
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- sorting collates in the UI language.
+    [document, filter, effectiveSort, languageRevision]
   )
   const editor = useCsvTableEditor({
     document,
