@@ -3,7 +3,7 @@ import {
   clearClientHostedBrowserCloseIntents,
   recordClientHostedBrowserCloseIntents
 } from '@/runtime/client-hosted-browser-close-intents'
-import { getBrowserSettingsHostId, saveDefaultBrowserProfileForHost } from './browser-host-state'
+import { getBrowserSettingsHostId, updateDefaultBrowserProfileForHost } from './browser-host-state'
 import { parseExecutionHostId } from '../../../../../shared/execution-host'
 
 export function createBrowserHostActions(
@@ -55,8 +55,7 @@ export function createBrowserHostActions(
       await Promise.all([get().fetchBrowserSessionProfiles(), get().fetchDetectedBrowsers()])
     },
 
-    setDefaultBrowserSessionProfileId: (profileId) => {
-      saveDefaultBrowserProfileForHost(get(), getBrowserSettingsHostId(get()), profileId)
-    }
+    setDefaultBrowserSessionProfileId: (profileId) =>
+      updateDefaultBrowserProfileForHost(get, getBrowserSettingsHostId(get()), () => profileId)
   }
 }

@@ -476,7 +476,7 @@ describe('createBrowserSlice runtime guard', () => {
       label: id,
       source: null
     })
-    store.getState().setDefaultBrowserSessionProfileId('work')
+    await store.getState().setDefaultBrowserSessionProfileId('work')
     expect(store.getState().settings?.browserDefaultProfileIdByHostId).toEqual({ local: 'work' })
     mockApi.browser.sessionListProfiles
       .mockResolvedValueOnce([listed('default'), listed('work')])
@@ -491,12 +491,40 @@ describe('createBrowserSlice runtime guard', () => {
 
   it('drops the default profile pick when that profile is deleted', async () => {
     const store = createTestStore()
-    store.getState().setDefaultBrowserSessionProfileId('work')
+    await store.getState().setDefaultBrowserSessionProfileId('work')
     mockApi.browser.sessionDeleteProfile.mockResolvedValueOnce(true)
 
     await store.getState().deleteBrowserSessionProfile('work')
 
     expect(store.getState().settings?.browserDefaultProfileIdByHostId).toEqual({})
+  })
+
+  it("keeps both hosts' picks when the second is made before the first is saved", async () => {
+    const store = createTestStore()
+    const acks: (() => void)[] = []
+    store.setState({
+      updateSettings: (updates) =>
+        new Promise<void>((resolve) =>
+          acks.push(() => {
+            store.setState((s) => ({ settings: { ...s.settings!, ...updates } }))
+            resolve()
+          })
+        )
+    })
+    const local = store.getState().setDefaultBrowserSessionProfileId('work')
+    store.setState({ browserSessionHostIdOverride: 'runtime:env-1' })
+    const remote = store.getState().setDefaultBrowserSessionProfileId('remote-work')
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+    await flush()
+    acks.shift()?.()
+    await flush()
+    acks.shift()?.()
+    await Promise.all([local, remote])
+
+    expect(store.getState().settings?.browserDefaultProfileIdByHostId).toEqual({
+      local: 'work',
+      'runtime:env-1': 'remote-work'
+    })
   })
 
   it('keeps the newest listing when an older one answers last', async () => {

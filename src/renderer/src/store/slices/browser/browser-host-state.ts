@@ -152,17 +152,30 @@ export function getDefaultBrowserProfileForHost(
   return typeof profileId === 'string' ? profileId : null
 }
 
-/** Persists a host's default pick; null goes back to Default. */
-export function saveDefaultBrowserProfileForHost(
-  state: Pick<AppState, 'settings' | 'updateSettings'>,
+let defaultProfileWrites: Promise<void> = Promise.resolve()
+
+/** Rewrites one host's default pick (null = Default) from the latest saved map. */
+export function updateDefaultBrowserProfileForHost(
+  getState: () => Pick<AppState, 'settings' | 'updateSettings'>,
   hostId: ExecutionHostId,
-  profileId: string | null
-): void {
-  const { [hostId]: _previous, ...otherHosts } =
-    state.settings?.browserDefaultProfileIdByHostId ?? {}
-  void state.updateSettings({
-    browserDefaultProfileIdByHostId: profileId ? { ...otherHosts, [hostId]: profileId } : otherHosts
+  next: (current: string | null) => string | null
+): Promise<void> {
+  // Why: each write replaces the whole map, so it reads the map only after the previous write lands.
+  defaultProfileWrites = defaultProfileWrites.then(() => {
+    const state = getState()
+    const { [hostId]: current = null, ...otherHosts } =
+      state.settings?.browserDefaultProfileIdByHostId ?? {}
+    const profileId = next(current)
+    if (profileId === current) {
+      return
+    }
+    return state.updateSettings({
+      browserDefaultProfileIdByHostId: profileId
+        ? { ...otherHosts, [hostId]: profileId }
+        : otherHosts
+    })
   })
+  return defaultProfileWrites
 }
 
 export function browserImportStateForHostUpdate(
