@@ -6,12 +6,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { AgentJournalMessageItem } from '../../../shared/agent-session-journal-types'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
 import { codexImageItemBody } from '../../codex/codex-image-item-translation'
-import { liveTestJournalRows } from './journal-host-database-test-support'
-import { parseJournalRow } from './journal-row-schema'
 import { journalPragmaNumber } from './journal-database'
 import {
   closeTestJournalHostDatabases,
   createTrackedJournalOpener,
+  liveTestJournalRows,
   openTestJournalHostDatabase
 } from './journal-host-database-test-support'
 import { openAgentSessionJournal } from './journal-store-factory'
@@ -24,7 +23,7 @@ import * as attachmentReferences from '../agent-session-attachments/agent-sessio
 import { JournalGoalAttachmentInverse } from './journal-goal-attachment-inverse'
 import { formatNativeChatFileReference } from '../../../shared/agent-image-paste'
 import type { JournalOperationReceipt } from './journal-row-writer'
-import { MAX_JOURNAL_LIFECYCLE_BATCH_BYTES } from './journal-row-schema'
+import { MAX_JOURNAL_LIFECYCLE_BATCH_BYTES, parseJournalRow } from './journal-row-schema'
 
 const journals = createTrackedJournalOpener()
 let root: string
