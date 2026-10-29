@@ -1,6 +1,6 @@
 import type { StructuredAgentSessionConversations } from './structured-agent-session-conversations'
-import { StructuredAgentSessionRequestFailures } from './structured-agent-session-request-failures'
-import { structuredAgentSessionFailureWordsContext } from './structured-agent-session-send-preparation'
+import { StructuredAgentSessionSavedStatus } from './structured-agent-session-saved-status'
+import { createStructuredAgentSessionHostRequestFailures } from './structured-agent-session-host-request-failures'
 import { AT_REST_COMMANDS_READ_BUDGET_MS } from './at-rest-command-catalog'
 import type { AgentSessionStatusSummary } from '../../../shared/agent-session-wire'
 import { AgentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
@@ -21,7 +21,10 @@ import { AGENT_SESSION_NOT_ATTACHED } from './structured-agent-session-mutation-
 import { StructuredAgentSessionSendSettlement } from './structured-agent-session-send-settlement'
 import { heldStructuredAgentSessionCurrentWork } from './structured-agent-session-host-current-work'
 import { structuredAgentSessionConversationFence } from './structured-agent-session-provider-child'
-import type { StructuredAgentSessionStatusSubscriber } from './structured-agent-session-status-feed'
+import type {
+  StructuredAgentSessionStatusFeed,
+  StructuredAgentSessionStatusSubscriber
+} from './structured-agent-session-status-feed'
 import type { CapturedChildWorkStops } from './structured-agent-session-status-ownership'
 import { createStructuredAgentSessionHostStatusFeed } from './structured-agent-session-host-status-feed'
 import type { StructuredAgentSessionChildWorkProducer } from './structured-agent-session-subagent-rows'
@@ -34,6 +37,7 @@ export class StructuredAgentSessionClientDelivery {
   readonly subscribers: AgentSessionSubscribers
   readonly waitForSendSettlement: StructuredAgentSessionSendSettlement['wait']
   private stopAtRestCommandUpdates: () => void = () => undefined
+  private readonly savedStatus
   private readonly statusFeed
   private readonly turnCompletionFeed
   readonly requestFailures
@@ -58,17 +62,10 @@ export class StructuredAgentSessionClientDelivery {
       'publish' | 'endPublications'
     >
   ) {
-    this.requestFailures = new StructuredAgentSessionRequestFailures({
-      sessions,
-      onFailure: (failure) => deps().onRequestFailure?.(failure),
-      capturePendingOutput: (input) => deps().adapter.capturePendingOutput?.(input),
-      wordsContext: (sessionId) =>
-        structuredAgentSessionFailureWordsContext(
-          deps().store.getRecord(sessionId),
-          sessions.get(sessionId)?.journal
-        )
-    })
+    this.requestFailures = createStructuredAgentSessionHostRequestFailures(sessions, deps)
+    this.savedStatus = new StructuredAgentSessionSavedStatus(deps)
     this.statusFeed = createStructuredAgentSessionHostStatusFeed({
+      onPublished: this.savedStatus.observe,
       sessions,
       starting,
       now,
@@ -88,7 +85,8 @@ export class StructuredAgentSessionClientDelivery {
     )
     this.waitForSendSettlement = this.sendSettlement.wait
     this.subscribers = new AgentSessionSubscribers({
-      readCommands: (sessionId) => this.readCommands(sessionId),
+      readCommands: (sessionId, commandsOnRequest) =>
+        this.readCommands(sessionId, commandsOnRequest),
       readQueuePublication: (sessionId) =>
         tryReadQueuePublication(
           sessions.get(sessionId)?.journal,
@@ -102,33 +100,67 @@ export class StructuredAgentSessionClientDelivery {
 
   watchAtRestCommands(adapter: StructuredAgentSessionHostDeps['adapter']): void {
     this.stopAtRestCommandUpdates =
-      adapter.atRestCommands?.onChange(() => this.subscribers.republishCommands()) ??
-      (() => undefined)
+      adapter.atRestCommands?.onChange((change) =>
+        this.subscribers.republishCommands(
+          change
+            ? (sessionId) => {
+                const record = this.deps().store.getRecord(sessionId)
+                return record != null && change.retired(record)
+              }
+            : undefined
+        )
+      ) ?? (() => undefined)
   }
 
-  readCommands(sessionId: string) {
+  readCommands(sessionId: string, commandsOnRequest = false) {
     const { adapter, store } = this.deps()
     const live = adapter.readCommands?.(sessionId)
     if (live !== undefined) {
       return live
     }
     const record = store.getRecord(sessionId)
-    return record ? adapter.atRestCommands?.read(record) : undefined
+    return record
+      ? commandsOnRequest
+        ? adapter.atRestCommands?.snapshot?.(record).commands
+        : adapter.atRestCommands?.read(record)
+      : undefined
   }
 
   /** Wait briefly for scans because one-shot menu readers do not receive later updates. */
-  async readCommandsSettled(sessionId: string) {
+  async readCommandsSettled(sessionId: string, commandsOnRequest = false) {
     const { adapter, store } = this.deps()
     const live = adapter.readCommands?.(sessionId)
     const record = store.getRecord(sessionId)
     if (live !== undefined || !record) {
-      return live
+      return { commands: live, ...(commandsOnRequest ? { commandsPending: false } : {}) }
     }
     const commands = adapter.atRestCommands?.settled
-      ? await adapter.atRestCommands.settled(record, AT_REST_COMMANDS_READ_BUDGET_MS)
+      ? await adapter.atRestCommands.settled(
+          record,
+          AT_REST_COMMANDS_READ_BUDGET_MS,
+          commandsOnRequest
+        )
       : adapter.atRestCommands?.read(record)
-    return adapter.readCommands?.(sessionId) ?? commands
+    const current = adapter.readCommands?.(sessionId)
+    const snapshot = commandsOnRequest ? adapter.atRestCommands?.snapshot?.(record) : undefined
+    if (current === undefined && snapshot?.retryableFailure) {
+      throw new Error('Command discovery unavailable')
+    }
+    return {
+      commands: current ?? (snapshot ? snapshot.commands : commands),
+      ...(commandsOnRequest
+        ? {
+            commandsPending: current === undefined && (snapshot?.commandsPending ?? false)
+          }
+        : {})
+    }
   }
+
+  drainStatusWrites = (): Promise<void> => this.savedStatus.drain()
+
+  publishSavedStatusGroup = (
+    visit: Parameters<StructuredAgentSessionStatusFeed['publishSavedGroup']>[0]
+  ): void => this.statusFeed.publishSavedGroup(visit)
 
   publishStatus = (sessionId: string): void => this.statusFeed.publish(sessionId)
 
@@ -248,8 +280,9 @@ export class StructuredAgentSessionClientDelivery {
     this.turnCompletionFeed.forget(sessionId)
   }
 
-  closeAll(): void {
+  async closeAll(): Promise<void> {
     this.publications?.endPublications()
+    await this.drainStatusWrites()
     this.requestFailures.clear()
     this.stopAtRestCommandUpdates()
     this.sendSettlement.closeAll()

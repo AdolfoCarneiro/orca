@@ -2480,7 +2480,8 @@
     "useNativeChatDictation": {
       "insertFailed": "ディクテーションの結果を挿入できませんでした。",
       "insertFailedCopied": "ディクテーションの結果を挿入できず、クリップボードにコピーしました。",
-      "inserted": "ディクテーションの結果を挿入しました。"
+      "inserted": "ディクテーションの結果を挿入しました。",
+      "stoppedAfterSilence": "1分間音声がなかったため停止しました。"
     },
     "useNativeChatStop": {
       "stopNotSent": "停止要求を送信できませんでした。",
@@ -2513,7 +2514,8 @@
       "saveFailed": "クイックコマンドの保存に失敗しました"
     },
     "useSessionTerminalSendActions": {
-      "inputTooLarge": "入力データが大きすぎます（最大 256 KiB）。"
+      "inputTooLarge": "入力データが大きすぎます（最大 256 KiB）。",
+      "liveInputInterrupted": "ライブ入力が中断されました。入力欄をクリアしました。続行する前にターミナルを確認してください。"
     },
     "useStartup": {
       "wakeAgents": "スリープ中の Agent を再開するには、ホストで Orca を開いてください。"

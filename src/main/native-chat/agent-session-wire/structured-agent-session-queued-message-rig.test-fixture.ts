@@ -52,11 +52,11 @@ export type QueuedMessageTestRig = Awaited<ReturnType<typeof createQueuedMessage
 
 export async function createQueuedMessageTestRig(
   options: QueuedRigProviderOptions & {
+    sessionId?: string
     idleSweep?: { idleMs: number; intervalMs: number }
     now?: () => number
     /** Teardown records its restart offers, which `restartOffers` lists. */
     recoveryCapsule?: true
-    sessionId?: string
     location?: AgentSessionExecutionLocation
     /** Defaults to indeterminate. */
     probeOwner?: StructuredAgentSessionHostDeps['probeOwner']
@@ -85,6 +85,12 @@ export async function createQueuedMessageTestRig(
   let host = makeHost()
   const firstAttach = hostTestAttachParams(null, {
     ...(options.location ? { location: options.location } : {}),
+    envelope: {
+      sessionId: SESSION,
+      clientOperationId: hostTestOperationId(),
+      expectedRuntimeFence: null,
+      payloadFingerprint: ''
+    },
     ...(options.agent === 'claude'
       ? ({
           provider: 'claude',
@@ -92,16 +98,6 @@ export async function createQueuedMessageTestRig(
           providerHandle: { kind: 'claude', sessionId: THREAD, leafUuid: null },
           accountHome: { variable: 'CLAUDE_CONFIG_DIR', path: '/private-fixture/claude' }
         } as const)
-      : {}),
-    ...(options.sessionId
-      ? {
-          envelope: {
-            sessionId: SESSION,
-            clientOperationId: hostTestOperationId(),
-            expectedRuntimeFence: null,
-            payloadFingerprint: '0'.repeat(64)
-          }
-        }
       : {})
   })
   expect(await host.attach(QUEUED_RIG_CALLER, firstAttach)).toMatchObject({ ok: true })

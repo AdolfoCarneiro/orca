@@ -2484,7 +2484,8 @@
     "useNativeChatDictation": {
       "insertFailed": "Dikte metni eklenemedi",
       "insertFailedCopied": "Dikte metni eklenemediği için panoya kopyalandı",
-      "inserted": "Dikte metni eklendi"
+      "inserted": "Dikte metni eklendi",
+      "stoppedAfterSilence": "Bir dakika sessizlikten sonra durduruldu"
     },
     "useNativeChatStop": {
       "stopNotSent": "Durdurma isteği gönderilemedi",
@@ -2517,7 +2518,8 @@
       "saveFailed": "Hızlı komut kaydedilemedi"
     },
     "useSessionTerminalSendActions": {
-      "inputTooLarge": "Girdi çok büyük (en fazla 256 KiB)"
+      "inputTooLarge": "Girdi çok büyük (en fazla 256 KiB)",
+      "liveInputInterrupted": "Canlı giriş kesildi. Alan temizlendi; devam etmeden önce terminali kontrol edin."
     },
     "useStartup": {
       "wakeAgents": "Uykudaki ajanları uyandırmak için sunucuda Orca'yı açın."

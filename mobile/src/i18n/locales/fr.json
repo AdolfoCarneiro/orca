@@ -2560,7 +2560,8 @@
     "useNativeChatDictation": {
       "insertFailed": "Impossible d'insérer la dictée",
       "insertFailedCopied": "Impossible d'insérer la dictée ; elle a été copiée dans le presse-papiers",
-      "inserted": "Dictée insérée"
+      "inserted": "Dictée insérée",
+      "stoppedAfterSilence": "Arrêt après une minute de silence"
     },
     "useNativeChatStop": {
       "stopNotSent": "Commande d'arrêt non envoyée",
@@ -2593,7 +2594,8 @@
       "saveFailed": "Échec de l'enregistrement de la commande rapide"
     },
     "useSessionTerminalSendActions": {
-      "inputTooLarge": "Saisie trop volumineuse (max. 256 Kio)"
+      "inputTooLarge": "Saisie trop volumineuse (max. 256 Kio)",
+      "liveInputInterrupted": "Saisie en direct interrompue. Le champ a été vidé ; vérifiez le terminal avant de continuer."
     },
     "useStartup": {
       "wakeAgents": "Ouvrez Orca sur l'hôte pour réveiller les agents en veille."

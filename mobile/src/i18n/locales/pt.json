@@ -2560,7 +2560,8 @@
     "useNativeChatDictation": {
       "insertFailed": "Não foi possível inserir o ditado",
       "insertFailedCopied": "Não foi possível inserir o ditado, então ele foi copiado para a área de transferência",
-      "inserted": "Ditado inserido"
+      "inserted": "Ditado inserido",
+      "stoppedAfterSilence": "Parou após um minuto de silêncio"
     },
     "useNativeChatStop": {
       "stopNotSent": "Comando de parada não enviado",
@@ -2593,7 +2594,8 @@
       "saveFailed": "Falha ao salvar o comando rápido"
     },
     "useSessionTerminalSendActions": {
-      "inputTooLarge": "Entrada grande demais (máx. 256 KiB)"
+      "inputTooLarge": "Entrada grande demais (máx. 256 KiB)",
+      "liveInputInterrupted": "A entrada ao vivo foi interrompida. O campo foi limpo; verifique o terminal antes de continuar."
     },
     "useStartup": {
       "wakeAgents": "Abra o Orca no host para ativar os agentes suspensos."
