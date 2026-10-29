@@ -20766,7 +20766,35 @@
       "preparingAriaLabel": "正在準備更新。點選展開。"
     },
     "wslMoveInstallHeld": "專案正在移到其 WSL 主機。移動完成後再安裝更新。",
-    "wslMoveUndoInstallHeld": "專案正在從其 WSL 主機移回。完成後再安裝更新。"
+    "wslMoveUndoInstallHeld": "專案正在從其 WSL 主機移回。完成後再安裝更新。",
+    "failure": {
+      "releaseNotReady": "此裝置尚無可用的較新版本。請稍後再檢查。",
+      "updateServerUnreachable": "無法連線至更新伺服器。請稍候幾分鐘再試。",
+      "channelUnsupportedPlatform": "{{channel}} 建置版本僅針對 {{platforms}} 提供。",
+      "unsignedDevChannel": "{{channel}} 建置版本未經簽署，而目前已簽署的建置版本只會安裝由 Orca 發行者簽署的更新。請從發行版本頁面下載安裝程式並執行一次，之後更新即可正常運作，包括切回穩定版。",
+      "linuxPackageMissing": "下載的套件已不在更新快取中。請重新下載更新，或從官方發行版本頁面取得。",
+      "linuxPackageNotRegular": "更新快取中下載的套件已不再是有效檔案。請重新下載更新，或從官方發行版本頁面取得。",
+      "linuxPackageHashMismatch": "下載的套件已不再符合驗證過的發行版本，因此 Orca 不會將其交給套件管理員。請重新下載更新，或從官方發行版本頁面取得。",
+      "linuxPackageReadFailed": "Orca 無法讀取下載的套件。請重新下載更新，或從官方發行版本頁面取得。",
+      "linuxPackageNoSudo": "系統目錄中找不到 sudo 指令，因此 Orca 無法產生安全的安裝指令。請顯示套件，並使用套件管理員安裝。",
+      "linuxPackageNoPackageManager": "系統目錄中找不到支援的套件管理員，因此 Orca 無法產生安全的安裝指令。請顯示套件，並使用套件管理員安裝。",
+      "linuxPackageInvalidPath": "下載的套件不在可用的路徑中，因此 Orca 無法產生安全的安裝指令。請顯示套件，並使用套件管理員安裝。",
+      "linuxPackageMarkerUnusable": "Orca 無法驗證已安裝的 Linux 套件格式，因此不會自動安裝此更新。請從官方發行版本頁面下載更新並手動安裝。",
+      "linuxPackageExternallyManaged": "此 Orca 由系統套件管理員管理，因此 Orca 無法自行安裝更新。請透過您使用的發行版更新 Orca。",
+      "linuxPackageManualInstall": "執行系統套件安裝指令前，請先結束 Orca。",
+      "linuxPackageMetadataUnusable": "無法驗證下載套件的後設資料。請先結束 Orca，再從官方發行版本頁面下載並安裝更新。",
+      "unknownReleaseChannel": "未知的發布頻道「{{channel}}」。",
+      "invalidReleaseTag": "「{{tag}}」不是有效的發行版本標籤。",
+      "releaseRepoNotFound": "在 {{repo}} 找不到發行版本存放庫。",
+      "releaseListFailed": "無法列出 {{channel}} 建置版本（HTTP {{status}}）。",
+      "releaseListUnreadable": "無法讀取 {{channel}} 的發行版本清單。",
+      "rateLimitedSoon": "已達 GitHub 速率限制。請稍候幾分鐘再試。",
+      "rateLimitedSoonSignedOut": "已達 GitHub 速率限制。請稍候幾分鐘再試，或執行 `gh auth login`，讓 Orca 使用您帳戶的較高額度。",
+      "rateLimitedInMinute": "已達 GitHub 速率限制。請約一分鐘後再試。",
+      "rateLimitedInMinuteSignedOut": "已達 GitHub 速率限制。請約一分鐘後再試，或執行 `gh auth login`，讓 Orca 使用您帳戶的較高額度。",
+      "rateLimitedInMinutes_other": "已達 GitHub 速率限制。請約 {{count}} 分鐘後再試。",
+      "rateLimitedInMinutesSignedOut_other": "已達 GitHub 速率限制。請約 {{count}} 分鐘後再試，或執行 `gh auth login`，讓 Orca 使用您帳戶的較高額度。"
+    }
   },
   "jira": {
     "connect": {

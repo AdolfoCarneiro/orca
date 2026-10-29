@@ -21157,7 +21157,35 @@
       "browserSummary": "后台 Orca 服务器的浏览器仍在使用此应用程序。"
     },
     "wslMoveInstallHeld": "项目正在移到其 WSL 主机。移动完成后再安装更新。",
-    "wslMoveUndoInstallHeld": "项目正在从其 WSL 主机移回。完成后再安装更新。"
+    "wslMoveUndoInstallHeld": "项目正在从其 WSL 主机移回。完成后再安装更新。",
+    "failure": {
+      "releaseNotReady": "此设备暂时还无法获取更新的版本。请稍后再检查。",
+      "updateServerUnreachable": "无法连接更新服务器。请几分钟后重试。",
+      "channelUnsupportedPlatform": "{{channel}} 构建仅针对 {{platforms}} 提供。",
+      "unsignedDevChannel": "{{channel}} 构建未签名，而当前已签名的构建仅安装由 Orca 发布者签名的更新。请从版本发布页面下载安装程序并运行一次，之后更新即可正常进行，包括切回稳定版。",
+      "linuxPackageMissing": "下载的安装包已不在更新缓存中。请重新下载更新，或从官方版本发布页面获取。",
+      "linuxPackageNotRegular": "更新缓存中下载的安装包已不再是有效文件。请重新下载更新，或从官方版本发布页面获取。",
+      "linuxPackageHashMismatch": "下载的安装包与已验证的版本不再匹配，因此 Orca 不会将其交给包管理器。请重新下载更新，或从官方版本发布页面获取。",
+      "linuxPackageReadFailed": "Orca 无法读取下载的安装包。请重新下载更新，或从官方版本发布页面获取。",
+      "linuxPackageNoSudo": "系统目录中未找到 sudo 命令，因此 Orca 无法生成安全的安装命令。请显示安装包并使用包管理器安装。",
+      "linuxPackageNoPackageManager": "系统目录中未找到受支持的包管理器，因此 Orca 无法生成安全的安装命令。请显示安装包并使用包管理器安装。",
+      "linuxPackageInvalidPath": "下载的安装包不在可用路径中，因此 Orca 无法生成安全的安装命令。请显示安装包并使用包管理器安装。",
+      "linuxPackageMarkerUnusable": "Orca 无法验证已安装的 Linux 软件包格式，因此不会自动安装此更新。请从官方版本发布页面下载更新并手动安装。",
+      "linuxPackageExternallyManaged": "此 Orca 由系统包管理器管理，因此 Orca 无法自行安装更新。请通过所用的发行版更新 Orca。",
+      "linuxPackageManualInstall": "运行系统软件包安装命令前，请先退出 Orca。",
+      "linuxPackageMetadataUnusable": "无法验证下载的安装包元数据。请先退出 Orca，再从官方版本发布页面下载并安装更新。",
+      "unknownReleaseChannel": "未知的发布渠道“{{channel}}”。",
+      "invalidReleaseTag": "“{{tag}}”不是有效的发布标签。",
+      "releaseRepoNotFound": "在 {{repo}} 未找到发布版本的仓库。",
+      "releaseListFailed": "无法列出 {{channel}} 构建（HTTP {{status}}）。",
+      "releaseListUnreadable": "无法读取 {{channel}} 的版本发布列表。",
+      "rateLimitedSoon": "已达到 GitHub 速率限制。请几分钟后重试。",
+      "rateLimitedSoonSignedOut": "已达到 GitHub 速率限制。请几分钟后重试，或运行 `gh auth login`，以便 Orca 使用你账户的更高限额。",
+      "rateLimitedInMinute": "已达到 GitHub 速率限制。请约一分钟后重试。",
+      "rateLimitedInMinuteSignedOut": "已达到 GitHub 速率限制。请约一分钟后重试，或运行 `gh auth login`，以便 Orca 使用你账户的更高限额。",
+      "rateLimitedInMinutes_other": "已达到 GitHub 速率限制。请约 {{count}} 分钟后重试。",
+      "rateLimitedInMinutesSignedOut_other": "已达到 GitHub 速率限制。请约 {{count}} 分钟后重试，或运行 `gh auth login`，以便 Orca 使用你账户的更高限额。"
+    }
   },
   "onboarding": {
     "language": {

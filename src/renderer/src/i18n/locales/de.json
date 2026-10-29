@@ -21061,7 +21061,37 @@
       "preparingAriaLabel": "Das Update wird vorbereitet. Zum Aufklappen klicken."
     },
     "wslMoveInstallHeld": "Ein Projekt wird auf seinen WSL-Host verschoben. Das Update nach Abschluss des Verschiebens installieren.",
-    "wslMoveUndoInstallHeld": "Ein Projekt wird von seinem WSL-Host zurückgeholt. Das Update danach installieren."
+    "wslMoveUndoInstallHeld": "Ein Projekt wird von seinem WSL-Host zurückgeholt. Das Update danach installieren.",
+    "failure": {
+      "releaseNotReady": "Für dieses Gerät ist noch keine neuere Version verfügbar. Später erneut prüfen.",
+      "updateServerUnreachable": "Der Update-Server konnte nicht erreicht werden. In einigen Minuten erneut versuchen.",
+      "channelUnsupportedPlatform": "{{channel}}-Builds werden nur für {{platforms}} erstellt.",
+      "unsignedDevChannel": "{{channel}}-Builds sind nicht signiert. Dieser signierte Build installiert nur Updates, die vom Herausgeber von Orca signiert wurden. Das Installationsprogramm von der Release-Seite herunterladen und einmal ausführen – danach funktionieren Updates wie gewohnt, auch zurück zu Stable.",
+      "linuxPackageMissing": "Das heruntergeladene Paket ist nicht mehr im Update-Cache vorhanden. Das Update erneut herunterladen oder von der offiziellen Release-Seite beziehen.",
+      "linuxPackageNotRegular": "Das heruntergeladene Paket ist im Update-Cache keine gültige Datei mehr. Das Update erneut herunterladen oder von der offiziellen Release-Seite beziehen.",
+      "linuxPackageHashMismatch": "Das heruntergeladene Paket stimmt nicht mehr mit der überprüften Version überein. Orca übergibt es daher nicht an eine Paketverwaltung. Das Update erneut herunterladen oder von der offiziellen Release-Seite beziehen.",
+      "linuxPackageReadFailed": "Orca konnte das heruntergeladene Paket nicht lesen. Das Update erneut herunterladen oder von der offiziellen Release-Seite beziehen.",
+      "linuxPackageNoSudo": "In den Systemverzeichnissen wurde kein sudo-Befehl gefunden. Orca kann daher keinen sicheren Installationsbefehl erstellen. Das Paket anzeigen und über die Paketverwaltung installieren.",
+      "linuxPackageNoPackageManager": "In den Systemverzeichnissen wurde keine unterstützte Paketverwaltung gefunden. Orca kann daher keinen sicheren Installationsbefehl erstellen. Das Paket anzeigen und über die Paketverwaltung installieren.",
+      "linuxPackageInvalidPath": "Das heruntergeladene Paket liegt nicht unter einem verwendbaren Pfad. Orca kann daher keinen sicheren Installationsbefehl erstellen. Das Paket anzeigen und über die Paketverwaltung installieren.",
+      "linuxPackageMarkerUnusable": "Orca konnte das Format des installierten Linux-Pakets nicht überprüfen und installiert dieses Update daher nicht automatisch. Das Update von der offiziellen Release-Seite herunterladen und manuell installieren.",
+      "linuxPackageExternallyManaged": "Diese Orca-Installation wird von der Paketverwaltung des Systems verwaltet. Orca kann Updates daher nicht selbst installieren. Orca stattdessen über die Distribution aktualisieren.",
+      "linuxPackageManualInstall": "Orca beenden, bevor der Systembefehl zur Paketinstallation ausgeführt wird.",
+      "linuxPackageMetadataUnusable": "Die Metadaten des heruntergeladenen Pakets konnten nicht überprüft werden. Orca beenden, bevor das Update von der offiziellen Release-Seite heruntergeladen und installiert wird.",
+      "unknownReleaseChannel": "Unbekannter Veröffentlichungskanal „{{channel}}“.",
+      "invalidReleaseTag": "„{{tag}}“ ist kein gültiges Release-Tag.",
+      "releaseRepoNotFound": "Unter {{repo}} wurde kein Release-Repository gefunden.",
+      "releaseListFailed": "{{channel}}-Builds konnten nicht aufgelistet werden (HTTP {{status}}).",
+      "releaseListUnreadable": "Die Release-Liste für {{channel}} konnte nicht gelesen werden.",
+      "rateLimitedSoon": "GitHub-Ratenlimit erreicht. In einigen Minuten erneut versuchen.",
+      "rateLimitedSoonSignedOut": "GitHub-Ratenlimit erreicht. In einigen Minuten erneut versuchen oder `gh auth login` ausführen, damit Orca das höhere Limit deines Kontos nutzen kann.",
+      "rateLimitedInMinute": "GitHub-Ratenlimit erreicht. In etwa einer Minute erneut versuchen.",
+      "rateLimitedInMinuteSignedOut": "GitHub-Ratenlimit erreicht. In etwa einer Minute erneut versuchen oder `gh auth login` ausführen, damit Orca das höhere Limit deines Kontos nutzen kann.",
+      "rateLimitedInMinutes_one": "GitHub-Ratenlimit erreicht. In etwa {{count}} Minute erneut versuchen.",
+      "rateLimitedInMinutes_other": "GitHub-Ratenlimit erreicht. In etwa {{count}} Minuten erneut versuchen.",
+      "rateLimitedInMinutesSignedOut_one": "GitHub-Ratenlimit erreicht. In etwa {{count}} Minute erneut versuchen oder `gh auth login` ausführen, damit Orca das höhere Limit deines Kontos nutzen kann.",
+      "rateLimitedInMinutesSignedOut_other": "GitHub-Ratenlimit erreicht. In etwa {{count}} Minuten erneut versuchen oder `gh auth login` ausführen, damit Orca das höhere Limit deines Kontos nutzen kann."
+    }
   },
   "jira": {
     "connect": {

@@ -21042,7 +21042,37 @@
       "preparingAriaLabel": "Güncelleme hazırlanıyor. Genişletmek için tıklayın."
     },
     "wslMoveInstallHeld": "Bir proje WSL ana makinesine taşınıyor. Taşıma bittiğinde güncellemeyi yükleyin.",
-    "wslMoveUndoInstallHeld": "Bir proje WSL ana makinesinden geri getiriliyor. Bu bittiğinde güncellemeyi yükleyin."
+    "wslMoveUndoInstallHeld": "Bir proje WSL ana makinesinden geri getiriliyor. Bu bittiğinde güncellemeyi yükleyin.",
+    "failure": {
+      "releaseNotReady": "Bu cihaz için daha yeni bir sürüm henüz kullanıma sunulmadı. Daha sonra tekrar kontrol edin.",
+      "updateServerUnreachable": "Güncelleme sunucusuna ulaşılamadı. Birkaç dakika sonra tekrar deneyin.",
+      "channelUnsupportedPlatform": "{{channel}} sürümleri yalnızca {{platforms}} için üretilir.",
+      "unsignedDevChannel": "{{channel}} sürümleri imzasızdır ve bu imzalı sürüm yalnızca Orca'nın yayımcısının imzaladığı güncellemeleri yükler. Yükleyiciyi sürüm sayfasından indirip bir kez çalıştırın; bundan sonra Kararlı kanalına dönüş dahil güncellemeler normal şekilde çalışır.",
+      "linuxPackageMissing": "İndirilen paket artık güncelleme önbelleğinde değil. Güncellemeyi yeniden indirin veya resmi sürüm sayfasından edinin.",
+      "linuxPackageNotRegular": "İndirilen paket artık güncelleme önbelleğinde geçerli bir dosya değil. Güncellemeyi yeniden indirin veya resmi sürüm sayfasından edinin.",
+      "linuxPackageHashMismatch": "İndirilen paket artık doğrulanmış sürümle eşleşmediğinden Orca paketi bir paket yöneticisine aktarmayacak. Güncellemeyi yeniden indirin veya resmi sürüm sayfasından edinin.",
+      "linuxPackageReadFailed": "Orca indirilen paketi okuyamadı. Güncellemeyi yeniden indirin veya resmi sürüm sayfasından edinin.",
+      "linuxPackageNoSudo": "Sistem dizinlerinde sudo komutu bulunamadığından Orca güvenli bir kurulum komutu oluşturamıyor. Paketi gösterin ve paket yöneticinizle yükleyin.",
+      "linuxPackageNoPackageManager": "Sistem dizinlerinde desteklenen bir paket yöneticisi bulunamadığından Orca güvenli bir kurulum komutu oluşturamıyor. Paketi gösterin ve paket yöneticinizle yükleyin.",
+      "linuxPackageInvalidPath": "İndirilen paket kullanılabilir bir yolda olmadığından Orca güvenli bir kurulum komutu oluşturamıyor. Paketi gösterin ve paket yöneticinizle yükleyin.",
+      "linuxPackageMarkerUnusable": "Orca kurulu Linux paketinin biçimini doğrulayamadığından bu güncellemeyi otomatik yüklemeyecek. Güncellemeyi resmi sürüm sayfasından indirin ve elle yükleyin.",
+      "linuxPackageExternallyManaged": "Bu Orca kopyası sistem paket yöneticiniz tarafından yönetildiğinden Orca güncellemeleri kendisi yükleyemez. Orca'yı dağıtımınız üzerinden güncelleyin.",
+      "linuxPackageManualInstall": "Sistemin paket yükleme komutunu çalıştırmadan önce Orca'dan çıkın.",
+      "linuxPackageMetadataUnusable": "İndirilen paketin meta verileri doğrulanamadı. Güncellemeyi resmi sürüm sayfasından indirip yüklemeden önce Orca'dan çıkın.",
+      "unknownReleaseChannel": "Bilinmeyen yayın kanalı \"{{channel}}\".",
+      "invalidReleaseTag": "\"{{tag}}\" geçerli bir sürüm etiketi değil.",
+      "releaseRepoNotFound": "{{repo}} adresinde sürümlerin yayımlandığı bir repo bulunamadı.",
+      "releaseListFailed": "{{channel}} sürümleri listelenemedi (HTTP {{status}}).",
+      "releaseListUnreadable": "{{channel}} sürüm listesi okunamadı.",
+      "rateLimitedSoon": "GitHub istek sınırına ulaşıldı. Birkaç dakika sonra tekrar deneyin.",
+      "rateLimitedSoonSignedOut": "GitHub istek sınırına ulaşıldı. Birkaç dakika sonra tekrar deneyin veya Orca'nın hesabınızdaki daha yüksek sınırı kullanabilmesi için `gh auth login` komutunu çalıştırın.",
+      "rateLimitedInMinute": "GitHub istek sınırına ulaşıldı. Yaklaşık bir dakika sonra tekrar deneyin.",
+      "rateLimitedInMinuteSignedOut": "GitHub istek sınırına ulaşıldı. Yaklaşık bir dakika sonra tekrar deneyin veya Orca'nın hesabınızdaki daha yüksek sınırı kullanabilmesi için `gh auth login` komutunu çalıştırın.",
+      "rateLimitedInMinutes_one": "GitHub istek sınırına ulaşıldı. Yaklaşık {{count}} dakika sonra tekrar deneyin.",
+      "rateLimitedInMinutes_other": "GitHub istek sınırına ulaşıldı. Yaklaşık {{count}} dakika sonra tekrar deneyin.",
+      "rateLimitedInMinutesSignedOut_one": "GitHub istek sınırına ulaşıldı. Yaklaşık {{count}} dakika sonra tekrar deneyin veya Orca'nın hesabınızdaki daha yüksek sınırı kullanabilmesi için `gh auth login` komutunu çalıştırın.",
+      "rateLimitedInMinutesSignedOut_other": "GitHub istek sınırına ulaşıldı. Yaklaşık {{count}} dakika sonra tekrar deneyin veya Orca'nın hesabınızdaki daha yüksek sınırı kullanabilmesi için `gh auth login` komutunu çalıştırın."
+    }
   },
   "jira": {
     "connect": {

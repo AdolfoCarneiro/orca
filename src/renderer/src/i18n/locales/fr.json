@@ -21817,7 +21817,39 @@
       "browserGuidance": "Terminez le processus ci-dessous, puis réessayez : son serveur continue de fonctionner sans navigateur. Si un autre ordinateur utilise ce Mac comme hôte SSH, la mise à jour d’Orca sur cet ordinateur permet au navigateur de se mettre automatiquement en pause lors des mises à jour."
     },
     "wslMoveInstallHeld": "Un projet est en cours de déplacement vers son hôte WSL. Installez la mise à jour une fois le déplacement terminé.",
-    "wslMoveUndoInstallHeld": "Un projet est en train de revenir de son hôte WSL. Installez la mise à jour une fois l'opération terminée."
+    "wslMoveUndoInstallHeld": "Un projet est en train de revenir de son hôte WSL. Installez la mise à jour une fois l'opération terminée.",
+    "failure": {
+      "releaseNotReady": "Aucune version plus récente n'est encore disponible pour cet appareil. Vérifiez à nouveau plus tard.",
+      "updateServerUnreachable": "Impossible de joindre le serveur de mise à jour. Réessayez dans quelques minutes.",
+      "channelUnsupportedPlatform": "Les versions {{channel}} sont produites uniquement pour {{platforms}}.",
+      "unsignedDevChannel": "Les versions {{channel}} ne sont pas signées, et cette version signée n'installe que les mises à jour signées par l'éditeur d'Orca. Téléchargez le programme d'installation depuis la page des versions et exécutez-le une fois. Les mises à jour fonctionneront ensuite normalement, y compris pour revenir à Stable.",
+      "linuxPackageMissing": "Le package téléchargé n'est plus dans le cache des mises à jour. Téléchargez à nouveau la mise à jour ou récupérez-la sur la page officielle des versions.",
+      "linuxPackageNotRegular": "Le package téléchargé n'est plus un fichier valide dans le cache des mises à jour. Téléchargez à nouveau la mise à jour ou récupérez-la sur la page officielle des versions.",
+      "linuxPackageHashMismatch": "Le package téléchargé ne correspond plus à la version vérifiée. Orca ne le transmettra donc pas à un gestionnaire de packages. Téléchargez à nouveau la mise à jour ou récupérez-la sur la page officielle des versions.",
+      "linuxPackageReadFailed": "Orca n'a pas pu lire le package téléchargé. Téléchargez à nouveau la mise à jour ou récupérez-la sur la page officielle des versions.",
+      "linuxPackageNoSudo": "La commande sudo est introuvable dans les répertoires système. Orca ne peut donc pas générer de commande d'installation sûre. Affichez le package et installez-le avec votre gestionnaire de packages.",
+      "linuxPackageNoPackageManager": "Aucun gestionnaire de packages pris en charge n'a été trouvé dans les répertoires système. Orca ne peut donc pas générer de commande d'installation sûre. Affichez le package et installez-le avec votre gestionnaire de packages.",
+      "linuxPackageInvalidPath": "Le chemin du package téléchargé n'est pas utilisable. Orca ne peut donc pas générer de commande d'installation sûre. Affichez le package et installez-le avec votre gestionnaire de packages.",
+      "linuxPackageMarkerUnusable": "Orca n'a pas pu vérifier le format du package Linux installé et n'installera donc pas cette mise à jour automatiquement. Téléchargez la mise à jour depuis la page officielle des versions et installez-la manuellement.",
+      "linuxPackageExternallyManaged": "Cette copie d'Orca est gérée par votre gestionnaire de packages système. Orca ne peut donc pas installer les mises à jour lui-même. Mettez plutôt Orca à jour via votre distribution.",
+      "linuxPackageManualInstall": "Quittez Orca avant d'exécuter la commande système d'installation de packages.",
+      "linuxPackageMetadataUnusable": "Les métadonnées du package téléchargé n'ont pas pu être vérifiées. Quittez Orca avant de télécharger et d'installer la mise à jour depuis la page officielle des versions.",
+      "unknownReleaseChannel": "Canal de publication inconnu « {{channel}} ».",
+      "invalidReleaseTag": "« {{tag}} » n'est pas un tag de version valide.",
+      "releaseRepoNotFound": "Aucun dépôt de versions trouvé à l'adresse {{repo}}.",
+      "releaseListFailed": "Impossible de lister les versions {{channel}} (HTTP {{status}}).",
+      "releaseListUnreadable": "Impossible de lire la liste des versions {{channel}}.",
+      "rateLimitedSoon": "Limite de débit GitHub atteinte. Réessayez dans quelques minutes.",
+      "rateLimitedSoonSignedOut": "Limite de débit GitHub atteinte. Réessayez dans quelques minutes ou exécutez `gh auth login` pour qu'Orca puisse utiliser la limite plus élevée de votre compte.",
+      "rateLimitedInMinute": "Limite de débit GitHub atteinte. Réessayez dans environ une minute.",
+      "rateLimitedInMinuteSignedOut": "Limite de débit GitHub atteinte. Réessayez dans environ une minute ou exécutez `gh auth login` pour qu'Orca puisse utiliser la limite plus élevée de votre compte.",
+      "rateLimitedInMinutes_one": "Limite de débit GitHub atteinte. Réessayez dans environ {{count}} minute.",
+      "rateLimitedInMinutes_other": "Limite de débit GitHub atteinte. Réessayez dans environ {{count}} minutes.",
+      "rateLimitedInMinutes_many": "Limite de débit GitHub atteinte. Réessayez dans environ {{count}} minutes.",
+      "rateLimitedInMinutesSignedOut_one": "Limite de débit GitHub atteinte. Réessayez dans environ {{count}} minute ou exécutez `gh auth login` pour qu'Orca puisse utiliser la limite plus élevée de votre compte.",
+      "rateLimitedInMinutesSignedOut_other": "Limite de débit GitHub atteinte. Réessayez dans environ {{count}} minutes ou exécutez `gh auth login` pour qu'Orca puisse utiliser la limite plus élevée de votre compte.",
+      "rateLimitedInMinutesSignedOut_many": "Limite de débit GitHub atteinte. Réessayez dans environ {{count}} minutes ou exécutez `gh auth login` pour qu'Orca puisse utiliser la limite plus élevée de votre compte."
+    }
   },
   "onboarding": {
     "language": {

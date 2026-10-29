@@ -21157,7 +21157,35 @@
       "browserSummary": "バックグラウンド Orca サーバーのブラウザはまだこのアプリを使用しています。"
     },
     "wslMoveInstallHeld": "プロジェクトを WSL ホストへ移動しています。移動が完了してからアップデートをインストールしてください。",
-    "wslMoveUndoInstallHeld": "プロジェクトを WSL ホストから戻しています。完了してからアップデートをインストールしてください。"
+    "wslMoveUndoInstallHeld": "プロジェクトを WSL ホストから戻しています。完了してからアップデートをインストールしてください。",
+    "failure": {
+      "releaseNotReady": "このデバイス向けの新しいリリースはまだ利用できません。後でもう一度確認してください。",
+      "updateServerUnreachable": "更新サーバーに接続できませんでした。数分後にもう一度お試しください。",
+      "channelUnsupportedPlatform": "{{channel}} ビルドは {{platforms}} 向けにのみ提供されます。",
+      "unsignedDevChannel": "{{channel}} ビルドは未署名で、この署名済みビルドでは Orca の発行元が署名した更新のみをインストールできます。リリースページからインストーラーをダウンロードして一度実行してください。その後は Stable に戻す場合も含め、通常どおり更新できます。",
+      "linuxPackageMissing": "ダウンロードしたパッケージが更新キャッシュにありません。更新を再ダウンロードするか、公式リリースページから入手してください。",
+      "linuxPackageNotRegular": "更新キャッシュ内のダウンロード済みパッケージが有効なファイルではなくなっています。更新を再ダウンロードするか、公式リリースページから入手してください。",
+      "linuxPackageHashMismatch": "ダウンロードしたパッケージが検証済みリリースと一致しなくなったため、Orca はパッケージマネージャーに渡しません。更新を再ダウンロードするか、公式リリースページから入手してください。",
+      "linuxPackageReadFailed": "Orca はダウンロードしたパッケージを読み取れませんでした。更新を再ダウンロードするか、公式リリースページから入手してください。",
+      "linuxPackageNoSudo": "システムディレクトリに sudo コマンドが見つからないため、Orca は安全なインストールコマンドを生成できません。パッケージを表示し、パッケージマネージャーでインストールしてください。",
+      "linuxPackageNoPackageManager": "システムディレクトリに対応するパッケージマネージャーが見つからないため、Orca は安全なインストールコマンドを生成できません。パッケージを表示し、パッケージマネージャーでインストールしてください。",
+      "linuxPackageInvalidPath": "ダウンロードしたパッケージのパスを使用できないため、Orca は安全なインストールコマンドを生成できません。パッケージを表示し、パッケージマネージャーでインストールしてください。",
+      "linuxPackageMarkerUnusable": "Orca はインストール済み Linux パッケージの形式を確認できなかったため、この更新を自動インストールしません。公式リリースページから更新をダウンロードし、手動でインストールしてください。",
+      "linuxPackageExternallyManaged": "この Orca はシステムのパッケージマネージャーで管理されているため、Orca 自体では更新をインストールできません。ディストリビューションの仕組みで Orca を更新してください。",
+      "linuxPackageManualInstall": "システムのパッケージインストールコマンドを実行する前に Orca を終了してください。",
+      "linuxPackageMetadataUnusable": "ダウンロードしたパッケージのメタデータを検証できませんでした。Orca を終了してから、公式リリースページから更新をダウンロードしてインストールしてください。",
+      "unknownReleaseChannel": "不明なリリースチャンネル「{{channel}}」。",
+      "invalidReleaseTag": "「{{tag}}」は有効なリリースタグではありません。",
+      "releaseRepoNotFound": "{{repo}} にリリース用リポジトリが見つかりません。",
+      "releaseListFailed": "{{channel}} ビルドの一覧を取得できませんでした（HTTP {{status}}）。",
+      "releaseListUnreadable": "{{channel}} のリリース一覧を読み取れませんでした。",
+      "rateLimitedSoon": "GitHub のレート制限に達しました。数分後にもう一度お試しください。",
+      "rateLimitedSoonSignedOut": "GitHub のレート制限に達しました。数分後にもう一度試すか、`gh auth login` を実行して Orca がアカウントのより高い上限を利用できるようにしてください。",
+      "rateLimitedInMinute": "GitHub のレート制限に達しました。約 1 分後にもう一度お試しください。",
+      "rateLimitedInMinuteSignedOut": "GitHub のレート制限に達しました。約 1 分後にもう一度試すか、`gh auth login` を実行して Orca がアカウントのより高い上限を利用できるようにしてください。",
+      "rateLimitedInMinutes_other": "GitHub のレート制限に達しました。約 {{count}} 分後にもう一度お試しください。",
+      "rateLimitedInMinutesSignedOut_other": "GitHub のレート制限に達しました。約 {{count}} 分後にもう一度試すか、`gh auth login` を実行して Orca がアカウントのより高い上限を利用できるようにしてください。"
+    }
   },
   "onboarding": {
     "language": {
