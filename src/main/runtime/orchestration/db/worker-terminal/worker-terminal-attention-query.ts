@@ -106,16 +106,17 @@ export function getWorkerAttentionFactsForDispatches(
   }
   return new Map(
     rows.map((row) => {
-      const projected = projectAttemptOutcome({
+      const { taskOutcome: projected, processTurn } = projectAttemptOutcome({
         dispatchId: row.dispatch_id,
         taskId: row.task_id,
         facts: factsByDispatch.get(row.dispatch_id) ?? [],
         activeSibling: row.active_sibling === 1,
         authorityNow: { home: authorityNow }
-      }).taskOutcome
-      // Orca saw the turn end without worker_done, and no mail has reached the worker since.
+      })
+      // Orca saw the turn end without worker_done, and neither mail nor a resume has reached the worker since.
       const stopped =
         row.stopped_without_report === 1 &&
+        processTurn?.turn !== 'working' &&
         (projected === 'in_progress' || projected === 'outcome_unknown')
       return [
         row.dispatch_id,

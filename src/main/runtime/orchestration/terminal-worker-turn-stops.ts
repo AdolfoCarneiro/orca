@@ -44,7 +44,24 @@ export class TerminalWorkerTurnStops {
   }
 
   observe(change: AgentPaneChange): void {
+    if (
+      (change.kind === 'moved' ? change.to : change.kind === 'seeded' && change.phase) === 'working'
+    ) {
+      this.resumed(change.paneKey)
+    }
     this.news.observe(change)
+  }
+
+  /** Typing into the terminal or answering its prompt ends the reported stop. */
+  private resumed(paneKey: string): void {
+    try {
+      const resolved = this.resolve(paneKey)
+      if (resolved?.target.kind === 'local') {
+        resolved.db.recordWorkerTurnResumed(resolved.target.dispatch.id, Date.now())
+      }
+    } catch (error) {
+      console.warn('[orchestration] recording a resumed worker turn failed', error)
+    }
   }
 
   private async report(stop: PreparedStop): Promise<void> {

@@ -24,6 +24,7 @@ import {
   structuredSessionIdleEdgeMailboxes
 } from './structured-session-mail-target'
 import { exitedChatDispatchesForSession } from './chat-assignee'
+import { recordChatWorkerResumed, type ChatWorkerStatus } from './chat-worker-turn-stops'
 import { OPERATOR_CLOSE_EXIT_CAUSE } from '../../../shared/terminal-exit-cause'
 import { resolveTerminalIdentityFromProbes } from '../terminal-identity-probe'
 
@@ -183,10 +184,7 @@ export abstract class OrcaRuntimeWithGetPtyRecordForPaneKey extends OrcaRuntimeW
   }
 
   /** Retry parked mail on working/idle edges; at idle re-derive owned mailboxes for workers and chats. */
-  onStructuredSessionStatusForMail(summary: {
-    sessionId: string
-    status: 'working' | 'attention' | 'idle' | null
-  }): void {
+  onStructuredSessionStatusForMail(summary: ChatWorkerStatus): void {
     if (summary.status === 'attention') {
       return
     }
@@ -195,7 +193,7 @@ export abstract class OrcaRuntimeWithGetPtyRecordForPaneKey extends OrcaRuntimeW
       // A working edge can follow a human answer, unblocking parked mail too.
       this.notifyStructuredSessionJournalActivity(summary.sessionId)
       if (summary.status === 'working') {
-        return
+        return recordChatWorkerResumed(summary.sessionId, this.getExistingOrchestrationDb())
       }
       const openDb = () => this.getExistingOrchestrationDb()
       const deliver = (mailbox: string) => this.deliverPendingMessagesForHandle(mailbox)
