@@ -69,7 +69,7 @@ describe.skipIf(process.platform === 'win32')('CLI runtime status', () => {
         pid: 424242,
         transport: { kind: 'unix', endpoint },
         authToken: 'token',
-        startedAt: Date.now()
+        startedAt: 1
       })
     )
 
@@ -98,7 +98,7 @@ describe.skipIf(process.platform === 'win32')('CLI status connection authority',
           pid: 424242,
           transport: { kind: 'unix', endpoint: join(userDataPath, 'absent.sock') },
           authToken: 'token',
-          startedAt: Date.now()
+          startedAt: 1
         })
       )
       const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => {
@@ -132,7 +132,7 @@ describe.skipIf(process.platform === 'win32')('CLI status connection authority',
         pid: 424242,
         transports: [{ kind: 'unix', endpoint }],
         authToken: 'token',
-        startedAt: Date.now()
+        startedAt: 1
       })
     )
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => {

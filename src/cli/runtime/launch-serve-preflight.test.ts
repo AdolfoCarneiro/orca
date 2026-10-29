@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as ServePreflight from './serve-electron-preflight'
 import { MacServeStartupAbortError } from './serve-signal-exit-diagnostic'
 
@@ -26,6 +26,11 @@ vi.mock('./serve-update-supervisor', async (importOriginal) => ({
 }))
 
 import { serveOrcaApp } from './launch'
+
+let actualPreflight: typeof ServePreflight
+beforeAll(async () => {
+  actualPreflight = await vi.importActual<typeof ServePreflight>('./serve-electron-preflight')
+})
 
 class FakeChildProcess extends EventEmitter {
   stdout = new EventEmitter()
@@ -107,8 +112,7 @@ describe.skipIf(process.platform === 'win32')(
           if (state === 'accepting') {
             await new Promise<void>((resolve) => server.listen(endpoint, resolve))
           }
-          const actual = await vi.importActual<typeof ServePreflight>('./serve-electron-preflight')
-          preflightMock.mockImplementation(actual.preflightElectronServe)
+          preflightMock.mockImplementation(actualPreflight.preflightElectronServe)
           superviseMock.mockResolvedValue(0)
           spawnMock.mockReturnValue(new FakeChildProcess())
           vi.spyOn(process.stderr, 'write').mockImplementation(() => true)

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createServer, type Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeMetadata } from '../../shared/runtime-bootstrap'
 import { readServeAbortPark, writeServeAbortPark } from '../../shared/serve-abort-park'
 import { preflightElectronServe, recordElectronServeStartupAbort } from './serve-electron-preflight'
@@ -12,6 +12,11 @@ import { RuntimeClientError } from './types'
 vi.mock('./metadata', async (original) => {
   const actual = await original<typeof metadataReader>()
   return { ...actual, tryReadMetadata: vi.fn(actual.tryReadMetadata) }
+})
+
+let actualMetadata: typeof metadataReader
+beforeAll(async () => {
+  actualMetadata = await vi.importActual<typeof metadataReader>('./metadata')
 })
 
 const METADATA: RuntimeMetadata = {
@@ -196,8 +201,7 @@ describe.skipIf(process.platform === 'win32')('serve private admission snapshots
     server = undefined
     vi.restoreAllMocks()
     vi.mocked(metadataReader.tryReadMetadata).mockReset()
-    const actual = await vi.importActual<typeof metadataReader>('./metadata')
-    vi.mocked(metadataReader.tryReadMetadata).mockImplementation(actual.tryReadMetadata)
+    vi.mocked(metadataReader.tryReadMetadata).mockImplementation(actualMetadata.tryReadMetadata)
     rmSync(root, { recursive: true, force: true })
   })
   function publish(pid = 2147483647, endpoint = join(root, 'runtime.sock')) {
@@ -228,9 +232,8 @@ describe.skipIf(process.platform === 'win32')('serve private admission snapshots
       })
       server = listener
       await new Promise<void>((resolve) => listener.listen(first.transports[0].endpoint, resolve))
-      const actual = await vi.importActual<typeof metadataReader>('./metadata')
       vi.mocked(metadataReader.tryReadMetadata).mockImplementationOnce((path) => {
-        const m0 = actual.tryReadMetadata(path)
+        const m0 = actualMetadata.tryReadMetadata(path)
         if (change === 'disappeared') {
           unlinkSync(join(root, 'orca-runtime.json'))
         } else {
