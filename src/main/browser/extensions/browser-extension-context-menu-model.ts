@@ -74,9 +74,17 @@ function settleRadios(
 /** One checked item per run of adjacent radios sharing a parent (Chromium's SanitizeRadioList). */
 export function sanitizeRadioRuns(items: StoredContextMenuItem[]): StoredContextMenuItem[] {
   const result = items.map((item) => ({ ...item }))
-  const parents = new Set(result.map((item) => item.parentId ?? null))
-  for (const parent of parents) {
-    const siblings = result.filter((item) => (item.parentId ?? null) === parent)
+  const siblingsByParent = new Map<MenuItemId | null, StoredContextMenuItem[]>()
+  for (const item of result) {
+    const parent = item.parentId ?? null
+    const siblings = siblingsByParent.get(parent)
+    if (siblings) {
+      siblings.push(item)
+    } else {
+      siblingsByParent.set(parent, [item])
+    }
+  }
+  for (const siblings of siblingsByParent.values()) {
     let run: StoredContextMenuItem[] = []
     const settle = (): void => {
       if (run.length > 0) {

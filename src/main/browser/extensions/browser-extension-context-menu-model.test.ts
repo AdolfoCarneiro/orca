@@ -61,6 +61,50 @@ describe('menu item bookkeeping', () => {
       ['c', true]
     ])
   })
+
+  it('preserves interleaved parent runs when removing separators and reparenting checked radios', () => {
+    const items = build(
+      { id: 0, title: 'Number parent' },
+      { id: '0', title: 'String parent' },
+      { id: 'number-first', title: 'First', type: 'radio', parentId: -0 },
+      { id: 'string-first', title: 'First', type: 'radio', parentId: '0' },
+      { id: 'sep', type: 'separator', parentId: 0 },
+      { id: 'number-last', title: 'Last', type: 'radio', parentId: 0, checked: true },
+      { id: 'string-last', title: 'Last', type: 'radio', parentId: '0', checked: true }
+    )
+    const original = structuredClone(items)
+    const checkedRadios = (rows: StoredContextMenuItem[]) =>
+      rows.filter((item) => item.type === 'radio').map((item) => [item.id, item.checked])
+
+    const joined = removeContextMenuItem(items, 'sep')
+    expect(checkedRadios(joined)).toEqual([
+      ['number-first', true],
+      ['string-first', false],
+      ['number-last', false],
+      ['string-last', true]
+    ])
+
+    const selected = updateContextMenuItem(joined, 'number-last', { checked: true })
+    expect(checkedRadios(selected)).toEqual([
+      ['number-first', false],
+      ['string-first', false],
+      ['number-last', true],
+      ['string-last', true]
+    ])
+
+    const moved = updateContextMenuItem(selected, 'number-last', {
+      parentId: '0',
+      checked: true
+    })
+    expect(checkedRadios(moved)).toEqual([
+      ['number-first', true],
+      ['string-first', false],
+      ['number-last', true],
+      ['string-last', false]
+    ])
+    expect(moved.find((item) => item.id === 'number-last')?.parentId).toBe('0')
+    expect(items).toEqual(original)
+  })
 })
 
 describe('what a right-click shows', () => {
