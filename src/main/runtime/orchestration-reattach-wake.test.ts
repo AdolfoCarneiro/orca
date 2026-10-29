@@ -15,7 +15,7 @@ type RestoredReport = Awaited<ReturnType<typeof agentHookServer.readRestoredAgen
 
 async function reattachQuietCoordinator(
   report: RestoredReport,
-  { foreground = 'codex' }: { foreground?: string } = {}
+  { foreground = 'codex', probeDelayMs = 0 }: { foreground?: string; probeDelayMs?: number } = {}
 ) {
   const runtime = new OrcaRuntimeService(store)
   vi.spyOn(agentHookServer, 'readRestoredAgentStatus').mockResolvedValue(report)
@@ -26,14 +26,15 @@ async function reattachQuietCoordinator(
     write,
     writeWithSettlement: settledWriteStub(write),
     kill: vi.fn(),
-    getForegroundProcess: async () => foreground
+    getForegroundProcess: () =>
+      new Promise((resolve) => setTimeout(() => resolve(foreground), probeDelayMs))
   })
   syncSinglePty(runtime)
   const [terminal] = (await runtime.listTerminals()).terminals
   bindSinglePtyRun(db, terminal.handle)
   // The restarted runtime has seen no status from the surviving session.
   seedTerminalRestoreRecordsFromSpawnResult(runtime, { id: 'pty-1', isReattach: true })
-  await vi.advanceTimersByTimeAsync(0)
+  await vi.advanceTimersByTimeAsync(probeDelayMs)
   const message = db.insertMessage({ from: 'worker', to: terminal.handle, subject: 'worker_done' })
   runtime.notifyMessageArrived(terminal.handle, 'worker_done')
   // Past the readiness quiet window, so a refusal here is the gate's, not the clock's.
@@ -56,6 +57,12 @@ describe('restart wake for a quiet coordinator', () => {
     const { woken, message } = await reattachQuietCoordinator({ state: 'done' })
     expect(woken).toBe(true)
     expect(message.delivered_at).toEqual(expect.any(String))
+  })
+
+  it('waits out a slow foreground probe rather than giving up', async () => {
+    vi.useFakeTimers()
+    const { woken } = await reattachQuietCoordinator({ state: 'done' }, { probeDelayMs: 2_500 })
+    expect(woken).toBe(true)
   })
 
   it("reads the lead's own ended turn under still-running background work", async () => {
