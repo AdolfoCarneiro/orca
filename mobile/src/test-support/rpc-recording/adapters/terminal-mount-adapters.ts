@@ -1,3 +1,4 @@
+import type * as MobileTerminalOperations from '../../../terminal/mobile-terminal-operations'
 import type { MountAdapter, MountContext } from '../recording-scenario'
 import { hookMount } from '../hook-mount'
 import type { operationModuleLoader } from '../operation-module-loader'
@@ -52,9 +53,9 @@ export function terminalMountAdapters(
       }
     },
     'terminal.accessory-raw-send': ({ client }) => {
-      const { terminalInputSend } = modules.load<
-        typeof import('../../../terminal/mobile-terminal-operations')
-      >('mobile/src/terminal/mobile-terminal-operations.ts')
+      const { terminalInputSend } = modules.load<typeof MobileTerminalOperations>(
+        'mobile/src/terminal/mobile-terminal-operations.ts'
+      )
       const send = modules.load<
         typeof import('../../../terminal/terminal-live-accessory-raw-send')
       >('mobile/src/terminal/terminal-live-accessory-raw-send.ts').sendTerminalLiveAccessoryRawBytes

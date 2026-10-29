@@ -1,3 +1,4 @@
+import type * as MobileTerminalOperations from '../../../terminal/mobile-terminal-operations'
 import { hookScreenMount } from '../mounted-screen-tree'
 import { mountFixture } from '../recorder-fixture-shape'
 import type { operationModuleLoader } from '../operation-module-loader'
@@ -42,9 +43,9 @@ function mountTerminalClipboard(
   const useTerminalPaste = modules.load<
     typeof import('../../../session/use-mobile-terminal-paste')
   >('mobile/src/session/use-mobile-terminal-paste.ts').useMobileTerminalPaste
-  const { terminalInputSend } = modules.load<
-    typeof import('../../../terminal/mobile-terminal-operations')
-  >('mobile/src/terminal/mobile-terminal-operations.ts')
+  const { terminalInputSend } = modules.load<typeof MobileTerminalOperations>(
+    'mobile/src/terminal/mobile-terminal-operations.ts'
+  )
   const takeover = modules.load<typeof import('../../../terminal/worker-terminal-takeover-report')>(
     'mobile/src/terminal/worker-terminal-takeover-report.ts'
   )
@@ -150,9 +151,9 @@ function mountTerminalInputSend(
   const useDrafts = modules.load<typeof import('../../../terminal/use-buffered-terminal-drafts')>(
     'mobile/src/terminal/use-buffered-terminal-drafts.ts'
   ).useBufferedTerminalDrafts
-  const { terminalInputSend } = modules.load<
-    typeof import('../../../terminal/mobile-terminal-operations')
-  >('mobile/src/terminal/mobile-terminal-operations.ts')
+  const { terminalInputSend } = modules.load<typeof MobileTerminalOperations>(
+    'mobile/src/terminal/mobile-terminal-operations.ts'
+  )
   const takeover = modules.load<typeof import('../../../terminal/worker-terminal-takeover-report')>(
     'mobile/src/terminal/worker-terminal-takeover-report.ts'
   )
