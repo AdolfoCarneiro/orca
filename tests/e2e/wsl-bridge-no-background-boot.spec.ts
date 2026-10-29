@@ -205,6 +205,7 @@ test.describe('E9: background work on a stopped real WSL distro', () => {
     electronApp,
     orcaPage: page
   }, testInfo) => {
+    // Distro setup, an Explorer and Source Control load, a terminate, a 22.5 s idle and a boot.
     test.setTimeout(300_000)
     await waitForSessionReady(page)
     let workspace: WslWorkspace | undefined
