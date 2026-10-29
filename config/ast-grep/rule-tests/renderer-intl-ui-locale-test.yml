@@ -1,0 +1,12 @@
+id: renderer-intl-ui-locale
+valid:
+  - "new Intl.DateTimeFormat(getIntlLocale(), { month: 'short' })"
+  - 'value.toLocaleString(getIntlLocale())'
+  - "date.toLocaleDateString('en-US', { year: 'numeric' })"
+  - "new Intl.NumberFormat('en-US')"
+invalid:
+  - "new Intl.DateTimeFormat(undefined, { month: 'short' })"
+  - 'new Intl.NumberFormat()'
+  - 'value.toLocaleString()'
+  - 'new Date(at).toLocaleTimeString()'
+  - "date.toLocaleDateString(undefined, { year: 'numeric' })"

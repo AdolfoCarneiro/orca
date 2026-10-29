@@ -8,7 +8,7 @@ import {
   Trash2
 } from 'lucide-react'
 import type { PluginHostListEntry, PluginHostLogLine } from '../../../../preload/api-types'
-import { translate } from '@/i18n/i18n'
+import { getIntlLocale, translate } from '@/i18n/i18n'
 import { PluginCatalogAvatar } from '../plugin-catalog/PluginCatalogAvatar'
 import { invalidPluginErrorMessage } from './plugin-error-presentation'
 import { cn } from '@/lib/utils'
@@ -103,7 +103,7 @@ function PluginLogs({ pluginKey, state }: { pluginKey: string; state?: PluginLog
               ? state.lines
                   .map(
                     (entry) =>
-                      `${new Date(entry.ts).toLocaleTimeString()} ${entry.level.padEnd(5)} ${entry.line}`
+                      `${new Date(entry.ts).toLocaleTimeString(getIntlLocale())} ${entry.level.padEnd(5)} ${entry.line}`
                   )
                   .join('\n')
               : translate(

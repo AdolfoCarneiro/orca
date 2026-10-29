@@ -7,7 +7,7 @@ import type {
   UsageOverviewModel,
   UsageProviderOverview
 } from './usage-overview-types'
-import { translate } from '@/i18n/i18n'
+import { getIntlLocale, translate } from '@/i18n/i18n'
 
 const INTENSITY_CLASS: Record<UsageOverviewDailyPoint['intensity'], string> = {
   0: 'border-border/60 bg-muted/40',
@@ -18,7 +18,7 @@ const INTENSITY_CLASS: Record<UsageOverviewDailyPoint['intensity'], string> = {
 }
 
 function sessionCountLabel(sessions: number): string {
-  const values = { count: sessions, formatted: sessions.toLocaleString() }
+  const values = { count: sessions, formatted: sessions.toLocaleString(getIntlLocale()) }
   return sessions === 1
     ? translate(
         'auto.components.stats.usage.overview.sections.sessionCount_one',
@@ -34,7 +34,7 @@ function sessionCountLabel(sessions: number): string {
 
 function activityCountLabel(provider: UsageProviderOverview): string {
   const count = provider.activityCount
-  const values = { count, formatted: count.toLocaleString() }
+  const values = { count, formatted: count.toLocaleString(getIntlLocale()) }
   if (provider.activityLabel === 'turns') {
     return count === 1
       ? translate(
@@ -74,7 +74,7 @@ function formatDayLabel(day: string): string {
   if (Number.isNaN(parsed.getTime())) {
     return day
   }
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString(getIntlLocale(), {
     month: 'short',
     day: 'numeric'
   })
@@ -145,7 +145,7 @@ export function TokenMixBar({ overview }: { overview: UsageOverviewModel }): Rea
                   '{{value0}}: {{value1}} tokens',
                   {
                     value0: segment.label,
-                    value1: segment.value.toLocaleString()
+                    value1: segment.value.toLocaleString(getIntlLocale())
                   }
                 )}
               />
@@ -216,7 +216,7 @@ export function DailyIntensityGrid({
             aria-label={translate(
               'auto.components.stats.usage.overview.sections.32330a6e66',
               '{{value0}}: {{value1}} tokens',
-              { value0: day.day, value1: day.totalTokens.toLocaleString() }
+              { value0: day.day, value1: day.totalTokens.toLocaleString(getIntlLocale()) }
             )}
           />
         ))}

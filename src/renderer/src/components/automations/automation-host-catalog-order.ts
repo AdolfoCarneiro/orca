@@ -1,4 +1,5 @@
 import type { AutomationHostCatalogEntry } from './automation-host-catalog-types'
+import { getIntlLocale } from '@/i18n/i18n'
 
 /** Share deterministic picker/list ordering despite response order; precompute sort fields and build one Intl.Collator per rebuild. */
 
@@ -24,7 +25,7 @@ const KIND_RANK: Record<AutomationHostCatalogEntry['kind'], number> = {
 }
 
 function defaultCollator(): Intl.Collator {
-  return new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+  return new Intl.Collator(getIntlLocale(), { sensitivity: 'base', numeric: true })
 }
 
 function toSortFields(entry: AutomationHostCatalogEntry): SortFields {

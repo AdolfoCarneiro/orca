@@ -1,3 +1,4 @@
+import { getIntlLocale } from '@/i18n/i18n'
 export type CsvInspectionSort = { column: number; direction: 'ascending' | 'descending' }
 
 export function csvInspectionRows(
@@ -16,7 +17,7 @@ export function csvInspectionRows(
     }
   }
   if (sort) {
-    const collator = new Intl.Collator(undefined, { numeric: true })
+    const collator = new Intl.Collator(getIntlLocale(), { numeric: true })
     const direction = sort.direction === 'ascending' ? 1 : -1
     result.sort(
       (a, b) =>

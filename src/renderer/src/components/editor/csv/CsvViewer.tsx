@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { detectCsvDelimiter } from './csv-parse'
 import { CsvDelimiterPicker, type CsvDelimiterChoice } from './csv-delimiter-picker'
 import { CsvGrid } from './CsvGrid'
-import { translate } from '@/i18n/i18n'
+import { getIntlLocale, translate } from '@/i18n/i18n'
 import { openCsvHttpLink } from './csv-link-routing'
 import { parseCsvTextDocument } from './csv-text-document'
 import { csvInspectionRows, csvSourceRow, type CsvInspectionSort } from './csv-inspection'
@@ -210,23 +210,23 @@ export function CsvFooter({
         {rowCount === 1
           ? translate('auto.components.editor.CsvViewer.rowCount_one', '{{formatted}} row', {
               count: rowCount,
-              formatted: rowCount.toLocaleString()
+              formatted: rowCount.toLocaleString(getIntlLocale())
             })
           : translate('auto.components.editor.CsvViewer.rowCount_other', '{{formatted}} rows', {
               count: rowCount,
-              formatted: rowCount.toLocaleString()
+              formatted: rowCount.toLocaleString(getIntlLocale())
             })}
       </span>
       <span>
         {columnCount === 1
           ? translate('auto.components.editor.CsvViewer.columnCount_one', '{{formatted}} column', {
               count: columnCount,
-              formatted: columnCount.toLocaleString()
+              formatted: columnCount.toLocaleString(getIntlLocale())
             })
           : translate(
               'auto.components.editor.CsvViewer.columnCount_other',
               '{{formatted}} columns',
-              { count: columnCount, formatted: columnCount.toLocaleString() }
+              { count: columnCount, formatted: columnCount.toLocaleString(getIntlLocale()) }
             )}
       </span>
       <CsvDelimiterPicker
