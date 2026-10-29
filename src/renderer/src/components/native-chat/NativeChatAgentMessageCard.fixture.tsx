@@ -1,3 +1,4 @@
+import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 import { defineFixture } from '../../component-fixtures/component-fixture'
 import { makeTab } from '@/store/slices/store-test-helpers'
@@ -6,7 +7,6 @@ import { NativeChatAgentMessageCard } from './NativeChatAgentMessageCard'
 import { NativeChatUserMessageRow } from './NativeChatUserMessageRow'
 
 const workspace = 'agent-message-fixture'
-const pane = 'sender:11111111-1111-4111-8111-111111111111'
 const image =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAA8CAIAAADXHaAKAAAAvklEQVR4nO3SUQkAIBTAwBfUAAawP5YQhHFwAfaxWftAxnwvgIcMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSbm/mJH95bvMnAAAAABJRU5ErkJggg=='
 const prose =
@@ -27,25 +27,23 @@ function cards() {
           senders: (kind === 'generic'
             ? ['A sender on another host with a long name', null, 'Parser worker', 'Fourth sender']
             : ['Parser worker']
-          ).map((name, index) => ({
-            party: {
-              address:
-                kind === 'generic' && index === 0
-                  ? 'dispatch:missing'
-                  : kind === 'task'
-                    ? 'term_progress'
-                    : `term_sender${index || ''}`,
-              terminalHandle:
-                kind === 'generic' && index === 0
-                  ? null
-                  : kind === 'task'
-                    ? 'term_progress'
-                    : `term_sender${index || ''}`,
-              orcaSessionId: null
-            },
-            name,
-            ...(kind === 'worker' || kind === 'coordinator' ? { relation: kind } : {})
-          })),
+          ).map((name, index) => {
+            const address =
+              kind === 'generic' && index === 0
+                ? 'dispatch:missing'
+                : kind === 'task'
+                  ? 'term_progress'
+                  : `term_sender${index || ''}`
+            return {
+              party: {
+                address,
+                terminalHandle: kind === 'generic' && index === 0 ? null : address,
+                orcaSessionId: null
+              },
+              name,
+              ...(kind === 'worker' || kind === 'coordinator' ? { relation: kind } : {})
+            }
+          }),
           orchestration:
             kind === 'task'
               ? { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
@@ -94,38 +92,36 @@ function cards() {
     </div>
   )
 }
+const agentStatusByPaneKey: Record<string, AgentStatusEntry> = {}
+for (const [id, agentType, state] of [
+  ['sender', 'codex', 'done'],
+  ['progress', 'claude', 'working']
+] as const) {
+  const paneKey = `${id}:11111111-1111-4111-8111-111111111111`
+  agentStatusByPaneKey[paneKey] = {
+    paneKey,
+    worktreeId: workspace,
+    terminalHandle: `term_${id}`,
+    agentType,
+    state,
+    prompt: 'Parser worker',
+    updatedAt: 1_800_000_000_000,
+    stateStartedAt: 1_800_000_000_000,
+    stateHistory: [],
+    ...(state === 'working'
+      ? { programStatus: { state, progress: 40, observedAt: 1_800_000_000_000 } }
+      : {})
+  }
+}
 const store = {
   activeWorktreeId: workspace,
   activeWorkspaceExecutionHostId: 'local' as const,
   tabsByWorktree: {
     [workspace]: ['sender', 'progress'].map((id) => makeTab({ id, worktreeId: workspace }))
   },
-  agentStatusByPaneKey: {
-    [pane]: {
-      paneKey: pane,
-      worktreeId: workspace,
-      terminalHandle: 'term_sender',
-      agentType: 'codex' as const,
-      state: 'done' as const,
-      prompt: 'Parser worker',
-      updatedAt: 1_800_000_000_000,
-      stateStartedAt: 1_800_000_000_000,
-      stateHistory: []
-    },
-    'progress:11111111-1111-4111-8111-111111111111': {
-      paneKey: 'progress:11111111-1111-4111-8111-111111111111',
-      worktreeId: workspace,
-      terminalHandle: 'term_progress',
-      agentType: 'claude' as const,
-      state: 'working' as const,
-      prompt: 'Parser worker',
-      updatedAt: 1_800_000_000_000,
-      stateStartedAt: 1_800_000_000_000,
-      stateHistory: [],
-      programStatus: { state: 'working' as const, progress: 40, observedAt: 1_800_000_000_000 }
-    }
-  }
+  agentStatusByPaneKey
 }
+
 export const wide = defineFixture({ width: 720, store, render: cards })
 export const narrow = defineFixture({ width: 340, store, render: cards })
 export const expanded = defineFixture({
