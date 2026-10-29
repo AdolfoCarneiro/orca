@@ -15714,7 +15714,8 @@
         },
         "richMarkdownImageInsertionFeedback": {
           "importedFileKept": "Image insertion canceled because the destination changed. The imported file was kept.",
-          "destinationChanged": "Image insertion canceled because the destination changed. Try again."
+          "destinationChanged": "Image insertion canceled because the destination changed. Try again.",
+          "importing": "Importing images..."
         },
         "useMarkdownDocuments": {
           "listFailed": "Failed to list Markdown documents."

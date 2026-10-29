@@ -16,6 +16,7 @@ import { captureRichMarkdownImageInsertionTarget } from './rich-markdown-image-i
 import { richMarkdownClipboardInsertionOrderKey } from './rich-markdown-clipboard-insertion-order'
 import { extractIpcErrorMessage } from './rich-markdown-ipc-error-message'
 import { inspectRichMarkdownSourceOwningSlice } from './rich-markdown-source-owning-slice'
+import { showRichMarkdownImageInsertionProgress } from './rich-markdown-image-insertion-feedback'
 
 export function handleRichMarkdownBlobImagePaste({
   editor,
@@ -84,6 +85,7 @@ export function handleRichMarkdownBlobImagePaste({
             assertTargetCurrent
           )
         : assertTargetCurrent
+    showRichMarkdownImageInsertionProgress(signal)
     // Accepted fetches must start before source owners can revoke their object URLs.
     const responses = Promise.all([...sources].map((src) => fetch(src, { signal })))
     void importBlobImages(responses, [...sources], destination, { assertCurrent, signal })

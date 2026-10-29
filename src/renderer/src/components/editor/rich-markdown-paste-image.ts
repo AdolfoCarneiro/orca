@@ -7,7 +7,10 @@ import { requireRuntimeTargetForFileOwner } from '@/lib/file-owner-runtime-targe
 import { extractIpcErrorMessage } from './rich-markdown-ipc-error-message'
 import { insertRichMarkdownImageFromPath } from './rich-markdown-image-insert'
 import { captureRichMarkdownImageInsertionTarget } from './rich-markdown-image-insertion-target'
-import { showRichMarkdownImageInsertionCanceled } from './rich-markdown-image-insertion-feedback'
+import {
+  showRichMarkdownImageInsertionCanceled,
+  showRichMarkdownImageInsertionProgress
+} from './rich-markdown-image-insertion-feedback'
 import { handleRichMarkdownBlobImagePaste } from './rich-markdown-blob-image-paste'
 
 export type RichMarkdownImagePasteArgs = {
@@ -54,6 +57,7 @@ export function handleRichMarkdownImagePaste({
     return true
   }
 
+  showRichMarkdownImageInsertionProgress(target.signal)
   void saveClipboardImageForMarkdownPaste(worktreeId, runtimeEnvironmentId)
     .then((sourcePath) => {
       if (!sourcePath) {

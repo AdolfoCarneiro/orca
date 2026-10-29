@@ -14,3 +14,28 @@ export function showRichMarkdownImageInsertionCanceled(importedFileKept = false)
         )
   )
 }
+
+export function showRichMarkdownImageInsertionProgress(signal: AbortSignal): void {
+  if (signal.aborted) {
+    return
+  }
+  let toastId: ReturnType<typeof toast.loading> | undefined
+  const timer = setTimeout(() => {
+    toastId = toast.loading(
+      translate(
+        'auto.components.editor.richMarkdownImageInsertionFeedback.importing',
+        'Importing images...'
+      )
+    )
+  }, 200)
+  signal.addEventListener(
+    'abort',
+    () => {
+      clearTimeout(timer)
+      if (toastId !== undefined) {
+        toast.dismiss(toastId)
+      }
+    },
+    { once: true }
+  )
+}
