@@ -6961,7 +6961,7 @@
       "src/renderer/src/components/SelectedTextCopyMenu.test.tsx": 199,
       "src/renderer/src/components/StarNagCard.test.tsx": 272,
       "src/renderer/src/components/StateIndicatorTooltip.test.tsx": 67,
-      "src/renderer/src/components/TaskPageJiraFavouriteFilters.test.tsx": 1600,
+      "src/renderer/src/components/task-page/jira/TaskPageJiraFavouriteFilters.test.tsx": 1600,
       "src/renderer/src/components/TaskPageJiraSavedFilters.test.tsx": 1020,
       "src/renderer/src/components/task-page/jira/TaskPageJiraStatusFilters.test.tsx": 686,
       "src/renderer/src/components/TerminalSearch.test.tsx": 361,

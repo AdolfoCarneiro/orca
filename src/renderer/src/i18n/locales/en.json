@@ -5037,9 +5037,6 @@
             },
             "mainWorktree": "main worktree",
             "detached": "detached"
-          },
-          "PluginsStatusSegment": {
-            "label": "Plugins"
           }
         }
       },
@@ -18908,7 +18905,7 @@
         },
         "list": {
           "PluginsSectionDescription": {
-            "openWith": "Open anytime with"
+            "openWith": "Open with (when focus is not in an editable field)"
           }
         }
       }
@@ -19756,10 +19753,10 @@
         "messageFrom": "Message from",
         "unnamedSender": "an agent",
         "goToAgent": "Go to agent",
-        "messageFromCoordinator": "Message from your coordinator",
+        "messageFromCoordinator": "Message from coordinator",
         "showMore": "Show more",
-        "taskFromCoordinator": "Task from your coordinator",
-        "updateFromWorker": "Update from your worker"
+        "taskFromCoordinator": "Task from coordinator",
+        "updateFromWorker": "Update from worker"
       },
       "goal": {
         "placeholder": "Describe your goal, define measurable outcomes for best results",
