@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import { isEditorAnchorVisible, observeAnchorAncestorVisibility } from './editor-anchor-visibility'
 
 // Portaled editor overlays outlive a hidden editor (inactive tab or workspace), so close them instead.
@@ -6,8 +6,7 @@ export function useDismissWhenEditorHidden(
   editorRoot: HTMLElement | null,
   onDismiss: () => void
 ): void {
-  const onDismissRef = useRef(onDismiss)
-  onDismissRef.current = onDismiss
+  const dismiss = useEffectEvent(onDismiss)
 
   useEffect(() => {
     if (!editorRoot) {
@@ -15,7 +14,7 @@ export function useDismissWhenEditorHidden(
     }
     const dismissIfHidden = (): void => {
       if (!isEditorAnchorVisible(editorRoot)) {
-        onDismissRef.current()
+        dismiss()
       }
     }
     const mutationObserver = new MutationObserver(dismissIfHidden)
