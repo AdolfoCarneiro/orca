@@ -1,10 +1,11 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { vi } from 'vitest'
+import { vi, type Mock } from 'vitest'
 import { createTrackedJournalOpener } from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import {
   createDeferredStructuredAgentSessionEventSink,
+  type StructuredAgentSessionEventTarget,
   type StructuredAgentSessionSinkWatermarks
 } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import { testEventSinkLogging } from '../native-chat/agent-session-wire/structured-agent-session-logger-test-support'
@@ -40,7 +41,8 @@ export async function checkpointJournalRig(
     ...testEventSinkLogging('recovery'),
     watermarks: options.watermarks
   })
-  const publish = vi.fn()
+  const publish: Mock<StructuredAgentSessionEventTarget['publish']> =
+    vi.fn<StructuredAgentSessionEventTarget['publish']>()
   const bind = () => deferred.bind({ journal, fence: 1, publish })
   if (!options.unbound) {
     bind()
