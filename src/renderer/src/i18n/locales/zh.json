@@ -11393,9 +11393,7 @@
           "installing": "正在安装…",
           "reviewLabel": "审核并安装 {{value0}}",
           "review": "审核并安装",
-          "retry": "重试",
-          "disable": "禁用",
-          "enable": "启用"
+          "retry": "重试"
         },
         "PluginSettingsRow": {
           "loadingLogs": "正在加载日志…",
@@ -12530,15 +12528,13 @@
           "offTitle": "插件已关闭"
         },
         "PluginFilterPopover": {
-          "label": "筛选插件",
           "kind": "类别",
           "catalog": "目录",
           "clear": "清除筛选",
           "themes": "主题",
           "languages": "语言",
           "icons": "图标",
-          "commands": "命令和面板",
-          "machines": "机器和配方"
+          "commands": "命令和面板"
         },
         "PluginUpdateAllDialog": {
           "previewError": "无法读取此更新",
@@ -12593,10 +12589,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "仅在需要新访问权限时再次询问"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "上一组已安装插件",
-          "next": "下一组已安装插件"
         },
         "PluginInUseAction": {
           "inUseDark": "使用中 · 深色",
@@ -20880,7 +20872,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca 中的 Codex 现在使用 ~/.codex",
-      "description": "Codex 可能会再次要求信任文件夹或批准命令。重新添加您仅在 Orca 中添加的所有 MCP 服务器。"
+      "description": "Codex 可能会再次要求信任文件夹或批准命令。重新添加您仅在 Orca 中添加的所有 MCP 服务器。",
+      "dismiss": "关闭"
     },
     "codexSharedServerBanner": {
       "title": "此 Codex 与您的其他 Codex 选项卡共享服务器",

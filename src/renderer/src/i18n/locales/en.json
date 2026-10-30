@@ -5040,6 +5040,9 @@
             },
             "mainWorktree": "main worktree",
             "detached": "detached"
+          },
+          "PluginsStatusSegment": {
+            "label": "Plugins"
           }
         }
       },
@@ -7853,6 +7856,7 @@
           "7801ac08ec": "Computer Use permissions are only required on macOS",
           "740766c291": "Computer Use setup is already complete",
           "697005758f": "Opened macOS Privacy & Security",
+          "794807aa21": "Queued macOS Privacy & Security; a newer request or a reset may replace it",
           "2168fa5ab0": "Could not load Computer Use permissions",
           "0c9a33f468": "Capture app windows so agents can inspect visual state.",
           "07bbe4c4cb": "Screenshots",
@@ -11959,7 +11963,8 @@
             "terminalRun": "Run commands in your terminals, including SSH"
           },
           "decisionFailed": "Could not save the permission decision. Try again.",
-          "fullAccessWarning": "Full access: runs as a normal program and can read your files, use the network and run other programs."
+          "fullAccessWarning": "Full access: runs as a normal program and can read your files, use the network and run other programs.",
+          "uiWarning": "Runs the publisher's code inside Orca to draw its view. Orca shows what it can access and asks before enabling it."
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -13097,7 +13102,10 @@
           "browseAll": "Browse all plugins",
           "resultCount": "{{value0}} plugins match",
           "resultCountOne": "1 plugin matches",
-          "updateAll": "Update all…"
+          "updateAll": "Update all…",
+          "notFromCatalog": "not from a catalog",
+          "allInstalledTitle": "Every catalog plugin is installed",
+          "showInstalled": "Show installed plugins"
         },
         "PluginDetailPage": {
           "bundled": "Bundled with Orca",
@@ -13179,7 +13187,6 @@
           "offTitle": "Plugins are off"
         },
         "PluginFilterPopover": {
-          "label": "Filter plugins",
           "kind": "Category",
           "catalog": "Catalog",
           "clear": "Clear filters",
@@ -13187,7 +13194,9 @@
           "languages": "Languages",
           "icons": "Icons",
           "commands": "Commands & panels",
-          "machines": "Machines & recipes"
+          "catalogLabel": "Filter by catalog",
+          "editors": "Editors",
+          "remoteVms": "Remote/VMs"
         },
         "PluginUpdateAllDialog": {
           "previewError": "Couldn’t read this update",
@@ -13238,9 +13247,7 @@
           "installing": "Installing…",
           "reviewLabel": "Review and install {{value0}}",
           "review": "Review & install",
-          "retry": "Try again",
-          "disable": "Disable",
-          "enable": "Enable"
+          "retry": "Try again"
         },
         "PluginInstallConsent": {
           "install": "Install & enable",
@@ -13279,7 +13286,9 @@
           "addsPanel": "Adds a panel",
           "contentOnly": "Content only",
           "fullAccess": "Full access",
-          "addsEditor": "Adds an editor"
+          "addsVmRecipes": "Adds VM recipes",
+          "opensAndEditsFiles": "Opens and edits files",
+          "runsPluginCode": "Runs plugin code"
         },
         "PluginContributionActionCommand": {
           "run": "Run",
@@ -13327,12 +13336,6 @@
           "updateNeedsReview": "Update needs review",
           "updatedTo": "Updated to {{value0}}",
           "devUnverified": "Dev · unverified"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "Previous installed plugins",
-          "next": "Next installed plugins",
-          "heading": "Installed",
-          "seeAllCount": "See all {{value0}}"
         },
         "PluginInUseAction": {
           "inUseDark": "In use · Dark",
@@ -16403,6 +16406,9 @@
           "0e8489bc11": "Markdown document links",
           "showingOfTotal": "Showing {{shown}} of {{total}}"
         },
+        "RichMarkdownEmojiMenu": {
+          "chooseEmoji": "Choose an emoji"
+        },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "Retry",
           "4a5de9f2f0": "Switch to source mode, or click retry to reload the rich view.",
@@ -16864,6 +16870,9 @@
           "tooLarge": "{{value0}} is too large to open in {{value1}} ({{value2}}; the limit is {{value3}}).",
           "unsupported": "{{value0}} can't read this file from where it is stored. Update the Orca server that hosts it, or switch to Source.",
           "readFailed": "{{value0}} couldn't be read for {{value1}}. {{value2}}"
+        },
+        "richMarkdownBlobImagePaste": {
+          "saveFailed": "Couldn't save a pasted image beside the document. It may not load after Orca restarts."
         }
       },
       "diff": {
@@ -18459,7 +18468,8 @@
           "searchLabel": "Search plugins",
           "searchPlaceholder": "Search plugins",
           "updates": "Updates",
-          "clearSearch": "Clear search"
+          "clearSearch": "Clear search",
+          "notInstalled": "Not installed"
         },
         "PluginListGroup": {
           "showAll": "Show {{value0}} more",
@@ -18902,6 +18912,11 @@
           "cancel": "Cancel",
           "add": "Add catalog",
           "body": "A link asked to show {{value0}} from this catalog. Add catalogs only from people you trust."
+        },
+        "list": {
+          "PluginsSectionDescription": {
+            "openWith": "Open anytime with"
+          }
         }
       }
     },
@@ -21210,7 +21225,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Codex in Orca now uses ~/.codex",
-      "description": "Codex may ask again to trust folders or approve commands. Re-add any MCP servers you added only in Orca."
+      "description": "Codex may ask again to trust folders or approve commands. Re-add any MCP servers you added only in Orca.",
+      "dismiss": "Dismiss"
     },
     "codexSharedServerBanner": {
       "title": "This Codex is sharing a server with your other Codex tabs",
@@ -22385,7 +22401,8 @@
       "terminalSplitDown": "Split terminal down",
       "terminalSwitchInputSource": "Switch input source / language (native)",
       "newAgentTab": "New {{agent}} tab",
-      "tabNewBrowserSplitRight": "New browser tab in right split"
+      "tabNewBrowserSplitRight": "New browser tab in right split",
+      "viewPlugins": "Open Plugins"
     },
     "group": {
       "global": "Global",

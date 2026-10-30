@@ -11393,9 +11393,7 @@
           "installing": "설치 중…",
           "reviewLabel": "{{value0}} 검토 후 설치",
           "review": "검토 후 설치",
-          "retry": "다시 시도",
-          "disable": "비활성화",
-          "enable": "활성화"
+          "retry": "다시 시도"
         },
         "PluginSettingsRow": {
           "loadingLogs": "로그 로딩 중…",
@@ -12497,15 +12495,13 @@
           "offTitle": "플러그인이 꺼져 있습니다"
         },
         "PluginFilterPopover": {
-          "label": "플러그인 필터",
           "kind": "카테고리",
           "catalog": "카탈로그",
           "clear": "필터 지우기",
           "themes": "테마",
           "languages": "언어",
           "icons": "아이콘",
-          "commands": "명령 및 패널",
-          "machines": "머신 및 레시피"
+          "commands": "명령 및 패널"
         },
         "PluginUpdateAllDialog": {
           "previewError": "이 업데이트를 읽지 못했습니다",
@@ -12560,10 +12556,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "새 접근 권한이 있을 때만 다시 묻습니다"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "이전 설치된 플러그인",
-          "next": "다음 설치된 플러그인"
         },
         "PluginInUseAction": {
           "inUseDark": "사용 중 · 다크",
@@ -20879,7 +20871,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca의 Codex는 이제 ~/.codex를 사용합니다",
-      "description": "Codex는 폴더를 신뢰하거나 명령을 승인하도록 다시 요청할 수 있습니다. ORCA에서만 추가한 MCP 서버를 다시 추가합니다."
+      "description": "Codex는 폴더를 신뢰하거나 명령을 승인하도록 다시 요청할 수 있습니다. ORCA에서만 추가한 MCP 서버를 다시 추가합니다.",
+      "dismiss": "닫기"
     },
     "codexSharedServerBanner": {
       "title": "이 Codex는 다른 Codex 탭과 서버를 공유합니다",
