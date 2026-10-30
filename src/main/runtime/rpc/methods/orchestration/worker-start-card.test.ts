@@ -529,14 +529,15 @@ it.each([10, 100])(
       }
     }
     let tabVisits = 0
-    session.tabsByWorktree['workspace-1'] = new Proxy(tabs, {
-      get(target, key, receiver) {
-        if (typeof key === 'string' && /^\d+$/.test(key)) {
+    tabs.forEach((tab, index) => {
+      Object.defineProperty(tabs, index, {
+        get() {
           tabVisits++
+          return tab
         }
-        return Reflect.get(target, key, receiver)
-      }
+      })
     })
+    session.tabsByWorktree['workspace-1'] = tabs
     vi.mocked(runtime.getTerminalPaneKey).mockImplementation(
       (handle) => runtime.handles.get(handle)?.issuedForPaneKey ?? null
     )

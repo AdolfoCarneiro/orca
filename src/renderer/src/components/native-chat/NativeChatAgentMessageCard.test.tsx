@@ -560,13 +560,14 @@ it.each([10, 100])(
       page
     })
     const readRows = () => {
-      const counted = new Proxy(state.items, {
-        get(target, key, receiver) {
-          if (typeof key === 'string' && /^\d+$/.test(key)) {
+      const counted = state.items.slice()
+      counted.forEach((item, index) => {
+        Object.defineProperty(counted, index, {
+          get() {
             listVisits++
+            return item
           }
-          return Reflect.get(target, key, receiver)
-        }
+        })
       })
       return projection.messages(counted).filter(({ agentStart }) => agentStart)
     }
