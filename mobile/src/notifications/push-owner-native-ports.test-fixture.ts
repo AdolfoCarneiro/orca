@@ -19,7 +19,7 @@ type Ports = {
   metadataReads: number
   metadataWrites: number
 }
-export const ports = vi.hoisted((): Ports => ({
+const ports = vi.hoisted((): Ports => ({
   storage: new Map(),
   keys: new Map(),
   fault: '',
@@ -121,3 +121,7 @@ vi.mock('./push-token', () => ({
     }
   }
 }))
+
+export function pushOwnerNativePorts(): Ports {
+  return ports
+}

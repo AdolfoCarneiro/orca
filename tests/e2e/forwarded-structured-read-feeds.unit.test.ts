@@ -368,7 +368,8 @@ it('leaves old records unheld and invokes the production resume projection for s
     ])
   ).toHaveLength(1)
   const refresh = vi.spyOn(controller, 'refreshForwardedEnvironments')
-  const resume = vi.mocked(powerMonitor.on).mock.calls.find(([name]) => name === 'resume')?.[1]
+  const powerCalls: readonly (readonly unknown[])[] = vi.mocked(powerMonitor.on).mock.calls
+  const resume = powerCalls.find(([name]) => name === 'resume')?.[1]
   if (typeof resume !== 'function') {
     throw new Error('resume handler missing')
   }

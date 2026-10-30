@@ -543,7 +543,8 @@ it.each(['records', 'consent'] as const)(
     expect(requests).toHaveLength(1)
     expect(requests[0]).toMatchObject([
       'notifications.registerPush',
-      { token: t2.token, filter: { sound: false, onlyWhenDesktopAway: false } }
+      { token: t2.token, filter: { sound: false, onlyWhenDesktopAway: false } },
+      { failWhenDisconnected: true, timeoutMs: 5000 }
     ])
     detach()
   }
