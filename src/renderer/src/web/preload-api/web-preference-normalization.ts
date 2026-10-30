@@ -1,6 +1,9 @@
 import { isAgentChatPermissionMode } from '../../../../shared/agent-chat-permission-mode'
 import { normalizeNativeChatAppearanceSettings } from '../../../../shared/native-chat/native-chat-appearance-settings'
-import { carriedNativeChatProviderChoices } from '../../../../shared/native-chat/native-chat-providers'
+import {
+  normalizeAgentDefaultSurface,
+  carriedChatUiLaunchSettings
+} from '../../../../shared/native-chat/native-chat-providers'
 import { normalizeAutoRenameBranchFromWorkDefaultOn } from '../../../../shared/auto-rename-branch-from-work-settings'
 import {
   getDefaultSettings,
@@ -186,11 +189,10 @@ function carryChatUiChoices(stored: Partial<GlobalSettings> & RetiredWebSettings
   if (!Object.hasOwn(stored, 'experimentalNativeChat')) {
     return {}
   }
-  const choices = carriedNativeChatProviderChoices(
+  return carriedChatUiLaunchSettings(
     stored.nativeChatProviders,
     stored.experimentalNativeChat === true
   )
-  return Object.keys(choices).length > 0 ? { nativeChatProviders: choices } : {}
 }
 
 /** Move legacy browser-saved permission flags so stored defaults cannot duplicate them; missing keys used the shipped default. */
@@ -242,6 +244,11 @@ export function mergeSettings(
       : (base.activeRuntimeEnvironmentId ?? null),
     terminalCustomThemes: normalizeTerminalCustomThemes(
       updates.terminalCustomThemes ?? base.terminalCustomThemes
+    ),
+    agentDefaultSurface: normalizeAgentDefaultSurface(
+      Object.hasOwn(updates, 'agentDefaultSurface')
+        ? updates.agentDefaultSurface
+        : base.agentDefaultSurface
     ),
     nativeChatAppearance: normalizeNativeChatAppearanceSettings(
       Object.hasOwn(updates, 'nativeChatAppearance')

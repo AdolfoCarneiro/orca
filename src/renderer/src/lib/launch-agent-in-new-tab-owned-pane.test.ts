@@ -10,6 +10,7 @@ it.each([undefined, null, '--model gpt-5.5'])(
       const beforeSurfaceOpen = vi.fn(() => true)
       const delivered = vi.fn()
       const outcome = launchAgentInNewTabWithOutcome({
+        requestId: 'owned-caller',
         agent: 'codex',
         worktreeId: 'wt-1',
         groupId: 'requested-split',

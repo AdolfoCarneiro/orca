@@ -147,6 +147,7 @@ export type RuntimeStore = {
     followSymlinkedDirectories?: GlobalSettings['followSymlinkedDirectories']
     tabAutoGenerateTitle?: GlobalSettings['tabAutoGenerateTitle']
     terminalCopyTrimsGutter?: GlobalSettings['terminalCopyTrimsGutter']
+    agentDefaultSurface?: GlobalSettings['agentDefaultSurface']
     nativeChatProviders?: GlobalSettings['nativeChatProviders']
     defaultTaskSource?: GlobalSettings['defaultTaskSource']
     defaultTaskViewPreset?: GlobalSettings['defaultTaskViewPreset']

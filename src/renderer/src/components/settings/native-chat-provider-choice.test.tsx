@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createGlobalSettingsFixture } from '../../../../shared/global-settings-test-fixture'
 import { AgentDefaultSetting } from './AgentDefaultSetting'
-import { buildDefaultAgentOpensAs } from './native-chat-provider-choice'
+import {
+  saveNativeChatProviderChoice,
+  buildDefaultAgentOpensAs
+} from './native-chat-provider-choice'
 
 const store = vi.hoisted((): { settings: unknown } => ({ settings: null }))
 vi.mock('../../store', () => ({ useAppStore: { getState: () => store } }))
@@ -44,7 +47,7 @@ describe('default agent chat or CLI', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'CLI' }))
     await vi.waitFor(() =>
       expect(updateSettings).toHaveBeenCalledWith({
-        nativeChatProviders: { codex: false, claude: false }
+        nativeChatProviders: { codex: false }
       })
     )
   })
@@ -55,3 +58,34 @@ describe('default agent chat or CLI', () => {
     expect(group.querySelector('[aria-checked="true"]')?.textContent).toBe('CLI')
   })
 })
+
+it.each(['chat', 'terminal'] as const)(
+  'stores only opposite overrides to default %s and retains saved IDs',
+  async (agentDefaultSurface) => {
+    const settings = createGlobalSettingsFixture({
+      agentDefaultSurface,
+      nativeChatProviders: { 'saved-agent': true, codex: false }
+    })
+    store.settings = settings
+    const updateSettings = vi.fn()
+    const write = (on: boolean) =>
+      saveNativeChatProviderChoice({
+        agent: 'claude',
+        on,
+        fallbackSettings: settings,
+        updateSettings
+      })
+    await write(agentDefaultSurface !== 'chat')
+    expect(updateSettings).toHaveBeenLastCalledWith({
+      nativeChatProviders: {
+        'saved-agent': true,
+        codex: false,
+        claude: agentDefaultSurface !== 'chat'
+      }
+    })
+    await write(agentDefaultSurface === 'chat')
+    expect(updateSettings).toHaveBeenLastCalledWith({
+      nativeChatProviders: { 'saved-agent': true, codex: false }
+    })
+  }
+)

@@ -4,7 +4,7 @@ import {
   parseChatUiLaunchTipAudience,
   type ChatUiLaunchTipAudience
 } from '../../../shared/native-chat/chat-ui-launch-tip-audience'
-import { carriedNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
+import { carriedChatUiLaunchSettings } from '../../../shared/native-chat/native-chat-providers'
 import { savedChatUiWithTerminalDefaultView } from '../applying-settings/terminal-settings-migrations'
 
 import type { StoreRuntimeState } from './store-runtime-state'
@@ -68,15 +68,12 @@ export class LoadedCohortMigrationOperations {
       return state
     }
     const saved = isRecord(savedProfile.settings) ? savedProfile.settings : undefined
-    const choices = carriedNativeChatProviderChoices(
+    const launchSettings = carriedChatUiLaunchSettings(
       saved?.nativeChatProviders,
       audience.basis === 'chat-ui-on'
     )
-    if (Object.keys(choices).length === 0) {
-      return state
-    }
     this.runtime.loadNeedsSave = true
-    return { ...state, settings: { ...state.settings, nativeChatProviders: choices } }
+    return { ...state, settings: { ...state.settings, ...launchSettings } }
   }
 
   migrateTelemetry(state: PersistedState, fileExistedOnLoad: boolean): PersistedState {

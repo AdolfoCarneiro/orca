@@ -1,3 +1,4 @@
+import { normalizeAgentDefaultSurface } from '../../../shared/native-chat/native-chat-providers'
 import { normalizeNativeChatAppearanceSettings } from '../../../shared/native-chat/native-chat-appearance-settings'
 import { getDefaultVoiceSettings } from '../../../shared/constants'
 import { normalizePRBotAuthorOverrides } from '../../../shared/pr-bot-author-overrides'
@@ -67,6 +68,7 @@ export function normalizeLoadedGlobalSettings(
     ...defaults.settings,
     // Legacy stored booleans cannot distinguish opt-in from the old default; retain explicit true.
     ...expandWorkspaceDirHome(stripRetiredGlobalSettings(parsed.settings)),
+    agentDefaultSurface: normalizeAgentDefaultSurface(parsed.settings?.agentDefaultSurface),
     nativeChatAppearance: normalizeNativeChatAppearanceSettings(
       parsed.settings?.nativeChatAppearance
     ),

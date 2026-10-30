@@ -15,7 +15,7 @@ import {
 } from './local-structured-chats'
 
 const SETTING_OFF = {}
-const SETTING_ON = { nativeChatProviders: { claude: true } }
+const SETTING_ON = { agentDefaultSurface: 'chat' as const, nativeChatProviders: { claude: false } }
 
 beforeEach(() => {
   vi.clearAllMocks()

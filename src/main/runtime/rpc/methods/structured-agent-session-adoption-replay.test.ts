@@ -1,4 +1,3 @@
-import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import type { AgentProcessVerdict } from '../../../../shared/agent-process-presence'
 import { AGENT_SESSION_CREATE_MESSAGE_RUNTIME_CAPABILITY } from '../../../../shared/agent-session-create-capabilities'
 import '../unused-default-rpc-methods.test-fixture'
@@ -213,12 +212,6 @@ describe('committed adopting create RPC replay', () => {
     const sourceRows = vi
       .spyOn(runtime, 'getAgentProviderSessionRows')
       .mockImplementation(() => rows)
-    // The structured surface is settings-gated for every caller, not just mobile; this test
-    // probes durable-identity replay, which only runs once the gate admits the call.
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The RPC gate reads only this setting from the test double.
-    vi.spyOn(runtime, 'getClientSettings').mockReturnValue({
-      nativeChatProviders: EVERY_AGENT_CHAT
-    } as ReturnType<OrcaRuntimeService['getClientSettings']>)
     vi.spyOn(runtime, 'getStructuredAgentSessionCreateSupport').mockResolvedValue({
       supported: true
     })

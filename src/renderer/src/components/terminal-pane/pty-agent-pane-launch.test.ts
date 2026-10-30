@@ -1,22 +1,22 @@
-import { ptyIncarnationById, ptyOwnership } from './provider/ownership-state'
-import { createLaunchRaceRuntime } from './pty-launch-race-test-fixture'
+import { ptyIncarnationById, ptyOwnership } from '../../../../main/ipc/pty/provider/ownership-state'
+import { createLaunchRaceRuntime } from '../../../../main/ipc/pty/pty-launch-race-test-fixture'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
-import type { AgentPaneLaunchRequest } from '../../../shared/agent-pane-launch-request'
-import { setupPtyIpcSuite } from './pty-ipc-test-harness'
-import { classifyErrorMock, statSyncMock } from './pty-ipc-mock-registry'
-import { registerPtyHandlers } from './register-handlers'
+import type { AgentPaneLaunchRequest } from '../../../../shared/agent-pane-launch-request'
+import { setupPtyIpcSuite } from '../../../../main/ipc/pty/pty-ipc-test-harness'
+import { classifyErrorMock, statSyncMock } from '../../../../main/ipc/pty/pty-ipc-mock-registry'
+import { registerPtyHandlers } from '../../../../main/ipc/pty/register-handlers'
 import {
   isAgentLaunchRunningIn,
   markAgentLaunchesClosedByUser,
   resetAgentLaunchPanesForTests
-} from '../../agent-launch/agent-launch-pane-attachment'
-import { AGENT_LAUNCH_PANE_REFUSED_CODE } from '../../../shared/agent-launch-pane-verdict'
-import { makePaneKey } from '../../../shared/stable-pane-id'
+} from '../../../../main/agent-launch/agent-launch-pane-attachment'
+import { AGENT_LAUNCH_PANE_REFUSED_CODE } from '../../../../shared/agent-launch-pane-verdict'
+import { makePaneKey } from '../../../../shared/stable-pane-id'
 import {
   makePaneSpawnReservationKey,
   paneSpawnReservationsByOwnerKey
-} from './pane/spawn-reservation'
-import { acquireWatcherRemovalGate } from '../watcher-removal-gate'
+} from '../../../../main/ipc/pty/pane/spawn-reservation'
+import { acquireWatcherRemovalGate } from '../../../../main/ipc/watcher-removal-gate'
 
 const renderer = vi.hoisted(() => {
   const ptyIdsByTabId: Record<string, string[]> = {}
@@ -62,51 +62,81 @@ vi.mock('@/lib/agent-ready-wait', () => ({ waitForAgentReady: async () => ({ rea
 vi.mock('@/lib/telemetry', () => ({ track: vi.fn(), tuiAgentToAgentKind: () => 'claude' }))
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), message: vi.fn() } }))
 
-vi.mock('electron', () => import('./pty-ipc-mock-registry').then((m) => m.electronModuleMock()))
-vi.mock('fs', () => import('./pty-ipc-mock-registry').then((m) => m.fsModuleMock()))
+vi.mock('electron', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.electronModuleMock())
+)
+vi.mock('fs', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.fsModuleMock())
+)
 vi.mock('node:fs/promises', async (importOriginal) =>
-  (await import('./pty-ipc-mock-registry')).fsPromisesModuleMock(await importOriginal())
+  (await import('../../../../main/ipc/pty/pty-ipc-mock-registry')).fsPromisesModuleMock(
+    await importOriginal()
+  )
 )
-vi.mock('node-pty', () => import('./pty-ipc-mock-registry').then((m) => m.nodePtyModuleMock()))
+vi.mock('node-pty', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.nodePtyModuleMock())
+)
 vi.mock('node:child_process', async (importOriginal) =>
-  (await import('./pty-ipc-mock-registry')).childProcessModuleMock(await importOriginal())
+  (await import('../../../../main/ipc/pty/pty-ipc-mock-registry')).childProcessModuleMock(
+    await importOriginal()
+  )
 )
-vi.mock('../../opencode/hook-service', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.openCodeHookServiceModuleMock())
+vi.mock('../../../../main/opencode/hook-service', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.openCodeHookServiceModuleMock()
+  )
 )
-vi.mock('../../mimo/hook-service', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.mimoHookServiceModuleMock())
+vi.mock('../../../../main/mimo/hook-service', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.mimoHookServiceModuleMock()
+  )
 )
-vi.mock('../../agent-hooks/server', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.agentHookServerModuleMock())
+vi.mock('../../../../main/agent-hooks/server', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.agentHookServerModuleMock()
+  )
 )
-vi.mock('../../pi/titlebar-extension-service', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.piTitlebarExtensionModuleMock())
+vi.mock('../../../../main/pi/titlebar-extension-service', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.piTitlebarExtensionModuleMock()
+  )
 )
-vi.mock('../../pwsh', () => import('./pty-ipc-mock-registry').then((m) => m.pwshModuleMock()))
-vi.mock('../../wsl', async (importOriginal) =>
-  (await import('./pty-ipc-mock-registry')).wslModuleMock(await importOriginal())
+vi.mock('../../../../main/pwsh', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.pwshModuleMock())
 )
-vi.mock('../../telemetry/client', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.telemetryClientModuleMock())
+vi.mock('../../../../main/wsl', async (importOriginal) =>
+  (await import('../../../../main/ipc/pty/pty-ipc-mock-registry')).wslModuleMock(
+    await importOriginal()
+  )
 )
-vi.mock('../../telemetry/classify-error', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.classifyErrorModuleMock())
+vi.mock('../../../../main/telemetry/client', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.telemetryClientModuleMock()
+  )
 )
-vi.mock('../../cli/linux-terminal-orca-cli-shim', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.linuxCliShimModuleMock())
+vi.mock('../../../../main/telemetry/classify-error', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.classifyErrorModuleMock())
 )
-vi.mock('../../memory/pty-registry', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.ptyRegistryModuleMock())
+vi.mock('../../../../main/cli/linux-terminal-orca-cli-shim', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.linuxCliShimModuleMock())
 )
-vi.mock('../../agent-hooks/migration-unsupported-pty-state', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.migrationUnsupportedPtyModuleMock())
+vi.mock('../../../../main/memory/pty-registry', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) => m.ptyRegistryModuleMock())
 )
-vi.mock('../../codex/codex-pane-account-registry', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.codexPaneAccountRegistryModuleMock())
+vi.mock('../../../../main/agent-hooks/migration-unsupported-pty-state', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.migrationUnsupportedPtyModuleMock()
+  )
 )
-vi.mock('../../codex/codex-state-db-backfill-recovery', () =>
-  import('./pty-ipc-mock-registry').then((m) => m.codexBackfillRecoveryModuleMock())
+vi.mock('../../../../main/codex/codex-pane-account-registry', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.codexPaneAccountRegistryModuleMock()
+  )
+)
+vi.mock('../../../../main/codex/codex-state-db-backfill-recovery', () =>
+  import('../../../../main/ipc/pty/pty-ipc-mock-registry').then((m) =>
+    m.codexBackfillRecoveryModuleMock()
+  )
 )
 
 // An AI button's launch is planned inside its pane's spawn, with the host's planner, and writes no
@@ -441,7 +471,9 @@ describe('a pane that starts its own agent launch', () => {
           pty: { spawn: (args: unknown) => handlers.get('pty:spawn')!(null, args), kill: vi.fn() }
         }
       })
-      onTestFinished(() => vi.unstubAllGlobals())
+      onTestFinished(() => {
+        vi.unstubAllGlobals()
+      })
       const transportOptions = {
         cwd: '/tmp/pane-launch',
         worktreeId,

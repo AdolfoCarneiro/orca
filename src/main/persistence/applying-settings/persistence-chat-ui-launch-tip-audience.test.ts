@@ -17,7 +17,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 
 vi.mock('electron', () => ({
   app: { getPath: () => testState.dir },
@@ -97,13 +96,25 @@ describe('Chat UI launch tip audience', () => {
 
 describe('carrying what launches opened while Chat UI was experimental', () => {
   it.each([
-    ['saved before the Chat UI switch existed', {}, undefined],
-    ['Chat UI off', { experimentalNativeChat: false }, undefined],
-    ['Chat UI on', { experimentalNativeChat: true }, EVERY_AGENT_CHAT],
+    [
+      'saved before the Chat UI switch existed',
+      {},
+      { agentDefaultSurface: 'terminal', nativeChatProviders: {} }
+    ],
+    [
+      'Chat UI off',
+      { experimentalNativeChat: false },
+      { agentDefaultSurface: 'terminal', nativeChatProviders: {} }
+    ],
+    [
+      'Chat UI on',
+      { experimentalNativeChat: true },
+      { agentDefaultSurface: 'chat', nativeChatProviders: {} }
+    ],
     [
       'Chat UI off, turning chat choices the switch masked to CLI',
       { experimentalNativeChat: false, nativeChatProviders: { claude: true, codex: false } },
-      { claude: false, codex: false }
+      { agentDefaultSurface: 'terminal', nativeChatProviders: {} }
     ],
     [
       'Chat UI on with new tabs opening in the terminal',
@@ -112,17 +123,17 @@ describe('carrying what launches opened while Chat UI was experimental', () => {
         openAgentTabsInChatByDefault: false,
         nativeChatProviders: { codex: true }
       },
-      { codex: false }
+      { agentDefaultSurface: 'terminal', nativeChatProviders: {} }
     ],
     [
       'Chat UI on, keeping an explicit CLI choice',
       { experimentalNativeChat: true, nativeChatProviders: { claude: false, 'acme-agent': true } },
-      { ...EVERY_AGENT_CHAT, claude: false, 'acme-agent': true }
+      { agentDefaultSurface: 'chat', nativeChatProviders: { claude: false } }
     ]
   ])('saves the choices of a profile %s, once', async (_, settings, carried) => {
     writeDataFile({ settings })
     const store = createStore()
-    expect(store.getSettings().nativeChatProviders).toEqual(carried)
+    expect(store.getSettings()).toMatchObject(carried)
     store.flush()
 
     // A later choice survives the next load.
@@ -141,7 +152,9 @@ describe('carrying what launches opened while Chat UI was experimental', () => {
       settings: { experimentalNativeChat: false, nativeChatProviders },
       chatUiLaunchTipAudience: { membership: 'eligible' }
     })
-    expect(createStore().getSettings().nativeChatProviders).toEqual(nativeChatProviders)
+    const settings = createStore().getSettings()
+    expect(settings.nativeChatProviders).toEqual(nativeChatProviders)
+    expect(settings.agentDefaultSurface).toBe('terminal')
   })
 })
 
@@ -150,28 +163,35 @@ it('retains valid saved agent IDs after migration, an unrelated provider edit, m
     settings: {
       experimentalNativeChat: true,
       nativeChatProviders: {
-        'acme-agent': true,
-        'other-agent': false,
+        'acme-agent': false,
+        'other-agent': true,
         malformed: 'true',
         'invalid id': true
       }
     }
   })
   const store = createStore()
-  expect(nativeChatPreferenceFor(store.getSettings(), 'acme-agent')).toBe(true)
+  expect(nativeChatPreferenceFor(store.getSettings(), 'acme-agent')).toBe(false)
+  expect(nativeChatPreferenceFor(store.getSettings(), 'new-agent')).toBe(true)
+  store.updateSettings({
+    nativeChatProviders: { ...store.getSettings().nativeChatProviders, 'saved-agent': true }
+  })
   store.updateSettings(buildNativeChatProviderUpdate(store.getSettings(), 'claude', false))
+  const overrides = store.getSettings().nativeChatProviders
+  store.updateSettings({ agentDefaultSurface: 'terminal' })
+  expect(store.getSettings().nativeChatProviders).toEqual(overrides)
   store.flush()
   const saved = (await reopen()).getSettings()
   expect(saved.nativeChatProviders).toMatchObject({
-    'acme-agent': true,
-    'other-agent': false,
+    'acme-agent': false,
+    'saved-agent': true,
     claude: false
   })
   expect(saved.nativeChatProviders).not.toHaveProperty('malformed')
   expect(saved.nativeChatProviders).not.toHaveProperty('invalid id')
   for (const [agent, on] of [
-    ['acme-agent', true],
-    ['other-agent', false],
+    ['acme-agent', false],
+    ['saved-agent', true],
     ['absent-agent', false],
     ['malformed', false]
   ] as const) {
@@ -207,9 +227,7 @@ it.each([100, 1000])(
     const audience = operations.captureChatUiLaunchTipAudience(saved)
     const carried = operations.carryChatUiChoices(state, saved, audience)
     expect(reads).toBe(size)
-    expect(Object.keys(carried.settings.nativeChatProviders ?? {})).toHaveLength(
-      size + Object.keys(EVERY_AGENT_CHAT).length
-    )
+    expect(Object.keys(carried.settings.nativeChatProviders ?? {})).toHaveLength(size / 2)
     expect(carried.workspaceSession).toBe(state.workspaceSession)
     expect(runtime.loadNeedsSave).toBe(true)
     const completed = { ...carried, chatUiLaunchTipAudience: audience }
@@ -234,7 +252,9 @@ it.each([100, 1000])(
       reopened.flush()
       // Other normalizers may save on reopen; this migration's own zero-debt re-entry is asserted above.
       expect(readDataFile()).toHaveProperty('chatUiLaunchTipAudience', audience)
-      expect(reopened.getSettings().nativeChatProviders?.['agent-0']).toBe(true)
+      expect(reopened.getSettings().nativeChatProviders).not.toHaveProperty('agent-0')
+      expect(reopened.getSettings().agentDefaultSurface).toBe('chat')
+      expect(nativeChatPreferenceFor(reopened.getSettings(), 'future-agent')).toBe(true)
       expect(reopened.getSettings().nativeChatProviders?.['agent-1']).toBe(false)
     } finally {
       commits.mockRestore()
@@ -242,3 +262,19 @@ it.each([100, 1000])(
     }
   }
 )
+
+it('normalizes invalid defaults on load and main updates without changing overrides', async () => {
+  writeDataFile({
+    settings: { agentDefaultSurface: 'invalid', nativeChatProviders: { 'saved-agent': true } },
+    chatUiLaunchTipAudience: { version: 2, membership: 'eligible', basis: 'chat-ui-on' }
+  })
+  const store = createStore()
+  expect(store.getSettings().agentDefaultSurface).toBe('terminal')
+  const updates: Parameters<typeof store.updateSettings>[0] = {}
+  Reflect.set(updates, 'agentDefaultSurface', null)
+  store.updateSettings(updates)
+  store.flush()
+  const settings = (await reopen()).getSettings()
+  expect(settings.agentDefaultSurface).toBe('terminal')
+  expect(settings.nativeChatProviders).toEqual({ 'saved-agent': true })
+})

@@ -9,7 +9,6 @@ import { z } from 'zod'
 import { ORCHESTRATION_CONTRACT_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
 /** workerStart follows the user's launch preference without a mode flag; unsupported structured mode falls back rather than refusing routine dispatch. */
 
-import { EVERY_AGENT_CHAT } from '../../../../shared/native-chat/every-agent-chat.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OrcaRuntimeService } from '../../orca-runtime'
 import { OrchestrationDb } from '../../orchestration/db'
@@ -48,7 +47,7 @@ vi.mock('./orchestration-structured-worker-session', async (importOriginal) => (
 }))
 
 const STRUCTURED_DEFAULT = {
-  nativeChatProviders: EVERY_AGENT_CHAT,
+  agentDefaultSurface: 'chat',
   agentCmdOverrides: {},
   agentDefaultArgs: {},
   agentDefaultEnv: {}
@@ -265,7 +264,11 @@ describe('worker-start honours the settings default', () => {
         ComSpec: process.env.ComSpec
       }
       for (const chat of [false, true]) {
-        settings = { ...STRUCTURED_DEFAULT, nativeChatProviders: { claude: chat } }
+        settings = {
+          ...STRUCTURED_DEFAULT,
+          agentDefaultSurface: chat ? 'chat' : 'terminal',
+          nativeChatProviders: { codex: !chat }
+        }
         const task = db.createTask({ spec: 'CLI saved-choice dispatch', runId })
         const response = await runProcess({
           program: join(dirname(manifest), bin.bun),

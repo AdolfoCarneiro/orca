@@ -8,6 +8,7 @@ import {
 import {
   nativeChatPreferenceFor,
   resolveStructuredNativeChatSupport,
+  type NativeChatDefaultSettings,
   type StructuredNativeChatSupportInput
 } from './structured-native-chat-launch-route'
 
@@ -133,3 +134,20 @@ describe('per-agent Chat | CLI preference', () => {
     expect(nativeChatPreferenceFor({ nativeChatProviders: {} }, 'constructor')).toBe(false)
   })
 })
+
+it.each(['chat', 'terminal'] as const)(
+  'resolves boolean overrides before default %s for existing and later agents',
+  (agentDefaultSurface) => {
+    const settings: NativeChatDefaultSettings = {
+      agentDefaultSurface,
+      nativeChatProviders: { claude: false, codex: true }
+    }
+    expect(nativeChatPreferenceFor(settings, 'claude')).toBe(false)
+    expect(nativeChatPreferenceFor(settings, 'codex')).toBe(true)
+    expect(nativeChatPreferenceFor(settings, 'later-agent')).toBe(agentDefaultSurface === 'chat')
+    Reflect.set(settings.nativeChatProviders!, 'malformed', 'true')
+    expect(nativeChatPreferenceFor(settings, 'malformed')).toBe(agentDefaultSurface === 'chat')
+    Reflect.set(settings, 'agentDefaultSurface', 'invalid')
+    expect(nativeChatPreferenceFor(settings, 'later-agent')).toBe(false)
+  }
+)

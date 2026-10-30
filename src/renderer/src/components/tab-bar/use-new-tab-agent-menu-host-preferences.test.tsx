@@ -135,7 +135,11 @@ it.each(['wt', 'folder:f1'])(
 
 it('filters chat and CLI rows with host preferences while keeping the desktop chat presentation', async () => {
   useAppStore.setState((state) => ({
-    settings: { ...state.settings!, nativeChatProviders: { claude: true, codex: true } }
+    settings: {
+      ...state.settings!,
+      agentDefaultSurface: 'chat',
+      nativeChatProviders: { claude: false }
+    }
   }))
   const hook = renderHook(() =>
     useNewTabAgentMenuRows('folder:f1', true, { kind: 'runtime', environmentId: 'alpha' })

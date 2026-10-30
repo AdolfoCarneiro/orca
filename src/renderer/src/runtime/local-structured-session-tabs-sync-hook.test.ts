@@ -202,9 +202,18 @@ it.each([100, 1000])('bounds root preference work for %i choices', async (size) 
   )
   expect(renders).toHaveBeenCalledTimes(onRenders)
   expect(mocks.start).toHaveBeenCalledOnce()
+  act(() =>
+    useAppStore.setState({
+      settings: {
+        ...useAppStore.getState().settings!,
+        agentDefaultSurface: 'chat',
+        nativeChatProviders: choicesFor(false)
+      }
+    })
+  )
   reads = 0
   act(() => useAppStore.setState({ activeRepoId: 'another-unrelated-repo' }))
-  expect(reads).toBe(2 * size)
+  expect(reads).toBe(0)
   expect(renders).toHaveBeenCalledTimes(onRenders)
   expect(mocks.start).toHaveBeenCalledOnce()
 })

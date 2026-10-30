@@ -133,6 +133,7 @@ export function buildDefaultSettings(args: {
     terminalLinkClickBehavior: 'actions',
     terminalUrlMiddleClickBehavior: 'open',
     experimentalBrowserExtensions: false,
+    agentDefaultSurface: 'terminal',
     nativeChatResumeWorkOnRestart: false,
     nativeChatQueueFollowUps: true,
     nativeChatInlineVisuals: true,

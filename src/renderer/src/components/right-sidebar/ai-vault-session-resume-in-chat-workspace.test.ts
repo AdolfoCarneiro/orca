@@ -82,7 +82,7 @@ it.each(['local', 'runtime:server-1'] as const)(
             'repo-1': [makeWorktree(PAIRED_WORKSPACE, 'workspace', { path: target })]
           }
         },
-        settings: { experimentalNativeChat: true }
+        settings: { agentDefaultSurface: 'chat' }
       })
     const old = [STRUCTURED_AGENT_SESSION_RESUME_HISTORY_RUNTIME_CAPABILITY]
     const set = (capabilities: readonly string[]) => {

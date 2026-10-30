@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import { nativeChatPreferenceFor } from '../../../shared/structured-native-chat-launch-route'
 import {
   installBrowserGlobals,
@@ -35,7 +34,8 @@ describe('web Chat UI launch migration', () => {
       nativeChatProviders: { claude: true, codex: false }
     })
 
-    expect(settings.nativeChatProviders).toEqual({ claude: false, codex: false })
+    expect(settings.agentDefaultSurface).toBe('terminal')
+    expect(settings.nativeChatProviders).toEqual({})
     expect(saved).not.toHaveProperty('experimentalNativeChat')
     expect(saved.nativeChatProviders).toEqual(settings.nativeChatProviders)
 
@@ -56,7 +56,8 @@ describe('web Chat UI launch migration', () => {
       nativeChatProviders: { codex: false }
     })
 
-    expect(settings.nativeChatProviders).toEqual({ ...EVERY_AGENT_CHAT, codex: false })
+    expect(settings.agentDefaultSurface).toBe('chat')
+    expect(settings.nativeChatProviders).toEqual({ codex: false })
     expect(saved).not.toHaveProperty('experimentalNativeChat')
   })
 
@@ -87,6 +88,7 @@ vi.mock('./web-runtime-client', () => ({
             experimentalNativeChat: oldHost.on,
             experimentalStructuredNativeChat: oldHost.on,
             openAgentTabsInChatByDefault: false,
+            agentDefaultSurface: oldHost.on ? 'chat' : 'terminal',
             nativeChatProviders: { claude: oldHost.on, codex: oldHost.on },
             compactWorktreeCards: true,
             minimaxGroupId: 'live-host-group'
@@ -117,12 +119,14 @@ it.each([
       vi.resetModules()
       const { installWebPreloadApi } = await import('./web-preload-api')
       installWebPreloadApi()
+      let defaultChat = expected
       const check = (
         settings: Awaited<ReturnType<typeof globals.window.api.settings.get>>,
         choice: boolean
       ) => {
         expect(nativeChatPreferenceFor(settings, 'claude')).toBe(choice)
-        expect(nativeChatPreferenceFor(settings, 'new-agent')).toBe(false)
+        expect(settings.agentDefaultSurface).toBe(defaultChat ? 'chat' : 'terminal')
+        expect(nativeChatPreferenceFor(settings, 'new-agent')).toBe(defaultChat)
         const saved = JSON.parse(globals.storage.getItem(SETTINGS_KEY) ?? '{}')
         for (const key of [
           'experimentalNativeChat',
@@ -133,6 +137,7 @@ it.each([
           expect(saved).not.toHaveProperty(key)
         }
         expect(saved.nativeChatProviders).toEqual(settings.nativeChatProviders)
+        expect(saved.agentDefaultSurface).toBe(settings.agentDefaultSurface)
       }
       for (const [stage, choice] of [expected, true, false].entries()) {
         if (stage > 0) {
@@ -154,8 +159,27 @@ it.each([
         check(await globals.window.api.settings.get(), choice)
         oldHost.fail = false
       }
+      oldHost.fail = false
+      const map = (await globals.window.api.settings.get()).nativeChatProviders
+      defaultChat = !expected
+      await globals.window.api.settings.set({
+        agentDefaultSurface: defaultChat ? 'chat' : 'terminal'
+      })
+      const flipped = await globals.window.api.settings.set({ compactWorktreeCards: false })
+      expect(flipped.nativeChatProviders).toEqual(map)
+      check(flipped, false)
+      vi.resetModules()
+      const afterFlip = await import('./web-preload-api')
+      afterFlip.installWebPreloadApi()
+      check(await globals.window.api.settings.get(), false)
       expect(oldHost.calls).toContain('settings.update')
       expect(oldHost.calls).toContain('settings.get')
     }
   }
 )
+
+it('normalizes invalid browser defaults without inventing an override', async () => {
+  const { settings } = await loadSettings({ agentDefaultSurface: 'invalid' })
+  expect(settings.agentDefaultSurface).toBe('terminal')
+  expect(nativeChatPreferenceFor(settings, 'later-agent')).toBe(false)
+})

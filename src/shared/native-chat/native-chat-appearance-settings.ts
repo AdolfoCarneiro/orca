@@ -15,11 +15,15 @@ export type NativeChatAppearanceSettings = {
   matchTerminalInterface?: boolean
 }
 
+export type AgentDefaultSurface = 'chat' | 'terminal'
+
 export type NativeChatGlobalSettings = {
+  /** Unlisted agents follow this default; absent means terminal. */
+  agentDefaultSurface?: AgentDefaultSurface
   nativeChatAppearance?: NativeChatAppearanceSettings
   /** Off keeps chats unnamed without running a naming agent. Absent means on. */
   nativeChatAutoName?: boolean
-  /** Explicit saved agent choices; unlisted agents open as CLI. */
+  /** Explicit per-agent overrides of the default surface. */
   nativeChatProviders?: NativeChatProviderChoices
 }
 

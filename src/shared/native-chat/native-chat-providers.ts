@@ -1,13 +1,20 @@
-// Persist explicit choices only; an agent without a saved chat choice opens as its CLI.
+// Persist the default surface independently from per-agent overrides.
 
 import type { GlobalSettings } from '../global-settings-types'
 import type { TuiAgent } from '../tui-agent'
 import { isStructuredAgentId } from '../agent-session-provider-handle-encoding'
-import { TUI_AGENT_CONFIG } from '../tui-agent-config'
+import type { AgentDefaultSurface } from './native-chat-appearance-settings'
 
 export type NativeChatProviderChoices = Partial<Record<string, boolean>>
 
-export type NativeChatProviderSettings = Pick<GlobalSettings, 'nativeChatProviders'>
+export type NativeChatProviderSettings = Pick<
+  GlobalSettings,
+  'nativeChatProviders' | 'agentDefaultSurface'
+>
+
+export function normalizeAgentDefaultSurface(value: unknown): AgentDefaultSurface {
+  return value === 'chat' ? 'chat' : 'terminal'
+}
 
 export function normalizeNativeChatProviderChoices(value: unknown): NativeChatProviderChoices {
   const choices: NativeChatProviderChoices = {}
@@ -27,35 +34,26 @@ export function buildNativeChatProviderUpdate(
   agent: TuiAgent,
   on: boolean
 ): Pick<GlobalSettings, 'nativeChatProviders'> {
-  return {
-    nativeChatProviders: {
-      ...normalizeNativeChatProviderChoices(settings?.nativeChatProviders),
-      [agent]: on
-    }
+  const choices = normalizeNativeChatProviderChoices(settings?.nativeChatProviders)
+  if (on === (settings?.agentDefaultSurface === 'chat')) {
+    delete choices[agent]
+  } else {
+    choices[agent] = on
   }
+  return { nativeChatProviders: choices }
 }
 
-/**
- * The choices that keep what a profile's launches opened while Chat UI was experimental. With the
- * switch on, agents without a saved choice opened as chats, so they keep chat. With it off, every
- * launch opened its CLI, and the switch masked saved chat choices, so those turn CLI.
- */
-export function carriedNativeChatProviderChoices(
+/** Carry effective legacy intent without pinning an agent inventory to the old switch. */
+export function carriedChatUiLaunchSettings(
   savedChoices: unknown,
   chatUiOn: boolean
-): Record<string, boolean> {
-  const saved: Record<string, boolean> = {}
-  if (savedChoices && typeof savedChoices === 'object' && !Array.isArray(savedChoices)) {
-    for (const [agent, on] of Object.entries(savedChoices)) {
-      if (typeof on === 'boolean') {
-        saved[agent] = chatUiOn && on
-      }
-    }
+): NativeChatProviderSettings {
+  return {
+    agentDefaultSurface: chatUiOn ? 'chat' : 'terminal',
+    nativeChatProviders: chatUiOn
+      ? Object.fromEntries(
+          Object.entries(normalizeNativeChatProviderChoices(savedChoices)).filter(([, on]) => !on)
+        )
+      : {}
   }
-  return chatUiOn
-    ? {
-        ...Object.fromEntries(Object.keys(TUI_AGENT_CONFIG).map((agent) => [agent, true])),
-        ...saved
-      }
-    : saved
 }

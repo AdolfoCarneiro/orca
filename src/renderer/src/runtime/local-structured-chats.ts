@@ -68,11 +68,14 @@ export function useLocalStructuredAgentSessionsHeld(): boolean {
 
 type StructuredChatSettings = NativeChatDefaultSettings | null
 
-/** New launches may open as chats only for agents saved as chat. */
+/** Either the default or an explicit exception can open new chats. */
 export function newAgentLaunchesMayOpenChats(
   settings: StructuredChatSettings | undefined
 ): boolean {
-  return Object.values(settings?.nativeChatProviders ?? {}).some((on) => on === true)
+  return (
+    settings?.agentDefaultSurface === 'chat' ||
+    Object.values(settings?.nativeChatProviders ?? {}).some((on) => on === true)
+  )
 }
 
 function chatsInUse(launchesChats: boolean, holds: boolean): boolean {

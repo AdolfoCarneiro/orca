@@ -8,11 +8,13 @@ import {
   STRUCTURED_AGENT_SESSION_REGISTERED_AGENTS_RUNTIME_CAPABILITY,
   STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
 } from './protocol-version'
+import type { AgentDefaultSurface } from './native-chat/native-chat-appearance-settings'
 import type { TuiAgent } from './tui-agent'
 import type { WorkspaceLaunchKind } from './workspace-launch-kind'
 
 /** Keyed by agent id so host-registered agents outside `TuiAgent` read the same preference. */
 export type NativeChatDefaultSettings = {
+  agentDefaultSurface?: AgentDefaultSurface
   nativeChatProviders?: Readonly<Partial<Record<string, boolean>>>
 }
 
@@ -52,12 +54,13 @@ export type StructuredNativeChatSupportInput = {
   hostStructuredAgents?: readonly string[]
 }
 
-/** The per-agent Chat | CLI choice; an agent without a saved chat choice opens as its CLI. */
+/** An explicit per-agent choice wins over the global default surface. */
 export function nativeChatPreferenceFor(
   settings: NativeChatDefaultSettings | null | undefined,
   agent: string
 ): boolean {
-  return settings?.nativeChatProviders?.[agent] === true
+  const override = settings?.nativeChatProviders?.[agent]
+  return typeof override === 'boolean' ? override : settings?.agentDefaultSurface === 'chat'
 }
 
 function clientChoosesStructuredLaunches(capabilities: readonly string[] | undefined): boolean {

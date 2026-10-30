@@ -1,3 +1,4 @@
+import { nativeChatPreferenceFor } from '../../../../shared/structured-native-chat-launch-route'
 import { useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -194,7 +195,7 @@ export function useAgentMenuObservation(
       ...(hostCatalog ?? []),
       ...Object.keys(settings?.nativeChatProviders ?? {})
         .filter(isTuiAgent)
-        .filter((agent) => settings?.nativeChatProviders?.[agent] === true)
+        .filter((agent) => nativeChatPreferenceFor(settings, agent))
     ])
   ].filter(isTuiAgent)
   const inventoryFailed =
