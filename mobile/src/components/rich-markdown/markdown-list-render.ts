@@ -28,14 +28,14 @@ export function renderListItems(scope: RichMarkdownEditorScope, items: ParsedLis
           return (
             `<li data-checked="${String(checked)}"><label contenteditable="false">` +
             `<input type="checkbox" ${checked ? 'checked ' : ''}${scope.editable ? '' : 'disabled '}/>` +
-            `</label><div><p>${renderInline(item.text)}</p>${children}</div></li>`
+            `</label><div><p>${renderInline(item.text, true)}</p>${children}</div></li>`
           )
         }
         const orderedAttrs =
           kind === 'ol' && item.orderedNumber !== null
             ? ` value="${item.orderedNumber}" data-list-number="${item.orderedNumber}"`
             : ''
-        return `<li${orderedAttrs}><p>${renderInline(item.text)}</p>${children}</li>`
+        return `<li${orderedAttrs}><p>${renderInline(item.text, true)}</p>${children}</li>`
       })
       .join('')
     html.push(`<${tag}${attrs}>${rendered}</${tag}>`)

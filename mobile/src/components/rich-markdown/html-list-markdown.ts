@@ -1,4 +1,4 @@
-import { inlineChildren } from './html-inline-markdown'
+import { inlineChildren, trailingLineBreaks } from './html-inline-markdown'
 
 // Remove checkbox label/nested lists on clone only: live checkbox must remain, nested lists serialize at own indentation.
 export function listItemText(item: Element): string {
@@ -9,7 +9,14 @@ export function listItemText(item: Element): string {
   }
   clone.querySelectorAll('label').forEach((label) => label.remove())
   clone.querySelectorAll('ul, ol').forEach((list) => list.remove())
-  return inlineChildren(clone).trim()
+  const markdown = inlineChildren(clone, 'item')
+    .replace(/\r\n?|\n/g, ' ')
+    .trim()
+  // A lone trailing <br> is the browser's invisible caret placeholder; a run of two draws an empty line.
+  const trailing = trailingLineBreaks(markdown)
+  return trailing.count === 1 && trailing.start > 0
+    ? markdown.slice(0, trailing.start).trimEnd()
+    : markdown
 }
 
 /** The lists directly inside an item, rather than every list anywhere beneath it. */

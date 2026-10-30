@@ -4,7 +4,8 @@ import {
   inlineChildren,
   inlineMarkdown,
   inlineNodesMarkdown,
-  textContent
+  textContent,
+  trailingLineBreaks
 } from './html-inline-markdown'
 import { holdsUnownedList, listMarkdown } from './html-list-markdown'
 
@@ -139,6 +140,14 @@ function headingCodeMarkdown(element: Element): string {
   return blocks.join('\n\n')
 }
 
+// Trailing breaks in a cell are browser caret placeholders (a cleared cell keeps one), never content.
+function tableCellMarkdown(cell: Element): string {
+  const markdown = inlineChildren(cell, 'cell')
+    .replace(/\r\n?|\n/g, ' ')
+    .trim()
+  return markdown.slice(0, trailingLineBreaks(markdown).start).trim()
+}
+
 // Unknown block elements serialize inline content so browser-created tags cannot lose user text.
 export function blockMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -179,7 +188,7 @@ export function blockMarkdown(node: Node): string {
       return ''
     }
     const cellsFor = (row: Element) =>
-      Array.from(row.children).map((cell) => escapeTableCell(inlineChildren(cell).trim()))
+      Array.from(row.children).map((cell) => escapeTableCell(tableCellMarkdown(cell)))
     const headers = cellsFor(rows[0]!)
     const bodyRows = rows.slice(1).map(cellsFor)
     const separator = headers.map(() => '---').join(' | ')

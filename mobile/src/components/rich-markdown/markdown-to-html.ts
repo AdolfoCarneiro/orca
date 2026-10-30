@@ -96,11 +96,11 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
         rows.push(splitTableRow(lines[index] ?? ''))
         index += 1
       }
-      const head = headers.map((cell) => `<th>${renderInline(cell)}</th>`).join('')
+      const head = headers.map((cell) => `<th>${renderInline(cell, true)}</th>`).join('')
       const body = rows
         .map(
           (row) =>
-            `<tr>${headers.map((_, cellIndex) => `<td>${renderInline(row[cellIndex] ?? '')}</td>`).join('')}</tr>`
+            `<tr>${headers.map((_, cellIndex) => `<td>${renderInline(row[cellIndex] ?? '', true)}</td>`).join('')}</tr>`
         )
         .join('')
       html.push(`<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`)
