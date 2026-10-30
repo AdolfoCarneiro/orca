@@ -64,7 +64,7 @@ export function useMobileStructuredSendWithOutcome(args: {
   /** The host's queue sends next: commands that cannot wait in line read the chat as working. */
   queueSendsNext: boolean
   accept: MobileStructuredSends['accept']
-  hold: MobileStructuredSends['hold']
+  reject: MobileStructuredSends['reject']
   commandPending: { current: boolean }
   /** This chat's message sends still out, which a command waits behind as on desktop. */
   sendsOut: MobileStructuredSendsOut
@@ -93,7 +93,7 @@ export function useMobileStructuredSendWithOutcome(args: {
     commandsWait,
     controller,
     enabled,
-    hold,
+    reject,
     onSendError,
     queueCapable,
     queueFollowUps,
@@ -189,14 +189,17 @@ export function useMobileStructuredSendWithOutcome(args: {
       if (body.blocks.length === 0) {
         return 'rejected'
       }
+      // Wait for pending picks so the send carries this chat’s settled options.
+      const options = sendOptions?.()
       const send = {
         clientMessageId: structuredSessionOperationId(),
         body,
         queuedAt: Date.now(),
+        ...(options ? { options } : {}),
+        afterSequence: stateRef.current.cursor?.sequence,
         ...(stopping ? { sentWhileStopping: true as const } : {})
       }
-      // Wait for pending picks so the send carries this chat’s settled options.
-      const options = sendOptions?.()
+      accept(send, images)
       const outcome = await sendsOut.trackSend(sendMobileStructuredAgentSessionMessage)({
         client,
         sessionId,
@@ -214,8 +217,8 @@ export function useMobileStructuredSendWithOutcome(args: {
           accept({ ...send, ...(cursor ? { recordedCursor: cursor } : {}) }, images),
         onError: onSendError
       })
-      if (outcome === 'unknown') {
-        hold(send)
+      if (outcome === 'rejected' || outcome === 'queued') {
+        reject(send.clientMessageId)
       }
       return outcome
     },
@@ -227,7 +230,7 @@ export function useMobileStructuredSendWithOutcome(args: {
       commandsWait,
       controller,
       enabled,
-      hold,
+      reject,
       onSendError,
       queueCapable,
       queueFollowUps,

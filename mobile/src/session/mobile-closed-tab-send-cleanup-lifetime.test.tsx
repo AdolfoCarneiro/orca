@@ -212,7 +212,7 @@ it.each([
   [true, 'accepted'],
   [true, 'unknown']
 ] as const)(
-  'preserves original inputs until structured acceptance after navigation: structured=%s, outcome=%s',
+  'cleans only submitted inputs after navigation while preserving newer and other scopes: structured=%s, outcome=%s',
   async (structured, outcome) => {
     const screen = await mount(structured)
     const send = await screen.begin()
@@ -222,7 +222,7 @@ it.each([
       appendStoredInputs(OTHER, 'other', structured)
     })
     expect(await send.finish(outcome)).toBe(true)
-    const original = structured && outcome !== 'accepted' ? ['sent', 'newer'] : ['newer']
+    const original = ['newer']
     expect(readMobileNativeChatDraftInputs(ORIGINAL).images.map((image) => image.id)).toEqual(
       original
     )

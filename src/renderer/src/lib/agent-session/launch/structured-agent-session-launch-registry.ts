@@ -46,6 +46,8 @@ export type StructuredLaunchState = StructuredLaunchRecoveryState & {
   selection: StructuredLaunchSelection
   /** A host list showed the chat, so its create reply needs no protection from older lists. */
   hostListed?: true
+  /** The bounded caller finished; this identity may still observe exact late evidence. */
+  operationEnded?: true
 }
 
 export type StructuredAgentLaunchStatus = 'idle' | 'pending' | 'unknown'
@@ -164,6 +166,12 @@ export function getStructuredAgentSessionLaunchLifecycle(
   return getPersistedStructuredAgentLaunchRecord(sessionId)?.lifecycle ?? null
 }
 
+export {
+  getStructuredAgentSessionLaunchResumes,
+  structuredAgentSessionLaunchHasRetainedInput,
+  settleStructuredLaunchFirstMessageFromJournal
+} from './structured-agent-session-launch-input'
+
 /** The host a launch still owed an outcome was sent to, in memory or persisted across a reload. */
 export function getStructuredAgentSessionLaunchOwner(
   sessionId: string
@@ -172,15 +180,6 @@ export function getStructuredAgentSessionLaunchOwner(
     getStructuredLaunchStateBySessionId(sessionId)?.intent.executionHostId ??
     getPersistedStructuredAgentLaunchRecord(sessionId)?.executionHostId
   )
-}
-
-/** The launch adopts an existing conversation, which may keep a model of its own. */
-export function getStructuredAgentSessionLaunchResumes(sessionId: string): boolean {
-  const state = getStructuredLaunchStateBySessionId(sessionId)
-  const resumeFrom = state
-    ? state.intent.params.resumeFrom
-    : getPersistedStructuredAgentLaunchRecord(sessionId)?.resumeFrom
-  return resumeFrom !== undefined
 }
 
 export function getStructuredAgentSessionLaunchFailure(

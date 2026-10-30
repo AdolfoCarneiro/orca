@@ -7,7 +7,9 @@ import type { MobileNativeChatSendOutcome } from './native-chat/mobile-native-ch
 import type { MobileNativeChatSendOrigin } from './native-chat/mobile-native-chat-pending-echo'
 import { useMobileStructuredNativeChatSendBridge } from './use-mobile-structured-native-chat-send-bridge'
 import {
+  editMobileNativeChatDraft,
   recordMobileNativeChatSkillPick,
+  readMobileNativeChatPickedSkills,
   resetMobileNativeChatDraftStoreForTests
 } from './native-chat/composer/mobile-native-chat-draft-store'
 
@@ -86,23 +88,37 @@ describe('useMobileStructuredNativeChatSendBridge', () => {
     }
   )
 
-  it('restores transport-unknown text without uncertain-message advice', async () => {
-    sendStructured.mockResolvedValue('unknown')
+  it('retains transport-unknown input in the transcript without restoring the draft', async () => {
+    recordMobileNativeChatSkillPick(ORIGIN.draftKey, {
+      token: '$review',
+      path: '/skills/review/SKILL.md'
+    })
+    sendStructured.mockImplementation(async () => {
+      editMobileNativeChatDraft(ORIGIN.draftKey, '$newer work')
+      recordMobileNativeChatSkillPick(ORIGIN.draftKey, {
+        token: '$newer',
+        path: '/skills/newer/SKILL.md'
+      })
+      return 'unknown'
+    })
     mount('codex')
 
     await expect(sendWithOutcome('/review')).resolves.toBe('unknown')
 
-    expect(restoreRejectedDraft).toHaveBeenCalledWith(ORIGIN, '/review')
+    expect(restoreRejectedDraft).not.toHaveBeenCalled()
     expect(onSendError).not.toHaveBeenCalled()
+    expect(readMobileNativeChatPickedSkills(ORIGIN.draftKey).map((skill) => skill.name)).toEqual([
+      'newer'
+    ])
   })
 
-  it('restores unknown text for every agent', async () => {
+  it('does not restore unknown text for another agent', async () => {
     sendStructured.mockResolvedValue('unknown')
     mount('grok')
 
     await expect(sendWithOutcome('/review')).resolves.toBe('unknown')
 
-    expect(restoreRejectedDraft).toHaveBeenCalledWith(ORIGIN, '/review')
+    expect(restoreRejectedDraft).not.toHaveBeenCalled()
   })
 
   it('puts a refused send back in the composer', async () => {

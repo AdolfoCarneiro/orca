@@ -9,6 +9,8 @@ import type { StructuredLaunchState } from './agent-session/launch/structured-ag
 import { notifyStructuredLaunchListeners } from './agent-session/launch/structured-agent-session-launch-registry'
 import {
   prepareStructuredLaunchPromptForCreate,
+  hasStagedStructuredLaunchPrompt,
+  issueStructuredLaunchPromptForCreate,
   prepareLegacyStructuredLaunchPrompts
 } from './structured-agent-session-launch-prompt'
 import type { StructuredAgentLaunchReceipt } from './agent-session/launch/structured-agent-session-launch-recovery'
@@ -26,7 +28,7 @@ import {
 import { structuredAgentSessionDrawnValues } from '../../../shared/structured-agent-session-option-snapshot'
 import { encodeStructuredAgentSessionOptionValue } from '../../../shared/structured-agent-session-option-codec'
 
-/** Freeze what create carries once; an ambiguous reply always replays the same payload.
+/** Freeze what create carries once; later evidence must join this exact input.
  *  `hostTakesExplicitOptions`: the host advertises the create options-mode capability. */
 export function prepareStructuredLaunchCreateMessage(
   state: StructuredLaunchState,
@@ -50,7 +52,13 @@ export function prepareStructuredLaunchCreateMessage(
     notifyStructuredLaunchListeners()
     return
   }
+  const hadPrompt = hasStagedStructuredLaunchPrompt(intent.sessionId)
   const firstMessage = prepareStructuredLaunchPromptForCreate(intent.sessionId, intent.target)
+  if (hadPrompt || firstMessage) {
+    const beforeCreate = intent.beforeCreate
+    intent.beforeCreate = () =>
+      beforeCreate?.() !== false && issueStructuredLaunchPromptForCreate(intent.sessionId)
+  }
   const requested = structuredLaunchCreateOptions(state)
   const options =
     requested && state.selection.explicit && !optionsMode

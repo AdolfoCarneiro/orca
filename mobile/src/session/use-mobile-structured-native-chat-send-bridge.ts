@@ -57,8 +57,8 @@ export function useMobileStructuredNativeChatSendBridge(args: {
       const skills = readMobileNativeChatPickedSkills(origin.draftKey)
       clearDraftForSend(origin, text)
       const outcome = await sendStructured(text, images, deadline, attachments, skills)
-      // A lost result returns the person's text immediately, even if a later receipt lands.
-      if (outcome === 'rejected' || outcome === 'unknown') {
+      // Only a definite refusal returns input; uncertainty remains ordinary transcript content.
+      if (outcome === 'rejected') {
         restoreRejectedDraft(origin, text)
         restoreMobileNativeChatPickedSkills(origin.draftDestination, skills)
       }

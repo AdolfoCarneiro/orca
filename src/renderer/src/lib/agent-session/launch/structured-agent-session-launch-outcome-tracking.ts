@@ -32,6 +32,8 @@ function cleanupLaunchState(state: StructuredLaunchState): void {
 export function maybeCleanupLaunchState(state: StructuredLaunchState): void {
   if (
     state.callers.outcome === 'failed' ||
+    state.callers.outcome === 'unknown' ||
+    (state.operationEnded && !!state.intent.params.firstMessage) ||
     structuredLaunchCallersHavePendingWork(state.callers) ||
     Object.keys(state.selection.held).length > 0
   ) {
@@ -60,6 +62,8 @@ function settleStructuredLaunchRefusal(state: StructuredLaunchState): void {
     state.intent.worktreeId,
     state.intent.sessionId
   )
+  state.visibilityUnknown = false
+  delete state.operationEnded
   settleStructuredLaunchCallers(state.callers, 'failed')
   if (cleanupUnmaterializedLaunch(state)) {
     retireStructuredAgentSessionReadOwner(state.intent.sessionId, state.intent.target)
@@ -120,6 +124,9 @@ export function trackLaunchSettlement(
         cleanupUnmaterializedLaunch(state)
         notifyStructuredLaunchListeners()
       } else {
+        if (state.intent.params.firstMessage) {
+          state.operationEnded = true
+        }
         state.callers.outcome = 'unknown'
         materializeStructuredLaunchSurface(state.intent)
         notifyStructuredLaunchListeners()

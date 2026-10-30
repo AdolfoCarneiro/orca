@@ -1,5 +1,6 @@
 // Settle local echoes by the host’s submission id, never by matching text.
 
+import { markRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -215,6 +216,40 @@ describe('a structured send in the open chat', () => {
     expect(onSendError).not.toHaveBeenCalled()
   })
 
+  it('shows unknown transport input with its photo and joins only its exact row', async () => {
+    await mount()
+    sendRequest.mockImplementation(async (method) => {
+      if (method === 'agentSession.send') {
+        throw markRpcDeliveryUnknown(new Error('connection lost'))
+      }
+      return ok({ models: [], current: {} })
+    })
+    await act(async () => {
+      expect(
+        await hook!.sendWithOutcome('Full original prose', ['file:///original.png'], undefined, [
+          { path: '/host/original.png', previewUri: 'file:///original.png' }
+        ])
+      ).toBe('unknown')
+    })
+    const row = hook!.session.messages[0]!
+    expect(row.blocks).toEqual([
+      { type: 'text', text: 'Full original prose' },
+      { type: 'image-ref', path: '/host/original.png' }
+    ])
+    expect(hook!.imagePreviewsByMessageId[row.id]).toEqual(['file:///original.png'])
+    act(() => listener?.(journal([userRow('unrelated', 'different input', 1)], [])))
+    expect(hook!.session.messages.some((message) => message.id === row.id)).toBe(true)
+    const id = String(
+      fieldsOf(
+        fieldsOf(sendRequest.mock.calls.find(([method]) => method === 'agentSession.send')?.[1])
+          .envelope
+      ).clientOperationId
+    )
+    act(() => listener?.(journal([userRow(id, 'Full original prose', 2)], [recorded(id)])))
+    expect(shown()).toEqual([[row.id, 'Full original prose']])
+    expect(onSendError).not.toHaveBeenCalled()
+  })
+
   it('draws nothing of its own for a send the host keeps as a card', async () => {
     await mount()
     answer = (id) => ({
@@ -290,7 +325,7 @@ describe('a structured send whose answer was lost', () => {
   })
 
   function hold(clientMessageId: string): void {
-    act(() => sends!.hold(message(clientMessageId)))
+    act(() => sends!.accept(message(clientMessageId)))
   }
 
   const drawn = () => sends!.optimistic.map((send) => send.clientMessageId)
@@ -307,17 +342,44 @@ describe('a structured send whose answer was lost', () => {
     vi.useRealTimers()
   })
 
-  it('expires silently because the send bridge already restored the draft and showed the notice', () => {
+  it('bounds real accept/reconciliation work linearly at N and 10N retained inputs', () => {
+    const work = [20, 200].map((count) => {
+      render({ sessionKey: `population-${count}` })
+      let reads = 0
+      act(() => {
+        for (let index = 0; index < count; index++) {
+          const entry = message(`retained-${index}`)
+          sends!.accept({
+            ...entry,
+            get clientMessageId() {
+              reads++
+              return entry.clientMessageId
+            }
+          })
+        }
+      })
+      reads = 0
+      act(() => sends!.accept(message(`retained-${count - 1}`)))
+      const operations = reads
+      expect(sends!.optimistic).toHaveLength(count)
+      expect(operations).toBeGreaterThanOrEqual(count)
+      expect(operations).toBeLessThanOrEqual(4 * count)
+      return operations
+    })
+    console.info('DL1 retained-input ID reads N/10N:', work)
+  })
+
+  it('retains ordinary input after the operation deadline, independently of newer sends', () => {
     render({ sessionKey: 'a' })
     hold('lost')
-    expect(drawn()).toEqual([])
+    expect(drawn()).toEqual(['lost'])
     act(() => sends!.accept(message('next')))
     render({ sessionKey: 'a', submissions: [recorded('other')] })
-    expect(drawn()).toEqual(['next'])
+    expect(drawn()).toEqual(['lost', 'next'])
     act(() => {
       vi.advanceTimersByTime(30_000)
     })
-    expect(drawn()).toEqual(['next'])
+    expect(drawn()).toEqual(['lost', 'next'])
     expect(onSendError).not.toHaveBeenCalled()
   })
 
@@ -343,7 +405,7 @@ describe('a structured send whose answer was lost', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('keeps its hold while another chat is open, and settles it back in its own', () => {
+  it('keeps its ordinary input while another chat is open, and settles it back in its own', () => {
     render({ sessionKey: 'a' })
     hold('lost')
     render({ sessionKey: 'b', submissions: [recorded('other')] })
@@ -357,7 +419,7 @@ describe('a structured send whose answer was lost', () => {
     expect(onSendError).not.toHaveBeenCalled()
   })
 
-  it('stops its deadline when the chat screen goes away', () => {
+  it('releases its view-owned memory when the chat screen goes away', () => {
     render({ sessionKey: 'a' })
     hold('lost')
     act(() => renderer?.unmount())

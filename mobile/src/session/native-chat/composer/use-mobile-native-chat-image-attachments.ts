@@ -208,7 +208,7 @@ export function useMobileNativeChatImageAttachments({
             deadline,
             [...pendingImages, ...storedFiles]
           )
-          if (outcome === 'accepted' && destination.active) {
+          if (outcome !== 'rejected' && destination.active) {
             const sentIds = new Set(pendingImages.map((attachment) => attachment.id))
             updateMobileNativeChatDraftInputs(destination, (current) => ({
               ...current,

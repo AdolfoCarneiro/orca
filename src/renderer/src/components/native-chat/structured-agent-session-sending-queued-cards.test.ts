@@ -40,18 +40,25 @@ describe('queue sends on their way', () => {
     const sends = [
       entry('queued', { delivery: 'queue-if-active' }),
       entry('plain'),
-      entry('recorded', { phase: 'recorded' })
+      entry('recorded', { phase: 'recorded' }),
+      entry('uncertain-queue', { phase: 'unconfirmed', delivery: 'queue-if-active' })
     ]
     // Pending queued sends use cards while working; plain/recorded sends remain bubbles until host ownership appears.
-    expect(ids(pendingSendsOutsideQueuedCards(sends, [], true))).toEqual(['plain', 'recorded'])
+    expect(ids(pendingSendsOutsideQueuedCards(sends, [], true))).toEqual([
+      'plain',
+      'recorded',
+      'uncertain-queue'
+    ])
     expect(ids(pendingSendsOutsideQueuedCards(sends, [], false))).toEqual([
       'queued',
       'plain',
-      'recorded'
+      'recorded',
+      'uncertain-queue'
     ])
     expect(ids(pendingSendsOutsideQueuedCards(sends, ['plain'], false))).toEqual([
       'queued',
-      'recorded'
+      'recorded',
+      'uncertain-queue'
     ])
   })
   it('a sending card ends once the host records the send or hands its card off', () => {
