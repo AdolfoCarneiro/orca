@@ -42,7 +42,9 @@ export async function buildIndexConcurrently(input: {
   }
   try {
     const presence = await catalogObjectPresence(catalogQuery, target)
-    if (presence.present && presence.indisvalid === true) return 'skipped'
+    if (presence.present && presence.indisvalid === true) {
+      return 'skipped'
+    }
     // IF NOT EXISTS skips the invalid index an interrupted build leaves, so it must go first.
     if (presence.present && typeof presence.qualifiedName === 'string') {
       log('invalid_index_dropped')

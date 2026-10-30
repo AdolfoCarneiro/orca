@@ -129,7 +129,9 @@ export async function applyPostgresSchema(
     const sql = sqlWithoutComments(statement)
     // Never blocks writers, so it is always deferrable; validity, not existence, says it is done.
     if (target?.kind === 'index' && buildsIndexConcurrently(sql)) {
-      if (!options.catalogQuery) throw new Error('concurrent_index_needs_catalog_query')
+      if (!options.catalogQuery) {
+        throw new Error('concurrent_index_needs_catalog_query')
+      }
       const outcome = await buildIndexConcurrently({
         statement,
         target,
