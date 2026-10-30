@@ -164,7 +164,9 @@ const joined = mode === 'strict' ? conpty.assignCurrentProcessToStrictJob() : co
 const env = Object.entries(process.env).map(([k, v]) => k + '=' + v + '\\0').join('') + '\\0'
 const line = '"' + process.execPath + '" -e "setTimeout(() => {}, 60000)"'
 const spawned = require(addonPath).spawnDetachedIsolated(process.execPath, line, '', env, () => {})
-require('fs').writeFileSync(resultFile, JSON.stringify({ joined, ...spawned }))
+// Control: libuv's detached spawn never breaks away, so the job's close always takes it.
+const controlPid = require('child_process').spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { detached: true, stdio: 'ignore' }).pid
+require('fs').writeFileSync(resultFile, JSON.stringify({ joined, controlPid, ...spawned }))
 process.exit(0)
 `
 
@@ -194,9 +196,12 @@ describeOnWindows('isolated detached spawn inside a kill-on-close job', () => {
     run.stderr?.on('data', (chunk) => (output += chunk))
     const [code] = await once(run, 'close', { signal: AbortSignal.timeout(30_000) })
     expect(code, output).toBe(0)
-    const result: { joined: boolean; pid: number; breakawayDenied: boolean } = JSON.parse(
-      readFileSync(resultFile, 'utf8')
-    )
+    const result: {
+      joined: boolean
+      controlPid: number
+      pid: number
+      breakawayDenied: boolean
+    } = JSON.parse(readFileSync(resultFile, 'utf8'))
     return result
   }
 
@@ -208,8 +213,8 @@ describeOnWindows('isolated detached spawn inside a kill-on-close job', () => {
       context.skip()
     }
     try {
-      // Kill-on-close fires as the helper exits; give a stray kill time to land.
-      await new Promise((resolve) => setTimeout(resolve, 1_000))
+      // The control dying proves the job closed; only then does the child's survival mean anything.
+      await vi.waitFor(() => expect(isAlive(result.controlPid)).toBe(false), { timeout: 10_000 })
       expect(isAlive(result.pid)).toBe(true)
     } finally {
       if (isAlive(result.pid)) {
@@ -218,6 +223,7 @@ describeOnWindows('isolated detached spawn inside a kill-on-close job', () => {
     }
   }, 40_000)
 
+  // A cold Node start on a loaded Windows runner can exceed the 5 s default.
   it('a job that forbids breakaway gets the child instead, and says so', async (context) => {
     const result = await spawnInJob('strict')
     if (!result.joined) {
