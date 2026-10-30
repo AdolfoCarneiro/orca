@@ -230,6 +230,14 @@ describe('current browser owner at remote settlement', () => {
     installWebPreloadApi()
     return globals
   }
+  function syncSettings(api: Window['api']) {
+    const settings = api.settings.getSync()
+    expect(settings).not.toBeNull()
+    if (settings === null) {
+      throw new Error('Browser settings must be synchronously available')
+    }
+    return settings
+  }
   function start(api: Window['api'], method: string, visibility = false) {
     if (method === 'settings.get') {
       return api.settings.get()
@@ -307,7 +315,7 @@ describe('current browser owner at remote settlement', () => {
       } else {
         expect(returned.compactWorktreeCards).toBe(true)
       }
-      check(globals.window.api.settings.getSync(), chat)
+      check(syncSettings(globals.window.api), chat)
       expect(JSON.parse(globals.storage.getItem(SETTINGS_KEY) ?? '{}')).toMatchObject({
         agentDefaultSurface: returned.agentDefaultSurface,
         nativeChatProviders: returned.nativeChatProviders
@@ -342,7 +350,7 @@ describe('current browser owner at remote settlement', () => {
       } else {
         check(await earlier, true)
       }
-      check(globals.window.api.settings.getSync(), true)
+      check(syncSettings(globals.window.api), true)
     }
   )
 
@@ -358,8 +366,8 @@ describe('current browser owner at remote settlement', () => {
     await choose(globals.window.api, true)
     pending.reject(new Error('offline'))
     await rejected
-    check(globals.window.api.settings.getSync(), true)
-    expect(globals.window.api.settings.getSync().worktreeVisibilityDefaults).toEqual({
+    check(syncSettings(globals.window.api), true)
+    expect(syncSettings(globals.window.api).worktreeVisibilityDefaults).toEqual({
       external: 'hide'
     })
   })
@@ -498,7 +506,7 @@ describe('current browser owner at remote settlement', () => {
     await route('9', { compactWorktreeCards: true })
     check(await successor, true)
     expect(registry.pending.size).toBe(0)
-    expect(globals.window.api.settings.getSync().compactWorktreeCards).toBe(true)
+    expect(syncSettings(globals.window.api).compactWorktreeCards).toBe(true)
     oldHost.call = undefined
     vi.resetModules()
     const { installWebPreloadApi } = await import('./web-preload-api')
