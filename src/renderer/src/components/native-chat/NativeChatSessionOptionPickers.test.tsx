@@ -4,10 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OMP_SESSION_OPTION_CATALOG } from '../../../../shared/agent-session-option-catalog-omp'
-import { AcpStructuredOptions } from '../../../../main/acp/acp-structured-options'
-import { OMP_ACP_DIALECT } from '../../../../main/acp/acp-dialects/omp-dialect'
-import { NewSessionResponseSchema } from '../../../../main/acp/generated/acp-protocol.generated'
-import recordedOmpOptions from '../../../../main/acp/fixtures/omp-v17-windows-new-no-model.json'
+import type { AcpThinkingOptionsFixtureModule } from '../../../../shared/acp-thinking-options.test-fixture-contract'
 import { structuredAgentSessionOptionView } from '../../../../shared/structured-agent-session-option-view'
 import {
   applyStructuredAgentSessionModelCatalog,
@@ -572,21 +569,10 @@ describe('NativeChatSessionOptionPickers', () => {
   it.each(['new', 'loaded'] as const)(
     'offers recorded OMP thinking choices for a non-running model in a %s chat without picking a default',
     async (origin) => {
-      const options = new AcpStructuredOptions(OMP_ACP_DIALECT)
-      options.adoptSession(
-        {
-          ...NewSessionResponseSchema.parse(recordedOmpOptions),
-          models: {
-            currentModelId: 'running',
-            availableModels: [
-              { modelId: 'running', name: 'Running' },
-              { modelId: 'target', name: 'Target' }
-            ]
-          }
-        },
-        origin
+      const { recordedOmpOptions } = await vi.importActual<AcpThinkingOptionsFixtureModule>(
+        '../../../../main/acp/acp-thinking-options.test-fixture'
       )
-      const projected = options.read()
+      const projected = recordedOmpOptions(origin).read()
       expect(projected.models[1]).toMatchObject({ effortsKnown: false })
       expect(projected.models[1]).not.toHaveProperty('defaultEffort')
       const state = applyStructuredAgentSessionModelCatalog(

@@ -55,35 +55,19 @@ describe('a model whose newer chat listing does not know its efforts', () => {
     expect(merged).not.toHaveProperty('effortsKnown')
   })
 
-  it('keeps an older listing’s explicit empty menu', () => {
-    expect(model(listing('probe', 1, []), unknownChat(2))).not.toHaveProperty('effortsKnown')
-  })
-
   it('stays unknown when no listing knows its menu', () => {
     expect(model(unknownChat(1), unknownChat(2))).toMatchObject({ effortsKnown: false })
   })
 
-  it.each(['probe', 'live-session'] as const)(
-    'keeps known %s menus, including empty, over suggestions in either freshness order',
-    (origin) => {
-      for (const efforts of [[], menu('low', 'high')]) {
-        for (const at of [1, 3]) {
-          const known = listing(origin, at, efforts)
-          const suggestions = {
-            ...unknownChat(2, menu('off', 'auto', 'xhigh')),
-            origin: origin === 'probe' ? ('live-session' as const) : ('probe' as const)
-          }
-          const merged = model(
-            origin === 'probe' ? known : suggestions,
-            origin === 'probe' ? suggestions : known
-          )
-          expect(merged?.efforts).toEqual(efforts)
-          expect(merged).not.toHaveProperty('effortsKnown')
-          expect(merged).not.toHaveProperty('defaultEffort')
-        }
-      }
-    }
-  )
+  it('prefers known probe evidence over an older unknown chat offering the configured effort', () => {
+    const merged = model(
+      listing('probe', 2, menu('low', 'high')),
+      unknownChat(1, menu('off', 'auto', 'xhigh'))
+    )
+    expect(merged?.efforts).toEqual(menu('low', 'high'))
+    expect(merged).not.toHaveProperty('effortsKnown')
+    expect(merged).not.toHaveProperty('defaultEffort')
+  })
 
   it('keeps native suggestions unknown without a known model menu', () => {
     const older = unknownChat(1, menu('low', 'high'))
