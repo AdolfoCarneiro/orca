@@ -65,7 +65,7 @@ export function MacosSupportNoticeDialog({
           </DialogHeader>
 
           <div className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 text-card-foreground">
-            <Laptop className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <Laptop className="hidden size-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">
                 {translate('macosSupport.currentVersion', 'macOS 12')}
@@ -75,7 +75,7 @@ export function MacosSupportNoticeDialog({
               </p>
             </div>
             <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <div className="shrink-0 text-right">
+            <div className="min-w-0 flex-1 text-right">
               <p className="text-sm font-medium">
                 {translate('macosSupport.requiredVersion', 'macOS 13+')}
               </p>
