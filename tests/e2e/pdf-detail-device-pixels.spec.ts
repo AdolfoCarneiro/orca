@@ -75,18 +75,23 @@ test('PDF detail tiles keep device resolution after consecutive capped zooms and
       if (!wrapper) {
         throw new Error('Missing canvas wrapper')
       }
+      const actualDPR = devicePixelRatio
       return {
+        actualDPR,
         backing: [element.width, element.height],
-        displayed: [bounds.width * devicePixelRatio, bounds.height * devicePixelRatio],
-        offset: [
-          (bounds.left - wrapper.left) * devicePixelRatio,
-          (bounds.top - wrapper.top) * devicePixelRatio
-        ]
+        displayed: [bounds.width * actualDPR, bounds.height * actualDPR],
+        offset: [(bounds.left - wrapper.left) * actualDPR, (bounds.top - wrapper.top) * actualDPR]
       }
     })
+    // CSS rects use 1/64px layout units; relative origins combine two rect measurements.
+    const layoutQuantum = geometry.actualDPR / 64
     for (let axis = 0; axis < 2; axis += 1) {
-      expect(geometry.displayed[axis]).toBeCloseTo(geometry.backing[axis], 5)
-      expect(geometry.offset[axis]).toBeCloseTo(Math.round(geometry.offset[axis]), 5)
+      expect(Math.abs(geometry.displayed[axis] - geometry.backing[axis])).toBeLessThanOrEqual(
+        layoutQuantum + 1e-7
+      )
+      expect(
+        Math.abs(geometry.offset[axis] - Math.round(geometry.offset[axis]))
+      ).toBeLessThanOrEqual(2 * layoutQuantum + 1e-7)
     }
     observations.push(geometry)
   }
