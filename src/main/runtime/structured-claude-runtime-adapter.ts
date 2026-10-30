@@ -65,6 +65,7 @@ export function structuredClaudeLifecycleEvent(
       reason: event.reason,
       ...(event.failure ? { failure: event.failure } : {}),
       cause: event.cause,
+      ...(event.deathEvidenceKind ? { deathEvidenceKind: event.deathEvidenceKind } : {}),
       fence: event.fence,
       acquisitionGeneration: event.acquisitionGeneration,
       // The instant the translator ended the open turn at; the host reads the exit's turn by it.

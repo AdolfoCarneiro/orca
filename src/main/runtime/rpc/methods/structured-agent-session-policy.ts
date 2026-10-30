@@ -1,3 +1,4 @@
+import { AGENT_SESSION_COMMANDS_ON_REQUEST_CAPABILITY } from '../../../../shared/structured-agent-session-surface-capabilities'
 import {
   CLAUDE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
   PI_STRUCTURED_DIALOGS_RUNTIME_CAPABILITY,
@@ -110,4 +111,8 @@ export function isStructuredNativeChatDefaultFor(
   agent: string
 ): boolean {
   return nativeChatPreferenceFor(readAgentLaunchModeSettings(runtime), agent)
+}
+
+export function clientRequestsCommands(ctx: Pick<RpcContext, 'clientCapabilities'>): boolean {
+  return ctx.clientCapabilities?.includes(AGENT_SESSION_COMMANDS_ON_REQUEST_CAPABILITY) === true
 }
