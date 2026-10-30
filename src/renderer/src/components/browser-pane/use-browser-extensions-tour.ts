@@ -46,11 +46,12 @@ export function shouldRequestBrowserExtensionsTour(
   return firstBrowserVisitAt !== undefined && firstBrowserVisitAt < input.sessionStartedAt
 }
 
-/** Requests the one-time extensions callout for a visible local browser page. */
-export function useBrowserExtensionsTour(enabled: boolean): void {
+/** Requests the one-time extensions callout once the active page has an extensions toolbar. */
+export function useBrowserExtensionsTour(enabled: boolean, toolbarReady: boolean): void {
   const eligible = useAppStore(
     (s) =>
       enabled &&
+      toolbarReady &&
       s.activeContextualTourId === null &&
       s.activeModal === 'none' &&
       !s.contextualToursBlockingSurfaceVisible &&

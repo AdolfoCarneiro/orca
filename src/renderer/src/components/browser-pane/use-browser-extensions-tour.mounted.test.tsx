@@ -35,7 +35,30 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('useBrowserExtensionsTour blocker recovery', () => {
+describe('useBrowserExtensionsTour readiness and blocker recovery', () => {
+  it('starts when the active toolbar becomes ready after a long delay', () => {
+    document.body.replaceChildren()
+    const request = vi.spyOn(useAppStore.getState(), 'requestContextualTour')
+    const { rerender } = renderHook(
+      ({ toolbarReady }) => useBrowserExtensionsTour(true, toolbarReady),
+      {
+        initialProps: { toolbarReady: false }
+      }
+    )
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(request).not.toHaveBeenCalled()
+
+    const target = document.createElement('button')
+    target.setAttribute('data-contextual-tour-target', 'browser-extensions-control')
+    target.getBoundingClientRect = () => new DOMRect(10, 10, 24, 24)
+    document.body.appendChild(target)
+    rerender({ toolbarReady: true })
+    act(() => vi.advanceTimersByTime(250))
+
+    expect(useAppStore.getState().activeContextualTourId).toBe('browser-extensions')
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+
   it.each(['modal', 'blocking-surface'] as const)(
     'starts after a long-lived %s closes without remounting the browser',
     (blocker) => {
@@ -48,7 +71,7 @@ describe('useBrowserExtensionsTour blocker recovery', () => {
       }
       setBlocked(true)
       const request = vi.spyOn(useAppStore.getState(), 'requestContextualTour')
-      renderHook(() => useBrowserExtensionsTour(true))
+      renderHook(() => useBrowserExtensionsTour(true, true))
       act(() => vi.advanceTimersByTime(60_000))
       expect(request).not.toHaveBeenCalled()
       act(() => setBlocked(false))
@@ -61,7 +84,7 @@ describe('useBrowserExtensionsTour blocker recovery', () => {
   it('cancels pending readiness retries and blocker recovery after the browser is hidden', () => {
     document.body.replaceChildren()
     const request = vi.spyOn(useAppStore.getState(), 'requestContextualTour')
-    const { rerender } = renderHook(({ enabled }) => useBrowserExtensionsTour(enabled), {
+    const { rerender } = renderHook(({ enabled }) => useBrowserExtensionsTour(enabled, true), {
       initialProps: { enabled: true }
     })
     act(() => vi.advanceTimersByTime(0))
