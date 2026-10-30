@@ -20876,7 +20876,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca 中的 Codex 现在使用 ~/.codex",
-      "description": "Codex 可能会再次要求信任文件夹或批准命令。重新添加您仅在 Orca 中添加的所有 MCP 服务器。"
+      "description": "Codex 可能会再次要求信任文件夹或批准命令。重新添加您仅在 Orca 中添加的所有 MCP 服务器。",
+      "dismiss": "关闭"
     },
     "codexSharedServerBanner": {
       "title": "此 Codex 与您的其他 Codex 选项卡共享服务器",

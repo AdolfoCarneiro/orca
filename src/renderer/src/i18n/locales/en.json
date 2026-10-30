@@ -21207,7 +21207,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Codex in Orca now uses ~/.codex",
-      "description": "Codex may ask again to trust folders or approve commands. Re-add any MCP servers you added only in Orca."
+      "description": "Codex may ask again to trust folders or approve commands. Re-add any MCP servers you added only in Orca.",
+      "dismiss": "Dismiss"
     },
     "codexSharedServerBanner": {
       "title": "This Codex is sharing a server with your other Codex tabs",

@@ -21533,7 +21533,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Le Codex dans Orca utilise désormais ~/.codex",
-      "description": "Le Codex peut demander à nouveau de faire confiance aux dossiers ou d'approuver les commandes. Ajoutez à nouveau tous les serveurs MCP que vous avez ajoutés uniquement dans Orca."
+      "description": "Le Codex peut demander à nouveau de faire confiance aux dossiers ou d'approuver les commandes. Ajoutez à nouveau tous les serveurs MCP que vous avez ajoutés uniquement dans Orca.",
+      "dismiss": "Ignorer"
     },
     "codexSharedServerBanner": {
       "title": "Ce Codex partage un serveur avec vos autres onglets Codex",

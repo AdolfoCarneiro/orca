@@ -7,7 +7,7 @@ import {
 } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { RichMarkdownTrailingParagraph } from './rich-markdown-trailing-paragraph'
-import Link from '@tiptap/extension-link'
+import { RichMarkdownLink } from './rich-markdown-link-mark'
 import { Code } from '@tiptap/extension-code'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -97,7 +97,7 @@ export function createRichMarkdownExtensions({
       lowlight,
       defaultLanguage: null
     }),
-    Link.configure({
+    RichMarkdownLink.configure({
       openOnClick: false,
       autolink: true,
       linkOnPaste: true

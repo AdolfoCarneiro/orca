@@ -20730,7 +20730,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Codex in Orca verwendet jetzt ~/.codex",
-      "description": "Codex fordert möglicherweise erneut dazu auf, Ordnern zu vertrauen oder Befehle zu genehmigen. MCP-Server, die nur in Orca hinzugefügt wurden, erneut hinzufügen."
+      "description": "Codex fordert möglicherweise erneut dazu auf, Ordnern zu vertrauen oder Befehle zu genehmigen. MCP-Server, die nur in Orca hinzugefügt wurden, erneut hinzufügen.",
+      "dismiss": "Ausblenden"
     },
     "codexSharedServerBanner": {
       "title": "Dieser Codex teilt sich einen Server mit den anderen Codex-Tabs",

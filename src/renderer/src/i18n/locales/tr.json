@@ -20713,7 +20713,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca'daki Codex artık ~/.codex kullanıyor",
-      "description": "Codex, klasörlere güvenmenizi veya komutları onaylamanızı yeniden isteyebilir. Yalnızca Orca'ya eklediğiniz MCP sunucularını yeniden ekleyin."
+      "description": "Codex, klasörlere güvenmenizi veya komutları onaylamanızı yeniden isteyebilir. Yalnızca Orca'ya eklediğiniz MCP sunucularını yeniden ekleyin.",
+      "dismiss": "Kapat"
     },
     "codexSharedServerBanner": {
       "title": "Bu Codex, diğer Codex sekmelerinizle aynı sunucuyu paylaşıyor",

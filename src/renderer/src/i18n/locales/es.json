@@ -21237,7 +21237,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Codex en Orca ahora usa ~/.codex",
-      "description": "Codex puede volver a pedir que confíes en carpetas o apruebes comandos. Vuelve a agregar los servidores MCP que agregaste solo en Orca."
+      "description": "Codex puede volver a pedir que confíes en carpetas o apruebes comandos. Vuelve a agregar los servidores MCP que agregaste solo en Orca.",
+      "dismiss": "Descartar"
     },
     "paneMove": {
       "failed": "No se pudo mover el panel a una pestaña nueva."
