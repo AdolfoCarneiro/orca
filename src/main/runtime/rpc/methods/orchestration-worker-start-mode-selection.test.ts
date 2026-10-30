@@ -178,6 +178,7 @@ describe('worker-start honours the settings default', () => {
     expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
   })
 
+  // Two sequential CLI subprocesses each allow 15s, plus RPC setup and cleanup.
   it('runs the real worker-start CLI through RPC and production saved-choice mode selection', async () => {
     const manifest = createRequire(resolve('package.json')).resolve('bun/package.json')
     const { bin } = z
