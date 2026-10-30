@@ -1,14 +1,28 @@
 /** Why a distro cannot be added as a WSL host, decided before anything runs in it. */
-import type { WslHostAddResult } from '../../shared/wsl-host-types'
+import type { WslHostAddFailureKind, WslHostAddResult } from '../../shared/wsl-host-types'
+import {
+  WSL_HOST_ADD_REFUSAL_COPY,
+  wslHostAddRefusalText,
+  type WslHostAddRefusalCode,
+  type WslHostCopyParams
+} from '../../shared/wsl-host-failure-copy'
 import type { WslHostDistroCandidate } from './wsl-host-distro-list'
 import { wslDistroHolderKey } from './wsl-distro-holder-record'
-import { wsl1DistroMessage, wslDistroNotRegisteredMessage } from './wsl-distro-unsupported'
 
-export const WSL_HOSTS_DISABLED_MESSAGE = 'WSL hosts are turned off in Settings → Experimental.'
-export const WSL_HOST_SERVER_FILES_MISSING_MESSAGE =
-  'This build of Orca can’t run WSL hosts (server files missing).'
+export const WSL_HOSTS_DISABLED_MESSAGE = WSL_HOST_ADD_REFUSAL_COPY.turnedOff
+export const WSL_HOST_SERVER_FILES_MISSING_MESSAGE = WSL_HOST_ADD_REFUSAL_COPY.serverFilesMissing
 
 type WslHostAddRefusal = Extract<WslHostAddResult, { ok: false }>
+
+/** A refusal whose English `message` and translation code come from one table. */
+export function wslHostAddRefusal(
+  kind: WslHostAddFailureKind,
+  code: WslHostAddRefusalCode,
+  params?: WslHostCopyParams
+): WslHostAddRefusal {
+  const { text, code: errorCode, params: errorParams } = wslHostAddRefusalText(code, params)
+  return { ok: false, kind, message: text, errorCode, ...(errorParams ? { errorParams } : {}) }
+}
 
 export const WSL_HOST_REMOVING_MESSAGE = 'This WSL host is being removed.'
 
@@ -45,12 +59,12 @@ export function wslHostRunRefusal(gate: {
   hasServerFiles: () => boolean
 }): WslHostAddRefusal | null {
   if (!gate.isEnabled()) {
-    return { ok: false, kind: 'disabled', message: WSL_HOSTS_DISABLED_MESSAGE }
+    return wslHostAddRefusal('disabled', 'turnedOff')
   }
   // Reject missing packaged templates before C4 deploy emits an opaque deep failure.
   return gate.hasServerFiles()
     ? null
-    : { ok: false, kind: 'server-files-missing', message: WSL_HOST_SERVER_FILES_MISSING_MESSAGE }
+    : wslHostAddRefusal('server-files-missing', 'serverFilesMissing')
 }
 
 export function sameWslDistro(left: string, right: string): boolean {
@@ -66,28 +80,16 @@ export function admitWslHostDistro(args: {
 }): { distro: WslHostDistroCandidate } | WslHostAddRefusal {
   const distro = args.candidates.find((candidate) => sameWslDistro(candidate.name, args.requested))
   if (!distro) {
-    return {
-      ok: false,
-      kind: 'failed',
-      message: wslDistroNotRegisteredMessage(args.requested)
-    }
+    return wslHostAddRefusal('failed', 'notRegistered', { distro: args.requested })
   }
   if (distro.version === 1) {
-    return {
-      ok: false,
-      kind: 'unsupported-wsl1',
-      message: wsl1DistroMessage(distro.name)
-    }
+    return wslHostAddRefusal('unsupported-wsl1', 'wsl1', { distro: distro.name })
   }
   if (args.alreadyAdded(distro.name)) {
-    return { ok: false, kind: 'already-added', message: `${distro.name} is already a host.` }
+    return wslHostAddRefusal('already-added', 'alreadyAdded', { distro: distro.name })
   }
   if (distro.state === 'stopped' && !args.startIfStopped) {
-    return {
-      ok: false,
-      kind: 'distro-stopped',
-      message: `${distro.name} stopped since the list was read. Choose Start and add to start it.`
-    }
+    return wslHostAddRefusal('distro-stopped', 'distroStopped', { distro: distro.name })
   }
   return { distro }
 }

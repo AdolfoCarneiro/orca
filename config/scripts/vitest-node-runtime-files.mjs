@@ -35,6 +35,10 @@ const NODE_RUNTIME_INCLUDE = [
   'src/renderer/src/lib/react-commit-cascade-telemetry.test.ts',
   // Asserts payloads are collected; Bun's GC scans the stack conservatively and may keep one alive.
   'src/shared/ws-inbound-message-queue.test.ts',
+  'src/renderer/src/lib/ai-vault-tab-title-sync-inputs.test.ts',
+  'src/renderer/src/components/sidebar/HostRemoveDialog.test.tsx',
+  // Asserts an observer survives a forced collection; conservative retention would hide a lost one.
+  'config/scripts/happy-dom-mutation-observer-retention.test.ts',
   // These reach Node SQLite through a shared helper or a dynamic import, which the scan skips.
   'src/main/claude/claude-transcript-catch-up.test.ts',
   'src/main/claude/claude-transcript-duration.test.ts',
@@ -117,7 +121,7 @@ const NODE_RUNTIME_INCLUDE = [
   // Times V8 string flattening, which is what Electron main runs.
   'src/main/runtime/terminal-tail-redraw-wall-time.test.ts',
   'src/main/agent-hooks/server-transport-interference.test.ts',
-  'src/main/plugins/plugin-worker-supervision.integration.test.ts',
+  'src/main/plugins/workers/plugin-worker-supervision.integration.test.ts',
   // Reconciliation loads the real native Parcel watcher; Bun can abort on Linux ARM.
   'src/main/plugins/plugin-service-reconciliation.test.ts',
   'src/main/usage/usage-scan-worker-event-loop.test.ts',

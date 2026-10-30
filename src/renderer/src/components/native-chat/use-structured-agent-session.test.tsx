@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
-import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   call: vi.fn(),
@@ -70,14 +70,39 @@ import {
 } from './structured-session-option-defaults.test-fixture'
 import { useStructuredAgentSession } from './use-structured-agent-session'
 
+import { useAppStore } from '@/store'
+import { forgetStructuredSessionSelection } from '@/lib/structured-agent-session-selection-controller'
+
+beforeEach(() => {
+  useAppStore.getState().setRuntimeEnvironments([
+    {
+      id: 'remote-1',
+      name: 'Original host',
+      createdAt: 1,
+      updatedAt: 1,
+      pairingRevision: 1,
+      lastUsedAt: null,
+      runtimeId: null,
+      endpoints: [],
+      preferredEndpointId: 'original'
+    }
+  ])
+})
+afterEach(() => {
+  cleanup()
+  forgetStructuredSessionSelection('session-1')
+  forgetStructuredSessionSelection('replacement-pane')
+  useAppStore.getState().setRuntimeEnvironments([])
+})
+
 const LOCAL_TARGET = { kind: 'local' } as const
 
-function renderCodexSession() {
+function renderOptionsSession() {
   return renderHook(() =>
     useStructuredAgentSession({
       sessionId: 'session-1',
-      agent: 'codex',
       target: LOCAL_TARGET,
+      agent: 'codex',
       isVisible: true
     })
   )
@@ -117,7 +142,7 @@ describe('useStructuredAgentSession working state', () => {
       pending++
       return new Promise(() => {})
     })
-    const mounted = renderCodexSession()
+    const mounted = renderOptionsSession()
     try {
       await act(async () => {})
       expect(mounted.result.current.messages).toEqual([
@@ -150,7 +175,14 @@ describe('useStructuredAgentSession working state', () => {
         resolvedAt: null
       }
     ]
-    const { result } = renderCodexSession()
+    const { result } = renderHook(() =>
+      useStructuredAgentSession({
+        sessionId: 'session-1',
+        agent: 'codex',
+        target: LOCAL_TARGET,
+        isVisible: true
+      })
+    )
 
     expect(result.current.isWorking).toBe(true)
     expect(result.current.turnId).toBeNull()
@@ -169,7 +201,14 @@ describe('useStructuredAgentSession working state', () => {
         resolvedAt: 2
       }
     ]
-    const { result } = renderCodexSession()
+    const { result } = renderHook(() =>
+      useStructuredAgentSession({
+        sessionId: 'session-1',
+        agent: 'codex',
+        target: LOCAL_TARGET,
+        isVisible: true
+      })
+    )
 
     expect(result.current.isWorking).toBe(false)
   })
@@ -207,7 +246,7 @@ describe('useStructuredAgentSession options', () => {
         }
       })
     })
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
@@ -232,17 +271,18 @@ describe('useStructuredAgentSession options', () => {
         ? Promise.resolve(OPTIONS)
         : Promise.reject(new Error('provider rejected option'))
     )
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
-      expect(await result.current.setStructuredOption('model', 'gpt-fast')).toBe(false)
+      expect(await result.current.setStructuredOption('model', 'gpt-fast')).toBe(true)
     })
 
     // Show one uncertainty notice without raw transport text or an unproved outcome.
     expect(mocks.toastError).toHaveBeenCalledWith(
       "Orca couldn't confirm what happened. Check the chat."
     )
+    expect(mocks.enqueueSettingsWrite).not.toHaveBeenCalled()
     expect(result.current.error).toBeNull()
     expect(result.current.optionSnapshot.find((entry) => entry.id === 'model')).toMatchObject({
       settable: true
@@ -275,7 +315,7 @@ describe('useStructuredAgentSession options', () => {
             }
       )
     })
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
@@ -286,12 +326,13 @@ describe('useStructuredAgentSession options', () => {
     const mutations = mocks.call.mock.calls.filter(
       ([, method]) => method === 'agentSession.setOption'
     )
-    expect(
-      mutations.map(
-        ([, , params]) =>
-          (params as { envelope: { clientOperationId: string } }).envelope.clientOperationId
-      )
-    ).toEqual(['operation-1', 'operation-2'])
+    const ids = mutations.map(
+      ([, , params]) =>
+        (params as { envelope: { clientOperationId: string } }).envelope.clientOperationId
+    )
+    expect(ids).toEqual([expect.any(String), expect.any(String)])
+    expect(ids.every((id) => id.length > 0)).toBe(true)
+    expect(new Set(ids).size).toBe(2)
   })
 
   it('sends the pick again as a new operation after a pending admission refusal', async () => {
@@ -326,7 +367,7 @@ describe('useStructuredAgentSession options', () => {
             }
       )
     })
-    const { result, rerender } = renderCodexSession()
+    const { result, rerender } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
@@ -343,12 +384,13 @@ describe('useStructuredAgentSession options', () => {
     const mutations = mocks.call.mock.calls.filter(
       ([, method]) => method === 'agentSession.setOption'
     )
-    expect(
-      mutations.map(
-        ([, , params]) =>
-          (params as { envelope: { clientOperationId: string } }).envelope.clientOperationId
-      )
-    ).toEqual(['operation-1', 'operation-2'])
+    const ids = mutations.map(
+      ([, , params]) =>
+        (params as { envelope: { clientOperationId: string } }).envelope.clientOperationId
+    )
+    expect(ids).toEqual([expect.any(String), expect.any(String)])
+    expect(ids.every((id) => id.length > 0)).toBe(true)
+    expect(new Set(ids).size).toBe(2)
     expect(
       mutations.map(
         ([, , params]) =>
@@ -357,33 +399,57 @@ describe('useStructuredAgentSession options', () => {
     ).toEqual([3, 4])
   })
 
-  it('reports an option failure across startup while its pane remains current', async () => {
-    let reject!: (error: Error) => void
-    const pending = new Promise<never>((_resolve, rejectPromise) => {
-      reject = rejectPromise
-    })
-    mocks.call.mockImplementation((_target, method) =>
-      method === 'agentSession.options' || method === 'agentSession.hold'
-        ? Promise.resolve(method === 'agentSession.options' ? OPTIONS : null)
-        : pending
-    )
-    const { result, rerender } = renderCodexSession()
-    await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
-    let setting!: Promise<boolean>
-    act(() => {
-      setting = result.current.setStructuredOption('model', 'gpt-fast')
-    })
-    fence = 4
-    rerender()
+  it.each(['same-pane', 'replacement', 'unmounted'] as const)(
+    'keeps uncertainty presentation with its issuing pane across startup (%s)',
+    async (schedule) => {
+      let reject!: (error: Error) => void
+      const pending = new Promise<never>((_resolve, rejectPromise) => {
+        reject = rejectPromise
+      })
+      mocks.call.mockImplementation((_target, method) =>
+        method === 'agentSession.options' || method === 'agentSession.hold'
+          ? Promise.resolve(method === 'agentSession.options' ? OPTIONS : null)
+          : pending
+      )
+      const { result, rerender, unmount } = renderHook(
+        ({ sessionId }) =>
+          useStructuredAgentSession({
+            sessionId,
+            target: LOCAL_TARGET,
+            agent: 'codex',
+            isVisible: true
+          }),
+        { initialProps: { sessionId: 'session-1' } }
+      )
+      await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
+      let setting!: Promise<boolean>
+      act(() => {
+        setting = result.current.setStructuredOption('model', 'gpt-fast')
+      })
+      fence = 4
+      rerender({ sessionId: schedule === 'replacement' ? 'replacement-pane' : 'session-1' })
+      if (schedule === 'unmounted') {
+        unmount()
+      }
 
-    await act(async () => {
-      reject(new Error('stale provider failure'))
-      await setting
-    })
+      await act(async () => {
+        reject(new Error('stale provider failure'))
+        expect(await setting).toBe(true)
+      })
 
-    expect(result.current.error).toBeNull()
-    expect(mocks.toastError).toHaveBeenCalledOnce()
-  })
+      expect(result.current.error).toBeNull()
+      expect(mocks.toastError).toHaveBeenCalledTimes(schedule === 'same-pane' ? 1 : 0)
+      if (schedule === 'same-pane') {
+        expect(mocks.toastError).toHaveBeenCalledWith(
+          "Orca couldn't confirm what happened. Check the chat."
+        )
+      }
+      expect(mocks.enqueueSettingsWrite).not.toHaveBeenCalled()
+      expect(
+        mocks.call.mock.calls.filter(([, method]) => method === 'agentSession.setOption')
+      ).toHaveLength(1)
+    }
+  )
 
   it('includes one background task id in the cancel fingerprint and payload', async () => {
     mocks.call.mockImplementation((_target, method) =>
@@ -421,7 +487,7 @@ describe('useStructuredAgentSession options', () => {
     })
   })
 
-  it('remembers a model pick so the next launch seeds the pair the provider settled on', async () => {
+  it('remembers only the admitted model rather than reply-only companion effort', async () => {
     mocks.call.mockImplementation((_target, method) =>
       method === 'agentSession.options'
         ? Promise.resolve(OPTIONS)
@@ -434,24 +500,18 @@ describe('useStructuredAgentSession options', () => {
             }
           })
     )
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
       expect(await result.current.setStructuredOption('model', 'gpt-fast')).toBe(true)
     })
 
-    expect(seededByNextLaunch(mocks.enqueueSettingsWrite.mock.calls)).toEqual({
-      model: 'gpt-fast',
-      effort: 'low'
-    })
+    expect(seededByNextLaunch(mocks.enqueueSettingsWrite.mock.calls)).toEqual({ model: 'gpt-fast' })
     expect(mocks.enqueueSettingsWrite).toHaveBeenCalledWith(LOCAL_TARGET, {
       type: 'apply-picks',
       agent: 'codex',
-      picks: [
-        { modelId: 'gpt-fast', optionId: 'model', value: 'gpt-fast' },
-        { modelId: 'gpt-fast', optionId: 'effort', value: 'low' }
-      ]
+      picks: [{ modelId: 'gpt-fast', optionId: 'model', value: 'gpt-fast' }]
     })
   })
 
@@ -481,7 +541,8 @@ describe('useStructuredAgentSession options', () => {
 
     expect(mocks.enqueueSettingsWrite).toHaveBeenCalledWith(
       remoteTarget,
-      expect.objectContaining({ type: 'apply-picks', agent: 'codex' })
+      expect.objectContaining({ type: 'apply-picks', agent: 'codex' }),
+      { expectedEnvironmentPairingRevision: 1 }
     )
   })
 
@@ -494,7 +555,7 @@ describe('useStructuredAgentSession options', () => {
             value: { key: 'effort', value: 'high', options: { effort: 'high' } }
           })
     )
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
@@ -508,17 +569,17 @@ describe('useStructuredAgentSession options', () => {
     })
   })
 
-  it('remembers nothing when the provider refuses the pick', async () => {
+  it('remembers nothing when the transport leaves the pick unconfirmed', async () => {
     mocks.call.mockImplementation((_target, method) =>
       method === 'agentSession.options'
         ? Promise.resolve(OPTIONS)
         : Promise.reject(new Error('provider rejected option'))
     )
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(2))
 
     await act(async () => {
-      expect(await result.current.setStructuredOption('model', 'gpt-fast')).toBe(false)
+      expect(await result.current.setStructuredOption('model', 'gpt-fast')).toBe(true)
     })
 
     expect(mocks.enqueueSettingsWrite).not.toHaveBeenCalled()
@@ -579,7 +640,7 @@ describe('useStructuredAgentSession options', () => {
         }
       })
     })
-    const { result } = renderCodexSession()
+    const { result } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(3))
 
     await act(async () => {
@@ -594,15 +655,10 @@ describe('useStructuredAgentSession options', () => {
     expect(mocks.enqueueSettingsWrite).toHaveBeenCalledWith(LOCAL_TARGET, {
       type: 'apply-picks',
       agent: 'codex',
-      picks: [
-        { modelId: 'gpt-live', optionId: 'model', value: 'gpt-live' },
-        { modelId: 'gpt-live', optionId: 'effort', value: 'medium' },
-        { modelId: 'gpt-live', optionId: 'fastMode', value: true }
-      ]
+      picks: [{ modelId: 'gpt-live', optionId: 'fastMode', value: true }]
     })
     expect(seededByNextLaunch(mocks.enqueueSettingsWrite.mock.calls)).toEqual({
       model: 'gpt-live',
-      effort: 'medium',
       fastMode: 'true'
     })
   })
@@ -636,7 +692,7 @@ describe('useStructuredAgentSession options', () => {
         }
       })
     })
-    const { result, rerender } = renderCodexSession()
+    const { result, rerender } = renderOptionsSession()
     await waitFor(() => expect(result.current.optionSnapshot).toHaveLength(3))
     items = [
       {
@@ -710,7 +766,14 @@ describe('turn timing', () => {
           turnLifecycle: { turnId: 't2', state: 'running', startedAt: 9_010_000 }
         })
       ]
-      const { result, rerender } = renderCodexSession()
+      const { result, rerender } = renderHook(() =>
+        useStructuredAgentSession({
+          sessionId: 'session-1',
+          target: LOCAL_TARGET,
+          agent: 'codex',
+          isVisible: true
+        })
+      )
       expect(result.current.isWorking).toBe(true)
       expect(result.current.workingStartedAt).toBe(50_000 - 300)
       // A running turn’s explicit null duration outranks client-observed timing.
@@ -783,7 +846,14 @@ describe('structured option surface snapshot identity', () => {
   /** The sibling PTY surface uses useSyncExternalStore; unstable snapshots would never quiesce. */
   it('returns the same snapshot instance for repeated reads at one state', async () => {
     mocks.call.mockResolvedValue(FAST_OPTIONS)
-    const { result } = renderCodexSession()
+    const { result } = renderHook(() =>
+      useStructuredAgentSession({
+        sessionId: 'session-1',
+        agent: 'codex',
+        target: LOCAL_TARGET,
+        isVisible: true
+      })
+    )
     await waitFor(() =>
       expect(result.current.optionSurface.getSnapshot().length).toBeGreaterThan(0)
     )

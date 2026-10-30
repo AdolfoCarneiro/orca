@@ -45,26 +45,13 @@ export function rewriteWslDriveUncState(
 ): WslDriveUncStateRewrite {
   const repoIds = new Set(scope.repoIds)
   const folderWorkspaceIds = new Set(scope.folderWorkspaceIds)
-  const roots = [
-    ...saved.repos.filter((repo) => repoIds.has(repo.id)).flatMap(wslMoveRepoPaths),
-    ...saved.folderWorkspaces
-      .filter((folder) => folderWorkspaceIds.has(folder.id))
-      .map((folder) => folder.folderPath)
-  ]
-  const ids = createWslDriveUncRewriter({
-    distro: scope.distro,
-    repoIds,
-    folderWorkspaceIds,
-    roots
-  })
-  const worktreeIds = collectRewrittenWorktreeIds(saved, ids)
+  const { roots, worktreeIds } = collectRewriteRoots(saved, scope)
   const state = withoutDiscoveryShadows(saved, worktreeIds)
-  // A worktree outside the repo's own folders is still the project's.
   const rewriter = createWslDriveUncRewriter({
     distro: scope.distro,
     repoIds,
     folderWorkspaceIds,
-    roots: [...roots, ...[...worktreeIds.keys()].flatMap(worktreePathOf)]
+    roots
   })
   const next: PersistedState = { ...state }
   for (const [field, disposition] of Object.entries(WSL_DRIVE_UNC_STATE_DISPOSITIONS)) {
@@ -72,8 +59,14 @@ export function rewriteWslDriveUncState(
       Object.assign(next, { [field]: rewriteWslDriveUncValue(state[field], rewriter) })
     }
   }
-  next.projects = withWindowsGit(next.projects, repoIds, scope.distro)
-  next.projectGroups = withConvertedGroupFolders(next, repoIds, folderWorkspaceIds, scope.distro)
+  next.projects = sameIfUnchanged(
+    next.projects,
+    withWindowsGit(next.projects, repoIds, scope.distro)
+  )
+  next.projectGroups = sameIfUnchanged(
+    next.projectGroups,
+    withConvertedGroupFolders(next, repoIds, folderWorkspaceIds, scope.distro)
+  )
   next.worktreeMeta = withPriorIds(next.worktreeMeta, worktreeIds, (id) => [id])
   if (next.worktreeMetaByIdentity) {
     next.worktreeMetaByIdentity = withPriorIds(
@@ -87,11 +80,47 @@ export function rewriteWslDriveUncState(
   return { state: next, worktreeIds }
 }
 
+/** Keeps the original array when no row changed, so an unchanged field is not written. */
+function sameIfUnchanged<T>(before: T[], after: T[]): T[] {
+  return after.every((row, index) => row === before[index]) ? before : after
+}
+
 function isStateField(field: string): field is keyof PersistedState {
   return Object.hasOwn(WSL_DRIVE_UNC_STATE_DISPOSITIONS, field)
 }
 
 /** Every converted worktree id the rewritten fields name, old to new. */
+/** The folders whose bare paths a conversion of this scope rewrites. */
+export function wslDriveUncRewriteRoots(
+  saved: PersistedState,
+  scope: WslDriveUncStateScope
+): string[] {
+  return collectRewriteRoots(saved, scope).roots
+}
+
+function collectRewriteRoots(
+  saved: PersistedState,
+  scope: WslDriveUncStateScope
+): { roots: string[]; worktreeIds: Map<string, string> } {
+  const repoIds = new Set(scope.repoIds)
+  const folderWorkspaceIds = new Set(scope.folderWorkspaceIds)
+  const roots = [
+    ...saved.repos.filter((repo) => repoIds.has(repo.id)).flatMap(wslMoveRepoPaths),
+    ...saved.folderWorkspaces
+      .filter((folder) => folderWorkspaceIds.has(folder.id))
+      .map((folder) => folder.folderPath)
+  ]
+  const ids = createWslDriveUncRewriter({
+    distro: scope.distro,
+    repoIds,
+    folderWorkspaceIds,
+    roots
+  })
+  const worktreeIds = collectRewrittenWorktreeIds(saved, ids)
+  // A worktree outside the repo's own folders is still the project's.
+  return { roots: [...roots, ...[...worktreeIds.keys()].flatMap(worktreePathOf)], worktreeIds }
+}
+
 function collectRewrittenWorktreeIds(
   state: PersistedState,
   rewriter: WslDriveUncRewriter

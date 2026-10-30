@@ -31,6 +31,19 @@ function acceptsCommands(scope: RichMarkdownEditorScope, generation: number): bo
   )
 }
 
+function canFormatCodeBlock(scope: RichMarkdownEditorScope): boolean {
+  const selection = scope.getSelection()
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    return true
+  }
+  const range = selection.getRangeAt(0)
+  return !Array.from(
+    editorElement(scope).querySelectorAll(
+      'blockquote,ul,ol,table,img,input,hr,[contenteditable="false"]'
+    )
+  ).some((node) => range.intersectsNode(node.closest('p,h1,h2,h3,h4,h5,h6,pre') ?? node))
+}
+
 // Link/Image await page URL modal; while waiting host may replace/lock/stop document, so capture generation and revalidate after answer.
 // Save caret before modal takes focus and restore after; execCommand without selection inserts nothing. Reading generation here equals runCommand’s read because no yield intervenes.
 async function insertUrl(
@@ -64,7 +77,13 @@ const COMMANDS: Record<
   taskList: (scope) => exec(scope, 'insertHTML', TASK_LIST_HTML),
   quote: (scope) => exec(scope, 'formatBlock', 'blockquote'),
   inlineCode: (scope) => wrapSelection(scope, 'code'),
-  codeBlock: (scope) => exec(scope, 'insertHTML', CODE_BLOCK_HTML),
+  codeBlock: (scope) => {
+    if (scope.getSelection()?.isCollapsed === false) {
+      exec(scope, 'formatBlock', 'pre')
+    } else {
+      exec(scope, 'insertHTML', CODE_BLOCK_HTML)
+    }
+  },
   link: (scope) => insertUrl(scope, 'link', 'createLink'),
   image: (scope) => insertUrl(scope, 'image', 'insertImage')
 }
@@ -79,6 +98,9 @@ export async function runCommand(
     return
   }
   restoreSelectionOrEnd(scope)
+  if (command === 'codeBlock' && !canFormatCodeBlock(scope)) {
+    return
+  }
   const pending = COMMANDS[command]?.(scope)
   if (pending) {
     await pending
