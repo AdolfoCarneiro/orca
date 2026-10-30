@@ -4,10 +4,10 @@ import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual'
 import { useAppStore } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
 import type {
+  DirCache,
   FileExplorerRevealAuthority,
   FileExplorerRevealObservation
 } from './file-explorer-types'
-import type { DirCache } from './file-explorer-types'
 import type { FileExplorerRowProjection } from './file-explorer-row-projection'
 import { useFileExplorerAutoReveal } from './useFileExplorerAutoReveal'
 import { useFileExplorerReveal } from './useFileExplorerReveal'
