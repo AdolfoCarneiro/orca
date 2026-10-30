@@ -772,12 +772,10 @@ export class RelayCredentialStore {
 
   // Idempotent reaping stays outside transition transaction or locks last across unrelated batch deletes.
   private async reapSettledCredentials(now: number): Promise<void> {
-    // Ordered like the audit reap below, so each LIMIT walks its partial index oldest-first.
     await this.reapBatch(
       'relay_invites',
       'state IN (?, ?, ?) AND updated_at <= ?',
-      ['expired', 'consumed', 'invalidated', now - TERMINAL_INVITE_RETENTION_MS],
-      'updated_at'
+      ['expired', 'consumed', 'invalidated', now - TERMINAL_INVITE_RETENTION_MS]
     )
     // Use indexed active/deadline range to avoid scanning 1.5GB drained heap; both readers reject expired deadlines regardless of flag, so one-day-old bases are unusable.
     await this.reapBatch('relay_connection_bases', 'active = ? AND deadline <= ?', [
@@ -789,8 +787,7 @@ export class RelayCredentialStore {
     await this.reapBatch(
       'relay_direct_authorizations',
       'consumed_at IS NOT NULL AND consumed_at <= ?',
-      [now - INACTIVE_AUTHORIZATION_RETENTION_MS],
-      'consumed_at'
+      [now - INACTIVE_AUTHORIZATION_RETENTION_MS]
     )
     await this.confirmResultReaper.reap(this.database, [now - CONFIRM_RESULT_RETENTION_MS])
     // Ordered so the plan walks relay_audit_events_at from its oldest entry: unordered, a LIMIT
