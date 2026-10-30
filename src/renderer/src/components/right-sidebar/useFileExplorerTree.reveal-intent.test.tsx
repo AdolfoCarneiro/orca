@@ -6,7 +6,7 @@ import {
   rootListing,
   deliverRevealScroll,
   settle
-} from './file-explorer-reveal-test-support'
+} from './file-explorer-reveal-test-fixtures'
 import { act, fireEvent, renderHook, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'

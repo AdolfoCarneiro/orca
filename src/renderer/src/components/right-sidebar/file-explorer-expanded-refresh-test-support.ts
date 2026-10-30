@@ -1,6 +1,10 @@
 import type { DirEntry } from '../../../../shared/filesystem-entry-types'
 import type { FileExplorerLoadingDirsUpdater } from './file-explorer-dir-load-state'
 
+export function hasPropertyKey<T extends object>(target: T, key: PropertyKey): key is keyof T {
+  return key in target
+}
+
 export function createLoadingDirPathsRecorder(): {
   updateLoadingDirPaths: FileExplorerLoadingDirsUpdater
   isLoading: (dirPath: string) => boolean

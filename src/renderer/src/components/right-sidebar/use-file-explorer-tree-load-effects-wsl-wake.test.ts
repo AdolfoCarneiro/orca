@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { read, owner, listing, settle } from './file-explorer-reveal-test-support'
+import { read, owner, listing, settle } from './file-explorer-reveal-test-fixtures'
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'

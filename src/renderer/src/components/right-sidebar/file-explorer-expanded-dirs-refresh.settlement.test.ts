@@ -4,6 +4,7 @@ import { createFileExplorerDirLoadTracker } from './file-explorer-dir-load-track
 import { refreshFileExplorerExpandedDirs } from './file-explorer-expanded-dirs-refresh'
 import {
   createLoadingDirPathsRecorder,
+  hasPropertyKey,
   entry,
   emptyReadError,
   deferredListing,
@@ -36,7 +37,7 @@ it.each([100, 1000])(
               }
             }
           }
-          const property = Reflect.get(target, key, target)
+          const property = hasPropertyKey(target, key) ? target[key] : undefined
           return typeof property === 'function' ? property.bind(target) : property
         }
       })
@@ -189,14 +190,14 @@ it.each([100, 1000])(
         cache: Record<string, DirCache> = {}
       const entries = Array.from({ length: width }, (_, i) => entry(`f${i}`))
       const measured = new Proxy(entries, {
-        get(target, key, receiver) {
+        get(target, key) {
           if (typeof key === 'string' && /^\d+$/.test(key)) {
             visits++
             if (action === 'conversion-error') {
               throw emptyReadError()
             }
           }
-          return Reflect.get(target, key, receiver)
+          return hasPropertyKey(target, key) ? target[key] : undefined
         }
       })
       const refresh = refreshFileExplorerExpandedDirs({

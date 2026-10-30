@@ -1,3 +1,4 @@
+import { hasPropertyKey } from './file-explorer-expanded-refresh-test-support'
 import type * as Module0 from 'react'
 import type * as Module1 from './use-file-explorer-directory-loads'
 import type * as Module2 from './file-explorer-dir-load-tracker'
@@ -118,7 +119,7 @@ vi.mock('./file-explorer-dir-load-state', async (original) => {
               }
             }
           }
-          const value = Reflect.get(target, key, target)
+          const value = hasPropertyKey(target, key) ? target[key] : undefined
           return typeof value === 'function' ? value.bind(target) : value
         }
       })
@@ -195,21 +196,21 @@ vi.mock('./file-explorer-directory-listing', async (original) => {
       const measured =
         structuralWork.measuring && parent
           ? new Proxy(source, {
-              get(target, key, receiver) {
+              get(target, key) {
                 if (key === '/repo') {
                   return {
                     ...parent,
                     children: new Proxy(parent.children, {
-                      get(children, index, array) {
+                      get(children, index) {
                         if (typeof index === 'string' && /^\d+$/.test(index)) {
                           rows++
                         }
-                        return Reflect.get(children, index, array)
+                        return hasPropertyKey(children, index) ? children[index] : undefined
                       }
                     })
                   }
                 }
-                return Reflect.get(target, key, receiver)
+                return hasPropertyKey(target, key) ? target[key] : undefined
               },
               ownKeys(target) {
                 const result = Reflect.ownKeys(target)

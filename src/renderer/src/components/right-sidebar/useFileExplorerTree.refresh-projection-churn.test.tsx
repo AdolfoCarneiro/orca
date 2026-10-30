@@ -6,7 +6,8 @@ import {
   initialAppState,
   entry,
   listing
-} from './file-explorer-refresh-projection-test-support'
+} from './file-explorer-refresh-projection-test-fixtures'
+import { hasPropertyKey } from './file-explorer-expanded-refresh-test-support'
 import { useCallback } from 'react'
 import { useFileExplorerTreeLoadEffects } from './use-file-explorer-tree-load-effects'
 import { act, cleanup, renderHook } from '@testing-library/react'
@@ -340,11 +341,11 @@ describe('file explorer directory refresh churn', () => {
       }))
       let copyReads = 0
       const measured = new Proxy(inferred, {
-        get(target, key, receiver) {
+        get(target, key) {
           if (typeof key === 'string' && /^\d+$/.test(key)) {
             copyReads++
           }
-          return Reflect.get(target, key, receiver)
+          return hasPropertyKey(target, key) ? target[key] : undefined
         }
       })
       let copyKeys = 0

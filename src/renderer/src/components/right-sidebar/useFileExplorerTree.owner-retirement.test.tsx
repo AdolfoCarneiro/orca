@@ -5,7 +5,7 @@ import {
   initialAppState,
   entry,
   listing
-} from './file-explorer-refresh-projection-test-support'
+} from './file-explorer-refresh-projection-test-fixtures'
 import { Fragment, type ReactNode } from 'react'
 import type { FileExplorerDirLoadToken } from './file-explorer-dir-load-tracker'
 import { act, cleanup, renderHook } from '@testing-library/react'
