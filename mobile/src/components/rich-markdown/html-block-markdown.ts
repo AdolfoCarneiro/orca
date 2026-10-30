@@ -140,12 +140,13 @@ function headingCodeMarkdown(element: Element): string {
   return blocks.join('\n\n')
 }
 
-// Trailing breaks in a cell are browser caret placeholders (a cleared cell keeps one), never content.
+// A lone trailing <br> is the browser's caret placeholder (a cleared cell keeps one); a run of two is authored spacing.
 function tableCellMarkdown(cell: Element): string {
   const markdown = inlineChildren(cell, 'cell')
     .replace(/\r\n?|\n/g, ' ')
     .trim()
-  return markdown.slice(0, trailingLineBreaks(markdown).start).trim()
+  const trailing = trailingLineBreaks(markdown)
+  return trailing.count === 1 ? markdown.slice(0, trailing.start).trimEnd() : markdown
 }
 
 // Unknown block elements serialize inline content so browser-created tags cannot lose user text.
