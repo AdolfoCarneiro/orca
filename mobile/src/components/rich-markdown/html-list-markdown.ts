@@ -95,7 +95,7 @@ function listItemCodeBlocks(item: Element, isTask: boolean): string | null {
       }
       if (tag === 'pre') {
         const language = node.getAttribute('data-language') ?? ''
-        if (openingFence('```' + language)?.language !== language) {
+        if (openingFence(`\`\`\`${language}`)?.language !== language) {
           return null
         }
         flush()
