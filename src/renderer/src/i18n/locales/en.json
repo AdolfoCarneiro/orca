@@ -5040,9 +5040,6 @@
             },
             "mainWorktree": "main worktree",
             "detached": "detached"
-          },
-          "PluginsStatusSegment": {
-            "label": "Plugins"
           }
         }
       },
