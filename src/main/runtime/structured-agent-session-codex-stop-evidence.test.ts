@@ -210,7 +210,11 @@ async function pipedChat() {
     reopen: async () => {
       const database = JournalHostDatabase.open(directory)
       try {
-        const store = AgentSessionRecordStore.open({ journalDatabase: database, hostId: 'local' })
+        const store = AgentSessionRecordStore.open({
+          journalDatabase: database,
+          hostId: 'local',
+          legacySessionTabIds: []
+        })
         const journal = new AgentSessionJournal({
           database,
           identity: {
