@@ -128,11 +128,13 @@ it.each([
         linearSearchInput: '',
         submitShortcutLabel: 'Ctrl+Enter',
         newLinearIssueProjects: [],
-        newLinearStates: { data: [], loading: false },
-        newLinearMembers: { data: [], loading: false },
-        newLinearLabels: { data: [], loading: false },
+        newLinearStates: { data: [], loading: false, error: null },
+        newLinearMembers: { data: [], loading: false, error: null },
+        newLinearLabels: { data: [], loading: false, error: null },
         setNewLinearIssueTeamId: vi.fn()
-      } as ComponentProps<typeof TaskPageLinearIssueDialog>['model']
+      } satisfies Partial<
+        ComponentProps<typeof TaskPageLinearIssueDialog>['model']
+      > as ComponentProps<typeof TaskPageLinearIssueDialog>['model']
       useLayoutEffect(() => {
         create = model.handleCreateNewLinearIssue
         currentForm = model
