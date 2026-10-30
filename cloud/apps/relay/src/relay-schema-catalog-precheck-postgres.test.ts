@@ -109,6 +109,50 @@ describePostgres('relay boot-time schema against PostgreSQL', () => {
     await pool.end()
   })
 
+  async function reaperIndexValidity(): Promise<unknown[]> {
+    const rows = await pool.query(
+      `SELECT i.indisvalid FROM pg_catalog.pg_index i
+       WHERE i.indexrelid IN (to_regclass('${schema}.relay_invites_reap_terminal'),
+                              to_regclass('${schema}.relay_direct_authorizations_reap_consumed'))`
+    )
+    return rows.rows.map((row) => row.indisvalid)
+  }
+
+  it('rebuilds a concurrent index an interrupted build left invalid', async () => {
+    await applyRecording()
+    await pool.query(
+      `UPDATE pg_catalog.pg_index SET indisvalid = false
+       WHERE indexrelid = to_regclass('${schema}.relay_invites_reap_terminal')`
+    )
+    sent = []
+    await applyRecording()
+    expect(lockTaking()).toEqual([
+      `DROP INDEX CONCURRENTLY IF EXISTS relay_invites_reap_terminal`,
+      expect.stringMatching(/^CREATE INDEX CONCURRENTLY IF NOT EXISTS relay_invites_reap_terminal/)
+    ])
+    expect(await reaperIndexValidity()).toEqual([true, true])
+    await pool.end()
+  })
+
+  it('leaves concurrent indexes to the director holding the builder lock', async () => {
+    await applyRecording()
+    await pool.query(`DROP INDEX relay_invites_reap_terminal`)
+    const builder = new pg.Client({ connectionString: url })
+    await builder.connect()
+    await builder.query(`SELECT pg_advisory_lock(hashtext('orca_postgres_schema_concurrent_index'))`)
+    try {
+      sent = []
+      const summary = await applyRecording()
+      expect(lockTaking()).toEqual([])
+      expect(summary).toMatchObject({ deferred: 1 })
+    } finally {
+      await builder.end()
+    }
+    await applyRecording()
+    expect(await reaperIndexValidity()).toEqual([true, true])
+    await pool.end()
+  })
+
   it('re-adds a constraint an operator dropped, then skips it again', async () => {
     // Name-only constraint checks require operators to drop changed definitions before boot recreates them.
     await applyRecording()

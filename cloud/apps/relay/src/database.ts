@@ -113,7 +113,8 @@ export async function commitWithFinalWrite(
 // director at once and each runs a non-concurrent build over the whole table. POSTGRES_LOCK_TIMEOUT_MS
 // bounds how long that build waits for its lock, not how long it holds it. Build the index out of
 // band with CREATE INDEX CONCURRENTLY first, then add it here, where the pre-check skips it forever
-// after. relay-schema-lock-targets.test.ts pins the current list, so an addition fails CI.
+// after, or add it to CONCURRENT_INDEXES, which one director builds at boot without blocking writes.
+// relay-schema-lock-targets.test.ts pins the current list, so an addition fails CI.
 // Constraint swaps are matched by NAME in pg_constraint, never by body, because the CHECK list is
 // generated from REGION_LIST. Changing a constraint's definition under the same name therefore does
 // nothing on boot: an operator drops it, and the next boot adds the current definition back.
@@ -152,12 +153,6 @@ CREATE INDEX IF NOT EXISTS relay_invites_sweep_expiry
 -- Why: the second sweep pass matches (state, reservation_expires_at) over the same table.
 CREATE INDEX IF NOT EXISTS relay_invites_sweep_reservation
   ON relay_invites(reservation_expires_at) WHERE state = 'reserved';
-
--- schema-deferrable: created out of band, so a boot that cannot take the lock must retry
--- Why: the settled reaper matches (terminal state, updated_at) every cycle over 7 days of retained
--- terminal invites. Unindexed, even a drained cycle seq-scans the heap.
-CREATE INDEX IF NOT EXISTS relay_invites_reap_terminal
-  ON relay_invites(updated_at) WHERE state IN ('expired', 'consumed', 'invalidated');
 
 CREATE TABLE IF NOT EXISTS relay_devices (
   user_id TEXT NOT NULL,
@@ -229,12 +224,6 @@ CREATE TABLE IF NOT EXISTS relay_direct_authorizations (
 -- the index stays the size of the pending set.
 CREATE INDEX IF NOT EXISTS relay_direct_authorizations_pending_deadline
   ON relay_direct_authorizations(deadline) WHERE consumed_at IS NULL;
-
--- schema-deferrable: created out of band, so a boot that cannot take the lock must retry
--- Why: the settled reaper deletes consumed rows by consumed_at. Unindexed, every cycle seq-scans
--- the day of retained consumed rows.
-CREATE INDEX IF NOT EXISTS relay_direct_authorizations_reap_consumed
-  ON relay_direct_authorizations(consumed_at) WHERE consumed_at IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS relay_confirm_results (
   user_id TEXT NOT NULL,
@@ -697,6 +686,18 @@ CREATE TABLE IF NOT EXISTS relay_audit_events (
 CREATE INDEX IF NOT EXISTS relay_audit_events_at ON relay_audit_events(at);
 `
 
+// Postgres builds these CONCURRENTLY after SCHEMA (see buildIndexConcurrently); SQLite builds them inline.
+const CONCURRENT_INDEXES = [
+  // Why: the settled reaper matches (terminal state, updated_at) every cycle over 7 days of
+  // retained terminal invites. Unindexed, even a drained cycle seq-scans the heap.
+  `relay_invites_reap_terminal
+     ON relay_invites(updated_at) WHERE state IN ('expired', 'consumed', 'invalidated')`,
+  // Why: the settled reaper deletes consumed rows by consumed_at. Unindexed, every cycle
+  // seq-scans the day of retained consumed rows.
+  `relay_direct_authorizations_reap_consumed
+     ON relay_direct_authorizations(consumed_at) WHERE consumed_at IS NOT NULL`
+]
+
 // Replace auto-named legacy single-region checks with named bidirectional checks; current-schema databases no-op without either statement dropping the other.
 export const POSTGRES_SCHEMA_MIGRATIONS = [
   POSTGRES_STATEMENT_STATS_MIGRATION,
@@ -736,7 +737,11 @@ export const POSTGRES_SCHEMA_MIGRATIONS = [
 // The exact statement list a Postgres boot applies, in order, so the lock-target census can read
 // what production runs rather than a copy of it. The SQLite path keeps SCHEMA on its own.
 export function relayPostgresSchemaStatements(): string[] {
-  return [...SCHEMA.split(';'), ...POSTGRES_SCHEMA_MIGRATIONS]
+  return [
+    ...SCHEMA.split(';'),
+    ...POSTGRES_SCHEMA_MIGRATIONS,
+    ...CONCURRENT_INDEXES.map((index) => `CREATE INDEX CONCURRENTLY IF NOT EXISTS ${index}`)
+  ]
     .map((statement) => statement.trim())
     .filter((statement) => statement.length > 0)
 }
@@ -1459,6 +1464,9 @@ export function absorbPostgresIdleClientErrors(pool: Pick<pg.Pool, 'on'>): void 
 async function applySchema(database: RelayDatabase): Promise<void> {
   for (const statement of SCHEMA.split(';')) {
     if (statement.trim()) await database.query(statement)
+  }
+  for (const index of CONCURRENT_INDEXES) {
+    await database.query(`CREATE INDEX IF NOT EXISTS ${index}`)
   }
   for (const [table, column, definition] of [
     ['relay_control_capabilities', 'idle_regional_rehome', 'BIGINT NOT NULL DEFAULT 0'],

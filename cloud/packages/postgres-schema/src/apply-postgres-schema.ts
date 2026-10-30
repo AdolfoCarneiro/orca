@@ -1,4 +1,5 @@
 import { catalogObjectPresence, type SchemaCatalogQuery } from './catalog-object-precheck.js'
+import { buildIndexConcurrently, buildsIndexConcurrently } from './concurrent-index-build.js'
 import {
   requireSchemaLockTarget,
   sqlWithoutComments,
@@ -14,6 +15,7 @@ const DEFAULT_EVENT_PREFIX = 'orca_relay_postgres_schema'
 
 export type SchemaStartupOptions = {
   // Enables the catalog pre-check. Without it every lock-taking statement is sent as before.
+  // CREATE INDEX CONCURRENTLY requires it, on the same session as the statements.
   catalogQuery?: SchemaCatalogQuery
   eventPrefix?: string
   now?: () => number
@@ -124,11 +126,24 @@ export async function applyPostgresSchema(
     // Throws when an index or column statement's target cannot be read, rather than sending it
     // unchecked into the lock queue.
     const target = requireSchemaLockTarget(statement)
+    const sql = sqlWithoutComments(statement)
+    // Never blocks writers, so it is always deferrable; validity, not existence, says it is done.
+    if (target?.kind === 'index' && buildsIndexConcurrently(sql)) {
+      if (!options.catalogQuery) throw new Error('concurrent_index_needs_catalog_query')
+      const outcome = await buildIndexConcurrently({
+        statement,
+        target,
+        query,
+        catalogQuery: options.catalogQuery,
+        eventPrefix
+      })
+      summary[outcome] += 1
+      continue
+    }
     if (await nothingToDo(target, options, eventPrefix)) {
       summary.skipped += 1
       continue
     }
-    const sql = sqlWithoutComments(statement)
     let attempt = 1
     while (true) {
       try {

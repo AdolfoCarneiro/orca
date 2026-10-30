@@ -10,7 +10,8 @@ export type SchemaCatalogQuery = (
 
 // Resolve index in table’s schema and bind indrelid or a sibling’s same-named index permanently suppresses creation.
 // to_regclass returns NULL for absent cold-start tables.
-const INDEX_PRESENT = `SELECT i.indisvalid FROM pg_catalog.pg_class t
+const INDEX_PRESENT = `SELECT i.indisvalid, c.oid::pg_catalog.regclass::text AS qualified_name
+FROM pg_catalog.pg_class t
 JOIN pg_catalog.pg_class c ON c.relnamespace = t.relnamespace AND c.relname = $2
 JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid AND i.indrelid = t.oid
 WHERE t.oid = to_regclass($1)`
@@ -38,7 +39,12 @@ const PRESENCE_SQL = {
   'index-by-name': INDEX_BY_NAME_PRESENT
 } as const
 
-export type SchemaCatalogPresence = { present: boolean; indisvalid: unknown }
+export type SchemaCatalogPresence = {
+  present: boolean
+  indisvalid: unknown
+  // Only for an index: the name to DROP, schema-qualified and quoted as PostgreSQL prints it.
+  qualifiedName?: unknown
+}
 
 // Existence alone matches IF NOT EXISTS, even for invalid cancelled builds; checking validity would take new locks.
 export async function catalogObjectPresence(
@@ -50,5 +56,7 @@ export async function catalogObjectPresence(
   const params = target.kind === 'index-by-name' ? [target.name] : [target.table, target.name]
   const rows = await query(sql, params)
   const row = rows[0]
-  return row ? { present: true, indisvalid: row.indisvalid } : { present: false, indisvalid: undefined }
+  return row
+    ? { present: true, indisvalid: row.indisvalid, qualifiedName: row.qualified_name }
+    : { present: false, indisvalid: undefined }
 }
