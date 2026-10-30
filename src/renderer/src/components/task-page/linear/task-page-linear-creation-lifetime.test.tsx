@@ -30,6 +30,8 @@ import { act, renderHook, waitFor, render, screen, fireEvent } from '@testing-li
 import { deferred } from '../../../store/slices/linear-slice-test-harness'
 import { Suspense, startTransition, useState, useLayoutEffect, type ComponentProps } from 'react'
 
+type LinearDialogModel = ComponentProps<typeof TaskPageLinearIssueDialog>['model']
+
 it.each([
   { suspend: true, change: 'source' },
   { suspend: false, change: 'source' },
@@ -112,7 +114,6 @@ it.each([
         : change === 'source'
           ? b
           : model.selectedLinearIssue?.id === 'selected-B'
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: actual dialog/filter text actions use the real creation model; unrelated picker inputs are settled empty fixtures.
       const dialogModel = {
         ...model,
         newLinearIssueOpen: model.open,
@@ -131,10 +132,32 @@ it.each([
         newLinearStates: { data: [], loading: false, error: null },
         newLinearMembers: { data: [], loading: false, error: null },
         newLinearLabels: { data: [], loading: false, error: null },
-        setNewLinearIssueTeamId: vi.fn()
-      } satisfies Partial<
-        ComponentProps<typeof TaskPageLinearIssueDialog>['model']
-      > as ComponentProps<typeof TaskPageLinearIssueDialog>['model']
+        setNewLinearIssueTeamId: vi.fn(),
+        handleCreateNewJiraIssue: vi
+          .fn<LinearDialogModel['handleCreateNewJiraIssue']>()
+          .mockResolvedValue(undefined),
+        newJiraIssueSummaryAvailable: false,
+        newJiraIssueSummaryGenerating: false,
+        newJiraIssueSummaryError: null,
+        handleGenerateNewJiraIssueSummary: vi
+          .fn<LinearDialogModel['handleGenerateNewJiraIssueSummary']>()
+          .mockResolvedValue(undefined),
+        handleNewJiraIssueTitleChange: vi.fn<LinearDialogModel['handleNewJiraIssueTitleChange']>(),
+        handleCancelNewJiraIssueSummaryGeneration:
+          vi.fn<LinearDialogModel['handleCancelNewJiraIssueSummaryGeneration']>(),
+        githubTasksBusy: false,
+        openComposerForLinearItem: vi.fn<LinearDialogModel['openComposerForLinearItem']>(),
+        handleUseLinearItem: vi.fn<LinearDialogModel['handleUseLinearItem']>(),
+        handleOpenOrUseLinearItem: vi.fn<LinearDialogModel['handleOpenOrUseLinearItem']>(),
+        handleLinearWorkspaceChange: vi.fn<LinearDialogModel['handleLinearWorkspaceChange']>(),
+        handleLinearTeamSelectionChange:
+          vi.fn<LinearDialogModel['handleLinearTeamSelectionChange']>(),
+        handleLinearScopeOpen: vi.fn<LinearDialogModel['handleLinearScopeOpen']>(),
+        handleLinearAccessConnected: vi.fn<LinearDialogModel['handleLinearAccessConnected']>(),
+        openComposerForJiraItem: vi.fn<LinearDialogModel['openComposerForJiraItem']>(),
+        handleUseJiraItem: vi.fn<LinearDialogModel['handleUseJiraItem']>(),
+        taskPageListChromeHidden: false
+      } satisfies LinearDialogModel
       useLayoutEffect(() => {
         create = model.handleCreateNewLinearIssue
         currentForm = model
