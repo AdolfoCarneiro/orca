@@ -1,4 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import nacl from 'tweetnacl'
+import { createPairedE2EEClientHandshake } from '../../../shared/paired-e2ee-client-handshake'
+import { NODE_PAIRED_E2EE_PRIMITIVES } from '../../../shared/paired-e2ee-node-primitives'
+import { WebRuntimeRequestRegistry } from './web-runtime-request-registry'
+import { routeWebRuntimeConnectionFrame } from './web-runtime-connection-frame-router'
+import type { RuntimeRpcResponse } from '../../../shared/runtime-rpc-envelope'
+import { buildNativeChatProviderUpdate } from '../../../shared/native-chat/native-chat-providers'
 import { nativeChatPreferenceFor } from '../../../shared/structured-native-chat-launch-route'
 import {
   installBrowserGlobals,
@@ -70,12 +77,26 @@ describe('web Chat UI launch migration', () => {
 
 const oldHost = vi.hoisted(() => {
   const calls: string[] = []
-  return { on: false, fail: false, calls }
+  const state: {
+    on: boolean
+    fail: boolean
+    calls: string[]
+    reply?: Record<string, unknown>
+    call?: (
+      method: string,
+      params?: unknown,
+      options?: { timeoutMs?: number }
+    ) => Promise<RuntimeRpcResponse<unknown>>
+  } = { on: false, fail: false, calls }
+  return state
 })
 vi.mock('./web-runtime-client', () => ({
   WebRuntimeClient: class {
-    async call(method: string) {
+    async call(method: string, params?: unknown, options?: { timeoutMs?: number }) {
       oldHost.calls.push(method)
+      if (oldHost.call) {
+        return oldHost.call(method, params, options)
+      }
       if (oldHost.fail) {
         throw new Error('offline')
       }
@@ -84,7 +105,7 @@ vi.mock('./web-runtime-client', () => ({
         ok: true,
         _meta: { runtimeId: 'released-host' },
         result: {
-          settings: {
+          settings: oldHost.reply ?? {
             experimentalNativeChat: oldHost.on,
             experimentalStructuredNativeChat: oldHost.on,
             openAgentTabsInChatByDefault: false,
@@ -182,4 +203,346 @@ it('normalizes invalid browser defaults without inventing an override', async ()
   const { settings } = await loadSettings({ agentDefaultSurface: 'invalid' })
   expect(settings.agentDefaultSurface).toBe('terminal')
   expect(nativeChatPreferenceFor(settings, 'later-agent')).toBe(false)
+})
+
+describe('current browser owner at remote settlement', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    oldHost.fail = false
+    oldHost.call = undefined
+    oldHost.reply = undefined
+    oldHost.calls = []
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  const methods = ['settings.get', 'settings.update', 'settings.updatePRBotAuthorOverride'] as const
+  async function paired(initialChat = false) {
+    const { globals } = await loadSettings({
+      agentDefaultSurface: initialChat ? 'chat' : 'terminal',
+      nativeChatProviders: { 'acme-agent': true }
+    })
+    writeStoredRuntimeEnvironment(globals.storage)
+    vi.resetModules()
+    const { installWebPreloadApi } = await import('./web-preload-api')
+    installWebPreloadApi()
+    return globals
+  }
+  function start(api: Window['api'], method: string, visibility = false) {
+    if (method === 'settings.get') {
+      return api.settings.get()
+    }
+    if (method === 'settings.update') {
+      return api.settings.set(
+        visibility
+          ? { worktreeVisibilityDefaults: { external: 'show' } }
+          : { compactWorktreeCards: false }
+      )
+    }
+    return api.settings.updatePRBotAuthorOverride({ author: ' Robot ', isBot: true })
+  }
+  async function choose(api: Window['api'], chat: boolean) {
+    const current = await api.settings.set({ agentDefaultSurface: chat ? 'chat' : 'terminal' })
+    return api.settings.set(buildNativeChatProviderUpdate(current, 'codex', !chat))
+  }
+  function check(settings: Awaited<ReturnType<Window['api']['settings']['get']>>, chat: boolean) {
+    expect(settings.agentDefaultSurface).toBe(chat ? 'chat' : 'terminal')
+    expect(settings.nativeChatProviders).toEqual({ 'acme-agent': true, codex: !chat })
+    expect(nativeChatPreferenceFor(settings, 'future-agent')).toBe(chat)
+    expect(nativeChatPreferenceFor(settings, 'codex')).toBe(!chat)
+  }
+  function delay() {
+    let release = (_settings?: Record<string, unknown>) => {}
+    let reject = (_reason: Error) => {}
+    let enter = () => {}
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve
+    })
+    oldHost.call = (method) =>
+      new Promise((resolve, fail) => {
+        release = (settings) =>
+          resolve({
+            id: method,
+            ok: true,
+            result: { settings: settings ?? {} },
+            _meta: { runtimeId: 'released-host' }
+          })
+        reject = fail
+        enter()
+      })
+    return {
+      entered,
+      release: (settings?: Record<string, unknown>) => release(settings),
+      reject: (error: Error) => reject(error)
+    }
+  }
+
+  it.each(methods.flatMap((method) => [false, true].map((chat) => ({ method, chat }))))(
+    'retains current intent through delayed $method with Chat=$chat, persistence and reopen',
+    async ({ method, chat }) => {
+      const globals = await paired(!chat)
+      const pending = delay()
+      const earlier = start(globals.window.api, method)
+      await pending.entered
+      await choose(globals.window.api, chat)
+      pending.release({
+        compactWorktreeCards: true,
+        prBotAuthorOverrides: [' Robot '],
+        ...(chat
+          ? {
+              experimentalNativeChat: false,
+              experimentalStructuredNativeChat: false,
+              openAgentTabsInChatByDefault: false,
+              agentDefaultSurface: 'terminal',
+              nativeChatProviders: { codex: true }
+            }
+          : {})
+      })
+      const returned = await earlier
+      check(returned, chat)
+      if (method === 'settings.updatePRBotAuthorOverride') {
+        expect(returned.prBotAuthorOverrides).toEqual(['robot'])
+      } else {
+        expect(returned.compactWorktreeCards).toBe(true)
+      }
+      check(globals.window.api.settings.getSync(), chat)
+      expect(JSON.parse(globals.storage.getItem(SETTINGS_KEY) ?? '{}')).toMatchObject({
+        agentDefaultSurface: returned.agentDefaultSurface,
+        nativeChatProviders: returned.nativeChatProviders
+      })
+      oldHost.call = undefined
+      vi.resetModules()
+      const { installWebPreloadApi } = await import('./web-preload-api')
+      installWebPreloadApi()
+      check(await globals.window.api.settings.get(), chat)
+      check(
+        await globals.window.api.settings.set({ agentDefaultSurface: chat ? 'chat' : 'terminal' }),
+        chat
+      )
+    }
+  )
+
+  it.each(methods)(
+    'settles delayed %s rejection without rolling back newer local edits',
+    async (method) => {
+      const globals = await paired()
+      const pending = delay()
+      const earlier = start(globals.window.api, method)
+      const outcome =
+        method === 'settings.updatePRBotAuthorOverride'
+          ? expect(earlier).rejects.toThrow('offline')
+          : earlier
+      await pending.entered
+      await choose(globals.window.api, true)
+      pending.reject(new Error('offline'))
+      if (method === 'settings.updatePRBotAuthorOverride') {
+        await outcome
+      } else {
+        check(await earlier, true)
+      }
+      check(globals.window.api.settings.getSync(), true)
+    }
+  )
+
+  it('preserves visibility rejection after a newer local choice', async () => {
+    const globals = await paired()
+    oldHost.reply = { worktreeVisibilityDefaults: { external: 'hide' } }
+    await globals.window.api.settings.get()
+    const pending = delay()
+    const rejected = expect(start(globals.window.api, 'settings.update', true)).rejects.toThrow(
+      'offline'
+    )
+    await pending.entered
+    await choose(globals.window.api, true)
+    pending.reject(new Error('offline'))
+    await rejected
+    check(globals.window.api.settings.getSync(), true)
+    expect(globals.window.api.settings.getSync().worktreeVisibilityDefaults).toEqual({
+      external: 'hide'
+    })
+  })
+
+  it('keeps broad update fields and omissions distinct from get and bot projections', async () => {
+    const globals = await paired()
+    const fields = {
+      sourceControlAi: {
+        actions: {
+          fixChecks: {
+            agentId: 'codex',
+            commandInputTemplate: 'Fix checks',
+            agentArgs: '--verbose'
+          }
+        }
+      },
+      hostSettingOverrides: { local: { displayLabel: 'Desk' } },
+      terminalCopyTrimsGutter: false,
+      agentDefaultArgs: { codex: '--quiet' },
+      defaultRepoSelection: null,
+      machineName: 'host-name',
+      artifactSharingEnabled: true,
+      agentSkillSharingEnabled: true
+    }
+    oldHost.reply = fields
+    const updated = await globals.window.api.settings.set({ compactWorktreeCards: false })
+    expect(updated).toMatchObject(fields)
+    oldHost.reply = {}
+    const omitted = await globals.window.api.settings.set({ compactWorktreeCards: true })
+    expect(omitted).toMatchObject(fields)
+    oldHost.reply = { machineName: undefined }
+    expect(
+      (await globals.window.api.settings.set({ compactWorktreeCards: false })).machineName
+    ).toBeUndefined()
+    oldHost.reply = {
+      machineName: 'ignored-get-name',
+      sourceControlAi: { actions: {} },
+      hostSettingOverrides: {},
+      terminalCopyTrimsGutter: true
+    }
+    const read = await globals.window.api.settings.get()
+    expect(read).toMatchObject({
+      ...fields,
+      machineName: '',
+      artifactSharingEnabled: false,
+      agentSkillSharingEnabled: false
+    })
+    const bot = await globals.window.api.settings.updatePRBotAuthorOverride({
+      author: 'robot',
+      isBot: true
+    })
+    expect(bot.prBotAuthorOverrides).toEqual([])
+    expect(bot).toMatchObject({
+      sourceControlAi: fields.sourceControlAi,
+      hostSettingOverrides: fields.hostSettingOverrides
+    })
+  })
+
+  it('times out dropped replies, pumps a queued successor and ignores their late frames', async () => {
+    const globals = await paired()
+    vi.useFakeTimers()
+    Object.assign(globals.window, { setTimeout, clearTimeout })
+    let sentAll = () => {}
+    const sent = new Promise<void>((resolve) => {
+      sentAll = resolve
+    })
+    let id = 0
+    const registry = new WebRuntimeRequestRegistry({
+      deviceToken: 'fixture-token',
+      nextId: () => String(++id),
+      waitForConnected: async () => {},
+      sendEncrypted: () => {
+        if (id === 8) {
+          sentAll()
+        }
+        return true
+      }
+    })
+    oldHost.call = (method, params, options) => registry.call(method, params, options)
+    const earlier = Array.from({ length: 8 }, () => globals.window.api.settings.get())
+    await sent
+    const successor = globals.window.api.settings.get()
+    expect(id).toBe(8)
+    await choose(globals.window.api, true)
+    await vi.advanceTimersByTimeAsync(15_000)
+    for (const result of await Promise.all(earlier)) {
+      check(result, true)
+    }
+    expect([...registry.pending.keys()]).toEqual(['9'])
+    const host = nacl.box.keyPair(),
+      client = nacl.box.keyPair()
+    const handshake = createPairedE2EEClientHandshake({
+      primitives: NODE_PAIRED_E2EE_PRIMITIVES,
+      hostPublicKeyB64: Buffer.from(host.publicKey).toString('base64'),
+      framing: 'legacy',
+      clientKeyPair: client
+    })
+    const route = (requestId: string, settings: Record<string, unknown>) => {
+      const nonce = nacl.randomBytes(nacl.box.nonceLength)
+      const payload = Buffer.from(
+        JSON.stringify({
+          id: requestId,
+          ok: true,
+          result: { settings },
+          _meta: { runtimeId: 'released-host' }
+        })
+      )
+      const encrypted = nacl.box.after(
+        payload,
+        nonce,
+        nacl.box.before(client.publicKey, host.secretKey)
+      )
+      return routeWebRuntimeConnectionFrame(
+        Buffer.concat([Buffer.from(nonce), Buffer.from(encrypted)]).toString('base64'),
+        undefined,
+        {
+          getState: () => 'connected',
+          getHandshake: () => handshake,
+          getSocket: () => null,
+          pending: registry.pending,
+          subscriptions: new Map(),
+          sendAuth: () => {},
+          setConnected: () => {},
+          authRejected: () => {}
+        }
+      )
+    }
+    const beforeLate = globals.storage.getItem(SETTINGS_KEY)
+    await route('1', {
+      agentDefaultSurface: 'terminal',
+      nativeChatProviders: {},
+      compactWorktreeCards: false
+    })
+    expect(globals.storage.getItem(SETTINGS_KEY)).toBe(beforeLate)
+    expect(registry.pending.size).toBe(1)
+    await route('9', { compactWorktreeCards: true })
+    check(await successor, true)
+    expect(registry.pending.size).toBe(0)
+    expect(globals.window.api.settings.getSync().compactWorktreeCards).toBe(true)
+    oldHost.call = undefined
+    vi.resetModules()
+    const { installWebPreloadApi } = await import('./web-preload-api')
+    installWebPreloadApi()
+    check(await globals.window.api.settings.get(), true)
+  })
+
+  it('bounds storage and transport operations at N and 10N saved overrides', async () => {
+    const counts: number[][] = []
+    for (const n of [100, 1000]) {
+      vi.resetModules()
+      const map = Object.fromEntries(
+        Array.from({ length: n }, (_, i) => [`registered-${i}`, false])
+      )
+      const { globals } = await loadSettings({
+        agentDefaultSurface: 'chat',
+        nativeChatProviders: map
+      })
+      writeStoredRuntimeEnvironment(globals.storage)
+      const pending = delay()
+      const calls = oldHost.calls.length
+      const earlier = globals.window.api.settings.updatePRBotAuthorOverride({
+        author: 'robot',
+        isBot: true
+      })
+      await pending.entered
+      const reads = vi.spyOn(globals.storage, 'getItem'),
+        writes = vi.spyOn(globals.storage, 'setItem')
+      pending.release({ prBotAuthorOverrides: ['robot'] })
+      const returned = await earlier
+      counts.push([
+        reads.mock.calls.filter(([key]) => key === SETTINGS_KEY).length,
+        writes.mock.calls.filter(([key]) => key === SETTINGS_KEY).length,
+        oldHost.calls.length - calls
+      ])
+      expect(returned.nativeChatProviders).toEqual(map)
+      reads.mockRestore()
+      writes.mockRestore()
+      oldHost.call = undefined
+    }
+    // Existing read-time normalization saves once; settlement adds one regular save, not per-agent writes.
+    expect(counts).toEqual([
+      [3, 2, 1],
+      [3, 2, 1]
+    ])
+  })
 })

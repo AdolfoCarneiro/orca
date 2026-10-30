@@ -82,9 +82,7 @@ export function createWebSettingsApi(): Partial<PreloadApi> {
           preserveAutoRenameBranchFromWorkUpdate: 'autoRenameBranchFromWork' in sanitizedUpdates
         })
         writeStoredSettings(next)
-        return settingsForActiveVisibilityOwner(
-          await syncRuntimeBackedSettings(sanitizedUpdates, next)
-        )
+        return settingsForActiveVisibilityOwner(await syncRuntimeBackedSettings(sanitizedUpdates))
       },
       setActiveRuntimeEnvironmentPreference: async ({ environmentId }) => {
         const requestedEnvironmentId = environmentId?.trim() || null

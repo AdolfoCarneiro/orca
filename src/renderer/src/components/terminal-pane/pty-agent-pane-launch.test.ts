@@ -503,7 +503,8 @@ describe('a pane that starts its own agent launch', () => {
         setCallbacks: () => {},
         getCallbacks: () => ({})
       }
-      const connect = () => connectIpcPty({ cols: 132, rows: 40, callbacks: {} }, context)
+      const connect = () =>
+        connectIpcPty({ url: 'ipc://pty', cols: 132, rows: 40, callbacks: {} }, context)
       const connected = connect()
       if (scenario === 'closed-late') {
         await vi.waitFor(() => expect(providerSpawn).toHaveBeenCalledOnce())
@@ -515,7 +516,10 @@ describe('a pane that starts its own agent launch', () => {
       if (scenario === 'remount') {
         // A remount reattaches the established pane, without replaying its startup or delivery.
         providerSpawn.mockResolvedValueOnce({ id: 'pty-agent', isReattach: true })
-        await connectIpcPty({ sessionId: 'pty-agent', cols: 132, rows: 40, callbacks: {} }, context)
+        await connectIpcPty(
+          { url: 'ipc://pty', sessionId: 'pty-agent', cols: 132, rows: 40, callbacks: {} },
+          context
+        )
         expect(runtime.planAgentPaneLaunch).toHaveBeenCalledOnce()
       }
       const accepted = scenario === 'accepted' || scenario === 'remount'

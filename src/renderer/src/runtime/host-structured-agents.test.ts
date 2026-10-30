@@ -6,10 +6,12 @@ import {
 import type { RuntimeEnvironmentStatus } from '../../../shared/runtime-host-status'
 import type { RuntimeCapability } from '../../../shared/protocol-version'
 
+import type { NativeChatDefaultSettings } from '../../../shared/structured-native-chat-launch-route'
+
 type Statuses = Map<string, RuntimeEnvironmentStatus>
 type StoreState = {
   runtimeStatusByEnvironmentId: Statuses
-  settings: { nativeChatProviders?: Record<string, boolean> } | null
+  settings: NativeChatDefaultSettings | null
   ensureNativeDetectedAgents: () => Promise<string[]>
 }
 
@@ -38,14 +40,6 @@ vi.mock('./local-runtime-capabilities', () => ({
     return () => mocks.capabilitiesKnown.delete(listener)
   }
 }))
-vi.mock('./local-structured-chats', () => {
-  const launchesChats = (settings: StoreState['settings']): boolean =>
-    Object.values(settings?.nativeChatProviders ?? {}).includes(true)
-  return {
-    newAgentLaunchesMayOpenChats: launchesChats,
-    localStructuredChatsInUse: async (settings: StoreState['settings']) => launchesChats(settings)
-  }
-})
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => mocks.state,
@@ -125,6 +119,25 @@ afterEach(() => {
 })
 
 describe('host structured agents', () => {
+  it.each(['chat', 'terminal', undefined] as const)(
+    'uses the production aggregate for default-only %s startup',
+    async (surface) => {
+      mocks.state = {
+        ...mocks.state,
+        settings: { agentDefaultSurface: surface, nativeChatProviders: {} },
+        runtimeStatusByEnvironmentId: new Map([['env-1', pairedStatus('rt-1', REGISTERED)]])
+      }
+      uninstall = installHostStructuredAgentsSync()
+      await new Promise((resolve) => setImmediate(resolve))
+      if (surface === 'chat') {
+        await vi.waitFor(() => expect(agentIds('local')).toEqual(['claude', 'grok']))
+        expect(agentIds('runtime:env-1')).toEqual(['claude', 'grok'])
+      } else {
+        expect(mocks.callRuntimeRpc).not.toHaveBeenCalled()
+      }
+    }
+  )
+
   it("reads the local host's agents once it advertises them", async () => {
     uninstall = installHostStructuredAgentsSync()
     await vi.waitFor(() => expect(agentIds('local')).toEqual(['claude', 'grok']))
