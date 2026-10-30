@@ -1,5 +1,5 @@
 import { act } from 'react-test-renderer'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
   AgentSessionModelCatalogResult,
   AgentSessionOptionResult,
@@ -24,6 +24,14 @@ import {
   currentValueOf,
   BASE
 } from './use-mobile-structured-agent-options.test-fixture'
+
+let recordedOmpOptions: AcpThinkingOptionsFixtureModule['recordedOmpOptions']
+beforeAll(async () => {
+  const fixtures = await vi.importActual<AcpThinkingOptionsFixtureModule>(
+    '../../../src/main/acp/acp-thinking-options.test-fixture'
+  )
+  recordedOmpOptions = fixtures.recordedOmpOptions
+})
 
 describe('useMobileStructuredAgentOptions fast mode', () => {
   it('round-trips a boolean fastMode pick as the wire string and remembers the decoded pick', async () => {
@@ -123,9 +131,6 @@ describe('useMobileStructuredAgentOptions post-write refresh', () => {
 
 describe('useMobileStructuredAgentOptions reads', () => {
   it('offers unknown OMP suggestions for a saved model without choosing effort, then sends the literal pick', async () => {
-    const { recordedOmpOptions } = await vi.importActual<AcpThinkingOptionsFixtureModule>(
-      '../../../src/main/acp/acp-thinking-options.test-fixture'
-    )
     const { models } = recordedOmpOptions('loaded').read()
     const answer: AgentSessionOptionsResult = {
       models,
