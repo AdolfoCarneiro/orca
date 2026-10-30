@@ -36,3 +36,11 @@ export function cliConversationRowsShareAgent(
   const rightAgents: readonly string[] = CLI_CONVERSATION_ADOPTING_AGENTS[right]
   return CLI_CONVERSATION_ADOPTING_AGENTS[left].some((agent) => rightAgents.includes(agent))
 }
+
+/** Comparison only: native handles and operation fingerprints retain their original spelling. */
+export function nativeConversationIdKey(agent: string, id: string): string {
+  return agent === 'codex' &&
+    /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)
+    ? id.toLowerCase()
+    : id
+}

@@ -39,6 +39,33 @@ describe('structured AI Vault ownership', () => {
     })
   })
 
+  it('explicit native UUID case variants retain ownership despite damaged saved-home links', () => {
+    const record = codexChatHolding('damaged-chat', [PROVIDER_SESSION.toUpperCase()])
+    record.accountHome = { variable: 'CODEX_HOME', path: `/missing/overlays/${'a'.repeat(32)}` }
+    installChats([record])
+    const row = listResult().sessions[0]!
+    expect(
+      projectStructuredAiVaultSessions(
+        { ...listResult(), sessions: [row] },
+        OPENS_EVERY_STRUCTURED_CHAT
+      ).sessions[0]?.structuredSession?.sessionId
+    ).toBe('damaged-chat')
+    expect(() =>
+      assertLegacyAiVaultResumeAllowed({
+        agent: 'codex',
+        sessionId: PROVIDER_SESSION,
+        filePath: '/missing/rollout.jsonl'
+      } as never)
+    ).toThrow()
+    expect(
+      findResumeOwnership({
+        agent: 'codex',
+        sessionId: PROVIDER_SESSION,
+        filePath: '/missing/rollout-different.jsonl'
+      })?.sessionId
+    ).toBe('damaged-chat')
+  })
+
   it('uses the owning record name while leaving an unowned row alone', () => {
     installOwnership({ conversationName: 'auth/login' })
     const result = listResult()

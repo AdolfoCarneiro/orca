@@ -1,9 +1,14 @@
-import { CODEX_STORE_DIRECTORIES, codexAccountOverlayHomes } from '../codex/codex-launch-home'
+import {
+  CODEX_STORE_DIRECTORIES,
+  codexAccountOverlayHomes,
+  codexOverlayBelongsToFamily
+} from '../codex/codex-launch-home'
 import { safeRemoveTree } from '../pty/overlay-mirror'
 import { mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
 import {
+  removeTreeSync,
   WINDOWS_RM_MAX_RETRIES,
   WINDOWS_RM_RETRY_DELAY_MS
 } from '../../shared/windows-transient-lock-removal'
@@ -97,20 +102,75 @@ export class CodexManagedHomeLifecycle {
     }
 
     if (!parseWslUncPath(managedHomePath)) {
-      // Database rows retain overlay paths after the login is removed.
-      for (const overlay of codexAccountOverlayHomes(dirname(managedHomePath))) {
-        for (const entry of readdirSync(overlay)) {
+      const failures: unknown[] = []
+      const attempt = <T>(path: string, read: () => T): T | undefined => {
+        let result: T | undefined
+        try {
+          removeTreeSync(path, () => {
+            result = read()
+          })
+        } catch (error) {
+          failures.push(error)
+        }
+        return result
+      }
+      const remove = (path: string) =>
+        attempt(path, () => {
+          let failure: unknown
+          safeRemoveTree(path, (_failedPath, error) => {
+            failure ??= error
+          })
+          if (failure) {
+            throw failure
+          }
+        })
+      // Revocation of root auth and exact login staging does not depend on family inventory.
+      remove(join(managedHomePath, 'auth.json'))
+      remove(join(managedHomePath, 'auth.lock'))
+      remove(join(managedHomePath, '.orca-reauth-login'))
+      const family = dirname(managedHomePath)
+      const recoveredOverlays: string[] = []
+      const overlays = attempt(family, () =>
+        codexAccountOverlayHomes(family, (path, error) => {
+          if (path === join(family, 'overlays')) {
+            throw error
+          }
+          // The observed failure is the first pass in this child's bounded budget.
+          let initial = true
+          const recovered = attempt(path, () => {
+            if (initial) {
+              initial = false
+              throw error
+            }
+            if (codexOverlayBelongsToFamily(path, family)) {
+              return path
+            }
+            return undefined
+          })
+          if (recovered) {
+            recoveredOverlays.push(recovered)
+          }
+        })
+      )
+      for (const overlay of new Set([...(overlays ?? []), ...recoveredOverlays])) {
+        const entries = attempt(overlay, () => readdirSync(overlay)) ?? []
+        for (const entry of entries) {
           if (
             CODEX_STORE_DIRECTORIES.some((name) => name === entry) ||
-            entry === 'session_index.jsonl'
+            entry === 'session_index.jsonl' ||
+            entry === 'history.jsonl' ||
+            entry.includes('.sqlite') ||
+            entry === 'current'
           ) {
             continue
           }
-          safeRemoveTree(join(overlay, entry))
+          remove(join(overlay, entry))
         }
       }
-      safeRemoveTree(join(managedHomePath, 'auth.json'))
-      safeRemoveTree(join(managedHomePath, 'auth.lock'))
+      if (failures.length) {
+        console.warn('[codex-accounts] Failed to remove managed home:', failures)
+      }
+
       return
     }
     try {

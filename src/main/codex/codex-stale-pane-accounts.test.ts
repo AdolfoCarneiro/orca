@@ -98,6 +98,51 @@ describe('codex pane account registry', () => {
     })
   })
 
+  it('interprets only modern System C-format shared receipts as account homes after cache reset', () => {
+    const homePath = join(userDataPath, 'overlays', 'a'.repeat(32))
+    const launchProvenance = { homePath, incarnationId: 'birth-modern-system' }
+    writeFileSync(
+      join(userDataPath, 'codex-pane-accounts.json'),
+      JSON.stringify({
+        version: 2,
+        panes: {
+          modern: {
+            selectionKey: 'host',
+            accountId: null,
+            homeRoute: 'shared-home',
+            launchProvenance
+          },
+          legacy: { selectionKey: 'host', accountId: null, homeRoute: 'shared-home' },
+          invalid: {
+            selectionKey: 'host',
+            accountId: null,
+            homeRoute: 'shared-home',
+            launchProvenance: { homePath: 'relative', incarnationId: '' }
+          },
+          managed: {
+            selectionKey: 'host',
+            accountId: 'a',
+            homeRoute: 'shared-home',
+            launchProvenance
+          }
+        }
+      })
+    )
+    _internals.resetCache()
+    expect(getCodexPaneAccount('modern')).toMatchObject({
+      accountId: null,
+      homeRoute: 'account-home',
+      launchProvenance
+    })
+    for (const id of ['legacy', 'invalid', 'managed']) {
+      expect(getCodexPaneAccount(id)?.homeRoute).toBe('shared-home')
+    }
+    forgetCodexPaneAccount('legacy')
+    forgetCodexPaneAccount('invalid')
+    forgetCodexPaneAccount('managed')
+    expect(hasRecordedLegacySharedCodexPane()).toBe(false)
+  })
+
   it('keeps pre-route records readable without inventing provenance', () => {
     writeFileSync(
       join(userDataPath, 'codex-pane-accounts.json'),

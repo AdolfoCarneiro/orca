@@ -222,7 +222,7 @@ it('publishes frozen actual O before callbacks; disk restart qualifies only the 
     expect(saved.panes[PTY_ID]).toEqual({
       selectionKey: 'host',
       accountId: null,
-      homeRoute: 'shared-home',
+      homeRoute: 'account-home',
       launchProvenance: { homePath: actualHome, incarnationId: INCARNATION_ID }
     })
     const observation = getObservedCodexPaneHome(PTY_ID)

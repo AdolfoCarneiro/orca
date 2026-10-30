@@ -63,4 +63,86 @@ describe('CodexAccountService config sync', () => {
       vi.doUnmock('node:fs')
     }
   })
+  it.each(['transient', 'permanent'])(
+    'selectively revokes private targets with %s locks and unreadable family child, retaining stores and outside links',
+    async (mode) => {
+      vi.resetModules()
+      const fs = await vi.importActual<typeof NodeFs>('node:fs')
+      const { join, dirname } = await import('node:path')
+      const H = fs.realpathSync(createManagedHome(testState.userDataDir, 'account-1'))
+      const family = dirname(H)
+      const A = join(family, 'overlays', 'a'.repeat(32))
+      const B = join(family, 'overlays', 'b'.repeat(32))
+      const outside = join(testState.userDataDir, 'outside')
+      for (const path of [A, B, outside, join(H, '.orca-reauth-login'), join(H, 'sessions')]) {
+        fs.mkdirSync(path, { recursive: true })
+      }
+      fs.writeFileSync(join(outside, 'keep'), 'outside')
+      for (const O of [A, B]) {
+        fs.symlinkSync(join(H, 'sessions'), join(O, 'sessions'), 'dir')
+        fs.writeFileSync(join(O, 'auth.json'), 'private')
+        fs.writeFileSync(join(O, 'session_index.jsonl'), 'index')
+        fs.writeFileSync(join(O, 'state_5.sqlite'), 'native-db')
+      }
+      fs.symlinkSync(outside, join(B, 'outside-link'), 'dir')
+      fs.writeFileSync(join(H, 'auth.json'), 'private-root')
+      fs.writeFileSync(join(H, 'auth.lock'), 'lock')
+      fs.writeFileSync(join(H, '.orca-reauth-login', 'auth.json'), 'staging')
+      const target = join(H, 'auth.json')
+      const deniedChild = A
+      let unlinks = 0,
+        childReads = 0
+      vi.stubGlobal('Atomics', { ...Atomics, wait: vi.fn(() => 'timed-out') })
+      vi.doMock('node:fs', () => ({
+        ...fs,
+        lstatSync: (...args: Parameters<typeof fs.lstatSync>) => {
+          if (String(args[0]) === deniedChild) {
+            childReads++
+            throw Object.assign(new Error('child busy'), { code: 'EBUSY' })
+          }
+          return fs.lstatSync(...args)
+        },
+        unlinkSync: (path: string) => {
+          if (path === target) {
+            unlinks++
+            if (mode === 'permanent' || unlinks < 3) {
+              throw Object.assign(new Error('private busy'), { code: 'EBUSY' })
+            }
+          }
+          return fs.unlinkSync(path)
+        }
+      }))
+      // SAFETY: platform is restored before fixture teardown; only Windows retry policy is modeled.
+      const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const { CodexManagedHomeLifecycle } = await import('./codex-managed-home-lifecycle')
+        const { CodexManagedHomePath } = await import('./codex-managed-home-path')
+        const lifecycle = new CodexManagedHomeLifecycle(
+          new CodexManagedHomePath(() => {
+            throw new Error('WSL not exercised')
+          })
+        )
+        lifecycle.safeRemove(H, 'account-1')
+        expect(unlinks).toBe(mode === 'permanent' ? 9 : 3)
+        expect(childReads).toBe(9)
+        expect(fs.existsSync(join(H, 'auth.lock'))).toBe(false)
+        expect(fs.existsSync(join(H, '.orca-reauth-login'))).toBe(false)
+        expect(fs.existsSync(join(B, 'auth.json'))).toBe(false)
+        expect(fs.existsSync(join(B, 'outside-link'))).toBe(false)
+        expect(fs.readFileSync(join(outside, 'keep'), 'utf8')).toBe('outside')
+        for (const O of [A, B]) {
+          expect(fs.readFileSync(join(O, 'session_index.jsonl'), 'utf8')).toBe('index')
+          expect(fs.readFileSync(join(O, 'state_5.sqlite'), 'utf8')).toBe('native-db')
+          expect(fs.readlinkSync(join(O, 'sessions'))).toBe(join(H, 'sessions'))
+        }
+        expect(warn).toHaveBeenCalledTimes(1)
+      } finally {
+        platform.mockRestore()
+        warn.mockRestore()
+        vi.unstubAllGlobals()
+        vi.doUnmock('node:fs')
+      }
+    }
+  )
 })

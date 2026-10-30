@@ -1,7 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import * as fs from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { resolveCodexLaunchHome } from './codex-launch-home'
+import { describe, expect, it, vi } from 'vitest'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import type { CodexManagedAccount } from '../../shared/managed-account-types'
 import { resolveCodexPaneLaunchAccount } from './codex-pane-launch-account'
+
+vi.mock('node:fs', async (original) => {
+  const actual = await original<typeof fs>()
+  return { ...actual, lstatSync: vi.fn(actual.lstatSync) }
+})
 
 const SYSTEM_HOME = '/Users/example/.codex'
 
@@ -197,4 +206,56 @@ describe('resolveCodexPaneLaunchAccount', () => {
       })
     ).toBeNull()
   })
+})
+
+it('independently sufficient direct and canonical legacy B survive A IO while incomplete negative stays unknown', async () => {
+  const actual = await vi.importActual<typeof fs>('node:fs')
+  const root = actual.realpathSync(actual.mkdtempSync(join(tmpdir(), 'orca-legacy-evidence-')))
+  const accountsRoot = join(root, 'codex-accounts'),
+    system = join(root, 'system')
+  const A = join(accountsRoot, 'a', 'home'),
+    B = join(accountsRoot, 'b', 'home')
+  for (const home of [A, B, system]) {
+    actual.mkdirSync(home, { recursive: true })
+  }
+  actual.writeFileSync(join(A, '.orca-managed-home'), 'a')
+  actual.writeFileSync(join(B, '.orca-managed-home'), 'b')
+  const actor = resolveCodexLaunchHome({
+    selectedAccount: { homePath: B, id: 'b' },
+    systemHome: system,
+    accountsRoot,
+    storeHome: system
+  })!
+  const roster = [
+    managedAccount({ id: 'a', managedHomePath: A }),
+    managedAccount({ id: 'b', managedHomePath: B })
+  ]
+  const resolve = (home: string, accounts = roster) =>
+    resolveCodexPaneLaunchAccount({
+      launchCodexHomePath: home,
+      systemCodexHomePath: system,
+      pinnedByResume: true,
+      settings: settings({ accounts }),
+      target: { runtime: 'host' }
+    })
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  vi.mocked(fs.lstatSync).mockImplementation((...args: Parameters<typeof actual.lstatSync>) => {
+    if (String(args[0]) === join(A, '.orca-managed-home')) {
+      throw Object.assign(new Error('A denied'), { code: 'EACCES' })
+    }
+    return actual.lstatSync(...args)
+  })
+  try {
+    expect(resolve(B)).toMatchObject({ accountId: 'b', homeRoute: 'account-home' })
+    expect(resolve(actor)).toMatchObject({ accountId: 'b', homeRoute: 'account-home' })
+    expect(resolve(join(root, 'unknown'))).toBeNull()
+    expect(resolve(A.replace('/home', `/overlays/${'f'.repeat(32)}`))).toBeNull()
+    expect(resolve(B, [roster[1]!, { ...roster[1]!, id: 'duplicate' }])).toMatchObject({
+      accountId: 'b'
+    })
+  } finally {
+    vi.mocked(fs.lstatSync).mockImplementation(actual.lstatSync)
+    warn.mockRestore()
+    actual.rmSync(root, { recursive: true, force: true })
+  }
 })

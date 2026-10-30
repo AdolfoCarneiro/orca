@@ -3,7 +3,7 @@ import {
   reconcileRetainedCodexHookHomes
 } from '../codex/retained-codex-hook-state'
 import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
-import { discoverCodexStoreHomes } from '../codex/codex-launch-home'
+import { discoverCodexStoreHomes } from '../codex/codex-account-home-discovery'
 import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source-home'
 import { posix as pathPosix } from 'node:path'
 import { parseWslUncPath, toLinuxPath, toWindowsWslUncPath } from '../../shared/wsl-paths'
@@ -37,7 +37,9 @@ export abstract class CodexRuntimeHomeRouting extends CodexRuntimeHomeManagedHom
     // Transcript polling must resolve the mirror path without creating it.
     const homes = [
       resolveOrcaManagedCodexHomePath(),
-      ...discoverCodexStoreHomes(this.getManagedAccountsRoot())
+      ...discoverCodexStoreHomes(this.getManagedAccountsRoot(), undefined, (path, error) =>
+        console.warn('[codex-discovery] Could not read home:', path, error)
+      )
     ]
     const source = resolveHostCodexSessionSourceHome(this.store.getSettings())
     if (source) {
@@ -92,7 +94,7 @@ export abstract class CodexRuntimeHomeRouting extends CodexRuntimeHomeManagedHom
   }
 
   getRetainedHostCodexHookHomePaths(ptyIds: readonly string[]): string[] {
-    return this.getRetainedHostCodexHookTargets(ptyIds).map((target) => target.homePath)
+    return this.getRetainedHostCodexHookTargets(ptyIds).targets.map((target) => target.homePath)
   }
 
   private getRetainedHostCodexHookTargets(ptyIds: readonly string[]) {
@@ -116,11 +118,13 @@ export abstract class CodexRuntimeHomeRouting extends CodexRuntimeHomeManagedHom
     ptyIds: readonly string[] = Object.keys(captureCodexPaneAccountInventory().entries),
     isCurrent = () => true
   ): Promise<boolean> {
-    return reconcileRetainedCodexHookHomes({
-      targets: this.getRetainedHostCodexHookTargets(ptyIds),
+    const collection = this.getRetainedHostCodexHookTargets(ptyIds)
+    const reconciled = await reconcileRetainedCodexHookHomes({
+      targets: collection.targets,
       isCurrent,
       isEnabled: () => isAgentStatusHooksEnabledForAgent(this.store.getSettings(), 'codex')
     })
+    return !isCurrent() || (collection.complete && reconciled)
   }
 
   // Custom CODEX_HOME overrides keep system-default launches on the mirror for legacy cleanup.

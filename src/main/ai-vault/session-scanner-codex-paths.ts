@@ -1,3 +1,4 @@
+import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { realpathSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
@@ -18,10 +19,14 @@ export function uniqueCodexSessionsDirs(paths: readonly string[]): string[] {
       continue
     }
     let key = resolve(trimmed)
-    try {
-      key = realpathSync(trimmed)
-    } catch {
-      /* Missing roots remain discoverable on a later scan. */
+    if (trimmed.startsWith('\\\\') || trimmed.startsWith('//')) {
+      key = normalizeRuntimePathForComparison(trimmed)
+    } else {
+      try {
+        key = realpathSync(trimmed)
+      } catch {
+        /* Missing roots remain discoverable on a later scan. */
+      }
     }
     if (seen.has(key)) {
       continue

@@ -19,6 +19,8 @@ import {
 const mocks = vi.hoisted(() => ({
   codexPath: '',
   blockedHookFile: '',
+  blockedMetadata: new Set<string>(),
+  writes: new Map<string, number>(),
   readdirCalls: 0,
   metadataCalls: 0,
   writtenBytes: 0,
@@ -36,10 +38,14 @@ vi.mock('node:fs', async (original) => {
     },
     lstatSync: (...args: Parameters<typeof actual.lstatSync>) => {
       mocks.metadataCalls++
+      if (mocks.blockedMetadata.has(String(args[0]))) {
+        throw Object.assign(new Error('fixture unreadable observation'), { code: 'EACCES' })
+      }
       return actual.lstatSync(...args)
     },
     writeFileSync: (...args: Parameters<typeof actual.writeFileSync>) => {
       mocks.writtenBytes += Buffer.byteLength(String(args[1]))
+      mocks.writes.set(String(args[0]), (mocks.writes.get(String(args[0])) ?? 0) + 1)
       return actual.writeFileSync(...args)
     },
     renameSync: (source: string, destination: string) => {
@@ -99,6 +105,8 @@ const HOOK_PROBLEMS: readonly [string, () => void][] = [
 
 beforeEach(() => {
   mocks.blockedHookFile = ''
+  mocks.blockedMetadata.clear()
+  mocks.writes.clear()
   setupRuntimeHomeTest()
   installFakeAppEnvironment({ getPath: () => testState.userDataDir })
   mocks.codexPath = join(testState.userDataDir, 'codex')
@@ -366,4 +374,120 @@ it('nonlaunch maintenance retains the existing legacy shared-home hook supplemen
   expect(readFileSync(join(legacy, 'hooks.json'), 'utf8')).toContain('orca')
   expect(readFileSync(join(legacy, 'config.toml'), 'utf8')).toContain('model="legacy-fixture"')
   _internals.resetProcess()
+})
+
+it.each(['account', 'child'])(
+  'pre-collection %s IO and main failure do not starve healthy hooks; timer retries settle recovery and opt-out',
+  async (boundary) => {
+    const { createManagedAuth, createCodexAccountRecord, createCodexAuthJson } =
+      await import('./runtime-home-service-test-harness')
+    const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+    const { startCodexHooks, reconcileCodexHooks, stopCodexHooks, _internals } =
+      await import('../codex/codex-hook-reconcile')
+    const auth = createCodexAuthJson('fixture@example.com', 'fixture', 'fixture')
+    const A = createManagedAuth(testState.userDataDir, 'a', auth)
+    const B = createManagedAuth(testState.userDataDir, 'b', auth)
+    const store = createStore(
+      createSettings({
+        realHomeRoutable: true,
+        codexManagedAccounts: [
+          createCodexAccountRecord('a', 'a@example.com', 'a', A),
+          createCodexAccountRecord('b', 'b@example.com', 'b', B)
+        ]
+      })
+    )
+    // SAFETY: the real service uses only the harness settings store ports.
+    const service = new CodexRuntimeHomeService(store as never)
+    const { resolveCodexLaunchHome } = await import('../codex/codex-launch-home')
+    const actor = resolveCodexLaunchHome({
+      selectedAccount: { homePath: A, id: 'a' },
+      systemHome: getSystemCodexHomePath(),
+      storeHome: getSystemCodexHomePath(),
+      accountsRoot: join(testState.userDataDir, 'codex-accounts')
+    })!
+    const target = boundary === 'account' ? A : actor
+    const blocked =
+      boundary === 'account'
+        ? join(fs.realpathSync(A), '.orca-managed-home')
+        : fs.realpathSync(actor)
+    mocks.blockedMetadata.add(blocked)
+    if (boundary === 'child') {
+      mocks.blockedMetadata.add(join(dirname(A), 'overlays', basename(actor)))
+    }
+    mocks.blockedHookFile = hooksPath()
+    let enabled = true
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    try {
+      startCodexHooks({
+        pathReady: Promise.resolve(),
+        isEnabled: () => enabled,
+        resolveLaunchHome: () => null,
+        reconcileRetainedHomes: (current) => service.reconcileRetainedHostCodexHooks([], current)
+      })
+      await _internals.settledForTesting()
+      expect(fs.existsSync(join(target, 'hooks.json'))).toBe(false)
+      expect(readFileSync(join(B, 'hooks.json'), 'utf8')).toContain('orca')
+      const healthyWrites = () =>
+        [...mocks.writes]
+          .filter(([path]) => path.startsWith(fs.realpathSync(B)))
+          .reduce((n, [, count]) => n + count, 0)
+      const before = healthyWrites()
+      await vi.advanceTimersByTimeAsync(100)
+      await _internals.settledForTesting()
+      expect(healthyWrites()).toBe(before)
+      expect(vi.getTimerCount()).toBe(1)
+      enabled = false
+      store.updateSettings({ agentStatusHooksEnabled: false })
+      await reconcileCodexHooks({ retainedHomes: true })
+      expect(readFileSync(join(B, 'hooks.json'), 'utf8')).not.toContain('orca')
+      enabled = true
+      store.updateSettings({ agentStatusHooksEnabled: true })
+      mocks.blockedMetadata.clear()
+      mocks.blockedHookFile = ''
+      await vi.advanceTimersByTimeAsync(400)
+      await _internals.settledForTesting()
+      expect(readFileSync(join(target, 'hooks.json'), 'utf8')).toContain('orca')
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      stopCodexHooks()
+      vi.useRealTimers()
+    }
+  }
+)
+
+it('replacement waits for its own hydration and old completion cannot consume new obligations', async () => {
+  const { startCodexHooks, stopCodexHooks, _internals } =
+    await import('../codex/codex-hook-reconcile')
+  let releaseOld!: () => void, releaseNew!: () => void
+  const oldReady = new Promise<void>((resolve) => {
+    releaseOld = resolve
+  })
+  const newReady = new Promise<void>((resolve) => {
+    releaseNew = resolve
+  })
+  const oldWork = vi.fn(async () => false)
+  const newWork = vi.fn(async () => true)
+  startCodexHooks({
+    pathReady: oldReady,
+    isEnabled: () => false,
+    resolveLaunchHome: () => null,
+    reconcileRetainedHomes: oldWork
+  })
+  await Promise.resolve()
+  startCodexHooks({
+    pathReady: newReady,
+    isEnabled: () => false,
+    resolveLaunchHome: () => null,
+    reconcileRetainedHomes: newWork
+  })
+  releaseOld()
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(oldWork).not.toHaveBeenCalled()
+  expect(newWork).not.toHaveBeenCalled()
+  releaseNew()
+  await _internals.settledForTesting()
+  expect(newWork).toHaveBeenCalledOnce()
+  stopCodexHooks()
 })

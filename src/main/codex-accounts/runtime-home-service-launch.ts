@@ -1,3 +1,4 @@
+import { basename, dirname } from 'node:path'
 import type { CodexHomePreparationOperation } from '../codex/codex-launch-home'
 import { prepareCodexLaunchHome } from '../codex/codex-legacy-session-resume'
 import { resolveCodexLaunchHome } from '../codex/codex-launch-home'
@@ -85,6 +86,9 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
     launchEnv?: NodeJS.ProcessEnv,
     conversationHome?: string
   ): string | null {
+    if (conversationHome && basename(dirname(conversationHome)) === 'overlays') {
+      return conversationHome
+    }
     const account = this.getSelfContainedManagedHostAccount()
     const resolved = account ? this.resolveSelfContainedManagedHome(account) : null
     if (resolved?.kind === 'indeterminate') {

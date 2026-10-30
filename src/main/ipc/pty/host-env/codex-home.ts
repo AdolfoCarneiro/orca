@@ -223,10 +223,8 @@ export function recordCodexPaneAccountForSpawn(args: {
             selectionKey: prepared.selectionKey,
             accountId: prepared.accountId,
             homeRoute:
-              prepared.accountId === null
-                ? prepared.disposition === 'direct'
-                  ? ('real-home' as const)
-                  : ('shared-home' as const)
+              prepared.accountId === null && prepared.disposition === 'direct'
+                ? ('real-home' as const)
                 : ('account-home' as const),
             launchProvenance: { homePath: actualHome, incarnationId: args.incarnationId }
           }

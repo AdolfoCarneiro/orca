@@ -24,7 +24,7 @@ type ReconcileRequest = {
 }
 
 // CLI processes leave reconciliation to app main.
-let config: ReconcileConfig | null = null
+let config: (ReconcileConfig & { pathReady: Promise<unknown> }) | null = null
 let running: Promise<void> | null = null
 let rerun = false
 let retainedRequested = false
@@ -43,25 +43,22 @@ export function startCodexHooks({
   pathReady: hydrating,
   ...appConfig
 }: ReconcileConfig & { pathReady: Promise<unknown> }): void {
-  if (retryTimer) {
-    clearTimeout(retryTimer)
-  }
-  retryTimer = null
+  stopCodexHooks()
   const pathReady = hydrating.catch(() => {})
   startCodexHookHashLookup(pathReady)
-  config = appConfig
-  // Warm the hash cache before the first managed launch.
-  void pathReady.then(() => (appConfig.isEnabled() ? resolveCodexHookAnswer() : undefined))
-  // Early launches must join this run and wait for PATH hydration.
-  void reconcileAfter(pathReady, { convertOlderForms: true })
+  const current = { ...appConfig, pathReady }
+  config = current
+  void pathReady.then(() =>
+    config === current && current.isEnabled() ? resolveCodexHookAnswer() : undefined
+  )
+  void reconcileCodexHooks({ convertOlderForms: true })
 }
 
-/** Concurrent calls request another pass; reconciliation failures are logged. */
+/** Concurrent requests join the same owner; replacement retains its own hydration. */
 export function reconcileCodexHooks(request: ReconcileRequest = {}): Promise<void> {
-  return reconcileAfter(Promise.resolve(), request)
-}
-
-function reconcileAfter(ready: Promise<unknown>, request: ReconcileRequest): Promise<void> {
+  if (!config) {
+    return Promise.resolve()
+  }
   retainedRequested ||= request.retainedHomes ?? !request.realHomeLaunch
   convertRequested ||= request.convertOlderForms === true
   realHomeLaunchRequested ||= request.realHomeLaunch === true
@@ -73,7 +70,7 @@ function reconcileAfter(ready: Promise<unknown>, request: ReconcileRequest): Pro
     clearTimeout(retryTimer)
   }
   retryTimer = null
-  running = ready.then(runUntilSettled)
+  running = Promise.resolve().then(runUntilSettled)
   return running
 }
 
@@ -119,25 +116,53 @@ function resolveHome(current: ReconcileConfig | null): CodexHookHomeChoice {
 async function runUntilSettled(): Promise<void> {
   for (;;) {
     rerun = false
+    const current = config
     const maintainRetained = retainedRequested
-    retainedRequested = false
     const realHomeLaunch = realHomeLaunchRequested
-    realHomeLaunchRequested = false
-    try {
-      const current = config
-      await reconcileOnce(realHomeLaunch)
-      if (maintainRetained && current && config === current) {
-        if ((await current.reconcileRetainedHomes?.(() => config === current)) === false) {
-          scheduleRetry()
-        } else {
-          retryDelay = 100
+    const convertOlderForms = convertRequested
+    retainedRequested = realHomeLaunchRequested = convertRequested = false
+    let main: 'settled' | 'unavailable' | 'deferred' = 'settled'
+    let retained = true
+    if (current) {
+      await current.pathReady
+      if (config === current) {
+        try {
+          main = await reconcileOnce(current, realHomeLaunch, convertOlderForms)
+        } catch (error) {
+          main = 'unavailable'
+          console.warn('[codex-hook-reconcile] Codex hook reconcile failed:', error)
+        }
+        // Main failure cannot starve independently authorized retained targets.
+        if (maintainRetained && config === current) {
+          try {
+            retained = (await current.reconcileRetainedHomes?.(() => config === current)) !== false
+          } catch (error) {
+            retained = false
+            console.warn('[codex-hook-reconcile] Retained Codex hook reconcile failed:', error)
+          }
+        }
+        if (config === current) {
+          if (main !== 'settled') {
+            convertRequested ||= convertOlderForms
+          }
+          if (main === 'unavailable') {
+            realHomeLaunchRequested ||= realHomeLaunch
+          }
+          if (!retained) {
+            retainedRequested = true
+          }
+          if (main === 'unavailable' || !retained) {
+            scheduleRetry(current)
+          } else {
+            if (retryTimer) {
+              clearTimeout(retryTimer)
+            }
+            retryTimer = null
+            retryDelay = 100
+          }
         }
       }
-    } catch (error) {
-      console.warn('[codex-hook-reconcile] Codex hook reconcile failed:', error)
-      scheduleRetry()
     }
-    // Clear running without yielding so new requests cannot join a finished run.
     if (!rerun) {
       running = null
       return
@@ -145,39 +170,58 @@ async function runUntilSettled(): Promise<void> {
   }
 }
 
-function scheduleRetry(): void {
-  if (!config || retryTimer) {
+function scheduleRetry(current: NonNullable<typeof config>): void {
+  if (config !== current || retryTimer) {
     return
   }
   retryTimer = setTimeout(() => {
+    if (config !== current) {
+      return
+    }
     retryTimer = null
-    void reconcileCodexHooks({ retainedHomes: true })
+    void reconcileCodexHooks({ retainedHomes: false })
   }, retryDelay)
   retryDelay = Math.min(retryDelay * 2, 30_000)
   retryTimer.unref?.()
 }
 
-async function reconcileOnce(realHomeLaunch: boolean): Promise<void> {
-  const current = config
-  if (!current?.isEnabled() || !(realHomeLaunch || resolveHome(current).kind === 'real')) {
-    return
+async function reconcileOnce(
+  current: ReconcileConfig,
+  realHomeLaunch: boolean,
+  convertOlderForms: boolean
+): Promise<'settled' | 'unavailable' | 'deferred'> {
+  if (config !== current) {
+    return 'settled'
+  }
+  if (!current.isEnabled()) {
+    return 'deferred'
+  }
+  const home = resolveHome(current)
+  if (!realHomeLaunch && home.kind !== 'real') {
+    return home.kind === 'unknown' ? 'unavailable' : 'deferred'
   }
   const lookup = resolveCodexHookAnswer()
   const live = await withTimeout<CodexHookAnswer | null>(lookup, ANSWER_WAIT_MS, null)
-  if (!live) {
-    // Replace stopgap approvals once Codex's answer arrives.
-    void lookup.then(() => reconcileCodexHooks({ realHomeLaunch, retainedHomes: true }))
+  if (config !== current) {
+    return 'settled'
   }
-  // Reuse Codex's saved answer so a slow startup probe does not disturb existing hooks.
+  if (!live) {
+    void lookup.then(() => {
+      if (config === current) {
+        void reconcileCodexHooks({ realHomeLaunch, retainedHomes: true })
+      }
+    })
+  }
   const answer = live && live.kind !== 'pending' ? live : readKnownCodexHookAnswer()
   if (answer?.kind === 'refused' || (answer?.kind === 'pending' && answer.codexMissing)) {
-    return
+    return 'settled'
   }
-  const convertOlderForms = convertRequested
-  convertRequested = false
-  await reconcileRealHomeCodexHookEntries({
+  return reconcileRealHomeCodexHookEntries({
     hashes: answer?.kind === 'hashes' ? answer.hashes : null,
-    isEnabled: () => config === current && current.isEnabled(),
+    isEnabled: () =>
+      config === current &&
+      current.isEnabled() &&
+      (realHomeLaunch || resolveHome(current).kind === 'real'),
     convertOlderForms
   })
 }
@@ -185,7 +229,8 @@ async function reconcileOnce(realHomeLaunch: boolean): Promise<void> {
 export function stopCodexHooks(): void {
   config = null
   rerun = false
-  retainedRequested = false
+  retainedRequested = convertRequested = realHomeLaunchRequested = false
+  retryDelay = 100
   if (retryTimer) {
     clearTimeout(retryTimer)
   }

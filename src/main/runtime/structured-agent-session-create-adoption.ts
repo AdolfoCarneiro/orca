@@ -130,13 +130,17 @@ export async function resolveStructuredAgentSessionAdoptionForCreate(input: {
     let admitted: { accountHome: AgentSessionAccountHome; path: string } | null = null
     if (transcriptPath) {
       for (const accountHome of candidates) {
-        const store = storeOf(accountHome)
-        const path = store
-          ? await input.transcriptImport.admitTranscriptPath({ store, transcriptPath })
-          : null
-        if (path) {
-          admitted = { accountHome, path }
-          break
+        try {
+          const store = storeOf(accountHome)
+          const path = store
+            ? await input.transcriptImport.admitTranscriptPath({ store, transcriptPath })
+            : null
+          if (path) {
+            admitted = { accountHome, path }
+            break
+          }
+        } catch (error) {
+          console.warn('[conversation-adoption] Could not read candidate:', error)
         }
       }
     }

@@ -21,7 +21,21 @@ export function collectRetainedCodexHookTargets(args: {
   getSettings: () => GlobalSettings
   resolveTrustedHome: (account: CodexManagedAccount) => string | null
   ptyIds: readonly string[]
-}): RetainedCodexHookTarget[] {
+}): { targets: RetainedCodexHookTarget[]; complete: boolean } {
+  let complete = true
+  const failed = (path: string, error: unknown) => {
+    complete = false
+    console.warn('[codex-hook-service] Could not observe retained home:', path, error)
+  }
+  const observe = (path: string, run: () => void) => {
+    try {
+      run()
+    } catch (error) {
+      if (!isDefinitiveAbsence(error)) {
+        failed(path, error)
+      }
+    }
+  }
   let accounts = args.getSettings().codexManagedAccounts
   let byId = new Map(accounts.map((account) => [account.id, account]))
   const currentAccount = (id: string) => {
@@ -52,12 +66,14 @@ export function collectRetainedCodexHookTargets(args: {
           throw error
         }
       }
-      if (isCurrent()) {
-        homes.set(canonicalCodexHome(homePath), { homePath, isCurrent })
-      }
+      observe(homePath, () => {
+        if (isCurrent()) {
+          homes.set(canonicalCodexHome(homePath), { homePath, isCurrent })
+        }
+      })
     }
     add(login)
-    for (const actor of codexAccountOverlayHomes(family)) {
+    for (const actor of codexAccountOverlayHomes(family, failed)) {
       add(actor)
     }
   }
@@ -69,20 +85,24 @@ export function collectRetainedCodexHookTargets(args: {
     if (account.managedHomeRuntime === 'wsl') {
       continue
     }
-    const login = args.resolveTrustedHome(account)
+    let login: string | null = null
+    observe(account.managedHomePath, () => {
+      login = args.resolveTrustedHome(account)
+    })
     if (!login) {
       continue
     }
+    const trustedLogin = login
     const owner = () => {
       const current = currentAccount(account.id)
       return (
         current !== undefined &&
         current.managedHomeRuntime !== 'wsl' &&
         args.resolveTrustedHome(current) !== null &&
-        canonicalCodexHome(current.managedHomePath) === canonicalCodexHome(login)
+        canonicalCodexHome(current.managedHomePath) === canonicalCodexHome(trustedLogin)
       )
     }
-    addFamily(login, dirname(login), owner)
+    addFamily(trustedLogin, dirname(trustedLogin), owner)
   }
   // Exact observations supplement the same current-authorized families; they grant no new root.
   if (
@@ -96,16 +116,18 @@ export function collectRetainedCodexHookTargets(args: {
     addFamily(args.legacyHome, dirname(args.legacyHome), () => true)
   }
   for (const id of args.ptyIds) {
-    const observed = getObservedCodexPaneHome(id)
-    if (observed && homes.has(canonicalCodexHome(observed.actualHome))) {
-      const target = homes.get(canonicalCodexHome(observed.actualHome))!
-      homes.set(canonicalCodexHome(observed.actualHome), {
-        ...target,
-        homePath: observed.actualHome
-      })
-    }
+    observe(id, () => {
+      const observed = getObservedCodexPaneHome(id)
+      if (observed && homes.has(canonicalCodexHome(observed.actualHome))) {
+        const target = homes.get(canonicalCodexHome(observed.actualHome))!
+        homes.set(canonicalCodexHome(observed.actualHome), {
+          ...target,
+          homePath: observed.actualHome
+        })
+      }
+    })
   }
-  return [...homes.values()]
+  return { targets: [...homes.values()], complete }
 }
 
 /** Promotion-free maintenance never creates an unused actor or copies auth/config into it. */
@@ -127,7 +149,7 @@ export async function reconcileRetainedCodexHookHomes(args: {
         false,
         isCurrent
       )
-      if (result === 'unavailable' && target.isCurrent()) {
+      if (result === 'unavailable' && (args.isCurrent?.() ?? true) && target.isCurrent()) {
         settled = false
       }
     } catch (error) {

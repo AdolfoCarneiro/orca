@@ -87,14 +87,19 @@ export function parseRegistry(parsed: unknown): CodexPaneAccountRegistryFile {
     const launchProvenance = readLaunchProvenance(value.launchProvenance)
     const route = value.homeRoute
     const homeRoute =
-      route === 'real-home' ||
-      route === 'shared-home' ||
-      route === 'account-home' ||
-      route === 'wsl-home'
-        ? route
-        : String(route) === 'custom-home'
-          ? 'shared-home'
-          : undefined
+      value.selectionKey === 'host' &&
+      value.accountId === null &&
+      launchProvenance &&
+      route === 'shared-home'
+        ? 'account-home'
+        : route === 'real-home' ||
+            route === 'shared-home' ||
+            route === 'account-home' ||
+            route === 'wsl-home'
+          ? route
+          : String(route) === 'custom-home'
+            ? 'shared-home'
+            : undefined
     registry.panes[id] = {
       accountId: value.accountId,
       ...(value.selectionKey ? { selectionKey: value.selectionKey } : {}),

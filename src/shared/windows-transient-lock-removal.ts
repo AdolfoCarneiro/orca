@@ -34,13 +34,17 @@ function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
 
-export function removeTreeSync(targetPath: string): void {
+export function removeTreeSync(targetPath: string, removePass?: (path: string) => void): void {
   const options = transientLockRemovalOptions()
   const extraAttempts = process.platform === 'win32' ? WINDOWS_RM_MAX_RETRIES : 0
   let attempt = 0
   for (;;) {
     try {
-      rmSync(targetPath, options)
+      if (removePass) {
+        removePass(targetPath)
+      } else {
+        rmSync(targetPath, options)
+      }
       return
     } catch (error) {
       // Mocks or handles outliving Node’s inner retries can still throw; force suppresses only ENOENT.

@@ -1,3 +1,4 @@
+import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
 // Pi/OpenCode overlays link into user-owned state; teardown must never follow symlinks/junctions or leave the owned root (#1083).
 
 import {
@@ -47,45 +48,53 @@ export function isSafeDescendCandidate(stats: {
 }
 
 // fs.rmSync recursion has followed Windows junctions into user state; unlink links and recurse only into real directories.
-export function safeRemoveTree(path: string): void {
+export function safeRemoveTree(
+  path: string,
+  onError?: (path: string, error: unknown) => void
+): void {
+  const failed = (target: string, error: unknown) => {
+    if (!isDefinitiveAbsence(error)) {
+      onError?.(target, error)
+    }
+  }
   let stat
   try {
     stat = lstatSync(path)
-  } catch {
+  } catch (error) {
+    failed(path, error)
     return
   }
-
   if (!isSafeDescendCandidate(stat)) {
     try {
       unlinkSync(path)
-    } catch {
-      // Windows indexers/antivirus may hold links; leftovers are safe and rebuilt on next spawn.
+    } catch (error) {
+      failed(path, error)
     }
     return
   }
-
   let entries
   try {
     entries = readdirSync(path, { withFileTypes: true })
-  } catch {
+  } catch (error) {
+    failed(path, error)
     return
   }
-
   for (const entry of entries) {
     const child = join(path, entry.name)
     if (isSafeDescendCandidate(entry)) {
-      safeRemoveTree(child)
-      continue
+      safeRemoveTree(child, onError)
+    } else {
+      try {
+        unlinkSync(child)
+      } catch (error) {
+        failed(child, error)
+      }
     }
-    try {
-      unlinkSync(child)
-    } catch {}
   }
-
   try {
     rmdirSync(path)
-  } catch {
-    // Failed child unlinks may leave a harmless nonempty directory.
+  } catch (error) {
+    failed(path, error)
   }
 }
 

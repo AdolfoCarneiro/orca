@@ -94,7 +94,10 @@ export function codexOverlayBelongsToFamily(home: string, accountDirectory: stri
   }
 }
 
-export function codexAccountOverlayHomes(accountDirectory: string): string[] {
+export function codexAccountOverlayHomes(
+  accountDirectory: string,
+  onError?: (path: string, error: unknown) => void
+): string[] {
   const root = join(accountDirectory, 'overlays')
   try {
     if (
@@ -103,64 +106,33 @@ export function codexAccountOverlayHomes(accountDirectory: string): string[] {
     ) {
       return []
     }
-    return readdirSync(root, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && /^[a-f0-9]{32}$/.test(entry.name))
-      .map((entry) => join(root, entry.name))
-      .filter((home) => codexOverlayBelongsToFamily(home, accountDirectory))
+    const homes: string[] = []
+    for (const entry of readdirSync(root, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !/^[a-f0-9]{32}$/.test(entry.name)) {
+        continue
+      }
+      const home = join(root, entry.name)
+      try {
+        if (codexOverlayBelongsToFamily(home, accountDirectory)) {
+          homes.push(home)
+        }
+      } catch (error) {
+        if (!onError) {
+          throw error
+        }
+        onError(home, error)
+      }
+    }
+    return homes
   } catch (error) {
     if (!isDefinitiveAbsence(error)) {
-      throw error
+      if (!onError) {
+        throw error
+      }
+      onError(root, error)
     }
     return []
   }
-}
-
-/** Removed accounts still own stores; settings are deliberately not the inventory. */
-export function discoverCodexStoreHomes(
-  accountsRoot = defaultAccountsRoot(),
-  systemHome = getSystemCodexHomePath()
-): string[] {
-  const homes: string[] = []
-  const families = [systemHome]
-  let accounts: string[] = []
-  try {
-    accounts = readdirSync(accountsRoot)
-  } catch (error) {
-    if (!isDefinitiveAbsence(error)) {
-      throw error
-    }
-  }
-  for (const id of accounts) {
-    const home = join(accountsRoot, id, 'home')
-    const verdict = resolveHostCodexManagedHomeVerdict({
-      candidatePath: home,
-      managedAccountsRoot: accountsRoot,
-      systemCodexHomePath: systemHome,
-      expectedAccountId: id
-    })
-    if (verdict.kind === 'indeterminate') {
-      throw verdict.error
-    }
-    if (verdict.kind === 'owned') {
-      homes.push(home)
-    } else if (id !== 'system') {
-      continue
-    }
-    families.push(join(accountsRoot, id))
-  }
-  for (const family of families) {
-    for (const overlay of codexAccountOverlayHomes(family)) {
-      homes.push(overlay)
-      try {
-        homes.push(codexConversationStore(overlay))
-      } catch (error) {
-        if (!isDefinitiveAbsence(error)) {
-          throw error
-        }
-      }
-    }
-  }
-  return [...new Set(homes)]
 }
 
 export type CodexPreparedHome = {

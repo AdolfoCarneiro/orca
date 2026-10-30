@@ -1,6 +1,9 @@
 // Resolve credential homes and transcripts from host-owned facts, never client-supplied paths.
 
-import { chatAgentsShareConversations } from '../../shared/structured-agent-cli-conversation-adoption'
+import {
+  chatAgentsShareConversations,
+  nativeConversationIdKey
+} from '../../shared/structured-agent-cli-conversation-adoption'
 import { agentSessionRefusalError } from '../../shared/agent-session-wire-refusals'
 import type { AgentSessionOperationRow } from '../../shared/agent-session-operation-ledger'
 import type {
@@ -87,7 +90,8 @@ export function findConflictingStructuredAdoption(input: {
         owner.sessionId !== input.selfSessionId &&
         owner.role === 'head' &&
         chatAgentsShareConversations(owner.provider, input.agent) &&
-        owner.providerSessionId === input.providerSessionId
+        nativeConversationIdKey(owner.provider, owner.providerSessionId) ===
+          nativeConversationIdKey(input.agent, input.providerSessionId)
     ) ?? null
   )
 }
@@ -122,20 +126,28 @@ export async function resolveStructuredAgentSessionAdoption(input: {
   workspaceCwd: string
 }): Promise<StructuredAgentSessionAdoption> {
   const seen: AgentSessionAccountHome[] = []
+  let unavailable: unknown
   for (const accountHome of input.candidateAccountHomes) {
     if (seen.some((home) => agentSessionAccountHomesEqual(home, accountHome))) {
       continue
     }
     seen.push(accountHome)
-    const transcriptPath = await input.resolveTranscript({
-      providerSessionId: input.providerSessionId,
-      accountHome,
-      launchEnv: input.launchEnv,
-      workspaceCwd: input.workspaceCwd
-    })
-    if (transcriptPath) {
-      return { accountHome, transcriptPath }
+    try {
+      const transcriptPath = await input.resolveTranscript({
+        providerSessionId: input.providerSessionId,
+        accountHome,
+        launchEnv: input.launchEnv,
+        workspaceCwd: input.workspaceCwd
+      })
+      if (transcriptPath) {
+        return { accountHome, transcriptPath }
+      }
+    } catch (error) {
+      unavailable = error
     }
+  }
+  if (unavailable) {
+    throw unavailable
   }
   // Wrong-home fallback silently turns resume into a blank chat under the old name.
   throw agentSessionRefusalError('agent_session_identity_required', {

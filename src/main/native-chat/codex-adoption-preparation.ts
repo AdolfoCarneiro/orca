@@ -39,16 +39,25 @@ export async function prepareCodexAdoption(
   ) {
     return source
   }
-  if (
-    !result.useRealCodexHome &&
-    !recognizedHomes.some(
-      (candidate) =>
-        isLegacyAgentSessionAccountHome(candidate) &&
-        normalizeRuntimePathForComparison(codexConversationStore(candidate.path)) ===
-          normalizeRuntimePathForComparison(codexConversationStore(home))
-    )
-  ) {
-    throw new Error('The prepared conversation account is not recognized on this host.')
+  if (!result.useRealCodexHome) {
+    const preparedStore = normalizeRuntimePathForComparison(codexConversationStore(home))
+    const recognized = recognizedHomes.some((candidate) => {
+      if (!isLegacyAgentSessionAccountHome(candidate)) {
+        return false
+      }
+      try {
+        return (
+          normalizeRuntimePathForComparison(codexConversationStore(candidate.path)) ===
+          preparedStore
+        )
+      } catch (error) {
+        console.warn('[conversation-adoption] Could not read recognized store:', error)
+        return false
+      }
+    })
+    if (!recognized) {
+      throw new Error('The prepared conversation account is not recognized on this host.')
+    }
   }
   const original = await admitTranscriptPath(
     join(source.accountHome.path, 'sessions'),

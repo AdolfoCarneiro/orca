@@ -1,6 +1,6 @@
 import type * as ScanFs from 'node:fs'
-import { readdirSync, realpathSync } from 'node:fs'
-import { discoverCodexStoreHomes } from '../codex/codex-launch-home'
+import { readdirSync, realpathSync, readlinkSync, lstatSync } from 'node:fs'
+import { discoverCodexStoreHomes } from '../codex/codex-account-home-discovery'
 import { scanAiVaultSessions } from './session-scanner'
 import { isolatedScanRoots, jsonLines } from './session-scanner-test-fixtures'
 import { parseSessionCandidates } from './session-scanner-candidate-parse'
@@ -33,7 +33,12 @@ import {
 
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof ScanFs>()
-  return { ...actual, readdirSync: vi.fn(actual.readdirSync) }
+  return {
+    ...actual,
+    readdirSync: vi.fn(actual.readdirSync),
+    readlinkSync: vi.fn(actual.readlinkSync),
+    lstatSync: vi.fn(actual.lstatSync)
+  }
 })
 
 const CACHE_LIMIT = 64
@@ -357,4 +362,73 @@ describe('codex session index title cache', () => {
     )
     expect(_getCodexSessionIndexTitleCacheSizeForTest()).toBe(1)
   })
+})
+
+it('reads an exact own index with unknown X and isolates an unreadable sibling actor, reobserving it next operation', async () => {
+  const root = realpathSync(process.env.ORCA_USER_DATA_PATH!)
+  vi.stubEnv('ORCA_USER_DATA_PATH', root)
+  const accounts = join(root, 'codex-accounts')
+  const family = join(accounts, 'system')
+  const X = join(root, 'store')
+  const healthy = join(family, 'overlays', 'a'.repeat(32))
+  const broken = join(family, 'overlays', 'b'.repeat(32))
+  for (const home of [healthy, broken, X]) {
+    await mkdir(home, { recursive: true })
+  }
+  await mkdir(join(X, 'sessions'))
+  for (const home of [healthy, broken]) {
+    await symlink(join(X, 'sessions'), join(home, 'sessions'))
+  }
+  const id = 'explicit-title'
+  await writeFile(
+    join(healthy, 'session_index.jsonl'),
+    `${JSON.stringify({ id, thread_name: 'own', updated_at: '2026-01-01T00:00:00Z' })}\n`
+  )
+  await writeFile(
+    join(broken, 'session_index.jsonl'),
+    `${JSON.stringify({ id, thread_name: 'later', updated_at: '2026-01-02T00:00:00Z' })}\n`
+  )
+  const actual = await vi.importActual<typeof ScanFs>('node:fs')
+  vi.mocked(lstatSync).mockImplementation((...args: Parameters<typeof actual.lstatSync>) => {
+    if (String(args[0]) === broken) {
+      throw Object.assign(new Error('sibling denied'), { code: 'EACCES' })
+    }
+    return actual.lstatSync(...args)
+  })
+  vi.mocked(readlinkSync).mockImplementation((...args: Parameters<typeof actual.readlinkSync>) => {
+    if (String(args[0]) === join(healthy, 'sessions')) {
+      throw Object.assign(new Error('lost X observation'), { code: 'EACCES' })
+    }
+    return actual.readlinkSync(...args)
+  })
+  try {
+    expect(
+      await readCodexSessionIndexTitle(join(healthy, 'sessions', 'rollout.jsonl'), healthy, id)
+    ).toBe('own')
+    vi.mocked(readlinkSync).mockImplementation(actual.readlinkSync)
+    expect(
+      await readCodexSessionIndexTitle(join(healthy, 'sessions', 'rollout.jsonl'), healthy, id)
+    ).toBe('own')
+    vi.mocked(lstatSync).mockImplementation(actual.lstatSync)
+    expect(
+      await readCodexSessionIndexTitle(join(healthy, 'sessions', 'rollout.jsonl'), healthy, id)
+    ).toBe('later')
+    vi.mocked(readdirSync).mockImplementation((...args: Parameters<typeof actual.readdirSync>) => {
+      if (String(args[0]) === accounts) {
+        throw Object.assign(new Error('accounts root denied'), { code: 'EACCES' })
+      }
+      return actual.readdirSync(...args)
+    })
+    expect(
+      await readCodexSessionIndexTitle(join(healthy, 'sessions', 'rollout.jsonl'), healthy, id)
+    ).toBe('own')
+    vi.mocked(readdirSync).mockImplementation(actual.readdirSync)
+    expect(
+      await readCodexSessionIndexTitle(join(healthy, 'sessions', 'rollout.jsonl'), healthy, id)
+    ).toBe('later')
+  } finally {
+    vi.mocked(readdirSync).mockImplementation(actual.readdirSync)
+    vi.mocked(lstatSync).mockImplementation(actual.lstatSync)
+    vi.mocked(readlinkSync).mockImplementation(actual.readlinkSync)
+  }
 })

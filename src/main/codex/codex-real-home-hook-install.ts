@@ -63,8 +63,10 @@ type SettlePlan = Extract<RealHomeCodexHookEntryPlan, { kind: 'settle' }>
 const MAX_PASSES = 4
 
 /** Approve before writing entries; roll back approvals if the entry write fails. */
-export async function reconcileRealHomeCodexHookEntries(args: ReconcileArgs): Promise<void> {
-  await reconcileCodexHookEntriesInHome(getRealHomeCodexHookHome(), args, { pristineBackup: true })
+export async function reconcileRealHomeCodexHookEntries(
+  args: ReconcileArgs
+): Promise<'settled' | 'unavailable'> {
+  return reconcileCodexHookEntriesInHome(getRealHomeCodexHookHome(), args, { pristineBackup: true })
 }
 
 export async function reconcileCodexHookEntriesInHome(

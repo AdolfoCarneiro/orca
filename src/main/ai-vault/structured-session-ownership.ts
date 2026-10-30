@@ -1,3 +1,4 @@
+import { nativeConversationIdKey } from '../../shared/structured-agent-cli-conversation-adoption'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import { agentSessionOwnerObservationIsLive } from '../../shared/agent-session-lease-adjudication'
 import { defaultAgentChatLabel } from '../../shared/agent-session/agent-session-chat-label'
@@ -120,7 +121,7 @@ function ownershipLookup():
   }
   const byProviderSession = new Map<string, StructuredProviderSessionOwnership>()
   for (const ownership of listOwnership()) {
-    const key = `${ownership.provider}\0${ownership.providerSessionId}`
+    const key = `${ownership.provider}\0${nativeConversationIdKey(ownership.provider, ownership.providerSessionId)}`
     const kept = byProviderSession.get(key)
     if (!kept || (kept.role !== 'head' && ownership.role === 'head')) {
       byProviderSession.set(key, ownership)
@@ -128,7 +129,8 @@ function ownershipLookup():
   }
   return (row) => {
     const found = historyRowOwners(row.agent).flatMap(
-      (owner) => byProviderSession.get(`${owner}\0${row.sessionId}`) ?? []
+      (owner) =>
+        byProviderSession.get(`${owner}\0${nativeConversationIdKey(owner, row.sessionId)}`) ?? []
     )
     return found.find((ownership) => ownership.role === 'head') ?? found[0] ?? null
   }
@@ -194,7 +196,11 @@ function resumeOwnerships(
   const fileName = args.filePath.split(/[\\/]/).at(-1) ?? ''
   return [
     ...(args.sessionId
-      ? owned.filter((ownership) => ownership.providerSessionId === args.sessionId)
+      ? owned.filter(
+          (ownership) =>
+            nativeConversationIdKey(ownership.provider, ownership.providerSessionId) ===
+            nativeConversationIdKey(args.agent, args.sessionId)
+        )
       : []),
     ...owned.filter((ownership) => fileName.includes(ownership.providerSessionId))
   ]

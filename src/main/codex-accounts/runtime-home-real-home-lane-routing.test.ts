@@ -207,6 +207,66 @@ describe('CodexRuntimeHomeService', () => {
     }
   })
 
+  it('modern System C-format receipt excludes all legacy admissions while retaining current System family hooks', async () => {
+    const {
+      _internals,
+      getCodexPaneAccount,
+      hasRecordedLegacySharedCodexPane,
+      hasRecordedManagedHostCodexPane,
+      isCodexPaneHomeRouteProvenAwayFromSharedHome
+    } = await import('../codex/codex-pane-account-registry')
+    const system = getSystemCodexHomePath()
+    writeFileSync(
+      getSystemCodexAuthPath(),
+      createCodexAuthJson('system@example.com', 'system', 'new')
+    )
+    const O = resolveCodexLaunchHome({
+      selectedAccount: null,
+      systemHome: system,
+      storeHome: join(testState.userDataDir, 'X'),
+      accountsRoot: join(testState.userDataDir, 'codex-accounts')
+    })!
+    const legacy = getRuntimeCodexHomePath()
+    writeFileSync(join(legacy, 'config.toml'), 'model="legacy-retained"\n')
+    const oldAuth = createCodexAuthJson('old@example.com', 'old', 'old')
+    writeFileSync(getRuntimeCodexAuthPath(), oldAuth)
+    writeFileSync(
+      join(testState.userDataDir, 'codex-pane-accounts.json'),
+      JSON.stringify({
+        version: 2,
+        panes: {
+          modern: {
+            selectionKey: 'host',
+            accountId: null,
+            homeRoute: 'shared-home',
+            launchProvenance: { homePath: O, incarnationId: 'genuine-returned-birth' }
+          }
+        }
+      })
+    )
+    _internals.resetProcess()
+    expect(hasRecordedLegacySharedCodexPane()).toBe(false)
+    expect(hasRecordedManagedHostCodexPane()).toBe(false)
+    expect(
+      isCodexPaneHomeRouteProvenAwayFromSharedHome(getCodexPaneAccount('modern')?.homeRoute)
+    ).toBe(true)
+    const store = createStore(createSettings({ realHomeRoutable: true }))
+    const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+    // SAFETY: only the harness settings-store ports are used by the real service.
+    const service = new CodexRuntimeHomeService(store as never)
+    service.reconcileLegacySharedHomeForRetainedPanes()
+    expect(service.prepareForRateLimitFetch().kind).toBe('ready')
+    expect(readFileSync(getRuntimeCodexAuthPath(), 'utf8')).toBe(oldAuth)
+    expect(readFileSync(join(legacy, 'config.toml'), 'utf8')).toBe('model="legacy-retained"\n')
+    const targets = service.getRetainedHostCodexHookHomePaths(['modern'])
+    expect(targets.map((home) => realpathSync(home))).toContain(realpathSync(O))
+    expect(targets.map((home) => realpathSync(home))).not.toContain(realpathSync(legacy))
+    expect(await service.reconcileRetainedHostCodexHooks(['modern'])).toBe(true)
+    expect(readFileSync(join(O, 'hooks.json'), 'utf8')).toContain('orca')
+    expect(existsSync(join(legacy, 'hooks.json'))).toBe(false)
+    _internals.resetProcess()
+  })
+
   it('resolves only Orca-owned homes used by live retained host shells', async () => {
     const accountHome = createManagedAuth(
       testState.userDataDir,

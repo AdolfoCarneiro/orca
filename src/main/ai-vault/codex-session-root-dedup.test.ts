@@ -1,3 +1,5 @@
+import * as rootFs from 'node:fs'
+import { uniqueCodexSessionsDirs } from './session-scanner-codex-paths'
 import { describe, expect, it, vi } from 'vitest'
 import type { AiVaultSession } from '../../shared/ai-vault-types'
 import {
@@ -5,6 +7,29 @@ import {
   dedupeCodexRolloutFileAliases
 } from './codex-session-root-dedup'
 import { dedupeScannedSessions } from './session-root-dedup'
+
+vi.mock('node:fs', async (original) => {
+  const actual = await original<typeof rootFs>()
+  return { ...actual, realpathSync: vi.fn(actual.realpathSync) }
+})
+
+it('deduplicates all UNC roots lexically without synchronous probes while local aliases remain physical', () => {
+  const probe = vi.mocked(rootFs.realpathSync)
+  probe.mockClear()
+  const paths = [
+    String.raw`\\wsl$\Ubuntu\home\a\sessions`,
+    '//wsl.localhost/Ubuntu/home/a/sessions',
+    String.raw`\\server\Share\sessions`,
+    '//SERVER/share/sessions'
+  ]
+  expect(uniqueCodexSessionsDirs(paths)).toEqual([paths[0], paths[2]])
+  expect(probe).not.toHaveBeenCalled()
+  probe.mockReturnValueOnce('/physical/sessions').mockReturnValueOnce('/physical/sessions')
+  expect(uniqueCodexSessionsDirs(['/local/a/sessions', '/local/b/sessions'])).toEqual([
+    '/local/a/sessions'
+  ])
+  expect(probe).toHaveBeenCalledTimes(2)
+})
 
 const REAL_HOME_ROLLOUT =
   '/Users/ada/.codex/sessions/2026/07/01/rollout-2026-07-01T10-00-00-019f0000-1111-7222-8333-444444444444.jsonl'

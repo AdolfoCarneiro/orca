@@ -1,3 +1,4 @@
+import { discoverCodexStoreHomes } from './codex-account-home-discovery'
 import * as fsPromises from 'node:fs/promises'
 import * as crypto from 'node:crypto'
 import {
@@ -36,7 +37,6 @@ import {
   CODEX_STORE_DIRECTORIES,
   codexConversationStore,
   codexLoginHome,
-  discoverCodexStoreHomes,
   codexAccountOverlayHomes,
   type CodexHomePreparationOperation,
   resolveCodexLaunchHome

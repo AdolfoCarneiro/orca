@@ -1,6 +1,7 @@
 import { parseWslUncPath } from '../../shared/wsl-paths'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { codexConversationStore, discoverCodexStoreHomes } from '../codex/codex-launch-home'
+import { codexConversationStore } from '../codex/codex-launch-home'
+import { discoverCodexStoreHomes } from '../codex/codex-account-home-discovery'
 import { basename, dirname, join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { InFlightPromiseDedupe, stableInFlightKey } from '../../shared/in-flight-promise-dedupe'
@@ -76,7 +77,14 @@ export async function readCodexSessionIndexTitle(
     return (await readCodexSessionIndexTitles(resolvedCodexHome)).get(sessionId)?.title ?? null
   }
   const scope = storeTitleReads.getStore() ?? createTitleReadScope()
-  const store = scope.stores.get(resolvedCodexHome) ?? codexConversationStore(resolvedCodexHome)
+  const own = readIndexOnce(resolvedCodexHome, scope)
+  let store: string
+  try {
+    store = scope.stores.get(resolvedCodexHome) ?? codexConversationStore(resolvedCodexHome)
+  } catch (error) {
+    console.warn('[codex-titles] Could not resolve store:', resolvedCodexHome, error)
+    return (await own).get(sessionId)?.title ?? null
+  }
   scope.stores.set(resolvedCodexHome, store)
   let titles = scope.titles.get(store)
   if (!titles) {
@@ -88,13 +96,14 @@ export async function readCodexSessionIndexTitle(
 
 type TitleReadScope = {
   titles: Map<string, Promise<Map<string, IndexedTitle>>>
+  indexes: Map<string, Promise<Map<string, IndexedTitle>>>
   stores: Map<string, string>
   aliases?: Map<string, string[]>
 }
 
 const storeTitleReads = new AsyncLocalStorage<TitleReadScope>()
 function createTitleReadScope(): TitleReadScope {
-  return { titles: new Map(), stores: new Map() }
+  return { titles: new Map(), stores: new Map(), indexes: new Map() }
 }
 export function withCodexSessionIndexHomes<T>(run: () => Promise<T>): Promise<T> {
   return storeTitleReads.getStore() ? run() : storeTitleReads.run(createTitleReadScope(), run)
@@ -107,18 +116,24 @@ async function readStoreTitles(
 ): Promise<Map<string, IndexedTitle>> {
   if (!scope.aliases) {
     scope.aliases = new Map()
-    for (const candidate of discoverCodexStoreHomes()) {
-      const owner = scope.stores.get(candidate) ?? codexConversationStore(candidate)
-      scope.stores.set(candidate, owner)
-      const aliases = scope.aliases.get(owner) ?? []
-      aliases.push(candidate)
-      scope.aliases.set(owner, aliases)
+    for (const candidate of discoverCodexStoreHomes(undefined, undefined, (path, error) =>
+      console.warn('[codex-titles] Could not read home:', path, error)
+    )) {
+      try {
+        const owner = scope.stores.get(candidate) ?? codexConversationStore(candidate)
+        scope.stores.set(candidate, owner)
+        const aliases = scope.aliases.get(owner) ?? []
+        aliases.push(candidate)
+        scope.aliases.set(owner, aliases)
+      } catch (error) {
+        console.warn('[codex-titles] Could not resolve alias:', candidate, error)
+      }
     }
   }
   const indexes = await Promise.all(
     [...new Set([home, ...(scope.aliases.get(store) ?? [])])]
       .sort()
-      .map(readCodexSessionIndexTitles)
+      .map((home) => readIndexOnce(home, scope))
   )
   const titles = new Map<string, IndexedTitle>()
   for (const index of indexes) {
@@ -136,6 +151,15 @@ async function readStoreTitles(
     }
   }
   return titles
+}
+
+function readIndexOnce(home: string, scope: TitleReadScope): Promise<Map<string, IndexedTitle>> {
+  let index = scope.indexes.get(home)
+  if (!index) {
+    index = readCodexSessionIndexTitles(home)
+    scope.indexes.set(home, index)
+  }
+  return index
 }
 
 function codexHomeFromSessionFilePath(sessionFilePath: string): string | null {

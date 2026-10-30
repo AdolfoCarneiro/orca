@@ -36,133 +36,111 @@ export function resolveCodexPaneLaunchAccount(args: {
 function classifyCodexPaneLaunchAccount(
   args: Parameters<typeof resolveCodexPaneLaunchAccount>[0]
 ): CodexPaneAccountRecord | null {
-  const accountId = args.pinnedByResume
-    ? resolveCodexHomeOwnerAccountId(args)
-    : getSelectedCodexAccountIdForTarget(args.settings, args.target)
-  if (accountId === undefined) {
-    return null
+  const { launchCodexHomePath: launch, systemCodexHomePath: system, target } = args
+  const lane = getCodexSelectionLaneKey(target)
+  const same = (left: string, right: string) =>
+    normalizeRuntimePathForComparison(left) === normalizeRuntimePathForComparison(right)
+  const record = (owner: string | null, homeRoute: CodexPaneHomeRoute) => ({
+    selectionKey: lane,
+    accountId: args.pinnedByResume
+      ? owner
+      : getSelectedCodexAccountIdForTarget(args.settings, target),
+    homeRoute
+  })
+  if (!launch || same(launch, system)) {
+    return record(null, 'real-home')
   }
-  return {
-    selectionKey: getCodexSelectionLaneKey(args.target),
-    accountId,
-    homeRoute: resolveCodexPaneHomeRoute(args)
-  }
-}
-
-function resolveCodexPaneHomeRoute(args: {
-  launchCodexHomePath: string | null
-  systemCodexHomePath: string
-  settings: CodexPaneLaunchAccountSettings
-  target: CodexAccountSelectionTarget
-}): CodexPaneHomeRoute {
-  if (
-    !args.launchCodexHomePath ||
-    normalizeRuntimePathForComparison(args.launchCodexHomePath) ===
-      normalizeRuntimePathForComparison(args.systemCodexHomePath)
-  ) {
-    return 'real-home'
-  }
-  if (
-    args.target.runtime !== 'wsl' &&
-    normalizeRuntimePathForComparison(canonicalCodexHome(args.launchCodexHomePath)) ===
-      normalizeRuntimePathForComparison(canonicalCodexHome(args.systemCodexHomePath))
-  ) {
-    return 'real-home'
-  }
-  const launchHomePath = args.launchCodexHomePath
-  const accountOwnsHome = args.settings.codexManagedAccounts?.some((account) =>
-    accountOwnsCodexHome(account, args.target, launchHomePath, args.systemCodexHomePath)
+  const accounts = (args.settings.codexManagedAccounts ?? []).filter(
+    (account) => getCodexSelectionLaneKey(getCodexSelectionTargetForAccount(account)) === lane
   )
-  if (accountOwnsHome) {
-    return 'account-home'
-  }
-  if (args.target.runtime === 'wsl') {
-    return parseWslUncPath(args.launchCodexHomePath)?.linuxPath.endsWith('/.codex')
-      ? 'real-home'
-      : 'wsl-home'
-  }
-  return 'shared-home'
-}
-
-/** undefined when no account owns the home; null means the system-default account. */
-function resolveCodexHomeOwnerAccountId(args: {
-  launchCodexHomePath: string | null
-  systemCodexHomePath: string
-  settings: CodexPaneLaunchAccountSettings
-  target: CodexAccountSelectionTarget
-}): string | null | undefined {
-  // Without injected CODEX_HOME, Codex reads the user's own home.
-  if (!args.launchCodexHomePath) {
-    return null
-  }
-  if (
-    normalizeRuntimePathForComparison(
-      args.target.runtime === 'wsl'
-        ? args.launchCodexHomePath
-        : canonicalCodexHome(codexLoginHome(args.launchCodexHomePath, args.systemCodexHomePath))
-    ) ===
-    normalizeRuntimePathForComparison(
-      args.target.runtime === 'wsl'
-        ? args.systemCodexHomePath
-        : canonicalCodexHome(args.systemCodexHomePath)
-    )
-  ) {
-    return null
-  }
-  const launchHomePath = args.launchCodexHomePath
-  const owner = args.settings.codexManagedAccounts?.find((account) =>
-    accountOwnsCodexHome(account, args.target, launchHomePath, args.systemCodexHomePath)
-  )
-  // Unknown owners cannot produce safe restart prompts; guessing could block terminal input.
-  return owner ? owner.id : undefined
-}
-
-function accountOwnsCodexHome(
-  account: NonNullable<CodexPaneLaunchAccountSettings['codexManagedAccounts']>[number],
-  target: CodexAccountSelectionTarget,
-  launchHomePath: string,
-  systemCodexHomePath: string
-): boolean {
-  // Host and per-distro WSL selection lanes must not claim each other's homes.
-  if (
-    getCodexSelectionLaneKey(getCodexSelectionTargetForAccount(account)) !==
-    getCodexSelectionLaneKey(target)
-  ) {
-    return false
-  }
-  if (
-    (target.runtime === 'wsl' || basename(dirname(launchHomePath)) !== 'overlays') &&
-    normalizeRuntimePathForComparison(account.managedHomePath) ===
-      normalizeRuntimePathForComparison(launchHomePath)
-  ) {
-    return true
-  }
-  if (target.runtime !== 'wsl') {
-    const root = dirname(dirname(account.managedHomePath))
-    const projected = codexLoginHome(canonicalCodexHome(launchHomePath), systemCodexHomePath, root)
-    const owned = resolveHostCodexManagedHomeVerdict({
-      candidatePath: account.managedHomePath,
-      expectedAccountId: account.id,
-      managedAccountsRoot: root,
-      systemCodexHomePath
-    })
-    if (owned.kind === 'indeterminate') {
-      throw owned.error
+  // Direct legacy addresses retain their no-IO compatibility, including duplicate first matches.
+  const direct = accounts.find((account) => {
+    if (
+      (target.runtime === 'wsl' || basename(dirname(launch)) !== 'overlays') &&
+      same(account.managedHomePath, launch)
+    ) {
+      return true
     }
-    return (
-      owned.kind === 'owned' &&
-      normalizeRuntimePathForComparison(canonicalCodexHome(projected)) ===
-        normalizeRuntimePathForComparison(owned.homePath)
+    const wsl = target.runtime === 'wsl' ? parseWslUncPath(launch) : null
+    return !!(
+      wsl &&
+      account.wslDistro?.trim() &&
+      account.wslLinuxHomePath?.trim() &&
+      wsl.distro.toLowerCase() === account.wslDistro.trim().toLowerCase() &&
+      wsl.linuxPath === account.wslLinuxHomePath.trim()
     )
+  })
+  if (direct) {
+    return record(direct.id, 'account-home')
   }
-  const launchWslHome = target.runtime === 'wsl' ? parseWslUncPath(launchHomePath) : null
-  const accountDistro = account.wslDistro?.trim()
-  const accountLinuxHome = account.wslLinuxHomePath?.trim()
-  return Boolean(
-    launchWslHome &&
-    accountDistro &&
-    accountLinuxHome &&
-    launchWslHome.distro.toLowerCase() === accountDistro.toLowerCase() &&
-    launchWslHome.linuxPath === accountLinuxHome
-  )
+  if (target.runtime === 'wsl') {
+    return args.pinnedByResume
+      ? null
+      : record(
+          null,
+          parseWslUncPath(launch)?.linuxPath.endsWith('/.codex') ? 'real-home' : 'wsl-home'
+        )
+  }
+  let unknown = false
+  const observe = <T>(read: () => T): T | undefined => {
+    try {
+      return read()
+    } catch (error) {
+      unknown = true
+      console.warn('[codex-pane-account] Could not classify candidate:', error)
+      return undefined
+    }
+  }
+  const canonicalLaunch = observe(() => canonicalCodexHome(launch))
+  const canonicalSystem = observe(() => canonicalCodexHome(system))
+  const owners = new Set<string | null>()
+  let real = false
+  if (canonicalLaunch && canonicalSystem) {
+    real = same(canonicalLaunch, canonicalSystem)
+    if (real) {
+      owners.add(null)
+    }
+  }
+  const projections = new Map<string, string | undefined>()
+  for (const account of accounts) {
+    const root = dirname(dirname(account.managedHomePath))
+    if (!projections.has(root)) {
+      projections.set(
+        root,
+        canonicalLaunch && observe(() => codexLoginHome(canonicalLaunch, system, root))
+      )
+    }
+    const projected = projections.get(root)
+    const owned = observe(() => {
+      const verdict = resolveHostCodexManagedHomeVerdict({
+        candidatePath: account.managedHomePath,
+        expectedAccountId: account.id,
+        managedAccountsRoot: root,
+        systemCodexHomePath: system
+      })
+      if (verdict.kind === 'indeterminate') {
+        throw verdict.error
+      }
+      return verdict
+    })
+    if (projected && owned?.kind === 'owned' && same(projected, owned.homePath)) {
+      owners.add(account.id)
+    }
+  }
+  // System actors can have no managed candidate; their projection is independently observed.
+  const systemProjection = canonicalLaunch && observe(() => codexLoginHome(canonicalLaunch, system))
+  if (systemProjection && canonicalSystem && same(systemProjection, canonicalSystem)) {
+    owners.add(null)
+  }
+  if (owners.size > 1) {
+    return null
+  }
+  if (owners.size === 1) {
+    const owner = [...owners][0]
+    return record(owner, owner === null ? (real ? 'real-home' : 'shared-home') : 'account-home')
+  }
+  if (unknown || args.pinnedByResume) {
+    return null
+  }
+  return record(null, 'shared-home')
 }

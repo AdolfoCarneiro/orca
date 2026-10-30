@@ -167,6 +167,21 @@ describe('resolveHostCodexHomePathForLaunchReadOnly', () => {
     teardownRuntimeHomeTest()
   })
 
+  it('exact saved actor read bypasses unrelated selected-H IO without preparing or changing selection', async () => {
+    const H = createManagedAuth(
+      testState.userDataDir,
+      'account-1',
+      createCodexAuthJson('user@example.com', 'acct-1', 'refresh-1')
+    )
+    const { service, store, sideEffects } = await createServiceWithSpies(managedAccountSettings(H))
+    const O = join(testState.userDataDir, 'codex-accounts', 'removed', 'overlays', 'f'.repeat(32))
+    lstatFaults.hold(join(realpathSync(H), '.orca-managed-home'))
+    expect(service.resolveHostCodexHomePathForLaunchReadOnly(undefined, O)).toBe(O)
+    expectNoSideEffects(sideEffects, store)
+    expect(lstatFaults.heldReads(join(realpathSync(H), '.orca-managed-home'))).toBe(0)
+    expect(() => service.resolveHostCodexHomePathForLaunchReadOnly()).toThrow()
+  })
+
   it('managed account: answers the account home with zero side effects, then matches launch prep', async () => {
     const managedHomePath = createManagedAuth(
       testState.userDataDir,

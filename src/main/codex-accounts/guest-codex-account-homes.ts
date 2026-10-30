@@ -1,10 +1,7 @@
+import { discoverCodexStoreHomes } from '../codex/codex-account-home-discovery'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import {
-  codexConversationStore,
-  codexOverlayBelongsToFamily,
-  discoverCodexStoreHomes
-} from '../codex/codex-launch-home'
+import { codexConversationStore, codexOverlayBelongsToFamily } from '../codex/codex-launch-home'
 import { getSystemCodexHomePath } from '../codex/codex-home-paths'
 import { resolveHostCodexManagedHomeVerdict } from './host-codex-managed-home-ownership'
 
@@ -58,5 +55,7 @@ export function resolveGuestCodexAccountHome(
 
 export function listGuestCodexAccountHomes(home: string = homedir()): string[] {
   const root = guestCodexAccountsRoot(home)
-  return discoverCodexStoreHomes(root)
+  return discoverCodexStoreHomes(root, undefined, (path, error) =>
+    console.warn('[codex-discovery] Could not read guest home:', path, error)
+  )
 }

@@ -2,7 +2,10 @@
 
 import { agentSessionRefusalError } from '../../../../shared/agent-session-wire-refusals'
 import { assertAgentSessionOptionsAdmitted } from '../../agent-session-record-options'
-import { chatAgentsShareConversations } from '../../../../shared/structured-agent-cli-conversation-adoption'
+import {
+  chatAgentsShareConversations,
+  nativeConversationIdKey
+} from '../../../../shared/structured-agent-cli-conversation-adoption'
 import {
   agentSessionOperationKey,
   evaluateAgentSessionOperation,
@@ -239,7 +242,8 @@ export function assertAdoptedConversationUnowned(
       (agentSessionProviderHandleRoot(head.handle) === root ||
         // One id from two chat agents that open the same conversations (`opencode`, `opencode2`).
         (head.handle.transport === adopted.handle.transport &&
-          head.handle.nativeId === adopted.handle.nativeId &&
+          nativeConversationIdKey(head.handle.agent, head.handle.nativeId) ===
+            nativeConversationIdKey(adopted.handle.agent, adopted.handle.nativeId) &&
           chatAgentsShareConversations(head.handle.agent, adopted.handle.agent)))
     if (holdsSameConversation) {
       throw agentSessionRefusalError('agent_session_conflict', {

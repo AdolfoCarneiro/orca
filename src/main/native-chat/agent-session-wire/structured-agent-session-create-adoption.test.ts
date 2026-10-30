@@ -1,4 +1,5 @@
-import { writeFile, rm } from 'node:fs/promises'
+import { writeFile, rm, mkdir } from 'node:fs/promises'
+import type * as NativeFs from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
@@ -22,12 +23,28 @@ import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 import { openTestJournalHostDatabase } from '../agent-session-journal/journal-host-database-test-support'
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 
+const candidateIO = vi.hoisted(() => ({ denied: '' }))
+vi.mock('node:fs/promises', async (original) => {
+  const actual = await original<typeof NativeFs>()
+  return {
+    ...actual,
+    realpath: (...args: Parameters<typeof actual.realpath>) => {
+      if (candidateIO.denied && String(args[0]).startsWith(candidateIO.denied)) {
+        throw Object.assign(new Error('unrelated candidate denied'), { code: 'EACCES' })
+      }
+      return actual.realpath(...args)
+    }
+  }
+})
+
 let rig: RestTestRig
 beforeEach(async () => {
   rig = await createRestTestRig({ idleSweep: { intervalMs: 60_000 } })
 })
 afterEach(async () => {
   await rig.dispose()
+  candidateIO.denied = ''
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -123,6 +140,50 @@ it('refuses concurrent adoption of a provider conversation by another session', 
   expect(rig.store.listRecords()).toHaveLength(1)
   expect(rig.store.listOperationRows()).toHaveLength(1)
   expect(rig.adapter.acquire).not.toHaveBeenCalled()
+})
+
+it('the real store transaction rejects a UUID case-variant writer across distinct account homes', async () => {
+  const params = await adoptedParams()
+  const second = anotherSession(params)
+  second.accountHome = { variable: 'CODEX_HOME', path: join(rig.root, 'different-store') }
+  second.adopt = { ...params.adopt!, providerHandle: codexProviderHandle(THREAD.toUpperCase()) }
+  const results = await Promise.all([
+    rig.host.create(CALLER, params),
+    rig.host.create(CALLER, second)
+  ])
+  expect(results.filter((result) => result.ok)).toHaveLength(1)
+  expect(results.find((result) => !result.ok)).toMatchObject({
+    refusal: { code: 'agent_session_conflict' }
+  })
+  expect(rig.store.listRecords()).toHaveLength(1)
+  expect(rig.adapter.acquire).not.toHaveBeenCalled()
+  const { requireUnownedStructuredAgentSessionAdoption } =
+    await import('../../runtime/structured-agent-session-create-adoption')
+  const owner = rig.store.listRecords()[0]!
+  expect(() =>
+    requireUnownedStructuredAgentSessionAdoption({
+      host: rig.host,
+      agent: 'codex',
+      providerSessionId: THREAD.toUpperCase(),
+      selfSessionId: 'new-writer'
+    })
+  ).toThrow()
+  expect(() =>
+    requireUnownedStructuredAgentSessionAdoption({
+      host: rig.host,
+      agent: 'codex',
+      providerSessionId: THREAD.toUpperCase(),
+      selfSessionId: owner.sessionId
+    })
+  ).not.toThrow()
+  expect(() =>
+    requireUnownedStructuredAgentSessionAdoption({
+      host: rig.host,
+      agent: 'codex',
+      providerSessionId: '019fd532-7c11-7a90-b6de-4e1a2c3d5f61',
+      selfSessionId: 'new-writer'
+    })
+  ).not.toThrow()
 })
 
 it('refuses concurrent founding under a tab another chat already owns', async () => {
@@ -258,3 +319,57 @@ it.each(['adopted', 'blank'] as const)(
     expect(rig.adapter.acquire).not.toHaveBeenCalled()
   }
 )
+
+it('healthy recognized adoption reaches real create, reservation and send settlement despite unrelated candidate IO', async () => {
+  vi.stubEnv('ORCA_USER_DATA_PATH', rig.root)
+  const { CODEX_CLI_CONVERSATIONS } = await import('../../codex/codex-cli-conversations')
+  const { resolveStructuredAgentSessionAdoptionForCreate } =
+    await import('../../runtime/structured-agent-session-create-adoption')
+  const { resolveCodexLaunchHome } = await import('../../codex/codex-launch-home')
+  const X = join(rig.root, 'original-X'),
+    H = join(rig.root, 'system-H')
+  const broken = join(rig.root, 'accounts', 'broken', 'overlays', 'a'.repeat(32))
+  await mkdir(join(X, 'sessions'), { recursive: true })
+  await mkdir(H)
+  await mkdir(broken, { recursive: true })
+  const params = await adoptedParams()
+  const transcript = join(X, 'sessions', 'rollout.jsonl')
+  await writeFile(
+    transcript,
+    await (await import('node:fs/promises')).readFile(join(rig.root, 'rollout.jsonl'))
+  )
+  candidateIO.denied = broken
+  const operation = {}
+  const adoption = await resolveStructuredAgentSessionAdoptionForCreate({
+    settings: { codexManagedAccounts: [{ managedHomePath: broken }, { managedHomePath: X }] },
+    agent: 'codex',
+    transcriptImport: CODEX_CLI_CONVERSATIONS.transcriptImport!,
+    providerSessionId: THREAD,
+    selectedAccountHome: { variable: 'CODEX_HOME', path: broken },
+    launchEnv: {},
+    workspaceCwd: rig.root,
+    resolveTranscriptPath: () => transcript,
+    prepareCodexResume: async () => ({
+      substituteCodexHome: resolveCodexLaunchHome({
+        selectedAccount: null,
+        systemHome: H,
+        storeHome: X,
+        accountsRoot: join(rig.root, 'actors'),
+        operation
+      })
+    })
+  })
+  expect(adoption.accountHome).toMatchObject({ variable: 'CODEX_HOME' })
+  const result = await rig.host.create(CALLER, {
+    ...params,
+    accountHome: adoption.accountHome,
+    adopt: { ...params.adopt!, transcriptPath: adoption.transcriptPath }
+  })
+  expect(result).toMatchObject({ ok: true })
+  expect(rig.store.getRecord(SESSION)?.accountHome).toEqual(adoption.accountHome)
+  expect(
+    await rig.host.send(CALLER, restTestSend('continue recognized conversation'))
+  ).toMatchObject({ ok: true })
+  await vi.waitFor(() => expect(rig.adapter.dispatch).toHaveBeenCalledOnce())
+  expect(rig.adapter.acquire).toHaveBeenCalledOnce()
+})
