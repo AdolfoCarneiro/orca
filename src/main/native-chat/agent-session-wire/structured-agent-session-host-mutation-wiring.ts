@@ -4,7 +4,10 @@ import {
   setStructuredAgentSessionOption,
   changeStructuredAgentSessionThreadGoal
 } from './structured-agent-session-host-mutations'
-import type { StructuredAgentSessionCaller } from './structured-agent-session-host-types'
+import type {
+  StructuredAgentSessionCaller,
+  StructuredAgentSessionHostDeps
+} from './structured-agent-session-host-types'
 import {
   readStructuredAgentSessionOptions,
   type StructuredAgentSessionOptionsReader
@@ -19,7 +22,6 @@ import type { StructuredAgentSessionConversations } from './structured-agent-ses
 import type * as conversation from './structured-agent-session-host-delivery'
 import type { StructuredAgentSessionHostRuntimeState } from './structured-agent-session-host-runtime-state'
 import type { StructuredAgentSessionMutationContext } from './structured-agent-session-host-mutations'
-import type { StructuredAgentSessionHostDeps } from './structured-agent-session-host-types'
 import type { wireStructuredAgentSessionQueuedMessages } from './structured-agent-session-queued-wiring'
 
 type Inputs = {
