@@ -5,6 +5,7 @@ import { translate } from '@/i18n/i18n'
 import { Button } from '../ui/button'
 import { AgentCatalogRow, type AgentCatalogRowProps } from './AgentCatalogRow'
 import { SettingsBadge, SettingsSubsectionHeader } from './SettingsFormControls'
+import { AGENTS_INSTALLED_SECTION_ID } from './agents-search'
 
 export function AgentDetectionCatalog({
   detectedAgents,
@@ -42,7 +43,7 @@ export function AgentDetectionCatalog({
       )}
 
       {detectedAgents.length > 0 && (
-        <section className="space-y-3">
+        <section id={AGENTS_INSTALLED_SECTION_ID} className="space-y-3">
           <SettingsSubsectionHeader
             title={
               <span className="flex items-center gap-2">

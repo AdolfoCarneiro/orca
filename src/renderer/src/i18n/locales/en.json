@@ -516,15 +516,9 @@
       },
       "providers": {
         "title": "Providers",
-        "description": "Choose which agents open as a chat. Turned off, an installed agent opens in a terminal.",
         "searchAgents": "agents",
         "searchCli": "CLI",
         "searchTerminal": "terminal",
-        "agentDisabled": "Turned off in Agent settings",
-        "installed": "Installed",
-        "notInstalled": "Not installed",
-        "install": "Install",
-        "toggleLabel": "Open {{value0}} as a chat",
         "antigravityDescription": "Antigravity chats run a server Orca downloads to this host, separate from the agy CLI.",
         "antigravityNotSignedIn": "Not signed in. Chats need an Antigravity sign-in, separate from your agy terminal account.",
         "antigravityAccount": "Account",
@@ -797,7 +791,6 @@
       "defaultOpensAs": "Open {{value0}} as",
       "defaultOpensAsChat": "Chat",
       "defaultOpensAsCli": "CLI",
-      "defaultOpensAsScope": "Applies to new {{value0}} sessions launched from this computer, including on paired hosts. Matches its Providers switch.",
       "save": "Save",
       "clearDefault": "Clear default agent",
       "autoUnsupported": "Approve for me needs a newer Orca on this host.",
@@ -850,7 +843,11 @@
         "description": "Lets each Codex account, and your own ~/.codex, resume conversations started on the others. Turn off to keep every account's history separate. Turning it off removes nothing already shared.",
         "unsupported": "Update Orca on {{host}} to change this setting there.",
         "updateFailed": "Could not update the setting on {{host}}."
-      }
+      },
+      "installCliForTerminal": "Install the {{value0}} CLI to open it in a terminal.",
+      "chatRuntime": "Chat runtime",
+      "chatChoiceTitle": "Open as chat or CLI",
+      "chatChoiceDescription": "Choose whether each agent opens as a chat or in its CLI."
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "symlink",
@@ -20525,7 +20522,7 @@
       "heroBody": "One-time {{size}} MB download. It's shared by {{agent}} chats on the computer running this chat.",
       "heroBodyNoSize": "One-time download. It's shared by {{agent}} chats on the computer running this chat.",
       "stripSize": "{{size}} MB download on the computer running this chat",
-      "settingsHint": "Also in Settings › Chat › Providers",
+      "settingsHint": "Also in Settings › Agents",
       "installShort": "Install",
       "tryAgain": "Try again",
       "cancelShort": "Cancel",
