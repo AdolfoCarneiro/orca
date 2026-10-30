@@ -9,7 +9,10 @@ import {
   structuredAgentSessionOptionSnapshot
 } from '../../../shared/structured-agent-session-options'
 import { recordedOmpOptions } from '../../acp/acp-thinking-options.test-fixture'
-import { AgentModelCatalogStore } from '../agent-model-catalog/agent-model-catalog-store'
+import {
+  AgentModelCatalogStore,
+  type AgentModelCatalogSource
+} from '../agent-model-catalog/agent-model-catalog-store'
 import { createAgentModelCatalogFilePersistence } from '../agent-model-catalog/agent-model-catalog-persistence'
 import { createAgentModelCatalogService } from '../agent-model-catalog/agent-model-catalog-service'
 import { agentModelCatalogFingerprintForRecord } from '../agent-model-catalog/agent-model-catalog-fingerprint'
@@ -58,7 +61,7 @@ it.each(
           : model
       )
       const other = source === 'live' ? 'discovery' : 'live'
-      const order =
+      const order: AgentModelCatalogSource[] =
         knownFirst === undefined ? [source] : knownFirst ? [source, other] : [other, source]
       for (const currentSource of order) {
         store.recordSuccess(
