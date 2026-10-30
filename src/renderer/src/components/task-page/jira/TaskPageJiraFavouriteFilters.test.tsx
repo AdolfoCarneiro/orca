@@ -3,8 +3,8 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { TaskPageJiraFavouriteFilters } from './TaskPageJiraFavouriteFilters'
-import type { TaskPageComposerActionsModel } from './task-page/use-task-page-composer-actions'
-import { favourite } from './__mocks__/task-page-jira-favourite-fixture'
+import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
+import { favourite } from '../../__mocks__/task-page-jira-favourite-fixture'
 
 afterEach(cleanup)
 it('keeps duplicate names independently searchable and selectable by keyboard', async () => {
