@@ -1,4 +1,5 @@
-import { createElement, type ComponentProps, type ReactNode } from 'react'
+import { stubRpcClient } from '../../../transport/rpc-client-test-stub'
+import { createElement } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../../../../../src/shared/orca-dispatch-status-prompt'
@@ -14,87 +15,11 @@ import { styles } from './mobile-native-chat-message-styles'
 import { agentMessageTranscriptText } from '../../../../../src/shared/agent-session/agent-message-display-text'
 import {
   agentMessageHeading,
-  agentMessageSenderLabel,
-  agentMessageOverflows,
-  AGENT_MESSAGE_FOLDED_LINES
+  agentMessageSenderLabel
 } from '../../../../../src/shared/agent-session/agent-message-presentation'
-import { MobileAgentMessageContext, mobileAgentMessageTabs } from './mobile-agent-message-context'
 import type { AgentMessageSource } from '../../../../../src/shared/agent-session/agent-session-message-source'
 
-import type { MobileMarkdown as MobileMarkdownComponent } from '../../../components/MobileMarkdown'
-import { stubRpcClient } from '../../../transport/rpc-client-test-stub'
-
-vi.mock('react-native', async () => {
-  const React = await import('react')
-  const Text = ({ children, ...props }: { children?: ReactNode }): unknown =>
-    React.createElement('Text', props, children)
-  return {
-    AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
-    ActivityIndicator: 'ActivityIndicator',
-    Animated: {
-      Text,
-      Value: class {
-        setValue(): void {}
-      },
-      loop: (animation: unknown) => animation,
-      sequence: () => ({ start: vi.fn(), stop: vi.fn() }),
-      timing: () => ({ start: vi.fn(), stop: vi.fn() })
-    },
-    Image: 'Image',
-    Platform: { OS: 'ios' },
-    Pressable: 'Pressable',
-    ScrollView: ({ children, ...props }: { children?: ReactNode }) =>
-      React.createElement('ScrollView', props, children),
-    Text,
-    View: ({ children, ...props }: { children?: ReactNode }) =>
-      React.createElement('View', props, children),
-    StyleSheet: { create: (styles: unknown) => styles, hairlineWidth: 1 },
-    useWindowDimensions: () => ({ width: 400, height: 800 })
-  }
-})
-vi.mock('../../../components/MobileAgentIcon', () => ({ MobileAgentIcon: 'MobileAgentIcon' }))
-vi.mock('../../../components/AgentStateDot', () => ({ AgentStateDot: 'AgentStateDot' }))
-vi.mock('expo-clipboard', () => ({ setStringAsync: vi.fn() }))
-vi.mock('lucide-react-native', () => ({
-  AlertCircle: 'AlertCircle',
-  AlertTriangle: 'AlertTriangle',
-  ArrowUp: 'ArrowUp',
-  ArrowUpRight: 'ArrowUpRight',
-  Bot: 'Bot',
-  Brain: 'Brain',
-  Check: 'Check',
-  ChevronDown: 'ChevronDown',
-  ChevronRight: 'ChevronRight',
-  Copy: 'Copy',
-  Eye: 'Eye',
-  FileMinus2: 'FileMinus2',
-  FilePen: 'FilePen',
-  FilePlus2: 'FilePlus2',
-  Folder: 'Folder',
-  Globe: 'Globe',
-  Info: 'Info',
-  ListChecks: 'ListChecks',
-  MessageSquareMore: 'MessageSquareMore',
-  Pencil: 'Pencil',
-  Plug: 'Plug',
-  Search: 'Search',
-  SquareChevronRight: 'SquareChevronRight',
-  SquareTerminal: 'SquareTerminal',
-  Wrench: 'Wrench'
-}))
-const proseRenders = vi.hoisted(() => ({ count: 0 }))
-vi.mock('../../../components/MobileMarkdown', async () => {
-  const React = await import('react')
-  return {
-    MobileMarkdown: (props: ComponentProps<typeof MobileMarkdownComponent>) => {
-      proseRenders.count++
-      return React.createElement('MobileMarkdown', props)
-    }
-  }
-})
-vi.mock('./MobileNativeChatMessageActionsSheet', () => ({
-  MobileNativeChatMessageActionsSheet: 'MessageActionsSheet'
-}))
+import './mobile-agent-message-renderer.test-fixture'
 
 import { MobileNativeChatMessage } from './MobileNativeChatMessage'
 import {
@@ -402,9 +327,9 @@ describe('MobileNativeChatMessage', () => {
       const message = { ...userMessage([{ type: 'text' as const, text: raw }]), from }
       const tree = render(message)
       const headings = {
-        task: 'Task from your coordinator',
-        coordinator: 'Message from your coordinator',
-        worker: 'Update from your worker',
+        task: 'Task from coordinator',
+        coordinator: 'Message from coordinator',
+        worker: 'Update from worker',
         generic: 'Message from'
       }
       expect(textIn(tree.root).slice(0, 2)).toEqual([
@@ -416,94 +341,40 @@ describe('MobileNativeChatMessage', () => {
         })
       ])
       expect(markdownIn(tree.root)).toEqual([agentMessageTranscriptText(message.blocks, from)])
-      const measured = tree.root.findByProps({ testID: 'agent-message-body' })
-      const clip = measured.parent!
-      const lineHeight = clip.props.style.maxHeight / AGENT_MESSAGE_FOLDED_LINES
-      for (const height of [lineHeight * 2, lineHeight * 4]) {
-        act(() => measured.props.onLayout({ nativeEvent: { layout: { height } } }))
-        expect(textIn(tree.root).includes('Show more')).toBe(
-          agentMessageOverflows(height, lineHeight)
-        )
-      }
-      const toggle = findAllByHostType(tree.root, 'Pressable').find(
-        (node) => node.props.accessibilityState?.expanded === false
-      )!
-      act(() => toggle.props.onPress())
-      expect(textIn(tree.root)).toContain('Show less')
-      expect(clip.props.style).toBeUndefined()
-      // An older server supplies no provenance; it keeps the existing human bubble and body.
-      const oldServer = render({ ...message, from: undefined })
-      expect(oldServer.root.findAllByProps({ testID: 'agent-message-card' })).toHaveLength(0)
-      expect(markdownIn(oldServer.root)).toEqual([raw])
     }
   )
 
-  it('uses existing phone status and navigation without invalidating the Markdown body', () => {
-    const from: AgentMessageSource = {
-      kind: 'agent',
-      orchestration: null,
-      senders: [
-        {
-          name: 'Snapshot name',
-          party: { address: 'term_sender', terminalHandle: 'term_sender', orcaSessionId: null }
-        }
-      ]
+  it('measures the natural layer, expands and refolds, and preserves old-server body', () => {
+    const from: AgentMessageSource = { kind: 'agent', orchestration: null, senders: [] }
+    const message = {
+      ...userMessage([
+        { type: 'text' as const, text: 'Long paragraph wrapped over many native lines.' }
+      ]),
+      from
     }
-    const open = vi.fn()
-    const message = { ...userMessage([{ type: 'text' as const, text: 'body' }]), from }
-    const draw = (title: string) =>
-      createElement(
-        MobileAgentMessageContext.Provider,
-        {
-          value: {
-            now: 100,
-            open,
-            tabsBySender: mobileAgentMessageTabs([
-              {
-                type: 'terminal',
-                id: 'sender',
-                title: 'Sender',
-                terminal: 'term_sender',
-                isActive: false,
-                agentStatus: {
-                  state: 'done',
-                  agentType: 'codex',
-                  prompt: '',
-                  updatedAt: 100,
-                  stateStartedAt: 100,
-                  stateHistory: []
-                }
-              },
-              {
-                type: 'agent-session',
-                id: 'tab',
-                sessionId: 'other',
-                agent: 'codex',
-                title,
-                isActive: false
-              }
-            ])
-          }
-        },
-        createElement(MobileNativeChatMessage, { message })
-      )
-    act(() => {
-      renderer = create(draw('Other tab'))
-    })
-    expect(renderer!.root.findAllByProps({ testID: 'agent-message-card' })).not.toHaveLength(0)
-    expect(findAllByHostType(renderer!.root, 'AgentStateDot')[0].props.state).toBe('done')
-    const renderedBefore = proseRenders.count
-    const markdown = renderer!.root.find((node) => String(node.type) === 'MobileMarkdown')
-    act(() => {
-      renderer!.update(draw('Unrelated rename'))
-    })
-    expect(renderer!.root.find((node) => String(node.type) === 'MobileMarkdown')).toBe(markdown)
-    expect(proseRenders.count).toBe(renderedBefore)
-    const arrow = findAllByHostType(renderer!.root, 'Pressable').find(
-      (node) => node.props.accessibilityRole === 'button' && !node.props.accessibilityState
-    )!
-    act(() => arrow.props.onPress())
-    expect(open).toHaveBeenCalledWith(from, from.senders[0])
+    const tree = render(message)
+    const measured = tree.root.findByProps({ testID: 'agent-message-body' })
+    const clip = tree.root.findByProps({ testID: 'agent-message-viewport' })
+    const folded = clip.props.style.height
+    expect(measured.props.style).toMatchObject({ position: 'absolute', left: 0, right: 0, top: 0 })
+    act(() => measured.props.onLayout({ nativeEvent: { layout: { height: folded } } }))
+    expect(textIn(tree.root)).not.toContain('Show more')
+    act(() => measured.props.onLayout({ nativeEvent: { layout: { height: folded * 4 } } }))
+    const toggle = () =>
+      findAllByHostType(tree.root, 'Pressable').find(
+        (node) => node.props.accessibilityState?.expanded !== undefined
+      )!
+    act(() => toggle().props.onPress())
+    expect(clip.props.style.height).toBe(folded * 4)
+    act(() => toggle().props.onPress())
+    expect(clip.props.style.height).toBe(folded)
+    expect(textIn(tree.root)).toContain('Show more')
+    act(() => tree.unmount())
+    const oldServer = render({ ...message, from: undefined })
+    expect(oldServer.root.findAllByProps({ testID: 'agent-message-card' })).toHaveLength(0)
+    expect(markdownIn(oldServer.root)).toEqual([
+      message.blocks[0].type === 'text' ? message.blocks[0].text : ''
+    ])
   })
 
   describe('a message the host recorded and did not deliver', () => {

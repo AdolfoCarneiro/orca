@@ -1,23 +1,33 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo } from 'react'
 import { useNow } from '../../../hooks/use-now'
 import type { MobileSessionTab } from '../../mobile-session-route-types'
-import { MobileAgentMessageContext, mobileAgentMessageTabs } from './mobile-agent-message-context'
+import {
+  MobileAgentMessageContext,
+  MobileAgentMessageOpenContext,
+  createMobileAgentMessageSource
+} from './mobile-agent-message-context'
 
 export function MobileAgentMessageProvider({
   tabs,
+  terminals,
+  scopeKey,
   open,
   children
 }: {
   tabs: readonly MobileSessionTab[]
-  open?: NonNullable<React.ContextType<typeof MobileAgentMessageContext>>['open']
+  terminals: readonly { handle: string; agentIdentity?: string }[]
+  scopeKey: unknown
+  open?: React.ContextType<typeof MobileAgentMessageOpenContext>
   children: React.ReactNode
 }) {
-  const tabsBySender = useMemo(() => mobileAgentMessageTabs(tabs), [tabs])
+  const source = useMemo(() => createMobileAgentMessageSource(), [scopeKey])
   const now = useNow(60_000)
-  const value = useMemo(() => ({ tabsBySender, now, open }), [tabsBySender, now, open])
+  useLayoutEffect(() => source.update(tabs, terminals, now), [source, tabs, terminals, now])
   return (
-    <MobileAgentMessageContext.Provider value={value}>
-      {children}
-    </MobileAgentMessageContext.Provider>
+    <MobileAgentMessageOpenContext.Provider value={open}>
+      <MobileAgentMessageContext.Provider value={source}>
+        {children}
+      </MobileAgentMessageContext.Provider>
+    </MobileAgentMessageOpenContext.Provider>
   )
 }

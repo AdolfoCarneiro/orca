@@ -15,14 +15,18 @@ import {
   requireStructuredAgentAudience,
   requireStructuredHost
 } from './structured-agent-session-gate'
-import { OptionsParams } from './structured-agent-session-schemas'
+import { RevealParams } from './structured-agent-session-schemas'
 
 export const STRUCTURED_AGENT_SESSION_REVEAL_METHODS = [
   defineMethod({
     name: 'agentSession.reveal',
     permission: 'workspace',
-    params: OptionsParams,
+    params: RevealParams,
     handler: async (params, ctx) => {
+      const caller = params.navigation === 'caller' ? ctx.caller : undefined
+      if (params.navigation === 'caller' && caller?.kind !== 'paired-device') {
+        throw new Error('forbidden')
+      }
       requireStructuredCapability(ctx)
       await ensureStructuredHostInstalled(ctx)
       let revealed: StructuredAgentSessionReveal
@@ -49,8 +53,18 @@ export const STRUCTURED_AGENT_SESSION_REVEAL_METHODS = [
         workspaceId: revealed.workspaceId,
         sessionId: revealed.sessionId,
         agent: revealed.agent,
-        activate: true
+        activate: params.navigation !== 'caller'
       })
+      if (
+        caller?.kind === 'paired-device' &&
+        !ctx.runtime.reopenMobileSessionTabForClient(
+          revealed.workspaceId,
+          revealed.sessionId,
+          caller.deviceId
+        )
+      ) {
+        throw new Error('Could not publish the chat to its caller.')
+      }
       // Return named fields only; private journal-open reasons stay on the host.
       const { sessionId, workspaceId, agent, readable } = revealed
       return { ok: true as const, sessionId, workspaceId, agent, readable }

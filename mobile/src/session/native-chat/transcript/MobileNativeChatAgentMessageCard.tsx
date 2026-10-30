@@ -1,4 +1,4 @@
-import { memo, useContext, useState } from 'react'
+import { memo, useContext, useState, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { ArrowUpRight, Bot } from 'lucide-react-native'
 import type { NativeChatMessage } from '../../../../../src/shared/native-chat-types'
@@ -8,14 +8,12 @@ import {
   AGENT_MESSAGE_FOLDED_LINES,
   agentMessageHeading,
   agentMessagePrimarySender,
-  agentMessageSenderLabel,
   agentMessageSenderCanOpen,
   agentMessageOverflows,
   agentMessageFoldLabel,
-  agentMessageCanCopy,
-  agentMessageSenderView
+  agentMessageCanCopy
 } from '../../../../../src/shared/agent-session/agent-message-presentation'
-import { agentMessageTranscriptText } from '../../../../../src/shared/agent-session/agent-message-display-text'
+import { mobileNativeChatDisplayCopyText } from './mobile-native-chat-display-copy'
 import { MobileMarkdown } from '../../../components/MobileMarkdown'
 import { MobileAgentIcon } from '../../../components/MobileAgentIcon'
 import { AgentStateDot } from '../../../components/AgentStateDot'
@@ -25,9 +23,11 @@ import { useMobileTranslation } from '../../../i18n/use-mobile-translation'
 import { colors, radii, spacing, typography } from '../../../theme/mobile-theme'
 import { themedStyleSheet } from '../../../theme/themed-styles'
 import { useMobileColorScheme } from '../../../theme/use-mobile-color-scheme'
-import { agentDotState } from '../../../worktree/agent-row-display'
-import { resolveMobileTerminalTabAgentId } from '../../mobile-terminal-tab-agent'
-import { MobileAgentMessageContext } from './mobile-agent-message-context'
+import {
+  MobileAgentMessageOpenContext,
+  useMobileAgentMessageName,
+  useMobileAgentMessageView
+} from './mobile-agent-message-context'
 import { MobileNativeChatMessageTime } from './MobileNativeChatMessageTime'
 import { useMobileNativeChatDisclosure } from './mobile-native-chat-disclosure-store'
 import { CHAT_PROSE_SCALE } from './mobile-native-chat-message-styles'
@@ -51,15 +51,20 @@ export const MobileNativeChatAgentMessageCard = memo(function MobileNativeChatAg
 }) {
   useMobileColorScheme()
   const t = useMobileTranslation()
-  const text = agentMessageTranscriptText(message.blocks, from)
+  const text = mobileNativeChatDisplayCopyText(message)
   const [open, setOpen] = useMobileNativeChatDisclosure(`agent-message:${message.id}`, false)
-  const [height, setHeight] = useState(0)
+  const [measurement, setMeasurement] = useState({ identity: '', height: 0 })
+  const [width, setWidth] = useState(0)
+  const identity = JSON.stringify([text, fontScale, width])
+  const currentIdentity = useRef(identity)
+  currentIdentity.current = identity
+  const height = measurement.identity === identity ? measurement.height : 0
   const lineHeight = markdownStyles.paragraph.lineHeight * CHAT_PROSE_SCALE * fontScale
   const overflows = agentMessageOverflows(height, lineHeight)
   const heading = {
-    task: t('chat.agentMessage.taskFromCoordinator', 'Task from your coordinator'),
-    coordinator: t('chat.agentMessage.messageFromCoordinator', 'Message from your coordinator'),
-    worker: t('chat.agentMessage.updateFromWorker', 'Update from your worker'),
+    task: t('chat.agentMessage.taskFromCoordinator', 'Task from coordinator'),
+    coordinator: t('chat.agentMessage.messageFromCoordinator', 'Message from coordinator'),
+    worker: t('chat.agentMessage.updateFromWorker', 'Update from worker'),
     generic: t('chat.agentMessage.messageFrom', 'Message from')
   }[agentMessageHeading(from)]
   return (
@@ -73,15 +78,34 @@ export const MobileNativeChatAgentMessageCard = memo(function MobileNativeChatAg
         <Senders from={from} />
         {attachments}
         <View
-          style={
-            !open
-              ? { maxHeight: lineHeight * AGENT_MESSAGE_FOLDED_LINES, overflow: 'hidden' }
-              : undefined
-          }
+          testID="agent-message-viewport"
+          onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            height:
+              height > 0
+                ? open
+                  ? height
+                  : Math.min(height, lineHeight * AGENT_MESSAGE_FOLDED_LINES)
+                : lineHeight * AGENT_MESSAGE_FOLDED_LINES
+          }}
         >
           <View
+            key={identity}
+            testID="agent-message-body"
             style={styles.body}
-            onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
+            onLayout={(event) => {
+              const next = event.nativeEvent.layout.height
+              if (currentIdentity.current !== identity) {
+                return
+              }
+              setMeasurement((previous) =>
+                previous.identity === identity && previous.height === next
+                  ? previous
+                  : { identity, height: next }
+              )
+            }}
           >
             <MobileMarkdown
               content={text}
@@ -123,26 +147,7 @@ export const MobileNativeChatAgentMessageCard = memo(function MobileNativeChatAg
 })
 
 function SenderAvatar({ sender }: { sender: AgentMessageSource['senders'][number] | undefined }) {
-  const { tabsBySender, now } = useContext(MobileAgentMessageContext)
-  const tab = tabsBySender.get(sender?.party.orcaSessionId ?? sender?.party.terminalHandle ?? '')
-  const status =
-    tab?.type === 'terminal'
-      ? tab.agentStatus
-      : tab?.type === 'agent-session'
-        ? tab.chatStatus
-        : undefined
-  const agentType =
-    tab?.type === 'agent-session'
-      ? tab.agent
-      : tab?.type === 'terminal'
-        ? (resolveMobileTerminalTabAgentId(tab) ?? undefined)
-        : undefined
-  const view = agentMessageSenderView(
-    status && !(tab?.type === 'terminal' && tab.agentStatus?.restoredUnconfirmed)
-      ? { agentType, dot: agentDotState(status, now) }
-      : undefined,
-    agentType
-  )
+  const view = useMobileAgentMessageView(sender)
   return (
     <View style={styles.avatar}>
       {view.agentType ? (
@@ -160,7 +165,7 @@ function SenderAvatar({ sender }: { sender: AgentMessageSource['senders'][number
 }
 
 function Senders({ from }: { from: AgentMessageSource }) {
-  const { tabsBySender, open } = useContext(MobileAgentMessageContext)
+  const open = useContext(MobileAgentMessageOpenContext)
   const t = useMobileTranslation()
   const { shown, more } = agentMessageSendersShown(from)
   return (
@@ -170,33 +175,39 @@ function Senders({ from }: { from: AgentMessageSource }) {
           {t('session.agentMessageAttribution.unnamedSender', 'an agent')}
         </Text>
       ) : null}
-      {shown.map((sender, index) => {
-        const tab = tabsBySender.get(
-          sender.party.orcaSessionId ?? sender.party.terminalHandle ?? ''
-        )
-        const name = agentMessageSenderLabel({
-          localChat: tab?.type === 'agent-session',
-          customLabel: tab?.title,
-          snapshotName: sender.name,
-          tabLabel: tab?.title,
-          fallback: t('session.agentMessageAttribution.unnamedSender', 'an agent')
-        })
-        const canOpen = agentMessageSenderCanOpen(sender, open !== undefined)
-        return (
-          <Pressable
-            key={index}
-            disabled={!canOpen}
-            accessibilityRole={canOpen ? 'button' : undefined}
-            onPress={() => open?.(from, sender)}
-            style={styles.sender}
-          >
-            <Text style={styles.name}>{name}</Text>
-            {canOpen ? <ArrowUpRight size={14} color={colors.textPrimary} /> : null}
-          </Pressable>
-        )
-      })}
+      {shown.map((sender, index) => (
+        <SenderName key={index} sender={sender} from={from} open={open} />
+      ))}
       {more > 0 ? <Text style={styles.meta}>+{more}</Text> : null}
     </View>
+  )
+}
+
+function SenderName({
+  sender,
+  from,
+  open
+}: {
+  sender: AgentMessageSource['senders'][number]
+  from: AgentMessageSource
+  open: React.ContextType<typeof MobileAgentMessageOpenContext>
+}) {
+  const t = useMobileTranslation()
+  const name = useMobileAgentMessageName(
+    sender,
+    t('session.agentMessageAttribution.unnamedSender', 'an agent')
+  )
+  const canOpen = agentMessageSenderCanOpen(sender, open !== undefined)
+  return (
+    <Pressable
+      disabled={!canOpen}
+      accessibilityRole={canOpen ? 'button' : undefined}
+      onPress={() => open?.(from, sender)}
+      style={styles.sender}
+    >
+      <Text style={styles.name}>{name}</Text>
+      {canOpen ? <ArrowUpRight size={14} color={colors.textPrimary} /> : null}
+    </Pressable>
   )
 }
 
@@ -227,7 +238,7 @@ const styles = themedStyleSheet(() => ({
     flexShrink: 1
   },
   toggle: { color: colors.textMuted, fontSize: typography.metaSize, paddingVertical: spacing.xs },
-  body: { flexShrink: 0 },
+  body: { position: 'absolute', left: 0, right: 0, top: 0 },
   avatar: {
     width: 32,
     height: 32,

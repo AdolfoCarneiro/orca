@@ -117,7 +117,13 @@ export function MobileSessionActiveContent({
     },
     [controller.router, hostId, executionHost]
   )
-  const openSender = useMobileAgentMessageNavigation(client, navigateToSender)
+  const openSender = useMobileAgentMessageNavigation(
+    client,
+    navigateToSender,
+    JSON.stringify([hostId, executionHost, worktreeId, controller.activeSessionTab?.id]),
+    controller.showToast,
+    controller
+  )
   const content = showLoadingState ? (
     <View style={styles.emptyState}>
       <ActivityIndicator size="small" color={colors.textSecondary} />
@@ -279,8 +285,11 @@ export function MobileSessionActiveContent({
       <MobileNativeChatDictationPreviewContext.Provider value={chatDictationPreview}>
         <MobileDictationMeterContext.Provider value={dictation.meter}>
           <MobileAgentMessageProvider
+            key={JSON.stringify([hostId, executionHost, worktreeId])}
             tabs={controller.sessionTabs}
-            open={client ? openSender : undefined}
+            terminals={controller.terminals}
+            scopeKey={nativeChatImageSource}
+            open={openSender}
           >
             <MobileNativeChatOverlay
               controller={nativeChatController}

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FakeSession } from '../transport/mobile-endpoint-supervisor-test-fakes'
 import type { RpcResponse } from '../transport/types'
 import type { MobileSessionContentCreateActionsModel } from './use-mobile-session-content-create-actions'
-import type { Terminal } from './mobile-session-route-types'
+import type { MobileSessionTab, Terminal } from './mobile-session-route-types'
 import type { PendingSessionSelection } from './pending-session-selection'
 import { useMobileSessionCloseActions } from './use-mobile-session-close-actions'
 import {
@@ -20,6 +20,7 @@ import {
   setMobileNativeChatDraftText
 } from './native-chat/composer/mobile-native-chat-draft-store'
 import { mobileNativeChatScopeKey } from './native-chat/mobile-native-chat-scope-key'
+import { resolveActiveSessionTab } from './active-session-tab'
 
 const initial: Terminal[] = ['a', 'b', 'c'].map((handle) => ({
   handle,
@@ -61,6 +62,15 @@ describe('legacy terminal close acknowledgments', () => {
     const subscribe = vi.fn()
     const tabTombstones = new Map<string, number>()
     const setSessionTabs = vi.fn()
+    const tabSelection: Pick<
+      MobileSessionContentCreateActionsModel,
+      'sessionTabsRef' | 'activeSessionTabIdRef' | 'selectedSessionTabIdRef' | 'pendingSelectionRef'
+    > = {
+      sessionTabsRef: { current: [] },
+      activeSessionTabIdRef: { current: null },
+      selectedSessionTabIdRef: { current: null },
+      pendingSelectionRef: { current: null }
+    }
     let current: {
       actions: ReturnType<typeof useMobileSessionCloseActions>
       terminals: Terminal[]
@@ -74,7 +84,7 @@ describe('legacy terminal close acknowledgments', () => {
       const terminalsRef = useRef(initial)
       const [activeHandle, setActiveHandle] = useState<string | null>('a')
       const activeHandleRef = useRef<string | null>('a')
-      const pendingSelectionRef = useRef<PendingSessionSelection | null>(null)
+      const { pendingSelectionRef } = tabSelection
       const scope = {
         hostId: 'host',
         worktreeId: 'workspace',
@@ -88,13 +98,11 @@ describe('legacy terminal close acknowledgments', () => {
         setSessionTabs,
         setFileDocs: vi.fn(),
         setMarkdownDocs: vi.fn(),
-        sessionTabsRef: { current: [] },
+        ...tabSelection,
         reconcileBufferedDraftsRef: { current: vi.fn() },
         closedTabTombstonesRef: { current: tabTombstones },
         clearTerminalLiveInputDefault: vi.fn(),
         setActiveSessionTabId: vi.fn(),
-        activeSessionTabIdRef: { current: null },
-        selectedSessionTabIdRef: { current: null },
         renameTarget: null,
         setRenameTarget: vi.fn(),
         terminalRefs: { current: new Map() },
@@ -138,6 +146,7 @@ describe('legacy terminal close acknowledgments', () => {
       subscribe,
       tabTombstones,
       setSessionTabs,
+      tabSelection,
       requests: client.sendRequest,
       async acknowledge(
         handle: string,
@@ -160,6 +169,65 @@ describe('legacy terminal close acknowledgments', () => {
       }
     }
   }
+
+  it('clears the closed remembered identity after omission, preserving newer surface, handle and launch claims', async () => {
+    const harness = await mount()
+    const refs = harness.tabSelection
+    const closed: MobileSessionTab = {
+      type: 'agent-session',
+      id: 'closed',
+      sessionId: 'same-session',
+      agent: 'codex',
+      title: 'Closed',
+      isActive: true
+    }
+    const fallback: MobileSessionTab = { ...closed, id: 'fallback', sessionId: 'other-session' }
+    refs.sessionTabsRef.current = [closed, fallback]
+    refs.activeSessionTabIdRef.current = closed.id
+    refs.selectedSessionTabIdRef.current = closed.id
+    refs.pendingSelectionRef.current = { kind: 'tab', tabId: closed.id }
+    const operation = harness.read().actions.handleCloseSessionTab(closed)
+    refs.sessionTabsRef.current = [fallback]
+    const omission = resolveActiveSessionTab([fallback], {
+      pendingActiveSessionTabId: null,
+      selectedSessionTabId: refs.selectedSessionTabIdRef.current
+    })
+    expect(omission.retainSelectedSessionTabId).toBe(true)
+    refs.activeSessionTabIdRef.current = omission.activeTab?.id ?? null
+    await harness.acknowledge(closed.id, operation)
+    expect(refs.selectedSessionTabIdRef.current).toBe(fallback.id)
+    expect(refs.pendingSelectionRef.current).toBeNull()
+    expect(refs.activeSessionTabIdRef.current).toBe(fallback.id)
+    for (const pending of [
+      { kind: 'tab', tabId: 'replacement' },
+      { kind: 'terminal', handle: 'fresh-handle', tabId: closed.id },
+      {
+        kind: 'launched',
+        lock: 'fresh-launch',
+        surface: { pane: null, sessionId: null, handle: null },
+        snapshotsLeft: null
+      }
+    ] satisfies PendingSessionSelection[]) {
+      const close = harness.read().actions.handleCloseSessionTab(closed)
+      refs.sessionTabsRef.current = []
+      refs.activeSessionTabIdRef.current = 'replacement'
+      refs.selectedSessionTabIdRef.current = 'replacement'
+      refs.pendingSelectionRef.current = pending
+      await harness.acknowledge(closed.id, close)
+      expect(refs.selectedSessionTabIdRef.current).toBe('replacement')
+      expect(refs.activeSessionTabIdRef.current).toBe('replacement')
+      expect(refs.pendingSelectionRef.current).toEqual(
+        pending.kind === 'terminal' ? { ...pending, tabId: null } : pending
+      )
+    }
+    refs.selectedSessionTabIdRef.current = closed.id
+    const pending = { kind: 'tab', tabId: closed.id } as const
+    refs.pendingSelectionRef.current = pending
+    const rejected = harness.read().actions.handleCloseSessionTab(closed)
+    await harness.acknowledge(closed.id, rejected, false)
+    expect(refs.selectedSessionTabIdRef.current).toBe(closed.id)
+    expect(refs.pendingSelectionRef.current).toBe(pending)
+  })
 
   it.each([
     ['a', 'b'],

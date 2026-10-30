@@ -1,8 +1,10 @@
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BridgeInitRoute } from '../mobile-web-shell/bridge/bridge-envelope'
 import type { MobileSessionTab } from './mobile-session-route-types'
+import type { RpcClient } from '../transport/rpc-client'
+import { stubRpcClient } from '../transport/rpc-client-test-stub'
 
 type RouteUpdateListener = (route: BridgeInitRoute | null) => void
 
@@ -15,21 +17,20 @@ const bridge = vi.hoisted(() => {
   return held
 })
 
-vi.mock('../transport/client-context.web', () => ({
-  usePageBridgeClient: () => ({
-    getShellSession: () => ({ route: bridge.route }),
-    onRouteUpdate: (listener: RouteUpdateListener) => {
-      bridge.listeners.push(listener)
-      return () => {
-        bridge.listeners = bridge.listeners.filter((held) => held !== listener)
-      }
-    },
-    clearRouteParam: (param: string, value: string) => {
-      bridge.cleared.push({ param, value })
-      return true
+const page = {
+  getShellSession: () => ({ route: bridge.route }),
+  onRouteUpdate: (listener: RouteUpdateListener) => {
+    bridge.listeners.push(listener)
+    return () => {
+      bridge.listeners = bridge.listeners.filter((held) => held !== listener)
     }
-  })
-}))
+  },
+  clearRouteParam: (param: string, value: string) => {
+    bridge.cleared.push({ param, value })
+    return true
+  }
+}
+vi.mock('../transport/client-context.web', () => ({ usePageBridgeClient: () => page }))
 
 import { useNotificationPaneNavigation } from './use-notification-pane-navigation'
 
@@ -58,30 +59,49 @@ const TABS: MobileSessionTab[] = [
 ]
 
 const switched: MobileSessionTab[] = []
+const toast = vi.fn()
+const trees: ReactTestRenderer[] = []
+afterEach(() => {
+  act(() => trees.splice(0).forEach((tree) => tree.unmount()))
+  vi.useRealTimers()
+})
+
+const openImmediately = () => Promise.resolve(true)
 
 function Probe({
   terminalsLoaded,
-  sessionTabs = TABS
+  sessionTabs = TABS,
+  client = null,
+  open = openImmediately
 }: {
   terminalsLoaded: boolean
   sessionTabs?: MobileSessionTab[]
+  client?: RpcClient | null
+  open?: () => Promise<boolean>
 }): null {
   useNotificationPaneNavigation({
     sessionTabs,
     terminalsLoaded,
-    switchSessionTab: (tab) => switched.push(tab)
+    client,
+    worktreeId: 'wt-1',
+    showToast: toast,
+    switchSessionTab: (tab) => {
+      switched.push(tab)
+      return open()
+    }
   })
   return null
 }
 
-function render(terminalsLoaded: boolean): ReactTestRenderer {
+function render(terminalsLoaded: boolean, client: RpcClient | null = null): ReactTestRenderer {
   const rendered: { tree: ReactTestRenderer | null } = { tree: null }
   act(() => {
-    rendered.tree = create(createElement(Probe, { terminalsLoaded }))
+    rendered.tree = create(createElement(Probe, { terminalsLoaded, client }))
   })
   if (rendered.tree === null) {
     throw new Error('the probe did not render')
   }
+  trees.push(rendered.tree)
   return rendered.tree
 }
 
@@ -98,6 +118,7 @@ beforeEach(() => {
   bridge.listeners = []
   bridge.cleared.length = 0
   switched.length = 0
+  toast.mockClear()
 })
 
 // Exercise the page hook: shell init carries pane requests because this document at / cannot edit the native route.
@@ -125,10 +146,11 @@ describe('the page pane hook', () => {
     expect(bridge.cleared).toEqual([{ param: 'paneKey', value: `tab-b:${LEAF}` }])
   })
 
-  it('switches again for a repeat tap on the pane already showing', () => {
+  it('switches again for a repeat tap on the pane already showing', async () => {
     // A clear between identical values makes the later value a new request.
     render(true)
     deliver(`tab-a:${LEAF}`)
+    await act(async () => {})
     deliver('')
     deliver(`tab-a:${LEAF}`)
     expect(switched.map((tab) => tab.id)).toEqual(['first', 'first'])
@@ -184,6 +206,75 @@ describe('the page pane hook', () => {
       tree.update(createElement(Probe, { terminalsLoaded: true, sessionTabs: TABS }))
     })
     expect(switched.map((tab) => tab.id)).toEqual(['second'])
+  })
+
+  it('retains pending intent through ACK, expires it once, and allows an actual same-pane retry', async () => {
+    vi.useFakeTimers()
+    const tree = render(false)
+    deliver(`tab-b:${LEAF}`)
+    deliver('')
+    act(() => {
+      tree.update(createElement(Probe, { terminalsLoaded: true }))
+    })
+    expect(switched.map((tab) => tab.id)).toEqual(['second'])
+    await act(async () => {})
+    deliver(`gone:${LEAF}`)
+    deliver('')
+    act(() => vi.advanceTimersByTime(5000))
+    expect(toast).toHaveBeenCalledOnce()
+    act(() => {
+      tree.update(
+        createElement(Probe, {
+          terminalsLoaded: true,
+          sessionTabs: [...TABS, { ...TABS[1]!, id: 'late', parentTabId: 'gone' }]
+        })
+      )
+    })
+    expect(switched.map((tab) => tab.id)).toEqual(['second'])
+    deliver(`gone:${LEAF}`)
+    expect(switched.map((tab) => tab.id)).toEqual(['second', 'late'])
+  })
+
+  it('accepts a fresh same-pane request after logical cutover while old receipt awaits inventory', async () => {
+    let generation = 1
+    const client = stubRpcClient({ getGeneration: () => generation })
+    const tree = render(false, client)
+    deliver(`tab-b:${LEAF}`)
+    deliver('')
+    generation++
+    deliver(`tab-b:${LEAF}`)
+    expect(switched).toEqual([])
+    await act(async () => {
+      tree.update(createElement(Probe, { terminalsLoaded: true, client }))
+    })
+    expect(switched.map((tab) => tab.id)).toEqual(['second'])
+    expect(toast).not.toHaveBeenCalled()
+  })
+
+  it('keeps a new generation receipt alive across stale completion and the old deadline', async () => {
+    vi.useFakeTimers()
+    let generation = 1
+    const client = stubRpcClient({ getGeneration: () => generation })
+    const completions: ((opened: boolean) => void)[] = []
+    const open = () => new Promise<boolean>((resolve) => completions.push(resolve))
+    let tree: ReactTestRenderer
+    act(() => {
+      tree = create(createElement(Probe, { terminalsLoaded: true, client, open }))
+    })
+    trees.push(tree!)
+    deliver(`tab-b:${LEAF}`)
+    deliver('')
+    act(() => vi.advanceTimersByTime(1000))
+    generation++
+    deliver(`tab-b:${LEAF}`)
+    expect(switched.map((tab) => tab.id)).toEqual(['second', 'second'])
+    await act(async () => completions[0]!(false))
+    act(() => vi.advanceTimersByTime(4000))
+    expect(toast).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(1000))
+    expect(toast).toHaveBeenCalledOnce()
+    await act(async () => completions[1]!(false))
+    expect(toast).toHaveBeenCalledOnce()
   })
 
   it('does nothing at all when the page was opened on no pane', () => {
