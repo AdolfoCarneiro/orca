@@ -68,7 +68,7 @@ export function MacosSupportNoticeDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3 text-card-foreground">
+          <div className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 text-card-foreground">
             <Laptop className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">
@@ -131,7 +131,7 @@ export function MacosSupportNoticeDialog({
                     </div>
                   </div>
                   {!canUpgrade ? (
-                    <p className="border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                    <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
                       {translate(
                         'macosSupport.omarchyBackup',
                         'Omarchy replaces macOS and can erase your drive. Back up your files and review its Mac compatibility guide before installing.'
@@ -169,7 +169,7 @@ export function MacosSupportNoticeDialog({
             </p>
           ) : null}
 
-          <div className="border-t pt-4">
+          <div className="border-t border-border pt-4">
             <DialogFooter className="sm:justify-between">
               <Button variant="ghost" onClick={() => onOpenChange(false)}>
                 {translate('macosSupport.dismiss', 'Got it')}
