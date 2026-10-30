@@ -80,6 +80,8 @@ export function makeRenderFileRow(state: RowState, t: Translate) {
         ]}
         onPress={() => void openFile(item)}
         disabled={rowDisabled}
+        // An accessible row hides nested buttons from iOS VoiceOver; conflict rows cannot open anyway.
+        accessible={!hasConflictActions}
         accessibilityLabel={t(
           'sourceControl.fileRows.openChangedFile',
           'Open changed file {{path}}',
