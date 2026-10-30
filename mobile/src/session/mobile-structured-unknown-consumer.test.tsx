@@ -109,7 +109,12 @@ it('shows an unknown model without sending or remembering a guess, then applies 
       fence: 1,
       turnId: null,
       mutate,
-      hostSupport: { permissionModes: false, coherentModelCatalog: true, statusFeed: false }
+      hostSupport: {
+        permissionModes: false,
+        coherentModelCatalog: true,
+        statusFeed: false,
+        sendOptions: true
+      }
     })
     const [presentation, setPresentation] = useState<MobileNativeChatPickerPresentation | null>(
       null
@@ -143,7 +148,7 @@ it('shows an unknown model without sending or remembering a guess, then applies 
           String(node.props.accessibilityLabel).startsWith('Model,')
       )
     expect(pill().props.accessibilityLabel).toBe('Model, Model')
-    expect(options.sendSelection()).toBeUndefined()
+    expect(options.sendSelection()).toEqual({ options: undefined })
     expect(writes).toEqual([])
     expect(
       sendRequest.mock.calls.filter(([method]) => method === 'agentSession.setOption')
@@ -157,7 +162,7 @@ it('shows an unknown model without sending or remembering a guess, then applies 
     )
     expect(row.props.accessibilityState.checked).toBe(false)
     await act(async () => row.props.onPress())
-    expect(options.sendSelection()).toEqual({ model: 'sonnet' })
+    expect(options.sendSelection()).toEqual({ options: { model: 'sonnet' } })
     expect(pill().props.accessibilityLabel).toBe('Model, Sonnet')
     await vi.waitFor(() =>
       expect(writes).toEqual([

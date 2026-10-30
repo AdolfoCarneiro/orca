@@ -33,7 +33,7 @@ const unknown: AgentSessionOptionsResult = {
   conversationCommands: ['clear']
 }
 
-let send: () => Readonly<Record<string, string>> | undefined
+let send: ReturnType<typeof useStructuredAgentSessionSendOptions>
 function Chat() {
   const stateRef = useRef({ fence: 1 })
   const { mutate } = useStructuredAgentSessionMutate({
@@ -71,15 +71,24 @@ afterEach(() => {
 })
 
 it('keeps an unknown host answer unselected until an actual pick is displayed, remembered and sent', async () => {
+  let answer = unknown
   rpc.settings.mockResolvedValue(undefined)
   rpc.call.mockImplementation(async (_target, method, params) => {
     if (method === 'agentSession.modelCatalog') {
       return { origin: 'unknown' }
     }
     if (method === 'agentSession.options') {
-      return unknown
+      return answer
     }
     if (method === 'agentSession.setOption') {
+      answer = {
+        ...answer,
+        current: {
+          ...answer.current,
+          model: params.value,
+          acceptedInputSources: { model: 'saved' }
+        }
+      }
       return {
         ok: true,
         replayed: false,
@@ -94,10 +103,15 @@ it('keeps an unknown host answer unselected until an actual pick is displayed, r
     </TooltipProvider>
   )
   await waitFor(() =>
-    expect(rpc.call).toHaveBeenCalledWith(target, 'agentSession.options', expect.anything())
+    expect(rpc.call).toHaveBeenCalledWith(
+      target,
+      'agentSession.options',
+      { sessionId: 'unknown-consumer' },
+      {}
+    )
   )
   await waitFor(() => expect(screen.getByRole('button', { name: /^Model$/ })).toBeDefined())
-  expect(send()).toBeUndefined()
+  expect(send()).toEqual({ selection: {} })
   expect(rpc.settings).not.toHaveBeenCalled()
   expect(
     rpc.call.mock.calls.filter(([, method]) => method === 'agentSession.setOption')
@@ -107,13 +121,18 @@ it('keeps an unknown host answer unselected until an actual pick is displayed, r
   expect(sonnet.getAttribute('data-value')).toBe('sonnet')
   expect(sonnet.getAttribute('aria-current')).toBeNull()
   fireEvent.click(sonnet)
-  await waitFor(() => expect(send()).toEqual({ model: 'sonnet' }))
-  expect(screen.getByRole('button', { name: /Model Sonnet/ })).toBeDefined()
+  await waitFor(() => expect(send()).toEqual({ selection: { model: 'sonnet' } }))
+  await waitFor(() => expect(screen.getByRole('button', { name: /Model Sonnet/ })).toBeDefined())
   await waitFor(() =>
-    expect(rpc.settings).toHaveBeenCalledWith(target, 'settings.mutateNativeChatSessionOptions', {
-      type: 'apply-picks',
-      agent: 'claude',
-      picks: [{ modelId: 'sonnet', optionId: 'model', value: 'sonnet' }]
-    })
+    expect(rpc.settings).toHaveBeenCalledWith(
+      target,
+      'settings.mutateNativeChatSessionOptions',
+      {
+        type: 'apply-picks',
+        agent: 'claude',
+        picks: [{ modelId: 'sonnet', optionId: 'model', value: 'sonnet' }]
+      },
+      {}
+    )
   )
 })
