@@ -29,12 +29,14 @@ export class OrchestrationMailboxDeliveryTarget {
     const dispatch = dispatchId ? db?.getDispatchContextById?.(dispatchId) : undefined
     const remote =
       dispatchId && !dispatch ? db?.getRemoteDispatchAttachment?.(dispatchId) : undefined
-    const paneKey = dispatch?.assignee_pane_key ?? remote?.pane_key
-    const ownerHandle = runId
-      ? db?.getRun(runId)?.coordinator_handle
-      : ((paneKey ? this.deps.getTerminalHandleForPaneKey(paneKey) : null) ??
-        dispatch?.assignee_handle ??
-        remote?.terminal_handle)
+    const run = runId ? db?.getRun(runId) : undefined
+    // Runs bind their coordinator by pane; the stored handle is stale once that pane's PTY is replaced.
+    const paneKey = run
+      ? run.coordinator_pane_key
+      : (dispatch?.assignee_pane_key ?? remote?.pane_key)
+    const ownerHandle =
+      (paneKey ? this.deps.getTerminalHandleForPaneKey(paneKey) : null) ??
+      (run ? run.coordinator_handle : (dispatch?.assignee_handle ?? remote?.terminal_handle))
     if (!ownerHandle) {
       return null
     }
