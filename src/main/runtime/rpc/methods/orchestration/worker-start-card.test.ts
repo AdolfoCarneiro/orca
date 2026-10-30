@@ -263,7 +263,7 @@ it.each([
                 providerContextBoundary: {
                   operationId: 'later-clear',
                   afterFence: record.currentFence,
-                  clearedAt: Date.now()
+                  clearedAt: 1700000000000
                 }
               }
             : record
