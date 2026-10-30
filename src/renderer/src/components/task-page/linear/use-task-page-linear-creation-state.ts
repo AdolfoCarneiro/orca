@@ -89,11 +89,11 @@ export function useLinearIssueCreationForm(
           completeLinearIssueForm(previous, runtime, target, submitted.signature)
         )
       },
-      beginNewLinearIssue: (attempt: object) =>
+      beginNewLinearIssue: (attempt: NonNullable<LinearIssueForm['attempt']>) =>
         update((previous, target) =>
           target === runtime ? { ...handoff(previous, runtime), attempt } : previous
         ),
-      settleNewLinearIssue: (attempt: object) =>
+      settleNewLinearIssue: (attempt: NonNullable<LinearIssueForm['attempt']>) =>
         update((previous, target) =>
           target === runtime && previous.runtime === runtime && previous.attempt === attempt
             ? { ...previous, attempt: null }
