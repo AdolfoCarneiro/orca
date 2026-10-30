@@ -57,7 +57,11 @@ for (const theme of ['dark', 'light'] as const) {
     }, diagnostic)
     await expect(card.getByRole('heading', { name: 'Your update is ready' })).toBeVisible()
     await expect(card.getByText('Background browser', { exact: true })).toHaveCount(2)
-    await expect(card.getByText(/Connected devices will disconnect/)).toBeVisible()
+    await expect(
+      card.getByText(
+        /End the process below, then retry: its server keeps running without a browser/
+      )
+    ).toBeVisible()
     await expect(card.getByRole('button', { name: 'Download Manually' })).toHaveCount(0)
     await expect(card.getByText(diagnostic, { exact: true })).toHaveCount(0)
     const later = card.getByRole('button', { name: 'Later', exact: true })
