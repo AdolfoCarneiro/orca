@@ -6,7 +6,7 @@ import {
   AGENT_SESSION_RECORD_SCHEMA_VERSION,
   type AgentSessionRecord
 } from '../../../shared/agent-session-record'
-import type { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
+import { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
 import {
   closeTestJournalHostDatabases,
   openTestJournalHostDatabase
@@ -67,11 +67,16 @@ function runtimeState(
     now?: StructuredAgentSessionHostDeps['now']
   } = {}
 ) {
+  const journalDatabase = openTestJournalHostDatabase(stateDirectory)
+  const store = Object.assign(
+    AgentSessionRecordStore.open({ journalDatabase, hostId: 'local', legacySessionTabIds: [] }),
+    { getRecord: () => record, ...options.store }
+  )
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these runtime-state cases supply every store/probe/clock dependency they invoke; other host dependencies are unused.
   const deps = {
-    store: { getRecord: () => record, ...options.store } as unknown as AgentSessionRecordStore,
+    store,
     adapter: {},
-    journalDatabase: openTestJournalHostDatabase(stateDirectory),
+    journalDatabase,
     claimKeyId: 'key-1',
     probeOwner,
     probeOwners: options.probeOwners,
