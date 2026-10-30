@@ -7853,6 +7853,7 @@
           "7801ac08ec": "Computer Use permissions are only required on macOS",
           "740766c291": "Computer Use setup is already complete",
           "697005758f": "Opened macOS Privacy & Security",
+          "794807aa21": "Queued macOS Privacy & Security; a newer request or a reset may replace it",
           "2168fa5ab0": "Could not load Computer Use permissions",
           "0c9a33f468": "Capture app windows so agents can inspect visual state.",
           "07bbe4c4cb": "Screenshots",
@@ -15418,6 +15419,9 @@
           "reconnectBody": "Sign in again to use Orca Relay, or use LAN to pair over Tailscale or the same Wi‑Fi.",
           "notEntitledTitle": "Orca Relay isn’t included with this Orca account.",
           "rateLimitedBody": "Orca Relay is busy. Wait a minute and retry, or use LAN to pair over Tailscale or the same Wi‑Fi."
+        },
+        "relayClockSkewMessage": {
+          "message": "Your computer's clock is off by about {{seconds}} seconds. Turn on automatic time, then retry."
         }
       },
       "gitlab": {
@@ -16399,6 +16403,9 @@
           "63ced7cb9b": "No documents found",
           "0e8489bc11": "Markdown document links",
           "showingOfTotal": "Showing {{shown}} of {{total}}"
+        },
+        "RichMarkdownEmojiMenu": {
+          "chooseEmoji": "Choose an emoji"
         },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "Retry",
@@ -21203,7 +21210,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Codex in Orca now uses ~/.codex",
-      "description": "Codex may ask again to trust folders or approve commands. Re-add any MCP servers you added only in Orca."
+      "description": "Codex may ask again to trust folders or approve commands. Re-add any MCP servers you added only in Orca.",
+      "dismiss": "Dismiss"
     },
     "codexSharedServerBanner": {
       "title": "This Codex is sharing a server with your other Codex tabs",

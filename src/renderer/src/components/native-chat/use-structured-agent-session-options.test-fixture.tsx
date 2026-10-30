@@ -12,7 +12,7 @@ type OptionsFixtureMocks = {
   enqueue: Mock
   pick: Mock
   target: RuntimeClientTarget
-  agent: 'codex' | 'claude' | 'pi'
+  agent: 'codex' | 'claude' | 'pi' | 'antigravity'
   hold: Mock<
     (
       sessionId: string,
@@ -27,7 +27,10 @@ type OptionsFixtureMocks = {
 }
 
 const mocks: OptionsFixtureMocks = vi.hoisted(() => {
-  const selection: { target: RuntimeClientTarget; agent: 'codex' | 'claude' | 'pi' } = {
+  const selection: {
+    target: RuntimeClientTarget
+    agent: 'codex' | 'claude' | 'pi' | 'antigravity'
+  } = {
     target: { kind: 'local' },
     agent: 'codex'
   }
@@ -164,7 +167,7 @@ type RenderProps = {
   hidden?: boolean
   launchSeedOptions?: Record<string, string>
   worktree?: string
-  agent?: 'claude' | 'codex' | 'pi'
+  agent?: 'claude' | 'codex' | 'pi' | 'antigravity'
   providerStarting?: boolean
   paired?: boolean
 }

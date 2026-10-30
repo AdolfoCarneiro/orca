@@ -14640,6 +14640,9 @@
           "reconnectBody": "再次登录以使用 Orca Relay，或使用 LAN 通过 Tailscale 或同一 Wi-Fi 进行配对。",
           "notEntitledTitle": "此 Orca 账户不包含 Orca Relay。",
           "rateLimitedBody": "Orca Relay 正忙。请等待一分钟再重试，或使用 LAN 通过 Tailscale 或同一 Wi‑Fi 配对。"
+        },
+        "relayClockSkewMessage": {
+          "message": "你的电脑时钟偏差约 {{seconds}} 秒。请开启自动设置时间，然后重试。"
         }
       },
       "gitlab": {
@@ -20873,7 +20876,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca 中的 Codex 现在使用 ~/.codex",
-      "description": "Codex 可能会再次要求信任文件夹或批准命令。重新添加您仅在 Orca 中添加的所有 MCP 服务器。"
+      "description": "Codex 可能会再次要求信任文件夹或批准命令。重新添加您仅在 Orca 中添加的所有 MCP 服务器。",
+      "dismiss": "关闭"
     },
     "codexSharedServerBanner": {
       "title": "此 Codex 与您的其他 Codex 选项卡共享服务器",
