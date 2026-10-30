@@ -1,6 +1,6 @@
 /** Declared access determines main’s checks; absent means the path must lie in a recognized project root. */
 export type LocalFileAccess =
-  /** A path the user named (gesture or persisted tab): a file read in place as a regular file, or a folder they opened listed. */
+  /** A single file the user named (gesture or persisted tab): read in place, regular files only. */
   | { kind: 'user-file' }
   /** A resource a document's content references (images): limited to that document's roots or folder. */
   | { kind: 'document-resource'; documentPath: string }
@@ -8,6 +8,8 @@ export type LocalFileAccess =
   | { kind: 'chat-image' }
   /** A document the user opened: renaming it to any path, or adding files in its own folder. */
   | { kind: 'document-folder'; documentPath: string }
+  /** A folder listed through a symlink inside a project that leads out of it; listing only. */
+  | { kind: 'project-folder-link' }
 
 /** Main's refusal of a request that resolves outside every root it may serve. */
 export const PATH_OUTSIDE_ALLOWED_DIRECTORIES =

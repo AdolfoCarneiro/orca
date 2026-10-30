@@ -40,7 +40,8 @@ export function fileExplorerListingToDirCache(
     ),
     operationOwner: listing.operationOwner,
     ...(listing.more ? { more: listing.more } : {}),
-    ...(listing.paged ? { paged: true } : {})
+    ...(listing.paged ? { paged: true } : {}),
+    ...(listing.outsideProject ? { outsideProject: true } : {})
   }
 }
 

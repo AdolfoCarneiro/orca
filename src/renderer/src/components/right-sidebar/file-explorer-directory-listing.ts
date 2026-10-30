@@ -116,6 +116,24 @@ export function clearFailedOpenedDirectoryLink(
   return changed ? { ...cache, [parentPath]: { ...parent, children } } : cache
 }
 
+/** A gesture or an already-outside listing may follow a project folder link; refreshes never upgrade a contained one. */
+export function canFollowFolderLink(
+  cache: Readonly<Record<string, DirCache>>,
+  dirPath: string,
+  gesture: boolean | undefined
+): boolean {
+  return (
+    gesture === true ||
+    cache[dirPath]?.outsideProject === true ||
+    cache[parentDirForWatchPath(dirPath)]?.outsideProject === true
+  )
+}
+
+/** Explorer-opened tabs for outside-project rows store absolute paths so they keep user-named access. */
+export function fileExplorerNodeTabRelativePath(node: TreeNode): string {
+  return node.outsideProject ? node.path : node.relativePath
+}
+
 /**
  * Lists `dirPath` whole, as always. Only a remote folder too big for one reply is listed in pages:
  * from just after `after` until at least `minEntries` are read, so a refresh does not shrink the tree.
@@ -129,6 +147,7 @@ export async function readFileExplorerDirectory(
     paged?: boolean
     after?: DirEntryCursor
     minEntries?: number
+    followProjectFolderLink?: boolean
   } = {}
 ): Promise<FileExplorerDirectoryListing> {
   const operationOwner = getFileExplorerOperationOwner(activeWorktreeId)
@@ -151,7 +170,10 @@ export async function readFileExplorerDirectory(
   if (!options.paged && !options.after) {
     try {
       // Older remote hosts may return lexical order; adaptive sorting keeps already-sorted local listings cheap.
-      const whole = await readUserOpenedDirectory(context, dirPath, readOptions)
+      const whole = await readUserOpenedDirectory(context, dirPath, {
+        ...readOptions,
+        ...(options.followProjectFolderLink ? { followProjectFolderLink: true } : {})
+      })
       return {
         entries: sortDirEntries(whole.entries),
         operationOwner,

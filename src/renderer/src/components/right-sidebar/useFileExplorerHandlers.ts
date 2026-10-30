@@ -12,6 +12,7 @@ import {
   requireMatchingFileExplorerOperationRoute
 } from './file-explorer-operation-owner'
 import { runtimeTargetEnvironmentId } from '@/runtime/runtime-client-target'
+import { fileExplorerNodeTabRelativePath } from './file-explorer-directory-listing'
 
 type UseFileExplorerHandlersParams = {
   activeWorktreeId: string | null
@@ -88,7 +89,7 @@ export async function activateFileExplorerNode(args: {
     toggleDir(activeWorktreeId, node.path)
     return
   }
-  let escapesWorktree = node.outsideProject === true
+  let escapesWorktree = false
   if (node.isSymlink) {
     // Resolve symlinks only on explicit activation because targets may be protected by macOS TCC.
     let target: { isDirectory: boolean; escapesWorktree?: boolean } | null = null
@@ -133,7 +134,7 @@ export async function activateFileExplorerNode(args: {
     {
       filePath: node.path,
       // Outside-project links use user-named absolute paths so reopening after restart preserves authorization.
-      relativePath: escapesWorktree ? node.path : node.relativePath,
+      relativePath: escapesWorktree ? node.path : fileExplorerNodeTabRelativePath(node),
       worktreeId: activeWorktreeId,
       runtimeEnvironmentId: fileRuntimeEnvironmentId ?? undefined,
       language: detectLanguage(node.name),

@@ -4,7 +4,7 @@ import { isRemoteRuntimeFileOperation } from '@/runtime/runtime-file-routing'
 import { statRuntimePath } from '@/runtime/runtime-file-metadata-client'
 import { readRuntimeDirectory } from '@/runtime/runtime-file-mutation-client'
 import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
-import { userNamedFileAccess } from './local-file-access'
+import { projectFolderLinkAccess, userNamedFileAccess } from './local-file-access'
 import { isPathInsideWorktree } from '../../../shared/terminal-links'
 import type { DirEntry } from '../../../shared/filesystem-entry-types'
 
@@ -54,35 +54,35 @@ export async function statUserOpenedPath(
   }
 }
 
-/** List a folder the user opened in the project; if only user-named access succeeds, it leads outside through a link. */
+/** List a project folder contained first; with `followProjectFolderLink`, a refusal as outside retries as a project folder link. */
 export async function readUserOpenedDirectory(
   context: RuntimeFileOperationArgs,
   dirPath: string,
-  options: { followSymlinks?: boolean; wakeWslDistro?: boolean }
+  options: { followSymlinks?: boolean; wakeWslDistro?: boolean; followProjectFolderLink?: boolean }
 ): Promise<{ entries: DirEntry[]; escapesWorktree: boolean }> {
+  const { followProjectFolderLink, ...readOptions } = options
   try {
     return {
-      entries: await readRuntimeDirectory(context, dirPath, options),
+      entries: await readRuntimeDirectory(context, dirPath, readOptions),
       escapesWorktree: false
     }
   } catch (containedError) {
-    // Why the root is excluded: an unregistered project root is a real failure, not a link out.
     if (
+      !followProjectFolderLink ||
       !isPathOutsideAllowedDirectoriesError(containedError) ||
-      dirPath === context.worktreePath ||
       !isInsideLocalWorktree(context, dirPath)
     ) {
       throw containedError
     }
-    let entries: DirEntry[]
     try {
-      entries = await readRuntimeDirectory(context, dirPath, {
-        ...options,
-        access: userNamedFileAccess()
+      const entries = await readRuntimeDirectory(context, dirPath, {
+        ...readOptions,
+        access: projectFolderLinkAccess()
       })
-    } catch {
-      throw containedError
+      return { entries, escapesWorktree: true }
+    } catch (linkError) {
+      // Why: a non-link refusal keeps its original error; a real link failure (EPERM, ENOENT) shows its own.
+      throw isPathOutsideAllowedDirectoriesError(linkError) ? containedError : linkError
     }
-    return { entries, escapesWorktree: true }
   }
 }
