@@ -1,20 +1,16 @@
-import { useCallback, useRef, type RefObject } from 'react'
-import { notifyCombinedDiffDirectInput } from '../../combined-diff-viewport'
+import { useCallback, useRef } from 'react'
 
 export type CombinedDiffDirectScrollInput = {
   hasDirectScrollInput: () => boolean
   markDirectScrollInput: () => void
 }
 
-export function useCombinedDiffDirectScrollInput(
-  scrollContainerRef: RefObject<HTMLDivElement | null>
-): CombinedDiffDirectScrollInput {
+export function useCombinedDiffDirectScrollInput(): CombinedDiffDirectScrollInput {
   const directScrollInputUntilRef = useRef(0)
 
   const markDirectScrollInput = useCallback((): void => {
-    notifyCombinedDiffDirectInput(scrollContainerRef.current)
     directScrollInputUntilRef.current = window.performance.now() + 250
-  }, [scrollContainerRef])
+  }, [])
 
   const hasDirectScrollInput = useCallback(
     () => window.performance.now() < directScrollInputUntilRef.current,

@@ -18,7 +18,7 @@ import { useDiffSectionFallbackCleanup } from './useDiffSectionFallbackCleanup'
 import { submitDiffSectionComment } from './diff-section-comment-submit'
 import type { DiffSectionItemProps } from './diff-section-item-props'
 import { useDiffSectionModelLifecycle } from './use-diff-section-model-lifecycle'
-import { installDiffSectionHeightMeasurement } from './diff-section-height-measurement'
+import { hasLayoutBox } from '@/hooks/virtualized-hidden-row-measurement'
 import { DiffSectionSaveConflictBar } from './DiffSectionSaveConflictBar'
 
 export function DiffSectionItem({
@@ -169,19 +169,54 @@ export function DiffSectionItem({
     lineNumberOptionsSubRef.current = applyDiffEditorLineNumberOptions(editor, sideBySide)
     const modified = editor.getModifiedEditor()
 
-    const disposeHeightMeasurement = installDiffSectionHeightMeasurement(
-      editor,
-      (contentHeight) => {
-        setSectionHeights((prev) =>
-          prev[index] === contentHeight ? prev : { ...prev, [index]: contentHeight }
-        )
+    // Wait for Monaco’s hidden-region layout; earlier full-file measurements make virtualized rows jump on remount.
+    let diffLayoutReady = false
+    let pendingHeightFrame: number | null = null
+    const updateHeight = (): void => {
+      // Zero-width side-by-side editors fall back to inline and report an incorrect taller height.
+      if (!hasLayoutBox(editor.getContainerDomNode())) {
+        return
       }
-    )
+      const contentHeight = editor.getModifiedEditor().getContentHeight()
+      setSectionHeights((prev) => {
+        if (prev[index] === contentHeight) {
+          return prev
+        }
+        return { ...prev, [index]: contentHeight }
+      })
+    }
+    const requestHeightUpdate = (): void => {
+      if (pendingHeightFrame !== null) {
+        return
+      }
+      pendingHeightFrame = window.requestAnimationFrame(() => {
+        pendingHeightFrame = null
+        updateHeight()
+      })
+    }
+    const markDiffLayoutReady = (): void => {
+      diffLayoutReady = true
+      requestHeightUpdate()
+    }
+    const contentSizeSub = modified.onDidContentSizeChange(() => {
+      if (diffLayoutReady) {
+        requestHeightUpdate()
+      }
+    })
+    const diffUpdateSub = editor.onDidUpdateDiff(markDiffLayoutReady)
+    if (editor.getLineChanges() !== null) {
+      markDiffLayoutReady()
+    }
 
     setModifiedEditor(modified)
     // Monaco disposes inner editors on unmount; clear state so decorators and drafts cannot retain a disposed instance.
     modified.onDidDispose(() => {
-      disposeHeightMeasurement()
+      contentSizeSub.dispose()
+      diffUpdateSub.dispose()
+      if (pendingHeightFrame !== null) {
+        window.cancelAnimationFrame(pendingHeightFrame)
+        pendingHeightFrame = null
+      }
       lineNumberOptionsSubRef.current?.dispose()
       lineNumberOptionsSubRef.current = null
       diffEditorRef.current = null

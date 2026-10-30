@@ -1,10 +1,5 @@
-import { notifyCombinedDiffDirectInput } from '@/components/editor/combined-diff-viewport'
-import {
-  includeFocusedCombinedDiffSection,
-  getFocusedCombinedDiffSectionIndex
-} from '@/components/editor/combined-diff/scroll-viewport/combined-diff-render-range'
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { editor as monacoEditor } from 'monaco-editor'
 import type { DecoratedDiffComment } from '@/components/diff-comments/decorated-diff-comment'
 import { useCombinedDiffSectionIndexMap } from '../../editor/combined-diff/resolve-changes/use-combined-diff-section-index-map'
@@ -248,12 +243,6 @@ function PRFilesCombinedDiffSections({
       return getDiffSectionRowEstimatedHeight(section, sectionHeights[index])
     },
     overscan: PR_DIFF_OVERSCAN,
-    rangeExtractor: (range) =>
-      includeFocusedCombinedDiffSection(
-        defaultRangeExtractor(range),
-        range.count,
-        getFocusedCombinedDiffSectionIndex(scrollContainerRef.current)
-      ),
     getItemKey: (index) => {
       const section = sections[index]
       return section ? `${section.key}:${section.collapsed ? 'collapsed' : 'expanded'}` : `${index}`
@@ -266,7 +255,6 @@ function PRFilesCombinedDiffSections({
 
   const handleTreeNavigate = useCallback(
     (entry: CombinedDiffFileTreeEntry) => {
-      notifyCombinedDiffDirectInput(scrollContainerRef.current)
       const navigatedIndex = handleCombinedDiffFileTreeNavigation({
         mode: 'commit',
         entry,

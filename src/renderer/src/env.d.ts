@@ -8,16 +8,6 @@ import type { TerminalWorktreeParkingDebugVerdict } from './components/terminal-
 import type { TerminalPtyPreSpawnE2EBarrier } from './components/terminal-pane/terminal-pty-pre-spawn-e2e-barrier'
 import type { LocalLayoutStreamE2EEnd } from './runtime/local-layout-stream-e2e-end'
 
-// The installed diff widget implements this aggregate event but omits it from public types.
-declare module 'monaco-editor/esm/vs/editor/editor.api.js' {
-  namespace editor {
-    // oxlint-disable-next-line typescript-eslint/consistent-type-definitions -- declaration merging requires interface
-    interface IStandaloneDiffEditor {
-      readonly onDidContentSizeChange: ICodeEditor['onDidContentSizeChange']
-    }
-  }
-}
-
 declare module 'monaco-editor/esm/vs/basic-languages/python/python.js' {
   export const conf: languages.LanguageConfiguration
   export const language: languages.IMonarchLanguage
