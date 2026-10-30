@@ -18908,7 +18908,7 @@
         },
         "list": {
           "PluginsSectionDescription": {
-            "openWith": "Open anytime with"
+            "openWith": "Open with (when focus is not in an editable field)"
           }
         }
       }
