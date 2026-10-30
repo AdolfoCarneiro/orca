@@ -179,6 +179,15 @@ describe('normalizeGitErrorMessage', () => {
 })
 
 describe('formatSubmodulePushFailureDetail', () => {
+  it.each([
+    "Unable to push sub\x1b[1 qmodule 'https://user:sec\x1b[1 qret@example.com/repo.git'\n(fetch\x1b[1 q first)",
+    "Submodule 'https://user:sec\x1b[1 qret@example.com/repo.git' has remote changes. Pull inside the submodule, then try again."
+  ])('sanitizes raw and normalized submodule details before classification: %s', (message) => {
+    expect(formatSubmodulePushFailureDetail(message)).toBe(
+      "Submodule 'https://example.com/repo.git' has remote changes. Pull inside the submodule, then try again."
+    )
+  })
+
   it('keeps normalized guidance when transport layers prefix the error', () => {
     expect(
       formatSubmodulePushFailureDetail(

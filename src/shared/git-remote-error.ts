@@ -32,7 +32,7 @@ export type SubmodulePushFailure = {
 
 // Why: the renderer rebuilds this classification as translated copy; detail stays English for main/CLI.
 export function classifySubmodulePushFailure(message: string): SubmodulePushFailure | null {
-  const raw = stripCredentialsFromMessage(message)
+  const raw = stripCredentialsFromMessage(stripAnsiEscapeSequences(message))
   const trimmed = raw.trim()
   const normalizedMatch = trimmed.match(NORMALIZED_SUBMODULE_PUSH_FAILURE_PATTERN)
   if (normalizedMatch) {
