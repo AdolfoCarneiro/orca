@@ -114,7 +114,6 @@ export function AgentLaunchSetupButton({
           type="button"
           variant="ghost"
           size="icon-xs"
-          className="text-muted-foreground"
           disabled={disabled}
           aria-label={translate('agentPicker.configure', 'Configure {{agent}}', {
             agent: entry.label
@@ -122,7 +121,7 @@ export function AgentLaunchSetupButton({
           onClick={(event) => event.stopPropagation()}
           onKeyDown={setupKeyDown}
         >
-          <ChevronRight />
+          <ChevronRight className="text-muted-foreground" />
         </Button>
       </PopoverTrigger>
     </div>

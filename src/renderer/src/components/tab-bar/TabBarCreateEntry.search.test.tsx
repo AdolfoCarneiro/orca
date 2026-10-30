@@ -582,7 +582,9 @@ it('launches searched defaults on Enter and reaches the alternate only through C
   )!
   expect(configure.dataset.variant).toBe('ghost')
   expect(configure.dataset.size).toBe('icon-xs')
-  expect(configure.classList.contains('text-muted-foreground')).toBe(true)
+  expect(
+    configure.querySelector('svg.lucide-chevron-right')?.classList.contains('text-muted-foreground')
+  ).toBe(true)
   expect(configure.classList.contains('border')).toBe(false)
   expect(configure.previousElementSibling?.getAttribute('data-slot')).toBe('separator')
   expect(configure.previousElementSibling?.getAttribute('data-orientation')).toBe('vertical')
