@@ -9700,7 +9700,7 @@
       "providers": ["local", "daemon", "ssh", "wsl", "remote-runtime"],
       "coveredPlatforms": ["macos"],
       "coveredProviders": ["local", "ssh", "remote-runtime"],
-      "coverageNotes": "Local macOS evidence covers the shared missing-dir fallback policy, main pty:spawn recovery and metadata, no-flag and reattach strictness, renderer IPC flag routing, SSH-tagged and remote-runtime omission, and the visibility-gated terminal notice. Real Bash and Zsh node-pty tests replace the active cwd inode and exercise the shared POSIX OMP wrapper; generated-file snapshots pin identical local, daemon/SSH, and relay wrappers. Daemon shares the same pre-provider main cwd decision but lacks a live daemon-provider run; WSL UNC paths are exempt from the spawn probe and lack a live run; native PowerShell is unaffected; Linux/Windows and mobile/API strictness remain gaps.",
+      "coverageNotes": "Local macOS evidence covers the shared missing-dir fallback policy, main pty:spawn recovery and metadata, no-flag and reattach strictness, renderer IPC flag routing, SSH-tagged and remote-runtime omission, and the visibility-gated terminal notice. Real Bash and Zsh node-pty tests replace the active cwd inode and exercise the shared POSIX OMP wrapper; audit829 removes generated-file snapshots and their current byte-parity claim. No equivalent replacement for generated-script byte checks is claimed. Daemon shares the same pre-provider main cwd decision but lacks a live daemon-provider run; WSL UNC paths are exempt from the spawn probe and lack a live run; native PowerShell is unaffected; Linux/Windows and mobile/API strictness remain gaps.",
       "motivatingLinks": [
         "https://github.com/stablyai/orca/issues/7239",
         "https://github.com/stablyai/orca/pull/7750",
@@ -9715,7 +9715,7 @@
         "pnpm exec vitest run --config config/vitest.config.ts src/main/ipc/pty/pty-spawn-cwd-fallback.test.ts",
         "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/pty-transport-connect-spawn.test.ts",
         "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/pty-connection-spawn-and-startup.test.ts",
-        "pnpm exec vitest run --config config/vitest.config.ts src/main/pty/omp-shell-wrapper.node-pty.test.ts src/main/pty/omp-shell-wrapper-alias-safety.test.ts src/main/shell-wrapper-generated-file-snapshot.test.ts"
+        "pnpm exec vitest run --config config/vitest.config.ts src/main/pty/omp-shell-wrapper.node-pty.test.ts src/main/pty/omp-shell-wrapper-alias-safety.test.ts"
       ],
       "testFiles": [
         "src/shared/terminal-startup-cwd.test.ts",
@@ -9723,8 +9723,7 @@
         "src/renderer/src/components/terminal-pane/pty-transport-connect-spawn.test.ts",
         "src/renderer/src/components/terminal-pane/pty-connection-spawn-and-startup.test.ts",
         "src/main/pty/omp-shell-wrapper.node-pty.test.ts",
-        "src/main/pty/omp-shell-wrapper-alias-safety.test.ts",
-        "src/main/shell-wrapper-generated-file-snapshot.test.ts"
+        "src/main/pty/omp-shell-wrapper-alias-safety.test.ts"
       ],
       "assertionRefs": [
         {
@@ -9779,12 +9778,6 @@
             "extension argv and a nonzero OMP exit status survive the recovery subshell",
             "a subsequently missing logical cwd prints an actionable error and does not invoke OMP again"
           ]
-        },
-        {
-          "file": "src/main/shell-wrapper-generated-file-snapshot.test.ts",
-          "assertions": [
-            "local, daemon/SSH, and relay Bash/Zsh files contain the byte-identical shared OMP wrapper"
-          ]
         }
       ],
       "evidenceRuns": [
@@ -9831,6 +9824,7 @@
           "runner": "local",
           "platform": "macos",
           "command": "pnpm exec vitest run --config config/vitest.config.ts src/main/pty/omp-shell-wrapper.node-pty.test.ts src/main/pty/omp-shell-wrapper-alias-safety.test.ts src/main/shell-wrapper-generated-file-snapshot.test.ts",
+          "currentCommand": "pnpm exec vitest run --config config/vitest.config.ts src/main/pty/omp-shell-wrapper.node-pty.test.ts src/main/pty/omp-shell-wrapper-alias-safety.test.ts",
           "result": "passed",
           "durationSeconds": 3,
           "summary": "3 test files passed; real Bash and Zsh PTYs covered usable physical cwd authority, stale-inode recovery with set and unset PWD, extension-enabled and extension-skipping argv, parent-shell isolation, exit status, missing-path visibility, alias safety, and generated local/daemon/relay parity."
@@ -9838,7 +9832,7 @@
       ],
       "runtimeBudget": {
         "p95Seconds": 40,
-        "scope": "focused unit, IPC, generated-wrapper, and real Bash/Zsh PTY contracts"
+        "scope": "focused unit, IPC, and real Bash/Zsh PTY contracts"
       },
       "flakeHistory": {
         "status": "unknown",
