@@ -46,6 +46,7 @@ import {
   resolveChatProgramContext
 } from '@/lib/host-chat-program'
 import { useAppStore } from '@/store'
+import { readNativeDetectedAgents } from '@/store/slices/local-detected-agent-store-state'
 import { useDetectedAgents, type AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 import { AgentDefaultSetting } from './AgentDefaultSetting'
 import { AgentDetectionCatalog } from './AgentDetectionCatalog'
@@ -97,6 +98,7 @@ export function AgentLaunchSettingsCatalog({
   } = useDetectedAgents(detectionTarget, 'all')
   const detectedIds = useMemo(() => (detected ? new Set(detected) : null), [detected])
   useHostStructuredAgentsVersion()
+  const installedHere = useAppStore(readNativeDetectedAgents)
   const workspace =
     detectionTarget.kind === 'runtime'
       ? { kind: 'git-worktree' as const, runtimeEnvironmentId: detectionTarget.environmentId }
@@ -121,15 +123,15 @@ export function AgentLaunchSettingsCatalog({
   )
   // Agents whose chat program is here without their CLI, like a downloaded chat runtime, are installed for chat.
   const chatOnlyKey = useAppStore((state) => {
-    if (detectedIds === null || chatAgents.length === 0) {
+    if (chatAgents.length === 0) {
       return ''
     }
     const context = resolveChatProgramContext(state, workspace)
     return chatAgents
       .filter(
         (agent) =>
-          !detectedIds.has(agent) &&
-          readChatProgram(state, agent, context, detected) === 'available'
+          !installedHere?.includes(agent) &&
+          readChatProgram(state, agent, context, installedHere) === 'available'
       )
       .join(' ')
   })
@@ -137,12 +139,14 @@ export function AgentLaunchSettingsCatalog({
   const catalog = getAgentCatalog()
   const detectedAgents =
     detectedIds === null ? [] : catalog.filter((agent) => detectedIds.has(agent.id))
-  const installedAgents =
-    detectedIds === null
-      ? []
-      : catalog.filter((agent) => detectedIds.has(agent.id) || chatOnly.has(agent.id))
+  const installedAgents = catalog.filter(
+    (agent) => detectedIds?.has(agent.id) || chatOnly.has(agent.id)
+  )
   const undetectedAgents = catalog.filter(
-    (agent) => detectedIds !== null && !detectedIds.has(agent.id) && !chatOnly.has(agent.id)
+    (agent) =>
+      !detectedIds?.has(agent.id) &&
+      !chatOnly.has(agent.id) &&
+      (detectedIds !== null || chatAgents.includes(agent.id))
   )
   const save = (mutation: AgentLaunchSettingsMutation): void => {
     const scopedMutation =
@@ -270,19 +274,18 @@ export function AgentLaunchSettingsCatalog({
     agent: (typeof catalog)[number],
     listedInstalled: boolean
   ): AgentCatalogRowProps => {
-    const isDetected = listedInstalled && !chatOnly.has(agent.id)
+    const isDetected = listedInstalled && detectedIds?.has(agent.id) === true
     return {
       ...cliRowProps(agent, isDetected),
-      opensAs:
-        local && listedInstalled
-          ? buildAgentOpensAs({
-              agent: agent.id,
-              cliDetected: isDetected,
-              chatProgramHere: chatOnly.has(agent.id),
-              settings: local.settings,
-              updateSettings: local.updateSettings
-            })
-          : undefined,
+      opensAs: local
+        ? buildAgentOpensAs({
+            agent: agent.id,
+            cliDetected: installedHere === null ? null : installedHere.includes(agent.id),
+            chatProgramHere: chatOnly.has(agent.id),
+            settings: local.settings,
+            updateSettings: local.updateSettings
+          })
+        : undefined,
       chatRuntime:
         chatAgents.includes(agent.id) &&
         managedChatAgents.has(agent.id) &&

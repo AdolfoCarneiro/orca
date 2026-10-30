@@ -40,7 +40,7 @@ export type AgentOpensAs = {
   onChange: (value: 'chat' | 'cli') => void
 }
 
-/** A row's Chat | CLI choice, offered for enabled chat agents whose CLI or chat program is on this computer. */
+// This computer's preference also routes paired-host launches, independently of local inventory.
 export function buildAgentOpensAs({
   agent,
   cliDetected,
@@ -49,14 +49,13 @@ export function buildAgentOpensAs({
   updateSettings
 }: {
   agent: TuiAgent
-  cliDetected: boolean
+  cliDetected: boolean | null
   chatProgramHere: boolean
   settings: GlobalSettings
   updateSettings: (updates: Partial<GlobalSettings>) => void | Promise<void>
 }): AgentOpensAs | undefined {
   const offered =
     isNativeChatEnabled(settings) &&
-    (cliDetected || chatProgramHere) &&
     chatProviderAgents(LOCAL_EXECUTION_HOST_ID, undefined).includes(agent) &&
     isTuiAgentEnabled(agent, settings.disabledTuiAgents)
   if (!offered) {
@@ -65,7 +64,7 @@ export function buildAgentOpensAs({
   return {
     // Matches launch: an unchosen agent opens as a chat.
     value: isNativeChatDefaultFor(settings, agent) ? 'chat' : 'cli',
-    cliMissing: !cliDetected,
+    cliMissing: chatProgramHere && cliDetected === false,
     onChange: (value) =>
       void saveNativeChatProviderChoice({
         agent,
