@@ -23141,7 +23141,6 @@
     "dismiss": "Got it",
     "updateAction": "How to update macOS",
     "omarchyAction": "Explore Omarchy",
-    "checkAction": "Check compatibility",
-    "openError": "Could not open the guide. Try again."
+    "checkAction": "Check compatibility"
   }
 }

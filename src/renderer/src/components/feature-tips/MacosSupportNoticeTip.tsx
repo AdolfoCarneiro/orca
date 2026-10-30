@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react'
 import type { MacosUpgradeSupport } from '../../../../shared/macos-upgrade-support'
-import { translate } from '@/i18n/i18n'
+import { openAppHttpLink } from '@/lib/app-http-link-open'
 import { MacosSupportNoticeDialog } from './MacosSupportNoticeDialog'
 
 export function MacosSupportNoticeTip({
@@ -11,8 +11,6 @@ export function MacosSupportNoticeTip({
   onOpenChange: (open: boolean) => void
 }): JSX.Element {
   const [support, setSupport] = useState<MacosUpgradeSupport | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -28,26 +26,15 @@ export function MacosSupportNoticeTip({
     }
   }, [])
 
-  const openUrl = async (url: string): Promise<void> => {
-    setBusy(true)
-    setError(null)
-    try {
-      await window.api.shell.openUrl(url)
-    } catch {
-      setError(translate('macosSupport.openError', 'Could not open the guide. Try again.'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <MacosSupportNoticeDialog
       open={open}
       onOpenChange={onOpenChange}
       support={support}
-      busy={busy}
-      error={error}
-      onOpenUrl={(url) => void openUrl(url)}
+      onOpenUrl={(url, event) => {
+        onOpenChange(false)
+        openAppHttpLink(url, { event })
+      }}
     />
   )
 }

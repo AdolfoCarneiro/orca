@@ -1,4 +1,4 @@
-import { useRef, type JSX } from 'react'
+import { useRef, type JSX, type MouseEvent } from 'react'
 import { ArrowRight, ArrowUpRight, CircleCheck, Laptop, SquareTerminal } from 'lucide-react'
 import type { MacosUpgradeSupport } from '../../../../shared/macos-upgrade-support'
 import { Badge } from '@/components/ui/badge'
@@ -22,16 +22,12 @@ export function MacosSupportNoticeDialog({
   open,
   onOpenChange,
   support,
-  busy = false,
-  error,
   onOpenUrl
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   support: MacosUpgradeSupport | null
-  busy?: boolean
-  error?: string | null
-  onOpenUrl: (url: string) => void
+  onOpenUrl: (url: string, event: MouseEvent<HTMLButtonElement>) => void
 }): JSX.Element {
   const primaryButtonRef = useRef<HTMLButtonElement>(null)
   const canUpgrade = support?.macos13 === 'supported'
@@ -146,9 +142,8 @@ export function MacosSupportNoticeDialog({
                 variant="link"
                 size="xs"
                 className="-ml-1.5"
-                disabled={busy}
-                onClick={() =>
-                  onOpenUrl(cannotUpgrade ? MACOS_COMPATIBILITY_URL : OMARCHY_MAC_GUIDE_URL)
+                onClick={(event) =>
+                  onOpenUrl(cannotUpgrade ? MACOS_COMPATIBILITY_URL : OMARCHY_MAC_GUIDE_URL, event)
                 }
               >
                 {cannotUpgrade
@@ -163,23 +158,13 @@ export function MacosSupportNoticeDialog({
             <CircleCheck className="size-4 shrink-0" aria-hidden />
             {translate('macosSupport.stillWorks', 'You can keep using this Orca version for now.')}
           </p>
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
 
           <div className="border-t border-border pt-4">
             <DialogFooter className="sm:justify-between">
               <Button variant="ghost" onClick={() => onOpenChange(false)}>
                 {translate('macosSupport.dismiss', 'Got it')}
               </Button>
-              <Button
-                ref={primaryButtonRef}
-                disabled={busy}
-                aria-busy={busy}
-                onClick={() => onOpenUrl(primaryUrl)}
-              >
+              <Button ref={primaryButtonRef} onClick={(event) => onOpenUrl(primaryUrl, event)}>
                 {canUpgrade
                   ? translate('macosSupport.updateAction', 'How to update macOS')
                   : cannotUpgrade
