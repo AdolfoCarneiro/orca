@@ -120,8 +120,8 @@ it.each([
         newLinearIssueBody: model.body,
         newLinearIssueSubmitting: model.submitting,
         availableTeams: [
-          { id: 'team-1', workspaceId: 'w', key: 'T1' },
-          { id: 'team-2', workspaceId: 'w', key: 'T2' }
+          { id: 'team-1', workspaceId: 'w', name: 'Team 1', key: 'T1' },
+          { id: 'team-2', workspaceId: 'w', name: 'Team 2', key: 'T2' }
         ],
         linearMode: 'issues',
         linearModeOptions: [],
