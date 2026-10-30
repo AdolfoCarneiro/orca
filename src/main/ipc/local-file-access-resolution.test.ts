@@ -509,6 +509,15 @@ describe('project-folder-link listings', () => {
     ).toBe('denied')
   })
 
+  it('refuse links in Orca floating folder, which is not a project', async () => {
+    const floatingLink = join(userData.path, 'floating-workspace', 'linked')
+    await symlink(outside, floatingLink, 'dir')
+
+    expect(
+      await settles(resolveLocalListRequestPath(floatingLink, PROJECT_FOLDER_LINK, makeStore({})))
+    ).toBe('denied')
+  })
+
   it('grant listing only, never file reads', async () => {
     const store = makeStore({ repoPaths: [project] })
 

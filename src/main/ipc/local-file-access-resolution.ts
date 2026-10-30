@@ -232,9 +232,8 @@ function declaredKindRule(
     case 'project-folder-link':
       return operation === 'list'
         ? (targetPath) =>
-            resolveProjectFolderLinkPath(targetPath, (path) =>
-              resolveDesktopAuthorizedPath(path, store)
-            )
+            // Why project roots only: Orca's floating folder is not a project a link can lead out of.
+            resolveProjectFolderLinkPath(targetPath, (path) => resolveAuthorizedPath(path, store))
         : undefined
   }
 }
