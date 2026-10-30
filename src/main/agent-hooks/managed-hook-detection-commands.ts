@@ -8,7 +8,7 @@ import { MANAGED_AGENT_HOOK_TARGETS } from '../../shared/managed-agent-hook-targ
 import { normalizeDisabledTuiAgents } from '../../shared/tui-agent-selection'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import type { TuiAgentDetectionCommand } from '../../shared/tui-agent-detection-commands'
-import { parseClaudeCliVersion } from '../claude/claude-hook-event-versions'
+import { parseClaudeCliVersionOutput } from '../claude/claude-hook-event-versions'
 
 export type ManagedHookDetectionSettings = Partial<
   Pick<
@@ -74,7 +74,7 @@ export function readManagedHookDetectionResult(value: unknown): {
       typeof configDir === 'string' && posix.isAbsolute(configDir) && !configDir.includes('\0')
         ? configDir
         : null,
-    claudeVersion: parseClaudeCliVersion(
+    claudeVersion: parseClaudeCliVersionOutput(
       typeof rawClaudeVersion === 'string' ? rawClaudeVersion : null
     )
   }

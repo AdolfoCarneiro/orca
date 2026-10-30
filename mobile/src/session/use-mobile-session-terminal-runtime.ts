@@ -9,6 +9,7 @@ import type { TerminalModes, TerminalWebViewHandle } from '../terminal/terminal-
 import { useTerminalLiveInputFocus } from '../terminal/use-terminal-live-input-focus'
 import { reopensFocusedInputWhenKeyboardHidden } from '../terminal/terminal-live-input-keyboard-reopen'
 import type { TerminalLiveInputSender } from '../terminal/terminal-live-input-sender'
+import type { TerminalLiveInputFailure } from '../terminal/terminal-live-pending-flush-state'
 import { useTerminalLiveInputCommit } from '../terminal/use-terminal-live-input-commit'
 import { resolveMobileTerminalInputGate } from '../terminal/terminal-input-connection-gate'
 import { createInitialSessionAutoCreateState } from './use-initial-session-terminal-autocreate'
@@ -24,6 +25,7 @@ import type {
   TerminalGestureInputQueue
 } from './mobile-session-route-types'
 import type { MobileSessionScreenStateModel } from './use-mobile-session-screen-state'
+import type { MobileDictationAnchor } from '../dictation/mobile-dictation-text-insertion'
 
 export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateModel) {
   const {
@@ -61,6 +63,10 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
   const commandInputRef = useRef<TextInput>(null)
   const liveInputFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sendLiveTerminalInputRef = useRef<TerminalLiveInputSender>(async () => false)
+  const onLiveInputSendFailureRef = useRef<(failure: TerminalLiveInputFailure) => void>(() => {})
+  const handleLiveInputSendFailure = useCallback((failure: TerminalLiveInputFailure) => {
+    onLiveInputSendFailureRef.current(failure)
+  }, [])
   const sessionTabActionSheetKeyboardHideSubRef = useRef<ReturnType<
     typeof Keyboard.addListener
   > | null>(null)
@@ -68,6 +74,12 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
   const dictationRouteContextRef = useRef<{
     readonly handle: string | null
     readonly liveInputEnabled: boolean
+    readonly anchor: MobileDictationAnchor | null
+  } | null>(null)
+  // Terminals share one command field, so its selection names the terminal it was read in.
+  const commandFieldAnchorRef = useRef<{
+    readonly handle: string | null
+    readonly anchor: MobileDictationAnchor
   } | null>(null)
   const terminalUnsubsRef = useRef<Map<string, () => void>>(new Map())
   const subscribingHandlesRef = useRef<Set<string>>(new Set())
@@ -134,6 +146,7 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
     activeSessionTabType: activeSessionTab?.type,
     activeSessionTabTypeRef,
     framesLivePaste,
+    onSendFailure: handleLiveInputSendFailure,
     connected: connState === 'connected',
     liveInputRef,
     liveInputTerminalHandles,
@@ -152,6 +165,7 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
   const { handleTerminalTap, resetLiveInputFocus } = useTerminalLiveInputFocus({
     activeHandleRef,
     canSend,
+    commandInputRef,
     inputRef: liveInputRef,
     keyboardHeight,
     lifecycleIdentity: client,
@@ -185,9 +199,11 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
     commandInputRef,
     liveInputFocusTimerRef,
     sendLiveTerminalInputRef,
+    onLiveInputSendFailureRef,
     sessionTabActionSheetKeyboardHideSubRef,
     sessionTabActionSheetRequestSeqRef,
     dictationRouteContextRef,
+    commandFieldAnchorRef,
     terminalUnsubsRef,
     subscribingHandlesRef,
     leaseOnlyHandlesRef,

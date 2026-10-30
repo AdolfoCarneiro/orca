@@ -20,7 +20,7 @@ import {
   UI_LANGUAGE_SPANISH
 } from '../../shared/ui-language'
 import { mainI18n, setMainPluginLanguagePacks, setMainUiLanguage, translateMain } from './main-i18n'
-import { pluginLanguageResourceId } from '../../shared/plugins/plugin-language-pack-artifact'
+import { pluginLanguageResourceId } from '../../shared/plugins/artifacts/plugin-language-pack-artifact'
 
 describe('main-i18n lazy locale loading', () => {
   afterEach(() => vi.restoreAllMocks())
@@ -69,16 +69,15 @@ describe('main-i18n lazy locale loading', () => {
     expect(await setMainUiLanguage(UI_LANGUAGE_RUSSIAN)).toBe('ru')
     expect(translateMain('menu.file', 'File')).toBe('Файл')
     expect(translateMain('menu.settings', 'Settings')).toBe('Настройки')
-    // Production callers pass the literal `_other` key; Russian must still pick few/many.
     for (const [count, expected] of [
       [3, '3 активных терминала переподключатся после перезапуска.'],
       [5, '5 активных терминалов переподключатся после перезапуска.']
     ] as const) {
       expect(
         translateMain(
-          'localBuild.liveTerminals_other',
+          'localBuild.liveTerminals',
           '{{count}} live terminals will reconnect after restart.',
-          { count }
+          { count, defaultValue_one: '{{count}} live terminal will reconnect after restart.' }
         )
       ).toBe(expected)
     }
@@ -112,14 +111,15 @@ describe('main-i18n lazy locale loading', () => {
   })
 
   it('loads a contributed catalog for native menus and dialogs', async () => {
-    const id = 'plugin:orca-samples.portuguese/pt-BR' as const
+    const id = 'plugin:samples.portuguese/pt-BR' as const
     setMainPluginLanguagePacks([
       {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
-        pluginKey: 'orca-samples.portuguese',
+        pluginKey: 'samples.portuguese',
         locale: 'pt-BR',
-        catalog: { menu: { file: 'Arquivo Orca' } }
+        catalog: { menu: { file: 'Arquivo Orca' } },
+        coverage: 100
       }
     ])
 
@@ -138,6 +138,7 @@ describe('main-i18n lazy locale loading', () => {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
         pluginKey,
+        coverage: 100,
         locale: 'pt-BR',
         catalog: { menu: { file: pluginKey } }
       }
@@ -160,6 +161,7 @@ describe('main-i18n lazy locale loading', () => {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
         pluginKey: 'orca-samples.russian',
+        coverage: 100,
         locale: 'ru-RU',
         catalog: {
           terminals_one: '{{count}} one',
@@ -171,8 +173,15 @@ describe('main-i18n lazy locale loading', () => {
     ])
     await setMainUiLanguage(id)
     expect(
-      [1, 3, 5, 21].map((count) => translateMain('terminals_other', '{{count}} terms', { count }))
+      [1, 3, 5, 21].map((count) => translateMain('terminals', '{{count}} terms', { count }))
     ).toEqual(['1 one', '3 few', '5 other', '21 one'])
+    // A key the pack omits falls back to English chosen by English rules, not Russian's (21 is ru "one").
+    expect(
+      translateMain('missing.family', '{{count}} files', {
+        count: 21,
+        defaultValue_one: '{{count}} file'
+      })
+    ).toBe('21 files')
     expect(translateMain('empty', '{{count}} terminals', { count: 2 })).toBe('2 terminals')
   })
 })
