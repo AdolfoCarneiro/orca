@@ -98,7 +98,7 @@ export async function activateFileExplorerNode(args: {
     } catch {
       // Let the editor report unresolved target errors instead of dead-ending the click.
     }
-    escapesWorktree ||= target?.escapesWorktree === true
+    escapesWorktree = target?.escapesWorktree === true
     if (target?.isDirectory) {
       // A user's expand may start a stopped WSL distro.
       const loadedAsDirectory = await loadDir(node.path, node.depth, {

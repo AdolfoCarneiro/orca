@@ -127,7 +127,7 @@ export function FileExplorerRowContextMenu({
     })
   )
   const revealBlocked = isRevealOrEditorOpenBlocked(revealOwner)
-  // Why: writes stay inside projects, so rows listed through an outside folder link are browse-only.
+  // Why: only opened files save outside projects; main refuses tree edits under an outside folder link.
   const writesBlocked = node.outsideProject === true
   const handleOpenInOrcaBrowser = useCallback(() => {
     if (!activeWorktreeId) {

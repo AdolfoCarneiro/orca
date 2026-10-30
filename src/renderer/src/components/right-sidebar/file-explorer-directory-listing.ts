@@ -116,16 +116,18 @@ export function clearFailedOpenedDirectoryLink(
   return changed ? { ...cache, [parentPath]: { ...parent, children } } : cache
 }
 
-/** A gesture or an already-outside listing may follow a project folder link; refreshes never upgrade a contained one. */
+/** A gesture, a listed link row, or an already-outside listing may follow a project folder link; a folder that only became a link stays refused until clicked. */
 export function canFollowFolderLink(
   cache: Readonly<Record<string, DirCache>>,
   dirPath: string,
   gesture: boolean | undefined
 ): boolean {
+  const parent = cache[parentDirForWatchPath(dirPath)]
   return (
     gesture === true ||
     cache[dirPath]?.outsideProject === true ||
-    cache[parentDirForWatchPath(dirPath)]?.outsideProject === true
+    parent?.outsideProject === true ||
+    parent?.children.some((child) => child.path === dirPath && child.isSymlink === true) === true
   )
 }
 

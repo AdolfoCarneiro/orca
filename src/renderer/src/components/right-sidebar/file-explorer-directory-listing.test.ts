@@ -82,14 +82,27 @@ describe('outside-project folder links', () => {
     readRuntimeDirectory.mockReset()
   })
 
-  it('follows links only on a gesture or under an already-outside listing', () => {
+  it('follows links only on a gesture, a listed link row, or under an outside listing', () => {
     const cache: Record<string, DirCache> = {
-      '/w': { children: [] },
+      '/w': {
+        children: [
+          { name: 'src', path: '/w/src', relativePath: 'src', isDirectory: true, depth: 0 },
+          {
+            name: 'docs',
+            path: '/w/docs',
+            relativePath: 'docs',
+            isDirectory: true,
+            isSymlink: true,
+            depth: 0
+          }
+        ]
+      },
       '/w/linked': { children: [], outsideProject: true }
     }
 
     expect(canFollowFolderLink(cache, '/w/src', false)).toBe(false)
     expect(canFollowFolderLink(cache, '/w/src', true)).toBe(true)
+    expect(canFollowFolderLink(cache, '/w/docs', false)).toBe(true)
     expect(canFollowFolderLink(cache, '/w/linked', false)).toBe(true)
     expect(canFollowFolderLink(cache, '/w/linked/guides', false)).toBe(true)
   })
