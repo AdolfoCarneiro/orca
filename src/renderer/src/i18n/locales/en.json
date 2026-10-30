@@ -23118,5 +23118,30 @@
       "needsPermission": "Agent needs permission",
       "statusStale": "Agent status is stale"
     }
+  },
+  "macosSupport": {
+    "eyebrow": "Compatibility notice",
+    "title": "A heads-up for your Mac",
+    "description": "Support for macOS 12 is ending soon. A future version of Orca will require macOS 13 or later.",
+    "currentVersion": "macOS 12",
+    "currentSystem": "Monterey · your current system",
+    "requiredVersion": "macOS 13+",
+    "futureRequirement": "Upcoming requirement",
+    "nextStep": "Your next step",
+    "upgradeTitle": "Your Mac can upgrade",
+    "omarchyTitle": "A new chapter for this Mac",
+    "unknownTitle": "Check your upgrade options",
+    "upgradeDescription": "Your Mac supports macOS 13 or later. Install a newer macOS version to keep receiving Orca updates.",
+    "omarchyDescription": "Apple doesn’t support macOS 13 on this model. Omarchy is a Linux desktop you can explore to keep using Orca on an Intel Mac.",
+    "unknownDescription": "Check Apple’s supported models to see whether your Mac can run macOS 13. If it can’t, Omarchy is another path for Intel Macs.",
+    "omarchyBackup": "Omarchy replaces macOS and can erase your drive. Back up your files and review its Mac compatibility guide before installing.",
+    "appleLink": "View Apple’s supported models",
+    "omarchyLink": "Explore Omarchy for Intel Macs",
+    "stillWorks": "You can keep using this Orca version for now.",
+    "dismiss": "Got it",
+    "updateAction": "How to update macOS",
+    "omarchyAction": "Explore Omarchy",
+    "checkAction": "Check compatibility",
+    "openError": "Could not open the guide. Try again."
   }
 }
