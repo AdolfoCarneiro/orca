@@ -139,15 +139,23 @@ export const COMPACTION_ROWS: readonly JournalRow[] = [
     kind: 'item',
     itemId: 'prompt',
     revision: 1,
-    body: { kind: 'approval', title: 'Run it?', detail: null, resolution: { state: 'pending' } }
+    body: {
+      kind: 'approval',
+      title: 'Run it?',
+      detail: null,
+      resolution: { state: 'pending', selectedOptionId: null, resolvedBy: null, resolvedAt: null }
+    }
   }
 ]
 export const COMPACTION_RETAINED_SEQUENCES = [1, 2, 3, 4, 5, 6, 7, 9, 12, 13, 14, 15]
 
 export function compactionTransportCorpus(through = 15) {
   const state = createJournalReducerState(COMPACTION_IDENTITY.sessionId, COMPACTION_EPOCH)
-  for (const entry of COMPACTION_ROWS)
-    if (entry.seq <= through) applyJournalRow(state, entry, entry.ts)
+  for (const entry of COMPACTION_ROWS) {
+    if (entry.seq <= through) {
+      applyJournalRow(state, entry, entry.ts)
+    }
+  }
   const view = readJournalPublicView(state)
   const journal = {
     isReadOnly: false,
@@ -180,7 +188,9 @@ export function compactionTransportCorpus(through = 15) {
     direction: 'after',
     cursor: { epoch: COMPACTION_EPOCH, sequence: Math.min(7, through) }
   })
-  if (!result.ok) throw new Error('compaction fixture must be readable')
+  if (!result.ok) {
+    throw new Error('compaction fixture must be readable')
+  }
   const frame: AgentSessionSubscribeEvent = {
     type: 'batch',
     sessionId: COMPACTION_IDENTITY.sessionId,
@@ -199,12 +209,31 @@ export function compactionTransportCorpus(through = 15) {
     cursor: { epoch: COMPACTION_EPOCH, sequence: Math.min(9, through) },
     limit: 2
   })
-  if (!older.ok) throw new Error('compaction fixture older page must be readable')
+  if (!older.ok) {
+    throw new Error('compaction fixture older page must be readable')
+  }
   const tail = readAgentSessionHistory(reader, {
     sessionId: COMPACTION_IDENTITY.sessionId,
     direction: 'tail',
     limit: 2
   })
-  if (!tail.ok) throw new Error('compaction fixture tail must be readable')
-  return structuredClone({ snapshot, frame, older: older.page, tail: tail.page })
+  if (!tail.ok) {
+    throw new Error('compaction fixture tail must be readable')
+  }
+  const tailOlder = readAgentSessionHistory(reader, {
+    sessionId: COMPACTION_IDENTITY.sessionId,
+    direction: 'before',
+    cursor: tail.page.window.oldest ?? tail.page.window.nextCursor,
+    limit: 2
+  })
+  if (!tailOlder.ok) {
+    throw new Error('compaction fixture tail older page must be readable')
+  }
+  return structuredClone({
+    snapshot,
+    frame,
+    older: older.page,
+    tail: tail.page,
+    tailOlder: tailOlder.page
+  })
 }

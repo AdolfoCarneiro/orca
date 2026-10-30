@@ -369,10 +369,12 @@ it('does no independent fold without candidates and compares JSON objects semant
   saveJournalState(database, state)
   // Object key ordering is not durable state; map/item order still is.
   const json = database.db.prepare('SELECT state_json FROM journal_state').get()?.state_json
-  if (typeof json !== 'string') throw new Error('missing checkpoint')
+  if (typeof json !== 'string') {
+    throw new Error('missing checkpoint')
+  }
   database.db
     .prepare('UPDATE journal_state SET state_json = ?')
-    .run(JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(json)).reverse()), null, 2))
+    .run(JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(json)).toReversed()), null, 2))
   expect(await compact()).toBe(1)
 })
 
@@ -386,15 +388,17 @@ it.each(['missing epoch', 'wrong epoch', 'invalid sequence'])(
       item(4, 3)
     ])
     saveJournalState(database, state)
-    if (damage === 'missing epoch') database.db.exec('DELETE FROM journal_rows WHERE seq = 1')
-    else if (damage === 'wrong epoch')
+    if (damage === 'missing epoch') {
+      database.db.exec('DELETE FROM journal_rows WHERE seq = 1')
+    } else if (damage === 'wrong epoch') {
       database.db
         .prepare('UPDATE journal_rows SET row_json = ? WHERE seq = 3')
         .run(JSON.stringify({ ...item(3, 2), epoch: 'foreign' }))
-    else
+    } else {
       database.db
         .prepare('INSERT INTO journal_rows VALUES (?, ?, ?, ?, ?)')
         .run(sessionId, epoch, 0, 1000, JSON.stringify(item(0, 1)))
+    }
     const before = stored()
     expect(await compact()).toBe(0)
     expect(stored()).toEqual(before)
@@ -606,7 +610,9 @@ it.each([10, 100])(
     expect(
       residual.reduce((copies, row) => {
         const parsed = rowSchema.parseJournalRow(row.rowJson)
-        if (!parsed.ok) throw new Error('unreadable residual')
+        if (!parsed.ok) {
+          throw new Error('unreadable residual')
+        }
         const mutations =
           parsed.row.kind === 'lifecycle-batch'
             ? parsed.row.mutations
@@ -766,7 +772,9 @@ it.each(['append', 'reopen', 'epoch'] as const)(
         } else if (change === 'reopen') {
           closeTestJournalHostDatabases()
           database = openTestJournalHostDatabase(root)
-        } else publishTestJournalEpoch(database.db, sessionId, 'new-epoch')
+        } else {
+          publishTestJournalEpoch(database.db, sessionId, 'new-epoch')
+        }
       }
       return database
     })
@@ -776,12 +784,14 @@ it.each(['append', 'reopen', 'epoch'] as const)(
       expectSameState(restoreJournal(database.db, sessionId)?.state)
     } else {
       expect(outcome).toBeNull()
-      if (change === 'reopen') expect(stored()).toEqual(before)
-      else
+      if (change === 'reopen') {
+        expect(stored()).toEqual(before)
+      } else {
         expect(
           database.db.prepare('SELECT COUNT(*) AS n FROM journal_rows WHERE epoch = ?').get(epoch)
             ?.n
         ).toBe(before.length)
+      }
     }
   }
 )
@@ -827,7 +837,9 @@ it('leaves an active FULL host transaction alone and retries a stranded native r
   const exec = connection.exec.bind(connection)
   let rollbackFails = true
   const intercepted = vi.spyOn(connection, 'exec').mockImplementation((sql) => {
-    if (sql === 'ROLLBACK' && rollbackFails) throw new Error('native rollback unavailable')
+    if (sql === 'ROLLBACK' && rollbackFails) {
+      throw new Error('native rollback unavailable')
+    }
     return exec(sql)
   })
   vi.spyOn(console, 'warn').mockImplementation(() => {})

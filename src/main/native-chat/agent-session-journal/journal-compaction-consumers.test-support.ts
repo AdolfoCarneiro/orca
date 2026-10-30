@@ -14,7 +14,9 @@ export async function openCompactionConsumerJournal(journals: TrackedJournalOpen
   const database = openTestJournalHostDatabase(root)
   database.transaction((db) => {
     publishTestJournalEpoch(db, COMPACTION_IDENTITY.sessionId, COMPACTION_ROWS[0]!.epoch)
-    for (const row of COMPACTION_ROWS) insertTestJournalRow(db, COMPACTION_IDENTITY.sessionId, row)
+    for (const row of COMPACTION_ROWS) {
+      insertTestJournalRow(db, COMPACTION_IDENTITY.sessionId, row)
+    }
   })
   let journal = await journals.open({
     identity: COMPACTION_IDENTITY,
@@ -30,19 +32,23 @@ export async function openCompactionConsumerJournal(journals: TrackedJournalOpen
       const result = await backfillJournalState({
         database: () => database,
         checkpointOpen: async (sessionId) => {
-          if (sessionId !== journal.identity.sessionId) return false
+          if (sessionId !== journal.identity.sessionId) {
+            return false
+          }
           await journal.checkpoint()
           return true
         },
         stopped: () => false,
         now: () => (clock += 30),
         rest: async () => {
-          if (database.db.isTransaction)
+          if (database.db.isTransaction) {
             throw new Error('maintenance rested with a transaction open')
+          }
         }
       })
-      if (!result || result.deleted !== 3)
+      if (!result || result.deleted !== 3) {
         throw new Error(`expected three real retirements: ${JSON.stringify(result)}`)
+      }
       await journals.closeAll()
       journal = await journals.open({
         identity: COMPACTION_IDENTITY,

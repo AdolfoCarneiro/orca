@@ -132,7 +132,14 @@ describe('useMobileStructuredAgentState older history', () => {
 
   it('consumes the SQLite-verified retired stream and pages its actual older window', async () => {
     const corpus = compactionTransportCorpus()
-    const { hook, emit, historyCursors } = await mountWithOlderPages({ 9: corpus.older }, [])
+    const boundary = corpus.tail.window.oldest
+    if (!boundary) {
+      throw new Error('expected tail boundary')
+    }
+    const { hook, emit, historyCursors } = await mountWithOlderPages(
+      { [boundary.sequence]: corpus.tailOlder },
+      []
+    )
     act(() => emit(compactionTransportCorpus(7).snapshot))
     vi.useFakeTimers()
     try {
@@ -140,7 +147,9 @@ describe('useMobileStructuredAgentState older history', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(STRUCTURED_AGENT_SESSION_CLIENT_COALESCE_MS)
       })
-      if (corpus.snapshot.type !== 'snapshot') throw new Error('expected snapshot')
+      if (corpus.snapshot.type !== 'snapshot') {
+        throw new Error('expected snapshot')
+      }
       expect(hook.current!.state.items).toEqual(corpus.snapshot.page.items)
       expect(hook.current!.state.submissions).toEqual(corpus.snapshot.page.submissions)
       expect(hook.current!.state.cursor).toEqual(
@@ -151,15 +160,13 @@ describe('useMobileStructuredAgentState older history', () => {
       vi.useRealTimers()
     }
     act(() => hook.current!.loadEarlier())
-    await vi.waitFor(() => expect(historyCursors).toEqual([9]))
+    await vi.waitFor(() => expect(historyCursors).toEqual([boundary.sequence]))
     await vi.waitFor(() =>
-      expect(hook.current!.state.items.map((item) => item.itemId)).toEqual([
-        'turn',
-        'reply',
-        'child',
-        'prompt'
-      ])
+      expect(hook.current!.state.items).toEqual([...corpus.tailOlder.items, ...corpus.tail.items])
     )
+    expect(hook.current!.state.submissions).toEqual(corpus.snapshot.page.submissions)
+    expect(hook.current!.state.cursor).toEqual(corpus.tail.liveCursor)
+    expect(hook.current!.state.hasOlder).toBe(corpus.tailOlder.hasOlder)
   })
 
   it('keeps a row removed when its upsert and removal arrive within one streaming window', async () => {

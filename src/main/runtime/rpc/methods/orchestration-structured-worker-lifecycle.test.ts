@@ -287,7 +287,9 @@ describe('structured worker output', () => {
       const rawTerminal = await readStructuredWorkerTerminal({ handle: source.handle, db: null })
       const call = vi.fn()
       call.mockImplementation(async (method: string) => {
-        if (method !== 'orchestration.workerRead') throw new Error('unexpected CLI RPC')
+        if (method !== 'orchestration.workerRead') {
+          throw new Error('unexpected CLI RPC')
+        }
         return { result: await read() }
       })
       vi.spyOn(client, 'call').mockImplementation(call)

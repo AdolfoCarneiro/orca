@@ -224,7 +224,9 @@ it.each([
     const canonical = (id: string) => scenario.journal.canonicalItemId(id)
     const projection = (sequence: number) => {
       const read = scenario.journal.readSince({ epoch: scenario.journal.epoch, sequence })
-      if (!read.ok) throw new Error('unexpected cursor reset')
+      if (!read.ok) {
+        throw new Error('unexpected cursor reset')
+      }
       return projectJournalBatch({
         rows: read.rows,
         snapshot: scenario.journal.snapshot(),
@@ -263,14 +265,16 @@ it.each([
         },
         0
       )
-      if (sequence === 0)
+      if (sequence === 0) {
         state = {
           ...EMPTY_STRUCTURED_AGENT_SESSION,
           epoch: scenario.journal.epoch,
           cursor: { epoch: scenario.journal.epoch, sequence: 0 }
         }
-      for (const event of events)
+      }
+      for (const event of events) {
         state = reduceStructuredAgentSession(state, { type: 'event', event }, 0)
+      }
       return { events, state }
     }
     const baseline = Array.from({ length: 16 }, (_, sequence) => runSubscriber(sequence).state)
@@ -310,7 +314,9 @@ it.each([
           cursor,
           limit: 2
         })
-        if (!result.ok) throw new Error('unexpected sparse history reset')
+        if (!result.ok) {
+          throw new Error('unexpected sparse history reset')
+        }
         if (!result.page.hasNewer) {
           expect(result.page.window.nextCursor).toEqual(original.cursor)
           break
@@ -351,8 +357,12 @@ it.each([
         },
         { reader: { ...CLIENT_HISTORY_READER, budgetBytes: 1024 } }
       )
-      if (!result.ok) throw new Error('unexpected bounded sparse reset')
-      if (step === 0) expect(result.page.window.nextCursor.sequence).toBeLessThan(15)
+      if (!result.ok) {
+        throw new Error('unexpected bounded sparse reset')
+      }
+      if (step === 0) {
+        expect(result.page.window.nextCursor.sequence).toBeLessThan(15)
+      }
       client = reduceStructuredAgentSession(
         client,
         {
@@ -370,7 +380,9 @@ it.each([
         },
         0
       )
-      if (!result.page.hasNewer) break
+      if (!result.page.hasNewer) {
+        break
+      }
       expect(step).toBeLessThan(15)
     }
     expect(client.cursor).toEqual(original.cursor)
@@ -399,10 +411,22 @@ it.each([
     expect(events.at(-1)).toMatchObject(corpus.frame)
     expect(olderBefore).toEqual({ ok: true, page: corpus.older })
     expect(tailBefore).toEqual({ ok: true, page: corpus.tail })
+    if (!tailBefore.ok || !tailBefore.page.window.oldest) {
+      throw new Error('expected real producer tail boundary')
+    }
+    expect(
+      readAgentSessionHistory(scenario.journal, {
+        sessionId: COMPACTION_IDENTITY.sessionId,
+        direction: 'before',
+        cursor: tailBefore.page.window.oldest,
+        limit: 2
+      })
+    ).toEqual({ ok: true, page: corpus.tailOlder })
     if (capabilities.snapshotCatchUp) {
       // Retained non-item rows force a second catch-up page without expanding the visible window.
-      for (let index = 0; index <= AGENT_SESSION_HISTORY_MAX_LIMIT; index++)
+      for (let index = 0; index <= AGENT_SESSION_HISTORY_MAX_LIMIT; index++) {
         await scenario.journal.appendQueueResume(1)
+      }
       expect(scenario.journal.publicRead().normalizationKey).toBe('')
       expect(
         readAgentSessionHistory(scenario.journal, {
