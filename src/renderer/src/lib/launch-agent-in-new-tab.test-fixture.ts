@@ -1,22 +1,24 @@
-import { beforeEach, vi } from 'vitest'
+import { beforeEach, type Mock, vi } from 'vitest'
 import type { Project } from '../../../shared/project-types'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 
-const mockCreateTab = vi.fn()
+const mockCreateTab: Mock = vi.fn()
 function queuedStartups() {
   return mockCreateTab.mock.calls.flatMap((call) => call[3]?.pendingStartup ?? [])
 }
-const mockSetActiveTabType = vi.fn()
-const mockSetTabViewMode = vi.fn()
-const mockSetTabBarOrder = vi.fn()
-const mockSetAgentStatus = vi.fn()
-const mockPasteDraftWhenAgentReady = vi.fn()
-const mockSeedNativeChatLaunchPrompt = vi.fn()
-const mockSeedNativeChatLaunchDraft = vi.fn()
-const mockMarkNativeChatLaunchPromptFailed = vi.fn()
-const mockTrack = vi.fn()
-const mockToastMessage = vi.fn()
-const mockWaitForAgentReady = vi.fn()
+const mockSetActiveTabType: Mock = vi.fn()
+const mockSetTabViewMode: Mock = vi.fn()
+const mockSetTabBarOrder: Mock = vi.fn()
+const mockSetAgentStatus: Mock = vi.fn()
+const mockPasteDraftWhenAgentReady: Mock = vi.fn()
+const mockSeedNativeChatLaunchPrompt: Mock = vi.fn()
+const mockSeedNativeChatLaunchDraft: Mock = vi.fn()
+const mockMarkNativeChatLaunchPromptFailed: Mock = vi.fn()
+const mockTrack: Mock = vi.fn()
+const mockToastMessage: Mock = vi.fn()
+const mockWaitForAgentReady: Mock = vi.fn()
+
+const mockCloseTab: Mock = vi.fn()
 
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -79,7 +81,7 @@ const store = {
   >,
   ptyIdsByTabId: {} as Record<string, string[]>,
   createTab: mockCreateTab,
-  closeTab: vi.fn(),
+  closeTab: mockCloseTab,
   setActiveTabType: mockSetActiveTabType,
   setTabViewMode: mockSetTabViewMode,
   setTabBarOrder: mockSetTabBarOrder,
@@ -98,7 +100,7 @@ vi.mock('@/store', () => ({
   }
 }))
 
-const mockToastError = vi.fn()
+const mockToastError: Mock = vi.fn()
 
 vi.mock('sonner', () => ({
   toast: { message: mockToastMessage, error: mockToastError }
@@ -127,8 +129,8 @@ vi.mock('@/lib/telemetry', () => ({
   tuiAgentToAgentKind: (agent: string) => agent
 }))
 
-const mockCreateWebRuntimeSessionTerminal = vi.fn()
-const mockCreateWebRuntimeAgentSessionTerminalWithLaunchDraft = vi.fn()
+const mockCreateWebRuntimeSessionTerminal: Mock = vi.fn()
+const mockCreateWebRuntimeAgentSessionTerminalWithLaunchDraft: Mock = vi.fn()
 const mockIsWebRuntimeSessionActive = vi.fn(() => false)
 
 vi.mock('@/runtime/web-runtime-terminal-create-operation', () => ({
