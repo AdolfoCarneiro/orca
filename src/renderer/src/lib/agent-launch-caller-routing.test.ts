@@ -10,7 +10,8 @@ import {
 } from './agent-launch-caller-profiles-test-harness'
 import {
   createLaunchFunnelStore,
-  queuedStartupCommand,
+  createdTabOptions,
+  hostLaunchRequest,
   resetLaunchFunnelStore
 } from './agent-launch-funnel-test-harness'
 
@@ -263,7 +264,17 @@ describe('agent launch caller routing', () => {
     await expect(result?.structuredSettlement).resolves.toEqual({ kind: 'terminal' })
     expect(store.createTab).toHaveBeenCalledOnce()
     expect(store.createTab.mock.calls[0]?.slice(0, 2)).toEqual(['wt-1', 'group-1'])
-    expect(queuedStartupCommand(store)).toBe("claude '--model' 'sonnet'")
+    expect(hostLaunchRequest(store)).toMatchObject({
+      agent: 'claude',
+      target: { kind: 'existing', worktree: 'id:wt-1' },
+      agentArgs: '--model sonnet'
+    })
+    const options = createdTabOptions(store)
+    expect(options).toMatchObject({
+      id: store.createTab.mock.results[0]?.value.id,
+      initialLeafId: expect.any(String),
+      agentLaunchPane: { leafId: options?.initialLeafId }
+    })
     await expect(result?.promptDeliveryResult).resolves.toEqual({
       delivered: true,
       failureNotified: false
@@ -271,7 +282,10 @@ describe('agent launch caller routing', () => {
     const { pasteDraftWhenAgentReady } = await import('@/lib/agent-paste-draft')
     expect(pasteDraftWhenAgentReady).toHaveBeenCalledOnce()
     expect(pasteDraftWhenAgentReady).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'fix the flaky test' })
+      expect.objectContaining({ tabId: options?.id, content: 'fix the flaky test' })
+    )
+    await expect(vi.mocked(pasteDraftWhenAgentReady).mock.calls[0]?.[0].launchPty).resolves.toBe(
+      `${options?.id}-pty`
     )
     expect(mockToastInfo).not.toHaveBeenCalled()
     expect(mockLaunchAgentInWebHostTab).not.toHaveBeenCalled()

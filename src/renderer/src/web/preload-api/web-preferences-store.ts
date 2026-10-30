@@ -191,67 +191,68 @@ export async function syncRuntimeBackedSettings(
   updates: Partial<GlobalSettings>
 ): Promise<GlobalSettings> {
   const requestedEnvironment = requireActiveEnvironmentOrNull()
-  if (!requestedEnvironment) {
-    return getStoredSettings()
-  }
-  const runtimeUpdates: Partial<GlobalSettings> = {}
-  const visibilityDefaults = normalizeWorktreeVisibilityDefaults(updates.worktreeVisibilityDefaults)
-  if (visibilityDefaults) {
-    runtimeUpdates.worktreeVisibilityDefaults = visibilityDefaults
-  }
-  if (typeof updates.experimentalNewWorktreeCardStyle === 'boolean') {
-    runtimeUpdates.experimentalNewWorktreeCardStyle = updates.experimentalNewWorktreeCardStyle
-  }
-  if (typeof updates.compactWorktreeCards === 'boolean') {
-    runtimeUpdates.compactWorktreeCards = updates.compactWorktreeCards
-  }
-  if (typeof updates.minimaxGroupId === 'string') {
-    runtimeUpdates.minimaxGroupId = updates.minimaxGroupId
-  }
-  if (typeof updates.minimaxUsageModels === 'string') {
-    runtimeUpdates.minimaxUsageModels = updates.minimaxUsageModels
-  }
-  if (updates.minimaxEndpoint === 'overseas' || updates.minimaxEndpoint === 'cn') {
-    runtimeUpdates.minimaxEndpoint = updates.minimaxEndpoint
-  }
-  if (Array.isArray(updates.prBotAuthorOverrides)) {
-    runtimeUpdates.prBotAuthorOverrides = normalizePRBotAuthorOverrides(
-      updates.prBotAuthorOverrides
+  if (requestedEnvironment) {
+    const runtimeUpdates: Partial<GlobalSettings> = {}
+    const visibilityDefaults = normalizeWorktreeVisibilityDefaults(
+      updates.worktreeVisibilityDefaults
     )
-  }
-  Object.assign(runtimeUpdates, runtimeChatPermissionSetting(updates, false))
-  if (Object.keys(runtimeUpdates).length === 0) {
-    return getStoredSettings()
-  }
-  try {
-    const result = await callRuntimeResult<{ settings: Partial<GlobalSettings> }>(
-      'settings.update',
-      runtimeUpdates,
-      15_000
-    )
-    const runtimeSettings = stripRetiredWebChatSettings(result.settings)
-    delete runtimeSettings.agentDefaultSurface
-    delete runtimeSettings.nativeChatProviders
-    delete runtimeSettings.activeRuntimeEnvironmentId
-    const updatedVisibilityDefaults = normalizeWorktreeVisibilityDefaults(
-      runtimeSettings.worktreeVisibilityDefaults
-    )
-    if (
-      requireActiveEnvironmentOrNull()?.id === requestedEnvironment.id &&
-      updatedVisibilityDefaults
-    ) {
-      webRuntimeState.worktreeVisibilityDefaultsRuntimeEnvironmentId = requestedEnvironment.id
-      webRuntimeState.worktreeVisibilityDefaultsRuntimeValue = updatedVisibilityDefaults
-    }
-    delete runtimeSettings.worktreeVisibilityDefaults
-    return settleRuntimeSettings(runtimeSettings)
-  } catch (error) {
     if (visibilityDefaults) {
-      throw error
+      runtimeUpdates.worktreeVisibilityDefaults = visibilityDefaults
     }
-    // Why: unpaired/offline web clients still need local settings persistence.
-    return getStoredSettings()
+    if (typeof updates.experimentalNewWorktreeCardStyle === 'boolean') {
+      runtimeUpdates.experimentalNewWorktreeCardStyle = updates.experimentalNewWorktreeCardStyle
+    }
+    if (typeof updates.compactWorktreeCards === 'boolean') {
+      runtimeUpdates.compactWorktreeCards = updates.compactWorktreeCards
+    }
+    if (typeof updates.minimaxGroupId === 'string') {
+      runtimeUpdates.minimaxGroupId = updates.minimaxGroupId
+    }
+    if (typeof updates.minimaxUsageModels === 'string') {
+      runtimeUpdates.minimaxUsageModels = updates.minimaxUsageModels
+    }
+    if (updates.minimaxEndpoint === 'overseas' || updates.minimaxEndpoint === 'cn') {
+      runtimeUpdates.minimaxEndpoint = updates.minimaxEndpoint
+    }
+    if (Array.isArray(updates.prBotAuthorOverrides)) {
+      runtimeUpdates.prBotAuthorOverrides = normalizePRBotAuthorOverrides(
+        updates.prBotAuthorOverrides
+      )
+    }
+    Object.assign(runtimeUpdates, runtimeChatPermissionSetting(updates, false))
+    if (Object.keys(runtimeUpdates).length > 0) {
+      try {
+        const result = await callRuntimeResult<{ settings: Partial<GlobalSettings> }>(
+          'settings.update',
+          runtimeUpdates,
+          15_000
+        )
+        const runtimeSettings = stripRetiredWebChatSettings(result.settings)
+        delete runtimeSettings.agentDefaultSurface
+        delete runtimeSettings.nativeChatProviders
+        delete runtimeSettings.activeRuntimeEnvironmentId
+        const updatedVisibilityDefaults = normalizeWorktreeVisibilityDefaults(
+          runtimeSettings.worktreeVisibilityDefaults
+        )
+        if (
+          requireActiveEnvironmentOrNull()?.id === requestedEnvironment.id &&
+          updatedVisibilityDefaults
+        ) {
+          webRuntimeState.worktreeVisibilityDefaultsRuntimeEnvironmentId = requestedEnvironment.id
+          webRuntimeState.worktreeVisibilityDefaultsRuntimeValue = updatedVisibilityDefaults
+        }
+        delete runtimeSettings.worktreeVisibilityDefaults
+        return settleRuntimeSettings(runtimeSettings)
+      } catch (error) {
+        if (visibilityDefaults) {
+          throw error
+        }
+        // Why: unpaired/offline web clients still need local settings persistence.
+        return getStoredSettings()
+      }
+    }
   }
+  return getStoredSettings()
 }
 
 export async function updateRuntimePRBotAuthorOverride(args: {

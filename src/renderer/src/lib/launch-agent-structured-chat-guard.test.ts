@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { settleAgentLaunchPaneStart } from './agent-launch-pane-start'
 import { EVERY_AGENT_CHAT } from '../../../shared/native-chat/every-agent-chat.test-fixture'
 import type * as LaunchErrors from '@/lib/structured-agent-session-launch-errors'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -384,6 +385,26 @@ describe('structured chat adoption guard on the launch path', () => {
   it('opens the terminal, and no chat, when this machine declines the chat', async () => {
     store.unifiedTabsByWorktree = {}
     mockCreateSupport.mockResolvedValue({ supported: false, reason: 'wsl' })
+    mockCreateTab.mockImplementation(
+      (
+        _worktreeId: string,
+        _groupId?: string,
+        _unused?: unknown,
+        options?: {
+          id?: string
+          initialLeafId?: string
+          pendingStartup?: { agentLaunch?: unknown }
+        }
+      ) => {
+        const tab = { id: options?.id ?? 'tab-1' }
+        store.tabsByWorktree['wt-1'].push(tab)
+        const leafId = options?.initialLeafId
+        if (options?.pendingStartup?.agentLaunch && leafId) {
+          queueMicrotask(() => settleAgentLaunchPaneStart(tab.id, leafId, `${tab.id}-pty`))
+        }
+        return tab
+      }
+    )
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
 
     const result = launchAgentInNewTab({
