@@ -322,7 +322,7 @@ it('preserves moved setup owner, actions and failure states through collapse and
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Antigravity' }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Remove downloaded runtime' }))
     vi.mocked(removeManagedRuntime).mockRejectedValueOnce(new Error('Removal refused. Try again.'))
-    await userEvent.click(screen.getByRole('button', { name: 'Remove', exact: true }))
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
     expect(removeManagedRuntime).toHaveBeenCalledExactlyOnceWith(subject)
     await screen.findByText('Removal refused. Try again.')
     vi.mocked(callAntigravityChatSignIn).mockRejectedValueOnce(
@@ -360,7 +360,7 @@ it('preserves moved setup owner, actions and failure states through collapse and
       callbackUrl: 'invalid callback'
     })
     await screen.findByText('Paste the complete browser address.')
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(callAntigravityChatSignIn).toHaveBeenCalledWith(owner, 'Cancel', {
       flowId: 'late-moved'
     })

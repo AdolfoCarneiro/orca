@@ -396,11 +396,16 @@ describe('agent row chat or CLI', () => {
 
   it('uses native facts for the computer-wide mode and contextual facts for CLI settings', async () => {
     inventory.nativePrograms = ['claude']
-    for (const { native, contextual, cliDisabled } of [
+    const inventories: {
+      native: TuiAgent[] | null
+      contextual: TuiAgent[]
+      cliDisabled: boolean
+    }[] = [
       { native: ['claude'], contextual: [], cliDisabled: false },
       { native: [], contextual: ['claude'], cliDisabled: true },
       { native: null, contextual: ['claude'], cliDisabled: false }
-    ] satisfies { native: TuiAgent[] | null; contextual: TuiAgent[]; cliDisabled: boolean }[]) {
+    ]
+    for (const { native, contextual, cliDisabled } of inventories) {
       inventory.detected = contextual
       store.localDetectedAgentIdsByContext.host = native
       const settings = createGlobalSettingsFixture({ experimentalNativeChat: true })
