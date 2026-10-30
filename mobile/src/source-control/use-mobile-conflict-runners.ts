@@ -1,9 +1,10 @@
 import { useCallback } from 'react'
 import type { ConflictResolution } from '../../../src/shared/source-control-entry-actions'
 import { isMobileGitUnavailable } from './mobile-git-status'
+import { translate } from '../i18n/mobile-i18n'
 import {
   MOBILE_COMPLETE_MERGE_ACTION_ID,
-  MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE
+  mobileConflictNeedsNewerHostMessage
 } from './mobile-source-control-conflict-actions'
 import type { MobileGitStatusEntryView } from './mobile-source-control-screen-state'
 
@@ -28,7 +29,7 @@ export function useMobileConflictRunners({ sendGitRequest, runGitAction, runGitW
             ? err.code
             : undefined
         if (isMobileGitUnavailable(code, err instanceof Error ? err.message : undefined)) {
-          throw new Error(MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE)
+          throw new Error(mobileConflictNeedsNewerHostMessage())
         }
         throw err
       }
@@ -77,13 +78,17 @@ export function useMobileConflictRunners({ sendGitRequest, runGitAction, runGitW
 }
 
 function readCompleteMergeFailure(result: unknown): string | null {
+  const fallback = translate(
+    'sourceControl.conflictActions.completeMergeFailed',
+    'Complete merge failed'
+  )
   if (typeof result !== 'object' || result === null) {
-    return 'Complete merge failed'
+    return fallback
   }
   if ('success' in result && result.success === true) {
     return null
   }
   return 'error' in result && typeof result.error === 'string' && result.error
     ? result.error
-    : 'Complete merge failed'
+    : fallback
 }

@@ -1,12 +1,25 @@
 import type { ConflictResolution } from '../../../src/shared/source-control-entry-actions'
+import { translate, type Translate } from '../i18n/mobile-i18n'
 
 export const MOBILE_COMPLETE_MERGE_ACTION_ID = 'complete-merge'
 
-export const MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE =
-  'Update Orca on the computer running this workspace to resolve merge conflicts from your phone.'
+export function mobileConflictNeedsNewerHostMessage(): string {
+  return translate(
+    'sourceControl.conflictActions.needsNewerHost',
+    'Update Orca on the computer running this workspace to resolve merge conflicts from your phone.'
+  )
+}
 
-export const MOBILE_CONFLICT_RESOLUTION_LABELS: Record<ConflictResolution, string> = {
-  mark_resolved: 'Mark as resolved',
-  keep_file: 'Keep file',
-  keep_deletion: 'Keep deletion'
+export function mobileConflictResolutionLabel(
+  resolution: ConflictResolution,
+  t: Translate
+): string {
+  switch (resolution) {
+    case 'mark_resolved':
+      return t('sourceControl.conflictActions.markResolved', 'Mark as resolved')
+    case 'keep_file':
+      return t('sourceControl.conflictActions.keepFile', 'Keep file')
+    case 'keep_deletion':
+      return t('sourceControl.conflictActions.keepDeletion', 'Keep deletion')
+  }
 }

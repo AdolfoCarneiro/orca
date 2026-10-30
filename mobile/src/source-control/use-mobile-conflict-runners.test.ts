@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { act, create } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 import { useMobileConflictRunners } from './use-mobile-conflict-runners'
-import { MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE } from './mobile-source-control-conflict-actions'
+import { mobileConflictNeedsNewerHostMessage } from './mobile-source-control-conflict-actions'
 
 type Runners = ReturnType<typeof useMobileConflictRunners>
 
@@ -75,6 +75,6 @@ describe('useMobileConflictRunners', () => {
       }),
       (r) => r.completeMerge()
     )
-    expect(shown).toBe(MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE)
+    expect(shown).toBe(mobileConflictNeedsNewerHostMessage())
   })
 })

@@ -197,7 +197,6 @@ function initialState(): MobileSourceControlContentState {
     checkoutBranch: unusedAsync,
     abortConflictOperation: unusedAsync,
     resolveConflict: unusedAsync,
-    hasUnresolvedConflicts: false,
     completeMerge: unusedAsync,
     runActionSheetCommit: unusedAsync,
     runActionSheetCommitSequence: unusedAsync,

@@ -118,8 +118,7 @@ export function MobileSourceControlPanel({
     stagedCount,
     branchEntries,
     abortConflictOperation,
-    completeMerge,
-    hasUnresolvedConflicts
+    completeMerge
   } = state
   const ioBusy = busyAction !== null || openingPath !== null || openingBranchPath !== null
   const ready = screenState.kind === 'ready'
@@ -315,7 +314,9 @@ export function MobileSourceControlPanel({
           onAbortConflict={(operation) => void abortConflictOperation(operation)}
           // Failures render in the Changes body, so offer completion only where they can be read.
           onCompleteMerge={
-            activeTab === 'changes' && conflictOperation === 'merge' && !hasUnresolvedConflicts
+            activeTab === 'changes' &&
+            conflictOperation === 'merge' &&
+            !primaryActionArgs.hasUnresolvedConflicts
               ? () => void completeMerge()
               : null
           }

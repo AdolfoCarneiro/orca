@@ -14,7 +14,7 @@ import {
 } from './mobile-source-control-screen-state'
 import type { MobileSourceControlState } from './use-mobile-source-control-state'
 import { styles } from './mobile-source-control-styles'
-import { MOBILE_CONFLICT_RESOLUTION_LABELS } from './mobile-source-control-conflict-actions'
+import { mobileConflictResolutionLabel } from './mobile-source-control-conflict-actions'
 
 type RowState = Pick<
   MobileSourceControlState,
@@ -127,10 +127,17 @@ export function makeRenderFileRow(state: RowState, t: Translate) {
                   disabled={ioBusy}
                   onPress={() => void resolveConflict(item, resolution)}
                   hitSlop={4}
-                  accessibilityLabel={`${MOBILE_CONFLICT_RESOLUTION_LABELS[resolution]}: ${item.path}`}
+                  accessibilityLabel={t(
+                    'sourceControl.conflictActions.resolveFile',
+                    '{{action}}: {{path}}',
+                    {
+                      action: mobileConflictResolutionLabel(resolution, t),
+                      path: item.path
+                    }
+                  )}
                 >
                   <Text style={styles.conflictActionText}>
-                    {MOBILE_CONFLICT_RESOLUTION_LABELS[resolution]}
+                    {mobileConflictResolutionLabel(resolution, t)}
                   </Text>
                 </Pressable>
               ))}

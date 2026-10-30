@@ -3027,7 +3027,9 @@
       "cherryPickState": "cherry-pick",
       "changedCount": "{{count}} changed",
       "stagedCount": "{{count}} staged",
-      "branchCount": "{{count}} on branch"
+      "branchCount": "{{count}} on branch",
+      "completingMerge": "Completing…",
+      "completeMerge": "Complete merge"
     },
     "content": {
       "reconnecting": "Reconnecting to desktop...",
@@ -3307,6 +3309,14 @@
       "planModelUnavailable": "Model \"{{model}}\" is not available for {{label}}.",
       "planModelWithoutThinking": "Model \"{{model}}\" does not support a thinking effort level.",
       "planThinkingLevelInvalid": "Thinking level \"{{level}}\" is not valid for {{model}}."
+    },
+    "conflictActions": {
+      "resolveFile": "{{action}}: {{path}}",
+      "needsNewerHost": "Update Orca on the computer running this workspace to resolve merge conflicts from your phone.",
+      "markResolved": "Mark as resolved",
+      "keepFile": "Keep file",
+      "keepDeletion": "Keep deletion",
+      "completeMergeFailed": "Complete merge failed"
     }
   },
   "newWorkspace": {
