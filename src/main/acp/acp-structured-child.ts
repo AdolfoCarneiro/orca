@@ -26,7 +26,6 @@ export type AcpStructuredChild = Pick<
   unbindReadingControl?: () => void
   open: (signal: AbortSignal) => Promise<StructuredAgentSessionProviderOpenResult>
   closing?: Promise<boolean>
-  dispose: () => void
 }
 
 export function isAcpReadySession(
@@ -91,4 +90,21 @@ export function assertAcpBeforeSpawn(abandoned: () => boolean, agentName: string
   if (abandoned()) {
     throw new AgentSessionPreSpawnError(new Error(`${agentName} was closed before it started`))
   }
+}
+
+export function requireAcpLiveSession(
+  session: AcpStructuredChild | undefined,
+  agent: string,
+  sessionId: string
+): AcpStructuredSession {
+  if (
+    !session ||
+    !isAcpReadySession(session) ||
+    session.journalClosed !== null ||
+    session.closeRequested ||
+    session.connection.closed
+  ) {
+    throw new Error(`no live ${agent} child owns ${sessionId}`)
+  }
+  return session
 }

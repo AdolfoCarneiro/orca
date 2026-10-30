@@ -32,7 +32,7 @@ import {
 import { readAcpLiveOptions } from './acp-structured-options'
 import { writeAcpSessionOption } from './acp-session-option-write'
 import { stopAcpChildren, acpChildStopCapabilities } from './acp-structured-child-stop'
-import { acpStartupFailure, isAcpReadySession } from './acp-structured-child'
+import { acpStartupFailure, isAcpReadySession, requireAcpLiveSession } from './acp-structured-child'
 import { AcpStructuredChildren } from './acp-structured-child-lifecycle'
 import { AcpConversationCopies } from './acp-conversation-copies'
 import { AcpTextTasks } from './acp-text-task'
@@ -106,7 +106,6 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
         forceClose: (id) => void this.forceCloseSession(id)
       })
       if (attempt.signal.aborted) {
-        session.dispose()
         throw new Error('closed while starting')
       }
       this.children.sessions.set(sessionId, session)
@@ -171,7 +170,7 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
     input: Parameters<StructuredAgentSessionAdapter['dispatch']>[0]
   ): Promise<AgentSessionDispatchOutcome> {
     const lost = this.children.sessions.get(input.sessionId)
-    if (lost && lost.journalClosed !== null) {
+    if (lost && (lost.journalClosed !== null || lost.closeRequested)) {
       // Protocol loss prevents dispatch even before exit is proven.
       return rejectedAcpDispatch(lost)
     }
@@ -180,7 +179,11 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
     if (!Array.isArray(prompt)) {
       return { state: 'rejected', ...prompt }
     }
-    if (this.children.sessions.get(input.sessionId) !== session || session.journalClosed !== null) {
+    if (
+      this.children.sessions.get(input.sessionId) !== session ||
+      session.journalClosed !== null ||
+      session.closeRequested
+    ) {
       // Attachment reads may outlive the child; this send never reached it.
       return rejectedAcpDispatch(session)
     }
@@ -192,7 +195,9 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
       input.executionOptions,
       (key, value) => this.setOption({ sessionId, fence, key, value, signal }),
       () =>
-        this.children.sessions.get(input.sessionId) === session && session.journalClosed === null,
+        this.children.sessions.get(input.sessionId) === session &&
+        session.journalClosed === null &&
+        !session.closeRequested,
       signal
     )
     if (!optionsApplied) {
@@ -318,11 +323,11 @@ export class AcpStructuredSessionAdapter implements StructuredAgentSessionAdapte
   }
 
   private live(sessionId: string): AcpStructuredSession {
-    const session = this.children.sessions.get(sessionId)
-    if (!session || !isAcpReadySession(session) || session.journalClosed !== null) {
-      throw new Error(`no live ${this.deps.spec.agent} child owns ${sessionId}`)
-    }
-    return session
+    return requireAcpLiveSession(
+      this.children.sessions.get(sessionId),
+      this.deps.spec.agent,
+      sessionId
+    )
   }
 
   private readonly stopGraceMs = (): number => this.deps.stopGraceMs ?? ACP_STOP_GRACE_MS

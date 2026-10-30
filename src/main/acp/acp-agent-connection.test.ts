@@ -10,6 +10,7 @@ import {
   type AcpAgentConnection,
   type AcpAgentConnectionOptions
 } from './acp-agent-connection'
+import { startupReceiveRig } from './acp-startup-receive.test-support'
 import { AcpAuthRequiredError } from './acp-errors'
 import { AcpScriptedAgent, deferred, tick } from './acp-scripted-agent.test-support'
 
@@ -28,7 +29,7 @@ const prompt = [{ type: 'text', text: 'hello' }] as const
 
 function fixture(
   options: AcpAgentConnectionOptions = {},
-  behavior: { pid?: number | null; exitOnEnd?: boolean } = {}
+  behavior: { pid?: number | null; exitOnEnd?: boolean; brokenStdin?: boolean } = {}
 ) {
   const agent = new AcpScriptedAgent()
   const child = Object.assign(createFakePipedChild(), {
@@ -48,6 +49,9 @@ function fixture(
       child.emit('exit', 0, null)
       child.stdout.end()
     })
+  }
+  if (behavior.brokenStdin) {
+    child.stdin.destroy()
   }
   const connection = createAcpAgentConnection(
     {
@@ -453,6 +457,7 @@ it.each(['root-exit', 'requested-close'] as const)(
           status: 'in_progress'
         }
       })
+      await expect(sendHello(f, 'held-prompt')).resolves.toEqual({ state: 'admitted' })
       void f.rig.journal.readInOrder(() => writer.promise)
       for (let index = 0; index < 512; index++) {
         f.rig.eventSink.appendItem(
@@ -489,6 +494,12 @@ it.each(['root-exit', 'requested-close'] as const)(
           providerIdentity: expect.anything()
         })
       )
+      expect(
+        f.settled.filter((settled) => settled.clientMessageId === 'received-prompt')
+      ).toHaveLength(1)
+      expect(f.settled.filter((settled) => settled.clientMessageId === 'held-prompt')).toEqual([
+        expect.objectContaining({ clientMessageId: 'held-prompt', state: 'rejected' })
+      ])
       writer.resolve()
       const reopened = await f.rig.reopenJournal()
       const rows = reopened.snapshot().items
@@ -577,4 +588,169 @@ it('normalizes a received session/new identity and context before startup exit r
     await f.adapter.closeAll()
     await closeProviderTimelineRigs()
   }
+})
+
+it.each(['before-open', 'during-open', 'identity-failure', 'post-acquire-abort'] as const)(
+  'retains the original ACP receive owner through %s cleanup and SQLite reopen',
+  async (boundary) => {
+    const { SESSION, closeProviderTimelineRigs } =
+      await import('../native-chat/agent-session-timeline/provider-timeline-assembler-test-support')
+    const acquisition = await import('./acp-structured-acquire')
+    const controller = new AbortController()
+    const r = await startupReceiveRig({ identityFails: boundary === 'identity-failure' })
+    const { f } = r
+    // Delay at the actual acquisition-to-adapter handoff, retaining the real owner and protocol.
+    const original = acquisition.acquireAcpStructuredSession
+    const handoff = vi.spyOn(acquisition, 'acquireAcpStructuredSession')
+    handoff.mockImplementation(async (input) => {
+      const result = await original(input)
+      if (boundary === 'post-acquire-abort') {
+        r.notify(false)
+        controller.abort()
+      }
+      return result
+    })
+    try {
+      const acquiring = f.acquire({ waitForStart: false, signal: controller.signal })
+      if (boundary === 'identity-failure' || boundary === 'post-acquire-abort') {
+        await expect(acquiring).rejects.toThrow(
+          boundary === 'identity-failure' ? 'identity read failed' : 'closed while starting'
+        )
+        expect(f.ended).toHaveLength(0)
+      } else {
+        const acquired = await acquiring
+        r.notify(false)
+        const opening =
+          boundary === 'during-open'
+            ? f.adapter
+                .open({
+                  sessionId: SESSION,
+                  fence: 1,
+                  acquisitionGeneration: acquired.acquisitionGeneration,
+                  signal: controller.signal
+                })
+                .catch((error: unknown) => error)
+            : undefined
+        if (opening) {
+          await r.requested.promise
+        }
+        const closing = f.adapter.closeSession(SESSION)
+        await expect(
+          r.connections[0].prompt([{ type: 'text', text: 'too late' }])
+        ).rejects.toThrow()
+        await expect(closing).resolves.toBe(true)
+        if (opening) {
+          expect(await opening).toBeInstanceOf(Error)
+        }
+        expect(f.ended).toMatchObject([{ cause: 'requested-close', observedAt: 5_000 }])
+      }
+      expect(r.inputCompletions).toHaveLength(1)
+      await r.saved()
+      await expect(f.adapter.closeSession(SESSION)).resolves.toBe(true)
+      expect(r.inputCompletions).toHaveLength(1)
+      expect(r.children).toHaveLength(1)
+    } finally {
+      handoff.mockRestore()
+      for (const child of r.children) {
+        child.emit('exit', 0, null)
+        child.stdout.end()
+      }
+      await f.adapter.closeAll()
+      await closeProviderTimelineRigs()
+    }
+  }
+)
+
+it('finishes received output after false close, blocks replacement, then reacquires and settles after legitimate root proof', async () => {
+  const { SESSION, closeProviderTimelineRigs } =
+    await import('../native-chat/agent-session-timeline/provider-timeline-assembler-test-support')
+  const { sendHello } = await import('./acp-structured-adapter.test-support')
+  const r = await startupReceiveRig({ rootOnClose: false })
+  const { f } = r
+  try {
+    await f.acquire({ waitForStart: false })
+    r.notify(false)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const closing = f.adapter.closeSession(SESSION)
+    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await expect(closing).resolves.toBe(false)
+    expect(r.connections[0].exited).toBe(false)
+    expect(r.inputCompletions).toHaveLength(1)
+    expect(f.ended).toHaveLength(0)
+    await r.saved(false)
+    const blocked = expect(f.acquire({ waitForStart: false })).rejects.toMatchObject({
+      name: 'AgentSessionAcquisitionExitUnprovenError'
+    })
+    await vi.advanceTimersByTimeAsync(grace + 1_000)
+    await blocked
+    expect(r.children).toHaveLength(1)
+    expect(r.inputCompletions).toHaveLength(1)
+    r.children[0].emit('exit', 0, null)
+    await expect(f.adapter.closeSession(SESSION)).rejects.toMatchObject({
+      name: 'AgentSessionAcquisitionRootExitObservedError'
+    })
+    expect(f.ended).toMatchObject([{ cause: 'requested-close' }])
+    vi.useRealTimers()
+    await f.acquire()
+    expect(f.openFailure()).toBeUndefined()
+    expect(r.children).toHaveLength(2)
+    await expect(sendHello(f, 'after-root-proof')).resolves.toEqual({ state: 'admitted' })
+    await vi.waitFor(() => expect(f.settled).toHaveLength(1))
+    expect(f.settled[0]).toMatchObject({
+      clientMessageId: 'after-root-proof',
+      providerIdentity: { provider: 'orca', clientMessageId: 'after-root-proof' }
+    })
+    expect(r.agents[1].frames.filter((frame) => frame.method === 'session/prompt')).toHaveLength(1)
+    await expect(f.adapter.closeSession(SESSION)).resolves.toBe(true)
+    expect(f.ended).toHaveLength(2)
+    expect(r.inputCompletions).toHaveLength(2)
+    await r.saved()
+  } finally {
+    vi.useRealTimers()
+    for (const child of r.children) {
+      child.emit('exit', 0, null)
+      child.stdout.end()
+    }
+    await f.adapter.closeAll()
+    await closeProviderTimelineRigs()
+  }
+})
+
+it('transfers the finite startup prefix on source error and keeps that error explicit', async () => {
+  const { SESSION, closeProviderTimelineRigs } =
+    await import('../native-chat/agent-session-timeline/provider-timeline-assembler-test-support')
+  const r = await startupReceiveRig({ sourceFails: true })
+  try {
+    await r.f.acquire({ waitForStart: false })
+    r.notify(false)
+    await expect(r.f.adapter.closeSession(SESSION)).rejects.toThrow('startup source failed')
+    expect(r.inputCompletions).toHaveLength(1)
+    expect(r.inputCompletions[0]?.message).toBe('startup source failed')
+    expect(r.f.ended).toHaveLength(1)
+    await r.saved()
+  } finally {
+    for (const child of r.children) {
+      child.emit('exit', 0, null)
+      child.stdout.end()
+    }
+    await r.f.adapter.closeAll()
+    await closeProviderTimelineRigs()
+  }
+})
+
+it('owns completed input when a preclosed pipe reports loss inside connection construction', async () => {
+  const onClose = vi.fn()
+  const completed = Promise.withResolvers<void>()
+  const onInputComplete = vi.fn(() => completed.resolve())
+  const { connection, child } = fixture(
+    { onClose, onInputComplete },
+    { brokenStdin: true, exitOnEnd: false }
+  )
+  expect(connection.closed).toBe(true)
+  expect(onClose).toHaveBeenCalledOnce()
+  child.emit('exit', 0, null)
+  child.stdout.end()
+  await completed.promise
+  await expect(connection.close()).resolves.toBe(true)
+  expect(onInputComplete).toHaveBeenCalledOnce()
 })

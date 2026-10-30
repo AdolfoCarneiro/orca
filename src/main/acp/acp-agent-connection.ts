@@ -28,6 +28,8 @@ export type AcpAgentConnectionOptions = Omit<AcpSessionRuntimeOptions, 'peer'> &
     error: Error,
     context: { expected: boolean; exit: ProviderProcessExit; inputDone?: Promise<void> }
   ) => void | Promise<void>
+  /** Finite input and response normalization have finished; never join process cleanup here. */
+  onInputComplete?: (error?: Error) => void
   onOutput?: () => void
   signIn?: AcpSignInWatch
 }
@@ -47,6 +49,7 @@ export class AcpAgentConnection extends AcpSessionRuntime {
   private readonly diagnoseLifecycle: (message: string) => void
   private inputDone?: Promise<void>
   private exitPublication?: Promise<void>
+  private readonly onInputComplete: AcpAgentConnectionOptions['onInputComplete']
   readonly spawned: Promise<void>
 
   constructor(
@@ -102,20 +105,25 @@ export class AcpAgentConnection extends AcpSessionRuntime {
       onAuthAnswered: (signedIn) => signIn?.answered?.(signedIn),
       onClose: (error) => {
         lifecycle.error ??= error
+        // A preclosed pipe can report loss while the base constructor is still running.
+        void Promise.resolve()
+          .then(() => this.completeInput(error))
+          .catch((failure: unknown) => diagnose(`ACP input completion failed: ${String(failure)}`))
         if (lifecycle.closing || managed.rootVerdict === 'exited') {
           return
         }
-        void managed.close().then(
-          (result) => {
+        void managed
+          .close()
+          .then((result) => {
             if (result.root !== 'exited') {
               diagnose('ACP agent exit was not proven after transport failure')
             }
-          },
-          (failure: unknown) => diagnose(`ACP agent cleanup failed: ${String(failure)}`)
-        )
+          })
+          .catch((failure: unknown) => diagnose(`ACP agent cleanup failed: ${String(failure)}`))
         options.onClose?.(error)
       }
     })
+    this.onInputComplete = options.onInputComplete
     this.managed = managed
     this.lifecycle = lifecycle
     this.diagnoseLifecycle = diagnose
@@ -218,10 +226,14 @@ export class AcpAgentConnection extends AcpSessionRuntime {
     this.inputDone ??= Promise.resolve()
       .then(() => this.finishInput())
       .then(
-        () => super.close(error),
+        () => {
+          super.close(error)
+          this.onInputComplete?.(this.lifecycle.error ?? error)
+        },
         (failure: unknown) => {
           const error = failure instanceof Error ? failure : new Error(String(failure))
           super.close(error)
+          this.onInputComplete?.(error)
           throw error
         }
       )

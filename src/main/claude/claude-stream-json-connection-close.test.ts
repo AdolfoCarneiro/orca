@@ -560,3 +560,179 @@ it.each(['root-exit', 'requested-close', 'source-error'] as const)(
     }
   }
 )
+
+it('joins a real SDK decoded envelope held at public next beyond the former reader deadline', async () => {
+  mocks.refresh.mockReset().mockResolvedValue(undefined)
+  mocks.proveClaudeChildExit.mockReset().mockResolvedValue(true)
+  const child = fakeChild()
+  const held = Promise.withResolvers<void>()
+  const release = Promise.withResolvers<void>()
+  const rig = await openProviderTimelineRig()
+  const translator = createClaudeJournalTranslator({ sink: rig.eventSink })
+  const transferred: string[] = []
+  let nextSpy: { mockRestore(): void } | undefined
+  const connection = await openClaudeStreamJsonConnection(
+    { pathToClaudeCodeExecutable: 'claude', options: {}, cwd: '/work/repo' },
+    {
+      onMessage: (message) => {
+        transferred.push(String(message.uuid))
+        translator.handle({ type: 'message', sessionId: SESSION, message })
+      }
+    },
+    () => child,
+    (params) => {
+      const actual = query(params)
+      const next = actual.next.bind(actual)
+      // Keep the installed parser, queue, generator and cleanup; control its public receipt seam.
+      nextSpy = vi.spyOn(actual, 'next').mockImplementation(async (...args) => {
+        const result = await next(...args)
+        if (!result.done && 'uuid' in result.value && result.value.uuid === 'slow-result-2') {
+          held.resolve()
+          await release.promise
+        }
+        return result
+      })
+      return actual
+    }
+  )
+  try {
+    for (const index of [1, 2, 3]) {
+      child.stdout.write(
+        `${JSON.stringify({
+          type: 'user',
+          session_id: 'slow-provider',
+          uuid: `slow-result-${index}`,
+          message: {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: `slow-tool-${index}`,
+                content: `full delayed body ${index}`
+              }
+            ]
+          }
+        })}\n`
+      )
+    }
+    await held.promise
+    vi.useFakeTimers()
+    child.exitCode = 0
+    child.emit('exit', 0, null)
+    let retired = false
+    const closing = connection.close().then((proven) => {
+      translator.handle({ type: 'ended', sessionId: SESSION, reason: 'exit', observedAt: 2 })
+      translator.dispose()
+      retired = true
+      return proven
+    })
+    // Acquisition grace ends, then the former processing deadline passes with real work owned.
+    await vi.advanceTimersByTimeAsync(1_000 + CLAUDE_READER_DRAIN_AFTER_EXIT_MS + 1)
+    expect(retired).toBe(false)
+    expect(transferred).toEqual(['slow-result-1'])
+    await expect(connection.send({ type: 'user' })).rejects.toThrow()
+    release.resolve()
+    await expect(closing).resolves.toBe(true)
+    vi.useRealTimers()
+    expect(transferred).toEqual(['slow-result-1', 'slow-result-2', 'slow-result-3'])
+    const reopened = await rig.reopenJournal()
+    const tools = reopened.snapshot().items.filter((row) => row.body.kind === 'tool-call')
+    expect(tools.map((row) => row.itemId)).toEqual(
+      [1, 2, 3].map((index) => `orca:claude-tool%3Aslow-provider%3Aslow-tool-${index}`)
+    )
+    expect(tools.map((row) => row.body)).toEqual(
+      [1, 2, 3].map((index) =>
+        expect.objectContaining({
+          callId: `slow-tool-${index}`,
+          output: expect.objectContaining({
+            head: `full delayed body ${index}`,
+            byteLength: 19,
+            truncated: false
+          })
+        })
+      )
+    )
+  } finally {
+    vi.useRealTimers()
+    release.resolve()
+    child.stdout.end()
+    child.stderr.end()
+    await connection.close()
+    nextSpy?.mockRestore()
+    translator.dispose()
+    await closeProviderTimelineRigs()
+  }
+})
+
+it.each(['natural-valid', 'forced-valid', 'natural-invalid'] as const)(
+  'uses the SDK stdout facade final-envelope disposition for %s',
+  async (ending) => {
+    mocks.refresh.mockReset().mockResolvedValue(undefined)
+    mocks.proveClaudeChildExit.mockReset().mockResolvedValue(true)
+    const child = fakeChild()
+    const rig = await openProviderTimelineRig()
+    const translator = createClaudeJournalTranslator({ sink: rig.eventSink })
+    const transferred: string[] = []
+    const connection = await openClaudeStreamJsonConnection(
+      { pathToClaudeCodeExecutable: 'claude', options: {}, cwd: '/work/repo' },
+      {
+        onMessage: (message) => {
+          transferred.push(String(message.uuid))
+          translator.handle({ type: 'message', sessionId: SESSION, message })
+        }
+      },
+      () => child,
+      query
+    )
+    try {
+      const finalEnvelope = JSON.stringify({
+        type: 'user',
+        session_id: 'eof-provider',
+        uuid: 'final-envelope',
+        message: {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'eof-tool', content: 'complete final body' }
+          ]
+        }
+      })
+      child.stdout.write(ending === 'natural-invalid' ? finalEnvelope.slice(0, -1) : finalEnvelope)
+      if (ending !== 'forced-valid') {
+        child.stdout.end()
+      }
+      vi.useFakeTimers()
+      child.exitCode = 0
+      child.emit('exit', 0, null)
+      const closing = connection.close()
+      await vi.advanceTimersByTimeAsync(1_000)
+      await expect(closing).resolves.toBe(true)
+      vi.useRealTimers()
+      translator.handle({ type: 'ended', sessionId: SESSION, reason: 'exit', observedAt: 2 })
+      translator.dispose()
+      expect(transferred).toEqual(ending === 'natural-valid' ? ['final-envelope'] : [])
+      const reopened = await rig.reopenJournal()
+      const tools = reopened.snapshot().items.filter((row) => row.body.kind === 'tool-call')
+      if (ending === 'natural-valid') {
+        expect(tools.map((row) => row.itemId)).toEqual([
+          'orca:claude-tool%3Aeof-provider%3Aeof-tool'
+        ])
+        expect(tools[0].body).toMatchObject({
+          callId: 'eof-tool',
+          output: { head: 'complete final body', byteLength: 19, truncated: false }
+        })
+      } else {
+        expect(tools).toEqual([])
+      }
+      if (ending === 'forced-valid') {
+        expect(child.stdout.destroyed).toBe(false)
+      }
+    } finally {
+      vi.useRealTimers()
+      child.stdout.end()
+      child.stderr.end()
+      await connection.close()
+      translator.dispose()
+      await closeProviderTimelineRigs()
+    }
+  }
+)

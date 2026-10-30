@@ -18,6 +18,8 @@ export class FakeAcpChild extends AcpSessionRuntime implements AcpStructuredConn
   private closing = false
   private lostWith: Error | undefined
   private exitedWith: ProviderProcessExit | null = null
+  private inputCompletion?: Promise<void>
+  private exitPublication?: Promise<void>
   closes = 0
 
   constructor(
@@ -66,7 +68,11 @@ export class FakeAcpChild extends AcpSessionRuntime implements AcpStructuredConn
     this.closes += 1
     this.closing ||= this.exitedWith === null
     this.drainNotifications(error)
-    return this.proveClose().finally(() => super.close(error))
+    return this.proveClose().then(async (proven) => {
+      await this.completeInput(error)
+      await this.exitPublication
+      return proven
+    })
   }
   exit(status: ProviderProcessExit = FAKE_EXIT): void {
     if (this.exitedWith) {
@@ -75,14 +81,24 @@ export class FakeAcpChild extends AcpSessionRuntime implements AcpStructuredConn
     this.exitedWith = status
     const error =
       this.lostWith ?? new AcpConnectionClosedError(this.stderr || `${this.launch.command} exited`)
-    super.close(error)
-    this.connectionOptions.onExit?.(error, { expected: this.closing, exit: status })
+    const inputDone = this.completeInput(error)
+    this.exitPublication = Promise.resolve(
+      this.connectionOptions.onExit?.(error, { expected: this.closing, exit: status, inputDone })
+    )
     for (const listener of this.exitListeners.splice(0)) {
       listener(status)
     }
   }
+  private completeInput(error?: Error): Promise<void> {
+    this.inputCompletion ??= Promise.resolve().then(() => {
+      super.close(error)
+      this.connectionOptions.onInputComplete?.(this.lostWith ?? error)
+    })
+    return this.inputCompletion
+  }
   private lost(error: Error): void {
     this.lostWith ??= error
+    void this.completeInput(error)
     if (this.closing || this.exitedWith) {
       return
     }

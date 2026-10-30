@@ -401,7 +401,7 @@ describe('ACP startup that never answers', () => {
     expect(await rig.adapter.closeSession(SESSION)).toBe(true)
     expect(await opening).toBeInstanceOf(Error)
     expect(rig.child().exited).toBe(true)
-    expect(rig.ended).toMatchObject([{ cause: 'requested-close' }])
+    await waitFor(() => expect(rig.ended).toMatchObject([{ cause: 'requested-close' }]))
   })
 
   it('leaves a published child alone when the acquisition signal aborts later', async () => {
@@ -463,7 +463,7 @@ describe('ACP startup that never answers', () => {
     })
     expect(rig.spawned.filter((step) => step === 'spawn')).toHaveLength(1)
     child.exit()
-    expect(rig.ended).toMatchObject([{ cause: 'requested-close' }])
+    await waitFor(() => expect(rig.ended).toMatchObject([{ cause: 'requested-close' }]))
     expect(await rig.adapter.closeSession(SESSION)).toBe(true)
   })
 

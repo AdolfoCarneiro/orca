@@ -3,7 +3,7 @@ import { AgentSessionAcquisitionRootExitObservedError } from '../native-chat/age
 import { ProviderAcquisitionStarts } from '../provider-process/provider-acquisition-starts'
 import { isAcpReadySession, type AcpStructuredChild } from './acp-structured-child'
 import type { AcpStructuredConnection } from './acp-structured-connection'
-import { closeAcpSessionJournal, endAcpStructuredSession } from './acp-structured-session'
+import { endAcpStructuredSession } from './acp-structured-session'
 import { agentSessionFailureFact, providerDiagnostic } from '../../shared/agent-session-failure'
 import {
   ACP_STOP_GRACE_MS,
@@ -76,49 +76,34 @@ export class AcpStructuredChildren {
     if (!session || session.ended) {
       return true
     }
-    if (!isAcpReadySession(session)) {
-      session.closeRequested ||= requested && session.journalClosed === null
-      session.dispose()
-      session.closing ??= session.connection
-        .close()
-        .then((proven) => {
-          if (proven) {
-            this.finish(session, session.exitObservedAt ?? this.now())
+    session.closing ??= (async () => {
+      if (requested && session.journalClosed === null) {
+        session.closeRequested = true
+        if (isAcpReadySession(session)) {
+          await windDownAcpTurn(session, this.stopGraceMs())
+          if (session.ended) {
+            return true
           }
-          return proven
-        })
-        .finally(() => {
-          session.closing = undefined
-        })
-      return session.closing
-    }
-    if (requested && session.journalClosed === null) {
-      // Allow the running turn to settle before closing the process.
-      session.closeRequested = true
-      await windDownAcpTurn(session, this.stopGraceMs())
-      if (session.ended) {
-        return true
+        }
       }
-    }
-    // Preserve a connection loss's cause across later Stop calls.
-    if (session.journalClosed === null) {
-      session.closeRequested ||= requested
-      session.lane.flush()
-    }
-    const proven = await session.connection.close()
-    if (proven) {
-      this.finish(session, session.exitObservedAt ?? this.now())
-    }
-    return proven
+      const proven = await session.connection.close()
+      if (proven) {
+        this.finish(session, session.exitObservedAt ?? this.now())
+      }
+      return proven
+    })().finally(() => {
+      session.closing = undefined
+    })
+    return session.closing
   }
 
   finish(session: AcpStructuredChild, observedAt: number): void {
+    observedAt = session.exitObservedAt ?? observedAt
     if (isAcpReadySession(session)) {
       endAcpStructuredSession(session, observedAt, this.deps.onEvent)
     } else if (!session.ended) {
       session.ended = true
       session.exitObservedAt = observedAt
-      session.dispose()
       this.deps.onEvent?.({
         type: 'ended',
         sessionId: session.sessionId,
@@ -150,16 +135,16 @@ export class AcpStructuredChildren {
     ) {
       return
     }
-    if (!isAcpReadySession(session)) {
-      session.journalClosed = error.message || error.name
-      return
-    }
-    closeAcpSessionJournal(
-      session,
-      `${session.spec.agent} ACP connection closed: ${error.message || error.name}`,
-      error
-    )
-    void this.stop(session.sessionId, false)
+    session.events?.observeExit?.(session.turns?.heldSends)
+    session.journalClosed = isAcpReadySession(session)
+      ? `${session.spec.agent} ACP connection closed: ${error.message || error.name}`
+      : error.message || error.name
+    void this.stop(session.sessionId, false).catch(() => {
+      this.deps.logger?.warn('ACP child cleanup failed after connection loss', {
+        scope: 'acp-child-close',
+        sessionId: session.sessionId
+      })
+    })
   }
 
   private stopGraceMs(): number {
