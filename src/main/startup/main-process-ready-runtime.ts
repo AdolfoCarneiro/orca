@@ -9,8 +9,7 @@ import { browserManager } from '../browser/browser-manager'
 import { configureBrowserClientPageAutomationRuntime } from '../browser/browser-client-page-automation-runtime'
 import { BrowserClientPageCommandError } from '../browser/browser-client-page-command-failure'
 import { startPreGoneCrashSampling } from '../crash-reporting/process-gone-diagnostics'
-import { readZeroRtTimeLimit } from '../linux-rttime-limit'
-import { recordCrashBreadcrumb } from '../crash-reporting/crash-breadcrumb-store'
+import { refuseRealtimeSchedulingUnderZeroRtTime } from './linux-realtime-scheduling-guard'
 import { recordProcessGoneCrash } from './main-window-lifecycle-flags'
 import { handleGpuChildCrash } from './gpu-lifecycle'
 import { isGpuFallbackCrashCandidate } from '../crash-reporting/gpu-crash-fallback-decision'
@@ -48,6 +47,8 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   if (!store) {
     throw new Error('Store must be initialized before ready services')
   }
+  // Renderers fork from zygotes that exist already, so this must land before the first window.
+  await refuseRealtimeSchedulingUnderZeroRtTime()
   // Load interrupted deletion records before listings so first paint shows Deleting.
   await loadWorktreeRemovalRecordsForStore(store)
   initializeMainProcessObservers()
@@ -131,10 +132,6 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   }
   // Sample live processes: gone-time metrics omit dead children and already-released memory.
   startPreGoneCrashSampling()
-  const rtTimeLimit = readZeroRtTimeLimit()
-  if (rtTimeLimit) {
-    recordCrashBreadcrumb('linux_rttime_limit', rtTimeLimit)
-  }
   app.on('child-process-gone', (_event, details) => {
     recordProcessGoneCrash('child', details.type, details.reason, details.exitCode ?? null, {
       name: details.name,
