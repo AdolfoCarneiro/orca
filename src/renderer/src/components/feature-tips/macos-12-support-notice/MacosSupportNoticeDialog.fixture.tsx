@@ -1,6 +1,6 @@
-import { defineFixture } from '../../component-fixtures/component-fixture'
+import { defineFixture } from '../../../component-fixtures/component-fixture'
 import { MacosSupportNoticeDialog } from './MacosSupportNoticeDialog'
-import FeatureTipsModal from './FeatureTipsModal'
+import FeatureTipsModal from '../FeatureTipsModal'
 
 export const upgrade = defineFixture({
   width: 720,

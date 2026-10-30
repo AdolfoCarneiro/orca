@@ -37,7 +37,7 @@ import { registerMacKeyboardLayoutChangeNotifications } from './macos-keyboard-l
 import { isProfileStateSaveDelayed } from '../startup/profile-state-save-delay'
 import { readCommandStdout, readKeyboardInputSourceId } from './macos-keyboard-input-source'
 import { getWindowsAdministratorStatus } from '../windows/windows-administrator-status'
-import { getMacosUpgradeSupport } from '../macos-upgrade-support'
+import { getMacosUpgradeSupport } from '../macos-12-support-notice/upgrade-support'
 
 import type { ReconnectFactsFor } from '../persistence/window-save-view'
 

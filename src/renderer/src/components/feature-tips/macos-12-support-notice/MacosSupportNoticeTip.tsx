@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from 'react'
-import type { MacosUpgradeSupport } from '../../../../shared/macos-upgrade-support'
+import type { MacosUpgradeSupport } from '../../../../../shared/macos-12-support-notice/upgrade-support'
 import { openAppHttpLink } from '@/lib/app-http-link-open'
 import { MacosSupportNoticeDialog } from './MacosSupportNoticeDialog'
 
@@ -10,7 +10,7 @@ export function MacosSupportNoticeTip({
   open: boolean
   onOpenChange: (open: boolean) => void
 }): JSX.Element {
-  const [support, setSupport] = useState<MacosUpgradeSupport | null>(null)
+  const [support, setSupport] = useState<MacosUpgradeSupport | null>()
 
   useEffect(() => {
     let cancelled = false
@@ -20,7 +20,11 @@ export function MacosSupportNoticeTip({
           setSupport(result ?? null)
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) {
+          setSupport(null)
+        }
+      })
     return () => {
       cancelled = true
     }

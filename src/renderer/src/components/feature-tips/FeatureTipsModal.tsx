@@ -25,8 +25,8 @@ import { NativeChatUpgradeTipDialog } from './NativeChatUpgradeTipDialog'
 import { SessionSearchTipDialog } from './SessionSearchTipDialog'
 import { useSessionSearchTipSetup } from './use-session-search-tip-setup'
 import { VoiceDictationTipDialog } from './VoiceDictationTipDialog'
-import { MacosSupportNoticeTip } from './MacosSupportNoticeTip'
-import { isMacos12SupportNoticeEligible } from '../../../../shared/macos-upgrade-support'
+import { MacosSupportNoticeTip } from './macos-12-support-notice/MacosSupportNoticeTip'
+import { isMacos12SupportNoticeEligible } from '../../../../shared/macos-12-support-notice/upgrade-support'
 
 export default function FeatureTipsModal(): JSX.Element | null {
   const activeModal = useAppStore((s) => s.activeModal)

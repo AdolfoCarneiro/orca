@@ -1,15 +1,4 @@
-export type MacosUpgradeSupport = {
-  macos13: 'supported' | 'unsupported' | 'unknown'
-  modelIdentifier: string | null
-}
-
-export function isMacos12SupportNoticeEligible(
-  platform: { platform: string; osRelease: string },
-  webClient: boolean
-): boolean {
-  // The preload exposes getSystemVersion(), not the Darwin kernel release.
-  return !webClient && platform.platform === 'darwin' && /^12(?:\.|$)/u.test(platform.osRelease)
-}
+import type { MacosUpgradeSupport } from '../../shared/macos-12-support-notice/upgrade-support'
 
 // Ventura's Intel model boundaries: https://support.apple.com/en-us/102861.
 const VENTURA_INTEL_MODELS = {

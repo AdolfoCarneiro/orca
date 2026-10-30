@@ -1,7 +1,8 @@
 import { release } from 'node:os'
 import { app } from 'electron'
 import { runProcess } from '@orca/process-host'
-import { getIntelMacos13Support, type MacosUpgradeSupport } from '../shared/macos-upgrade-support'
+import type { MacosUpgradeSupport } from '../../shared/macos-12-support-notice/upgrade-support'
+import { getIntelMacos13Support } from './ventura-intel-models'
 
 let support: Promise<MacosUpgradeSupport> | undefined
 

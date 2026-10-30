@@ -24,7 +24,7 @@ describe('local macOS upgrade probe', () => {
 
   it('coalesces model reads and recommends Linux only for a known unsupported Intel model', async () => {
     runProcess.mockResolvedValue({ code: 0, stdout: 'MacBookPro13,3\n' })
-    const { getMacosUpgradeSupport } = await import('./macos-upgrade-support')
+    const { getMacosUpgradeSupport } = await import('./upgrade-support')
     const results = await Promise.all([getMacosUpgradeSupport(), getMacosUpgradeSupport()])
     expect(results).toEqual([
       { macos13: 'unsupported', modelIdentifier: 'MacBookPro13,3' },
@@ -35,20 +35,20 @@ describe('local macOS upgrade probe', () => {
 
   it('recognizes Apple Silicon even when Orca runs as x64 under Rosetta', async () => {
     app.runningUnderARM64Translation = true
-    const { getMacosUpgradeSupport } = await import('./macos-upgrade-support')
+    const { getMacosUpgradeSupport } = await import('./upgrade-support')
     expect(await getMacosUpgradeSupport()).toEqual({ macos13: 'supported', modelIdentifier: null })
     expect(runProcess).not.toHaveBeenCalled()
   })
 
   it('falls back to checking compatibility when the bounded model probe fails', async () => {
     runProcess.mockRejectedValue(new Error('sysctl unavailable'))
-    const { getMacosUpgradeSupport } = await import('./macos-upgrade-support')
+    const { getMacosUpgradeSupport } = await import('./upgrade-support')
     expect(await getMacosUpgradeSupport()).toEqual({ macos13: 'unknown', modelIdentifier: null })
   })
 
   it('never probes other platforms or newer macOS releases', async () => {
     const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('linux')
-    const { getMacosUpgradeSupport } = await import('./macos-upgrade-support')
+    const { getMacosUpgradeSupport } = await import('./upgrade-support')
     expect(await getMacosUpgradeSupport()).toBeNull()
     platform.mockReturnValue('darwin')
     system.release = '22.0.0'
