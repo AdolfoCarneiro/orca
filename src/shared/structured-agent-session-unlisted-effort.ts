@@ -32,7 +32,7 @@ export function withUnlistedEffort(
     .find((model) => model.id === modelId)
     ?.options.find((option) => option.id === 'effort')
   if (
-    (!listed || listed.includes(modelId)) &&
+    (listed?.includes(modelId) || (agent === 'pi' && !listed)) &&
     offered?.kind.type === 'select' &&
     offered.kind.choices.some((choice) => choice.value === effort.value)
   ) {
