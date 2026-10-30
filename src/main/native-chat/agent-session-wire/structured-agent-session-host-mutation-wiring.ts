@@ -1,3 +1,16 @@
+import {
+  cancelStructuredAgentSessionTurn,
+  respondToStructuredAgentSessionPrompt,
+  setStructuredAgentSessionOption,
+  changeStructuredAgentSessionThreadGoal
+} from './structured-agent-session-host-mutations'
+import type { StructuredAgentSessionCaller } from './structured-agent-session-host-types'
+import {
+  readStructuredAgentSessionOptions,
+  type StructuredAgentSessionOptionsReader
+} from './structured-agent-session-options-read'
+import { IN_PROCESS_OPTIONS_READER } from './structured-agent-session-option-observation'
+import { settleStructuredAgentSessionLateDispatch } from './structured-agent-session-late-dispatch'
 import * as agentStart from './structured-agent-session-agent-start'
 import type { StructuredAgentSessionAttachContext } from './structured-agent-session-attach-context'
 import type { StructuredAgentSessionClientDelivery } from './structured-agent-session-client-delivery'
@@ -20,6 +33,9 @@ type Inputs = {
   runtimeState: StructuredAgentSessionHostRuntimeState
   attachContext: () => StructuredAgentSessionAttachContext
   serialize: StructuredAgentSessionMutationContext['serialize']
+  trackProviderOperation: NonNullable<
+    StructuredAgentSessionMutationContext['trackProviderOperation']
+  >
   now: () => number
 }
 
@@ -51,6 +67,7 @@ export function createStructuredAgentSessionHostMutationContext(
     startFlights: input.runtimeState.startFlights,
     startupAttempts: input.runtimeState.startupAttempts,
     deliveryOrder: input.runtimeState.deliveryOrder,
+    trackProviderOperation: input.trackProviderOperation,
     joinChildClose: (sessionId) =>
       agentStart.joinClosingStructuredAgentSessionChild(input.attachContext(), sessionId),
     wakeDelivery: (sessionId) => input.conversationDelivery.loop.wake(sessionId),
@@ -58,5 +75,36 @@ export function createStructuredAgentSessionHostMutationContext(
     wakeQueuedDrain: (sessionId) => input.queued.drain.schedule(sessionId),
     acquireAborts: input.runtimeState.acquireAborts,
     now: input.now
+  }
+}
+
+/** Resolve context per call so moved maps/fences cannot become stale closures. */
+export function structuredAgentSessionMutationDelegates(
+  context: () => StructuredAgentSessionMutationContext
+) {
+  return {
+    cancel: (
+      caller: StructuredAgentSessionCaller,
+      params: Parameters<typeof cancelStructuredAgentSessionTurn>[2]
+    ) => cancelStructuredAgentSessionTurn(context(), caller, params),
+    respondToPrompt: (
+      caller: StructuredAgentSessionCaller,
+      params: Parameters<typeof respondToStructuredAgentSessionPrompt>[2]
+    ) => respondToStructuredAgentSessionPrompt(context(), caller, params),
+    setOption: (
+      caller: StructuredAgentSessionCaller,
+      params: Parameters<typeof setStructuredAgentSessionOption>[2]
+    ) => setStructuredAgentSessionOption(context(), caller, params),
+    changeThreadGoal: (
+      caller: StructuredAgentSessionCaller,
+      params: Parameters<typeof changeStructuredAgentSessionThreadGoal>[2]
+    ) => changeStructuredAgentSessionThreadGoal(context(), caller, params),
+    // Only in-process readers omit client identity.
+    readOptions: (
+      sessionId: string,
+      reader: StructuredAgentSessionOptionsReader = IN_PROCESS_OPTIONS_READER
+    ) => readStructuredAgentSessionOptions(context(), sessionId, reader),
+    settleLateDispatch: (input: Parameters<typeof settleStructuredAgentSessionLateDispatch>[1]) =>
+      settleStructuredAgentSessionLateDispatch(context(), input)
   }
 }

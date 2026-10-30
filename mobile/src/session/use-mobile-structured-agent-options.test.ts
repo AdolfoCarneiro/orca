@@ -545,6 +545,52 @@ describe('useMobileStructuredAgentOptions after a lost pick reply', () => {
   })
 })
 
+it('joins the post-receipt menu read with an unchanged phone option stamp', async () => {
+  const initial: AgentSessionOptionsResult = {
+    models: [{ id: 'family', label: 'Family', isDefault: false, efforts: [], effortsKnown: false }],
+    current: { model: 'family' }
+  }
+  const ready = deferred<AgentSessionOptionsResult>()
+  let reads = 0
+  const client = optionsClient(() => (++reads === 1 ? Promise.resolve(initial) : ready.promise))
+  const { mutate } = recordingMutate(async () =>
+    accepted({ key: 'model', value: 'family', options: { model: 'family' } }, true)
+  )
+  const harness = await mountOptions({
+    ...BASE,
+    agent: 'antigravity',
+    client: client.client,
+    mutate,
+    optionStamp: 'family|own'
+  })
+  expect(descriptorFor(harness.current().optionSnapshot, 'effort')).toBeUndefined()
+  await act(async () => {
+    expect(await harness.current().setStructuredOption('model', 'family')).toBe(true)
+  })
+  expect(descriptorFor(harness.current().optionSnapshot, 'model')?.settable).toBe(true)
+  await act(async () => {
+    ready.resolve({
+      ...initial,
+      models: [
+        {
+          id: 'family',
+          label: 'Family',
+          isDefault: false,
+          efforts: [
+            { value: 'low', label: 'Low' },
+            { value: 'high', label: 'High' }
+          ]
+        }
+      ],
+      current: { model: 'family', effort: 'low' }
+    })
+  })
+  await settle()
+  expect(currentValueOf(harness.current().optionSnapshot, 'effort')).toBe('low')
+  expect(descriptorFor(harness.current().optionSnapshot, 'effort')?.settable).toBe(true)
+  await harness.unmount()
+})
+
 it('phone retains a queried seed-catalog base across its fence until later metadata arrives', async () => {
   const catalog = deferred<AgentSessionModelCatalogResult>()
   let reads = 0
@@ -663,4 +709,55 @@ it('refuses a typed literal at an unresolved fence and accepts it when that fenc
   expect(result).toBe(true)
   expect(calls).toHaveLength(1)
   await view.unmount()
+})
+
+import type { PiRefreshFixtureModule } from '../../../src/shared/structured-agent-session-option-refresh.test-fixture-contract'
+const { piOptionRefreshContract } = await vi.importActual<PiRefreshFixtureModule>(
+  '../../../src/main/native-chat/agent-session-wire/structured-agent-session-option-refresh.test-fixture'
+)
+
+describe('Pi catalog refresh completion', () => {
+  piOptionRefreshContract(
+    async (host) => {
+      const first = optionsClient(
+        () => host.options(),
+        () => host.catalog()
+      )
+      const second = optionsClient(
+        () => host.options(),
+        () => host.catalog()
+      )
+      const { mutate } = recordingMutate(async (_call, fields) => {
+        if (typeof fields.value !== 'string') {
+          throw new Error('missing effort')
+        }
+        return accepted(await host.acceptEffort(fields.value), true)
+      })
+      const harness = await mountOptions({
+        ...BASE,
+        agent: 'pi',
+        sendSelection: true,
+        sessionId: host.record.sessionId,
+        client: first.client,
+        mutate
+      })
+      return {
+        snapshot: () => harness.current().optionSnapshot,
+        capture: () => harness.current().sendSelection().selection,
+        demand: () => harness.current().optionSurface.demandModelCatalog?.(),
+        pick: (value) => harness.current().setStructuredOption('effort', value),
+        replace: async (fence, otherHost) =>
+          harness.rerender({ fence, client: otherHost ? second.client : first.client }),
+        close: () => harness.unmount()
+      }
+    },
+    async (work) => {
+      await act(async () => {
+        work()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      await settle()
+    }
+  )
 })

@@ -33,18 +33,15 @@ function heading(from: AgentMessageSource): string {
     case 'task':
       return translate(
         'components.native-chat.agentMessage.taskFromCoordinator',
-        'Task from your coordinator'
+        'Task from coordinator'
       )
     case 'coordinator':
       return translate(
         'components.native-chat.agentMessage.messageFromCoordinator',
-        'Message from your coordinator'
+        'Message from coordinator'
       )
     case 'worker':
-      return translate(
-        'components.native-chat.agentMessage.updateFromWorker',
-        'Update from your worker'
-      )
+      return translate('components.native-chat.agentMessage.updateFromWorker', 'Update from worker')
     case 'generic':
       return translate('components.native-chat.agentMessage.messageFrom', 'Message from')
   }

@@ -11393,9 +11393,7 @@
           "installing": "インストール中…",
           "reviewLabel": "{{value0}} を確認してインストール",
           "review": "確認してインストール",
-          "retry": "再試行",
-          "disable": "無効にする",
-          "enable": "有効にする"
+          "retry": "再試行"
         },
         "PluginSettingsRow": {
           "loadingLogs": "ログを読み込み中…",
@@ -12497,15 +12495,13 @@
           "offTitle": "プラグインはオフです"
         },
         "PluginFilterPopover": {
-          "label": "プラグインを絞り込む",
           "kind": "カテゴリ",
           "catalog": "カタログ",
           "clear": "絞り込みをクリア",
           "themes": "テーマ",
           "languages": "言語",
           "icons": "アイコン",
-          "commands": "コマンドとパネル",
-          "machines": "マシンとレシピ"
+          "commands": "コマンドとパネル"
         },
         "PluginUpdateAllDialog": {
           "previewError": "このアップデートを読み取れませんでした",
@@ -12560,10 +12556,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "新しいアクセスがあるときだけ確認します"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "前のインストール済みプラグイン",
-          "next": "次のインストール済みプラグイン"
         },
         "PluginInUseAction": {
           "inUseDark": "使用中 · ダーク",
@@ -14640,6 +14632,9 @@
           "reconnectBody": "もう一度サインインして Orca Relay を使用するか、LAN を使用して Tailscale または同じ Wi-Fi 経由でペアリングします。",
           "notEntitledTitle": "Orca Relay はこの Orca アカウントには含まれていません。",
           "rateLimitedBody": "Orca Relay が混雑しています。1 分待って再試行するか、LAN を使用して Tailscale または同じ Wi‑Fi 経由でペアリングしてください。"
+        },
+        "relayClockSkewMessage": {
+          "message": "コンピューターの時計が約 {{seconds}} 秒ずれています。時刻の自動設定をオンにしてから、もう一度お試しください。"
         }
       },
       "gitlab": {
@@ -20872,7 +20867,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca の Codex は ~/.codex を使用するようになりました",
-      "description": "Codex は、フォルダーを信頼するか、コマンドを承認するかを再度要求する場合があります。 Orca のみに追加した MCP サーバーを再度追加します。"
+      "description": "Codex は、フォルダーを信頼するか、コマンドを承認するかを再度要求する場合があります。 Orca のみに追加した MCP サーバーを再度追加します。",
+      "dismiss": "閉じる"
     },
     "codexSharedServerBanner": {
       "title": "この Codex は他の Codex タブとサーバーを共有しています",

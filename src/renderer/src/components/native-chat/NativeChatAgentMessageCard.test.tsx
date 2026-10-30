@@ -236,7 +236,7 @@ it.each(['task', 'mail'] as const)(
     const renderMarkdown = vi.spyOn(markdown, 'NativeChatMarkdown')
     let mounted = render(card(message))
     expect(
-      screen.getByText(kind === 'task' ? 'Task from your coordinator' : 'Message from')
+      screen.getByText(kind === 'task' ? 'Task from coordinator' : 'Message from')
     ).toBeInTheDocument()
     expect(screen.getByText('task', { selector: 'strong' })).toBeInTheDocument()
     expect(convert).toHaveBeenCalled()

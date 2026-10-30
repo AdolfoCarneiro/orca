@@ -16,6 +16,7 @@ import type { AgentSessionAcceptedInputSources } from '../../../shared/agent-ses
 import { journalOpenReadRefusal } from '../agent-session-journal/journal-open-failure'
 import type { StructuredAgentSessionLiveOptions } from './structured-agent-session-adapter'
 import {
+  confirmedCurrentOptions,
   structuredAgentSessionCapabilityView,
   type StructuredAgentSessionRestingOptions as RestingOptions
 } from './structured-agent-session-option-models'
@@ -33,7 +34,8 @@ export async function readStructuredAgentSessionOptions(
   context: Pick<
     StructuredAgentSessionMutationContext,
     'deps' | 'serialize' | 'openConversation' | 'conversation'
-  >,
+  > &
+    Partial<Pick<StructuredAgentSessionMutationContext, 'deliveryOrder'>>,
   sessionId: string,
   reader: StructuredAgentSessionOptionsReader
 ): Promise<AgentSessionOptionsResult> {
@@ -47,7 +49,7 @@ export async function readStructuredAgentSessionOptions(
     savedOnly: reader.readsWithoutModel,
     deadline: reader.deadline
   })
-  const initial = () =>
+  const readCurrent = (allowJoin: boolean) =>
     context.serialize(sessionId, async () => {
       const session = await context.openConversation(sessionId).catch((error: unknown) => {
         throw journalOpenReadRefusal(error, context.deps.logger, sessionId)
@@ -55,6 +57,13 @@ export async function readStructuredAgentSessionOptions(
       const child = session?.child
       if (child && child.phase !== 'starting' && !adapter.readOptions) {
         throw new Error('structured_agent_session_options_unsupported')
+      }
+      const pending =
+        child && child.phase !== 'starting' && allowJoin
+          ? context.deliveryOrder?.optionsReady(sessionId)
+          : undefined
+      if (pending) {
+        return { kind: 'pending' as const, pending, records: undefined }
       }
       const observed =
         child && child.phase !== 'starting'
@@ -85,7 +94,11 @@ export async function readStructuredAgentSessionOptions(
         options: observed ?? null
       }
     })
-  const started = await initial()
+  let started = await readCurrent(true)
+  if (started.kind === 'pending') {
+    await started.pending.catch(() => undefined)
+    started = await readCurrent(false)
+  }
   const catalogScope = { records: started?.records ?? null, operation }
   const live: StructuredAgentSessionLiveOptions | null =
     started?.kind === 'live' ? started.options : null
@@ -99,7 +112,7 @@ export async function readStructuredAgentSessionOptions(
     ))
   let options: Omit<AgentSessionOptionsResult, 'rewind'>
   if (live) {
-    const { catalogListing, effortFixed: _fixed, ...answer } = live
+    const { catalogListing, effortFixed: _fixed, projectCurrent: _project, ...answer } = live
     options = answer
     // Fill missing live listings from saved catalog state; absent records keep the child’s answer.
     if (!catalogListing && !answer.listedModelIds && store.getConversation(sessionId)) {
@@ -112,16 +125,17 @@ export async function readStructuredAgentSessionOptions(
   }
   // Earlier reads may have closed/reopened the handle.
   const session = await context.conversation(sessionId)
-  const record = store.getConversation(sessionId)
-  const phase = record?.rewind?.phase
   const agent = session.params.provider
   const capabilities = agents.capabilities(agent)
   const floor = session.journal.context.floor()
   const contextFloor = floor ? { contextFloor: floor } : {}
+  const restingOptions = await atRest()
+  const resting = live ? restingOptions : null
+  const record = store.getConversation(sessionId)
   const permissionMode = record
     ? structuredAgentSessionImmediatePermission(context.deps, record)
     : null
-  const resting = live ? await atRest() : null
+  const phase = record?.rewind?.phase
   const selected = resting ?? options
   const independent = independentAgentModelCatalog(agent)
   const displayDefault =
@@ -132,6 +146,8 @@ export async function readStructuredAgentSessionOptions(
       : undefined
   const saved = record?.options ?? {}
   const model = saved.model ?? (options.current.model || selected.current.model || displayDefault)
+  const projected = live?.projectCurrent?.({ ...saved, ...(model ? { model } : {}) })
+  const reportedEffort = projected?.confirmed?.includes('effort') ? projected.effort : undefined
   const current = {
     ...selected.current,
     ...options.current,
@@ -169,13 +185,9 @@ export async function readStructuredAgentSessionOptions(
   if (saved.fastMode === undefined && selected.current.fastMode === false) {
     acceptedInputSources.fastMode = 'policy'
   }
-  const confirmed = options.current.confirmed?.filter((key) =>
-    key === 'model' || key === 'effort' || key === 'fastMode' || key === 'serviceTier'
-      ? current[key] === options.current[key]
-      : false
-  )
+  const confirmed = confirmedCurrentOptions(current, projected ?? options.current)
   if (independent) {
-    const { inventory, fallback, listedModelIds } = await atRest()
+    const { inventory, fallback, listedModelIds } = restingOptions
     if (saved.model === undefined && current.model && inventory.origin !== 'unknown') {
       current.model =
         inventory.models.find(
@@ -216,6 +228,7 @@ export async function readStructuredAgentSessionOptions(
     current: {
       ...current,
       acceptedInputSources,
+      ...(reportedEffort !== undefined ? { reportedEffort } : {}),
       defaulted,
       confirmed,
       ...(options.current.fastModeState ? { fastModeState: options.current.fastModeState } : {}),

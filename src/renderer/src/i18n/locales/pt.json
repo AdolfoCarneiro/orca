@@ -9247,10 +9247,6 @@
             "description": "Cores do app para este modo."
           }
         },
-        "InstalledPluginCarousel": {
-          "previous": "Plugins instalados anteriores",
-          "next": "Próximos plugins instalados"
-        },
         "PluginInUseAction": {
           "inUseDark": "Em uso · Escuro",
           "inUseLight": "Em uso · Claro",
@@ -16440,6 +16436,9 @@
           "96d651cb87": "Sessão de terminal",
           "93217b41c1": "Lista de worktrees",
           "89c7713645": "Tela inicial do Orca Mobile"
+        },
+        "relayClockSkewMessage": {
+          "message": "O relógio do seu computador está com uma diferença de cerca de {{seconds}} segundos. Ative a hora automática e tente novamente."
         }
       },
       "PullRequestConfirmation": {
@@ -21174,7 +21173,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "O Codex no Orca agora usa ~/.codex",
-      "description": "O Codex pode pedir novamente para confiar em pastas ou aprovar comandos. Adicione novamente os servidores MCP que você adicionou apenas no Orca."
+      "description": "O Codex pode pedir novamente para confiar em pastas ou aprovar comandos. Adicione novamente os servidores MCP que você adicionou apenas no Orca.",
+      "dismiss": "Descartar"
     },
     "codexSharedServerBanner": {
       "title": "Este Codex está compartilhando um servidor com suas outras abas do Codex",

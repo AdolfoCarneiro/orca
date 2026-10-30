@@ -11676,9 +11676,7 @@
           "installing": "Instalando…",
           "reviewLabel": "Revisar e instalar {{value0}}",
           "review": "Revisar e instalar",
-          "retry": "Reintentar",
-          "disable": "Desactivar",
-          "enable": "Activar"
+          "retry": "Reintentar"
         },
         "PluginSettingsRow": {
           "loadingLogs": "Cargando registros…",
@@ -12783,15 +12781,13 @@
           "offTitle": "Los plugins están desactivados"
         },
         "PluginFilterPopover": {
-          "label": "Filtrar plugins",
           "kind": "Categoría",
           "catalog": "Catálogo",
           "clear": "Borrar filtros",
           "themes": "Temas",
           "languages": "Lenguajes",
           "icons": "Iconos",
-          "commands": "Comandos y paneles",
-          "machines": "Máquinas y recetas"
+          "commands": "Comandos y paneles"
         },
         "PluginUpdateAllDialog": {
           "previewError": "No se pudo leer esta actualización",
@@ -12846,10 +12842,6 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "Solo vuelve a preguntar por accesos nuevos"
-        },
-        "InstalledPluginCarousel": {
-          "previous": "Plugins instalados anteriores",
-          "next": "Siguientes plugins instalados"
         },
         "PluginInUseAction": {
           "inUseDark": "En uso · Oscuro",
@@ -15013,6 +15005,9 @@
           "reconnectBody": "Inicia sesión de nuevo para usar Orca Relay, o usa LAN para emparejar mediante Tailscale o la misma red Wi‑Fi.",
           "notEntitledTitle": "Orca Relay no está incluido en esta cuenta de Orca.",
           "rateLimitedBody": "Orca Relay está ocupado. Espera un minuto y vuelve a intentarlo, o usa LAN para emparejar por Tailscale o la misma Wi‑Fi."
+        },
+        "relayClockSkewMessage": {
+          "message": "El reloj de tu computadora está desfasado unos {{seconds}} segundos. Activa la hora automática y vuelve a intentarlo."
         }
       },
       "gitlab": {
@@ -21234,7 +21229,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Codex en Orca ahora usa ~/.codex",
-      "description": "Codex puede volver a pedir que confíes en carpetas o apruebes comandos. Vuelve a agregar los servidores MCP que agregaste solo en Orca."
+      "description": "Codex puede volver a pedir que confíes en carpetas o apruebes comandos. Vuelve a agregar los servidores MCP que agregaste solo en Orca.",
+      "dismiss": "Descartar"
     },
     "paneMove": {
       "failed": "No se pudo mover el panel a una pestaña nueva."
