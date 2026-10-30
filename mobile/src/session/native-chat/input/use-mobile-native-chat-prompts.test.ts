@@ -185,7 +185,7 @@ describe('addressed phone hide subscriptions', () => {
       const messages: NativeChatMessage[] = [
         {
           ...askMessages[0]!,
-          get blocks() {
+          get blocks(): NativeChatMessage['blocks'] {
             scans += 1
             return [
               {

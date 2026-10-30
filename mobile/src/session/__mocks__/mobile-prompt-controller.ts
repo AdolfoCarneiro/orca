@@ -16,8 +16,9 @@ import type { AskAnswerSelection } from '../../../../src/shared/native-chat-ask-
 import { mobileNativeChatPromptDismissals } from '../native-chat/input/mobile-native-chat-prompt-dismissals'
 import { setMobileNativeChatDraftText } from '../native-chat/composer/mobile-native-chat-draft-store'
 export const visible = { value: true }
+const messages: NativeChatMessage[] = []
 export const session = {
-  messages: [] as NativeChatMessage[],
+  messages,
   folded: [],
   status: 'ready',
   transcriptLoading: false
