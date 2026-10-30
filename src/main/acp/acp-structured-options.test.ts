@@ -233,16 +233,6 @@ describe('ACP session options', () => {
             }
           }
           expect(choices).toBe(count * 2)
-          console.info({
-            models: count,
-            frame,
-            nativeChoiceParses: extract.mock.calls.length,
-            publicationVisits,
-            keyVisits: count * 2,
-            installationVisits,
-            choices,
-            serializedBytes: key.length
-          })
         }
       } finally {
         extract.mockRestore()
