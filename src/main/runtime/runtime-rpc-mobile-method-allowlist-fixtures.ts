@@ -32,8 +32,6 @@ export function createMobileRpcSurfaceRuntime() {
     .mockResolvedValue({ hasUpstream: true, ahead: 1, behind: 0 })
   const rebaseRuntimeGitFromBase: MobileRpcMock = vi.fn().mockResolvedValue({ ok: true })
   const abortRuntimeGitMerge: MobileRpcMock = vi.fn().mockResolvedValue({ ok: true })
-  const completeRuntimeGitMerge: MobileRpcMock = vi.fn().mockResolvedValue({ success: true })
-  const resolveRuntimeGitConflict: MobileRpcMock = vi.fn().mockResolvedValue({ ok: true })
   const abortRuntimeGitRebase: MobileRpcMock = vi.fn().mockResolvedValue({ ok: true })
   const bulkStageRuntimeGitPaths: MobileRpcMock = vi.fn().mockResolvedValue({ ok: true })
   const bulkUnstageRuntimeGitPaths: MobileRpcMock = vi.fn().mockResolvedValue({ ok: true })
@@ -134,8 +132,6 @@ export function createMobileRpcSurfaceRuntime() {
     getRuntimeGitUpstreamStatus,
     rebaseRuntimeGitFromBase,
     abortRuntimeGitMerge,
-    completeRuntimeGitMerge,
-    resolveRuntimeGitConflict,
     abortRuntimeGitRebase,
     bulkStageRuntimeGitPaths,
     bulkUnstageRuntimeGitPaths,
