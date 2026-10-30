@@ -10,7 +10,9 @@ import type { ProjectGroup } from '../../shared/project-group-types'
 import type { Repo } from '../../shared/repo-types'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { rewriteWorktreeIdPath } from '../../shared/worktree/id'
-import { wslUncPathToLinux } from '../../shared/wsl-paths'
+import { wslUncDrivePathToWindows } from '../../shared/wsl-paths'
+
+export { wslUncDrivePathToWindows }
 import { wslMoveRepoPaths } from '../persistence/moving-wsl-projects/wsl-move-scope'
 import type { WindowsDriveMount } from '../runtime/wsl-guest-drive-mountinfo'
 import { wslUncPathIsWindowsDriveFolder } from './wsl-drive-unc-mounts'
@@ -37,18 +39,6 @@ type WslDriveUncScopeState = {
   repos: readonly Repo[]
   folderWorkspaces: readonly FolderWorkspace[]
   projectGroups: readonly ProjectGroup[]
-}
-
-/** `\\wsl.localhost\<distro>\mnt\c\x` → `C:\x`; null for any other path. */
-export function wslUncDrivePathToWindows(path: string, distro: string): string | null {
-  const linux = wslUncPathToLinux(path, distro)?.replace(/\\/g, '/')
-  // Same rule as foldWslUncPathCaseInsensitiveParts: only lowercase `/mnt` is drvfs, any letter case.
-  const match = linux?.match(/^\/mnt\/([a-zA-Z])(\/.*)?$/)
-  if (!match) {
-    return null
-  }
-  const tail = (match[2] ?? '').replace(/\/+$/, '').replace(/\//g, '\\')
-  return `${match[1].toUpperCase()}:${tail || '\\'}`
 }
 
 export function collectWslDriveUncScope(
@@ -137,14 +127,8 @@ function refuseOverlaps(scope: WslDriveUncScope, repos: readonly Repo[], distro:
       .filter((entry) => entry.reason !== 'duplicate-windows-project')
       .map((entry) => entry.id)
   )
-  const comparable = (repo: Repo): string[] =>
-    wslMoveRepoPaths(repo).flatMap((path) => {
-      const drive = wslUncDrivePathToWindows(path, distro)
-      return drive ? [normalizeRuntimePathForComparison(drive)] : []
-    })
+  const comparable = (repo: Repo): string[] => driveRoots(wslMoveRepoPaths(repo), distro)
   const refusedRoots = repos.filter((repo) => refusedIds.has(repo.id)).flatMap(comparable)
-  const nests = (left: string, right: string): boolean =>
-    left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`)
   const overlapping = new Set(
     repos
       .filter((repo) => scope.repoIds.includes(repo.id))
@@ -157,6 +141,62 @@ function refuseOverlaps(scope: WslDriveUncScope, repos: readonly Repo[], distro:
   for (const id of overlapping) {
     scope.refused.push({ kind: 'repo', id, reason: 'overlaps-refused-project' })
   }
+}
+
+/** The picked projects and every convertible one nesting with them, which must convert together. */
+export function withNestedWslDriveUncProjects(
+  scope: WslDriveUncScope,
+  distro: string,
+  picked: { repoIds: readonly string[]; folderWorkspaceIds: readonly string[] },
+  /** The folders a conversion of just this project rewrites, its saved worktrees included. */
+  rewriteRoots: (project: { repoIds: string[]; folderWorkspaceIds: string[] }) => string[]
+): { repoIds: string[]; folderWorkspaceIds: string[] } {
+  const repoIds = new Set(picked.repoIds)
+  const folderWorkspaceIds = new Set(picked.folderWorkspaceIds)
+  const candidates = [
+    ...scope.repoIds.map((id) => ({
+      ids: repoIds,
+      id,
+      roots: driveRoots(rewriteRoots({ repoIds: [id], folderWorkspaceIds: [] }), distro)
+    })),
+    ...scope.folderWorkspaceIds.map((id) => ({
+      ids: folderWorkspaceIds,
+      id,
+      roots: driveRoots(rewriteRoots({ repoIds: [], folderWorkspaceIds: [id] }), distro)
+    }))
+  ]
+  for (let added = true; added;) {
+    added = false
+    const roots = candidates
+      .filter((entry) => entry.ids.has(entry.id))
+      .flatMap((entry) => entry.roots)
+    for (const entry of candidates) {
+      if (
+        !entry.ids.has(entry.id) &&
+        entry.roots.some((root) => roots.some((other) => nests(root, other)))
+      ) {
+        entry.ids.add(entry.id)
+        added = true
+      }
+    }
+  }
+  return { repoIds: [...repoIds], folderWorkspaceIds: [...folderWorkspaceIds] }
+}
+
+function driveRoots(paths: readonly string[], distro: string): string[] {
+  return paths.flatMap((path) => {
+    const drive = wslUncDrivePathToWindows(path, distro)
+    return drive ? [normalizeRuntimePathForComparison(drive)] : []
+  })
+}
+
+function nests(left: string, right: string): boolean {
+  return left === right || isInside(left, right) || isInside(right, left)
+}
+
+// Why: a drive root normalizes to `c:/`, which already ends in the separator.
+function isInside(path: string, folder: string): boolean {
+  return path.startsWith(folder.endsWith('/') ? folder : `${folder}/`)
 }
 
 /** The worktree id a converted project's worktree gets: same repo id, drive path. */

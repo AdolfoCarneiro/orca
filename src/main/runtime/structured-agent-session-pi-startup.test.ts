@@ -20,7 +20,10 @@ import {
   applyStructuredAgentSessionOptions,
   createStructuredAgentSessionOptionState
 } from '../../shared/structured-agent-session-options'
-import { structuredAgentSessionShownSnapshot } from '../../shared/structured-agent-session-option-view'
+import {
+  structuredAgentSessionShownSnapshot,
+  structuredAgentSessionMessageSelection
+} from '../../shared/structured-agent-session-option-view'
 import { readPiRpcModelOptions } from '../pi/rpc-options'
 import { piScriptedChild } from '../pi/pi-scripted-child.test-fixture'
 import { peekOpenedAgentSessionRecordStore } from './agent-session-record-store-slot'
@@ -36,7 +39,7 @@ const operationId = () => `${Date.now()}-${(++operations).toString(16).padStart(
 afterEach(async () => {
   await stopStructuredAgentSessionRuntime()
   if (directory) {
-    await rm(directory, { recursive: true, force: true })
+    await rm(directory, { recursive: true, force: true, maxRetries: 3 })
     directory = undefined
   }
 })
@@ -275,10 +278,12 @@ const stateInputs = (script: ReturnType<typeof piScriptedChild>) =>
 const sendText = (
   host: Awaited<ReturnType<typeof setup>>['host'],
   caller: { callerKey: string },
-  text: string
+  text: string,
+  selection?: Readonly<Record<string, string>>
 ) => {
   const body = hostTestMessage(text)
-  return host.send(caller, { envelope: envelope('agentSession.send', { body }), body })
+  const fields = { body, ...(selection !== undefined ? { selection } : {}) }
+  return host.send(caller, { envelope: envelope('agentSession.send', fields), ...fields })
 }
 
 function displayed(
@@ -377,16 +382,35 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
   })
   await vi.waitFor(async () =>
     expect((await h.host.readOptions(HOST_TEST_SESSION)).current).toMatchObject({
-      effort: 'minimal',
-      confirmed: expect.arrayContaining(['effort'])
+      effort: 'off',
+      reportedEffort: 'minimal'
     })
   )
+  const capture = (answer: Awaited<ReturnType<typeof h.host.readOptions>>) => {
+    const seed = structuredAgentSessionSeedCatalog('pi')
+    return structuredAgentSessionMessageSelection(
+      applyStructuredAgentSessionOptions(
+        createStructuredAgentSessionOptionState('pi', seed),
+        seed,
+        answer
+      )
+    )
+  }
   h.script.setNativeEffort('low')
-  expect((await sendText(h.host, h.caller, 'same raw off')).ok).toBe(true)
+  expect(
+    (
+      await sendText(
+        h.host,
+        h.caller,
+        'same raw off',
+        capture(await h.host.readOptions(HOST_TEST_SESSION))
+      )
+    ).ok
+  ).toBe(true)
   await vi.waitFor(async () =>
     expect((await h.host.readOptions(HOST_TEST_SESSION)).current).toMatchObject({
-      effort: 'low',
-      confirmed: expect.arrayContaining(['effort'])
+      effort: 'off',
+      reportedEffort: 'low'
     })
   )
   expect(stateInputs(h.script).at(-1)).toMatchObject({
@@ -403,6 +427,17 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
     seed,
     actual
   )
+  const exact = structuredAgentSessionMessageSelection(actualState)
+  expect(exact.effort).toBe('off')
+  expect((await sendText(h.host, h.caller, 'captured extension', exact)).ok).toBe(true)
+  await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(3))
+  expect(stateInputs(h.script).at(-1)).toMatchObject({
+    command: 'prompt',
+    params: { effort: 'low' }
+  })
+  expect(
+    stateInputs(h.script).filter(({ command }) => command === 'set_thinking_level')
+  ).toHaveLength(1)
   const late = applyStructuredAgentSessionModelCatalog(
     actualState,
     seed,
@@ -431,10 +466,40 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
   expect(displayed(future)).toMatchObject({ kind: { currentValue: 'high' } })
   expect(future.current.confirmed).not.toContain('effort')
   expect((await sendText(h.host, h.caller, 'accepted high')).ok).toBe(true)
-  await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(3))
+  await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(4))
   expect(stateInputs(h.script).slice(-2)).toMatchObject([
     { command: 'set_thinking_level', params: { level: 'high' } },
     { command: 'prompt', params: { effort: 'high' } }
+  ])
+  expect(
+    (
+      await h.host.setOption(h.caller, {
+        envelope: envelope('agentSession.setOption', { key: 'effort', value: 'minimal' }),
+        key: 'effort',
+        value: 'minimal'
+      })
+    ).ok
+  ).toBe(true)
+  const minimal = capture(await h.host.readOptions(HOST_TEST_SESSION))
+  expect(minimal.effort).toBe('minimal')
+  expect((await sendText(h.host, h.caller, 'raw minimal', minimal)).ok).toBe(true)
+  await vi.waitFor(async () =>
+    expect((await h.host.readOptions(HOST_TEST_SESSION)).current).toMatchObject({
+      effort: 'minimal',
+      reportedEffort: 'minimal'
+    })
+  )
+  expect(stateInputs(h.script).slice(-2)).toMatchObject([
+    { command: 'set_thinking_level', params: { level: 'minimal' } },
+    { command: 'prompt', params: { effort: 'minimal' } }
+  ])
+  const journal = await h.host.journalSnapshot(HOST_TEST_SESSION)
+  expect(journal.submissions.map(({ options }) => options?.effort)).toEqual([
+    'off',
+    'off',
+    'off',
+    'high',
+    'minimal'
   ])
 })
 

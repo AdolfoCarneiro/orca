@@ -67,7 +67,7 @@ export function createPiModelCatalogProbe(deps: PiModelCatalogProbeDeps): AgentM
     const operation = options?.operation ?? { signal: options?.signal }
     assertStructuredAgentResolutionCurrent(operation)
     const cwd = deps.homePath ?? homedir()
-    const { env, command } = await resolvePiRpcInvocation({
+    const { env, command, prefixArgs } = await resolvePiRpcInvocation({
       operation,
       accountDir: requireLegacyAgentSessionAccountHome(accountHome).path,
       resolveEnvironment: deps.resolveEnvironment,
@@ -77,13 +77,14 @@ export function createPiModelCatalogProbe(deps: PiModelCatalogProbeDeps): AgentM
       resolveWorkingDirectory: () => cwd
     })
     assertStructuredAgentResolutionCurrent(operation)
-    const release = await checkPiRpcVersion({ command, cwd, env }, deps.probeVersion)
+    const release = await checkPiRpcVersion({ command, prefixArgs, cwd, env }, deps.probeVersion)
     assertStructuredAgentResolutionCurrent(operation)
     if (release.status === 'tooOld') {
       throw new Error(`pi at ${command} does not run structured chats`)
     }
     const launch = buildPiRpcLaunch({
       command,
+      prefixArgs,
       cwd,
       ...piRpcSessionlessEnvironment(env),
       fullAccess: true
@@ -105,7 +106,7 @@ export function createPiModelCatalogProbe(deps: PiModelCatalogProbeDeps): AgentM
       }
       // Pi reads RPC input only after extensions start, so a startup dialog can block it; the listing exits first.
       const stdout = await (deps.runListing ?? runAgentModelCatalogListing)(
-        { ...launch, args: ['--list-models'] },
+        { ...launch, args: [...prefixArgs, '--list-models'] },
         { site: 'pi-model-catalog-probe', signal: options?.signal }
       )
       models = piModelCatalogFromListing(stdout)

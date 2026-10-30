@@ -137,6 +137,9 @@ function drawnModelControls(state: StructuredAgentSessionOptionState) {
   let values = normalises
     ? valuesUnderControls(catalog, controls, record.values, state.olderHost === true)
     : record.values
+  if (record.agent === 'pi' && state.reportedEffort !== undefined) {
+    values = { ...values, effort: { value: state.reportedEffort, source: 'reported' } }
+  }
   const requested = values.effort
   if (
     normalises &&
@@ -250,7 +253,9 @@ export function canSetStructuredAgentSessionOption(
     return (
       descriptor?.settable === true &&
       descriptor.kind.type === 'select' &&
-      descriptor.kind.choices.some((choice) => choice.value === value)
+      (value === 'own'
+        ? state.permissionOwnSupported === true
+        : descriptor.kind.choices.some((choice) => choice.value === value))
     )
   }
   return (

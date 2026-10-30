@@ -1,3 +1,13 @@
+import { structuredAgentSessionSeedCatalog } from '../../../shared/structured-agent-session-seed-catalog'
+import {
+  applyStructuredAgentSessionOptions,
+  createStructuredAgentSessionOptionState
+} from '../../../shared/structured-agent-session-options'
+import {
+  structuredAgentSessionMessageSelection,
+  structuredAgentSessionShownSnapshot
+} from '../../../shared/structured-agent-session-option-view'
+import { piOptionRefreshHost } from './structured-agent-session-option-refresh.test-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AgentSessionJournal } from '../agent-session-journal/journal-store'
 import { JournalStopAcceptor } from '../agent-session-journal/journal-stop-acceptance'
@@ -95,7 +105,7 @@ describe("a Stop's queue pause", () => {
     const catalogStore = new AgentModelCatalogStore()
     const models = (efforts: string[]) => [
       {
-        id: 'openai/gpt-5',
+        id: 'openai/model',
         label: 'GPT-5',
         isDefault: false,
         efforts: efforts.map((value) => ({ value, label: value }))
@@ -126,11 +136,23 @@ describe("a Stop's queue pause", () => {
       },
       'discovery'
     )
+    const pi = piOptionRefreshHost()
+    const seed = structuredAgentSessionSeedCatalog('pi')
+    const view = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('pi', seed),
+      seed,
+      await pi.read()
+    )
+    expect(
+      structuredAgentSessionShownSnapshot(view).find(({ id }) => id === 'effort')?.kind.currentValue
+    ).toBe('xhigh')
+    const selection = structuredAgentSessionMessageSelection(view)
+    expect(selection).toEqual({ model: 'openai/model', effort: 'medium' })
     const body = hostTestMessage('frozen medium')
     const fields = {
       body,
       delivery: 'queue-if-active' as const,
-      options: { model: 'openai/gpt-5', effort: 'medium' }
+      selection
     }
     const params = {
       ...fields,
@@ -153,10 +175,10 @@ describe("a Stop's queue pause", () => {
     const refreshed = await rig.host.readOptions(HOST_TEST_SESSION)
     expect(
       refreshed.models
-        .find((row) => row.id === fields.options.model)
+        .find((row) => row.id === fields.selection.model)
         ?.efforts.map((choice) => choice.value)
     ).toEqual(['off', 'minimal', 'low', 'xhigh'])
-    expect(journal.queuedMessages.get(id)?.options).toEqual(fields.options)
+    expect(journal.queuedMessages.get(id)?.options).toEqual(fields.selection)
     const pick = { key: 'effort', value: 'high' }
     expect(
       await rig.host.setOption(QUEUED_RIG_CALLER, {
@@ -174,18 +196,18 @@ describe("a Stop's queue pause", () => {
     expect(await rig.sendNow(id)).toMatchObject({ ok: true })
     await eventually(async () => {
       const submitted = await rig.handoff(id)
-      expect(submitted?.options).toEqual(fields.options)
+      expect(submitted?.options).toEqual(fields.selection)
       const dispatched = rig.dispatch.mock.calls.find(
         ([input]) => input.clientMessageId === submitted?.clientMessageId
       )
-      expect(dispatched?.[0].executionOptions).toEqual(fields.options)
+      expect(dispatched?.[0].executionOptions).toEqual(fields.selection)
     })
     const restored = rig.host
       .collaboratorsForTests()
       .sessions.get(HOST_TEST_SESSION)!
       .journal.queuedMessages.get(id)
     expect(restored?.fingerprint).toBe(frozen.fingerprint)
-    expect(restored?.options).toEqual(fields.options)
+    expect(restored?.options).toEqual(fields.selection)
     catalog.stop()
   })
 

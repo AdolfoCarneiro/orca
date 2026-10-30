@@ -1,3 +1,4 @@
+import type { KeybindingReasonCode } from './keybinding-diagnostic-copy'
 import type { TuiAgent } from '../tui-agent'
 
 export type KeybindingScope =
@@ -62,6 +63,7 @@ export type KeybindingActionId =
   | 'tab.newAgent'
   | AgentTabActionId
   | 'tab.newBrowser'
+  | 'tab.newBrowserSplitRight'
   | 'tab.newSimulator'
   | 'tab.newMarkdown'
   | 'tab.openMarkdown'
@@ -129,6 +131,13 @@ export type KeybindingFileDiagnostic = {
   message: string
   actionId?: string
   section?: string
+  /** Semantic id of `message`; renderers translate by it and fall back to `message`. */
+  code?: string
+  params?: Record<string, string | number>
+  /** Code of params.reason when that reason is an Orca sentence, not verbatim text. */
+  reasonCode?: string
+  /** Actions named by a conflict diagnostic, so renderers can show localized titles. */
+  actionIds?: string[]
 }
 
 export type KeybindingFileSnapshot = {
@@ -197,7 +206,9 @@ export type NormalizeKeybindingOptions = {
   allowShiftOnlyKeybindings?: boolean
 }
 
-export type KeybindingValidationResult = { ok: true; value: string } | { ok: false; error: string }
+export type KeybindingValidationResult =
+  | { ok: true; value: string }
+  | { ok: false; error: string; errorCode?: KeybindingReasonCode }
 
 export type KeybindingConflict = {
   binding: string

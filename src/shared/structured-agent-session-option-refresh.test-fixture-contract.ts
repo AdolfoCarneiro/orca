@@ -7,6 +7,7 @@ import type { SessionOptionDescriptor } from './native-chat/input/native-chat-se
 
 export type PiRefreshHarness = {
   snapshot: () => readonly SessionOptionDescriptor[]
+  capture: () => Readonly<Record<string, string>> | undefined
   demand: () => void
   pick: (value: string) => Promise<boolean>
   replace: (fence: number, otherHost?: boolean) => Promise<void>

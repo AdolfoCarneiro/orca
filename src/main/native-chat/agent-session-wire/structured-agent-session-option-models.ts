@@ -16,6 +16,8 @@ export type StructuredAgentSessionLiveOptions = AgentSessionOptionsResult & {
   /** Child/request-scoped actual or raw future intent; never serialized as a callback. */
   projectCurrent?: (saved: Readonly<Record<string, string>>) => AgentSessionOptionsResult['current']
   catalogListing?: AgentModelCatalogLiveListing
+  /** The running CLI cannot change effort mid-chat, whatever its catalog lists. */
+  effortFixed?: true
 }
 
 export type StructuredAgentSessionRestingOptions = Pick<

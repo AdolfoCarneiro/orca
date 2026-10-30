@@ -28,7 +28,8 @@ vi.mock('@/lib/agent-catalog', () => ({
 vi.mock('@/runtime/structured-agent-session-client', () => ({
   callStructuredAgentSession: mocks.call,
   supportsStructuredAgentSessionCreateMessage: async () => true,
-  supportsStructuredAgentSessionCreateOptionsMode: async () => true
+  supportsStructuredAgentSessionCreateOptionsMode: async () => true,
+  structuredAgentSessionHostSupports: async () => true
 }))
 
 vi.mock('@/runtime/local-structured-session-tabs-sync/inventory-refresh', () => ({
@@ -108,6 +109,10 @@ describe('a launch that adopts a conversation is its own identity', () => {
         { type: 'text', text: 'opening text' }
       ])
       expect(createParams()[0]?.options).toEqual({ model: 'openai/gpt-5', effort })
+      expect(createParams()[0]?.firstMessage?.selection).toMatchObject({
+        model: 'openai/gpt-5',
+        effort
+      })
     }
   )
 

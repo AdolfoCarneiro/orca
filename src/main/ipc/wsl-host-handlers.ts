@@ -19,11 +19,8 @@ import { WslHostService } from '../wsl/wsl-host-service'
 import { WslHostVisibleWorkByWindow } from './wsl-host-visible-work-windows'
 import type { WslHostAutomationWake } from '../wsl/wsl-host-automation-wake'
 import { createWslHostAutomationWake } from './wsl-host-automation-wake-wiring'
-import {
-  WSL_HOSTS_NEW_WORK_PAUSED_MESSAGE,
-  wslHostsGateOpen,
-  wslHostsServing
-} from '../wsl/wsl-host-gate'
+import { wslHostsGateOpen, wslHostsServing } from '../wsl/wsl-host-gate'
+import { wslHostAddRefusal } from '../wsl/wsl-host-add-admission'
 import {
   getWslHostService,
   setWslHostPhoneGate,
@@ -256,7 +253,7 @@ export function registerWslHostHandlers(args: WslHostHandlerArgs): void {
     ): Promise<WslHostAddResult> => {
       // Serve-only keeps saved hosts working but admits none.
       if (!wslHostsGateOpen()) {
-        return { ok: false, kind: 'disabled', message: WSL_HOSTS_NEW_WORK_PAUSED_MESSAGE }
+        return wslHostAddRefusal('disabled', 'newWorkPaused')
       }
       const result = await wsl.add(request)
       if (result.ok) {

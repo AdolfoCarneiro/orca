@@ -17,59 +17,70 @@ const AVAILABLE_MODELS = {
 }
 
 describe('Pi model catalog', () => {
-  it('lists each model with the menu a running chat shows, from a sessionless chat launch under the pinned account', async () => {
-    const launches: ProviderProcessLaunch[] = []
-    const close = vi.fn(async () => undefined)
-    const probe = createPiModelCatalogProbe({
-      resolveEnvironment: async () => ({
-        PATH: '/usr/bin',
-        HOME: '/home/user',
-        ORCA_PANE_KEY: 'p'
-      }),
-      resolveCommand: () => '/opt/pi/bin/pi',
-      probeVersion: async () => ({ version: '0.84.0' }),
-      homePath: '/home/user',
-      connect: (launch) => {
-        launches.push(launch)
-        return {
-          request: async (command) => {
-            expect(command).toBe('get_available_models')
-            return AVAILABLE_MODELS
-          },
-          close
+  it.each(['', `"${process.execPath}" run -- pi`])(
+    'lists the native menu through sessionless RPC for Command %j',
+    async (command) => {
+      const launches: ProviderProcessLaunch[] = []
+      const close = vi.fn(async () => undefined)
+      const probeVersion = vi.fn(async () => ({ version: '0.84.0' }))
+      const probe = createPiModelCatalogProbe({
+        resolveEnvironment: async () => ({
+          PATH: '/usr/bin',
+          HOME: '/home/user',
+          ORCA_PANE_KEY: 'p'
+        }),
+        resolveCommandSettings: () => ({ agentCmdOverrides: { pi: command } }),
+        resolveCommand: () => '/opt/pi/bin/pi',
+        probeVersion,
+        homePath: '/home/user',
+        connect: (launch) => {
+          launches.push(launch)
+          return {
+            request: async (command) => {
+              expect(command).toBe('get_available_models')
+              return AVAILABLE_MODELS
+            },
+            close
+          }
         }
-      }
-    })
-    const success = await probe({ variable: 'PI_CODING_AGENT_DIR', path: '/homes/pi-a' })
-    const levels = (values: string[]) => values.map((value) => ({ value, label: value }))
-    expect(success.models).toEqual([
-      {
-        id: 'openai/gpt-6',
-        label: 'GPT-6',
-        isDefault: false,
-        efforts: levels(['minimal', 'low', 'medium', 'high', 'xhigh'])
-      },
-      { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini', isDefault: false, efforts: [] }
-    ])
-    const live = await readPiRpcSessionOptions({
-      request: async (command) =>
-        command === 'get_available_models'
-          ? AVAILABLE_MODELS
-          : { sessionFile: '/s.jsonl', isStreaming: false, isCompacting: false }
-    })
-    expect(success.models).toEqual(live.models)
-    expect(launches).toEqual([
-      expect.objectContaining({
-        command: '/opt/pi/bin/pi',
-        cwd: '/home/user',
-        args: ['--mode', 'rpc', '--no-session'],
-        env: expect.objectContaining({ PI_CODING_AGENT_DIR: '/homes/pi-a' }),
-        // Orca's status extension stays silent in a probe that belongs to no pane.
-        envToDelete: expect.arrayContaining(['ORCA_PANE_KEY'])
       })
-    ])
-    expect(close).toHaveBeenCalledOnce()
-  })
+      const success = await probe({ variable: 'PI_CODING_AGENT_DIR', path: '/homes/pi-a' })
+      const levels = (values: string[]) => values.map((value) => ({ value, label: value }))
+      expect(success.models).toEqual([
+        {
+          id: 'openai/gpt-6',
+          label: 'GPT-6',
+          isDefault: false,
+          efforts: levels(['minimal', 'low', 'medium', 'high', 'xhigh'])
+        },
+        { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini', isDefault: false, efforts: [] }
+      ])
+      const live = await readPiRpcSessionOptions({
+        request: async (command) =>
+          command === 'get_available_models'
+            ? AVAILABLE_MODELS
+            : { sessionFile: '/s.jsonl', isStreaming: false, isCompacting: false }
+      })
+      expect(success.models).toEqual(live.models)
+      expect(launches).toEqual([
+        expect.objectContaining({
+          command: command ? process.execPath : '/opt/pi/bin/pi',
+          cwd: '/home/user',
+          args: [...(command ? ['run', '--', 'pi'] : []), '--mode', 'rpc', '--no-session'],
+          env: expect.objectContaining({ PI_CODING_AGENT_DIR: '/homes/pi-a' }),
+          // Orca's status extension stays silent in a probe that belongs to no pane.
+          envToDelete: expect.arrayContaining(['ORCA_PANE_KEY'])
+        })
+      ])
+      expect(probeVersion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          program: command ? process.execPath : '/opt/pi/bin/pi',
+          prefixArgs: command ? ['run', '--', 'pi'] : []
+        })
+      )
+      expect(close).toHaveBeenCalledOnce()
+    }
+  )
 
   it('falls back to the text listing when Pi cannot answer over RPC', async () => {
     const runListing = vi.fn(async () =>
@@ -81,6 +92,9 @@ describe('Pi model catalog', () => {
     )
     const probe = createPiModelCatalogProbe({
       resolveEnvironment: async () => ({ PATH: '/usr/bin' }),
+      resolveCommandSettings: () => ({
+        agentCmdOverrides: { pi: `"${process.execPath}" run -- pi` }
+      }),
       resolveCommand: () => '/opt/pi/bin/pi',
       probeVersion: async () => ({ version: '0.84.0' }),
       homePath: '/home/user',
@@ -98,7 +112,7 @@ describe('Pi model catalog', () => {
       ['openai/gpt-4o-mini', 0]
     ])
     expect(runListing).toHaveBeenCalledWith(
-      expect.objectContaining({ args: ['--list-models'] }),
+      expect.objectContaining({ args: ['run', '--', 'pi', '--list-models'] }),
       expect.objectContaining({ site: 'pi-model-catalog-probe' })
     )
   })

@@ -3,6 +3,7 @@ import { agentSessionConversationView } from '../../../shared/agent-session-conv
 import type { AgentSessionModelOption } from '../../../shared/agent-session-wire'
 import { createAgentModelCatalogService } from '../agent-model-catalog/agent-model-catalog-service'
 import { AgentModelCatalogStore } from '../agent-model-catalog/agent-model-catalog-store'
+import { PiRpcOptionObservations, type PiRpcOptionProof } from '../../pi/rpc-options'
 import { piOptionRefreshHost } from './structured-agent-session-option-refresh.test-fixture'
 
 const SESSION = 'session-1'
@@ -80,4 +81,41 @@ describe('host options row work', () => {
       expect(counts[1]![index]).toBeLessThanOrEqual(10 * counts[0]![index]!)
     }
   })
+})
+
+it('pairs the latest saved input with its report only after the resting read completes', async () => {
+  const host = piOptionRefreshHost()
+  host.record.options.effort = 'off'
+  const proof: PiRpcOptionProof = {
+    current: new Map([
+      ['model', host.record.options.model],
+      ['effort', 'off']
+    ]),
+    writes: new Map()
+  }
+  const observations = new PiRpcOptionObservations(proof, () => true)
+  observations.prepare()({
+    models: host.models,
+    current: { model: host.record.options.model, effort: 'minimal', confirmed: ['model', 'effort'] }
+  })
+  host.live = observations.read()
+  const entered = Promise.withResolvers<void>()
+  const catalog =
+    Promise.withResolvers<Awaited<ReturnType<NonNullable<typeof host.modelCatalog>['read']>>>()
+  host.modelCatalog = {
+    read: () => {
+      entered.resolve()
+      return catalog.promise
+    }
+  }
+  const answer = host.read()
+  await entered.promise
+  host.record.options.effort = 'high'
+  catalog.resolve(host.home)
+  const result = await answer
+  expect(result.current.effort).toBe('high')
+  expect(result.current.reportedEffort).toBeUndefined()
+  expect(result.current.confirmed).not.toContain('effort')
+  expect(result).not.toHaveProperty('projectCurrent')
+  expect(result).not.toHaveProperty('effortFixed')
 })

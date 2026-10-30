@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import { piOptionActualContract } from './structured-agent-session-option-actual.test-fixture'
 import type {
   AgentSessionModelCatalogResult,
   AgentSessionOptionResult,
@@ -142,6 +143,7 @@ export function piOptionRefreshContract(
   mount: PiRefreshMount,
   flush: (work: () => void) => Promise<void>
 ): void {
+  piOptionActualContract(piOptionRefreshHost, mount, flush)
   it('completes a catalog burst through the host with one active and one trailing read per owner at 6 and 60 owners', async () => {
     const counts: number[] = []
     for (const population of [6, 60]) {
@@ -154,6 +156,7 @@ export function piOptionRefreshContract(
       }
       for (const view of views) {
         assertView(view, 'xhigh')
+        expect(view.capture()?.effort).toBe('medium')
       }
       await flush(() => hosts.forEach((host) => host.initialCatalog.resolve(host.home)))
       expect(hosts.map((host) => host.requests.length)).toEqual(Array(population).fill(1))
@@ -228,21 +231,24 @@ export function piOptionRefreshContract(
     })
     await flush(() => view.demand())
     await flush(() => host.finish(0))
-    expect(host.requests).toHaveLength(1)
+    // Reads may complete while a controller write is pending; the raw overlay still wins.
+    expect(host.requests).toHaveLength(2)
+    expect(view.capture()?.effort).toBe('high')
     await flush(() => host.write.resolve())
     assertView(view, 'high', precise)
     expect(host.record.options.effort).toBe('high')
-    expect(host.requests).toHaveLength(2)
+    await flush(() => host.finish(1))
+    expect(host.requests).toHaveLength(3)
     // A held live answer carries future raw High, with no claim that the provider applied it.
     host.live = {
       models: [{ ...host.models[0]!, efforts: precise }],
       current: { model: host.record.options.model, effort: 'high' }
     }
-    await flush(() => host.finish(1))
+    await flush(() => host.finish(2))
     assertView(view, 'high', precise)
     host.home = { ...host.home, models: [{ ...host.models[0]!, efforts: levels(['minimal']) }] }
     await flush(() => view.demand())
-    await flush(() => host.finish(2))
+    await flush(() => host.finish(3))
     assertView(view, 'high', precise)
     expect(host.passiveReads).toBe(1)
     await view.close()
@@ -275,6 +281,11 @@ export function piOptionRefreshContract(
     expect(host.hostReads).toBe(afterHostChange)
     expect(view.snapshot()).toEqual(beforeOldHost)
     await flush(() => host.finish(3))
+    // A new host's catalog completion can supersede its first options read once.
+    expect(host.requests.length).toBeLessThanOrEqual(5)
+    if (host.requests.length === 5) {
+      await flush(() => host.finish(4))
+    }
     assertView(view, 'high', precise)
     expect(host.record.options.effort).toBe('medium')
     await view.close()
