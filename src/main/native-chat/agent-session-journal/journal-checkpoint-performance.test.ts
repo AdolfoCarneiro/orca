@@ -4,7 +4,10 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
-import type { AgentSessionJournalIdentity } from '../../../shared/agent-session-journal-types'
+import {
+  AGENT_JOURNAL_THREAD_SCOPE,
+  type AgentSessionJournalIdentity
+} from '../../../shared/agent-session-journal-types'
 import {
   createTrackedJournalOpener,
   insertTestJournalRow,
@@ -98,7 +101,7 @@ it.each([100, 1_000])(
         role: 'assistant',
         blocks: [{ type: 'text', text: 'changed' }]
       },
-      { fence: 1 }
+      { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
     stringify.mockClear()
     await journal.checkpoint()
