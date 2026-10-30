@@ -16,6 +16,8 @@ export type TreeNode = {
   /** Inferred from an opened link, not the parent's latest host listing. */
   isDirectoryFromOpenedLink?: boolean
   depth: number
+  /** Listed through a folder link that leads out of the project, so it opens by absolute path. */
+  outsideProject?: true
   /** Host snapshot that produced this node. Destructive actions fail closed without it. */
   operationOwner?: FileExplorerOperationOwner
 }

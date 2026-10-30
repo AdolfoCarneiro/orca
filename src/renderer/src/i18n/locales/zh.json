@@ -13747,8 +13747,7 @@
             "trashFailed": "无法将“{{name}}”移到废纸篓。"
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "无法打开符号链接目标",
-            "folderLinksOutsideProject": "此文件夹链接到项目之外，无法在此打开。"
+            "32cd9fd991": "无法打开符号链接目标"
           },
           "useFileExplorerImport": {
             "importFailedCount_other": "无法导入 {{count}} 个文件。",

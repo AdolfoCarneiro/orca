@@ -13,14 +13,17 @@ vi.mock('@/lib/connection-context', () => ({
   getConnectionIdForFile: boundaryMocks.getConnectionIdForFile
 }))
 
-const mocks = vi.hoisted(() => ({ statRuntimePath: vi.fn() }))
+const mocks = vi.hoisted(() => ({ statRuntimePath: vi.fn(), readRuntimeDirectory: vi.fn() }))
 
 vi.mock('@/runtime/runtime-file-routing', () => ({ isRemoteRuntimeFileOperation: () => false }))
 vi.mock('@/runtime/runtime-file-metadata-client', () => ({
   statRuntimePath: mocks.statRuntimePath
 }))
+vi.mock('@/runtime/runtime-file-mutation-client', () => ({
+  readRuntimeDirectory: mocks.readRuntimeDirectory
+}))
 
-import { statUserOpenedPath } from './user-opened-local-path'
+import { readUserOpenedDirectory, statUserOpenedPath } from './user-opened-local-path'
 
 const project: RuntimeFileOperationArgs = {
   target: { kind: 'local' as const },
@@ -125,5 +128,38 @@ describe('statUserOpenedPath', () => {
       { kind: 'user-file' },
       { wakeWslDistro: true }
     )
+  })
+})
+
+describe('readUserOpenedDirectory', () => {
+  const OUTSIDE = 'Access denied: path resolves outside allowed directories.'
+  const entries = [{ name: 'notes.md', isDirectory: false, isSymlink: false }]
+
+  beforeEach(() => {
+    mocks.readRuntimeDirectory.mockReset()
+    mocks.readRuntimeDirectory.mockImplementation(
+      async (_context: unknown, _path: string, options: { access?: unknown }) => {
+        if (!options.access) {
+          throw new Error(OUTSIDE)
+        }
+        return entries
+      }
+    )
+  })
+
+  it('lists a project folder link that leads outside with user-named access', async () => {
+    await expect(readUserOpenedDirectory(project, '/repo/linked', {})).resolves.toEqual({
+      entries,
+      escapesWorktree: true
+    })
+    expect(mocks.readRuntimeDirectory).toHaveBeenLastCalledWith(project, '/repo/linked', {
+      access: { kind: 'user-file' }
+    })
+  })
+
+  it('keeps refusing the project root and paths outside the project', async () => {
+    await expect(readUserOpenedDirectory(project, '/repo', {})).rejects.toThrow(OUTSIDE)
+    await expect(readUserOpenedDirectory(project, '/elsewhere', {})).rejects.toThrow(OUTSIDE)
+    expect(mocks.readRuntimeDirectory).toHaveBeenCalledTimes(2)
   })
 })

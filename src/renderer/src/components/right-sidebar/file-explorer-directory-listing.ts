@@ -6,7 +6,7 @@ import {
   readRuntimeDirectoryPage,
   runtimeDirectoryPagesSupported
 } from '@/runtime/runtime-directory-page-client'
-import { readRuntimeDirectory } from '@/runtime/runtime-file-mutation-client'
+import { readUserOpenedDirectory } from '@/lib/user-opened-local-path'
 import {
   FILE_READ_DIR_MAX_PAGE_ENTRIES,
   isDirListingTooLargeForRemoteError,
@@ -34,6 +34,8 @@ export type FileExplorerDirectoryListing = {
   operationOwner: FileExplorerOperationOwner
   more?: FileExplorerDirMore
   paged?: true
+  /** Listed through a folder link that leads out of the project. */
+  outsideProject?: true
 }
 
 export function fileExplorerEntriesToTreeNodes(
@@ -41,7 +43,8 @@ export function fileExplorerEntriesToTreeNodes(
   dirPath: string,
   depth: number,
   worktreePath: string | null,
-  operationOwner: FileExplorerOperationOwner
+  operationOwner: FileExplorerOperationOwner,
+  outsideProject = false
 ): TreeNode[] {
   return entries.filter(shouldIncludeFileExplorerEntry).map((entry) => {
     const path = joinPath(dirPath, entry.name)
@@ -52,7 +55,8 @@ export function fileExplorerEntriesToTreeNodes(
       isDirectory: entry.isDirectory,
       isSymlink: entry.isSymlink,
       depth: depth + 1,
-      operationOwner
+      operationOwner,
+      ...(outsideProject ? { outsideProject: true as const } : {})
     }
   })
 }
@@ -147,8 +151,12 @@ export async function readFileExplorerDirectory(
   if (!options.paged && !options.after) {
     try {
       // Older remote hosts may return lexical order; adaptive sorting keeps already-sorted local listings cheap.
-      const whole = await readRuntimeDirectory(context, dirPath, readOptions)
-      return { entries: sortDirEntries(whole), operationOwner }
+      const whole = await readUserOpenedDirectory(context, dirPath, readOptions)
+      return {
+        entries: sortDirEntries(whole.entries),
+        operationOwner,
+        ...(whole.escapesWorktree ? { outsideProject: true as const } : {})
+      }
     } catch (error) {
       if (
         !isDirListingTooLargeForRemoteError(error) ||

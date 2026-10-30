@@ -10828,8 +10828,7 @@
             "unresolved": "Não foi possível determinar qual host possui este espaço de trabalho. Verifique a conexão e tente novamente."
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "Não é possível abrir o destino do link simbólico",
-            "folderLinksOutsideProject": "Esta pasta aponta para fora do projeto, então não pode ser aberta aqui."
+            "32cd9fd991": "Não é possível abrir o destino do link simbólico"
           },
           "useFileExplorerKeys": {
             "8adb953095": "Falha na operação"

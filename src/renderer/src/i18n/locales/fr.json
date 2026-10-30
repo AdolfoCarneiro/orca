@@ -14325,8 +14325,7 @@
             "trashFailed": "Impossible de déplacer « {{name}} » vers la Corbeille."
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "Impossible d'ouvrir la cible du symlink",
-            "folderLinksOutsideProject": "Ce dossier pointe en dehors du projet ; il ne peut pas être ouvert ici."
+            "32cd9fd991": "Impossible d'ouvrir la cible du symlink"
           },
           "useFileExplorerImport": {
             "importFailedCount_one": "Échec de l'importation de {{count}} fichier.",

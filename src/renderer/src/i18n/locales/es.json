@@ -14101,8 +14101,7 @@
             "trashFailed": "No se pudo mover '{{name}}' a la Papelera."
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "No se puede abrir el destino del enlace simbólico",
-            "folderLinksOutsideProject": "Esta carpeta enlaza fuera del proyecto, así que no se puede abrir aquí."
+            "32cd9fd991": "No se puede abrir el destino del enlace simbólico"
           },
           "useFileExplorerImport": {
             "importFailedCount_one": "No se pudo importar {{count}} archivo.",

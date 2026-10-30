@@ -13916,8 +13916,7 @@
             "trashFailed": "無法將「{{name}}」移至垃圾桶。"
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "無法開啟符號連結目標",
-            "folderLinksOutsideProject": "此資料夾連結到專案之外，無法在此開啟。"
+            "32cd9fd991": "無法開啟符號連結目標"
           },
           "useFileExplorerImport": {
             "importFailedCount_other": "無法匯入 {{count}} 個檔案。",

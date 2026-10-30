@@ -13747,8 +13747,7 @@
             "trashFailed": "「{{name}}」をごみ箱に移動できませんでした。"
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "シンボリックリンクターゲットを開けません",
-            "folderLinksOutsideProject": "このフォルダーはプロジェクト外へのリンクのため、ここでは開けません。"
+            "32cd9fd991": "シンボリックリンクターゲットを開けません"
           },
           "useFileExplorerImport": {
             "importFailedCount_other": "{{count}} 個のファイルのインポートに失敗しました。",

@@ -1,6 +1,6 @@
 /** Declared access determines main’s checks; absent means the path must lie in a recognized project root. */
 export type LocalFileAccess =
-  /** A single file the user named (gesture or persisted tab): read in place, regular files only. */
+  /** A path the user named (gesture or persisted tab): a file read in place as a regular file, or a folder they opened listed. */
   | { kind: 'user-file' }
   /** A resource a document's content references (images): limited to that document's roots or folder. */
   | { kind: 'document-resource'; documentPath: string }

@@ -14097,8 +14097,7 @@
             "trashFailed": "'{{name}}' çöp kutusuna taşınamadı."
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "Sembolik bağlantı hedefi açılamıyor",
-            "folderLinksOutsideProject": "Bu klasör proje dışına bağlantı verdiği için burada açılamıyor."
+            "32cd9fd991": "Sembolik bağlantı hedefi açılamıyor"
           },
           "useFileExplorerImport": {
             "importFailedCount_other": "{{count}} dosya içe aktarılamadı.",

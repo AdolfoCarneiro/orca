@@ -14539,8 +14539,7 @@
             "permanentlyDeleteItems_many": "Безвозвратно удалить {{count}} элементов?"
           },
           "useFileExplorerHandlers": {
-            "32cd9fd991": "Не удалось открыть цель символической ссылки",
-            "folderLinksOutsideProject": "Эта папка ссылается за пределы проекта, поэтому её нельзя открыть здесь."
+            "32cd9fd991": "Не удалось открыть цель символической ссылки"
           },
           "useFileExplorerImport": {
             "importFailedCount_one": "Не удалось импортировать {{count}} файл.",

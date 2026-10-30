@@ -88,7 +88,7 @@ export async function activateFileExplorerNode(args: {
     toggleDir(activeWorktreeId, node.path)
     return
   }
-  let escapesWorktree = false
+  let escapesWorktree = node.outsideProject === true
   if (node.isSymlink) {
     // Resolve symlinks only on explicit activation because targets may be protected by macOS TCC.
     let target: { isDirectory: boolean; escapesWorktree?: boolean } | null = null
@@ -97,16 +97,7 @@ export async function activateFileExplorerNode(args: {
     } catch {
       // Let the editor report unresolved target errors instead of dead-ending the click.
     }
-    escapesWorktree = target?.escapesWorktree === true
-    if (target?.isDirectory && escapesWorktree) {
-      toast.error(
-        translate(
-          'auto.components.right.sidebar.useFileExplorerHandlers.folderLinksOutsideProject',
-          "This folder links outside the project, so it can't be opened here."
-        )
-      )
-      return
-    }
+    escapesWorktree ||= target?.escapesWorktree === true
     if (target?.isDirectory) {
       // A user's expand may start a stopped WSL distro.
       const loadedAsDirectory = await loadDir(node.path, node.depth, {
