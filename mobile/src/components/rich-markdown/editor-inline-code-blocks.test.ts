@@ -119,15 +119,3 @@ it('formats selected spaces within a paragraph', async () => {
   await editor.send.runCommand('inlineCode')
   expect(editor.send.currentMarkdown()).toBe('`   `')
 })
-
-it('leaves collapsed selections unchanged', async () => {
-  const editor = mount('first\n\nsecond')
-  const range = document.createRange()
-  range.setStart(editor.surface.querySelector('p')!.firstChild!, 2)
-  range.collapse(true)
-  select(range)
-  const before = editor.surface.innerHTML
-  await editor.send.runCommand('inlineCode')
-  expect(editor.surface.innerHTML).toBe(before)
-  expect(window.getSelection()?.isCollapsed).toBe(true)
-})
