@@ -4,8 +4,11 @@ import { useAppStore } from '@/store'
 import { shouldResetFileExplorerForVisibleWorktree } from './file-explorer-reset'
 import { clearFileExplorerUndoHistory } from './fileExplorerUndoRedo'
 import type { DirCache } from './file-explorer-types'
+import { takeRecentWorkspaceSwitchWake } from '@/lib/workspace-switch-user-act'
 
 type UseFileExplorerTreeLoadEffectsParams = {
+  /** The store worktree id, keying the user's own switches to this workspace. */
+  workspaceKey: string | null
   visibleFilesWorktreePath: string | null
   activeWorktreeId: string | null
   displayRootPath?: string | null
@@ -29,6 +32,7 @@ type UseFileExplorerTreeLoadEffectsParams = {
 }
 
 export function useFileExplorerTreeLoadEffects({
+  workspaceKey,
   visibleFilesWorktreePath,
   activeWorktreeId,
   displayRootPath = visibleFilesWorktreePath,
@@ -84,8 +88,9 @@ export function useFileExplorerTreeLoadEffects({
     lastResetWorktreePathRef.current = visibleFilesWorktreePath
     resetSelection()
     setNameFilterQuery('')
-    // Opening a workspace is a user act: it may start its stopped WSL distro.
-    resetAndLoad({ wakeWslDistro: true })
+    // Only the user's own switch here may start its stopped WSL distro (E9), once per switch.
+    const wake = workspaceKey !== null && takeRecentWorkspaceSwitchWake(workspaceKey, 'explorer')
+    resetAndLoad(wake ? { wakeWslDistro: true } : undefined)
     clearFileExplorerUndoHistory()
     return retireView
   }, [visibleFilesWorktreePath, activeWorktreeId, resetSelection]) // eslint-disable-line react-hooks/exhaustive-deps

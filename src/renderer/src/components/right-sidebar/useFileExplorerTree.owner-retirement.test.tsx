@@ -12,6 +12,10 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import {
+  noteUserWorkspaceSwitch,
+  resetWorkspaceSwitchUserActsForTests
+} from '@/lib/workspace-switch-user-act'
+import {
   gateRead,
   initializeExplorerSubscriptions,
   useVisibleTree,
@@ -298,6 +302,8 @@ it.each([100, 1000])(
         remove = vi.spyOn(AbortSignal.prototype, 'removeEventListener'),
         reset = vi.fn(),
         filter = vi.fn()
+      resetWorkspaceSwitchUserActsForTests()
+      noteUserWorkspaceSwitch('wt')
       const hook = renderHook(() => useVisibleTree(visibleProps, reset, filter, { kind: 'local' }))
       try {
         await act(async () => {

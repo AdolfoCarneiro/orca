@@ -1,4 +1,5 @@
 import { splitPathSegments } from './path-tree'
+import { fileExplorerListingToDirCache } from './file-explorer-dir-pages'
 import { refreshFileExplorerExpandedDirs } from './file-explorer-expanded-dirs-refresh'
 import { fileExplorerRefreshConcurrency } from './file-explorer-refresh-concurrency'
 import type { Dispatch, SetStateAction } from 'react'
@@ -14,7 +15,6 @@ import {
   getFileExplorerOperationRoute
 } from './file-explorer-operation-owner'
 import {
-  fileExplorerEntriesToTreeNodes,
   keepOpenedDirectoryLinks,
   clearFailedOpenedDirectoryLinks,
   readFileExplorerDirectory
@@ -91,12 +91,15 @@ export function useFileExplorerDirectoryLoads(
         updateLoadingDirPaths((prev) => clearFileExplorerDirsLoading(prev, [dirPath]))
       })
       token.started = true
+      const cached = dirCacheRef.current[dirPath]
       const execution = (async (): Promise<ReadOutcome> => {
         try {
           setDirCache((prev) => withPendingFileExplorerDirCacheEntries(prev, [dirPath]))
           updateLoadingDirPaths((prev) => markFileExplorerDirsLoading(prev, [dirPath]))
           const listing = await readFileExplorerDirectory(activeWorktreeId, worktreePath, dirPath, {
-            wakeWslDistro: options.wakeWslDistro
+            wakeWslDistro: options.wakeWslDistro,
+            paged: cached?.paged,
+            minEntries: cached?.children.length
           })
           if (!tracker.isCurrent(token) || signal.aborted || (canCommit && !canCommit())) {
             return 'superseded'
@@ -105,18 +108,12 @@ export function useFileExplorerDirectoryLoads(
             setRootError(null)
             setSourceWorkspaceId(activeWorktreeId?.trim() || null)
           }
-          const children = fileExplorerEntriesToTreeNodes(
-            listing.entries,
-            dirPath,
-            depth,
-            worktreePath,
-            listing.operationOwner
-          )
+          const listed = fileExplorerListingToDirCache(listing, dirPath, depth, worktreePath)
           setDirCache((prev) => ({
             ...prev,
             [dirPath]: {
-              children: keepOpenedDirectoryLinks(prev[dirPath]?.children, children, prev),
-              operationOwner: listing.operationOwner
+              ...listed,
+              children: keepOpenedDirectoryLinks(prev[dirPath]?.children, listed.children, prev)
             }
           }))
           staleDirsRef.current.delete(dirPath)
@@ -236,7 +233,10 @@ export function useFileExplorerDirectoryLoads(
         setDirCache,
         updateLoadingDirPaths,
         readDirectory: (dirPath) =>
-          readFileExplorerDirectory(activeWorktreeId, worktreePath, dirPath),
+          readFileExplorerDirectory(activeWorktreeId, worktreePath, dirPath, {
+            paged: dirCacheRef.current[dirPath]?.paged,
+            minEntries: dirCacheRef.current[dirPath]?.children.length
+          }),
         maxConcurrentReads: fileExplorerRefreshConcurrency(
           getFileExplorerOperationOwner(activeWorktreeId)
         ),

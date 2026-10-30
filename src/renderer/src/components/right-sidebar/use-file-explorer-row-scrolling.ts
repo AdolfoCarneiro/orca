@@ -28,6 +28,7 @@ type UseFileExplorerRowScrollingParams = {
   getRevealAuthority: FileExplorerRevealAuthority
   loadRevision: number
   observeDirForReveal: FileExplorerRevealObservation
+  loadMoreDir?: (dirPath: string) => Promise<void>
   setSelectedPath: (path: string | null) => void
   activeFileId: string | null
   openFiles: OpenFile[]
@@ -55,6 +56,7 @@ export function useFileExplorerRowScrolling({
   dirCache,
   loadingDirPaths,
   rootCache,
+  loadMoreDir,
   observeDirForReveal,
   getRevealAuthority,
   loadRevision,
@@ -100,6 +102,7 @@ export function useFileExplorerRowScrolling({
     loadingDirPaths,
     rootCache: displayRootPath ? dirCache[displayRootPath] : rootCache,
     rowProjection,
+    loadMoreDir,
     observeDirForReveal,
     getRevealAuthority,
     loadRevision,

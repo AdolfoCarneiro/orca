@@ -6,6 +6,10 @@ import { useFileExplorerTree } from './useFileExplorerTree'
 import { ORCA_WORKTREE_FILE_CHANGE_EVENT } from '@/hooks/worktree-file-change-event'
 import { FILE_EXPLORER_RUNTIME_REFRESH_CONCURRENCY } from './file-explorer-refresh-concurrency'
 import { useAppStore } from '@/store'
+import {
+  noteUserWorkspaceSwitch,
+  resetWorkspaceSwitchUserActsForTests
+} from '@/lib/workspace-switch-user-act'
 import { applyFileExplorerNavigation } from './file-explorer-keyboard-navigation'
 import type { TreeNode } from './file-explorer-types'
 import {
@@ -45,6 +49,7 @@ vi.mock('./file-explorer-operation-owner', async (original) => ({
   getFileExplorerOperationOwnerFromState: ownerMock
 }))
 beforeEach(() => {
+  resetWorkspaceSwitchUserActsForTests()
   initializeExplorerSubscriptions()
   vi.useFakeTimers()
   useAppStore.setState({
@@ -122,6 +127,7 @@ function StrictWrapper({ children }: PropsWithChildren) {
   return <StrictMode>{children}</StrictMode>
 }
 function renderVisibleTree(strict = false) {
+  noteUserWorkspaceSwitch('wt')
   const resetSelection = vi.fn()
   const setNameFilterQuery = vi.fn()
   return renderHook((props) => useVisibleTree(props, resetSelection, setNameFilterQuery, owner), {

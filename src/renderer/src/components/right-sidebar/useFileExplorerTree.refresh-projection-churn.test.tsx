@@ -21,7 +21,12 @@ import { directoryNode } from './file-explorer-tree-node-test-fixtures'
 import { visit, type ReactElementLike } from './file-explorer-element-tree-test-harness'
 import { useFileExplorerTree } from './useFileExplorerTree'
 import { useFileExplorerVisibleRowProjection } from './useFileExplorerVisibleRowProjection'
-import { gateRead } from './file-explorer-lifecycle-test-support'
+import {
+  gateRead,
+  useVisibleTree,
+  visibleProps,
+  initializeExplorerSubscriptions
+} from './file-explorer-lifecycle-test-support'
 
 const WORKTREE_PATH = '/repo'
 const SRC_DIR = '/repo/src'
@@ -88,6 +93,33 @@ describe('file explorer directory refresh churn', () => {
   afterEach(() => {
     cleanup()
     useAppStore.setState(initialAppState, true)
+  })
+
+  it('does not stack a second read on an expanded dir the loading set already owns', async () => {
+    initializeExplorerSubscriptions()
+    const reset = vi.fn(),
+      filter = vi.fn()
+    readDirectoryMock.mockResolvedValueOnce(listing(entry('src', true)))
+    const hook = renderHook(() =>
+      useVisibleTree({ ...visibleProps, id: 'wt-1' }, reset, filter, { kind: 'local' })
+    )
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const held = gateRead()
+    readDirectoryMock.mockClear().mockReturnValueOnce(held.promise)
+    act(() => hook.result.current.toggleDir('wt-1', SRC_DIR))
+    expect(readDirectoryMock).toHaveBeenCalledTimes(1)
+    expect(hook.result.current.loadingDirPaths.has(SRC_DIR)).toBe(true)
+    hook.rerender()
+    expect(readDirectoryMock).toHaveBeenCalledTimes(1)
+    await act(async () => held.resolve(listing(entry('current.ts'))))
+    expect(hook.result.current.dirCache[SRC_DIR].children[0].name).toBe('current.ts')
+    expect(hook.result.current.loadingDirPaths.has(SRC_DIR)).toBe(false)
+    hook.rerender()
+    expect(readDirectoryMock).toHaveBeenCalledTimes(1)
+    expect(readDirectoryMock.mock.calls[0][3]?.wakeWslDistro).toBe(true)
+    vi.unstubAllGlobals()
   })
 
   it.each([100, 1000])(
@@ -476,6 +508,7 @@ it.each([100, 1000])(
           [reconcile]
         )
         useFileExplorerTreeLoadEffects({
+          workspaceKey: null,
           visibleFilesWorktreePath: '/repo',
           activeWorktreeId: 'wt-1',
           displayRootPath: scope,

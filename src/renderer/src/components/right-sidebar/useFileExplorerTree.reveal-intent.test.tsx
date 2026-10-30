@@ -18,6 +18,34 @@ import {
   visibleProps
 } from './file-explorer-lifecycle-test-support'
 
+it('actual manual reveal reads the remaining root page before selecting and centering its target', async () => {
+  const more = { after: { name: 'old.txt', isDirectory: false } }
+  read.mockResolvedValueOnce({ ...listing('old.txt'), paged: true, more })
+  const current = renderInteractionTree(owner, true)
+  await settle()
+  const scroll = vi.spyOn(current().pane.rowScrolling.virtualizer, 'scrollToIndex')
+  const held = gateRead()
+  read.mockReturnValueOnce(held.promise)
+  act(() => useAppStore.getState().revealInExplorer('wt', '/repo/target.txt'))
+  await act(async () => {
+    await Promise.resolve()
+  })
+  expect(read).toHaveBeenLastCalledWith('wt', '/repo', '/repo', {
+    paged: true,
+    after: more.after
+  })
+  expect(current().selected).not.toBe('/repo/old.txt')
+  expect(useAppStore.getState().pendingExplorerReveal?.filePath).toBe('/repo/target.txt')
+  expect(scroll).not.toHaveBeenCalled()
+  await act(async () => held.resolve(listing('target.txt')))
+  expect(current().selected).toBe('/repo/target.txt')
+  expect(useAppStore.getState().pendingExplorerReveal).toBeNull()
+  await deliverRevealScroll()
+  expect(scroll).toHaveBeenCalledWith(1, { align: 'center' })
+  expect(screen.getByText('target.txt').dataset.flashing).toBe('true')
+  expect(read).toHaveBeenCalledTimes(2)
+})
+
 it.each(['held-root', 'parked-root', 'scoped-root'] as const)(
   'keeps zero-ancestor intent and typed DOM through %s until authoritative release',
   async (phase) => {

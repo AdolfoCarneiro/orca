@@ -6,6 +6,7 @@ import { useFileExplorerTreePaneState } from './use-file-explorer-tree-pane-stat
 import { useFileExplorerSelection } from './useFileExplorerSelection'
 import { useFileExplorerManualRefresh } from './useFileExplorerManualRefresh'
 import { useAppStore } from '@/store'
+import { getLocalPathOpenOwnerForRoute } from '@/lib/local-path-open-guard'
 import { getVisibleFileExplorerWorktreePath } from './file-explorer-reset'
 import { getExplorerDisplayRootPath } from './file-explorer-display-root'
 import { createVisibleFileExplorerRowProjection } from './useFileExplorerVisibleRowProjection'
@@ -33,7 +34,12 @@ export function useVisibleTree(
     { dirCache: tree.dirCache, expanded, worktreePath: root, displayRootPath: scope },
     { showDotfiles: true, showGitIgnoredFiles: true, ignoredSet: new Set() }
   )
-  const selection = useFileExplorerSelection(projection, false)
+  const pathOwner = getLocalPathOpenOwnerForRoute({
+    runtimeEnvironmentId: owner.kind === 'runtime' ? owner.environmentId : null,
+    connectionId: owner.kind === 'ssh' ? owner.connectionId : null,
+    ownerUnresolved: owner.kind === 'unresolved'
+  })
+  const selection = useFileExplorerSelection(projection, false, pathOwner)
   const { resetSelection: resetSelected } = selection
   const reset = useCallback(() => {
     resetSelected()
@@ -57,7 +63,8 @@ export function useVisibleTree(
     selectedNode: selection.selectedPath ? projection.getRowByPath(selection.selectedPath) : null,
     rowProjection: projection,
     rowExpandedPaths: expanded,
-    visibleRowCount: projection.getVisibleCount()
+    visibleRowCount: projection.getVisibleCount(),
+    pathOwner
   })
   const manual = useFileExplorerManualRefresh(tree.refreshTree)
   return {

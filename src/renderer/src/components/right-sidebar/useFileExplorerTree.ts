@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
-  FileExplorerTreeRefreshOutcome,
+  FileExplorerTreeRefreshOutcome as ReadOutcome,
   UseFileExplorerTreeResult,
   FileExplorerDirectoryReadOptions as ReadOptions
 } from './file-explorer-types'
 import { useFileExplorerRevealObservation } from './use-file-explorer-reveal-observation'
-import { splitPathSegments } from './path-tree'
+import { getDirectoryReadDepth, getDirectoriesToRead } from './file-explorer-paths'
+import { useFileExplorerLoadMoreDir } from './use-file-explorer-load-more'
 import { decideExpandedDirLoad } from './file-explorer-stale-dir-cache'
-import {
-  useFileExplorerDirectoryLoads,
-  type ReadOutcome
-} from './use-file-explorer-directory-loads'
+import { useFileExplorerDirectoryLoads } from './use-file-explorer-directory-loads'
 
 /** Owns worktree-addressed directory caches and load tokens; display scoping changes traversal rather than cache identity. */
 export function useFileExplorerTree(
@@ -30,6 +28,7 @@ export function useFileExplorerTree(
     dirCacheRef,
     visibleLoadingDirs,
     loadingDirPathsRef,
+    updateLoadingDirPaths,
     dirLoadTrackerRef,
     staleDirsRef,
     executionRef,
@@ -142,7 +141,7 @@ export function useFileExplorerTree(
     [dirCacheRef, loadingDirPathsRef, observeRoot, readDir, staleDirsRef, worktreePath]
   )
 
-  const refreshTree = useCallback(async (): Promise<FileExplorerTreeRefreshOutcome> => {
+  const refreshTree = useCallback(async (): Promise<ReadOutcome> => {
     if (!worktreePath) {
       return 'superseded'
     }
@@ -153,10 +152,7 @@ export function useFileExplorerTree(
       return 'superseded'
     }
     const outcome = await observeRoot(undefined, canCommit, () => {
-      children = refreshDirs(
-        Array.from(expanded).filter((path) => path !== worktreePath && needsRead(path)),
-        canCommit
-      )
+      children = refreshDirs(getDirectoriesToRead(expanded, worktreePath, needsRead), canCommit)
     })
     if (outcome !== 'refreshed') {
       return outcome
@@ -201,9 +197,7 @@ export function useFileExplorerTree(
       if (viewError !== null) {
         return
       }
-      const paths = Array.from(requiredDirs).filter(
-        (path) => path !== worktreePath && needsRead(path)
-      )
+      const paths = getDirectoriesToRead(requiredDirs, worktreePath, needsRead)
       if (paths.length) {
         void refreshDirs(paths, canCommit)
       }
@@ -226,10 +220,7 @@ export function useFileExplorerTree(
       if (!worktreePath || (!needsRead(dirPath) && !loadingDirPathsRef.current.has(dirPath))) {
         return
       }
-      const depth =
-        dirPath === worktreePath
-          ? -1
-          : splitPathSegments(dirPath.slice(worktreePath.length + 1)).length - 1
+      const depth = getDirectoryReadDepth(worktreePath, dirPath)
       // A real gesture supersedes an unfinished background read so its wake permission cannot be swallowed.
       void loadDir(dirPath, depth, { force: true, wakeWslDistro: true })
     },
@@ -241,10 +232,7 @@ export function useFileExplorerTree(
       if (!worktreePath) {
         return
       }
-      const depth =
-        dirPath === worktreePath
-          ? -1
-          : splitPathSegments(dirPath.slice(worktreePath.length + 1)).length - 1
+      const depth = getDirectoryReadDepth(worktreePath, dirPath)
       const canCommit = options?.wakeWslDistro ? undefined : () => automaticCanCommitRef.current()
       staleDirsRef.current.add(dirPath)
       setLoadRevision((revision) => revision + 1)
@@ -257,6 +245,16 @@ export function useFileExplorerTree(
     },
     [observeRoot, readDir, staleDirsRef, worktreePath]
   )
+
+  const loadMoreDir = useFileExplorerLoadMoreDir({
+    activeWorktreeId,
+    worktreePath,
+    dirCacheRef,
+    loadingDirPathsRef,
+    dirLoadTrackerRef,
+    setDirCache,
+    updateLoadingDirPaths
+  })
 
   const isDirStale = useCallback(
     (dirPath: string) => staleDirsRef.current.has(dirPath),
@@ -303,6 +301,7 @@ export function useFileExplorerTree(
     markPathAsDirectory,
     refreshTree,
     refreshDir,
+    loadMoreDir,
     isDirStale,
     invalidateTree,
     reconcileView,

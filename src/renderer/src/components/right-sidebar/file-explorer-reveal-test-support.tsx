@@ -4,6 +4,10 @@ import type * as Module2 from './file-explorer-operation-owner'
 import { act, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { useAppStore } from '@/store'
+import {
+  noteUserWorkspaceSwitch,
+  resetWorkspaceSwitchUserActsForTests
+} from '@/lib/workspace-switch-user-act'
 import type { FileExplorerDirLoadTracker } from './file-explorer-dir-load-tracker'
 import type { TreeNode } from './file-explorer-types'
 import {
@@ -67,6 +71,8 @@ export const settle = () =>
     await vi.runAllTimersAsync()
   })
 beforeEach(() => {
+  resetWorkspaceSwitchUserActsForTests()
+  noteUserWorkspaceSwitch('wt')
   trackers.length = 0
   vi.useFakeTimers()
   initializeExplorerSubscriptions()

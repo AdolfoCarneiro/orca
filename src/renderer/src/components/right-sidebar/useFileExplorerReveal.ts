@@ -1,44 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import type { Dispatch, RefObject, SetStateAction } from 'react'
-import type { Virtualizer } from '@tanstack/react-virtual'
 import { getRelativePathInsideRoot } from '@/lib/path'
 import { getExplorerDisplayDepth, FILE_EXPLORER_FULL_ROOT } from './file-explorer-display-root'
 import { useAppStore } from '@/store'
 import { getRevealAncestorDirs } from './file-explorer-paths'
 import { useFileExplorerRevealRequestCurrency } from './use-file-explorer-reveal-observation'
-import type {
-  FileExplorerRevealAuthority,
-  FileExplorerRevealObservation
-} from './file-explorer-types'
-import type { FileExplorerRevealOrigin, DirCache } from './file-explorer-types'
-import type { FileExplorerRowProjection } from './file-explorer-row-projection'
-
-type UseFileExplorerRevealParams = {
-  onRevealOutsideRoot?: () => void
-  activeWorktreeId: string | null
-  worktreePath: string | null
-  displayRootPath?: string | null
-  pendingExplorerReveal: {
-    worktreeId: string
-    filePath: string
-    origin: FileExplorerRevealOrigin
-    requestId: number
-    flash?: boolean
-  } | null
-  clearPendingExplorerReveal: () => void
-  expanded: Set<string>
-  dirCache: Record<string, DirCache>
-  loadingDirPaths: ReadonlySet<string>
-  rootCache: DirCache | undefined
-  rowProjection: FileExplorerRowProjection
-  getRevealAuthority: FileExplorerRevealAuthority
-  loadRevision: number
-  observeDirForReveal: FileExplorerRevealObservation
-  setSelectedPath: (path: string | null) => void
-  setFlashingPath: Dispatch<SetStateAction<string | null>>
-  flashTimeoutRef: RefObject<number | null>
-  virtualizer: Virtualizer<HTMLDivElement, Element>
-}
+import type { UseFileExplorerRevealParams } from './file-explorer-types'
+import { fileExplorerRevealDirToReadOn } from './file-explorer-dir-pages'
 
 /** Expands and selects reveal targets; explicit outside-scope requests restore full-root navigation. */
 export function useFileExplorerReveal({
@@ -53,6 +20,7 @@ export function useFileExplorerReveal({
   loadingDirPaths,
   rootCache,
   rowProjection,
+  loadMoreDir,
   observeDirForReveal,
   getRevealAuthority,
   loadRevision,
@@ -239,6 +207,18 @@ export function useFileExplorerReveal({
       }
       return
     }
+    const readOn = loadMoreDir
+      ? fileExplorerRevealDirToReadOn(dirCache, rowProjection, [
+          ...pendingRevealAncestorDirs,
+          targetPath
+        ])
+      : null
+    if (readOn !== null) {
+      if (!loadingDirPaths.has(readOn)) {
+        void loadMoreDir?.(readOn)
+      }
+      return
+    }
     if (missingExpandedAncestor || missingAncestor || !parentDirCache) {
       return
     }
@@ -298,6 +278,7 @@ export function useFileExplorerReveal({
     clearPendingExplorerReveal,
     dirCache,
     expanded,
+    loadMoreDir,
     loadingDirPaths,
     getRevealAuthority,
     loadRevision,
