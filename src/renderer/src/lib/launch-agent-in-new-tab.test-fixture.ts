@@ -24,26 +24,28 @@ const initialProjects: Pick<Project, 'id' | 'localWindowsRuntimePreference'>[] =
   { id: 'repo-1', localWindowsRuntimePreference: { kind: 'inherit-global' } }
 ]
 
+const settings: {
+  agentCmdOverrides: Record<string, string>
+  agentDefaultArgs: Record<string, string>
+  agentDefaultEnv: Record<string, Record<string, string>>
+  activeRuntimeEnvironmentId: string | null
+  terminalWindowsShell?: string
+  nativeChatProviders?: Readonly<Record<string, boolean>>
+  nativeChatSessionOptions?: Record<
+    string,
+    { model?: string; valuesByModel?: Record<string, Record<string, string | boolean>> }
+  >
+} = {
+  agentCmdOverrides: {},
+  agentDefaultArgs: {},
+  agentDefaultEnv: {},
+  activeRuntimeEnvironmentId: null
+}
+
 const store = {
   activeRepoId: 'repo-1',
   activeWorktreeId: 'wt-1',
-  settings: {
-    agentCmdOverrides: {},
-    agentDefaultArgs: {} as Record<string, string>,
-    agentDefaultEnv: {} as Record<string, Record<string, string>>,
-    activeRuntimeEnvironmentId: null as string | null
-  } as {
-    agentCmdOverrides: Record<string, string>
-    agentDefaultArgs: Record<string, string>
-    agentDefaultEnv: Record<string, Record<string, string>>
-    activeRuntimeEnvironmentId: string | null
-    terminalWindowsShell?: string
-    nativeChatProviders?: Readonly<Record<string, boolean>>
-    nativeChatSessionOptions?: Record<
-      string,
-      { model?: string; valuesByModel?: Record<string, Record<string, string | boolean>> }
-    >
-  },
+  settings,
   projects: initialProjects,
   repos: [{ id: 'repo-1', connectionId: null as string | null, path: '/repo' }],
   sshConnectionStates: new Map([

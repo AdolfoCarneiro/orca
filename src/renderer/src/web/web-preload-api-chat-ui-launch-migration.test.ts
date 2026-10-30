@@ -16,7 +16,7 @@ async function loadSettings(stored: Record<string, unknown> | null) {
   const { installWebPreloadApi } = await import('./web-preload-api')
   installWebPreloadApi()
   const settings = await globals.window.api.settings.get()
-  const saved = JSON.parse(globals.storage.getItem(SETTINGS_KEY) ?? '{}') as Record<string, unknown>
+  const saved: Record<string, unknown> = JSON.parse(globals.storage.getItem(SETTINGS_KEY) ?? '{}')
   return { settings, saved, globals }
 }
 

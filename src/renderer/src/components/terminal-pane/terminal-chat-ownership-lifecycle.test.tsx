@@ -14,12 +14,13 @@ const LEFT = '11111111-1111-4111-8111-111111111111'
 const RIGHT = '22222222-2222-4222-8222-222222222222'
 const mocks = vi.hoisted(() => {
   const layouts: Record<string, TerminalLayoutSnapshot> = {}
+  const settings: { nativeChatProviders?: Record<string, boolean> } = {}
   const tab = { id: 'tab', entityId: 'tab', contentType: 'terminal', viewMode: 'chat' }
   const state = {
     terminalLayoutsByTabId: layouts,
     unifiedTabsByWorktree: { wt: [tab] },
     tabsByWorktree: {},
-    settings: {} as { nativeChatProviders?: Record<string, boolean> },
+    settings,
     pendingPaneAccountRestarts: [],
     runtimePaneTitlesByTabId: { tab: { 1: 'codex', 2: 'codex' } },
     agentStatusByPaneKey: {},
