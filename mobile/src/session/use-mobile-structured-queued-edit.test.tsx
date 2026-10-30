@@ -61,22 +61,43 @@ describe('mobile in-place queued Edit', () => {
       body: {
         kind: 'message',
         role: 'user',
-        blocks: [{ type: 'text', text: `${prefix}Task` }],
+        blocks: [
+          { type: 'text', text: `${prefix}  Task 🐋 [Image #1]  ` },
+          { type: 'image-ref', path: '/host/shot.png' }
+        ],
         from: {
           kind: 'agent',
-          senders: [],
+          senders: [
+            {
+              party: { address: 'term_coord', terminalHandle: 'term_coord', orcaSessionId: null },
+              name: 'Coordinator',
+              relation: 'coordinator'
+            }
+          ],
           orchestration: { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
         }
       }
     })
     await mount(message)
     expect(state.hook!.queued.cards[0]).toMatchObject({
-      text: `${prefix}Task`,
-      displayText: 'Task',
-      line: 'Task',
-      attribution: 'From an agent'
+      line: '  Task 🐋',
+      attribution: 'From Coordinator'
     })
-    expect(state.hook!.queued.editor!.text).toBe(`${prefix}Task`)
+    expect(state.hook!.queued.cards[0].images).toHaveLength(1)
+    expect(state.hook!.queued.editor!.text).toBe(`${prefix}  Task 🐋 [Image #1]  `)
+    await act(async () => {
+      expect(await state.hook!.queued.editor!.save()).toBe(true)
+    })
+    expect(
+      sendRequest.mock.calls.some(([method]) => method === 'agentSession.queuedMessageUpdate')
+    ).toBe(false)
+    expect(state.hook!.queued.cards[0]).toMatchObject({
+      line: '  Task 🐋',
+      attribution: 'From Coordinator'
+    })
+    await act(async () => {
+      await state.hook!.queued.edit!('task')
+    })
     act(() => state.hook!.queued.editor!.change(`${prefix}Edited`))
     await act(async () => {
       expect(await state.hook!.queued.editor!.save()).toBe(true)
@@ -90,14 +111,10 @@ describe('mobile in-place queued Edit', () => {
     const saved: typeof message = { ...message, body: userBody }
     act(() => state.listener?.(batchEvent([saved])))
     const [savedCard] = state.hook!.queued.cards
-    expect(saved.body).not.toHaveProperty('from')
     expect(savedCard).toMatchObject({
-      text: `${prefix}Edited`,
       line: `${prefix}Edited`,
       attribution: null
     })
-    expect(savedCard).not.toHaveProperty('from')
-    expect(savedCard).not.toHaveProperty('displayText')
     await act(async () => {
       await state.hook!.queued.edit!('task')
     })

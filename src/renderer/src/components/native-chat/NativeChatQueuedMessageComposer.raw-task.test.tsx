@@ -13,10 +13,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { AgentSessionQueuedMessage } from '../../../../shared/agent-session-wire'
 import { ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../../../../shared/orca-dispatch-status-prompt'
 import { agentSessionSendBodyFingerprint } from '../../../../shared/structured-agent-session-send-mutation'
-import {
-  projectQueuedMessageCards,
-  queuedMessageCardLine
-} from '../../../../shared/structured-agent-session-queued-cards'
+import { projectQueuedMessageCards } from '../../../../shared/structured-agent-session-queued-cards'
 import { NativeChatQueuedMessageCard } from './NativeChatQueuedMessageCard'
 import type { NativeChatStructuredComposerTransport } from './native-chat-composer-types'
 import { changePrompt, promptValue } from './native-chat-prompt-editor.test-support'
@@ -135,10 +132,6 @@ it('shows the queued task and edits, saves and reopens its full raw input in the
     messageId: message.messageId,
     fingerprint: agentSessionSendBodyFingerprint(SESSION, saved.body)
   })
-  expect(projectQueuedMessageCards([message], [], {})[0]).toMatchObject({
-    text: prefix + task,
-    displayText: task
-  })
   const view = render(<QueuedTask message={message} />)
   expect(screen.getByTitle(task).textContent).toBe(task)
   expect(screen.getByText('From')).toBeDefined()
@@ -160,12 +153,6 @@ it('shows the queued task and edits, saves and reopens its full raw input in the
   await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
 
   view.rerender(<QueuedTask message={saved} />)
-  const [savedCard] = projectQueuedMessageCards([saved], [], {})
-  expect(saved.body).not.toHaveProperty('from')
-  expect(savedCard.text).toBe(prefix + changedTask)
-  expect(savedCard).not.toHaveProperty('from')
-  expect(savedCard).not.toHaveProperty('displayText')
-  expect(queuedMessageCardLine(savedCard)).toBe(prefix + changedTask)
   expect(screen.getByTitle(prefix + changedTask, { normalizer: (text) => text }).textContent).toBe(
     prefix + changedTask
   )

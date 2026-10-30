@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, render, renderHook, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { AgentMessageSource } from '../../../../shared/agent-session/agent-session-message-source'
@@ -8,7 +8,6 @@ import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import { isOrcaSessionId, type OrcaSessionId } from '../../../../shared/orca-session-address'
 import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { useAgentMessageSenderView } from './native-chat-agent-message-sender-view'
 import { NativeChatAgentMessageSenders } from './NativeChatAgentMessageSenders'
 
 const conversationNames = vi.hoisted(() => new Map<string, string>())
@@ -106,7 +105,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  vi.useRealTimers()
   useAppStore.setState(initialState, true)
 })
 
@@ -183,36 +181,4 @@ describe('the name a sender is shown under', () => {
     expect(screen.getByText('Remote task')).toBeInTheDocument()
     expect(screen.queryByText('Local agent')).not.toBeInTheDocument()
   })
-})
-
-it('uses the sidebar glyph for a live sender and retained completion after its pane closes', () => {
-  vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(2_000_000)
-  const entry = { ...agentRow(HANDLE), updatedAt: 2_000_000 }
-  const tab = terminalTab()
-  useAppStore.setState({
-    activeWorktreeId: WORKTREE,
-    activeWorkspaceExecutionHostId: 'local',
-    tabsByWorktree: { [WORKTREE]: [tab] },
-    agentStatusByPaneKey: { [entry.paneKey]: entry }
-  })
-  const { result } = renderHook(() =>
-    useAgentMessageSenderView(source({}).senders[0], WORKTREE, { kind: 'local' })
-  )
-  expect(result.current).toEqual({ agentType: 'claude', dot: 'working' })
-  act(() =>
-    useAppStore.setState({
-      agentStatusByPaneKey: {},
-      retainedAgentsByPaneKey: {
-        [entry.paneKey]: {
-          entry: { ...entry, state: 'done' },
-          tab,
-          worktreeId: WORKTREE,
-          agentType: 'claude',
-          startedAt: 1
-        }
-      }
-    })
-  )
-  expect(result.current).toEqual({ agentType: 'claude', dot: 'done' })
 })

@@ -80,10 +80,6 @@ function itemBlocks(item: AgentJournalRenderItem): {
   blocks: NativeChatBlock[]
 } | null {
   const body = item.body
-  if (body.kind === 'agent-start') {
-    // A start card promises the whole task; clients hydrate bounded copies through item detail.
-    return item.shortened ? null : { role: 'system', blocks: [{ type: 'text', text: body.task }] }
-  }
   if (body.kind === 'message') {
     return { role: body.role, blocks: body.blocks }
   }
@@ -191,12 +187,7 @@ export function projectStructuredItemToNativeChat(
   const lifecycle = item.body.kind === 'message' ? messageLifecycle(item.body) : {}
   const command = item.body.kind === 'message' ? item.body.command : undefined
   // Validate wire-origin sender fields from any host version.
-  const from =
-    item.body.kind === 'agent-start'
-      ? readAgentMessageSource({ kind: 'agent', senders: [item.body.worker], orchestration: null })
-      : item.body.kind === 'message'
-        ? readAgentMessageSource(item.body.from)
-        : undefined
+  const from = item.body.kind === 'message' ? readAgentMessageSource(item.body.from) : undefined
   const message: NativeChatMessage | null = projected
     ? {
         ...agentJournalItemRowOrigin(item),
@@ -207,13 +198,8 @@ export function projectStructuredItemToNativeChat(
         ...(sentAs !== undefined && isAgentJournalMessageSendMode(sentAs) ? { sentAs } : {}),
         ...lifecycle,
         ...(command ? { command } : {}),
-        ...(from && (projected.role === 'user' || item.body.kind === 'agent-start')
-          ? { from }
-          : {}),
-        ...(item.body.kind === 'agent-start' ? { agentStart: true } : {}),
-        ...(item.shortened && (item.body.kind === 'message' || item.body.kind === 'agent-start')
-          ? { shortened: true }
-          : {})
+        ...(from && projected.role === 'user' ? { from } : {}),
+        ...(item.shortened && item.body.kind === 'message' ? { shortened: true } : {})
       }
     : null
   projectedItems.set(item, message)

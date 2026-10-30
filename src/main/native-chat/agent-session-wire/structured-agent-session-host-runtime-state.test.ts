@@ -60,15 +60,22 @@ function reservedRecord(): AgentSessionRecord {
 
 function runtimeState(
   record: AgentSessionRecord | null,
-  probeOwner: NonNullable<StructuredAgentSessionHostDeps['probeOwner']>
+  probeOwner: NonNullable<StructuredAgentSessionHostDeps['probeOwner']>,
+  options: {
+    store?: Partial<AgentSessionRecordStore>
+    probeOwners?: StructuredAgentSessionHostDeps['probeOwners']
+    now?: StructuredAgentSessionHostDeps['now']
+  } = {}
 ) {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the runtime state reads only store, probeOwner and optional deps; the rest of the host's deps are unused here.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these runtime-state cases supply every store/probe/clock dependency they invoke; other host dependencies are unused.
   const deps = {
-    store: { getRecord: () => record } as unknown as AgentSessionRecordStore,
+    store: { getRecord: () => record, ...options.store } as unknown as AgentSessionRecordStore,
     adapter: {},
     journalDatabase: openTestJournalHostDatabase(stateDirectory),
     claimKeyId: 'key-1',
     probeOwner,
+    probeOwners: options.probeOwners,
+    now: options.now,
     logger: createStructuredAgentSessionLogger()
   } as StructuredAgentSessionHostDeps
   return new StructuredAgentSessionHostRuntimeState(deps, new Map())
@@ -125,6 +132,70 @@ describe('host runtime-state owner probe', () => {
       outcome: 'reservation-unused'
     })
     expect(probeOwner).not.toHaveBeenCalled()
+  })
+
+  it('constructs inert per-state reconcilers sharing only their own addressed in-flight work', async () => {
+    const record = liveRecord()
+    record.lease.unreconciled = true
+    const pending = Promise.withResolvers<void>()
+    const getRecord = vi.fn((_sessionId: string) => record)
+    const reconcileOnRestart = vi.fn(
+      async (args: Parameters<AgentSessionRecordStore['reconcileOnRestart']>[0]) => {
+        await pending.promise
+        await args.probe(record)
+        await args.probeMany?.([record])
+        record.lease.unreconciled = false
+        return new Map()
+      }
+    )
+    const probeOwner = vi.fn(async () => ({ outcome: 'pid-absent' as const }))
+    const otherProbeOwner = vi.fn(async () => ({ outcome: 'pid-absent' as const }))
+    const probeOwners = vi.fn(async () => new Map())
+    const otherProbeOwners = vi.fn(async () => new Map())
+    const now = vi.fn(() => NOW)
+    const otherNow = vi.fn(() => NOW + 1)
+    const store = { getRecord, reconcileOnRestart }
+    const state = runtimeState(record, probeOwner, { store, probeOwners, now })
+    const other = runtimeState(record, otherProbeOwner, {
+      store,
+      probeOwners: otherProbeOwners,
+      now: otherNow
+    })
+    for (const dependency of [
+      getRecord,
+      reconcileOnRestart,
+      probeOwner,
+      otherProbeOwner,
+      probeOwners,
+      otherProbeOwners,
+      now,
+      otherNow
+    ]) {
+      expect(dependency).not.toHaveBeenCalled()
+    }
+
+    const first = state.reconcileLeases(record.sessionId)
+    const repeated = state.reconcileLeases(record.sessionId)
+    expect(reconcileOnRestart).toHaveBeenCalledTimes(1)
+    const separate = other.reconcileLeases(record.sessionId)
+    expect(reconcileOnRestart).toHaveBeenCalledTimes(2)
+    expect(
+      reconcileOnRestart.mock.calls.map(([args]) => ({ sessionId: args.sessionId, now: args.now }))
+    ).toEqual([
+      { sessionId: record.sessionId, now: NOW },
+      { sessionId: record.sessionId, now: NOW + 1 }
+    ])
+    pending.resolve()
+    expect(await Promise.all([first, repeated, separate])).toEqual([null, null, null])
+    for (const probe of [probeOwner, otherProbeOwner]) {
+      expect(probe).toHaveBeenCalledExactlyOnceWith(record)
+    }
+    for (const probe of [probeOwners, otherProbeOwners]) {
+      expect(probe).toHaveBeenCalledExactlyOnceWith([record])
+    }
+    expect(now).toHaveBeenCalledOnce()
+    expect(otherNow).toHaveBeenCalledOnce()
+    expect(getRecord.mock.calls.every((args) => args[0] === record.sessionId)).toBe(true)
   })
 
   it('does not force-close a provider for transient lease probe errors', async () => {

@@ -6,7 +6,6 @@
 // History pages lack row v: extensions must also remain safe for older clients (journal-closed-sets.test.ts).
 
 import { z } from 'zod'
-import { AgentMessageSenderSchema } from './agent-session/agent-session-message-source'
 import { AgentSessionContextUsageSchema } from './agent-session-context-usage-schema'
 import { AgentJournalThreadGoalStateSchema } from './agent-session-journal-thread-goal-schema'
 import { AgentSessionFailureFactSchema } from './agent-session-failure-fact-schema'
@@ -198,7 +197,6 @@ const KnownItemBody = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('agent-start'),
     dispatchId: z.string().min(1),
-    worker: AgentMessageSenderSchema,
     task: z.string()
   }),
   z.object({

@@ -1,8 +1,5 @@
 import { continuationContextReader as contextReader } from './structured-agent-session-continuation-context'
-import type { AgentJournalAgentStartItem } from '../../../shared/agent-session-journal-types'
-import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
-import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
-import { readJournalSessionEpoch } from '../agent-session-journal/journal-row-table'
+import { structuredAgentStartJournal } from './structured-agent-start-journal'
 import type { AgentSessionRewindParams } from '../../../shared/agent-session-rewind'
 import { rewindStructuredAgentSession } from './structured-agent-session-rewind'
 import { StructuredConversationCommandController } from './structured-conversation-command-controller'
@@ -10,7 +7,6 @@ import { StructuredConversationCommandController } from './structured-conversati
 
 import type { AgentSessionSubscribeInput } from './structured-agent-session-subscribers'
 import type { AgentSessionExecutionLocation } from '../../../shared/agent-session-record'
-import { createRestartReconciler } from './structured-agent-session-restart-reconcile'
 import { StructuredAgentSessionTaskQueue } from './structured-agent-session-task-queue'
 import * as providerSupport from './structured-agent-session-provider-support'
 import * as reveal from './structured-agent-session-reveal'
@@ -37,8 +33,6 @@ import { wireStructuredAgentSessionQueuedMessages as wireQueuedMessages } from '
 import * as sessionLogger from './structured-agent-session-logger'
 import { sleepStructuredAgentSessionWorkspace } from './structured-agent-session-workspace-sleep'
 export type { StructuredAgentSessionHostDeps } from './structured-agent-session-host-types'
-
-type AgentStartDestination = { sessionId: string; epoch: string; contextId: string | null }
 
 export class StructuredAgentSessionHost {
   private readonly conversationCommands = new StructuredConversationCommandController(
@@ -72,7 +66,6 @@ export class StructuredAgentSessionHost {
   private readonly subscribers = this.clientDelivery.subscribers
   private readonly tasks = new StructuredAgentSessionTaskQueue()
   private readonly runtimeState: StructuredAgentSessionHostRuntimeState
-  private readonly reconcileLeases: ReturnType<typeof createRestartReconciler>
   private readonly restore: ReturnType<typeof reveal.createStructuredAgentSessionHostRestore>
   private readonly lifetime: lifetime.StructuredAgentSessionConversationLifetime
   private readonly conversationDelivery: conversation.StructuredAgentSessionConversationDelivery
@@ -98,12 +91,6 @@ export class StructuredAgentSessionHost {
       (id, e) => this.eventRecovery.recoverAfterSinkFailure(id, e),
       (expired) => this.lifetime.expireStartup(expired)
     )
-    this.reconcileLeases = createRestartReconciler({
-      store: deps.store,
-      probe: (record) => this.runtimeState.probeRecord(record),
-      ...(deps.probeOwners ? { probeMany: deps.probeOwners } : {}),
-      now: () => this.now()
-    })
     this.conversationDelivery = conversation.createStructuredAgentSessionConversationDelivery({
       deps,
       acquireAborts: this.runtimeState.acquireAborts,
@@ -121,8 +108,8 @@ export class StructuredAgentSessionHost {
       clientDelivery: this.clientDelivery
     })
     this.restore = reveal.createStructuredAgentSessionHostRestore(deps, {
-      reconcileLeases: this.reconcileLeases,
-      reconcileRestartLeases: () => this.reconcileLeases(),
+      reconcileLeases: this.runtimeState.reconcileLeases,
+      reconcileRestartLeases: () => this.runtimeState.reconcileLeases(),
       resolveRecovery: (sessionId) => this.runtimeState.resolveRecovery(sessionId),
       serialize: (sessionId, task) => this.serialize(sessionId, task),
       hasSession: this.hasSession,
@@ -197,7 +184,7 @@ export class StructuredAgentSessionHost {
       ...this.lifetimeContext(),
       subscribers: this.subscribers,
       tasks: this.tasks,
-      reconcileLeases: (sessionId) => this.reconcileLeases(sessionId),
+      reconcileLeases: (sessionId) => this.runtimeState.reconcileLeases(sessionId),
       serialize: (sessionId, task) => this.serialize(sessionId, task),
       openProviderChild: this.eventRecovery.openProviderChild,
       openConversation: this.conversationDelivery.open
@@ -328,47 +315,12 @@ export class StructuredAgentSessionHost {
   journalSnapshot = async (sessionId: string) =>
     (await this.lifetime.conversation(sessionId)).journal.snapshot()
 
-  /** Record only in this transcript; opening at rest neither follows clears nor starts its agent. */
-  captureAgentStartDestination = (sessionId: string): AgentStartDestination | null => {
-    const record = this.deps.store.getConversation(sessionId)
-    const epoch = readJournalSessionEpoch(this.deps.journalDatabase.db, sessionId)
-    return record && epoch
-      ? { sessionId, epoch, contextId: record.providerContextBoundary?.operationId ?? null }
-      : null
-  }
-
-  appendAgentStart = async (
-    destination: AgentStartDestination,
-    body: AgentJournalAgentStartItem,
-    observedAt: number
-  ): Promise<void> => {
-    const { sessionId } = destination
-    const stillSameContext = () => {
-      const current = this.captureAgentStartDestination(sessionId)
-      return current?.epoch === destination.epoch && current?.contextId === destination.contextId
-    }
-    if (!stillSameContext()) {
-      return
-    }
-    const { journal } = await this.lifetime.conversation(sessionId)
-    const identity = {
-      provider: 'orca' as const,
-      clientMessageId: `agent-start:${body.dispatchId}`
-    }
-    await journal.appendResolvedItem(
-      () => {
-        if (!stillSameContext() || journal.hasRecordedItem(agentJournalItemKey(identity))) {
-          return null
-        }
-        return { identity, body }
-      },
-      {
-        fence: this.deps.store.getConversation(sessionId)?.currentFence ?? 0,
-        turnScope: AGENT_JOURNAL_THREAD_SCOPE,
-        observedAt
-      }
-    )
-  }
+  private readonly startJournal = structuredAgentStartJournal(
+    () => this.deps,
+    (sessionId) => this.lifetime.conversation(sessionId)
+  )
+  captureAgentStartDestination = this.startJournal.captureAgentStartDestination
+  appendAgentStart = this.startJournal.appendAgentStart
 
   currentWork = this.clientDelivery.readCurrentWork
   readCurrentRequests: StructuredAgentSessionBackgroundTaskChannel['currentRequests'] = (...args) =>

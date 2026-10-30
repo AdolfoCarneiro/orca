@@ -31,7 +31,7 @@ import { NativeChatImageAttachments } from './NativeChatTranscriptChrome'
 function heading(from: AgentMessageSource, agentStart: boolean): string {
   switch (agentMessageHeading(from, agentStart)) {
     case 'started':
-      return translate('components.native-chat.agentMessage.startedWorker', 'Started your worker')
+      return translate('components.native-chat.agentMessage.startedWorker', 'Started worker')
     case 'task':
       return translate(
         'components.native-chat.agentMessage.taskFromCoordinator',
@@ -118,6 +118,11 @@ export function NativeChatAgentMessageCard({
             overflows && !disclosure.open && 'mask-b-from-[calc(100%-1.75rem)]'
           )}
           style={disclosure.open ? undefined : { maxHeight: `${AGENT_MESSAGE_FOLDED_LINES}lh` }}
+          onBlur={(event) => {
+            if (document.hasFocus() && !event.currentTarget.contains(event.relatedTarget)) {
+              event.currentTarget.scrollTop = 0
+            }
+          }}
         >
           <NativeChatMarkdown
             rowKey={message.id}
@@ -178,7 +183,7 @@ function AgentMessageAvatar({
       <AgentTypeIcon agentType={view.agentType} size={16} />
       {view.dot ? (
         <span className="absolute -right-0.5 -bottom-0.5 rounded-full bg-card ring-2 ring-card">
-          <AgentStateDot state={view.dot} size="md" />
+          <AgentStateDot state={view.dot} size="md" progress={view.progress} />
         </span>
       ) : null}
     </div>

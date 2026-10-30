@@ -44,6 +44,11 @@ describe("a message's sender, read through its one reader", () => {
       orchestration: { message: 'task', runId: 'r1', taskId: 't1', dispatchId: 'ctx_1' }
     }
     expect(readAgentMessageSource(structuredClone(task))).toEqual(task)
+    const parsed = readAgentMessageSource({
+      ...task,
+      senders: FROM.senders.map((sender) => ({ ...sender, relation: 'future' }))
+    })
+    expect(parsed).toEqual(task)
   })
 
   it('keeps an agent an agent when its orchestration kind is newer than this build', () => {
@@ -92,27 +97,4 @@ describe("a message's sender, read through its one reader", () => {
     expect(shown.map((sender) => sender.name)).toEqual(['Agent 0', 'Agent 1', 'Agent 2'])
     expect(more).toBe(2)
   })
-})
-
-it('ignores obsolete proof and unknown relations without losing provenance', () => {
-  const task = {
-    message: 'task',
-    runId: 'r',
-    taskId: 't',
-    dispatchId: 'd',
-    instructions: { length: -1, sha256: 'bad' }
-  }
-  const parsed = readAgentMessageSource({
-    ...FROM,
-    orchestration: task,
-    senders: FROM.senders.map((sender) => ({ ...sender, relation: 'future' }))
-  })
-  expect(parsed?.orchestration).toMatchObject({ message: 'task', dispatchId: 'd' })
-  expect(
-    parsed?.orchestration && 'instructions' in parsed.orchestration
-      ? parsed.orchestration.instructions
-      : undefined
-  ).toBeUndefined()
-  expect(parsed?.senders).toHaveLength(2)
-  expect(parsed?.senders[0].relation).toBeUndefined()
 })

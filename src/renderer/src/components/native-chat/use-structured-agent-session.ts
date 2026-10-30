@@ -24,7 +24,6 @@ import {
   type StructuredPromptItem
 } from '../../../../shared/structured-agent-session-message-projection'
 import { useStructuredAgentSessionMessages } from './use-structured-agent-session-messages'
-import { useStructuredAgentStartItems } from './use-structured-agent-start-items'
 import { useStructuredAgentSessionTransportState } from './use-structured-agent-session-transport-state'
 import { useStructuredAgentSessionStop } from './use-structured-agent-session-stop'
 import { useStructuredAgentSessionTransport } from './use-structured-agent-session-transport'
@@ -76,7 +75,7 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
   const commandPending = useRef(false)
   const legacyLaunchStop = useStructuredLegacyLaunchStop(sessionId)
   const transportState = useStructuredAgentSessionTransportState(state, transportEnabled)
-  const journalItems = useStructuredAgentStartItems(transportState.journalItems, sessionId, target)
+  const journalItems = transportState.journalItems
   const {
     conversationCommands,
     optionSnapshot,

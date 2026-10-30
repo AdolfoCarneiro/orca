@@ -110,6 +110,39 @@ describe('WslBridgeBootIdentity', () => {
     await expect(boot.rebootedSinceSpawn('b', 'Ubuntu')).resolves.toBe(false)
   })
 
+  // #35050 review (b): a pane spawned after the stop was seen, before any exit reached the adapter.
+  it('drops the cached id when a running list sees the distro stop, and listens only while panes live', async () => {
+    const world = { boot: 'boot-1' }
+    const readBootId = vi.fn(async () => world.boot)
+    let stopped: ((distros: string[]) => void) | null = null
+    const unsubscribe = vi.fn(() => {
+      stopped = null
+    })
+    const boot = new WslBridgeBootIdentity({
+      isRunning: async () => true,
+      readBootId,
+      onDistrosStopped: (listener) => {
+        stopped = listener
+        return unsubscribe
+      }
+    })
+    expect(stopped).toBeNull()
+    boot.noteSpawn('a', 'Ubuntu', 'inc-a')
+    await vi.waitFor(() => expect(readBootId).toHaveBeenCalledOnce())
+
+    world.boot = 'boot-2'
+    stopped!(['ubuntu'])
+    boot.noteSpawn('b', 'Ubuntu', 'inc-b')
+    boot.noteExit('Ubuntu')
+    await expect(boot.rebootedSinceSpawn('b', 'Ubuntu')).resolves.toBe(false)
+    await expect(boot.rebootedSinceSpawn('a', 'Ubuntu')).resolves.toBe(true)
+
+    boot.forget('a')
+    expect(unsubscribe).not.toHaveBeenCalled()
+    boot.forget('b')
+    expect(unsubscribe).toHaveBeenCalledOnce()
+  })
+
   it('keeps the id across a reattach of the same incarnation', async () => {
     const { boot, readBootId } = identity({ ids: ['boot-1', 'boot-2'] })
     boot.noteSpawn('a', 'Ubuntu', 'inc-1')
