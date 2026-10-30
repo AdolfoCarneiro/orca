@@ -71,6 +71,16 @@ export function MobileChatAttachmentPreview({ params }: { params: MobileFilePrev
       <Text style={styles.meta}>{label}</Text>
     </Pressable>
   )
+  let segmentOffset = 0
+  const segments = display?.segments.map((segment) => {
+    const key = `${path}:${display.page}:${display.subpage}:${segmentOffset}`
+    segmentOffset += segment.length
+    return (
+      <Text key={key} selectable style={styles.textPreview}>
+        {segment.replace(/\n$/, '') || '\u00a0'}
+      </Text>
+    )
+  })
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.header}>
@@ -107,11 +117,7 @@ export function MobileChatAttachmentPreview({ params }: { params: MobileFilePrev
         </Text>
       ) : null}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.textContent}>
-        {display?.segments.map((segment, index) => (
-          <Text key={index} selectable style={styles.textPreview}>
-            {segment.replace(/\n$/, '') || '\u00a0'}
-          </Text>
-        ))}
+        {segments}
       </ScrollView>
       <View style={[styles.topBar, { flexWrap: 'wrap' }]}>
         {action('First', busy || !display, () => void load(0))}

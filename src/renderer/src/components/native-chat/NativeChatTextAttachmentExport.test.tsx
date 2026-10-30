@@ -35,7 +35,7 @@ it('saves zero-byte and invalid UTF8 committed files through the real native sin
     hasSession: () => true
   })
   // SAFETY: only download handlers are registered; they do not access persistence.
-  const store = {} as Store
+  const store: Store = Object.create(null)
   const cancellations = { begin: () => null, finish: () => {}, cancel: () => {} }
   const context = createFilesystemHandlerContext(store, undefined, cancellations, cancellations)
   registerFilesystemDownloadHandlers(context)

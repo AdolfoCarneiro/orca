@@ -13,16 +13,21 @@ import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from '../../../../share
 import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
 
-const mocks = vi.hoisted(() => ({
-  context: null as RuntimeFileOperationArgs | null,
-  web: false,
-  rpc: vi.fn(),
-  write: vi.fn(),
-  start: vi.fn(),
-  append: vi.fn(),
-  finish: vi.fn(),
-  cancel: vi.fn()
-}))
+const mocks = vi.hoisted(() => {
+  const routing: { context: RuntimeFileOperationArgs | null; web: boolean } = {
+    context: null,
+    web: false
+  }
+  return {
+    ...routing,
+    rpc: vi.fn(),
+    write: vi.fn(),
+    start: vi.fn(),
+    append: vi.fn(),
+    finish: vi.fn(),
+    cancel: vi.fn()
+  }
+})
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.rpc }))
 vi.mock('@/lib/web-client-location', () => ({ isWebClientLocation: () => mocks.web }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))

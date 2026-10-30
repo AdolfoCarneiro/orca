@@ -241,8 +241,11 @@ function MobileNativeChatMessageImpl({
   }
   const isChatTurn = message.role === 'user' || message.role === 'assistant'
   const copyText = isChatTurn ? nativeChatMessageCopyText(message) : ''
-  const proseRow = (block: NativeChatBlock, index: number, text: string, revealing = false) =>
-    isSubagentGroupBlock(block) && isRenderableSubagentGroup(block) ? (
+  let proseOffset = 0
+  const proseRow = (block: NativeChatBlock, index: number, text: string, revealing = false) => {
+    const textKey = `${message.id}:text:${proseOffset}`
+    proseOffset += text.length + 1
+    return isSubagentGroupBlock(block) && isRenderableSubagentGroup(block) ? (
       <MobileNativeChatSubagentGroup
         key={`subagent-group:${block.groupId}`}
         block={block}
@@ -250,7 +253,7 @@ function MobileNativeChatMessageImpl({
         onToggle={onToggleSubagentGroup}
       />
     ) : isSystem ? null : isUser && structuredActivityUi && isTextBlock(block) ? (
-      <View key={index}>
+      <View key={textKey}>
         <Prose
           block={block}
           userMessage
@@ -275,6 +278,7 @@ function MobileNativeChatMessageImpl({
         revealing={revealing}
       />
     )
+  }
   const proseRows = (blocks: NativeChatBlock[]) =>
     blocks.map((block, index) => proseRow(block, index, isTextBlock(block) ? block.text : ''))
   return (

@@ -2,6 +2,7 @@ import { createElement, type ReactNode } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { projectStructuredItemToNativeChat } from '../../../../../src/shared/structured-agent-session-projection'
+import type * as MarkdownModule from '../../../components/MobileMarkdown'
 import type { NativeChatMessage } from '../../../../../src/shared/native-chat-types'
 import { AGENT_SESSION_HOST_STATUS_COPY } from '../../../../../src/shared/agent-session-host-status-rows'
 import { structuredQuestionTranscript } from '../../../../../src/shared/structured-agent-question-projection'
@@ -68,16 +69,13 @@ vi.mock('lucide-react-native', () => ({
   Wrench: 'Wrench'
 }))
 const markdownImplementation = vi.hoisted(
-  (): { current?: typeof import('../../../components/MobileMarkdown').MobileMarkdown } => ({})
+  (): { current?: typeof MarkdownModule.MobileMarkdown } => ({})
 )
 vi.mock('../../../components/MobileMarkdown', async () => {
   const { createElement } = await import('react')
   return {
-    MobileMarkdown: (
-      props: React.ComponentProps<
-        typeof import('../../../components/MobileMarkdown').MobileMarkdown
-      >
-    ) => createElement(markdownImplementation.current ?? 'MobileMarkdown', props)
+    MobileMarkdown: (props: React.ComponentProps<typeof MarkdownModule.MobileMarkdown>) =>
+      createElement(markdownImplementation.current ?? 'MobileMarkdown', props)
   }
 })
 vi.mock('../../../components/pr-sidebar/MermaidDiagram', () => ({
@@ -87,7 +85,7 @@ vi.mock('./MobileNativeChatMessageActionsSheet', () => ({
   MobileNativeChatMessageActionsSheet: 'MessageActionsSheet'
 }))
 
-const actualMarkdown = await vi.importActual<typeof import('../../../components/MobileMarkdown')>(
+const actualMarkdown = await vi.importActual<typeof MarkdownModule>(
   '../../../components/MobileMarkdown'
 )
 
@@ -684,7 +682,7 @@ it('bounds phone row recognition at N and 10N during unchanged and one-row updat
   for (const count of [10, 100]) {
     let rows = Array.from({ length: count }, (_, index) => ({
       ...userMessage([
-        { type: 'text', text: `row ${index} **Read @${path} then stop** ` + 'prose '.repeat(100) }
+        { type: 'text', text: `row ${index} **Read @${path} then stop** ${'prose '.repeat(100)}` }
       ]),
       id: `row-${index}`
     }))
@@ -741,7 +739,7 @@ it('renders each original phone message through the shipping Markdown renderer w
   ]
   const exact = names.map((name) => path.replace('report.txt', name))
   const cases: [string, string[]][] = [
-    ['see' + exact.map(formatNativeChatFileReference).join(' '), exact],
+    [`see${exact.map(formatNativeChatFileReference).join(' ')}`, exact],
     [`\`\`\`text\n@${path}\nKEEP\n\`\`\`\n\nOUTSIDE`, [path]],
     [`\` @${path} \``, [path]],
     [`    @${path}\n`, [path]],
@@ -755,7 +753,7 @@ it('renders each original phone message through the shipping Markdown renderer w
       `@${path.replace('report.txt', 'a`b.txt')} @${path.replace('report.txt', 'c`d.txt')} `,
       [path.replace('report.txt', 'a`b.txt'), path.replace('report.txt', 'c`d.txt')]
     ],
-    [`\` @${path}\``, [path + '`']]
+    [`\` @${path}\``, [`${path}\``]]
   ]
   // Compare rendered values; themed style getters and React wrappers have separate function identities.
   const hostContent = (root: ReactTestInstance) =>

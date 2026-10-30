@@ -97,7 +97,7 @@ function serveAttachment(bytes: Buffer) {
 }
 
 it('opens a committed phone card through the file-tap route into the shipping preview and copies the complete source', async () => {
-  const text = '\ufefffirst\r\n' + '🙂'.repeat(10_000) + 'last'
+  const text = `\ufefffirst\r\n${'🙂'.repeat(10_000)}last`
   const bytes = Buffer.from(text)
   serveAttachment(bytes)
   function Card() {
