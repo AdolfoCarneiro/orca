@@ -96,6 +96,9 @@ test('PDF detail tiles keep device resolution after consecutive capped zooms and
     throw new Error('Missing rendered detail canvas')
   }
   await page.evaluate((element) => {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error('Missing PDF page element')
+    }
     const container = element.closest('.pdfViewer')?.parentElement
     if (!container) {
       throw new Error('Missing PDF scroll container')
