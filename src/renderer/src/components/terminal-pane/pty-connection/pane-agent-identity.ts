@@ -245,7 +245,7 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
   }
   session.sampleVisiblePaneForegroundAgent = (forceRoutingConfirmation = false): void => {
     if (
-      !session.deps.isVisibleRef.current ||
+      (!forceRoutingConfirmation && !session.deps.isVisibleRef.current) ||
       session.visibleForegroundSamplePending ||
       session.visibleForegroundSampleSettled
     ) {
@@ -275,10 +275,16 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
     if (
       !foreground?.agent ||
       !isTuiAgent(foreground.agent) ||
-      foreground.routingTrusted !== true ||
+      (foreground.routingTrusted !== true && foreground.routingRevoked !== true) ||
       TUI_AGENT_CONFIG[foreground.agent].windowsShiftEnterEncoding !== 'csi-u'
     ) {
       return false
+    }
+    if (
+      foreground.routingConfirmationPending === true &&
+      session.paneForegroundAgentTracker.hasReadInFlight()
+    ) {
+      return true
     }
     // No-OSC shells retain display hints but require fresh provider evidence before byte routing.
     useAppStore.getState().setPaneForegroundAgent(session.cacheKey, {
@@ -300,7 +306,7 @@ export function installPaneAgentIdentity(session: ConnectPanePtySession): void {
         routingConfirmationPending: true
       })
     }
-    return true
+    return session.paneForegroundAgentTracker.hasReadInFlight()
   }
   session.commandLifecycle = createTerminalCommandLifecycle({
     onCommandStarted: () => {

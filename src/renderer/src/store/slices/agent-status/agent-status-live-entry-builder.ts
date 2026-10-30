@@ -1,3 +1,4 @@
+import { normalizeCompatibleAgentTitleForOwner } from '../../../../../shared/agent-title-owner'
 import { canonicalOrchestrationForRow } from '@/runtime/visible-agent-orchestration'
 import { sameAgentStatusTerminalOwner } from '../../../../../shared/agent-status-terminal-owner'
 import type { AppState } from '../../types'
@@ -14,6 +15,7 @@ import {
 } from '../../../../../shared/agent-session-resume'
 import {
   resolveAgentStatusIdentity,
+  resolveAgentStatusPaneOwner,
   shouldSuppressInheritedTerminalStatus
 } from '../../../../../shared/agent-status-identity'
 import { isCommandCodeNewTurnWhileWorking } from '../../../../../shared/command-code-turn-boundary'
@@ -81,7 +83,11 @@ export function buildAgentStatusLiveEntry(
   if (existing && updatedAt < existing.updatedAt && !timing?.allowOlderTimestamp) {
     return { entry: null, reason: 'stale' }
   }
-  const effectiveTitle = terminalTitle ?? existing?.terminalTitle
+  const observedAgentType = resolveAgentStatusPaneOwner(state, paneKey)
+  const reportedTitle = terminalTitle ?? existing?.terminalTitle
+  const effectiveTitle = reportedTitle
+    ? normalizeCompatibleAgentTitleForOwner(reportedTitle, observedAgentType)
+    : reportedTitle
   const { history, lastCompletedAssistantMessage, stateObservedAt } =
     resolveAgentStatusLiveEntryStateHistory(existing, payload, updatedAt)
   const identity = resolveAgentStatusIdentity({
@@ -99,6 +105,7 @@ export function buildAgentStatusLiveEntry(
         ? { ...existing, agentPresence: metadata?.paneOwner }
         : undefined,
     incoming: payload.agentType,
+    observedAgentType,
     incomingSession: metadata?.providerSession?.id,
     now: updatedAt
   })

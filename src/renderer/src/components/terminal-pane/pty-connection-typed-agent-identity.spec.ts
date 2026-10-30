@@ -17,14 +17,46 @@ import {
   createInitialStoreState,
   buildActiveRuntimeEnvironmentState
 } from './pty-connection-test-store-fixtures'
-import type { StoreState } from './pty-connection-test-store-state'
+import type { createTestStore } from '@/store/slices/store-test-helpers'
+import type { IpcPtyTransportOptions } from './pty-transport-types'
+import {
+  resolveMockPaneWindowsShiftEnterEncoding,
+  type StoreState
+} from './pty-connection-test-store-state'
 import {
   installTerminalTestGlobals,
   restoreTerminalTestGlobals
 } from './pty-connection-test-environment'
 
+function checkedTitleCallback(
+  options: Record<string, unknown>
+): NonNullable<IpcPtyTransportOptions['onTitleChange']> {
+  const { onTitleChange } = options
+  if (typeof onTitleChange !== 'function') {
+    throw new Error('missing live title callback')
+  }
+  return (title, rawTitle) => onTitleChange(title, rawTitle)
+}
+
+function checkedTitleCallbacks(options: Record<string, unknown>): {
+  onTitleChange: NonNullable<IpcPtyTransportOptions['onTitleChange']>
+  onAgentStatus: NonNullable<IpcPtyTransportOptions['onAgentStatus']>
+} {
+  const { onAgentStatus } = options
+  if (typeof onAgentStatus !== 'function') {
+    throw new Error('missing live status callback')
+  }
+  return {
+    onTitleChange: checkedTitleCallback(options),
+    onAgentStatus: (payload) => onAgentStatus(payload)
+  }
+}
+
 export function registerPtyConnectionTypedAgentIdentityTests(): void {
   let mockStoreState: StoreState
+  let productionStore: ReturnType<typeof createTestStore> | undefined
+  let notifications = 0
+  let selections = 0
   let transportFactoryQueue: MockTransport[] = []
   let createdTransportOptions: Record<string, unknown>[] = []
   let storeSubscribers: ((state: StoreState) => void)[] = []
@@ -53,9 +85,19 @@ export function registerPtyConnectionTypedAgentIdentityTests(): void {
       transportFactoryQueue = []
       createdTransportOptions = []
       storeSubscribers = []
+      productionStore = undefined
+      notifications = 0
+      selections = 0
       mockStoreState = createInitialStoreState(() => mockStoreState)
       bindPtyConnectionTestMocks({
         getState: () => mockStoreState,
+        getProductionStore: () => productionStore,
+        onStoreNotification: () => {
+          notifications += 1
+        },
+        onStoreSelection: () => {
+          selections += 1
+        },
         getTransportQueue: () => transportFactoryQueue,
         getTransportOptions: () => createdTransportOptions,
         getStoreSubscribers: () => storeSubscribers,
@@ -362,11 +404,7 @@ export function registerPtyConnectionTypedAgentIdentityTests(): void {
         const deps = createDeps()
         connectPanePty(...mockPanePtyArgs(pane, manager, deps))
         await flushAsyncTicks()
-        // SAFETY: createPtyTransport captures these callbacks from the typed connection options.
-        const callbacks = createdTransportOptions[0] as {
-          onTitleChange: (title: string, raw: string) => void
-          onAgentStatus: (payload: { state: 'working'; prompt: string; agentType: 'pi' }) => void
-        }
+        const callbacks = checkedTitleCallbacks(createdTransportOptions[0])
         const title = () => callbacks.onTitleChange('Pi ready', 'Pi ready')
         const status = () =>
           callbacks.onAgentStatus({ state: 'working', prompt: 'task', agentType: 'pi' })
@@ -417,11 +455,7 @@ export function registerPtyConnectionTypedAgentIdentityTests(): void {
       const deps = createDeps()
       connectPanePty(...mockPanePtyArgs(pane, manager, deps))
       await flushAsyncTicks()
-      // SAFETY: the transport fixture records the typed title callback installed by connectPanePty.
-      const onTitle = createdTransportOptions[0].onTitleChange as (
-        title: string,
-        raw: string
-      ) => void
+      const onTitle = checkedTitleCallback(createdTransportOptions[0])
       onTitle('✦ Gemini CLI', '✦ Gemini CLI')
       expect(manager.setPaneGpuRendering).toHaveBeenLastCalledWith(1, false)
       const timerWrites = deps.setCacheTimerStartedAt.mock.calls.length
@@ -436,6 +470,177 @@ export function registerPtyConnectionTypedAgentIdentityTests(): void {
       expect(manager.setPaneGpuRendering).toHaveBeenLastCalledWith(1, true)
       expect(deps.setCacheTimerStartedAt).toHaveBeenCalledTimes(timerWrites)
       expect(mockStoreState.setAgentStatus).not.toHaveBeenCalled()
+    })
+
+    it('keeps an acknowledged interrupt clear when the delayed tracker reports an owner', async () => {
+      vi.useFakeTimers()
+      const { createTestStore, makeTab, makeWorktree, TEST_REPO } =
+        await import('@/store/slices/store-test-helpers')
+      Object.assign(window.api, {
+        settings: { getSync: () => ({ terminalMainSideEffectAuthority: false }) }
+      })
+      productionStore = createTestStore()
+      const store = productionStore
+      store.setState({
+        repos: [{ ...TEST_REPO, connectionId: null, executionHostId: 'local' }],
+        worktreesByRepo: {
+          [TEST_REPO.id]: [makeWorktree({ id: 'wt-1', repoId: TEST_REPO.id, hostId: 'local' })]
+        },
+        tabsByWorktree: {
+          'wt-1': [makeTab({ id: 'tab-1', worktreeId: 'wt-1', ptyId: 'pty-late-interrupt' })]
+        }
+      })
+      const statusWrites = vi.spyOn(store.getState(), 'setAgentStatus')
+      const { connectPanePty } = await import('./pty-connection')
+      const paneKey = makePaneKey('tab-1', LEAF_1)
+      const pane = createPane(1)
+      const transport = createMockTransport('pty-late-interrupt')
+      transportFactoryQueue.push(transport)
+      const deps = createDeps({
+        isVisibleRef: { current: false },
+        setRuntimePaneTitle: vi.fn((tab: string, paneId: number, title: string) =>
+          store.getState().setRuntimePaneTitle(tab, paneId, title)
+        ),
+        clearRuntimePaneTitle: vi.fn((tab: string, paneId: number) =>
+          store.getState().clearRuntimePaneTitle(tab, paneId)
+        )
+      })
+      const manager = createManager(1, 1)
+      const binding = connectPanePty(...mockPanePtyArgs(pane, manager, deps))
+      await vi.advanceTimersByTimeAsync(20)
+      let finishRead: ((value: string) => void) | undefined
+      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(
+        () =>
+          new Promise<string>((resolve) => {
+            finishRead = resolve
+          })
+      )
+      const onTitleChange = checkedTitleCallback(createdTransportOptions[0])
+      onTitleChange('⠋ Pi', '⠋ Pi')
+      await vi.advanceTimersByTimeAsync(350)
+      sendTerminalInputThroughPane(pane, '\x03')
+      await flushAsyncTicks()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1'][1]).toBe('Terminal')
+      const effects = {
+        cache: deps.setCacheTimerStartedAt.mock.calls.length,
+        status: statusWrites.mock.calls.length,
+        mode: pane.terminal.write.mock.calls.length
+      }
+      if (!finishRead) {
+        throw new Error('missing production tracker read')
+      }
+      finishRead('omp')
+      await flushAsyncTicks()
+      expect(store.getState().paneForegroundAgentByPaneKey[paneKey]?.agent).toBe('omp')
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1'][1]).toBe('Terminal')
+      expect(deps.updateTabTitle).toHaveBeenLastCalledWith('tab-1', 'Terminal')
+      expect(deps.setCacheTimerStartedAt).toHaveBeenCalledTimes(effects.cache)
+      expect(statusWrites).toHaveBeenCalledTimes(effects.status)
+      expect(pane.terminal.write).toHaveBeenCalledTimes(effects.mode)
+      onTitleChange('Pi ready', 'Pi ready')
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1'][1]).toBe('OMP ready')
+      store.getState().setPaneForegroundAgent(paneKey, {
+        agent: 'droid',
+        agentEvidence: 'process-read',
+        routingTrusted: true,
+        shellForeground: false
+      })
+      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('cmd.exe')
+      binding.requestWindowsShiftEnterReconfirmation()
+      await vi.advanceTimersByTimeAsync(350 + 350 + 1200 + 6000)
+      expect(store.getState().paneForegroundAgentByPaneKey[paneKey]?.shellForeground).toBe(true)
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1'][1]).toBe('Terminal')
+      store.getState().setPaneForegroundAgent(paneKey, {
+        agent: 'omp',
+        agentEvidence: 'process-read',
+        shellForeground: false
+      })
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1'][1]).toBe('Terminal')
+      onTitleChange('Pi ready', 'Pi ready')
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1'][1]).toBe('OMP ready')
+      const { onPtyExit } = createdTransportOptions[0]
+      if (typeof onPtyExit !== 'function') {
+        throw new Error('missing real exit consumer')
+      }
+      onPtyExit('pty-late-interrupt', 0)
+      store.getState().setPaneForegroundAgent(paneKey, {
+        agent: 'pi',
+        agentEvidence: 'process-read',
+        shellForeground: false
+      })
+      expect(store.getState().runtimePaneTitlesByTabId['tab-1']?.[1]).toBeUndefined()
+      binding.dispose()
+    })
+
+    it('completes hidden confirmation, coalesces submits, releases unavailable reads and retries', async () => {
+      vi.useFakeTimers()
+      const { connectPanePty } = await import('./pty-connection')
+      const pane = createPane(1)
+      const paneKey = makePaneKey('tab-hidden-continuation', LEAF_1)
+      transportFactoryQueue.push(createMockTransport('pty-hidden-continuation'))
+      const binding = connectPanePty(
+        ...mockPanePtyArgs(
+          pane,
+          createManager(1),
+          createDeps({ tabId: 'tab-hidden-continuation', isVisibleRef: { current: false } })
+        )
+      )
+      await vi.advanceTimersByTimeAsync(20)
+      vi.mocked(window.api.pty.confirmForegroundProcess).mockClear()
+      // Keep the independent process-exit monitor live; count the confirmation ladder alone.
+      vi.mocked(window.api.pty.getForegroundProcess).mockResolvedValue('droid')
+      const reads = () =>
+        vi
+          .mocked(window.api.pty.confirmForegroundProcess)
+          .mock.calls.filter(([id]) => id === 'pty-hidden-continuation').length
+      let foreground: string | null = 'droid'
+      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(async () => foreground)
+      sendTerminalInputThroughPane(pane, '\r')
+      await vi.advanceTimersByTimeAsync(350)
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('csi-u')
+      expect(reads()).toBe(1)
+      sendTerminalInputThroughPane(pane, '\r')
+      await flushAsyncTicks()
+      expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]?.routingConfirmationPending).toBe(
+        true
+      )
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('csi-u')
+      for (let index = 0; index < 10; index += 1) {
+        await vi.advanceTimersByTimeAsync(20)
+        sendTerminalInputThroughPane(pane, '\r')
+        await flushAsyncTicks()
+      }
+      await vi.advanceTimersByTimeAsync(150)
+      expect(reads()).toBe(2)
+      expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]?.routingTrusted).toBe(true)
+      foreground = null
+      sendTerminalInputThroughPane(pane, '\r')
+      await flushAsyncTicks()
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('csi-u')
+      await vi.advanceTimersByTimeAsync(350 + 1200 + 6000)
+      expect(reads()).toBe(5)
+      expect(
+        mockStoreState.paneForegroundAgentByPaneKey[paneKey]?.routingConfirmationPending
+      ).not.toBe(true)
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('alt-enter')
+      foreground = 'droid'
+      sendTerminalInputThroughPane(pane, '\r')
+      await flushAsyncTicks()
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('csi-u')
+      await vi.advanceTimersByTimeAsync(350)
+      expect(reads()).toBe(6)
+      expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]?.routingTrusted).toBe(true)
+      foreground = 'cmd.exe'
+      sendTerminalInputThroughPane(pane, '\x03')
+      await flushAsyncTicks()
+      await vi.advanceTimersByTimeAsync(350 + 1200 + 6000)
+      expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]).toEqual({
+        agent: null,
+        shellForeground: true
+      })
+      expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, paneKey)).toBe('alt-enter')
+      binding.dispose()
     })
 
     it('normalizes a compatible hook against only the exact pane managed OMP launch', async () => {
@@ -503,72 +708,115 @@ export function registerPtyConnectionTypedAgentIdentityTests(): void {
       }
     )
 
-    it.each([1, 10])(
-      'isolates owner refresh for %s mounted panes and unsubscribes on disposal',
+    it.each([5, 50])(
+      'bounds real store callbacks and isolates presentation across %s mounted connections',
       async (count) => {
         vi.useFakeTimers()
+        const { createTestStore, makeTab, makeWorktree, TEST_REPO } =
+          await import('@/store/slices/store-test-helpers')
+        Object.assign(window.api, {
+          settings: { getSync: () => ({ terminalMainSideEffectAuthority: false }) }
+        })
+        productionStore = createTestStore()
+        const store = productionStore
+        store.setState({
+          repos: [{ ...TEST_REPO, connectionId: null, executionHostId: 'local' }],
+          worktreesByRepo: {
+            [TEST_REPO.id]: [makeWorktree({ id: 'wt-1', repoId: TEST_REPO.id, hostId: 'local' })]
+          },
+          settings: null
+        })
         const { connectPanePty } = await import('./pty-connection')
         const panes = []
         for (let index = 0; index < count; index += 1) {
           const tabId = `tab-owner-${index}`
-          mockStoreState.tabsByWorktree['wt-1'].push({ id: tabId, ptyId: `pty-owner-${index}` })
-          transportFactoryQueue.push(createMockTransport(`pty-owner-${index}`))
-          const deps = createDeps({ tabId, isVisibleRef: { current: false } })
+          store.setState((state) => ({
+            tabsByWorktree: {
+              'wt-1': [
+                ...(state.tabsByWorktree['wt-1'] ?? []),
+                makeTab({ id: tabId, worktreeId: 'wt-1', ptyId: `pty-owner-${index}` })
+              ]
+            }
+          }))
+          const transport = createMockTransport(`pty-owner-${index}`)
+          transport.connect.mockResolvedValue({ id: `pty-owner-${index}` })
+          transportFactoryQueue.push(transport)
+          const deps = createDeps({
+            tabId,
+            isVisibleRef: { current: false },
+            setRuntimePaneTitle: vi.fn((tab: string, pane: number, title: string) =>
+              store.getState().setRuntimePaneTitle(tab, pane, title)
+            )
+          })
           const manager = createManager(1)
           const binding = connectPanePty(...mockPanePtyArgs(createPane(1), manager, deps))
           panes.push({ binding, manager, deps, paneKey: makePaneKey(tabId, LEAF_1) })
         }
         await vi.advanceTimersByTimeAsync(20)
         for (const options of createdTransportOptions) {
-          if (typeof options.onTitleChange !== 'function') {
-            throw new Error('missing title callback')
-          }
-          options.onTitleChange('Pi ready', 'Pi ready')
+          checkedTitleCallback(options)('Pi ready', 'Pi ready')
         }
-        for (const pane of panes) {
-          pane.deps.setRuntimePaneTitle.mockClear()
-          pane.manager.setPaneGpuRendering.mockClear()
-        }
-        for (let index = 0; index < count * 10; index += 1) {
-          mockStoreState.setPaneForegroundAgent(`foreign-${index}`, {
-            agent: 'omp',
-            agentEvidence: 'process-read',
-            shellForeground: false
-          })
-          for (const subscriber of storeSubscribers) {
-            subscriber(mockStoreState)
+        const clear = () => {
+          notifications = 0
+          selections = 0
+          for (const pane of panes) {
+            pane.deps.setRuntimePaneTitle.mockClear()
+            pane.manager.setPaneGpuRendering.mockClear()
           }
         }
+        clear()
+        store.setState({ activeWorktreeId: 'another-host' })
+        expect(notifications).toBeGreaterThanOrEqual(count)
+        expect(notifications).toBeLessThanOrEqual(8 * count)
+        expect(selections).toBeGreaterThan(0)
+        expect(selections).toBeLessThanOrEqual(64 * count)
         for (const pane of panes) {
           expect(pane.deps.setRuntimePaneTitle).not.toHaveBeenCalled()
         }
-        mockStoreState.setPaneForegroundAgent(panes[0].paneKey, {
+        clear()
+        store.getState().setPaneForegroundAgent('other-host:foreign', {
           agent: 'omp',
           agentEvidence: 'process-read',
           shellForeground: false
         })
-        for (const subscriber of storeSubscribers) {
-          subscriber(mockStoreState)
+        expect(notifications).toBeGreaterThanOrEqual(count)
+        expect(notifications).toBeLessThanOrEqual(8 * count)
+        expect(selections).toBeGreaterThan(0)
+        expect(selections).toBeLessThanOrEqual(64 * count)
+        for (const pane of panes) {
+          expect(pane.deps.setRuntimePaneTitle).not.toHaveBeenCalled()
         }
+        store
+          .getState()
+          .setAgentStatus(panes[0].paneKey, { state: 'working', prompt: 'task', agentType: 'pi' })
+        clear()
+        store.getState().setPaneForegroundAgent(panes[0].paneKey, {
+          agent: 'omp',
+          agentEvidence: 'process-read',
+          shellForeground: false
+        })
+        expect(store.getState().agentStatusByPaneKey[panes[0].paneKey].agentType).toBe('omp')
         expect(panes[0].deps.setRuntimePaneTitle).toHaveBeenCalledTimes(1)
+        expect(notifications).toBeLessThanOrEqual(8 * count)
+        expect(selections).toBeGreaterThan(0)
+        expect(selections).toBeLessThanOrEqual(64 * count)
         for (const pane of panes.slice(1)) {
           expect(pane.manager.setPaneGpuRendering).not.toHaveBeenCalled()
         }
-        const subscribersBefore = storeSubscribers.length
         for (const pane of panes) {
           pane.binding.dispose()
         }
-        expect(storeSubscribers.length).toBeLessThan(subscribersBefore)
-        panes[0].deps.setRuntimePaneTitle.mockClear()
-        mockStoreState.setPaneForegroundAgent(panes[0].paneKey, {
+        clear()
+        store.getState().setPaneForegroundAgent(panes[0].paneKey, {
           agent: 'pi',
           agentEvidence: 'process-read',
           shellForeground: false
         })
-        for (const subscriber of storeSubscribers) {
-          subscriber(mockStoreState)
+        expect(notifications).toBe(0)
+        expect(selections).toBe(0)
+        for (const pane of panes) {
+          expect(pane.deps.setRuntimePaneTitle).not.toHaveBeenCalled()
         }
-        expect(panes[0].deps.setRuntimePaneTitle).not.toHaveBeenCalled()
       }
     )
 
@@ -589,11 +837,7 @@ export function registerPtyConnectionTypedAgentIdentityTests(): void {
           subscriber(mockStoreState)
         }
       }
-      // SAFETY: the transport fixture records the typed title callback installed by connectPanePty.
-      const onTitle = createdTransportOptions[0].onTitleChange as (
-        title: string,
-        raw: string
-      ) => void
+      const onTitle = checkedTitleCallback(createdTransportOptions[0])
       onTitle('Pi ready', 'Pi ready')
       expect(deps.setRuntimePaneTitle).toHaveBeenLastCalledWith('tab-1', 1, 'OMP ready')
       onTitle('✦ Gemini CLI', '✦ Gemini CLI')

@@ -16,7 +16,12 @@ import type { ConnectPanePtySession } from './connect-pane-pty-session'
 import { installPanePtyVisibilityBind } from './pane-pty-visibility-bind'
 
 export function installTitleSpawnBell(session: ConnectPanePtySession): void {
-  let lastTitle: { title: string; rawTitle: string; ptyId: string | null } | null = null
+  let lastTitle: {
+    title: string
+    rawTitle: string
+    displayTitle: string
+    ptyId: string | null
+  } | null = null
   const presentTitle = (title: string, rawTitle: string) => {
     const decision = resolvePaneTitleDecision({
       normalizedTitle: title,
@@ -26,6 +31,7 @@ export function installTitleSpawnBell(session: ConnectPanePtySession): void {
       userGpuMode: useAppStore.getState().settings?.terminalGpuAcceleration ?? 'auto'
     })
     const paneTitle = decision.displayTitle
+    lastTitle = { title, rawTitle, displayTitle: paneTitle, ptyId: session.transport.getPtyId() }
     session.manager.setPaneGpuRendering(session.pane.id, decision.rendererPolicy.gpuEnabled)
     session.deps.setRuntimePaneTitle(session.deps.tabId, session.pane.id, paneTitle)
     if (session.manager.getActivePane()?.id === session.pane.id) {
@@ -68,7 +74,13 @@ export function installTitleSpawnBell(session: ConnectPanePtySession): void {
         state.correctAgentStatusIdentity(key, entry, foreground)
       }
       if (ownerChanged && lastTitle && lastTitle.ptyId === session.transport.getPtyId()) {
-        presentTitle(lastTitle.title, lastTitle.rawTitle)
+        const liveTitle =
+          useAppStore.getState().runtimePaneTitlesByTabId?.[session.deps.tabId]?.[session.pane.id]
+        if (liveTitle === lastTitle.displayTitle) {
+          presentTitle(lastTitle.title, lastTitle.rawTitle)
+        } else {
+          lastTitle = null
+        }
       }
     })
   )
@@ -77,7 +89,6 @@ export function installTitleSpawnBell(session: ConnectPanePtySession): void {
     rawTitle: string,
     meta?: { staleWorkingTitleClear?: boolean }
   ): void => {
-    lastTitle = { title, rawTitle, ptyId: session.transport.getPtyId() }
     if (!meta?.staleWorkingTitleClear && resolveCommittedTitleAgentType(rawTitle)) {
       session.paneForegroundAgentTracker.onAgentStartupObserved()
     }
