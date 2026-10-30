@@ -430,9 +430,7 @@ it.each([
 )
 
 it('opens setup with a clicked chevron without launching, then dispatches its selected surface once', () => {
-  const configure = document.querySelector<HTMLButtonElement>(
-    'button[aria-label="Configure Codex"]'
-  )
+  const configure = getByRole(document.body, 'button', { name: 'Configure Codex' })
   expect(configure?.dataset.variant).toBe('ghost')
   expect(configure?.previousElementSibling?.getAttribute('data-orientation')).toBe('vertical')
   act(() => configure?.click())
@@ -736,6 +734,7 @@ it('retains the whole row draft after outside dismissal, menu remount and launch
       models: ['opus', 'sonnet'].map((id) => ({
         id,
         label: id,
+        isDefault: id === 'opus',
         supportsFastMode: true,
         efforts: [
           { value: 'low', label: 'Low' },
