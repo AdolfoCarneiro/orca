@@ -1,4 +1,4 @@
-import { codeFenceFor } from './markdown-code-fence'
+import { codeBlockMarkdown } from './html-code-block-markdown'
 import { escapeTableCell } from './markdown-table-rows'
 import {
   inlineChildren,
@@ -173,11 +173,7 @@ export function blockMarkdown(node: Node): string {
     return quoteMarkdown(node)
   }
   if (tag === 'pre') {
-    const language = node.getAttribute('data-language') ?? ''
-    // Drop trailing newlines: browsers leave a placeholder <br> after Enter at the end of a block.
-    const code = textContent(node).replace(/\n+$/, '')
-    const fence = codeFenceFor(code)
-    return `${fence}${language}\n${code}\n${fence}`
+    return codeBlockMarkdown(node)
   }
   if (tag === 'ul' || tag === 'ol') {
     return listMarkdown(node, 0)
